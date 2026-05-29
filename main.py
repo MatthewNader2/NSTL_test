@@ -1,101 +1,51 @@
 # main.py
-from lattice import DomainLattice, LatticeOrchestrator, MicroCell
+from lattice import LatticeOrchestrator
 from router import LatticeRouter
 from unification import ExecutionContext, UnificationGate
 
-# ==========================================
-# DEFINE COMPONENT TREES INDEPENDENTLY
-# ==========================================
 
-# Tree A: Standard Python Collections Operations
-standard_tree = DomainLattice("Standard_Python_Builtins")
-standard_tree.add_cell(
-    MicroCell(
-        cell_id="SORT_LIST",
-        stage=1,
-        keywords={"sort", "order", "list", "array"},
-        code_template="{output_var} = sorted({input_var})",
-        inputs={"input_type": "list", "expected_state": "unordered_collection"},
-        outputs={"output_type": "list", "resulting_state": "sorted_collection"},
-    )
-)
+def execute_production_engine(user_prompt: str, initial_file: str):
+    print("\n" + "=" * 70)
+    print(" NSTL ENGINE CORE COMPILED AND RUNNING")
+    print("=" * 70)
 
-# Tree B: Specialized Pandas Library
-pandas_tree = DomainLattice("Pandas_Dataframe_Library")
-pandas_tree.add_cell(
-    MicroCell(
-        cell_id="READ_CSV",
-        stage=1,
-        keywords={"read", "csv", "load", "file"},
-        code_template="with open('{input_var}', 'r') as f:\n    {output_var} = pd.read_csv(f)",
-        inputs={"input_type": "str", "expected_state": "filepath"},
-        outputs={"output_type": "DataFrame", "resulting_state": "raw_data"},
-    )
-)
-pandas_tree.add_cell(
-    MicroCell(
-        cell_id="FILTER_NAN",
-        stage=2,
-        keywords={"clean", "nan", "drop", "null"},
-        code_template="{output_var} = {input_var}.dropna()",
-        inputs={"input_type": "DataFrame", "expected_state": "raw_data"},
-        outputs={"output_type": "DataFrame", "resulting_state": "clean_data"},
-    )
-)
+    # 1. Initialize Orchestrator Wrapper - Spawns automatic file discovery pass
+    wrapper = LatticeOrchestrator()
 
-
-# ==========================================
-# RUNTIME EXPERIMENT PIPELINE
-# ==========================================
-
-
-def execute_system(prompt: str, orchestrator: LatticeOrchestrator):
+    # 2. Seed Environment Scope Context
     context = ExecutionContext()
-    # Seed initial environment configuration assuming a file stream entry
     context.declare_variable(name="var_0", var_type="str", state="filepath")
+    print(f"\n[SEED PROFILE] Bound variable var_0 = '{initial_file}' (type: str)")
 
-    router = LatticeRouter(orchestrator)
-    execution_path = router.plan_path(prompt)
+    # 3. Prompt Analysis via Tokenizer Route Matrix
+    router = LatticeRouter(wrapper)
+    execution_path = router.plan_path(user_prompt)
 
+    # 4. Sequential Type-Verification Gate Compilation Passing
     compiled_pipeline = []
     variable_counter = 1
 
+    print("\n--- Processing Monadic Unification Structural Safety Verification ---")
     for cell in execution_path:
         code_block = UnificationGate.unify(context, cell, variable_counter)
         if code_block is not None:
             compiled_pipeline.append(code_block)
             variable_counter += 1
 
-    print("\n[RESULTING ASSEMBLY OUTPUT]:")
-    print(
-        "\n".join(compiled_pipeline)
-        if compiled_pipeline
-        else "[EMPTY] No valid path generated."
-    )
+    print("\n" + "=" * 70)
+    print(" PRODUCTION APPLICATION OUTPUT PIPELINE GENERATED SUCCESSFULLY")
+    print("=" * 70)
+    if compiled_pipeline:
+        print("\n".join(compiled_pipeline))
+    else:
+        print(
+            "[SYSTEM ALERT] Incompatible path sequence or missing active domain module capability."
+        )
+    print("=" * 70)
 
 
 if __name__ == "__main__":
-    print("Initializing Wrapper Framework Experiment...\n")
+    # Realistic complex client prompt requesting an end-to-end data processing stream
+    realistic_prompt = "load my source data file, clean out any missing values, format the column headers to lowercase, and give me a full summary of the statistical metrics to export to json format"
 
-    # 1. Initialize the central Wrapper
-    wrapper = LatticeOrchestrator()
-
-    # 2. Mount ONLY the standard tree first
-    wrapper.register_domain_tree(standard_tree)
-
-    # Test Prompt that requires Pandas functionality
-    user_prompt = "read a database csv file and clean out the nan cells"
-
-    print(
-        "\n--- TEST 1: Requesting Pandas actions while only Standard Tree is mounted ---"
-    )
-    execute_system(user_prompt, wrapper)
-
-    print("\n" + "=" * 70)
-
-    # 3. Dynamically plug in the Pandas Tree live
-    print("--- DYNAMIC CAPABILITY UPGRADE ---")
-    wrapper.register_domain_tree(pandas_tree)
-
-    print("\n--- TEST 2: Running the exact same prompt after mounting Pandas Tree ---")
-    execute_system(user_prompt, wrapper)
+    execute_production_engine(realistic_prompt, initial_file="raw_sensor_telemetry.csv")
