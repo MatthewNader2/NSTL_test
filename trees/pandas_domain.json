@@ -1,0 +1,90 @@
+{
+  "domain_name": "Pandas_Data_Analytics",
+  "version": "1.0.0",
+  "cells": [
+    {
+      "cell_id": "LOAD_CSV",
+      "stage": 1,
+      "keywords": ["read", "csv", "load", "file", "ingest", "dataframe"],
+      "code_template": "import pandas as pd\nwith open('{input_var}', 'r') as f:\n    {output_var} = pd.read_csv(f)",
+      "inputs": {
+        "input_type": "str",
+        "expected_state": "filepath"
+      },
+      "outputs": {
+        "output_type": "DataFrame",
+        "resulting_state": "raw_dataframe"
+      }
+    },
+    {
+      "cell_id": "CLEAN_NULLS",
+      "stage": 2,
+      "keywords": ["clean", "nan", "drop", "null", "missing", "remove"],
+      "code_template": "{output_var} = {input_var}.dropna(axis=0, how='any')",
+      "inputs": {
+        "input_type": "DataFrame",
+        "expected_state": "raw_dataframe"
+      },
+      "outputs": {
+        "output_type": "DataFrame",
+        "resulting_state": "clean_dataframe"
+      }
+    },
+    {
+      "cell_id": "STANDARDIZE_COLUMNS",
+      "stage": 3,
+      "keywords": [
+        "rename",
+        "headers",
+        "lowercase",
+        "columns",
+        "format",
+        "standardize"
+      ],
+      "code_template": "{output_var} = {input_var}.rename(columns=str.lower)",
+      "inputs": {
+        "input_type": "DataFrame",
+        "expected_state": "clean_dataframe"
+      },
+      "outputs": {
+        "output_type": "DataFrame",
+        "resulting_state": "standardized_dataframe"
+      }
+    },
+    {
+      "cell_id": "COMPUTE_DESCRIPTIVE_STATS",
+      "stage": 4,
+      "keywords": [
+        "describe",
+        "summary",
+        "stats",
+        "mean",
+        "analyze",
+        "metrics"
+      ],
+      "code_template": "{output_var} = {input_var}.describe(include='all')",
+      "inputs": {
+        "input_type": "DataFrame",
+        "expected_state": "standardized_dataframe"
+      },
+      "outputs": {
+        "output_type": "DataFrame",
+        "resulting_state": "statistical_summary"
+      }
+    },
+    {
+      "cell_id": "EXPORT_TO_JSON",
+      "stage": 5,
+      "keywords": ["serialize", "save", "export", "json", "convert"],
+      "code_template": "{output_var} = {input_var}.to_json(orient='records', indent=4)",
+      "inputs": {
+        "input_type": "DataFrame",
+        "expected_state": "statistical_summary"
+      },
+      "outputs": {
+        "output_type": "str",
+        "resulting_state": "serialized_json_string"
+      }
+    }
+  ]
+}
