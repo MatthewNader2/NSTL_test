@@ -59,44 +59,66 @@ export default function RightPanel({ open, onToggle }) {
         <div
           style={{
             display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            padding: "0.375rem 0.75rem",
             borderBottom: "1px solid var(--glass-border)",
-            background: "rgba(0,0,0,0.3)",
-            overflowX: "auto",
+            background: "rgba(4, 8, 20, 0.6)",
+            gap: "0.5rem",
           }}
         >
-          {tabs.map((t) => (
-            <button
-              key={t.id}
-              onClick={() => setActiveTab(t.id)}
-              style={{
-                flex: 1,
-                padding: "10px",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                gap: 6,
-                color:
-                  activeTab === t.id
-                    ? "var(--accent)"
-                    : "var(--text-secondary)",
-                borderBottom:
-                  activeTab === t.id
-                    ? "2px solid var(--accent)"
-                    : "2px solid transparent",
-                fontWeight: activeTab === t.id ? "bold" : "normal",
-                whiteSpace: "nowrap",
-              }}
-            >
-              {t.icon} <span style={{ fontSize: "0.85rem" }}>{t.label}</span>
-            </button>
-          ))}
+          <div
+            style={{
+              display: "flex",
+              gap: "0.375rem",
+              flex: 1,
+              overflowX: "auto",
+            }}
+          >
+            {tabs.map((t) => {
+              const isActive = activeTab === t.id;
+              return (
+                <button
+                  key={t.id}
+                  onClick={() => {
+                    setActiveTab(t.id);
+                    useStore.getState().logSystemEvent(`Switch right panel tab to: ${t.id}`, "UI");
+                  }}
+                  style={{
+                    padding: "0.375rem 0.75rem",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "0.375rem",
+                    borderRadius: "6px",
+                    background: isActive ? "rgba(0, 229, 255, 0.12)" : "transparent",
+                    border: isActive ? "1px solid rgba(0, 229, 255, 0.25)" : "1px solid transparent",
+                    color: isActive ? "var(--accent)" : "var(--text-secondary)",
+                    fontWeight: isActive ? "600" : "400",
+                    whiteSpace: "nowrap",
+                    fontSize: "0.75rem",
+                    boxShadow: isActive ? "0 0 8px rgba(0, 229, 255, 0.08)" : "none",
+                  }}
+                >
+                  {t.icon}
+                  <span>{t.label}</span>
+                </button>
+              );
+            })}
+          </div>
           {/* Mobile Close Button */}
           <button
             onClick={onToggle}
-            style={{ padding: "0 15px", color: "var(--text-secondary)" }}
+            style={{
+              padding: "0.375rem",
+              color: "var(--text-secondary)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              borderRadius: "6px",
+            }}
             className="mobile-close-btn"
           >
-            <X size={18} />
+            <X size={14} />
           </button>
         </div>
 
@@ -272,6 +294,47 @@ export default function RightPanel({ open, onToggle }) {
                   </div>
                 </div>
               ))}
+            </div>
+          )}
+
+          {activeTab === "log" && (
+            <div style={{ padding: "16px", overflowY: "auto", height: "100%", fontFamily: "var(--font-mono)", fontSize: "0.75rem" }}>
+              {logs.length === 0 ? (
+                <div style={{ color: "var(--text-secondary)", textAlign: "center", marginTop: "40px" }}>
+                  No execution logs available. Run a query in the console.
+                </div>
+              ) : (
+                <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+                  {logs.map((log, i) => {
+                    let color = "var(--text-primary)";
+                    let borderLeftColor = "rgba(255,255,255,0.1)";
+                    if (log.type === "system") { color = "#c678dd"; borderLeftColor = "#c678dd"; }
+                    else if (log.type === "warn" || log.type === "error") { color = "#e06c75"; borderLeftColor = "#e06c75"; }
+                    else if (log.type === "debug") { color = "var(--text-secondary)"; borderLeftColor = "var(--text-secondary)"; }
+                    else if (log.type === "info") { color = "#61afef"; borderLeftColor = "#61afef"; }
+                    
+                    return (
+                      <div
+                        key={i}
+                        style={{
+                          background: "rgba(0,0,0,0.25)",
+                          padding: "6px 10px",
+                          borderRadius: "4px",
+                          borderLeft: `3px solid ${borderLeftColor}`,
+                          color: color,
+                          wordBreak: "break-word",
+                          lineHeight: "1.3"
+                        }}
+                      >
+                        <span style={{ opacity: 0.6, fontSize: "0.65rem", marginRight: "6px" }}>
+                          [{log.type?.toUpperCase()}]
+                        </span>
+                        {log.msg}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
             </div>
           )}
         </div>

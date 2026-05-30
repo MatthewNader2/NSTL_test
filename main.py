@@ -754,7 +754,13 @@ if __name__ == "__main__":
             height=900,
             text_select=True,
         )
-        webview.start(debug=False)
+        
+        # Load app icon dynamically if present
+        icon_path = get_resource_path("app_icon.png")
+        if not os.path.exists(icon_path):
+            icon_path = get_resource_path("app_icon.ico")
+            
+        webview.start(debug=False, icon=icon_path if os.path.exists(icon_path) else None)
     except Exception:
         while True:
             time.sleep(100)

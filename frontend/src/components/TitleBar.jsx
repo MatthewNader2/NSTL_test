@@ -1,9 +1,11 @@
 import { useStore } from "../store";
-import { Zap, Cpu, Layers, Settings } from "lucide-react";
+import { Zap, Cpu, Layers, Settings, Terminal } from "lucide-react";
 
 export default function TitleBar({ onSettingsClick }) {
   const apiStatus = useStore((s) => s.apiStatus);
   const cells = useStore((s) => s.cells);
+  const devMenuOpen = useStore((s) => s.devMenuOpen);
+  const setDevMenuOpen = useStore((s) => s.setDevMenuOpen);
 
   return (
     <div
@@ -17,6 +19,7 @@ export default function TitleBar({ onSettingsClick }) {
         padding: "0 0.75rem",
         fontSize: "0.6875rem", // 11px in rem
         color: "var(--text-secondary)",
+        userSelect: "none",
       }}
     >
       <div style={{ display: "flex", gap: "1rem", alignItems: "center" }}>
@@ -38,7 +41,7 @@ export default function TitleBar({ onSettingsClick }) {
       <div style={{ display: "flex", gap: "0.75rem", alignItems: "center" }}>
         <div style={{ display: "flex", gap: "0.5rem", alignItems: "center" }}>
           <Layers size={12} />
-          <span>all‑MiniLM‑L6‑v2</span>
+          <span>jina‑embeddings‑v5‑nano</span>
         </div>
         <button
           onClick={onSettingsClick}
@@ -51,6 +54,20 @@ export default function TitleBar({ onSettingsClick }) {
           title="Network Connection"
         >
           <Settings size={12} />
+        </button>
+        <button
+          onClick={() => {
+            setDevMenuOpen(!devMenuOpen);
+          }}
+          style={{
+            display: "flex",
+            alignItems: "center",
+            color: devMenuOpen ? "var(--accent)" : "var(--text-secondary)",
+            padding: "2px",
+          }}
+          title="Developer Log Console"
+        >
+          <Terminal size={12} />
         </button>
       </div>
     </div>
