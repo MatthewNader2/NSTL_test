@@ -1,0 +1,1081 @@
+{
+  "domain_name": "NumPy_Complete_Scientific_Computing",
+  "version": "1.0.0",
+  "cells": [
+    {
+      "cell_id": "CREATE_FROM_LIST",
+      "stage": 1,
+      "keywords": ["array", "list", "create", "from", "sequence"],
+      "code_template": "import numpy as np\n{output_var} = np.array({input_var})",
+      "inputs": { "input_type": "list", "expected_state": "python_sequence" },
+      "outputs": { "output_type": "ndarray", "resulting_state": "raw_array" }
+    },
+    {
+      "cell_id": "CREATE_FROM_TUPLE",
+      "stage": 1,
+      "keywords": ["array", "tuple", "create", "from", "sequence"],
+      "code_template": "import numpy as np\n{output_var} = np.array({input_var})",
+      "inputs": { "input_type": "tuple", "expected_state": "python_sequence" },
+      "outputs": { "output_type": "ndarray", "resulting_state": "raw_array" }
+    },
+    {
+      "cell_id": "ZEROS_ARRAY",
+      "stage": 1,
+      "keywords": ["zeros", "create", "empty", "shape", "initialization"],
+      "code_template": "import numpy as np\n{output_var} = np.zeros({input_var})",
+      "inputs": { "input_type": "tuple", "expected_state": "shape_tuple" },
+      "outputs": { "output_type": "ndarray", "resulting_state": "raw_array" }
+    },
+    {
+      "cell_id": "ONES_ARRAY",
+      "stage": 1,
+      "keywords": ["ones", "create", "fill", "shape", "initialization"],
+      "code_template": "import numpy as np\n{output_var} = np.ones({input_var})",
+      "inputs": { "input_type": "tuple", "expected_state": "shape_tuple" },
+      "outputs": { "output_type": "ndarray", "resulting_state": "raw_array" }
+    },
+    {
+      "cell_id": "FULL_ARRAY",
+      "stage": 1,
+      "keywords": ["full", "create", "fill", "constant", "initialization"],
+      "code_template": "import numpy as np\n{output_var} = np.full({input_var}, 5.0)",
+      "inputs": { "input_type": "tuple", "expected_state": "shape_tuple" },
+      "outputs": { "output_type": "ndarray", "resulting_state": "raw_array" }
+    },
+    {
+      "cell_id": "EMPTY_ARRAY",
+      "stage": 1,
+      "keywords": ["empty", "create", "uninitialized", "shape", "memory"],
+      "code_template": "import numpy as np\n{output_var} = np.empty({input_var})",
+      "inputs": { "input_type": "tuple", "expected_state": "shape_tuple" },
+      "outputs": { "output_type": "ndarray", "resulting_state": "raw_array" }
+    },
+    {
+      "cell_id": "ARANGE_ARRAY",
+      "stage": 1,
+      "keywords": ["arange", "range", "sequence", "step", "create"],
+      "code_template": "import numpy as np\n{output_var} = np.arange({input_var}[0], {input_var}[1], {input_var}[2])",
+      "inputs": { "input_type": "list", "expected_state": "python_sequence" },
+      "outputs": { "output_type": "ndarray", "resulting_state": "raw_array" }
+    },
+    {
+      "cell_id": "LINSPACE_ARRAY",
+      "stage": 1,
+      "keywords": ["linspace", "linear", "space", "even", "create"],
+      "code_template": "import numpy as np\n{output_var} = np.linspace({input_var}[0], {input_var}[1], {input_var}[2])",
+      "inputs": { "input_type": "list", "expected_state": "python_sequence" },
+      "outputs": { "output_type": "ndarray", "resulting_state": "raw_array" }
+    },
+    {
+      "cell_id": "LOGSPACE_ARRAY",
+      "stage": 1,
+      "keywords": ["logspace", "logarithmic", "space", "even", "create"],
+      "code_template": "import numpy as np\n{output_var} = np.logspace({input_var}[0], {input_var}[1], {input_var}[2])",
+      "inputs": { "input_type": "list", "expected_state": "python_sequence" },
+      "outputs": { "output_type": "ndarray", "resulting_state": "raw_array" }
+    },
+    {
+      "cell_id": "EYE_MATRIX",
+      "stage": 1,
+      "keywords": ["eye", "identity", "diagonal", "matrix", "create"],
+      "code_template": "import numpy as np\n{output_var} = np.eye({input_var})",
+      "inputs": { "input_type": "int", "expected_state": "dimension_int" },
+      "outputs": { "output_type": "ndarray", "resulting_state": "raw_array" }
+    },
+    {
+      "cell_id": "IDENTITY_MATRIX",
+      "stage": 1,
+      "keywords": ["identity", "square", "diagonal", "matrix", "create"],
+      "code_template": "import numpy as np\n{output_var} = np.identity({input_var})",
+      "inputs": { "input_type": "int", "expected_state": "dimension_int" },
+      "outputs": { "output_type": "ndarray", "resulting_state": "raw_array" }
+    },
+    {
+      "cell_id": "RANDOM_RAND",
+      "stage": 1,
+      "keywords": ["random", "rand", "uniform", "probability", "stochastic"],
+      "code_template": "import numpy as np\n{output_var} = np.random.rand(*{input_var})",
+      "inputs": { "input_type": "tuple", "expected_state": "shape_tuple" },
+      "outputs": { "output_type": "ndarray", "resulting_state": "raw_array" }
+    },
+    {
+      "cell_id": "RANDOM_RANDN",
+      "stage": 1,
+      "keywords": ["random", "randn", "normal", "gaussian", "stochastic"],
+      "code_template": "import numpy as np\n{output_var} = np.random.randn(*{input_var})",
+      "inputs": { "input_type": "tuple", "expected_state": "shape_tuple" },
+      "outputs": { "output_type": "ndarray", "resulting_state": "raw_array" }
+    },
+    {
+      "cell_id": "RANDOM_RANDINT",
+      "stage": 1,
+      "keywords": ["random", "randint", "integer", "discrete", "stochastic"],
+      "code_template": "import numpy as np\n{output_var} = np.random.randint(0, 100, size={input_var})",
+      "inputs": { "input_type": "tuple", "expected_state": "shape_tuple" },
+      "outputs": { "output_type": "ndarray", "resulting_state": "raw_array" }
+    },
+    {
+      "cell_id": "RANDOM_NORMAL",
+      "stage": 1,
+      "keywords": ["random", "normal", "loc", "scale", "stochastic"],
+      "code_template": "import numpy as np\n{output_var} = np.random.normal(loc=0.0, scale=1.0, size={input_var})",
+      "inputs": { "input_type": "tuple", "expected_state": "shape_tuple" },
+      "outputs": { "output_type": "ndarray", "resulting_state": "raw_array" }
+    },
+    {
+      "cell_id": "LOAD_TXT",
+      "stage": 1,
+      "keywords": ["loadtxt", "text", "read", "csv", "ingest"],
+      "code_template": "import numpy as np\n{output_var} = np.loadtxt({input_var}, delimiter=',')",
+      "inputs": { "input_type": "str", "expected_state": "filepath" },
+      "outputs": { "output_type": "ndarray", "resulting_state": "raw_array" }
+    },
+    {
+      "cell_id": "GENFROMTXT",
+      "stage": 1,
+      "keywords": ["genfromtxt", "text", "missing", "read", "ingest"],
+      "code_template": "import numpy as np\n{output_var} = np.genfromtxt({input_var}, delimiter=',', filling_values=0.0)",
+      "inputs": { "input_type": "str", "expected_state": "filepath" },
+      "outputs": { "output_type": "ndarray", "resulting_state": "raw_array" }
+    },
+    {
+      "cell_id": "FROMFILE",
+      "stage": 1,
+      "keywords": ["fromfile", "binary", "read", "raw", "ingest"],
+      "code_template": "import numpy as np\n{output_var} = np.fromfile({input_var}, dtype='float32')",
+      "inputs": { "input_type": "str", "expected_state": "filepath" },
+      "outputs": { "output_type": "ndarray", "resulting_state": "raw_array" }
+    },
+    {
+      "cell_id": "LOAD_NPY",
+      "stage": 1,
+      "keywords": ["load", "npy", "binary", "numpy", "ingest"],
+      "code_template": "import numpy as np\n{output_var} = np.load({input_var})",
+      "inputs": { "input_type": "str", "expected_state": "filepath" },
+      "outputs": { "output_type": "ndarray", "resulting_state": "raw_array" }
+    },
+    {
+      "cell_id": "LOAD_NPZ",
+      "stage": 1,
+      "keywords": ["load", "npz", "archive", "numpy", "ingest"],
+      "code_template": "import numpy as np\n{output_var} = np.load({input_var})['data']",
+      "inputs": { "input_type": "str", "expected_state": "filepath" },
+      "outputs": { "output_type": "ndarray", "resulting_state": "raw_array" }
+    },
+    {
+      "cell_id": "RESHAPE_ARRAY",
+      "stage": 2,
+      "keywords": ["reshape", "dimensions", "shape", "structure", "transform"],
+      "code_template": "{output_var} = {input_var}.reshape((2, -1))",
+      "inputs": { "input_type": "ndarray", "expected_state": "raw_array" },
+      "outputs": { "output_type": "ndarray", "resulting_state": "shaped_array" }
+    },
+    {
+      "cell_id": "RAVEL_ARRAY",
+      "stage": 2,
+      "keywords": ["ravel", "flatten", "1d", "contiguous", "transform"],
+      "code_template": "{output_var} = {input_var}.ravel()",
+      "inputs": { "input_type": "ndarray", "expected_state": "raw_array" },
+      "outputs": { "output_type": "ndarray", "resulting_state": "shaped_array" }
+    },
+    {
+      "cell_id": "FLATTEN_ARRAY",
+      "stage": 2,
+      "keywords": ["flatten", "copy", "1d", "collapse", "transform"],
+      "code_template": "{output_var} = {input_var}.flatten()",
+      "inputs": { "input_type": "ndarray", "expected_state": "raw_array" },
+      "outputs": { "output_type": "ndarray", "resulting_state": "shaped_array" }
+    },
+    {
+      "cell_id": "SQUEEZE_ARRAY",
+      "stage": 2,
+      "keywords": ["squeeze", "remove", "axis", "singleton", "transform"],
+      "code_template": "{output_var} = {input_var}.squeeze()",
+      "inputs": { "input_type": "ndarray", "expected_state": "raw_array" },
+      "outputs": { "output_type": "ndarray", "resulting_state": "shaped_array" }
+    },
+    {
+      "cell_id": "EXPAND_DIMS",
+      "stage": 2,
+      "keywords": ["expand_dims", "add", "axis", "dimension", "transform"],
+      "code_template": "import numpy as np\n{output_var} = np.expand_dims({input_var}, axis=0)",
+      "inputs": { "input_type": "ndarray", "expected_state": "raw_array" },
+      "outputs": { "output_type": "ndarray", "resulting_state": "shaped_array" }
+    },
+    {
+      "cell_id": "TRANSPOSE_ARRAY",
+      "stage": 2,
+      "keywords": ["transpose", "T", "permute", "axes", "transform"],
+      "code_template": "{output_var} = {input_var}.T",
+      "inputs": { "input_type": "ndarray", "expected_state": "raw_array" },
+      "outputs": { "output_type": "ndarray", "resulting_state": "shaped_array" }
+    },
+    {
+      "cell_id": "FLIP_ARRAY",
+      "stage": 2,
+      "keywords": ["flip", "reverse", "order", "axis", "transform"],
+      "code_template": "import numpy as np\n{output_var} = np.flip({input_var})",
+      "inputs": { "input_type": "ndarray", "expected_state": "raw_array" },
+      "outputs": { "output_type": "ndarray", "resulting_state": "shaped_array" }
+    },
+    {
+      "cell_id": "ROLL_ARRAY",
+      "stage": 2,
+      "keywords": ["roll", "shift", "circular", "offset", "transform"],
+      "code_template": "import numpy as np\n{output_var} = np.roll({input_var}, shift=1)",
+      "inputs": { "input_type": "ndarray", "expected_state": "raw_array" },
+      "outputs": { "output_type": "ndarray", "resulting_state": "shaped_array" }
+    },
+    {
+      "cell_id": "ROT90_ARRAY",
+      "stage": 2,
+      "keywords": ["rot90", "rotate", "matrix", "image", "transform"],
+      "code_template": "import numpy as np\n{output_var} = np.rot90({input_var})",
+      "inputs": { "input_type": "ndarray", "expected_state": "raw_array" },
+      "outputs": { "output_type": "ndarray", "resulting_state": "shaped_array" }
+    },
+    {
+      "cell_id": "NAN_TO_NUM",
+      "stage": 2,
+      "keywords": ["nan_to_num", "missing", "clean", "replace", "impute"],
+      "code_template": "import numpy as np\n{output_var} = np.nan_to_num({input_var}, nan=0.0)",
+      "inputs": { "input_type": "ndarray", "expected_state": "raw_array" },
+      "outputs": { "output_type": "ndarray", "resulting_state": "shaped_array" }
+    },
+    {
+      "cell_id": "MASK_NANS",
+      "stage": 2,
+      "keywords": ["mask", "nan", "boolean", "filter", "clean"],
+      "code_template": "import numpy as np\n{output_var} = {input_var}[~np.isnan({input_var})]",
+      "inputs": { "input_type": "ndarray", "expected_state": "raw_array" },
+      "outputs": { "output_type": "ndarray", "resulting_state": "shaped_array" }
+    },
+    {
+      "cell_id": "DROP_NANS",
+      "stage": 2,
+      "keywords": ["drop", "nan", "rows", "filter", "clean"],
+      "code_template": "import numpy as np\n{output_var} = {input_var}[~np.isnan({input_var}).any(axis=1)]",
+      "inputs": { "input_type": "ndarray", "expected_state": "raw_array" },
+      "outputs": { "output_type": "ndarray", "resulting_state": "shaped_array" }
+    },
+    {
+      "cell_id": "ASTYPE_CAST",
+      "stage": 2,
+      "keywords": ["astype", "cast", "dtype", "convert", "memory"],
+      "code_template": "{output_var} = {input_var}.astype('float32')",
+      "inputs": { "input_type": "ndarray", "expected_state": "raw_array" },
+      "outputs": { "output_type": "ndarray", "resulting_state": "shaped_array" }
+    },
+    {
+      "cell_id": "UNIQUE_VALUES",
+      "stage": 2,
+      "keywords": ["unique", "distinct", "dedupe", "set", "clean"],
+      "code_template": "import numpy as np\n{output_var} = np.unique({input_var})",
+      "inputs": { "input_type": "ndarray", "expected_state": "raw_array" },
+      "outputs": { "output_type": "ndarray", "resulting_state": "shaped_array" }
+    },
+    {
+      "cell_id": "REPEAT_ELEMENTS",
+      "stage": 2,
+      "keywords": ["repeat", "duplicate", "elements", "expand", "transform"],
+      "code_template": "import numpy as np\n{output_var} = np.repeat({input_var}, repeats=2)",
+      "inputs": { "input_type": "ndarray", "expected_state": "raw_array" },
+      "outputs": { "output_type": "ndarray", "resulting_state": "shaped_array" }
+    },
+    {
+      "cell_id": "TILE_ARRAY",
+      "stage": 2,
+      "keywords": ["tile", "repeat", "block", "construct", "transform"],
+      "code_template": "import numpy as np\n{output_var} = np.tile({input_var}, reps=2)",
+      "inputs": { "input_type": "ndarray", "expected_state": "raw_array" },
+      "outputs": { "output_type": "ndarray", "resulting_state": "shaped_array" }
+    },
+    {
+      "cell_id": "PAD_ARRAY",
+      "stage": 2,
+      "keywords": ["pad", "border", "edges", "constant", "transform"],
+      "code_template": "import numpy as np\n{output_var} = np.pad({input_var}, pad_width=1, mode='constant')",
+      "inputs": { "input_type": "ndarray", "expected_state": "raw_array" },
+      "outputs": { "output_type": "ndarray", "resulting_state": "shaped_array" }
+    },
+    {
+      "cell_id": "TRIM_ARRAY",
+      "stage": 2,
+      "keywords": ["trim", "slice", "crop", "subset", "transform"],
+      "code_template": "{output_var} = {input_var}[1:-1]",
+      "inputs": { "input_type": "ndarray", "expected_state": "raw_array" },
+      "outputs": { "output_type": "ndarray", "resulting_state": "shaped_array" }
+    },
+    {
+      "cell_id": "SORT_ARRAY",
+      "stage": 2,
+      "keywords": ["sort", "order", "ascending", "arrange", "transform"],
+      "code_template": "import numpy as np\n{output_var} = np.sort({input_var})",
+      "inputs": { "input_type": "ndarray", "expected_state": "raw_array" },
+      "outputs": { "output_type": "ndarray", "resulting_state": "shaped_array" }
+    },
+    {
+      "cell_id": "ARGSORT_ARRAY",
+      "stage": 2,
+      "keywords": ["argsort", "indices", "order", "rank", "transform"],
+      "code_template": "import numpy as np\n{output_var} = np.argsort({input_var})",
+      "inputs": { "input_type": "ndarray", "expected_state": "raw_array" },
+      "outputs": { "output_type": "ndarray", "resulting_state": "shaped_array" }
+    },
+    {
+      "cell_id": "ZSCORE_NORMALIZE",
+      "stage": 3,
+      "keywords": ["zscore", "standardize", "normalize", "mean", "std"],
+      "code_template": "import numpy as np\n{output_var} = ({input_var} - np.mean({input_var})) / np.std({input_var})",
+      "inputs": { "input_type": "ndarray", "expected_state": "shaped_array" },
+      "outputs": {
+        "output_type": "ndarray",
+        "resulting_state": "normalized_array"
+      }
+    },
+    {
+      "cell_id": "MINMAX_SCALING",
+      "stage": 3,
+      "keywords": ["minmax", "scale", "normalize", "bounds", "range"],
+      "code_template": "import numpy as np\n{output_var} = ({input_var} - np.min({input_var})) / (np.max({input_var}) - np.min({input_var}))",
+      "inputs": { "input_type": "ndarray", "expected_state": "shaped_array" },
+      "outputs": {
+        "output_type": "ndarray",
+        "resulting_state": "normalized_array"
+      }
+    },
+    {
+      "cell_id": "CLIP_BOUNDS",
+      "stage": 3,
+      "keywords": ["clip", "bounds", "outliers", "cap", "threshold"],
+      "code_template": "import numpy as np\n{output_var} = np.clip({input_var}, a_min=0, a_max=1)",
+      "inputs": { "input_type": "ndarray", "expected_state": "shaped_array" },
+      "outputs": {
+        "output_type": "ndarray",
+        "resulting_state": "normalized_array"
+      }
+    },
+    {
+      "cell_id": "ABSOLUTE_VALUES",
+      "stage": 3,
+      "keywords": ["abs", "absolute", "magnitude", "positive", "math"],
+      "code_template": "import numpy as np\n{output_var} = np.abs({input_var})",
+      "inputs": { "input_type": "ndarray", "expected_state": "shaped_array" },
+      "outputs": {
+        "output_type": "ndarray",
+        "resulting_state": "normalized_array"
+      }
+    },
+    {
+      "cell_id": "LOG_TRANSFORM",
+      "stage": 3,
+      "keywords": ["log", "logarithm", "transform", "skew", "math"],
+      "code_template": "import numpy as np\n{output_var} = np.log1p({input_var})",
+      "inputs": { "input_type": "ndarray", "expected_state": "shaped_array" },
+      "outputs": {
+        "output_type": "ndarray",
+        "resulting_state": "normalized_array"
+      }
+    },
+    {
+      "cell_id": "EXP_TRANSFORM",
+      "stage": 3,
+      "keywords": ["exp", "exponential", "transform", "growth", "math"],
+      "code_template": "import numpy as np\n{output_var} = np.exp({input_var})",
+      "inputs": { "input_type": "ndarray", "expected_state": "shaped_array" },
+      "outputs": {
+        "output_type": "ndarray",
+        "resulting_state": "normalized_array"
+      }
+    },
+    {
+      "cell_id": "SQRT_TRANSFORM",
+      "stage": 3,
+      "keywords": ["sqrt", "square", "root", "transform", "math"],
+      "code_template": "import numpy as np\n{output_var} = np.sqrt({input_var})",
+      "inputs": { "input_type": "ndarray", "expected_state": "shaped_array" },
+      "outputs": {
+        "output_type": "ndarray",
+        "resulting_state": "normalized_array"
+      }
+    },
+    {
+      "cell_id": "ROUND_ARRAY",
+      "stage": 3,
+      "keywords": ["round", "decimal", "precision", "format", "math"],
+      "code_template": "import numpy as np\n{output_var} = np.round({input_var}, decimals=2)",
+      "inputs": { "input_type": "ndarray", "expected_state": "shaped_array" },
+      "outputs": {
+        "output_type": "ndarray",
+        "resulting_state": "normalized_array"
+      }
+    },
+    {
+      "cell_id": "FLOOR_ARRAY",
+      "stage": 3,
+      "keywords": ["floor", "integer", "round", "down", "math"],
+      "code_template": "import numpy as np\n{output_var} = np.floor({input_var})",
+      "inputs": { "input_type": "ndarray", "expected_state": "shaped_array" },
+      "outputs": {
+        "output_type": "ndarray",
+        "resulting_state": "normalized_array"
+      }
+    },
+    {
+      "cell_id": "CEIL_ARRAY",
+      "stage": 3,
+      "keywords": ["ceil", "ceiling", "integer", "round", "up"],
+      "code_template": "import numpy as np\n{output_var} = np.ceil({input_var})",
+      "inputs": { "input_type": "ndarray", "expected_state": "shaped_array" },
+      "outputs": {
+        "output_type": "ndarray",
+        "resulting_state": "normalized_array"
+      }
+    },
+    {
+      "cell_id": "SIGN_VALUES",
+      "stage": 3,
+      "keywords": ["sign", "polarity", "direction", "positive", "negative"],
+      "code_template": "import numpy as np\n{output_var} = np.sign({input_var})",
+      "inputs": { "input_type": "ndarray", "expected_state": "shaped_array" },
+      "outputs": {
+        "output_type": "ndarray",
+        "resulting_state": "normalized_array"
+      }
+    },
+    {
+      "cell_id": "CUMULATIVE_SUM",
+      "stage": 3,
+      "keywords": ["cumsum", "cumulative", "sum", "running", "total"],
+      "code_template": "import numpy as np\n{output_var} = np.cumsum({input_var})",
+      "inputs": { "input_type": "ndarray", "expected_state": "shaped_array" },
+      "outputs": {
+        "output_type": "ndarray",
+        "resulting_state": "normalized_array"
+      }
+    },
+    {
+      "cell_id": "CUMULATIVE_PROD",
+      "stage": 3,
+      "keywords": ["cumprod", "cumulative", "product", "running", "multiply"],
+      "code_template": "import numpy as np\n{output_var} = np.cumprod({input_var})",
+      "inputs": { "input_type": "ndarray", "expected_state": "shaped_array" },
+      "outputs": {
+        "output_type": "ndarray",
+        "resulting_state": "normalized_array"
+      }
+    },
+    {
+      "cell_id": "DIFFERENCE_ARRAY",
+      "stage": 3,
+      "keywords": ["diff", "difference", "delta", "gradient", "discrete"],
+      "code_template": "import numpy as np\n{output_var} = np.diff({input_var})",
+      "inputs": { "input_type": "ndarray", "expected_state": "shaped_array" },
+      "outputs": {
+        "output_type": "ndarray",
+        "resulting_state": "normalized_array"
+      }
+    },
+    {
+      "cell_id": "CUMULATIVE_MAX",
+      "stage": 3,
+      "keywords": ["accumulate", "maximum", "running", "peak", "bound"],
+      "code_template": "import numpy as np\n{output_var} = np.maximum.accumulate({input_var})",
+      "inputs": { "input_type": "ndarray", "expected_state": "shaped_array" },
+      "outputs": {
+        "output_type": "ndarray",
+        "resulting_state": "normalized_array"
+      }
+    },
+    {
+      "cell_id": "STANDARDIZE_AXIS",
+      "stage": 3,
+      "keywords": ["standardize", "axis", "column", "mean", "std"],
+      "code_template": "import numpy as np\n{output_var} = ({input_var} - np.mean({input_var}, axis=0)) / np.std({input_var}, axis=0)",
+      "inputs": { "input_type": "ndarray", "expected_state": "shaped_array" },
+      "outputs": {
+        "output_type": "ndarray",
+        "resulting_state": "normalized_array"
+      }
+    },
+    {
+      "cell_id": "BINARIZE_THRESHOLD",
+      "stage": 3,
+      "keywords": ["binarize", "threshold", "boolean", "step", "discretize"],
+      "code_template": "{output_var} = ({input_var} > 0.5).astype(int)",
+      "inputs": { "input_type": "ndarray", "expected_state": "shaped_array" },
+      "outputs": {
+        "output_type": "ndarray",
+        "resulting_state": "normalized_array"
+      }
+    },
+    {
+      "cell_id": "DEG2RAD",
+      "stage": 3,
+      "keywords": ["deg2rad", "degrees", "radians", "angle", "trigonometry"],
+      "code_template": "import numpy as np\n{output_var} = np.deg2rad({input_var})",
+      "inputs": { "input_type": "ndarray", "expected_state": "shaped_array" },
+      "outputs": {
+        "output_type": "ndarray",
+        "resulting_state": "normalized_array"
+      }
+    },
+    {
+      "cell_id": "RAD2DEG",
+      "stage": 3,
+      "keywords": ["rad2deg", "radians", "degrees", "angle", "trigonometry"],
+      "code_template": "import numpy as np\n{output_var} = np.rad2deg({input_var})",
+      "inputs": { "input_type": "ndarray", "expected_state": "shaped_array" },
+      "outputs": {
+        "output_type": "ndarray",
+        "resulting_state": "normalized_array"
+      }
+    },
+    {
+      "cell_id": "NORMALIZE_VECTOR",
+      "stage": 3,
+      "keywords": ["normalize", "vector", "l2", "norm", "unit"],
+      "code_template": "import numpy as np\n{output_var} = {input_var} / np.linalg.norm({input_var})",
+      "inputs": { "input_type": "ndarray", "expected_state": "shaped_array" },
+      "outputs": {
+        "output_type": "ndarray",
+        "resulting_state": "normalized_array"
+      }
+    },
+    {
+      "cell_id": "MATRIX_DOT_PRODUCT",
+      "stage": 4,
+      "keywords": [
+        "dot",
+        "product",
+        "matrix",
+        "multiplication",
+        "linear_algebra"
+      ],
+      "code_template": "import numpy as np\n{output_var} = np.dot({input_var}, {input_var}.T)",
+      "inputs": {
+        "input_type": "ndarray",
+        "expected_state": "normalized_array"
+      },
+      "outputs": {
+        "output_type": "ndarray",
+        "resulting_state": "analytical_array"
+      }
+    },
+    {
+      "cell_id": "MATRIX_MATMUL",
+      "stage": 4,
+      "keywords": [
+        "matmul",
+        "matrix",
+        "multiply",
+        "operator",
+        "linear_algebra"
+      ],
+      "code_template": "import numpy as np\n{output_var} = np.matmul({input_var}, {input_var}.T)",
+      "inputs": {
+        "input_type": "ndarray",
+        "expected_state": "normalized_array"
+      },
+      "outputs": {
+        "output_type": "ndarray",
+        "resulting_state": "analytical_array"
+      }
+    },
+    {
+      "cell_id": "MATRIX_INVERSE",
+      "stage": 4,
+      "keywords": ["inv", "inverse", "matrix", "solve", "linear_algebra"],
+      "code_template": "import numpy as np\n{output_var} = np.linalg.inv({input_var})",
+      "inputs": {
+        "input_type": "ndarray",
+        "expected_state": "normalized_array"
+      },
+      "outputs": {
+        "output_type": "ndarray",
+        "resulting_state": "analytical_array"
+      }
+    },
+    {
+      "cell_id": "MATRIX_DETERMINANT",
+      "stage": 4,
+      "keywords": ["det", "determinant", "matrix", "volume", "linear_algebra"],
+      "code_template": "import numpy as np\n{output_var} = np.linalg.det({input_var})",
+      "inputs": {
+        "input_type": "ndarray",
+        "expected_state": "normalized_array"
+      },
+      "outputs": {
+        "output_type": "ndarray",
+        "resulting_state": "analytical_array"
+      }
+    },
+    {
+      "cell_id": "EIGENVALUES",
+      "stage": 4,
+      "keywords": [
+        "eig",
+        "eigenvalues",
+        "eigenvectors",
+        "decomposition",
+        "linear_algebra"
+      ],
+      "code_template": "import numpy as np\n{output_var} = np.linalg.eig({input_var})[0]",
+      "inputs": {
+        "input_type": "ndarray",
+        "expected_state": "normalized_array"
+      },
+      "outputs": {
+        "output_type": "ndarray",
+        "resulting_state": "analytical_array"
+      }
+    },
+    {
+      "cell_id": "SVD_DECOMPOSITION",
+      "stage": 4,
+      "keywords": [
+        "svd",
+        "singular",
+        "value",
+        "decomposition",
+        "linear_algebra"
+      ],
+      "code_template": "import numpy as np\n{output_var} = np.linalg.svd({input_var})[1]",
+      "inputs": {
+        "input_type": "ndarray",
+        "expected_state": "normalized_array"
+      },
+      "outputs": {
+        "output_type": "ndarray",
+        "resulting_state": "analytical_array"
+      }
+    },
+    {
+      "cell_id": "CHOLESKY_DECOMP",
+      "stage": 4,
+      "keywords": [
+        "cholesky",
+        "decomposition",
+        "positive",
+        "definite",
+        "linear_algebra"
+      ],
+      "code_template": "import numpy as np\n{output_var} = np.linalg.cholesky({input_var})",
+      "inputs": {
+        "input_type": "ndarray",
+        "expected_state": "normalized_array"
+      },
+      "outputs": {
+        "output_type": "ndarray",
+        "resulting_state": "analytical_array"
+      }
+    },
+    {
+      "cell_id": "QR_DECOMPOSITION",
+      "stage": 4,
+      "keywords": [
+        "qr",
+        "decomposition",
+        "orthogonal",
+        "triangular",
+        "linear_algebra"
+      ],
+      "code_template": "import numpy as np\n{output_var} = np.linalg.qr({input_var})[0]",
+      "inputs": {
+        "input_type": "ndarray",
+        "expected_state": "normalized_array"
+      },
+      "outputs": {
+        "output_type": "ndarray",
+        "resulting_state": "analytical_array"
+      }
+    },
+    {
+      "cell_id": "CROSS_PRODUCT",
+      "stage": 4,
+      "keywords": ["cross", "product", "vector", "3d", "linear_algebra"],
+      "code_template": "import numpy as np\n{output_var} = np.cross({input_var}, {input_var})",
+      "inputs": {
+        "input_type": "ndarray",
+        "expected_state": "normalized_array"
+      },
+      "outputs": {
+        "output_type": "ndarray",
+        "resulting_state": "analytical_array"
+      }
+    },
+    {
+      "cell_id": "TRACE_MATRIX",
+      "stage": 4,
+      "keywords": ["trace", "diagonal", "sum", "matrix", "linear_algebra"],
+      "code_template": "import numpy as np\n{output_var} = np.trace({input_var})",
+      "inputs": {
+        "input_type": "ndarray",
+        "expected_state": "normalized_array"
+      },
+      "outputs": {
+        "output_type": "ndarray",
+        "resulting_state": "analytical_array"
+      }
+    },
+    {
+      "cell_id": "SUM_AXIS",
+      "stage": 4,
+      "keywords": ["sum", "aggregate", "axis", "total", "reduction"],
+      "code_template": "import numpy as np\n{output_var} = np.sum({input_var}, axis=0)",
+      "inputs": {
+        "input_type": "ndarray",
+        "expected_state": "normalized_array"
+      },
+      "outputs": {
+        "output_type": "ndarray",
+        "resulting_state": "analytical_array"
+      }
+    },
+    {
+      "cell_id": "MEAN_AXIS",
+      "stage": 4,
+      "keywords": ["mean", "average", "axis", "aggregate", "reduction"],
+      "code_template": "import numpy as np\n{output_var} = np.mean({input_var}, axis=0)",
+      "inputs": {
+        "input_type": "ndarray",
+        "expected_state": "normalized_array"
+      },
+      "outputs": {
+        "output_type": "ndarray",
+        "resulting_state": "analytical_array"
+      }
+    },
+    {
+      "cell_id": "STD_AXIS",
+      "stage": 4,
+      "keywords": ["std", "standard", "deviation", "axis", "statistics"],
+      "code_template": "import numpy as np\n{output_var} = np.std({input_var}, axis=0)",
+      "inputs": {
+        "input_type": "ndarray",
+        "expected_state": "normalized_array"
+      },
+      "outputs": {
+        "output_type": "ndarray",
+        "resulting_state": "analytical_array"
+      }
+    },
+    {
+      "cell_id": "VARIANCE_AXIS",
+      "stage": 4,
+      "keywords": ["var", "variance", "axis", "statistics", "spread"],
+      "code_template": "import numpy as np\n{output_var} = np.var({input_var}, axis=0)",
+      "inputs": {
+        "input_type": "ndarray",
+        "expected_state": "normalized_array"
+      },
+      "outputs": {
+        "output_type": "ndarray",
+        "resulting_state": "analytical_array"
+      }
+    },
+    {
+      "cell_id": "MAX_AXIS",
+      "stage": 4,
+      "keywords": ["max", "maximum", "axis", "peak", "reduction"],
+      "code_template": "import numpy as np\n{output_var} = np.max({input_var}, axis=0)",
+      "inputs": {
+        "input_type": "ndarray",
+        "expected_state": "normalized_array"
+      },
+      "outputs": {
+        "output_type": "ndarray",
+        "resulting_state": "analytical_array"
+      }
+    },
+    {
+      "cell_id": "MIN_AXIS",
+      "stage": 4,
+      "keywords": ["min", "minimum", "axis", "trough", "reduction"],
+      "code_template": "import numpy as np\n{output_var} = np.min({input_var}, axis=0)",
+      "inputs": {
+        "input_type": "ndarray",
+        "expected_state": "normalized_array"
+      },
+      "outputs": {
+        "output_type": "ndarray",
+        "resulting_state": "analytical_array"
+      }
+    },
+    {
+      "cell_id": "ARGMAX_AXIS",
+      "stage": 4,
+      "keywords": ["argmax", "index", "maximum", "axis", "position"],
+      "code_template": "import numpy as np\n{output_var} = np.argmax({input_var}, axis=0)",
+      "inputs": {
+        "input_type": "ndarray",
+        "expected_state": "normalized_array"
+      },
+      "outputs": {
+        "output_type": "ndarray",
+        "resulting_state": "analytical_array"
+      }
+    },
+    {
+      "cell_id": "ARGMIN_AXIS",
+      "stage": 4,
+      "keywords": ["argmin", "index", "minimum", "axis", "position"],
+      "code_template": "import numpy as np\n{output_var} = np.argmin({input_var}, axis=0)",
+      "inputs": {
+        "input_type": "ndarray",
+        "expected_state": "normalized_array"
+      },
+      "outputs": {
+        "output_type": "ndarray",
+        "resulting_state": "analytical_array"
+      }
+    },
+    {
+      "cell_id": "WHERE_CONDITION",
+      "stage": 4,
+      "keywords": ["where", "conditional", "select", "mask", "logic"],
+      "code_template": "import numpy as np\n{output_var} = np.where({input_var} > 0, {input_var}, 0)",
+      "inputs": {
+        "input_type": "ndarray",
+        "expected_state": "normalized_array"
+      },
+      "outputs": {
+        "output_type": "ndarray",
+        "resulting_state": "analytical_array"
+      }
+    },
+    {
+      "cell_id": "SELECT_CONDITIONS",
+      "stage": 4,
+      "keywords": ["select", "multiple", "conditions", "logic", "mapping"],
+      "code_template": "import numpy as np\n{output_var} = np.select([{input_var} > 0], [{input_var}], default=0)",
+      "inputs": {
+        "input_type": "ndarray",
+        "expected_state": "normalized_array"
+      },
+      "outputs": {
+        "output_type": "ndarray",
+        "resulting_state": "analytical_array"
+      }
+    },
+    {
+      "cell_id": "FFT_TRANSFORM",
+      "stage": 4,
+      "keywords": ["fft", "fourier", "frequency", "transform", "signal"],
+      "code_template": "import numpy as np\n{output_var} = np.fft.fft({input_var})",
+      "inputs": {
+        "input_type": "ndarray",
+        "expected_state": "normalized_array"
+      },
+      "outputs": {
+        "output_type": "ndarray",
+        "resulting_state": "analytical_array"
+      }
+    },
+    {
+      "cell_id": "IFFT_TRANSFORM",
+      "stage": 4,
+      "keywords": ["ifft", "inverse", "fourier", "time", "signal"],
+      "code_template": "import numpy as np\n{output_var} = np.fft.ifft({input_var})",
+      "inputs": {
+        "input_type": "ndarray",
+        "expected_state": "normalized_array"
+      },
+      "outputs": {
+        "output_type": "ndarray",
+        "resulting_state": "analytical_array"
+      }
+    },
+    {
+      "cell_id": "CONVOLVE_1D",
+      "stage": 4,
+      "keywords": ["convolve", "filter", "kernel", "signal", "smoothing"],
+      "code_template": "import numpy as np\n{output_var} = np.convolve({input_var}, np.ones(3)/3, mode='valid')",
+      "inputs": {
+        "input_type": "ndarray",
+        "expected_state": "normalized_array"
+      },
+      "outputs": {
+        "output_type": "ndarray",
+        "resulting_state": "analytical_array"
+      }
+    },
+    {
+      "cell_id": "CORRELATE_1D",
+      "stage": 4,
+      "keywords": [
+        "correlate",
+        "cross-correlation",
+        "signal",
+        "match",
+        "similarity"
+      ],
+      "code_template": "import numpy as np\n{output_var} = np.correlate({input_var}, {input_var}, mode='full')",
+      "inputs": {
+        "input_type": "ndarray",
+        "expected_state": "normalized_array"
+      },
+      "outputs": {
+        "output_type": "ndarray",
+        "resulting_state": "analytical_array"
+      }
+    },
+    {
+      "cell_id": "HISTOGRAM_ARRAY",
+      "stage": 4,
+      "keywords": [
+        "histogram",
+        "bins",
+        "distribution",
+        "frequency",
+        "statistics"
+      ],
+      "code_template": "import numpy as np\n{output_var} = np.histogram({input_var}, bins=10)[0]",
+      "inputs": {
+        "input_type": "ndarray",
+        "expected_state": "normalized_array"
+      },
+      "outputs": {
+        "output_type": "ndarray",
+        "resulting_state": "analytical_array"
+      }
+    },
+    {
+      "cell_id": "SAVE_NPY",
+      "stage": 5,
+      "keywords": ["save", "npy", "binary", "disk", "export"],
+      "code_template": "import numpy as np\n{output_var} = 'export.npy'\nnp.save({output_var}, {input_var})",
+      "inputs": {
+        "input_type": "ndarray",
+        "expected_state": "analytical_array"
+      },
+      "outputs": {
+        "output_type": "str",
+        "resulting_state": "exported_filepath"
+      }
+    },
+    {
+      "cell_id": "SAVE_NPZ",
+      "stage": 5,
+      "keywords": ["save", "npz", "archive", "compressed", "export"],
+      "code_template": "import numpy as np\n{output_var} = 'export.npz'\nnp.savez({output_var}, data={input_var})",
+      "inputs": {
+        "input_type": "ndarray",
+        "expected_state": "analytical_array"
+      },
+      "outputs": {
+        "output_type": "str",
+        "resulting_state": "exported_filepath"
+      }
+    },
+    {
+      "cell_id": "SAVE_TXT",
+      "stage": 5,
+      "keywords": ["savetxt", "text", "csv", "disk", "export"],
+      "code_template": "import numpy as np\n{output_var} = 'export.txt'\nnp.savetxt({output_var}, {input_var}, delimiter=',')",
+      "inputs": {
+        "input_type": "ndarray",
+        "expected_state": "analytical_array"
+      },
+      "outputs": {
+        "output_type": "str",
+        "resulting_state": "exported_filepath"
+      }
+    },
+    {
+      "cell_id": "TOFILE_BINARY",
+      "stage": 5,
+      "keywords": ["tofile", "binary", "raw", "disk", "export"],
+      "code_template": "{output_var} = 'export.bin'\n{input_var}.tofile({output_var})",
+      "inputs": {
+        "input_type": "ndarray",
+        "expected_state": "analytical_array"
+      },
+      "outputs": {
+        "output_type": "str",
+        "resulting_state": "exported_filepath"
+      }
+    },
+    {
+      "cell_id": "TOLIST_EXPORT",
+      "stage": 5,
+      "keywords": ["tolist", "python", "list", "memory", "export"],
+      "code_template": "{output_var} = {input_var}.tolist()",
+      "inputs": {
+        "input_type": "ndarray",
+        "expected_state": "analytical_array"
+      },
+      "outputs": { "output_type": "list", "resulting_state": "exported_buffer" }
+    },
+    {
+      "cell_id": "TOBYTES_EXPORT",
+      "stage": 5,
+      "keywords": ["tobytes", "binary", "memory", "buffer", "export"],
+      "code_template": "{output_var} = {input_var}.tobytes()",
+      "inputs": {
+        "input_type": "ndarray",
+        "expected_state": "analytical_array"
+      },
+      "outputs": {
+        "output_type": "bytes",
+        "resulting_state": "exported_buffer"
+      }
+    },
+    {
+      "cell_id": "EXPORT_PANDAS_DF",
+      "stage": 5,
+      "keywords": ["pandas", "dataframe", "convert", "tabular", "export"],
+      "code_template": "import pandas as pd\n{output_var} = pd.DataFrame({input_var})",
+      "inputs": {
+        "input_type": "ndarray",
+        "expected_state": "analytical_array"
+      },
+      "outputs": {
+        "output_type": "DataFrame",
+        "resulting_state": "exported_buffer"
+      }
+    },
+    {
+      "cell_id": "PRINT_ARRAY_CONSOLE",
+      "stage": 5,
+      "keywords": ["print", "console", "stdout", "display", "export"],
+      "code_template": "{output_var} = str({input_var})\nprint({output_var})",
+      "inputs": {
+        "input_type": "ndarray",
+        "expected_state": "analytical_array"
+      },
+      "outputs": { "output_type": "str", "resulting_state": "exported_buffer" }
+    },
+    {
+      "cell_id": "SAVEZ_COMPRESSED",
+      "stage": 5,
+      "keywords": ["savez_compressed", "zip", "archive", "disk", "export"],
+      "code_template": "import numpy as np\n{output_var} = 'export.npz'\nnp.savez_compressed({output_var}, data={input_var})",
+      "inputs": {
+        "input_type": "ndarray",
+        "expected_state": "analytical_array"
+      },
+      "outputs": {
+        "output_type": "str",
+        "resulting_state": "exported_filepath"
+      }
+    },
+    {
+      "cell_id": "EXPORT_STRING_REPR",
+      "stage": 5,
+      "keywords": [
+        "array2string",
+        "format",
+        "string",
+        "representation",
+        "export"
+      ],
+      "code_template": "import numpy as np\n{output_var} = np.array2string({input_var})",
+      "inputs": {
+        "input_type": "ndarray",
+        "expected_state": "analytical_array"
+      },
+      "outputs": { "output_type": "str", "resulting_state": "exported_buffer" }
+    }
+  ]
+}

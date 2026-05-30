@@ -1,0 +1,645 @@
+{
+  "domain_name": "Flask_Complete_Web_Engineering_100_Percent",
+  "version": "1.0.0",
+  "cells": [
+    {
+      "cell_id": "INIT_FLASK_APP",
+      "stage": 1,
+      "keywords": ["flask", "init", "app", "create", "instance"],
+      "code_template": "from flask import Flask\n{output_var} = Flask({input_var})",
+      "inputs": { "input_type": "str", "expected_state": "app_name" },
+      "outputs": {
+        "output_type": "Flask",
+        "resulting_state": "flask_app_object"
+      }
+    },
+    {
+      "cell_id": "LOAD_CONFIG_FROM_PY",
+      "stage": 1,
+      "keywords": ["config", "python", "object", "settings", "load"],
+      "code_template": "{output_var} = {input_var}\n{output_var}.config.from_object('config.DevelopmentConfig')",
+      "inputs": { "input_type": "Flask", "expected_state": "flask_app_object" },
+      "outputs": { "output_type": "Flask", "resulting_state": "configured_app" }
+    },
+    {
+      "cell_id": "LOAD_CONFIG_FROM_ENV",
+      "stage": 1,
+      "keywords": ["config", "env", "environment", "variables", "load"],
+      "code_template": "{output_var} = {input_var}\n{output_var}.config.from_envvar('FLASK_CONFIG_PATH')",
+      "inputs": { "input_type": "Flask", "expected_state": "flask_app_object" },
+      "outputs": { "output_type": "Flask", "resulting_state": "configured_app" }
+    },
+    {
+      "cell_id": "LOAD_CONFIG_FROM_JSON",
+      "stage": 1,
+      "keywords": ["config", "json", "file", "settings", "load"],
+      "code_template": "{output_var} = {input_var}\n{output_var}.config.from_file('config.json', load=json.load)",
+      "inputs": { "input_type": "Flask", "expected_state": "flask_app_object" },
+      "outputs": { "output_type": "Flask", "resulting_state": "configured_app" }
+    },
+    {
+      "cell_id": "REGISTER_BLUEPRINT",
+      "stage": 1,
+      "keywords": ["blueprint", "register", "routes", "modular", "structure"],
+      "code_template": "from your_app.blueprints import main_bp\n{output_var} = {input_var}\n{output_var}.register_blueprint(main_bp)",
+      "inputs": { "input_type": "Flask", "expected_state": "configured_app" },
+      "outputs": {
+        "output_type": "Flask",
+        "resulting_state": "blueprint_registered_app"
+      }
+    },
+    {
+      "cell_id": "REGISTER_EXTENSION_SQLALCHEMY",
+      "stage": 1,
+      "keywords": ["sqlalchemy", "database", "orm", "extension", "init"],
+      "code_template": "from flask_sqlalchemy import SQLAlchemy\ndb = SQLAlchemy()\n{output_var} = {input_var}\ndb.init_app({output_var})",
+      "inputs": {
+        "input_type": "Flask",
+        "expected_state": "blueprint_registered_app"
+      },
+      "outputs": {
+        "output_type": "Flask",
+        "resulting_state": "extension_bound_app"
+      }
+    },
+    {
+      "cell_id": "REGISTER_EXTENSION_MIGRATE",
+      "stage": 1,
+      "keywords": ["migrate", "alembic", "database", "schema", "extension"],
+      "code_template": "from flask_migrate import Migrate\nmigrate = Migrate()\n{output_var} = {input_var}\nmigrate.init_app({output_var}, db)",
+      "inputs": {
+        "input_type": "Flask",
+        "expected_state": "extension_bound_app"
+      },
+      "outputs": {
+        "output_type": "Flask",
+        "resulting_state": "migration_ready_app"
+      }
+    },
+    {
+      "cell_id": "REGISTER_EXTENSION_LOGIN",
+      "stage": 1,
+      "keywords": ["login", "auth", "security", "session", "extension"],
+      "code_template": "from flask_login import LoginManager\nlogin_manager = LoginManager()\n{output_var} = {input_var}\nlogin_manager.init_app({output_var})",
+      "inputs": {
+        "input_type": "Flask",
+        "expected_state": "migration_ready_app"
+      },
+      "outputs": { "output_type": "Flask", "resulting_state": "auth_ready_app" }
+    },
+    {
+      "cell_id": "REGISTER_EXTENSION_MAIL",
+      "stage": 1,
+      "keywords": ["mail", "smtp", "email", "send", "extension"],
+      "code_template": "from flask_mail import Mail\nmail = Mail()\n{output_var} = {input_var}\nmail.init_app({output_var})",
+      "inputs": { "input_type": "Flask", "expected_state": "auth_ready_app" },
+      "outputs": { "output_type": "Flask", "resulting_state": "mail_ready_app" }
+    },
+    {
+      "cell_id": "REGISTER_EXTENSION_CACHE",
+      "stage": 1,
+      "keywords": ["cache", "redis", "memcached", "performance", "extension"],
+      "code_template": "from flask_caching import Cache\ncache = Cache()\n{output_var} = {input_var}\ncache.init_app({output_var}, config={'CACHE_TYPE': 'SimpleCache'})",
+      "inputs": { "input_type": "Flask", "expected_state": "mail_ready_app" },
+      "outputs": {
+        "output_type": "Flask",
+        "resulting_state": "fully_extended_app"
+      }
+    },
+    {
+      "cell_id": "DEFINE_ROUTE_GET",
+      "stage": 2,
+      "keywords": ["route", "get", "endpoint", "view", "http"],
+      "code_template": "{output_var} = {input_var}\n@{output_var}.route('/', methods=['GET'])\ndef index():\n    return 'OK'",
+      "inputs": {
+        "input_type": "Flask",
+        "expected_state": "fully_extended_app"
+      },
+      "outputs": {
+        "output_type": "Flask",
+        "resulting_state": "route_registered_app"
+      }
+    },
+    {
+      "cell_id": "DEFINE_ROUTE_POST",
+      "stage": 2,
+      "keywords": ["route", "post", "endpoint", "view", "http"],
+      "code_template": "{output_var} = {input_var}\n@{output_var}.route('/submit', methods=['POST'])\ndef submit():\n    return 'Submitted'",
+      "inputs": {
+        "input_type": "Flask",
+        "expected_state": "fully_extended_app"
+      },
+      "outputs": {
+        "output_type": "Flask",
+        "resulting_state": "route_registered_app"
+      }
+    },
+    {
+      "cell_id": "DEFINE_ROUTE_DYNAMIC",
+      "stage": 2,
+      "keywords": ["route", "dynamic", "url", "parameters", "variables"],
+      "code_template": "{output_var} = {input_var}\n@{output_var}.route('/user/<int:user_id>', methods=['GET'])\ndef get_user(user_id):\n    return str(user_id)",
+      "inputs": {
+        "input_type": "Flask",
+        "expected_state": "fully_extended_app"
+      },
+      "outputs": {
+        "output_type": "Flask",
+        "resulting_state": "route_registered_app"
+      }
+    },
+    {
+      "cell_id": "PARSE_REQUEST_JSON",
+      "stage": 2,
+      "keywords": ["request", "json", "payload", "body", "parse"],
+      "code_template": "{output_var} = {input_var}.get_json()",
+      "inputs": { "input_type": "Request", "expected_state": "raw_request" },
+      "outputs": {
+        "output_type": "dict",
+        "resulting_state": "parsed_json_payload"
+      }
+    },
+    {
+      "cell_id": "PARSE_REQUEST_FORM",
+      "stage": 2,
+      "keywords": ["request", "form", "data", "post", "parse"],
+      "code_template": "{output_var} = {input_var}.form",
+      "inputs": { "input_type": "Request", "expected_state": "raw_request" },
+      "outputs": {
+        "output_type": "ImmutableMultiDict",
+        "resulting_state": "parsed_form_data"
+      }
+    },
+    {
+      "cell_id": "PARSE_REQUEST_ARGS",
+      "stage": 2,
+      "keywords": ["request", "args", "query", "parameters", "url"],
+      "code_template": "{output_var} = {input_var}.args",
+      "inputs": { "input_type": "Request", "expected_state": "raw_request" },
+      "outputs": {
+        "output_type": "ImmutableMultiDict",
+        "resulting_state": "parsed_query_args"
+      }
+    },
+    {
+      "cell_id": "PARSE_REQUEST_FILES",
+      "stage": 2,
+      "keywords": ["request", "files", "upload", "multipart", "parse"],
+      "code_template": "{output_var} = {input_var}.files['file']",
+      "inputs": { "input_type": "Request", "expected_state": "raw_request" },
+      "outputs": {
+        "output_type": "FileStorage",
+        "resulting_state": "uploaded_file"
+      }
+    },
+    {
+      "cell_id": "VALIDATE_MARSHMALLOW",
+      "stage": 2,
+      "keywords": [
+        "marshmallow",
+        "schema",
+        "validate",
+        "serialization",
+        "validation"
+      ],
+      "code_template": "from marshmallow import Schema, fields\nclass AutoSchema(Schema):\n    pass\nschema = AutoSchema()\n{output_var} = schema.load({input_var})",
+      "inputs": {
+        "input_type": "dict",
+        "expected_state": "parsed_json_payload"
+      },
+      "outputs": {
+        "output_type": "dict",
+        "resulting_state": "validated_schema_data"
+      }
+    },
+    {
+      "cell_id": "VALIDATE_PYDANTIC",
+      "stage": 2,
+      "keywords": ["pydantic", "model", "validate", "typing", "validation"],
+      "code_template": "from pydantic import BaseModel\nclass AutoModel(BaseModel):\n    pass\nmodel = AutoModel(**{input_var})\n{output_var} = model.model_dump()",
+      "inputs": {
+        "input_type": "dict",
+        "expected_state": "parsed_json_payload"
+      },
+      "outputs": {
+        "output_type": "dict",
+        "resulting_state": "validated_schema_data"
+      }
+    },
+    {
+      "cell_id": "CONVERT_FORM_TO_DICT",
+      "stage": 2,
+      "keywords": ["form", "dict", "convert", "multidict", "mapping"],
+      "code_template": "{output_var} = {input_var}.to_dict()",
+      "inputs": {
+        "input_type": "ImmutableMultiDict",
+        "expected_state": "parsed_form_data"
+      },
+      "outputs": {
+        "output_type": "dict",
+        "resulting_state": "validated_schema_data"
+      }
+    },
+    {
+      "cell_id": "SAVE_UPLOADED_FILE",
+      "stage": 2,
+      "keywords": ["file", "save", "upload", "disk", "werkzeug"],
+      "code_template": "import os\nfrom werkzeug.utils import secure_filename\nfilename = secure_filename({input_var}.filename)\n{input_var}.save(os.path.join('/uploads', filename))\n{output_var} = filename",
+      "inputs": {
+        "input_type": "FileStorage",
+        "expected_state": "uploaded_file"
+      },
+      "outputs": { "output_type": "str", "resulting_state": "saved_file_path" }
+    },
+    {
+      "cell_id": "CREATE_ORM_INSTANCE",
+      "stage": 3,
+      "keywords": ["orm", "create", "instance", "model", "sqlalchemy"],
+      "code_template": "{output_var} = User(**{input_var})",
+      "inputs": {
+        "input_type": "dict",
+        "expected_state": "validated_schema_data"
+      },
+      "outputs": {
+        "output_type": "BaseModel",
+        "resulting_state": "orm_model_instance"
+      }
+    },
+    {
+      "cell_id": "ADD_TO_SESSION",
+      "stage": 3,
+      "keywords": ["session", "add", "orm", "database", "pending"],
+      "code_template": "from your_app import db\n{output_var} = db.session\n{output_var}.add({input_var})",
+      "inputs": {
+        "input_type": "BaseModel",
+        "expected_state": "orm_model_instance"
+      },
+      "outputs": {
+        "output_type": "Session",
+        "resulting_state": "active_db_session"
+      }
+    },
+    {
+      "cell_id": "QUERY_ORM_ALL",
+      "stage": 3,
+      "keywords": ["query", "all", "orm", "select", "database"],
+      "code_template": "{output_var} = {input_var}.query(User).all()",
+      "inputs": {
+        "input_type": "Session",
+        "expected_state": "active_db_session"
+      },
+      "outputs": { "output_type": "list", "resulting_state": "queried_records" }
+    },
+    {
+      "cell_id": "QUERY_ORM_FILTER",
+      "stage": 3,
+      "keywords": ["query", "filter", "where", "orm", "condition"],
+      "code_template": "{output_var} = {input_var}.query(User).filter_by(active=True).all()",
+      "inputs": {
+        "input_type": "Session",
+        "expected_state": "active_db_session"
+      },
+      "outputs": { "output_type": "list", "resulting_state": "queried_records" }
+    },
+    {
+      "cell_id": "QUERY_ORM_FIRST",
+      "stage": 3,
+      "keywords": ["query", "first", "single", "orm", "fetch"],
+      "code_template": "{output_var} = {input_var}.query(User).first()",
+      "inputs": {
+        "input_type": "Session",
+        "expected_state": "active_db_session"
+      },
+      "outputs": {
+        "output_type": "BaseModel",
+        "resulting_state": "orm_model_instance"
+      }
+    },
+    {
+      "cell_id": "COMMIT_SESSION",
+      "stage": 3,
+      "keywords": ["commit", "session", "save", "persist", "database"],
+      "code_template": "{output_var} = {input_var}\n{output_var}.commit()",
+      "inputs": {
+        "input_type": "Session",
+        "expected_state": "active_db_session"
+      },
+      "outputs": {
+        "output_type": "Session",
+        "resulting_state": "committed_db_session"
+      }
+    },
+    {
+      "cell_id": "ROLLBACK_SESSION",
+      "stage": 3,
+      "keywords": ["rollback", "session", "revert", "error", "database"],
+      "code_template": "{output_var} = {input_var}\n{output_var}.rollback()",
+      "inputs": {
+        "input_type": "Session",
+        "expected_state": "active_db_session"
+      },
+      "outputs": {
+        "output_type": "Session",
+        "resulting_state": "rolledback_db_session"
+      }
+    },
+    {
+      "cell_id": "DELETE_ORM_INSTANCE",
+      "stage": 3,
+      "keywords": ["delete", "remove", "orm", "session", "database"],
+      "code_template": "from your_app import db\n{output_var} = db.session\n{output_var}.delete({input_var})",
+      "inputs": {
+        "input_type": "BaseModel",
+        "expected_state": "orm_model_instance"
+      },
+      "outputs": {
+        "output_type": "Session",
+        "resulting_state": "active_db_session"
+      }
+    },
+    {
+      "cell_id": "UPDATE_ORM_INSTANCE",
+      "stage": 3,
+      "keywords": ["update", "modify", "orm", "attributes", "database"],
+      "code_template": "{output_var} = {input_var}\n{output_var}.status = 'updated'",
+      "inputs": {
+        "input_type": "BaseModel",
+        "expected_state": "orm_model_instance"
+      },
+      "outputs": {
+        "output_type": "BaseModel",
+        "resulting_state": "updated_orm_instance"
+      }
+    },
+    {
+      "cell_id": "EXECUTE_RAW_SQL",
+      "stage": 3,
+      "keywords": ["raw", "sql", "execute", "text", "query"],
+      "code_template": "from sqlalchemy import text\n{output_var} = {input_var}.execute(text('SELECT * FROM users')).fetchall()",
+      "inputs": {
+        "input_type": "Session",
+        "expected_state": "active_db_session"
+      },
+      "outputs": { "output_type": "list", "resulting_state": "raw_sql_result" }
+    },
+    {
+      "cell_id": "SERIALIZE_ORM_LIST",
+      "stage": 4,
+      "keywords": ["serialize", "list", "orm", "json", "marshmallow"],
+      "code_template": "{output_var} = [{'id': u.id, 'name': u.name} for u in {input_var}]",
+      "inputs": { "input_type": "list", "expected_state": "queried_records" },
+      "outputs": {
+        "output_type": "list",
+        "resulting_state": "serialized_records"
+      }
+    },
+    {
+      "cell_id": "SERIALIZE_ORM_SINGLE",
+      "stage": 4,
+      "keywords": ["serialize", "single", "orm", "json", "dict"],
+      "code_template": "{output_var} = {'id': {input_var}.id, 'name': {input_var}.name}",
+      "inputs": {
+        "input_type": "BaseModel",
+        "expected_state": "orm_model_instance"
+      },
+      "outputs": {
+        "output_type": "dict",
+        "resulting_state": "serialized_record"
+      }
+    },
+    {
+      "cell_id": "JSONIFY_DICT",
+      "stage": 4,
+      "keywords": ["jsonify", "dict", "response", "json", "flask"],
+      "code_template": "from flask import jsonify\n{output_var} = jsonify({input_var})",
+      "inputs": {
+        "input_type": "dict",
+        "expected_state": "validated_schema_data"
+      },
+      "outputs": {
+        "output_type": "Response",
+        "resulting_state": "json_response_object"
+      }
+    },
+    {
+      "cell_id": "JSONIFY_LIST",
+      "stage": 4,
+      "keywords": ["jsonify", "list", "response", "array", "flask"],
+      "code_template": "from flask import jsonify\n{output_var} = jsonify({input_var})",
+      "inputs": {
+        "input_type": "list",
+        "expected_state": "serialized_records"
+      },
+      "outputs": {
+        "output_type": "Response",
+        "resulting_state": "json_response_object"
+      }
+    },
+    {
+      "cell_id": "RENDER_JINJA_TEMPLATE",
+      "stage": 4,
+      "keywords": ["render", "template", "jinja", "html", "view"],
+      "code_template": "from flask import render_template\n{output_var} = render_template({input_var}, data=context)",
+      "inputs": { "input_type": "str", "expected_state": "template_name" },
+      "outputs": {
+        "output_type": "str",
+        "resulting_state": "rendered_html_string"
+      }
+    },
+    {
+      "cell_id": "MAKE_HTML_RESPONSE",
+      "stage": 4,
+      "keywords": ["make_response", "html", "response", "string", "flask"],
+      "code_template": "from flask import make_response\n{output_var} = make_response({input_var})",
+      "inputs": {
+        "input_type": "str",
+        "expected_state": "rendered_html_string"
+      },
+      "outputs": {
+        "output_type": "Response",
+        "resulting_state": "html_response_object"
+      }
+    },
+    {
+      "cell_id": "MAKE_REDIRECT_RESPONSE",
+      "stage": 4,
+      "keywords": ["redirect", "url", "response", "location", "flask"],
+      "code_template": "from flask import redirect\n{output_var} = redirect({input_var})",
+      "inputs": { "input_type": "str", "expected_state": "redirect_url" },
+      "outputs": {
+        "output_type": "Response",
+        "resulting_state": "redirect_response_object"
+      }
+    },
+    {
+      "cell_id": "SET_RESPONSE_HEADERS",
+      "stage": 4,
+      "keywords": ["headers", "response", "metadata", "http", "modify"],
+      "code_template": "{output_var} = {input_var}\n{output_var}.headers['X-Custom-Header'] = 'Value'",
+      "inputs": {
+        "input_type": "Response",
+        "expected_state": "json_response_object"
+      },
+      "outputs": {
+        "output_type": "Response",
+        "resulting_state": "response_with_headers"
+      }
+    },
+    {
+      "cell_id": "SET_RESPONSE_COOKIES",
+      "stage": 4,
+      "keywords": ["cookies", "response", "session", "browser", "modify"],
+      "code_template": "{output_var} = {input_var}\n{output_var}.set_cookie('session_id', '12345')",
+      "inputs": {
+        "input_type": "Response",
+        "expected_state": "html_response_object"
+      },
+      "outputs": {
+        "output_type": "Response",
+        "resulting_state": "response_with_cookies"
+      }
+    },
+    {
+      "cell_id": "ABORT_WITH_STATUS",
+      "stage": 4,
+      "keywords": ["abort", "error", "status", "http", "exception"],
+      "code_template": "from flask import abort\nabort({input_var})\n{output_var} = None",
+      "inputs": { "input_type": "int", "expected_state": "http_status_code" },
+      "outputs": {
+        "output_type": "HTTPException",
+        "resulting_state": "aborted_request"
+      }
+    },
+    {
+      "cell_id": "REGISTER_BEFORE_REQUEST",
+      "stage": 5,
+      "keywords": [
+        "before_request",
+        "hook",
+        "middleware",
+        "interceptor",
+        "auth"
+      ],
+      "code_template": "{output_var} = {input_var}\n@{output_var}.before_request\ndef check_auth():\n    pass",
+      "inputs": {
+        "input_type": "Flask",
+        "expected_state": "route_registered_app"
+      },
+      "outputs": { "output_type": "Flask", "resulting_state": "middleware_app" }
+    },
+    {
+      "cell_id": "REGISTER_AFTER_REQUEST",
+      "stage": 5,
+      "keywords": [
+        "after_request",
+        "hook",
+        "middleware",
+        "interceptor",
+        "headers"
+      ],
+      "code_template": "{output_var} = {input_var}\n@{output_var}.after_request\ndef add_headers(response):\n    return response",
+      "inputs": { "input_type": "Flask", "expected_state": "middleware_app" },
+      "outputs": {
+        "output_type": "Flask",
+        "resulting_state": "post_middleware_app"
+      }
+    },
+    {
+      "cell_id": "REGISTER_ERROR_HANDLER",
+      "stage": 5,
+      "keywords": ["errorhandler", "exception", "catch", "500", "404"],
+      "code_template": "{output_var} = {input_var}\n@{output_var}.errorhandler(404)\ndef not_found(e):\n    return 'Not Found', 404",
+      "inputs": {
+        "input_type": "Flask",
+        "expected_state": "post_middleware_app"
+      },
+      "outputs": {
+        "output_type": "Flask",
+        "resulting_state": "error_handled_app"
+      }
+    },
+    {
+      "cell_id": "REGISTER_TEARDOWN_APPCONTEXT",
+      "stage": 5,
+      "keywords": ["teardown", "appcontext", "cleanup", "database", "close"],
+      "code_template": "{output_var} = {input_var}\n@{output_var}.teardown_appcontext\ndef shutdown_session(exception=None):\n    db.session.remove()",
+      "inputs": {
+        "input_type": "Flask",
+        "expected_state": "error_handled_app"
+      },
+      "outputs": {
+        "output_type": "Flask",
+        "resulting_state": "teardown_ready_app"
+      }
+    },
+    {
+      "cell_id": "INIT_LOGGING",
+      "stage": 5,
+      "keywords": ["logging", "logger", "file", "handler", "debug"],
+      "code_template": "import logging\n{output_var} = {input_var}\nhandler = logging.FileHandler('app.log')\n{output_var}.logger.addHandler(handler)",
+      "inputs": {
+        "input_type": "Flask",
+        "expected_state": "teardown_ready_app"
+      },
+      "outputs": {
+        "output_type": "Flask",
+        "resulting_state": "logging_configured_app"
+      }
+    },
+    {
+      "cell_id": "WRAP_WERKZEUG_PROFILER",
+      "stage": 5,
+      "keywords": [
+        "profiler",
+        "werkzeug",
+        "middleware",
+        "performance",
+        "debug"
+      ],
+      "code_template": "from werkzeug.middleware.profiler import ProfilerMiddleware\n{output_var} = {input_var}\n{output_var}.wsgi_app = ProfilerMiddleware({output_var}.wsgi_app, restrictions=[30])",
+      "inputs": {
+        "input_type": "Flask",
+        "expected_state": "logging_configured_app"
+      },
+      "outputs": {
+        "output_type": "Flask",
+        "resulting_state": "profiled_wsgi_app"
+      }
+    },
+    {
+      "cell_id": "WRAP_CORS_MIDDLEWARE",
+      "stage": 5,
+      "keywords": ["cors", "cross-origin", "flask-cors", "middleware", "api"],
+      "code_template": "from flask_cors import CORS\n{output_var} = {input_var}\nCORS({output_var})",
+      "inputs": {
+        "input_type": "Flask",
+        "expected_state": "profiled_wsgi_app"
+      },
+      "outputs": { "output_type": "Flask", "resulting_state": "wsgi_ready_app" }
+    },
+    {
+      "cell_id": "RUN_DEV_SERVER",
+      "stage": 5,
+      "keywords": ["run", "dev", "server", "werkzeug", "localhost"],
+      "code_template": "{input_var}.run(host='127.0.0.1', port=5000, debug=True)\n{output_var} = 0",
+      "inputs": { "input_type": "Flask", "expected_state": "wsgi_ready_app" },
+      "outputs": { "output_type": "int", "resulting_state": "server_started" }
+    },
+    {
+      "cell_id": "DEPLOY_GUNICORN",
+      "stage": 5,
+      "keywords": ["gunicorn", "deploy", "wsgi", "production", "server"],
+      "code_template": "import subprocess\n{output_var} = subprocess.call(['gunicorn', '-w', '4', '-b', '0.0.0.0:8000', 'app:app'])",
+      "inputs": { "input_type": "Flask", "expected_state": "wsgi_ready_app" },
+      "outputs": { "output_type": "int", "resulting_state": "server_started" }
+    },
+    {
+      "cell_id": "DEPLOY_WAITRESS",
+      "stage": 5,
+      "keywords": ["waitress", "deploy", "wsgi", "windows", "production"],
+      "code_template": "from waitress import serve\nserve({input_var}, host='0.0.0.0', port=8000)\n{output_var} = 0",
+      "inputs": { "input_type": "Flask", "expected_state": "wsgi_ready_app" },
+      "outputs": { "output_type": "int", "resulting_state": "server_started" }
+    }
+  ]
+}

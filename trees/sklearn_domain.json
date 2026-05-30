@@ -1,0 +1,1329 @@
+{
+  "domain_name": "Scikit_Learn_Complete_Machine_Learning_Pipeline",
+  "version": "1.0.0",
+  "cells": [
+    {
+      "cell_id": "STANDARD_SCALER",
+      "stage": 1,
+      "keywords": [
+        "standard",
+        "scaler",
+        "normalize",
+        "variance",
+        "preprocessing"
+      ],
+      "code_template": "from sklearn.preprocessing import StandardScaler\nscaler = StandardScaler()\n{output_var} = scaler.fit_transform({input_var})",
+      "inputs": { "input_type": "DataFrame", "expected_state": "raw_features" },
+      "outputs": {
+        "output_type": "ndarray",
+        "resulting_state": "preprocessed_features"
+      }
+    },
+    {
+      "cell_id": "MINMAX_SCALER",
+      "stage": 1,
+      "keywords": ["minmax", "scaler", "bounds", "normalize", "preprocessing"],
+      "code_template": "from sklearn.preprocessing import MinMaxScaler\nscaler = MinMaxScaler()\n{output_var} = scaler.fit_transform({input_var})",
+      "inputs": { "input_type": "DataFrame", "expected_state": "raw_features" },
+      "outputs": {
+        "output_type": "ndarray",
+        "resulting_state": "preprocessed_features"
+      }
+    },
+    {
+      "cell_id": "MAXABS_SCALER",
+      "stage": 1,
+      "keywords": ["maxabs", "scaler", "sparse", "normalize", "preprocessing"],
+      "code_template": "from sklearn.preprocessing import MaxAbsScaler\nscaler = MaxAbsScaler()\n{output_var} = scaler.fit_transform({input_var})",
+      "inputs": { "input_type": "DataFrame", "expected_state": "raw_features" },
+      "outputs": {
+        "output_type": "ndarray",
+        "resulting_state": "preprocessed_features"
+      }
+    },
+    {
+      "cell_id": "ROBUST_SCALER",
+      "stage": 1,
+      "keywords": ["robust", "scaler", "outliers", "iqr", "preprocessing"],
+      "code_template": "from sklearn.preprocessing import RobustScaler\nscaler = RobustScaler()\n{output_var} = scaler.fit_transform({input_var})",
+      "inputs": { "input_type": "DataFrame", "expected_state": "raw_features" },
+      "outputs": {
+        "output_type": "ndarray",
+        "resulting_state": "preprocessed_features"
+      }
+    },
+    {
+      "cell_id": "NORMALIZER",
+      "stage": 1,
+      "keywords": ["normalizer", "l1", "l2", "norm", "preprocessing"],
+      "code_template": "from sklearn.preprocessing import Normalizer\nscaler = Normalizer()\n{output_var} = scaler.fit_transform({input_var})",
+      "inputs": { "input_type": "DataFrame", "expected_state": "raw_features" },
+      "outputs": {
+        "output_type": "ndarray",
+        "resulting_state": "preprocessed_features"
+      }
+    },
+    {
+      "cell_id": "BINARIZER",
+      "stage": 1,
+      "keywords": ["binarizer", "threshold", "binary", "preprocessing"],
+      "code_template": "from sklearn.preprocessing import Binarizer\nscaler = Binarizer()\n{output_var} = scaler.fit_transform({input_var})",
+      "inputs": { "input_type": "DataFrame", "expected_state": "raw_features" },
+      "outputs": {
+        "output_type": "ndarray",
+        "resulting_state": "preprocessed_features"
+      }
+    },
+    {
+      "cell_id": "KBINS_DISCRETIZER",
+      "stage": 1,
+      "keywords": [
+        "kbins",
+        "discretizer",
+        "binning",
+        "quantize",
+        "preprocessing"
+      ],
+      "code_template": "from sklearn.preprocessing import KBinsDiscretizer\nscaler = KBinsDiscretizer()\n{output_var} = scaler.fit_transform({input_var})",
+      "inputs": { "input_type": "DataFrame", "expected_state": "raw_features" },
+      "outputs": {
+        "output_type": "ndarray",
+        "resulting_state": "preprocessed_features"
+      }
+    },
+    {
+      "cell_id": "QUANTILE_TRANSFORMER",
+      "stage": 1,
+      "keywords": [
+        "quantile",
+        "transformer",
+        "uniform",
+        "normal",
+        "preprocessing"
+      ],
+      "code_template": "from sklearn.preprocessing import QuantileTransformer\nscaler = QuantileTransformer()\n{output_var} = scaler.fit_transform({input_var})",
+      "inputs": { "input_type": "DataFrame", "expected_state": "raw_features" },
+      "outputs": {
+        "output_type": "ndarray",
+        "resulting_state": "preprocessed_features"
+      }
+    },
+    {
+      "cell_id": "POWER_TRANSFORMER",
+      "stage": 1,
+      "keywords": [
+        "power",
+        "transformer",
+        "yeo-johnson",
+        "box-cox",
+        "preprocessing"
+      ],
+      "code_template": "from sklearn.preprocessing import PowerTransformer\nscaler = PowerTransformer()\n{output_var} = scaler.fit_transform({input_var})",
+      "inputs": { "input_type": "DataFrame", "expected_state": "raw_features" },
+      "outputs": {
+        "output_type": "ndarray",
+        "resulting_state": "preprocessed_features"
+      }
+    },
+    {
+      "cell_id": "SIMPLE_IMPUTER",
+      "stage": 1,
+      "keywords": ["simple", "imputer", "missing", "nan", "preprocessing"],
+      "code_template": "from sklearn.impute import SimpleImputer\nscaler = SimpleImputer()\n{output_var} = scaler.fit_transform({input_var})",
+      "inputs": { "input_type": "DataFrame", "expected_state": "raw_features" },
+      "outputs": {
+        "output_type": "ndarray",
+        "resulting_state": "preprocessed_features"
+      }
+    },
+    {
+      "cell_id": "KNN_IMPUTER",
+      "stage": 1,
+      "keywords": ["knn", "imputer", "missing", "neighbors", "preprocessing"],
+      "code_template": "from sklearn.impute import KNNImputer\nscaler = KNNImputer()\n{output_var} = scaler.fit_transform({input_var})",
+      "inputs": { "input_type": "DataFrame", "expected_state": "raw_features" },
+      "outputs": {
+        "output_type": "ndarray",
+        "resulting_state": "preprocessed_features"
+      }
+    },
+    {
+      "cell_id": "ITERATIVE_IMPUTER",
+      "stage": 1,
+      "keywords": ["iterative", "imputer", "mice", "missing", "preprocessing"],
+      "code_template": "from sklearn.experimental import enable_iterative_imputer\nfrom sklearn.impute import IterativeImputer\nscaler = IterativeImputer()\n{output_var} = scaler.fit_transform({input_var})",
+      "inputs": { "input_type": "DataFrame", "expected_state": "raw_features" },
+      "outputs": {
+        "output_type": "ndarray",
+        "resulting_state": "preprocessed_features"
+      }
+    },
+    {
+      "cell_id": "MISSING_INDICATOR",
+      "stage": 1,
+      "keywords": ["missing", "indicator", "binary", "nan", "preprocessing"],
+      "code_template": "from sklearn.impute import MissingIndicator\nscaler = MissingIndicator()\n{output_var} = scaler.fit_transform({input_var})",
+      "inputs": { "input_type": "DataFrame", "expected_state": "raw_features" },
+      "outputs": {
+        "output_type": "ndarray",
+        "resulting_state": "preprocessed_features"
+      }
+    },
+    {
+      "cell_id": "ONE_HOT_ENCODER",
+      "stage": 1,
+      "keywords": [
+        "onehot",
+        "encoder",
+        "categorical",
+        "dummy",
+        "preprocessing"
+      ],
+      "code_template": "from sklearn.preprocessing import OneHotEncoder\nscaler = OneHotEncoder()\n{output_var} = scaler.fit_transform({input_var})",
+      "inputs": { "input_type": "DataFrame", "expected_state": "raw_features" },
+      "outputs": {
+        "output_type": "ndarray",
+        "resulting_state": "preprocessed_features"
+      }
+    },
+    {
+      "cell_id": "ORDINAL_ENCODER",
+      "stage": 1,
+      "keywords": [
+        "ordinal",
+        "encoder",
+        "categorical",
+        "integer",
+        "preprocessing"
+      ],
+      "code_template": "from sklearn.preprocessing import OrdinalEncoder\nscaler = OrdinalEncoder()\n{output_var} = scaler.fit_transform({input_var})",
+      "inputs": { "input_type": "DataFrame", "expected_state": "raw_features" },
+      "outputs": {
+        "output_type": "ndarray",
+        "resulting_state": "preprocessed_features"
+      }
+    },
+    {
+      "cell_id": "LABEL_ENCODER",
+      "stage": 1,
+      "keywords": [
+        "label",
+        "encoder",
+        "target",
+        "categorical",
+        "preprocessing"
+      ],
+      "code_template": "from sklearn.preprocessing import LabelEncoder\nscaler = LabelEncoder()\n{output_var} = scaler.fit_transform({input_var})",
+      "inputs": { "input_type": "ndarray", "expected_state": "raw_features" },
+      "outputs": {
+        "output_type": "ndarray",
+        "resulting_state": "preprocessed_features"
+      }
+    },
+    {
+      "cell_id": "COLUMN_TRANSFORMER",
+      "stage": 1,
+      "keywords": [
+        "column",
+        "transformer",
+        "pipeline",
+        "mixed",
+        "preprocessing"
+      ],
+      "code_template": "from sklearn.compose import ColumnTransformer\nscaler = ColumnTransformer(transformers=[])\n{output_var} = scaler.fit_transform({input_var})",
+      "inputs": { "input_type": "DataFrame", "expected_state": "raw_features" },
+      "outputs": {
+        "output_type": "ndarray",
+        "resulting_state": "preprocessed_features"
+      }
+    },
+    {
+      "cell_id": "TFIDF_VECTORIZER",
+      "stage": 1,
+      "keywords": ["tfidf", "vectorizer", "text", "nlp", "preprocessing"],
+      "code_template": "from sklearn.feature_extraction.text import TfidfVectorizer\nscaler = TfidfVectorizer()\n{output_var} = scaler.fit_transform({input_var})",
+      "inputs": { "input_type": "list", "expected_state": "raw_features" },
+      "outputs": {
+        "output_type": "ndarray",
+        "resulting_state": "preprocessed_features"
+      }
+    },
+    {
+      "cell_id": "COUNT_VECTORIZER",
+      "stage": 1,
+      "keywords": [
+        "count",
+        "vectorizer",
+        "text",
+        "bag-of-words",
+        "preprocessing"
+      ],
+      "code_template": "from sklearn.feature_extraction.text import CountVectorizer\nscaler = CountVectorizer()\n{output_var} = scaler.fit_transform({input_var})",
+      "inputs": { "input_type": "list", "expected_state": "raw_features" },
+      "outputs": {
+        "output_type": "ndarray",
+        "resulting_state": "preprocessed_features"
+      }
+    },
+    {
+      "cell_id": "HASHING_VECTORIZER",
+      "stage": 1,
+      "keywords": ["hashing", "vectorizer", "text", "memory", "preprocessing"],
+      "code_template": "from sklearn.feature_extraction.text import HashingVectorizer\nscaler = HashingVectorizer()\n{output_var} = scaler.fit_transform({input_var})",
+      "inputs": { "input_type": "list", "expected_state": "raw_features" },
+      "outputs": {
+        "output_type": "ndarray",
+        "resulting_state": "preprocessed_features"
+      }
+    },
+    {
+      "cell_id": "POLYNOMIAL_FEATURES",
+      "stage": 1,
+      "keywords": [
+        "polynomial",
+        "features",
+        "interaction",
+        "degree",
+        "preprocessing"
+      ],
+      "code_template": "from sklearn.preprocessing import PolynomialFeatures\nscaler = PolynomialFeatures()\n{output_var} = scaler.fit_transform({input_var})",
+      "inputs": { "input_type": "DataFrame", "expected_state": "raw_features" },
+      "outputs": {
+        "output_type": "ndarray",
+        "resulting_state": "preprocessed_features"
+      }
+    },
+    {
+      "cell_id": "SPLINE_TRANSFORMER",
+      "stage": 1,
+      "keywords": [
+        "spline",
+        "transformer",
+        "basis",
+        "nonlinear",
+        "preprocessing"
+      ],
+      "code_template": "from sklearn.preprocessing import SplineTransformer\nscaler = SplineTransformer()\n{output_var} = scaler.fit_transform({input_var})",
+      "inputs": { "input_type": "DataFrame", "expected_state": "raw_features" },
+      "outputs": {
+        "output_type": "ndarray",
+        "resulting_state": "preprocessed_features"
+      }
+    },
+    {
+      "cell_id": "FUNCTION_TRANSFORMER",
+      "stage": 1,
+      "keywords": [
+        "function",
+        "transformer",
+        "custom",
+        "lambda",
+        "preprocessing"
+      ],
+      "code_template": "from sklearn.preprocessing import FunctionTransformer\nscaler = FunctionTransformer(func=None)\n{output_var} = scaler.fit_transform({input_var})",
+      "inputs": { "input_type": "DataFrame", "expected_state": "raw_features" },
+      "outputs": {
+        "output_type": "ndarray",
+        "resulting_state": "preprocessed_features"
+      }
+    },
+    {
+      "cell_id": "PCA",
+      "stage": 2,
+      "keywords": [
+        "pca",
+        "components",
+        "variance",
+        "dimensionality",
+        "reduction"
+      ],
+      "code_template": "from sklearn.decomposition import PCA\nscaler = PCA()\n{output_var} = scaler.fit_transform({input_var})",
+      "inputs": {
+        "input_type": "ndarray",
+        "expected_state": "preprocessed_features"
+      },
+      "outputs": {
+        "output_type": "ndarray",
+        "resulting_state": "selected_features"
+      }
+    },
+    {
+      "cell_id": "INCREMENTAL_PCA",
+      "stage": 2,
+      "keywords": ["incremental", "pca", "batch", "memory", "reduction"],
+      "code_template": "from sklearn.decomposition import IncrementalPCA\nscaler = IncrementalPCA()\n{output_var} = scaler.fit_transform({input_var})",
+      "inputs": {
+        "input_type": "ndarray",
+        "expected_state": "preprocessed_features"
+      },
+      "outputs": {
+        "output_type": "ndarray",
+        "resulting_state": "selected_features"
+      }
+    },
+    {
+      "cell_id": "KERNEL_PCA",
+      "stage": 2,
+      "keywords": ["kernel", "pca", "nonlinear", "rbf", "reduction"],
+      "code_template": "from sklearn.decomposition import KernelPCA\nscaler = KernelPCA()\n{output_var} = scaler.fit_transform({input_var})",
+      "inputs": {
+        "input_type": "ndarray",
+        "expected_state": "preprocessed_features"
+      },
+      "outputs": {
+        "output_type": "ndarray",
+        "resulting_state": "selected_features"
+      }
+    },
+    {
+      "cell_id": "TRUNCATED_SVD",
+      "stage": 2,
+      "keywords": ["truncated", "svd", "lsa", "sparse", "reduction"],
+      "code_template": "from sklearn.decomposition import TruncatedSVD\nscaler = TruncatedSVD()\n{output_var} = scaler.fit_transform({input_var})",
+      "inputs": {
+        "input_type": "ndarray",
+        "expected_state": "preprocessed_features"
+      },
+      "outputs": {
+        "output_type": "ndarray",
+        "resulting_state": "selected_features"
+      }
+    },
+    {
+      "cell_id": "FAST_ICA",
+      "stage": 2,
+      "keywords": [
+        "fastica",
+        "independent",
+        "components",
+        "blind-source",
+        "reduction"
+      ],
+      "code_template": "from sklearn.decomposition import FastICA\nscaler = FastICA()\n{output_var} = scaler.fit_transform({input_var})",
+      "inputs": {
+        "input_type": "ndarray",
+        "expected_state": "preprocessed_features"
+      },
+      "outputs": {
+        "output_type": "ndarray",
+        "resulting_state": "selected_features"
+      }
+    },
+    {
+      "cell_id": "NMF",
+      "stage": 2,
+      "keywords": [
+        "nmf",
+        "non-negative",
+        "factorization",
+        "parts",
+        "reduction"
+      ],
+      "code_template": "from sklearn.decomposition import NMF\nscaler = NMF()\n{output_var} = scaler.fit_transform({input_var})",
+      "inputs": {
+        "input_type": "ndarray",
+        "expected_state": "preprocessed_features"
+      },
+      "outputs": {
+        "output_type": "ndarray",
+        "resulting_state": "selected_features"
+      }
+    },
+    {
+      "cell_id": "LINEAR_DISCRIMINANT_ANALYSIS",
+      "stage": 2,
+      "keywords": [
+        "lda",
+        "discriminant",
+        "supervised",
+        "class-separation",
+        "reduction"
+      ],
+      "code_template": "from sklearn.discriminant_analysis import LinearDiscriminantAnalysis\nscaler = LinearDiscriminantAnalysis()\n{output_var} = scaler.fit_transform({input_var}, y_train)",
+      "inputs": {
+        "input_type": "ndarray",
+        "expected_state": "preprocessed_features"
+      },
+      "outputs": {
+        "output_type": "ndarray",
+        "resulting_state": "selected_features"
+      }
+    },
+    {
+      "cell_id": "ISOMAP",
+      "stage": 2,
+      "keywords": ["isomap", "manifold", "geodesic", "nonlinear", "reduction"],
+      "code_template": "from sklearn.manifold import Isomap\nscaler = Isomap()\n{output_var} = scaler.fit_transform({input_var})",
+      "inputs": {
+        "input_type": "ndarray",
+        "expected_state": "preprocessed_features"
+      },
+      "outputs": {
+        "output_type": "ndarray",
+        "resulting_state": "selected_features"
+      }
+    },
+    {
+      "cell_id": "LOCALLY_LINEAR_EMBEDDING",
+      "stage": 2,
+      "keywords": ["lle", "manifold", "local", "neighbors", "reduction"],
+      "code_template": "from sklearn.manifold import LocallyLinearEmbedding\nscaler = LocallyLinearEmbedding()\n{output_var} = scaler.fit_transform({input_var})",
+      "inputs": {
+        "input_type": "ndarray",
+        "expected_state": "preprocessed_features"
+      },
+      "outputs": {
+        "output_type": "ndarray",
+        "resulting_state": "selected_features"
+      }
+    },
+    {
+      "cell_id": "SPECTRAL_EMBEDDING",
+      "stage": 2,
+      "keywords": ["spectral", "embedding", "laplacian", "graph", "reduction"],
+      "code_template": "from sklearn.manifold import SpectralEmbedding\nscaler = SpectralEmbedding()\n{output_var} = scaler.fit_transform({input_var})",
+      "inputs": {
+        "input_type": "ndarray",
+        "expected_state": "preprocessed_features"
+      },
+      "outputs": {
+        "output_type": "ndarray",
+        "resulting_state": "selected_features"
+      }
+    },
+    {
+      "cell_id": "TSNE",
+      "stage": 2,
+      "keywords": [
+        "tsne",
+        "manifold",
+        "visualization",
+        "stochastic",
+        "reduction"
+      ],
+      "code_template": "from sklearn.manifold import TSNE\nscaler = TSNE()\n{output_var} = scaler.fit_transform({input_var})",
+      "inputs": {
+        "input_type": "ndarray",
+        "expected_state": "preprocessed_features"
+      },
+      "outputs": {
+        "output_type": "ndarray",
+        "resulting_state": "selected_features"
+      }
+    },
+    {
+      "cell_id": "SELECT_K_BEST",
+      "stage": 2,
+      "keywords": ["select", "k-best", "univariate", "filter", "selection"],
+      "code_template": "from sklearn.feature_selection import SelectKBest\nscaler = SelectKBest(k=10)\n{output_var} = scaler.fit_transform({input_var}, y_train)",
+      "inputs": {
+        "input_type": "ndarray",
+        "expected_state": "preprocessed_features"
+      },
+      "outputs": {
+        "output_type": "ndarray",
+        "resulting_state": "selected_features"
+      }
+    },
+    {
+      "cell_id": "SELECT_PERCENTILE",
+      "stage": 2,
+      "keywords": ["select", "percentile", "univariate", "filter", "selection"],
+      "code_template": "from sklearn.feature_selection import SelectPercentile\nscaler = SelectPercentile(percentile=50)\n{output_var} = scaler.fit_transform({input_var}, y_train)",
+      "inputs": {
+        "input_type": "ndarray",
+        "expected_state": "preprocessed_features"
+      },
+      "outputs": {
+        "output_type": "ndarray",
+        "resulting_state": "selected_features"
+      }
+    },
+    {
+      "cell_id": "MUTUAL_INFO_CLASSIF",
+      "stage": 2,
+      "keywords": ["mutual", "info", "entropy", "nonlinear", "selection"],
+      "code_template": "from sklearn.feature_selection import mutual_info_classif\n{output_var} = mutual_info_classif({input_var}, y_train)",
+      "inputs": {
+        "input_type": "ndarray",
+        "expected_state": "preprocessed_features"
+      },
+      "outputs": {
+        "output_type": "ndarray",
+        "resulting_state": "selected_features"
+      }
+    },
+    {
+      "cell_id": "CHI2",
+      "stage": 2,
+      "keywords": ["chi2", "categorical", "statistical", "test", "selection"],
+      "code_template": "from sklearn.feature_selection import chi2\n{output_var} = chi2({input_var}, y_train)",
+      "inputs": {
+        "input_type": "ndarray",
+        "expected_state": "preprocessed_features"
+      },
+      "outputs": {
+        "output_type": "ndarray",
+        "resulting_state": "selected_features"
+      }
+    },
+    {
+      "cell_id": "VARIANCE_THRESHOLD",
+      "stage": 2,
+      "keywords": ["variance", "threshold", "filter", "baseline", "selection"],
+      "code_template": "from sklearn.feature_selection import VarianceThreshold\nscaler = VarianceThreshold()\n{output_var} = scaler.fit_transform({input_var})",
+      "inputs": {
+        "input_type": "ndarray",
+        "expected_state": "preprocessed_features"
+      },
+      "outputs": {
+        "output_type": "ndarray",
+        "resulting_state": "selected_features"
+      }
+    },
+    {
+      "cell_id": "RFE",
+      "stage": 2,
+      "keywords": ["rfe", "recursive", "elimination", "wrapper", "selection"],
+      "code_template": "from sklearn.feature_selection import RFE\nscaler = RFE(estimator=None)\n{output_var} = scaler.fit_transform({input_var}, y_train)",
+      "inputs": {
+        "input_type": "ndarray",
+        "expected_state": "preprocessed_features"
+      },
+      "outputs": {
+        "output_type": "ndarray",
+        "resulting_state": "selected_features"
+      }
+    },
+    {
+      "cell_id": "SELECT_FROM_MODEL",
+      "stage": 2,
+      "keywords": ["select", "model", "importance", "wrapper", "selection"],
+      "code_template": "from sklearn.feature_selection import SelectFromModel\nscaler = SelectFromModel(estimator=None)\n{output_var} = scaler.fit_transform({input_var}, y_train)",
+      "inputs": {
+        "input_type": "ndarray",
+        "expected_state": "preprocessed_features"
+      },
+      "outputs": {
+        "output_type": "ndarray",
+        "resulting_state": "selected_features"
+      }
+    },
+    {
+      "cell_id": "SEQUENTIAL_FEATURE_SELECTOR",
+      "stage": 2,
+      "keywords": ["sequential", "selector", "sfs", "forward", "backward"],
+      "code_template": "from sklearn.feature_selection import SequentialFeatureSelector\nscaler = SequentialFeatureSelector(estimator=None)\n{output_var} = scaler.fit_transform({input_var}, y_train)",
+      "inputs": {
+        "input_type": "ndarray",
+        "expected_state": "preprocessed_features"
+      },
+      "outputs": {
+        "output_type": "ndarray",
+        "resulting_state": "selected_features"
+      }
+    },
+    {
+      "cell_id": "FEATURE_AGGLOMERATION",
+      "stage": 2,
+      "keywords": [
+        "feature",
+        "agglomeration",
+        "clustering",
+        "grouping",
+        "selection"
+      ],
+      "code_template": "from sklearn.cluster import FeatureAgglomeration\nscaler = FeatureAgglomeration()\n{output_var} = scaler.fit_transform({input_var})",
+      "inputs": {
+        "input_type": "ndarray",
+        "expected_state": "preprocessed_features"
+      },
+      "outputs": {
+        "output_type": "ndarray",
+        "resulting_state": "selected_features"
+      }
+    },
+    {
+      "cell_id": "LOGISTIC_REGRESSION",
+      "stage": 3,
+      "keywords": [
+        "logistic",
+        "regression",
+        "classification",
+        "linear",
+        "model"
+      ],
+      "code_template": "from sklearn.linear_model import LogisticRegression\nscaler = LogisticRegression()\nscaler.fit({input_var}, y_train)\n{output_var} = scaler",
+      "inputs": {
+        "input_type": "ndarray",
+        "expected_state": "selected_features"
+      },
+      "outputs": {
+        "output_type": "Estimator",
+        "resulting_state": "base_estimator"
+      }
+    },
+    {
+      "cell_id": "LINEAR_REGRESSION",
+      "stage": 3,
+      "keywords": ["linear", "regression", "ols", "continuous", "model"],
+      "code_template": "from sklearn.linear_model import LinearRegression\nscaler = LinearRegression()\nscaler.fit({input_var}, y_train)\n{output_var} = scaler",
+      "inputs": {
+        "input_type": "ndarray",
+        "expected_state": "selected_features"
+      },
+      "outputs": {
+        "output_type": "Estimator",
+        "resulting_state": "base_estimator"
+      }
+    },
+    {
+      "cell_id": "RIDGE",
+      "stage": 3,
+      "keywords": ["ridge", "l2", "regularization", "regression", "model"],
+      "code_template": "from sklearn.linear_model import Ridge\nscaler = Ridge()\nscaler.fit({input_var}, y_train)\n{output_var} = scaler",
+      "inputs": {
+        "input_type": "ndarray",
+        "expected_state": "selected_features"
+      },
+      "outputs": {
+        "output_type": "Estimator",
+        "resulting_state": "base_estimator"
+      }
+    },
+    {
+      "cell_id": "LASSO",
+      "stage": 3,
+      "keywords": ["lasso", "l1", "sparse", "regression", "model"],
+      "code_template": "from sklearn.linear_model import Lasso\nscaler = Lasso()\nscaler.fit({input_var}, y_train)\n{output_var} = scaler",
+      "inputs": {
+        "input_type": "ndarray",
+        "expected_state": "selected_features"
+      },
+      "outputs": {
+        "output_type": "Estimator",
+        "resulting_state": "base_estimator"
+      }
+    },
+    {
+      "cell_id": "ELASTIC_NET",
+      "stage": 3,
+      "keywords": ["elastic", "net", "l1-l2", "regularization", "model"],
+      "code_template": "from sklearn.linear_model import ElasticNet\nscaler = ElasticNet()\nscaler.fit({input_var}, y_train)\n{output_var} = scaler",
+      "inputs": {
+        "input_type": "ndarray",
+        "expected_state": "selected_features"
+      },
+      "outputs": {
+        "output_type": "Estimator",
+        "resulting_state": "base_estimator"
+      }
+    },
+    {
+      "cell_id": "SGD_CLASSIFIER",
+      "stage": 3,
+      "keywords": ["sgd", "stochastic", "gradient", "descent", "model"],
+      "code_template": "from sklearn.linear_model import SGDClassifier\nscaler = SGDClassifier()\nscaler.fit({input_var}, y_train)\n{output_var} = scaler",
+      "inputs": {
+        "input_type": "ndarray",
+        "expected_state": "selected_features"
+      },
+      "outputs": {
+        "output_type": "Estimator",
+        "resulting_state": "base_estimator"
+      }
+    },
+    {
+      "cell_id": "PERCEPTRON",
+      "stage": 3,
+      "keywords": ["perceptron", "linear", "binary", "classification", "model"],
+      "code_template": "from sklearn.linear_model import Perceptron\nscaler = Perceptron()\nscaler.fit({input_var}, y_train)\n{output_var} = scaler",
+      "inputs": {
+        "input_type": "ndarray",
+        "expected_state": "selected_features"
+      },
+      "outputs": {
+        "output_type": "Estimator",
+        "resulting_state": "base_estimator"
+      }
+    },
+    {
+      "cell_id": "RANDOM_FOREST_CLASSIFIER",
+      "stage": 3,
+      "keywords": ["random", "forest", "ensemble", "trees", "classification"],
+      "code_template": "from sklearn.ensemble import RandomForestClassifier\nscaler = RandomForestClassifier()\nscaler.fit({input_var}, y_train)\n{output_var} = scaler",
+      "inputs": {
+        "input_type": "ndarray",
+        "expected_state": "selected_features"
+      },
+      "outputs": {
+        "output_type": "Estimator",
+        "resulting_state": "base_estimator"
+      }
+    },
+    {
+      "cell_id": "RANDOM_FOREST_REGRESSOR",
+      "stage": 3,
+      "keywords": ["random", "forest", "ensemble", "trees", "regression"],
+      "code_template": "from sklearn.ensemble import RandomForestRegressor\nscaler = RandomForestRegressor()\nscaler.fit({input_var}, y_train)\n{output_var} = scaler",
+      "inputs": {
+        "input_type": "ndarray",
+        "expected_state": "selected_features"
+      },
+      "outputs": {
+        "output_type": "Estimator",
+        "resulting_state": "base_estimator"
+      }
+    },
+    {
+      "cell_id": "GRADIENT_BOOSTING_CLASSIFIER",
+      "stage": 3,
+      "keywords": ["gradient", "boosting", "gbm", "ensemble", "classification"],
+      "code_template": "from sklearn.ensemble import GradientBoostingClassifier\nscaler = GradientBoostingClassifier()\nscaler.fit({input_var}, y_train)\n{output_var} = scaler",
+      "inputs": {
+        "input_type": "ndarray",
+        "expected_state": "selected_features"
+      },
+      "outputs": {
+        "output_type": "Estimator",
+        "resulting_state": "base_estimator"
+      }
+    },
+    {
+      "cell_id": "HIST_GRADIENT_BOOSTING_CLASSIFIER",
+      "stage": 3,
+      "keywords": [
+        "histogram",
+        "gradient",
+        "boosting",
+        "fast",
+        "classification"
+      ],
+      "code_template": "from sklearn.ensemble import HistGradientBoostingClassifier\nscaler = HistGradientBoostingClassifier()\nscaler.fit({input_var}, y_train)\n{output_var} = scaler",
+      "inputs": {
+        "input_type": "ndarray",
+        "expected_state": "selected_features"
+      },
+      "outputs": {
+        "output_type": "Estimator",
+        "resulting_state": "base_estimator"
+      }
+    },
+    {
+      "cell_id": "ADABOOST_CLASSIFIER",
+      "stage": 3,
+      "keywords": [
+        "adaboost",
+        "adaptive",
+        "boosting",
+        "ensemble",
+        "classification"
+      ],
+      "code_template": "from sklearn.ensemble import AdaBoostClassifier\nscaler = AdaBoostClassifier()\nscaler.fit({input_var}, y_train)\n{output_var} = scaler",
+      "inputs": {
+        "input_type": "ndarray",
+        "expected_state": "selected_features"
+      },
+      "outputs": {
+        "output_type": "Estimator",
+        "resulting_state": "base_estimator"
+      }
+    },
+    {
+      "cell_id": "SVC",
+      "stage": 3,
+      "keywords": ["svc", "support", "vector", "kernel", "classification"],
+      "code_template": "from sklearn.svm import SVC\nscaler = SVC()\nscaler.fit({input_var}, y_train)\n{output_var} = scaler",
+      "inputs": {
+        "input_type": "ndarray",
+        "expected_state": "selected_features"
+      },
+      "outputs": {
+        "output_type": "Estimator",
+        "resulting_state": "base_estimator"
+      }
+    },
+    {
+      "cell_id": "SVR",
+      "stage": 3,
+      "keywords": ["svr", "support", "vector", "regression", "model"],
+      "code_template": "from sklearn.svm import SVR\nscaler = SVR()\nscaler.fit({input_var}, y_train)\n{output_var} = scaler",
+      "inputs": {
+        "input_type": "ndarray",
+        "expected_state": "selected_features"
+      },
+      "outputs": {
+        "output_type": "Estimator",
+        "resulting_state": "base_estimator"
+      }
+    },
+    {
+      "cell_id": "LINEAR_SVC",
+      "stage": 3,
+      "keywords": ["linear", "svc", "support", "vector", "classification"],
+      "code_template": "from sklearn.svm import LinearSVC\nscaler = LinearSVC()\nscaler.fit({input_var}, y_train)\n{output_var} = scaler",
+      "inputs": {
+        "input_type": "ndarray",
+        "expected_state": "selected_features"
+      },
+      "outputs": {
+        "output_type": "Estimator",
+        "resulting_state": "base_estimator"
+      }
+    },
+    {
+      "cell_id": "K_NEIGHBORS_CLASSIFIER",
+      "stage": 3,
+      "keywords": ["knn", "k-neighbors", "instance", "based", "classification"],
+      "code_template": "from sklearn.neighbors import KNeighborsClassifier\nscaler = KNeighborsClassifier()\nscaler.fit({input_var}, y_train)\n{output_var} = scaler",
+      "inputs": {
+        "input_type": "ndarray",
+        "expected_state": "selected_features"
+      },
+      "outputs": {
+        "output_type": "Estimator",
+        "resulting_state": "base_estimator"
+      }
+    },
+    {
+      "cell_id": "DECISION_TREE_CLASSIFIER",
+      "stage": 3,
+      "keywords": [
+        "decision",
+        "tree",
+        "cart",
+        "interpretable",
+        "classification"
+      ],
+      "code_template": "from sklearn.tree import DecisionTreeClassifier\nscaler = DecisionTreeClassifier()\nscaler.fit({input_var}, y_train)\n{output_var} = scaler",
+      "inputs": {
+        "input_type": "ndarray",
+        "expected_state": "selected_features"
+      },
+      "outputs": {
+        "output_type": "Estimator",
+        "resulting_state": "base_estimator"
+      }
+    },
+    {
+      "cell_id": "GAUSSIAN_NB",
+      "stage": 3,
+      "keywords": [
+        "gaussian",
+        "naive",
+        "bayes",
+        "probabilistic",
+        "classification"
+      ],
+      "code_template": "from sklearn.naive_bayes import GaussianNB\nscaler = GaussianNB()\nscaler.fit({input_var}, y_train)\n{output_var} = scaler",
+      "inputs": {
+        "input_type": "ndarray",
+        "expected_state": "selected_features"
+      },
+      "outputs": {
+        "output_type": "Estimator",
+        "resulting_state": "base_estimator"
+      }
+    },
+    {
+      "cell_id": "MLP_CLASSIFIER",
+      "stage": 3,
+      "keywords": ["mlp", "neural", "network", "deep", "classification"],
+      "code_template": "from sklearn.neural_network import MLPClassifier\nscaler = MLPClassifier()\nscaler.fit({input_var}, y_train)\n{output_var} = scaler",
+      "inputs": {
+        "input_type": "ndarray",
+        "expected_state": "selected_features"
+      },
+      "outputs": {
+        "output_type": "Estimator",
+        "resulting_state": "base_estimator"
+      }
+    },
+    {
+      "cell_id": "KMEANS",
+      "stage": 3,
+      "keywords": ["kmeans", "clustering", "centroid", "unsupervised", "model"],
+      "code_template": "from sklearn.cluster import KMeans\nscaler = KMeans()\nscaler.fit({input_var})\n{output_var} = scaler",
+      "inputs": {
+        "input_type": "ndarray",
+        "expected_state": "selected_features"
+      },
+      "outputs": {
+        "output_type": "Estimator",
+        "resulting_state": "base_estimator"
+      }
+    },
+    {
+      "cell_id": "DBSCAN",
+      "stage": 3,
+      "keywords": ["dbscan", "density", "clustering", "noise", "unsupervised"],
+      "code_template": "from sklearn.cluster import DBSCAN\nscaler = DBSCAN()\nscaler.fit({input_var})\n{output_var} = scaler",
+      "inputs": {
+        "input_type": "ndarray",
+        "expected_state": "selected_features"
+      },
+      "outputs": {
+        "output_type": "Estimator",
+        "resulting_state": "base_estimator"
+      }
+    },
+    {
+      "cell_id": "ISOLATION_FOREST",
+      "stage": 3,
+      "keywords": ["isolation", "forest", "anomaly", "outlier", "unsupervised"],
+      "code_template": "from sklearn.ensemble import IsolationForest\nscaler = IsolationForest()\nscaler.fit({input_var})\n{output_var} = scaler",
+      "inputs": {
+        "input_type": "ndarray",
+        "expected_state": "selected_features"
+      },
+      "outputs": {
+        "output_type": "Estimator",
+        "resulting_state": "base_estimator"
+      }
+    },
+    {
+      "cell_id": "GRID_SEARCH_CV",
+      "stage": 4,
+      "keywords": ["grid", "search", "hyperparameter", "tuning", "cv"],
+      "code_template": "from sklearn.model_selection import GridSearchCV\nparam_grid = {'C': [0.1, 1, 10]}\nscaler = GridSearchCV({input_var}, param_grid, cv=5)\nscaler.fit(X_train, y_train)\n{output_var} = scaler",
+      "inputs": {
+        "input_type": "Estimator",
+        "expected_state": "base_estimator"
+      },
+      "outputs": {
+        "output_type": "Estimator",
+        "resulting_state": "optimized_model"
+      }
+    },
+    {
+      "cell_id": "RANDOM_SEARCH_CV",
+      "stage": 4,
+      "keywords": ["random", "search", "hyperparameter", "tuning", "cv"],
+      "code_template": "from sklearn.model_selection import RandomizedSearchCV\nparam_dist = {'C': [0.1, 1, 10]}\nscaler = RandomizedSearchCV({input_var}, param_dist, cv=5)\nscaler.fit(X_train, y_train)\n{output_var} = scaler",
+      "inputs": {
+        "input_type": "Estimator",
+        "expected_state": "base_estimator"
+      },
+      "outputs": {
+        "output_type": "Estimator",
+        "resulting_state": "optimized_model"
+      }
+    },
+    {
+      "cell_id": "HALVING_GRID_SEARCH_CV",
+      "stage": 4,
+      "keywords": ["halving", "grid", "search", "successive", "tuning"],
+      "code_template": "from sklearn.experimental import enable_halving_search_cv\nfrom sklearn.model_selection import HalvingGridSearchCV\nscaler = HalvingGridSearchCV({input_var}, param_grid, cv=5)\nscaler.fit(X_train, y_train)\n{output_var} = scaler",
+      "inputs": {
+        "input_type": "Estimator",
+        "expected_state": "base_estimator"
+      },
+      "outputs": {
+        "output_type": "Estimator",
+        "resulting_state": "optimized_model"
+      }
+    },
+    {
+      "cell_id": "CALIBRATED_CLASSIFIER_CV",
+      "stage": 4,
+      "keywords": [
+        "calibrated",
+        "classifier",
+        "probabilities",
+        "isotonic",
+        "sigmoid"
+      ],
+      "code_template": "from sklearn.calibration import CalibratedClassifierCV\nscaler = CalibratedClassifierCV({input_var}, cv=5)\nscaler.fit(X_train, y_train)\n{output_var} = scaler",
+      "inputs": {
+        "input_type": "Estimator",
+        "expected_state": "base_estimator"
+      },
+      "outputs": {
+        "output_type": "Estimator",
+        "resulting_state": "optimized_model"
+      }
+    },
+    {
+      "cell_id": "VOTING_CLASSIFIER",
+      "stage": 4,
+      "keywords": ["voting", "ensemble", "hard", "soft", "meta-estimator"],
+      "code_template": "from sklearn.ensemble import VotingClassifier\nscaler = VotingClassifier(estimators=[('est', {input_var})])\nscaler.fit(X_train, y_train)\n{output_var} = scaler",
+      "inputs": {
+        "input_type": "Estimator",
+        "expected_state": "base_estimator"
+      },
+      "outputs": {
+        "output_type": "Estimator",
+        "resulting_state": "optimized_model"
+      }
+    },
+    {
+      "cell_id": "STACKING_CLASSIFIER",
+      "stage": 4,
+      "keywords": [
+        "stacking",
+        "ensemble",
+        "meta-learner",
+        "blending",
+        "meta-estimator"
+      ],
+      "code_template": "from sklearn.ensemble import StackingClassifier\nscaler = StackingClassifier(estimators=[('est', {input_var})], final_estimator=None)\nscaler.fit(X_train, y_train)\n{output_var} = scaler",
+      "inputs": {
+        "input_type": "Estimator",
+        "expected_state": "base_estimator"
+      },
+      "outputs": {
+        "output_type": "Estimator",
+        "resulting_state": "optimized_model"
+      }
+    },
+    {
+      "cell_id": "BAGGING_CLASSIFIER",
+      "stage": 4,
+      "keywords": [
+        "bagging",
+        "bootstrap",
+        "ensemble",
+        "variance",
+        "meta-estimator"
+      ],
+      "code_template": "from sklearn.ensemble import BaggingClassifier\nscaler = BaggingClassifier(estimator={input_var})\nscaler.fit(X_train, y_train)\n{output_var} = scaler",
+      "inputs": {
+        "input_type": "Estimator",
+        "expected_state": "base_estimator"
+      },
+      "outputs": {
+        "output_type": "Estimator",
+        "resulting_state": "optimized_model"
+      }
+    },
+    {
+      "cell_id": "ACCURACY_SCORE",
+      "stage": 4,
+      "keywords": [
+        "accuracy",
+        "score",
+        "metric",
+        "classification",
+        "evaluation"
+      ],
+      "code_template": "from sklearn.metrics import accuracy_score\n{output_var} = {'accuracy': accuracy_score(y_test, {input_var}.predict(X_test))}",
+      "inputs": {
+        "input_type": "Estimator",
+        "expected_state": "base_estimator"
+      },
+      "outputs": {
+        "output_type": "dict",
+        "resulting_state": "evaluation_metrics"
+      }
+    },
+    {
+      "cell_id": "CONFUSION_MATRIX",
+      "stage": 4,
+      "keywords": [
+        "confusion",
+        "matrix",
+        "metric",
+        "classification",
+        "evaluation"
+      ],
+      "code_template": "from sklearn.metrics import confusion_matrix\n{output_var} = {'confusion_matrix': confusion_matrix(y_test, {input_var}.predict(X_test))}",
+      "inputs": {
+        "input_type": "Estimator",
+        "expected_state": "base_estimator"
+      },
+      "outputs": {
+        "output_type": "dict",
+        "resulting_state": "evaluation_metrics"
+      }
+    },
+    {
+      "cell_id": "CLASSIFICATION_REPORT",
+      "stage": 4,
+      "keywords": ["classification", "report", "precision", "recall", "f1"],
+      "code_template": "from sklearn.metrics import classification_report\n{output_var} = {'report': classification_report(y_test, {input_var}.predict(X_test), output_dict=True)}",
+      "inputs": {
+        "input_type": "Estimator",
+        "expected_state": "base_estimator"
+      },
+      "outputs": {
+        "output_type": "dict",
+        "resulting_state": "evaluation_metrics"
+      }
+    },
+    {
+      "cell_id": "ROC_AUC_SCORE",
+      "stage": 4,
+      "keywords": ["roc", "auc", "metric", "ranking", "evaluation"],
+      "code_template": "from sklearn.metrics import roc_auc_score\n{output_var} = {'roc_auc': roc_auc_score(y_test, {input_var}.predict_proba(X_test)[:, 1])}",
+      "inputs": {
+        "input_type": "Estimator",
+        "expected_state": "base_estimator"
+      },
+      "outputs": {
+        "output_type": "dict",
+        "resulting_state": "evaluation_metrics"
+      }
+    },
+    {
+      "cell_id": "MEAN_SQUARED_ERROR",
+      "stage": 4,
+      "keywords": ["mse", "mean", "squared", "error", "regression"],
+      "code_template": "from sklearn.metrics import mean_squared_error\n{output_var} = {'mse': mean_squared_error(y_test, {input_var}.predict(X_test))}",
+      "inputs": {
+        "input_type": "Estimator",
+        "expected_state": "base_estimator"
+      },
+      "outputs": {
+        "output_type": "dict",
+        "resulting_state": "evaluation_metrics"
+      }
+    },
+    {
+      "cell_id": "R2_SCORE",
+      "stage": 4,
+      "keywords": ["r2", "score", "coefficient", "determination", "regression"],
+      "code_template": "from sklearn.metrics import r2_score\n{output_var} = {'r2': r2_score(y_test, {input_var}.predict(X_test))}",
+      "inputs": {
+        "input_type": "Estimator",
+        "expected_state": "base_estimator"
+      },
+      "outputs": {
+        "output_type": "dict",
+        "resulting_state": "evaluation_metrics"
+      }
+    },
+    {
+      "cell_id": "SILHOUETTE_SCORE",
+      "stage": 4,
+      "keywords": ["silhouette", "score", "clustering", "metric", "evaluation"],
+      "code_template": "from sklearn.metrics import silhouette_score\n{output_var} = {'silhouette': silhouette_score(X_test, {input_var}.predict(X_test))}",
+      "inputs": {
+        "input_type": "Estimator",
+        "expected_state": "base_estimator"
+      },
+      "outputs": {
+        "output_type": "dict",
+        "resulting_state": "evaluation_metrics"
+      }
+    },
+    {
+      "cell_id": "PREDICT",
+      "stage": 5,
+      "keywords": [
+        "predict",
+        "inference",
+        "output",
+        "forecast",
+        "classification"
+      ],
+      "code_template": "{output_var} = {input_var}.predict(X_test)",
+      "inputs": {
+        "input_type": "Estimator",
+        "expected_state": "optimized_model"
+      },
+      "outputs": { "output_type": "ndarray", "resulting_state": "predictions" }
+    },
+    {
+      "cell_id": "PREDICT_PROBA",
+      "stage": 5,
+      "keywords": [
+        "predict",
+        "proba",
+        "probabilities",
+        "confidence",
+        "classification"
+      ],
+      "code_template": "{output_var} = {input_var}.predict_proba(X_test)",
+      "inputs": {
+        "input_type": "Estimator",
+        "expected_state": "optimized_model"
+      },
+      "outputs": { "output_type": "ndarray", "resulting_state": "predictions" }
+    },
+    {
+      "cell_id": "DECISION_FUNCTION",
+      "stage": 5,
+      "keywords": [
+        "decision",
+        "function",
+        "margin",
+        "hyperplane",
+        "classification"
+      ],
+      "code_template": "{output_var} = {input_var}.decision_function(X_test)",
+      "inputs": {
+        "input_type": "Estimator",
+        "expected_state": "optimized_model"
+      },
+      "outputs": { "output_type": "ndarray", "resulting_state": "predictions" }
+    },
+    {
+      "cell_id": "JOBLIB_DUMP_MODEL",
+      "stage": 5,
+      "keywords": ["joblib", "dump", "save", "serialize", "export"],
+      "code_template": "import joblib\n{output_var} = 'model.joblib'\njoblib.dump({input_var}, {output_var})",
+      "inputs": {
+        "input_type": "Estimator",
+        "expected_state": "optimized_model"
+      },
+      "outputs": {
+        "output_type": "str",
+        "resulting_state": "exported_filepath"
+      }
+    },
+    {
+      "cell_id": "PICKLE_DUMP_MODEL",
+      "stage": 5,
+      "keywords": ["pickle", "dump", "save", "serialize", "export"],
+      "code_template": "import pickle\n{output_var} = 'model.pkl'\nwith open({output_var}, 'wb') as f:\n    pickle.dump({input_var}, f)",
+      "inputs": {
+        "input_type": "Estimator",
+        "expected_state": "optimized_model"
+      },
+      "outputs": {
+        "output_type": "str",
+        "resulting_state": "exported_filepath"
+      }
+    },
+    {
+      "cell_id": "ONNX_CONVERT_MODEL",
+      "stage": 5,
+      "keywords": ["onnx", "convert", "interoperability", "deploy", "export"],
+      "code_template": "from skl2onnx import convert_sklearn\nfrom skl2onnx.common.data_types import FloatTensorType\ninitial_type = [('float_input', FloatTensorType([None, X_test.shape[1]]))]\n{output_var} = 'model.onnx'\nonnx_model = convert_sklearn({input_var}, initial_types=initial_type)\nwith open({output_var}, 'wb') as f:\n    f.write(onnx_model.SerializeToString())",
+      "inputs": {
+        "input_type": "Estimator",
+        "expected_state": "optimized_model"
+      },
+      "outputs": {
+        "output_type": "str",
+        "resulting_state": "exported_filepath"
+      }
+    },
+    {
+      "cell_id": "SAVE_PREDICTIONS_CSV",
+      "stage": 5,
+      "keywords": ["save", "predictions", "csv", "export", "disk"],
+      "code_template": "import pandas as pd\n{output_var} = 'predictions.csv'\npd.DataFrame({input_var}, columns=['prediction']).to_csv({output_var}, index=False)",
+      "inputs": { "input_type": "ndarray", "expected_state": "predictions" },
+      "outputs": {
+        "output_type": "str",
+        "resulting_state": "exported_filepath"
+      }
+    },
+    {
+      "cell_id": "SAVE_METRICS_JSON",
+      "stage": 5,
+      "keywords": ["save", "metrics", "json", "export", "disk"],
+      "code_template": "import json\n{output_var} = 'metrics.json'\nwith open({output_var}, 'w') as f:\n    json.dump({input_var}, f)",
+      "inputs": {
+        "input_type": "dict",
+        "expected_state": "evaluation_metrics"
+      },
+      "outputs": {
+        "output_type": "str",
+        "resulting_state": "exported_filepath"
+      }
+    }
+  ]
+}

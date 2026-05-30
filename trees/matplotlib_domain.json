@@ -1,0 +1,714 @@
+{
+  "domain_name": "Matplotlib_Complete_Visualization_Engine",
+  "version": "1.0.0",
+  "cells": [
+    {
+      "cell_id": "INIT_SUBPLOTS",
+      "stage": 1,
+      "keywords": ["subplots", "figure", "axes", "init", "create"],
+      "code_template": "import matplotlib.pyplot as plt\nfig, ax = plt.subplots()\n{output_var} = ax",
+      "inputs": { "input_type": "dict", "expected_state": "init_params" },
+      "outputs": {
+        "output_type": "Axes",
+        "resulting_state": "initialized_axes"
+      }
+    },
+    {
+      "cell_id": "INIT_FIGURE_ADD_AXES",
+      "stage": 1,
+      "keywords": ["figure", "add_axes", "manual", "position", "init"],
+      "code_template": "import matplotlib.pyplot as plt\nfig = plt.figure()\n{output_var} = fig.add_axes([0.1, 0.1, 0.8, 0.8])",
+      "inputs": { "input_type": "dict", "expected_state": "init_params" },
+      "outputs": {
+        "output_type": "Axes",
+        "resulting_state": "initialized_axes"
+      }
+    },
+    {
+      "cell_id": "INIT_GRIDSPEC",
+      "stage": 1,
+      "keywords": ["gridspec", "grid", "layout", "complex", "init"],
+      "code_template": "import matplotlib.pyplot as plt\nimport matplotlib.gridspec as gridspec\nfig = plt.figure()\ngs = gridspec.GridSpec(2, 2)\n{output_var} = fig.add_subplot(gs[0, 0])",
+      "inputs": { "input_type": "dict", "expected_state": "init_params" },
+      "outputs": {
+        "output_type": "Axes",
+        "resulting_state": "initialized_axes"
+      }
+    },
+    {
+      "cell_id": "INIT_POLAR_AXES",
+      "stage": 1,
+      "keywords": ["polar", "radar", "circular", "projection", "init"],
+      "code_template": "import matplotlib.pyplot as plt\nfig, {output_var} = plt.subplots(subplot_kw={'projection': 'polar'})",
+      "inputs": { "input_type": "dict", "expected_state": "init_params" },
+      "outputs": {
+        "output_type": "Axes",
+        "resulting_state": "initialized_axes"
+      }
+    },
+    {
+      "cell_id": "INIT_3D_AXES",
+      "stage": 1,
+      "keywords": ["3d", "surface", "projection", "mpl_toolkits", "init"],
+      "code_template": "import matplotlib.pyplot as plt\nfig = plt.figure()\n{output_var} = fig.add_subplot(111, projection='3d')",
+      "inputs": { "input_type": "dict", "expected_state": "init_params" },
+      "outputs": {
+        "output_type": "Axes",
+        "resulting_state": "initialized_axes"
+      }
+    },
+    {
+      "cell_id": "PLOT_LINE",
+      "stage": 2,
+      "keywords": ["plot", "line", "graph", "xy", "render"],
+      "code_template": "{input_var}.plot([1, 2, 3], [1, 4, 9])\n{output_var} = {input_var}",
+      "inputs": { "input_type": "Axes", "expected_state": "initialized_axes" },
+      "outputs": { "output_type": "Axes", "resulting_state": "plotted_axes" }
+    },
+    {
+      "cell_id": "PLOT_SCATTER",
+      "stage": 2,
+      "keywords": ["scatter", "points", "dots", "xy", "render"],
+      "code_template": "{input_var}.scatter([1, 2, 3], [1, 4, 9])\n{output_var} = {input_var}",
+      "inputs": { "input_type": "Axes", "expected_state": "initialized_axes" },
+      "outputs": { "output_type": "Axes", "resulting_state": "plotted_axes" }
+    },
+    {
+      "cell_id": "PLOT_BAR",
+      "stage": 2,
+      "keywords": ["bar", "categorical", "vertical", "columns", "render"],
+      "code_template": "{input_var}.bar(['A', 'B', 'C'], [10, 20, 15])\n{output_var} = {input_var}",
+      "inputs": { "input_type": "Axes", "expected_state": "initialized_axes" },
+      "outputs": { "output_type": "Axes", "resulting_state": "plotted_axes" }
+    },
+    {
+      "cell_id": "PLOT_BARH",
+      "stage": 2,
+      "keywords": ["barh", "horizontal", "categorical", "rows", "render"],
+      "code_template": "{input_var}.barh(['A', 'B', 'C'], [10, 20, 15])\n{output_var} = {input_var}",
+      "inputs": { "input_type": "Axes", "expected_state": "initialized_axes" },
+      "outputs": { "output_type": "Axes", "resulting_state": "plotted_axes" }
+    },
+    {
+      "cell_id": "PLOT_HIST",
+      "stage": 2,
+      "keywords": ["hist", "histogram", "distribution", "bins", "render"],
+      "code_template": "{input_var}.hist([1, 2, 2, 3, 3, 3], bins=5)\n{output_var} = {input_var}",
+      "inputs": { "input_type": "Axes", "expected_state": "initialized_axes" },
+      "outputs": { "output_type": "Axes", "resulting_state": "plotted_axes" }
+    },
+    {
+      "cell_id": "PLOT_IMSHOW",
+      "stage": 2,
+      "keywords": ["imshow", "image", "matrix", "heatmap", "render"],
+      "code_template": "import numpy as np\n{input_var}.imshow(np.random.rand(10, 10))\n{output_var} = {input_var}",
+      "inputs": { "input_type": "Axes", "expected_state": "initialized_axes" },
+      "outputs": { "output_type": "Axes", "resulting_state": "plotted_axes" }
+    },
+    {
+      "cell_id": "PLOT_CONTOUR",
+      "stage": 2,
+      "keywords": ["contour", "isolines", "topography", "3d", "render"],
+      "code_template": "import numpy as np\nX, Y = np.meshgrid(np.linspace(-3, 3, 10), np.linspace(-3, 3, 10))\n{input_var}.contour(X, Y, np.sin(X)*np.cos(Y))\n{output_var} = {input_var}",
+      "inputs": { "input_type": "Axes", "expected_state": "initialized_axes" },
+      "outputs": { "output_type": "Axes", "resulting_state": "plotted_axes" }
+    },
+    {
+      "cell_id": "PLOT_CONTOURF",
+      "stage": 2,
+      "keywords": ["contourf", "filled", "isolines", "heatmap", "render"],
+      "code_template": "import numpy as np\nX, Y = np.meshgrid(np.linspace(-3, 3, 10), np.linspace(-3, 3, 10))\n{input_var}.contourf(X, Y, np.sin(X)*np.cos(Y))\n{output_var} = {input_var}",
+      "inputs": { "input_type": "Axes", "expected_state": "initialized_axes" },
+      "outputs": { "output_type": "Axes", "resulting_state": "plotted_axes" }
+    },
+    {
+      "cell_id": "PLOT_PIE",
+      "stage": 2,
+      "keywords": ["pie", "proportions", "circular", "fractions", "render"],
+      "code_template": "{input_var}.pie([15, 30, 45, 10], labels=['A', 'B', 'C', 'D'])\n{output_var} = {input_var}",
+      "inputs": { "input_type": "Axes", "expected_state": "initialized_axes" },
+      "outputs": { "output_type": "Axes", "resulting_state": "plotted_axes" }
+    },
+    {
+      "cell_id": "PLOT_BOX",
+      "stage": 2,
+      "keywords": ["boxplot", "whiskers", "quartiles", "outliers", "render"],
+      "code_template": "{input_var}.boxplot([[1, 2, 3, 4], [10, 20, 30, 40]])\n{output_var} = {input_var}",
+      "inputs": { "input_type": "Axes", "expected_state": "initialized_axes" },
+      "outputs": { "output_type": "Axes", "resulting_state": "plotted_axes" }
+    },
+    {
+      "cell_id": "PLOT_VIOLIN",
+      "stage": 2,
+      "keywords": ["violinplot", "density", "distribution", "kde", "render"],
+      "code_template": "{input_var}.violinplot([[1, 2, 3, 4], [10, 20, 30, 40]])\n{output_var} = {input_var}",
+      "inputs": { "input_type": "Axes", "expected_state": "initialized_axes" },
+      "outputs": { "output_type": "Axes", "resulting_state": "plotted_axes" }
+    },
+    {
+      "cell_id": "PLOT_FILL_BETWEEN",
+      "stage": 2,
+      "keywords": ["fill_between", "area", "shading", "confidence", "render"],
+      "code_template": "import numpy as np\nx = np.linspace(0, 10, 10)\n{input_var}.fill_between(x, np.sin(x), np.cos(x))\n{output_var} = {input_var}",
+      "inputs": { "input_type": "Axes", "expected_state": "initialized_axes" },
+      "outputs": { "output_type": "Axes", "resulting_state": "plotted_axes" }
+    },
+    {
+      "cell_id": "PLOT_ERRORBAR",
+      "stage": 2,
+      "keywords": ["errorbar", "uncertainty", "variance", "whiskers", "render"],
+      "code_template": "{input_var}.errorbar([1, 2, 3], [1, 4, 9], yerr=[0.5, 1.0, 1.5])\n{output_var} = {input_var}",
+      "inputs": { "input_type": "Axes", "expected_state": "initialized_axes" },
+      "outputs": { "output_type": "Axes", "resulting_state": "plotted_axes" }
+    },
+    {
+      "cell_id": "PLOT_STEP",
+      "stage": 2,
+      "keywords": ["step", "discrete", "staircase", "digital", "render"],
+      "code_template": "{input_var}.step([1, 2, 3], [1, 4, 9], where='post')\n{output_var} = {input_var}",
+      "inputs": { "input_type": "Axes", "expected_state": "initialized_axes" },
+      "outputs": { "output_type": "Axes", "resulting_state": "plotted_axes" }
+    },
+    {
+      "cell_id": "PLOT_STEM",
+      "stage": 2,
+      "keywords": ["stem", "lollipop", "discrete", "impulse", "render"],
+      "code_template": "{input_var}.stem([1, 2, 3], [1, 4, 9])\n{output_var} = {input_var}",
+      "inputs": { "input_type": "Axes", "expected_state": "initialized_axes" },
+      "outputs": { "output_type": "Axes", "resulting_state": "plotted_axes" }
+    },
+    {
+      "cell_id": "PLOT_HEXBIN",
+      "stage": 2,
+      "keywords": ["hexbin", "density", "hexagonal", "bins", "render"],
+      "code_template": "import numpy as np\n{input_var}.hexbin(np.random.randn(100), np.random.randn(100), gridsize=10)\n{output_var} = {input_var}",
+      "inputs": { "input_type": "Axes", "expected_state": "initialized_axes" },
+      "outputs": { "output_type": "Axes", "resulting_state": "plotted_axes" }
+    },
+    {
+      "cell_id": "PLOT_QUIVER",
+      "stage": 2,
+      "keywords": ["quiver", "vectors", "arrows", "vectorfield", "render"],
+      "code_template": "import numpy as np\n{input_var}.quiver([0, 1], [0, 1], [1, 0], [0, 1])\n{output_var} = {input_var}",
+      "inputs": { "input_type": "Axes", "expected_state": "initialized_axes" },
+      "outputs": { "output_type": "Axes", "resulting_state": "plotted_axes" }
+    },
+    {
+      "cell_id": "PLOT_STREAMPLOT",
+      "stage": 2,
+      "keywords": [
+        "streamplot",
+        "flow",
+        "vectorfield",
+        "streamlines",
+        "render"
+      ],
+      "code_template": "import numpy as np\nY, X = np.mgrid[-3:3:10j, -3:3:10j]\n{input_var}.streamplot(X, Y, -Y, X)\n{output_var} = {input_var}",
+      "inputs": { "input_type": "Axes", "expected_state": "initialized_axes" },
+      "outputs": { "output_type": "Axes", "resulting_state": "plotted_axes" }
+    },
+    {
+      "cell_id": "PLOT_PCOLORMESH",
+      "stage": 2,
+      "keywords": ["pcolormesh", "heatmap", "grid", "matrix", "render"],
+      "code_template": "import numpy as np\n{input_var}.pcolormesh(np.random.rand(10, 10))\n{output_var} = {input_var}",
+      "inputs": { "input_type": "Axes", "expected_state": "initialized_axes" },
+      "outputs": { "output_type": "Axes", "resulting_state": "plotted_axes" }
+    },
+    {
+      "cell_id": "PLOT_MATSHOW",
+      "stage": 2,
+      "keywords": ["matshow", "matrix", "array", "heatmap", "render"],
+      "code_template": "import numpy as np\n{input_var}.matshow(np.random.rand(10, 10))\n{output_var} = {input_var}",
+      "inputs": { "input_type": "Axes", "expected_state": "initialized_axes" },
+      "outputs": { "output_type": "Axes", "resulting_state": "plotted_axes" }
+    },
+    {
+      "cell_id": "PLOT_3D_SCATTER",
+      "stage": 2,
+      "keywords": ["3d", "scatter", "spatial", "voxels", "render"],
+      "code_template": "import numpy as np\n{input_var}.scatter(np.random.rand(10), np.random.rand(10), np.random.rand(10))\n{output_var} = {input_var}",
+      "inputs": { "input_type": "Axes", "expected_state": "initialized_axes" },
+      "outputs": { "output_type": "Axes", "resulting_state": "plotted_axes" }
+    },
+    {
+      "cell_id": "PLOT_3D_SURFACE",
+      "stage": 2,
+      "keywords": ["3d", "surface", "mesh", "topography", "render"],
+      "code_template": "import numpy as np\nX, Y = np.meshgrid(np.linspace(-5, 5, 10), np.linspace(-5, 5, 10))\n{input_var}.plot_surface(X, Y, np.sin(np.sqrt(X**2 + Y**2)))\n{output_var} = {input_var}",
+      "inputs": { "input_type": "Axes", "expected_state": "initialized_axes" },
+      "outputs": { "output_type": "Axes", "resulting_state": "plotted_axes" }
+    },
+    {
+      "cell_id": "SET_TITLE",
+      "stage": 3,
+      "keywords": ["title", "header", "label", "annotate", "text"],
+      "code_template": "{input_var}.set_title('My Plot Title')\n{output_var} = {input_var}",
+      "inputs": { "input_type": "Axes", "expected_state": "plotted_axes" },
+      "outputs": { "output_type": "Axes", "resulting_state": "annotated_axes" }
+    },
+    {
+      "cell_id": "SET_LABELS",
+      "stage": 3,
+      "keywords": ["xlabel", "ylabel", "axis", "labels", "text"],
+      "code_template": "{input_var}.set_xlabel('X Axis')\n{input_var}.set_ylabel('Y Axis')\n{output_var} = {input_var}",
+      "inputs": { "input_type": "Axes", "expected_state": "plotted_axes" },
+      "outputs": { "output_type": "Axes", "resulting_state": "annotated_axes" }
+    },
+    {
+      "cell_id": "ADD_LEGEND",
+      "stage": 3,
+      "keywords": ["legend", "key", "labels", "identify", "annotate"],
+      "code_template": "{input_var}.legend()\n{output_var} = {input_var}",
+      "inputs": { "input_type": "Axes", "expected_state": "plotted_axes" },
+      "outputs": { "output_type": "Axes", "resulting_state": "annotated_axes" }
+    },
+    {
+      "cell_id": "ADD_GRID",
+      "stage": 3,
+      "keywords": ["grid", "lines", "background", "reference", "format"],
+      "code_template": "{input_var}.grid(True, linestyle='--', alpha=0.7)\n{output_var} = {input_var}",
+      "inputs": { "input_type": "Axes", "expected_state": "plotted_axes" },
+      "outputs": { "output_type": "Axes", "resulting_state": "annotated_axes" }
+    },
+    {
+      "cell_id": "SET_XTICKS",
+      "stage": 3,
+      "keywords": ["xticks", "ticks", "labels", "axis", "format"],
+      "code_template": "{input_var}.set_xticks([1, 2, 3], ['A', 'B', 'C'])\n{output_var} = {input_var}",
+      "inputs": { "input_type": "Axes", "expected_state": "plotted_axes" },
+      "outputs": { "output_type": "Axes", "resulting_state": "annotated_axes" }
+    },
+    {
+      "cell_id": "SET_YTICKS",
+      "stage": 3,
+      "keywords": ["yticks", "ticks", "labels", "axis", "format"],
+      "code_template": "{input_var}.set_yticks([10, 20, 30], ['Low', 'Med', 'High'])\n{output_var} = {input_var}",
+      "inputs": { "input_type": "Axes", "expected_state": "plotted_axes" },
+      "outputs": { "output_type": "Axes", "resulting_state": "annotated_axes" }
+    },
+    {
+      "cell_id": "SET_XLIM",
+      "stage": 3,
+      "keywords": ["xlim", "bounds", "range", "axis", "zoom"],
+      "code_template": "{input_var}.set_xlim(0, 10)\n{output_var} = {input_var}",
+      "inputs": { "input_type": "Axes", "expected_state": "plotted_axes" },
+      "outputs": { "output_type": "Axes", "resulting_state": "annotated_axes" }
+    },
+    {
+      "cell_id": "SET_YLIM",
+      "stage": 3,
+      "keywords": ["ylim", "bounds", "range", "axis", "zoom"],
+      "code_template": "{input_var}.set_ylim(0, 100)\n{output_var} = {input_var}",
+      "inputs": { "input_type": "Axes", "expected_state": "plotted_axes" },
+      "outputs": { "output_type": "Axes", "resulting_state": "annotated_axes" }
+    },
+    {
+      "cell_id": "ADD_ANNOTATION",
+      "stage": 3,
+      "keywords": ["annotate", "arrow", "point", "callout", "text"],
+      "code_template": "{input_var}.annotate('Peak', xy=(2, 4), xytext=(3, 5), arrowprops=dict(facecolor='black', shrink=0.05))\n{output_var} = {input_var}",
+      "inputs": { "input_type": "Axes", "expected_state": "plotted_axes" },
+      "outputs": { "output_type": "Axes", "resulting_state": "annotated_axes" }
+    },
+    {
+      "cell_id": "ADD_TEXT",
+      "stage": 3,
+      "keywords": ["text", "label", "watermark", "note", "annotate"],
+      "code_template": "{input_var}.text(0.5, 0.5, 'Confidential', transform={input_var}.transAxes, fontsize=12, color='gray')\n{output_var} = {input_var}",
+      "inputs": { "input_type": "Axes", "expected_state": "plotted_axes" },
+      "outputs": { "output_type": "Axes", "resulting_state": "annotated_axes" }
+    },
+    {
+      "cell_id": "SET_XSCALE",
+      "stage": 3,
+      "keywords": ["xscale", "log", "symlog", "axis", "transform"],
+      "code_template": "{input_var}.set_xscale('log')\n{output_var} = {input_var}",
+      "inputs": { "input_type": "Axes", "expected_state": "plotted_axes" },
+      "outputs": { "output_type": "Axes", "resulting_state": "annotated_axes" }
+    },
+    {
+      "cell_id": "SET_YSCALE",
+      "stage": 3,
+      "keywords": ["yscale", "log", "symlog", "axis", "transform"],
+      "code_template": "{input_var}.set_yscale('log')\n{output_var} = {input_var}",
+      "inputs": { "input_type": "Axes", "expected_state": "plotted_axes" },
+      "outputs": { "output_type": "Axes", "resulting_state": "annotated_axes" }
+    },
+    {
+      "cell_id": "INVERT_XAXIS",
+      "stage": 3,
+      "keywords": ["invert", "xaxis", "reverse", "direction", "axis"],
+      "code_template": "{input_var}.invert_xaxis()\n{output_var} = {input_var}",
+      "inputs": { "input_type": "Axes", "expected_state": "plotted_axes" },
+      "outputs": { "output_type": "Axes", "resulting_state": "annotated_axes" }
+    },
+    {
+      "cell_id": "INVERT_YAXIS",
+      "stage": 3,
+      "keywords": ["invert", "yaxis", "reverse", "direction", "axis"],
+      "code_template": "{input_var}.invert_yaxis()\n{output_var} = {input_var}",
+      "inputs": { "input_type": "Axes", "expected_state": "plotted_axes" },
+      "outputs": { "output_type": "Axes", "resulting_state": "annotated_axes" }
+    },
+    {
+      "cell_id": "TWINX",
+      "stage": 3,
+      "keywords": ["twinx", "secondary", "axis", "dual", "scale"],
+      "code_template": "{output_var} = {input_var}.twinx()",
+      "inputs": { "input_type": "Axes", "expected_state": "plotted_axes" },
+      "outputs": { "output_type": "Axes", "resulting_state": "annotated_axes" }
+    },
+    {
+      "cell_id": "TWINY",
+      "stage": 3,
+      "keywords": ["twiny", "secondary", "axis", "dual", "scale"],
+      "code_template": "{output_var} = {input_var}.twiny()",
+      "inputs": { "input_type": "Axes", "expected_state": "plotted_axes" },
+      "outputs": { "output_type": "Axes", "resulting_state": "annotated_axes" }
+    },
+    {
+      "cell_id": "SET_ASPECT",
+      "stage": 3,
+      "keywords": ["aspect", "ratio", "equal", "square", "geometry"],
+      "code_template": "{input_var}.set_aspect('equal')\n{output_var} = {input_var}",
+      "inputs": { "input_type": "Axes", "expected_state": "plotted_axes" },
+      "outputs": { "output_type": "Axes", "resulting_state": "annotated_axes" }
+    },
+    {
+      "cell_id": "AXHLINE",
+      "stage": 3,
+      "keywords": ["axhline", "horizontal", "reference", "threshold", "line"],
+      "code_template": "{input_var}.axhline(y=0, color='r', linestyle='-')\n{output_var} = {input_var}",
+      "inputs": { "input_type": "Axes", "expected_state": "plotted_axes" },
+      "outputs": { "output_type": "Axes", "resulting_state": "annotated_axes" }
+    },
+    {
+      "cell_id": "AXVLINE",
+      "stage": 3,
+      "keywords": ["axvline", "vertical", "reference", "threshold", "line"],
+      "code_template": "{input_var}.axvline(x=0, color='r', linestyle='-')\n{output_var} = {input_var}",
+      "inputs": { "input_type": "Axes", "expected_state": "plotted_axes" },
+      "outputs": { "output_type": "Axes", "resulting_state": "annotated_axes" }
+    },
+    {
+      "cell_id": "AXHSPAN",
+      "stage": 3,
+      "keywords": ["axhspan", "horizontal", "region", "shading", "band"],
+      "code_template": "{input_var}.axhspan(0, 1, color='green', alpha=0.2)\n{output_var} = {input_var}",
+      "inputs": { "input_type": "Axes", "expected_state": "plotted_axes" },
+      "outputs": { "output_type": "Axes", "resulting_state": "annotated_axes" }
+    },
+    {
+      "cell_id": "AXVSPAN",
+      "stage": 3,
+      "keywords": ["axvspan", "vertical", "region", "shading", "band"],
+      "code_template": "{input_var}.axvspan(0, 1, color='blue', alpha=0.2)\n{output_var} = {input_var}",
+      "inputs": { "input_type": "Axes", "expected_state": "plotted_axes" },
+      "outputs": { "output_type": "Axes", "resulting_state": "annotated_axes" }
+    },
+    {
+      "cell_id": "SET_TICK_PARAMS",
+      "stage": 3,
+      "keywords": ["tick_params", "axis", "styling", "direction", "length"],
+      "code_template": "{input_var}.tick_params(axis='both', which='major', labelsize=10)\n{output_var} = {input_var}",
+      "inputs": { "input_type": "Axes", "expected_state": "plotted_axes" },
+      "outputs": { "output_type": "Axes", "resulting_state": "annotated_axes" }
+    },
+    {
+      "cell_id": "SPINE_VISIBILITY",
+      "stage": 3,
+      "keywords": ["spine", "border", "frame", "hide", "visibility"],
+      "code_template": "{input_var}.spines['top'].set_visible(False)\n{input_var}.spines['right'].set_visible(False)\n{output_var} = {input_var}",
+      "inputs": { "input_type": "Axes", "expected_state": "plotted_axes" },
+      "outputs": { "output_type": "Axes", "resulting_state": "annotated_axes" }
+    },
+    {
+      "cell_id": "EXTRACT_FIGURE",
+      "stage": 4,
+      "keywords": ["figure", "extract", "get", "canvas", "parent"],
+      "code_template": "{output_var} = {input_var}.figure",
+      "inputs": { "input_type": "Axes", "expected_state": "annotated_axes" },
+      "outputs": {
+        "output_type": "Figure",
+        "resulting_state": "export_ready_figure"
+      }
+    },
+    {
+      "cell_id": "FIG_TIGHT_LAYOUT",
+      "stage": 4,
+      "keywords": ["tight_layout", "spacing", "margins", "layout", "adjust"],
+      "code_template": "{input_var}.tight_layout()\n{output_var} = {input_var}",
+      "inputs": {
+        "input_type": "Figure",
+        "expected_state": "export_ready_figure"
+      },
+      "outputs": {
+        "output_type": "Figure",
+        "resulting_state": "export_ready_figure"
+      }
+    },
+    {
+      "cell_id": "FIG_SUPTITLE",
+      "stage": 4,
+      "keywords": ["suptitle", "main", "header", "global", "text"],
+      "code_template": "{input_var}.suptitle('Global Figure Title', fontsize=16)\n{output_var} = {input_var}",
+      "inputs": {
+        "input_type": "Figure",
+        "expected_state": "export_ready_figure"
+      },
+      "outputs": {
+        "output_type": "Figure",
+        "resulting_state": "export_ready_figure"
+      }
+    },
+    {
+      "cell_id": "FIG_SUBPLOTS_ADJUST",
+      "stage": 4,
+      "keywords": ["subplots_adjust", "spacing", "margins", "wspace", "hspace"],
+      "code_template": "{input_var}.subplots_adjust(wspace=0.5, hspace=0.5)\n{output_var} = {input_var}",
+      "inputs": {
+        "input_type": "Figure",
+        "expected_state": "export_ready_figure"
+      },
+      "outputs": {
+        "output_type": "Figure",
+        "resulting_state": "export_ready_figure"
+      }
+    },
+    {
+      "cell_id": "FIG_SET_SIZE",
+      "stage": 4,
+      "keywords": [
+        "set_size_inches",
+        "dimensions",
+        "width",
+        "height",
+        "geometry"
+      ],
+      "code_template": "{input_var}.set_size_inches(10, 6)\n{output_var} = {input_var}",
+      "inputs": {
+        "input_type": "Figure",
+        "expected_state": "export_ready_figure"
+      },
+      "outputs": {
+        "output_type": "Figure",
+        "resulting_state": "export_ready_figure"
+      }
+    },
+    {
+      "cell_id": "FIG_SET_DPI",
+      "stage": 4,
+      "keywords": ["set_dpi", "resolution", "quality", "dots", "render"],
+      "code_template": "{input_var}.set_dpi(150)\n{output_var} = {input_var}",
+      "inputs": {
+        "input_type": "Figure",
+        "expected_state": "export_ready_figure"
+      },
+      "outputs": {
+        "output_type": "Figure",
+        "resulting_state": "export_ready_figure"
+      }
+    },
+    {
+      "cell_id": "FIG_SET_FACECOLOR",
+      "stage": 4,
+      "keywords": ["set_facecolor", "background", "canvas", "theme", "color"],
+      "code_template": "{input_var}.set_facecolor('whitesmoke')\n{output_var} = {input_var}",
+      "inputs": {
+        "input_type": "Figure",
+        "expected_state": "export_ready_figure"
+      },
+      "outputs": {
+        "output_type": "Figure",
+        "resulting_state": "export_ready_figure"
+      }
+    },
+    {
+      "cell_id": "FIG_ALIGN_LABELS",
+      "stage": 4,
+      "keywords": [
+        "align_xlabels",
+        "align_ylabels",
+        "grid",
+        "layout",
+        "adjust"
+      ],
+      "code_template": "{input_var}.align_xlabels()\n{input_var}.align_ylabels()\n{output_var} = {input_var}",
+      "inputs": {
+        "input_type": "Figure",
+        "expected_state": "export_ready_figure"
+      },
+      "outputs": {
+        "output_type": "Figure",
+        "resulting_state": "export_ready_figure"
+      }
+    },
+    {
+      "cell_id": "FIG_ADD_COLORBAR",
+      "stage": 4,
+      "keywords": ["colorbar", "legend", "gradient", "scale", "mapping"],
+      "code_template": "ax = {input_var}.axes[0]\n{input_var}.colorbar(ax.images[0] if ax.images else ax.collections[0])\n{output_var} = {input_var}",
+      "inputs": {
+        "input_type": "Figure",
+        "expected_state": "export_ready_figure"
+      },
+      "outputs": {
+        "output_type": "Figure",
+        "resulting_state": "export_ready_figure"
+      }
+    },
+    {
+      "cell_id": "FIG_CONSTRAINED_LAYOUT",
+      "stage": 4,
+      "keywords": [
+        "set_layout_engine",
+        "constrained",
+        "modern",
+        "layout",
+        "adjust"
+      ],
+      "code_template": "{input_var}.set_layout_engine('constrained')\n{output_var} = {input_var}",
+      "inputs": {
+        "input_type": "Figure",
+        "expected_state": "export_ready_figure"
+      },
+      "outputs": {
+        "output_type": "Figure",
+        "resulting_state": "export_ready_figure"
+      }
+    },
+    {
+      "cell_id": "SAVEFIG_PNG",
+      "stage": 5,
+      "keywords": ["savefig", "png", "export", "image", "write"],
+      "code_template": "{output_var} = 'output.png'\n{input_var}.savefig({output_var}, format='png')",
+      "inputs": {
+        "input_type": "Figure",
+        "expected_state": "export_ready_figure"
+      },
+      "outputs": { "output_type": "str", "resulting_state": "saved_filepath" }
+    },
+    {
+      "cell_id": "SAVEFIG_JPG",
+      "stage": 5,
+      "keywords": ["savefig", "jpg", "jpeg", "export", "image"],
+      "code_template": "{output_var} = 'output.jpg'\n{input_var}.savefig({output_var}, format='jpg')",
+      "inputs": {
+        "input_type": "Figure",
+        "expected_state": "export_ready_figure"
+      },
+      "outputs": { "output_type": "str", "resulting_state": "saved_filepath" }
+    },
+    {
+      "cell_id": "SAVEFIG_PDF",
+      "stage": 5,
+      "keywords": ["savefig", "pdf", "vector", "export", "document"],
+      "code_template": "{output_var} = 'output.pdf'\n{input_var}.savefig({output_var}, format='pdf')",
+      "inputs": {
+        "input_type": "Figure",
+        "expected_state": "export_ready_figure"
+      },
+      "outputs": { "output_type": "str", "resulting_state": "saved_filepath" }
+    },
+    {
+      "cell_id": "SAVEFIG_SVG",
+      "stage": 5,
+      "keywords": ["savefig", "svg", "vector", "web", "export"],
+      "code_template": "{output_var} = 'output.svg'\n{input_var}.savefig({output_var}, format='svg')",
+      "inputs": {
+        "input_type": "Figure",
+        "expected_state": "export_ready_figure"
+      },
+      "outputs": { "output_type": "str", "resulting_state": "saved_filepath" }
+    },
+    {
+      "cell_id": "SAVEFIG_EPS",
+      "stage": 5,
+      "keywords": ["savefig", "eps", "vector", "latex", "export"],
+      "code_template": "{output_var} = 'output.eps'\n{input_var}.savefig({output_var}, format='eps')",
+      "inputs": {
+        "input_type": "Figure",
+        "expected_state": "export_ready_figure"
+      },
+      "outputs": { "output_type": "str", "resulting_state": "saved_filepath" }
+    },
+    {
+      "cell_id": "SAVEFIG_TIFF",
+      "stage": 5,
+      "keywords": ["savefig", "tiff", "highres", "print", "export"],
+      "code_template": "{output_var} = 'output.tiff'\n{input_var}.savefig({output_var}, format='tiff')",
+      "inputs": {
+        "input_type": "Figure",
+        "expected_state": "export_ready_figure"
+      },
+      "outputs": { "output_type": "str", "resulting_state": "saved_filepath" }
+    },
+    {
+      "cell_id": "SAVEFIG_WEBP",
+      "stage": 5,
+      "keywords": ["savefig", "webp", "modern", "web", "export"],
+      "code_template": "{output_var} = 'output.webp'\n{input_var}.savefig({output_var}, format='webp')",
+      "inputs": {
+        "input_type": "Figure",
+        "expected_state": "export_ready_figure"
+      },
+      "outputs": { "output_type": "str", "resulting_state": "saved_filepath" }
+    },
+    {
+      "cell_id": "SAVEFIG_TRANSPARENT",
+      "stage": 5,
+      "keywords": ["savefig", "transparent", "background", "png", "export"],
+      "code_template": "{output_var} = 'output_transparent.png'\n{input_var}.savefig({output_var}, transparent=True)",
+      "inputs": {
+        "input_type": "Figure",
+        "expected_state": "export_ready_figure"
+      },
+      "outputs": { "output_type": "str", "resulting_state": "saved_filepath" }
+    },
+    {
+      "cell_id": "SAVEFIG_BBOX_TIGHT",
+      "stage": 5,
+      "keywords": ["savefig", "bbox_inches", "tight", "crop", "export"],
+      "code_template": "{output_var} = 'output_tight.png'\n{input_var}.savefig({output_var}, bbox_inches='tight')",
+      "inputs": {
+        "input_type": "Figure",
+        "expected_state": "export_ready_figure"
+      },
+      "outputs": { "output_type": "str", "resulting_state": "saved_filepath" }
+    },
+    {
+      "cell_id": "SHOW_PLOT",
+      "stage": 5,
+      "keywords": ["show", "display", "render", "gui", "interactive"],
+      "code_template": "import matplotlib.pyplot as plt\nplt.show()\n{output_var} = 'displayed'",
+      "inputs": {
+        "input_type": "Figure",
+        "expected_state": "export_ready_figure"
+      },
+      "outputs": { "output_type": "str", "resulting_state": "displayed_state" }
+    },
+    {
+      "cell_id": "TO_BUFFER_RGBA",
+      "stage": 5,
+      "keywords": ["buffer", "bytes", "rgba", "memory", "export"],
+      "code_template": "import io\nbuf = io.BytesIO()\n{input_var}.savefig(buf, format='png')\nbuf.seek(0)\n{output_var} = buf.getvalue()",
+      "inputs": {
+        "input_type": "Figure",
+        "expected_state": "export_ready_figure"
+      },
+      "outputs": { "output_type": "bytes", "resulting_state": "image_buffer" }
+    },
+    {
+      "cell_id": "TO_STRING_RGB",
+      "stage": 5,
+      "keywords": ["tostring_rgb", "canvas", "raw", "bytes", "export"],
+      "code_template": "{output_var} = {input_var}.canvas.tostring_rgb()",
+      "inputs": {
+        "input_type": "Figure",
+        "expected_state": "export_ready_figure"
+      },
+      "outputs": { "output_type": "bytes", "resulting_state": "image_buffer" }
+    }
+  ]
+}

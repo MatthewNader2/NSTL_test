@@ -1,0 +1,4279 @@
+{
+  "domain_name": "Python_Complete_Standard_Library",
+  "version": "1.0.0",
+  "cells": [
+    {
+      "cell_id": "READ_TEXT_FILE",
+      "stage": 1,
+      "keywords": [
+        "read",
+        "text",
+        "file",
+        "open",
+        "ingest"
+      ],
+      "code_template": "with open({input_var}, 'r') as f:\n    {output_var} = f.read()",
+      "inputs": {
+        "input_type": "str",
+        "expected_state": "filepath"
+      },
+      "outputs": {
+        "output_type": "str",
+        "resulting_state": "raw_text"
+      }
+    },
+    {
+      "cell_id": "READ_JSON_FILE",
+      "stage": 1,
+      "keywords": [
+        "read",
+        "json",
+        "file",
+        "load",
+        "ingest"
+      ],
+      "code_template": "import json\nwith open({input_var}, 'r') as f:\n    {output_var} = json.load(f)",
+      "inputs": {
+        "input_type": "str",
+        "expected_state": "filepath"
+      },
+      "outputs": {
+        "output_type": "dict",
+        "resulting_state": "raw_dict"
+      }
+    },
+    {
+      "cell_id": "FETCH_HTTP_GET",
+      "stage": 1,
+      "keywords": [
+        "fetch",
+        "http",
+        "get",
+        "urllib",
+        "request"
+      ],
+      "code_template": "import urllib.request\nimport json\nwith urllib.request.urlopen({input_var}) as response:\n    {output_var} = json.loads(response.read())",
+      "inputs": {
+        "input_type": "str",
+        "expected_state": "url"
+      },
+      "outputs": {
+        "output_type": "dict",
+        "resulting_state": "http_response_dict"
+      }
+    },
+    {
+      "cell_id": "PARSE_CLI_ARGS",
+      "stage": 1,
+      "keywords": [
+        "cli",
+        "args",
+        "argparse",
+        "parse",
+        "sys"
+      ],
+      "code_template": "import argparse\nparser = argparse.ArgumentParser()\nparser.add_argument('--val')\n{output_var} = vars(parser.parse_args({input_var}))",
+      "inputs": {
+        "input_type": "list",
+        "expected_state": "sys_argv"
+      },
+      "outputs": {
+        "output_type": "dict",
+        "resulting_state": "parsed_args"
+      }
+    },
+    {
+      "cell_id": "READ_ENV_VARS",
+      "stage": 1,
+      "keywords": [
+        "env",
+        "os",
+        "getenv",
+        "environment",
+        "config"
+      ],
+      "code_template": "import os\n{output_var} = os.getenv({input_var}, 'default_path')",
+      "inputs": {
+        "input_type": "str",
+        "expected_state": "env_key"
+      },
+      "outputs": {
+        "output_type": "str",
+        "resulting_state": "filepath"
+      }
+    },
+    {
+      "cell_id": "LIST_DIRECTORY",
+      "stage": 1,
+      "keywords": [
+        "list",
+        "dir",
+        "os",
+        "listdir",
+        "files"
+      ],
+      "code_template": "import os\n{output_var} = os.listdir({input_var})",
+      "inputs": {
+        "input_type": "str",
+        "expected_state": "dir_path"
+      },
+      "outputs": {
+        "output_type": "list",
+        "resulting_state": "file_list"
+      }
+    },
+    {
+      "cell_id": "CONNECT_SQLITE",
+      "stage": 1,
+      "keywords": [
+        "sqlite",
+        "connect",
+        "database",
+        "db",
+        "sql"
+      ],
+      "code_template": "import sqlite3\n{output_var} = sqlite3.connect({input_var})",
+      "inputs": {
+        "input_type": "str",
+        "expected_state": "db_path"
+      },
+      "outputs": {
+        "output_type": "sqlite3.Connection",
+        "resulting_state": "db_connection"
+      }
+    },
+    {
+      "cell_id": "GENERATE_RANGE",
+      "stage": 1,
+      "keywords": [
+        "range",
+        "generate",
+        "sequence",
+        "list",
+        "numbers"
+      ],
+      "code_template": "{output_var} = list(range({input_var}))",
+      "inputs": {
+        "input_type": "int",
+        "expected_state": "limit"
+      },
+      "outputs": {
+        "output_type": "list",
+        "resulting_state": "integer_sequence"
+      }
+    },
+    {
+      "cell_id": "READ_CSV_NATIVE",
+      "stage": 1,
+      "keywords": [
+        "csv",
+        "read",
+        "native",
+        "reader",
+        "file"
+      ],
+      "code_template": "import csv\nwith open({input_var}, 'r') as f:\n    {output_var} = list(csv.reader(f))",
+      "inputs": {
+        "input_type": "str",
+        "expected_state": "filepath"
+      },
+      "outputs": {
+        "output_type": "list",
+        "resulting_state": "csv_rows"
+      }
+    },
+    {
+      "cell_id": "READ_BINARY_FILE",
+      "stage": 1,
+      "keywords": [
+        "read",
+        "binary",
+        "bytes",
+        "rb",
+        "file"
+      ],
+      "code_template": "with open({input_var}, 'rb') as f:\n    {output_var} = f.read()",
+      "inputs": {
+        "input_type": "str",
+        "expected_state": "filepath"
+      },
+      "outputs": {
+        "output_type": "bytes",
+        "resulting_state": "raw_bytes"
+      }
+    },
+    {
+      "cell_id": "READ_CONFIG_INI",
+      "stage": 1,
+      "keywords": [
+        "config",
+        "ini",
+        "configparser",
+        "read",
+        "settings"
+      ],
+      "code_template": "import configparser\nconfig = configparser.ConfigParser()\nconfig.read({input_var})\n{output_var} = {s: dict(config.items(s)) for s in config.sections()}",
+      "inputs": {
+        "input_type": "str",
+        "expected_state": "filepath"
+      },
+      "outputs": {
+        "output_type": "dict",
+        "resulting_state": "config_dict"
+      }
+    },
+    {
+      "cell_id": "PARSE_JSON_STRING",
+      "stage": 2,
+      "keywords": [
+        "parse",
+        "json",
+        "loads",
+        "string",
+        "deserialize"
+      ],
+      "code_template": "import json\n{output_var} = json.loads({input_var})",
+      "inputs": {
+        "input_type": "str",
+        "expected_state": "raw_text"
+      },
+      "outputs": {
+        "output_type": "dict",
+        "resulting_state": "parsed_dict"
+      }
+    },
+    {
+      "cell_id": "EXTRACT_REGEX",
+      "stage": 2,
+      "keywords": [
+        "regex",
+        "re",
+        "findall",
+        "pattern",
+        "extract"
+      ],
+      "code_template": "import re\n{output_var} = re.findall(r'\\w+', {input_var})",
+      "inputs": {
+        "input_type": "str",
+        "expected_state": "raw_text"
+      },
+      "outputs": {
+        "output_type": "list",
+        "resulting_state": "regex_matches"
+      }
+    },
+    {
+      "cell_id": "SPLIT_STRING",
+      "stage": 2,
+      "keywords": [
+        "split",
+        "string",
+        "tokens",
+        "whitespace",
+        "parse"
+      ],
+      "code_template": "{output_var} = {input_var}.split()",
+      "inputs": {
+        "input_type": "str",
+        "expected_state": "raw_text"
+      },
+      "outputs": {
+        "output_type": "list",
+        "resulting_state": "string_tokens"
+      }
+    },
+    {
+      "cell_id": "EXTRACT_DICT_KEYS",
+      "stage": 2,
+      "keywords": [
+        "keys",
+        "dict",
+        "extract",
+        "list",
+        "mapping"
+      ],
+      "code_template": "{output_var} = list({input_var}.keys())",
+      "inputs": {
+        "input_type": "dict",
+        "expected_state": "raw_dict"
+      },
+      "outputs": {
+        "output_type": "list",
+        "resulting_state": "dict_keys"
+      }
+    },
+    {
+      "cell_id": "EXTRACT_DICT_VALUES",
+      "stage": 2,
+      "keywords": [
+        "values",
+        "dict",
+        "extract",
+        "list",
+        "mapping"
+      ],
+      "code_template": "{output_var} = list({input_var}.values())",
+      "inputs": {
+        "input_type": "dict",
+        "expected_state": "raw_dict"
+      },
+      "outputs": {
+        "output_type": "list",
+        "resulting_state": "dict_values"
+      }
+    },
+    {
+      "cell_id": "PARSE_HTTP_JSON",
+      "stage": 2,
+      "keywords": [
+        "http",
+        "json",
+        "payload",
+        "extract",
+        "response"
+      ],
+      "code_template": "{output_var} = {input_var}.get('data', {})",
+      "inputs": {
+        "input_type": "dict",
+        "expected_state": "http_response_dict"
+      },
+      "outputs": {
+        "output_type": "dict",
+        "resulting_state": "response_payload"
+      }
+    },
+    {
+      "cell_id": "VALIDATE_ARGS",
+      "stage": 2,
+      "keywords": [
+        "validate",
+        "args",
+        "filter",
+        "none",
+        "clean"
+      ],
+      "code_template": "{output_var} = {k: v for k, v in {input_var}.items() if v is not None}",
+      "inputs": {
+        "input_type": "dict",
+        "expected_state": "parsed_args"
+      },
+      "outputs": {
+        "output_type": "dict",
+        "resulting_state": "validated_args"
+      }
+    },
+    {
+      "cell_id": "FILTER_FILE_LIST",
+      "stage": 2,
+      "keywords": [
+        "filter",
+        "files",
+        "list",
+        "extension",
+        "txt"
+      ],
+      "code_template": "{output_var} = [f for f in {input_var} if f.endswith('.txt')]",
+      "inputs": {
+        "input_type": "list",
+        "expected_state": "file_list"
+      },
+      "outputs": {
+        "output_type": "list",
+        "resulting_state": "filtered_files"
+      }
+    },
+    {
+      "cell_id": "EXECUTE_SQL_QUERY",
+      "stage": 2,
+      "keywords": [
+        "execute",
+        "sql",
+        "query",
+        "fetchall",
+        "cursor"
+      ],
+      "code_template": "cursor = {input_var}.cursor()\ncursor.execute('SELECT * FROM table')\n{output_var} = cursor.fetchall()",
+      "inputs": {
+        "input_type": "sqlite3.Connection",
+        "expected_state": "db_connection"
+      },
+      "outputs": {
+        "output_type": "list",
+        "resulting_state": "db_rows"
+      }
+    },
+    {
+      "cell_id": "MAP_CSV_ROWS",
+      "stage": 2,
+      "keywords": [
+        "map",
+        "csv",
+        "rows",
+        "dict",
+        "transform"
+      ],
+      "code_template": "{output_var} = [{'col1': row[0], 'col2': row[1]} for row in {input_var}]",
+      "inputs": {
+        "input_type": "list",
+        "expected_state": "csv_rows"
+      },
+      "outputs": {
+        "output_type": "list",
+        "resulting_state": "mapped_dicts"
+      }
+    },
+    {
+      "cell_id": "DECODE_BYTES",
+      "stage": 2,
+      "keywords": [
+        "decode",
+        "bytes",
+        "utf-8",
+        "string",
+        "text"
+      ],
+      "code_template": "{output_var} = {input_var}.decode('utf-8')",
+      "inputs": {
+        "input_type": "bytes",
+        "expected_state": "raw_bytes"
+      },
+      "outputs": {
+        "output_type": "str",
+        "resulting_state": "decoded_text"
+      }
+    },
+    {
+      "cell_id": "PARSE_CONFIG_DICT",
+      "stage": 2,
+      "keywords": [
+        "parse",
+        "config",
+        "dict",
+        "upper",
+        "keys"
+      ],
+      "code_template": "{output_var} = {k.upper(): v for k, v in {input_var}.items()}",
+      "inputs": {
+        "input_type": "dict",
+        "expected_state": "config_dict"
+      },
+      "outputs": {
+        "output_type": "dict",
+        "resulting_state": "parsed_config"
+      }
+    },
+    {
+      "cell_id": "EXECUTE_SYSTEM_CMD",
+      "stage": 3,
+      "keywords": [
+        "subprocess",
+        "run",
+        "system",
+        "cmd",
+        "execute"
+      ],
+      "code_template": "import subprocess\nres = subprocess.run(['echo', 'test'], capture_output=True, text=True)\n{output_var} = res.stdout",
+      "inputs": {
+        "input_type": "dict",
+        "expected_state": "validated_args"
+      },
+      "outputs": {
+        "output_type": "str",
+        "resulting_state": "cmd_output"
+      }
+    },
+    {
+      "cell_id": "PARSE_CMD_OUTPUT",
+      "stage": 3,
+      "keywords": [
+        "parse",
+        "cmd",
+        "output",
+        "split",
+        "tokens"
+      ],
+      "code_template": "{output_var} = {input_var}.split()",
+      "inputs": {
+        "input_type": "str",
+        "expected_state": "cmd_output"
+      },
+      "outputs": {
+        "output_type": "list",
+        "resulting_state": "string_tokens"
+      }
+    },
+    {
+      "cell_id": "STRIP_TOKENS",
+      "stage": 3,
+      "keywords": [
+        "strip",
+        "tokens",
+        "whitespace",
+        "clean",
+        "list"
+      ],
+      "code_template": "{output_var} = [t.strip() for t in {input_var}]",
+      "inputs": {
+        "input_type": "list",
+        "expected_state": "string_tokens"
+      },
+      "outputs": {
+        "output_type": "list",
+        "resulting_state": "clean_tokens"
+      }
+    },
+    {
+      "cell_id": "CAST_TO_INT",
+      "stage": 3,
+      "keywords": [
+        "cast",
+        "int",
+        "isdigit",
+        "convert",
+        "numbers"
+      ],
+      "code_template": "{output_var} = [int(t) for t in {input_var} if t.isdigit()]",
+      "inputs": {
+        "input_type": "list",
+        "expected_state": "clean_tokens"
+      },
+      "outputs": {
+        "output_type": "list",
+        "resulting_state": "integer_list"
+      }
+    },
+    {
+      "cell_id": "FILTER_DICT_LIST",
+      "stage": 3,
+      "keywords": [
+        "filter",
+        "dict",
+        "list",
+        "active",
+        "condition"
+      ],
+      "code_template": "{output_var} = [d for d in {input_var} if 'active' in d]",
+      "inputs": {
+        "input_type": "list",
+        "expected_state": "dict_values"
+      },
+      "outputs": {
+        "output_type": "list",
+        "resulting_state": "filtered_dicts"
+      }
+    },
+    {
+      "cell_id": "UPPERCASE_STRINGS",
+      "stage": 3,
+      "keywords": [
+        "upper",
+        "case",
+        "string",
+        "list",
+        "transform"
+      ],
+      "code_template": "{output_var} = [t.upper() for t in {input_var}]",
+      "inputs": {
+        "input_type": "list",
+        "expected_state": "clean_tokens"
+      },
+      "outputs": {
+        "output_type": "list",
+        "resulting_state": "upper_tokens"
+      }
+    },
+    {
+      "cell_id": "FORMAT_DATETIME",
+      "stage": 3,
+      "keywords": [
+        "datetime",
+        "format",
+        "strftime",
+        "date",
+        "time"
+      ],
+      "code_template": "from datetime import datetime\n{output_var} = datetime.now().strftime('%Y-%m-%d')",
+      "inputs": {
+        "input_type": "str",
+        "expected_state": "raw_text"
+      },
+      "outputs": {
+        "output_type": "str",
+        "resulting_state": "formatted_date"
+      }
+    },
+    {
+      "cell_id": "COMPUTE_LIST_COMPREHENSION",
+      "stage": 3,
+      "keywords": [
+        "comprehension",
+        "list",
+        "square",
+        "math",
+        "transform"
+      ],
+      "code_template": "{output_var} = [x**2 for x in {input_var}]",
+      "inputs": {
+        "input_type": "list",
+        "expected_state": "integer_sequence"
+      },
+      "outputs": {
+        "output_type": "list",
+        "resulting_state": "squared_list"
+      }
+    },
+    {
+      "cell_id": "MERGE_DICTS",
+      "stage": 3,
+      "keywords": [
+        "merge",
+        "dicts",
+        "update",
+        "combine",
+        "mapping"
+      ],
+      "code_template": "{output_var} = {}\nfor d in {input_var}:\n    {output_var}.update(d)",
+      "inputs": {
+        "input_type": "list",
+        "expected_state": "dict_values"
+      },
+      "outputs": {
+        "output_type": "dict",
+        "resulting_state": "merged_dict"
+      }
+    },
+    {
+      "cell_id": "SORT_FILE_LIST",
+      "stage": 3,
+      "keywords": [
+        "sort",
+        "files",
+        "list",
+        "order",
+        "alphabetical"
+      ],
+      "code_template": "{output_var} = sorted({input_var})",
+      "inputs": {
+        "input_type": "list",
+        "expected_state": "filtered_files"
+      },
+      "outputs": {
+        "output_type": "list",
+        "resulting_state": "sorted_files"
+      }
+    },
+    {
+      "cell_id": "TRANSFORM_DB_ROWS",
+      "stage": 3,
+      "keywords": [
+        "transform",
+        "db",
+        "rows",
+        "dict",
+        "mapping"
+      ],
+      "code_template": "{output_var} = [{'id': r[0], 'val': r[1]} for r in {input_var}]",
+      "inputs": {
+        "input_type": "list",
+        "expected_state": "db_rows"
+      },
+      "outputs": {
+        "output_type": "list",
+        "resulting_state": "transformed_rows"
+      }
+    },
+    {
+      "cell_id": "FLATTEN_LIST",
+      "stage": 3,
+      "keywords": [
+        "flatten",
+        "list",
+        "itertools",
+        "chain",
+        "nested"
+      ],
+      "code_template": "import itertools\n{output_var} = list(itertools.chain.from_iterable({input_var}))",
+      "inputs": {
+        "input_type": "list",
+        "expected_state": "regex_matches"
+      },
+      "outputs": {
+        "output_type": "list",
+        "resulting_state": "flat_matches"
+      }
+    },
+    {
+      "cell_id": "EXTRACT_LIST_DICT_VALUES",
+      "stage": 3,
+      "keywords": [
+        "extract",
+        "list",
+        "dict",
+        "values",
+        "get"
+      ],
+      "code_template": "{output_var} = [d.get('val', 0) for d in {input_var}]",
+      "inputs": {
+        "input_type": "list",
+        "expected_state": "mapped_dicts"
+      },
+      "outputs": {
+        "output_type": "list",
+        "resulting_state": "extracted_values"
+      }
+    },
+    {
+      "cell_id": "CAST_TO_FLOAT",
+      "stage": 3,
+      "keywords": [
+        "cast",
+        "float",
+        "convert",
+        "numbers",
+        "decimal"
+      ],
+      "code_template": "{output_var} = [float(v) for v in {input_var}]",
+      "inputs": {
+        "input_type": "list",
+        "expected_state": "extracted_values"
+      },
+      "outputs": {
+        "output_type": "list",
+        "resulting_state": "float_list"
+      }
+    },
+    {
+      "cell_id": "ENCODE_TO_BYTES",
+      "stage": 3,
+      "keywords": [
+        "encode",
+        "bytes",
+        "utf-8",
+        "binary",
+        "string"
+      ],
+      "code_template": "{output_var} = {input_var}.encode('utf-8')",
+      "inputs": {
+        "input_type": "str",
+        "expected_state": "decoded_text"
+      },
+      "outputs": {
+        "output_type": "bytes",
+        "resulting_state": "encoded_bytes"
+      }
+    },
+    {
+      "cell_id": "FILTER_PARSED_CONFIG",
+      "stage": 3,
+      "keywords": [
+        "filter",
+        "config",
+        "debug",
+        "dict",
+        "clean"
+      ],
+      "code_template": "{output_var} = {k: v for k, v in {input_var}.items() if 'debug' not in k}",
+      "inputs": {
+        "input_type": "dict",
+        "expected_state": "parsed_config"
+      },
+      "outputs": {
+        "output_type": "dict",
+        "resulting_state": "filtered_config"
+      }
+    },
+    {
+      "cell_id": "EXTRACT_PAYLOAD_VALUES",
+      "stage": 3,
+      "keywords": [
+        "extract",
+        "payload",
+        "values",
+        "dict",
+        "api"
+      ],
+      "code_template": "{output_var} = list({input_var}.values())",
+      "inputs": {
+        "input_type": "dict",
+        "expected_state": "response_payload"
+      },
+      "outputs": {
+        "output_type": "list",
+        "resulting_state": "dict_values"
+      }
+    },
+    {
+      "cell_id": "SUM_INTEGER_LIST",
+      "stage": 4,
+      "keywords": [
+        "sum",
+        "integer",
+        "list",
+        "math",
+        "aggregate"
+      ],
+      "code_template": "{output_var} = sum({input_var})",
+      "inputs": {
+        "input_type": "list",
+        "expected_state": "integer_list"
+      },
+      "outputs": {
+        "output_type": "int",
+        "resulting_state": "total_sum"
+      }
+    },
+    {
+      "cell_id": "COUNT_LIST_ITEMS",
+      "stage": 4,
+      "keywords": [
+        "count",
+        "len",
+        "list",
+        "items",
+        "size"
+      ],
+      "code_template": "{output_var} = len({input_var})",
+      "inputs": {
+        "input_type": "list",
+        "expected_state": "clean_tokens"
+      },
+      "outputs": {
+        "output_type": "int",
+        "resulting_state": "item_count"
+      }
+    },
+    {
+      "cell_id": "GROUP_BY_KEY",
+      "stage": 4,
+      "keywords": [
+        "groupby",
+        "defaultdict",
+        "dict",
+        "aggregate",
+        "key"
+      ],
+      "code_template": "from collections import defaultdict\ng = defaultdict(list)\nfor d in {input_var}:\n    g[d.get('type', 'unknown')].append(d)\n{output_var} = dict(g)",
+      "inputs": {
+        "input_type": "list",
+        "expected_state": "filtered_dicts"
+      },
+      "outputs": {
+        "output_type": "dict",
+        "resulting_state": "grouped_data"
+      }
+    },
+    {
+      "cell_id": "FIND_MAX_VALUE",
+      "stage": 4,
+      "keywords": [
+        "max",
+        "value",
+        "list",
+        "math",
+        "aggregate"
+      ],
+      "code_template": "{output_var} = max({input_var})",
+      "inputs": {
+        "input_type": "list",
+        "expected_state": "squared_list"
+      },
+      "outputs": {
+        "output_type": "int",
+        "resulting_state": "max_value"
+      }
+    },
+    {
+      "cell_id": "COMPUTE_AVERAGE",
+      "stage": 4,
+      "keywords": [
+        "average",
+        "mean",
+        "float",
+        "list",
+        "math"
+      ],
+      "code_template": "{output_var} = sum({input_var}) / len({input_var}) if {input_var} else 0.0",
+      "inputs": {
+        "input_type": "list",
+        "expected_state": "float_list"
+      },
+      "outputs": {
+        "output_type": "float",
+        "resulting_state": "average_value"
+      }
+    },
+    {
+      "cell_id": "ITERTOOLS_CHAIN",
+      "stage": 4,
+      "keywords": [
+        "itertools",
+        "chain",
+        "list",
+        "combine",
+        "flatten"
+      ],
+      "code_template": "import itertools\n{output_var} = list(itertools.chain({input_var}, ['extra']))",
+      "inputs": {
+        "input_type": "list",
+        "expected_state": "flat_matches"
+      },
+      "outputs": {
+        "output_type": "list",
+        "resulting_state": "chained_list"
+      }
+    },
+    {
+      "cell_id": "COUNTER_COLLECTION",
+      "stage": 4,
+      "keywords": [
+        "counter",
+        "collections",
+        "frequency",
+        "dict",
+        "count"
+      ],
+      "code_template": "from collections import Counter\n{output_var} = dict(Counter({input_var}))",
+      "inputs": {
+        "input_type": "list",
+        "expected_state": "upper_tokens"
+      },
+      "outputs": {
+        "output_type": "dict",
+        "resulting_state": "frequency_dict"
+      }
+    },
+    {
+      "cell_id": "REDUCE_LIST",
+      "stage": 4,
+      "keywords": [
+        "reduce",
+        "functools",
+        "product",
+        "math",
+        "aggregate"
+      ],
+      "code_template": "from functools import reduce\nimport operator\n{output_var} = reduce(operator.mul, {input_var}, 1)",
+      "inputs": {
+        "input_type": "list",
+        "expected_state": "squared_list"
+      },
+      "outputs": {
+        "output_type": "int",
+        "resulting_state": "reduced_product"
+      }
+    },
+    {
+      "cell_id": "SORT_DICT_ITEMS",
+      "stage": 4,
+      "keywords": [
+        "sort",
+        "dict",
+        "items",
+        "tuples",
+        "order"
+      ],
+      "code_template": "{output_var} = sorted({input_var}.items(), key=lambda x: x[1], reverse=True)",
+      "inputs": {
+        "input_type": "dict",
+        "expected_state": "frequency_dict"
+      },
+      "outputs": {
+        "output_type": "list",
+        "resulting_state": "sorted_tuples"
+      }
+    },
+    {
+      "cell_id": "FILTER_EVEN_NUMBERS",
+      "stage": 4,
+      "keywords": [
+        "filter",
+        "even",
+        "numbers",
+        "modulo",
+        "list"
+      ],
+      "code_template": "{output_var} = [x for x in {input_var} if x % 2 == 0]",
+      "inputs": {
+        "input_type": "list",
+        "expected_state": "squared_list"
+      },
+      "outputs": {
+        "output_type": "list",
+        "resulting_state": "even_numbers"
+      }
+    },
+    {
+      "cell_id": "ZIP_WITH_INDEX",
+      "stage": 4,
+      "keywords": [
+        "zip",
+        "enumerate",
+        "index",
+        "list",
+        "tuples"
+      ],
+      "code_template": "{output_var} = list(enumerate({input_var}))",
+      "inputs": {
+        "input_type": "list",
+        "expected_state": "sorted_files"
+      },
+      "outputs": {
+        "output_type": "list",
+        "resulting_state": "enumerated_files"
+      }
+    },
+    {
+      "cell_id": "AGGREGATE_CONFIG",
+      "stage": 4,
+      "keywords": [
+        "aggregate",
+        "config",
+        "dict",
+        "summary",
+        "metadata"
+      ],
+      "code_template": "{output_var} = {'total_keys': len({input_var}), 'data': {input_var}}",
+      "inputs": {
+        "input_type": "dict",
+        "expected_state": "filtered_config"
+      },
+      "outputs": {
+        "output_type": "dict",
+        "resulting_state": "aggregated_config"
+      }
+    },
+    {
+      "cell_id": "JOIN_KEYS_STRING",
+      "stage": 4,
+      "keywords": [
+        "join",
+        "keys",
+        "string",
+        "comma",
+        "concat"
+      ],
+      "code_template": "{output_var} = ','.join({input_var})",
+      "inputs": {
+        "input_type": "list",
+        "expected_state": "dict_keys"
+      },
+      "outputs": {
+        "output_type": "str",
+        "resulting_state": "joined_keys"
+      }
+    },
+    {
+      "cell_id": "WRITE_TEXT_FILE",
+      "stage": 5,
+      "keywords": [
+        "write",
+        "text",
+        "file",
+        "save",
+        "export"
+      ],
+      "code_template": "with open('out.txt', 'w') as f:\n    f.write({input_var})\n{output_var} = 'out.txt'",
+      "inputs": {
+        "input_type": "str",
+        "expected_state": "formatted_date"
+      },
+      "outputs": {
+        "output_type": "str",
+        "resulting_state": "output_filepath"
+      }
+    },
+    {
+      "cell_id": "WRITE_JSON_FILE",
+      "stage": 5,
+      "keywords": [
+        "write",
+        "json",
+        "file",
+        "dump",
+        "export"
+      ],
+      "code_template": "import json\nwith open('out.json', 'w') as f:\n    json.dump({input_var}, f)\n{output_var} = 'out.json'",
+      "inputs": {
+        "input_type": "dict",
+        "expected_state": "grouped_data"
+      },
+      "outputs": {
+        "output_type": "str",
+        "resulting_state": "output_filepath"
+      }
+    },
+    {
+      "cell_id": "PRINT_TO_CONSOLE",
+      "stage": 5,
+      "keywords": [
+        "print",
+        "console",
+        "stdout",
+        "log",
+        "output"
+      ],
+      "code_template": "print({input_var})\n{output_var} = True",
+      "inputs": {
+        "input_type": "float",
+        "expected_state": "average_value"
+      },
+      "outputs": {
+        "output_type": "bool",
+        "resulting_state": "print_success"
+      }
+    },
+    {
+      "cell_id": "SEND_HTTP_POST",
+      "stage": 5,
+      "keywords": [
+        "http",
+        "post",
+        "urllib",
+        "request",
+        "api"
+      ],
+      "code_template": "import urllib.request\nreq = urllib.request.Request('http://api', data=b'{}')\ntry:\n    urllib.request.urlopen(req)\n    {output_var} = 200\nexcept:\n    {output_var} = 500",
+      "inputs": {
+        "input_type": "dict",
+        "expected_state": "merged_dict"
+      },
+      "outputs": {
+        "output_type": "int",
+        "resulting_state": "http_status_code"
+      }
+    },
+    {
+      "cell_id": "INSERT_SQL_ROWS",
+      "stage": 5,
+      "keywords": [
+        "insert",
+        "sql",
+        "sqlite",
+        "executemany",
+        "database"
+      ],
+      "code_template": "import sqlite3\nconn = sqlite3.connect(':memory:')\ncursor = conn.cursor()\ncursor.executemany('INSERT INTO t VALUES (?)', [(r,) for r in {input_var}])\n{output_var} = cursor.rowcount",
+      "inputs": {
+        "input_type": "list",
+        "expected_state": "transformed_rows"
+      },
+      "outputs": {
+        "output_type": "int",
+        "resulting_state": "rows_inserted"
+      }
+    },
+    {
+      "cell_id": "LOG_TO_FILE",
+      "stage": 5,
+      "keywords": [
+        "log",
+        "file",
+        "write",
+        "append",
+        "debug"
+      ],
+      "code_template": "with open('log.txt', 'a') as f:\n    f.write(str({input_var}) + '\\n')\n{output_var} = True",
+      "inputs": {
+        "input_type": "list",
+        "expected_state": "clean_tokens"
+      },
+      "outputs": {
+        "output_type": "bool",
+        "resulting_state": "log_success"
+      }
+    },
+    {
+      "cell_id": "SERIALIZE_PICKLE",
+      "stage": 5,
+      "keywords": [
+        "pickle",
+        "serialize",
+        "dumps",
+        "binary",
+        "export"
+      ],
+      "code_template": "import pickle\n{output_var} = pickle.dumps({input_var})",
+      "inputs": {
+        "input_type": "dict",
+        "expected_state": "frequency_dict"
+      },
+      "outputs": {
+        "output_type": "bytes",
+        "resulting_state": "pickled_bytes"
+      }
+    },
+    {
+      "cell_id": "EXPORT_CSV_NATIVE",
+      "stage": 5,
+      "keywords": [
+        "csv",
+        "export",
+        "writer",
+        "file",
+        "save"
+      ],
+      "code_template": "import csv\nwith open('out.csv', 'w') as f:\n    writer = csv.writer(f)\n    writer.writerows({input_var})\n{output_var} = 'out.csv'",
+      "inputs": {
+        "input_type": "list",
+        "expected_state": "sorted_tuples"
+      },
+      "outputs": {
+        "output_type": "str",
+        "resulting_state": "output_filepath"
+      }
+    },
+    {
+      "cell_id": "WRITE_BINARY_FILE",
+      "stage": 5,
+      "keywords": [
+        "write",
+        "binary",
+        "bytes",
+        "wb",
+        "file"
+      ],
+      "code_template": "with open('out.bin', 'wb') as f:\n    f.write({input_var})\n{output_var} = 'out.bin'",
+      "inputs": {
+        "input_type": "bytes",
+        "expected_state": "encoded_bytes"
+      },
+      "outputs": {
+        "output_type": "str",
+        "resulting_state": "output_filepath"
+      }
+    },
+    {
+      "cell_id": "YIELD_GENERATOR",
+      "stage": 5,
+      "keywords": [
+        "yield",
+        "generator",
+        "lazy",
+        "iterate",
+        "function"
+      ],
+      "code_template": "def gen(data):\n    for i in data:\n        yield i\n{output_var} = gen({input_var})",
+      "inputs": {
+        "input_type": "list",
+        "expected_state": "chained_list"
+      },
+      "outputs": {
+        "output_type": "generator",
+        "resulting_state": "yielded_items"
+      }
+    },
+    {
+      "cell_id": "WRITE_CONFIG_FILE",
+      "stage": 5,
+      "keywords": [
+        "config",
+        "ini",
+        "write",
+        "configparser",
+        "save"
+      ],
+      "code_template": "import configparser\nconfig = configparser.ConfigParser()\nconfig.read_dict({input_var})\nwith open('out.ini', 'w') as f:\n    config.write(f)\n{output_var} = 'out.ini'",
+      "inputs": {
+        "input_type": "dict",
+        "expected_state": "aggregated_config"
+      },
+      "outputs": {
+        "output_type": "str",
+        "resulting_state": "output_filepath"
+      }
+    },
+    {
+      "cell_id": "WRITE_KEYS_FILE",
+      "stage": 5,
+      "keywords": [
+        "write",
+        "keys",
+        "file",
+        "string",
+        "export"
+      ],
+      "code_template": "with open('keys.txt', 'w') as f:\n    f.write({input_var})\n{output_var} = 'keys.txt'",
+      "inputs": {
+        "input_type": "str",
+        "expected_state": "joined_keys"
+      },
+      "outputs": {
+        "output_type": "str",
+        "resulting_state": "output_filepath"
+      }
+    },
+    {
+      "cell_id": "PRINT_ROW_COUNT",
+      "stage": 5,
+      "keywords": [
+        "print",
+        "row",
+        "count",
+        "console",
+        "log"
+      ],
+      "code_template": "print({input_var})\n{output_var} = True",
+      "inputs": {
+        "input_type": "int",
+        "expected_state": "rows_inserted"
+      },
+      "outputs": {
+        "output_type": "bool",
+        "resulting_state": "print_success"
+      }
+    },
+    {
+      "cell_id": "PRINT_MAX_VALUE",
+      "stage": 5,
+      "keywords": [
+        "print",
+        "max",
+        "value",
+        "console",
+        "log"
+      ],
+      "code_template": "print({input_var})\n{output_var} = True",
+      "inputs": {
+        "input_type": "int",
+        "expected_state": "max_value"
+      },
+      "outputs": {
+        "output_type": "bool",
+        "resulting_state": "print_success"
+      }
+    },
+    {
+      "cell_id": "WRITE_EVEN_NUMBERS",
+      "stage": 5,
+      "keywords": [
+        "write",
+        "even",
+        "numbers",
+        "file",
+        "export"
+      ],
+      "code_template": "with open('even.txt', 'w') as f:\n    f.write(str({input_var}))\n{output_var} = 'even.txt'",
+      "inputs": {
+        "input_type": "list",
+        "expected_state": "even_numbers"
+      },
+      "outputs": {
+        "output_type": "str",
+        "resulting_state": "output_filepath"
+      }
+    },
+    {
+      "cell_id": "PRINT_REDUCED_PRODUCT",
+      "stage": 5,
+      "keywords": [
+        "print",
+        "reduced",
+        "product",
+        "console",
+        "log"
+      ],
+      "code_template": "print({input_var})\n{output_var} = True",
+      "inputs": {
+        "input_type": "int",
+        "expected_state": "reduced_product"
+      },
+      "outputs": {
+        "output_type": "bool",
+        "resulting_state": "print_success"
+      }
+    },
+    {
+      "cell_id": "PRINT_TOTAL_SUM",
+      "stage": 5,
+      "keywords": [
+        "print",
+        "total",
+        "sum",
+        "console",
+        "log"
+      ],
+      "code_template": "print({input_var})\n{output_var} = True",
+      "inputs": {
+        "input_type": "int",
+        "expected_state": "total_sum"
+      },
+      "outputs": {
+        "output_type": "bool",
+        "resulting_state": "print_success"
+      }
+    },
+    {
+      "cell_id": "PRINT_ITEM_COUNT",
+      "stage": 5,
+      "keywords": [
+        "print",
+        "item",
+        "count",
+        "console",
+        "log"
+      ],
+      "code_template": "print({input_var})\n{output_var} = True",
+      "inputs": {
+        "input_type": "int",
+        "expected_state": "item_count"
+      },
+      "outputs": {
+        "output_type": "bool",
+        "resulting_state": "print_success"
+      }
+    },
+    {
+      "cell_id": "PRINT_HTTP_STATUS",
+      "stage": 5,
+      "keywords": [
+        "print",
+        "http",
+        "status",
+        "console",
+        "log"
+      ],
+      "code_template": "print({input_var})\n{output_var} = True",
+      "inputs": {
+        "input_type": "int",
+        "expected_state": "http_status_code"
+      },
+      "outputs": {
+        "output_type": "bool",
+        "resulting_state": "print_success"
+      }
+    },
+    {
+      "cell_id": "WRITE_PICKLE_FILE",
+      "stage": 5,
+      "keywords": [
+        "write",
+        "pickle",
+        "file",
+        "binary",
+        "export"
+      ],
+      "code_template": "with open('out.pkl', 'wb') as f:\n    f.write({input_var})\n{output_var} = 'out.pkl'",
+      "inputs": {
+        "input_type": "bytes",
+        "expected_state": "pickled_bytes"
+      },
+      "outputs": {
+        "output_type": "str",
+        "resulting_state": "output_filepath"
+      }
+    },
+    {
+      "cell_id": "LOG_ENUMERATED_FILES",
+      "stage": 5,
+      "keywords": [
+        "log",
+        "enumerated",
+        "files",
+        "write",
+        "debug"
+      ],
+      "code_template": "with open('log.txt', 'w') as f:\n    f.write(str({input_var}))\n{output_var} = True",
+      "inputs": {
+        "input_type": "list",
+        "expected_state": "enumerated_files"
+      },
+      "outputs": {
+        "output_type": "bool",
+        "resulting_state": "log_success"
+      }
+    },
+    {
+      "cell_id": "HASH_SHA256_STRING",
+      "stage": 3,
+      "keywords": [
+        "hash",
+        "sha256",
+        "security",
+        "crypto",
+        "encode"
+      ],
+      "code_template": "import hashlib\n{output_var} = hashlib.sha256({input_var}.encode('utf-8')).hexdigest()",
+      "inputs": {
+        "input_type": "str",
+        "expected_state": "raw_text"
+      },
+      "outputs": {
+        "output_type": "str",
+        "resulting_state": "hashed_string"
+      },
+      "type": "micro"
+    },
+    {
+      "cell_id": "SHUTIL_COPY_FILE",
+      "stage": 4,
+      "keywords": [
+        "shutil",
+        "copy",
+        "file",
+        "duplicate",
+        "backup"
+      ],
+      "code_template": "import shutil\n{output_var} = shutil.copy({input_var}, 'backup_' + {input_var})",
+      "inputs": {
+        "input_type": "str",
+        "expected_state": "filepath"
+      },
+      "outputs": {
+        "output_type": "str",
+        "resulting_state": "backup_filepath"
+      },
+      "type": "micro"
+    },
+    {
+      "cell_id": "PATH_EXISTS",
+      "stage": 4,
+      "keywords": [
+        "pathlib",
+        "exists",
+        "file",
+        "check",
+        "path"
+      ],
+      "code_template": "from pathlib import Path\n{output_var} = Path({input_var}).exists()",
+      "inputs": {
+        "input_type": "str",
+        "expected_state": "filepath"
+      },
+      "outputs": {
+        "output_type": "bool",
+        "resulting_state": "existence_flag"
+      },
+      "type": "micro"
+    },
+    {
+      "cell_id": "PATH_IS_FILE",
+      "stage": 4,
+      "keywords": [
+        "pathlib",
+        "is_file",
+        "file",
+        "check",
+        "path"
+      ],
+      "code_template": "from pathlib import Path\n{output_var} = Path({input_var}).is_file()",
+      "inputs": {
+        "input_type": "str",
+        "expected_state": "filepath"
+      },
+      "outputs": {
+        "output_type": "bool",
+        "resulting_state": "file_flag"
+      },
+      "type": "micro"
+    },
+    {
+      "cell_id": "PATH_IS_DIR",
+      "stage": 4,
+      "keywords": [
+        "pathlib",
+        "is_dir",
+        "directory",
+        "check",
+        "path"
+      ],
+      "code_template": "from pathlib import Path\n{output_var} = Path({input_var}).is_dir()",
+      "inputs": {
+        "input_type": "str",
+        "expected_state": "filepath"
+      },
+      "outputs": {
+        "output_type": "bool",
+        "resulting_state": "directory_flag"
+      },
+      "type": "micro"
+    },
+    {
+      "cell_id": "PATH_FILE_SIZE",
+      "stage": 4,
+      "keywords": [
+        "pathlib",
+        "stat",
+        "size",
+        "file",
+        "bytes"
+      ],
+      "code_template": "from pathlib import Path\n{output_var} = Path({input_var}).stat().st_size",
+      "inputs": {
+        "input_type": "str",
+        "expected_state": "filepath"
+      },
+      "outputs": {
+        "output_type": "int",
+        "resulting_state": "file_size_bytes"
+      },
+      "type": "micro"
+    },
+    {
+      "cell_id": "PATH_TOUCH",
+      "stage": 4,
+      "keywords": [
+        "pathlib",
+        "touch",
+        "create",
+        "file",
+        "timestamp"
+      ],
+      "code_template": "from pathlib import Path\np = Path({input_var})\np.touch()\n{output_var} = str(p)",
+      "inputs": {
+        "input_type": "str",
+        "expected_state": "filepath"
+      },
+      "outputs": {
+        "output_type": "str",
+        "resulting_state": "touched_filepath"
+      },
+      "type": "micro"
+    },
+    {
+      "cell_id": "PATH_MKDIR",
+      "stage": 4,
+      "keywords": [
+        "pathlib",
+        "mkdir",
+        "create",
+        "directory",
+        "folder"
+      ],
+      "code_template": "from pathlib import Path\np = Path({input_var})\np.mkdir(parents=True, exist_ok=True)\n{output_var} = str(p)",
+      "inputs": {
+        "input_type": "str",
+        "expected_state": "directory_path"
+      },
+      "outputs": {
+        "output_type": "str",
+        "resulting_state": "created_directory"
+      },
+      "type": "micro"
+    },
+    {
+      "cell_id": "PATH_RM_FILE",
+      "stage": 4,
+      "keywords": [
+        "pathlib",
+        "unlink",
+        "delete",
+        "remove",
+        "file"
+      ],
+      "code_template": "from pathlib import Path\np = Path({input_var})\np.unlink()\n{output_var} = str(p)",
+      "inputs": {
+        "input_type": "str",
+        "expected_state": "filepath"
+      },
+      "outputs": {
+        "output_type": "str",
+        "resulting_state": "deleted_filepath"
+      },
+      "type": "micro"
+    },
+    {
+      "cell_id": "PATH_RM_DIR",
+      "stage": 4,
+      "keywords": [
+        "pathlib",
+        "rmdir",
+        "delete",
+        "remove",
+        "directory"
+      ],
+      "code_template": "from pathlib import Path\np = Path({input_var})\np.rmdir()\n{output_var} = str(p)",
+      "inputs": {
+        "input_type": "str",
+        "expected_state": "empty_directory_path"
+      },
+      "outputs": {
+        "output_type": "str",
+        "resulting_state": "deleted_directory"
+      },
+      "type": "micro"
+    },
+    {
+      "cell_id": "SHUTIL_MOVE",
+      "stage": 4,
+      "keywords": [
+        "shutil",
+        "move",
+        "relocate",
+        "file",
+        "folder"
+      ],
+      "code_template": "import shutil\n{output_var} = shutil.move({input_var}, 'moved_' + str({input_var}))",
+      "inputs": {
+        "input_type": "str",
+        "expected_state": "filepath"
+      },
+      "outputs": {
+        "output_type": "str",
+        "resulting_state": "moved_filepath"
+      },
+      "type": "micro"
+    },
+    {
+      "cell_id": "SHUTIL_COPYTREE",
+      "stage": 4,
+      "keywords": [
+        "shutil",
+        "copytree",
+        "duplicate",
+        "directory",
+        "recursive"
+      ],
+      "code_template": "import shutil\n{output_var} = shutil.copytree({input_var}, 'copy_' + str({input_var}))",
+      "inputs": {
+        "input_type": "str",
+        "expected_state": "directory_path"
+      },
+      "outputs": {
+        "output_type": "str",
+        "resulting_state": "copied_directory"
+      },
+      "type": "micro"
+    },
+    {
+      "cell_id": "SHUTIL_RMTREE",
+      "stage": 4,
+      "keywords": [
+        "shutil",
+        "rmtree",
+        "delete",
+        "recursive",
+        "directory"
+      ],
+      "code_template": "import shutil\nshutil.rmtree({input_var})\n{output_var} = str({input_var})",
+      "inputs": {
+        "input_type": "str",
+        "expected_state": "directory_path"
+      },
+      "outputs": {
+        "output_type": "str",
+        "resulting_state": "removed_directory"
+      },
+      "type": "micro"
+    },
+    {
+      "cell_id": "PATH_GLOB",
+      "stage": 4,
+      "keywords": [
+        "pathlib",
+        "glob",
+        "list",
+        "pattern",
+        "files"
+      ],
+      "code_template": "from pathlib import Path\n{output_var} = [str(p) for p in Path({input_var}).glob('*')]",
+      "inputs": {
+        "input_type": "str",
+        "expected_state": "directory_path"
+      },
+      "outputs": {
+        "output_type": "list",
+        "resulting_state": "filepath_list"
+      },
+      "type": "micro"
+    },
+    {
+      "cell_id": "PATH_RESOLVE",
+      "stage": 4,
+      "keywords": [
+        "pathlib",
+        "resolve",
+        "absolute",
+        "canonical",
+        "path"
+      ],
+      "code_template": "from pathlib import Path\n{output_var} = str(Path({input_var}).resolve())",
+      "inputs": {
+        "input_type": "str",
+        "expected_state": "filepath"
+      },
+      "outputs": {
+        "output_type": "str",
+        "resulting_state": "absolute_path"
+      },
+      "type": "micro"
+    },
+    {
+      "cell_id": "PATH_READ_BYTES",
+      "stage": 4,
+      "keywords": [
+        "pathlib",
+        "read_bytes",
+        "binary",
+        "file",
+        "load"
+      ],
+      "code_template": "from pathlib import Path\n{output_var} = Path({input_var}).read_bytes()",
+      "inputs": {
+        "input_type": "str",
+        "expected_state": "filepath"
+      },
+      "outputs": {
+        "output_type": "bytes",
+        "resulting_state": "file_bytes"
+      },
+      "type": "micro"
+    },
+    {
+      "cell_id": "PATH_WRITE_DICT",
+      "stage": 4,
+      "keywords": [
+        "pathlib",
+        "write_bytes",
+        "write_text",
+        "file",
+        "save"
+      ],
+      "code_template": "from pathlib import Path\np = Path({input_var}['path'])\n{output_var} = p.write_bytes({input_var}['data']) if isinstance({input_var}['data'], bytes) else p.write_text({input_var}['data'])",
+      "inputs": {
+        "input_type": "dict",
+        "expected_state": "path_content_mapping"
+      },
+      "outputs": {
+        "output_type": "int",
+        "resulting_state": "bytes_written"
+      },
+      "type": "micro"
+    },
+    {
+      "cell_id": "HASH_MD5_STRING",
+      "stage": 3,
+      "keywords": [
+        "hash",
+        "md5",
+        "crypto",
+        "digest",
+        "encode"
+      ],
+      "code_template": "import hashlib\n{output_var} = hashlib.md5({input_var}.encode('utf-8')).hexdigest()",
+      "inputs": {
+        "input_type": "str",
+        "expected_state": "raw_text"
+      },
+      "outputs": {
+        "output_type": "str",
+        "resulting_state": "md5_hash"
+      },
+      "type": "micro"
+    },
+    {
+      "cell_id": "HASH_SHA256_FILE",
+      "stage": 3,
+      "keywords": [
+        "hash",
+        "sha256",
+        "file",
+        "crypto",
+        "digest"
+      ],
+      "code_template": "import hashlib\nwith open({input_var}, 'rb') as f:\n    {output_var} = hashlib.sha256(f.read()).hexdigest()",
+      "inputs": {
+        "input_type": "str",
+        "expected_state": "filepath"
+      },
+      "outputs": {
+        "output_type": "str",
+        "resulting_state": "file_hash"
+      },
+      "type": "micro"
+    },
+    {
+      "cell_id": "HASH_SHA512_STRING",
+      "stage": 3,
+      "keywords": [
+        "hash",
+        "sha512",
+        "crypto",
+        "digest",
+        "encode"
+      ],
+      "code_template": "import hashlib\n{output_var} = hashlib.sha512({input_var}.encode('utf-8')).hexdigest()",
+      "inputs": {
+        "input_type": "str",
+        "expected_state": "raw_text"
+      },
+      "outputs": {
+        "output_type": "str",
+        "resulting_state": "sha512_hash"
+      },
+      "type": "micro"
+    },
+    {
+      "cell_id": "UUID4_GENERATE",
+      "stage": 3,
+      "keywords": [
+        "uuid",
+        "uuid4",
+        "random",
+        "identifier",
+        "unique"
+      ],
+      "code_template": "import uuid\n{output_var} = str(uuid.uuid4())",
+      "inputs": {
+        "input_type": "None",
+        "expected_state": "none_required"
+      },
+      "outputs": {
+        "output_type": "str",
+        "resulting_state": "uuid4_string"
+      },
+      "type": "micro"
+    },
+    {
+      "cell_id": "UUID1_GENERATE",
+      "stage": 3,
+      "keywords": [
+        "uuid",
+        "uuid1",
+        "timestamp",
+        "identifier",
+        "unique"
+      ],
+      "code_template": "import uuid\n{output_var} = str(uuid.uuid1())",
+      "inputs": {
+        "input_type": "None",
+        "expected_state": "none_required"
+      },
+      "outputs": {
+        "output_type": "str",
+        "resulting_state": "uuid1_string"
+      },
+      "type": "micro"
+    },
+    {
+      "cell_id": "UUID5_GENERATE",
+      "stage": 3,
+      "keywords": [
+        "uuid",
+        "uuid5",
+        "namespace",
+        "identifier",
+        "deterministic"
+      ],
+      "code_template": "import uuid\n{output_var} = str(uuid.uuid5(uuid.NAMESPACE_DNS, {input_var}))",
+      "inputs": {
+        "input_type": "str",
+        "expected_state": "name_string"
+      },
+      "outputs": {
+        "output_type": "str",
+        "resulting_state": "uuid5_string"
+      },
+      "type": "micro"
+    },
+    {
+      "cell_id": "SECRETS_TOKEN_HEX",
+      "stage": 3,
+      "keywords": [
+        "secrets",
+        "token",
+        "hex",
+        "random",
+        "secure"
+      ],
+      "code_template": "import secrets\n{output_var} = secrets.token_hex({input_var})",
+      "inputs": {
+        "input_type": "int",
+        "expected_state": "byte_count"
+      },
+      "outputs": {
+        "output_type": "str",
+        "resulting_state": "hex_token"
+      },
+      "type": "micro"
+    },
+    {
+      "cell_id": "SECRETS_TOKEN_URLSAFE",
+      "stage": 3,
+      "keywords": [
+        "secrets",
+        "token",
+        "urlsafe",
+        "random",
+        "secure"
+      ],
+      "code_template": "import secrets\n{output_var} = secrets.token_urlsafe({input_var})",
+      "inputs": {
+        "input_type": "int",
+        "expected_state": "byte_count"
+      },
+      "outputs": {
+        "output_type": "str",
+        "resulting_state": "urlsafe_token"
+      },
+      "type": "micro"
+    },
+    {
+      "cell_id": "SECRETS_RAND_BITS",
+      "stage": 3,
+      "keywords": [
+        "secrets",
+        "randbits",
+        "random",
+        "secure",
+        "integer"
+      ],
+      "code_template": "import secrets\n{output_var} = secrets.randbits({input_var})",
+      "inputs": {
+        "input_type": "int",
+        "expected_state": "bit_count"
+      },
+      "outputs": {
+        "output_type": "int",
+        "resulting_state": "random_integer"
+      },
+      "type": "micro"
+    },
+    {
+      "cell_id": "VERIFY_PASSWORD_HASH",
+      "stage": 3,
+      "keywords": [
+        "hash",
+        "password",
+        "pbkdf2",
+        "verify",
+        "security"
+      ],
+      "code_template": "import hashlib\nimport secrets\n_salt = secrets.token_hex(16)\n{output_var} = hashlib.pbkdf2_hmac('sha256', {input_var}.encode('utf-8'), _salt.encode('utf-8'), 100000).hex()",
+      "inputs": {
+        "input_type": "str",
+        "expected_state": "plaintext_password"
+      },
+      "outputs": {
+        "output_type": "str",
+        "resulting_state": "password_hash"
+      },
+      "type": "micro"
+    },
+    {
+      "cell_id": "ZIP_CREATE_ARCHIVE",
+      "stage": 4,
+      "keywords": [
+        "zipfile",
+        "zip",
+        "compress",
+        "archive",
+        "directory"
+      ],
+      "code_template": "import zipfile\nfrom pathlib import Path\nzip_path = Path({input_var}).with_suffix('.zip')\nwith zipfile.ZipFile(zip_path, 'w') as zf:\n    for f in Path({input_var}).rglob('*'):\n        zf.write(f, f.relative_to({input_var}))\n{output_var} = str(zip_path)",
+      "inputs": {
+        "input_type": "str",
+        "expected_state": "directory_path"
+      },
+      "outputs": {
+        "output_type": "str",
+        "resulting_state": "zip_filepath"
+      },
+      "type": "micro"
+    },
+    {
+      "cell_id": "ZIP_EXTRACT_ALL",
+      "stage": 4,
+      "keywords": [
+        "zipfile",
+        "unzip",
+        "extract",
+        "decompress",
+        "archive"
+      ],
+      "code_template": "import zipfile\nimport os\nextract_dir = os.path.splitext({input_var})[0]\nwith zipfile.ZipFile({input_var}, 'r') as zf:\n    zf.extractall(extract_dir)\n{output_var} = extract_dir",
+      "inputs": {
+        "input_type": "str",
+        "expected_state": "zip_filepath"
+      },
+      "outputs": {
+        "output_type": "str",
+        "resulting_state": "extracted_directory"
+      },
+      "type": "micro"
+    },
+    {
+      "cell_id": "ZIP_LIST_MEMBERS",
+      "stage": 4,
+      "keywords": [
+        "zipfile",
+        "list",
+        "members",
+        "archive",
+        "contents"
+      ],
+      "code_template": "import zipfile\nwith zipfile.ZipFile({input_var}, 'r') as zf:\n    {output_var} = zf.namelist()",
+      "inputs": {
+        "input_type": "str",
+        "expected_state": "zip_filepath"
+      },
+      "outputs": {
+        "output_type": "list",
+        "resulting_state": "archive_contents"
+      },
+      "type": "micro"
+    },
+    {
+      "cell_id": "TAR_CREATE_ARCHIVE",
+      "stage": 4,
+      "keywords": [
+        "tarfile",
+        "tar",
+        "gzip",
+        "compress",
+        "archive"
+      ],
+      "code_template": "import tarfile\nfrom pathlib import Path\ntar_path = str(Path({input_var}).with_suffix('.tar.gz'))\nwith tarfile.open(tar_path, 'w:gz') as tf:\n    tf.add({input_var}, arcname=Path({input_var}).name)\n{output_var} = tar_path",
+      "inputs": {
+        "input_type": "str",
+        "expected_state": "directory_path"
+      },
+      "outputs": {
+        "output_type": "str",
+        "resulting_state": "tar_filepath"
+      },
+      "type": "micro"
+    },
+    {
+      "cell_id": "TAR_EXTRACT_ALL",
+      "stage": 4,
+      "keywords": [
+        "tarfile",
+        "untar",
+        "extract",
+        "decompress",
+        "archive"
+      ],
+      "code_template": "import tarfile\nimport os\nextract_dir = os.path.splitext(os.path.splitext({input_var})[0])[0]\nwith tarfile.open({input_var}, 'r:gz') as tf:\n    tf.extractall(extract_dir)\n{output_var} = extract_dir",
+      "inputs": {
+        "input_type": "str",
+        "expected_state": "tar_filepath"
+      },
+      "outputs": {
+        "output_type": "str",
+        "resulting_state": "extracted_directory"
+      },
+      "type": "micro"
+    },
+    {
+      "cell_id": "GZIP_COMPRESS_STRING",
+      "stage": 3,
+      "keywords": [
+        "gzip",
+        "compress",
+        "bytes",
+        "string",
+        "encode"
+      ],
+      "code_template": "import gzip\n{output_var} = gzip.compress({input_var}.encode('utf-8'))",
+      "inputs": {
+        "input_type": "str",
+        "expected_state": "raw_text"
+      },
+      "outputs": {
+        "output_type": "bytes",
+        "resulting_state": "compressed_bytes"
+      },
+      "type": "micro"
+    },
+    {
+      "cell_id": "GZIP_DECOMPRESS_STRING",
+      "stage": 3,
+      "keywords": [
+        "gzip",
+        "decompress",
+        "bytes",
+        "string",
+        "decode"
+      ],
+      "code_template": "import gzip\n{output_var} = gzip.decompress({input_var}).decode('utf-8')",
+      "inputs": {
+        "input_type": "bytes",
+        "expected_state": "compressed_bytes"
+      },
+      "outputs": {
+        "output_type": "str",
+        "resulting_state": "decompressed_text"
+      },
+      "type": "micro"
+    },
+    {
+      "cell_id": "GZIP_COMPRESS_BYTES",
+      "stage": 3,
+      "keywords": [
+        "gzip",
+        "compress",
+        "binary",
+        "bytes",
+        "payload"
+      ],
+      "code_template": "import gzip\n{output_var} = gzip.compress({input_var})",
+      "inputs": {
+        "input_type": "bytes",
+        "expected_state": "raw_bytes"
+      },
+      "outputs": {
+        "output_type": "bytes",
+        "resulting_state": "compressed_bytes"
+      },
+      "type": "micro"
+    },
+    {
+      "cell_id": "GZIP_DECOMPRESS_BYTES",
+      "stage": 3,
+      "keywords": [
+        "gzip",
+        "decompress",
+        "binary",
+        "bytes",
+        "payload"
+      ],
+      "code_template": "import gzip\n{output_var} = gzip.decompress({input_var})",
+      "inputs": {
+        "input_type": "bytes",
+        "expected_state": "compressed_bytes"
+      },
+      "outputs": {
+        "output_type": "bytes",
+        "resulting_state": "decompressed_bytes"
+      },
+      "type": "micro"
+    },
+    {
+      "cell_id": "DATETIME_NOW_UTC",
+      "stage": 2,
+      "keywords": [
+        "datetime",
+        "utc",
+        "now",
+        "timestamp",
+        "timezone"
+      ],
+      "code_template": "from datetime import datetime, timezone\n{output_var} = datetime.now(timezone.utc)",
+      "inputs": {
+        "input_type": "None",
+        "expected_state": "none_required"
+      },
+      "outputs": {
+        "output_type": "datetime",
+        "resulting_state": "utc_datetime"
+      },
+      "type": "micro"
+    },
+    {
+      "cell_id": "DATETIME_NOW_LOCAL",
+      "stage": 2,
+      "keywords": [
+        "datetime",
+        "local",
+        "now",
+        "timestamp",
+        "current"
+      ],
+      "code_template": "from datetime import datetime\n{output_var} = datetime.now()",
+      "inputs": {
+        "input_type": "None",
+        "expected_state": "none_required"
+      },
+      "outputs": {
+        "output_type": "datetime",
+        "resulting_state": "local_datetime"
+      },
+      "type": "micro"
+    },
+    {
+      "cell_id": "DATETIME_PARSE_STRING",
+      "stage": 2,
+      "keywords": [
+        "datetime",
+        "parse",
+        "isoformat",
+        "string",
+        "convert"
+      ],
+      "code_template": "from datetime import datetime\n{output_var} = datetime.fromisoformat({input_var})",
+      "inputs": {
+        "input_type": "str",
+        "expected_state": "iso_datetime_string"
+      },
+      "outputs": {
+        "output_type": "datetime",
+        "resulting_state": "parsed_datetime"
+      },
+      "type": "micro"
+    },
+    {
+      "cell_id": "DATETIME_FORMAT_STRING",
+      "stage": 2,
+      "keywords": [
+        "datetime",
+        "format",
+        "isoformat",
+        "string",
+        "serialize"
+      ],
+      "code_template": "from datetime import datetime\n{output_var} = {input_var}.isoformat()",
+      "inputs": {
+        "input_type": "datetime",
+        "expected_state": "datetime_object"
+      },
+      "outputs": {
+        "output_type": "str",
+        "resulting_state": "iso_datetime_string"
+      },
+      "type": "micro"
+    },
+    {
+      "cell_id": "TIMEDELTA_BUILD",
+      "stage": 2,
+      "keywords": [
+        "datetime",
+        "timedelta",
+        "duration",
+        "offset",
+        "interval"
+      ],
+      "code_template": "from datetime import timedelta\n{output_var} = timedelta(seconds={input_var})",
+      "inputs": {
+        "input_type": "int",
+        "expected_state": "seconds_count"
+      },
+      "outputs": {
+        "output_type": "timedelta",
+        "resulting_state": "duration_object"
+      },
+      "type": "micro"
+    },
+    {
+      "cell_id": "TIME_SLEEP",
+      "stage": 2,
+      "keywords": [
+        "time",
+        "sleep",
+        "delay",
+        "pause",
+        "blocking"
+      ],
+      "code_template": "import time\ntime.sleep({input_var})\n{output_var} = {input_var}",
+      "inputs": {
+        "input_type": "float",
+        "expected_state": "seconds_to_sleep"
+      },
+      "outputs": {
+        "output_type": "float",
+        "resulting_state": "slept_seconds"
+      },
+      "type": "micro"
+    },
+    {
+      "cell_id": "TIME_PERF_COUNTER",
+      "stage": 2,
+      "keywords": [
+        "time",
+        "perf_counter",
+        "benchmark",
+        "measure",
+        "performance"
+      ],
+      "code_template": "import time\n{output_var} = time.perf_counter()",
+      "inputs": {
+        "input_type": "None",
+        "expected_state": "none_required"
+      },
+      "outputs": {
+        "output_type": "float",
+        "resulting_state": "performance_counter"
+      },
+      "type": "micro"
+    },
+    {
+      "cell_id": "DATETIME_TO_TIMESTAMP",
+      "stage": 2,
+      "keywords": [
+        "datetime",
+        "timestamp",
+        "epoch",
+        "unix",
+        "convert"
+      ],
+      "code_template": "from datetime import datetime\n{output_var} = {input_var}.timestamp()",
+      "inputs": {
+        "input_type": "datetime",
+        "expected_state": "datetime_object"
+      },
+      "outputs": {
+        "output_type": "float",
+        "resulting_state": "unix_timestamp"
+      },
+      "type": "micro"
+    },
+    {
+      "cell_id": "TIMESTAMP_TO_DATETIME",
+      "stage": 2,
+      "keywords": [
+        "datetime",
+        "timestamp",
+        "epoch",
+        "unix",
+        "convert"
+      ],
+      "code_template": "from datetime import datetime, timezone\n{output_var} = datetime.fromtimestamp({input_var}, tz=timezone.utc)",
+      "inputs": {
+        "input_type": "float",
+        "expected_state": "unix_timestamp"
+      },
+      "outputs": {
+        "output_type": "datetime",
+        "resulting_state": "utc_datetime"
+      },
+      "type": "micro"
+    },
+    {
+      "cell_id": "HEAPQ_NLARGEST",
+      "stage": 2,
+      "keywords": [
+        "heapq",
+        "nlargest",
+        "top",
+        "rank",
+        "select"
+      ],
+      "code_template": "import heapq\n{output_var} = heapq.nlargest({input_var}[0], {input_var}[1])",
+      "inputs": {
+        "input_type": "tuple",
+        "expected_state": "count_and_iterable"
+      },
+      "outputs": {
+        "output_type": "list",
+        "resulting_state": "largest_items"
+      },
+      "type": "micro"
+    },
+    {
+      "cell_id": "HEAPQ_NSMALLEST",
+      "stage": 2,
+      "keywords": [
+        "heapq",
+        "nsmallest",
+        "bottom",
+        "rank",
+        "select"
+      ],
+      "code_template": "import heapq\n{output_var} = heapq.nsmallest({input_var}[0], {input_var}[1])",
+      "inputs": {
+        "input_type": "tuple",
+        "expected_state": "count_and_iterable"
+      },
+      "outputs": {
+        "output_type": "list",
+        "resulting_state": "smallest_items"
+      },
+      "type": "micro"
+    },
+    {
+      "cell_id": "HEAPQ_HEAPPUSH",
+      "stage": 2,
+      "keywords": [
+        "heapq",
+        "heappush",
+        "priority",
+        "queue",
+        "insert"
+      ],
+      "code_template": "import heapq\nheapq.heappush({input_var}[0], {input_var}[1])\n{output_var} = {input_var}[0]",
+      "inputs": {
+        "input_type": "tuple",
+        "expected_state": "heap_and_item"
+      },
+      "outputs": {
+        "output_type": "list",
+        "resulting_state": "updated_heap"
+      },
+      "type": "micro"
+    },
+    {
+      "cell_id": "HEAPQ_HEAPPOP",
+      "stage": 2,
+      "keywords": [
+        "heapq",
+        "heappop",
+        "priority",
+        "queue",
+        "remove"
+      ],
+      "code_template": "import heapq\n{output_var} = heapq.heappop({input_var})",
+      "inputs": {
+        "input_type": "list",
+        "expected_state": "min_heap"
+      },
+      "outputs": {
+        "output_type": "any",
+        "resulting_state": "smallest_item"
+      },
+      "type": "micro"
+    },
+    {
+      "cell_id": "DEQUE_APPEND",
+      "stage": 2,
+      "keywords": [
+        "collections",
+        "deque",
+        "append",
+        "queue",
+        "buffer"
+      ],
+      "code_template": "from collections import deque\nd = {input_var}['deque']\nd.append({input_var}['item'])\n{output_var} = d",
+      "inputs": {
+        "input_type": "dict",
+        "expected_state": "deque_and_item"
+      },
+      "outputs": {
+        "output_type": "deque",
+        "resulting_state": "appended_deque"
+      },
+      "type": "micro"
+    },
+    {
+      "cell_id": "DEQUE_POPLEFT",
+      "stage": 2,
+      "keywords": [
+        "collections",
+        "deque",
+        "popleft",
+        "queue",
+        "pop"
+      ],
+      "code_template": "from collections import deque\n{output_var} = {input_var}.popleft()",
+      "inputs": {
+        "input_type": "deque",
+        "expected_state": "populated_deque"
+      },
+      "outputs": {
+        "output_type": "any",
+        "resulting_state": "leftmost_item"
+      },
+      "type": "micro"
+    },
+    {
+      "cell_id": "DEFAULTDICT_INIT",
+      "stage": 2,
+      "keywords": [
+        "collections",
+        "defaultdict",
+        "factory",
+        "mapping",
+        "auto"
+      ],
+      "code_template": "from collections import defaultdict\n{output_var} = defaultdict(list)",
+      "inputs": {
+        "input_type": "None",
+        "expected_state": "none_required"
+      },
+      "outputs": {
+        "output_type": "dict",
+        "resulting_state": "default_dict"
+      },
+      "type": "micro"
+    },
+    {
+      "cell_id": "COUNTER_INIT",
+      "stage": 2,
+      "keywords": [
+        "collections",
+        "Counter",
+        "frequency",
+        "tally",
+        "mapping"
+      ],
+      "code_template": "from collections import Counter\n{output_var} = Counter({input_var})",
+      "inputs": {
+        "input_type": "list",
+        "expected_state": "iterable_items"
+      },
+      "outputs": {
+        "output_type": "dict",
+        "resulting_state": "frequency_map"
+      },
+      "type": "micro"
+    },
+    {
+      "cell_id": "COUNTER_MOST_COMMON",
+      "stage": 2,
+      "keywords": [
+        "collections",
+        "Counter",
+        "most_common",
+        "frequency",
+        "rank"
+      ],
+      "code_template": "from collections import Counter\n{output_var} = Counter({input_var}).most_common()",
+      "inputs": {
+        "input_type": "list",
+        "expected_state": "iterable_items"
+      },
+      "outputs": {
+        "output_type": "list",
+        "resulting_state": "ranked_tuples"
+      },
+      "type": "micro"
+    },
+    {
+      "cell_id": "NAMEDTUPLE_INIT",
+      "stage": 2,
+      "keywords": [
+        "collections",
+        "namedtuple",
+        "record",
+        "struct",
+        "immutable"
+      ],
+      "code_template": "from collections import namedtuple\n_Record = namedtuple('Record', {input_var}[0])\n{output_var} = _Record(*{input_var}[1])",
+      "inputs": {
+        "input_type": "tuple",
+        "expected_state": "field_names_and_values"
+      },
+      "outputs": {
+        "output_type": "tuple",
+        "resulting_state": "named_tuple"
+      },
+      "type": "micro"
+    },
+    {
+      "cell_id": "ITER_PERMUTATIONS",
+      "stage": 2,
+      "keywords": [
+        "itertools",
+        "permutations",
+        "arrangements",
+        "combinatorial",
+        "order"
+      ],
+      "code_template": "import itertools\n{output_var} = list(itertools.permutations({input_var}[0], {input_var}[1]))",
+      "inputs": {
+        "input_type": "tuple",
+        "expected_state": "iterable_and_length"
+      },
+      "outputs": {
+        "output_type": "list",
+        "resulting_state": "permutation_list"
+      },
+      "type": "micro"
+    },
+    {
+      "cell_id": "ITER_COMBINATIONS",
+      "stage": 2,
+      "keywords": [
+        "itertools",
+        "combinations",
+        "subsets",
+        "combinatorial",
+        "select"
+      ],
+      "code_template": "import itertools\n{output_var} = list(itertools.combinations({input_var}[0], {input_var}[1]))",
+      "inputs": {
+        "input_type": "tuple",
+        "expected_state": "iterable_and_length"
+      },
+      "outputs": {
+        "output_type": "list",
+        "resulting_state": "combination_list"
+      },
+      "type": "micro"
+    },
+    {
+      "cell_id": "ITER_CARTESIAN_PRODUCT",
+      "stage": 2,
+      "keywords": [
+        "itertools",
+        "product",
+        "cartesian",
+        "cross",
+        "join"
+      ],
+      "code_template": "import itertools\n{output_var} = list(itertools.product(*{input_var}))",
+      "inputs": {
+        "input_type": "list",
+        "expected_state": "list_of_iterables"
+      },
+      "outputs": {
+        "output_type": "list",
+        "resulting_state": "product_tuples"
+      },
+      "type": "micro"
+    },
+    {
+      "cell_id": "ITER_CHAIN",
+      "stage": 2,
+      "keywords": [
+        "itertools",
+        "chain",
+        "flatten",
+        "concatenate",
+        "merge"
+      ],
+      "code_template": "import itertools\n{output_var} = list(itertools.chain.from_iterable({input_var}))",
+      "inputs": {
+        "input_type": "list",
+        "expected_state": "nested_iterables"
+      },
+      "outputs": {
+        "output_type": "list",
+        "resulting_state": "flattened_sequence"
+      },
+      "type": "micro"
+    },
+    {
+      "cell_id": "ITER_GROUPBY",
+      "stage": 2,
+      "keywords": [
+        "itertools",
+        "groupby",
+        "cluster",
+        "runs",
+        "aggregate"
+      ],
+      "code_template": "import itertools\n{output_var} = [(k, list(g)) for k, g in itertools.groupby({input_var})]",
+      "inputs": {
+        "input_type": "list",
+        "expected_state": "sorted_iterable"
+      },
+      "outputs": {
+        "output_type": "list",
+        "resulting_state": "grouped_tuples"
+      },
+      "type": "micro"
+    },
+    {
+      "cell_id": "ITER_ISLICE",
+      "stage": 2,
+      "keywords": [
+        "itertools",
+        "islice",
+        "slice",
+        "window",
+        "subset"
+      ],
+      "code_template": "import itertools\n{output_var} = list(itertools.islice({input_var}[0], {input_var}[1], {input_var}[2]))",
+      "inputs": {
+        "input_type": "tuple",
+        "expected_state": "iterable_start_stop"
+      },
+      "outputs": {
+        "output_type": "list",
+        "resulting_state": "sliced_sequence"
+      },
+      "type": "micro"
+    },
+    {
+      "cell_id": "ITER_CYCLE",
+      "stage": 2,
+      "keywords": [
+        "itertools",
+        "cycle",
+        "infinite",
+        "repeat",
+        "loop"
+      ],
+      "code_template": "import itertools\n{output_var} = list(itertools.islice(itertools.cycle({input_var}), 10))",
+      "inputs": {
+        "input_type": "list",
+        "expected_state": "finite_iterable"
+      },
+      "outputs": {
+        "output_type": "list",
+        "resulting_state": "cycled_sequence"
+      },
+      "type": "micro"
+    },
+    {
+      "cell_id": "ITER_REPEAT",
+      "stage": 2,
+      "keywords": [
+        "itertools",
+        "repeat",
+        "fill",
+        "duplicate",
+        "constant"
+      ],
+      "code_template": "import itertools\n{output_var} = list(itertools.repeat({input_var}[0], {input_var}[1]))",
+      "inputs": {
+        "input_type": "tuple",
+        "expected_state": "object_and_count"
+      },
+      "outputs": {
+        "output_type": "list",
+        "resulting_state": "repeated_sequence"
+      },
+      "type": "micro"
+    },
+    {
+      "cell_id": "ASYNC_GATHER",
+      "stage": 5,
+      "keywords": [
+        "asyncio",
+        "gather",
+        "concurrent",
+        "await",
+        "coroutines"
+      ],
+      "code_template": "import asyncio\n{output_var} = asyncio.run(asyncio.gather(*{input_var}))",
+      "inputs": {
+        "input_type": "list",
+        "expected_state": "coroutine_list"
+      },
+      "outputs": {
+        "output_type": "list",
+        "resulting_state": "gathered_results"
+      },
+      "type": "micro"
+    },
+    {
+      "cell_id": "ASYNC_SLEEP",
+      "stage": 5,
+      "keywords": [
+        "asyncio",
+        "sleep",
+        "delay",
+        "non_blocking",
+        "await"
+      ],
+      "code_template": "import asyncio\nasyncio.run(asyncio.sleep({input_var}))\n{output_var} = {input_var}",
+      "inputs": {
+        "input_type": "float",
+        "expected_state": "seconds_to_sleep"
+      },
+      "outputs": {
+        "output_type": "float",
+        "resulting_state": "slept_seconds"
+      },
+      "type": "micro"
+    },
+    {
+      "cell_id": "ASYNC_RUN_COROUTINE",
+      "stage": 5,
+      "keywords": [
+        "asyncio",
+        "run",
+        "coroutine",
+        "event_loop",
+        "execute"
+      ],
+      "code_template": "import asyncio\n{output_var} = asyncio.run({input_var})",
+      "inputs": {
+        "input_type": "coroutine",
+        "expected_state": "awaitable_coroutine"
+      },
+      "outputs": {
+        "output_type": "any",
+        "resulting_state": "coroutine_result"
+      },
+      "type": "micro"
+    },
+    {
+      "cell_id": "ASYNC_CREATE_TASK",
+      "stage": 5,
+      "keywords": [
+        "asyncio",
+        "create_task",
+        "background",
+        "schedule",
+        "await"
+      ],
+      "code_template": "import asyncio\nasync def _run(coro):\n    return await asyncio.create_task(coro)\n{output_var} = asyncio.run(_run({input_var}))",
+      "inputs": {
+        "input_type": "coroutine",
+        "expected_state": "awaitable_coroutine"
+      },
+      "outputs": {
+        "output_type": "any",
+        "resulting_state": "task_result"
+      },
+      "type": "micro"
+    },
+    {
+      "cell_id": "ASYNC_WAIT_FOR",
+      "stage": 5,
+      "keywords": [
+        "asyncio",
+        "wait_for",
+        "timeout",
+        "deadline",
+        "await"
+      ],
+      "code_template": "import asyncio\n{output_var} = asyncio.run(asyncio.wait_for({input_var}[0], timeout={input_var}[1]))",
+      "inputs": {
+        "input_type": "tuple",
+        "expected_state": "coroutine_and_timeout"
+      },
+      "outputs": {
+        "output_type": "any",
+        "resulting_state": "timed_result"
+      },
+      "type": "micro"
+    },
+    {
+      "cell_id": "ASYNC_QUEUE_PUT_GET",
+      "stage": 5,
+      "keywords": [
+        "asyncio",
+        "Queue",
+        "put",
+        "get",
+        "channel"
+      ],
+      "code_template": "import asyncio\nasync def _q(items):\n    q = asyncio.Queue()\n    for i in items:\n        await q.put(i)\n    return [await q.get() for _ in range(len(items))]\n{output_var} = asyncio.run(_q({input_var}))",
+      "inputs": {
+        "input_type": "list",
+        "expected_state": "items_to_queue"
+      },
+      "outputs": {
+        "output_type": "list",
+        "resulting_state": "dequeued_items"
+      },
+      "type": "micro"
+    },
+    {
+      "cell_id": "THREAD_POOL_MAP",
+      "stage": 5,
+      "keywords": [
+        "concurrent.futures",
+        "ThreadPoolExecutor",
+        "map",
+        "parallel",
+        "threads"
+      ],
+      "code_template": "from concurrent.futures import ThreadPoolExecutor\nwith ThreadPoolExecutor() as ex:\n    {output_var} = list(ex.map({input_var}[0], {input_var}[1]))",
+      "inputs": {
+        "input_type": "tuple",
+        "expected_state": "function_and_iterable"
+      },
+      "outputs": {
+        "output_type": "list",
+        "resulting_state": "mapped_results"
+      },
+      "type": "micro"
+    },
+    {
+      "cell_id": "PROCESS_POOL_MAP",
+      "stage": 5,
+      "keywords": [
+        "concurrent.futures",
+        "ProcessPoolExecutor",
+        "map",
+        "parallel",
+        "processes"
+      ],
+      "code_template": "from concurrent.futures import ProcessPoolExecutor\nwith ProcessPoolExecutor() as ex:\n    {output_var} = list(ex.map({input_var}[0], {input_var}[1]))",
+      "inputs": {
+        "input_type": "tuple",
+        "expected_state": "function_and_iterable"
+      },
+      "outputs": {
+        "output_type": "list",
+        "resulting_state": "mapped_results"
+      },
+      "type": "micro"
+    },
+    {
+      "cell_id": "THREAD_POOL_SUBMIT",
+      "stage": 5,
+      "keywords": [
+        "concurrent.futures",
+        "ThreadPoolExecutor",
+        "submit",
+        "future",
+        "async"
+      ],
+      "code_template": "from concurrent.futures import ThreadPoolExecutor\nwith ThreadPoolExecutor() as ex:\n    {output_var} = ex.submit({input_var}[0], *{input_var}[1]).result()",
+      "inputs": {
+        "input_type": "tuple",
+        "expected_state": "function_and_args"
+      },
+      "outputs": {
+        "output_type": "any",
+        "resulting_state": "future_result"
+      },
+      "type": "micro"
+    },
+    {
+      "cell_id": "MP_QUEUE_PUT_GET",
+      "stage": 5,
+      "keywords": [
+        "multiprocessing",
+        "Queue",
+        "ipc",
+        "put",
+        "get"
+      ],
+      "code_template": "from multiprocessing import Queue\nq = Queue()\nfor i in {input_var}:\n    q.put(i)\n{output_var} = [q.get() for _ in range(len({input_var}))]",
+      "inputs": {
+        "input_type": "list",
+        "expected_state": "items_to_queue"
+      },
+      "outputs": {
+        "output_type": "list",
+        "resulting_state": "queue_contents"
+      },
+      "type": "micro"
+    },
+    {
+      "cell_id": "STAT_MEAN",
+      "stage": 2,
+      "keywords": [
+        "statistics",
+        "mean",
+        "average",
+        "central",
+        "tendency"
+      ],
+      "code_template": "import statistics\n{output_var} = statistics.mean({input_var})",
+      "inputs": {
+        "input_type": "list",
+        "expected_state": "numeric_sequence"
+      },
+      "outputs": {
+        "output_type": "float",
+        "resulting_state": "arithmetic_mean"
+      },
+      "type": "micro"
+    },
+    {
+      "cell_id": "STAT_MEDIAN",
+      "stage": 2,
+      "keywords": [
+        "statistics",
+        "median",
+        "middle",
+        "percentile",
+        "central"
+      ],
+      "code_template": "import statistics\n{output_var} = statistics.median({input_var})",
+      "inputs": {
+        "input_type": "list",
+        "expected_state": "numeric_sequence"
+      },
+      "outputs": {
+        "output_type": "float",
+        "resulting_state": "median_value"
+      },
+      "type": "micro"
+    },
+    {
+      "cell_id": "STAT_MODE",
+      "stage": 2,
+      "keywords": [
+        "statistics",
+        "mode",
+        "most_common",
+        "frequency",
+        "central"
+      ],
+      "code_template": "import statistics\n{output_var} = statistics.mode({input_var})",
+      "inputs": {
+        "input_type": "list",
+        "expected_state": "discrete_sequence"
+      },
+      "outputs": {
+        "output_type": "any",
+        "resulting_state": "mode_value"
+      },
+      "type": "micro"
+    },
+    {
+      "cell_id": "STAT_VARIANCE",
+      "stage": 2,
+      "keywords": [
+        "statistics",
+        "variance",
+        "spread",
+        "dispersion",
+        "sample"
+      ],
+      "code_template": "import statistics\n{output_var} = statistics.variance({input_var})",
+      "inputs": {
+        "input_type": "list",
+        "expected_state": "numeric_sequence"
+      },
+      "outputs": {
+        "output_type": "float",
+        "resulting_state": "sample_variance"
+      },
+      "type": "micro"
+    },
+    {
+      "cell_id": "STAT_STDDEV",
+      "stage": 2,
+      "keywords": [
+        "statistics",
+        "stdev",
+        "standard_deviation",
+        "spread",
+        "sample"
+      ],
+      "code_template": "import statistics\n{output_var} = statistics.stdev({input_var})",
+      "inputs": {
+        "input_type": "list",
+        "expected_state": "numeric_sequence"
+      },
+      "outputs": {
+        "output_type": "float",
+        "resulting_state": "standard_deviation"
+      },
+      "type": "micro"
+    },
+    {
+      "cell_id": "STAT_HARMONIC_MEAN",
+      "stage": 2,
+      "keywords": [
+        "statistics",
+        "harmonic_mean",
+        "average",
+        "rate",
+        "central"
+      ],
+      "code_template": "import statistics\n{output_var} = statistics.harmonic_mean({input_var})",
+      "inputs": {
+        "input_type": "list",
+        "expected_state": "numeric_sequence"
+      },
+      "outputs": {
+        "output_type": "float",
+        "resulting_state": "harmonic_mean"
+      },
+      "type": "micro"
+    },
+    {
+      "cell_id": "MATH_SIN",
+      "stage": 2,
+      "keywords": [
+        "math",
+        "sin",
+        "trigonometry",
+        "radians",
+        "wave"
+      ],
+      "code_template": "import math\n{output_var} = math.sin({input_var})",
+      "inputs": {
+        "input_type": "float",
+        "expected_state": "radians"
+      },
+      "outputs": {
+        "output_type": "float",
+        "resulting_state": "sine_value"
+      },
+      "type": "micro"
+    },
+    {
+      "cell_id": "MATH_COS",
+      "stage": 2,
+      "keywords": [
+        "math",
+        "cos",
+        "trigonometry",
+        "radians",
+        "wave"
+      ],
+      "code_template": "import math\n{output_var} = math.cos({input_var})",
+      "inputs": {
+        "input_type": "float",
+        "expected_state": "radians"
+      },
+      "outputs": {
+        "output_type": "float",
+        "resulting_state": "cosine_value"
+      },
+      "type": "micro"
+    },
+    {
+      "cell_id": "MATH_TAN",
+      "stage": 2,
+      "keywords": [
+        "math",
+        "tan",
+        "trigonometry",
+        "radians",
+        "slope"
+      ],
+      "code_template": "import math\n{output_var} = math.tan({input_var})",
+      "inputs": {
+        "input_type": "float",
+        "expected_state": "radians"
+      },
+      "outputs": {
+        "output_type": "float",
+        "resulting_state": "tangent_value"
+      },
+      "type": "micro"
+    },
+    {
+      "cell_id": "MATH_LOG",
+      "stage": 2,
+      "keywords": [
+        "math",
+        "log",
+        "natural",
+        "logarithm",
+        "ln"
+      ],
+      "code_template": "import math\n{output_var} = math.log({input_var})",
+      "inputs": {
+        "input_type": "float",
+        "expected_state": "positive_number"
+      },
+      "outputs": {
+        "output_type": "float",
+        "resulting_state": "natural_log"
+      },
+      "type": "micro"
+    },
+    {
+      "cell_id": "MATH_LOG10",
+      "stage": 2,
+      "keywords": [
+        "math",
+        "log10",
+        "logarithm",
+        "base10",
+        "decibel"
+      ],
+      "code_template": "import math\n{output_var} = math.log10({input_var})",
+      "inputs": {
+        "input_type": "float",
+        "expected_state": "positive_number"
+      },
+      "outputs": {
+        "output_type": "float",
+        "resulting_state": "base10_log"
+      },
+      "type": "micro"
+    },
+    {
+      "cell_id": "MATH_EXP",
+      "stage": 2,
+      "keywords": [
+        "math",
+        "exp",
+        "exponential",
+        "e",
+        "growth"
+      ],
+      "code_template": "import math\n{output_var} = math.exp({input_var})",
+      "inputs": {
+        "input_type": "float",
+        "expected_state": "exponent"
+      },
+      "outputs": {
+        "output_type": "float",
+        "resulting_state": "exponential_value"
+      },
+      "type": "micro"
+    },
+    {
+      "cell_id": "MATH_SQRT",
+      "stage": 2,
+      "keywords": [
+        "math",
+        "sqrt",
+        "square_root",
+        "radical",
+        "magnitude"
+      ],
+      "code_template": "import math\n{output_var} = math.sqrt({input_var})",
+      "inputs": {
+        "input_type": "float",
+        "expected_state": "non_negative_number"
+      },
+      "outputs": {
+        "output_type": "float",
+        "resulting_state": "square_root"
+      },
+      "type": "micro"
+    },
+    {
+      "cell_id": "MATH_CEIL",
+      "stage": 2,
+      "keywords": [
+        "math",
+        "ceil",
+        "ceiling",
+        "round_up",
+        "integer"
+      ],
+      "code_template": "import math\n{output_var} = math.ceil({input_var})",
+      "inputs": {
+        "input_type": "float",
+        "expected_state": "real_number"
+      },
+      "outputs": {
+        "output_type": "int",
+        "resulting_state": "ceiling_integer"
+      },
+      "type": "micro"
+    },
+    {
+      "cell_id": "MATH_FLOOR",
+      "stage": 2,
+      "keywords": [
+        "math",
+        "floor",
+        "round_down",
+        "integer",
+        "truncate"
+      ],
+      "code_template": "import math\n{output_var} = math.floor({input_var})",
+      "inputs": {
+        "input_type": "float",
+        "expected_state": "real_number"
+      },
+      "outputs": {
+        "output_type": "int",
+        "resulting_state": "floor_integer"
+      },
+      "type": "micro"
+    },
+    {
+      "cell_id": "MATH_FACTORIAL",
+      "stage": 2,
+      "keywords": [
+        "math",
+        "factorial",
+        "combinatorial",
+        "permutation",
+        "count"
+      ],
+      "code_template": "import math\n{output_var} = math.factorial({input_var})",
+      "inputs": {
+        "input_type": "int",
+        "expected_state": "non_negative_integer"
+      },
+      "outputs": {
+        "output_type": "int",
+        "resulting_state": "factorial_value"
+      },
+      "type": "micro"
+    },
+    {
+      "cell_id": "MATH_GCD",
+      "stage": 2,
+      "keywords": [
+        "math",
+        "gcd",
+        "greatest_common_divisor",
+        "number_theory",
+        "euclid"
+      ],
+      "code_template": "import math\n{output_var} = math.gcd({input_var}[0], {input_var}[1])",
+      "inputs": {
+        "input_type": "tuple",
+        "expected_state": "integer_pair"
+      },
+      "outputs": {
+        "output_type": "int",
+        "resulting_state": "gcd_value"
+      },
+      "type": "micro"
+    },
+    {
+      "cell_id": "MATH_LCM",
+      "stage": 2,
+      "keywords": [
+        "math",
+        "lcm",
+        "least_common_multiple",
+        "number_theory",
+        "period"
+      ],
+      "code_template": "import math\n{output_var} = math.lcm({input_var}[0], {input_var}[1])",
+      "inputs": {
+        "input_type": "tuple",
+        "expected_state": "integer_pair"
+      },
+      "outputs": {
+        "output_type": "int",
+        "resulting_state": "lcm_value"
+      },
+      "type": "micro"
+    },
+    {
+      "cell_id": "MATH_COMB",
+      "stage": 2,
+      "keywords": [
+        "math",
+        "comb",
+        "combination",
+        "binomial",
+        "count"
+      ],
+      "code_template": "import math\n{output_var} = math.comb({input_var}[0], {input_var}[1])",
+      "inputs": {
+        "input_type": "tuple",
+        "expected_state": "n_and_k"
+      },
+      "outputs": {
+        "output_type": "int",
+        "resulting_state": "combination_count"
+      },
+      "type": "micro"
+    },
+    {
+      "cell_id": "MATH_PERM",
+      "stage": 2,
+      "keywords": [
+        "math",
+        "perm",
+        "permutation",
+        "arrangement",
+        "count"
+      ],
+      "code_template": "import math\n{output_var} = math.perm({input_var}[0], {input_var}[1])",
+      "inputs": {
+        "input_type": "tuple",
+        "expected_state": "n_and_k"
+      },
+      "outputs": {
+        "output_type": "int",
+        "resulting_state": "permutation_count"
+      },
+      "type": "micro"
+    },
+    {
+      "cell_id": "URL_PARSE",
+      "stage": 3,
+      "keywords": [
+        "urllib",
+        "parse",
+        "urlparse",
+        "decompose",
+        "components"
+      ],
+      "code_template": "from urllib.parse import urlparse\n{output_var} = urlparse({input_var})._asdict()",
+      "inputs": {
+        "input_type": "str",
+        "expected_state": "url_string"
+      },
+      "outputs": {
+        "output_type": "dict",
+        "resulting_state": "url_components"
+      },
+      "type": "micro"
+    },
+    {
+      "cell_id": "URL_ENCODE_PARAMS",
+      "stage": 3,
+      "keywords": [
+        "urllib",
+        "parse",
+        "urlencode",
+        "query",
+        "params"
+      ],
+      "code_template": "from urllib.parse import urlencode\n{output_var} = urlencode({input_var})",
+      "inputs": {
+        "input_type": "dict",
+        "expected_state": "parameter_mapping"
+      },
+      "outputs": {
+        "output_type": "str",
+        "resulting_state": "query_string"
+      },
+      "type": "micro"
+    },
+    {
+      "cell_id": "URL_PARSE_QS",
+      "stage": 3,
+      "keywords": [
+        "urllib",
+        "parse",
+        "parse_qs",
+        "query",
+        "params"
+      ],
+      "code_template": "from urllib.parse import parse_qs\n{output_var} = parse_qs({input_var})",
+      "inputs": {
+        "input_type": "str",
+        "expected_state": "query_string"
+      },
+      "outputs": {
+        "output_type": "dict",
+        "resulting_state": "parameter_mapping"
+      },
+      "type": "micro"
+    },
+    {
+      "cell_id": "URL_QUOTE",
+      "stage": 3,
+      "keywords": [
+        "urllib",
+        "parse",
+        "quote",
+        "encode",
+        "safe"
+      ],
+      "code_template": "from urllib.parse import quote\n{output_var} = quote({input_var})",
+      "inputs": {
+        "input_type": "str",
+        "expected_state": "raw_string"
+      },
+      "outputs": {
+        "output_type": "str",
+        "resulting_state": "percent_encoded_string"
+      },
+      "type": "micro"
+    },
+    {
+      "cell_id": "URL_UNQUOTE",
+      "stage": 3,
+      "keywords": [
+        "urllib",
+        "parse",
+        "unquote",
+        "decode",
+        "percent"
+      ],
+      "code_template": "from urllib.parse import unquote\n{output_var} = unquote({input_var})",
+      "inputs": {
+        "input_type": "str",
+        "expected_state": "percent_encoded_string"
+      },
+      "outputs": {
+        "output_type": "str",
+        "resulting_state": "decoded_string"
+      },
+      "type": "micro"
+    },
+    {
+      "cell_id": "BASE64_ENCODE",
+      "stage": 3,
+      "keywords": [
+        "base64",
+        "encode",
+        "b64encode",
+        "ascii",
+        "transfer"
+      ],
+      "code_template": "import base64\n{output_var} = base64.b64encode({input_var}.encode('utf-8')).decode('utf-8')",
+      "inputs": {
+        "input_type": "str",
+        "expected_state": "raw_text"
+      },
+      "outputs": {
+        "output_type": "str",
+        "resulting_state": "base64_string"
+      },
+      "type": "micro"
+    },
+    {
+      "cell_id": "BASE64_DECODE",
+      "stage": 3,
+      "keywords": [
+        "base64",
+        "decode",
+        "b64decode",
+        "ascii",
+        "transfer"
+      ],
+      "code_template": "import base64\n{output_var} = base64.b64decode({input_var}).decode('utf-8')",
+      "inputs": {
+        "input_type": "str",
+        "expected_state": "base64_string"
+      },
+      "outputs": {
+        "output_type": "str",
+        "resulting_state": "decoded_text"
+      },
+      "type": "micro"
+    },
+    {
+      "cell_id": "BASE64_URLSAFE_ENCODE",
+      "stage": 3,
+      "keywords": [
+        "base64",
+        "urlsafe",
+        "encode",
+        "rfc4648",
+        "transfer"
+      ],
+      "code_template": "import base64\n{output_var} = base64.urlsafe_b64encode({input_var}.encode('utf-8')).decode('utf-8')",
+      "inputs": {
+        "input_type": "str",
+        "expected_state": "raw_text"
+      },
+      "outputs": {
+        "output_type": "str",
+        "resulting_state": "urlsafe_base64_string"
+      },
+      "type": "micro"
+    },
+    {
+      "cell_id": "BASE64_URLSAFE_DECODE",
+      "stage": 3,
+      "keywords": [
+        "base64",
+        "urlsafe",
+        "decode",
+        "rfc4648",
+        "transfer"
+      ],
+      "code_template": "import base64\n{output_var} = base64.urlsafe_b64decode({input_var}).decode('utf-8')",
+      "inputs": {
+        "input_type": "str",
+        "expected_state": "urlsafe_base64_string"
+      },
+      "outputs": {
+        "output_type": "str",
+        "resulting_state": "decoded_text"
+      },
+      "type": "micro"
+    },
+    {
+      "cell_id": "RE_SEARCH",
+      "stage": 3,
+      "keywords": [
+        "re",
+        "search",
+        "regex",
+        "match",
+        "pattern"
+      ],
+      "code_template": "import re\nm = re.search({input_var}[0], {input_var}[1])\n{output_var} = m.group() if m else None",
+      "inputs": {
+        "input_type": "tuple",
+        "expected_state": "pattern_and_text"
+      },
+      "outputs": {
+        "output_type": "str",
+        "resulting_state": "matched_text_or_none"
+      },
+      "type": "micro"
+    },
+    {
+      "cell_id": "RE_MATCH",
+      "stage": 3,
+      "keywords": [
+        "re",
+        "match",
+        "regex",
+        "start",
+        "pattern"
+      ],
+      "code_template": "import re\nm = re.match({input_var}[0], {input_var}[1])\n{output_var} = m.group() if m else None",
+      "inputs": {
+        "input_type": "tuple",
+        "expected_state": "pattern_and_text"
+      },
+      "outputs": {
+        "output_type": "str",
+        "resulting_state": "matched_text_or_none"
+      },
+      "type": "micro"
+    },
+    {
+      "cell_id": "RE_SUB",
+      "stage": 3,
+      "keywords": [
+        "re",
+        "sub",
+        "replace",
+        "regex",
+        "transform"
+      ],
+      "code_template": "import re\n{output_var} = re.sub({input_var}[0], {input_var}[1], {input_var}[2])",
+      "inputs": {
+        "input_type": "tuple",
+        "expected_state": "pattern_repl_and_text"
+      },
+      "outputs": {
+        "output_type": "str",
+        "resulting_state": "substituted_text"
+      },
+      "type": "micro"
+    },
+    {
+      "cell_id": "RE_FINDALL",
+      "stage": 3,
+      "keywords": [
+        "re",
+        "findall",
+        "regex",
+        "extract",
+        "all_matches"
+      ],
+      "code_template": "import re\n{output_var} = re.findall({input_var}[0], {input_var}[1])",
+      "inputs": {
+        "input_type": "tuple",
+        "expected_state": "pattern_and_text"
+      },
+      "outputs": {
+        "output_type": "list",
+        "resulting_state": "all_matches"
+      },
+      "type": "micro"
+    },
+    {
+      "cell_id": "RE_SPLIT",
+      "stage": 3,
+      "keywords": [
+        "re",
+        "split",
+        "regex",
+        "tokenize",
+        "delimiter"
+      ],
+      "code_template": "import re\n{output_var} = re.split({input_var}[0], {input_var}[1])",
+      "inputs": {
+        "input_type": "tuple",
+        "expected_state": "pattern_and_text"
+      },
+      "outputs": {
+        "output_type": "list",
+        "resulting_state": "split_tokens"
+      },
+      "type": "micro"
+    },
+    {
+      "cell_id": "FUNCTOOLS_REDUCE",
+      "stage": 2,
+      "keywords": [
+        "functools",
+        "reduce",
+        "accumulate",
+        "fold",
+        "aggregate"
+      ],
+      "code_template": "from functools import reduce\n{output_var} = reduce({input_var}[0], {input_var}[1])",
+      "inputs": {
+        "input_type": "tuple",
+        "expected_state": "function_and_iterable"
+      },
+      "outputs": {
+        "output_type": "any",
+        "resulting_state": "reduced_value"
+      },
+      "type": "micro"
+    },
+    {
+      "cell_id": "FUNCTOOLS_PARTIAL",
+      "stage": 2,
+      "keywords": [
+        "functools",
+        "partial",
+        "curry",
+        "bind",
+        "closure"
+      ],
+      "code_template": "from functools import partial\n{output_var} = partial({input_var}[0], *{input_var}[1])",
+      "inputs": {
+        "input_type": "tuple",
+        "expected_state": "function_and_preset_args"
+      },
+      "outputs": {
+        "output_type": "function",
+        "resulting_state": "partial_function"
+      },
+      "type": "micro"
+    },
+    {
+      "cell_id": "COPY_DEEPCOPY",
+      "stage": 2,
+      "keywords": [
+        "copy",
+        "deepcopy",
+        "clone",
+        "recursive",
+        "duplicate"
+      ],
+      "code_template": "import copy\n{output_var} = copy.deepcopy({input_var})",
+      "inputs": {
+        "input_type": "any",
+        "expected_state": "nested_object"
+      },
+      "outputs": {
+        "output_type": "any",
+        "resulting_state": "deep_copied_object"
+      },
+      "type": "micro"
+    },
+    {
+      "cell_id": "INSPECT_GETSOURCE",
+      "stage": 2,
+      "keywords": [
+        "inspect",
+        "getsource",
+        "introspection",
+        "code",
+        "reflection"
+      ],
+      "code_template": "import inspect\n{output_var} = inspect.getsource({input_var})",
+      "inputs": {
+        "input_type": "function",
+        "expected_state": "callable_object"
+      },
+      "outputs": {
+        "output_type": "str",
+        "resulting_state": "source_code"
+      },
+      "type": "micro"
+    },
+    {
+      "cell_id": "TEMPFILE_MKDTEMP",
+      "stage": 4,
+      "keywords": [
+        "tempfile",
+        "mkdtemp",
+        "temporary",
+        "directory",
+        "scratch"
+      ],
+      "code_template": "import tempfile\n{output_var} = tempfile.mkdtemp()",
+      "inputs": {
+        "input_type": "None",
+        "expected_state": "none_required"
+      },
+      "outputs": {
+        "output_type": "str",
+        "resulting_state": "temp_directory"
+      },
+      "type": "micro"
+    },
+    {
+      "cell_id": "OS_WALK",
+      "stage": 4,
+      "keywords": [
+        "os",
+        "walk",
+        "tree",
+        "recursive",
+        "enumerate"
+      ],
+      "code_template": "import os\n{output_var} = [root for root, dirs, files in os.walk({input_var})]",
+      "inputs": {
+        "input_type": "str",
+        "expected_state": "directory_path"
+      },
+      "outputs": {
+        "output_type": "list",
+        "resulting_state": "directory_tree_roots"
+      },
+      "type": "micro"
+    },
+    {
+      "cell_id": "STRING_TEMPLATE",
+      "stage": 2,
+      "keywords": [
+        "string",
+        "Template",
+        "substitute",
+        "format",
+        "interpolation"
+      ],
+      "code_template": "from string import Template\n{output_var} = Template({input_var}[0]).substitute({input_var}[1])",
+      "inputs": {
+        "input_type": "tuple",
+        "expected_state": "template_and_mapping"
+      },
+      "outputs": {
+        "output_type": "str",
+        "resulting_state": "interpolated_string"
+      },
+      "type": "micro"
+    },
+    {
+      "cell_id": "TEXTWRAP_DEDENT",
+      "stage": 2,
+      "keywords": [
+        "textwrap",
+        "dedent",
+        "indentation",
+        "clean",
+        "normalize"
+      ],
+      "code_template": "import textwrap\n{output_var} = textwrap.dedent({input_var})",
+      "inputs": {
+        "input_type": "str",
+        "expected_state": "indented_text"
+      },
+      "outputs": {
+        "output_type": "str",
+        "resulting_state": "dedented_text"
+      },
+      "type": "micro"
+    },
+    {
+      "cell_id": "TEXTWRAP_FILL",
+      "stage": 2,
+      "keywords": [
+        "textwrap",
+        "fill",
+        "wrap",
+        "paragraph",
+        "line_break"
+      ],
+      "code_template": "import textwrap\n{output_var} = textwrap.fill({input_var}, width=70)",
+      "inputs": {
+        "input_type": "str",
+        "expected_state": "long_text"
+      },
+      "outputs": {
+        "output_type": "str",
+        "resulting_state": "wrapped_text"
+      },
+      "type": "micro"
+    },
+    {
+      "cell_id": "PPRINT_PF",
+      "stage": 2,
+      "keywords": [
+        "pprint",
+        "pformat",
+        "pretty",
+        "serialize",
+        "debug"
+      ],
+      "code_template": "import pprint\n{output_var} = pprint.pformat({input_var})",
+      "inputs": {
+        "input_type": "any",
+        "expected_state": "nested_object"
+      },
+      "outputs": {
+        "output_type": "str",
+        "resulting_state": "pretty_string"
+      },
+      "type": "micro"
+    },
+    {
+      "cell_id": "DATACLASS_ASDICT",
+      "stage": 2,
+      "keywords": [
+        "dataclasses",
+        "asdict",
+        "serialize",
+        "mapping",
+        "convert"
+      ],
+      "code_template": "from dataclasses import asdict\n{output_var} = asdict({input_var})",
+      "inputs": {
+        "input_type": "dataclass",
+        "expected_state": "dataclass_instance"
+      },
+      "outputs": {
+        "output_type": "dict",
+        "resulting_state": "field_mapping"
+      },
+      "type": "micro"
+    },
+    {
+      "cell_id": "DATACLASS_ASTUPLE",
+      "stage": 2,
+      "keywords": [
+        "dataclasses",
+        "astuple",
+        "serialize",
+        "sequence",
+        "convert"
+      ],
+      "code_template": "from dataclasses import astuple\n{output_var} = astuple({input_var})",
+      "inputs": {
+        "input_type": "dataclass",
+        "expected_state": "dataclass_instance"
+      },
+      "outputs": {
+        "output_type": "tuple",
+        "resulting_state": "field_tuple"
+      },
+      "type": "micro"
+    },
+    {
+      "cell_id": "ENUM_INIT",
+      "stage": 2,
+      "keywords": [
+        "enum",
+        "Enum",
+        "constant",
+        "choice",
+        "symbolic"
+      ],
+      "code_template": "from enum import Enum\n_Status = Enum('Status', {input_var})\n{output_var} = list(_Status)",
+      "inputs": {
+        "input_type": "list",
+        "expected_state": "name_list"
+      },
+      "outputs": {
+        "output_type": "list",
+        "resulting_state": "enum_members"
+      },
+      "type": "micro"
+    },
+    {
+      "cell_id": "TYPES_NAMESPACE",
+      "stage": 2,
+      "keywords": [
+        "types",
+        "SimpleNamespace",
+        "object",
+        "attribute",
+        "dynamic"
+      ],
+      "code_template": "from types import SimpleNamespace\n{output_var} = SimpleNamespace(**{input_var})",
+      "inputs": {
+        "input_type": "dict",
+        "expected_state": "attribute_mapping"
+      },
+      "outputs": {
+        "output_type": "object",
+        "resulting_state": "namespace_object"
+      },
+      "type": "micro"
+    },
+    {
+      "cell_id": "OPERATOR_ITEMGETTER",
+      "stage": 2,
+      "keywords": [
+        "operator",
+        "itemgetter",
+        "sort",
+        "key",
+        "extract"
+      ],
+      "code_template": "from operator import itemgetter\n{output_var} = sorted({input_var}[0], key=itemgetter({input_var}[1]))",
+      "inputs": {
+        "input_type": "tuple",
+        "expected_state": "iterable_and_index"
+      },
+      "outputs": {
+        "output_type": "list",
+        "resulting_state": "sorted_sequence"
+      },
+      "type": "micro"
+    },
+    {
+      "cell_id": "CONFIGPARSER_READ",
+      "stage": 4,
+      "keywords": [
+        "configparser",
+        "ini",
+        "read",
+        "settings",
+        "configuration"
+      ],
+      "code_template": "import configparser\ncp = configparser.ConfigParser()\ncp.read({input_var})\n{output_var} = {section: dict(cp[section]) for section in cp.sections()}",
+      "inputs": {
+        "input_type": "str",
+        "expected_state": "ini_filepath"
+      },
+      "outputs": {
+        "output_type": "dict",
+        "resulting_state": "configuration_dict"
+      },
+      "type": "micro"
+    },
+    {
+      "cell_id": "SYS_GETSIZEOF",
+      "stage": 2,
+      "keywords": [
+        "sys",
+        "getsizeof",
+        "memory",
+        "size",
+        "bytes"
+      ],
+      "code_template": "import sys\n{output_var} = sys.getsizeof({input_var})",
+      "inputs": {
+        "input_type": "any",
+        "expected_state": "any_object"
+      },
+      "outputs": {
+        "output_type": "int",
+        "resulting_state": "memory_size_bytes"
+      },
+      "type": "micro"
+    },
+    {
+      "cell_id": "IO_STRINGIO",
+      "stage": 2,
+      "keywords": [
+        "io",
+        "StringIO",
+        "buffer",
+        "in_memory",
+        "text"
+      ],
+      "code_template": "from io import StringIO\nbuf = StringIO()\nbuf.write({input_var})\n{output_var} = buf.getvalue()",
+      "inputs": {
+        "input_type": "str",
+        "expected_state": "text_to_buffer"
+      },
+      "outputs": {
+        "output_type": "str",
+        "resulting_state": "buffered_text"
+      },
+      "type": "micro"
+    },
+    {
+      "cell_id": "IO_BYTESIO",
+      "stage": 2,
+      "keywords": [
+        "io",
+        "BytesIO",
+        "buffer",
+        "in_memory",
+        "binary"
+      ],
+      "code_template": "from io import BytesIO\nbuf = BytesIO()\nbuf.write({input_var})\n{output_var} = buf.getvalue()",
+      "inputs": {
+        "input_type": "bytes",
+        "expected_state": "bytes_to_buffer"
+      },
+      "outputs": {
+        "output_type": "bytes",
+        "resulting_state": "buffered_bytes"
+      },
+      "type": "micro"
+    },
+    {
+      "cell_id": "FNMATCH_FILTER",
+      "stage": 4,
+      "keywords": [
+        "fnmatch",
+        "filter",
+        "glob",
+        "pattern",
+        "match"
+      ],
+      "code_template": "import fnmatch\n{output_var} = fnmatch.filter({input_var}[0], {input_var}[1])",
+      "inputs": {
+        "input_type": "tuple",
+        "expected_state": "names_and_pattern"
+      },
+      "outputs": {
+        "output_type": "list",
+        "resulting_state": "matched_names"
+      },
+      "type": "micro"
+    },
+    {
+      "cell_id": "BISECT_INSORT",
+      "stage": 2,
+      "keywords": [
+        "bisect",
+        "insort",
+        "sorted",
+        "insert",
+        "maintain"
+      ],
+      "code_template": "import bisect\nseq = {input_var}['seq']\nbisect.insort(seq, {input_var}['item'])\n{output_var} = seq",
+      "inputs": {
+        "input_type": "dict",
+        "expected_state": "sequence_and_item"
+      },
+      "outputs": {
+        "output_type": "list",
+        "resulting_state": "sorted_sequence"
+      },
+      "type": "micro"
+    },
+    {
+      "cell_id": "BISECT_LEFT",
+      "stage": 2,
+      "keywords": [
+        "bisect",
+        "left",
+        "search",
+        "index",
+        "sorted"
+      ],
+      "code_template": "import bisect\n{output_var} = bisect.bisect_left({input_var}[0], {input_var}[1])",
+      "inputs": {
+        "input_type": "tuple",
+        "expected_state": "sorted_seq_and_item"
+      },
+      "outputs": {
+        "output_type": "int",
+        "resulting_state": "insertion_index"
+      },
+      "type": "micro"
+    },
+    {
+      "cell_id": "LOGGING_BASIC",
+      "stage": 2,
+      "keywords": [
+        "logging",
+        "basicConfig",
+        "log",
+        "debug",
+        "record"
+      ],
+      "code_template": "import logging\nlogging.basicConfig(level=logging.INFO)\nlogging.info({input_var})\n{output_var} = {input_var}",
+      "inputs": {
+        "input_type": "str",
+        "expected_state": "message"
+      },
+      "outputs": {
+        "output_type": "str",
+        "resulting_state": "logged_message"
+      },
+      "type": "micro"
+    },
+    {
+      "cell_id": "DECIMAL_QUANTIZE",
+      "stage": 2,
+      "keywords": [
+        "decimal",
+        "quantize",
+        "precision",
+        "money",
+        "rounding"
+      ],
+      "code_template": "from decimal import Decimal\n{output_var} = str(Decimal({input_var}).quantize(Decimal('0.01')))",
+      "inputs": {
+        "input_type": "str",
+        "expected_state": "decimal_string"
+      },
+      "outputs": {
+        "output_type": "str",
+        "resulting_state": "quantized_decimal"
+      },
+      "type": "micro"
+    },
+    {
+      "cell_id": "FRACTIONS_LIMIT",
+      "stage": 2,
+      "keywords": [
+        "fractions",
+        "Fraction",
+        "limit_denominator",
+        "rational",
+        "approximate"
+      ],
+      "code_template": "from fractions import Fraction\n{output_var} = str(Fraction({input_var}).limit_denominator())",
+      "inputs": {
+        "input_type": "float",
+        "expected_state": "floating_point"
+      },
+      "outputs": {
+        "output_type": "str",
+        "resulting_state": "fraction_string"
+      },
+      "type": "micro"
+    },
+    {
+      "cell_id": "GRAPHLIB_TOPO_SORT",
+      "stage": 2,
+      "keywords": [
+        "graphlib",
+        "TopologicalSorter",
+        "dependency",
+        "order",
+        "dag"
+      ],
+      "code_template": "from graphlib import TopologicalSorter\n{output_var} = list(TopologicalSorter({input_var}).static_order())",
+      "inputs": {
+        "input_type": "dict",
+        "expected_state": "dependency_graph"
+      },
+      "outputs": {
+        "output_type": "list",
+        "resulting_state": "topological_order"
+      },
+      "type": "micro"
+    }
+  ]
+}
