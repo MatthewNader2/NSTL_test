@@ -310,7 +310,7 @@ class LatticeRouter:
         }
 
         # 🚀 FIX: Jina v5 uses the unified "retrieval" task adapter
-        if "jina" in self.model.config.name_or_path.lower():
+        if "jina" in self.model.config.name_or_path.lower() or "model_cache" in self.model.config.name_or_path.lower():
             encode_kwargs["task"] = "retrieval"
 
         embeddings = self.model.encode(texts, **encode_kwargs).astype(np.float32)
@@ -362,7 +362,7 @@ class LatticeRouter:
             encode_kwargs = {"convert_to_numpy": True, "normalize_embeddings": True}
 
             # 🚀 FIX: Pass the unified 'retrieval' task and prefix the user goal with 'Query: '
-            if "jina" in self.model.config.name_or_path.lower():
+            if "jina" in self.model.config.name_or_path.lower() or "model_cache" in self.model.config.name_or_path.lower():
                 encode_kwargs["task"] = "retrieval"
                 goal_text_clean = f"Query: {goal_text_clean}"
             elif "snowflake" in self.model.config.name_or_path.lower():
@@ -705,7 +705,7 @@ if os.path.exists(FRONTEND_DIR):
 
 
 def run_server():
-    uvicorn.run(app, host="127.0.0.1", port=8000, log_level="warning")
+    uvicorn.run(app, host="0.0.0.0", port=8000, log_level="warning")
 
 
 def initialize_async():
