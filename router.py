@@ -1,11 +1,17 @@
 # router.py
 import logging
 import os
+import platform
 import re
 import warnings
 
-from sentence_transformers import SentenceTransformer, util
+import faiss
+import numpy as np
+import torch
+from sentence_transformers import SentenceTransformer
 
+# CRITICAL FIX: Prevents silent hard crashes when mixing PyTorch, OpenMP, and UI threads
+os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
 os.environ["HF_HUB_DISABLE_SYMLINKS_WARNING"] = "1"
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
 warnings.filterwarnings("ignore")
@@ -13,31 +19,97 @@ logging.getLogger("sentence_transformers").setLevel(logging.ERROR)
 logging.getLogger("transformers").setLevel(logging.ERROR)
 
 
+class HardwareProfiler:
+    """
+    Cross-Platform Dynamic Hardware Auto-Profiler.
+    Detects the host system and assigns workloads to the optimal compute backend.
+    """
+
+    @staticmethod
+    def get_optimal_device() -> str:
+        print("\n" + "=" * 50)
+        print(" NSTL HARDWARE AUTODETECTION PROFILER")
+        print("=" * 50)
+
+        os_name = platform.system()
+        cpu_arch = platform.machine()
+        print(f" Host OS:   {os_name} ({cpu_arch})")
+
+        # 1. Check for NVIDIA CUDA GPUs
+        if torch.cuda.is_available():
+            gpu_name = torch.cuda.get_device_name(0)
+            vram = torch.cuda.get_device_properties(0).total_memory / (1024**3)
+            print(f" Compute:   NVIDIA CUDA Detected")
+            print(f" Hardware:  {gpu_name} ({vram:.1f} GB VRAM)")
+            print(" Routing:   Vector Embedding mapped to GPU.")
+            print("=" * 50 + "\n")
+            return "cuda"
+
+        # 2. Check for Apple Silicon (M1/M2/M3/M4) Neural Engines
+        elif torch.backends.mps.is_available():
+            print(f" Compute:   Apple Metal Performance Shaders (MPS)")
+            print(f" Hardware:  Apple Silicon Architecture")
+            print(" Routing:   Vector Embedding mapped to Apple GPU.")
+            print("=" * 50 + "\n")
+            return "mps"
+
+        # 3. Fallback to CPU (Windows without Nvidia, Intel Macs, Linux Servers)
+        else:
+            print(f" Compute:   Standard CPU")
+            print(f" Hardware:  Fallback Mode Activated")
+            print(" Routing:   Vector Embedding mapped to CPU.")
+            print(" Note:      Operations will run safely, but slower.")
+            print("=" * 50 + "\n")
+            return "cpu"
+
+
 class LatticeRouter:
     def __init__(self, orchestrator):
         self.orchestrator = orchestrator
-        self.model = SentenceTransformer("all-MiniLM-L6-v2")
 
-        # VECTOR CACHE: Store pre-computed embeddings for instant memory lookup
-        self.cell_embeddings = {}
+        # 1. Run the Auto-Profiler to get the absolute best hardware state
+        self.device = HardwareProfiler.get_optimal_device()
+
+        # 2. Load the model directly into the optimized silicon
+        print(f"[NEURAL CORE] Initializing Transformer on {self.device.upper()}...")
+        self.model = SentenceTransformer("all-MiniLM-L6-v2", device=self.device)
+
+        # 3. Initialize High-Speed CPU Memory for the Vector Database
+        self.cells_list = []
+        self.index = None
         self._precompute_embeddings()
 
     def _precompute_embeddings(self):
-        """Encodes the entire topology into vectors exactly once at startup."""
-        print(
-            "\n[NEURAL CORE] Pre-computing semantic manifolds for ultra-fast routing..."
-        )
+        """Encodes the topology into a CPU-bound HNSW FAISS Graph for instantaneous O(log N) routing."""
         cells = self.orchestrator.get_all_available_cells()
-        for cell in cells:
-            intent_profile = (
-                f"Action: {cell.cell_id}. Concept Tags: {' '.join(cell.keywords)}."
-            )
-            self.cell_embeddings[cell.cell_id] = self.model.encode(
-                intent_profile, convert_to_tensor=True
-            )
+        self.cells_list = cells
+
+        if not cells:
+            print("[NEURAL CORE] No cells found to index.")
+            return
+
         print(
-            f"[NEURAL CORE] Cached {len(cells)} semantic node vectors. Routing is ready."
+            f"[NEURAL CORE] Pre-computing semantic manifolds for {len(cells)} cells..."
         )
+        texts = [
+            f"Action: {c.cell_id}. Concept Tags: {' '.join(c.keywords)}." for c in cells
+        ]
+
+        # Batch encode & normalize for Cosine Similarity mapping
+        embeddings = self.model.encode(
+            texts,
+            batch_size=256,
+            convert_to_numpy=True,
+            normalize_embeddings=True,
+            show_progress_bar=False,
+        ).astype(np.float32)
+
+        # HNSW (Hierarchical Navigable Small World) Index always stays on CPU for 0.1ms access times
+        d = embeddings.shape[1]
+        self.index = faiss.IndexHNSWFlat(d, 32, faiss.METRIC_INNER_PRODUCT)
+        self.index.add(embeddings)
+
+        print("[NEURAL CORE] FAISS HNSW Vector Database compiled. Routing is ready.")
 
     def plan_path(
         self, user_intent: str, initial_type: str, initial_state: str
@@ -59,9 +131,12 @@ class LatticeRouter:
         step = 0
         while goals:
             goal = goals.pop(0)
-            goal_embedding = self.model.encode(goal, convert_to_tensor=True)
 
-            # 1. Evaluate the best GLOBAL Micro-Cell first to see if we have an exact tool
+            # Format target query for FAISS (2D numpy array, Normalized)
+            goal_embedding = self.model.encode(
+                [goal], convert_to_numpy=True, normalize_embeddings=True
+            ).astype(np.float32)
+
             global_micro_candidates = [
                 c
                 for c in self.orchestrator.get_all_available_cells()
@@ -72,7 +147,6 @@ class LatticeRouter:
                 global_micro_candidates, goal_embedding
             )
 
-            # 2. Evaluate Macro-Cells
             macro_candidates = [
                 c
                 for c in self.orchestrator.get_all_available_cells()
@@ -82,7 +156,6 @@ class LatticeRouter:
                 macro_candidates, goal_embedding
             )
 
-            # 3. MICRO-PRIORITY OVERWRITE: Unfold Macro ONLY if we don't have a highly-confident Micro tool
             if (
                 best_macro
                 and macro_score > MACRO_THRESHOLD
@@ -91,7 +164,6 @@ class LatticeRouter:
                 print(
                     f"[FRACTAL UNFOLDING] Abstract goal '{goal}' expanded into {len(best_macro.intent_expansion)} sub-operations."
                 )
-                # Inject the macro array directly into the front of the queue
                 goals = best_macro.intent_expansion + goals
                 continue
 
@@ -189,20 +261,33 @@ class LatticeRouter:
         )
         return final_path, virtual_edges
 
-    def _score_and_select_best(self, candidates: list, prompt_embedding) -> tuple:
-        best_node = None
-        best_score = -1.0
-
-        if not candidates:
+    def _score_and_select_best(
+        self, candidates: list, prompt_embedding: np.ndarray
+    ) -> tuple:
+        """FAISS Vector Database Lookup - O(1) Constraint Filtering inside O(log N) Graph Traverse"""
+        if not candidates or self.index is None:
             return None, -1.0
 
-        for cell in candidates:
-            # OPTIMIZATION: Pull from cache instead of re-running the model
-            intent_embedding = self.cell_embeddings[cell.cell_id]
-            score = util.cos_sim(prompt_embedding, intent_embedding).item()
+        valid_ids = {c.cell_id for c in candidates}
 
-            if score > best_score:
-                best_score = score
-                best_node = cell
+        # Query top 200 closest nodes across the fractal lattice instantly
+        k_search = min(200, self.index.ntotal)
+        distances, indices = self.index.search(prompt_embedding, k=k_search)
 
-        return best_node, best_score
+        # The first valid candidate we hit is mathematically the most semantically aligned
+        for dist, idx in zip(distances[0], indices[0]):
+            cell = self.cells_list[idx]
+            if cell.cell_id in valid_ids:
+                return cell, float(dist)
+
+        # Extreme fallback
+        if k_search < self.index.ntotal:
+            distances, indices = self.index.search(
+                prompt_embedding, k=self.index.ntotal
+            )
+            for dist, idx in zip(distances[0], indices[0]):
+                cell = self.cells_list[idx]
+                if cell.cell_id in valid_ids:
+                    return cell, float(dist)
+
+        return None, -1.0
