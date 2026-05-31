@@ -17,7 +17,7 @@ export default function MonacoEditor() {
   }, []);
 
   return (
-    <div style={{ width: "100%", height: "100%" }}>
+    <div style={{ width: "100%", height: "100%", paddingTop: "6px", boxSizing: "border-box" }}>
       <Editor
         defaultLanguage="python"
         language="python"
@@ -38,6 +38,7 @@ export default function MonacoEditor() {
           hideCursorInOverviewRuler: true,
           smoothScrolling: true,
           cursorBlinking: "smooth",
+          padding: { top: 12, bottom: 12 },
         }}
         loading={
           <div

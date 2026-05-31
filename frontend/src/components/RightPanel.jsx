@@ -12,7 +12,7 @@ import {
 } from "lucide-react";
 import { useState, useCallback } from "react";
 
-export default function RightPanel({ open, onToggle }) {
+export default function RightPanel({ open, isMobile, mobileActive, onToggle }) {
   const activeTab = useStore((s) => s.rightActiveTab);
   const setActiveTab = useStore((s) => s.setRightActiveTab);
   const selectedNode = useStore((s) => s.selectedNode);
@@ -53,7 +53,12 @@ export default function RightPanel({ open, onToggle }) {
   ];
 
   return (
-    <div className={`right-panel glass-panel ${open ? "" : "collapsed"}`}>
+    <div
+      className={`right-panel glass-panel ${!isMobile && !open ? "collapsed" : ""} ${isMobile && mobileActive ? "mobile-active" : ""}`}
+      style={{
+        height: "100%",
+      }}
+    >
       <div style={{ display: "flex", flexDirection: "column", height: "100%" }}>
         {/* Tabs Header */}
         <div
@@ -339,6 +344,23 @@ export default function RightPanel({ open, onToggle }) {
           )}
         </div>
       </div>
+      
+      {/* Toggle button when collapsed */}
+      {!open && (
+        <button
+          onClick={onToggle}
+          style={{
+            position: "absolute",
+            top: "0.5rem",
+            right: "0.5rem",
+            zIndex: 10,
+            color: "var(--text-secondary)",
+          }}
+          title="Expand Panel"
+        >
+          <Code2 size={16} />
+        </button>
+      )}
     </div>
   );
 }

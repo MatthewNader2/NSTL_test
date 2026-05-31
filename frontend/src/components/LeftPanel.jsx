@@ -14,7 +14,7 @@ import {
   HelpCircle,
 } from "lucide-react";
 
-export default function LeftPanel({ open, onToggle }) {
+export default function LeftPanel({ open, isMobile, mobileActive, onToggle }) {
   const [prompt, setPrompt] = useState("");
   const [localThinkingId, setLocalThinkingId] = useState(null);
   
@@ -141,7 +141,7 @@ export default function LeftPanel({ open, onToggle }) {
 
   return (
     <div
-      className={`left-panel glass-panel ${open ? "" : "collapsed"}`}
+      className={`left-panel glass-panel ${!isMobile && !open ? "collapsed" : ""} ${isMobile && mobileActive ? "mobile-active" : ""}`}
       style={{
         borderRight: open ? "1px solid var(--glass-border)" : "none",
         height: "100%",

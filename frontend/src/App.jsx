@@ -143,17 +143,15 @@ export default function App() {
       
       <div className="main-layout">
         {/* Left Panel (Console) */}
-        <div
-          className={`left-panel glass-panel ${!isMobile && !leftOpen ? "collapsed" : ""} ${isMobile && mobileView === "console" ? "mobile-active" : ""}`}
-        >
-          <LeftPanel
-            open={isMobile ? true : leftOpen}
-            onToggle={() => {
-              setLeftOpen(!leftOpen);
-              logSystemEvent(`Toggled Console Panel visibility to: ${!leftOpen}`, "UI");
-            }}
-          />
-        </div>
+        <LeftPanel
+          open={isMobile ? true : leftOpen}
+          isMobile={isMobile}
+          mobileActive={isMobile && mobileView === "console"}
+          onToggle={() => {
+            setLeftOpen(!leftOpen);
+            logSystemEvent(`Toggled Console Panel visibility to: ${!leftOpen}`, "UI");
+          }}
+        />
 
         {/* Center 3D Canvas */}
         <div
@@ -166,17 +164,15 @@ export default function App() {
         </div>
 
         {/* Right Panel (Inspector/Code) */}
-        <div
-          className={`right-panel glass-panel ${!isMobile && !rightOpen ? "collapsed" : ""} ${isMobile && mobileView === "code" ? "mobile-active" : ""}`}
-        >
-          <RightPanel
-            open={isMobile ? true : rightOpen}
-            onToggle={() => {
-              setRightOpen(!rightOpen);
-              logSystemEvent(`Toggled Right Inspector Panel visibility to: ${!rightOpen}`, "UI");
-            }}
-          />
-        </div>
+        <RightPanel
+          open={isMobile ? true : rightOpen}
+          isMobile={isMobile}
+          mobileActive={isMobile && mobileView === "code"}
+          onToggle={() => {
+            setRightOpen(!rightOpen);
+            logSystemEvent(`Toggled Right Inspector Panel visibility to: ${!rightOpen}`, "UI");
+          }}
+        />
 
         {/* 📱 MOBILE BOTTOM NAVIGATION */}
         <div className="bottom-nav">

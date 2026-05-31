@@ -70,8 +70,9 @@ body {
 .collapsed {
     width: 0 !important;
     border: none !important;
-    opacity: 0;
-    pointer-events: none;
+    background: transparent !important;
+    backdrop-filter: none !important;
+    box-shadow: none !important;
 }
 
 /* Scrollbar */
