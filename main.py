@@ -788,5 +788,7 @@ if __name__ == "__main__":
             
         webview.start(debug=False, icon=use_icon)
     except Exception:
-        while True:
-            time.sleep(100)
+        pass
+        
+    while True:
+        time.sleep(100)

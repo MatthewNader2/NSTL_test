@@ -1,7 +1,12 @@
 // src/hooks/useApi.js
 
 export function getApiBase() {
-  return localStorage.getItem("nstl_api_base") || "http://127.0.0.1:8000";
+  const saved = localStorage.getItem("nstl_api_base");
+  if (saved) return saved;
+  if (/Android/i.test(navigator.userAgent)) {
+    return "http://10.0.2.2:8000";
+  }
+  return "http://127.0.0.1:8000";
 }
 
 export function setApiBase(url) {

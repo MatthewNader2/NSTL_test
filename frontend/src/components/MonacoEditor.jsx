@@ -9,7 +9,7 @@ export default function MonacoEditor() {
   useEffect(() => {
     const updateSize = () => {
       const rootFs = parseFloat(window.getComputedStyle(document.documentElement).fontSize) || 16;
-      setEditorFontSize(Math.max(10, Math.min(24, rootFs * 0.75)));
+      setEditorFontSize(Math.round(rootFs * 1.6));
     };
     updateSize();
     window.addEventListener("resize", updateSize);

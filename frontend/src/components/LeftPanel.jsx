@@ -144,7 +144,6 @@ export default function LeftPanel({ open, isMobile, mobileActive, onToggle }) {
       className={`left-panel glass-panel ${!isMobile && !open ? "collapsed" : ""} ${isMobile && mobileActive ? "mobile-active" : ""}`}
       style={{
         borderRight: open ? "1px solid var(--glass-border)" : "none",
-        height: "100%",
       }}
     >
       {open && (
@@ -154,6 +153,8 @@ export default function LeftPanel({ open, isMobile, mobileActive, onToggle }) {
             flexDirection: "column",
             height: "100%",
             padding: "0.75rem",
+            minHeight: 0,
+            minWidth: 0,
           }}
         >
           {/* Panel Header */}
@@ -199,6 +200,7 @@ export default function LeftPanel({ open, isMobile, mobileActive, onToggle }) {
               flexDirection: "column",
               gap: "1rem",
               paddingRight: "4px",
+              minHeight: 0,
             }}
           >
             {chatHistory.length === 0 ? (
@@ -372,56 +374,58 @@ export default function LeftPanel({ open, isMobile, mobileActive, onToggle }) {
                 );
               })
             )}
-            <div ref={historyEndRef} />
-          </div>
-
-          {/* Quick Sophisticated Suggestions */}
-          <div
-            style={{
-              display: "flex",
-              flexDirection: "column",
-              gap: "4px",
-              marginBottom: "0.6rem",
-            }}
-          >
-            <div style={{ display: "flex", alignItems: "center", gap: "4px", opacity: 0.6 }}>
-              <HelpCircle size={10} color="var(--text-secondary)" />
-              <span style={{ fontSize: "0.6rem", color: "var(--text-secondary)", fontWeight: "bold" }}>
-                SUGGESTIONS
-              </span>
-            </div>
-            <div
-              style={{
-                display: "flex",
-                gap: "0.375rem",
-                flexWrap: "wrap",
-              }}
-            >
-              {suggestions.map((ex) => (
-                <button
-                  key={ex}
-                  onClick={() => {
-                    setPrompt(ex);
-                    logSystemEvent(`Clicked prompt suggestion: "${ex.substring(0, 30)}..."`, "UI");
-                  }}
+            {/* Quick Sophisticated Suggestions */}
+            {chatHistory.length === 0 && (
+              <div
+                style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: "4px",
+                  marginTop: "auto",
+                  padding: "0 4px",
+                }}
+              >
+                <div style={{ display: "flex", alignItems: "center", gap: "4px", opacity: 0.6 }}>
+                  <HelpCircle size={10} color="var(--text-secondary)" />
+                  <span style={{ fontSize: "0.6rem", color: "var(--text-secondary)", fontWeight: "bold" }}>
+                    SUGGESTIONS
+                  </span>
+                </div>
+                <div
                   style={{
-                    fontSize: "0.6rem",
-                    padding: "4px 8px",
-                    background: "rgba(0, 229, 255, 0.06)",
-                    border: "1px solid rgba(0, 229, 255, 0.12)",
-                    borderRadius: 6,
-                    color: "var(--text-secondary)",
-                    textAlign: "left",
-                    width: "100%",
-                    display: "block",
-                    whiteSpace: "normal",
-                    lineHeight: "1.3",
+                    display: "flex",
+                    gap: "0.375rem",
+                    flexWrap: "wrap",
                   }}
                 >
-                  {ex}
-                </button>
-              ))}
-            </div>
+                  {suggestions.map((ex) => (
+                    <button
+                      key={ex}
+                      onClick={() => {
+                        setPrompt(ex);
+                        logSystemEvent(`Clicked prompt suggestion: "${ex.substring(0, 30)}..."`, "UI");
+                      }}
+                      style={{
+                        fontSize: "0.6rem",
+                        padding: "4px 8px",
+                        background: "rgba(0, 229, 255, 0.06)",
+                        border: "1px solid rgba(0, 229, 255, 0.12)",
+                        borderRadius: 6,
+                        color: "var(--text-secondary)",
+                        textAlign: "left",
+                        width: "100%",
+                        display: "block",
+                        whiteSpace: "normal",
+                        lineHeight: "1.3",
+                      }}
+                    >
+                      {ex}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+            <div ref={historyEndRef} />
           </div>
 
           {/* Prompt Input TextArea */}

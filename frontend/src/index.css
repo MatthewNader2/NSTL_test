@@ -53,16 +53,19 @@ body {
     border-radius: 8px;
     display: flex;
     flex-direction: column;
+    overflow: hidden;
 }
 
 /* Desktop Panel Slides */
 .left-panel {
     width: var(--panel-width);
+    height: 100%;
     transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
     z-index: 10;
 }
 .right-panel {
     width: var(--panel-width);
+    height: 100%;
     transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
     z-index: 10;
 }
@@ -118,7 +121,8 @@ textarea {
     .right-panel {
         position: absolute;
         top: 2.25rem; /* Start below the TitleBar */
-        height: calc(100vh - 2.25rem - 60px); /* Viewport height minus TitleBar and BottomNav */
+        bottom: calc(60px + env(safe-area-inset-bottom, 0px)); /* Align perfectly above the BottomNav */
+        height: auto; /* Prevent inline height override */
         width: 100%;
         max-width: 100%;
         border-radius: 0;
@@ -139,9 +143,9 @@ textarea {
     .scene-wrapper {
         position: absolute;
         top: 2.25rem;
+        bottom: calc(60px + env(safe-area-inset-bottom, 0px));
         left: 0;
         width: 100%;
-        height: calc(100vh - 2.25rem - 60px);
         z-index: 10;
     }
 

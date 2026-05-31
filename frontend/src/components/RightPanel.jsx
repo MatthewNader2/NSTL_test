@@ -55,9 +55,7 @@ export default function RightPanel({ open, isMobile, mobileActive, onToggle }) {
   return (
     <div
       className={`right-panel glass-panel ${!isMobile && !open ? "collapsed" : ""} ${isMobile && mobileActive ? "mobile-active" : ""}`}
-      style={{
-        height: "100%",
-      }}
+      style={{}}
     >
       <div style={{ display: "flex", flexDirection: "column", height: "100%" }}>
         {/* Tabs Header */}
@@ -245,7 +243,7 @@ export default function RightPanel({ open, isMobile, mobileActive, onToggle }) {
                     background: "#0d1117",
                     padding: "12px",
                     borderRadius: "6px",
-                    fontSize: "0.8rem",
+                    fontSize: "1.6rem",
                     overflowX: "auto",
                     border: "1px solid #30363d",
                     color: "#c9d1d9",

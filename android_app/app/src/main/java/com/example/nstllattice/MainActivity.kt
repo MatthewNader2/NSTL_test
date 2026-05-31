@@ -24,6 +24,10 @@ class MainActivity : ComponentActivity() {
             allowContentAccess = true
             databaseEnabled = true
             mixedContentMode = WebSettings.MIXED_CONTENT_ALWAYS_ALLOW
+            @Suppress("DEPRECATION")
+            allowFileAccessFromFileURLs = true
+            @Suppress("DEPRECATION")
+            allowUniversalAccessFromFileURLs = true
         }
 
         // Force links to open inside the app instead of external browser
