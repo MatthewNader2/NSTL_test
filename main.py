@@ -11,6 +11,20 @@ import time
 import warnings
 from collections import defaultdict
 
+if getattr(sys, "frozen", False) and hasattr(sys, "_MEIPASS"):
+    # Dynamically locate the Python DLL bundled by PyInstaller and set PYTHONNET_PYDLL for pythonnet/clr.
+    # We must target the version-specific DLL (e.g. python313.dll) and avoid python3.dll (stable ABI shim).
+    dll_name = f"python{sys.version_info.major}{sys.version_info.minor}.dll"
+    dll_path = os.path.join(sys._MEIPASS, dll_name)
+    if os.path.exists(dll_path):
+        os.environ["PYTHONNET_PYDLL"] = dll_path
+    else:
+        # Fallback to search if name is slightly different, but explicitly skip python3.dll
+        for file in os.listdir(sys._MEIPASS):
+            if file.lower().startswith("python") and file.lower().endswith(".dll") and file.lower() != "python3.dll":
+                os.environ["PYTHONNET_PYDLL"] = os.path.join(sys._MEIPASS, file)
+                break
+
 import faiss
 import numpy as np
 import torch
@@ -331,7 +345,15 @@ class LatticeRouter:
 
         def log(msg, log_type="info"):
             log_buffer.append({"msg": msg, "type": log_type})
-            print(f"[{log_type.upper()}] {msg}")
+            try:
+                print(f"[{log_type.upper()}] {msg}")
+            except UnicodeEncodeError:
+                try:
+                    encoding = sys.stdout.encoding or "utf-8"
+                    safe_msg = msg.encode(encoding, errors="replace").decode(encoding)
+                    print(f"[{log_type.upper()}] {safe_msg}")
+                except Exception:
+                    pass
 
         raw_goals = re.split(r",|\band\b|\bthen\b", user_intent)
         goals = [g.strip() for g in raw_goals if g.strip()]
@@ -755,12 +777,16 @@ if __name__ == "__main__":
             text_select=True,
         )
         
-        # Load app icon dynamically if present
-        icon_path = get_resource_path("app_icon.png")
-        if not os.path.exists(icon_path):
-            icon_path = get_resource_path("app_icon.ico")
+        # Load app icon dynamically if present (skip on Windows, as WPF uses the embedded EXE icon and programmatically setting icon causes CLR crashes)
+        use_icon = None
+        if platform.system() != "Windows":
+            icon_path = get_resource_path("app_icon.png")
+            if not os.path.exists(icon_path):
+                icon_path = get_resource_path("app_icon.ico")
+            if os.path.exists(icon_path):
+                use_icon = icon_path
             
-        webview.start(debug=False, icon=icon_path if os.path.exists(icon_path) else None)
+        webview.start(debug=False, icon=use_icon)
     except Exception:
         while True:
             time.sleep(100)
