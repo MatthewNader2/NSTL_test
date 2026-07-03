@@ -8,7 +8,7 @@ import ThreeScene from "./components/ThreeScene";
 import NodeTooltip from "./components/NodeTooltip";
 import LoadingScreen from "./components/LoadingScreen";
 import DevMenu from "./components/DevMenu";
-import { fetchHealth, fetchCells, fetchStatus, getApiBase, setApiBase } from "./hooks/useApi";
+import { fetchHealth, fetchCells, fetchStatus, getApiBase, setApiBase, initializeEngine } from "./hooks/useApi";
 import { Terminal, Map, Code } from "lucide-react";
 
 export default function App() {
@@ -36,6 +36,7 @@ export default function App() {
   const setCells = useStore((s) => s.setCells);
   const setApiStatus = useStore((s) => s.setApiStatus);
   const logSystemEvent = useStore((s) => s.logSystemEvent);
+  const setHardwareDevice = useStore((s) => s.setHardwareDevice);
 
   // 📡 Real-time background initialization monitor
   useEffect(() => {
@@ -48,9 +49,10 @@ export default function App() {
         if (res.ok) {
           const data = await res.json();
           setBootStatus(data);
+          if (data.device) setHardwareDevice(data.device);
           logSystemEvent(`Engine status poll: ${data.status} - ${data.message}`, "API");
           
-          if (data.status === "ready") {
+          if (data.status === "ready" || data.status === "uninitialized") {
             clearInterval(pollInterval);
             // Smoothly remove loading screen
             setTimeout(() => {
@@ -112,12 +114,10 @@ export default function App() {
         finalFontSize = scale * 15;
         document.documentElement.style.fontSize = `${finalFontSize}px`;
       } else {
-        // Desktop scaling: scales with physical width, canceling system dpr
-        const dpr = window.devicePixelRatio || 1;
-        const physicalWidth = window.innerWidth * dpr;
-        const rawScale = physicalWidth / 1920;
-        scale = Math.max(0.75, Math.min(2.0, rawScale)); // Clamp scale factor
-        finalFontSize = (scale * 16) / dpr;
+        // Desktop scaling: normal scaling based on window width
+        const rawScale = window.innerWidth / 1600;
+        scale = Math.max(0.85, Math.min(1.5, rawScale)); // Clamp scale factor
+        finalFontSize = scale * 16;
         document.documentElement.style.fontSize = `${finalFontSize}px`;
       }
       logSystemEvent(`Viewport resized. isMobile: ${mobile}, scale factor: ${scale.toFixed(3)}, font size: ${finalFontSize.toFixed(1)}px`, "UI");
@@ -135,6 +135,45 @@ export default function App() {
 
   return (
     <div className="app-container">
+      {(bootStatus.status === "uninitialized" || bootStatus.status === "loading") && (
+        <div style={{
+          position: "fixed", inset: 0, zIndex: 99999,
+          background: "rgba(4, 6, 12, 0.9)", backdropFilter: "blur(8px)",
+          display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
+          fontFamily: "var(--font-mono)", color: "var(--text-primary)"
+        }}>
+          <Map size={48} color="var(--accent)" style={{ marginBottom: "20px" }} />
+          <h2 style={{ marginBottom: "10px" }}>Engine Standby</h2>
+          <p style={{ marginBottom: "30px", opacity: 0.7, maxWidth: "400px", textAlign: "center" }}>
+            The AI backend and FAISS vectors are ready to be loaded into your GPU VRAM.
+          </p>
+          <button
+            onClick={async () => {
+              logSystemEvent("Triggering manual engine initialization...", "API");
+              setBootStatus({ ...bootStatus, status: "loading", message: "Loading models into VRAM..." });
+              try {
+                const data = await initializeEngine();
+                // Fix: read device from the initialize response and propagate it to both
+                // bootStatus and the global store so the status bar shows the correct hardware.
+                const resolvedDevice = data.device || bootStatus.device;
+                setBootStatus({ ...bootStatus, status: data.status || "ready", device: resolvedDevice });
+                if (resolvedDevice) setHardwareDevice(resolvedDevice);
+                logSystemEvent(`Engine successfully initialized. Device: ${resolvedDevice}`, "API");
+              } catch (err) {
+                logSystemEvent(`Initialization failed: ${err.message}`, "API");
+                setBootStatus({ ...bootStatus, status: "uninitialized" });
+              }
+            }}
+            style={{
+              padding: "12px 24px", background: "var(--accent)", color: "#000",
+              fontWeight: "bold", borderRadius: "8px", fontSize: "1rem", cursor: "pointer",
+              border: "none", display: "flex", alignItems: "center", gap: "8px"
+            }}
+          >
+            {bootStatus.status === "loading" ? "Initializing..." : <><Terminal size={18} /> Initialize Engine</>}
+          </button>
+        </div>
+      )}
       <TitleBar onSettingsClick={() => {
         setApiInputUrl(getApiBase());
         setSettingsOpen(true);

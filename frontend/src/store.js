@@ -34,6 +34,8 @@ export const useStore = create((set) => ({
   },
   rightActiveTab: "code",
   setRightActiveTab: (tab) => set({ rightActiveTab: tab }),
+  hardwareDevice: "cpu",
+  setHardwareDevice: (device) => set({ hardwareDevice: device }),
 
   // 💬 Clickable Chat History
   chatHistory: [],

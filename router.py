@@ -24,9 +24,15 @@ class HardwareProfiler:
     Cross-Platform Dynamic Hardware Auto-Profiler.
     Detects the host system and assigns workloads to the optimal compute backend.
     """
+    # BUG 25 FIX: Cache result to avoid printing the banner multiple times on startup.
+    _cached_device: str = None
 
     @staticmethod
     def get_optimal_device() -> str:
+        # BUG 25 FIX: Return cached result if already profiled.
+        if HardwareProfiler._cached_device is not None:
+            return HardwareProfiler._cached_device
+
         print("\n" + "=" * 50)
         print(" NSTL HARDWARE AUTODETECTION PROFILER")
         print("=" * 50)
@@ -34,6 +40,10 @@ class HardwareProfiler:
         os_name = platform.system()
         cpu_arch = platform.machine()
         print(f" Host OS:   {os_name} ({cpu_arch})")
+        import sys
+        print(f" Python Exe: {sys.executable}")
+        print(f" Torch Ver:  {torch.__version__} ({torch.__file__})")
+        print(f" CUDA Avail: {torch.cuda.is_available()}")
 
         # 1. Check for NVIDIA CUDA GPUs
         if torch.cuda.is_available():
@@ -43,25 +53,164 @@ class HardwareProfiler:
             print(f" Hardware:  {gpu_name} ({vram:.1f} GB VRAM)")
             print(" Routing:   Vector Embedding mapped to GPU.")
             print("=" * 50 + "\n")
+            HardwareProfiler._cached_device = "cuda"
             return "cuda"
+            
+        # 1.5. Check for physical NVIDIA GPUs (if PyTorch lacks CUDA)
+        try:
+            import subprocess
+            smi_output = subprocess.check_output(["nvidia-smi", "--query-gpu=name", "--format=csv,noheader"], stderr=subprocess.DEVNULL).decode("utf-8").strip()
+            if smi_output:
+                gpu_name = smi_output.split('\n')[0]
+                print(f" Compute:   NVIDIA GPU Detected (System)")
+                print(f" Hardware:  {gpu_name}")
+                print(" Routing:   LLM mapped to GPU, Vector Embedding mapped to CPU (Install PyTorch CUDA for full acceleration).")
+                print("=" * 50 + "\n")
+                HardwareProfiler._cached_device = "cpu"
+                return "cpu"
+        except Exception:
+            pass
 
         # 2. Check for Apple Silicon (M1/M2/M3/M4) Neural Engines
-        elif torch.backends.mps.is_available():
+        if hasattr(torch.backends, "mps") and torch.backends.mps.is_available():
             print(f" Compute:   Apple Metal Performance Shaders (MPS)")
             print(f" Hardware:  Apple Silicon Architecture")
             print(" Routing:   Vector Embedding mapped to Apple GPU.")
             print("=" * 50 + "\n")
+            HardwareProfiler._cached_device = "mps"
             return "mps"
 
         # 3. Fallback to CPU (Windows without Nvidia, Intel Macs, Linux Servers)
-        else:
-            print(f" Compute:   Standard CPU")
-            print(f" Hardware:  Fallback Mode Activated")
-            print(" Routing:   Vector Embedding mapped to CPU.")
-            print(" Note:      Operations will run safely, but slower.")
-            print("=" * 50 + "\n")
-            return "cpu"
+        print(f" Compute:   Standard CPU")
+        print(f" Hardware:  Fallback Mode Activated")
+        print(" Routing:   Vector Embedding mapped to CPU.")
+        print(" Note:      Operations will run safely, but slower.")
+        print("=" * 50 + "\n")
+        HardwareProfiler._cached_device = "cpu"
+        return "cpu"
 
+import math
+import random
+
+class MCTSNode:
+    """Lightweight node tracking only scalar values and topology string IDs."""
+    __slots__ = ['cell_id', 'current_type', 'parent', 'children', 'visits', 'q_value']
+    
+    def __init__(self, cell_id: str, current_type: str, parent=None):
+        self.cell_id = cell_id
+        self.current_type = current_type
+        self.parent = parent
+        self.children = []
+        self.visits = 0
+        self.q_value = 0.0
+
+    def ucb1(self, c_param=0.5) -> float:
+        # BUG 9 FIX: Guard against math.log(0) when parent.visits == 0.
+        if self.visits == 0:
+            return float('inf')
+        parent_visits = self.parent.visits if self.parent else 1
+        if parent_visits == 0:
+            return float('inf')
+        return (self.q_value / self.visits) + c_param * math.sqrt(math.log(parent_visits) / self.visits)
+
+class MCTSEngine:
+    def __init__(self, orchestrator):
+        self.orchestrator = orchestrator
+
+    def search(self, start_type: str, target_type: str, iterations: int = 1000) -> list:
+        # Root node acts as the starting typestate
+        root = MCTSNode(cell_id="ROOT", current_type=start_type)
+        
+        for _ in range(iterations):
+            # 1. Selection
+            leaf = self._select(root)
+            
+            # 2. Expansion (with Unification Filter)
+            if leaf.current_type != target_type and leaf.visits > 0:
+                self._expand(leaf)
+                if leaf.children:
+                    leaf = random.choice(leaf.children)
+            
+            # 3. Simulation
+            reward = self._simulate(leaf, target_type)
+            
+            # 4. Backpropagation
+            self._backpropagate(leaf, reward)
+            
+        return self._get_best_path(root, target_type)
+
+    def _select(self, node: MCTSNode) -> MCTSNode:
+        current = node
+        while current.children:
+            unexplored = [child for child in current.children if child.visits == 0]
+            if unexplored:
+                return unexplored[0]
+            current = max(current.children, key=lambda c: c.ucb1(c_param=0.5))
+        return current
+
+    def _expand(self, node: MCTSNode):
+        if node.cell_id == "ROOT":
+            # For root, get all MicroCells that match start_type
+            candidates = [c for c in self.orchestrator.get_all_available_cells() 
+                          if c.type == "micro" and c.inputs.type_name == node.current_type]
+        else:
+            candidates = self.orchestrator.get_neighbors(node.cell_id)
+
+        for cell in candidates:
+            if cell.type == "micro" and cell.inputs.type_name == node.current_type:
+                # UnificationGate filtering happens here natively because we verify type_name match
+                child = MCTSNode(cell_id=cell.cell_id, current_type=cell.outputs.type_name, parent=node)
+                node.children.append(child)
+
+    def _simulate(self, node: MCTSNode, target_type: str) -> float:
+        current_type = node.current_type
+        current_id = node.cell_id
+        depth = 0
+        max_depth = 15
+
+        while current_type != target_type and depth < max_depth:
+            if current_id == "ROOT":
+                neighbors = [c for c in self.orchestrator.get_all_available_cells() 
+                             if c.type == "micro" and c.inputs.type_name == current_type]
+            else:
+                neighbors = [c for c in self.orchestrator.get_neighbors(current_id) 
+                             if c.type == "micro" and c.inputs.type_name == current_type]
+            
+            if not neighbors:
+                return 0.0 # Dead end
+            
+            next_cell = random.choice(neighbors)
+            current_type = next_cell.outputs.type_name
+            current_id = next_cell.cell_id
+            depth += 1
+            
+        if current_type == target_type:
+            return 1.0
+        return 0.0 # Exceeded max_depth
+
+    def _backpropagate(self, node: MCTSNode, reward: float):
+        current = node
+        while current is not None:
+            current.visits += 1
+            current.q_value += reward
+            current = current.parent
+
+    def _get_best_path(self, root: MCTSNode, target_type: str) -> list:
+        path = []
+        current = root
+        # BUG 6 FIX: Build a full map of ALL cells (including MacroCell sub-cells)
+        # to avoid KeyError when best_child refers to a cell not in loaded_cells top-level.
+        all_cells_map = {c.cell_id: c for c in self.orchestrator.get_all_available_cells()}
+        while current.children:
+            best_child = max(current.children, key=lambda c: c.visits)
+            cell = all_cells_map.get(best_child.cell_id)
+            if cell is None:
+                break
+            path.append(cell)
+            if best_child.current_type == target_type:
+                return path
+            current = best_child
+        return []
 
 class LatticeRouter:
     def __init__(self, orchestrator):
@@ -161,10 +310,19 @@ class LatticeRouter:
                 and macro_score > MACRO_THRESHOLD
                 and global_micro_score < 0.70
             ):
+                # BUG 2 FIX: MacroCell has no .intent_expansion — use sub_cells as fallback.
+                expansion = getattr(best_macro, 'intent_expansion', None) or best_macro.sub_cells
+                # sub_cells may contain Cell objects after resolution; extract IDs if needed
+                expansion_goals = []
+                for item in expansion:
+                    if isinstance(item, str):
+                        expansion_goals.append(item)
+                    else:
+                        expansion_goals.append(getattr(item, 'cell_id', str(item)))
                 print(
-                    f"[FRACTAL UNFOLDING] Abstract goal '{goal}' expanded into {len(best_macro.intent_expansion)} sub-operations."
+                    f"[FRACTAL UNFOLDING] Abstract goal '{goal}' expanded into {len(expansion_goals)} sub-operations."
                 )
-                goals = best_macro.intent_expansion + goals
+                goals = expansion_goals + goals
                 continue
 
             if step == 0:
@@ -172,8 +330,9 @@ class LatticeRouter:
                     c
                     for c in self.orchestrator.get_all_available_cells()
                     if c.type == "micro"
-                    and c.inputs.get("input_type") == current_type
-                    and c.inputs.get("expected_state") == current_state
+                    # BUG 1 FIX: Use .type_name and .state instead of .get() on AlgebraicSignature.
+                    and c.inputs.type_name == current_type
+                    and c.inputs.state == current_state
                 ]
                 best_node, best_score = self._score_and_select_best(
                     candidates, goal_embedding
@@ -187,8 +346,9 @@ class LatticeRouter:
 
                 final_path.append(best_node)
                 current_node = best_node
-                current_type = current_node.outputs.get("output_type")
-                current_state = current_node.outputs.get("resulting_state")
+                # BUG 1 FIX: Use dataclass attributes, not .get()
+                current_type = current_node.outputs.type_name
+                current_state = current_node.outputs.state
                 step += 1
                 continue
 
@@ -206,6 +366,9 @@ class LatticeRouter:
                 global_candidates, goal_embedding
             )
 
+            # BUG 1 FIX: Initialize best_node to None so the control flow is always safe.
+            best_node = None
+
             if best_global_score > MIN_CONFIDENCE and (
                 best_local_score < MIN_CONFIDENCE
                 or (best_global_score - best_local_score > TUNNELING_MARGIN)
@@ -213,7 +376,8 @@ class LatticeRouter:
                 print(
                     f"[ROUTER] Semantic gravity exceeded local bounds! Goal: '{goal}'"
                 )
-                target_type = best_global_node.inputs.get("input_type")
+                # BUG 1 FIX: Use .type_name instead of .get("input_type")
+                target_type = best_global_node.inputs.type_name
 
                 if target_type == current_type:
                     print(
@@ -225,24 +389,51 @@ class LatticeRouter:
                     print(
                         f"  [!] TYPE MISMATCH: Current '{current_type}' cannot flow into '{target_type}'. Searching for bridge..."
                     )
-                    bridge_node = self.orchestrator.find_type_bridge(
-                        current_type, target_type
-                    )
-                    if bridge_node:
-                        print(
-                            f"  [+] COERCION BRIDGE FOUND! Injecting -> {bridge_node.cell_id}"
-                        )
-                        final_path.append(bridge_node)
-                        virtual_edges.add(bridge_node.cell_id)
-                        print(
-                            f"  [+] TUNNELING COMPLETED to -> {best_global_node.cell_id} (Score: {best_global_score:.2f})"
-                        )
+                    mcts = MCTSEngine(self.orchestrator)
+                    bridge_path = mcts.search(current_type, target_type, iterations=1000)
+                    
+                    if not bridge_path:
+                        from inference import ModelManager
+                        if not ModelManager.get_instance().can_synthesize():
+                            print(f"  [!] COST EVALUATION: C_sub = ∞. Synthesis disabled for current BenchmarkProfile.")
+                            raise ValueError(f"Topology gap between {current_type} and {target_type} cannot be resolved without synthesis.")
+                        
+                        print(f"  [!] COST EVALUATION: C_sub = ∞. C_gen = 1000. C_gen < C_sub. Triggering Synthesis Engine...")
+                        from synthesis import SynthesisEngine
+                        from external_rag import FetcherFactory
+                        
+                        synth = SynthesisEngine()
+                        # Use DuckDuckGo by default for generic gap bridging if domain isn't known here
+                        fetcher = FetcherFactory.get_fetcher("Python")
+                        
+                        try:
+                            # We formulate the gap concept as the coercion between types
+                            gap_concept = f"convert {current_type} to {target_type}"
+                            micro_json = synth.synthesize_micro_cell(gap_concept, current_type, target_type, fetcher)
+                            
+                            from unification import UnificationGate
+                            if UnificationGate.validate_synthesis(micro_json, current_type, target_type):
+                                bridge_node = self.orchestrator.inject_transient_macro(micro_json)
+                                # BUG 7 FIX: Rebuild FAISS index so the newly injected cell
+                                # is visible to _score_and_select_best in future routing steps.
+                                self._precompute_embeddings()
+                                bridge_path = [bridge_node]
+                                print(f"  [+] SYNTHESIS COMPLETE: Bridged {current_type} -> {target_type}")
+                            else:
+                                print("  [-] SYNTHESIS FAILED: Unification Gate Rejected Typestates.")
+                        except Exception as e:
+                            print(f"  [-] SYNTHESIS FAILED: {e}")
+
+                    if bridge_path:
+                        for b_node in bridge_path:
+                            print(f"  [+] COERCION BRIDGE FOUND! Injecting -> {b_node.cell_id}")
+                            final_path.append(b_node)
+                            virtual_edges.add(b_node.cell_id)
+                        print(f"  [+] TUNNELING COMPLETED to -> {best_global_node.cell_id} (Score: {best_global_score:.2f})")
                         best_node = best_global_node
                         virtual_edges.add(best_node.cell_id)
                     else:
-                        print(
-                            f"  [-] FATAL: No coercion bridge exists between '{current_type}' and '{target_type}'. Path blocked."
-                        )
+                        print(f"  [-] FATAL: No coercion bridge exists and Synthesis failed between '{current_type}' and '{target_type}'. Path blocked.")
                         break
             elif best_local_score >= MIN_CONFIDENCE:
                 best_node = best_local_node
@@ -250,10 +441,16 @@ class LatticeRouter:
                 print(f"[ROUTER HALT] Pathfinding failed for goal: '{goal}'.")
                 break
 
+            # Guard: if no branch assigned best_node, stop routing.
+            if best_node is None:
+                print(f"[ROUTER HALT] No valid node resolved for goal: '{goal}'.")
+                break
+
             final_path.append(best_node)
             current_node = best_node
-            current_type = current_node.outputs.get("output_type")
-            current_state = current_node.outputs.get("resulting_state")
+            # BUG 1 FIX: Use dataclass attributes, not .get()
+            current_type = current_node.outputs.type_name
+            current_state = current_node.outputs.state
             step += 1
 
         print(

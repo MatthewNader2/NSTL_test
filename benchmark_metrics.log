@@ -1,0 +1,240 @@
+2026-07-02 20:36:00,704 - [Initialized Profile_B] System RAM Usage: 1795.54 MB
+2026-07-02 20:36:16,328 - [Embedding] Latency: 15.6215s
+2026-07-02 20:36:19,253 - [Embedding] Latency: 2.9246s
+2026-07-02 20:36:26,779 - [Embedding] Latency: 7.5263s
+2026-07-02 20:36:30,168 - [Embedding] Latency: 3.3882s
+2026-07-02 20:36:34,129 - [Embedding] Latency: 3.9605s
+2026-07-02 20:36:40,360 - [Embedding] Latency: 6.2314s
+2026-07-02 20:36:44,904 - [Embedding] Latency: 4.5430s
+2026-07-02 20:36:49,229 - [Embedding] Latency: 4.3255s
+2026-07-02 20:36:53,641 - [Embedding] Latency: 4.4114s
+2026-07-02 20:36:57,369 - [Embedding] Latency: 3.7274s
+2026-07-02 20:37:01,203 - [Embedding] Latency: 3.8339s
+2026-07-02 20:37:06,034 - [Embedding] Latency: 4.8306s
+2026-07-02 20:37:12,864 - [Embedding] Latency: 6.8175s
+2026-07-02 20:37:18,729 - [Embedding] Latency: 5.8647s
+2026-07-02 20:37:22,266 - [Embedding] Latency: 3.5370s
+2026-07-02 20:37:28,466 - [Embedding] Latency: 6.1999s
+2026-07-02 20:37:31,061 - [Embedding] Latency: 2.5944s
+2026-07-02 20:37:33,932 - [Embedding] Latency: 2.8709s
+2026-07-02 20:37:37,347 - [Embedding] Latency: 3.4149s
+2026-07-02 20:37:40,637 - [Embedding] Latency: 3.2898s
+2026-07-02 20:37:44,410 - [Embedding] Latency: 3.7728s
+2026-07-02 20:37:46,743 - [Embedding] Latency: 2.3326s
+2026-07-02 20:37:50,552 - [Embedding] Latency: 3.8084s
+2026-07-02 20:37:54,478 - [Embedding] Latency: 3.9256s
+2026-07-02 20:40:15,489 - [Initialized Profile_B] System RAM Usage: 1796.34 MB
+2026-07-02 20:40:30,980 - [Embedding] Latency: 15.4886s
+2026-07-02 20:40:33,856 - [Embedding] Latency: 2.8759s
+2026-07-02 20:40:41,306 - [Embedding] Latency: 7.4501s
+2026-07-02 20:40:44,663 - [Embedding] Latency: 3.3569s
+2026-07-02 20:40:48,646 - [Embedding] Latency: 3.9826s
+2026-07-02 20:40:54,976 - [Embedding] Latency: 6.3294s
+2026-07-02 20:40:59,647 - [Embedding] Latency: 4.6715s
+2026-07-02 20:41:04,035 - [Embedding] Latency: 4.3875s
+2026-07-02 20:41:08,251 - [Embedding] Latency: 4.2160s
+2026-07-02 20:41:12,017 - [Embedding] Latency: 3.7656s
+2026-07-02 20:41:15,750 - [Embedding] Latency: 3.7321s
+2026-07-02 20:41:20,668 - [Embedding] Latency: 4.9185s
+2026-07-02 20:41:27,451 - [Embedding] Latency: 6.7821s
+2026-07-02 20:41:33,215 - [Embedding] Latency: 5.7643s
+2026-07-02 20:41:36,896 - [Embedding] Latency: 3.6808s
+2026-07-02 20:41:43,711 - [Embedding] Latency: 6.8145s
+2026-07-02 20:41:46,594 - [Embedding] Latency: 2.8825s
+2026-07-02 20:41:49,894 - [Embedding] Latency: 3.2998s
+2026-07-02 20:41:53,802 - [Embedding] Latency: 3.9079s
+2026-07-02 20:41:57,652 - [Embedding] Latency: 3.8497s
+2026-07-02 20:42:01,814 - [Embedding] Latency: 4.1620s
+2026-07-02 20:42:04,336 - [Embedding] Latency: 2.5218s
+2026-07-02 20:42:08,803 - [Embedding] Latency: 4.4666s
+2026-07-02 20:42:12,470 - [Embedding] Latency: 3.6673s
+2026-07-02 20:42:13,222 - [Embedding] Latency: 0.7471s
+2026-07-02 21:06:36,763 - [Generation] Latency: 1463.5385s
+2026-07-02 21:06:36,763 - [Post-Generation] System RAM Usage: 2534.99 MB
+2026-07-02 21:06:37,270 - [Embedding] Latency: 0.4977s
+2026-07-02 21:31:07,771 - [Generation] Latency: 1470.5010s
+2026-07-02 21:31:07,772 - [Post-Generation] System RAM Usage: 2541.45 MB
+2026-07-02 21:31:08,228 - [Embedding] Latency: 0.4555s
+2026-07-02 21:55:42,059 - [Generation] Latency: 1473.8311s
+2026-07-02 21:55:42,060 - [Post-Generation] System RAM Usage: 2545.04 MB
+2026-07-02 21:55:42,501 - [Embedding] Latency: 0.4411s
+2026-07-02 22:20:35,518 - [Generation] Latency: 1493.0158s
+2026-07-02 22:20:35,518 - [Post-Generation] System RAM Usage: 2547.88 MB
+2026-07-03 00:56:14,930 - [Initialized Profile_B] System RAM Usage: 1805.68 MB
+2026-07-03 00:56:31,197 - [Embedding] Latency: 16.2662s
+2026-07-03 00:56:34,556 - [Embedding] Latency: 3.3589s
+2026-07-03 00:56:42,431 - [Embedding] Latency: 7.8746s
+2026-07-03 00:56:45,570 - [Embedding] Latency: 3.1386s
+2026-07-03 00:56:49,399 - [Embedding] Latency: 3.8288s
+2026-07-03 00:56:54,686 - [Embedding] Latency: 5.2868s
+2026-07-03 00:56:58,696 - [Embedding] Latency: 4.0101s
+2026-07-03 00:57:02,346 - [Embedding] Latency: 3.6491s
+2026-07-03 00:57:06,059 - [Embedding] Latency: 3.7132s
+2026-07-03 00:57:09,248 - [Embedding] Latency: 3.1881s
+2026-07-03 00:57:12,529 - [Embedding] Latency: 3.2815s
+2026-07-03 00:57:16,661 - [Embedding] Latency: 4.1319s
+2026-07-03 00:57:22,612 - [Embedding] Latency: 5.9506s
+2026-07-03 00:57:27,551 - [Embedding] Latency: 4.9390s
+2026-07-03 00:57:30,869 - [Embedding] Latency: 3.3176s
+2026-07-03 00:57:37,073 - [Embedding] Latency: 6.2037s
+2026-07-03 00:57:39,759 - [Embedding] Latency: 2.6854s
+2026-07-03 00:57:42,629 - [Embedding] Latency: 2.8699s
+2026-07-03 00:57:46,203 - [Embedding] Latency: 3.5744s
+2026-07-03 00:57:49,716 - [Embedding] Latency: 3.5127s
+2026-07-03 00:57:53,407 - [Embedding] Latency: 3.6909s
+2026-07-03 00:57:55,767 - [Embedding] Latency: 2.3597s
+2026-07-03 00:57:59,657 - [Embedding] Latency: 3.8896s
+2026-07-03 00:58:02,802 - [Embedding] Latency: 3.1448s
+2026-07-03 00:58:03,426 - [Embedding] Latency: 0.6220s
+2026-07-03 00:58:24,008 - [Initialized Profile_B] System RAM Usage: 1795.12 MB
+2026-07-03 00:58:41,641 - [Embedding] Latency: 17.6310s
+2026-07-03 00:58:45,357 - [Embedding] Latency: 3.7161s
+2026-07-03 00:58:53,557 - [Embedding] Latency: 8.1993s
+2026-07-03 00:58:57,209 - [Embedding] Latency: 3.6519s
+2026-07-03 00:59:01,459 - [Embedding] Latency: 4.2496s
+2026-07-03 00:59:08,022 - [Embedding] Latency: 6.5627s
+2026-07-03 00:59:12,879 - [Embedding] Latency: 4.8567s
+2026-07-03 00:59:17,545 - [Embedding] Latency: 4.6658s
+2026-07-03 00:59:22,083 - [Embedding] Latency: 4.5375s
+2026-07-03 00:59:26,063 - [Embedding] Latency: 3.9801s
+2026-07-03 00:59:30,054 - [Embedding] Latency: 3.9907s
+2026-07-03 00:59:35,130 - [Embedding] Latency: 5.0756s
+2026-07-03 00:59:42,273 - [Embedding] Latency: 7.1427s
+2026-07-03 00:59:48,218 - [Embedding] Latency: 5.9457s
+2026-07-03 00:59:52,268 - [Embedding] Latency: 4.0491s
+2026-07-03 00:59:59,191 - [Embedding] Latency: 6.9231s
+2026-07-03 01:00:02,339 - [Embedding] Latency: 3.1476s
+2026-07-03 01:00:05,702 - [Embedding] Latency: 3.3626s
+2026-07-03 01:00:09,714 - [Embedding] Latency: 4.0122s
+2026-07-03 01:00:13,660 - [Embedding] Latency: 3.9451s
+2026-07-03 01:00:18,112 - [Embedding] Latency: 4.4526s
+2026-07-03 01:00:20,797 - [Embedding] Latency: 2.6840s
+2026-07-03 01:00:25,332 - [Embedding] Latency: 4.5349s
+2026-07-03 01:00:29,068 - [Embedding] Latency: 3.7361s
+2026-07-03 01:00:29,866 - [Embedding] Latency: 0.7954s
+2026-07-03 01:17:57,259 - [Initialized Profile_B] System RAM Usage: 1227.55 MB
+2026-07-03 01:23:38,882 - [Initialized Profile_B] System RAM Usage: 1821.67 MB
+2026-07-03 01:25:26,910 - [Generation] Latency: 1643.4829s
+2026-07-03 01:25:26,912 - [Post-Generation] System RAM Usage: 2139.14 MB
+2026-07-03 01:25:47,024 - [Initialized Profile_B] System RAM Usage: 1898.24 MB
+2026-07-03 01:26:47,046 - [Initialized Profile_B] System RAM Usage: 1898.73 MB
+2026-07-03 01:27:33,201 - [Initialized Profile_B] System RAM Usage: 1887.50 MB
+2026-07-03 01:30:40,352 - [Initialized Profile_B] System RAM Usage: 1810.91 MB
+2026-07-03 01:31:43,384 - [Initialized Profile_B] System RAM Usage: 1888.46 MB
+2026-07-03 01:32:09,994 - [Embedding] Latency: 26.5957s
+2026-07-03 01:32:17,198 - [Embedding] Latency: 7.2037s
+2026-07-03 01:32:26,822 - [Embedding] Latency: 9.6247s
+2026-07-03 01:32:31,068 - [Embedding] Latency: 4.2448s
+2026-07-03 01:32:35,828 - [Embedding] Latency: 4.7598s
+2026-07-03 01:32:42,385 - [Embedding] Latency: 6.5566s
+2026-07-03 01:32:47,752 - [Embedding] Latency: 5.3670s
+2026-07-03 01:32:52,778 - [Embedding] Latency: 5.0261s
+2026-07-03 01:32:57,844 - [Embedding] Latency: 5.0659s
+2026-07-03 01:33:02,177 - [Embedding] Latency: 4.3321s
+2026-07-03 01:33:06,704 - [Embedding] Latency: 4.5264s
+2026-07-03 01:33:12,353 - [Embedding] Latency: 5.6491s
+2026-07-03 01:33:20,032 - [Embedding] Latency: 7.6784s
+2026-07-03 01:33:26,631 - [Embedding] Latency: 6.5980s
+2026-07-03 01:33:31,025 - [Embedding] Latency: 4.3939s
+2026-07-03 01:33:38,764 - [Embedding] Latency: 7.7389s
+2026-07-03 01:33:42,316 - [Embedding] Latency: 3.5521s
+2026-07-03 01:33:45,994 - [Embedding] Latency: 3.6777s
+2026-07-03 01:33:50,916 - [Embedding] Latency: 4.9219s
+2026-07-03 01:33:55,564 - [Embedding] Latency: 4.6473s
+2026-07-03 01:34:00,505 - [Embedding] Latency: 4.9409s
+2026-07-03 01:34:03,518 - [Embedding] Latency: 3.0122s
+2026-07-03 01:34:08,316 - [Embedding] Latency: 4.7984s
+2026-07-03 01:34:12,369 - [Embedding] Latency: 4.0529s
+2026-07-03 01:42:47,993 - [Initialized Profile_B] System RAM Usage: 1805.62 MB
+2026-07-03 01:43:03,292 - [Embedding] Latency: 15.2965s
+2026-07-03 01:43:06,145 - [Embedding] Latency: 2.8527s
+2026-07-03 01:43:13,835 - [Embedding] Latency: 7.6903s
+2026-07-03 01:43:17,137 - [Embedding] Latency: 3.3011s
+2026-07-03 01:43:21,073 - [Embedding] Latency: 3.9363s
+2026-07-03 01:43:27,252 - [Embedding] Latency: 6.1785s
+2026-07-03 01:43:31,914 - [Embedding] Latency: 4.6617s
+2026-07-03 01:43:36,077 - [Embedding] Latency: 4.1633s
+2026-07-03 01:43:40,546 - [Embedding] Latency: 4.4684s
+2026-07-03 01:43:44,292 - [Embedding] Latency: 3.7455s
+2026-07-03 01:43:48,202 - [Embedding] Latency: 3.9105s
+2026-07-03 01:43:53,173 - [Embedding] Latency: 4.9704s
+2026-07-03 01:43:59,996 - [Embedding] Latency: 6.8228s
+2026-07-03 01:44:05,955 - [Embedding] Latency: 5.9588s
+2026-07-03 01:44:09,559 - [Embedding] Latency: 3.6031s
+2026-07-03 01:44:16,362 - [Embedding] Latency: 6.8029s
+2026-07-03 01:44:19,511 - [Embedding] Latency: 3.1489s
+2026-07-03 01:44:22,813 - [Embedding] Latency: 3.3017s
+2026-07-03 01:44:26,744 - [Embedding] Latency: 3.9312s
+2026-07-03 01:44:30,683 - [Embedding] Latency: 3.9391s
+2026-07-03 01:44:35,100 - [Embedding] Latency: 4.4162s
+2026-07-03 01:44:37,788 - [Embedding] Latency: 2.6877s
+2026-07-03 01:44:42,209 - [Embedding] Latency: 4.4208s
+2026-07-03 01:44:45,758 - [Embedding] Latency: 3.5485s
+2026-07-03 01:44:52,382 - [Embedding] Latency: 6.6224s
+2026-07-03 01:50:08,179 - [Generation] Latency: 315.7965s
+2026-07-03 01:50:08,179 - [Post-Generation] System RAM Usage: 2534.84 MB
+2026-07-03 02:05:25,094 - [Initialized Profile_B] System RAM Usage: 1886.25 MB
+2026-07-03 02:05:40,182 - [Embedding] Latency: 15.0859s
+2026-07-03 02:05:43,001 - [Embedding] Latency: 2.8191s
+2026-07-03 02:05:49,877 - [Embedding] Latency: 6.8754s
+2026-07-03 02:05:52,907 - [Embedding] Latency: 3.0291s
+2026-07-03 02:05:56,459 - [Embedding] Latency: 3.5523s
+2026-07-03 02:06:01,725 - [Embedding] Latency: 5.2649s
+2026-07-03 02:06:05,778 - [Embedding] Latency: 4.0529s
+2026-07-03 02:06:09,506 - [Embedding] Latency: 3.7277s
+2026-07-03 02:06:13,499 - [Embedding] Latency: 3.9932s
+2026-07-03 02:06:17,454 - [Embedding] Latency: 3.9540s
+2026-07-03 02:06:21,485 - [Embedding] Latency: 4.0309s
+2026-07-03 02:06:26,537 - [Embedding] Latency: 5.0519s
+2026-07-03 02:06:33,642 - [Embedding] Latency: 7.1043s
+2026-07-03 02:06:39,624 - [Embedding] Latency: 5.9819s
+2026-07-03 02:06:43,488 - [Embedding] Latency: 3.8632s
+2026-07-03 02:06:50,483 - [Embedding] Latency: 6.9949s
+2026-07-03 02:06:53,527 - [Embedding] Latency: 3.0436s
+2026-07-03 02:06:56,958 - [Embedding] Latency: 3.4308s
+2026-07-03 02:07:01,021 - [Embedding] Latency: 4.0624s
+2026-07-03 02:07:05,149 - [Embedding] Latency: 4.1276s
+2026-07-03 02:07:09,448 - [Embedding] Latency: 4.2984s
+2026-07-03 02:07:12,156 - [Embedding] Latency: 2.7082s
+2026-07-03 02:07:16,452 - [Embedding] Latency: 4.2953s
+2026-07-03 02:07:20,181 - [Embedding] Latency: 3.7283s
+2026-07-03 03:21:01,705 - [Initialized Profile_B] System RAM Usage: 2239.63 MB
+2026-07-03 03:21:16,246 - [Embedding] Latency: 14.5254s
+2026-07-03 03:21:18,860 - [Embedding] Latency: 2.6133s
+2026-07-03 03:21:29,954 - [Embedding] Latency: 11.0937s
+2026-07-03 03:21:36,664 - [Embedding] Latency: 6.6964s
+2026-07-03 03:21:44,209 - [Embedding] Latency: 7.5154s
+2026-07-03 03:21:50,623 - [Embedding] Latency: 6.4139s
+2026-07-03 03:21:55,703 - [Embedding] Latency: 5.0792s
+2026-07-03 03:22:00,234 - [Embedding] Latency: 4.5312s
+2026-07-03 03:22:04,758 - [Embedding] Latency: 4.5237s
+2026-07-03 03:22:08,916 - [Embedding] Latency: 4.1568s
+2026-07-03 03:38:33,298 - [Initialized Profile_B] System RAM Usage: 2241.27 MB
+2026-07-03 03:38:47,793 - [Embedding] Latency: 14.4741s
+2026-07-03 03:38:50,433 - [Embedding] Latency: 2.6401s
+2026-07-03 03:38:56,910 - [Embedding] Latency: 6.4769s
+2026-07-03 03:38:59,536 - [Embedding] Latency: 2.6253s
+2026-07-03 03:39:02,924 - [Embedding] Latency: 3.3877s
+2026-07-03 03:39:09,151 - [Embedding] Latency: 6.2268s
+2026-07-03 03:39:17,621 - [Embedding] Latency: 8.4702s
+2026-07-03 03:39:24,974 - [Embedding] Latency: 7.3519s
+2026-07-03 03:39:29,968 - [Embedding] Latency: 4.9939s
+2026-07-03 03:39:34,039 - [Embedding] Latency: 4.0707s
+2026-07-03 03:39:38,338 - [Embedding] Latency: 4.2988s
+2026-07-03 03:39:43,817 - [Embedding] Latency: 5.4782s
+2026-07-03 03:39:51,347 - [Embedding] Latency: 7.5300s
+2026-07-03 03:39:57,800 - [Embedding] Latency: 6.4521s
+2026-07-03 03:40:01,927 - [Embedding] Latency: 4.1271s
+2026-07-03 03:40:09,349 - [Embedding] Latency: 7.4215s
+2026-07-03 03:40:12,606 - [Embedding] Latency: 3.2571s
+2026-07-03 03:40:16,243 - [Embedding] Latency: 3.6367s
+2026-07-03 03:40:20,534 - [Embedding] Latency: 4.2901s
+2026-07-03 03:40:24,744 - [Embedding] Latency: 4.2101s
+2026-07-03 03:40:29,399 - [Embedding] Latency: 4.6550s
+2026-07-03 03:40:32,253 - [Embedding] Latency: 2.8534s
+2026-07-03 03:40:37,113 - [Embedding] Latency: 4.8603s
+2026-07-03 03:40:40,956 - [Embedding] Latency: 3.8419s
+2026-07-03 03:42:06,740 - [Generation] Latency: 180.3727s
+2026-07-03 03:42:06,741 - [Post-Generation] System RAM Usage: 2969.89 MB
+2026-07-03 03:43:46,549 - [Generation] Latency: 99.7593s
+2026-07-03 03:43:46,549 - [Post-Generation] System RAM Usage: 2975.24 MB

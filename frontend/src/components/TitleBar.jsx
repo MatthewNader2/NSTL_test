@@ -1,9 +1,10 @@
 import { useStore } from "../store";
-import { Zap, Cpu, Layers, Settings, Terminal } from "lucide-react";
+import { Zap, Cpu, Layers, Settings, Terminal, Monitor } from "lucide-react";
 
 export default function TitleBar({ onSettingsClick }) {
   const apiStatus = useStore((s) => s.apiStatus);
   const cells = useStore((s) => s.cells);
+  const hardwareDevice = useStore((s) => s.hardwareDevice);
   const devMenuOpen = useStore((s) => s.devMenuOpen);
   const setDevMenuOpen = useStore((s) => s.setDevMenuOpen);
 
@@ -36,6 +37,10 @@ export default function TitleBar({ onSettingsClick }) {
         <span style={{ display: "flex", alignItems: "center", gap: "0.25rem" }}>
           <Cpu size={10} />
           {cells.length} cells
+        </span>
+        <span style={{ display: "flex", alignItems: "center", gap: "0.25rem", color: hardwareDevice === "cuda" || hardwareDevice === "mps" ? "#98c379" : "#e5c07b" }}>
+          <Monitor size={10} />
+          {hardwareDevice?.toUpperCase() || "CPU"}
         </span>
       </div>
       <div style={{ display: "flex", gap: "0.75rem", alignItems: "center" }}>

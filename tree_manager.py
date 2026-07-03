@@ -183,9 +183,12 @@ def merge_temp():
 
         target_data["cells"] = target_cells
 
-        # 4. Save updated tree safely
-        with open(target_path, "w", encoding="utf-8") as f:
+        # BUG 17 FIX: Write atomically via a temp file + os.replace() so a crash
+        # mid-write cannot corrupt or truncate the target tree file.
+        tmp_path = target_path + ".tmp"
+        with open(tmp_path, "w", encoding="utf-8") as f:
             json.dump(target_data, f, indent=2)
+        os.replace(tmp_path, target_path)
 
         print(
             f"\n[SUCCESS] Merged {added_count} new cells into {selected_file} ({skipped_count} skipped)."

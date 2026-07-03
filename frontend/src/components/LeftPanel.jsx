@@ -133,7 +133,7 @@ export default function LeftPanel({ open, isMobile, mobileActive, onToggle }) {
 
   // Sophisticated tech/data-science suggestions
   const suggestions = [
-    "Ingest a Parquet file, clean missing data, and train a RandomForest classifier",
+    "make a code that loads dataset in csv in a sample name you provide (to test if it fetches parameters correctly), and to remove nulls, normalize values, perform ML preprocessing for the data ( a vague request in the middle for testing), then perfrom PCA and finally training an sklearn model with this data (to see if it can and if it would make train-test-valid split and other stuff)",
     "Create a Flask web service that queries a database and returns JSON results",
     "Load a CSV file, group by user score, and plot the distribution using matplotlib",
     "Run a complete text preprocessing pipeline, build embeddings, and index with FAISS",
@@ -357,7 +357,7 @@ export default function LeftPanel({ open, isMobile, mobileActive, onToggle }) {
                           </div>
                         )}
                         
-                        {!isThinking && item.path?.length === 0 && (
+                        {!isThinking && item.path?.length === 0 && !item.code?.includes("Engine is loading") && (
                           <div
                             style={{
                               marginTop: "8px",
