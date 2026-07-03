@@ -123,19 +123,20 @@ class LatticeOrchestrator:
         if not os.path.exists(self.trees_directory):
             return
 
-        for file_name in os.listdir(self.trees_directory):
-            if file_name.endswith(".json"):
-                file_path = os.path.join(self.trees_directory, file_name)
-                try:
-                    with open(file_path, "r", encoding="utf-8") as f:
-                        tree_data = json.load(f)
+        for root, _, files in os.walk(self.trees_directory):
+            for file_name in files:
+                if file_name.endswith(".json"):
+                    file_path = os.path.join(root, file_name)
+                    try:
+                        with open(file_path, "r", encoding="utf-8") as f:
+                            tree_data = json.load(f)
 
-                    for raw_cell in tree_data.get("cells", []):
-                        cell = self._parse_cell(raw_cell)
-                        self.loaded_cells[cell.cell_id] = cell
-                except Exception as e:
-                    # BUG 19 FIX: Log errors instead of silently swallowing them.
-                    print(f"[LATTICE WARNING] Failed to load '{file_name}': {e}")
+                        for raw_cell in tree_data.get("cells", []):
+                            cell = self._parse_cell(raw_cell)
+                            self.loaded_cells[cell.cell_id] = cell
+                    except Exception as e:
+                        # BUG 19 FIX: Log errors instead of silently swallowing them.
+                        print(f"[LATTICE WARNING] Failed to load '{file_name}': {e}")
 
         # PASS 2: Link Macro sub_cells is no longer needed since Macro-Nodes
         # only expand into algorithmic steps dynamically at runtime via the router.

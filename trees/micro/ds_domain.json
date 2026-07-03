@@ -1,0 +1,91 @@
+{
+  "domain_name": "Python_Data_Structures",
+  "version": "2.0.0",
+  "description": "Standard Python data structures and algorithms micro-cells. Covers initializations and basic operations for Lists, Dicts, Sets, Deques, Heaps, and Graphs.",
+  "cells": [
+    {
+      "cell_id": "DS_INIT_LIST",
+      "type": "micro",
+      "stage": 1,
+      "keywords": ["list", "array", "initialize", "create", "sequence"],
+      "inputs":  { "type_name": "list", "state": "raw" },
+      "outputs": { "type_name": "list", "state": "initialized" },
+      "domain_implementations": {
+        "Python_Core": {
+          "code": "{output_var} = list({input_var})",
+          "dependencies": []
+        }
+      }
+    },
+    {
+      "cell_id": "DS_INIT_DICT",
+      "type": "micro",
+      "stage": 1,
+      "keywords": ["dict", "hashmap", "initialize", "create", "mapping"],
+      "inputs":  { "type_name": "list", "state": "raw" },
+      "outputs": { "type_name": "dict", "state": "initialized" },
+      "domain_implementations": {
+        "Python_Core": {
+          "code": "{output_var} = dict({input_var})",
+          "dependencies": []
+        }
+      }
+    },
+    {
+      "cell_id": "DS_INIT_SET",
+      "type": "micro",
+      "stage": 1,
+      "keywords": ["set", "unique", "initialize", "create", "collection"],
+      "inputs":  { "type_name": "list", "state": "raw" },
+      "outputs": { "type_name": "set", "state": "initialized" },
+      "domain_implementations": {
+        "Python_Core": {
+          "code": "{output_var} = set({input_var})",
+          "dependencies": []
+        }
+      }
+    },
+    {
+      "cell_id": "DS_INIT_DEQUE",
+      "type": "micro",
+      "stage": 1,
+      "keywords": ["deque", "queue", "initialize", "collections"],
+      "inputs":  { "type_name": "list", "state": "raw" },
+      "outputs": { "type_name": "deque", "state": "initialized" },
+      "domain_implementations": {
+        "Python_Core": {
+          "code": "import collections\n{output_var} = collections.deque({input_var})",
+          "dependencies": []
+        }
+      }
+    },
+    {
+      "cell_id": "DS_INIT_HEAP",
+      "type": "micro",
+      "stage": 1,
+      "keywords": ["heap", "priority-queue", "initialize", "heapq"],
+      "inputs":  { "type_name": "list", "state": "raw" },
+      "outputs": { "type_name": "list", "state": "initialized_heap" },
+      "domain_implementations": {
+        "Python_Core": {
+          "code": "import heapq\n{output_var} = list({input_var})\nheapq.heapify({output_var})",
+          "dependencies": []
+        }
+      }
+    },
+    {
+      "cell_id": "DS_INIT_GRAPH",
+      "type": "micro",
+      "stage": 1,
+      "keywords": ["graph", "adjacency-list", "initialize", "network"],
+      "inputs":  { "type_name": "dict", "state": "raw" },
+      "outputs": { "type_name": "dict", "state": "initialized_graph" },
+      "domain_implementations": {
+        "Python_Core": {
+          "code": "{output_var} = dict({input_var})",
+          "dependencies": []
+        }
+      }
+    }
+  ]
+}

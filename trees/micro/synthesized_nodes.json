@@ -26,6 +26,57 @@
           ]
         }
       }
+    },
+    {
+      "cell_id": "micro_synthesized_convert_str_to_any",
+      "type": "micro",
+      "stage": 1,
+      "keywords": [
+        "convert",
+        "str",
+        "any"
+      ],
+      "inputs": {
+        "type_name": "str",
+        "state": "raw"
+      },
+      "outputs": {
+        "type_name": "any",
+        "state": "computed"
+      },
+      "domain_implementations": {
+        "Python_Core": {
+          "code": "import <library>\n{output_var} = ...(<{input_var}>)",
+          "dependencies": [
+            "<library>"
+          ]
+        }
+      }
+    },
+    {
+      "cell_id": "micro_synthesized_convert_any",
+      "type": "micro",
+      "stage": 1,
+      "keywords": [
+        "convert",
+        "any"
+      ],
+      "inputs": {
+        "type_name": "any",
+        "state": "raw"
+      },
+      "outputs": {
+        "type_name": "any",
+        "state": "computed"
+      },
+      "domain_implementations": {
+        "Python_Core": {
+          "code": "import <library>\n{output_var} = ...(<{input_var}>)",
+          "dependencies": [
+            "<library>"
+          ]
+        }
+      }
     }
   ]
 }
