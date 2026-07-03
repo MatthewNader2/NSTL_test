@@ -24,7 +24,7 @@ def test():
                 {
                     "cell_id": "macro_test",
                     "type": "macro",
-                    "sub_cells": ["micro_test"]
+                    "algorithmic_steps": ["1. Do something"]
                 }
             ]
         }, f)
@@ -40,11 +40,11 @@ def test():
     macro = orchestrator.loaded_cells["macro_test"]
     
     print("Micro code:", micro.code_template)
-    print("Macro sub_cells:", macro.sub_cells)
+    print("Macro algorithmic_steps:", macro.algorithmic_steps)
     
     assert micro.code_template == "print('hello python')"
-    assert len(macro.sub_cells) == 1
-    assert macro.sub_cells[0] is micro
+    assert len(macro.algorithmic_steps) == 1
+    assert macro.algorithmic_steps[0] == "1. Do something"
     print("All tests passed!")
 
 if __name__ == "__main__":

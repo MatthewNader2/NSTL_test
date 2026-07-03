@@ -52,7 +52,7 @@ class MicroCell(Cell):
         self.intent_expansion = intent_expansion or []
 
 class MacroCell(Cell):
-    __slots__ = ["sub_cells", "internal_topology"]
+    __slots__ = ["algorithmic_steps"]
 
     def __init__(
         self,
@@ -62,12 +62,10 @@ class MacroCell(Cell):
         inputs: AlgebraicSignature,
         outputs: AlgebraicSignature,
         cell_type: str = "macro",
-        sub_cells: List['Cell'] = None,
-        internal_topology: Dict[str, List[str]] = None,
+        algorithmic_steps: List[str] = None,
     ):
         super().__init__(cell_id, stage, keywords, cell_type, inputs, outputs)
-        self.sub_cells = sub_cells or []
-        self.internal_topology = internal_topology or {}
+        self.algorithmic_steps = algorithmic_steps or []
 
 class LatticeOrchestrator:
     def __init__(self, trees_directory="trees", active_domain="Python_Core"):
@@ -94,8 +92,6 @@ class LatticeOrchestrator:
         
         cell_type = raw_cell.get("type", "micro")
         if cell_type == "macro":
-            # TEMPORARILY store raw sub_cell IDs, resolved in Pass 2
-            sub_cells = raw_cell.get("sub_cells", [])
             return MacroCell(
                 cell_id=raw_cell.get("cell_id", "UNKNOWN"),
                 stage=raw_cell.get("stage", 0),
@@ -103,8 +99,7 @@ class LatticeOrchestrator:
                 inputs=inputs_sig,
                 outputs=outputs_sig,
                 cell_type=cell_type,
-                sub_cells=sub_cells,
-                internal_topology=raw_cell.get("internal_topology", {})
+                algorithmic_steps=raw_cell.get("algorithmic_steps", [])
             )
         else:
             # R↓ Optimization: Only load the domain code we need
@@ -142,43 +137,24 @@ class LatticeOrchestrator:
                     # BUG 19 FIX: Log errors instead of silently swallowing them.
                     print(f"[LATTICE WARNING] Failed to load '{file_name}': {e}")
 
-        # PASS 2: Link Macro sub_cells
-        for cell in self.loaded_cells.values():
-            if isinstance(cell, MacroCell):
-                resolved_sub_cells = []
-                for sub_id in cell.sub_cells:
-                    if isinstance(sub_id, str) and sub_id in self.loaded_cells:
-                        resolved_sub_cells.append(self.loaded_cells[sub_id])
-                    elif isinstance(sub_id, Cell): # Fallback
-                        resolved_sub_cells.append(sub_id)
-                cell.sub_cells = resolved_sub_cells
+        # PASS 2: Link Macro sub_cells is no longer needed since Macro-Nodes
+        # only expand into algorithmic steps dynamically at runtime via the router.
 
     def inject_transient_macro(self, macro_dict: dict) -> Cell:
         """Injects LLM-generated Macro-Nodes dynamically."""
         cell = self._parse_cell(macro_dict)
         self.loaded_cells[cell.cell_id] = cell
         
-        # Pass 2 resolution for this specific transient node
-        if isinstance(cell, MacroCell):
-            resolved_sub_cells = []
-            for sub_id in cell.sub_cells:
-                if isinstance(sub_id, str) and sub_id in self.loaded_cells:
-                    resolved_sub_cells.append(self.loaded_cells[sub_id])
-                elif isinstance(sub_id, Cell):
-                    resolved_sub_cells.append(sub_id)
-            cell.sub_cells = resolved_sub_cells
+        # Pass 2 resolution is no longer needed for transient macro nodes
 
         # Rebuild global topology to include the new path
         self.build_topology()
         return cell
 
     def _get_all_cells_recursively(self, cells: List[Cell]) -> List[Cell]:
-        all_cells = []
-        for cell in cells:
-            all_cells.append(cell)
-            if isinstance(cell, MacroCell):
-                all_cells.extend(self._get_all_cells_recursively(cell.sub_cells))
-        return all_cells
+        # Since MacroCells no longer contain hardcoded nested sub_cells objects,
+        # we only need to return the flat list of loaded cells.
+        return list(self.loaded_cells.values())
 
     def build_topology(self):
         # BUG 8 FIX: Reset topology dict entirely at the start of each build
@@ -189,12 +165,6 @@ class LatticeOrchestrator:
         
         for cell in all_cells:
             self.topology[cell.cell_id] = []
-
-        for cell in all_cells:
-            if isinstance(cell, MacroCell):
-                for src_id, dest_ids in cell.internal_topology.items():
-                    if src_id in self.topology:
-                        self.topology[src_id].extend(dest_ids)
 
         for cell_a in all_cells:
             for cell_b in all_cells:

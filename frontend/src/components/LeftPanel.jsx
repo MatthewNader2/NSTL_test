@@ -131,12 +131,12 @@ export default function LeftPanel({ open, isMobile, mobileActive, onToggle }) {
     }
   };
 
-  // Sophisticated tech/data-science suggestions
+  // Human-sounding, professional prompt suggestions
   const suggestions = [
-    "make a code that loads dataset in csv in a sample name you provide (to test if it fetches parameters correctly), and to remove nulls, normalize values, perform ML preprocessing for the data ( a vague request in the middle for testing), then perfrom PCA and finally training an sklearn model with this data (to see if it can and if it would make train-test-valid split and other stuff)",
-    "Create a Flask web service that queries a database and returns JSON results",
-    "Load a CSV file, group by user score, and plot the distribution using matplotlib",
-    "Run a complete text preprocessing pipeline, build embeddings, and index with FAISS",
+    "Load a CSV file called sales_data.csv, remove any rows with missing values, normalize the numeric columns, and then train a logistic regression classifier on the cleaned data. Make sure to split it into training and test sets and print the accuracy.",
+    "Build a small Flask REST API that connects to a SQLite database, exposes a /users endpoint that returns all records as JSON, and a POST endpoint to add a new user.",
+    "Read a CSV file, group the rows by category, compute the mean value per group, and generate a bar chart using matplotlib showing the comparison.",
+    "Take a block of raw text, tokenize and clean it, generate sentence embeddings using a transformer model, and index all embeddings into a FAISS vector store so I can do similarity search.",
   ];
 
   return (

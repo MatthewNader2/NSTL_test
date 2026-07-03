@@ -1,0 +1,188 @@
+{
+  "domain_name": "Macro_Algorithms",
+  "version": "2.0.0",
+  "description": "Language-agnostic algorithmic macro-cells. Each macro encodes the abstract logic of a classic algorithm as a sequence of sub-cell steps. The same macro can be executed in any language that has compatible micro-cells — Python, Rust, C++, etc.",
+  "cells": [
+    {
+      "cell_id": "MACRO_ETL_PIPELINE",
+      "type": "macro",
+      "stage": 1,
+      "keywords": ["etl", "extract transform load", "pipeline", "data engineering", "ingest clean export"],
+      "inputs":  { "type_name": "str", "state": "source_identifier" },
+      "outputs": { "type_name": "str", "state": "filepath_written" },
+      "algorithmic_steps": [
+        "1. EXTRACT: Read data from the source (CSV, JSON, DB, API)",
+        "2. VALIDATE: Check schema, detect nulls, type mismatches",
+        "3. CLEAN: Drop nulls, remove duplicates, normalize column names",
+        "4. TRANSFORM: Apply business rules — aggregation, joins, derived columns",
+        "5. LOAD: Export the result to the target format (Parquet, DB, CSV)"
+      ],
+      "sub_cells": [
+        "PANDAS_READ_CSV",
+        "PANDAS_DROP_NA",
+        "PANDAS_DROP_DUPLICATES",
+        "PANDAS_RENAME_COLUMNS",
+        "PANDAS_GROUPBY_AGG",
+        "PANDAS_RESET_INDEX",
+        "PANDAS_TO_PARQUET"
+      ],
+      "internal_topology": {
+        "PANDAS_READ_CSV":       ["PANDAS_DROP_NA"],
+        "PANDAS_DROP_NA":        ["PANDAS_DROP_DUPLICATES"],
+        "PANDAS_DROP_DUPLICATES":["PANDAS_RENAME_COLUMNS"],
+        "PANDAS_RENAME_COLUMNS": ["PANDAS_GROUPBY_AGG"],
+        "PANDAS_GROUPBY_AGG":    ["PANDAS_RESET_INDEX"],
+        "PANDAS_RESET_INDEX":    ["PANDAS_TO_PARQUET"]
+      }
+    },
+    {
+      "cell_id": "MACRO_ML_CLASSIFICATION_PIPELINE",
+      "type": "macro",
+      "stage": 2,
+      "keywords": ["machine learning", "classification", "ml pipeline", "supervised", "train test", "predict"],
+      "inputs":  { "type_name": "str", "state": "source_identifier" },
+      "outputs": { "type_name": "str", "state": "filepath_written" },
+      "algorithmic_steps": [
+        "1. LOAD: Ingest the dataset from file",
+        "2. PREPROCESS: Drop nulls, encode categoricals, scale numeric features",
+        "3. SPLIT: Partition into train/test sets (80/20)",
+        "4. TRAIN: Fit a classifier on the training split",
+        "5. EVALUATE: Compute accuracy and cross-validation metrics",
+        "6. PERSIST: Save the trained model to disk"
+      ],
+      "sub_cells": [
+        "PANDAS_READ_CSV",
+        "PANDAS_DROP_NA",
+        "SKLEARN_LABEL_ENCODER",
+        "SKLEARN_STANDARD_SCALER",
+        "SKLEARN_TRAIN_TEST_SPLIT",
+        "SKLEARN_RANDOM_FOREST",
+        "SKLEARN_CROSS_VALIDATE",
+        "SKLEARN_SAVE_MODEL"
+      ],
+      "internal_topology": {
+        "PANDAS_READ_CSV":        ["PANDAS_DROP_NA"],
+        "PANDAS_DROP_NA":         ["SKLEARN_LABEL_ENCODER"],
+        "SKLEARN_LABEL_ENCODER":  ["SKLEARN_STANDARD_SCALER"],
+        "SKLEARN_STANDARD_SCALER":["SKLEARN_TRAIN_TEST_SPLIT"],
+        "SKLEARN_TRAIN_TEST_SPLIT":["SKLEARN_RANDOM_FOREST", "SKLEARN_CROSS_VALIDATE"],
+        "SKLEARN_RANDOM_FOREST":  ["SKLEARN_SAVE_MODEL"]
+      }
+    },
+    {
+      "cell_id": "MACRO_EDA_REPORT",
+      "type": "macro",
+      "stage": 1,
+      "keywords": ["eda", "exploratory data analysis", "report", "visualize", "profile", "statistics"],
+      "inputs":  { "type_name": "str", "state": "source_identifier" },
+      "outputs": { "type_name": "str", "state": "filepath_written" },
+      "algorithmic_steps": [
+        "1. LOAD: Read dataset from source",
+        "2. DESCRIBE: Compute summary statistics across all columns",
+        "3. VISUALIZE DISTRIBUTIONS: Plot histogram for each numeric column",
+        "4. VISUALIZE CORRELATIONS: Generate a correlation heatmap",
+        "5. EXPORT: Save the cleaned data for downstream use"
+      ],
+      "sub_cells": [
+        "PANDAS_READ_CSV",
+        "PANDAS_DROP_NA",
+        "PANDAS_DESCRIBE",
+        "PANDAS_CORR",
+        "MPL_HISTOGRAM",
+        "MPL_HEATMAP",
+        "PANDAS_TO_CSV"
+      ],
+      "internal_topology": {
+        "PANDAS_READ_CSV":  ["PANDAS_DROP_NA"],
+        "PANDAS_DROP_NA":   ["PANDAS_DESCRIBE", "PANDAS_CORR", "MPL_HISTOGRAM", "PANDAS_TO_CSV"],
+        "PANDAS_CORR":      ["MPL_HEATMAP"]
+      }
+    },
+    {
+      "cell_id": "MACRO_ASTAR_PATHFINDING",
+      "type": "macro",
+      "stage": 2,
+      "keywords": ["a*", "astar", "pathfinding", "shortest path", "graph", "heuristic", "search"],
+      "inputs":  { "type_name": "dict", "state": "parsed_object" },
+      "outputs": { "type_name": "list", "state": "sorted" },
+      "algorithmic_steps": [
+        "1. INITIALIZE: Create open set (priority queue) with start node; closed set empty",
+        "2. COST MAPS: g(n) = real cost from start; h(n) = heuristic estimate to goal; f(n) = g+h",
+        "3. EXPAND: Pop lowest f(n) node from open set",
+        "4. GOAL CHECK: If current node == goal, reconstruct path and return",
+        "5. GENERATE NEIGHBORS: For each valid neighbor, compute tentative g-score",
+        "6. RELAXATION: If tentative g < recorded g, update and add to open set",
+        "7. REPEAT: Continue until goal reached or open set empty"
+      ],
+      "sub_cells": [
+        "PYTHON_LOAD_JSON",
+        "PYTHON_LIST_SORT",
+        "PYTHON_DUMP_JSON"
+      ],
+      "internal_topology": {
+        "PYTHON_LOAD_JSON": ["PYTHON_LIST_SORT"],
+        "PYTHON_LIST_SORT":  ["PYTHON_DUMP_JSON"]
+      }
+    },
+    {
+      "cell_id": "MACRO_TEXT_EMBEDDING_PIPELINE",
+      "type": "macro",
+      "stage": 2,
+      "keywords": ["text", "embedding", "nlp", "faiss", "vector", "search", "sentence transformer"],
+      "inputs":  { "type_name": "str", "state": "source_identifier" },
+      "outputs": { "type_name": "dict", "state": "evaluation_metrics" },
+      "algorithmic_steps": [
+        "1. LOAD: Read raw text corpus from file",
+        "2. TOKENIZE: Split text into sentences or chunks",
+        "3. CLEAN: Strip whitespace, lowercase, remove stop words",
+        "4. EMBED: Encode each chunk with a sentence transformer",
+        "5. INDEX: Add embeddings to a FAISS vector index",
+        "6. QUERY: Accept a query string and retrieve top-k similar chunks"
+      ],
+      "sub_cells": [
+        "PYTHON_OPEN_FILE_READ",
+        "PYTHON_STR_SPLIT",
+        "PYTHON_STR_STRIP",
+        "PYTHON_STR_LOWER"
+      ],
+      "internal_topology": {
+        "PYTHON_OPEN_FILE_READ": ["PYTHON_STR_SPLIT"],
+        "PYTHON_STR_SPLIT":       ["PYTHON_STR_STRIP"],
+        "PYTHON_STR_STRIP":        ["PYTHON_STR_LOWER"]
+      }
+    },
+    {
+      "cell_id": "MACRO_FLASK_CRUD_API",
+      "type": "macro",
+      "stage": 2,
+      "keywords": ["flask", "crud", "api", "rest", "create read update delete", "web service"],
+      "inputs":  { "type_name": "str", "state": "source_identifier" },
+      "outputs": { "type_name": "str", "state": "server_started" },
+      "algorithmic_steps": [
+        "1. CREATE APP: Instantiate Flask application",
+        "2. DATABASE: Initialize SQLite or in-memory store",
+        "3. ROUTES: Register GET (list), POST (create), PUT (update), DELETE endpoints",
+        "4. ERROR HANDLERS: 404 and 500 error handlers",
+        "5. CORS: Enable cross-origin requests for frontend",
+        "6. RUN: Start the development server"
+      ],
+      "sub_cells": [
+        "FLASK_CREATE_APP",
+        "FLASK_SQLITE_CONNECT",
+        "FLASK_ADD_GET_ROUTE",
+        "FLASK_ADD_POST_ROUTE",
+        "FLASK_ERROR_HANDLER",
+        "FLASK_ENABLE_CORS",
+        "FLASK_RUN_DEBUG"
+      ],
+      "internal_topology": {
+        "FLASK_CREATE_APP":     ["FLASK_SQLITE_CONNECT", "FLASK_ENABLE_CORS", "FLASK_ERROR_HANDLER"],
+        "FLASK_SQLITE_CONNECT": ["FLASK_ADD_GET_ROUTE"],
+        "FLASK_ADD_GET_ROUTE":  ["FLASK_ADD_POST_ROUTE"],
+        "FLASK_ADD_POST_ROUTE": ["FLASK_RUN_DEBUG"],
+        "FLASK_ENABLE_CORS":    ["FLASK_ADD_GET_ROUTE"],
+        "FLASK_ERROR_HANDLER":  ["FLASK_ADD_GET_ROUTE"]
+      }
+    }
+  ]
+}

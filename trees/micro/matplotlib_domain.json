@@ -1,0 +1,105 @@
+{
+  "domain_name": "Matplotlib_Visualization",
+  "version": "2.0.0",
+  "description": "Matplotlib visualization micro-cells. Each cell takes a DataFrame or array and produces a saved chart file. Covers the most common plot types used in data analysis.",
+  "cells": [
+    {
+      "cell_id": "MPL_BAR_CHART",
+      "type": "micro",
+      "stage": 4,
+      "keywords": ["bar", "chart", "plot", "visualize", "compare", "category", "bar chart"],
+      "inputs":  { "type_name": "DataFrame", "state": "aggregated_dataframe" },
+      "outputs": { "type_name": "str", "state": "filepath_written" },
+      "domain_implementations": {
+        "Python_Core": {
+          "code": "import matplotlib\nmatplotlib.use('Agg')\nimport matplotlib.pyplot as plt\n_fig, _ax = plt.subplots(figsize=(10, 6))\n_num = {input_var}.select_dtypes(include='number')\n_num.iloc[:, 0].plot(kind='bar', ax=_ax, color='steelblue', edgecolor='black')\n_ax.set_title('Bar Chart')\n_ax.set_xlabel({input_var}.index.name or 'Index')\n_ax.set_ylabel(_num.columns[0])\nplt.tight_layout()\n_path = 'bar_chart.png'\nplt.savefig(_path, dpi=150)\nplt.close()\n{output_var} = _path",
+          "dependencies": ["matplotlib"]
+        }
+      }
+    },
+    {
+      "cell_id": "MPL_LINE_PLOT",
+      "type": "micro",
+      "stage": 4,
+      "keywords": ["line", "plot", "trend", "time series", "continuous", "line chart"],
+      "inputs":  { "type_name": "DataFrame", "state": "cleaned_dataframe" },
+      "outputs": { "type_name": "str", "state": "filepath_written" },
+      "domain_implementations": {
+        "Python_Core": {
+          "code": "import matplotlib\nmatplotlib.use('Agg')\nimport matplotlib.pyplot as plt\n_fig, _ax = plt.subplots(figsize=(10, 6))\n{input_var}.select_dtypes(include='number').plot(ax=_ax)\n_ax.set_title('Line Plot')\nplt.tight_layout()\n_path = 'line_plot.png'\nplt.savefig(_path, dpi=150)\nplt.close()\n{output_var} = _path",
+          "dependencies": ["matplotlib"]
+        }
+      }
+    },
+    {
+      "cell_id": "MPL_HISTOGRAM",
+      "type": "micro",
+      "stage": 4,
+      "keywords": ["histogram", "distribution", "frequency", "bins", "density"],
+      "inputs":  { "type_name": "DataFrame", "state": "cleaned_dataframe" },
+      "outputs": { "type_name": "str", "state": "filepath_written" },
+      "domain_implementations": {
+        "Python_Core": {
+          "code": "import matplotlib\nmatplotlib.use('Agg')\nimport matplotlib.pyplot as plt\n_col = {input_var}.select_dtypes(include='number').columns[0]\n_fig, _ax = plt.subplots(figsize=(10, 6))\n_ax.hist({input_var}[_col].dropna(), bins=30, color='steelblue', edgecolor='black', alpha=0.7)\n_ax.set_title(f'Distribution of {_col}')\n_ax.set_xlabel(_col)\n_ax.set_ylabel('Frequency')\nplt.tight_layout()\n_path = 'histogram.png'\nplt.savefig(_path, dpi=150)\nplt.close()\n{output_var} = _path",
+          "dependencies": ["matplotlib"]
+        }
+      }
+    },
+    {
+      "cell_id": "MPL_SCATTER_PLOT",
+      "type": "micro",
+      "stage": 4,
+      "keywords": ["scatter", "correlation", "relationship", "xy", "dots"],
+      "inputs":  { "type_name": "DataFrame", "state": "cleaned_dataframe" },
+      "outputs": { "type_name": "str", "state": "filepath_written" },
+      "domain_implementations": {
+        "Python_Core": {
+          "code": "import matplotlib\nmatplotlib.use('Agg')\nimport matplotlib.pyplot as plt\n_num = {input_var}.select_dtypes(include='number')\n_x_col, _y_col = _num.columns[0], _num.columns[min(1, len(_num.columns)-1)]\n_fig, _ax = plt.subplots(figsize=(10, 6))\n_ax.scatter({input_var}[_x_col], {input_var}[_y_col], alpha=0.6, color='steelblue')\n_ax.set_xlabel(_x_col)\n_ax.set_ylabel(_y_col)\n_ax.set_title(f'{_x_col} vs {_y_col}')\nplt.tight_layout()\n_path = 'scatter.png'\nplt.savefig(_path, dpi=150)\nplt.close()\n{output_var} = _path",
+          "dependencies": ["matplotlib"]
+        }
+      }
+    },
+    {
+      "cell_id": "MPL_HEATMAP",
+      "type": "micro",
+      "stage": 4,
+      "keywords": ["heatmap", "correlation", "matrix", "colormap", "grid"],
+      "inputs":  { "type_name": "DataFrame", "state": "correlation_matrix" },
+      "outputs": { "type_name": "str", "state": "filepath_written" },
+      "domain_implementations": {
+        "Python_Core": {
+          "code": "import matplotlib\nmatplotlib.use('Agg')\nimport matplotlib.pyplot as plt\n_fig, _ax = plt.subplots(figsize=(10, 8))\n_cax = _ax.imshow({input_var}.values, cmap='coolwarm', aspect='auto', vmin=-1, vmax=1)\nplt.colorbar(_cax, ax=_ax)\n_ax.set_xticks(range(len({input_var}.columns)))\n_ax.set_xticklabels({input_var}.columns, rotation=45, ha='right')\n_ax.set_yticks(range(len({input_var}.index)))\n_ax.set_yticklabels({input_var}.index)\n_ax.set_title('Correlation Heatmap')\nplt.tight_layout()\n_path = 'heatmap.png'\nplt.savefig(_path, dpi=150)\nplt.close()\n{output_var} = _path",
+          "dependencies": ["matplotlib"]
+        }
+      }
+    },
+    {
+      "cell_id": "MPL_BOX_PLOT",
+      "type": "micro",
+      "stage": 4,
+      "keywords": ["box", "boxplot", "quartile", "outlier", "whisker", "distribution"],
+      "inputs":  { "type_name": "DataFrame", "state": "cleaned_dataframe" },
+      "outputs": { "type_name": "str", "state": "filepath_written" },
+      "domain_implementations": {
+        "Python_Core": {
+          "code": "import matplotlib\nmatplotlib.use('Agg')\nimport matplotlib.pyplot as plt\n_fig, _ax = plt.subplots(figsize=(10, 6))\n{input_var}.select_dtypes(include='number').boxplot(ax=_ax)\n_ax.set_title('Box Plot')\nplt.tight_layout()\n_path = 'boxplot.png'\nplt.savefig(_path, dpi=150)\nplt.close()\n{output_var} = _path",
+          "dependencies": ["matplotlib"]
+        }
+      }
+    },
+    {
+      "cell_id": "MPL_PIE_CHART",
+      "type": "micro",
+      "stage": 4,
+      "keywords": ["pie", "proportion", "percentage", "share", "donut", "chart"],
+      "inputs":  { "type_name": "DataFrame", "state": "frequency_dataframe" },
+      "outputs": { "type_name": "str", "state": "filepath_written" },
+      "domain_implementations": {
+        "Python_Core": {
+          "code": "import matplotlib\nmatplotlib.use('Agg')\nimport matplotlib.pyplot as plt\n_cols = {input_var}.columns.tolist()\n_label_col = _cols[0]\n_value_col = _cols[-1] if len(_cols) > 1 else _cols[0]\n_fig, _ax = plt.subplots(figsize=(8, 8))\n_ax.pie({input_var}[_value_col].head(10), labels={input_var}[_label_col].head(10), autopct='%1.1f%%')\n_ax.set_title('Distribution')\nplt.tight_layout()\n_path = 'pie_chart.png'\nplt.savefig(_path, dpi=150)\nplt.close()\n{output_var} = _path",
+          "dependencies": ["matplotlib"]
+        }
+      }
+    }
+  ]
+}

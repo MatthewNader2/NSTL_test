@@ -310,9 +310,12 @@ class LatticeRouter:
                 and macro_score > MACRO_THRESHOLD
                 and global_micro_score < 0.70
             ):
-                # BUG 2 FIX: MacroCell has no .intent_expansion — use sub_cells as fallback.
-                expansion = getattr(best_macro, 'intent_expansion', None) or best_macro.sub_cells
-                # sub_cells may contain Cell objects after resolution; extract IDs if needed
+                # BUG 2 FIX: Use algorithmic_steps for purely language-agnostic fractal unfolding
+                expansion = getattr(best_macro, 'algorithmic_steps', [])
+                if not expansion:
+                    # Fallback to intent_expansion or sub_cells if algorithmic_steps is empty
+                    expansion = getattr(best_macro, 'intent_expansion', None) or getattr(best_macro, 'sub_cells', [])
+                
                 expansion_goals = []
                 for item in expansion:
                     if isinstance(item, str):
