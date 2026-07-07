@@ -217,20 +217,23 @@ class ModelManager:
         # /api/benchmark/toggle endpoint so it doesn't flood the log during normal
         # operation (e.g. LocalRAG.build_index embedding calls on startup).
         self.benchmarking_enabled = False
+        self._init_lock = threading.Lock()
 
     def initialize_profile(self, profile_type: str):
-        if profile_type == "A":
-            self.profile = BenchmarkProfile_A()
-        elif profile_type == "B":
-            self.profile = BenchmarkProfile_B()
-        elif profile_type == "C":
-            self.profile = BenchmarkProfile_C()
-        else:
-            raise ValueError(f"Unknown profile type: {profile_type}")
-            
-        logging.info(f"Loading BenchmarkProfile_{profile_type} models persistently...")
-        self.profile.load_models()
-        self._log_overhead(f"Initialized Profile_{profile_type}")
+        with self._init_lock:
+            if profile_type == "A":
+                new_profile = BenchmarkProfile_A()
+            elif profile_type == "B":
+                new_profile = BenchmarkProfile_B()
+            elif profile_type == "C":
+                new_profile = BenchmarkProfile_C()
+            else:
+                raise ValueError(f"Unknown profile type: {profile_type}")
+                
+            logging.info(f"Loading BenchmarkProfile_{profile_type} models persistently...")
+            new_profile.load_models()
+            self.profile = new_profile
+            self._log_overhead(f"Initialized Profile_{profile_type}")
 
     def _log_overhead(self, context: str):
         process = psutil.Process(os.getpid())
