@@ -176,8 +176,8 @@ function LatticeNodes() {
         if (!positions[cb.cell_id]) return;
         // Optimization: Only link adjacent stages to prevent massive cross-graph wireframe spaghetti
         if (
-          Math.abs(ca.stage - cb.stage) <= 1 &&
-          ca.outputs.resulting_state === cb.inputs.expected_state
+          cb.stage === ca.stage + 1 &&
+          ca.outputs.state === cb.inputs.state
         ) {
           edges.push([positions[ca.cell_id], positions[cb.cell_id]]);
         }
@@ -206,19 +206,28 @@ function LatticeNodes() {
       <BaseEdges edges={baseEdges} />
 
       {/* Path edges rendered uniquely to stand out */}
-      {pathEdges.map((e, i) => (
-        <line key={`path-${i}`}>
-          <bufferGeometry
-            attach="geometry"
-            {...new THREE.BufferGeometry().setFromPoints([e.start, e.end])}
-          />
-          <lineBasicMaterial
-            attach="material"
-            color={e.tunnel ? "#ff00aa" : "#00e5ff"}
-            linewidth={2}
-          />
-        </line>
-      ))}
+      {pathEdges.map((e, i) => {
+        const positions = new Float32Array([
+          e.start.x, e.start.y, e.start.z,
+          e.end.x, e.end.y, e.end.z
+        ]);
+        return (
+          <line key={`path-${i}`}>
+            <bufferGeometry>
+              <bufferAttribute
+                attach="attributes-position"
+                count={2}
+                array={positions}
+                itemSize={3}
+              />
+            </bufferGeometry>
+            <lineBasicMaterial
+              color={e.tunnel ? "#ff00aa" : "#00e5ff"}
+              linewidth={2}
+            />
+          </line>
+        );
+      })}
 
       {/* Active Path Nodes */}
       {activePath.map((cell) => {

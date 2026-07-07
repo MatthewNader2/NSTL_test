@@ -107,6 +107,11 @@ class UnificationGate:
         inputs = synthesized_dict.get("inputs", {})
         outputs = synthesized_dict.get("outputs", {})
 
+        if not isinstance(inputs, dict):
+            inputs = {}
+        if not isinstance(outputs, dict):
+            outputs = {}
+
         # Support both old-schema (input_type/output_type) and new-schema (type_name) keys
         in_type  = inputs.get("type_name",  inputs.get("input_type",  ""))
         out_type = outputs.get("type_name", outputs.get("output_type", ""))

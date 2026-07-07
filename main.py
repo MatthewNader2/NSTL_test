@@ -94,10 +94,16 @@ def get_cells():
         return []
     cells = []
     for cell in global_orchestrator.get_all_available_cells():
+        from dataclasses import asdict
+        in_dict  = asdict(cell.inputs) if hasattr(cell, 'inputs') else {}
+        out_dict = asdict(cell.outputs) if hasattr(cell, 'outputs') else {}
         cells.append({
             "cell_id": cell.cell_id,
+            "stage": cell.stage if hasattr(cell, 'stage') else 0,
             "type": cell.type,
-            "keywords": list(cell.keywords) if hasattr(cell, 'keywords') else []
+            "keywords": list(cell.keywords) if hasattr(cell, 'keywords') else [],
+            "inputs": in_dict,
+            "outputs": out_dict,
         })
     return cells
 
@@ -137,8 +143,15 @@ def run_prompt(req: RunRequest):
     virtual_edges = set()
     current_type = "str" # Beginning type
     
-    macro_cell = macro_graph.get('cells', [macro_graph])[0]
-    sub_cells_ids = macro_cell.get('sub_cells', [])
+    if isinstance(macro_graph, dict):
+        cells_list = macro_graph.get('cells', [macro_graph])
+        macro_cell = cells_list[0] if cells_list else {}
+    elif isinstance(macro_graph, list) and len(macro_graph) > 0:
+        macro_cell = macro_graph[0]
+    else:
+        macro_cell = {}
+        
+    sub_cells_ids = macro_cell.get('sub_cells', []) if isinstance(macro_cell, dict) else []
     log_buffer.append({"msg": f"MCTS routing for {len(sub_cells_ids)} macro steps...", "type": "info"})
     
     for i, step_id in enumerate(sub_cells_ids):
@@ -166,7 +179,7 @@ def run_prompt(req: RunRequest):
         if not bridge_path:
              log_buffer.append({"msg": f"C_sub = ∞ between {expected_inputs} and {expected_outputs}. Triggering Live RAG Synthesis (C_gen=1000)...", "type": "warn"})
              synth = SynthesisEngine()
-             fetcher = FetcherFactory.get_fetcher("Python")
+             fetcher = FetcherFactory.get_fetcher(global_orchestrator.active_domain)
              try:
                  gap_concept = f"convert {expected_inputs} to {expected_outputs}"
                  micro_json = synth.synthesize_micro_cell(gap_concept, expected_inputs, expected_outputs, fetcher)
@@ -223,15 +236,17 @@ def run_prompt(req: RunRequest):
     }
 
 
+class InitRequest(BaseModel):
+    profile: str = "B"
+    device: str = "auto"
+
 @app.post("/api/initialize")
-def initialize_engine():
+def initialize_engine(req: InitRequest = InitRequest()):
     global global_orchestrator, global_rag_engine, engine_device
-    if global_orchestrator is not None:
-        return {"status": "already_initialized", "device": engine_device}
     try:
         from inference import ModelManager
-        # Initialize Profile B by default
-        ModelManager.get_instance().initialize_profile("B")
+        # Initialize selected profile
+        ModelManager.get_instance().initialize_profile(req.profile)
         
         engine_device = HardwareProfiler.get_optimal_device()
         global_orchestrator = LatticeOrchestrator(trees_directory=TREES_DIR)

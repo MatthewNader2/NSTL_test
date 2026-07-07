@@ -44,14 +44,17 @@ class BenchmarkProfile_A(InferenceProfile):
     def load_models(self):
         from sentence_transformers import SentenceTransformer
         from router import HardwareProfiler
-        model_path = os.path.join(os.getcwd(), "model_cache")
+        model_path = os.path.join(os.getcwd(), "model_1")
         if not os.path.exists(model_path):
             model_path = "jinaai/jina-embeddings-v2-small-en"
         device = HardwareProfiler.get_optimal_device()
         self.model = SentenceTransformer(model_path, device=device, trust_remote_code=True)
 
     def get_embedding(self, text: str) -> List[float]:
-        return self.model.encode([text], convert_to_numpy=True)[0].tolist()
+        try:
+            return self.model.encode([text], convert_to_numpy=True, task="retrieval")[0].tolist()
+        except TypeError:
+            return self.model.encode([text], convert_to_numpy=True)[0].tolist()
 
     def generate_text(self, prompt: str, max_tokens: int = 2048, schema: dict = None) -> str:
         raise RuntimeError("BenchmarkProfile_A does not support text generation.")
@@ -87,19 +90,53 @@ class BenchmarkProfile_B(InferenceProfile):
         return emb_data
 
     def generate_text(self, prompt: str, max_tokens: int = 2048, schema: dict = None) -> str:
+        import json
         messages = [{"role": "user", "content": prompt}]
-        response_format = None
-        if schema:
-            response_format = {"type": "json_object", "schema": schema}
-        elif "json" in prompt.lower():
-            response_format = {"type": "json_object"}
-            
-        response = self.llm.create_chat_completion(
-            messages=messages,
-            max_tokens=max_tokens,
-            response_format=response_format
-        )
-        return response["choices"][0]["message"]["content"]
+        
+        # If schema is provided or JSON is requested, use our custom streaming cutoff logic
+        # rather than llama_cpp's strict grammar which causes infinite loops.
+        is_json_request = schema is not None or "json" in prompt.lower()
+        
+        if is_json_request:
+            stream = self.llm.create_chat_completion(
+                messages=messages,
+                max_tokens=max_tokens,
+                stream=True,
+                stop=["<|im_end|>"]
+            )
+            buffer = ""
+            for chunk in stream:
+                delta = chunk["choices"][0]["delta"]
+                if "content" in delta:
+                    content = delta["content"]
+                    print(content, end="", flush=True)  # Added debug print
+                    buffer += content
+                    
+                    if "}" in content or "]" in content:
+                        try:
+                            if "{" in buffer and "}" in buffer:
+                                json_str = buffer[buffer.find("{"):buffer.rfind("}")+1]
+                                # Test parse
+                                json.loads(json_str)
+                                # If it succeeds, cut the generation!
+                                return json_str
+                        except json.JSONDecodeError:
+                            pass
+                            
+            # Fallback if loop finishes without valid JSON
+            try:
+                if "{" in buffer and "}" in buffer:
+                    json_str = buffer[buffer.find("{"):buffer.rfind("}")+1]
+                    return json_str
+            except:
+                pass
+            return buffer
+        else:
+            response = self.llm.create_chat_completion(
+                messages=messages,
+                max_tokens=max_tokens
+            )
+            return response["choices"][0]["message"]["content"]
 
     def can_synthesize(self) -> bool:
         return True
@@ -119,7 +156,7 @@ class BenchmarkProfile_C(InferenceProfile):
         from llama_cpp import Llama
         from router import HardwareProfiler
         
-        model_path_1 = os.path.join(os.getcwd(), "model_cache")
+        model_path_1 = os.path.join(os.getcwd(), "model_1")
         if not os.path.exists(model_path_1):
             model_path_1 = "jinaai/jina-embeddings-v2-small-en"
         device = HardwareProfiler.get_optimal_device()
@@ -131,7 +168,10 @@ class BenchmarkProfile_C(InferenceProfile):
         self.llm = Llama(model_path=model_path_2, n_ctx=4096, mmap=True, verbose=False, n_gpu_layers=-1)
 
     def get_embedding(self, text: str) -> List[float]:
-        return self.embedder.encode([text], convert_to_numpy=True)[0].tolist()
+        try:
+            return self.embedder.encode([text], convert_to_numpy=True, task="retrieval")[0].tolist()
+        except TypeError:
+            return self.embedder.encode([text], convert_to_numpy=True)[0].tolist()
 
     def generate_text(self, prompt: str, max_tokens: int = 2048, schema: dict = None) -> str:
         messages = [{"role": "user", "content": prompt}]

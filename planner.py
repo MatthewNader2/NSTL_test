@@ -44,7 +44,11 @@ class ZeroShotPlanner:
             cells_to_check = [macro_dict]
 
         for cell_dict in cells_to_check:
+            if not isinstance(cell_dict, dict):
+                return False
             sub_cells = cell_dict.get("sub_cells", [])
+            if not isinstance(sub_cells, list):
+                return False
             for sub_id in sub_cells:
                 if sub_id not in available_ids:
                     self.logger.warning(f"MISSING_NODE: LLM hallucinated node '{sub_id}'")

@@ -43,10 +43,12 @@ export async function runPrompt(prompt) {
   return res.json();
 }
 
-export async function initializeEngine() {
+export async function initializeEngine(profile, device) {
   const base = getApiBase();
   const res = await fetch(`${base}/api/initialize`, {
     method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ profile, device }),
   });
   return res.json();
 }

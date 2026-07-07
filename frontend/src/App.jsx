@@ -132,48 +132,8 @@ export default function App() {
   if (loading) {
     return <LoadingScreen status={bootStatus} />;
   }
-
   return (
     <div className="app-container">
-      {(bootStatus.status === "uninitialized" || bootStatus.status === "loading") && (
-        <div style={{
-          position: "fixed", inset: 0, zIndex: 99999,
-          background: "rgba(4, 6, 12, 0.9)", backdropFilter: "blur(8px)",
-          display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
-          fontFamily: "var(--font-mono)", color: "var(--text-primary)"
-        }}>
-          <Map size={48} color="var(--accent)" style={{ marginBottom: "20px" }} />
-          <h2 style={{ marginBottom: "10px" }}>Engine Standby</h2>
-          <p style={{ marginBottom: "30px", opacity: 0.7, maxWidth: "400px", textAlign: "center" }}>
-            The AI backend and FAISS vectors are ready to be loaded into your GPU VRAM.
-          </p>
-          <button
-            onClick={async () => {
-              logSystemEvent("Triggering manual engine initialization...", "API");
-              setBootStatus({ ...bootStatus, status: "loading", message: "Loading models into VRAM..." });
-              try {
-                const data = await initializeEngine();
-                // Fix: read device from the initialize response and propagate it to both
-                // bootStatus and the global store so the status bar shows the correct hardware.
-                const resolvedDevice = data.device || bootStatus.device;
-                setBootStatus({ ...bootStatus, status: data.status || "ready", device: resolvedDevice });
-                if (resolvedDevice) setHardwareDevice(resolvedDevice);
-                logSystemEvent(`Engine successfully initialized. Device: ${resolvedDevice}`, "API");
-              } catch (err) {
-                logSystemEvent(`Initialization failed: ${err.message}`, "API");
-                setBootStatus({ ...bootStatus, status: "uninitialized" });
-              }
-            }}
-            style={{
-              padding: "12px 24px", background: "var(--accent)", color: "#000",
-              fontWeight: "bold", borderRadius: "8px", fontSize: "1rem", cursor: "pointer",
-              border: "none", display: "flex", alignItems: "center", gap: "8px"
-            }}
-          >
-            {bootStatus.status === "loading" ? "Initializing..." : <><Terminal size={18} /> Initialize Engine</>}
-          </button>
-        </div>
-      )}
       <TitleBar onSettingsClick={() => {
         setApiInputUrl(getApiBase());
         setSettingsOpen(true);
@@ -281,6 +241,8 @@ export default function App() {
           onClick={(e) => e.stopPropagation()}
           >
             <h3 style={{ color: "var(--accent)", marginBottom: "16px", fontSize: "1rem" }}>⬡ Connection Settings</h3>
+            
+            {/* FastAPI URL */}
             <div style={{ marginBottom: "16px" }}>
               <label style={{ display: "block", fontSize: "0.75rem", color: "var(--text-secondary)", marginBottom: "6px" }}>
                 FastAPI Server IP Address
@@ -302,6 +264,57 @@ export default function App() {
                 }}
               />
             </div>
+            
+            {/* Hardware Profile */}
+            <div style={{ marginBottom: "16px" }}>
+              <label style={{ display: "block", fontSize: "0.75rem", color: "var(--text-secondary)", marginBottom: "6px" }}>
+                Hardware Profile
+              </label>
+              <select
+                id="profileSelect"
+                defaultValue="A"
+                style={{
+                  width: "100%",
+                  padding: "10px",
+                  background: "rgba(0,0,0,0.4)",
+                  border: "1px solid var(--glass-border)",
+                  borderRadius: "6px",
+                  color: "#fff",
+                  fontSize: "0.85rem",
+                  outline: "none"
+                }}
+              >
+                <option value="A">Profile A (Fast SentenceTransformer)</option>
+                <option value="B">Profile B (Local LLM Qwen0.5b)</option>
+                <option value="C">Profile C (Unloaded)</option>
+              </select>
+            </div>
+            
+            {/* Compute Device */}
+            <div style={{ marginBottom: "24px" }}>
+              <label style={{ display: "block", fontSize: "0.75rem", color: "var(--text-secondary)", marginBottom: "6px" }}>
+                Compute Device Override
+              </label>
+              <select
+                id="deviceSelect"
+                defaultValue="auto"
+                style={{
+                  width: "100%",
+                  padding: "10px",
+                  background: "rgba(0,0,0,0.4)",
+                  border: "1px solid var(--glass-border)",
+                  borderRadius: "6px",
+                  color: "#fff",
+                  fontSize: "0.85rem",
+                  outline: "none"
+                }}
+              >
+                <option value="auto">Auto (HardwareProfiler)</option>
+                <option value="cuda">GPU (CUDA / RTX 3070 Ti)</option>
+                <option value="cpu">CPU (System RAM Only)</option>
+              </select>
+            </div>
+            
             <div style={{ display: "flex", gap: "10px", justifyContent: "flex-end" }}>
               <button
                 onClick={() => {
@@ -319,11 +332,26 @@ export default function App() {
                 Cancel
               </button>
               <button
-                onClick={() => {
+                onClick={async () => {
                   setApiBase(apiInputUrl);
+                  
+                  const selectedProfile = document.getElementById("profileSelect").value;
+                  const selectedDevice = document.getElementById("deviceSelect").value;
+                  
+                  logSystemEvent(`Applying settings: URL=${apiInputUrl}, Profile=${selectedProfile}, Device=${selectedDevice}`, "API");
+                  setBootStatus({ ...bootStatus, status: "loading", message: `Hot-swapping to Profile ${selectedProfile}...` });
+                  
+                  try {
+                    const data = await initializeEngine(selectedProfile, selectedDevice);
+                    const resolvedDevice = data.device || selectedDevice;
+                    setBootStatus({ ...bootStatus, status: data.status || "ready", device: resolvedDevice });
+                    if (resolvedDevice) setHardwareDevice(resolvedDevice);
+                    logSystemEvent(`Engine hot-swapped successfully!`, "API");
+                  } catch (err) {
+                    logSystemEvent(`Hot-swap failed: ${err.message}`, "API");
+                  }
+                  
                   setSettingsOpen(false);
-                  logSystemEvent(`Saved and updated API base URL to: ${apiInputUrl}`, "API");
-                  window.location.reload();
                 }}
                 style={{
                   padding: "8px 14px",

@@ -116,6 +116,11 @@ class MCTSNode:
 class MCTSEngine:
     def __init__(self, orchestrator):
         self.orchestrator = orchestrator
+        self.all_cells = self.orchestrator.get_all_available_cells()
+        self.micro_by_type = {}
+        for c in self.all_cells:
+            if c.type == "micro":
+                self.micro_by_type.setdefault(c.inputs.type_name, []).append(c)
 
     def search(self, start_type: str, target_type: str, iterations: int = 1000) -> list:
         # Root node acts as the starting typestate
@@ -151,8 +156,7 @@ class MCTSEngine:
     def _expand(self, node: MCTSNode):
         if node.cell_id == "ROOT":
             # For root, get all MicroCells that match start_type
-            candidates = [c for c in self.orchestrator.get_all_available_cells() 
-                          if c.type == "micro" and c.inputs.type_name == node.current_type]
+            candidates = self.micro_by_type.get(node.current_type, [])
         else:
             candidates = self.orchestrator.get_neighbors(node.cell_id)
 
@@ -170,8 +174,7 @@ class MCTSEngine:
 
         while current_type != target_type and depth < max_depth:
             if current_id == "ROOT":
-                neighbors = [c for c in self.orchestrator.get_all_available_cells() 
-                             if c.type == "micro" and c.inputs.type_name == current_type]
+                neighbors = self.micro_by_type.get(current_type, [])
             else:
                 neighbors = [c for c in self.orchestrator.get_neighbors(current_id) 
                              if c.type == "micro" and c.inputs.type_name == current_type]

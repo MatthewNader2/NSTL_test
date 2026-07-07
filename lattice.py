@@ -167,9 +167,18 @@ class LatticeOrchestrator:
         for cell in all_cells:
             self.topology[cell.cell_id] = []
 
+        # OPTIMIZATION: Index cells by input signature (type_name, state) for O(N) topology building
+        cells_by_input = {}
+        for cell in all_cells:
+            sig = (cell.inputs.type_name, cell.inputs.state)
+            if sig not in cells_by_input:
+                cells_by_input[sig] = []
+            cells_by_input[sig].append(cell)
+            
         for cell_a in all_cells:
-            for cell_b in all_cells:
-                if cell_a.outputs.matches(cell_b.inputs):
+            out_sig = (cell_a.outputs.type_name, cell_a.outputs.state)
+            if out_sig in cells_by_input:
+                for cell_b in cells_by_input[out_sig]:
                     if cell_b.cell_id not in self.topology[cell_a.cell_id]:
                         self.topology[cell_a.cell_id].append(cell_b.cell_id)
 

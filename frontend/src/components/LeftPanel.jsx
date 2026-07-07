@@ -1,6 +1,6 @@
 import { useState, useCallback, useRef, useEffect } from "react";
 import { useStore } from "../store";
-import { runPrompt } from "../hooks/useApi";
+import { runPrompt, fetchCells } from "../hooks/useApi";
 import {
   Send,
   X,
@@ -24,6 +24,7 @@ export default function LeftPanel({ open, isMobile, mobileActive, onToggle }) {
   const updateHistoryItem = useStore((s) => s.updateHistoryItem);
   const activeHistoryId = useStore((s) => s.activeHistoryId);
   const setActiveHistoryId = useStore((s) => s.setActiveHistoryId);
+  const setCells = useStore((s) => s.setCells);
   
   const setActivePath = useStore((s) => s.setActivePath);
   const setVirtualEdges = useStore((s) => s.setVirtualEdges);
@@ -82,6 +83,10 @@ export default function LeftPanel({ open, isMobile, mobileActive, onToggle }) {
       setVirtualEdges(new Set(data.virtual_edges));
       setGeneratedCode(data.code);
       setLogs(data.logs);
+
+      // Fetch new cells if any were synthesized
+      const cellData = await fetchCells();
+      setCells(cellData.cells || []);
 
       // 2. Resolve thinking process and cache results in history
       updateHistoryItem(id, {

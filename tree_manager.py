@@ -172,6 +172,10 @@ def merge_temp():
         skipped_count = 0
 
         for new_cell in new_cells:
+            if not isinstance(new_cell, dict):
+                print("  [SKIPPED] Found a malformed cell that is not a dictionary.")
+                skipped_count += 1
+                continue
             c_id = new_cell.get("cell_id")
             if c_id in existing_ids:
                 print(f"  [SKIPPED] Cell '{c_id}' already exists in {selected_file}.")

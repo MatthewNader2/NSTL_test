@@ -16,7 +16,7 @@ class PyPiFetcher(LiveDocFetcher):
         url = f"https://pypi.org/pypi/{package_name}/json"
         try:
             req = urllib.request.Request(url, headers={'User-Agent': 'NSTL-LiveFetcher/1.0'})
-            with urllib.request.urlopen(req) as response:
+            with urllib.request.urlopen(req, timeout=10.0) as response:
                 data = json.loads(response.read().decode())
                 info = data.get("info", {})
                 desc = info.get("description", "")
@@ -35,7 +35,7 @@ class CratesIoFetcher(LiveDocFetcher):
         url = f"https://crates.io/api/v1/crates/{crate_name}/readme"
         try:
             req = urllib.request.Request(url, headers={'User-Agent': 'NSTL-LiveFetcher/1.0'})
-            with urllib.request.urlopen(req) as response:
+            with urllib.request.urlopen(req, timeout=10.0) as response:
                 # BUG 10 FIX: The crates.io readme endpoint returns raw HTML or Markdown,
                 # NOT JSON. The previous json.loads() call always raised JSONDecodeError.
                 # Simply read and return the raw text content.
@@ -46,7 +46,7 @@ class CratesIoFetcher(LiveDocFetcher):
             try:
                 info_url = f"https://crates.io/api/v1/crates/{crate_name}"
                 req = urllib.request.Request(info_url, headers={'User-Agent': 'NSTL-LiveFetcher/1.0'})
-                with urllib.request.urlopen(req) as response:
+                with urllib.request.urlopen(req, timeout=10.0) as response:
                     data = json.loads(response.read().decode())
                     return data.get("crate", {}).get("description", "")[:4000]
             except Exception as e:
@@ -61,7 +61,7 @@ class DuckDuckGoFetcher(LiveDocFetcher):
         url = f"https://html.duckduckgo.com/html/?q={encoded_query}"
         try:
             req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'})
-            with urllib.request.urlopen(req) as response:
+            with urllib.request.urlopen(req, timeout=10.0) as response:
                 html = response.read().decode('utf-8', errors='ignore')
                 from bs4 import BeautifulSoup
                 soup = BeautifulSoup(html, 'html.parser')

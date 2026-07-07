@@ -201,13 +201,13 @@ export default function RightPanel({ open, isMobile, mobileActive, onToggle }) {
               >
                 <div style={{ marginBottom: "8px" }}>
                   <strong>Type Constraint:</strong>{" "}
-                  {selectedNode.inputs.input_type} →{" "}
-                  {selectedNode.outputs.output_type}
+                  {selectedNode.inputs.type_name} →{" "}
+                  {selectedNode.outputs.type_name}
                 </div>
                 <div>
                   <strong>State Transition:</strong> [
-                  {selectedNode.inputs.expected_state}] → [
-                  {selectedNode.outputs.resulting_state}]
+                  {selectedNode.inputs.state}] → [
+                  {selectedNode.outputs.state}]
                 </div>
               </div>
 
@@ -292,7 +292,7 @@ export default function RightPanel({ open, isMobile, mobileActive, onToggle }) {
                         fontSize: "0.75rem",
                       }}
                     >
-                      {cell.outputs.resulting_state}
+                      {cell.outputs.state}
                     </span>
                   </div>
                 </div>
