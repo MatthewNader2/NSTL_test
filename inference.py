@@ -23,6 +23,9 @@ class InferenceProfile(ABC):
     def get_embedding(self, text: str) -> List[float]:
         pass
 
+    def get_embeddings(self, texts: List[str]) -> List[List[float]]:
+        return [self.get_embedding(text) for text in texts]
+
     @abstractmethod
     def generate_text(self, prompt: str, max_tokens: int = 2048, schema: dict = None) -> str:
         pass
@@ -56,11 +59,18 @@ class BenchmarkProfile_A(InferenceProfile):
         except TypeError:
             return self.model.encode([text], convert_to_numpy=True)[0].tolist()
 
+    def get_embeddings(self, texts: List[str]) -> List[List[float]]:
+        try:
+            return self.model.encode(texts, convert_to_numpy=True, task="retrieval").tolist()
+        except TypeError:
+            return self.model.encode(texts, convert_to_numpy=True).tolist()
+
     def generate_text(self, prompt: str, max_tokens: int = 2048, schema: dict = None) -> str:
         raise RuntimeError("BenchmarkProfile_A does not support text generation.")
 
     def can_synthesize(self) -> bool:
         return False
+
 
     @property
     def embedding_dimension(self) -> int:
@@ -70,24 +80,50 @@ class BenchmarkProfile_A(InferenceProfile):
 class BenchmarkProfile_B(InferenceProfile):
     def __init__(self):
         self.llm = None
-        self.embed_llm = None
 
     def load_models(self):
         from llama_cpp import Llama
+        from router import HardwareProfiler
         model_path = os.path.join(os.getcwd(), "model_2", "qwen2.5-coder-0.5b-instruct-q4_k_m.gguf")
         if not os.path.exists(model_path):
             raise FileNotFoundError(f"Model not found at {model_path}")
-            
-        self.llm = Llama(model_path=model_path, n_ctx=4096, mmap=True, verbose=False, n_gpu_layers=-1)
-        self.embed_llm = Llama(model_path=model_path, n_ctx=4096, mmap=True, embedding=True, verbose=False, n_gpu_layers=-1)
+
+        device = HardwareProfiler.get_optimal_device()
+        gpu_layers = -1 if device == "cuda" else 0
+        common_kwargs = {
+            "model_path": model_path,
+            "n_ctx": 4096,
+            "mmap": True,
+            "verbose": False,
+            "n_gpu_layers": gpu_layers,
+            "embedding": True, # Optimize: single instance for both embed and chat
+        }
+        self.llm = Llama(**common_kwargs)
 
     def get_embedding(self, text: str) -> List[float]:
-        result = self.embed_llm.create_embedding(text)
+        result = self.llm.create_embedding(text)
         emb_data = result['data'][0]['embedding']
         if isinstance(emb_data, list) and len(emb_data) > 0 and isinstance(emb_data[0], list):
             import numpy as np
             return np.mean(emb_data, axis=0).tolist()
         return emb_data
+
+    def get_embeddings(self, texts: List[str]) -> List[List[float]]:
+        try:
+            result = self.llm.create_embedding(texts)
+            embeddings = []
+            for item in result.get("data", []):
+                emb_data = item["embedding"]
+                if isinstance(emb_data, list) and emb_data and isinstance(emb_data[0], list):
+                    import numpy as np
+                    embeddings.append(np.mean(emb_data, axis=0).tolist())
+                else:
+                    embeddings.append(emb_data)
+            if len(embeddings) == len(texts):
+                return embeddings
+        except Exception:
+            pass
+        return super().get_embeddings(texts)
 
     def generate_text(self, prompt: str, max_tokens: int = 2048, schema: dict = None) -> str:
         import json
@@ -109,7 +145,6 @@ class BenchmarkProfile_B(InferenceProfile):
                 delta = chunk["choices"][0]["delta"]
                 if "content" in delta:
                     content = delta["content"]
-                    print(content, end="", flush=True)  # Added debug print
                     buffer += content
                     
                     if "}" in content or "]" in content:
@@ -128,7 +163,7 @@ class BenchmarkProfile_B(InferenceProfile):
                 if "{" in buffer and "}" in buffer:
                     json_str = buffer[buffer.find("{"):buffer.rfind("}")+1]
                     return json_str
-            except:
+            except json.JSONDecodeError:
                 pass
             return buffer
         else:
@@ -165,13 +200,20 @@ class BenchmarkProfile_C(InferenceProfile):
         model_path_2 = os.path.join(os.getcwd(), "model_2", "qwen2.5-coder-0.5b-instruct-q4_k_m.gguf")
         if not os.path.exists(model_path_2):
             raise FileNotFoundError(f"Model not found at {model_path_2}")
-        self.llm = Llama(model_path=model_path_2, n_ctx=4096, mmap=True, verbose=False, n_gpu_layers=-1)
+        gpu_layers = -1 if device == "cuda" else 0
+        self.llm = Llama(model_path=model_path_2, n_ctx=4096, mmap=True, verbose=False, n_gpu_layers=gpu_layers)
 
     def get_embedding(self, text: str) -> List[float]:
         try:
             return self.embedder.encode([text], convert_to_numpy=True, task="retrieval")[0].tolist()
         except TypeError:
             return self.embedder.encode([text], convert_to_numpy=True)[0].tolist()
+
+    def get_embeddings(self, texts: List[str]) -> List[List[float]]:
+        try:
+            return self.embedder.encode(texts, convert_to_numpy=True, task="retrieval").tolist()
+        except TypeError:
+            return self.embedder.encode(texts, convert_to_numpy=True).tolist()
 
     def generate_text(self, prompt: str, max_tokens: int = 2048, schema: dict = None) -> str:
         messages = [{"role": "user", "content": prompt}]
@@ -221,6 +263,8 @@ class ModelManager:
 
     def initialize_profile(self, profile_type: str):
         with self._init_lock:
+            previous_profile = self.profile
+            self.profile = None
             if profile_type == "A":
                 new_profile = BenchmarkProfile_A()
             elif profile_type == "B":
@@ -228,12 +272,18 @@ class ModelManager:
             elif profile_type == "C":
                 new_profile = BenchmarkProfile_C()
             else:
+                self.profile = previous_profile
                 raise ValueError(f"Unknown profile type: {profile_type}")
                 
             logging.info(f"Loading BenchmarkProfile_{profile_type} models persistently...")
-            new_profile.load_models()
-            self.profile = new_profile
-            self._log_overhead(f"Initialized Profile_{profile_type}")
+            try:
+                new_profile.load_models()
+            except Exception:
+                self.profile = previous_profile
+                raise
+            else:
+                self.profile = new_profile
+                self._log_overhead(f"Initialized Profile_{profile_type}")
 
     def _log_overhead(self, context: str):
         process = psutil.Process(os.getpid())
@@ -248,6 +298,16 @@ class ModelManager:
         latency = time.perf_counter() - start
         if self.benchmarking_enabled:
             bench_logger.info(f"[Embedding] Latency: {latency:.4f}s")
+        return result
+
+    def get_embeddings(self, texts: List[str]) -> List[List[float]]:
+        if not self.profile:
+            raise RuntimeError("ModelManager profile not initialized.")
+        start = time.perf_counter()
+        result = self.profile.get_embeddings(texts)
+        latency = time.perf_counter() - start
+        if self.benchmarking_enabled:
+            bench_logger.info(f"[EmbeddingBatch] Count: {len(texts)} Latency: {latency:.4f}s")
         return result
 
     def generate_text(self, prompt: str, max_tokens: int = 2048, schema: dict = None) -> str:
