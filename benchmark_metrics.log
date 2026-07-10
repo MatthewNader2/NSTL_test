@@ -261,3 +261,143 @@
 2026-07-07 20:31:52,852 - [Initialized Profile_B] System RAM Usage: 2162.70 MB
 2026-07-07 20:33:00,303 - [Initialized Profile_A] System RAM Usage: 1580.77 MB
 2026-07-07 20:34:15,412 - [Initialized Profile_A] System RAM Usage: 1796.48 MB
+2026-07-07 20:34:52,850 - [Initialized Profile_A] System RAM Usage: 1570.75 MB
+2026-07-07 21:31:22,696 - [Initialized Profile_A] System RAM Usage: 2097.98 MB
+2026-07-07 21:31:25,805 - [Initialized Profile_A] System RAM Usage: 1701.75 MB
+2026-07-07 21:31:44,205 - [Initialized Profile_A] System RAM Usage: 2697.86 MB
+2026-07-07 21:33:07,888 - [Initialized Profile_A] System RAM Usage: 1577.88 MB
+2026-07-07 21:33:26,768 - [Initialized Profile_A] System RAM Usage: 2354.19 MB
+2026-07-07 21:48:35,658 - [Initialized Profile_A] System RAM Usage: 1595.54 MB
+2026-07-07 21:48:47,039 - [Initialized Profile_A] System RAM Usage: 2306.51 MB
+2026-07-07 21:48:57,655 - [Initialized Profile_A] System RAM Usage: 2351.40 MB
+2026-07-07 21:49:02,475 - [Initialized Profile_A] System RAM Usage: 2529.93 MB
+2026-07-07 21:49:07,828 - [Initialized Profile_A] System RAM Usage: 2614.94 MB
+2026-07-07 22:02:19,615 - [Initialized Profile_B] System RAM Usage: 2156.94 MB
+2026-07-07 22:17:22,959 - [Initialized Profile_A] System RAM Usage: 1962.89 MB
+2026-07-08 20:04:49,775 - [Initialized Profile_A] System RAM Usage: 1945.23 MB
+2026-07-08 20:04:50,725 - [Embedding] Latency: 0.9496s
+2026-07-08 20:04:54,627 - [Initialized Profile_A] System RAM Usage: 2130.83 MB
+2026-07-08 20:04:55,412 - [Embedding] Latency: 0.7847s
+2026-07-08 20:05:04,235 - [Initialized Profile_B] System RAM Usage: 4022.72 MB
+2026-07-08 20:05:05,216 - [Embedding] Latency: 0.9806s
+2026-07-08 20:05:25,107 - [Generation] Latency: 19.8913s
+2026-07-08 20:05:25,108 - [Post-Generation] System RAM Usage: 4724.72 MB
+2026-07-08 20:05:33,300 - [Initialized Profile_B] System RAM Usage: 4030.72 MB
+2026-07-08 20:05:34,247 - [Embedding] Latency: 0.9460s
+2026-07-08 20:05:52,759 - [Generation] Latency: 18.5122s
+2026-07-08 20:05:52,759 - [Post-Generation] System RAM Usage: 4728.73 MB
+2026-07-08 20:08:59,019 - [Initialized Profile_A] System RAM Usage: 1943.59 MB
+2026-07-08 20:08:59,316 - [Embedding] Latency: 0.2963s
+2026-07-08 20:09:04,019 - [Initialized Profile_A] System RAM Usage: 2493.63 MB
+2026-07-08 20:09:05,154 - [Embedding] Latency: 1.1343s
+2026-07-08 20:09:10,800 - [Initialized Profile_B] System RAM Usage: 3783.93 MB
+2026-07-08 20:09:11,946 - [Embedding] Latency: 1.1457s
+2026-07-08 20:09:32,295 - [Generation] Latency: 20.3491s
+2026-07-08 20:09:32,295 - [Post-Generation] System RAM Usage: 4138.96 MB
+2026-07-08 20:09:36,365 - [Initialized Profile_B] System RAM Usage: 3790.07 MB
+2026-07-08 20:09:37,314 - [Embedding] Latency: 0.9494s
+2026-07-08 20:09:58,826 - [Generation] Latency: 21.5115s
+2026-07-08 20:09:58,827 - [Post-Generation] System RAM Usage: 4142.38 MB
+2026-07-08 20:14:34,639 - [Initialized Profile_A] System RAM Usage: 1489.87 MB
+2026-07-08 20:14:49,412 - [Initialized Profile_B] System RAM Usage: 2795.83 MB
+2026-07-08 20:32:17,854 - [Initialized Profile_A] System RAM Usage: 1590.34 MB
+2026-07-08 20:32:19,347 - [Initialized Profile_B] System RAM Usage: 2412.75 MB
+2026-07-08 20:42:13,963 - [Initialized Profile_A] System RAM Usage: 1934.85 MB
+2026-07-08 20:42:14,079 - [Embedding] Latency: 0.1163s
+2026-07-08 20:42:17,117 - [Initialized Profile_A] System RAM Usage: 2628.17 MB
+2026-07-08 20:42:17,535 - [Embedding] Latency: 0.4175s
+2026-07-08 20:42:19,148 - [Initialized Profile_B] System RAM Usage: 3433.90 MB
+2026-07-08 20:42:19,276 - [Embedding] Latency: 0.1279s
+2026-07-08 20:42:21,085 - [Generation] Latency: 1.8080s
+2026-07-08 20:42:21,085 - [Post-Generation] System RAM Usage: 3812.90 MB
+2026-07-08 20:42:21,592 - [Initialized Profile_B] System RAM Usage: 3443.55 MB
+2026-07-08 20:42:21,729 - [Embedding] Latency: 0.1366s
+2026-07-08 20:42:23,287 - [Generation] Latency: 1.5575s
+2026-07-08 20:42:23,287 - [Post-Generation] System RAM Usage: 3815.97 MB
+2026-07-08 20:42:24,484 - [Initialized Profile_C] System RAM Usage: 4650.54 MB
+2026-07-08 20:42:24,672 - [Embedding] Latency: 0.1872s
+2026-07-08 20:42:28,101 - [Generation] Latency: 3.4287s
+2026-07-08 20:42:28,101 - [Post-Generation] System RAM Usage: 5018.00 MB
+2026-07-08 20:42:29,182 - [Initialized Profile_C] System RAM Usage: 4652.68 MB
+2026-07-08 20:42:29,379 - [Embedding] Latency: 0.1965s
+2026-07-08 20:42:32,732 - [Generation] Latency: 3.3529s
+2026-07-08 20:42:32,732 - [Post-Generation] System RAM Usage: 5019.86 MB
+2026-07-08 20:42:58,635 - [Initialized Profile_A] System RAM Usage: 1501.38 MB
+2026-07-08 20:42:59,780 - [Initialized Profile_B] System RAM Usage: 2325.77 MB
+2026-07-08 20:43:14,446 - [Initialized Profile_C] System RAM Usage: 4657.06 MB
+2026-07-08 21:14:13,481 - [Initialized Profile_B] System RAM Usage: 1102.95 MB
+2026-07-08 21:14:14,655 - [Generation] Latency: 1.1737s
+2026-07-08 21:14:14,655 - [Post-Generation] System RAM Usage: 1467.24 MB
+2026-07-08 21:14:16,563 - [Initialized Profile_B] System RAM Usage: 2317.66 MB
+2026-07-08 21:14:19,401 - [Generation] Latency: 2.8383s
+2026-07-08 21:14:19,401 - [Post-Generation] System RAM Usage: 2667.12 MB
+2026-07-08 21:15:31,371 - [Initialized Profile_B] System RAM Usage: 1107.46 MB
+2026-07-08 21:15:32,610 - [Generation] Latency: 1.2387s
+2026-07-08 21:15:32,610 - [Post-Generation] System RAM Usage: 1470.31 MB
+2026-07-08 21:15:34,160 - [Initialized Profile_B] System RAM Usage: 2326.37 MB
+2026-07-08 21:15:36,891 - [Generation] Latency: 2.7308s
+2026-07-08 21:15:36,891 - [Post-Generation] System RAM Usage: 2672.98 MB
+2026-07-08 21:17:09,698 - [Initialized Profile_B] System RAM Usage: 1134.05 MB
+2026-07-08 21:17:10,894 - [Generation] Latency: 1.1960s
+2026-07-08 21:17:10,895 - [Post-Generation] System RAM Usage: 1497.13 MB
+2026-07-08 21:17:12,408 - [Initialized Profile_B] System RAM Usage: 2354.56 MB
+2026-07-08 21:17:15,189 - [Generation] Latency: 2.7804s
+2026-07-08 21:17:15,189 - [Post-Generation] System RAM Usage: 2697.09 MB
+2026-07-08 21:18:44,282 - [Initialized Profile_B] System RAM Usage: 1112.39 MB
+2026-07-08 21:18:45,599 - [Generation] Latency: 1.3172s
+2026-07-08 21:18:45,599 - [Post-Generation] System RAM Usage: 1475.82 MB
+2026-07-08 21:18:47,172 - [Initialized Profile_B] System RAM Usage: 2331.52 MB
+2026-07-08 21:18:49,906 - [Generation] Latency: 2.7336s
+2026-07-08 21:18:49,906 - [Post-Generation] System RAM Usage: 2678.20 MB
+2026-07-08 21:20:01,823 - [Initialized Profile_B] System RAM Usage: 1112.97 MB
+2026-07-08 21:20:03,124 - [Generation] Latency: 1.3013s
+2026-07-08 21:20:03,125 - [Post-Generation] System RAM Usage: 1476.07 MB
+2026-07-08 21:20:04,809 - [Initialized Profile_B] System RAM Usage: 2331.68 MB
+2026-07-08 21:20:07,533 - [Generation] Latency: 2.7237s
+2026-07-08 21:20:07,533 - [Post-Generation] System RAM Usage: 2675.77 MB
+2026-07-08 21:24:26,289 - [Initialized Profile_B] System RAM Usage: 1113.23 MB
+2026-07-08 21:24:27,467 - [Generation] Latency: 1.1777s
+2026-07-08 21:24:27,467 - [Post-Generation] System RAM Usage: 1475.28 MB
+2026-07-08 21:24:29,051 - [Initialized Profile_B] System RAM Usage: 2328.01 MB
+2026-07-08 21:24:31,865 - [Generation] Latency: 2.8136s
+2026-07-08 21:24:31,865 - [Post-Generation] System RAM Usage: 2677.45 MB
+2026-07-08 21:26:22,758 - [Initialized Profile_B] System RAM Usage: 1113.94 MB
+2026-07-08 21:26:24,032 - [Generation] Latency: 1.2738s
+2026-07-08 21:26:24,032 - [Post-Generation] System RAM Usage: 1478.13 MB
+2026-07-08 21:26:25,681 - [Initialized Profile_B] System RAM Usage: 2333.95 MB
+2026-07-08 21:26:28,508 - [Generation] Latency: 2.8275s
+2026-07-08 21:26:28,509 - [Post-Generation] System RAM Usage: 2680.36 MB
+2026-07-08 21:27:46,854 - [Initialized Profile_B] System RAM Usage: 1112.59 MB
+2026-07-08 21:27:48,130 - [Generation] Latency: 1.2759s
+2026-07-08 21:27:48,130 - [Post-Generation] System RAM Usage: 1475.14 MB
+2026-07-08 21:27:49,741 - [Initialized Profile_B] System RAM Usage: 2330.91 MB
+2026-07-08 21:27:52,766 - [Generation] Latency: 3.0244s
+2026-07-08 21:27:52,766 - [Post-Generation] System RAM Usage: 2674.71 MB
+2026-07-08 21:36:38,194 - [Initialized Profile_A] System RAM Usage: 1935.71 MB
+2026-07-08 21:36:38,406 - [Embedding] Latency: 0.2119s
+2026-07-08 21:36:41,301 - [Initialized Profile_A] System RAM Usage: 2531.75 MB
+2026-07-08 21:36:41,716 - [Embedding] Latency: 0.4150s
+2026-07-08 21:36:42,253 - [Initialized Profile_B] System RAM Usage: 3337.91 MB
+2026-07-08 21:36:43,478 - [Generation] Latency: 1.2254s
+2026-07-08 21:36:43,478 - [Post-Generation] System RAM Usage: 3700.07 MB
+2026-07-08 21:36:45,975 - [Initialized Profile_B] System RAM Usage: 4584.82 MB
+2026-07-08 21:36:49,066 - [Generation] Latency: 3.0910s
+2026-07-08 21:36:49,066 - [Post-Generation] System RAM Usage: 4932.73 MB
+2026-07-08 21:37:25,985 - [Initialized Profile_C] System RAM Usage: 3423.62 MB
+2026-07-08 21:37:26,019 - [Embedding] Latency: 0.0337s
+2026-07-08 21:37:27,423 - [Generation] Latency: 1.4040s
+2026-07-08 21:37:27,424 - [Post-Generation] System RAM Usage: 3773.64 MB
+2026-07-08 21:37:32,420 - [Initialized Profile_C] System RAM Usage: 4759.72 MB
+2026-07-08 21:37:32,454 - [Embedding] Latency: 0.0340s
+2026-07-08 21:37:35,548 - [Generation] Latency: 3.0939s
+2026-07-08 21:37:35,549 - [Post-Generation] System RAM Usage: 5101.71 MB
+2026-07-08 21:47:50,383 - [Initialized Profile_B] System RAM Usage: 2299.02 MB
+2026-07-08 21:47:53,213 - [Generation] Latency: 2.8291s
+2026-07-08 21:47:53,213 - [Post-Generation] System RAM Usage: 2655.45 MB
+2026-07-08 21:56:51,053 - [Initialized Profile_B] System RAM Usage: 1188.54 MB
+2026-07-08 21:58:04,604 - [Initialized Profile_B] System RAM Usage: 1195.22 MB
+2026-07-10 01:25:03,322 - [Initialized Profile_A] System RAM Usage: 2014.52 MB
+2026-07-10 01:25:06,676 - [Initialized Profile_A] System RAM Usage: 3025.30 MB
+2026-07-10 08:04:37,116 - [Initialized Profile_B] System RAM Usage: 2396.98 MB
+2026-07-10 08:04:38,856 - [Initialized Profile_B] System RAM Usage: 4290.87 MB
+2026-07-10 08:05:10,711 - [Initialized Profile_A] System RAM Usage: 4236.77 MB

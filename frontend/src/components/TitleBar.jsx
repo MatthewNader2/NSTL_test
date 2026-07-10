@@ -1,7 +1,7 @@
 import { useStore } from "../store";
 import { Zap, Cpu, Layers, Settings, Terminal, Monitor } from "lucide-react";
 
-export default function TitleBar({ onSettingsClick }) {
+export default function TitleBar({ onSettingsClick, embedderModel }) {
   const apiStatus = useStore((s) => s.apiStatus);
   const cells = useStore((s) => s.cells);
   const hardwareDevice = useStore((s) => s.hardwareDevice);
@@ -46,7 +46,7 @@ export default function TitleBar({ onSettingsClick }) {
       <div style={{ display: "flex", gap: "0.75rem", alignItems: "center" }}>
         <div style={{ display: "flex", gap: "0.5rem", alignItems: "center" }}>
           <Layers size={12} />
-          <span>jina‑embeddings‑v5‑nano</span>
+          <span>{embedderModel}</span>
         </div>
         <button
           onClick={onSettingsClick}

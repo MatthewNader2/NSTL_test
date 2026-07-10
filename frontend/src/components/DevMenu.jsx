@@ -181,7 +181,7 @@ export default function DevMenu() {
         </div>
 
         {/* Footer controls */}
-        <div style={{ display: "flex", justifyBetween: "space-between", gap: "10px", marginTop: "4px" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", gap: "10px", marginTop: "4px" }}>
           <button
             onClick={clearSystemLogs}
             style={{

@@ -30,7 +30,8 @@ export async function fetchHealth() {
 export async function fetchCells() {
   const base = getApiBase();
   const res = await fetch(`${base}/api/cells`);
-  return res.json();
+  const data = await res.json();
+  return data.cells || [];
 }
 
 export async function runPrompt(prompt) {
@@ -43,12 +44,12 @@ export async function runPrompt(prompt) {
   return res.json();
 }
 
-export async function initializeEngine(profile, device) {
+export async function initializeEngine(profile, embedder_model, llm_model, embedder_device, llm_device, trees_storage) {
   const base = getApiBase();
   const res = await fetch(`${base}/api/initialize`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ profile, device }),
+    body: JSON.stringify({ profile, embedder_model, llm_model, embedder_device, llm_device, trees_storage }),
   });
   return res.json();
 }

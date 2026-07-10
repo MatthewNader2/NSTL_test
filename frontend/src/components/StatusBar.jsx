@@ -26,8 +26,8 @@ export default function StatusBar() {
         <span>{logs.length} log entries</span>
       </div>
       <div style={{ display: "flex", gap: "0.5rem" }}>
-        <span>THREE.js r162</span>
-        <span>React 18</span>
+        <span>RENDER: WebGL</span>
+        <span>LATENCY: &lt;10ms</span>
       </div>
     </div>
   );

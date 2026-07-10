@@ -41,11 +41,13 @@ Schema:
   "outputs": {{ "type_name": "{expected_output}", "state": "computed" }},
   "domain_implementations": {{
     "Python_Core": {{
-      "code": "import <library>\\n{{output_var}} = ...(<{{input_var}}>)",
-      "dependencies": ["<library>"]
+      "code": "import math\\n{{output_var}} = math.sqrt(float({{input_var}}))",
+      "dependencies": ["math"]
     }}
   }}
 }}
+
+CRITICAL INSTRUCTION: The `code` field MUST contain ACTUAL, functional Python code that implements the concept. DO NOT output placeholder text like `<library>` or `...(<input_var>)`. You MUST replace them with real library names (like `import json`) and real logic (like `a + b` or `json.loads(a)`).
 
 Use the following Official Documentation as your absolute ground truth:"""
         prompt = f"{system_prompt}\n\nTask: {gap_concept}\nLive Context:\n{live_docs}"

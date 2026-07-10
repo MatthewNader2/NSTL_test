@@ -24,8 +24,31 @@ class HardwareProfiler:
     Cross-Platform Dynamic Hardware Auto-Profiler.
     Detects the host system and assigns workloads to the optimal compute backend.
     """
-    # BUG 25 FIX: Cache result to avoid printing the banner multiple times on startup.
     _cached_device: str = None
+    
+    _config = {
+        'embedder': 'auto',
+        'llm': 'auto',
+        'trees': 'ram'
+    }
+
+    @staticmethod
+    def set_config(embedder_device: str, llm_device: str, trees_storage: str):
+        HardwareProfiler._config['embedder'] = embedder_device.lower()
+        HardwareProfiler._config['llm'] = llm_device.lower()
+        HardwareProfiler._config['trees'] = trees_storage.lower()
+        
+    @staticmethod
+    def get_embedder_device() -> str:
+        if HardwareProfiler._config['embedder'] != 'auto':
+            return HardwareProfiler._config['embedder']
+        return HardwareProfiler.get_optimal_device()
+
+    @staticmethod
+    def get_llm_device() -> str:
+        if HardwareProfiler._config['llm'] != 'auto':
+            return HardwareProfiler._config['llm']
+        return HardwareProfiler.get_optimal_device()
 
     @staticmethod
     def get_optimal_device() -> str:

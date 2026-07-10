@@ -13,7 +13,10 @@ class LiveDocFetcher(ABC):
 class PyPiFetcher(LiveDocFetcher):
     def fetch(self, package_name: str) -> str:
         """Fetches the official README/description from PyPI."""
-        url = f"https://pypi.org/pypi/{package_name}/json"
+        # Sanitize concept string (e.g., "PYTHON_ADD: convert..." -> "python-add")
+        clean_name = package_name.split(':')[0].strip().lower().replace('_', '-')
+        clean_name = urllib.parse.quote(clean_name)
+        url = f"https://pypi.org/pypi/{clean_name}/json"
         try:
             req = urllib.request.Request(url, headers={'User-Agent': 'NSTL-LiveFetcher/1.0'})
             with urllib.request.urlopen(req, timeout=10.0) as response:

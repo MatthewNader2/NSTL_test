@@ -12,11 +12,14 @@ import {
   User,
   Sparkles,
   HelpCircle,
+  Plus,
+  MessageSquareReply,
 } from "lucide-react";
 
 export default function LeftPanel({ open, isMobile, mobileActive, onToggle }) {
   const [prompt, setPrompt] = useState("");
   const [localThinkingId, setLocalThinkingId] = useState(null);
+  const [replyContext, setReplyContext] = useState(null);
   
   // Store values & actions
   const chatHistory = useStore((s) => s.chatHistory);
@@ -24,6 +27,7 @@ export default function LeftPanel({ open, isMobile, mobileActive, onToggle }) {
   const updateHistoryItem = useStore((s) => s.updateHistoryItem);
   const activeHistoryId = useStore((s) => s.activeHistoryId);
   const setActiveHistoryId = useStore((s) => s.setActiveHistoryId);
+  const clearHistory = useStore((s) => s.clearHistory);
   const setCells = useStore((s) => s.setCells);
   
   const setActivePath = useStore((s) => s.setActivePath);
@@ -75,8 +79,14 @@ export default function LeftPanel({ open, isMobile, mobileActive, onToggle }) {
     setLocalThinkingId(id);
     setPrompt("");
 
+    let fullPayload = query;
+    if (replyContext) {
+      fullPayload = `Previous Task: ${replyContext.prompt}\n\nCurrent Implementation:\n${replyContext.code}\n\nNew Follow-up Instructions:\n${query}`;
+    }
+
     try {
-      const data = await runPrompt(query);
+      const data = await runPrompt(fullPayload);
+      setReplyContext(null);
       
       // Update global states
       setActivePath(data.path);
@@ -85,8 +95,8 @@ export default function LeftPanel({ open, isMobile, mobileActive, onToggle }) {
       setLogs(data.logs);
 
       // Fetch new cells if any were synthesized
-      const cellData = await fetchCells();
-      setCells(cellData.cells || []);
+      const cells = await fetchCells();
+      setCells(cells);
 
       // 2. Resolve thinking process and cache results in history
       updateHistoryItem(id, {
@@ -186,13 +196,26 @@ export default function LeftPanel({ open, isMobile, mobileActive, onToggle }) {
                 LATTICE CONSOLE
               </span>
             </div>
-            <button
-              onClick={onToggle}
-              style={{ color: "var(--text-secondary)", display: "flex", padding: "2px" }}
-              title="Collapse Panel"
-            >
-              <X size={14} />
-            </button>
+            <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+              <button
+                onClick={() => {
+                  clearHistory();
+                  setReplyContext(null);
+                  logSystemEvent("Started new chat session", "UI");
+                }}
+                style={{ color: "var(--text-secondary)", display: "flex", padding: "2px" }}
+                title="New Chat"
+              >
+                <Plus size={14} />
+              </button>
+              <button
+                onClick={onToggle}
+                style={{ color: "var(--text-secondary)", display: "flex", padding: "2px" }}
+                title="Collapse Panel"
+              >
+                <X size={14} />
+              </button>
+            </div>
           </div>
 
           {/* Interactive Chat Stream & Collapsible Logs */}
@@ -230,7 +253,7 @@ export default function LeftPanel({ open, isMobile, mobileActive, onToggle }) {
               chatHistory.map((item) => {
                 const isSelected = activeHistoryId === item.id;
                 const isThinking = item.isThinking;
-                const showThinking = expandedAccordions[item.id] !== false; // Default to true
+                const showThinking = expandedAccordions[item.id] !== undefined ? expandedAccordions[item.id] : isThinking;
 
                 return (
                   <div
@@ -303,7 +326,32 @@ export default function LeftPanel({ open, isMobile, mobileActive, onToggle }) {
                               {isThinking ? "Thinking process..." : "View Thinking Logs"}
                             </span>
                           </div>
-                          {showThinking ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+                          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                            {!isThinking && item.code && (
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setReplyContext({ id: item.id, prompt: item.prompt, code: item.code });
+                                  logSystemEvent(`Replying to query context ID: ${item.id}`, "UI");
+                                }}
+                                style={{
+                                  display: "flex",
+                                  alignItems: "center",
+                                  gap: "4px",
+                                  padding: "2px 6px",
+                                  borderRadius: "4px",
+                                  background: "rgba(0, 229, 255, 0.1)",
+                                  color: "var(--accent)",
+                                  fontSize: "0.6rem",
+                                  border: "1px solid rgba(0, 229, 255, 0.2)"
+                                }}
+                              >
+                                <MessageSquareReply size={10} />
+                                Reply
+                              </button>
+                            )}
+                            {showThinking ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+                          </div>
                         </div>
 
                         {/* Collapsed/Expanded Log Content */}
@@ -380,7 +428,7 @@ export default function LeftPanel({ open, isMobile, mobileActive, onToggle }) {
               })
             )}
             {/* Quick Sophisticated Suggestions */}
-            {chatHistory.length === 0 && (
+            {(
               <div
                 style={{
                   display: "flex",
@@ -407,8 +455,8 @@ export default function LeftPanel({ open, isMobile, mobileActive, onToggle }) {
                     <button
                       key={ex}
                       onClick={() => {
-                        setPrompt(ex);
                         logSystemEvent(`Clicked prompt suggestion: "${ex.substring(0, 30)}..."`, "UI");
+                        handleRun(ex);
                       }}
                       style={{
                         fontSize: "0.6rem",
@@ -434,8 +482,38 @@ export default function LeftPanel({ open, isMobile, mobileActive, onToggle }) {
           </div>
 
           {/* Prompt Input TextArea */}
-          <div style={{ display: "flex", gap: "0.375rem", alignItems: "flex-end" }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
+            {replyContext && (
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  background: "rgba(0, 229, 255, 0.08)",
+                  border: "1px solid rgba(0, 229, 255, 0.2)",
+                  padding: "6px 10px",
+                  borderRadius: "6px",
+                  fontSize: "0.65rem",
+                  color: "var(--text-secondary)",
+                }}
+              >
+                <div style={{ display: "flex", alignItems: "center", gap: "6px", overflow: "hidden" }}>
+                  <MessageSquareReply size={12} color="var(--accent)" />
+                  <span style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                    Replying to: <i>"{replyContext.prompt.substring(0, 40)}{replyContext.prompt.length > 40 ? "..." : ""}"</i>
+                  </span>
+                </div>
+                <button
+                  onClick={() => setReplyContext(null)}
+                  style={{ color: "var(--text-secondary)", padding: "2px" }}
+                >
+                  <X size={12} />
+                </button>
+              </div>
+            )}
+            <div style={{ display: "flex", gap: "0.375rem", alignItems: "flex-end" }}>
             <textarea
+              autoFocus
               value={prompt}
               onChange={(e) => setPrompt(e.target.value)}
               onKeyDown={handleKeyDown}
@@ -472,6 +550,7 @@ export default function LeftPanel({ open, isMobile, mobileActive, onToggle }) {
             >
               <Send size={14} />
             </button>
+          </div>
           </div>
         </div>
       )}

@@ -3,12 +3,19 @@ import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { OrbitControls, Html } from "@react-three/drei";
 import { EffectComposer, Bloom } from "@react-three/postprocessing";
 import { useStore } from "../store";
-import * as THREE from "three";
+import {
+  BufferAttribute,
+  BufferGeometry,
+  MeshBasicMaterial,
+  Object3D,
+  SphereGeometry,
+  Vector3,
+} from "three";
 
 // 🚀 OPTIMIZATION 1: Render ALL base edges in ONE single draw call using BufferGeometry
 function BaseEdges({ edges }) {
   const geometry = useMemo(() => {
-    const geo = new THREE.BufferGeometry();
+    const geo = new BufferGeometry();
     const positions = new Float32Array(edges.length * 6);
     edges.forEach(([a, b], i) => {
       positions[i * 6] = a.x;
@@ -18,9 +25,11 @@ function BaseEdges({ edges }) {
       positions[i * 6 + 4] = b.y;
       positions[i * 6 + 5] = b.z;
     });
-    geo.setAttribute("position", new THREE.BufferAttribute(positions, 3));
+    geo.setAttribute("position", new BufferAttribute(positions, 3));
     return geo;
   }, [edges]);
+
+  useEffect(() => () => geometry.dispose(), [geometry]);
 
   return (
     <lineSegments geometry={geometry}>
@@ -32,7 +41,17 @@ function BaseEdges({ edges }) {
 // 🚀 OPTIMIZATION 2: Dormant nodes grouped efficiently
 function DormantNodes({ cells, positions, activeIds }) {
   const meshRef = useRef();
-  const dummy = useMemo(() => new THREE.Object3D(), []);
+  const dummy = useMemo(() => new Object3D(), []);
+  const geometry = useMemo(() => new SphereGeometry(0.3, 8, 8), []);
+  const material = useMemo(
+    () =>
+      new MeshBasicMaterial({
+        color: "#1a2a4a",
+        transparent: true,
+        opacity: 0.4,
+      }),
+    [],
+  );
 
   const dormantCells = useMemo(
     () => cells.filter((c) => c.type === "micro" && !activeIds.has(c.cell_id)),
@@ -52,18 +71,19 @@ function DormantNodes({ cells, positions, activeIds }) {
     meshRef.current.instanceMatrix.needsUpdate = true;
   }, [dormantCells, positions, dummy]);
 
+  useEffect(
+    () => () => {
+      geometry.dispose();
+      material.dispose();
+    },
+    [geometry, material],
+  );
+
   return (
     <instancedMesh
+      key={dormantCells.length}
       ref={meshRef}
-      args={[
-        new THREE.SphereGeometry(0.3, 8, 8),
-        new THREE.MeshBasicMaterial({
-          color: "#1a2a4a",
-          transparent: true,
-          opacity: 0.4,
-        }),
-        dormantCells.length,
-      ]}
+      args={[geometry, material, dormantCells.length]}
     />
   );
 }
@@ -85,7 +105,7 @@ function CameraController() {
         (c) => c.cell_id === selectedNode.cell_id,
       );
       const xPos = selectedNode.stage * 14;
-      let pos = new THREE.Vector3(xPos, 0, 0);
+      let pos = new Vector3(xPos, 0, 0);
 
       if (stageCells.length > 1) {
         const ring = Math.floor(idx / 7);
@@ -93,7 +113,7 @@ function CameraController() {
         const ringN = Math.min(7, stageCells.length - ring * 7);
         const angle = (slot / ringN) * 2 * Math.PI + ring * (Math.PI / 7);
         const radius = 5 + ring * 5;
-        pos = new THREE.Vector3(
+        pos = new Vector3(
           xPos,
           radius * Math.cos(angle),
           radius * Math.sin(angle),
@@ -109,7 +129,7 @@ function CameraController() {
       controls.target.lerp(targetPos, 0.05);
       const idealCameraPos = targetPos
         .clone()
-        .add(new THREE.Vector3(-10, 5, 10));
+        .add(new Vector3(-10, 5, 10));
       camera.position.lerp(idealCameraPos, 0.05);
 
       // Stop animating when close enough
@@ -143,14 +163,14 @@ function LatticeNodes() {
       const xPos = parseInt(stage) * 14;
       stageCells.forEach((cell, idx) => {
         if (stageCells.length === 1)
-          pos[cell.cell_id] = new THREE.Vector3(xPos, 0, 0);
+          pos[cell.cell_id] = new Vector3(xPos, 0, 0);
         else {
           const ring = Math.floor(idx / 7);
           const slot = idx % 7;
           const ringN = Math.min(7, stageCells.length - ring * 7);
           const angle = (slot / ringN) * 2 * Math.PI + ring * (Math.PI / 7);
           const radius = 5 + ring * 5;
-          pos[cell.cell_id] = new THREE.Vector3(
+          pos[cell.cell_id] = new Vector3(
             xPos,
             radius * Math.cos(angle),
             radius * Math.sin(angle),
@@ -166,23 +186,27 @@ function LatticeNodes() {
     [activePath],
   );
 
-  // Base edges calculation (no artificial limits anymore!)
+  // Base edges calculation
   const baseEdges = useMemo(() => {
     const edges = [];
-    const micro = cells.filter((c) => c.type === "micro");
-    micro.forEach((ca) => {
-      if (!positions[ca.cell_id]) return;
-      micro.forEach((cb) => {
-        if (!positions[cb.cell_id]) return;
-        // Optimization: Only link adjacent stages to prevent massive cross-graph wireframe spaghetti
-        if (
-          cb.stage === ca.stage + 1 &&
-          ca.outputs.state === cb.inputs.state
-        ) {
-          edges.push([positions[ca.cell_id], positions[cb.cell_id]]);
-        }
-      });
+    const nextStageByInput = new Map();
+
+    cells.forEach((cell) => {
+      if (cell.type !== "micro" || !positions[cell.cell_id]) return;
+      const key = `${cell.stage}:${cell.inputs.type_name}:${cell.inputs.state}`;
+      const group = nextStageByInput.get(key) || [];
+      group.push(cell);
+      nextStageByInput.set(key, group);
     });
+
+    cells.forEach((ca) => {
+      if (ca.type !== "micro") return;
+      if (!positions[ca.cell_id]) return;
+      const key = `${ca.stage + 1}:${ca.outputs.type_name}:${ca.outputs.state}`;
+      const nextCells = nextStageByInput.get(key) || [];
+      nextCells.forEach((cb) => edges.push([positions[ca.cell_id], positions[cb.cell_id]]));
+    });
+
     return edges;
   }, [cells, positions]);
 
@@ -305,10 +329,10 @@ export default function ThreeScene() {
     <Canvas
       camera={{ position: [60, 20, 40], fov: 50, near: 0.1, far: 1000 }}
       style={{ width: "100%", height: "100%" }}
-      dpr={[1, 2]}
+      dpr={[1, 1.5]}
     >
-      <color attach="background" args={["#060914"]} />
-      <fog attach="fog" args={["#060914", 30, 150]} />
+      {/* Transparent background to let CSS gradient show through */}
+      <fog attach="fog" args={["#03050c", 30, 150]} />
       <ambientLight intensity={0.8} />
       <directionalLight position={[30, 30, 20]} intensity={1.2} />
 

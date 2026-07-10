@@ -17,7 +17,7 @@ class ExecutionContext:
 
     def extract_prompt_parameters(self, user_prompt: str):
         self.extracted_parameters = {}
-        quoted_items = re.findall(r'["\'](["\']+)["\']', user_prompt)
+        quoted_items = re.findall(r'["\']([^"\']+)["\']', user_prompt)
         if quoted_items:
             self.extracted_parameters["explicit_filename"] = quoted_items[0]
         else:
@@ -77,8 +77,8 @@ class UnificationGate:
             if "explicit_filename" in context.extracted_parameters:
                 user_assigned_name = context.extracted_parameters["explicit_filename"]
                 compiled_snippet = re.sub(
-                    r"['\"]export\.(?:csv|json|html|feather|parquet)['\"]\",",
-                    f"'{user_assigned_name}'",
+                    r"(['\"])export\.(csv|json|html|feather|parquet)\1",
+                    repr(user_assigned_name),
                     compiled_snippet,
                 )
                 compiled_snippet = compiled_snippet.replace(
@@ -137,8 +137,15 @@ class UnificationGate:
         else:
             data = {"domain_name": "Synthesized_Domain", "cells": []}
 
-        # Append and save
-        data["cells"].append(synthesized_dict)
+        # Append and save, replacing any previous synthesized cell with the same ID
+        # so repeated retries do not bloat the cache or create duplicate topology entries.
+        new_cell_id = synthesized_dict.get("cell_id")
+        if new_cell_id:
+            data["cells"] = [
+                cell for cell in data.get("cells", [])
+                if not isinstance(cell, dict) or cell.get("cell_id") != new_cell_id
+            ]
+        data.setdefault("cells", []).append(synthesized_dict)
 
         # BUG 16 FIX: Write atomically via a temp file + os.replace() so a mid-write
         # crash cannot corrupt the cache (which previously lost ALL synthesized nodes).

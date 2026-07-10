@@ -29,6 +29,8 @@ class LocalRAG:
 
     def build_index(self):
         self.logger.info("Building FAISS index for local RAG...")
+        self.index = None
+        self.id_to_schema = {}
         
         texts_to_embed = []
         schemas = []
@@ -99,9 +101,7 @@ class LocalRAG:
 
         # Generate dense embeddings
         self.logger.info(f"Embedding {len(texts_to_embed)} nodes using ModelManager...")
-        embeddings_list = []
-        for text in texts_to_embed:
-            embeddings_list.append(ModelManager.get_instance().get_embedding(text))
+        embeddings_list = ModelManager.get_instance().get_embeddings(texts_to_embed)
             
         embeddings = np.array(embeddings_list, dtype=np.float32)
         

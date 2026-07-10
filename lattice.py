@@ -79,8 +79,6 @@ class LatticeOrchestrator:
     def _parse_signature(self, raw_dict: dict, type_key: str, state_key: str) -> AlgebraicSignature:
         if not raw_dict:
             return AlgebraicSignature("", "")
-        # BUG 3 FIX: Support both old-schema keys (input_type/expected_state/output_type/resulting_state)
-        # AND new-schema keys (type_name/state) used by planner.py and synthesis.py LLM output.
         # Try the specific legacy key first, fall back to the new unified key name.
         type_name = raw_dict.get(type_key, raw_dict.get("type_name", ""))
         state = raw_dict.get(state_key, raw_dict.get("state", ""))
@@ -102,7 +100,6 @@ class LatticeOrchestrator:
                 algorithmic_steps=raw_cell.get("algorithmic_steps", [])
             )
         else:
-            # R↓ Optimization: Only load the domain code we need
             implementations = raw_cell.get("domain_implementations", {})
             domain_data = implementations.get(self.active_domain, {})
             # Fallback to old code_template if domain_implementations is missing
@@ -135,39 +132,25 @@ class LatticeOrchestrator:
                             cell = self._parse_cell(raw_cell)
                             self.loaded_cells[cell.cell_id] = cell
                     except Exception as e:
-                        # BUG 19 FIX: Log errors instead of silently swallowing them.
                         print(f"[LATTICE WARNING] Failed to load '{file_name}': {e}")
-
-        # PASS 2: Link Macro sub_cells is no longer needed since Macro-Nodes
-        # only expand into algorithmic steps dynamically at runtime via the router.
 
     def inject_transient_macro(self, macro_dict: dict) -> Cell:
         """Injects LLM-generated Macro-Nodes dynamically."""
         cell = self._parse_cell(macro_dict)
         self.loaded_cells[cell.cell_id] = cell
-        
-        # Pass 2 resolution is no longer needed for transient macro nodes
-
-        # Rebuild global topology to include the new path
         self.build_topology()
         return cell
 
     def _get_all_cells_recursively(self, cells: List[Cell]) -> List[Cell]:
-        # Since MacroCells no longer contain hardcoded nested sub_cells objects,
-        # we only need to return the flat list of loaded cells.
-        return list(self.loaded_cells.values())
+        return cells
 
     def build_topology(self):
-        # BUG 8 FIX: Reset topology dict entirely at the start of each build
-        # to prevent duplicate edges from accumulating across repeated calls.
         self.topology = {}
-
         all_cells = self._get_all_cells_recursively(list(self.loaded_cells.values()))
         
         for cell in all_cells:
             self.topology[cell.cell_id] = []
 
-        # OPTIMIZATION: Index cells by input signature (type_name, state) for O(N) topology building
         cells_by_input = {}
         for cell in all_cells:
             sig = (cell.inputs.type_name, cell.inputs.state)
@@ -187,10 +170,8 @@ class LatticeOrchestrator:
 
     def get_neighbors(self, cell_id: str) -> list:
         neighbor_ids = self.topology.get(cell_id, [])
-        all_cells = {c.cell_id: c for c in self.get_all_available_cells()}
-        return [all_cells[nid] for nid in neighbor_ids if nid in all_cells]
+        return [self.loaded_cells[nid] for nid in neighbor_ids if nid in self.loaded_cells]
 
-    # RESTORED AND FIXED:
     def find_type_bridge(self, from_type: str, to_type: str) -> Optional[Cell]:
         """Searches the entire lattice for a micro-node that can cast from one type to another."""
         for cell in self.get_all_available_cells():

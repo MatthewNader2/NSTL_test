@@ -24,6 +24,12 @@ export default function App() {
   // Settings states
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [apiInputUrl, setApiInputUrl] = useState(getApiBase());
+  const [selectedProfile, setSelectedProfile] = useState("A");
+  const [embedderModel, setEmbedderModel] = useState("jina-embeddings-v5-text-nano");
+  const [llmModel, setLlmModel] = useState("qwen2.5-coder-1.5b-instruct");
+  const [embedderDevice, setEmbedderDevice] = useState("auto");
+  const [llmDevice, setLlmDevice] = useState("auto");
+  const [treesStorage, setTreesStorage] = useState("ram");
 
   // Panel Open States (Desktop)
   const [leftOpen, setLeftOpen] = useState(true);
@@ -54,6 +60,14 @@ export default function App() {
           
           if (data.status === "ready" || data.status === "uninitialized") {
             clearInterval(pollInterval);
+            
+            if (data.status === "uninitialized") {
+              logSystemEvent("Auto-initializing engine with default profile...", "API");
+              setBootStatus(prev => ({ ...prev, message: "Bootstrapping neural models...", status: "connecting" }));
+              await initializeEngine("A", "jina-embeddings-v5-text-nano", "qwen2.5-coder-1.5b-instruct", "auto", "auto", "ram");
+              logSystemEvent("Auto-initialization complete.", "API");
+            }
+
             // Smoothly remove loading screen
             setTimeout(() => {
               setLoading(false);
@@ -85,9 +99,9 @@ export default function App() {
           const res = await fetchHealth();
           if (res.ok) {
             setApiStatus("live");
-            const data = await fetchCells();
-            setCells(data.cells || []);
-            logSystemEvent(`Successfully fetched ${data.cells?.length || 0} cells from API`, "API");
+            const cells = await fetchCells();
+            setCells(cells);
+            logSystemEvent(`Successfully fetched ${cells.length} cells from API`, "API");
           } else {
             setApiStatus("offline");
             logSystemEvent("Failed API health check (non-ok response)", "API");
@@ -134,11 +148,14 @@ export default function App() {
   }
   return (
     <div className="app-container">
-      <TitleBar onSettingsClick={() => {
-        setApiInputUrl(getApiBase());
-        setSettingsOpen(true);
-        logSystemEvent("Opened Network Connection settings panel", "UI");
-      }} />
+      <TitleBar 
+        embedderModel={embedderModel}
+        onSettingsClick={() => {
+          setApiInputUrl(getApiBase());
+          setSettingsOpen(true);
+          logSystemEvent("Opened Network Connection settings panel", "UI");
+        }} 
+      />
       
       <div className="main-layout">
         {/* Left Panel (Console) */}
@@ -268,14 +285,14 @@ export default function App() {
             {/* Hardware Profile */}
             <div style={{ marginBottom: "16px" }}>
               <label style={{ display: "block", fontSize: "0.75rem", color: "var(--text-secondary)", marginBottom: "6px" }}>
-                Hardware Profile
+                Architecture Profile
               </label>
               <select
-                id="profileSelect"
-                defaultValue="A"
+                value={selectedProfile}
+                onChange={(e) => setSelectedProfile(e.target.value)}
                 style={{
                   width: "100%",
-                  padding: "10px",
+                  padding: "8px",
                   background: "rgba(0,0,0,0.4)",
                   border: "1px solid var(--glass-border)",
                   borderRadius: "6px",
@@ -284,23 +301,23 @@ export default function App() {
                   outline: "none"
                 }}
               >
-                <option value="A">Profile A (Fast SentenceTransformer)</option>
-                <option value="B">Profile B (Local LLM Qwen0.5b)</option>
-                <option value="C">Profile C (Unloaded)</option>
+                <option value="A">Profile A (Embeddings Only)</option>
+                <option value="B">Profile B (LLM Generation + Feedback)</option>
+                <option value="C">Profile C (Hybrid Embeddings + LLM)</option>
               </select>
             </div>
-            
-            {/* Compute Device */}
-            <div style={{ marginBottom: "24px" }}>
+
+            {/* Embedder Model */}
+            <div style={{ marginBottom: "16px", display: selectedProfile === "B" ? "none" : "block" }}>
               <label style={{ display: "block", fontSize: "0.75rem", color: "var(--text-secondary)", marginBottom: "6px" }}>
-                Compute Device Override
+                Embedding Model
               </label>
               <select
-                id="deviceSelect"
-                defaultValue="auto"
+                value={embedderModel}
+                onChange={(e) => setEmbedderModel(e.target.value)}
                 style={{
                   width: "100%",
-                  padding: "10px",
+                  padding: "8px",
                   background: "rgba(0,0,0,0.4)",
                   border: "1px solid var(--glass-border)",
                   borderRadius: "6px",
@@ -309,10 +326,64 @@ export default function App() {
                   outline: "none"
                 }}
               >
-                <option value="auto">Auto (HardwareProfiler)</option>
-                <option value="cuda">GPU (CUDA / RTX 3070 Ti)</option>
-                <option value="cpu">CPU (System RAM Only)</option>
+                <option value="jina-embeddings-v5-text-nano">Jina Embeddings V5 (Nano)</option>
               </select>
+            </div>
+
+            {/* LLM Model */}
+            <div style={{ marginBottom: "16px", display: selectedProfile === "A" ? "none" : "block" }}>
+              <label style={{ display: "block", fontSize: "0.75rem", color: "var(--text-secondary)", marginBottom: "6px" }}>
+                Local LLM Model
+              </label>
+              <select
+                value={llmModel}
+                onChange={(e) => setLlmModel(e.target.value)}
+                style={{
+                  width: "100%",
+                  padding: "8px",
+                  background: "rgba(0,0,0,0.4)",
+                  border: "1px solid var(--glass-border)",
+                  borderRadius: "6px",
+                  color: "#fff",
+                  fontSize: "0.85rem",
+                  outline: "none"
+                }}
+              >
+                <option value="qwen2.5-coder-0.5b-instruct">Qwen 2.5 Coder (0.5B)</option>
+                <option value="qwen2.5-coder-1.5b-instruct">Qwen 2.5 Coder (1.5B)</option>
+              </select>
+            </div>
+
+            {/* Hardware Routing */}
+            <div style={{ display: "flex", gap: "10px", marginBottom: "24px" }}>
+              <div style={{ flex: 1 }}>
+                <label style={{ display: "block", fontSize: "0.75rem", color: "var(--text-secondary)", marginBottom: "6px" }}>
+                  Emb Device
+                </label>
+                <select
+                  value={embedderDevice}
+                  onChange={(e) => setEmbedderDevice(e.target.value)}
+                  style={{ width: "100%", padding: "8px", background: "rgba(0,0,0,0.4)", border: "1px solid var(--glass-border)", borderRadius: "6px", color: "#fff", fontSize: "0.8rem", outline: "none" }}
+                >
+                  <option value="auto">Auto</option>
+                  <option value="cpu">CPU</option>
+                  <option value="cuda">CUDA</option>
+                </select>
+              </div>
+              <div style={{ flex: 1 }}>
+                <label style={{ display: "block", fontSize: "0.75rem", color: "var(--text-secondary)", marginBottom: "6px" }}>
+                  LLM Device
+                </label>
+                <select
+                  value={llmDevice}
+                  onChange={(e) => setLlmDevice(e.target.value)}
+                  style={{ width: "100%", padding: "8px", background: "rgba(0,0,0,0.4)", border: "1px solid var(--glass-border)", borderRadius: "6px", color: "#fff", fontSize: "0.8rem", outline: "none" }}
+                >
+                  <option value="auto">Auto</option>
+                  <option value="cpu">CPU</option>
+                  <option value="cuda">CUDA</option>
+                </select>
+              </div>
             </div>
             
             <div style={{ display: "flex", gap: "10px", justifyContent: "flex-end" }}>
@@ -334,19 +405,19 @@ export default function App() {
               <button
                 onClick={async () => {
                   setApiBase(apiInputUrl);
-                  
-                  const selectedProfile = document.getElementById("profileSelect").value;
-                  const selectedDevice = document.getElementById("deviceSelect").value;
-                  
-                  logSystemEvent(`Applying settings: URL=${apiInputUrl}, Profile=${selectedProfile}, Device=${selectedDevice}`, "API");
+
+                  logSystemEvent(`Applying settings: URL=${apiInputUrl}, Profile=${selectedProfile}`, "API");
                   setBootStatus({ ...bootStatus, status: "loading", message: `Hot-swapping to Profile ${selectedProfile}...` });
                   
                   try {
-                    const data = await initializeEngine(selectedProfile, selectedDevice);
-                    const resolvedDevice = data.device || selectedDevice;
+                    const data = await initializeEngine(selectedProfile, embedderModel, llmModel, embedderDevice, llmDevice, treesStorage);
+                    const resolvedDevice = data.device || (llmDevice === "auto" ? "cpu" : llmDevice);
                     setBootStatus({ ...bootStatus, status: data.status || "ready", device: resolvedDevice });
                     if (resolvedDevice) setHardwareDevice(resolvedDevice);
                     logSystemEvent(`Engine hot-swapped successfully!`, "API");
+                    
+                    const cells = await fetchCells();
+                    setCells(cells);
                   } catch (err) {
                     logSystemEvent(`Hot-swap failed: ${err.message}`, "API");
                   }

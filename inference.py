@@ -6,6 +6,26 @@ import logging
 from abc import ABC, abstractmethod
 from typing import List
 
+# Mock transformers.onnx for jinaai embedding models compatibility
+import sys
+if 'transformers.onnx' not in sys.modules:
+    import types
+    transformers_onnx = types.ModuleType('transformers.onnx')
+    transformers_onnx.OnnxConfig = type('OnnxConfig', (object,), {})
+    sys.modules['transformers.onnx'] = transformers_onnx
+
+import transformers.pytorch_utils
+if not hasattr(transformers.pytorch_utils, 'find_pruneable_heads_and_indices'):
+    def find_pruneable_heads_and_indices(*args, **kwargs):
+        return set(), []
+    transformers.pytorch_utils.find_pruneable_heads_and_indices = find_pruneable_heads_and_indices
+
+import transformers.configuration_utils
+if not hasattr(transformers.configuration_utils.PretrainedConfig, 'is_decoder'):
+    transformers.configuration_utils.PretrainedConfig.is_decoder = False
+if not hasattr(transformers.configuration_utils.PretrainedConfig, 'add_cross_attention'):
+    transformers.configuration_utils.PretrainedConfig.add_cross_attention = False
+
 # Setup benchmarking logger
 bench_logger = logging.getLogger("Benchmark")
 bench_logger.setLevel(logging.INFO)
@@ -16,7 +36,7 @@ if not bench_logger.handlers:
 
 class InferenceProfile(ABC):
     @abstractmethod
-    def load_models(self):
+    def load_models(self, embedder_name: str, llm_name: str):
         pass
 
     @abstractmethod
@@ -38,19 +58,31 @@ class InferenceProfile(ABC):
     @abstractmethod
     def embedding_dimension(self) -> int:
         pass
+        
+    @abstractmethod
+    def feedback_check(self, generated_code: str) -> str:
+        '''Runs a feedback check on the generated code (for Profiles B and C).'''
+        pass
 
 
 class BenchmarkProfile_A(InferenceProfile):
     def __init__(self):
         self.model = None
 
-    def load_models(self):
+    def load_models(self, embedder_name: str, llm_name: str):
         from sentence_transformers import SentenceTransformer
         from router import HardwareProfiler
-        model_path = os.path.join(os.getcwd(), "model_1")
+        
+        if not embedder_name:
+            embedder_name = "jinaai/jina-embeddings-v2-small-en"
+            
+        model_path = os.path.join(os.getcwd(), "models", "embeddings", embedder_name)
         if not os.path.exists(model_path):
-            model_path = "jinaai/jina-embeddings-v2-small-en"
-        device = HardwareProfiler.get_optimal_device()
+            model_path = embedder_name  # Fallback to HuggingFace hub if local missing
+            
+        device = HardwareProfiler.get_embedder_device()
+        if device == "mps":
+             device = "cpu" # SentenceTransformers MPS support is flaky
         self.model = SentenceTransformer(model_path, device=device, trust_remote_code=True)
 
     def get_embedding(self, text: str) -> List[float]:
@@ -59,18 +91,14 @@ class BenchmarkProfile_A(InferenceProfile):
         except TypeError:
             return self.model.encode([text], convert_to_numpy=True)[0].tolist()
 
-    def get_embeddings(self, texts: List[str]) -> List[List[float]]:
-        try:
-            return self.model.encode(texts, convert_to_numpy=True, task="retrieval").tolist()
-        except TypeError:
-            return self.model.encode(texts, convert_to_numpy=True).tolist()
-
     def generate_text(self, prompt: str, max_tokens: int = 2048, schema: dict = None) -> str:
-        raise RuntimeError("BenchmarkProfile_A does not support text generation.")
+        raise RuntimeError("Profile A (Embedding Only) does not support text generation.")
 
     def can_synthesize(self) -> bool:
         return False
-
+        
+    def feedback_check(self, generated_code: str) -> str:
+        return generated_code  # No feedback loop in Profile A
 
     @property
     def embedding_dimension(self) -> int:
@@ -80,15 +108,23 @@ class BenchmarkProfile_A(InferenceProfile):
 class BenchmarkProfile_B(InferenceProfile):
     def __init__(self):
         self.llm = None
+        self._dim = 896
 
-    def load_models(self):
+    def load_models(self, embedder_name: str, llm_name: str):
         from llama_cpp import Llama
         from router import HardwareProfiler
-        model_path = os.path.join(os.getcwd(), "model_2", "qwen2.5-coder-0.5b-instruct-q4_k_m.gguf")
-        if not os.path.exists(model_path):
-            raise FileNotFoundError(f"Model not found at {model_path}")
+        
+        if not llm_name:
+            raise ValueError("Profile B requires an llm_name")
+            
+        model_dir = os.path.join(os.getcwd(), "models", "llms", llm_name)
+        # Find the .gguf file inside the directory
+        gguf_files = [f for f in os.listdir(model_dir) if f.endswith('.gguf')] if os.path.exists(model_dir) else []
+        if not gguf_files:
+            raise FileNotFoundError(f"No .gguf model found in {model_dir}")
+        model_path = os.path.join(model_dir, gguf_files[0])
 
-        device = HardwareProfiler.get_optimal_device()
+        device = HardwareProfiler.get_llm_device()
         gpu_layers = -1 if device == "cuda" else 0
         common_kwargs = {
             "model_path": model_path,
@@ -96,112 +132,96 @@ class BenchmarkProfile_B(InferenceProfile):
             "mmap": True,
             "verbose": False,
             "n_gpu_layers": gpu_layers,
-            "embedding": True, # Optimize: single instance for both embed and chat
+            "embedding": True,
         }
         self.llm = Llama(**common_kwargs)
-
-    def get_embedding(self, text: str) -> List[float]:
-        result = self.llm.create_embedding(text)
-        emb_data = result['data'][0]['embedding']
-        if isinstance(emb_data, list) and len(emb_data) > 0 and isinstance(emb_data[0], list):
-            import numpy as np
-            return np.mean(emb_data, axis=0).tolist()
-        return emb_data
-
-    def get_embeddings(self, texts: List[str]) -> List[List[float]]:
+        # Attempt to auto-detect dimension if possible
         try:
-            result = self.llm.create_embedding(texts)
-            embeddings = []
-            for item in result.get("data", []):
-                emb_data = item["embedding"]
-                if isinstance(emb_data, list) and emb_data and isinstance(emb_data[0], list):
-                    import numpy as np
-                    embeddings.append(np.mean(emb_data, axis=0).tolist())
-                else:
-                    embeddings.append(emb_data)
-            if len(embeddings) == len(texts):
-                return embeddings
+            self._dim = self.llm.metadata.get('llama.embedding_length', 896)
+            if isinstance(self._dim, str):
+                self._dim = int(self._dim)
         except Exception:
             pass
-        return super().get_embeddings(texts)
+
+    def get_embedding(self, text: str) -> List[float]:
+        # Halting generation to do embedding (Mid-Processing)
+        result = self.llm.create_embedding(text)
+        return result['data'][0]['embedding']
 
     def generate_text(self, prompt: str, max_tokens: int = 2048, schema: dict = None) -> str:
-        import json
-        messages = [{"role": "user", "content": prompt}]
+        kwargs = {
+            "prompt": prompt,
+            "max_tokens": max_tokens,
+            "stop": ["```\\n", "}\\n", "}\\r\\n"],
+            "temperature": 0.1,
+            "top_p": 0.95
+        }
+        if schema:
+            kwargs["response_format"] = {
+                "type": "json_object",
+                "schema": schema
+            }
         
-        # If schema is provided or JSON is requested, use our custom streaming cutoff logic
-        # rather than llama_cpp's strict grammar which causes infinite loops.
-        is_json_request = schema is not None or "json" in prompt.lower()
-        
-        if is_json_request:
-            stream = self.llm.create_chat_completion(
-                messages=messages,
-                max_tokens=max_tokens,
-                stream=True,
-                stop=["<|im_end|>"]
-            )
-            buffer = ""
-            for chunk in stream:
-                delta = chunk["choices"][0]["delta"]
-                if "content" in delta:
-                    content = delta["content"]
-                    buffer += content
-                    
-                    if "}" in content or "]" in content:
-                        try:
-                            if "{" in buffer and "}" in buffer:
-                                json_str = buffer[buffer.find("{"):buffer.rfind("}")+1]
-                                # Test parse
-                                json.loads(json_str)
-                                # If it succeeds, cut the generation!
-                                return json_str
-                        except json.JSONDecodeError:
-                            pass
-                            
-            # Fallback if loop finishes without valid JSON
-            try:
-                if "{" in buffer and "}" in buffer:
-                    json_str = buffer[buffer.find("{"):buffer.rfind("}")+1]
-                    return json_str
-            except json.JSONDecodeError:
-                pass
-            return buffer
-        else:
-            response = self.llm.create_chat_completion(
-                messages=messages,
-                max_tokens=max_tokens
-            )
-            return response["choices"][0]["message"]["content"]
+        response = self.llm(**kwargs)
+        return response['choices'][0]['text'].strip()
 
     def can_synthesize(self) -> bool:
         return True
+        
+    def feedback_check(self, generated_code: str) -> str:
+        prompt = f"Review the following generated python code for syntax errors or logical bugs. If there are errors, return the corrected code. Otherwise return the original code exactly. Only output the code:\\n\\n```python\\n{generated_code}\\n```"
+        corrected = self.generate_text(prompt, max_tokens=1024)
+        if "```python" in corrected:
+            corrected = corrected.split("```python")[1].split("```")[0].strip()
+        return corrected if corrected else generated_code
 
     @property
     def embedding_dimension(self) -> int:
-        return 896
+        return self._dim
 
 
 class BenchmarkProfile_C(InferenceProfile):
     def __init__(self):
         self.embedder = None
         self.llm = None
+        self._dim = 768
 
-    def load_models(self):
+    def load_models(self, embedder_name: str, llm_name: str):
         from sentence_transformers import SentenceTransformer
         from llama_cpp import Llama
         from router import HardwareProfiler
         
-        model_path_1 = os.path.join(os.getcwd(), "model_1")
-        if not os.path.exists(model_path_1):
-            model_path_1 = "jinaai/jina-embeddings-v2-small-en"
-        device = HardwareProfiler.get_optimal_device()
-        self.embedder = SentenceTransformer(model_path_1, device=device, trust_remote_code=True)
+        if not embedder_name:
+             embedder_name = "jinaai/jina-embeddings-v2-small-en"
+        if not llm_name:
+             raise ValueError("Profile C requires an llm_name")
+             
+        # Load Embedder
+        emb_path = os.path.join(os.getcwd(), "models", "embeddings", embedder_name)
+        if not os.path.exists(emb_path):
+            emb_path = embedder_name
+            
+        emb_device = HardwareProfiler.get_embedder_device()
+        if emb_device == "mps": emb_device = "cpu"
+        self.embedder = SentenceTransformer(emb_path, device=emb_device, trust_remote_code=True, model_kwargs={'low_cpu_mem_usage': False})
         
-        model_path_2 = os.path.join(os.getcwd(), "model_2", "qwen2.5-coder-0.5b-instruct-q4_k_m.gguf")
-        if not os.path.exists(model_path_2):
-            raise FileNotFoundError(f"Model not found at {model_path_2}")
-        gpu_layers = -1 if device == "cuda" else 0
-        self.llm = Llama(model_path=model_path_2, n_ctx=4096, mmap=True, verbose=False, n_gpu_layers=gpu_layers)
+        # Load LLM
+        llm_dir = os.path.join(os.getcwd(), "models", "llms", llm_name)
+        gguf_files = [f for f in os.listdir(llm_dir) if f.endswith('.gguf')] if os.path.exists(llm_dir) else []
+        if not gguf_files:
+            raise FileNotFoundError(f"No .gguf model found in {llm_dir}")
+        llm_path = os.path.join(llm_dir, gguf_files[0])
+        
+        llm_device = HardwareProfiler.get_llm_device()
+        gpu_layers = -1 if llm_device == "cuda" else 0
+        self.llm = Llama(
+            model_path=llm_path,
+            n_ctx=4096,
+            mmap=True,
+            verbose=False,
+            n_gpu_layers=gpu_layers,
+            embedding=False
+        )
 
     def get_embedding(self, text: str) -> List[float]:
         try:
@@ -209,62 +229,65 @@ class BenchmarkProfile_C(InferenceProfile):
         except TypeError:
             return self.embedder.encode([text], convert_to_numpy=True)[0].tolist()
 
-    def get_embeddings(self, texts: List[str]) -> List[List[float]]:
-        try:
-            return self.embedder.encode(texts, convert_to_numpy=True, task="retrieval").tolist()
-        except TypeError:
-            return self.embedder.encode(texts, convert_to_numpy=True).tolist()
-
     def generate_text(self, prompt: str, max_tokens: int = 2048, schema: dict = None) -> str:
-        messages = [{"role": "user", "content": prompt}]
-        response_format = None
+        kwargs = {
+            "prompt": prompt,
+            "max_tokens": max_tokens,
+            "stop": ["```\n", "}\n", "}\r\n"],
+            "temperature": 0.1,
+            "top_p": 0.95
+        }
         if schema:
-            response_format = {"type": "json_object", "schema": schema}
-        elif "json" in prompt.lower():
-            response_format = {"type": "json_object"}
-            
-        response = self.llm.create_chat_completion(
-            messages=messages,
-            max_tokens=max_tokens,
-            response_format=response_format
-        )
-        return response["choices"][0]["message"]["content"]
+            kwargs["response_format"] = {
+                "type": "json_object",
+                "schema": schema
+            }
+        
+        response = self.llm(**kwargs)
+        return response['choices'][0]['text'].strip()
 
     def can_synthesize(self) -> bool:
         return True
+        
+    def feedback_check(self, generated_code: str) -> str:
+        prompt = f"Review the following generated python code for syntax errors or logical bugs. If there are errors, return the corrected code. Otherwise return the original code exactly. Only output the code:\n\n```python\n{generated_code}\n```"
+        corrected = self.generate_text(prompt, max_tokens=1024)
+        if "```python" in corrected:
+            corrected = corrected.split("```python")[1].split("```")[0].strip()
+        return corrected if corrected else generated_code
 
     @property
     def embedding_dimension(self) -> int:
-        return 768
-
+        return self._dim
 
 class ModelManager:
     _instance = None
-    # BUG 14 FIX: Lock for thread-safe singleton creation.
     _lock = threading.Lock()
-
-    @classmethod
-    def get_instance(cls):
-        # BUG 14 FIX: Double-checked locking pattern to prevent two threads from
-        # simultaneously creating separate ModelManager instances under concurrent load.
-        if cls._instance is None:
-            with cls._lock:
-                if cls._instance is None:
-                    cls._instance = ModelManager()
-        return cls._instance
-
+    
     def __init__(self):
-        self.profile = None
-        # Benchmarking is OFF by default. It must be explicitly enabled via the
-        # /api/benchmark/toggle endpoint so it doesn't flood the log during normal
-        # operation (e.g. LocalRAG.build_index embedding calls on startup).
+        if ModelManager._instance is not None:
+            raise Exception("Singleton class. Use get_instance().")
+        self.active_profile: InferenceProfile = None
+        self.current_profile_name = None
         self.benchmarking_enabled = False
-        self._init_lock = threading.Lock()
 
-    def initialize_profile(self, profile_type: str):
-        with self._init_lock:
-            previous_profile = self.profile
-            self.profile = None
+    @property
+    def profile(self):
+        return self.active_profile
+
+    @staticmethod
+    def get_instance():
+        if ModelManager._instance is None:
+            with ModelManager._lock:
+                if ModelManager._instance is None:
+                    ModelManager._instance = ModelManager()
+        return ModelManager._instance
+
+    def initialize_profile(self, profile_type: str, embedder_name: str = None, llm_name: str = None):
+        with self._lock:
+            # Re-initialize if the models change, even if the profile type is the same
+            logging.info(f"Loading BenchmarkProfile_{profile_type} models persistently...")
+            t0 = time.time()
             if profile_type == "A":
                 new_profile = BenchmarkProfile_A()
             elif profile_type == "B":
@@ -272,62 +295,54 @@ class ModelManager:
             elif profile_type == "C":
                 new_profile = BenchmarkProfile_C()
             else:
-                self.profile = previous_profile
-                raise ValueError(f"Unknown profile type: {profile_type}")
+                raise ValueError(f"Unknown profile: {profile_type}")
                 
-            logging.info(f"Loading BenchmarkProfile_{profile_type} models persistently...")
-            try:
-                new_profile.load_models()
-            except Exception:
-                self.profile = previous_profile
-                raise
-            else:
-                self.profile = new_profile
-                self._log_overhead(f"Initialized Profile_{profile_type}")
-
-    def _log_overhead(self, context: str):
-        process = psutil.Process(os.getpid())
-        mem_info = process.memory_info()
-        bench_logger.info(f"[{context}] System RAM Usage: {mem_info.rss / (1024**2):.2f} MB")
+            new_profile.load_models(embedder_name, llm_name)
+            
+            self.active_profile = new_profile
+            self.current_profile_name = profile_type
+            
+            t1 = time.time()
+            mem = psutil.Process(os.getpid()).memory_info().rss / (1024 * 1024)
+            bench_logger.info(f"[Initialized Profile_{profile_type}] System RAM Usage: {mem:.2f} MB")
+            print(f"  [+] Initialized Profile {profile_type} in {t1-t0:.2f}s")
 
     def get_embedding(self, text: str) -> List[float]:
-        if not self.profile:
-            raise RuntimeError("ModelManager profile not initialized.")
-        start = time.perf_counter()
-        result = self.profile.get_embedding(text)
-        latency = time.perf_counter() - start
+        if self.active_profile is None: return []
+        t0 = time.time()
+        emb = self.active_profile.get_embedding(text)
+        t1 = time.time()
         if self.benchmarking_enabled:
-            bench_logger.info(f"[Embedding] Latency: {latency:.4f}s")
-        return result
+            bench_logger.info(f"[Embedding] Latency: {t1-t0:.4f}s")
+        return emb
 
     def get_embeddings(self, texts: List[str]) -> List[List[float]]:
-        if not self.profile:
-            raise RuntimeError("ModelManager profile not initialized.")
-        start = time.perf_counter()
-        result = self.profile.get_embeddings(texts)
-        latency = time.perf_counter() - start
-        if self.benchmarking_enabled:
-            bench_logger.info(f"[EmbeddingBatch] Count: {len(texts)} Latency: {latency:.4f}s")
-        return result
+        if self.active_profile is None: return []
+        return self.active_profile.get_embeddings(texts)
 
     def generate_text(self, prompt: str, max_tokens: int = 2048, schema: dict = None) -> str:
-        if not self.profile:
-            raise RuntimeError("ModelManager profile not initialized.")
-        start = time.perf_counter()
-        result = self.profile.generate_text(prompt, max_tokens, schema)
-        latency = time.perf_counter() - start
+        if self.active_profile is None: return ""
+        if not self.active_profile.can_synthesize():
+            logging.info("Active profile has no text generator; using deterministic planner fallback.")
+            return ""
+        t0 = time.time()
+        text = self.active_profile.generate_text(prompt, max_tokens, schema)
+        t1 = time.time()
         if self.benchmarking_enabled:
-            bench_logger.info(f"[Generation] Latency: {latency:.4f}s")
-            self._log_overhead("Post-Generation")
-        return result
+            bench_logger.info(f"[Generation] Latency: {t1-t0:.4f}s")
+            mem = psutil.Process(os.getpid()).memory_info().rss / (1024 * 1024)
+            bench_logger.info(f"[Post-Generation] System RAM Usage: {mem:.2f} MB")
+        return text
 
     def can_synthesize(self) -> bool:
-        if not self.profile:
-            return False
-        return self.profile.can_synthesize()
+        if self.active_profile is None: return False
+        return self.active_profile.can_synthesize()
+        
+    def feedback_check(self, generated_code: str) -> str:
+        if self.active_profile is None: return generated_code
+        return self.active_profile.feedback_check(generated_code)
 
     @property
     def embedding_dimension(self) -> int:
-        if not self.profile:
-            return 768
-        return self.profile.embedding_dimension
+        if self.active_profile is None: return 0
+        return self.active_profile.embedding_dimension

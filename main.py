@@ -58,6 +58,7 @@ from planner import ZeroShotPlanner
 from synthesis import SynthesisEngine
 from external_rag import FetcherFactory
 from internal_rag import LocalRAG
+from inference import ModelManager
 
 global_orchestrator = None
 global_rag_engine = None
@@ -81,20 +82,21 @@ class RunRequest(BaseModel):
 @app.get("/api/status")
 def get_status():
     if global_orchestrator is None:
-        return {"status": "uninitialized", "device": engine_device}
-    return {"status": "ready", "device": engine_device}
+        return {"status": "uninitialized", "device": engine_device, "cells_loaded": 0}
+    return {"status": "ready", "device": engine_device, "cells_loaded": len(global_orchestrator.loaded_cells)}
 
 @app.get("/api/health")
 def health():
-    return {"status": "ok"}
+    if global_orchestrator is None:
+        return {"status": "ok", "cells_loaded": 0}
+    return {"status": "ok", "cells_loaded": len(global_orchestrator.loaded_cells)}
 
 @app.get("/api/cells")
 def get_cells():
     if global_orchestrator is None:
-        return []
+        return {"cells": [], "count": 0}
     cells = []
     for cell in global_orchestrator.get_all_available_cells():
-        from dataclasses import asdict
         in_dict  = asdict(cell.inputs) if hasattr(cell, 'inputs') else {}
         out_dict = asdict(cell.outputs) if hasattr(cell, 'outputs') else {}
         cells.append({
@@ -104,8 +106,9 @@ def get_cells():
             "keywords": list(cell.keywords) if hasattr(cell, 'keywords') else [],
             "inputs": in_dict,
             "outputs": out_dict,
+            "code_template": getattr(cell, 'code_template', "# No implementation")
         })
-    return cells
+    return {"cells": cells, "count": len(cells)}
 
 @app.post("/api/run")
 def run_prompt(req: RunRequest):
@@ -141,7 +144,7 @@ def run_prompt(req: RunRequest):
     # 2. Iterate Macro Graph and Gap Bridging
     final_micro_path = []
     virtual_edges = set()
-    current_type = "str" # Beginning type
+    current_signature = AlgebraicSignature(type_name="str", state="source_identifier")
     
     if isinstance(macro_graph, dict):
         cells_list = macro_graph.get('cells', [macro_graph])
@@ -155,61 +158,109 @@ def run_prompt(req: RunRequest):
     log_buffer.append({"msg": f"MCTS routing for {len(sub_cells_ids)} macro steps...", "type": "info"})
     
     for i, step_id in enumerate(sub_cells_ids):
-        expected_inputs = current_type
-        expected_outputs = "any"
-        
-        # Determine expected outputs based on the node or the next node
-        if step_id in global_orchestrator.loaded_cells:
-            expected_outputs = global_orchestrator.loaded_cells[step_id].outputs.type_name
-        else:
-            # Look ahead for next known input
-            for next_id in sub_cells_ids[i+1:]:
-                if next_id in global_orchestrator.loaded_cells:
-                    expected_outputs = global_orchestrator.loaded_cells[next_id].inputs.type_name
-                    break
-            
-        bridge_path = []
-        
-        if step_id not in global_orchestrator.loaded_cells:
-             log_buffer.append({"msg": f"Planner flagged MISSING_NODE ({step_id}) for {expected_inputs}->{expected_outputs}. Forcing Synthesis.", "type": "warn"})
-        else:
-             mcts = MCTSEngine(global_orchestrator)
-             bridge_path = mcts.search(expected_inputs, expected_outputs, iterations=1000)
-             
-        if not bridge_path:
-             log_buffer.append({"msg": f"C_sub = ∞ between {expected_inputs} and {expected_outputs}. Triggering Live RAG Synthesis (C_gen=1000)...", "type": "warn"})
-             synth = SynthesisEngine()
-             fetcher = FetcherFactory.get_fetcher(global_orchestrator.active_domain)
-             try:
-                 gap_concept = f"convert {expected_inputs} to {expected_outputs}"
-                 micro_json = synth.synthesize_micro_cell(gap_concept, expected_inputs, expected_outputs, fetcher)
-                 
-                 if UnificationGate.validate_synthesis(micro_json, expected_inputs, expected_outputs, trees_dir=TREES_DIR):
-                     # BUG 12 FIX: Protect shared orchestrator mutation with a lock.
-                     with _orchestrator_lock:
-                         bridge_node = global_orchestrator.inject_transient_macro(micro_json)
-                     bridge_path = [bridge_node]
-                     log_buffer.append({"msg": f"Synthesis complete for {expected_inputs}->{expected_outputs}", "type": "info"})
-                 else:
-                     log_buffer.append({"msg": f"Synthesis rejected by UnificationGate.", "type": "error"})
-                     break
-             except Exception as e:
-                 log_buffer.append({"msg": f"Synthesis failed: {e}", "type": "error"})
-                 break
+        target_cell = global_orchestrator.loaded_cells.get(step_id)
 
-        for b_node in bridge_path:
-            final_micro_path.append(b_node)
-            virtual_edges.add(b_node.cell_id)
-        
-        current_type = expected_outputs
+        if target_cell is None:
+            expected_inputs = current_signature.type_name
+            expected_outputs = "any"
+            for next_id in sub_cells_ids[i+1:]:
+                next_cell = global_orchestrator.loaded_cells.get(next_id)
+                if next_cell:
+                    expected_outputs = next_cell.inputs.type_name
+                    break
+
+            log_buffer.append({"msg": f"Planner flagged MISSING_NODE ({step_id}) for {expected_inputs}->{expected_outputs}.", "type": "warn"})
+            
+            # 1. Composition Confidence
+            mcts = MCTSEngine(global_orchestrator)
+            comp_path = mcts.search(expected_inputs, expected_outputs, iterations=200)
+            comp_confidence = 1.0 / (len(comp_path) + 1) if comp_path else 0.0
+
+            # 2. Synthesis Confidence
+            synth_micro_json = None
+            synth_confidence = 0.0
+            
+            can_synth = ModelManager.get_instance().can_synthesize()
+            if can_synth:
+                synth = SynthesisEngine()
+                fetcher = FetcherFactory.get_fetcher(global_orchestrator.active_domain)
+                try:
+                    gap_concept = f"{step_id}: convert {expected_inputs} to {expected_outputs}"
+                    synth_micro_json = synth.synthesize_micro_cell(gap_concept, expected_inputs, expected_outputs, fetcher)
+                    if UnificationGate.validate_synthesis(synth_micro_json, expected_inputs, expected_outputs, trees_dir=TREES_DIR):
+                        synth_confidence = 0.85
+                except Exception as e:
+                    log_buffer.append({"msg": f"Synthesis failed: {e}", "type": "error"})
+
+            # Decision Matrix
+            if comp_confidence > synth_confidence and comp_confidence > 0:
+                log_buffer.append({"msg": f"Composition confidence ({comp_confidence:.2f}) > Synthesis. Bridging using existing nodes.", "type": "info"})
+                for n in comp_path:
+                    final_micro_path.append(n)
+                    virtual_edges.add(n.cell_id)
+                    current_signature = n.outputs
+                continue
+            elif synth_confidence > 0:
+                with _orchestrator_lock:
+                    target_cell = global_orchestrator.inject_transient_macro(synth_micro_json)
+                virtual_edges.add(target_cell.cell_id)
+                log_buffer.append({"msg": f"Synthesis chosen (conf {synth_confidence:.2f}) for {expected_inputs}->{expected_outputs}", "type": "info"})
+            else:
+                log_buffer.append({"msg": "SAFETY ABORT: Cannot bridge or synthesize missing node.", "type": "error"})
+                target_cell = None
+                break
+
+        if target_cell is None:
+            continue
+
+        if not current_signature.matches(target_cell.inputs):
+            log_buffer.append({
+                "msg": (
+                    f"Bridging {current_signature.type_name}[{current_signature.state}] "
+                    f"-> {target_cell.inputs.type_name}[{target_cell.inputs.state}] before {target_cell.cell_id}"
+                ),
+                "type": "info",
+            })
+            bridge_path = []
+            if current_signature.type_name != target_cell.inputs.type_name:
+                mcts = MCTSEngine(global_orchestrator)
+                bridge_path = mcts.search(current_signature.type_name, target_cell.inputs.type_name, iterations=500)
+
+            for bridge_node in bridge_path:
+                final_micro_path.append(bridge_node)
+                virtual_edges.add(bridge_node.cell_id)
+                current_signature = bridge_node.outputs
+
+            if not current_signature.matches(target_cell.inputs):
+                log_buffer.append({
+                    "msg": (
+                        f"No exact typestate bridge found; applying {target_cell.cell_id} "
+                        f"with latest compatible runtime value."
+                    ),
+                    "type": "warn",
+                })
+
+        final_micro_path.append(target_cell)
+        current_signature = target_cell.outputs
 
     # 3. Code Generation
     compiled_blocks = []
+    explicit_filename = context.extracted_parameters.get("explicit_filename")
+    if explicit_filename:
+        compiled_blocks.append(f"input_source = {explicit_filename!r}")
     for cell in final_micro_path:
-        # BUG 4 FIX: Remove nonexistent log_buffer kwarg from unify() call.
         code_block = UnificationGate.unify(context, cell)
         if code_block:
             compiled_blocks.append(code_block)
+            
+    # Feedback Loop Check
+    final_code = "\n".join(compiled_blocks)
+    if ModelManager.get_instance().can_synthesize():
+        log_buffer.append({"msg": "Running final generated code through feedback check...", "type": "info"})
+        final_code = ModelManager.get_instance().feedback_check(final_code)
+    
+    # We rebuild compiled_blocks for the API response
+    compiled_blocks = [final_code]
 
     # Format the path for the React frontend
     path_formatted = []
@@ -238,16 +289,21 @@ def run_prompt(req: RunRequest):
 
 class InitRequest(BaseModel):
     profile: str = "B"
-    device: str = "auto"
+    embedder_model: str = "jina-embeddings-v5-text-nano"
+    llm_model: str = "qwen2.5-coder-1.5b-instruct"
+    embedder_device: str = "auto"
+    llm_device: str = "auto"
+    trees_storage: str = "ram"
 
 @app.post("/api/initialize")
 def initialize_engine(req: InitRequest = InitRequest()):
     global global_orchestrator, global_rag_engine, engine_device
     try:
-        from inference import ModelManager
+        HardwareProfiler.set_config(req.embedder_device, req.llm_device, req.trees_storage)
+
         # Initialize selected profile
-        ModelManager.get_instance().initialize_profile(req.profile)
-        
+        ModelManager.get_instance().initialize_profile(req.profile, req.embedder_model, req.llm_model)
+
         engine_device = HardwareProfiler.get_optimal_device()
         global_orchestrator = LatticeOrchestrator(trees_directory=TREES_DIR)
         
@@ -264,7 +320,6 @@ def toggle_benchmark():
     """Enable or disable latency benchmarking. Off by default.
     The frontend calls this when the user clicks the Benchmark button in the GUI.
     """
-    from inference import ModelManager
     mm = ModelManager.get_instance()
     mm.benchmarking_enabled = not mm.benchmarking_enabled
     state = "enabled" if mm.benchmarking_enabled else "disabled"
@@ -273,7 +328,6 @@ def toggle_benchmark():
 
 @app.get("/api/benchmark/status")
 def get_benchmark_status():
-    from inference import ModelManager
     mm = ModelManager.get_instance()
     return {"benchmarking": getattr(mm, 'benchmarking_enabled', False)}
 
