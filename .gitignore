@@ -4,6 +4,7 @@ __pycache__/
 .vscode/
 .idea/
 model_cache/
+.rag_cache/
 build/
 dist/
 *.spec
@@ -11,3 +12,14 @@ frontend/node_modules/
 frontend/dist/
 *.exe
 *.apk
+
+models/
+trees/*.db
+harvests/
+logs/
+colab_cli_repo/
+evaluation_results.json
+evaluation_report.md
+__pycache__/
+*.pyc
+
