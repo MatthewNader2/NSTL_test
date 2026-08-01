@@ -1,16 +1,11 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useMemo } from "react";
 import { useStore } from "../store";
-import { Zap, Cpu, Monitor, Settings, ChevronDown, Check } from "lucide-react";
+import { Zap, Cpu, Monitor, Settings, ChevronDown, Check, UserCircle } from "lucide-react";
 
-const EMBEDDER_MODELS = [
-  { value: "jina-embeddings-v5-text-nano", label: "Jina v5 Nano", desc: "Best quality · GPU optimized" },
-  { value: "jinaai/jina-embeddings-v2-small-en", label: "Jina v2 Small", desc: "Lighter weight · CPU friendly" },
-  { value: "BAAI/bge-small-en-v1.5", label: "BGE Small v1.5", desc: "Fast · BAAI open-source" },
-];
-
-const LLM_MODELS = [
-  { value: "qwen2.5-coder-1.5b-instruct", label: "Qwen2.5 1.5B", desc: "Higher quality · Slower" },
-  { value: "qwen2.5-coder-0.5b-instruct", label: "Qwen2.5 0.5B", desc: "Fastest · Lighter" },
+const PROFILES = [
+  { value: "A", label: "Profile A", desc: "Embedding Only" },
+  { value: "B", label: "Profile B", desc: "LLM (Embedding + Text)" },
+  { value: "C", label: "Profile C", desc: "Embedder + LLM (Hybrid)" },
 ];
 
 function ModelPickerPopover({ models, selected, onSelect, accentClass, onClose }) {
@@ -20,36 +15,40 @@ function ModelPickerPopover({ models, selected, onSelect, accentClass, onClose }
     const handler = (e) => { if (ref.current && !ref.current.contains(e.target)) onClose(); };
     document.addEventListener("mousedown", handler);
     return () => document.removeEventListener("mousedown", handler);
-  }, [onClose]);
+  }, []); // onClose identity doesn't matter — it closes the popover which unmounts this component
 
   return (
     <div className="model-popover" ref={ref}>
-      <div className="model-popover-title">Select Model</div>
-      {models.map((m) => {
-        const isSelected = selected === m.value;
-        return (
-          <div
-            key={m.value}
-            className={`model-option ${isSelected ? (accentClass === "purple" ? "selected-purple" : "selected") : ""}`}
-            onClick={() => { onSelect(m.value); onClose(); }}
-          >
-            <div className="model-option-check">
-              {isSelected && <Check size={12} color={accentClass === "purple" ? "#a78bfa" : "#00d4ff"} />}
-            </div>
-            <div className="model-option-info">
-              <div className="model-option-name" style={{ color: isSelected ? (accentClass === "purple" ? "#a78bfa" : "#00d4ff") : "var(--t1)" }}>
-                {m.label}
+      <div className="model-popover-title">Select Option</div>
+      {models.length === 0 ? (
+        <div style={{ padding: "8px", fontSize: "0.75rem", color: "var(--t3)" }}>No items found</div>
+      ) : (
+        models.map((m) => {
+          const isSelected = selected === m.value;
+          return (
+            <div
+              key={m.value}
+              className={`model-option ${isSelected ? (accentClass === "purple" ? "selected-purple" : "selected") : ""}`}
+              onClick={() => { onSelect(m.value); onClose(); }}
+            >
+              <div className="model-option-check">
+                {isSelected && <Check size={12} color={accentClass === "purple" ? "#a78bfa" : "#00d4ff"} />}
               </div>
-              <div className="model-option-desc">{m.desc}</div>
+              <div className="model-option-info">
+                <div className="model-option-name" style={{ color: isSelected ? (accentClass === "purple" ? "#a78bfa" : "#00d4ff") : "var(--t1)", wordBreak: "break-all" }}>
+                  {m.label}
+                </div>
+                {m.desc && <div className="model-option-desc">{m.desc}</div>}
+              </div>
             </div>
-          </div>
-        );
-      })}
+          );
+        })
+      )}
     </div>
   );
 }
 
-export default function AppHeader({ embedderModel, llmModel, onModelSwap }) {
+export default function AppHeader({ embedderModel, llmModel, onModelSwap, availableModels, selectedProfile, onProfileChange }) {
   const apiStatus = useStore((s) => s.apiStatus);
   const cells = useStore((s) => s.cells);
   const hardwareDevice = useStore((s) => s.hardwareDevice);
@@ -59,9 +58,22 @@ export default function AppHeader({ embedderModel, llmModel, onModelSwap }) {
 
   const [embedderOpen, setEmbedderOpen] = useState(false);
   const [llmOpen, setLlmOpen] = useState(false);
+  const [profileOpen, setProfileOpen] = useState(false);
 
-  const currentEmbedder = EMBEDDER_MODELS.find((m) => m.value === embedderModel);
-  const currentLlm = LLM_MODELS.find((m) => m.value === llmModel);
+  // Dynamic models derived from availableModels prop
+  const embedderOptions = useMemo(() => {
+    if (!availableModels?.embedders) return [];
+    return availableModels.embedders.map(m => ({ value: m, label: m }));
+  }, [availableModels]);
+
+  const llmOptions = useMemo(() => {
+    if (!availableModels?.llms) return [];
+    return availableModels.llms.map(m => ({ value: m, label: m }));
+  }, [availableModels]);
+
+  const currentEmbedder = embedderOptions.find((m) => m.value === embedderModel) || { label: embedderModel };
+  const currentLlm = llmOptions.find((m) => m.value === llmModel) || { label: llmModel };
+  const currentProfile = PROFILES.find((p) => p.value === selectedProfile);
 
   const isOnline = apiStatus === "live";
   const isGpu = hardwareDevice === "cuda" || hardwareDevice === "mps";
@@ -98,51 +110,82 @@ export default function AppHeader({ embedderModel, llmModel, onModelSwap }) {
 
       {/* Model Badges */}
       <div className="header-center">
-        {/* Embedder */}
+        {/* Profile */}
         <div style={{ position: "relative" }}>
           <button
-            className="model-badge cyan"
-            onClick={() => { setEmbedderOpen(!embedderOpen); setLlmOpen(false); logSystemEvent("Opened embedder picker", "UI"); }}
+            className="model-badge"
+            style={{ borderColor: "var(--border)", color: "var(--t1)" }}
+            onClick={() => { setProfileOpen(!profileOpen); setEmbedderOpen(false); setLlmOpen(false); }}
           >
-            <span className="badge-dot" />
-            <span className="model-badge-label">EMB</span>
-            <span style={{ fontWeight: 600 }}>{currentEmbedder?.label || embedderModel}</span>
-            <ChevronDown size={12} style={{ opacity: 0.6, transition: "transform 0.2s", transform: embedderOpen ? "rotate(180deg)" : "rotate(0deg)" }} />
+            <UserCircle size={12} style={{ color: "var(--t2)" }} />
+            <span className="model-badge-label">PROF</span>
+            <span style={{ fontWeight: 600 }}>{currentProfile?.value || selectedProfile}</span>
+            <ChevronDown size={12} style={{ opacity: 0.6, transition: "transform 0.2s", transform: profileOpen ? "rotate(180deg)" : "rotate(0deg)" }} />
           </button>
-          {embedderOpen && (
+          {profileOpen && (
             <ModelPickerPopover
-              models={EMBEDDER_MODELS}
-              selected={embedderModel}
+              models={PROFILES}
+              selected={selectedProfile}
               accentClass="cyan"
-              onSelect={(v) => onModelSwap(v, llmModel)}
-              onClose={() => setEmbedderOpen(false)}
+              onSelect={(v) => { onProfileChange(v); setProfileOpen(false); }}
+              onClose={() => setProfileOpen(false)}
             />
           )}
         </div>
 
         <div style={{ width: "1px", height: "16px", background: "var(--border)" }} />
 
+        {/* Embedder */}
+        {(selectedProfile === "A" || selectedProfile === "C") && (
+          <div style={{ position: "relative" }}>
+            <button
+              className="model-badge cyan"
+              onClick={() => { setEmbedderOpen(!embedderOpen); setLlmOpen(false); setProfileOpen(false); logSystemEvent("Opened embedder picker", "UI"); }}
+            >
+              <span className="badge-dot" />
+              <span className="model-badge-label">EMB</span>
+              <span style={{ fontWeight: 600, maxWidth: 120, overflow: "hidden", textOverflow: "ellipsis" }}>{currentEmbedder.label}</span>
+              <ChevronDown size={12} style={{ opacity: 0.6, transition: "transform 0.2s", transform: embedderOpen ? "rotate(180deg)" : "rotate(0deg)" }} />
+            </button>
+            {embedderOpen && (
+              <ModelPickerPopover
+                models={embedderOptions}
+                selected={embedderModel}
+                accentClass="cyan"
+                onSelect={(v) => onModelSwap(v, llmModel)}
+                onClose={() => setEmbedderOpen(false)}
+              />
+            )}
+          </div>
+        )}
+
+        {(selectedProfile === "A" || selectedProfile === "C") && (selectedProfile === "B" || selectedProfile === "C") && (
+          <div style={{ width: "1px", height: "16px", background: "var(--border)" }} />
+        )}
+
         {/* LLM */}
-        <div style={{ position: "relative" }}>
-          <button
-            className="model-badge purple"
-            onClick={() => { setLlmOpen(!llmOpen); setEmbedderOpen(false); logSystemEvent("Opened LLM picker", "UI"); }}
-          >
-            <span className="badge-dot" />
-            <span className="model-badge-label">LLM</span>
-            <span style={{ fontWeight: 600 }}>{currentLlm?.label || llmModel}</span>
-            <ChevronDown size={12} style={{ opacity: 0.6, transition: "transform 0.2s", transform: llmOpen ? "rotate(180deg)" : "rotate(0deg)" }} />
-          </button>
-          {llmOpen && (
-            <ModelPickerPopover
-              models={LLM_MODELS}
-              selected={llmModel}
-              accentClass="purple"
-              onSelect={(v) => onModelSwap(embedderModel, v)}
-              onClose={() => setLlmOpen(false)}
-            />
-          )}
-        </div>
+        {(selectedProfile === "B" || selectedProfile === "C") && (
+          <div style={{ position: "relative" }}>
+            <button
+              className="model-badge purple"
+              onClick={() => { setLlmOpen(!llmOpen); setEmbedderOpen(false); setProfileOpen(false); logSystemEvent("Opened LLM picker", "UI"); }}
+            >
+              <span className="badge-dot" />
+              <span className="model-badge-label">LLM</span>
+              <span style={{ fontWeight: 600, maxWidth: 120, overflow: "hidden", textOverflow: "ellipsis" }}>{currentLlm.label}</span>
+              <ChevronDown size={12} style={{ opacity: 0.6, transition: "transform 0.2s", transform: llmOpen ? "rotate(180deg)" : "rotate(0deg)" }} />
+            </button>
+            {llmOpen && (
+              <ModelPickerPopover
+                models={llmOptions}
+                selected={llmModel}
+                accentClass="purple"
+                onSelect={(v) => onModelSwap(embedderModel, v)}
+                onClose={() => setLlmOpen(false)}
+              />
+            )}
+          </div>
+        )}
       </div>
 
       {/* Actions */}

@@ -5,6 +5,7 @@ import os
 import platform
 import random
 import re
+import copy
 import warnings
 
 import faiss
@@ -509,6 +510,22 @@ class LatticeRouter:
             if best_node is None:
                 logger.warning(f"[ROUTER HALT] No valid node resolved for goal: '{goal}'.")
                 break
+                
+            # Clone best_node to attach heuristics safely
+            best_node = copy.copy(best_node)
+            
+            # Extract heuristics purely from this goal
+            goal_heuristics = []
+            all_quoted = re.findall(r'["\']([^"\']+)["\']', goal)
+            for q in all_quoted:
+                # Naively add all quoted strings
+                goal_heuristics.append(f"{repr(q)}")
+                
+            numbers = re.findall(r'\b(\d+(?:\.\d+)?)\b', goal)
+            for n in numbers:
+                goal_heuristics.append(n)
+                
+            best_node.matched_heuristics = goal_heuristics
 
             final_path.append(best_node)
             current_node = best_node

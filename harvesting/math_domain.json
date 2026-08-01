@@ -1,0 +1,1382 @@
+{
+  "domain_name": "Math_Domain",
+  "version": "1.0.0",
+  "description": "Auto-compiled from harvested_math.py",
+  "cells": [
+    {
+      "cell_id": "MATH_ACOS",
+      "type": "micro",
+      "stage": 1,
+      "keywords": [
+        "math",
+        "acos"
+      ],
+      "inputs": {
+        "type_name": "any",
+        "state": "x"
+      },
+      "outputs": {
+        "type_name": "any",
+        "state": "computed"
+      },
+      "domain_implementations": {
+        "Python_Core": {
+          "code": "import math\n{output_var} = math.acos({input_var})",
+          "dependencies": [
+            "math"
+          ]
+        }
+      }
+    },
+    {
+      "cell_id": "MATH_ACOSH",
+      "type": "micro",
+      "stage": 1,
+      "keywords": [
+        "math",
+        "acosh"
+      ],
+      "inputs": {
+        "type_name": "any",
+        "state": "x"
+      },
+      "outputs": {
+        "type_name": "any",
+        "state": "computed"
+      },
+      "domain_implementations": {
+        "Python_Core": {
+          "code": "import math\n{output_var} = math.acosh({input_var})",
+          "dependencies": [
+            "math"
+          ]
+        }
+      }
+    },
+    {
+      "cell_id": "MATH_ASIN",
+      "type": "micro",
+      "stage": 1,
+      "keywords": [
+        "math",
+        "asin"
+      ],
+      "inputs": {
+        "type_name": "any",
+        "state": "x"
+      },
+      "outputs": {
+        "type_name": "any",
+        "state": "computed"
+      },
+      "domain_implementations": {
+        "Python_Core": {
+          "code": "import math\n{output_var} = math.asin({input_var})",
+          "dependencies": [
+            "math"
+          ]
+        }
+      }
+    },
+    {
+      "cell_id": "MATH_ASINH",
+      "type": "micro",
+      "stage": 1,
+      "keywords": [
+        "math",
+        "asinh"
+      ],
+      "inputs": {
+        "type_name": "any",
+        "state": "x"
+      },
+      "outputs": {
+        "type_name": "any",
+        "state": "computed"
+      },
+      "domain_implementations": {
+        "Python_Core": {
+          "code": "import math\n{output_var} = math.asinh({input_var})",
+          "dependencies": [
+            "math"
+          ]
+        }
+      }
+    },
+    {
+      "cell_id": "MATH_ATAN",
+      "type": "micro",
+      "stage": 1,
+      "keywords": [
+        "math",
+        "atan"
+      ],
+      "inputs": {
+        "type_name": "any",
+        "state": "x"
+      },
+      "outputs": {
+        "type_name": "any",
+        "state": "computed"
+      },
+      "domain_implementations": {
+        "Python_Core": {
+          "code": "import math\n{output_var} = math.atan({input_var})",
+          "dependencies": [
+            "math"
+          ]
+        }
+      }
+    },
+    {
+      "cell_id": "MATH_ATAN2",
+      "type": "micro",
+      "stage": 1,
+      "keywords": [
+        "math",
+        "atan2"
+      ],
+      "inputs": {
+        "type_name": "any",
+        "state": "y"
+      },
+      "outputs": {
+        "type_name": "any",
+        "state": "computed"
+      },
+      "domain_implementations": {
+        "Python_Core": {
+          "code": "import math\n{output_var} = math.atan2({input_var})",
+          "dependencies": [
+            "math"
+          ]
+        }
+      }
+    },
+    {
+      "cell_id": "MATH_ATANH",
+      "type": "micro",
+      "stage": 1,
+      "keywords": [
+        "math",
+        "atanh"
+      ],
+      "inputs": {
+        "type_name": "any",
+        "state": "x"
+      },
+      "outputs": {
+        "type_name": "any",
+        "state": "computed"
+      },
+      "domain_implementations": {
+        "Python_Core": {
+          "code": "import math\n{output_var} = math.atanh({input_var})",
+          "dependencies": [
+            "math"
+          ]
+        }
+      }
+    },
+    {
+      "cell_id": "MATH_CBRT",
+      "type": "micro",
+      "stage": 1,
+      "keywords": [
+        "math",
+        "cbrt"
+      ],
+      "inputs": {
+        "type_name": "any",
+        "state": "x"
+      },
+      "outputs": {
+        "type_name": "any",
+        "state": "computed"
+      },
+      "domain_implementations": {
+        "Python_Core": {
+          "code": "import math\n{output_var} = math.cbrt({input_var})",
+          "dependencies": [
+            "math"
+          ]
+        }
+      }
+    },
+    {
+      "cell_id": "MATH_CEIL",
+      "type": "micro",
+      "stage": 1,
+      "keywords": [
+        "math",
+        "ceil"
+      ],
+      "inputs": {
+        "type_name": "any",
+        "state": "x"
+      },
+      "outputs": {
+        "type_name": "any",
+        "state": "computed"
+      },
+      "domain_implementations": {
+        "Python_Core": {
+          "code": "import math\n{output_var} = math.ceil({input_var})",
+          "dependencies": [
+            "math"
+          ]
+        }
+      }
+    },
+    {
+      "cell_id": "MATH_COMB",
+      "type": "micro",
+      "stage": 1,
+      "keywords": [
+        "math",
+        "comb"
+      ],
+      "inputs": {
+        "type_name": "any",
+        "state": "n"
+      },
+      "outputs": {
+        "type_name": "any",
+        "state": "computed"
+      },
+      "domain_implementations": {
+        "Python_Core": {
+          "code": "import math\n{output_var} = math.comb({input_var})",
+          "dependencies": [
+            "math"
+          ]
+        }
+      }
+    },
+    {
+      "cell_id": "MATH_COPYSIGN",
+      "type": "micro",
+      "stage": 1,
+      "keywords": [
+        "math",
+        "copysign"
+      ],
+      "inputs": {
+        "type_name": "any",
+        "state": "x"
+      },
+      "outputs": {
+        "type_name": "any",
+        "state": "computed"
+      },
+      "domain_implementations": {
+        "Python_Core": {
+          "code": "import math\n{output_var} = math.copysign({input_var})",
+          "dependencies": [
+            "math"
+          ]
+        }
+      }
+    },
+    {
+      "cell_id": "MATH_COS",
+      "type": "micro",
+      "stage": 1,
+      "keywords": [
+        "math",
+        "cos"
+      ],
+      "inputs": {
+        "type_name": "any",
+        "state": "x"
+      },
+      "outputs": {
+        "type_name": "any",
+        "state": "computed"
+      },
+      "domain_implementations": {
+        "Python_Core": {
+          "code": "import math\n{output_var} = math.cos({input_var})",
+          "dependencies": [
+            "math"
+          ]
+        }
+      }
+    },
+    {
+      "cell_id": "MATH_COSH",
+      "type": "micro",
+      "stage": 1,
+      "keywords": [
+        "math",
+        "cosh"
+      ],
+      "inputs": {
+        "type_name": "any",
+        "state": "x"
+      },
+      "outputs": {
+        "type_name": "any",
+        "state": "computed"
+      },
+      "domain_implementations": {
+        "Python_Core": {
+          "code": "import math\n{output_var} = math.cosh({input_var})",
+          "dependencies": [
+            "math"
+          ]
+        }
+      }
+    },
+    {
+      "cell_id": "MATH_DEGREES",
+      "type": "micro",
+      "stage": 1,
+      "keywords": [
+        "math",
+        "degrees"
+      ],
+      "inputs": {
+        "type_name": "any",
+        "state": "x"
+      },
+      "outputs": {
+        "type_name": "any",
+        "state": "computed"
+      },
+      "domain_implementations": {
+        "Python_Core": {
+          "code": "import math\n{output_var} = math.degrees({input_var})",
+          "dependencies": [
+            "math"
+          ]
+        }
+      }
+    },
+    {
+      "cell_id": "MATH_DIST",
+      "type": "micro",
+      "stage": 1,
+      "keywords": [
+        "math",
+        "dist"
+      ],
+      "inputs": {
+        "type_name": "any",
+        "state": "p"
+      },
+      "outputs": {
+        "type_name": "any",
+        "state": "computed"
+      },
+      "domain_implementations": {
+        "Python_Core": {
+          "code": "import math\n{output_var} = math.dist({input_var})",
+          "dependencies": [
+            "math"
+          ]
+        }
+      }
+    },
+    {
+      "cell_id": "MATH_ERF",
+      "type": "micro",
+      "stage": 1,
+      "keywords": [
+        "math",
+        "erf"
+      ],
+      "inputs": {
+        "type_name": "any",
+        "state": "x"
+      },
+      "outputs": {
+        "type_name": "any",
+        "state": "computed"
+      },
+      "domain_implementations": {
+        "Python_Core": {
+          "code": "import math\n{output_var} = math.erf({input_var})",
+          "dependencies": [
+            "math"
+          ]
+        }
+      }
+    },
+    {
+      "cell_id": "MATH_ERFC",
+      "type": "micro",
+      "stage": 1,
+      "keywords": [
+        "math",
+        "erfc"
+      ],
+      "inputs": {
+        "type_name": "any",
+        "state": "x"
+      },
+      "outputs": {
+        "type_name": "any",
+        "state": "computed"
+      },
+      "domain_implementations": {
+        "Python_Core": {
+          "code": "import math\n{output_var} = math.erfc({input_var})",
+          "dependencies": [
+            "math"
+          ]
+        }
+      }
+    },
+    {
+      "cell_id": "MATH_EXP",
+      "type": "micro",
+      "stage": 1,
+      "keywords": [
+        "math",
+        "exp"
+      ],
+      "inputs": {
+        "type_name": "any",
+        "state": "x"
+      },
+      "outputs": {
+        "type_name": "any",
+        "state": "computed"
+      },
+      "domain_implementations": {
+        "Python_Core": {
+          "code": "import math\n{output_var} = math.exp({input_var})",
+          "dependencies": [
+            "math"
+          ]
+        }
+      }
+    },
+    {
+      "cell_id": "MATH_EXP2",
+      "type": "micro",
+      "stage": 1,
+      "keywords": [
+        "math",
+        "exp2"
+      ],
+      "inputs": {
+        "type_name": "any",
+        "state": "x"
+      },
+      "outputs": {
+        "type_name": "any",
+        "state": "computed"
+      },
+      "domain_implementations": {
+        "Python_Core": {
+          "code": "import math\n{output_var} = math.exp2({input_var})",
+          "dependencies": [
+            "math"
+          ]
+        }
+      }
+    },
+    {
+      "cell_id": "MATH_EXPM1",
+      "type": "micro",
+      "stage": 1,
+      "keywords": [
+        "math",
+        "expm1"
+      ],
+      "inputs": {
+        "type_name": "any",
+        "state": "x"
+      },
+      "outputs": {
+        "type_name": "any",
+        "state": "computed"
+      },
+      "domain_implementations": {
+        "Python_Core": {
+          "code": "import math\n{output_var} = math.expm1({input_var})",
+          "dependencies": [
+            "math"
+          ]
+        }
+      }
+    },
+    {
+      "cell_id": "MATH_FABS",
+      "type": "micro",
+      "stage": 1,
+      "keywords": [
+        "math",
+        "fabs"
+      ],
+      "inputs": {
+        "type_name": "any",
+        "state": "x"
+      },
+      "outputs": {
+        "type_name": "any",
+        "state": "computed"
+      },
+      "domain_implementations": {
+        "Python_Core": {
+          "code": "import math\n{output_var} = math.fabs({input_var})",
+          "dependencies": [
+            "math"
+          ]
+        }
+      }
+    },
+    {
+      "cell_id": "MATH_FACTORIAL",
+      "type": "micro",
+      "stage": 1,
+      "keywords": [
+        "math",
+        "factorial"
+      ],
+      "inputs": {
+        "type_name": "any",
+        "state": "n"
+      },
+      "outputs": {
+        "type_name": "any",
+        "state": "computed"
+      },
+      "domain_implementations": {
+        "Python_Core": {
+          "code": "import math\n{output_var} = math.factorial({input_var})",
+          "dependencies": [
+            "math"
+          ]
+        }
+      }
+    },
+    {
+      "cell_id": "MATH_FLOOR",
+      "type": "micro",
+      "stage": 1,
+      "keywords": [
+        "math",
+        "floor"
+      ],
+      "inputs": {
+        "type_name": "any",
+        "state": "x"
+      },
+      "outputs": {
+        "type_name": "any",
+        "state": "computed"
+      },
+      "domain_implementations": {
+        "Python_Core": {
+          "code": "import math\n{output_var} = math.floor({input_var})",
+          "dependencies": [
+            "math"
+          ]
+        }
+      }
+    },
+    {
+      "cell_id": "MATH_FMA",
+      "type": "micro",
+      "stage": 1,
+      "keywords": [
+        "math",
+        "fma"
+      ],
+      "inputs": {
+        "type_name": "any",
+        "state": "x"
+      },
+      "outputs": {
+        "type_name": "any",
+        "state": "computed"
+      },
+      "domain_implementations": {
+        "Python_Core": {
+          "code": "import math\n{output_var} = math.fma({input_var})",
+          "dependencies": [
+            "math"
+          ]
+        }
+      }
+    },
+    {
+      "cell_id": "MATH_FMOD",
+      "type": "micro",
+      "stage": 1,
+      "keywords": [
+        "math",
+        "fmod"
+      ],
+      "inputs": {
+        "type_name": "any",
+        "state": "x"
+      },
+      "outputs": {
+        "type_name": "any",
+        "state": "computed"
+      },
+      "domain_implementations": {
+        "Python_Core": {
+          "code": "import math\n{output_var} = math.fmod({input_var})",
+          "dependencies": [
+            "math"
+          ]
+        }
+      }
+    },
+    {
+      "cell_id": "MATH_FREXP",
+      "type": "micro",
+      "stage": 1,
+      "keywords": [
+        "math",
+        "frexp"
+      ],
+      "inputs": {
+        "type_name": "any",
+        "state": "x"
+      },
+      "outputs": {
+        "type_name": "any",
+        "state": "computed"
+      },
+      "domain_implementations": {
+        "Python_Core": {
+          "code": "import math\n{output_var} = math.frexp({input_var})",
+          "dependencies": [
+            "math"
+          ]
+        }
+      }
+    },
+    {
+      "cell_id": "MATH_FSUM",
+      "type": "micro",
+      "stage": 1,
+      "keywords": [
+        "math",
+        "fsum"
+      ],
+      "inputs": {
+        "type_name": "any",
+        "state": "seq"
+      },
+      "outputs": {
+        "type_name": "any",
+        "state": "computed"
+      },
+      "domain_implementations": {
+        "Python_Core": {
+          "code": "import math\n{output_var} = math.fsum({input_var})",
+          "dependencies": [
+            "math"
+          ]
+        }
+      }
+    },
+    {
+      "cell_id": "MATH_GAMMA",
+      "type": "micro",
+      "stage": 1,
+      "keywords": [
+        "math",
+        "gamma"
+      ],
+      "inputs": {
+        "type_name": "any",
+        "state": "x"
+      },
+      "outputs": {
+        "type_name": "any",
+        "state": "computed"
+      },
+      "domain_implementations": {
+        "Python_Core": {
+          "code": "import math\n{output_var} = math.gamma({input_var})",
+          "dependencies": [
+            "math"
+          ]
+        }
+      }
+    },
+    {
+      "cell_id": "MATH_GCD",
+      "type": "micro",
+      "stage": 1,
+      "keywords": [
+        "math",
+        "gcd"
+      ],
+      "inputs": {
+        "type_name": "any",
+        "state": "integers"
+      },
+      "outputs": {
+        "type_name": "any",
+        "state": "computed"
+      },
+      "domain_implementations": {
+        "Python_Core": {
+          "code": "import math\n{output_var} = math.gcd({input_var})",
+          "dependencies": [
+            "math"
+          ]
+        }
+      }
+    },
+    {
+      "cell_id": "MATH_ISCLOSE",
+      "type": "micro",
+      "stage": 1,
+      "keywords": [
+        "math",
+        "isclose"
+      ],
+      "inputs": {
+        "type_name": "any",
+        "state": "a"
+      },
+      "outputs": {
+        "type_name": "any",
+        "state": "computed"
+      },
+      "domain_implementations": {
+        "Python_Core": {
+          "code": "import math\n{output_var} = math.isclose({input_var})",
+          "dependencies": [
+            "math"
+          ]
+        }
+      }
+    },
+    {
+      "cell_id": "MATH_ISFINITE",
+      "type": "micro",
+      "stage": 1,
+      "keywords": [
+        "math",
+        "isfinite"
+      ],
+      "inputs": {
+        "type_name": "any",
+        "state": "x"
+      },
+      "outputs": {
+        "type_name": "any",
+        "state": "computed"
+      },
+      "domain_implementations": {
+        "Python_Core": {
+          "code": "import math\n{output_var} = math.isfinite({input_var})",
+          "dependencies": [
+            "math"
+          ]
+        }
+      }
+    },
+    {
+      "cell_id": "MATH_ISINF",
+      "type": "micro",
+      "stage": 1,
+      "keywords": [
+        "math",
+        "isinf"
+      ],
+      "inputs": {
+        "type_name": "any",
+        "state": "x"
+      },
+      "outputs": {
+        "type_name": "any",
+        "state": "computed"
+      },
+      "domain_implementations": {
+        "Python_Core": {
+          "code": "import math\n{output_var} = math.isinf({input_var})",
+          "dependencies": [
+            "math"
+          ]
+        }
+      }
+    },
+    {
+      "cell_id": "MATH_ISNAN",
+      "type": "micro",
+      "stage": 1,
+      "keywords": [
+        "math",
+        "isnan"
+      ],
+      "inputs": {
+        "type_name": "any",
+        "state": "x"
+      },
+      "outputs": {
+        "type_name": "any",
+        "state": "computed"
+      },
+      "domain_implementations": {
+        "Python_Core": {
+          "code": "import math\n{output_var} = math.isnan({input_var})",
+          "dependencies": [
+            "math"
+          ]
+        }
+      }
+    },
+    {
+      "cell_id": "MATH_ISQRT",
+      "type": "micro",
+      "stage": 1,
+      "keywords": [
+        "math",
+        "isqrt"
+      ],
+      "inputs": {
+        "type_name": "any",
+        "state": "n"
+      },
+      "outputs": {
+        "type_name": "any",
+        "state": "computed"
+      },
+      "domain_implementations": {
+        "Python_Core": {
+          "code": "import math\n{output_var} = math.isqrt({input_var})",
+          "dependencies": [
+            "math"
+          ]
+        }
+      }
+    },
+    {
+      "cell_id": "MATH_LCM",
+      "type": "micro",
+      "stage": 1,
+      "keywords": [
+        "math",
+        "lcm"
+      ],
+      "inputs": {
+        "type_name": "any",
+        "state": "integers"
+      },
+      "outputs": {
+        "type_name": "any",
+        "state": "computed"
+      },
+      "domain_implementations": {
+        "Python_Core": {
+          "code": "import math\n{output_var} = math.lcm({input_var})",
+          "dependencies": [
+            "math"
+          ]
+        }
+      }
+    },
+    {
+      "cell_id": "MATH_LDEXP",
+      "type": "micro",
+      "stage": 1,
+      "keywords": [
+        "math",
+        "ldexp"
+      ],
+      "inputs": {
+        "type_name": "any",
+        "state": "x"
+      },
+      "outputs": {
+        "type_name": "any",
+        "state": "computed"
+      },
+      "domain_implementations": {
+        "Python_Core": {
+          "code": "import math\n{output_var} = math.ldexp({input_var})",
+          "dependencies": [
+            "math"
+          ]
+        }
+      }
+    },
+    {
+      "cell_id": "MATH_LGAMMA",
+      "type": "micro",
+      "stage": 1,
+      "keywords": [
+        "math",
+        "lgamma"
+      ],
+      "inputs": {
+        "type_name": "any",
+        "state": "x"
+      },
+      "outputs": {
+        "type_name": "any",
+        "state": "computed"
+      },
+      "domain_implementations": {
+        "Python_Core": {
+          "code": "import math\n{output_var} = math.lgamma({input_var})",
+          "dependencies": [
+            "math"
+          ]
+        }
+      }
+    },
+    {
+      "cell_id": "MATH_LOG10",
+      "type": "micro",
+      "stage": 1,
+      "keywords": [
+        "math",
+        "log10"
+      ],
+      "inputs": {
+        "type_name": "any",
+        "state": "x"
+      },
+      "outputs": {
+        "type_name": "any",
+        "state": "computed"
+      },
+      "domain_implementations": {
+        "Python_Core": {
+          "code": "import math\n{output_var} = math.log10({input_var})",
+          "dependencies": [
+            "math"
+          ]
+        }
+      }
+    },
+    {
+      "cell_id": "MATH_LOG1P",
+      "type": "micro",
+      "stage": 1,
+      "keywords": [
+        "math",
+        "log1p"
+      ],
+      "inputs": {
+        "type_name": "any",
+        "state": "x"
+      },
+      "outputs": {
+        "type_name": "any",
+        "state": "computed"
+      },
+      "domain_implementations": {
+        "Python_Core": {
+          "code": "import math\n{output_var} = math.log1p({input_var})",
+          "dependencies": [
+            "math"
+          ]
+        }
+      }
+    },
+    {
+      "cell_id": "MATH_LOG2",
+      "type": "micro",
+      "stage": 1,
+      "keywords": [
+        "math",
+        "log2"
+      ],
+      "inputs": {
+        "type_name": "any",
+        "state": "x"
+      },
+      "outputs": {
+        "type_name": "any",
+        "state": "computed"
+      },
+      "domain_implementations": {
+        "Python_Core": {
+          "code": "import math\n{output_var} = math.log2({input_var})",
+          "dependencies": [
+            "math"
+          ]
+        }
+      }
+    },
+    {
+      "cell_id": "MATH_MODF",
+      "type": "micro",
+      "stage": 1,
+      "keywords": [
+        "math",
+        "modf"
+      ],
+      "inputs": {
+        "type_name": "any",
+        "state": "x"
+      },
+      "outputs": {
+        "type_name": "any",
+        "state": "computed"
+      },
+      "domain_implementations": {
+        "Python_Core": {
+          "code": "import math\n{output_var} = math.modf({input_var})",
+          "dependencies": [
+            "math"
+          ]
+        }
+      }
+    },
+    {
+      "cell_id": "MATH_NEXTAFTER",
+      "type": "micro",
+      "stage": 1,
+      "keywords": [
+        "math",
+        "nextafter"
+      ],
+      "inputs": {
+        "type_name": "any",
+        "state": "x"
+      },
+      "outputs": {
+        "type_name": "any",
+        "state": "computed"
+      },
+      "domain_implementations": {
+        "Python_Core": {
+          "code": "import math\n{output_var} = math.nextafter({input_var})",
+          "dependencies": [
+            "math"
+          ]
+        }
+      }
+    },
+    {
+      "cell_id": "MATH_PERM",
+      "type": "micro",
+      "stage": 1,
+      "keywords": [
+        "math",
+        "perm"
+      ],
+      "inputs": {
+        "type_name": "any",
+        "state": "n"
+      },
+      "outputs": {
+        "type_name": "any",
+        "state": "computed"
+      },
+      "domain_implementations": {
+        "Python_Core": {
+          "code": "import math\n{output_var} = math.perm({input_var})",
+          "dependencies": [
+            "math"
+          ]
+        }
+      }
+    },
+    {
+      "cell_id": "MATH_POW",
+      "type": "micro",
+      "stage": 1,
+      "keywords": [
+        "math",
+        "pow"
+      ],
+      "inputs": {
+        "type_name": "any",
+        "state": "x"
+      },
+      "outputs": {
+        "type_name": "any",
+        "state": "computed"
+      },
+      "domain_implementations": {
+        "Python_Core": {
+          "code": "import math\n{output_var} = math.pow({input_var})",
+          "dependencies": [
+            "math"
+          ]
+        }
+      }
+    },
+    {
+      "cell_id": "MATH_PROD",
+      "type": "micro",
+      "stage": 1,
+      "keywords": [
+        "math",
+        "prod"
+      ],
+      "inputs": {
+        "type_name": "any",
+        "state": "iterable"
+      },
+      "outputs": {
+        "type_name": "any",
+        "state": "computed"
+      },
+      "domain_implementations": {
+        "Python_Core": {
+          "code": "import math\n{output_var} = math.prod({input_var})",
+          "dependencies": [
+            "math"
+          ]
+        }
+      }
+    },
+    {
+      "cell_id": "MATH_RADIANS",
+      "type": "micro",
+      "stage": 1,
+      "keywords": [
+        "math",
+        "radians"
+      ],
+      "inputs": {
+        "type_name": "any",
+        "state": "x"
+      },
+      "outputs": {
+        "type_name": "any",
+        "state": "computed"
+      },
+      "domain_implementations": {
+        "Python_Core": {
+          "code": "import math\n{output_var} = math.radians({input_var})",
+          "dependencies": [
+            "math"
+          ]
+        }
+      }
+    },
+    {
+      "cell_id": "MATH_REMAINDER",
+      "type": "micro",
+      "stage": 1,
+      "keywords": [
+        "math",
+        "remainder"
+      ],
+      "inputs": {
+        "type_name": "any",
+        "state": "x"
+      },
+      "outputs": {
+        "type_name": "any",
+        "state": "computed"
+      },
+      "domain_implementations": {
+        "Python_Core": {
+          "code": "import math\n{output_var} = math.remainder({input_var})",
+          "dependencies": [
+            "math"
+          ]
+        }
+      }
+    },
+    {
+      "cell_id": "MATH_SIN",
+      "type": "micro",
+      "stage": 1,
+      "keywords": [
+        "math",
+        "sin"
+      ],
+      "inputs": {
+        "type_name": "any",
+        "state": "x"
+      },
+      "outputs": {
+        "type_name": "any",
+        "state": "computed"
+      },
+      "domain_implementations": {
+        "Python_Core": {
+          "code": "import math\n{output_var} = math.sin({input_var})",
+          "dependencies": [
+            "math"
+          ]
+        }
+      }
+    },
+    {
+      "cell_id": "MATH_SINH",
+      "type": "micro",
+      "stage": 1,
+      "keywords": [
+        "math",
+        "sinh"
+      ],
+      "inputs": {
+        "type_name": "any",
+        "state": "x"
+      },
+      "outputs": {
+        "type_name": "any",
+        "state": "computed"
+      },
+      "domain_implementations": {
+        "Python_Core": {
+          "code": "import math\n{output_var} = math.sinh({input_var})",
+          "dependencies": [
+            "math"
+          ]
+        }
+      }
+    },
+    {
+      "cell_id": "MATH_SQRT",
+      "type": "micro",
+      "stage": 1,
+      "keywords": [
+        "math",
+        "sqrt"
+      ],
+      "inputs": {
+        "type_name": "any",
+        "state": "x"
+      },
+      "outputs": {
+        "type_name": "any",
+        "state": "computed"
+      },
+      "domain_implementations": {
+        "Python_Core": {
+          "code": "import math\n{output_var} = math.sqrt({input_var})",
+          "dependencies": [
+            "math"
+          ]
+        }
+      }
+    },
+    {
+      "cell_id": "MATH_SUMPROD",
+      "type": "micro",
+      "stage": 1,
+      "keywords": [
+        "math",
+        "sumprod"
+      ],
+      "inputs": {
+        "type_name": "any",
+        "state": "p"
+      },
+      "outputs": {
+        "type_name": "any",
+        "state": "computed"
+      },
+      "domain_implementations": {
+        "Python_Core": {
+          "code": "import math\n{output_var} = math.sumprod({input_var})",
+          "dependencies": [
+            "math"
+          ]
+        }
+      }
+    },
+    {
+      "cell_id": "MATH_TAN",
+      "type": "micro",
+      "stage": 1,
+      "keywords": [
+        "math",
+        "tan"
+      ],
+      "inputs": {
+        "type_name": "any",
+        "state": "x"
+      },
+      "outputs": {
+        "type_name": "any",
+        "state": "computed"
+      },
+      "domain_implementations": {
+        "Python_Core": {
+          "code": "import math\n{output_var} = math.tan({input_var})",
+          "dependencies": [
+            "math"
+          ]
+        }
+      }
+    },
+    {
+      "cell_id": "MATH_TANH",
+      "type": "micro",
+      "stage": 1,
+      "keywords": [
+        "math",
+        "tanh"
+      ],
+      "inputs": {
+        "type_name": "any",
+        "state": "x"
+      },
+      "outputs": {
+        "type_name": "any",
+        "state": "computed"
+      },
+      "domain_implementations": {
+        "Python_Core": {
+          "code": "import math\n{output_var} = math.tanh({input_var})",
+          "dependencies": [
+            "math"
+          ]
+        }
+      }
+    },
+    {
+      "cell_id": "MATH_TRUNC",
+      "type": "micro",
+      "stage": 1,
+      "keywords": [
+        "math",
+        "trunc"
+      ],
+      "inputs": {
+        "type_name": "any",
+        "state": "x"
+      },
+      "outputs": {
+        "type_name": "any",
+        "state": "computed"
+      },
+      "domain_implementations": {
+        "Python_Core": {
+          "code": "import math\n{output_var} = math.trunc({input_var})",
+          "dependencies": [
+            "math"
+          ]
+        }
+      }
+    },
+    {
+      "cell_id": "MATH_ULP",
+      "type": "micro",
+      "stage": 1,
+      "keywords": [
+        "math",
+        "ulp"
+      ],
+      "inputs": {
+        "type_name": "any",
+        "state": "x"
+      },
+      "outputs": {
+        "type_name": "any",
+        "state": "computed"
+      },
+      "domain_implementations": {
+        "Python_Core": {
+          "code": "import math\n{output_var} = math.ulp({input_var})",
+          "dependencies": [
+            "math"
+          ]
+        }
+      }
+    }
+  ]
+}

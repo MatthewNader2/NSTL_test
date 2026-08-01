@@ -13,6 +13,7 @@
     "@react-three/drei": "^9.88.0",
     "@react-three/fiber": "^8.15.0",
     "@react-three/postprocessing": "^2.16.0",
+    "@rollup/rollup-linux-x64-gnu": "^4.62.3",
     "framer-motion": "^11.0.0",
     "lucide-react": "^0.344.0",
     "monaco-editor": "^0.45.0",

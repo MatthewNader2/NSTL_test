@@ -7,7 +7,7 @@ import StatusBar from "./components/StatusBar";
 import NodeTooltip from "./components/NodeTooltip";
 import LoadingScreen from "./components/LoadingScreen";
 import DevMenu from "./components/DevMenu";
-import { fetchHealth, fetchCells, fetchStatus, initializeEngine } from "./hooks/useApi";
+import { fetchHealth, fetchCells, fetchStatus, initializeEngine, fetchAvailableModels } from "./hooks/useApi";
 import { Terminal, Map, Code2 } from "lucide-react";
 
 export default function App() {
@@ -19,12 +19,13 @@ export default function App() {
     cells_loaded: 0,
   });
 
-  const [selectedProfile] = useState("A");
+  const [selectedProfile, setSelectedProfile] = useState("C"); // Default to C (Dedicated Embedder + LLM)
   const [embedderModel, setEmbedderModel] = useState("jina-embeddings-v5-text-nano");
   const [llmModel, setLlmModel] = useState("qwen2.5-coder-1.5b-instruct");
-  const [embedderDevice] = useState("auto");
-  const [llmDevice] = useState("auto");
+  const [embedderDevice, setEmbedderDevice] = useState("auto");
+  const [llmDevice, setLlmDevice] = useState("auto");
   const [treesStorage] = useState("ram");
+  const [availableModels, setAvailableModels] = useState({ embedders: [], llms: [] });
 
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
   const [mobileView, setMobileView] = useState("chat"); // 'chat' | 'main'
@@ -48,21 +49,41 @@ export default function App() {
           if (data.device) setHardwareDevice(data.device);
           logSystemEvent(`Engine status: ${data.status}`, "API");
 
-          if (data.status === "ready" || data.status === "uninitialized") {
+          if (data.status === "ready") {
             clearInterval(pollInterval);
-            if (data.status === "uninitialized") {
-              logSystemEvent("Auto-initializing engine...", "API");
-              setBootStatus((p) => ({ ...p, message: "Bootstrapping neural models...", status: "connecting" }));
-              await initializeEngine("A", embedderModel, llmModel, "auto", "auto", "ram");
-              logSystemEvent("Auto-initialization complete.", "API");
-            }
             setTimeout(() => {
               setLoading(false);
               logSystemEvent("Dashboard live.", "STATE");
             }, 500);
+          } else if (data.status === "uninitialized") {
+            clearInterval(pollInterval);
+            // Fetch models list before triggering init
+            try {
+              const models = await fetchAvailableModels();
+              setAvailableModels(models);
+            } catch (err) {
+              console.error("Failed to fetch models", err);
+            }
+            logSystemEvent("Auto-initializing engine...", "API");
+            setBootStatus((p) => ({ ...p, message: "Bootstrapping neural models...", status: "loading" }));
+            await initializeEngine("B", embedderModel, llmModel, "auto", "auto", "ram");
+            logSystemEvent("Initialization request sent, waiting for backend...", "API");
+            // Resume polling to detect when ready
+            pollInterval = setInterval(monitorStatus, 850);
+          } else if (data.status === "error") {
+            // Hard stop — do not retry automatically to avoid infinite loop
+            clearInterval(pollInterval);
+            logSystemEvent(`Engine initialization failed: ${data.message}`, "ERROR");
+            setBootStatus((p) => ({
+              ...p,
+              status: "error",
+              message: `Init failed: ${data.message || "unknown error"}. Click Retry to try again.`,
+            }));
           }
+          // "loading" / "initializing" states: keep polling, nothing extra to do
         }
-      } catch {
+      } catch (err) {
+        console.debug("Engine not reachable yet:", err.message);
         setBootStatus({ status: "connecting", message: "Waiting for backend...", device: "cpu", cells_loaded: 0 });
       }
     };
@@ -86,7 +107,8 @@ export default function App() {
           } else {
             setApiStatus("offline");
           }
-        } catch {
+        } catch (err) {
+          console.warn("Post-boot health check failed:", err.message);
           setApiStatus("offline");
         }
       })();
@@ -115,6 +137,20 @@ export default function App() {
     }
   };
 
+  const handleProfileSwap = async (newProfile) => {
+    logSystemEvent(`Hot-swapping profile to: ${newProfile}`, "API");
+    setSelectedProfile(newProfile);
+    try {
+      await initializeEngine(newProfile, embedderModel, llmModel, embedderDevice, llmDevice, treesStorage);
+      const cells = await fetchCells();
+      setCells(cells);
+      logSystemEvent("Profile swap complete.", "API");
+    } catch (err) {
+      logSystemEvent(`Profile swap failed: ${err.message}`, "API");
+    }
+  };
+
+
   if (loading) return <LoadingScreen status={bootStatus} />;
 
   return (
@@ -123,6 +159,9 @@ export default function App() {
         embedderModel={embedderModel}
         llmModel={llmModel}
         onModelSwap={handleModelSwap}
+        availableModels={availableModels}
+        selectedProfile={selectedProfile}
+        onProfileChange={handleProfileSwap}
       />
 
       <div className="app-body">
@@ -160,7 +199,23 @@ export default function App() {
         </nav>
       )}
 
-      <DevMenu />
+      <DevMenu
+        embedderDevice={embedderDevice}
+        setEmbedderDevice={setEmbedderDevice}
+        llmDevice={llmDevice}
+        setLlmDevice={setLlmDevice}
+        onHardwareApply={async () => {
+          logSystemEvent(`Applying hardware settings: EMB=${embedderDevice}, LLM=${llmDevice}`, "API");
+          try {
+            await initializeEngine(selectedProfile, embedderModel, llmModel, embedderDevice, llmDevice, treesStorage);
+            const cells = await fetchCells();
+            setCells(cells);
+            logSystemEvent("Hardware settings applied successfully.", "API");
+          } catch (err) {
+            logSystemEvent(`Hardware apply failed: ${err.message}`, "API");
+          }
+        }}
+      />
     </div>
   );
 }

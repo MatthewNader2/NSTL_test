@@ -48,7 +48,7 @@ def _validate_code(code: str, output_dir: Path, case_name: str) -> dict:
         run_path = tmp_path / "generated.py"
         run_path.write_text(code, encoding="utf-8")
         completed = subprocess.run(
-            [sys.executable, str(run_path)],
+            [sys.executable, "-I", str(run_path)],  # -I = isolated mode (no user site-packages, no .pth)
             cwd=tmp_path,
             text=True,
             capture_output=True,

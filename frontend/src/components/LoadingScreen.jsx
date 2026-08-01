@@ -36,6 +36,12 @@ export default function LoadingScreen({ status }) {
           ]);
         }
         break;
+      case "loading":
+        logMsg = `[NEURAL] Loading models and building FAISS index... ${status.cells_loaded ? `(${status.cells_loaded} cells indexed)` : ""}`;
+        break;
+      case "initializing":
+        logMsg = `[NEURAL] Bootstrapping inference engine on ${(status.device || "cpu").toUpperCase()}...`;
+        break;
       case "ready":
         logMsg = `[READY] Neural router initialized. Subsystem online.`;
         break;
@@ -54,9 +60,12 @@ export default function LoadingScreen({ status }) {
     switch (status.status) {
       case "starting": return 15;
       case "profiling": return 30;
-      case "loading_trees": return 55;
-      case "loading_model": return 80;
+      case "loading_trees": return 45;
+      case "loading_model": return 65;
+      case "initializing": return 55;
+      case "loading": return 80;
       case "ready": return 100;
+      case "error": return 0;
       default: return 10;
     }
   };
@@ -106,10 +115,20 @@ export default function LoadingScreen({ status }) {
         </div>
 
         {/* Current status display */}
-        <div className="current-status-box">
+        <div className={`current-status-box${status?.status === "error" ? " status-error" : ""}`}>
           <Activity size={14} className="status-spin" />
           <span className="status-text">{status?.message || "Connecting to core engine..."}</span>
         </div>
+
+        {/* Retry button — shown only on error */}
+        {status?.status === "error" && (
+          <button
+            className="retry-btn"
+            onClick={() => window.location.reload()}
+          >
+            ↺ Retry
+          </button>
+        )}
 
         {/* Diagnostic logs */}
         <div className="diagnostic-logs">
@@ -361,6 +380,36 @@ export default function LoadingScreen({ status }) {
         @keyframes blink {
           0%, 100% { opacity: 0; }
           50% { opacity: 1; }
+        }
+        /* Error state */
+        .status-error {
+          border-color: rgba(255, 60, 60, 0.4) !important;
+          background: rgba(255, 60, 60, 0.06) !important;
+        }
+        .status-error .status-text {
+          color: #ff6b6b;
+        }
+        .status-error .status-spin {
+          color: #ff6b6b;
+          animation: none;
+        }
+
+        .retry-btn {
+          margin: 0 auto 20px;
+          display: block;
+          background: rgba(255, 60, 60, 0.12);
+          border: 1px solid rgba(255, 60, 60, 0.4);
+          color: #ff6b6b;
+          font-family: "JetBrains Mono", monospace;
+          font-size: 12px;
+          letter-spacing: 1px;
+          padding: 8px 24px;
+          border-radius: 4px;
+          cursor: pointer;
+          transition: background 0.2s;
+        }
+        .retry-btn:hover {
+          background: rgba(255, 60, 60, 0.24);
         }
       `}</style>
     </div>

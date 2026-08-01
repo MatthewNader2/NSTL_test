@@ -1,4 +1,4 @@
-import { useRef, useMemo, useEffect, useState } from "react";
+import React, { Component, useRef, useMemo, useEffect, useState } from "react";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { OrbitControls, Html } from "@react-three/drei";
 import { EffectComposer, Bloom } from "@react-three/postprocessing";
@@ -92,7 +92,7 @@ function DormantNodes({ cells, positions, activeIds }) {
 function CameraController() {
   const selectedNode = useStore((s) => s.selectedNode);
   const cells = useStore((s) => s.cells);
-  const { camera, controls } = useThree();
+  const { camera, controls, invalidate } = useThree();
   const [targetPos, setTargetPos] = useState(null);
 
   useEffect(() => {
@@ -131,6 +131,7 @@ function CameraController() {
         .clone()
         .add(new Vector3(-10, 5, 10));
       camera.position.lerp(idealCameraPos, 0.05);
+      invalidate(); // Tell the demand-loop to render this frame
 
       // Stop animating when close enough
       if (controls.target.distanceTo(targetPos) < 0.1) setTargetPos(null);
@@ -147,6 +148,7 @@ function LatticeNodes() {
   const setSelectedNode = useStore((s) => s.setSelectedNode);
   const setRightActiveTab = useStore((s) => s.setRightActiveTab);
   const selectedNode = useStore((s) => s.selectedNode);
+  const { invalidate } = useThree();
 
   // Position calculation (runs once)
   const positions = useMemo(() => {
@@ -185,6 +187,10 @@ function LatticeNodes() {
     () => new Set(activePath.map((c) => c.cell_id)),
     [activePath],
   );
+
+  // With frameloop="demand", we must notify the canvas to repaint
+  // whenever data-driven state changes (new query results, cells loaded).
+  useEffect(() => { invalidate(); }, [cells, activePath, selectedNode, invalidate]);
 
   // Base edges calculation
   const baseEdges = useMemo(() => {
@@ -230,28 +236,9 @@ function LatticeNodes() {
       <BaseEdges edges={baseEdges} />
 
       {/* Path edges rendered uniquely to stand out */}
-      {pathEdges.map((e, i) => {
-        const positions = new Float32Array([
-          e.start.x, e.start.y, e.start.z,
-          e.end.x, e.end.y, e.end.z
-        ]);
-        return (
-          <line key={`path-${i}`}>
-            <bufferGeometry>
-              <bufferAttribute
-                attach="attributes-position"
-                count={2}
-                array={positions}
-                itemSize={3}
-              />
-            </bufferGeometry>
-            <lineBasicMaterial
-              color={e.tunnel ? "#ff00aa" : "#00e5ff"}
-              linewidth={2}
-            />
-          </line>
-        );
-      })}
+      {pathEdges.map((e, i) => (
+        <PathEdge key={`path-${i}`} edge={e} />
+      ))}
 
       {/* Active Path Nodes */}
       {activePath.map((cell) => {
@@ -269,15 +256,18 @@ function LatticeNodes() {
               e.stopPropagation();
               setHoveredNode(cell);
               document.body.style.cursor = "pointer";
+              invalidate();
             }}
             onPointerOut={() => {
               setHoveredNode(null);
               document.body.style.cursor = "default";
+              invalidate();
             }}
             onClick={(e) => {
               e.stopPropagation();
               setSelectedNode(cell);
               setRightActiveTab("inspect");
+              invalidate();
             }}
           >
             <sphereGeometry args={[isSelected ? 1.0 : 0.7, 16, 16]} />
@@ -324,38 +314,103 @@ function LatticeNodes() {
   );
 }
 
+// ErrorBoundary to catch WebGL context loss and shader crashes
+class WebGLErrorBoundary extends Component {
+  constructor(props) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+  static getDerivedStateFromError(error) {
+    return { hasError: true, error };
+  }
+  componentDidCatch(error, errorInfo) {
+    console.error("[NSTL WebGL Error]", error, errorInfo);
+  }
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div style={{
+          display: "flex", alignItems: "center", justifyContent: "center",
+          height: "100%", color: "var(--t2)", flexDirection: "column", gap: "12px",
+          background: "var(--bg1)"
+        }}>
+          <span style={{ fontSize: "1.2rem", fontWeight: 600 }}>⚠ 3D Render Error</span>
+          <span style={{ fontSize: "0.8rem", color: "var(--t3)" }}>WebGL context may have been lost. Try refreshing.</span>
+          <button
+            onClick={() => this.setState({ hasError: false, error: null })}
+            style={{
+              padding: "6px 16px", background: "var(--accent)", border: "none",
+              borderRadius: "6px", color: "#fff", cursor: "pointer", fontSize: "0.8rem"
+            }}
+          >Retry</button>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
+// Memoized path edge component to avoid recreating Float32Array on every render
+function PathEdge({ edge }) {
+  const positions = useMemo(() => new Float32Array([
+    edge.start.x, edge.start.y, edge.start.z,
+    edge.end.x, edge.end.y, edge.end.z
+  ]), [edge.start, edge.end]);
+
+  return (
+    <line>
+      <bufferGeometry>
+        <bufferAttribute
+          attach="attributes-position"
+          count={2}
+          array={positions}
+          itemSize={3}
+        />
+      </bufferGeometry>
+      <lineBasicMaterial
+        color={edge.tunnel ? "#ff00aa" : "#00e5ff"}
+        linewidth={2}
+      />
+    </line>
+  );
+}
+
 export default function ThreeScene() {
   return (
-    <Canvas
-      camera={{ position: [60, 20, 40], fov: 50, near: 0.1, far: 1000 }}
-      style={{ width: "100%", height: "100%" }}
-      dpr={[1, 1.5]}
-    >
-      {/* Transparent background to let CSS gradient show through */}
-      <fog attach="fog" args={["#03050c", 30, 150]} />
-      <ambientLight intensity={0.8} />
-      <directionalLight position={[30, 30, 20]} intensity={1.2} />
+    <WebGLErrorBoundary>
+      <Canvas
+        camera={{ position: [60, 20, 40], fov: 50, near: 0.1, far: 1000 }}
+        style={{ width: "100%", height: "100%" }}
+        dpr={[1, 1.5]}
+        frameloop="demand"
+      >
+        {/* Transparent background to let CSS gradient show through */}
+        <fog attach="fog" args={["#03050c", 30, 150]} />
+        <ambientLight intensity={0.8} />
+        <directionalLight position={[30, 30, 20]} intensity={1.2} />
 
-      <CameraController />
-      <LatticeNodes />
+        <CameraController />
+        <LatticeNodes />
 
-      <OrbitControls
-        makeDefault
-        enableDamping
-        dampingFactor={0.1}
-        minDistance={2}
-        maxDistance={5000}
-      />
-
-      {/* Bloom specifically tuned to not kill 4K performance */}
-      <EffectComposer multisampling={0}>
-        <Bloom
-          luminanceThreshold={0.2}
-          luminanceSmoothing={0.9}
-          intensity={1.5}
-          mipmapBlur
+        <OrbitControls
+          makeDefault
+          enableDamping
+          dampingFactor={0.1}
+          minDistance={2}
+          maxDistance={5000}
+          regress
         />
-      </EffectComposer>
-    </Canvas>
+
+        {/* Bloom tuned for minimal GPU cost while preserving glow aesthetic */}
+        <EffectComposer multisampling={0}>
+          <Bloom
+            luminanceThreshold={0.4}
+            luminanceSmoothing={0.9}
+            intensity={0.8}
+            mipmapBlur
+          />
+        </EffectComposer>
+      </Canvas>
+    </WebGLErrorBoundary>
   );
 }

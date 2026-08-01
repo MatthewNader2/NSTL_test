@@ -3,7 +3,7 @@ import { X, Trash2, Copy, Check, Terminal, Network } from "lucide-react";
 import { useState, useMemo, useEffect } from "react";
 import { getApiBase, setApiBase } from "../hooks/useApi";
 
-export default function DevMenu() {
+export default function DevMenu({ embedderDevice, setEmbedderDevice, llmDevice, setLlmDevice, onHardwareApply }) {
   const devMenuOpen = useStore((s) => s.devMenuOpen);
   const setDevMenuOpen = useStore((s) => s.setDevMenuOpen);
   const systemLogs = useStore((s) => s.systemLogs);
@@ -91,6 +91,46 @@ export default function DevMenu() {
               onClick={() => { setApiBase(apiInputUrl); window.location.reload(); }}
             >
               Reconnect
+            </button>
+          </div>
+
+          {/* Hardware settings */}
+          <div className="dev-network-row" style={{ marginTop: 12 }}>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: "0.65rem", color: "var(--t3)", marginBottom: 6, display: "flex", alignItems: "center", gap: 6, fontWeight: 600, textTransform: "uppercase", letterSpacing: 1 }}>
+                <Terminal size={11} />
+                Hardware Configuration
+              </div>
+              <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
+                <select 
+                  className="dev-network-input" 
+                  value={embedderDevice} 
+                  onChange={(e) => setEmbedderDevice(e.target.value)}
+                  style={{ width: "auto", flex: 1, minWidth: "120px" }}
+                >
+                  <option value="auto">Embedder: Auto</option>
+                  <option value="cuda">Embedder: CUDA</option>
+                  <option value="cpu">Embedder: CPU</option>
+                  <option value="mps">Embedder: MPS</option>
+                </select>
+                <select 
+                  className="dev-network-input" 
+                  value={llmDevice} 
+                  onChange={(e) => setLlmDevice(e.target.value)}
+                  style={{ width: "auto", flex: 1, minWidth: "120px" }}
+                >
+                  <option value="auto">LLM: Auto</option>
+                  <option value="cuda">LLM: CUDA</option>
+                  <option value="cpu">LLM: CPU</option>
+                  <option value="mps">LLM: MPS</option>
+                </select>
+              </div>
+            </div>
+            <button
+              style={{ padding: "8px 16px", background: "var(--purple-dim)", border: "1px solid var(--purple)", borderRadius: "var(--r-sm)", color: "var(--purple-light)", fontSize: "0.78rem", fontWeight: 600, cursor: "pointer", flexShrink: 0 }}
+              onClick={onHardwareApply}
+            >
+              Apply HW
             </button>
           </div>
 

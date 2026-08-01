@@ -1,4 +1,4 @@
 @echo off
-echo Starting NSTL Engine with Python 3.13...
-C:\Python313\python.exe main.py
+echo Starting NSTL Engine...
+python src\main.py
 pause

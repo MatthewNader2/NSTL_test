@@ -77,6 +77,3054 @@
           ]
         }
       }
+    },
+    {
+      "cell_id": "macro_dynamic_read_csv",
+      "type": "macro",
+      "stage": 1,
+      "keywords": [
+        "read_csv",
+        "groupby",
+        "plot"
+      ],
+      "inputs": {
+        "type_name": "DataFrame",
+        "state": "None"
+      },
+      "outputs": {
+        "type_name": "str",
+        "state": "filepath_written"
+      },
+      "algorithmic_steps": [
+        "1. Load the CSV file into a DataFrame.",
+        "2. Group the DataFrame by the 'category' column.",
+        "3. Calculate the mean of the 'value' column for each group.",
+        "4. Plot the mean values per group as a bar chart."
+      ]
+    },
+    {
+      "cell_id": "macro_dynamic_groupby",
+      "type": "macro",
+      "stage": 2,
+      "keywords": [
+        "groupby",
+        "mean"
+      ],
+      "inputs": {
+        "type_name": "DataFrame",
+        "state": "filepath_written"
+      },
+      "outputs": {
+        "type_name": "DataFrame",
+        "state": "grouped_dataframe"
+      },
+      "algorithmic_steps": [
+        "1. Group the DataFrame by the 'category' column."
+      ]
+    },
+    {
+      "cell_id": "macro_dynamic_plot",
+      "type": "macro",
+      "stage": 3,
+      "keywords": [
+        "plot",
+        "bar chart"
+      ],
+      "inputs": {
+        "type_name": "DataFrame",
+        "state": "grouped_dataframe"
+      },
+      "outputs": {
+        "type_name": "str",
+        "state": "filepath_written"
+      },
+      "algorithmic_steps": [
+        "1. Calculate the mean of the 'value' column for each group.",
+        "2. Plot the mean values per group as a bar chart."
+      ]
+    },
+    {
+      "cell_id": "macro_dynamic_read_csv",
+      "type": "macro",
+      "stage": 1,
+      "keywords": [
+        "read_csv",
+        "groupby",
+        "plot"
+      ],
+      "inputs": {
+        "type_name": "str",
+        "state": "path_to_csv"
+      },
+      "outputs": {
+        "type_name": "str",
+        "state": "filepath_written"
+      },
+      "algorithmic_steps": [
+        "1. Load the CSV file into a DataFrame.",
+        "2. Group the DataFrame by the 'category' column.",
+        "3. Calculate the mean of the 'value' column for each group.",
+        "4. Plot the mean values per group as a bar chart."
+      ]
+    },
+    {
+      "cell_id": "macro_dynamic_groupby",
+      "type": "macro",
+      "stage": 2,
+      "keywords": [
+        "groupby",
+        "mean"
+      ],
+      "inputs": {
+        "type_name": "DataFrame",
+        "state": "grouped_df"
+      },
+      "outputs": {
+        "type_name": "DataFrame",
+        "state": "grouped_df"
+      },
+      "algorithmic_steps": [
+        "1. Group the DataFrame by the 'category' column."
+      ]
+    },
+    {
+      "cell_id": "macro_dynamic_plot",
+      "type": "macro",
+      "stage": 3,
+      "keywords": [
+        "plot",
+        "bar chart"
+      ],
+      "inputs": {
+        "type_name": "DataFrame",
+        "state": "grouped_df"
+      },
+      "outputs": {
+        "type_name": "str",
+        "state": "filepath_written"
+      },
+      "algorithmic_steps": [
+        "1. Calculate the mean of the 'value' column for each group.",
+        "2. Plot the mean values per group as a bar chart."
+      ]
+    },
+    {
+      "cell_id": "macro_dynamic_read_csv",
+      "type": "macro",
+      "stage": 1,
+      "keywords": [
+        "read_csv",
+        "groupby",
+        "plot"
+      ],
+      "inputs": {
+        "type_name": "str",
+        "state": "path_to_csv"
+      },
+      "outputs": {
+        "type_name": "str",
+        "state": "filepath_written"
+      },
+      "algorithmic_steps": [
+        "1. Load the CSV file into a DataFrame.",
+        "2. Group the DataFrame by the 'category' column.",
+        "3. Calculate the mean of the 'value' column for each group.",
+        "4. Plot the mean values per group as a bar chart."
+      ]
+    },
+    {
+      "cell_id": "macro_dynamic_groupby",
+      "type": "macro",
+      "stage": 2,
+      "keywords": [
+        "groupby",
+        "mean"
+      ],
+      "inputs": {
+        "type_name": "DataFrame",
+        "state": "grouped_df"
+      },
+      "outputs": {
+        "type_name": "DataFrame",
+        "state": "grouped_df"
+      },
+      "algorithmic_steps": [
+        "1. Group the DataFrame by the 'category' column."
+      ]
+    },
+    {
+      "cell_id": "macro_dynamic_plot",
+      "type": "macro",
+      "stage": 3,
+      "keywords": [
+        "plot",
+        "bar chart"
+      ],
+      "inputs": {
+        "type_name": "DataFrame",
+        "state": "grouped_df"
+      },
+      "outputs": {
+        "type_name": "str",
+        "state": "filepath_written"
+      },
+      "algorithmic_steps": [
+        "1. Calculate the mean of the 'value' column for each group.",
+        "2. Plot the mean values per group as a bar chart."
+      ]
+    },
+    {
+      "cell_id": "macro_dynamic_sort_data",
+      "type": "macro",
+      "stage": 1,
+      "keywords": [
+        "pandas",
+        "sort",
+        "drop",
+        "print",
+        "first 5 rows"
+      ],
+      "inputs": {
+        "type_name": "data.csv",
+        "state": "open"
+      },
+      "outputs": {
+        "type_name": "data.csv",
+        "state": "sorted"
+      },
+      "algorithmic_steps": [
+        "1. open 'data.csv' using pandas"
+      ],
+      "sub_cells": [
+        "PANDAS_DATAFRAME_SORT_INDEX",
+        "PANDAS_INDEX_DROP_DUPLICATES"
+      ],
+      "internal_topology": {
+        "data.csv": [
+          "data.csv"
+        ]
+      }
+    },
+    {
+      "cell_id": "micro_synthesized_PANDAS_SORT_VALUES",
+      "type": "micro",
+      "stage": 1,
+      "keywords": [
+        "PANDAS_SORT_VALUES"
+      ],
+      "inputs": {
+        "type_name": "str",
+        "state": "raw"
+      },
+      "outputs": {
+        "type_name": "any",
+        "state": "computed"
+      },
+      "domain_implementations": {
+        "Python_Core": {
+          "code": "import pandas as pd\n\n# Sample data\ndata = pd.DataFrame({'column1': [1, 2, 3], 'column2': [4, 5, 6]})\n\n# Convert str to any\nsorted_data = data.sort_values(by='column1', ascending=True)\n\n# Output the sorted data\nprint(sorted_data)\n",
+          "dependencies": [
+            "pandas"
+          ]
+        }
+      }
+    },
+    {
+      "cell_id": "micro_synthesized_PANDAS_SORT_VALUES",
+      "type": "micro",
+      "stage": 1,
+      "keywords": [
+        "PANDAS_SORT_VALUES"
+      ],
+      "inputs": {
+        "type_name": "str",
+        "state": "raw"
+      },
+      "outputs": {
+        "type_name": "any",
+        "state": "computed"
+      },
+      "domain_implementations": {
+        "Python_Core": {
+          "code": "import pandas as pd\n\n# Sample data\ndata = pd.DataFrame({'column1': [1, 2, 3], 'column2': [4, 5, 6]})\n\n# Convert str to any\nsorted_data = data.sort_values(by='column1', ascending=True)\n\n# Output the sorted data\nprint(sorted_data)\n",
+          "dependencies": [
+            "pandas"
+          ]
+        }
+      }
+    },
+    {
+      "cell_id": "macro_dynamic_sort_data",
+      "type": "macro",
+      "stage": 1,
+      "keywords": [
+        "pandas",
+        "data.csv",
+        "sort",
+        "age",
+        "drop",
+        "missing"
+      ],
+      "inputs": {
+        "type_name": "data.csv",
+        "state": "open"
+      },
+      "outputs": {
+        "type_name": "data.csv",
+        "state": "sorted"
+      },
+      "algorithmic_steps": [
+        "1. import pandas as pd"
+      ],
+      "sub_cells": [
+        "PANDAS_DATAFRAME_SORT_INDEX"
+      ],
+      "internal_topology": {
+        "PYTHON_LIST_SORT": [
+          "PANDAS_DATAFRAME_SORT_INDEX"
+        ]
+      }
+    },
+    {
+      "cell_id": "macro_dynamic_sort_data",
+      "type": "macro",
+      "stage": 1,
+      "keywords": [
+        "pandas",
+        "data.csv",
+        "sort",
+        "age",
+        "drop",
+        "missing"
+      ],
+      "inputs": {
+        "type_name": "data.csv",
+        "state": "open"
+      },
+      "outputs": {
+        "type_name": "data.csv",
+        "state": "sorted"
+      },
+      "algorithmic_steps": [
+        "1. import pandas as pd"
+      ],
+      "sub_cells": [
+        "PANDAS_DATAFRAME_SORT_INDEX"
+      ],
+      "internal_topology": {
+        "PYTHON_LIST_SORT": [
+          "PANDAS_DATAFRAME_SORT_INDEX"
+        ]
+      }
+    },
+    {
+      "cell_id": "macro_dynamic_sort_data",
+      "type": "macro",
+      "stage": 1,
+      "keywords": [
+        "pandas",
+        "data.csv",
+        "sort",
+        "age",
+        "drop",
+        "missing"
+      ],
+      "inputs": {
+        "type_name": "data.csv",
+        "state": "open"
+      },
+      "outputs": {
+        "type_name": "data.csv",
+        "state": "sorted"
+      },
+      "algorithmic_steps": [
+        "1. import pandas as pd"
+      ],
+      "sub_cells": [
+        "PANDAS_DATAFRAME_SORT_INDEX"
+      ],
+      "internal_topology": {
+        "PYTHON_LIST_SORT": [
+          "PANDAS_DATAFRAME_SORT_INDEX"
+        ]
+      }
+    },
+    {
+      "cell_id": "macro_dynamic_sort_data",
+      "type": "macro",
+      "stage": 1,
+      "keywords": [
+        "pandas",
+        "data.csv",
+        "sort",
+        "age",
+        "drop",
+        "missing"
+      ],
+      "inputs": {
+        "type_name": "data.csv",
+        "state": "open"
+      },
+      "outputs": {
+        "type_name": "data.csv",
+        "state": "sorted"
+      },
+      "algorithmic_steps": [
+        "1. import pandas as pd"
+      ],
+      "sub_cells": [
+        "PANDAS_DATAFRAME_SORT_INDEX"
+      ],
+      "internal_topology": {
+        "PYTHON_LIST_SORT": [
+          "PANDAS_DATAFRAME_SORT_INDEX"
+        ]
+      }
+    },
+    {
+      "cell_id": "macro_dynamic_read_csv",
+      "type": "macro",
+      "stage": 1,
+      "keywords": [
+        "Read CSV",
+        "DataFrame",
+        "Drop Missing Values",
+        "Sort by 'age' column",
+        "Print first 5 rows"
+      ],
+      "inputs": {
+        "type_name": "data.csv",
+        "state": "..."
+      },
+      "outputs": {
+        "type_name": "pandas_dataframe",
+        "state": "..."
+      },
+      "algorithmic_steps": [
+        "1. Read CSV file named data.csv into a pandas dataframe"
+      ],
+      "sub_cells": [
+        "PANDAS_DATAFRAME___DATAFRAME_CONSORTIUM_STANDARD___DEFAULT"
+      ],
+      "internal_topology": {
+        "data.csv": [
+          "data.csv"
+        ]
+      }
+    },
+    {
+      "cell_id": "macro_dynamic_drop_missing_values",
+      "type": "macro",
+      "stage": 2,
+      "keywords": [
+        "Drop missing values from the pandas dataframe"
+      ],
+      "inputs": {
+        "type_name": "pandas_dataframe",
+        "state": "..."
+      },
+      "outputs": {
+        "type_name": "pandas_dataframe",
+        "state": "..."
+      },
+      "algorithmic_steps": [
+        "1. Drop any rows with missing values from the pandas dataframe"
+      ],
+      "sub_cells": [
+        "PANDAS_DATAFRAME___DATAFRAME_CONSORTIUM_STANDARD___DEFAULT"
+      ],
+      "internal_topology": {
+        "pandas_dataframe": [
+          "pandas_dataframe"
+        ]
+      }
+    },
+    {
+      "cell_id": "macro_dynamic_sort_by_age",
+      "type": "macro",
+      "stage": 3,
+      "keywords": [
+        "Sort the pandas dataframe by the 'age' column in descending order"
+      ],
+      "inputs": {
+        "type_name": "pandas_dataframe",
+        "state": "..."
+      },
+      "outputs": {
+        "type_name": "pandas_dataframe",
+        "state": "..."
+      },
+      "algorithmic_steps": [
+        "1. Sort the pandas dataframe by the 'age' column in descending order"
+      ],
+      "sub_cells": [
+        "PANDAS_DATAFRAME___DATAFRAME_CONSORTIUM_STANDARD___DEFAULT"
+      ],
+      "internal_topology": {
+        "pandas_dataframe": [
+          "pandas_dataframe"
+        ]
+      }
+    },
+    {
+      "cell_id": "macro_dynamic_print_first_5_rows",
+      "type": "macro",
+      "stage": 4,
+      "keywords": [
+        "Print the first 5 rows of the pandas dataframe"
+      ],
+      "inputs": {
+        "type_name": "pandas_dataframe",
+        "state": "..."
+      },
+      "outputs": {
+        "type_name": "pandas_dataframe",
+        "state": "..."
+      },
+      "algorithmic_steps": [
+        "1. Print the first 5 rows of the pandas dataframe"
+      ],
+      "sub_cells": [
+        "PANDAS_DATAFRAME___DATAFRAME_CONSORTIUM_STANDARD___DEFAULT"
+      ],
+      "internal_topology": {
+        "pandas_dataframe": [
+          "pandas_dataframe"
+        ]
+      }
+    },
+    {
+      "cell_id": "macro_dynamic_sort_data",
+      "type": "macro",
+      "stage": 1,
+      "keywords": [
+        "Read CSV file",
+        "Drop rows with missing values",
+        "Sort by 'age' column",
+        "Print first 5 rows"
+      ],
+      "inputs": {
+        "type_name": "data.csv[open]",
+        "state": "..."
+      },
+      "outputs": {
+        "type_name": "data.csv[sorted]",
+        "state": "..."
+      },
+      "algorithmic_steps": [
+        "1. Read CSV file",
+        "2. Drop rows with missing values",
+        "3. Sort by 'age' column",
+        "4. Print first 5 rows"
+      ],
+      "sub_cells": [
+        "PANDAS_DATAFRAME___IMOD___DEFAULT"
+      ],
+      "internal_topology": {
+        "macro_dynamic_sort_data": [
+          "PANDAS_DATAFRAME___IMOD___DEFAULT"
+        ]
+      }
+    },
+    {
+      "cell_id": "macro_dynamic_drop_missing_values",
+      "type": "macro",
+      "stage": 1,
+      "keywords": [
+        "Read CSV file",
+        "Drop missing values",
+        "Sort by 'age' column",
+        "Print first 5 rows"
+      ],
+      "inputs": {
+        "type_name": "PANDAS_DATAFRAME___DATAFRAME_CONSORTIUM_STANDARD___DEFAULT",
+        "state": "PANDAS_DATAFRAME___DATAFRAME_CONSORTIUM_STANDARD___DEFAULT"
+      },
+      "outputs": {
+        "type_name": "PANDAS_DATAFRAME___DATAFRAME_CONSORTIUM_STANDARD___DEFAULT",
+        "state": "PANDAS_DATAFRAME___DATAFRAME_CONSORTIUM_STANDARD___DEFAULT"
+      },
+      "algorithmic_steps": [
+        "1. Read CSV file",
+        "2. Drop missing values",
+        "3. Sort by 'age' column",
+        "4. Print first 5 rows"
+      ],
+      "sub_cells": [
+        "PANDAS_DATAFRAME___DATAFRAME_CONSORTIUM_STANDARD___DEFAULT"
+      ],
+      "internal_topology": {
+        "PANDAS_DATAFRAME___DATAFRAME_CONSORTIUM_STANDARD___DEFAULT": [
+          "PANDAS_DATAFRAME___DATAFRAME_CONSORTIUM_STANDARD___DEFAULT"
+        ]
+      }
+    },
+    {
+      "cell_id": "macro_dynamic_sort_data",
+      "type": "macro",
+      "stage": 1,
+      "keywords": [
+        "Read CSV file",
+        "Drop rows with missing values",
+        "Sort by 'age' column",
+        "Print first 5 rows"
+      ],
+      "inputs": {
+        "type_name": "data.csv[open]",
+        "state": "..."
+      },
+      "outputs": {
+        "type_name": "data.csv[sorted]",
+        "state": "..."
+      },
+      "algorithmic_steps": [
+        "1. Read CSV file",
+        "2. Drop rows with missing values",
+        "3. Sort by 'age' column",
+        "4. Print first 5 rows"
+      ],
+      "sub_cells": [
+        "PANDAS_DATAFRAME___IMOD___DEFAULT"
+      ],
+      "internal_topology": {
+        "macro_dynamic_sort_data": [
+          "PANDAS_DATAFRAME___IMOD___DEFAULT"
+        ]
+      }
+    },
+    {
+      "cell_id": "macro_dynamic_drop_missing_values",
+      "type": "macro",
+      "stage": 1,
+      "keywords": [
+        "Read CSV file",
+        "Drop missing values",
+        "Sort by 'age' column",
+        "Print first 5 rows"
+      ],
+      "inputs": {
+        "type_name": "PANDAS_DATAFRAME___DATAFRAME_CONSORTIUM_STANDARD___DEFAULT",
+        "state": "PANDAS_DATAFRAME___DATAFRAME_CONSORTIUM_STANDARD___DEFAULT"
+      },
+      "outputs": {
+        "type_name": "PANDAS_DATAFRAME___DATAFRAME_CONSORTIUM_STANDARD___DEFAULT",
+        "state": "PANDAS_DATAFRAME___DATAFRAME_CONSORTIUM_STANDARD___DEFAULT"
+      },
+      "algorithmic_steps": [
+        "1. Read CSV file",
+        "2. Drop missing values",
+        "3. Sort by 'age' column",
+        "4. Print first 5 rows"
+      ],
+      "sub_cells": [
+        "PANDAS_DATAFRAME___DATAFRAME_CONSORTIUM_STANDARD___DEFAULT"
+      ],
+      "internal_topology": {
+        "PANDAS_DATAFRAME___DATAFRAME_CONSORTIUM_STANDARD___DEFAULT": [
+          "PANDAS_DATAFRAME___DATAFRAME_CONSORTIUM_STANDARD___DEFAULT"
+        ]
+      }
+    },
+    {
+      "cell_id": "macro_dynamic_sort_data",
+      "type": "macro",
+      "stage": 1,
+      "keywords": [
+        "Read CSV file",
+        "Drop rows with missing values",
+        "Sort by 'age' column",
+        "Print first 5 rows"
+      ],
+      "inputs": {
+        "type_name": "data.csv[open]",
+        "state": "..."
+      },
+      "outputs": {
+        "type_name": "data.csv[sorted]",
+        "state": "..."
+      },
+      "algorithmic_steps": [
+        "1. Read CSV file",
+        "2. Drop rows with missing values",
+        "3. Sort by 'age' column",
+        "4. Print first 5 rows"
+      ],
+      "sub_cells": [
+        "PANDAS_DATAFRAME___IMOD___DEFAULT"
+      ],
+      "internal_topology": {
+        "macro_dynamic_sort_data": [
+          "PANDAS_DATAFRAME___IMOD___DEFAULT"
+        ]
+      }
+    },
+    {
+      "cell_id": "macro_dynamic_read_csv",
+      "type": "macro",
+      "stage": 1,
+      "keywords": [
+        "read_csv",
+        "pandas",
+        "dataframe",
+        "drop",
+        "sort",
+        "print"
+      ],
+      "inputs": {
+        "type_name": "file",
+        "state": "data.csv"
+      },
+      "outputs": {
+        "type_name": "pandas_dataframe",
+        "state": "cleaned_dataframe"
+      },
+      "algorithmic_steps": [
+        "1. Read the CSV file into a pandas dataframe.",
+        "2. Drop any rows with missing values.",
+        "3. Sort the dataframe by the 'age' column in descending order.",
+        "4. Print the first 5 rows."
+      ]
+    },
+    {
+      "cell_id": "macro_dynamic_drop_missing_values",
+      "type": "macro",
+      "stage": 2,
+      "keywords": [
+        "drop",
+        "missing",
+        "values",
+        "pandas",
+        "dataframe"
+      ],
+      "inputs": {
+        "type_name": "pandas_dataframe",
+        "state": "cleaned_dataframe"
+      },
+      "outputs": {
+        "type_name": "pandas_dataframe",
+        "state": "dropped_dataframe"
+      },
+      "algorithmic_steps": [
+        "1. Drop any rows with missing values from the dataframe."
+      ]
+    },
+    {
+      "cell_id": "macro_dynamic_sort_by_age",
+      "type": "macro",
+      "stage": 3,
+      "keywords": [
+        "sort",
+        "by",
+        "age",
+        "descending",
+        "pandas",
+        "dataframe"
+      ],
+      "inputs": {
+        "type_name": "pandas_dataframe",
+        "state": "dropped_dataframe"
+      },
+      "outputs": {
+        "type_name": "pandas_dataframe",
+        "state": "sorted_dataframe"
+      },
+      "algorithmic_steps": [
+        "1. Sort the dataframe by the 'age' column in descending order."
+      ]
+    },
+    {
+      "cell_id": "macro_dynamic_print_first_five_rows",
+      "type": "macro",
+      "stage": 4,
+      "keywords": [
+        "print",
+        "first",
+        "five",
+        "rows",
+        "pandas",
+        "dataframe"
+      ],
+      "inputs": {
+        "type_name": "pandas_dataframe",
+        "state": "sorted_dataframe"
+      },
+      "outputs": {
+        "type_name": "none",
+        "state": "none"
+      },
+      "algorithmic_steps": [
+        "1. Print the first 5 rows of the sorted dataframe."
+      ]
+    },
+    {
+      "cell_id": "macro_dynamic_add",
+      "type": "macro",
+      "stage": 1,
+      "keywords": [
+        "add",
+        "5",
+        "7"
+      ],
+      "inputs": {
+        "type_name": "int",
+        "state": "5"
+      },
+      "outputs": {
+        "type_name": "int",
+        "state": "12"
+      },
+      "algorithmic_steps": [
+        "1. add",
+        "2. add"
+      ],
+      "sub_cells": [
+        "SCIPY_IO_MATLAB_MATLABFUNCTION___AND___DEFAULT",
+        "BUILTINS_SET_ADD_DEFAULT"
+      ],
+      "internal_topology": {
+        "SCIPY_IO_MATLAB_MATLABFUNCTION___AND___DEFAULT": [
+          "BUILTINS_SET_ADD_DEFAULT"
+        ]
+      }
+    },
+    {
+      "cell_id": "macro_dynamic_add",
+      "type": "macro",
+      "stage": 1,
+      "keywords": [
+        "add",
+        "sum",
+        "python",
+        "function"
+      ],
+      "inputs": {
+        "type_name": "int",
+        "state": "5"
+      },
+      "outputs": {
+        "type_name": "int",
+        "state": "7"
+      },
+      "algorithmic_steps": [
+        "1. Call the built-in function `sum` with the inputs `a` and `b`"
+      ],
+      "sub_cells": [
+        "BUILTINS_SUM"
+      ],
+      "internal_topology": {
+        "BUILTINS_SUM": [
+          "NUMPY_SUM"
+        ]
+      }
+    },
+    {
+      "cell_id": "macro_dynamic_add",
+      "type": "macro",
+      "stage": 1,
+      "keywords": [
+        "add",
+        "sum"
+      ],
+      "inputs": {
+        "type_name": "int",
+        "state": "5"
+      },
+      "outputs": {
+        "type_name": "int",
+        "state": "result"
+      },
+      "algorithmic_steps": [
+        "1. Call add function with 5 and 7",
+        "2. Print the result"
+      ],
+      "sub_cells": [
+        "NUMPY_SUM"
+      ],
+      "internal_topology": {
+        "NUMPY_SUM": [
+          "result"
+        ]
+      }
+    },
+    {
+      "cell_id": "macro_dynamic_add",
+      "type": "macro",
+      "stage": 1,
+      "keywords": [
+        "add",
+        "int",
+        "5",
+        "7"
+      ],
+      "inputs": {
+        "type_name": "int[5]",
+        "state": "..."
+      },
+      "outputs": {
+        "type_name": "int[12]",
+        "state": "..."
+      },
+      "algorithmic_steps": [
+        "1. add",
+        "2. add",
+        "3. add",
+        "4. add",
+        "5. add"
+      ],
+      "sub_cells": [
+        "SYNTH_ADD",
+        "SYNTH_ADD",
+        "SYNTH_ADD",
+        "SYNTH_ADD",
+        "SYNTH_ADD"
+      ],
+      "internal_topology": {
+        "source_id": [
+          "SYNTH_ADD",
+          "SYNTH_ADD",
+          "SYNTH_ADD",
+          "SYNTH_ADD",
+          "SYNTH_ADD"
+        ]
+      }
+    },
+    {
+      "cell_id": "macro_dynamic_add",
+      "type": "macro",
+      "stage": 1,
+      "keywords": [
+        "add",
+        "sum",
+        "python",
+        "function"
+      ],
+      "inputs": {
+        "type_name": "int",
+        "state": "5"
+      },
+      "outputs": {
+        "type_name": "int",
+        "state": "7"
+      },
+      "algorithmic_steps": [
+        "1. BUILTINS_SET_ADD_DEFAULT(a, b) -> 12"
+      ],
+      "sub_cells": [
+        "BUILTINS_SET_ADD_DEFAULT"
+      ],
+      "internal_topology": {
+        "BUILTINS_SET_ADD_DEFAULT": [
+          "12"
+        ]
+      }
+    },
+    {
+      "cell_id": "macro_dynamic_add",
+      "type": "macro",
+      "stage": 1,
+      "keywords": [
+        "add",
+        "sum"
+      ],
+      "inputs": {
+        "type_name": "int",
+        "state": "5"
+      },
+      "outputs": {
+        "type_name": "int",
+        "state": "12"
+      },
+      "algorithmic_steps": [
+        "1. Call add function with inputs 5 and 7",
+        "2. Return the sum of 5 and 7"
+      ],
+      "sub_cells": [
+        "SYNTH_ADD_5_7"
+      ],
+      "internal_topology": {
+        "SYNTH_ADD_5_7": [
+          "SYNTH_ADD_5_7"
+        ]
+      }
+    },
+    {
+      "cell_id": "SYNTH_ADD_5_7",
+      "type": "synthetic",
+      "stage": 2,
+      "keywords": [
+        "add",
+        "sum"
+      ],
+      "inputs": {
+        "type_name": "int",
+        "state": "5"
+      },
+      "outputs": {
+        "type_name": "int",
+        "state": "12"
+      },
+      "algorithmic_steps": [
+        "1. Add 5 and 7",
+        "2. Return the result"
+      ],
+      "sub_cells": [],
+      "internal_topology": {}
+    },
+    {
+      "cell_id": "macro_dynamic_add",
+      "type": "macro",
+      "stage": 1,
+      "keywords": [
+        "add",
+        "5",
+        "7"
+      ],
+      "inputs": {
+        "a": 5,
+        "b": 7
+      },
+      "outputs": {
+        "type_name": "computed",
+        "state": "5 + 7"
+      },
+      "algorithmic_steps": [
+        "1. add",
+        "2. add"
+      ],
+      "sub_cells": [
+        "SYNTH_ADD",
+        "SYNTH_ADD"
+      ],
+      "internal_topology": {
+        "source_id": [
+          "SYNTH_ADD",
+          "SYNTH_ADD"
+        ]
+      }
+    },
+    {
+      "cell_id": "macro_dynamic_add",
+      "type": "macro",
+      "stage": 1,
+      "keywords": [
+        "add",
+        "5",
+        "7"
+      ],
+      "inputs": {
+        "type_name": "int[5]",
+        "state": "..."
+      },
+      "outputs": {
+        "type_name": "int[12]",
+        "state": "..."
+      },
+      "algorithmic_steps": [
+        "1. add",
+        "2. add",
+        "3. add",
+        "4. add",
+        "5. add"
+      ],
+      "sub_cells": [
+        "SYNTH_ADD_5_7",
+        "SYNTH_ADD_5_7",
+        "SYNTH_ADD_5_7",
+        "SYNTH_ADD_5_7",
+        "SYNTH_ADD_5_7"
+      ],
+      "internal_topology": {
+        "SYNTH_ADD_5_7": [
+          "SYNTH_ADD_5_7"
+        ]
+      }
+    },
+    {
+      "cell_id": "macro_dynamic_read_csv",
+      "type": "macro",
+      "stage": 1,
+      "keywords": [
+        "read_csv",
+        "pandas",
+        "dataframe"
+      ],
+      "inputs": {
+        "type_name": "str",
+        "state": "data.csv"
+      },
+      "outputs": {
+        "type_name": "DataFrame",
+        "state": "raw_dataframe"
+      },
+      "algorithmic_steps": [
+        "1. Read the CSV file into a pandas dataframe"
+      ],
+      "sub_cells": [
+        "PANDAS_READ_CSV"
+      ],
+      "internal_topology": {
+        "PANDAS_READ_CSV": [
+          "raw_dataframe"
+        ]
+      }
+    },
+    {
+      "cell_id": "macro_dynamic_drop_missing_values",
+      "type": "macro",
+      "stage": 2,
+      "keywords": [
+        "drop_missing_values",
+        "pandas",
+        "dataframe"
+      ],
+      "inputs": {
+        "type_name": "DataFrame",
+        "state": "raw_dataframe"
+      },
+      "outputs": {
+        "type_name": "DataFrame",
+        "state": "cleaned_dataframe"
+      },
+      "algorithmic_steps": [
+        "2. Drop any rows with missing values"
+      ],
+      "sub_cells": [
+        "SYNTH_MACRO_DYNAMIC_DROP_MISSING_VALUES"
+      ],
+      "internal_topology": {
+        "macro_dynamic_drop_missing_values": [
+          "cleaned_dataframe"
+        ]
+      }
+    },
+    {
+      "cell_id": "macro_dynamic_sort_by_age",
+      "type": "macro",
+      "stage": 3,
+      "keywords": [
+        "sort_by_age",
+        "pandas",
+        "dataframe"
+      ],
+      "inputs": {
+        "type_name": "DataFrame",
+        "state": "cleaned_dataframe"
+      },
+      "outputs": {
+        "type_name": "DataFrame",
+        "state": "sorted_dataframe"
+      },
+      "algorithmic_steps": [
+        "3. Sort the dataframe by the 'age' column in descending order"
+      ],
+      "sub_cells": [
+        "SYNTH_MACRO_DYNAMIC_SORT_BY_AGE"
+      ],
+      "internal_topology": {
+        "macro_dynamic_sort_by_age": [
+          "sorted_dataframe"
+        ]
+      }
+    },
+    {
+      "cell_id": "macro_dynamic_to_csv",
+      "type": "macro",
+      "stage": 4,
+      "keywords": [
+        "to_csv",
+        "pandas",
+        "dataframe"
+      ],
+      "inputs": {
+        "type_name": "DataFrame",
+        "state": "sorted_dataframe"
+      },
+      "outputs": {
+        "type_name": "str",
+        "state": "filepath_written"
+      },
+      "algorithmic_steps": [
+        "4. Save the cleaned dataframe to a new CSV file named cleaned_data.csv"
+      ],
+      "sub_cells": [
+        "SYNTH_PANDAS_TO_CSV"
+      ],
+      "internal_topology": {
+        "PANDAS_TO_CSV": [
+          "filepath_written"
+        ]
+      }
+    },
+    {
+      "cell_id": "macro_dynamic_add",
+      "type": "macro",
+      "stage": 1,
+      "keywords": [
+        "add",
+        "sum",
+        "python"
+      ],
+      "inputs": {
+        "type_name": "int",
+        "state": "5"
+      },
+      "outputs": {
+        "type_name": "int",
+        "state": "12"
+      },
+      "algorithmic_steps": [
+        "1. Add the inputs a and b using the built-in function 'NUMPY_INTEGER_SUM'"
+      ],
+      "sub_cells": [
+        "NUMPY_INTEGER_SUM"
+      ],
+      "internal_topology": {
+        "NUMPY_INTEGER_SUM": [
+          "NUMPY_INTEGER_SUM"
+        ]
+      }
+    },
+    {
+      "cell_id": "macro_dynamic_sort_data",
+      "type": "macro",
+      "stage": 1,
+      "keywords": [
+        "sort",
+        "data",
+        "age",
+        "descending"
+      ],
+      "inputs": {
+        "type_name": "data.csv",
+        "state": "open"
+      },
+      "outputs": {
+        "type_name": "data.csv",
+        "state": "sorted"
+      },
+      "algorithmic_steps": [
+        "1. Read the CSV file named data.csv into a pandas dataframe.",
+        "2. Drop any rows with missing values.",
+        "3. Sort the dataframe by the 'age' column in descending order.",
+        "4. Save the cleaned dataframe to a new CSV file named cleaned_data.csv."
+      ],
+      "sub_cells": [
+        "PANDAS_READ_CSV",
+        "SYNTH_PANDAS_DROP_NA",
+        "SYNTH_MACRO_DYNAMIC_SORT_BY_AGE",
+        "SYNTH_PANDAS_TO_CSV"
+      ],
+      "internal_topology": {
+        "PANDAS_READ_CSV": [
+          "PANDAS_DROP_NA"
+        ],
+        "PANDAS_DROP_NA": [
+          "macro_dynamic_sort_by_age"
+        ],
+        "macro_dynamic_sort_by_age": [
+          "PANDAS_TO_CSV"
+        ]
+      }
+    },
+    {
+      "cell_id": "macro_dynamic_add",
+      "type": "macro",
+      "stage": 1,
+      "keywords": [
+        "add",
+        "sum"
+      ],
+      "inputs": {
+        "type_name": "int",
+        "state": "5,7"
+      },
+      "outputs": {
+        "type_name": "int",
+        "state": "12"
+      },
+      "algorithmic_steps": [
+        "1. Call add function with inputs 5 and 7",
+        "2. Return the sum of 5 and 7"
+      ],
+      "sub_cells": [
+        "SYNTH_ADD_5_7"
+      ],
+      "internal_topology": {
+        "SYNTH_ADD_5_7": [
+          "SYNTH_ADD_5_7"
+        ]
+      }
+    },
+    {
+      "cell_id": "macro_dynamic_read_csv",
+      "type": "macro",
+      "stage": 1,
+      "keywords": [
+        "data.csv"
+      ],
+      "inputs": {
+        "type_name": "data.csv",
+        "state": "..."
+      },
+      "outputs": {
+        "type_name": "DataFrame[raw_dataframe]",
+        "state": "..."
+      },
+      "algorithmic_steps": [
+        "1. Read data.csv into a pandas dataframe"
+      ],
+      "sub_cells": [
+        "PANDAS_READ_CSV"
+      ],
+      "internal_topology": {
+        "source_id": "data.csv"
+      }
+    },
+    {
+      "cell_id": "macro_dynamic_sort_data",
+      "type": "macro",
+      "stage": 1,
+      "keywords": [
+        "data.csv[raw_dataframe]"
+      ],
+      "inputs": {
+        "type_name": "DataFrame[raw_dataframe]",
+        "state": "..."
+      },
+      "outputs": {
+        "type_name": "DataFrame[sorted]",
+        "state": "..."
+      },
+      "algorithmic_steps": [
+        "1. Drop rows with missing values"
+      ],
+      "sub_cells": [
+        "PANDAS_READ_CSV"
+      ],
+      "internal_topology": {
+        "source_id": "data.csv"
+      }
+    },
+    {
+      "cell_id": "macro_dynamic_sort_values",
+      "type": "macro",
+      "stage": 1,
+      "keywords": [
+        "data.csv[sorted]",
+        "age"
+      ],
+      "inputs": {
+        "type_name": "DataFrame[sorted]",
+        "state": "..."
+      },
+      "outputs": {
+        "type_name": "DataFrame[sorted]",
+        "state": "..."
+      },
+      "algorithmic_steps": [
+        "1. Sort the dataframe by 'age' in descending order"
+      ],
+      "sub_cells": [
+        "PANDAS_READ_CSV"
+      ],
+      "internal_topology": {
+        "source_id": "data.csv"
+      }
+    },
+    {
+      "cell_id": "macro_dynamic_to_csv",
+      "type": "macro",
+      "stage": 1,
+      "keywords": [
+        "data.csv[sorted]",
+        "cleaned_data"
+      ],
+      "inputs": {
+        "type_name": "DataFrame[sorted]",
+        "state": "..."
+      },
+      "outputs": {
+        "type_name": "str[filepath_written]",
+        "state": "..."
+      },
+      "algorithmic_steps": [
+        "1. Save the cleaned dataframe to a new CSV file named cleaned_data.csv"
+      ],
+      "sub_cells": [
+        "PANDAS_READ_CSV"
+      ],
+      "internal_topology": {
+        "source_id": "data.csv"
+      }
+    },
+    {
+      "cell_id": "macro_dynamic_add",
+      "type": "macro",
+      "stage": 1,
+      "keywords": [
+        "add",
+        "5",
+        "7"
+      ],
+      "inputs": {
+        "a": 5,
+        "b": 7
+      },
+      "outputs": {
+        "type_name": "computed",
+        "state": "5 + 7"
+      },
+      "algorithmic_steps": [
+        "1. add",
+        "2. add"
+      ],
+      "sub_cells": [
+        "SYNTH_ADD",
+        "SYNTH_ADD"
+      ],
+      "internal_topology": {
+        "source_id": [
+          "SYNTH_ADD",
+          "SYNTH_ADD"
+        ]
+      }
+    },
+    {
+      "cell_id": "macro_dynamic_read_csv",
+      "type": "macro",
+      "stage": 1,
+      "keywords": [
+        "read_csv",
+        "pandas"
+      ],
+      "inputs": {
+        "type_name": "str",
+        "state": "data.csv"
+      },
+      "outputs": {
+        "type_name": "DataFrame",
+        "state": "raw_dataframe"
+      },
+      "algorithmic_steps": [
+        "1. Load the CSV file into a pandas DataFrame."
+      ]
+    },
+    {
+      "cell_id": "macro_dynamic_drop_missing_values",
+      "type": "macro",
+      "stage": 2,
+      "keywords": [
+        "dropna",
+        "pandas"
+      ],
+      "inputs": {
+        "type_name": "DataFrame",
+        "state": "raw_dataframe"
+      },
+      "outputs": {
+        "type_name": "DataFrame",
+        "state": "cleaned_dataframe"
+      },
+      "algorithmic_steps": [
+        "2. Drop rows with missing values from the DataFrame."
+      ]
+    },
+    {
+      "cell_id": "macro_dynamic_sort_values",
+      "type": "macro",
+      "stage": 3,
+      "keywords": [
+        "sort_values",
+        "pandas"
+      ],
+      "inputs": {
+        "type_name": "DataFrame",
+        "state": "cleaned_dataframe"
+      },
+      "outputs": {
+        "type_name": "DataFrame",
+        "state": "sorted_dataframe"
+      },
+      "algorithmic_steps": [
+        "3. Sort the DataFrame by the 'age' column in descending order."
+      ]
+    },
+    {
+      "cell_id": "macro_dynamic_to_csv",
+      "type": "macro",
+      "stage": 4,
+      "keywords": [
+        "to_csv",
+        "pandas"
+      ],
+      "inputs": {
+        "type_name": "DataFrame",
+        "state": "sorted_dataframe"
+      },
+      "outputs": {
+        "type_name": "str",
+        "state": "filepath_written"
+      },
+      "algorithmic_steps": [
+        "4. Save the cleaned DataFrame to a new CSV file named cleaned_data.csv."
+      ]
+    },
+    {
+      "cell_id": "macro_dynamic_add",
+      "type": "macro",
+      "stage": 1,
+      "keywords": [
+        "add",
+        "sum",
+        "python",
+        "function",
+        "return"
+      ],
+      "inputs": {
+        "type_name": "int",
+        "state": "5"
+      },
+      "outputs": {
+        "type_name": "int",
+        "state": "7"
+      },
+      "algorithmic_steps": [
+        "1. Call the built-in Python function 'add' with arguments 'a' and 'b'"
+      ],
+      "sub_cells": [
+        "SYNTH_NUMPY_INT_SUM",
+        "SYNTH_NUMPY_INT_SUM"
+      ],
+      "internal_topology": {
+        "NUMPY_INT_SUM": [
+          "NUMPY_INT_SUM"
+        ]
+      }
+    },
+    {
+      "cell_id": "macro_dynamic_clean_and_sort_data",
+      "type": "macro",
+      "stage": 1,
+      "keywords": [
+        "read_csv",
+        "dropna",
+        "sort_values",
+        "to_csv"
+      ],
+      "inputs": {
+        "type_name": "data.csv",
+        "state": "open"
+      },
+      "outputs": {
+        "type_name": "cleaned_data.csv",
+        "state": "written"
+      },
+      "algorithmic_steps": [
+        "1. Read the CSV file into a pandas dataframe.",
+        "2. Drop any rows with missing values.",
+        "3. Sort the dataframe by the 'age' column in descending order.",
+        "4. Save the cleaned dataframe to a new CSV file."
+      ],
+      "sub_cells": [
+        "PANDAS_READ_CSV",
+        "PANDAS_DATAFRAME_DROP",
+        "SYNTH_MACRO_DYNAMIC_SORT_VALUES",
+        "SYNTH_PANDAS_TO_CSV"
+      ],
+      "internal_topology": {
+        "PANDAS_READ_CSV": [
+          "PANDAS_DATAFRAME_DROP"
+        ],
+        "PANDAS_DATAFRAME_DROP": [
+          "macro_dynamic_sort_values"
+        ],
+        "macro_dynamic_sort_values": [
+          "PANDAS_TO_CSV"
+        ]
+      }
+    },
+    {
+      "cell_id": "macro_dynamic_add",
+      "type": "macro",
+      "stage": 1,
+      "keywords": [
+        "add",
+        "sum"
+      ],
+      "inputs": {
+        "type_name": "int",
+        "state": "5"
+      },
+      "outputs": {
+        "type_name": "int",
+        "state": "result"
+      },
+      "algorithmic_steps": [
+        "1. Call the function add with 5 and 7",
+        "2. Print the result"
+      ],
+      "sub_cells": [
+        "NUMPY_SUM"
+      ],
+      "internal_topology": {
+        "NUMPY_SUM": [
+          "result"
+        ]
+      }
+    },
+    {
+      "cell_id": "macro_dynamic_sort_data",
+      "type": "macro",
+      "stage": 1,
+      "keywords": [
+        "data.csv",
+        "drop missing values",
+        "sort by age",
+        "cleaned_data.csv"
+      ],
+      "inputs": {
+        "type_name": "data.csv[open]",
+        "state": "..."
+      },
+      "outputs": {
+        "type_name": "cleaned_data.csv[written]",
+        "state": "..."
+      },
+      "algorithmic_steps": [
+        "1. Read data.csv into a pandas dataframe"
+      ],
+      "sub_cells": [
+        "SYNTH_DROP",
+        "SYNTH_DROP_NA",
+        "SYNTH_SORT_VALUES",
+        "SYNTH_DROP"
+      ],
+      "internal_topology": {
+        "source_id": [
+          "data.csv[open]"
+        ]
+      }
+    },
+    {
+      "cell_id": "macro_dynamic_add",
+      "type": "macro",
+      "stage": 1,
+      "keywords": [
+        "add",
+        "int",
+        "int"
+      ],
+      "inputs": {
+        "type_name": "int[5]",
+        "state": "int[7]"
+      },
+      "outputs": {
+        "type_name": "int[12]",
+        "state": "int[12]"
+      },
+      "algorithmic_steps": [
+        "1. int[5] + int[7]"
+      ],
+      "sub_cells": [
+        "SYNTH_ADD_5_7"
+      ],
+      "internal_topology": {
+        "SYNTH_ADD_5_7": [
+          "SYNTH_ADD_5_7"
+        ]
+      }
+    },
+    {
+      "cell_id": "macro_dynamic_read_csv",
+      "type": "macro",
+      "stage": 1,
+      "keywords": [
+        "read_csv",
+        "pandas",
+        "dataframe"
+      ],
+      "inputs": {
+        "type_name": "str",
+        "state": "data.csv"
+      },
+      "outputs": {
+        "type_name": "DataFrame",
+        "state": "raw_dataframe"
+      },
+      "algorithmic_steps": [
+        "1. Read the CSV file into a pandas dataframe"
+      ],
+      "sub_cells": [
+        "PANDAS_READ_CSV"
+      ],
+      "internal_topology": {
+        "PANDAS_READ_CSV": [
+          "raw_dataframe"
+        ]
+      }
+    },
+    {
+      "cell_id": "macro_dynamic_drop_missing_values",
+      "type": "macro",
+      "stage": 2,
+      "keywords": [
+        "drop_missing_values",
+        "pandas",
+        "dataframe"
+      ],
+      "inputs": {
+        "type_name": "DataFrame",
+        "state": "raw_dataframe"
+      },
+      "outputs": {
+        "type_name": "DataFrame",
+        "state": "cleaned_dataframe"
+      },
+      "algorithmic_steps": [
+        "2. Drop rows with missing values from the dataframe"
+      ],
+      "sub_cells": [
+        "SYNTH_PANDAS_DROP_NA"
+      ],
+      "internal_topology": {
+        "PANDAS_DROP_NA": [
+          "cleaned_dataframe"
+        ]
+      }
+    },
+    {
+      "cell_id": "macro_dynamic_sort_by_age",
+      "type": "macro",
+      "stage": 3,
+      "keywords": [
+        "sort_by_age",
+        "pandas",
+        "dataframe"
+      ],
+      "inputs": {
+        "type_name": "DataFrame",
+        "state": "cleaned_dataframe"
+      },
+      "outputs": {
+        "type_name": "DataFrame",
+        "state": "sorted_dataframe"
+      },
+      "algorithmic_steps": [
+        "3. Sort the dataframe by the 'age' column in descending order"
+      ],
+      "sub_cells": [
+        "SYNTH_MACRO_DYNAMIC_SORT_VALUES"
+      ],
+      "internal_topology": {
+        "macro_dynamic_sort_values": [
+          "sorted_dataframe"
+        ]
+      }
+    },
+    {
+      "cell_id": "macro_dynamic_to_csv",
+      "type": "macro",
+      "stage": 4,
+      "keywords": [
+        "to_csv",
+        "pandas",
+        "dataframe"
+      ],
+      "inputs": {
+        "type_name": "DataFrame",
+        "state": "sorted_dataframe"
+      },
+      "outputs": {
+        "type_name": "str",
+        "state": "filepath_written"
+      },
+      "algorithmic_steps": [
+        "4. Save the cleaned dataframe to a new CSV file named cleaned_data.csv"
+      ],
+      "sub_cells": [
+        "SYNTH_PANDAS_TO_CSV"
+      ],
+      "internal_topology": {
+        "PANDAS_TO_CSV": [
+          "filepath_written"
+        ]
+      }
+    },
+    {
+      "cell_id": "macro_dynamic_add",
+      "type": "macro",
+      "stage": 1,
+      "keywords": [
+        "add",
+        "sum",
+        "python",
+        "function"
+      ],
+      "inputs": {
+        "type_name": "int",
+        "state": "5"
+      },
+      "outputs": {
+        "type_name": "int",
+        "state": "12"
+      },
+      "algorithmic_steps": [
+        "1. Call the built-in function `NUMPY_INTEGER_SUM` with the inputs `a` and `b` to get the sum of `a` and `b`.",
+        "2. Assign the result to the output variable `result`."
+      ],
+      "sub_cells": [
+        "NUMPY_INTEGER_SUM"
+      ],
+      "internal_topology": {
+        "NUMPY_INTEGER_SUM": [
+          "NUMPY_INTEGER_SUM"
+        ]
+      }
+    },
+    {
+      "cell_id": "macro_dynamic_clean_and_sort_data",
+      "type": "macro",
+      "stage": 1,
+      "keywords": [
+        "data.csv",
+        "clean",
+        "sort",
+        "age",
+        "descending"
+      ],
+      "inputs": {
+        "type_name": "data.csv",
+        "state": "open"
+      },
+      "outputs": {
+        "type_name": "cleaned_data.csv",
+        "state": "written"
+      },
+      "algorithmic_steps": [
+        "1. Read the CSV file named data.csv into a pandas dataframe.",
+        "2. Drop any rows with missing values.",
+        "3. Sort the dataframe by the 'age' column in descending order.",
+        "4. Save the cleaned dataframe to a new CSV file named cleaned_data.csv."
+      ],
+      "sub_cells": [
+        "PANDAS_READ_CSV",
+        "SYNTH_PANDAS_DROP_NA",
+        "SYNTH_MACRO_DYNAMIC_SORT_BY_AGE",
+        "SYNTH_PANDAS_TO_CSV"
+      ],
+      "internal_topology": {
+        "PANDAS_READ_CSV": [
+          "PANDAS_DROP_NA"
+        ],
+        "PANDAS_DROP_NA": [
+          "macro_dynamic_sort_by_age"
+        ],
+        "macro_dynamic_sort_by_age": [
+          "PANDAS_TO_CSV"
+        ]
+      }
+    },
+    {
+      "cell_id": "macro_dynamic_add",
+      "type": "macro",
+      "stage": 1,
+      "keywords": [
+        "add",
+        "sum"
+      ],
+      "inputs": {
+        "type_name": "int",
+        "state": "5,7"
+      },
+      "outputs": {
+        "type_name": "int",
+        "state": "12"
+      },
+      "algorithmic_steps": [
+        "1. Call add function with 5 and 7",
+        "2. Return the sum"
+      ],
+      "sub_cells": [
+        "SYNTH_ADD_5_7"
+      ],
+      "internal_topology": {
+        "SYNTH_ADD_5_7": [
+          "macro_dynamic_add"
+        ]
+      }
+    },
+    {
+      "cell_id": "macro_dynamic_add",
+      "type": "macro",
+      "stage": 1,
+      "keywords": [
+        "add",
+        "5",
+        "7"
+      ],
+      "inputs": {
+        "a": 5,
+        "b": 7
+      },
+      "outputs": {
+        "type_name": "computed",
+        "state": "5 + 7"
+      },
+      "algorithmic_steps": [
+        "1. add",
+        "2. add"
+      ],
+      "sub_cells": [
+        "SYNTH_ADD",
+        "SYNTH_ADD"
+      ],
+      "internal_topology": {
+        "source_id": [
+          "SYNTH_ADD",
+          "SYNTH_ADD"
+        ]
+      }
+    },
+    {
+      "cell_id": "macro_dynamic_read_csv",
+      "type": "macro",
+      "stage": 1,
+      "keywords": [
+        "read_csv",
+        "pandas"
+      ],
+      "inputs": {
+        "type_name": "str",
+        "state": "data.csv"
+      },
+      "outputs": {
+        "type_name": "DataFrame",
+        "state": "raw_dataframe"
+      },
+      "algorithmic_steps": [
+        "1. Load the CSV file into a pandas DataFrame."
+      ]
+    },
+    {
+      "cell_id": "macro_dynamic_drop_missing_values",
+      "type": "macro",
+      "stage": 2,
+      "keywords": [
+        "dropna",
+        "pandas"
+      ],
+      "inputs": {
+        "type_name": "DataFrame",
+        "state": "raw_dataframe"
+      },
+      "outputs": {
+        "type_name": "DataFrame",
+        "state": "cleaned_dataframe"
+      },
+      "algorithmic_steps": [
+        "2. Drop rows with missing values from the DataFrame."
+      ]
+    },
+    {
+      "cell_id": "macro_dynamic_sort_values",
+      "type": "macro",
+      "stage": 3,
+      "keywords": [
+        "sort_values",
+        "pandas"
+      ],
+      "inputs": {
+        "type_name": "DataFrame",
+        "state": "cleaned_dataframe"
+      },
+      "outputs": {
+        "type_name": "DataFrame",
+        "state": "sorted_dataframe"
+      },
+      "algorithmic_steps": [
+        "3. Sort the DataFrame by the 'age' column in descending order."
+      ]
+    },
+    {
+      "cell_id": "macro_dynamic_to_csv",
+      "type": "macro",
+      "stage": 4,
+      "keywords": [
+        "to_csv",
+        "pandas"
+      ],
+      "inputs": {
+        "type_name": "DataFrame",
+        "state": "sorted_dataframe"
+      },
+      "outputs": {
+        "type_name": "str",
+        "state": "filepath_written"
+      },
+      "algorithmic_steps": [
+        "4. Save the cleaned DataFrame to a new CSV file named cleaned_data.csv."
+      ]
+    },
+    {
+      "cell_id": "macro_dynamic_add",
+      "type": "macro",
+      "stage": 1,
+      "keywords": [
+        "add",
+        "sum",
+        "python",
+        "function"
+      ],
+      "inputs": {
+        "type_name": "int",
+        "state": "5"
+      },
+      "outputs": {
+        "type_name": "int",
+        "state": "7"
+      },
+      "algorithmic_steps": [
+        "1. Call the built-in Python function 'add' with arguments 'a' and 'b'"
+      ],
+      "sub_cells": [
+        "SYNTH_NUMPY_INT_SUM",
+        "SYNTH_NUMPY_INT_SUM"
+      ],
+      "internal_topology": {
+        "NUMPY_INT_SUM": [
+          "NUMPY_INT_SUM"
+        ]
+      }
+    },
+    {
+      "cell_id": "macro_dynamic_clean_and_sort_data",
+      "type": "macro",
+      "stage": 1,
+      "keywords": [
+        "read_csv",
+        "dropna",
+        "sort_values",
+        "to_csv"
+      ],
+      "inputs": {
+        "type_name": "data.csv",
+        "state": "open"
+      },
+      "outputs": {
+        "type_name": "cleaned_data.csv",
+        "state": "written"
+      },
+      "algorithmic_steps": [
+        "1. Read the CSV file into a pandas dataframe.",
+        "2. Drop any rows with missing values.",
+        "3. Sort the dataframe by the 'age' column in descending order.",
+        "4. Save the cleaned dataframe to a new CSV file."
+      ],
+      "sub_cells": [
+        "PANDAS_READ_CSV",
+        "PANDAS_DATAFRAME_DROP",
+        "SYNTH_MACRO_DYNAMIC_SORT_VALUES",
+        "SYNTH_PANDAS_TO_CSV"
+      ],
+      "internal_topology": {
+        "PANDAS_READ_CSV": [
+          "PANDAS_DATAFRAME_DROP"
+        ],
+        "PANDAS_DATAFRAME_DROP": [
+          "macro_dynamic_sort_values"
+        ],
+        "macro_dynamic_sort_values": [
+          "PANDAS_TO_CSV"
+        ]
+      }
+    },
+    {
+      "cell_id": "macro_dynamic_add",
+      "type": "macro",
+      "stage": 1,
+      "keywords": [
+        "add",
+        "sum"
+      ],
+      "inputs": {
+        "type_name": "int",
+        "state": "5"
+      },
+      "outputs": {
+        "type_name": "int",
+        "state": "result"
+      },
+      "algorithmic_steps": [
+        "1. Call add function with 5 and 7",
+        "2. Print the result"
+      ],
+      "sub_cells": [
+        "NUMPY_SUM"
+      ],
+      "internal_topology": {
+        "NUMPY_SUM": [
+          "result"
+        ]
+      }
+    },
+    {
+      "cell_id": "macro_dynamic_sort_data",
+      "type": "macro",
+      "stage": 1,
+      "keywords": [
+        "data.csv",
+        "drop missing values",
+        "sort by age",
+        "cleaned_data.csv"
+      ],
+      "inputs": {
+        "type_name": "data.csv[open]",
+        "state": "..."
+      },
+      "outputs": {
+        "type_name": "cleaned_data.csv[written]",
+        "state": "..."
+      },
+      "algorithmic_steps": [
+        "1. Read data.csv into a pandas dataframe"
+      ],
+      "sub_cells": [
+        "SYNTH_DROP",
+        "SYNTH_DROP_NA",
+        "SYNTH_SORT_VALUES",
+        "SYNTH_DROP"
+      ],
+      "internal_topology": {
+        "source_id": [
+          "data.csv[open]"
+        ]
+      }
+    },
+    {
+      "cell_id": "macro_dynamic_add",
+      "type": "macro",
+      "stage": 1,
+      "keywords": [
+        "add",
+        "int",
+        "int"
+      ],
+      "inputs": {
+        "type_name": "int[5]",
+        "state": "int[7]"
+      },
+      "outputs": {
+        "type_name": "int[12]",
+        "state": "int[12]"
+      },
+      "algorithmic_steps": [
+        "1. int[5] + int[7]"
+      ],
+      "sub_cells": [
+        "SYNTH_ADD_5_7"
+      ],
+      "internal_topology": {
+        "SYNTH_ADD_5_7": [
+          "SYNTH_ADD_5_7"
+        ]
+      }
+    },
+    {
+      "cell_id": "macro_dynamic_read_csv",
+      "type": "macro",
+      "stage": 1,
+      "keywords": [
+        "read_csv",
+        "pandas",
+        "dataframe"
+      ],
+      "inputs": {
+        "type_name": "str",
+        "state": "data.csv"
+      },
+      "outputs": {
+        "type_name": "DataFrame",
+        "state": "raw_dataframe"
+      },
+      "algorithmic_steps": [
+        "1. Read the CSV file into a pandas dataframe"
+      ],
+      "sub_cells": [
+        "PANDAS_READ_CSV"
+      ],
+      "internal_topology": {
+        "PANDAS_READ_CSV": [
+          "raw_dataframe"
+        ]
+      }
+    },
+    {
+      "cell_id": "macro_dynamic_drop_missing_values",
+      "type": "macro",
+      "stage": 2,
+      "keywords": [
+        "drop_missing_values",
+        "pandas",
+        "dataframe"
+      ],
+      "inputs": {
+        "type_name": "DataFrame",
+        "state": "raw_dataframe"
+      },
+      "outputs": {
+        "type_name": "DataFrame",
+        "state": "cleaned_dataframe"
+      },
+      "algorithmic_steps": [
+        "2. Drop rows with missing values from the dataframe"
+      ],
+      "sub_cells": [
+        "SYNTH_PANDAS_DROP_NA"
+      ],
+      "internal_topology": {
+        "PANDAS_DROP_NA": [
+          "cleaned_dataframe"
+        ]
+      }
+    },
+    {
+      "cell_id": "macro_dynamic_sort_by_age",
+      "type": "macro",
+      "stage": 3,
+      "keywords": [
+        "sort_by_age",
+        "pandas",
+        "dataframe"
+      ],
+      "inputs": {
+        "type_name": "DataFrame",
+        "state": "cleaned_dataframe"
+      },
+      "outputs": {
+        "type_name": "DataFrame",
+        "state": "sorted_dataframe"
+      },
+      "algorithmic_steps": [
+        "3. Sort the dataframe by the 'age' column in descending order"
+      ],
+      "sub_cells": [
+        "SYNTH_MACRO_DYNAMIC_SORT_VALUES"
+      ],
+      "internal_topology": {
+        "macro_dynamic_sort_values": [
+          "sorted_dataframe"
+        ]
+      }
+    },
+    {
+      "cell_id": "macro_dynamic_to_csv",
+      "type": "macro",
+      "stage": 4,
+      "keywords": [
+        "to_csv",
+        "pandas",
+        "dataframe"
+      ],
+      "inputs": {
+        "type_name": "DataFrame",
+        "state": "sorted_dataframe"
+      },
+      "outputs": {
+        "type_name": "str",
+        "state": "filepath_written"
+      },
+      "algorithmic_steps": [
+        "4. Save the cleaned dataframe to a new CSV file named cleaned_data.csv"
+      ],
+      "sub_cells": [
+        "SYNTH_PANDAS_TO_CSV"
+      ],
+      "internal_topology": {
+        "PANDAS_TO_CSV": [
+          "filepath_written"
+        ]
+      }
+    },
+    {
+      "cell_id": "macro_dynamic_add",
+      "type": "macro",
+      "stage": 1,
+      "keywords": [
+        "add",
+        "sum",
+        "python",
+        "function"
+      ],
+      "inputs": {
+        "type_name": "int",
+        "state": "5"
+      },
+      "outputs": {
+        "type_name": "int",
+        "state": "12"
+      },
+      "algorithmic_steps": [
+        "1. Call the built-in function `NUMPY_INTEGER_SUM` with the inputs `a` and `b` to get the sum of `a` and `b`.",
+        "2. Assign the result to the output variable `result`."
+      ],
+      "sub_cells": [
+        "NUMPY_INTEGER_SUM"
+      ],
+      "internal_topology": {
+        "NUMPY_INTEGER_SUM": [
+          "NUMPY_INTEGER_SUM"
+        ]
+      }
+    },
+    {
+      "cell_id": "macro_dynamic_read_csv",
+      "type": "macro",
+      "stage": 1,
+      "keywords": [
+        "data.csv"
+      ],
+      "inputs": {
+        "type_name": "data.csv",
+        "state": "..."
+      },
+      "outputs": {
+        "type_name": "cleaned_dataframe",
+        "state": "..."
+      },
+      "algorithmic_steps": [
+        "1. Read data.csv into a pandas dataframe"
+      ],
+      "sub_cells": [
+        "SYNTH_PANDAS_DROP_NA"
+      ],
+      "internal_topology": {
+        "source_id": "data.csv"
+      }
+    },
+    {
+      "cell_id": "macro_dynamic_sort_data",
+      "type": "macro",
+      "stage": 2,
+      "keywords": [
+        "cleaned_dataframe"
+      ],
+      "inputs": {
+        "type_name": "cleaned_dataframe",
+        "state": "..."
+      },
+      "outputs": {
+        "type_name": "sorted_dataframe",
+        "state": "..."
+      },
+      "algorithmic_steps": [
+        "1. Drop rows with missing values"
+      ],
+      "sub_cells": [
+        "SYNTH_PANDAS_DROP_NA"
+      ],
+      "internal_topology": {
+        "source_id": "cleaned_dataframe"
+      }
+    },
+    {
+      "cell_id": "macro_dynamic_sort_values",
+      "type": "macro",
+      "stage": 3,
+      "keywords": [
+        "sorted_dataframe"
+      ],
+      "inputs": {
+        "type_name": "sorted_dataframe",
+        "state": "..."
+      },
+      "outputs": {
+        "type_name": "sorted_dataframe",
+        "state": "..."
+      },
+      "algorithmic_steps": [
+        "1. Sort the dataframe by the 'age' column in descending order"
+      ],
+      "sub_cells": [
+        "SYNTH_PANDAS_SORT_VALUES"
+      ],
+      "internal_topology": {
+        "source_id": "sorted_dataframe"
+      }
+    },
+    {
+      "cell_id": "macro_dynamic_write_csv",
+      "type": "macro",
+      "stage": 4,
+      "keywords": [
+        "cleaned_data.csv"
+      ],
+      "inputs": {
+        "type_name": "cleaned_data.csv",
+        "state": "..."
+      },
+      "outputs": {
+        "type_name": "filepath_written",
+        "state": "..."
+      },
+      "sub_cells": [
+        "SYNTH_PANDAS_TO_CSV"
+      ],
+      "internal_topology": {
+        "source_id": "cleaned_data.csv"
+      }
+    },
+    {
+      "cell_id": "macro_dynamic_add_5_7",
+      "type": "macro",
+      "stage": 1,
+      "keywords": [
+        "add",
+        "int[5]",
+        "int[7]"
+      ],
+      "inputs": {
+        "type_name": "int[5]",
+        "state": "int[7]"
+      },
+      "outputs": {
+        "type_name": "int[12]",
+        "state": "int[12]"
+      },
+      "algorithmic_steps": [
+        "1. int[5] + int[7]"
+      ],
+      "sub_cells": [
+        "SYNTH_ADD_5_7"
+      ],
+      "internal_topology": {
+        "source_id": [
+          "SYNTH_ADD_5_7"
+        ]
+      }
+    },
+    {
+      "cell_id": "macro_dynamic_read_csv",
+      "type": "macro",
+      "stage": 1,
+      "keywords": [
+        "read_csv",
+        "pandas",
+        "dataframe"
+      ],
+      "inputs": {
+        "type_name": "str",
+        "state": "data.csv"
+      },
+      "outputs": {
+        "type_name": "DataFrame",
+        "state": "raw_dataframe"
+      },
+      "algorithmic_steps": [
+        "1. Read the CSV file into a pandas dataframe"
+      ],
+      "sub_cells": [
+        "PANDAS_READ_CSV"
+      ],
+      "internal_topology": {
+        "PANDAS_READ_CSV": [
+          "raw_dataframe"
+        ]
+      }
+    },
+    {
+      "cell_id": "macro_dynamic_drop_missing_values",
+      "type": "macro",
+      "stage": 2,
+      "keywords": [
+        "drop_na",
+        "pandas",
+        "dataframe"
+      ],
+      "inputs": {
+        "type_name": "DataFrame",
+        "state": "raw_dataframe"
+      },
+      "outputs": {
+        "type_name": "DataFrame",
+        "state": "cleaned_dataframe"
+      },
+      "algorithmic_steps": [
+        "2. Drop any rows with missing values"
+      ],
+      "sub_cells": [
+        "SYNTH_PANDAS_DROP_NA"
+      ],
+      "internal_topology": {
+        "PANDAS_DROP_NA": [
+          "cleaned_dataframe"
+        ]
+      }
+    },
+    {
+      "cell_id": "macro_dynamic_sort_by_age",
+      "type": "macro",
+      "stage": 3,
+      "keywords": [
+        "sort_by",
+        "pandas",
+        "dataframe"
+      ],
+      "inputs": {
+        "type_name": "DataFrame",
+        "state": "cleaned_dataframe"
+      },
+      "outputs": {
+        "type_name": "DataFrame",
+        "state": "sorted_dataframe"
+      },
+      "algorithmic_steps": [
+        "3. Sort the cleaned dataframe by the 'age' column in descending order"
+      ],
+      "sub_cells": [
+        "SYNTH_MACRO_DYNAMIC_SORT_BY_AGE"
+      ],
+      "internal_topology": {
+        "macro_dynamic_sort_by_age": [
+          "sorted_dataframe"
+        ]
+      }
+    },
+    {
+      "cell_id": "macro_dynamic_to_csv",
+      "type": "macro",
+      "stage": 4,
+      "keywords": [
+        "to_csv",
+        "pandas",
+        "dataframe"
+      ],
+      "inputs": {
+        "type_name": "DataFrame",
+        "state": "sorted_dataframe"
+      },
+      "outputs": {
+        "type_name": "str",
+        "state": "filepath_written"
+      },
+      "algorithmic_steps": [
+        "4. Save the cleaned dataframe to a new CSV file named cleaned_data.csv"
+      ],
+      "sub_cells": [
+        "SYNTH_MACRO_DYNAMIC_TO_CSV"
+      ],
+      "internal_topology": {
+        "macro_dynamic_to_csv": [
+          "filepath_written"
+        ]
+      }
+    },
+    {
+      "cell_id": "macro_dynamic_add_5_7",
+      "type": "macro",
+      "stage": 1,
+      "keywords": [
+        "add",
+        "sum",
+        "python",
+        "function",
+        "return",
+        "print"
+      ],
+      "inputs": {
+        "type_name": "int",
+        "state": "5"
+      },
+      "outputs": {
+        "type_name": "int",
+        "state": "12"
+      },
+      "algorithmic_steps": [
+        "1. Call the built-in function 'add' with inputs 5 and 7.",
+        "2. Store the result in a variable 'result'.",
+        "3. Print the value of 'result'."
+      ],
+      "sub_cells": [
+        "SYNTH_BUILTINS_ADD"
+      ],
+      "internal_topology": {
+        "BUILTINS_ADD": [
+          "INPUT_1",
+          "INPUT_2",
+          "OUTPUT_1"
+        ]
+      }
+    },
+    {
+      "cell_id": "macro_dynamic_clean_and_sort_data",
+      "type": "macro",
+      "stage": 1,
+      "keywords": [
+        "data.csv",
+        "clean",
+        "sort",
+        "age",
+        "descending"
+      ],
+      "inputs": {
+        "type_name": "data.csv",
+        "state": "open"
+      },
+      "outputs": {
+        "type_name": "cleaned_data.csv",
+        "state": "written"
+      },
+      "algorithmic_steps": [
+        "1. Read the CSV file named data.csv into a pandas dataframe.",
+        "2. Drop any rows with missing values.",
+        "3. Sort the dataframe by the 'age' column in descending order.",
+        "4. Save the cleaned dataframe to a new CSV file named cleaned_data.csv."
+      ],
+      "sub_cells": [
+        "PANDAS_READ_CSV",
+        "SYNTH_PANDAS_DROP_NA",
+        "SYNTH_MACRO_DYNAMIC_SORT_BY_AGE",
+        "SYNTH_PANDAS_TO_CSV"
+      ],
+      "internal_topology": {
+        "PANDAS_READ_CSV": [
+          "PANDAS_DROP_NA"
+        ],
+        "PANDAS_DROP_NA": [
+          "macro_dynamic_sort_by_age"
+        ],
+        "macro_dynamic_sort_by_age": [
+          "PANDAS_TO_CSV"
+        ]
+      }
+    },
+    {
+      "cell_id": "macro_dynamic_add_5_7",
+      "type": "macro",
+      "stage": 1,
+      "keywords": [
+        "add",
+        "5",
+        "7"
+      ],
+      "inputs": {
+        "type_name": "int",
+        "state": "5"
+      },
+      "outputs": {
+        "type_name": "int",
+        "state": "12"
+      },
+      "algorithmic_steps": [
+        "1. Call add function with 5 and 7",
+        "2. Return the result"
+      ],
+      "sub_cells": [
+        "SYNTH_ADD_5_7"
+      ],
+      "internal_topology": {
+        "SYNTH_ADD_5_7": [
+          "macro_dynamic_add_5_7"
+        ]
+      }
+    },
+    {
+      "cell_id": "macro_dynamic_read_csv",
+      "type": "macro",
+      "stage": 1,
+      "keywords": [
+        "data.csv",
+        "drop missing values",
+        "sort by age",
+        "save cleaned data"
+      ],
+      "inputs": {
+        "type_name": "data.csv",
+        "state": "..."
+      },
+      "outputs": {
+        "type_name": "cleaned_data.csv",
+        "state": "..."
+      },
+      "algorithmic_steps": [
+        "1. read data.csv"
+      ],
+      "sub_cells": [
+        "PANDAS_READ_CSV",
+        "SYNTH_PANDAS_DROP_NULLS",
+        "SYNTH_PANDAS_SORT_VALUES",
+        "SYNTH_PANDAS_TO_CSV",
+        "SYNTH_PANDAS_TO_CSV",
+        "PANDAS_DATAFRAME___IMOD___DEFAULT",
+        "PANDAS_DATAFRAME___IOR___DEFAULT",
+        "PANDAS_DATAFRAME___ITRUEDIV___DEFAULT",
+        "PANDAS_DATAFRAME_COLUMNS_DEFAULT",
+        "PANDAS_DATAFRAME___ISUB___DEFAULT",
+        "PANDAS_DATAFRAME_DTYPES_DEFAULT",
+        "PANDAS_DATAFRAME_IAT_DEFAULT",
+        "PANDAS_DATAFRAME_ATTRS_DEFAULT",
+        "PANDAS_DATAFRAME_LOC_DEFAULT",
+        "PANDAS_NAMEDAGG_COLUMN_DEFAULT"
+      ],
+      "internal_topology": {
+        "source_id": "data.csv"
+      }
+    },
+    {
+      "cell_id": "macro_dynamic_sort_data",
+      "type": "macro",
+      "stage": 2,
+      "keywords": [
+        "cleaned_data.csv",
+        "sort by age",
+        "save cleaned data"
+      ],
+      "inputs": {
+        "type_name": "cleaned_data.csv",
+        "state": "..."
+      },
+      "outputs": {
+        "type_name": "cleaned_data.csv",
+        "state": "..."
+      },
+      "algorithmic_steps": [
+        "1. sort by age"
+      ],
+      "sub_cells": [
+        "SYNTH_PANDAS_SORT_VALUES",
+        "SYNTH_PANDAS_TO_CSV",
+        "SYNTH_PANDAS_TO_CSV",
+        "PANDAS_DATAFRAME___IMOD___DEFAULT",
+        "PANDAS_DATAFRAME___IOR___DEFAULT",
+        "PANDAS_DATAFRAME___ITRUEDIV___DEFAULT",
+        "PANDAS_DATAFRAME_COLUMNS_DEFAULT",
+        "PANDAS_DATAFRAME___ISUB___DEFAULT",
+        "PANDAS_DATAFRAME_DTYPES_DEFAULT",
+        "PANDAS_DATAFRAME_IAT_DEFAULT",
+        "PANDAS_DATAFRAME_ATTRS_DEFAULT",
+        "PANDAS_DATAFRAME_LOC_DEFAULT",
+        "PANDAS_NAMEDAGG_COLUMN_DEFAULT"
+      ],
+      "internal_topology": {
+        "source_id": "cleaned_data.csv"
+      }
+    },
+    {
+      "cell_id": "macro_dynamic_to_csv",
+      "type": "macro",
+      "stage": 3,
+      "keywords": [
+        "cleaned_data.csv",
+        "save cleaned data"
+      ],
+      "inputs": {
+        "type_name": "cleaned_data.csv",
+        "state": "..."
+      },
+      "outputs": {
+        "type_name": "cleaned_data.csv",
+        "state": "..."
+      },
+      "algorithmic_steps": [
+        "1. save cleaned data to csv"
+      ],
+      "sub_cells": [
+        "SYNTH_PANDAS_TO_CSV",
+        "SYNTH_PANDAS_TO_CSV",
+        "PANDAS_DATAFRAME___IMOD___DEFAULT",
+        "PANDAS_DATAFRAME___IOR___DEFAULT",
+        "PANDAS_DATAFRAME___ITRUEDIV___DEFAULT",
+        "PANDAS_DATAFRAME_COLUMNS_DEFAULT",
+        "PANDAS_DATAFRAME___ISUB___DEFAULT",
+        "PANDAS_DATAFRAME_DTYPES_DEFAULT",
+        "PANDAS_DATAFRAME_IAT_DEFAULT",
+        "PANDAS_DATAFRAME_ATTRS_DEFAULT",
+        "PANDAS_DATAFRAME_LOC_DEFAULT",
+        "PANDAS_NAMEDAGG_COLUMN_DEFAULT"
+      ],
+      "internal_topology": {
+        "source_id": "cleaned_data.csv"
+      }
+    },
+    {
+      "cell_id": "macro_dynamic_add_5_7",
+      "type": "macro",
+      "stage": 1,
+      "keywords": [
+        "add",
+        "5",
+        "7"
+      ],
+      "inputs": {
+        "type_name": "int[5]",
+        "state": "..."
+      },
+      "outputs": {
+        "type_name": "int[12]",
+        "state": "..."
+      },
+      "algorithmic_steps": [
+        "1. add(5, 7)",
+        "2. print(result_any)"
+      ],
+      "sub_cells": [
+        "SYNTH_ADD_5_7",
+        "SYNTH_ADD_5_7"
+      ],
+      "internal_topology": {
+        "source_id": [
+          "SYNTH_ADD_5_7",
+          "SYNTH_ADD_5_7"
+        ]
+      }
+    },
+    {
+      "cell_id": "macro_dynamic_read_csv",
+      "type": "macro",
+      "stage": 1,
+      "keywords": [
+        "read_csv",
+        "pandas",
+        "data.csv"
+      ],
+      "inputs": {
+        "type_name": "str",
+        "source_identifier": "data.csv"
+      },
+      "outputs": {
+        "type_name": "DataFrame",
+        "state": "raw_dataframe"
+      },
+      "algorithmic_steps": [
+        "1. Read the CSV file into a pandas dataframe"
+      ],
+      "sub_cells": [
+        "PANDAS_READ_CSV"
+      ],
+      "internal_topology": {
+        "PANDAS_READ_CSV": [
+          "raw_dataframe"
+        ]
+      }
+    },
+    {
+      "cell_id": "macro_dynamic_drop_missing_values",
+      "type": "macro",
+      "stage": 2,
+      "keywords": [
+        "dropna",
+        "pandas",
+        "raw_dataframe"
+      ],
+      "inputs": {
+        "type_name": "DataFrame",
+        "state": "raw_dataframe"
+      },
+      "outputs": {
+        "type_name": "DataFrame",
+        "state": "cleaned_dataframe"
+      },
+      "algorithmic_steps": [
+        "2. Drop any rows with missing values"
+      ],
+      "sub_cells": [
+        "SYNTH_PANDAS_DROP_VALUES"
+      ],
+      "internal_topology": {
+        "PANDAS_DROP_VALUES": [
+          "cleaned_dataframe"
+        ]
+      }
+    },
+    {
+      "cell_id": "macro_dynamic_sort_data",
+      "type": "macro",
+      "stage": 3,
+      "keywords": [
+        "sort_values",
+        "pandas",
+        "cleaned_dataframe",
+        "age"
+      ],
+      "inputs": {
+        "type_name": "DataFrame",
+        "state": "cleaned_dataframe"
+      },
+      "outputs": {
+        "type_name": "DataFrame",
+        "state": "sorted_dataframe"
+      },
+      "algorithmic_steps": [
+        "3. Sort the dataframe by the 'age' column in descending order"
+      ],
+      "sub_cells": [
+        "SYNTH_MACRO_DYNAMIC_SORT_DATA"
+      ],
+      "internal_topology": {
+        "macro_dynamic_sort_data": [
+          "sorted_dataframe"
+        ]
+      }
+    },
+    {
+      "cell_id": "macro_dynamic_to_csv",
+      "type": "macro",
+      "stage": 4,
+      "keywords": [
+        "to_csv",
+        "pandas",
+        "sorted_dataframe",
+        "cleaned_data.csv"
+      ],
+      "inputs": {
+        "type_name": "DataFrame",
+        "state": "sorted_dataframe"
+      },
+      "outputs": {
+        "type_name": "str",
+        "state": "filepath_written"
+      },
+      "algorithmic_steps": [
+        "4. Save the cleaned dataframe to a new CSV file named cleaned_data.csv"
+      ],
+      "sub_cells": [
+        "SYNTH_PANDAS_TO_CSV"
+      ],
+      "internal_topology": {
+        "PANDAS_TO_CSV": [
+          "filepath_written"
+        ]
+      }
+    },
+    {
+      "cell_id": "macro_dynamic_add_5_7",
+      "type": "macro",
+      "stage": 1,
+      "keywords": [
+        "python",
+        "function",
+        "add",
+        "sum",
+        "print"
+      ],
+      "inputs": {
+        "type_name": "int",
+        "state": "5"
+      },
+      "outputs": {
+        "type_name": "int",
+        "state": "12"
+      },
+      "algorithmic_steps": [
+        "1. Synth_ADD_5_7 -> 2. PYTHON_PRINT"
+      ],
+      "sub_cells": [
+        "SYNTH_ADD_5_7"
+      ],
+      "internal_topology": {
+        "SYNTH_ADD_5_7": [
+          "PYTHON_PRINT"
+        ]
+      }
+    },
+    {
+      "cell_id": "SYNTH_ADD_5_7",
+      "type": "micro",
+      "stage": 2,
+      "keywords": [
+        "python",
+        "function",
+        "add",
+        "sum"
+      ],
+      "inputs": {
+        "type_name": "int",
+        "state": "5"
+      },
+      "outputs": {
+        "type_name": "int",
+        "state": "12"
+      },
+      "algorithmic_steps": [
+        "1. NUMPY_ADD_5_7 -> 2. PYTHON_PRINT"
+      ],
+      "sub_cells": [],
+      "internal_topology": {
+        "NUMPY_ADD_5_7": [
+          "PYTHON_PRINT"
+        ]
+      }
+    },
+    {
+      "cell_id": "macro_dynamic_sort_data",
+      "type": "macro",
+      "stage": 1,
+      "keywords": [
+        "read csv",
+        "drop missing",
+        "sort by age",
+        "save csv"
+      ],
+      "inputs": {
+        "type_name": "data.csv",
+        "state": "open"
+      },
+      "outputs": {
+        "type_name": "cleaned_data.csv",
+        "state": "sorted"
+      },
+      "algorithmic_steps": [
+        "1. Read the CSV file into a pandas dataframe.",
+        "2. Drop any rows with missing values.",
+        "3. Sort the dataframe by the 'age' column in descending order.",
+        "4. Save the cleaned dataframe to a new CSV file."
+      ],
+      "sub_cells": [
+        "PANDAS_READ_CSV",
+        "PANDAS_DATAFRAME___ISUB___DEFAULT",
+        "SYNTH_PANDAS_SORT_VALUES",
+        "SYNTH_PANDAS_TO_CSV"
+      ],
+      "internal_topology": {
+        "PANDAS_READ_CSV": [
+          "PANDAS_DATAFRAME___ISUB___DEFAULT"
+        ],
+        "PANDAS_DATAFRAME___ISUB___DEFAULT": [
+          "PANDAS_SORT_VALUES"
+        ],
+        "PANDAS_SORT_VALUES": [
+          "PANDAS_TO_CSV"
+        ]
+      }
+    },
+    {
+      "cell_id": "macro_dynamic_add_and_print",
+      "type": "macro",
+      "stage": 1,
+      "keywords": [
+        "add",
+        "print"
+      ],
+      "inputs": {
+        "type_name": "int",
+        "state": "5,7"
+      },
+      "outputs": {
+        "type_name": "str",
+        "state": "printed"
+      },
+      "algorithmic_steps": [
+        "1. Add 5 and 7",
+        "2. Print the result"
+      ],
+      "sub_cells": [
+        "SYNTH_ADD_5_7",
+        "SYNTH_PYTHON_PRINT"
+      ],
+      "internal_topology": {
+        "SYNTH_ADD_5_7": [
+          "PYTHON_PRINT"
+        ]
+      }
     }
   ]
 }
