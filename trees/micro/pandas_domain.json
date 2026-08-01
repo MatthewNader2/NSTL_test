@@ -7,7 +7,7 @@
       "cell_id": "PANDAS_READ_CSV",
       "type": "micro",
       "stage": 1,
-      "keywords": ["csv", "read", "file", "ingest", "load", "comma", "tabular"],
+      "keywords": ["pandas", "read_csv", "csv", "read", "file", "ingest", "load", "comma", "tabular"],
       "inputs":  { "type_name": "str", "state": "source_identifier" },
       "outputs": { "type_name": "DataFrame", "state": "raw_dataframe" },
       "domain_implementations": {

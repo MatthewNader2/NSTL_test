@@ -15,52 +15,20 @@ export default function NodeTooltip() {
 
   return (
     <div
-      style={{
-        position: "fixed",
-        left: pos.x + 20,
-        top: pos.y - 20,
-        background: "rgba(10, 15, 30, 0.95)",
-        border: "1px solid rgba(0, 229, 255, 0.4)",
-        borderRadius: "8px",
-        padding: "10px 14px",
-        color: "var(--text-primary)",
-        pointerEvents: "none",
-        zIndex: 1000,
-        boxShadow: "0 8px 24px rgba(0,0,0,0.8)",
-        backdropFilter: "blur(10px)",
-        transform: "translateY(0)",
-        animation: "fadeIn 0.2s ease-out forwards",
-      }}
+      className="node-tooltip"
+      style={{ left: pos.x + 18, top: pos.y - 14 }}
     >
-      <div
-        style={{
-          fontWeight: "bold",
-          color: "var(--accent)",
-          fontSize: "0.95rem",
-          marginBottom: "4px",
-        }}
-      >
+      <div style={{ fontWeight: 700, color: "var(--cyan)", fontSize: "0.88rem", marginBottom: 4 }}>
         {hoveredNode.cell_id}
       </div>
-      <div
-        style={{
-          color: "var(--text-secondary)",
-          fontSize: "0.8rem",
-          display: "flex",
-          gap: "8px",
-        }}
-      >
+      <div style={{ color: "var(--t2)", fontSize: "0.72rem", display: "flex", gap: 8 }}>
         <span>Stage {hoveredNode.stage}</span>
-        <span>•</span>
-        <span>{hoveredNode.type.toUpperCase()}</span>
+        <span style={{ opacity: 0.4 }}>·</span>
+        <span>{hoveredNode.type?.toUpperCase()}</span>
       </div>
-
-      <style>{`
-        @keyframes fadeIn {
-          from { opacity: 0; transform: translateY(5px); }
-          to { opacity: 1; transform: translateY(0); }
-        }
-      `}</style>
+      {hoveredNode.keywords?.slice(0, 3).map((k) => (
+        <span key={k} style={{ fontSize: "0.62rem", color: "var(--t3)", marginRight: 4 }}>#{k}</span>
+      ))}
     </div>
   );
 }

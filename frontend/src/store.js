@@ -49,6 +49,14 @@ export const useStore = create((set) => ({
   })),
   activeHistoryId: null,
   setActiveHistoryId: (id) => set({ activeHistoryId: id }),
+  clearHistory: () => set({
+    chatHistory: [],
+    activeHistoryId: null,
+    activePath: [],
+    virtualEdges: new Set(),
+    generatedCode: "# Generated code will appear here\n",
+    logs: []
+  }),
 
   // 🛠️ Developer System Logs
   systemLogs: [],

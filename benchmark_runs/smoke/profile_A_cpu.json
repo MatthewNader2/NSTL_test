@@ -1,0 +1,52 @@
+{
+  "case": "profile_A_cpu",
+  "profile": "A",
+  "device": "cpu",
+  "prompt": "Open \"sample_input.txt\" and strip whitespace from the text.",
+  "started_at": "2026-07-07T22:16:51",
+  "status": "success",
+  "timings": {
+    "initialize_seconds": 347.3172,
+    "run_seconds": 0.0113,
+    "total_seconds": 370.5611
+  },
+  "initialize": {
+    "status_code": 200,
+    "json": {
+      "status": "ready",
+      "device": "cpu"
+    }
+  },
+  "run": {
+    "status_code": 200,
+    "logs": [
+      {
+        "msg": "Extracting parameters and context...",
+        "type": "info"
+      },
+      {
+        "msg": "Running ZeroShotPlanner pass...",
+        "type": "info"
+      },
+      {
+        "msg": "MCTS routing for 2 macro steps...",
+        "type": "info"
+      }
+    ],
+    "path_ids": [
+      "PYTHON_OPEN_FILE_READ",
+      "PYTHON_STR_STRIP"
+    ],
+    "virtual_edges": [],
+    "code_length": 146
+  },
+  "validation": {
+    "syntax_ok": true,
+    "execution_ok": true,
+    "syntax_error": null,
+    "execution_returncode": 0,
+    "execution_stdout": "",
+    "execution_stderr": ""
+  },
+  "error": null
+}

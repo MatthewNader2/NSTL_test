@@ -1,0 +1,62 @@
+{
+  "domain_name": "Pandas_Domain",
+  "version": "1.0.0",
+  "description": "Auto-compiled from test_compile.py",
+  "cells": [
+    {
+      "cell_id": "PANDAS_READ_CSV",
+      "type": "micro",
+      "stage": 1,
+      "keywords": [
+        "csv",
+        "read",
+        "file",
+        "ingest",
+        "load",
+        "tabular"
+      ],
+      "inputs": {
+        "type_name": "str",
+        "state": "source_identifier"
+      },
+      "outputs": {
+        "type_name": "DataFrame",
+        "state": "raw_dataframe"
+      },
+      "domain_implementations": {
+        "Python_Core": {
+          "code": "import pandas as pd\n{output_var} = pd.read_csv({input_var})",
+          "dependencies": [
+            "pandas"
+          ]
+        }
+      }
+    },
+    {
+      "cell_id": "PANDAS_DROP_NA",
+      "type": "micro",
+      "stage": 1,
+      "keywords": [
+        "dropna",
+        "missing",
+        "clean",
+        "remove",
+        "null"
+      ],
+      "inputs": {
+        "type_name": "any",
+        "state": "raw_dataframe"
+      },
+      "outputs": {
+        "type_name": "DataFrame",
+        "state": "cleaned_dataframe"
+      },
+      "domain_implementations": {
+        "Python_Core": {
+          "code": "{output_var} = {input_var}.dropna()",
+          "dependencies": []
+        }
+      }
+    }
+  ]
+}

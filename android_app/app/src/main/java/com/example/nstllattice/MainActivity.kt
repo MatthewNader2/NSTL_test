@@ -52,4 +52,15 @@ class MainActivity : ComponentActivity() {
             super.onBackPressed()
         }
     }
+
+    override fun onDestroy() {
+        webView.apply {
+            stopLoading()
+            loadUrl("about:blank")
+            clearHistory()
+            removeAllViews()
+            destroy()
+        }
+        super.onDestroy()
+    }
 }

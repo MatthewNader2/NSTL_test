@@ -1,5 +1,4 @@
 import { useStore } from "../store";
-import MonacoEditor from "./MonacoEditor";
 import {
   Code2,
   Eye,
@@ -10,7 +9,9 @@ import {
   Check,
   Download,
 } from "lucide-react";
-import { useState, useCallback } from "react";
+import { Suspense, lazy, useState, useCallback } from "react";
+
+const MonacoEditor = lazy(() => import("./MonacoEditor"));
 
 export default function RightPanel({ open, isMobile, mobileActive, onToggle }) {
   const activeTab = useStore((s) => s.rightActiveTab);
@@ -171,7 +172,15 @@ export default function RightPanel({ open, isMobile, mobileActive, onToggle }) {
         <div style={{ flex: 1, overflow: "hidden" }}>
           {activeTab === "code" && (
             <div style={{ height: "100%" }}>
-              <MonacoEditor />
+              <Suspense
+                fallback={
+                  <div style={{ color: "var(--text-secondary)", padding: 20, textAlign: "center" }}>
+                    Initializing code editor...
+                  </div>
+                }
+              >
+                <MonacoEditor />
+              </Suspense>
             </div>
           )}
 
@@ -243,7 +252,7 @@ export default function RightPanel({ open, isMobile, mobileActive, onToggle }) {
                     background: "#0d1117",
                     padding: "12px",
                     borderRadius: "6px",
-                    fontSize: "1.6rem",
+                    fontSize: "0.8rem",
                     overflowX: "auto",
                     border: "1px solid #30363d",
                     color: "#c9d1d9",
