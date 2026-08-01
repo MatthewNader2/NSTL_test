@@ -66,5 +66,13 @@ tools/llama-cpp-*/
 *.so
 *.so.*
 
+# Auto-generated tree node files (rebuilt by harvesting tools)
+trees/micro/*_auto.json
+trees/micro/*_auto_*.json
+trees/micro/cv2_harvested.json
+
 # Compiled frontend dist assets (rebuilt via npm run build)
 frontend_dist/assets/
+
+# Android app compiled assets
+android_app/app/src/main/assets/assets/
