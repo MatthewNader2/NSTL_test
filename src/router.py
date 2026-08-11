@@ -326,7 +326,7 @@ class LatticeRouter:
         current_state = initial_state
         current_node = None
 
-        MIN_CONFIDENCE = 0.25
+        MIN_CONFIDENCE = 0.30
         TUNNELING_MARGIN = 0.15
         MACRO_THRESHOLD = 0.40
 
@@ -574,16 +574,32 @@ class LatticeRouter:
                     kws = {kw.lower() for kw in getattr(cell, 'keywords', [])}
                     id_parts = {p for p in re.split(r"[_\W]+", cell.cell_id.lower()) if p}
                     
-                    stop_words = {'a', 'an', 'the', 'and', 'or', 'to', 'with', 'any', 'it', 'is', 'in', 'of', 'for', 'on', 'by'}
+                    stop_words = {'a', 'an', 'the', 'and', 'or', 'to', 'with', 'any', 'it', 'is', 'in', 'of', 'for', 'on', 'by', 'function', 'write', 'python', 'code', 'script', 'create', 'def', 'that', 'returns', 'result'}
                     filtered_tokens = {pt for pt in prompt_tokens if pt not in stop_words and len(pt) > 2}
                     
                     overlap = 0.0
                     for pt in filtered_tokens:
-                        if any(pt in kw or kw in pt for kw in kws):
+                        if any(pt in kw or (len(kw) >= 3 and kw in pt) for kw in kws):
                             overlap += 0.2
-                        if any(pt in p or p in pt for p in id_parts):
+                        if any(pt in p or (len(p) >= 3 and p in pt) for p in id_parts):
                             overlap += 0.2
                             
+                    # Semantic intent boosts
+                    intent_boost = 0.0
+                    cid_lower = cell.cell_id.lower()
+                    if any(w in prompt_tokens for w in ['save', 'write', 'export', 'csv']) and ('to_csv' in cid_lower or 'csv' in cid_lower):
+                        intent_boost += 1.5
+                    if any(w in prompt_tokens for w in ['read', 'load', 'open']) and ('read_csv' in cid_lower or 'read' in cid_lower):
+                        intent_boost += 1.5
+                    if any(w in prompt_tokens for w in ['drop', 'missing', 'null', 'nan']) and ('dropna' in cid_lower):
+                        intent_boost += 1.5
+                    if any(w in prompt_tokens for w in ['sort', 'order', 'descending', 'ascending']) and ('sort' in cid_lower):
+                        intent_boost += 1.5
+
+                    # Penalize static library nodes for function creation requests to favor custom function generation
+                    if any(w in prompt_tokens for w in ['function', 'def']):
+                        intent_boost -= 2.0
+
                     # USER REQUEST: Mitigate the 'any' filetype issue by penalizing it heavily
                     penalty = 0.0
                     if getattr(cell, 'inputs', None) and getattr(cell.inputs, 'type_name', '') == 'any':
@@ -591,17 +607,17 @@ class LatticeRouter:
                     if getattr(cell, 'outputs', None) and getattr(cell.outputs, 'type_name', '') == 'any':
                         penalty += 0.3
                     
-                    # Penalize nodes that require coercion bridges
+                    # Penalize nodes that require coercion bridges or input type mismatch
                     if current_type and getattr(cell, 'inputs', None) and getattr(cell.inputs, 'type_name', '') != 'any':
                         if getattr(cell.inputs, 'type_name', '') != current_type:
-                            penalty += 0.5
+                            penalty += 1.5
                             
-                    adjusted_dist = dist + overlap - penalty
+                    adjusted_dist = dist + overlap + intent_boost - penalty
                     scored_results.append((adjusted_dist, float(dist), cell))
 
         if scored_results:
             scored_results.sort(key=lambda x: x[0], reverse=True)
-            return scored_results[0][2], scored_results[0][1]
+            return scored_results[0][2], scored_results[0][0]
 
         # Extreme fallback
         if k_search < self.rag_engine.index.ntotal:

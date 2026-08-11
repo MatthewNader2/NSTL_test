@@ -20,27 +20,37 @@ class ExecutionContext:
 
     def extract_prompt_parameters(self, user_prompt: str):
         self.extracted_parameters = {}
-        # 1. Try to find any word that has a known file extension, quoted or not
-        file_match = re.search(
+        # 1. Extract all filenames with extensions
+        file_matches = re.findall(
             r"\b([\w\-_.]+\.(?:csv|json|xlsx|parquet|feather|html|txt))\b",
             user_prompt.lower(),
         )
-        if file_match:
-            self.extracted_parameters["explicit_filename"] = file_match.group(1)
+        if file_matches:
+            self.extracted_parameters["input_filename"] = file_matches[0]
+            self.extracted_parameters["output_filename"] = file_matches[-1]
+            self.extracted_parameters["explicit_filename"] = file_matches[0]
         else:
-            # 2. Fallback: just take the first quoted string if it exists
             quoted_items = re.findall(r'["\']([^"\']+)["\']', user_prompt)
             if quoted_items:
+                self.extracted_parameters["input_filename"] = quoted_items[0]
+                self.extracted_parameters["output_filename"] = quoted_items[-1]
                 self.extracted_parameters["explicit_filename"] = quoted_items[0]
 
         # 3. Heuristics for arguments
         heuristics = []
-        # Find all quoted strings that are not the explicit filename
         all_quoted = re.findall(r'["\']([^"\']+)["\']', user_prompt)
+        all_files = set(self.extracted_parameters.values())
         for q in all_quoted:
-            if q != self.extracted_parameters.get("explicit_filename"):
+            if q not in all_files:
                 heuristics.append(f"{repr(q)}")
         
+        # Sorting direction
+        prompt_lower = user_prompt.lower()
+        if "descending" in prompt_lower or "desc" in prompt_lower or "highest to lowest" in prompt_lower:
+            heuristics.append("ascending=False")
+        elif "ascending" in prompt_lower:
+            heuristics.append("ascending=True")
+
         # Find numeric constants
         numbers = re.findall(r'\b(\d+(?:\.\d+)?)\b', user_prompt)
         for n in numbers:
@@ -61,10 +71,13 @@ class ExecutionContext:
         return sanitized_name
 
     def find_compatible_variable(self, expected_signature: AlgebraicSignature) -> Optional[str]:
-        # FIX: Iterate in REVERSE to grab the most recently generated variable in scope!
-        # Strict mathematical type validation against AlgebraicSignature
+        # Pass 1: Look for exact structural match (type_name and state) in reverse
         for var_name, current_signature in reversed(list(self.registry.items())):
             if current_signature.matches(expected_signature):
+                return var_name
+        # Pass 2: Look for base type_name match in reverse (pipeline continuity)
+        for var_name, current_signature in reversed(list(self.registry.items())):
+            if current_signature.type_name == "any" or expected_signature.type_name == "any" or current_signature.type_name == expected_signature.type_name:
                 return var_name
         return None
 
@@ -81,12 +94,17 @@ class UnificationGate:
         import ast
         try:
             tree = ast.parse(code_template)
+            # Ensure positional arguments precede keyword arguments
+            pos_params = [p for p in parameters if "=" not in p]
+            kw_params = [p for p in parameters if "=" in p]
+            ordered_params = pos_params + kw_params
+
             # Traverse to find the first function call (ast.Call)
             for node in ast.walk(tree):
                 if isinstance(node, ast.Call):
-                    for p in parameters:
+                    existing_kwargs = {kw.arg for kw in node.keywords if kw.arg}
+                    for p in ordered_params:
                         try:
-                            # Parse using a dummy function wrapper to universally handle both args and kwargs
                             dummy_code = f"dummy({p})"
                             dummy_tree = ast.parse(dummy_code)
                             dummy_call = dummy_tree.body[0].value
@@ -97,10 +115,11 @@ class UnificationGate:
                             
                             # Transfer keyword arguments
                             for kwarg in dummy_call.keywords:
-                                node.keywords.append(kwarg)
+                                if kwarg.arg not in existing_kwargs:
+                                    node.keywords.append(kwarg)
+                                    existing_kwargs.add(kwarg.arg)
                         except Exception as inner_e:
                             logger.warning(f"[AST INJECTION WARNING] Could not parse parameter '{p}': {inner_e}")
-                    # Only inject into the primary outer call
                     break
             return ast.unparse(tree)
         except Exception as e:
@@ -117,13 +136,14 @@ class UnificationGate:
             else:
                 matching_input_var = "input_source"
 
-        if target_cell.cell_id and target_cell.cell_id != "SYNTHESIZED_NODE":
-            parts = target_cell.cell_id.lower().split('_')
+        cell_id = getattr(target_cell, "cell_id", "") or ""
+        if cell_id and cell_id != "SYNTHESIZED_NODE":
+            parts = cell_id.lower().split('_')
             if len(parts) > 1 and parts[0] in ["pandas", "opencv", "scikit"]:
                 parts = parts[1:]
             raw_output_name = "_".join(parts)
         else:
-            raw_output_name = target_cell.outputs.state.lower().strip() or "output_var"
+            raw_output_name = getattr(target_cell.outputs, "state", "").lower().strip() or "output_var"
             if raw_output_name == "computed":
                 raw_output_name = "computed_var"
         
@@ -139,32 +159,44 @@ class UnificationGate:
             compiled_snippet = compiled_snippet.replace("{input_var}", matching_input_var)
             compiled_snippet = compiled_snippet.replace("{output_var}", output_var_name)
 
-            if "explicit_filename" in context.extracted_parameters:
-                user_assigned_name = context.extracted_parameters["explicit_filename"]
-                import re
+            out_fname = context.extracted_parameters.get("output_filename") or context.extracted_parameters.get("explicit_filename")
+            if out_fname and ("export.csv" in compiled_snippet or "to_csv" in compiled_snippet):
                 compiled_snippet = re.sub(
                     r"(['\"])export\.(csv|json|html|feather|parquet)\1",
-                    repr(user_assigned_name),
+                    repr(out_fname),
                     compiled_snippet,
                 )
                 compiled_snippet = compiled_snippet.replace(
-                    "export.csv", user_assigned_name
+                    "export.csv", out_fname
                 )
+                if ".to_csv()" in compiled_snippet:
+                    compiled_snippet = compiled_snippet.replace(
+                        ".to_csv()", f".to_csv({out_fname!r}, index=False)"
+                    )
                 
-        # 2. Mathematically inject any dynamic parameters using AST Reconstruction
-        if not injected_parameters:
-            try:
-                from inference import ModelManager
-                if not ModelManager.get_instance().can_synthesize():
-                    injected_parameters = getattr(target_cell, "matched_heuristics", [])
-            except Exception:
-                pass
+        # 2. Targeted parameter filtering by cell ID
+        cell_id_lower = cell_id.lower()
+        cell_specific_params = []
 
-        if injected_parameters and compiled_snippet:
-            compiled_snippet = UnificationGate.inject_parameters(compiled_snippet, injected_parameters)
+        if "sort" in cell_id_lower:
+            for h in context.extracted_parameters.get("heuristics", []):
+                if "ascending" in h or h.startswith("'") or h.startswith('"'):
+                    if h not in cell_specific_params:
+                        cell_specific_params.append(h)
+        elif "to_csv" in cell_id_lower or "export" in cell_id_lower or "read_csv" in cell_id_lower or "read" in cell_id_lower:
+            # Read/Write nodes handle parameters via literal templating above
+            cell_specific_params = []
+        else:
+            cell_heuristics = getattr(target_cell, "matched_heuristics", [])
+            for h in cell_heuristics:
+                if h not in cell_specific_params:
+                    cell_specific_params.append(h)
+
+        if cell_specific_params and compiled_snippet:
+            compiled_snippet = UnificationGate.inject_parameters(compiled_snippet, cell_specific_params)
 
         logger.info(
-            f"[UNIFICATION SUCCESS] Linked {matching_input_var} -> {target_cell.cell_id} -> {output_var_name}"
+            f"[UNIFICATION SUCCESS] Linked {matching_input_var} -> {cell_id} -> {output_var_name}"
         )
         return compiled_snippet
 

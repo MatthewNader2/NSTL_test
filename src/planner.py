@@ -194,10 +194,11 @@ IF a specific step is required but no suitable micro-node exists in the availabl
             macro_json = json.loads(clean_text)
             logger.info("Successfully parsed LLM output as JSON.")
             if not isinstance(macro_json, dict) or ("cells" not in macro_json and not isinstance(macro_json, list)):
-                logger.warning("LLM returned unexpected JSON structure (missing 'cells' or not a dict/list).")
+                logger.warning("LLM returned unexpected JSON structure (missing 'cells' or not a dict/list). Using fallback.")
+                return self._run_deterministic_planning_pass(prompt)
         except json.JSONDecodeError as e:
-            logger.error(f"Failed to parse LLM output: {e}\nRaw Output:\n{result_text}")
-            raise ValueError("LLM output was not valid JSON.")
+            logger.warning(f"Failed to parse LLM output: {e}. Falling back to deterministic planner pass.")
+            return self._run_deterministic_planning_pass(prompt)
 
         # BUG 13 FIX: Do NOT inject cells when validation fails.
         # Previously, malformed cells with hallucinated sub-cell IDs were injected

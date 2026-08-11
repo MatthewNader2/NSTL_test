@@ -415,7 +415,7 @@ class BenchmarkProfile_C(InferenceProfile):
         kwargs = {
             "messages": messages,
             "max_tokens": max_tokens,
-            "stop": ["```\n", "<|im_end|>"],
+            "stop": ["<|im_end|>"],
             "temperature": 0.1,
             "top_p": 0.95
         }
@@ -435,12 +435,19 @@ class BenchmarkProfile_C(InferenceProfile):
         return True
         
     def feedback_check(self, generated_code: str) -> str:
+        import ast
         prompt = f"Rewrite this Python code to use clean, standard variable names (like df for dataframes). Do not change what the code does, only rename the variables to be professional. Return ONLY the code inside ```python block.\n\n```python\n{generated_code.strip()}\n```"
         sys_prompt = "You are a professional Python engineer. Your task is to clean up variable names in the provided code."
-        corrected = self.generate_text(prompt, max_tokens=1024, system_prompt=sys_prompt)
-        if "```python" in corrected:
-            corrected = corrected.split("```python")[1].split("```")[0].strip()
-        return corrected if corrected else generated_code
+        try:
+            corrected = self.generate_text(prompt, max_tokens=1024, system_prompt=sys_prompt)
+            if "```python" in corrected:
+                corrected = corrected.split("```python")[1].split("```")[0].strip()
+            elif "```" in corrected:
+                corrected = corrected.split("```")[1].split("```")[0].strip()
+            ast.parse(corrected)
+            return corrected if corrected.strip() else generated_code
+        except Exception:
+            return generated_code
 
     @property
     def embedding_dimension(self) -> int:
