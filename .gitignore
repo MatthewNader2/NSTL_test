@@ -76,3 +76,12 @@ frontend_dist/assets/
 
 # Android app compiled assets
 android_app/app/src/main/assets/assets/
+
+np
+pd
+*.csv
+temp_ultra_run.py
+.~lock.*
+*.pptx
+*.jpg
+
