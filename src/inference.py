@@ -466,6 +466,7 @@ class BenchmarkProfile_C(InferenceProfile):
         
     def feedback_check(self, generated_code: str) -> str:
         import ast
+        import re
         prompt = f"Rewrite this Python code to use clean, standard variable names (like df for dataframes). Do not change what the code does, only rename the variables to be professional. Return ONLY the code inside ```python block.\n\n```python\n{generated_code.strip()}\n```"
         sys_prompt = "You are a professional Python engineer. Your task is to clean up variable names in the provided code."
         try:
@@ -474,7 +475,18 @@ class BenchmarkProfile_C(InferenceProfile):
                 corrected = corrected.split("```python")[1].split("```")[0].strip()
             elif "```" in corrected:
                 corrected = corrected.split("```")[1].split("```")[0].strip()
-            ast.parse(corrected)
+            tree = ast.parse(corrected)
+            
+            # Dead-Variable Lineage Repair: Find assigned variables that are never read
+            assigns = [node.targets[0].id for node in ast.walk(tree) if isinstance(node, ast.Assign) and isinstance(node.targets[0], ast.Name)]
+            reads = {node.id for node in ast.walk(tree) if isinstance(node, ast.Name) and isinstance(node.ctx, ast.Load)}
+            dead = [v for v in assigns if v not in reads]
+            
+            if dead and (".to_csv(" in corrected or ".export(" in corrected):
+                # Update sink call to consume the last dead variable
+                last_dead = dead[-1]
+                corrected = re.sub(r"\b[a-zA-Z_][a-zA-Z0-9_]*(\.to_csv\(|\.export\()", f"{last_dead}\\1", corrected)
+                
             return corrected if corrected.strip() else generated_code
         except Exception:
             return generated_code

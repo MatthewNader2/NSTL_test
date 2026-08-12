@@ -191,10 +191,30 @@ class UnificationGate:
         if cell_specific_params and compiled_snippet:
             compiled_snippet = UnificationGate.inject_parameters(compiled_snippet, cell_specific_params)
 
+        # AST Lineage Repair: Ensure dead transformed variables are properly consumed by downstream sink calls
+        if ".to_csv" in compiled_snippet or "to_csv" in cell_id_lower:
+            compiled_snippet = UnificationGate.fix_dead_variables_in_snippet(context, compiled_snippet)
+
         logger.info(
             f"[UNIFICATION SUCCESS] Linked {matching_input_var} -> {cell_id} -> {output_var_name}"
         )
         return compiled_snippet
+
+    @staticmethod
+    def fix_dead_variables_in_snippet(context: ExecutionContext, snippet: str) -> str:
+        """Fixes dead transformed variables by rebinding sink calls to the latest variable in context."""
+        if not context.registry:
+            return snippet
+        # Filter out the output variable of the sink call itself
+        all_vars = [v for v in context.registry.keys() if "to_csv" not in v and "export" not in v]
+        if not all_vars:
+            return snippet
+        latest_var = all_vars[-1]
+        
+        # Replace the input dataframe before .to_csv( with latest_var
+        import re
+        snippet = re.sub(r"(?<=\s|=)[a-zA-Z_][a-zA-Z0-9_]*(\.to_csv\()", f"{latest_var}\\1", snippet)
+        return snippet
 
     @staticmethod
     def validate_synthesis(
