@@ -10,19 +10,6 @@ from lattice import LatticeOrchestrator, MicroCell
 from inference import ModelManager
 
 class ZeroShotPlanner:
-    COMMON_STEMS = {
-        "image": {"image", "img", "im", "picture", "photo", "imread", "imwrite"},
-        "read": {"read", "load", "fetch", "get", "open", "imread", "read_csv"},
-        "write": {"write", "save", "export", "dump", "imwrite", "to_csv"},
-        "save": {"save", "write", "export", "dump", "imwrite", "to_csv"},
-        "convert": {"convert", "cvt", "change", "transform", "cvtcolor", "convertto"},
-        "color": {"color", "col", "rgb", "bgr", "gray", "grayscale", "cvtcolor", "bgr2gray", "rgb2gray"},
-        "grayscale": {"grayscale", "color", "col", "rgb", "bgr", "gray", "cvtcolor", "bgr2gray", "rgb2gray"},
-        "drop": {"drop", "remove", "delete", "dropna"},
-        "sort": {"sort", "order", "arrange", "sort_values", "ascending"},
-        "ascending": {"ascending", "order", "arrange", "sort_values", "sort"},
-    }
-
     def __init__(self, orchestrator: LatticeOrchestrator, rag_engine=None):
         self.orchestrator = orchestrator
         self.rag_engine = rag_engine
@@ -49,74 +36,67 @@ class ZeroShotPlanner:
         return context_str
         
     def _find_closest_existing_cell(self, hallucinated_id: str, prompt: str = "") -> Optional[str]:
-        """Universal domain-agnostic fuzzy matching using prompt domain alignment, concept coverage, and sequence ratio."""
-        h_tokens = set(re.findall(r"[a-zA-Z0-9]+", hallucinated_id.lower())) - {"pandas", "cv2", "numpy", "scikit", "torch", "synth"}
+        """Fully dynamic tree-agnostic fuzzy matching using live orchestrator domain extraction and NLP token ratios."""
+        all_cells = self.orchestrator.get_all_available_cells()
+
+        # 1. Dynamically extract all available domain names from loaded trees (zero hardcoded frameworks)
+        available_domains = {
+            getattr(cell, "domain_name", "").lower()
+            for cell in all_cells if getattr(cell, "domain_name", None)
+        }
+        for cell in all_cells:
+            parts = cell.cell_id.lower().split("_")
+            if len(parts) > 1 and len(parts[0]) > 1:
+                available_domains.add(parts[0])
+
+        prompt_lower = prompt.lower()
+        active_domains = {d for d in available_domains if d and d in prompt_lower}
+
+        h_tokens = set(re.findall(r"[a-zA-Z0-9]+", hallucinated_id.lower())) - available_domains - {"synth", "micro", "macro", "default"}
         if not h_tokens:
             return None
-
-        COMMON_STEMS = ZeroShotPlanner.COMMON_STEMS
-
-        # Detect active domain from user prompt
-        prompt_lower = prompt.lower()
-        active_domains = set()
-        if "opencv" in prompt_lower or "cv2" in prompt_lower:
-            active_domains.add("cv2")
-        if "pandas" in prompt_lower or "pd" in prompt_lower:
-            active_domains.add("pandas")
-        if "numpy" in prompt_lower or "np" in prompt_lower:
-            active_domains.add("numpy")
-        if "scikit" in prompt_lower or "sklearn" in prompt_lower:
-            active_domains.add("sklearn")
-        if "torch" in prompt_lower or "pytorch" in prompt_lower:
-            active_domains.add("torch")
 
         best_cell_id = None
         best_score = -1.0
         from difflib import SequenceMatcher
 
-        for cell in self.orchestrator.get_all_available_cells():
+        for cell in all_cells:
             if getattr(cell, 'node_type', 'function') not in [None, 'function']:
                 continue
 
             cid = cell.cell_id
             cid_lower = cid.lower()
+            cell_domain = getattr(cell, "domain_name", "").lower() or (cid_lower.split("_")[0] if "_" in cid_lower else "")
+
             c_tokens = {kw.lower() for kw in getattr(cell, 'keywords', [])} | set(re.findall(r"[a-zA-Z0-9]+", cid_lower))
-            
-            core_c_tokens = c_tokens - {"cv2", "pandas", "numpy", "scikit", "torch", "micro", "macro", "default"}
+            core_c_tokens = c_tokens - available_domains - {"micro", "macro", "default"}
             if not core_c_tokens:
                 core_c_tokens = c_tokens
 
-            # 1. Count how many distinct original prompt concepts were satisfied
+            # 1. Dynamic sub-token & sequence coverage (no hardcoded stem dictionaries)
             concept_hits = 0
             for ht in h_tokens:
-                ht_syns = COMMON_STEMS.get(ht, {ht}) | {ht}
-                if any(syn in core_c_tokens or any(syn in ct for ct in core_c_tokens) for syn in ht_syns):
+                if any(ht in ct or ct in ht or SequenceMatcher(None, ht, ct).ratio() >= 0.60 for ct in core_c_tokens):
                     concept_hits += 1
             
             concept_coverage = concept_hits / max(len(h_tokens), 1)
 
-            # 2. Character sequence similarity ratio
+            # 2. Overall ID sequence similarity ratio
             seq_ratio = SequenceMatcher(None, hallucinated_id.lower(), cid_lower).ratio()
 
-            # 3. Domain alignment & Primary node weighting
+            # 3. Dynamic domain alignment & cross-domain penalties
             domain_bonus = 0.0
             if active_domains:
-                cell_domain = cid_lower.split("_")[0]
                 if cell_domain in active_domains:
                     domain_bonus += 0.25
-                elif cell_domain in {"pandas", "cv2", "numpy", "sklearn", "torch"}:
+                elif cell_domain in available_domains:
                     domain_bonus -= 0.35
 
-            # Penalize rare/obscure variants over clean primary action nodes
-            obscure_penalty = 0.0
-            if any(obs in cid_lower for obs in ["animation", "metadata", "list_like", "common_convert", "imreadmulti"]):
-                obscure_penalty += 0.20
-
-            # 4. Prefer concise primary API nodes over long nested internal sub-module nodes
+            # 4. Universal ID length penalty (prefer concise primary root functions over long nested sub-modules)
             id_length_penalty = (len(cid_lower) - 12) * 0.015 if len(cid_lower) > 12 else 0.0
 
             # Dynamic combined score
-            score = (concept_coverage * 0.60) + (seq_ratio * 0.25) + domain_bonus - obscure_penalty - id_length_penalty
+            score = (concept_coverage * 0.60) + (seq_ratio * 0.25) + domain_bonus - id_length_penalty
 
             if score > best_score:
                 best_score = score

@@ -108,22 +108,20 @@ class UnificationGate:
                     existing_kwargs = {kw.arg for kw in node.keywords if kw.arg}
                     for p in ordered_params:
                         p_str = str(p).lower()
-                        p_tokens = set(re.findall(r"[a-zA-Z0-9]+", p_str)) - {"cv2", "pd", "pandas", "np", "numpy", "plt", "torch", "sklearn", "true", "false", "none"}
+                        p_tokens = set(re.findall(r"[a-zA-Z0-9]+", p_str)) - {"true", "false", "none"}
+                        func_tokens = set(re.findall(r"[a-zA-Z0-9]+", func_name)) if func_name else set()
                         
-                        # Generic AST parameter relevance validation via token & stem intersection
-                        if p_tokens and func_name:
-                            func_tokens = set(re.findall(r"[a-zA-Z0-9]+", func_name))
-                            expanded_func = set(func_tokens)
-                            
-                            from planner import ZeroShotPlanner
-                            stems = getattr(ZeroShotPlanner, "COMMON_STEMS", {})
-                            for ft in func_tokens:
-                                for stem_set in stems.values():
-                                    if ft in stem_set:
-                                        expanded_func |= stem_set
-                            
-                            # If parameter contains domain terms that have zero overlap with function intent, skip
-                            if not p_tokens.intersection(expanded_func):
+                        # Generic AST parameter relevance validation via difflib sub-token similarity
+                        if p_tokens and func_tokens:
+                            from difflib import SequenceMatcher
+                            has_match = False
+                            for pt in p_tokens:
+                                if len(pt) <= 1:
+                                    continue
+                                if any(pt in ft or ft in pt or SequenceMatcher(None, pt, ft).ratio() >= 0.55 for ft in func_tokens):
+                                    has_match = True
+                                    break
+                            if not has_match:
                                 continue
 
                         try:
