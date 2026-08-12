@@ -107,12 +107,24 @@ class UnificationGate:
 
                     existing_kwargs = {kw.arg for kw in node.keywords if kw.arg}
                     for p in ordered_params:
-                        p_str = str(p)
-                        # Parameter relevance filtering based on function target domain
-                        if ("color_" in p_str.lower() or "bgr2" in p_str.lower() or "rgb2" in p_str.lower()) and not any(k in func_name for k in ["color", "cvt", "convert", "transform"]):
-                            continue
-                        if ("ascending=" in p_str.lower()) and not any(k in func_name for k in ["sort", "order", "rank"]):
-                            continue
+                        p_str = str(p).lower()
+                        p_tokens = set(re.findall(r"[a-zA-Z0-9]+", p_str)) - {"cv2", "pd", "pandas", "np", "numpy", "plt", "torch", "sklearn", "true", "false", "none"}
+                        
+                        # Generic AST parameter relevance validation via token & stem intersection
+                        if p_tokens and func_name:
+                            func_tokens = set(re.findall(r"[a-zA-Z0-9]+", func_name))
+                            expanded_func = set(func_tokens)
+                            
+                            from planner import ZeroShotPlanner
+                            stems = getattr(ZeroShotPlanner, "COMMON_STEMS", {})
+                            for ft in func_tokens:
+                                for stem_set in stems.values():
+                                    if ft in stem_set:
+                                        expanded_func |= stem_set
+                            
+                            # If parameter contains domain terms that have zero overlap with function intent, skip
+                            if not p_tokens.intersection(expanded_func):
+                                continue
 
                         try:
                             dummy_code = f"dummy({p})"

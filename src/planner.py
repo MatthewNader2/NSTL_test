@@ -1,7 +1,7 @@
 import json
 import logging
 import re
-from typing import Dict, Any
+from typing import Dict, Any, Optional
 
 from log_config import get_logger
 logger = get_logger("planner")
@@ -10,6 +10,19 @@ from lattice import LatticeOrchestrator, MicroCell
 from inference import ModelManager
 
 class ZeroShotPlanner:
+    COMMON_STEMS = {
+        "image": {"image", "img", "im", "picture", "photo", "imread", "imwrite"},
+        "read": {"read", "load", "fetch", "get", "open", "imread", "read_csv"},
+        "write": {"write", "save", "export", "dump", "imwrite", "to_csv"},
+        "save": {"save", "write", "export", "dump", "imwrite", "to_csv"},
+        "convert": {"convert", "cvt", "change", "transform", "cvtcolor", "convertto"},
+        "color": {"color", "col", "rgb", "bgr", "gray", "grayscale", "cvtcolor", "bgr2gray", "rgb2gray"},
+        "grayscale": {"grayscale", "color", "col", "rgb", "bgr", "gray", "cvtcolor", "bgr2gray", "rgb2gray"},
+        "drop": {"drop", "remove", "delete", "dropna"},
+        "sort": {"sort", "order", "arrange", "sort_values", "ascending"},
+        "ascending": {"ascending", "order", "arrange", "sort_values", "sort"},
+    }
+
     def __init__(self, orchestrator: LatticeOrchestrator, rag_engine=None):
         self.orchestrator = orchestrator
         self.rag_engine = rag_engine
@@ -35,24 +48,13 @@ class ZeroShotPlanner:
             context_str = context_str[:6000] + "\n... (truncated)"
         return context_str
         
-    def _find_closest_existing_cell(self, hallucinated_id: str, prompt: str = "") -> str:
+    def _find_closest_existing_cell(self, hallucinated_id: str, prompt: str = "") -> Optional[str]:
         """Universal domain-agnostic fuzzy matching using prompt domain alignment, concept coverage, and sequence ratio."""
         h_tokens = set(re.findall(r"[a-zA-Z0-9]+", hallucinated_id.lower())) - {"pandas", "cv2", "numpy", "scikit", "torch", "synth"}
         if not h_tokens:
             return None
 
-        # Generic domain-agnostic programming stem dictionary
-        COMMON_STEMS = {
-            "image": {"img", "im", "picture", "photo", "imread", "imwrite"},
-            "read": {"load", "fetch", "get", "open", "imread", "read_csv"},
-            "write": {"save", "export", "dump", "imwrite", "to_csv"},
-            "save": {"write", "export", "dump", "imwrite", "to_csv"},
-            "convert": {"cvt", "change", "transform", "cvtcolor", "convertto"},
-            "color": {"col", "rgb", "bgr", "gray", "grayscale", "cvtcolor"},
-            "grayscale": {"col", "rgb", "bgr", "gray", "grayscale", "cvtcolor"},
-            "drop": {"remove", "delete", "dropna"},
-            "sort": {"order", "arrange", "sort_values"},
-        }
+        COMMON_STEMS = ZeroShotPlanner.COMMON_STEMS
 
         # Detect active domain from user prompt
         prompt_lower = prompt.lower()
