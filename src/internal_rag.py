@@ -13,8 +13,9 @@ from router import HardwareProfiler
 _CACHE_DIR_NAME = ".rag_cache"
 
 class LocalRAG:
-    def __init__(self, trees_dir: str):
+    def __init__(self, trees_dir: str, orchestrator=None):
         self.trees_dir = trees_dir
+        self.orchestrator = orchestrator
         self.logger = logging.getLogger("LocalRAG")
         self._cache_dir = os.path.join(os.path.dirname(trees_dir), _CACHE_DIR_NAME)
 
@@ -40,7 +41,13 @@ class LocalRAG:
     # ------------------------------------------------------------------
     def _get_model_cache_path(self):
         try:
-            model_name = ModelManager.get_instance().active_profile.embedder_name
+            profile = ModelManager.get_instance().active_profile
+            model_name = "__".join(filter(None, [
+                ModelManager.get_instance().current_profile_name,
+                getattr(profile, "embedder_name", None),
+                getattr(profile, "llm_name", None),
+                str(ModelManager.get_instance().embedding_dimension),
+            ]))
         except Exception:
             model_name = "unknown_model"
         # Sanitize model name
@@ -76,6 +83,45 @@ class LocalRAG:
     def build_index(self):
         self.logger.info("Building FAISS index for local RAG (incremental)...")
         self._load_cell_cache()
+
+        # The router executes cells from SQLite through the orchestrator. Index
+        # that exact authoritative set rather than a potentially stale JSON
+        # export, which previously made thousands of executable cells invisible.
+        if self.orchestrator is not None:
+            seen_cell_ids = set()
+            new_or_changed_cells = []
+            cells = self.orchestrator.get_all_available_cells()
+            max_cells = int(os.environ.get("NSTL_RAG_MAX_CELLS", "0"))
+            if max_cells > 0:
+                # Explicit opt-in for constrained smoke tests; production keeps
+                # the default of indexing every executable cell.
+                cells = sorted(cells, key=lambda cell: cell.cell_id)[:max_cells]
+                self.logger.warning("[RAG] Limiting index to %s cells for this run.", max_cells)
+            for cell in cells:
+                cell_id = cell.cell_id
+                seen_cell_ids.add(cell_id)
+                schema = {
+                    "cell_id": cell_id,
+                    "type": cell.type,
+                    "node_type": cell.node_type,
+                    "stage": cell.stage,
+                    "keywords": sorted(cell.keywords),
+                    "inputs": {"type_name": cell.inputs.type_name, "state": cell.inputs.state},
+                    "outputs": {"type_name": cell.outputs.type_name, "state": cell.outputs.state},
+                }
+                text_repr = (
+                    f"ID: {cell_id} | Keywords: {' '.join(schema['keywords'])} | "
+                    f"Flow: {cell.inputs.type_name} -> {cell.outputs.type_name}"
+                )
+                cell_hash = hashlib.sha256(text_repr.encode("utf-8")).hexdigest()
+                if cell_id in self.cell_cache and self.cell_cache[cell_id].get("hash") == cell_hash:
+                    self.cell_cache[cell_id]["schema"] = schema
+                else:
+                    new_or_changed_cells.append({
+                        "cell_id": cell_id, "text": text_repr, "hash": cell_hash, "schema": schema,
+                    })
+            self._finish_index_build(seen_cell_ids, new_or_changed_cells)
+            return
 
         dirs_to_scan = []
         if os.path.exists(self.trees_dir):
@@ -131,8 +177,8 @@ class LocalRAG:
                             description = cell.get("description", "")
                             text_repr = f"ID: {cell_id} | Keywords: {kws} | Flow: {in_str} -> {out_str} | Description: {description}"
                             
-                            # Hash for change detection
-                            cell_hash = hashlib.md5(text_repr.encode('utf-8')).hexdigest()
+                            # Q-8 fix: use SHA-256 instead of MD5 for collision-resistant change detection
+                            cell_hash = hashlib.sha256(text_repr.encode('utf-8')).hexdigest()
 
                             if cell_id in self.cell_cache and self.cell_cache[cell_id].get("hash") == cell_hash:
                                 valid_cached_cells.append(cell_id)
@@ -147,6 +193,10 @@ class LocalRAG:
                     except Exception as e:
                         self.logger.error(f"Error parsing {file}: {e}")
 
+        self._finish_index_build(seen_cell_ids, new_or_changed_cells)
+
+    def _finish_index_build(self, seen_cell_ids, new_or_changed_cells):
+        """Embed changed records and rebuild the index from the active cache."""
         # Remove deleted cells from cache
         cache_keys = list(self.cell_cache.keys())
         for cid in cache_keys:
@@ -169,8 +219,8 @@ class LocalRAG:
                 }
             self._save_cell_cache()
         else:
-            self.logger.info(f"[RAG] All {len(valid_cached_cells)} cells loaded from cache.")
-            print(f"  [RAG] Cache hit — all {len(valid_cached_cells)} cells loaded from cache instantly.")
+            self.logger.info(f"[RAG] All {len(self.cell_cache)} cells loaded from cache.")
+            print(f"  [RAG] Cache hit — all {len(self.cell_cache)} cells loaded from cache instantly.")
 
         if not self.cell_cache:
             self.logger.warning("No nodes found to build FAISS index.")
@@ -219,7 +269,7 @@ class LocalRAG:
         in_str = f"{inputs.get('type_name', inputs.get('input_type', ''))}" if isinstance(inputs, dict) else str(inputs)[:50]
         out_str = f"{outputs.get('type_name', outputs.get('output_type', ''))}" if isinstance(outputs, dict) else str(outputs)[:50]
         schema_text = f"ID: {cell_id} | Keywords: {kws} | Flow: {in_str} -> {out_str}"
-        cell_hash = hashlib.md5(schema_text.encode('utf-8')).hexdigest()
+        cell_hash = hashlib.sha256(schema_text.encode('utf-8')).hexdigest()
         
         # 2. Get embedding
         raw_emb = np.array(
@@ -231,6 +281,16 @@ class LocalRAG:
         norm = np.where(norm == 0, 1.0, norm)
         raw_emb = raw_emb / norm
         
+        # IndexFlat cannot delete/update by ID. Replace existing cells by
+        # rebuilding outside the index lock, rather than retaining stale vectors.
+        if cell_id in self.cell_cache:
+            self.cell_cache[cell_id] = {
+                "hash": cell_hash, "embedding": raw_emb[0].tolist(), "schema": cell_dict,
+            }
+            self._save_cell_cache()
+            self.build_index()
+            return
+
         # 4. Add to index (thread-safe)
         with self._index_lock:
             self.index.add(raw_emb)
@@ -278,6 +338,9 @@ class LocalRAG:
             if idx == -1 or idx not in self.id_to_schema:
                 continue
             cell = self.id_to_schema[idx]
+            cid = cell.get("cell_id", "")
+            if "__" in cid or "___" in cid or cid.endswith("_DEFAULT") or "_DEFAULT" in cid:
+                continue
             
             # Semantic Gravity: Boost by adding to IP distance based on keyword matches
             kws = {kw.lower() for kw in cell.get("keywords", [])}

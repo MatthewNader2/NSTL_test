@@ -17,7 +17,7 @@ class ZeroShotPlanner:
     def _get_available_micro_nodes_context(self, prompt: str) -> str:
         """Returns a string summary of available Micro-Nodes for the LLM context."""
         if self.rag_engine:
-            return self.rag_engine.get_relevant_context(prompt, top_k=15)
+            return self.rag_engine.get_relevant_context(prompt, top_k=10)
         else:
             # Fallback if no RAG is provided
             available_nodes = []
@@ -31,21 +31,54 @@ class ZeroShotPlanner:
                     available_nodes.append(desc)
             context_str = "\n".join(available_nodes)
             
-        # Truncate context string to avoid blowing up the context window.
-        # ~3000 tokens is roughly 12000 characters.
-        if len(context_str) > 12000:
-            logger.warning("Available context extremely large; truncating to fit within 4096 tokens.")
-            context_str = context_str[:12000] + "\n... (truncated)"
+        if len(context_str) > 6000:
+            context_str = context_str[:6000] + "\n... (truncated)"
         return context_str
         
+    def _find_closest_existing_cell(self, hallucinated_id: str) -> str:
+        h_tokens = set(re.findall(r"[a-zA-Z_]+", hallucinated_id.lower())) - {"pandas", "cv2", "numpy", "scikit", "torch"}
+        if not h_tokens:
+            return None
+
+        best_cell_id = None
+        best_score = -1.0
+
+        for cell in self.orchestrator.get_all_available_cells():
+            cid = cell.cell_id
+            cid_lower = cid.lower()
+            c_tokens = {kw.lower() for kw in getattr(cell, 'keywords', [])} | set(re.findall(r"[a-zA-Z_]+", cid_lower))
+            overlap = len(h_tokens.intersection(c_tokens)) / max(len(h_tokens), 1)
+
+            # Main operation matching
+            h_str = "".join(h_tokens)
+            if "dropna" in cid_lower and ("drop" in h_str or "na" in h_str or "null" in h_str or "missing" in h_str):
+                overlap += 1.2
+            elif "sort_values" in cid_lower and "sort" in h_str:
+                overlap += 1.2
+            elif "imread" in cid_lower and ("read" in h_str or "load" in h_str or "imread" in h_str) and "save" not in h_str and "write" not in h_str:
+                overlap += 1.8
+            elif "imwrite" in cid_lower and ("save" in h_str or "write" in h_str or "imwrite" in h_str or "export" in h_str):
+                overlap += 1.8
+            elif "cvtcolor" in cid_lower and ("convert" in h_str or "color" in h_str or "grayscale" in h_str or "gray" in h_str):
+                overlap += 1.8
+            elif "to_csv" in cid_lower and ("csv" in h_str or "save" in h_str or "write" in h_str) and "image" not in h_str:
+                overlap += 1.2
+            elif "read_csv" in cid_lower and ("csv" in h_str or "read" in h_str or "load" in h_str) and "image" not in h_str:
+                overlap += 1.2
+            elif cid_lower == "pandas_dataframe_drop" and "dropna" not in h_str:
+                overlap -= 0.5
+
+            if overlap > best_score:
+                best_score = overlap
+                best_cell_id = cid
+
+        if best_match := (best_cell_id if best_score >= 0.6 else None):
+            return best_match
+        return None
+
     def _validate_sub_cells(self, macro_dict: dict) -> bool:
         available_ids = {cell.cell_id for cell in self.orchestrator.get_all_available_cells()}
-        # Let's handle both in case the LLM wrapped it in {"cells": [...]}
-        cells_to_check = []
-        if "cells" in macro_dict:
-            cells_to_check = macro_dict["cells"]
-        else:
-            cells_to_check = [macro_dict]
+        cells_to_check = macro_dict.get("cells", [macro_dict]) if isinstance(macro_dict, dict) else []
 
         for cell_dict in cells_to_check:
             if not isinstance(cell_dict, dict):
@@ -55,8 +88,14 @@ class ZeroShotPlanner:
                 return False
             for i, sub_id in enumerate(sub_cells):
                 if sub_id not in available_ids and not sub_id.startswith("SYNTH_"):
-                    logger.warning(f"MISSING_NODE: LLM hallucinated node '{sub_id}'. Auto-correcting to SYNTH_{sub_id.upper()}")
-                    sub_cells[i] = f"SYNTH_{sub_id.upper()}"
+                    # Try fuzzy resolution to real cell in database first
+                    matched_id = self._find_closest_existing_cell(sub_id)
+                    if matched_id:
+                        logger.info(f"[PLANNER AUTO-CORRECT] Resolved hallucinated '{sub_id}' -> '{matched_id}'")
+                        sub_cells[i] = matched_id
+                    else:
+                        logger.warning(f"MISSING_NODE: LLM hallucinated node '{sub_id}'. Auto-correcting to SYNTH_{sub_id.upper()}")
+                        sub_cells[i] = f"SYNTH_{sub_id.upper()}"
         return True
 
     def _run_deterministic_planning_pass(self, prompt: str) -> dict:
@@ -168,7 +207,7 @@ Schema:
 Available Micro-Nodes for your sub_cells:
 {available_context}
 
-CRITICAL INSTRUCTION: Your `sub_cells` array should contain a sequence of node IDs that accomplish the user request.
+CRITICAL INSTRUCTION: Your `sub_cells` array should contain a MINIMAL, CONCISE sequence of node IDs (typically 2 to 5 steps) that accomplish the user request. DO NOT include extra, redundant, or repetitive steps after the goal is completed.
 You must choose from the Available Micro-Nodes IF a suitable node exists. 
 IF a specific step is required but no suitable micro-node exists in the available list, you MUST invent a new logical node ID starting with 'SYNTH_' (e.g., 'SYNTH_CALCULATE_SUM', 'SYNTH_EXTRACT_JSON'). The engine will dynamically synthesize this node at runtime."""
 
@@ -190,14 +229,32 @@ IF a specific step is required but no suitable micro-node exists in the availabl
         clean_text = clean_text.strip()
 
         # 4. Parse and Validate
+        macro_json = None
         try:
             macro_json = json.loads(clean_text)
             logger.info("Successfully parsed LLM output as JSON.")
-            if not isinstance(macro_json, dict) or ("cells" not in macro_json and not isinstance(macro_json, list)):
-                logger.warning("LLM returned unexpected JSON structure (missing 'cells' or not a dict/list). Using fallback.")
-                return self._run_deterministic_planning_pass(prompt)
         except json.JSONDecodeError as e:
-            logger.warning(f"Failed to parse LLM output: {e}. Falling back to deterministic planner pass.")
+            logger.warning(f"JSON parsing error: {e}. Attempting regex recovery of sub_cells...")
+            sub_matches = re.findall(r'["\'](PANDAS_[A-Z0-9_]+|CV2_[A-Z0-9_]+|NUMPY_[A-Z0-9_]+|SYNTH_[A-Z0-9_]+)["\']', clean_text)
+            if sub_matches:
+                logger.info(f"Regex recovered {len(sub_matches)} cell IDs: {sub_matches}")
+                macro_json = {
+                    "cells": [{
+                        "cell_id": "macro_dynamic_recovered",
+                        "type": "macro",
+                        "stage": 1,
+                        "keywords": [],
+                        "inputs": {"type_name": "any", "state": "any"},
+                        "outputs": {"type_name": "any", "state": "any"},
+                        "sub_cells": sub_matches
+                    }]
+                }
+            else:
+                logger.warning("Regex recovery failed; falling back to deterministic planner pass.")
+                return self._run_deterministic_planning_pass(prompt)
+
+        if not isinstance(macro_json, dict) or ("cells" not in macro_json and not isinstance(macro_json, list)):
+            logger.warning("LLM returned unexpected JSON structure. Using fallback.")
             return self._run_deterministic_planning_pass(prompt)
 
         # BUG 13 FIX: Do NOT inject cells when validation fails.

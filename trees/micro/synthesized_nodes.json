@@ -3925,6 +3925,432 @@
           "PYTHON_PRINT"
         ]
       }
+    },
+    {
+      "cell_id": "macro_dynamic_read_csv",
+      "type": "macro",
+      "stage": 1,
+      "keywords": [
+        "data.csv",
+        "drop missing values",
+        "sort by age",
+        "save cleaned data"
+      ],
+      "inputs": {
+        "type_name": "data.csv",
+        "state": "..."
+      },
+      "outputs": {
+        "type_name": "cleaned_data.csv",
+        "state": "..."
+      },
+      "algorithmic_steps": [
+        "1. read data.csv"
+      ],
+      "sub_cells": [
+        "PANDAS_READ_CSV",
+        "SYNTH_PANDAS_DROP_NULLS",
+        "SYNTH_PANDAS_SORT_VALUES",
+        "SYNTH_PANDAS_TO_CSV",
+        "SYNTH_PANDAS_TO_CSV",
+        "PANDAS_DATAFRAME___IMOD___DEFAULT",
+        "PANDAS_DATAFRAME___IOR___DEFAULT",
+        "PANDAS_DATAFRAME___ITRUEDIV___DEFAULT",
+        "PANDAS_DATAFRAME_COLUMNS_DEFAULT",
+        "PANDAS_DATAFRAME___ISUB___DEFAULT",
+        "PANDAS_DATAFRAME_DTYPES_DEFAULT",
+        "PANDAS_DATAFRAME_IAT_DEFAULT",
+        "PANDAS_DATAFRAME_ATTRS_DEFAULT",
+        "PANDAS_DATAFRAME_LOC_DEFAULT",
+        "PANDAS_NAMEDAGG_COLUMN_DEFAULT"
+      ],
+      "internal_topology": {
+        "source_id": "data.csv"
+      }
+    },
+    {
+      "cell_id": "macro_dynamic_sort_data",
+      "type": "macro",
+      "stage": 2,
+      "keywords": [
+        "cleaned_data.csv",
+        "sort by age",
+        "save cleaned data"
+      ],
+      "inputs": {
+        "type_name": "cleaned_data.csv",
+        "state": "..."
+      },
+      "outputs": {
+        "type_name": "cleaned_data.csv",
+        "state": "..."
+      },
+      "algorithmic_steps": [
+        "1. sort by age"
+      ],
+      "sub_cells": [
+        "SYNTH_PANDAS_SORT_VALUES",
+        "SYNTH_PANDAS_TO_CSV",
+        "SYNTH_PANDAS_TO_CSV",
+        "PANDAS_DATAFRAME___IMOD___DEFAULT",
+        "PANDAS_DATAFRAME___IOR___DEFAULT",
+        "PANDAS_DATAFRAME___ITRUEDIV___DEFAULT",
+        "PANDAS_DATAFRAME_COLUMNS_DEFAULT",
+        "PANDAS_DATAFRAME___ISUB___DEFAULT",
+        "PANDAS_DATAFRAME_DTYPES_DEFAULT",
+        "PANDAS_DATAFRAME_IAT_DEFAULT",
+        "PANDAS_DATAFRAME_ATTRS_DEFAULT",
+        "PANDAS_DATAFRAME_LOC_DEFAULT",
+        "PANDAS_NAMEDAGG_COLUMN_DEFAULT"
+      ],
+      "internal_topology": {
+        "source_id": "cleaned_data.csv"
+      }
+    },
+    {
+      "cell_id": "macro_dynamic_to_csv",
+      "type": "macro",
+      "stage": 3,
+      "keywords": [
+        "cleaned_data.csv",
+        "save cleaned data"
+      ],
+      "inputs": {
+        "type_name": "cleaned_data.csv",
+        "state": "..."
+      },
+      "outputs": {
+        "type_name": "cleaned_data.csv",
+        "state": "..."
+      },
+      "algorithmic_steps": [
+        "1. save cleaned data to csv"
+      ],
+      "sub_cells": [
+        "SYNTH_PANDAS_TO_CSV",
+        "SYNTH_PANDAS_TO_CSV",
+        "PANDAS_DATAFRAME___IMOD___DEFAULT",
+        "PANDAS_DATAFRAME___IOR___DEFAULT",
+        "PANDAS_DATAFRAME___ITRUEDIV___DEFAULT",
+        "PANDAS_DATAFRAME_COLUMNS_DEFAULT",
+        "PANDAS_DATAFRAME___ISUB___DEFAULT",
+        "PANDAS_DATAFRAME_DTYPES_DEFAULT",
+        "PANDAS_DATAFRAME_IAT_DEFAULT",
+        "PANDAS_DATAFRAME_ATTRS_DEFAULT",
+        "PANDAS_DATAFRAME_LOC_DEFAULT",
+        "PANDAS_NAMEDAGG_COLUMN_DEFAULT"
+      ],
+      "internal_topology": {
+        "source_id": "cleaned_data.csv"
+      }
+    },
+    {
+      "cell_id": "macro_dynamic_read_csv",
+      "type": "macro",
+      "stage": 1,
+      "keywords": [
+        "data.csv",
+        "drop missing values",
+        "sort by age",
+        "save cleaned data"
+      ],
+      "inputs": {
+        "type_name": "data.csv",
+        "state": "..."
+      },
+      "outputs": {
+        "type_name": "cleaned_data.csv",
+        "state": "..."
+      },
+      "algorithmic_steps": [
+        "1. read data.csv"
+      ],
+      "sub_cells": [
+        "PANDAS_READ_CSV",
+        "SYNTH_PANDAS_DROP_NULLS",
+        "SYNTH_PANDAS_SORT_VALUES",
+        "SYNTH_PANDAS_TO_CSV",
+        "SYNTH_PANDAS_TO_CSV",
+        "PANDAS_DATAFRAME___IMOD___DEFAULT",
+        "PANDAS_DATAFRAME___IOR___DEFAULT",
+        "PANDAS_DATAFRAME___ITRUEDIV___DEFAULT",
+        "PANDAS_DATAFRAME_COLUMNS_DEFAULT",
+        "PANDAS_DATAFRAME___ISUB___DEFAULT",
+        "PANDAS_DATAFRAME_DTYPES_DEFAULT",
+        "PANDAS_DATAFRAME_IAT_DEFAULT",
+        "PANDAS_DATAFRAME_ATTRS_DEFAULT",
+        "PANDAS_DATAFRAME_LOC_DEFAULT",
+        "PANDAS_NAMEDAGG_COLUMN_DEFAULT"
+      ],
+      "internal_topology": {
+        "source_id": "data.csv"
+      }
+    },
+    {
+      "cell_id": "macro_dynamic_sort_data",
+      "type": "macro",
+      "stage": 2,
+      "keywords": [
+        "cleaned_data.csv",
+        "sort by age",
+        "save cleaned data"
+      ],
+      "inputs": {
+        "type_name": "cleaned_data.csv",
+        "state": "..."
+      },
+      "outputs": {
+        "type_name": "cleaned_data.csv",
+        "state": "..."
+      },
+      "algorithmic_steps": [
+        "1. sort by age"
+      ],
+      "sub_cells": [
+        "SYNTH_PANDAS_SORT_VALUES",
+        "SYNTH_PANDAS_TO_CSV",
+        "SYNTH_PANDAS_TO_CSV",
+        "PANDAS_DATAFRAME___IMOD___DEFAULT",
+        "PANDAS_DATAFRAME___IOR___DEFAULT",
+        "PANDAS_DATAFRAME___ITRUEDIV___DEFAULT",
+        "PANDAS_DATAFRAME_COLUMNS_DEFAULT",
+        "PANDAS_DATAFRAME___ISUB___DEFAULT",
+        "PANDAS_DATAFRAME_DTYPES_DEFAULT",
+        "PANDAS_DATAFRAME_IAT_DEFAULT",
+        "PANDAS_DATAFRAME_ATTRS_DEFAULT",
+        "PANDAS_DATAFRAME_LOC_DEFAULT",
+        "PANDAS_NAMEDAGG_COLUMN_DEFAULT"
+      ],
+      "internal_topology": {
+        "source_id": "cleaned_data.csv"
+      }
+    },
+    {
+      "cell_id": "macro_dynamic_to_csv",
+      "type": "macro",
+      "stage": 3,
+      "keywords": [
+        "cleaned_data.csv",
+        "save cleaned data"
+      ],
+      "inputs": {
+        "type_name": "cleaned_data.csv",
+        "state": "..."
+      },
+      "outputs": {
+        "type_name": "cleaned_data.csv",
+        "state": "..."
+      },
+      "algorithmic_steps": [
+        "1. save cleaned data to csv"
+      ],
+      "sub_cells": [
+        "SYNTH_PANDAS_TO_CSV",
+        "SYNTH_PANDAS_TO_CSV",
+        "PANDAS_DATAFRAME___IMOD___DEFAULT",
+        "PANDAS_DATAFRAME___IOR___DEFAULT",
+        "PANDAS_DATAFRAME___ITRUEDIV___DEFAULT",
+        "PANDAS_DATAFRAME_COLUMNS_DEFAULT",
+        "PANDAS_DATAFRAME___ISUB___DEFAULT",
+        "PANDAS_DATAFRAME_DTYPES_DEFAULT",
+        "PANDAS_DATAFRAME_IAT_DEFAULT",
+        "PANDAS_DATAFRAME_ATTRS_DEFAULT",
+        "PANDAS_DATAFRAME_LOC_DEFAULT",
+        "PANDAS_NAMEDAGG_COLUMN_DEFAULT"
+      ],
+      "internal_topology": {
+        "source_id": "cleaned_data.csv"
+      }
+    },
+    {
+      "cell_id": "macro_dynamic_read_csv",
+      "type": "macro",
+      "stage": 1,
+      "keywords": [
+        "data.csv",
+        "drop missing values",
+        "sort by age",
+        "save cleaned data"
+      ],
+      "inputs": {
+        "type_name": "data.csv",
+        "state": "..."
+      },
+      "outputs": {
+        "type_name": "cleaned_data.csv",
+        "state": "..."
+      },
+      "algorithmic_steps": [
+        "1. read data.csv"
+      ],
+      "sub_cells": [
+        "PANDAS_READ_CSV",
+        "PANDAS_CATEGORICAL_DROPNA",
+        "PANDAS_CATEGORICAL_SORT_VALUES",
+        "PANDAS_DATAFRAME_TO_CSV",
+        "PANDAS_DATAFRAME_TO_CSV",
+        "PANDAS_DATAFRAME___IMOD___DEFAULT",
+        "PANDAS_DATAFRAME___IOR___DEFAULT",
+        "PANDAS_DATAFRAME___ITRUEDIV___DEFAULT",
+        "PANDAS_DATAFRAME_COLUMNS_DEFAULT",
+        "PANDAS_DATAFRAME___ISUB___DEFAULT",
+        "PANDAS_DATAFRAME_DTYPES_DEFAULT",
+        "PANDAS_DATAFRAME_IAT_DEFAULT",
+        "PANDAS_DATAFRAME_ATTRS_DEFAULT",
+        "PANDAS_DATAFRAME_LOC_DEFAULT",
+        "PANDAS_NAMEDAGG_COLUMN_DEFAULT"
+      ],
+      "internal_topology": {
+        "source_id": "data.csv"
+      }
+    },
+    {
+      "cell_id": "macro_dynamic_sort_data",
+      "type": "macro",
+      "stage": 2,
+      "keywords": [
+        "cleaned_data.csv",
+        "sort by age",
+        "save cleaned data"
+      ],
+      "inputs": {
+        "type_name": "cleaned_data.csv",
+        "state": "..."
+      },
+      "outputs": {
+        "type_name": "cleaned_data.csv",
+        "state": "..."
+      },
+      "algorithmic_steps": [
+        "1. sort by age"
+      ],
+      "sub_cells": [
+        "PANDAS_CATEGORICAL_SORT_VALUES",
+        "PANDAS_DATAFRAME_TO_CSV",
+        "PANDAS_DATAFRAME_TO_CSV",
+        "PANDAS_DATAFRAME___IMOD___DEFAULT",
+        "PANDAS_DATAFRAME___IOR___DEFAULT",
+        "PANDAS_DATAFRAME___ITRUEDIV___DEFAULT",
+        "PANDAS_DATAFRAME_COLUMNS_DEFAULT",
+        "PANDAS_DATAFRAME___ISUB___DEFAULT",
+        "PANDAS_DATAFRAME_DTYPES_DEFAULT",
+        "PANDAS_DATAFRAME_IAT_DEFAULT",
+        "PANDAS_DATAFRAME_ATTRS_DEFAULT",
+        "PANDAS_DATAFRAME_LOC_DEFAULT",
+        "PANDAS_NAMEDAGG_COLUMN_DEFAULT"
+      ],
+      "internal_topology": {
+        "source_id": "cleaned_data.csv"
+      }
+    },
+    {
+      "cell_id": "macro_dynamic_to_csv",
+      "type": "macro",
+      "stage": 3,
+      "keywords": [
+        "cleaned_data.csv",
+        "save cleaned data"
+      ],
+      "inputs": {
+        "type_name": "cleaned_data.csv",
+        "state": "..."
+      },
+      "outputs": {
+        "type_name": "cleaned_data.csv",
+        "state": "..."
+      },
+      "algorithmic_steps": [
+        "1. save cleaned data to csv"
+      ],
+      "sub_cells": [
+        "PANDAS_DATAFRAME_TO_CSV",
+        "PANDAS_DATAFRAME_TO_CSV",
+        "PANDAS_DATAFRAME___IMOD___DEFAULT",
+        "PANDAS_DATAFRAME___IOR___DEFAULT",
+        "PANDAS_DATAFRAME___ITRUEDIV___DEFAULT",
+        "PANDAS_DATAFRAME_COLUMNS_DEFAULT",
+        "PANDAS_DATAFRAME___ISUB___DEFAULT",
+        "PANDAS_DATAFRAME_DTYPES_DEFAULT",
+        "PANDAS_DATAFRAME_IAT_DEFAULT",
+        "PANDAS_DATAFRAME_ATTRS_DEFAULT",
+        "PANDAS_DATAFRAME_LOC_DEFAULT",
+        "PANDAS_NAMEDAGG_COLUMN_DEFAULT"
+      ],
+      "internal_topology": {
+        "source_id": "cleaned_data.csv"
+      }
+    },
+    {
+      "cell_id": "micro_synthesized_synthesize_to_grayscale",
+      "type": "micro",
+      "stage": 1,
+      "keywords": [
+        "SYNTH_CONVERT_TO_GRAYSCALE"
+      ],
+      "inputs": {
+        "type_name": "DataFrame",
+        "state": "raw"
+      },
+      "outputs": {
+        "type_name": "DataFrame",
+        "state": "computed"
+      },
+      "domain_implementations": {
+        "Python_Core": {
+          "code": "import math\n{output_var} = math.sqrt(float({input_var}))",
+          "dependencies": [
+            "math"
+          ]
+        }
+      }
+    },
+    {
+      "cell_id": "micro_synthesized_create_array",
+      "type": "micro",
+      "stage": 1,
+      "keywords": [
+        "SYNTH_CREATE_ARRAY"
+      ],
+      "inputs": {
+        "type_name": "any",
+        "state": "raw"
+      },
+      "outputs": {
+        "type_name": "any",
+        "state": "computed"
+      },
+      "domain_implementations": {
+        "Python_Core": {
+          "code": "import math\n{output_var} = math.sqrt(float({input_var}))",
+          "dependencies": [
+            "math"
+          ]
+        }
+      }
+    },
+    {
+      "cell_id": "micro_synthesized_random_number",
+      "type": "micro",
+      "stage": 1,
+      "keywords": [
+        "SYNTH_RANDOM_NUMBER"
+      ],
+      "inputs": {
+        "type_name": "any",
+        "state": "raw"
+      },
+      "outputs": {
+        "type_name": "any",
+        "state": "computed"
+      },
+      "domain_implementations": {
+        "Python_Core": {
+          "code": "import math\n{output_var} = math.sqrt(float({input_var}))",
+          "dependencies": [
+            "math"
+          ]
+        }
+      }
     }
   ]
 }

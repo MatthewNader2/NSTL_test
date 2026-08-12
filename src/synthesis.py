@@ -49,8 +49,8 @@ Schema:
   }}
 }}
 
-CRITICAL INSTRUCTION: The `code` field MUST contain ACTUAL, functional Python code that implements the concept. DO NOT output placeholder text like `<library>` or `...(<input_var>)`. You MUST replace them with real library names (like `import json`) and real logic (like `a + b` or `json.loads(a)`).
-CRITICAL INSTRUCTION 2: You MUST use the exact placeholder strings `{input_var}` and `{output_var}` in your python logic for the main input and output of the cell. The engine will dynamically replace these at runtime. Do NOT use hardcoded variable names for the input or output.
+CRITICAL INSTRUCTION: The `code` field MUST contain ACTUAL, functional Python code that implements the concept. DO NOT output placeholder text like `<library>` or `...({{input_var}})`. You MUST replace them with real library names (like `import json`) and real logic (like `a + b` or `json.loads(a)`).
+CRITICAL INSTRUCTION 2: You MUST use the exact placeholder strings `{{input_var}}` and `{{output_var}}` in your python logic for the main input and output of the cell. The engine will dynamically replace these at runtime. Do NOT use hardcoded variable names for the input or output.
 
 Use the following Official Documentation as your absolute ground truth:"""
         prompt = f"{system_prompt}\n\nTask: {gap_concept}\nLive Context:\n{live_docs}"

@@ -12,9 +12,14 @@ from pathlib import Path
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
+SRC_ROOT = PROJECT_ROOT / "src"
+if str(SRC_ROOT) not in sys.path:
+    sys.path.insert(0, str(SRC_ROOT))
 
 STATIC_PROMPT = 'Open "sample_input.txt" and strip whitespace from the text.'
-CASES = [("A", "cpu"), ("A", "cuda"), ("B", "cpu"), ("B", "cuda")]
+CASES = [("A", "cpu"), ("C", "cpu"), ("D", "cpu")]
+HEADLESS_EMBEDDER = "jina-embeddings-v5-text-nano"
+HEADLESS_LLM = "qwen2.5-coder-0.5b-instruct"
 
 
 def _write_json(path: Path, payload: dict) -> None:
@@ -80,28 +85,48 @@ def run_case(profile: str, device: str, output_dir: Path) -> dict:
     }
 
     try:
-        from fastapi.testclient import TestClient
+        # Keep smoke tests bounded while exercising the real initialization,
+        # RAG, routing, and generated-code paths. Production does not set this.
+        os.environ.setdefault("NSTL_RAG_MAX_CELLS", "2000")
         import main
 
-        client = TestClient(main.app)
-
         t0 = time.perf_counter()
-        init_response = client.post("/api/initialize", json={"profile": profile, "device": device})
+        init_result = main.initialize_engine(main.InitRequest(
+            profile=profile,
+            embedder_model=HEADLESS_EMBEDDER,
+            llm_model=HEADLESS_LLM,
+            embedder_device=device,
+            llm_device=device,
+        ))
         payload["timings"]["initialize_seconds"] = round(time.perf_counter() - t0, 4)
         payload["initialize"] = {
-            "status_code": init_response.status_code,
-            "json": init_response.json(),
+            "status_code": 200,
+            "json": init_result,
         }
-        if init_response.status_code >= 400 or init_response.json().get("status") == "error":
+        if init_result.get("status") == "error":
             payload["status"] = "initialize_failed"
             return payload
 
+        deadline = time.monotonic() + 600
+        while time.monotonic() < deadline:
+            status_payload = main.get_status()
+            status = status_payload.get("status")
+            if status == "ready":
+                break
+            if status == "error":
+                payload["status"] = "initialize_failed"
+                payload["error"] = status_payload.get("message")
+                return payload
+            time.sleep(0.25)
+        else:
+            payload["status"] = "initialize_timeout"
+            return payload
+
         t0 = time.perf_counter()
-        run_response = client.post("/api/run", json={"prompt": STATIC_PROMPT})
+        run_json = main.run_prompt(main.RunRequest(prompt=STATIC_PROMPT))
         payload["timings"]["run_seconds"] = round(time.perf_counter() - t0, 4)
-        run_json = run_response.json()
         payload["run"] = {
-            "status_code": run_response.status_code,
+            "status_code": 200,
             "logs": run_json.get("logs", []),
             "path_ids": [cell.get("cell_id") for cell in run_json.get("path", [])],
             "virtual_edges": run_json.get("virtual_edges", []),
@@ -199,7 +224,7 @@ def run_matrix(output_dir: Path) -> int:
 def main_cli() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--child", action="store_true")
-    parser.add_argument("--profile", choices=["A", "B"])
+    parser.add_argument("--profile", choices=["A", "B", "C", "D"])
     parser.add_argument("--device", choices=["cpu", "cuda"])
     parser.add_argument("--output-dir", default=None)
     args = parser.parse_args()

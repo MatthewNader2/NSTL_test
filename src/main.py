@@ -89,6 +89,7 @@ _engine_ready = None
 # BUG 12 FIX: Lock to protect concurrent mutations of the shared orchestrator
 # (inject_transient_macro modifies loaded_cells and rebuilds topology).
 _orchestrator_lock = threading.Lock()
+_engine_state_lock = threading.Lock()
 
 app = FastAPI()
 app.add_middleware(
@@ -165,9 +166,9 @@ def get_cells():
 
 @app.post("/api/run")
 def run_prompt(req: RunRequest):
-    if global_orchestrator is None:
+    if _engine_ready is not True or global_orchestrator is None or global_rag_engine is None:
         return {
-            "logs": [{"msg": "Engine is currently loading neural model, please wait...", "type": "warn"}],
+            "logs": [{"msg": "Engine is not ready; wait for /api/status to report ready.", "type": "warn"}],
             "path": [],
             "virtual_edges": [],
             "code": "# Engine is loading."
@@ -326,28 +327,15 @@ def run_prompt(req: RunRequest):
 
                 if not current_signature.matches(target_cell.inputs):
                     log_buffer.append({
-                        "msg": (
-                            f"No exact typestate bridge found; applying {target_cell.cell_id} "
-                            f"with latest compatible runtime value."
-                        ),
-                        "type": "warn",
+                        "msg": f"No valid typestate bridge found before {target_cell.cell_id}; aborting the route.",
+                        "type": "error",
                     })
+                    break
 
             final_micro_path.append(target_cell)
             current_signature = target_cell.outputs
 
     # 3. Code Generation
-    if not final_micro_path:
-        prompt_lower = req.prompt.lower()
-        if "add(a, b)" in prompt_lower or ("function" in prompt_lower and "add" in prompt_lower):
-            final_code = "def add(a, b):\n    return a + b\n\nprint(add(5, 7))"
-            log_buffer.append({"msg": "[CUSTOM SYNTHESIS] Generated custom function implementation for add(a, b).", "type": "info"})
-            return {
-                "logs": log_buffer,
-                "path": [],
-                "virtual_edges": [],
-                "code": final_code,
-            }
 
     compiled_blocks = []
     explicit_filename = context.extracted_parameters.get("explicit_filename")
@@ -370,7 +358,13 @@ def run_prompt(req: RunRequest):
     
     if ModelManager.get_instance().can_feedback_check():
         log_buffer.append({"msg": "Phase 4: LLM feedback check running on generated code...", "type": "info"})
-        final_code = ModelManager.get_instance().feedback_check(final_code)
+        reviewed_code = ModelManager.get_instance().feedback_check(final_code)
+        try:
+            compile(reviewed_code, "<generated-code-feedback>", "exec")
+        except SyntaxError as exc:
+            log_buffer.append({"msg": f"Feedback result rejected as invalid Python: {exc.msg}", "type": "warn"})
+        else:
+            final_code = UnificationGate.resolve_imports(reviewed_code, context)
     
     # We rebuild compiled_blocks for the API response
     compiled_blocks = [final_code]
@@ -423,8 +417,10 @@ def initialize_engine(req: InitRequest = InitRequest()):
     /api/status polling handles the wait with zero extra client-side changes."""
     global global_orchestrator, global_rag_engine, engine_device, _engine_ready
 
-    # If already fully initialized, allow re-initialization (hot-swap)
-    _engine_ready = False  # Signal: loading in progress
+    with _engine_state_lock:
+        if _engine_ready is False:
+            return {"status": "initializing", "device": engine_device}
+        _engine_ready = False
 
     def _do_init():
         global global_orchestrator, global_rag_engine, engine_device, _engine_ready
@@ -435,16 +431,20 @@ def initialize_engine(req: InitRequest = InitRequest()):
             ModelManager.get_instance().initialize_profile(req.profile, req.embedder_model, req.llm_model)
             engine_device = HardwareProfiler.get_optimal_device()
             print(f"[*] Loading Lattice Orchestrator from {TREES_DIR}...")
-            global_orchestrator = LatticeOrchestrator(trees_directory=TREES_DIR)
+            new_orchestrator = LatticeOrchestrator(trees_directory=TREES_DIR)
             print(f"[*] Loading Local RAG Engine & FAISS index...")
-            global_rag_engine = LocalRAG(trees_dir=TREES_DIR)
-            _engine_ready = True
+            new_rag_engine = LocalRAG(trees_dir=TREES_DIR, orchestrator=new_orchestrator)
+            with _engine_state_lock:
+                global_orchestrator = new_orchestrator
+                global_rag_engine = new_rag_engine
+                _engine_ready = True
             print(f"  [+] Engine fully ready on {engine_device.upper()}")
             logger.info(f"Engine fully ready on {engine_device.upper()}")
         except Exception as e:
             import traceback
             tb_str = traceback.format_exc()
-            _engine_ready = str(e) if str(e) else "Unknown Error (see console)"
+            with _engine_state_lock:
+                _engine_ready = str(e) if str(e) else "Unknown Error (see console)"
             print(f"[ERROR] Engine initialization failed: {e}\n{tb_str}")
             logger.error(f"Engine initialization failed: {e}\n{tb_str}")
 
@@ -475,44 +475,18 @@ else:
     def index():
         return {"msg": "Frontend not found, serving API only"}
 
-def free_port(port: int):
-    """Attempt to terminate any zombie process holding the port on startup."""
+def ensure_port_available(host: str, port: int):
+    """Fail safely when another process owns the requested listener."""
     try:
-        current_pid = os.getpid()
-        if sys.platform.startswith("win"):
-            cmd = f'netstat -ano | findstr LISTENING | findstr :{port}'
-            res = subprocess.run(cmd, shell=True, capture_output=True, text=True, errors="ignore")
-            pids = set()
-            for line in res.stdout.strip().splitlines():
-                parts = line.strip().split()
-                if len(parts) >= 5 and parts[1].endswith(f":{port}"):
-                    try:
-                        pid = int(parts[-1])
-                        if pid > 0 and pid != current_pid:
-                            pids.add(pid)
-                    except ValueError:
-                        pass
-            for pid in pids:
-                logger.info(f"Port {port} is occupied by zombie PID {pid}. Freeing port...")
-                subprocess.run(f"taskkill /F /PID {pid}", shell=True, capture_output=True)
-                time.sleep(0.5)
-        else:
-            cmd = f"lsof -t -i:{port}"
-            res = subprocess.run(cmd, shell=True, capture_output=True, text=True, errors="ignore")
-            for pid_str in res.stdout.strip().splitlines():
-                try:
-                    pid = int(pid_str)
-                    if pid > 0 and pid != current_pid:
-                        logger.info(f"Port {port} is occupied by zombie PID {pid}. Freeing port...")
-                        os.kill(pid, 9)
-                        time.sleep(0.5)
-                except (ValueError, OSError):
-                    pass
-    except Exception as e:
-        logger.warning(f"Could not free port {port}: {e}")
+        with socket.create_connection((host, port), timeout=0.2):
+            raise RuntimeError(f"Port {host}:{port} is already in use; choose --port instead of terminating its owner.")
+    except ConnectionRefusedError:
+        return
+    except socket.timeout:
+        return
 
 def run_server(host: str = API_HOST, port: int = API_PORT):
-    free_port(port)
+    ensure_port_available(host, port)
     uvicorn.run(app, host=host, port=port, log_level="error")
 
 def _wait_for_server(host: str, port: int, timeout: float = 10.0):
@@ -527,22 +501,216 @@ def _wait_for_server(host: str, port: int, timeout: float = 10.0):
             time.sleep(0.1)
     return False
 
+def _execute_cli_prompt(prompt_text: str):
+    """Helper to run a prompt and print formatted logs, path, and code to terminal."""
+    print(f"\n[QUERY] {prompt_text}")
+    print("-" * 50)
+    result = run_prompt(RunRequest(prompt=prompt_text))
+
+    logs = result.get("logs", [])
+    if logs:
+        print("[LOGS]")
+        for log in logs:
+            msg_type = log.get("type", "info").upper()
+            msg_text = log.get("msg", "")
+            print(f"  [{msg_type}] {msg_text}")
+
+    path = result.get("path", [])
+    if path:
+        path_str = " → ".join(c.get("cell_id", "?") for c in path)
+        print(f"\n[PATH] {path_str}")
+
+    code = result.get("code", "# No code generated")
+    print("\n" + "=" * 50)
+    print("GENERATED CODE:")
+    print("=" * 50)
+    print(code)
+    print("=" * 50 + "\n")
+
+
+def _handle_cli_command(cmd_str: str, current_config: dict):
+    """Processes interactive slash-commands (/profile, /models, /status, /cells, /help)."""
+    parts = cmd_str.strip().split()
+    cmd = parts[0].lower()
+    args = parts[1:]
+
+    if cmd in ("/help", "/h"):
+        print("\n  Available Commands:")
+        print("    /profile <A|B|C|D>    Switch active inference profile")
+        print("    /models               List installed local embedders & LLMs")
+        print("    /model <emb> <llm>    Hot-swap embedder & LLM models")
+        print("    /status               Show engine status and active device")
+        print("    /cells                List loaded semantic cells")
+        print("    /help                 Show this help message\n")
+
+    elif cmd == "/status":
+        prof_name = ModelManager.get_instance().current_profile_name
+        active_prof = ModelManager.get_instance().active_profile
+        emb_name = getattr(active_prof, 'embedder_name', 'N/A')
+        llm_name = getattr(active_prof, 'llm_name', 'N/A')
+        cell_cnt = len(global_orchestrator.loaded_cells) if global_orchestrator else 0
+        print(f"\n  [STATUS] Device: {engine_device.upper()} | Ready: {_engine_ready}")
+        print(f"    Profile:  {prof_name}")
+        print(f"    Embedder: {emb_name}")
+        print(f"    LLM:      {llm_name}")
+        print(f"    Cells:    {cell_cnt}\n")
+
+    elif cmd == "/models":
+        m = get_available_models()
+        print("\n  [INSTALLED MODELS]")
+        print(f"    Embedders: {', '.join(m['embedders']) if m['embedders'] else 'None found'}")
+        print(f"    LLMs:      {', '.join(m['llms']) if m['llms'] else 'None found'}\n")
+
+    elif cmd == "/cells":
+        if not global_orchestrator:
+            print("  [CELLS] Engine not initialized.")
+            return
+        print(f"\n  [CELLS] {len(global_orchestrator.loaded_cells)} loaded cells:")
+        for cell_id, cell in global_orchestrator.loaded_cells.items():
+            cell_type = getattr(cell, 'type', 'micro')
+            print(f"    - {cell_id} ({cell_type})")
+        print()
+
+    elif cmd == "/profile":
+        if not args:
+            print("  Usage: /profile <A|B|C|D>")
+            return
+        new_prof = args[0].upper()
+        if new_prof not in ("A", "B", "C", "D"):
+            print(f"  Invalid profile '{new_prof}'. Choose from A, B, C, D.")
+            return
+        print(f"  [*] Hot-swapping profile to {new_prof}...")
+        current_config["profile"] = new_prof
+        initialize_engine(InitRequest(
+            profile=new_prof,
+            embedder_model=current_config["embedder"],
+            llm_model=current_config["llm"]
+        ))
+        while _engine_ready is not True:
+            if isinstance(_engine_ready, str):
+                print(f"  [ERROR] Hot-swap failed: {_engine_ready}")
+                return
+            time.sleep(0.1)
+        print(f"  [+] Profile updated to {new_prof}!")
+
+    elif cmd in ("/model", "/modelswap"):
+        if len(args) < 2:
+            print("  Usage: /model <embedder_name> <llm_name>")
+            return
+        new_emb, new_llm = args[0], args[1]
+        print(f"  [*] Hot-swapping models to EMB={new_emb}, LLM={new_llm}...")
+        current_config["embedder"] = new_emb
+        current_config["llm"] = new_llm
+        initialize_engine(InitRequest(
+            profile=current_config["profile"],
+            embedder_model=new_emb,
+            llm_model=new_llm
+        ))
+        while _engine_ready is not True:
+            if isinstance(_engine_ready, str):
+                print(f"  [ERROR] Hot-swap failed: {_engine_ready}")
+                return
+            time.sleep(0.1)
+        print(f"  [+] Models updated!")
+
+    else:
+        print(f"  Unknown command '{cmd}'. Type /help for available commands.")
+
+
+def run_interactive_cli(default_profile: str, default_embedder: str, default_llm: str, initial_prompt: str = None):
+    """Interactive REPL mode: keeps model weights allocated in memory across multiple prompts."""
+    config = {
+        "profile": default_profile,
+        "embedder": default_embedder,
+        "llm": default_llm,
+    }
+
+    print("\n" + "=" * 64)
+    print(" ⬡ NSTL CYBER-LATTICE INTERACTIVE CLI REPL")
+    print("=" * 64)
+    print(f" [*] Bootstrapping Engine (Profile={config['profile']}, Embedder={config['embedder'] or 'auto'}, LLM={config['llm'] or 'auto'})...")
+
+    initialize_engine(InitRequest(
+        profile=config["profile"],
+        embedder_model=config["embedder"],
+        llm_model=config["llm"]
+    ))
+
+    while _engine_ready is not True:
+        if isinstance(_engine_ready, str):
+            print(f" [!] Initialization failed: {_engine_ready}")
+            return
+        time.sleep(0.1)
+
+    cells_cnt = len(global_orchestrator.loaded_cells) if global_orchestrator else 0
+    print(f" [+] Engine Ready! Hardware: {engine_device.upper()} | Loaded Cells: {cells_cnt}")
+    print("-" * 64)
+    print(" Commands:")
+    print("   /profile <A|B|C|D>    Switch inference profile")
+    print("   /models               List installed local embedders & LLMs")
+    print("   /model <emb> <llm>    Hot-swap embedder and LLM models")
+    print("   /status               Show engine status & active hardware")
+    print("   /cells                List loaded semantic cell IDs")
+    print("   /help                 Show help menu")
+    print("   exit / quit           Exit REPL")
+    print("=" * 64 + "\n")
+
+    if initial_prompt:
+        _execute_cli_prompt(initial_prompt)
+
+    # Enable line-editing & command history in terminal on Unix/Linux if available
+    try:
+        import readline  # noqa: F401
+    except ImportError:
+        pass
+
+    while True:
+        try:
+            user_input = input("nstl> ").strip()
+            if not user_input:
+                continue
+
+            if user_input.lower() in ("exit", "quit", ":q"):
+                print("Exiting NSTL CLI. Goodbye!")
+                break
+
+            if user_input.startswith("/"):
+                _handle_cli_command(user_input, config)
+                continue
+
+            _execute_cli_prompt(user_input)
+
+        except (KeyboardInterrupt, EOFError):
+            print("\nExiting NSTL CLI. Goodbye!")
+            break
+
+
 if __name__ == "__main__":
     import argparse
     parser = argparse.ArgumentParser(description="NSTL Engine")
-    parser.add_argument("--profile", type=str, default="A", help="Benchmark profile (A, B, C, D)")
+    parser.add_argument("--profile", type=str, default="C", help="Inference profile (A, B, C, D)")
     parser.add_argument("--embedder", type=str, default="", help="Embedder model name")
     parser.add_argument("--llm", type=str, default="", help="LLM model name")
     parser.add_argument("--prompt", type=str, default=None, help="Direct prompt to execute via CLI")
+    parser.add_argument("--cli", "-i", "--interactive", action="store_true", help="Start interactive CLI REPL mode (model weights stay allocated)")
     parser.add_argument("--port", type=int, default=API_PORT, help="Port for API server")
     args = parser.parse_args()
 
     port = args.port
-    free_port(port)
 
-    # CLI direct execution mode
+    # 1. Interactive REPL Mode (--cli or -i)
+    if args.cli:
+        run_interactive_cli(
+            default_profile=args.profile,
+            default_embedder=args.embedder,
+            default_llm=args.llm,
+            initial_prompt=args.prompt
+        )
+        sys.exit(0)
+
+    # 2. Single-prompt direct CLI mode (--prompt without --cli)
     if args.prompt:
-        print(f"[*] CLI Execution Mode (Profile={args.profile}, Embedder={args.embedder or 'auto'}, LLM={args.llm or 'auto'})")
+        print(f"[*] Single-Prompt CLI Mode (Profile={args.profile}, Embedder={args.embedder or 'auto'}, LLM={args.llm or 'auto'})")
         initialize_engine(InitRequest(
             profile=args.profile,
             embedder_model=args.embedder,
@@ -553,16 +721,12 @@ if __name__ == "__main__":
                 print(f"[ERROR] Initialization failed: {_engine_ready}")
                 sys.exit(1)
             time.sleep(0.1)
-        
-        result = run_prompt(RunRequest(prompt=args.prompt))
-        print("\n" + "="*50)
-        print("GENERATED CODE:")
-        print("="*50)
-        print(result.get("code", "# No code generated"))
-        print("="*50 + "\n")
+
+        _execute_cli_prompt(args.prompt)
         sys.exit(0)
 
-    # Server mode: launch Uvicorn
+    # 3. Server Mode (GUI + REST API)
+    ensure_port_available(API_HOST, port)
     server_thread = threading.Thread(target=run_server, args=(API_HOST, port), daemon=True)
     server_thread.start()
 

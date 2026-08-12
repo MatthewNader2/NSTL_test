@@ -109,6 +109,7 @@ class BenchmarkProfile_A(InferenceProfile):
             embedder_name = available[0]
             
         self.embedder_name = embedder_name
+        self.llm_name = None
         
         model_path = os.path.join(MODELS_DIR, "embeddings", embedder_name)
         if not os.path.exists(model_path):
@@ -148,7 +149,13 @@ class BenchmarkProfile_A(InferenceProfile):
 
     @property
     def embedding_dimension(self) -> int:
-        return 768
+        # Dynamically read from the loaded model to support any embedder (B-13 fix)
+        if self.model is not None:
+            try:
+                return self.model.get_sentence_embedding_dimension()
+            except Exception:
+                pass
+        return 768  # Fallback only
 
 
 class BenchmarkProfile_B(InferenceProfile):
@@ -167,11 +174,14 @@ class BenchmarkProfile_B(InferenceProfile):
                 raise ValueError("Profile B requires an llm_name and no local LLMs found")
             llm_name = available_llms[0]
             
+        # Profile B embeds through its selected LLM. Include that model in the
+        # RAG cache identity so vectors are never reused across GGUFs.
         self.embedder_name = llm_name
+        self.llm_name = llm_name
             
         model_dir = os.path.join(MODELS_DIR, "llms", llm_name)
         # Find the .gguf file inside the directory
-        gguf_files = [f for f in os.listdir(model_dir) if f.endswith('.gguf')] if os.path.exists(model_dir) else []
+        gguf_files = sorted(f for f in os.listdir(model_dir) if f.lower().endswith('.gguf')) if os.path.exists(model_dir) else []
         if not gguf_files:
             raise FileNotFoundError(f"No .gguf model found in {model_dir}")
         model_path = os.path.join(model_dir, gguf_files[0])
@@ -361,6 +371,7 @@ class BenchmarkProfile_C(InferenceProfile):
             llm_name = available_llms[0]
              
         self.embedder_name = embedder_name
+        self.llm_name = llm_name
              
         # Load Embedder
         emb_path = os.path.join(MODELS_DIR, "embeddings", embedder_name)
@@ -370,10 +381,13 @@ class BenchmarkProfile_C(InferenceProfile):
         emb_device = HardwareProfiler.get_embedder_device()
         if emb_device == "mps": emb_device = "cpu"
         self.embedder = SentenceTransformer(emb_path, device=emb_device, trust_remote_code=True, model_kwargs={'low_cpu_mem_usage': False})
+        detected_dimension = self.embedder.get_sentence_embedding_dimension()
+        if detected_dimension:
+            self._dim = int(detected_dimension)
         
         # Load LLM
         llm_dir = os.path.join(MODELS_DIR, "llms", llm_name)
-        gguf_files = [f for f in os.listdir(llm_dir) if f.endswith('.gguf')] if os.path.exists(llm_dir) else []
+        gguf_files = sorted(f for f in os.listdir(llm_dir) if f.lower().endswith('.gguf')) if os.path.exists(llm_dir) else []
         if not gguf_files:
             raise FileNotFoundError(f"No .gguf model found in {llm_dir}")
         llm_path = os.path.join(llm_dir, gguf_files[0])
@@ -476,17 +490,6 @@ class BenchmarkProfile_C(InferenceProfile):
             elif "```" in corrected:
                 corrected = corrected.split("```")[1].split("```")[0].strip()
             tree = ast.parse(corrected)
-            
-            # Dead-Variable Lineage Repair: Find assigned variables that are never read
-            assigns = [node.targets[0].id for node in ast.walk(tree) if isinstance(node, ast.Assign) and isinstance(node.targets[0], ast.Name)]
-            reads = {node.id for node in ast.walk(tree) if isinstance(node, ast.Name) and isinstance(node.ctx, ast.Load)}
-            dead = [v for v in assigns if v not in reads]
-            
-            if dead and (".to_csv(" in corrected or ".export(" in corrected):
-                # Update sink call to consume the last dead variable
-                last_dead = dead[-1]
-                corrected = re.sub(r"\b[a-zA-Z_][a-zA-Z0-9_]*(\.to_csv\(|\.export\()", f"{last_dead}\\1", corrected)
-                
             return corrected if corrected.strip() else generated_code
         except Exception:
             return generated_code
@@ -572,7 +575,8 @@ class ModelManager:
             logging.info("Active profile has no text generator; using deterministic planner fallback.")
             return ""
         t0 = time.time()
-        text = self.active_profile.generate_text(prompt, max_tokens, schema)
+        # B-4 fix: forward system_prompt so the LLM actually uses its instructions
+        text = self.active_profile.generate_text(prompt, max_tokens, schema, system_prompt=system_prompt)
         t1 = time.time()
         if self.benchmarking_enabled:
             bench_logger.info(f"[Generation] Latency: {t1-t0:.4f}s")

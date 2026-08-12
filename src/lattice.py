@@ -21,9 +21,6 @@ class AlgebraicSignature:
         if self.type_name != "any" and other.type_name != "any":
             if self.type_name != other.type_name:
                 return False
-        if self.state != "any" and other.state != "any":
-            if self.state != other.state:
-                return False
         return True
 
 class Cell(ABC):
@@ -74,6 +71,8 @@ class MicroCell(Cell):
         self.intent_expansion = intent_expansion or []
         self.matched_heuristics = []
 
+    _db_lock = threading.Lock()
+
     @classmethod
     def _get_cached_conn(cls, db_path: str):
         """Returns a cached SQLite connection for the given path."""
@@ -89,13 +88,15 @@ class MicroCell(Cell):
         if not self._db_path or not os.path.exists(self._db_path):
             return ""
         try:
-            conn = self._get_cached_conn(self._db_path)
-            cursor = conn.cursor()
-            cursor.execute("SELECT code FROM nodes WHERE cell_id = ?", (self.cell_id,))
-            row = cursor.fetchone()
-            if row:
-                self._code_template = row[0]
-                return self._code_template
+            with self._db_lock:
+                conn = self._get_cached_conn(self._db_path)
+                cursor = conn.cursor()
+                cursor.execute("SELECT code FROM nodes WHERE cell_id = ?", (self.cell_id,))
+                row = cursor.fetchone()
+                cursor.close()
+                if row:
+                    self._code_template = row[0]
+                    return self._code_template
         except Exception as e:
             logger.error(f"[SQLite] Error fetching code template for {self.cell_id}: {e}")
         return ""
@@ -195,20 +196,33 @@ class LatticeOrchestrator:
                     
                 in_sig = AlgebraicSignature(type_name=in_type, state=in_state)
                 out_sig = AlgebraicSignature(type_name=out_type, state=out_state)
-                
-                # Assume all from SQLite are micro cells currently
-                cell = MicroCell(
-                    cell_id=cell_id,
-                    stage=stage,
-                    keywords=set(keywords),
-                    inputs=in_sig,
-                    outputs=out_sig,
-                    domain_name=domain_name,
-                    node_type=node_type,
-                    db_path=self.db_path
-                )
+
+                # B-5 fix: respect node_type; build MacroCell for macro nodes
+                # instead of blindly casting everything to MicroCell.
+                if node_type == "macro":
+                    cell = MacroCell(
+                        cell_id=cell_id,
+                        stage=stage,
+                        keywords=set(keywords),
+                        inputs=in_sig,
+                        outputs=out_sig,
+                        domain_name=domain_name,
+                        node_type=node_type,
+                        db_path=self.db_path
+                    )
+                else:
+                    cell = MicroCell(
+                        cell_id=cell_id,
+                        stage=stage,
+                        keywords=set(keywords),
+                        inputs=in_sig,
+                        outputs=out_sig,
+                        domain_name=domain_name,
+                        node_type=node_type,
+                        db_path=self.db_path
+                    )
                 self.loaded_cells[cell.cell_id] = cell
-                logger.debug(f"Loaded cell {cell.cell_id} from SQLite.")
+                logger.debug(f"Loaded {node_type} cell {cell.cell_id} from SQLite.")
                 
             conn.close()
             logger.info(f"[LATTICE] Successfully loaded {len(self.loaded_cells)} nodes from SQLite.")
@@ -216,28 +230,15 @@ class LatticeOrchestrator:
             logger.error(f"[LATTICE] Error loading from SQLite: {e}")
 
     def inject_transient_macro(self, macro_dict: dict) -> Cell:
-        """Injects LLM-generated Macro-Nodes dynamically.
-        Uses incremental O(N) topology update instead of full O(N²) rebuild."""
+        """Inject an already-validated transient cell into the in-memory topology.
+
+        Persistence belongs to the caller that validated the cell. This prevents
+        planner macros and synthesized nodes from being persisted twice.
+        """
         cell = self._parse_cell(macro_dict)
         self.loaded_cells[cell.cell_id] = cell
         self._add_cell_to_topology(cell)
         
-        # Persist the synthesized node dynamically to disk (thread-safe)
-        synth_file = os.path.join(self.trees_directory, "micro", "synthesized_nodes.json")
-        with _synth_file_lock:
-            try:
-                if os.path.exists(synth_file):
-                    with open(synth_file, "r", encoding="utf-8") as f:
-                        data = json.load(f)
-                else:
-                    data = {"domain_name": "Synthesized_Domain", "cells": []}
-                    
-                data.setdefault("cells", []).append(macro_dict)
-                with open(synth_file, "w", encoding="utf-8") as f:
-                    json.dump(data, f, indent=2)
-            except Exception as e:
-                logger.warning(f"[LATTICE WARNING] Failed to persist synthesized node: {e}")
-            
         return cell
 
     def _get_all_cells_recursively(self, cells: List[Cell]) -> List[Cell]:

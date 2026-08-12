@@ -6,7 +6,7 @@ import time
 from tqdm import tqdm
 from llama_cpp import Llama
 
-def run_llm_harvester(skeleton_file, output_file, limit=None):
+def run_llm_harvester(skeleton_file, output_file, model_path, limit=None):
     with open(skeleton_file, 'r', encoding='utf-8') as f:
         skeletons = json.load(f)
         
@@ -16,7 +16,7 @@ def run_llm_harvester(skeleton_file, output_file, limit=None):
     print("[*] Loading 26B MoE Model (Gemma4) into VRAM...")
     t0 = time.time()
     llm = Llama(
-        model_path=r"C:\Users\matth\.ollama\models\blobs\sha256-7121486771cbfe218851513210c40b35dbdee93ab1ef43fe36283c883980f0df",
+        model_path=model_path,
         n_gpu_layers=-1,
         n_ctx=4096,
         verbose=True
@@ -106,7 +106,10 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("skeleton", help="Input skeleton JSON file")
     parser.add_argument("output", help="Output python file for AST compilation")
+    parser.add_argument("--model-path", default=os.environ.get("NSTL_GEMMA_MODEL"), help="Path to the GGUF model (or set NSTL_GEMMA_MODEL)")
     parser.add_argument("--limit", type=int, help="Limit number of functions to process for testing")
     args = parser.parse_args()
     
-    run_llm_harvester(args.skeleton, args.output, args.limit)
+    if not args.model_path:
+        parser.error("--model-path or NSTL_GEMMA_MODEL is required")
+    run_llm_harvester(args.skeleton, args.output, args.model_path, args.limit)

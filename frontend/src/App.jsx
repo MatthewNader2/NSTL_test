@@ -20,8 +20,10 @@ export default function App() {
   });
 
   const [selectedProfile, setSelectedProfile] = useState("C"); // Default to C (Dedicated Embedder + LLM)
-  const [embedderModel, setEmbedderModel] = useState("jina-embeddings-v5-text-nano");
-  const [llmModel, setLlmModel] = useState("qwen2.5-coder-1.5b-instruct");
+  // B-2 fix: default to empty string — the first /api/models call fills these
+  // with whatever is actually installed instead of hardcoded names.
+  const [embedderModel, setEmbedderModel] = useState("");
+  const [llmModel, setLlmModel] = useState("");
   const [embedderDevice, setEmbedderDevice] = useState("auto");
   const [llmDevice, setLlmDevice] = useState("auto");
   const [treesStorage] = useState("ram");
@@ -37,8 +39,20 @@ export default function App() {
 
   // Boot sequence
   useEffect(() => {
-    let pollInterval;
     logSystemEvent("Application initialized, polling engine status...", "UI");
+
+    // B-2 + G-1 fix: helper that always keeps availableModels up to date
+    const refreshModels = async () => {
+      try {
+        const models = await fetchAvailableModels();
+        setAvailableModels(models);
+        // B-2 fix: if model names are still empty (first boot), pick the first available
+        setEmbedderModel((cur) => (cur || (models.embedders[0] ?? "")));
+        setLlmModel((cur) => (cur || (models.llms[0] ?? "")));
+      } catch (err) {
+        console.error("Failed to fetch models", err);
+      }
+    };
 
     const monitorStatus = async () => {
       try {
@@ -51,25 +65,30 @@ export default function App() {
 
           if (data.status === "ready") {
             clearInterval(pollInterval);
+            // G-1 fix: always refresh models on ready so pickers are never empty
+            await refreshModels();
             setTimeout(() => {
               setLoading(false);
               logSystemEvent("Dashboard live.", "STATE");
             }, 500);
           } else if (data.status === "uninitialized") {
             clearInterval(pollInterval);
-            // Fetch models list before triggering init
-            try {
-              const models = await fetchAvailableModels();
-              setAvailableModels(models);
-            } catch (err) {
-              console.error("Failed to fetch models", err);
-            }
+            await refreshModels();
             logSystemEvent("Auto-initializing engine...", "API");
             setBootStatus((p) => ({ ...p, message: "Bootstrapping neural models...", status: "loading" }));
-            await initializeEngine("B", embedderModel, llmModel, "auto", "auto", "ram");
+            // B-1 fix: use selectedProfile state variable, NOT a hardcoded "B"
+            await initializeEngine(selectedProfile, embedderModel, llmModel, "auto", "auto", "ram");
             logSystemEvent("Initialization request sent, waiting for backend...", "API");
             // Resume polling to detect when ready
             pollInterval = setInterval(monitorStatus, 850);
+          } else if (data.status === "loading" || data.status === "initializing") {
+            // G-1 fix: refresh models if available list is still empty (e.g. page reloaded mid-init)
+            setAvailableModels((prev) => {
+              if (prev.embedders.length === 0 && prev.llms.length === 0) {
+                refreshModels();
+              }
+              return prev;
+            });
           } else if (data.status === "error") {
             // Hard stop — do not retry automatically to avoid infinite loop
             clearInterval(pollInterval);
@@ -80,7 +99,7 @@ export default function App() {
               message: `Init failed: ${data.message || "unknown error"}. Click Retry to try again.`,
             }));
           }
-          // "loading" / "initializing" states: keep polling, nothing extra to do
+          // other states: keep polling
         }
       } catch (err) {
         console.debug("Engine not reachable yet:", err.message);
@@ -88,8 +107,13 @@ export default function App() {
       }
     };
 
-    monitorStatus();
-    pollInterval = setInterval(monitorStatus, 850);
+    // B-3 fix: assign pollInterval BEFORE calling monitorStatus() so the
+    // interval reference exists when the very first async callback resolves.
+    // Previously, the first call could hit "uninitialized", set a new interval
+    // from inside the callback, and then the line below would set ANOTHER one —
+    // creating two concurrent polling loops and duplicate /api/initialize calls.
+    let pollInterval = setInterval(monitorStatus, 850);
+    monitorStatus(); // fire immediately too
     return () => clearInterval(pollInterval);
   }, []);
 

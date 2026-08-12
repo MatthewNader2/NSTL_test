@@ -1,0 +1,15 @@
+beautifulsoup4
+faiss-cpu
+fastapi
+llama-cpp-python
+numpy
+psutil
+pydantic
+pywebview
+requests
+sentence-transformers
+timm
+torch
+tqdm
+transformers
+uvicorn

@@ -1,9 +1,11 @@
-import { useEffect, useState } from "react";
-import { Cpu, Server, Shield, Activity } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { Cpu, Activity } from "lucide-react";
 
 export default function LoadingScreen({ status }) {
   const [dots, setDots] = useState("");
   const [logs, setLogs] = useState([]);
+  // G-2 fix: ref to the scrollable log container so we can auto-scroll to bottom
+  const logBodyRef = useRef(null);
 
   useEffect(() => {
     const int = setInterval(() => {
@@ -54,16 +56,25 @@ export default function LoadingScreen({ status }) {
     }
   }, [status]);
 
-  // Calculate progress percentage
+  // G-2 fix: scroll to the bottom of the log container whenever a new entry arrives
+  useEffect(() => {
+    if (logBodyRef.current) {
+      logBodyRef.current.scrollTop = logBodyRef.current.scrollHeight;
+    }
+  }, [logs]);
+
+  // G-3 fix: correct progress ordering so the bar never moves backwards.
+  // initializing (55%) was between loading_trees (45%) and loading_model (65%),
+  // but semantically "initializing" happens AFTER models are loaded.
   const getProgress = () => {
     if (!status) return 5;
     switch (status.status) {
       case "starting": return 15;
       case "profiling": return 30;
       case "loading_trees": return 45;
-      case "loading_model": return 65;
-      case "initializing": return 55;
-      case "loading": return 80;
+      case "loading_model": return 60;
+      case "loading": return 70;
+      case "initializing": return 85;
       case "ready": return 100;
       case "error": return 0;
       default: return 10;
@@ -136,7 +147,7 @@ export default function LoadingScreen({ status }) {
             <span>DIAGNOSTIC TERMINAL LOGS</span>
             <span className="blink-dot" />
           </div>
-          <div className="logs-body">
+          <div className="logs-body" ref={logBodyRef}>
             {logs.map((log, index) => (
               <div key={index} className="log-line">
                 <span className="log-arrow">&gt;</span> {log}

@@ -88,7 +88,13 @@ export default function DevMenu({ embedderDevice, setEmbedderDevice, llmDevice, 
             </div>
             <button
               style={{ padding: "8px 16px", background: "var(--cyan-dim)", border: "1px solid var(--cyan-border)", borderRadius: "var(--r-sm)", color: "var(--cyan)", fontSize: "0.78rem", fontWeight: 600, cursor: "pointer", flexShrink: 0 }}
-              onClick={() => { setApiBase(apiInputUrl); window.location.reload(); }}
+              onClick={() => {
+                // G-8 fix: warn before reload so the user doesn't lose unsaved work
+                if (window.confirm("Changing the API endpoint will reload the page. Any unsaved work will be lost. Continue?")) {
+                  setApiBase(apiInputUrl);
+                  window.location.reload();
+                }
+              }}
             >
               Reconnect
             </button>

@@ -22,18 +22,21 @@ class ExecutionContext:
         self.extracted_parameters = {}
         # 1. Extract all filenames with extensions
         file_matches = re.findall(
-            r"\b([\w\-_.]+\.(?:csv|json|xlsx|parquet|feather|html|txt))\b",
-            user_prompt.lower(),
+            r"\b([\w\-_.]+\.(?:csv|json|xlsx|parquet|feather|html|txt|jpg|jpeg|png|bmp|tiff|webp|pdf))\b",
+            user_prompt,
+            flags=re.IGNORECASE,
         )
         if file_matches:
             self.extracted_parameters["input_filename"] = file_matches[0]
-            self.extracted_parameters["output_filename"] = file_matches[-1]
+            if len(file_matches) > 1:
+                self.extracted_parameters["output_filename"] = file_matches[-1]
             self.extracted_parameters["explicit_filename"] = file_matches[0]
         else:
             quoted_items = re.findall(r'["\']([^"\']+)["\']', user_prompt)
             if quoted_items:
                 self.extracted_parameters["input_filename"] = quoted_items[0]
-                self.extracted_parameters["output_filename"] = quoted_items[-1]
+                if len(quoted_items) > 1:
+                    self.extracted_parameters["output_filename"] = quoted_items[-1]
                 self.extracted_parameters["explicit_filename"] = quoted_items[0]
 
         # 3. Heuristics for arguments
@@ -73,7 +76,7 @@ class ExecutionContext:
     def find_compatible_variable(self, expected_signature: AlgebraicSignature) -> Optional[str]:
         # Priority: Return the most recently declared variable of matching type_name in scope for linear pipeline binding
         for var_name, current_signature in reversed(list(self.registry.items())):
-            if current_signature.type_name == "any" or expected_signature.type_name == "any" or current_signature.type_name == expected_signature.type_name:
+            if current_signature.matches(expected_signature):
                 return var_name
         return None
 
@@ -155,7 +158,21 @@ class UnificationGate:
             compiled_snippet = compiled_snippet.replace("{input_var}", matching_input_var)
             compiled_snippet = compiled_snippet.replace("{output_var}", output_var_name)
 
-            out_fname = context.extracted_parameters.get("output_filename") or context.extracted_parameters.get("explicit_filename")
+            in_fname = context.extracted_parameters.get("input_filename")
+            out_fname = context.extracted_parameters.get("output_filename")
+            if in_fname and "cv2.imread(" in compiled_snippet:
+                compiled_snippet = re.sub(
+                    r"cv2\.imread\([a-zA-Z0-9_]+\)",
+                    rf"cv2.imread({in_fname!r})",
+                    compiled_snippet
+                )
+            if out_fname and "cv2.imwrite(" in compiled_snippet:
+                compiled_snippet = re.sub(
+                    r"cv2\.imwrite\(([a-zA-Z0-9_]+)\)",
+                    rf"cv2.imwrite({out_fname!r}, \1)",
+                    compiled_snippet
+                )
+
             if out_fname and ("export.csv" in compiled_snippet or "to_csv" in compiled_snippet):
                 compiled_snippet = re.sub(
                     r"(['\"])export\.(csv|json|html|feather|parquet)\1",
@@ -179,7 +196,9 @@ class UnificationGate:
                 if "ascending" in h or h.startswith("'") or h.startswith('"'):
                     if h not in cell_specific_params:
                         cell_specific_params.append(h)
-        elif "to_csv" in cell_id_lower or "export" in cell_id_lower or "read_csv" in cell_id_lower or "read" in cell_id_lower:
+        elif "cvtcolor" in cell_id_lower or "grayscale" in cell_id_lower or "color" in cell_id_lower:
+            cell_specific_params.append("cv2.COLOR_BGR2GRAY")
+        elif "to_csv" in cell_id_lower or "export" in cell_id_lower or "read_csv" in cell_id_lower or "imread" in cell_id_lower or "imwrite" in cell_id_lower:
             # Read/Write nodes handle parameters via literal templating above
             cell_specific_params = []
         else:
@@ -193,7 +212,7 @@ class UnificationGate:
 
         # AST Lineage Repair: Ensure dead transformed variables are properly consumed by downstream sink calls
         if ".to_csv" in compiled_snippet or "to_csv" in cell_id_lower:
-            compiled_snippet = UnificationGate.fix_dead_variables_in_snippet(context, compiled_snippet)
+            compiled_snippet = UnificationGate.fix_dead_variables_in_snippet(context, compiled_snippet, current_output_var=output_var_name)
 
         logger.info(
             f"[UNIFICATION SUCCESS] Linked {matching_input_var} -> {cell_id} -> {output_var_name}"
@@ -201,19 +220,24 @@ class UnificationGate:
         return compiled_snippet
 
     @staticmethod
-    def fix_dead_variables_in_snippet(context: ExecutionContext, snippet: str) -> str:
+    def fix_dead_variables_in_snippet(context: ExecutionContext, snippet: str, current_output_var: str = None) -> str:
         """Fixes dead transformed variables by rebinding sink calls to the latest variable in context."""
         if not context.registry:
             return snippet
-        # Filter out the output variable of the sink call itself
-        all_vars = [v for v in context.registry.keys() if "to_csv" not in v and "export" not in v]
-        if not all_vars:
+        # Exclude current step's output variable and bootstrap input source
+        valid_vars = [v for v in context.registry.keys() if v != current_output_var and v != "input_source"]
+        if not valid_vars:
             return snippet
-        latest_var = all_vars[-1]
         
-        # Replace the input dataframe before .to_csv( with latest_var
-        import re
-        snippet = re.sub(r"(?<=\s|=)[a-zA-Z_][a-zA-Z0-9_]*(\.to_csv\()", f"{latest_var}\\1", snippet)
+        # If the variable before .to_csv is already a valid variable in context, preserve it!
+        match = re.search(r"\b([a-zA-Z_][a-zA-Z0-9_]*)\.to_csv\(", snippet)
+        if match:
+            caller_var = match.group(1)
+            if caller_var in valid_vars:
+                return snippet
+
+        latest_var = valid_vars[-1]
+        snippet = re.sub(r"\b[a-zA-Z_][a-zA-Z0-9_]*(\.to_csv\()", rf"{latest_var}\1", snippet)
         return snippet
 
     @staticmethod
@@ -277,6 +301,7 @@ class UnificationGate:
         # crash cannot corrupt the cache (which previously lost ALL synthesized nodes).
         # Use tempfile.mkstemp for unique names to prevent concurrent thread collisions.
         import tempfile
+        tmp_path = None  # B-7 fix: initialise before try so cleanup block can safely reference it
         try:
             fd, tmp_path = tempfile.mkstemp(dir=cache_dir, suffix=".tmp")
             with os.fdopen(fd, "w", encoding="utf-8") as f:
@@ -286,9 +311,9 @@ class UnificationGate:
             logger.error(f"[UNIFICATION CACHE ERROR] Failed to save to {cache_path}: {e}")
             # Clean up orphaned temp file if it exists
             try:
-                if os.path.exists(tmp_path):
+                if tmp_path is not None and os.path.exists(tmp_path):
                     os.remove(tmp_path)
-            except (OSError, UnboundLocalError):
+            except OSError:
                 pass
             return False
 
@@ -352,9 +377,27 @@ class UnificationGate:
         # But this is a generic resolver. Let's fix the `input_source` issue first.
         required_imports = loaded_names - stored_names - builtin_names - context_vars
 
+        # Q-7 fix: alias map — resolve common short names to their correct import statements.
+        # Without this the AST sees `pd` as unbound and emits `import pd` which fails.
+        _ALIAS_MAP = {
+            'pd': 'import pandas as pd',
+            'np': 'import numpy as np',
+            'plt': 'import matplotlib.pyplot as plt',
+            'sns': 'import seaborn as sns',
+            'tf': 'import tensorflow as tf',
+            'torch': 'import torch',
+            'cv2': 'import cv2',
+            'sk': 'import sklearn as sk',
+            'sp': 'import scipy as sp',
+            'nx': 'import networkx as nx',
+        }
+
         imports_to_add = []
-        for mod in sorted(list(required_imports)):
-            imports_to_add.append(f"import {mod}")
+        for mod in sorted(required_imports):
+            if mod in _ALIAS_MAP:
+                imports_to_add.append(_ALIAS_MAP[mod])
+            else:
+                imports_to_add.append(f"import {mod}")
 
         if imports_to_add:
             return "\n".join(imports_to_add) + "\n\n" + code_text

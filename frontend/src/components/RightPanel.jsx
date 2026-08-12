@@ -31,11 +31,14 @@ export default function RightPanel({ open, isMobile, mobileActive, onToggle }) {
   const handleDownload = useCallback(() => {
     const element = document.createElement("a");
     const file = new Blob([generatedCode], { type: "text/plain" });
-    element.href = URL.createObjectURL(file);
+    const objectUrl = URL.createObjectURL(file);
+    element.href = objectUrl;
     element.download = "generated_pipeline.py";
     document.body.appendChild(element);
     element.click();
     document.body.removeChild(element);
+    // G-7 fix: revoke the blob URL after the click to avoid memory leaks
+    URL.revokeObjectURL(objectUrl);
   }, [generatedCode]);
 
   const tabs = [
@@ -199,26 +202,43 @@ export default function RightPanel({ open, isMobile, mobileActive, onToggle }) {
                 Stage {selectedNode.stage} Execution Node
               </p>
 
-              <div
-                style={{
-                  background: "rgba(0,0,0,0.3)",
-                  padding: "12px",
-                  borderRadius: "8px",
-                  marginBottom: "16px",
-                  fontSize: "0.85rem",
-                }}
-              >
-                <div style={{ marginBottom: "8px" }}>
-                  <strong>Type Constraint:</strong>{" "}
-                  {selectedNode.inputs.type_name} →{" "}
-                  {selectedNode.outputs.type_name}
+              {/* G-6 fix: guard against synthesised nodes with missing inputs/outputs */}
+              {selectedNode.inputs && selectedNode.outputs ? (
+                <div
+                  style={{
+                    background: "rgba(0,0,0,0.3)",
+                    padding: "12px",
+                    borderRadius: "8px",
+                    marginBottom: "16px",
+                    fontSize: "0.85rem",
+                  }}
+                >
+                  <div style={{ marginBottom: "8px" }}>
+                    <strong>Type Constraint:</strong>{" "}
+                    {selectedNode.inputs.type_name} →{" "}
+                    {selectedNode.outputs.type_name}
+                  </div>
+                  <div>
+                    <strong>State Transition:</strong> [
+                    {selectedNode.inputs.state}] → [
+                    {selectedNode.outputs.state}]
+                  </div>
                 </div>
-                <div>
-                  <strong>State Transition:</strong> [
-                  {selectedNode.inputs.state}] → [
-                  {selectedNode.outputs.state}]
+              ) : (
+                <div
+                  style={{
+                    background: "rgba(255,180,0,0.06)",
+                    border: "1px solid rgba(255,180,0,0.2)",
+                    padding: "10px 14px",
+                    borderRadius: "8px",
+                    marginBottom: "16px",
+                    fontSize: "0.82rem",
+                    color: "#e5c07b",
+                  }}
+                >
+                  ⚠ Type signature not available for this node.
                 </div>
-              </div>
+              )}
 
               <div style={{ display: "flex", flexWrap: "wrap", gap: "6px" }}>
                 {selectedNode.keywords?.map((k) => (
@@ -324,7 +344,14 @@ export default function RightPanel({ open, isMobile, mobileActive, onToggle }) {
                     else if (log.type === "warn" || log.type === "error") { color = "#e06c75"; borderLeftColor = "#e06c75"; }
                     else if (log.type === "debug") { color = "var(--text-secondary)"; borderLeftColor = "var(--text-secondary)"; }
                     else if (log.type === "info") { color = "#61afef"; borderLeftColor = "#61afef"; }
-                    
+
+                    // G-5 fix: show the timestamp stored on the log entry.
+                    // The backend /api/run doesn't send a `time` field so we use
+                    // the `time` property stamped in store.js when the log was received.
+                    const timeLabel = log.time
+                      ? new Date(log.time).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" })
+                      : "";
+
                     return (
                       <div
                         key={i}
@@ -338,6 +365,11 @@ export default function RightPanel({ open, isMobile, mobileActive, onToggle }) {
                           lineHeight: "1.3"
                         }}
                       >
+                        {timeLabel && (
+                          <span style={{ opacity: 0.45, fontSize: "0.62rem", marginRight: "5px" }}>
+                            {timeLabel}
+                          </span>
+                        )}
                         <span style={{ opacity: 0.6, fontSize: "0.65rem", marginRight: "6px" }}>
                           [{log.type?.toUpperCase()}]
                         </span>

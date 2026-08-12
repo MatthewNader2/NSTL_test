@@ -26,6 +26,14 @@ from lattice import AlgebraicSignature
 
 logger = get_logger('router')
 
+# H-5 fix: define stop-words once at module level so the scoring inner loop
+# doesn't rebuild the set on every FAISS result iteration.
+_STOP_WORDS = frozenset({
+    'a', 'an', 'the', 'and', 'or', 'to', 'with', 'any', 'it', 'is',
+    'in', 'of', 'for', 'on', 'by', 'function', 'write', 'python', 'code',
+    'script', 'create', 'def', 'that', 'returns', 'result',
+})
+
 
 class HardwareProfiler:
     """
@@ -398,9 +406,9 @@ class LatticeRouter:
                     candidates, goal_embedding, goal, current_type
                 )
                 if best_node:
-                    print(f"[DEBUG] best_score={best_score} for node {best_node.cell_id}")
+                    logger.debug(f"[ROUTER] best_score={best_score} for node {best_node.cell_id}")
                 else:
-                    print(f"[DEBUG] best_score={best_score} (no node)")
+                    logger.debug(f"[ROUTER] best_score={best_score} (no node)")
 
                 if best_score < MIN_CONFIDENCE:
                     logger.warning(
@@ -453,8 +461,10 @@ class LatticeRouter:
                     logger.warning(
                         f"  [!] TYPE MISMATCH: Current '{current_type}' cannot flow into '{target_type}'. Searching for bridge..."
                     )
-                    mcts = MCTSEngine(self.orchestrator)
-                    bridge_path = mcts.search(current_type, target_type, iterations=1000)
+                    # B-8 fix: reuse the per-router cached MCTSEngine; avoids O(N) rebuild per bridge
+                    if not hasattr(self, '_mcts_cache'):
+                        self._mcts_cache = MCTSEngine(self.orchestrator)
+                    bridge_path = self._mcts_cache.search(current_type, target_type, iterations=1000)
                     
                     if not bridge_path:
                         from inference import ModelManager
@@ -574,44 +584,46 @@ class LatticeRouter:
                     kws = {kw.lower() for kw in getattr(cell, 'keywords', [])}
                     id_parts = {p for p in re.split(r"[_\W]+", cell.cell_id.lower()) if p}
                     
-                    stop_words = {'a', 'an', 'the', 'and', 'or', 'to', 'with', 'any', 'it', 'is', 'in', 'of', 'for', 'on', 'by', 'function', 'write', 'python', 'code', 'script', 'create', 'def', 'that', 'returns', 'result'}
-                    filtered_tokens = {pt for pt in prompt_tokens if pt not in stop_words and len(pt) > 2}
-                    
-                    overlap = 0.0
-                    for pt in filtered_tokens:
-                        if any(pt in kw or (len(kw) >= 3 and kw in pt) for kw in kws):
-                            overlap += 0.2
-                        if any(pt in p or (len(p) >= 3 and p in pt) for p in id_parts):
-                            overlap += 0.2
-                            
-                    # Semantic intent boosts
-                    intent_boost = 0.0
-                    cid_lower = cell.cell_id.lower()
-                    if any(w in prompt_tokens for w in ['save', 'write', 'export', 'csv']) and ('to_csv' in cid_lower or 'csv' in cid_lower):
-                        intent_boost += 1.5
-                    if any(w in prompt_tokens for w in ['read', 'load', 'open']) and ('read_csv' in cid_lower or 'read' in cid_lower):
-                        intent_boost += 1.5
-                    if any(w in prompt_tokens for w in ['drop', 'missing', 'null', 'nan']) and ('dropna' in cid_lower):
-                        intent_boost += 1.5
-                    if any(w in prompt_tokens for w in ['sort', 'order', 'descending', 'ascending']):
-                        if 'sort_values' in cid_lower:
-                            intent_boost += 2.0
-                        elif 'sort_index' in cid_lower:
-                            intent_boost -= 1.5
-                        elif 'sort' in cid_lower:
-                            intent_boost += 1.0
+                    filtered_tokens = {pt for pt in prompt_tokens if pt not in _STOP_WORDS and len(pt) > 2}
 
-                    # Penalize static library nodes for function creation requests to favor custom function generation
+                    # Module alias expansion (e.g. opencv <-> cv2, pandas <-> pd)
+                    MODULE_ALIASES = {
+                        "opencv": "cv2", "cv2": "opencv",
+                        "pandas": "pd", "pd": "pandas",
+                        "numpy": "np", "np": "numpy",
+                        "matplotlib": "plt", "plt": "matplotlib",
+                        "seaborn": "sns", "sns": "seaborn",
+                        "scikit": "sklearn", "sklearn": "scikit",
+                        "tensorflow": "tf", "tf": "tensorflow"
+                    }
+                    expanded_tokens = set(filtered_tokens)
+                    for pt in filtered_tokens:
+                        if pt in MODULE_ALIASES:
+                            expanded_tokens.add(MODULE_ALIASES[pt])
+
+                    overlap = 0.0
+                    for pt in expanded_tokens:
+                        if any(pt in kw or (len(kw) >= 3 and kw in pt) for kw in kws):
+                            overlap += 0.3
+                        if any(pt in p or (len(p) >= 3 and p in pt) for p in id_parts):
+                            overlap += 0.3
+                            
+                    # Generic domain-agnostic keyword overlap boost
+                    intent_boost = 0.0
                     if any(w in prompt_tokens for w in ['function', 'def']):
                         intent_boost -= 2.0
 
-                    # USER REQUEST: Mitigate the 'any' filetype issue by penalizing it heavily
-                    penalty = 0.0
-                    if getattr(cell, 'inputs', None) and getattr(cell.inputs, 'type_name', '') == 'any':
-                        penalty += 0.3
-                    if getattr(cell, 'outputs', None) and getattr(cell.outputs, 'type_name', '') == 'any':
-                        penalty += 0.3
-                    
+                    # Penalize inspector/boolean checker methods over core transformation functions
+                    if "haveimage" in cid_lower or "have_image" in cid_lower or cid_lower.startswith("is_") or cid_lower.startswith("has_"):
+                        penalty += 0.8
+
+                    # Boost primary action methods matching prompt verb/noun tokens
+                    if any(act in cid_lower for act in ["imread", "imwrite", "cvtcolor", "read_csv", "to_csv", "dropna", "sort_values", "predict", "fit", "transform"]):
+                        for pt in filtered_tokens:
+                            if pt in cid_lower or any(p in cid_lower for p in id_parts):
+                                intent_boost += 0.4
+                                break
+
                     # Penalize nodes that require coercion bridges or input type mismatch
                     if current_type and getattr(cell, 'inputs', None) and getattr(cell.inputs, 'type_name', '') != 'any':
                         if getattr(cell.inputs, 'type_name', '') != current_type:

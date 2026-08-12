@@ -6,6 +6,8 @@ const PROFILES = [
   { value: "A", label: "Profile A", desc: "Embedding Only" },
   { value: "B", label: "Profile B", desc: "LLM (Embedding + Text)" },
   { value: "C", label: "Profile C", desc: "Embedder + LLM (Hybrid)" },
+  // Q-4 fix: Profile D was implemented in inference.py but was missing from the UI picker
+  { value: "D", label: "Profile D", desc: "Embedder + LLM (No Synthesis)" },
 ];
 
 function ModelPickerPopover({ models, selected, onSelect, accentClass, onClose }) {
@@ -83,7 +85,8 @@ export default function AppHeader({ embedderModel, llmModel, onModelSwap, availa
       {/* Logo */}
       <div className="header-logo">
         <span className="header-logo-mark">⬡ NSTL</span>
-        <span className="header-logo-ver">v2.1</span>
+        {/* H-7 fix: read version from build-time env var so it stays in sync with package.json */}
+        <span className="header-logo-ver">{import.meta.env.VITE_APP_VERSION ?? "v2.1"}</span>
       </div>
 
       {/* Status indicators */}
@@ -135,8 +138,8 @@ export default function AppHeader({ embedderModel, llmModel, onModelSwap, availa
 
         <div style={{ width: "1px", height: "16px", background: "var(--border)" }} />
 
-        {/* Embedder */}
-        {(selectedProfile === "A" || selectedProfile === "C") && (
+        {/* Embedder — shown for profiles with dedicated embedder (A, C, D) */}
+        {(selectedProfile === "A" || selectedProfile === "C" || selectedProfile === "D") && (
           <div style={{ position: "relative" }}>
             <button
               className="model-badge cyan"
@@ -159,12 +162,13 @@ export default function AppHeader({ embedderModel, llmModel, onModelSwap, availa
           </div>
         )}
 
-        {(selectedProfile === "A" || selectedProfile === "C") && (selectedProfile === "B" || selectedProfile === "C") && (
+        {/* B-9 fix: divider should only show when BOTH pickers are visible, which is only Profile C (and D) */}
+        {(selectedProfile === "C" || selectedProfile === "D") && (
           <div style={{ width: "1px", height: "16px", background: "var(--border)" }} />
         )}
 
-        {/* LLM */}
-        {(selectedProfile === "B" || selectedProfile === "C") && (
+        {/* LLM — shown for profiles with an LLM (B, C, D) */}
+        {(selectedProfile === "B" || selectedProfile === "C" || selectedProfile === "D") && (
           <div style={{ position: "relative" }}>
             <button
               className="model-badge purple"

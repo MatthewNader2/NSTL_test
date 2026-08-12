@@ -6,8 +6,9 @@ import time
 import requests
 from tqdm import tqdm
 
-def query_ollama(prompt, model="gemma4:26b"):
-    url = "http://localhost:11434/api/generate"
+def query_ollama(prompt, model=None):
+    url = os.environ.get("OLLAMA_URL", "http://localhost:11434/api/generate")
+    model = model or os.environ.get("OLLAMA_MODEL", "gemma4:26b")
     payload = {
         "model": model,
         "prompt": prompt,
@@ -20,7 +21,7 @@ def query_ollama(prompt, model="gemma4:26b"):
     }
     
     try:
-        response = requests.post(url, json=payload)
+        response = requests.post(url, json=payload, timeout=120)
         response.raise_for_status()
         return response.json().get("response", "")
     except Exception as e:

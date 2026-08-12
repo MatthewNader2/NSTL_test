@@ -15,8 +15,14 @@ export const useStore = create((set) => ({
   
   // Execution logs
   logs: [],
-  setLogs: (logs) => set({ logs }),
-  addLog: (log) => set((state) => ({ logs: [...state.logs.slice(-200), log] })),
+  // G-5 fix: stamp a time field on each log at insertion so RightPanel can display real timestamps.
+  setLogs: (logs) => {
+    const now = new Date().toISOString();
+    set({ logs: logs.map((l) => ({ ...l, time: l.time ?? now })) });
+  },
+  addLog: (log) => set((state) => ({
+    logs: [...state.logs.slice(-200), { ...log, time: log.time ?? new Date().toISOString() }]
+  })),
   
   selectedNode: null,
   setSelectedNode: (node) => {
