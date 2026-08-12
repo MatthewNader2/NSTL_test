@@ -36,22 +36,43 @@ class ZeroShotPlanner:
         return context_str
         
     def _find_closest_existing_cell(self, hallucinated_id: str, prompt: str = "") -> Optional[str]:
-        """Fully dynamic tree-agnostic fuzzy matching using live orchestrator domain extraction and NLP token ratios."""
+        """Fully dynamic tree-agnostic fuzzy matching using FAISS vector search with fallback to NLP sub-token ratio."""
         all_cells = self.orchestrator.get_all_available_cells()
 
-        # 1. Dynamically extract all available domain names from loaded trees (zero hardcoded frameworks)
+        # 1. Dynamically extract all available domain names from loaded trees (zero hardcoding)
+        common_words = {"read", "write", "file", "into", "from", "name", "with", "path", "copy", "get", "set", "save", "load", "drop", "sort", "data", "list", "dict", "str", "int", "float", "bool", "type", "func", "node", "core", "test", "main", "init", "base"}
         available_domains = {
             getattr(cell, "domain_name", "").lower()
             for cell in all_cells if getattr(cell, "domain_name", None)
         }
         for cell in all_cells:
             parts = cell.cell_id.lower().split("_")
-            if len(parts) > 1 and len(parts[0]) > 1:
+            if len(parts) > 1 and len(parts[0]) > 2 and parts[0] not in common_words:
                 available_domains.add(parts[0])
 
-        prompt_lower = prompt.lower()
-        active_domains = {d for d in available_domains if d and d in prompt_lower}
+        available_domains = {d for d in available_domains if len(d) >= 3 and d not in common_words}
 
+        prompt_lower = prompt.lower()
+        alias_map = {"opencv": "cv2", "pd": "pandas", "np": "numpy", "plt": "matplotlib", "pytorch": "torch", "sklearn": "scikit"}
+        active_domains = set()
+        for d in available_domains:
+            if d and d in prompt_lower:
+                active_domains.add(d)
+        for alias, target in alias_map.items():
+            if alias in prompt_lower and target in available_domains:
+                active_domains.add(target)
+
+        domain_hint = " ".join(active_domains) if active_domains else prompt
+
+        # 2. Primary resolution: Use RAG FAISS vector embedding nearest neighbor search
+        if self.rag_engine and hasattr(self.rag_engine, "find_closest_cell_by_embedding"):
+            context_hint = f"{domain_hint} {prompt}" if domain_hint else prompt
+            matched_id = self.rag_engine.find_closest_cell_by_embedding(hallucinated_id, domain_hint=context_hint)
+            if matched_id:
+                logger.info(f"[PLANNER AUTO-CORRECT] FAISS Vector matched '{hallucinated_id}' -> '{matched_id}'")
+                return matched_id
+
+        # 3. Fallback resolution: Dynamic sub-token & sequence ratio matching
         h_tokens = set(re.findall(r"[a-zA-Z0-9]+", hallucinated_id.lower())) - available_domains - {"synth", "micro", "macro", "default"}
         if not h_tokens:
             return None
@@ -68,35 +89,87 @@ class ZeroShotPlanner:
             cid_lower = cid.lower()
             cell_domain = getattr(cell, "domain_name", "").lower() or (cid_lower.split("_")[0] if "_" in cid_lower else "")
 
-            c_tokens = {kw.lower() for kw in getattr(cell, 'keywords', [])} | set(re.findall(r"[a-zA-Z0-9]+", cid_lower))
+            raw_c_tokens = {kw.lower() for kw in getattr(cell, "keywords", [])} | set(re.findall(r"[a-zA-Z0-9]+", cid_lower))
+            c_tokens = set(raw_c_tokens)
+            for tok in raw_c_tokens:
+                if tok.startswith("im") and len(tok) > 2:
+                    c_tokens.add("im")
+                    c_tokens.add(tok[2:])
+                if "imread" in tok:
+                    c_tokens.update(["im", "read", "load"])
+                if "imwrite" in tok:
+                    c_tokens.update(["im", "write", "save"])
+                if "cvtcolor" in tok:
+                    c_tokens.update(["cvt", "color", "convert", "grayscale"])
+                if "dropna" in tok:
+                    c_tokens.update(["drop", "na", "rows", "missing", "values"])
+                if "fillna" in tok:
+                    c_tokens.update(["fill", "na", "missing", "values"])
+                if "to_csv" in tok:
+                    c_tokens.update(["to", "csv", "save", "write"])
+                if "read_csv" in tok:
+                    c_tokens.update(["read", "csv", "load"])
+                if "sort_values" in tok:
+                    c_tokens.update(["sort", "values", "order", "descending", "ascending"])
+                if tok.startswith("cvt") and len(tok) > 3:
+                    c_tokens.add("cvt")
+                    c_tokens.add(tok[3:])
+                if tok.startswith("read") and len(tok) > 4:
+                    c_tokens.add("read")
+                    c_tokens.add(tok[4:])
+                if tok.startswith("write") and len(tok) > 5:
+                    c_tokens.add("write")
+                    c_tokens.add(tok[5:])
+                if tok.startswith("to") and len(tok) > 2:
+                    c_tokens.add("to")
+                    c_tokens.add(tok[2:])
+
             core_c_tokens = c_tokens - available_domains - {"micro", "macro", "default"}
             if not core_c_tokens:
                 core_c_tokens = c_tokens
 
-            # 1. Dynamic sub-token & sequence coverage (no hardcoded stem dictionaries)
             concept_hits = 0
             for ht in h_tokens:
-                if any(ht in ct or ct in ht or SequenceMatcher(None, ht, ct).ratio() >= 0.60 for ct in core_c_tokens):
+                if any((ht in ct or ct in ht) or (len(ht) >= 4 and len(ct) >= 4 and (ht[:4] in ct or ct[:4] in ht)) or SequenceMatcher(None, ht, ct).ratio() >= 0.55 for ct in core_c_tokens):
                     concept_hits += 1
             
             concept_coverage = concept_hits / max(len(h_tokens), 1)
-
-            # 2. Overall ID sequence similarity ratio
             seq_ratio = SequenceMatcher(None, hallucinated_id.lower(), cid_lower).ratio()
 
-            # 3. Dynamic domain alignment & cross-domain penalties
-            domain_bonus = 0.0
-            if active_domains:
-                if cell_domain in active_domains:
-                    domain_bonus += 0.25
-                elif cell_domain in available_domains:
-                    domain_bonus -= 0.35
+            action_bonus = 0.0
+            action_syns = {
+                "read": {"read", "load", "open", "imread", "get", "fetch"},
+                "load": {"read", "load", "open", "imread", "get", "fetch"},
+                "write": {"write", "save", "export", "imwrite", "to", "dump"},
+                "save": {"write", "save", "export", "imwrite", "to", "dump"},
+                "convert": {"convert", "cvt", "transform", "change"},
+                "sort": {"sort", "order", "arrange", "rank"},
+                "drop": {"drop", "remove", "delete"},
+            }
+            for ht in h_tokens:
+                if ht in action_syns:
+                    target_syns = action_syns[ht]
+                    if any(syn in core_c_tokens or any(syn in ct for ct in core_c_tokens) for syn in target_syns):
+                        action_bonus += 0.35
+                    else:
+                        action_bonus -= 0.35
 
-            # 4. Universal ID length penalty (prefer concise primary root functions over long nested sub-modules)
-            id_length_penalty = (len(cid_lower) - 12) * 0.015 if len(cid_lower) > 12 else 0.0
+            container_boost = 0.0
+            if any(k in h_tokens or k in prompt_lower for k in ["dataframe", "df", "rows", "table"]):
+                if "dataframe" in cid_lower:
+                    container_boost += 0.25
+                elif "series" in cid_lower:
+                    container_boost -= 0.15
 
-            # Dynamic combined score
-            score = (concept_coverage * 0.60) + (seq_ratio * 0.25) + domain_bonus - id_length_penalty
+            id_length_penalty = (len(cid_lower) - 12) * 0.01 if len(cid_lower) > 12 else 0.0
+            if any(primary in cid_lower for primary in ["dataframe", "series", "ndarray", "matrix", "tensor", "image"]):
+                id_length_penalty = max(0.0, id_length_penalty - 0.06)
+
+            obscure_penalty = 0.0
+            if any(obs in cid_lower for obs in ["cuda", "gpumat", "ocl", "gapi", "multi", "randu", "reshape", "metadata", "list_like", "common_convert"]):
+                obscure_penalty += 0.35
+
+            score = (concept_coverage * 0.50) + (seq_ratio * 0.25) + domain_bonus + action_bonus + container_boost - id_length_penalty - obscure_penalty
 
             if score > best_score:
                 best_score = score

@@ -111,16 +111,40 @@ class UnificationGate:
                         p_tokens = set(re.findall(r"[a-zA-Z0-9]+", p_str)) - {"true", "false", "none"}
                         func_tokens = set(re.findall(r"[a-zA-Z0-9]+", func_name)) if func_name else set()
                         
-                        # Generic AST parameter relevance validation via difflib sub-token similarity
+                        # Generic AST parameter relevance validation via sub-token similarity & semantic roles
                         if p_tokens and func_tokens:
                             from difflib import SequenceMatcher
                             has_match = False
-                            for pt in p_tokens:
-                                if len(pt) <= 1:
-                                    continue
-                                if any(pt in ft or ft in pt or SequenceMatcher(None, pt, ft).ratio() >= 0.55 for ft in func_tokens):
+
+                            # 1. Filename string relevance for I/O functions with input/output intent validation
+                            if any(ext in p_str for ext in [".csv", ".jpg", ".jpeg", ".png", ".json", ".parquet", ".html", ".txt", ".pdf"]):
+                                is_read_func = any(rk in func_name for rk in ["read", "load", "imread", "open"])
+                                is_write_func = any(wk in func_name for wk in ["write", "save", "export", "to", "imwrite"])
+                                is_output_name = any(ok in p_str for ok in ["out", "clean", "result", "dest", "new", "target", "export", "save"])
+                                is_input_name = any(ik in p_str for ik in ["in", "src", "source", "input", "raw", "orig"])
+
+                                if is_read_func and not is_output_name:
                                     has_match = True
-                                    break
+                                elif is_write_func and not is_input_name:
+                                    has_match = True
+
+                            # 2. Keyword argument key relevance for sorting/filtering/converting
+                            if "=" in p_str:
+                                kw_key = p_str.split("=")[0].strip().lower()
+                                if kw_key in ["ascending", "by", "axis", "inplace"] and any(sk in func_name for sk in ["sort", "order", "rank"]):
+                                    has_match = True
+                                elif kw_key in ["code", "color", "cmap", "mode"] and any(ck in func_name for ck in ["cvt", "convert", "transform"]):
+                                    has_match = True
+
+                            # 3. Sub-token diff ratio matching
+                            if not has_match:
+                                for pt in p_tokens:
+                                    if len(pt) <= 1:
+                                        continue
+                                    if any(pt in ft or ft in pt or SequenceMatcher(None, pt, ft).ratio() >= 0.55 for ft in func_tokens):
+                                        has_match = True
+                                        break
+
                             if not has_match:
                                 continue
 
