@@ -167,7 +167,8 @@ def run_eval():
             proc.wait(timeout=5)
         except subprocess.TimeoutExpired:
             proc.kill()
-        time.sleep(2)
+        subprocess.run("pkill -9 -f 'python3 src/main.py' || true", shell=True, capture_output=True)
+        time.sleep(3)
 
     with open('evaluation_results.json', 'w') as f:
         json.dump(results, f, indent=4)

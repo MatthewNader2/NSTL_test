@@ -378,19 +378,49 @@ class BenchmarkProfile_C(InferenceProfile):
             raise FileNotFoundError(f"No .gguf model found in {llm_dir}")
         llm_path = os.path.join(llm_dir, gguf_files[0])
         
+        # Memory cleanup before initializing heavy LLM
+        import gc
+        import torch
+        gc.collect()
+        if torch.cuda.is_available():
+            torch.cuda.empty_cache()
+
         llm_device = HardwareProfiler.get_llm_device()
         gpu_layers = -1 if llm_device == "cuda" else 0
-        # Cap threads at physical core count to prevent hyperthreading contention
         n_threads = max(1, (os.cpu_count() or 4) // 2)
-        self.llm = Llama(
-            model_path=llm_path,
-            n_ctx=4096,
-            mmap=True,
-            verbose=False,
-            n_gpu_layers=gpu_layers,
-            embedding=False,
-            n_threads=n_threads,
-        )
+
+        # Attempt full GPU offloading; fallback to reduced context / partial offloading if VRAM is tight
+        llm_obj = None
+        attempt_params = [
+            {"n_gpu_layers": gpu_layers, "n_ctx": 4096},
+            {"n_gpu_layers": gpu_layers, "n_ctx": 2048},
+            {"n_gpu_layers": 20, "n_ctx": 2048},
+            {"n_gpu_layers": 0, "n_ctx": 2048},
+        ]
+        
+        last_err = None
+        for params in attempt_params:
+            try:
+                gc.collect()
+                if torch.cuda.is_available():
+                    torch.cuda.empty_cache()
+                llm_obj = Llama(
+                    model_path=llm_path,
+                    n_ctx=params["n_ctx"],
+                    mmap=True,
+                    verbose=False,
+                    n_gpu_layers=params["n_gpu_layers"],
+                    embedding=False,
+                    n_threads=n_threads,
+                )
+                break
+            except Exception as e:
+                last_err = e
+                logging.warning(f"Llama load failed with params {params}: {e}. Retrying with fallback...")
+
+        if llm_obj is None:
+            raise RuntimeError(f"Failed to initialize Llama model from {llm_path}: {last_err}")
+        self.llm = llm_obj
 
     def get_embedding(self, text: str) -> List[float]:
         try:
@@ -492,35 +522,14 @@ class ModelManager:
                 new_profile = BenchmarkProfile_A()
                 new_profile.load_models(embedder_name, llm_name)
             elif profile_type == "B":
-                try:
-                    new_profile = BenchmarkProfile_B()
-                    new_profile.load_models(embedder_name, llm_name)
-                except (ModuleNotFoundError, ImportError, Exception) as err:
-                    print(f"  [!] Profile B initialization failed ({err}). Falling back to Profile A...")
-                    logging.warning(f"Profile B initialization failed ({err}). Falling back to Profile A...")
-                    profile_type = "A"
-                    new_profile = BenchmarkProfile_A()
-                    new_profile.load_models(embedder_name, llm_name)
+                new_profile = BenchmarkProfile_B()
+                new_profile.load_models(embedder_name, llm_name)
             elif profile_type == "C":
-                try:
-                    new_profile = BenchmarkProfile_C()
-                    new_profile.load_models(embedder_name, llm_name)
-                except (ModuleNotFoundError, ImportError, Exception) as err:
-                    print(f"  [!] Profile C initialization failed ({err}). Falling back to Profile A...")
-                    logging.warning(f"Profile C initialization failed ({err}). Falling back to Profile A...")
-                    profile_type = "A"
-                    new_profile = BenchmarkProfile_A()
-                    new_profile.load_models(embedder_name, llm_name)
+                new_profile = BenchmarkProfile_C()
+                new_profile.load_models(embedder_name, llm_name)
             elif profile_type == "D":
-                try:
-                    new_profile = BenchmarkProfile_D()
-                    new_profile.load_models(embedder_name, llm_name)
-                except (ModuleNotFoundError, ImportError, Exception) as err:
-                    print(f"  [!] Profile D initialization failed ({err}). Falling back to Profile A...")
-                    logging.warning(f"Profile D initialization failed ({err}). Falling back to Profile A...")
-                    profile_type = "A"
-                    new_profile = BenchmarkProfile_A()
-                    new_profile.load_models(embedder_name, llm_name)
+                new_profile = BenchmarkProfile_D()
+                new_profile.load_models(embedder_name, llm_name)
             else:
                 raise ValueError(f"Unknown profile: {profile_type}")
             

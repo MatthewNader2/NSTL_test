@@ -593,8 +593,13 @@ class LatticeRouter:
                         intent_boost += 1.5
                     if any(w in prompt_tokens for w in ['drop', 'missing', 'null', 'nan']) and ('dropna' in cid_lower):
                         intent_boost += 1.5
-                    if any(w in prompt_tokens for w in ['sort', 'order', 'descending', 'ascending']) and ('sort' in cid_lower):
-                        intent_boost += 1.5
+                    if any(w in prompt_tokens for w in ['sort', 'order', 'descending', 'ascending']):
+                        if 'sort_values' in cid_lower:
+                            intent_boost += 2.0
+                        elif 'sort_index' in cid_lower:
+                            intent_boost -= 1.5
+                        elif 'sort' in cid_lower:
+                            intent_boost += 1.0
 
                     # Penalize static library nodes for function creation requests to favor custom function generation
                     if any(w in prompt_tokens for w in ['function', 'def']):

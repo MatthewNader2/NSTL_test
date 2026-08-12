@@ -1,0 +1,282 @@
+[
+    {
+        "profile": "A",
+        "embedder": "jina-embeddings-v5-text-nano",
+        "llm": "auto",
+        "task_id": "pandas_csv_clean",
+        "passed": true,
+        "error": "",
+        "stdout": "",
+        "code": "import pandas\n\ninput_source = 'data.csv'\nread_csv = pandas.read_csv(input_source)\ndataframe_dropna = read_csv.dropna()\ndataframe_sort_values = dataframe_dropna.sort_values('age', ascending=False)\ndataframe_to_csv = dataframe_sort_values.to_csv('cleaned_data.csv', index=False)"
+    },
+    {
+        "profile": "A",
+        "embedder": "jina-embeddings-v5-text-nano",
+        "llm": "auto",
+        "task_id": "math_add_function",
+        "passed": true,
+        "error": "",
+        "stdout": "12\n",
+        "code": "def add(a, b):\n    return a + b\n\nprint(add(5, 7))"
+    },
+    {
+        "profile": "C",
+        "embedder": "jina-embeddings-v5-text-nano",
+        "llm": "qwen2.5-coder-0.5b-instruct",
+        "task_id": "pandas_csv_clean",
+        "passed": true,
+        "error": "",
+        "stdout": "",
+        "code": "import pandas as pd\n\ninput_source = 'data.csv'\nread_csv = pd.read_csv(input_source)\ndataframe_dropna = read_csv.dropna()\ndataframe_sort_values = dataframe_dropna.sort_values('age', ascending=False)\ndataframe_to_csv = dataframe_sort_values.to_csv('cleaned_data.csv', index=False)"
+    },
+    {
+        "profile": "C",
+        "embedder": "jina-embeddings-v5-text-nano",
+        "llm": "qwen2.5-coder-0.5b-instruct",
+        "task_id": "math_add_function",
+        "passed": true,
+        "error": "",
+        "stdout": "12\n",
+        "code": "def add(a, b):\n    return a + b\n\nprint(add(5, 7))"
+    },
+    {
+        "profile": "D",
+        "embedder": "jina-embeddings-v5-text-nano",
+        "llm": "qwen2.5-coder-0.5b-instruct",
+        "task_id": "pandas_csv_clean",
+        "passed": true,
+        "error": "",
+        "stdout": "",
+        "code": "import pandas as pd\n\ninput_source = 'data.csv'\nread_csv = pd.read_csv(input_source)\ndataframe_dropna = read_csv.dropna()\ndataframe_sort_values = dataframe_dropna.sort_values('age', ascending=False)\ndataframe_to_csv = dataframe_sort_values.to_csv('cleaned_data.csv', index=False)"
+    },
+    {
+        "profile": "D",
+        "embedder": "jina-embeddings-v5-text-nano",
+        "llm": "qwen2.5-coder-0.5b-instruct",
+        "task_id": "math_add_function",
+        "passed": true,
+        "error": "",
+        "stdout": "12\n",
+        "code": "def add(a, b):\n    return a + b\n\nprint(add(5, 7))"
+    },
+    {
+        "profile": "C",
+        "embedder": "jina-embeddings-v5-text-nano",
+        "llm": "qwen2.5-coder-1.5b-instruct",
+        "task_id": "pandas_csv_clean",
+        "passed": false,
+        "error": "Validation failed: Ages are not sorted in descending order",
+        "stdout": "",
+        "code": "import pandas\n\ninput_file = 'data.csv'\ndata = pandas.read_csv(input_file)\ncleaned_data = data.dropna()\nsorted_data = cleaned_data.sort_values('age', ascending=False)\ncleaned_data.to_csv('cleaned_data.csv', index=False)"
+    },
+    {
+        "profile": "C",
+        "embedder": "jina-embeddings-v5-text-nano",
+        "llm": "qwen2.5-coder-1.5b-instruct",
+        "task_id": "math_add_function",
+        "passed": false,
+        "error": "Execution failed with return code 1:\nTraceback (most recent call last):\n  File \"/media/matthew/New Volume/grad_test/nstl_prototype/temp_eval_run.py\", line 2, in <module>\n    core_computation_eval_ndframe_replace = input_source.replace()\n                                            ^^^^^^^^^^^^^^^^^^^^\nAttributeError: 'NoneType' object has no attribute 'replace'\n",
+        "stdout": "",
+        "code": "input_source = None\ncore_computation_eval_ndframe_replace = input_source.replace()\n_config_config_deprecatedoption_rkey_default = core_computation_eval_ndframe_replace.rkey"
+    },
+    {
+        "profile": "D",
+        "embedder": "jina-embeddings-v5-text-nano",
+        "llm": "qwen2.5-coder-1.5b-instruct",
+        "task_id": "pandas_csv_clean",
+        "passed": false,
+        "error": "Validation failed: Ages are not sorted in descending order",
+        "stdout": "",
+        "code": "import pandas\n\ninput_file = 'data.csv'\ndata = pandas.read_csv(input_file)\ncleaned_data = data.dropna()\nsorted_data = cleaned_data.sort_values('age', ascending=False)\ncleaned_data.to_csv('cleaned_data.csv', index=False)"
+    },
+    {
+        "profile": "D",
+        "embedder": "jina-embeddings-v5-text-nano",
+        "llm": "qwen2.5-coder-1.5b-instruct",
+        "task_id": "math_add_function",
+        "passed": true,
+        "error": "",
+        "stdout": "12\n",
+        "code": "def add(a, b):\n    return a + b\n\nprint(add(5, 7))"
+    },
+    {
+        "profile": "C",
+        "embedder": "jina-embeddings-v5-text-nano",
+        "llm": "Qwen2.5-Coder-7B-Instruct-GGUF",
+        "task_id": "pandas_csv_clean",
+        "passed": true,
+        "error": "",
+        "stdout": "",
+        "code": "import pandas\n\ninput_source = 'data.csv'\nread_csv = pandas.read_csv(input_source)\ndataframe_dropna = read_csv.dropna()\ndataframe_sort_values = dataframe_dropna.sort_values('age', ascending=False)\ndataframe_to_csv = dataframe_sort_values.to_csv('cleaned_data.csv', index=False)"
+    },
+    {
+        "profile": "C",
+        "embedder": "jina-embeddings-v5-text-nano",
+        "llm": "Qwen2.5-Coder-7B-Instruct-GGUF",
+        "task_id": "math_add_function",
+        "passed": true,
+        "error": "",
+        "stdout": "12\n",
+        "code": "def add(a, b):\n    return a + b\n\nprint(add(5, 7))"
+    },
+    {
+        "profile": "D",
+        "embedder": "jina-embeddings-v5-text-nano",
+        "llm": "Qwen2.5-Coder-7B-Instruct-GGUF",
+        "task_id": "pandas_csv_clean",
+        "passed": true,
+        "error": "",
+        "stdout": "",
+        "code": "import pandas\n\ninput_source = 'data.csv'\nread_csv = pandas.read_csv(input_source)\ndataframe_dropna = read_csv.dropna()\ndataframe_sort_values = dataframe_dropna.sort_values('age', ascending=False)\ndataframe_to_csv = dataframe_sort_values.to_csv('cleaned_data.csv', index=False)"
+    },
+    {
+        "profile": "D",
+        "embedder": "jina-embeddings-v5-text-nano",
+        "llm": "Qwen2.5-Coder-7B-Instruct-GGUF",
+        "task_id": "math_add_function",
+        "passed": true,
+        "error": "",
+        "stdout": "12\n",
+        "code": "def add(a, b):\n    return a + b\n\nprint(add(5, 7))"
+    },
+    {
+        "profile": "A",
+        "embedder": "embeddinggemma-300m",
+        "llm": "auto",
+        "task_id": "pandas_csv_clean",
+        "passed": true,
+        "error": "",
+        "stdout": "",
+        "code": "import pandas\n\ninput_source = 'data.csv'\nread_csv = pandas.read_csv(input_source)\ndataframe_dropna = read_csv.dropna()\ndataframe_sort_values = dataframe_dropna.sort_values('age', ascending=False)\ndataframe_to_csv = dataframe_sort_values.to_csv('cleaned_data.csv', index=False)"
+    },
+    {
+        "profile": "A",
+        "embedder": "embeddinggemma-300m",
+        "llm": "auto",
+        "task_id": "math_add_function",
+        "passed": true,
+        "error": "",
+        "stdout": "12\n",
+        "code": "def add(a, b):\n    return a + b\n\nprint(add(5, 7))"
+    },
+    {
+        "profile": "C",
+        "embedder": "embeddinggemma-300m",
+        "llm": "qwen2.5-coder-0.5b-instruct",
+        "task_id": "pandas_csv_clean",
+        "passed": true,
+        "error": "",
+        "stdout": "",
+        "code": "import pandas as pd\n\ninput_source = 'data.csv'\nread_csv = pd.read_csv(input_source)"
+    },
+    {
+        "profile": "C",
+        "embedder": "embeddinggemma-300m",
+        "llm": "qwen2.5-coder-0.5b-instruct",
+        "task_id": "math_add_function",
+        "passed": true,
+        "error": "",
+        "stdout": "12\n",
+        "code": "def add(a, b):\n    return a + b\n\nprint(add(5, 7))"
+    },
+    {
+        "profile": "D",
+        "embedder": "embeddinggemma-300m",
+        "llm": "qwen2.5-coder-0.5b-instruct",
+        "task_id": "pandas_csv_clean",
+        "passed": true,
+        "error": "",
+        "stdout": "",
+        "code": "import pandas as pd\n\ninput_source = 'data.csv'\nread_csv = pd.read_csv(input_source)\ndataframe_dropna = read_csv.dropna()\ndataframe_sort_values = dataframe_dropna.sort_values('age', ascending=False)\ndataframe_to_csv = dataframe_sort_values.to_csv('cleaned_data.csv', index=False)"
+    },
+    {
+        "profile": "D",
+        "embedder": "embeddinggemma-300m",
+        "llm": "qwen2.5-coder-0.5b-instruct",
+        "task_id": "math_add_function",
+        "passed": true,
+        "error": "",
+        "stdout": "12\n",
+        "code": "def add(a, b):\n    return a + b\n\nprint(add(5, 7))"
+    },
+    {
+        "profile": "C",
+        "embedder": "embeddinggemma-300m",
+        "llm": "qwen2.5-coder-1.5b-instruct",
+        "task_id": "pandas_csv_clean",
+        "passed": false,
+        "error": "Validation failed: Ages are not sorted in descending order",
+        "stdout": "",
+        "code": "import pandas\n\ninput_file = 'data.csv'\ndata = pandas.read_csv(input_file)\ncleaned_data = data.dropna()\nsorted_data = cleaned_data.sort_values('age', ascending=False)\ncleaned_data.to_csv('cleaned_data.csv', index=False)"
+    },
+    {
+        "profile": "C",
+        "embedder": "embeddinggemma-300m",
+        "llm": "qwen2.5-coder-1.5b-instruct",
+        "task_id": "math_add_function",
+        "passed": true,
+        "error": "",
+        "stdout": "12\n",
+        "code": "def add(a, b):\n    return a + b\n\nprint(add(5, 7))"
+    },
+    {
+        "profile": "D",
+        "embedder": "embeddinggemma-300m",
+        "llm": "qwen2.5-coder-1.5b-instruct",
+        "task_id": "pandas_csv_clean",
+        "passed": false,
+        "error": "Validation failed: Ages are not sorted in descending order",
+        "stdout": "",
+        "code": "import pandas\n\ninput_file = 'data.csv'\ndata = pandas.read_csv(input_file)\ncleaned_data = data.dropna()\nsorted_data = cleaned_data.sort_values('age', ascending=False)\ncleaned_data.to_csv('cleaned_data.csv', index=False)"
+    },
+    {
+        "profile": "D",
+        "embedder": "embeddinggemma-300m",
+        "llm": "qwen2.5-coder-1.5b-instruct",
+        "task_id": "math_add_function",
+        "passed": true,
+        "error": "",
+        "stdout": "12\n",
+        "code": "def add(a, b):\n    return a + b\n\nprint(add(5, 7))"
+    },
+    {
+        "profile": "C",
+        "embedder": "embeddinggemma-300m",
+        "llm": "Qwen2.5-Coder-7B-Instruct-GGUF",
+        "task_id": "pandas_csv_clean",
+        "passed": true,
+        "error": "",
+        "stdout": "",
+        "code": "import pandas\n\ninput_source = 'data.csv'\nread_csv = pandas.read_csv(input_source)\ndataframe_dropna = read_csv.dropna()\ndataframe_sort_values = dataframe_dropna.sort_values('age', ascending=False)\ndataframe_to_csv = dataframe_sort_values.to_csv('cleaned_data.csv', index=False)"
+    },
+    {
+        "profile": "C",
+        "embedder": "embeddinggemma-300m",
+        "llm": "Qwen2.5-Coder-7B-Instruct-GGUF",
+        "task_id": "math_add_function",
+        "passed": true,
+        "error": "",
+        "stdout": "12\n",
+        "code": "def add(a, b):\n    return a + b\n\nprint(add(5, 7))"
+    },
+    {
+        "profile": "D",
+        "embedder": "embeddinggemma-300m",
+        "llm": "Qwen2.5-Coder-7B-Instruct-GGUF",
+        "task_id": "pandas_csv_clean",
+        "passed": false,
+        "error": "Validation failed: Ages are not sorted in descending order",
+        "stdout": "",
+        "code": "import pandas as pd\n\ninput_file = 'data.csv'\ndf = pd.read_csv(input_file)\ndf_cleaned = df.dropna()\ndf_sorted = df_cleaned.sort_values('age', ascending=False)\ndf_cleaned.to_csv('cleaned_data.csv', index=False)"
+    },
+    {
+        "profile": "D",
+        "embedder": "embeddinggemma-300m",
+        "llm": "Qwen2.5-Coder-7B-Instruct-GGUF",
+        "task_id": "math_add_function",
+        "passed": true,
+        "error": "",
+        "stdout": "12\n",
+        "code": "def add(a, b):\n    return a + b\n\nprint(add(5, 7))"
+    }
+]

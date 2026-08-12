@@ -71,11 +71,7 @@ class ExecutionContext:
         return sanitized_name
 
     def find_compatible_variable(self, expected_signature: AlgebraicSignature) -> Optional[str]:
-        # Pass 1: Look for exact structural match (type_name and state) in reverse
-        for var_name, current_signature in reversed(list(self.registry.items())):
-            if current_signature.matches(expected_signature):
-                return var_name
-        # Pass 2: Look for base type_name match in reverse (pipeline continuity)
+        # Priority: Return the most recently declared variable of matching type_name in scope for linear pipeline binding
         for var_name, current_signature in reversed(list(self.registry.items())):
             if current_signature.type_name == "any" or expected_signature.type_name == "any" or current_signature.type_name == expected_signature.type_name:
                 return var_name
