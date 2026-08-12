@@ -577,6 +577,7 @@ class LatticeRouter:
             if idx == -1 or idx not in self.rag_engine.id_to_schema:
                 continue
             cid = self.rag_engine.id_to_schema[idx].get("cell_id")
+            cid_lower = cid.lower() if cid else ""
             
             if cid in valid_ids:
                 cell = candidates_dict.get(cid)
@@ -610,6 +611,7 @@ class LatticeRouter:
                             
                     # Generic domain-agnostic keyword overlap boost
                     intent_boost = 0.0
+                    penalty = 0.0
                     if any(w in prompt_tokens for w in ['function', 'def']):
                         intent_boost -= 2.0
 
