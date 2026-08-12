@@ -54,31 +54,6 @@
       }
     },
     {
-      "cell_id": "micro_synthesized_convert_any",
-      "type": "micro",
-      "stage": 1,
-      "keywords": [
-        "convert",
-        "any"
-      ],
-      "inputs": {
-        "type_name": "any",
-        "state": "raw"
-      },
-      "outputs": {
-        "type_name": "any",
-        "state": "computed"
-      },
-      "domain_implementations": {
-        "Python_Core": {
-          "code": "import <library>\n{output_var} = ...(<{input_var}>)",
-          "dependencies": [
-            "<library>"
-          ]
-        }
-      }
-    },
-    {
       "cell_id": "macro_dynamic_read_csv",
       "type": "macro",
       "stage": 1,
@@ -4281,30 +4256,6 @@
       }
     },
     {
-      "cell_id": "micro_synthesized_synthesize_to_grayscale",
-      "type": "micro",
-      "stage": 1,
-      "keywords": [
-        "SYNTH_CONVERT_TO_GRAYSCALE"
-      ],
-      "inputs": {
-        "type_name": "DataFrame",
-        "state": "raw"
-      },
-      "outputs": {
-        "type_name": "DataFrame",
-        "state": "computed"
-      },
-      "domain_implementations": {
-        "Python_Core": {
-          "code": "import math\n{output_var} = math.sqrt(float({input_var}))",
-          "dependencies": [
-            "math"
-          ]
-        }
-      }
-    },
-    {
       "cell_id": "micro_synthesized_create_array",
       "type": "micro",
       "stage": 1,
@@ -4348,6 +4299,150 @@
           "code": "import math\n{output_var} = math.sqrt(float({input_var}))",
           "dependencies": [
             "math"
+          ]
+        }
+      }
+    },
+    {
+      "cell_id": "micro_synthesized_synth_read_csv",
+      "type": "micro",
+      "stage": 1,
+      "keywords": [
+        "SYNTH_READ_CSV"
+      ],
+      "inputs": {
+        "type_name": "any",
+        "state": "raw"
+      },
+      "outputs": {
+        "type_name": "any",
+        "state": "computed"
+      },
+      "domain_implementations": {
+        "Python_Core": {
+          "code": "import json\n{output_var} = json.loads(json.dumps({input_var}))",
+          "dependencies": [
+            "json"
+          ]
+        }
+      }
+    },
+    {
+      "cell_id": "micro_synthesized_convert_any",
+      "type": "micro",
+      "stage": 1,
+      "keywords": [
+        "convert_any"
+      ],
+      "inputs": {
+        "type_name": "any",
+        "state": "raw"
+      },
+      "outputs": {
+        "type_name": "any",
+        "state": "computed"
+      },
+      "domain_implementations": {
+        "Python_Core": {
+          "code": "import math\n{output_var} = math.sqrt(float({input_var}))",
+          "dependencies": [
+            "math"
+          ]
+        }
+      }
+    },
+    {
+      "cell_id": "micro_synthesized_synth_groupby_mean",
+      "type": "micro",
+      "stage": 1,
+      "keywords": [
+        "SYNTH_GROUPBY_MEAN"
+      ],
+      "inputs": {
+        "type_name": "any",
+        "state": "raw"
+      },
+      "outputs": {
+        "type_name": "any",
+        "state": "computed"
+      },
+      "domain_implementations": {
+        "Python_Core": {
+          "code": "import math\n{output_var} = math.sqrt(float({input_var}))",
+          "dependencies": [
+            "math"
+          ]
+        }
+      }
+    },
+    {
+      "cell_id": "micro_synthesized_read_image",
+      "type": "micro",
+      "stage": 1,
+      "keywords": [
+        "SYNTH_READ_IMAGE"
+      ],
+      "inputs": {
+        "type_name": "str",
+        "state": "raw"
+      },
+      "outputs": {
+        "type_name": "any",
+        "state": "computed"
+      },
+      "domain_implementations": {
+        "Python_Core": {
+          "code": "import json\n{output_var} = json.loads({input_var})",
+          "dependencies": [
+            "json"
+          ]
+        }
+      }
+    },
+    {
+      "cell_id": "micro_synthesized_synthesize_to_grayscale",
+      "type": "micro",
+      "stage": 1,
+      "keywords": [
+        "SYNTH_CONVERT_TO_GRAYSCALE"
+      ],
+      "inputs": {
+        "type_name": "any",
+        "state": "raw"
+      },
+      "outputs": {
+        "type_name": "any",
+        "state": "computed"
+      },
+      "domain_implementations": {
+        "Python_Core": {
+          "code": "import math\n{output_var} = math.sqrt(float({input_var}))",
+          "dependencies": [
+            "math"
+          ]
+        }
+      }
+    },
+    {
+      "cell_id": "micro_synthesized_save_image",
+      "type": "micro",
+      "stage": 1,
+      "keywords": [
+        "SYNTH_SAVE_IMAGE"
+      ],
+      "inputs": {
+        "type_name": "any",
+        "state": "raw"
+      },
+      "outputs": {
+        "type_name": "any",
+        "state": "computed"
+      },
+      "domain_implementations": {
+        "Python_Core": {
+          "code": "import json\n{output_var} = json.loads({input_var})",
+          "dependencies": [
+            "json"
           ]
         }
       }

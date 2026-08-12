@@ -602,36 +602,30 @@ class LatticeRouter:
                         if pt in MODULE_ALIASES:
                             expanded_tokens.add(MODULE_ALIASES[pt])
 
-                    overlap = 0.0
-                    for pt in expanded_tokens:
-                        if any(pt in kw or (len(kw) >= 3 and kw in pt) for kw in kws):
-                            overlap += 0.3
-                        if any(pt in p or (len(p) >= 3 and p in pt) for p in id_parts):
-                            overlap += 0.3
-                            
-                    # Generic domain-agnostic keyword overlap boost
-                    intent_boost = 0.0
+                    # Dynamic domain-agnostic keyword overlap coverage
+                    token_hits = 0
+                    for token in expanded_tokens:
+                        if token in cid_lower or any(token in p for p in id_parts) or any(token in kw for kw in kws):
+                            token_hits += 1
+                    
+                    keyword_score = (token_hits / max(len(expanded_tokens), 1)) * 0.5
+
                     penalty = 0.0
-                    if any(w in prompt_tokens for w in ['function', 'def']):
-                        intent_boost -= 2.0
+                    # Small structural penalty for internal inspector/boolean check methods
+                    if cid_lower.startswith("is_") or cid_lower.startswith("has_") or "have_" in cid_lower or "haveimage" in cid_lower:
+                        penalty += 0.3
 
-                    # Penalize inspector/boolean checker methods over core transformation functions
-                    if "haveimage" in cid_lower or "have_image" in cid_lower or cid_lower.startswith("is_") or cid_lower.startswith("has_"):
-                        penalty += 0.8
-
-                    # Boost primary action methods matching prompt verb/noun tokens
-                    if any(act in cid_lower for act in ["imread", "imwrite", "cvtcolor", "read_csv", "to_csv", "dropna", "sort_values", "predict", "fit", "transform"]):
-                        for pt in filtered_tokens:
-                            if pt in cid_lower or any(p in cid_lower for p in id_parts):
-                                intent_boost += 0.4
-                                break
-
-                    # Penalize nodes that require coercion bridges or input type mismatch
+                    # Typestate compatibility penalty for mismatched input types
                     if current_type and getattr(cell, 'inputs', None) and getattr(cell.inputs, 'type_name', '') != 'any':
                         if getattr(cell.inputs, 'type_name', '') != current_type:
-                            penalty += 1.5
+                            penalty += 0.5
                             
-                    adjusted_dist = dist + overlap + intent_boost - penalty
+                    adjusted_dist = dist + keyword_score - penalty
+                    logger.debug(
+                        f"[ROUTER CANDIDATE] cell={cell.cell_id} | dist={dist:.3f} | "
+                        f"kw_score={keyword_score:.3f} (hits={token_hits}/{len(expanded_tokens)}) | "
+                        f"penalty={penalty:.2f} | adjusted_dist={adjusted_dist:.3f}"
+                    )
                     scored_results.append((adjusted_dist, float(dist), cell))
 
         if scored_results:

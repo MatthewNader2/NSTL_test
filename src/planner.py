@@ -35,48 +35,99 @@ class ZeroShotPlanner:
             context_str = context_str[:6000] + "\n... (truncated)"
         return context_str
         
-    def _find_closest_existing_cell(self, hallucinated_id: str) -> str:
-        h_tokens = set(re.findall(r"[a-zA-Z_]+", hallucinated_id.lower())) - {"pandas", "cv2", "numpy", "scikit", "torch"}
+    def _find_closest_existing_cell(self, hallucinated_id: str, prompt: str = "") -> str:
+        """Universal domain-agnostic fuzzy matching using prompt domain alignment, concept coverage, and sequence ratio."""
+        h_tokens = set(re.findall(r"[a-zA-Z0-9]+", hallucinated_id.lower())) - {"pandas", "cv2", "numpy", "scikit", "torch", "synth"}
         if not h_tokens:
             return None
 
+        # Generic domain-agnostic programming stem dictionary
+        COMMON_STEMS = {
+            "image": {"img", "im", "picture", "photo", "imread", "imwrite"},
+            "read": {"load", "fetch", "get", "open", "imread", "read_csv"},
+            "write": {"save", "export", "dump", "imwrite", "to_csv"},
+            "save": {"write", "export", "dump", "imwrite", "to_csv"},
+            "convert": {"cvt", "change", "transform", "cvtcolor", "convertto"},
+            "color": {"col", "rgb", "bgr", "gray", "grayscale", "cvtcolor"},
+            "grayscale": {"col", "rgb", "bgr", "gray", "grayscale", "cvtcolor"},
+            "drop": {"remove", "delete", "dropna"},
+            "sort": {"order", "arrange", "sort_values"},
+        }
+
+        # Detect active domain from user prompt
+        prompt_lower = prompt.lower()
+        active_domains = set()
+        if "opencv" in prompt_lower or "cv2" in prompt_lower:
+            active_domains.add("cv2")
+        if "pandas" in prompt_lower or "pd" in prompt_lower:
+            active_domains.add("pandas")
+        if "numpy" in prompt_lower or "np" in prompt_lower:
+            active_domains.add("numpy")
+        if "scikit" in prompt_lower or "sklearn" in prompt_lower:
+            active_domains.add("sklearn")
+        if "torch" in prompt_lower or "pytorch" in prompt_lower:
+            active_domains.add("torch")
+
         best_cell_id = None
         best_score = -1.0
+        from difflib import SequenceMatcher
 
         for cell in self.orchestrator.get_all_available_cells():
+            if getattr(cell, 'node_type', 'function') not in [None, 'function']:
+                continue
+
             cid = cell.cell_id
             cid_lower = cid.lower()
-            c_tokens = {kw.lower() for kw in getattr(cell, 'keywords', [])} | set(re.findall(r"[a-zA-Z_]+", cid_lower))
-            overlap = len(h_tokens.intersection(c_tokens)) / max(len(h_tokens), 1)
+            c_tokens = {kw.lower() for kw in getattr(cell, 'keywords', [])} | set(re.findall(r"[a-zA-Z0-9]+", cid_lower))
+            
+            core_c_tokens = c_tokens - {"cv2", "pandas", "numpy", "scikit", "torch", "micro", "macro", "default"}
+            if not core_c_tokens:
+                core_c_tokens = c_tokens
 
-            # Main operation matching
-            h_str = "".join(h_tokens)
-            if "dropna" in cid_lower and ("drop" in h_str or "na" in h_str or "null" in h_str or "missing" in h_str):
-                overlap += 1.2
-            elif "sort_values" in cid_lower and "sort" in h_str:
-                overlap += 1.2
-            elif "imread" in cid_lower and ("read" in h_str or "load" in h_str or "imread" in h_str) and "save" not in h_str and "write" not in h_str:
-                overlap += 1.8
-            elif "imwrite" in cid_lower and ("save" in h_str or "write" in h_str or "imwrite" in h_str or "export" in h_str):
-                overlap += 1.8
-            elif "cvtcolor" in cid_lower and ("convert" in h_str or "color" in h_str or "grayscale" in h_str or "gray" in h_str):
-                overlap += 1.8
-            elif "to_csv" in cid_lower and ("csv" in h_str or "save" in h_str or "write" in h_str) and "image" not in h_str:
-                overlap += 1.2
-            elif "read_csv" in cid_lower and ("csv" in h_str or "read" in h_str or "load" in h_str) and "image" not in h_str:
-                overlap += 1.2
-            elif cid_lower == "pandas_dataframe_drop" and "dropna" not in h_str:
-                overlap -= 0.5
+            # 1. Count how many distinct original prompt concepts were satisfied
+            concept_hits = 0
+            for ht in h_tokens:
+                ht_syns = COMMON_STEMS.get(ht, {ht}) | {ht}
+                if any(syn in core_c_tokens or any(syn in ct for ct in core_c_tokens) for syn in ht_syns):
+                    concept_hits += 1
+            
+            concept_coverage = concept_hits / max(len(h_tokens), 1)
 
-            if overlap > best_score:
-                best_score = overlap
+            # 2. Character sequence similarity ratio
+            seq_ratio = SequenceMatcher(None, hallucinated_id.lower(), cid_lower).ratio()
+
+            # 3. Domain alignment & Primary node weighting
+            domain_bonus = 0.0
+            if active_domains:
+                cell_domain = cid_lower.split("_")[0]
+                if cell_domain in active_domains:
+                    domain_bonus += 0.25
+                elif cell_domain in {"pandas", "cv2", "numpy", "sklearn", "torch"}:
+                    domain_bonus -= 0.35
+
+            # Penalize rare/obscure variants over clean primary action nodes
+            obscure_penalty = 0.0
+            if any(obs in cid_lower for obs in ["animation", "metadata", "list_like", "common_convert", "imreadmulti"]):
+                obscure_penalty += 0.20
+
+            # 4. Prefer concise primary API nodes over long nested internal sub-module nodes
+            id_length_penalty = (len(cid_lower) - 12) * 0.015 if len(cid_lower) > 12 else 0.0
+
+            # Dynamic combined score
+            score = (concept_coverage * 0.60) + (seq_ratio * 0.25) + domain_bonus - obscure_penalty - id_length_penalty
+
+            if score > best_score:
+                best_score = score
                 best_cell_id = cid
 
-        if best_match := (best_cell_id if best_score >= 0.6 else None):
-            return best_match
+        if best_cell_id and best_score >= 0.30:
+            logger.info(f"[PLANNER AUTO-CORRECT] Fuzzy matched '{hallucinated_id}' -> '{best_cell_id}' (score: {best_score:.3f})")
+            return best_cell_id
+        
+        logger.debug(f"[PLANNER AUTO-CORRECT] No close match for '{hallucinated_id}' (best score: {best_score:.3f})")
         return None
 
-    def _validate_sub_cells(self, macro_dict: dict) -> bool:
+    def _validate_sub_cells(self, macro_dict: dict, prompt: str = "") -> bool:
         available_ids = {cell.cell_id for cell in self.orchestrator.get_all_available_cells()}
         cells_to_check = macro_dict.get("cells", [macro_dict]) if isinstance(macro_dict, dict) else []
 
@@ -89,7 +140,7 @@ class ZeroShotPlanner:
             for i, sub_id in enumerate(sub_cells):
                 if sub_id not in available_ids and not sub_id.startswith("SYNTH_"):
                     # Try fuzzy resolution to real cell in database first
-                    matched_id = self._find_closest_existing_cell(sub_id)
+                    matched_id = self._find_closest_existing_cell(sub_id, prompt=prompt)
                     if matched_id:
                         logger.info(f"[PLANNER AUTO-CORRECT] Resolved hallucinated '{sub_id}' -> '{matched_id}'")
                         sub_cells[i] = matched_id
@@ -260,7 +311,7 @@ IF a specific step is required but no suitable micro-node exists in the availabl
         # BUG 13 FIX: Do NOT inject cells when validation fails.
         # Previously, malformed cells with hallucinated sub-cell IDs were injected
         # anyway, permanently polluting loaded_cells with broken macro nodes.
-        if not self._validate_sub_cells(macro_json):
+        if not self._validate_sub_cells(macro_json, prompt=prompt):
             logger.warning(
                 "Planner returned hallucinated node IDs. Injection aborted. "
                 "The missing nodes will need to be synthesized at runtime."

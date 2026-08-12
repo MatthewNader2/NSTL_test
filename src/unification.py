@@ -47,17 +47,15 @@ class ExecutionContext:
             if q not in all_files:
                 heuristics.append(f"{repr(q)}")
         
-        # Sorting direction
+        # Sorting direction & color conversion heuristics
         prompt_lower = user_prompt.lower()
         if "descending" in prompt_lower or "desc" in prompt_lower or "highest to lowest" in prompt_lower:
             heuristics.append("ascending=False")
         elif "ascending" in prompt_lower:
             heuristics.append("ascending=True")
 
-        # Find numeric constants
-        numbers = re.findall(r'\b(\d+(?:\.\d+)?)\b', user_prompt)
-        for n in numbers:
-            heuristics.append(n)
+        if "grayscale" in prompt_lower or "gray" in prompt_lower or "bgr2gray" in prompt_lower:
+            heuristics.append("cv2.COLOR_BGR2GRAY")
         
         self.extracted_parameters["heuristics"] = heuristics
 
@@ -101,8 +99,21 @@ class UnificationGate:
             # Traverse to find the first function call (ast.Call)
             for node in ast.walk(tree):
                 if isinstance(node, ast.Call):
+                    func_name = ""
+                    if isinstance(node.func, ast.Name):
+                        func_name = node.func.id.lower()
+                    elif isinstance(node.func, ast.Attribute):
+                        func_name = node.func.attr.lower()
+
                     existing_kwargs = {kw.arg for kw in node.keywords if kw.arg}
                     for p in ordered_params:
+                        p_str = str(p)
+                        # Parameter relevance filtering based on function target domain
+                        if ("color_" in p_str.lower() or "bgr2" in p_str.lower() or "rgb2" in p_str.lower()) and not any(k in func_name for k in ["color", "cvt", "convert", "transform"]):
+                            continue
+                        if ("ascending=" in p_str.lower()) and not any(k in func_name for k in ["sort", "order", "rank"]):
+                            continue
+
                         try:
                             dummy_code = f"dummy({p})"
                             dummy_tree = ast.parse(dummy_code)
@@ -153,91 +164,83 @@ class UnificationGate:
 
         compiled_snippet = getattr(target_cell, "code_template", "")
         
-        # 1. Literal templating (must happen before AST parsing so the syntax is valid)
+        # 1. Universal template-driven placeholder replacement
         if compiled_snippet:
+            in_fname = context.extracted_parameters.get("input_filename")
+            out_fname = context.extracted_parameters.get("output_filename")
+
+            # Ensure write/save cells receive out_fname as 1st argument if template only had {input_var}
+            if out_fname:
+                compiled_snippet = compiled_snippet.replace("{output_filename}", repr(out_fname))
+                if any(kw in cell_id.lower() for kw in ["imwrite", "savefig"]) and repr(out_fname) not in compiled_snippet:
+                    compiled_snippet = compiled_snippet.replace("({input_var})", f"({repr(out_fname)}, {{input_var}})")
+
             compiled_snippet = compiled_snippet.replace("{input_var}", matching_input_var)
             compiled_snippet = compiled_snippet.replace("{output_var}", output_var_name)
 
-            in_fname = context.extracted_parameters.get("input_filename")
-            out_fname = context.extracted_parameters.get("output_filename")
-            if in_fname and "cv2.imread(" in compiled_snippet:
-                compiled_snippet = re.sub(
-                    r"cv2\.imread\([a-zA-Z0-9_]+\)",
-                    rf"cv2.imread({in_fname!r})",
-                    compiled_snippet
-                )
-            if out_fname and "cv2.imwrite(" in compiled_snippet:
-                compiled_snippet = re.sub(
-                    r"cv2\.imwrite\(([a-zA-Z0-9_]+)\)",
-                    rf"cv2.imwrite({out_fname!r}, \1)",
-                    compiled_snippet
-                )
+            if in_fname:
+                compiled_snippet = compiled_snippet.replace("{input_filename}", repr(in_fname))
+                compiled_snippet = compiled_snippet.replace("{input_source}", repr(in_fname))
 
-            if out_fname and ("export.csv" in compiled_snippet or "to_csv" in compiled_snippet):
+            # Generic string literal binding for read/write file parameters
+            if in_fname:
+                # Replace generic dummy filenames in quotes (e.g. 'input.jpg', 'data.csv', 'input_file')
                 compiled_snippet = re.sub(
-                    r"(['\"])export\.(csv|json|html|feather|parquet)\1",
+                    r"(['\"])(?:input\.(?:jpg|png|jpeg|csv|json|parquet|txt)|input_file|dummy_input)\1",
+                    repr(in_fname),
+                    compiled_snippet,
+                    flags=re.IGNORECASE
+                )
+            if out_fname:
+                # Replace generic dummy output filenames in quotes (e.g. 'output.jpg', 'cleaned_data.csv', 'output_file')
+                compiled_snippet = re.sub(
+                    r"(['\"])(?:output\.(?:jpg|png|jpeg|csv|json|parquet|txt)|output_file|export\.\w+|dummy_output)\1",
                     repr(out_fname),
                     compiled_snippet,
+                    flags=re.IGNORECASE
                 )
-                compiled_snippet = compiled_snippet.replace(
-                    "export.csv", out_fname
-                )
-                if ".to_csv()" in compiled_snippet:
-                    compiled_snippet = compiled_snippet.replace(
-                        ".to_csv()", f".to_csv({out_fname!r}, index=False)"
-                    )
-                
-        # 2. Targeted parameter filtering by cell ID
-        cell_id_lower = cell_id.lower()
-        cell_specific_params = []
 
-        if "sort" in cell_id_lower:
-            for h in context.extracted_parameters.get("heuristics", []):
-                if "ascending" in h or h.startswith("'") or h.startswith('"'):
-                    if h not in cell_specific_params:
-                        cell_specific_params.append(h)
-        elif "cvtcolor" in cell_id_lower or "grayscale" in cell_id_lower or "color" in cell_id_lower:
-            cell_specific_params.append("cv2.COLOR_BGR2GRAY")
-        elif "to_csv" in cell_id_lower or "export" in cell_id_lower or "read_csv" in cell_id_lower or "imread" in cell_id_lower or "imwrite" in cell_id_lower:
-            # Read/Write nodes handle parameters via literal templating above
-            cell_specific_params = []
-        else:
-            cell_heuristics = getattr(target_cell, "matched_heuristics", [])
-            for h in cell_heuristics:
-                if h not in cell_specific_params:
-                    cell_specific_params.append(h)
+        # 2. Dynamic heuristic parameter injection via AST
+        cell_heuristics = getattr(target_cell, "matched_heuristics", []) or context.extracted_parameters.get("heuristics", [])
+        if cell_heuristics and compiled_snippet:
+            # Filter out filenames from heuristics so they aren't injected twice
+            injected_params = [
+                h for h in cell_heuristics
+                if h != repr(in_fname) and h != repr(out_fname) and h != in_fname and h != out_fname
+            ]
+            if injected_params:
+                compiled_snippet = UnificationGate.inject_parameters(compiled_snippet, injected_params)
 
-        if cell_specific_params and compiled_snippet:
-            compiled_snippet = UnificationGate.inject_parameters(compiled_snippet, cell_specific_params)
-
-        # AST Lineage Repair: Ensure dead transformed variables are properly consumed by downstream sink calls
-        if ".to_csv" in compiled_snippet or "to_csv" in cell_id_lower:
-            compiled_snippet = UnificationGate.fix_dead_variables_in_snippet(context, compiled_snippet, current_output_var=output_var_name)
+        # AST Lineage Repair: Ensure transformed variables in context are properly consumed by downstream calls
+        compiled_snippet = UnificationGate.fix_dead_variables_in_snippet(context, compiled_snippet, current_output_var=output_var_name)
 
         logger.info(
-            f"[UNIFICATION SUCCESS] Linked {matching_input_var} -> {cell_id} -> {output_var_name}"
+            f"[UNIFICATION SUCCESS] Linked {matching_input_var} -> {cell_id} -> {output_var_name} | Code: {compiled_snippet.strip()}"
         )
         return compiled_snippet
 
     @staticmethod
     def fix_dead_variables_in_snippet(context: ExecutionContext, snippet: str, current_output_var: str = None) -> str:
-        """Fixes dead transformed variables by rebinding sink calls to the latest variable in context."""
+        """Fixes dead transformed variables by rebinding unmapped caller variables to the latest active variable in context."""
         if not context.registry:
             return snippet
-        # Exclude current step's output variable and bootstrap input source
         valid_vars = [v for v in context.registry.keys() if v != current_output_var and v != "input_source"]
         if not valid_vars:
             return snippet
-        
-        # If the variable before .to_csv is already a valid variable in context, preserve it!
-        match = re.search(r"\b([a-zA-Z_][a-zA-Z0-9_]*)\.to_csv\(", snippet)
-        if match:
-            caller_var = match.group(1)
-            if caller_var in valid_vars:
-                return snippet
 
+        known_modules = {"cv2", "pd", "np", "plt", "sns", "tf", "torch", "sk", "sklearn", "os", "sys", "math", "re", "json"}
         latest_var = valid_vars[-1]
-        snippet = re.sub(r"\b[a-zA-Z_][a-zA-Z0-9_]*(\.to_csv\()", rf"{latest_var}\1", snippet)
+
+        # Find method calls on objects: caller.method_name(...)
+        def _rebind_caller(m):
+            caller = m.group(1)
+            method = m.group(2)
+            if caller in known_modules or caller in valid_vars or caller == "input_source":
+                return f"{caller}.{method}("
+            logger.info(f"[AST LINEAGE REPAIR] Rebound unbound caller variable '{caller}' -> '{latest_var}' for method .{method}()")
+            return f"{latest_var}.{method}("
+
+        snippet = re.sub(r"\b([a-zA-Z_][a-zA-Z0-9_]*)\.([a-zA-Z_][a-zA-Z0-9_]*)\(", _rebind_caller, snippet)
         return snippet
 
     @staticmethod

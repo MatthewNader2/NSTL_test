@@ -1,0 +1,15 @@
+{
+  "case": "profile_A_cpu",
+  "profile": "A",
+  "device": "cpu",
+  "prompt": "Open \"sample_input.txt\" and strip whitespace from the text.",
+  "started_at": "2026-08-12T15:12:08",
+  "status": "exception",
+  "timings": {
+    "total_seconds": 0.4948
+  },
+  "initialize": null,
+  "run": null,
+  "validation": null,
+  "error": "RuntimeError: The starlette.testclient module requires the httpx2 package to be installed.\nYou can install this with:\n    $ pip install httpx2\n"
+}
