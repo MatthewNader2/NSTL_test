@@ -91,6 +91,22 @@ _engine_ready = None
 _orchestrator_lock = threading.Lock()
 _engine_state_lock = threading.Lock()
 
+def infer_goal_output_type(prompt: str) -> str:
+    """
+    Infers target output typestate from user goal prompt when no downstream cell constrains it.
+    Prevents defaulting to unconstrained 'any' (soundness protection).
+    """
+    p_lower = prompt.lower()
+    if any(k in p_lower for k in ["csv", "dataframe", "pandas", "table", "clean"]):
+        return "DataFrame"
+    elif any(k in p_lower for k in ["image", "opencv", "gray", "jpg", "png", "cv2"]):
+        return "Mat"
+    elif any(k in p_lower for k in ["model", "classifier", "predict", "fit"]):
+        return "DataFrame"
+    elif any(k in p_lower for k in ["dijkstra", "graph", "shortest", "dict"]):
+        return "dict"
+    return "any"
+
 app = FastAPI()
 app.add_middleware(
     CORSMiddleware,
@@ -271,9 +287,14 @@ def run_prompt(req: RunRequest):
                 expected_outputs = "any"
                 for next_id in sub_cells_ids[i+1:]:
                     next_cell = global_orchestrator.loaded_cells.get(next_id)
-                    if next_cell:
+                    if next_cell and hasattr(next_cell, "inputs") and next_cell.inputs:
                         expected_outputs = next_cell.inputs.type_name
                         break
+
+                # Typestate Propagation: If no downstream cell constrains expected_outputs,
+                # infer from prompt intent rather than leaving unconstrained as "any" (soundness protection)
+                if expected_outputs in ("any", "Any", "*", "", "object"):
+                    expected_outputs = infer_goal_output_type(req.prompt)
 
                 log_buffer.append({"msg": f"Planner flagged MISSING_NODE ({step_id}) for {expected_inputs}->{expected_outputs}.", "type": "warn"})
 

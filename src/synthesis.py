@@ -164,49 +164,64 @@ Use the following Official Documentation as your absolute ground truth:"""
         elif "```" in cleaned_text:
             cleaned_text = cleaned_text.split("```")[1].split("```")[0].strip()
 
-        # ── Parse with layered repair fallbacks ──────────────────────────────────
+        # ── Parse with layered repair fallbacks (handles unescaped control chars like \n) ──────
         micro_json = None
 
+        # Stage 1: Try strict=False (permits raw unescaped newlines/tabs inside string fields)
         try:
-            micro_json = json.loads(cleaned_text)
-        except json.JSONDecodeError as e:
-            logger.warning(f"Initial JSON parse failed ({e}); attempting repair...")
+            micro_json = json.loads(cleaned_text, strict=False)
+        except Exception as e:
+            logger.warning(f"Initial JSON parse failed ({e}); attempting multi-stage repair...")
 
-            # Attempt 1: truncate to last closing brace (handles unterminated outputs)
+        # Stage 2: Extract substring between first '{' and last '}' and parse with strict=False
+        if micro_json is None:
+            first_brace = cleaned_text.find('{')
+            last_brace = cleaned_text.rfind('}')
+            if first_brace != -1 and last_brace > first_brace:
+                sub = cleaned_text[first_brace:last_brace+1]
+                try:
+                    micro_json = json.loads(sub, strict=False)
+                except Exception:
+                    pass
+
+        # Stage 3: Remove trailing commas before } or ] and retry strict=False
+        if micro_json is None:
+            repaired = re.sub(r',\s*([\}\]])', r'\1', cleaned_text)
             try:
-                repaired = cleaned_text.rsplit("}", 1)[0] + "}"
-                micro_json = json.loads(repaired)
+                micro_json = json.loads(repaired, strict=False)
             except Exception:
                 pass
 
-            # Attempt 2: extract code field and reconstruct minimal JSON
-            if micro_json is None:
-                code_match = re.search(r'["\']code["\']\s*:\s*["\']([^"\']+)["\']', cleaned_text)
-                if code_match:
-                    code_str = code_match.group(1).replace("\\n", "\n")
-                    safe_id = re.sub(r'[^a-zA-Z0-9_]', '_', gap_concept).lower()[:40]
-                    micro_json = {
-                        "cell_id": f"micro_synthesized_{safe_id}",
-                        "type": "micro",
-                        "stage": 1,
-                        "keywords": [gap_concept],
-                        "inputs": {"type_name": expected_input, "state": "raw"},
-                        "outputs": {"type_name": expected_output, "state": "computed"},
-                        "domain_implementations": {
-                            "Python_Core": {
-                                "code": code_str,
-                                "dependencies": []
-                            }
+        # Stage 4: Robust DOTALL regex extraction for "code" block fallback
+        if micro_json is None:
+            code_match = re.search(r'"code"\s*:\s*"(.*?)"\s*,\s*"dependencies"', cleaned_text, re.DOTALL)
+            if not code_match:
+                code_match = re.search(r'"code"\s*:\s*"(.*?)"\s*\}', cleaned_text, re.DOTALL)
+            if code_match:
+                code_str = code_match.group(1).replace('\\"', '"').replace('\\n', '\n')
+                safe_id = re.sub(r'[^a-zA-Z0-9_]', '_', gap_concept).lower()[:40]
+                micro_json = {
+                    "cell_id": f"micro_synthesized_{safe_id}",
+                    "type": "micro",
+                    "stage": 1,
+                    "keywords": [gap_concept],
+                    "inputs": {"type_name": expected_input, "state": "raw"},
+                    "outputs": {"type_name": expected_output, "state": "computed"},
+                    "domain_implementations": {
+                        "Python_Core": {
+                            "code": code_str,
+                            "dependencies": []
                         }
                     }
-                else:
-                    logger.error(
-                        f"Failed to parse Synthesis LLM output: {e}\n"
-                        f"Raw output:\n{result_text[:500]}"
-                    )
-                    raise ValueError(
-                        f"Synthesized output was not valid JSON. Raw output: {result_text[:200]}"
-                    )
+                }
+            else:
+                logger.error(
+                    f"Failed to parse Synthesis LLM output.\n"
+                    f"Raw output:\n{result_text[:500]}"
+                )
+                raise ValueError(
+                    f"Synthesized output was not valid JSON. Raw output: {result_text[:200]}"
+                )
 
         # ── AST structural repair on the extracted code string ───────────────────
         impl = micro_json.get("domain_implementations", {}).get("Python_Core", {})

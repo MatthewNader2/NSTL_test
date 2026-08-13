@@ -311,6 +311,27 @@ class UnificationGate:
         snippet = re.sub(r"\b([a-zA-Z_][a-zA-Z0-9_]*)\.([a-zA-Z_][a-zA-Z0-9_]*)\(", _rebind_caller, snippet)
         return snippet
 
+# Formal Top Type ⊤ in NSTL Type System (unifies with every type tau: unify(⊤, tau) = True)
+TOP_TYPE_SET = frozenset({"any", "Any", "*", "top", "TOP", "ANY", "unknown", "object"})
+
+def types_unify(expected_type: str, actual_type: str) -> bool:
+    """
+    Formal unification operator unify(tau_expected, tau_actual).
+    Returns True iff tau_expected and tau_actual unify.
+    Rules:
+      1. unify(⊤, tau) = True for all tau (Top type wildcard)
+      2. unify(tau, ⊤) = True for all tau
+      3. unify(tau, tau) = True (Exact identity)
+    """
+    if not expected_type or not actual_type:
+        return True
+    exp_clean = str(expected_type).strip()
+    act_clean = str(actual_type).strip()
+    if exp_clean in TOP_TYPE_SET or act_clean in TOP_TYPE_SET:
+        return True
+    return exp_clean == act_clean
+
+class UnificationGate:
     @staticmethod
     def validate_synthesis(
         synthesized_dict: dict,
@@ -324,7 +345,7 @@ class UnificationGate:
         """
         import json
 
-        # 1. Typestate Match
+        # 1. Typestate Match via formal unification operator types_unify
         inputs = synthesized_dict.get("inputs", {})
         outputs = synthesized_dict.get("outputs", {})
 
@@ -337,8 +358,8 @@ class UnificationGate:
         in_type  = inputs.get("type_name",  inputs.get("input_type",  ""))
         out_type = outputs.get("type_name", outputs.get("output_type", ""))
 
-        if in_type != expected_inputs or out_type != expected_outputs:
-            logger.error(f"[UNIFICATION ERROR] Synthesized typestates do not match. Expected {expected_inputs}->{expected_outputs}, got {in_type}->{out_type}")
+        if not types_unify(expected_inputs, in_type) or not types_unify(expected_outputs, out_type):
+            logger.error(f"[UNIFICATION ERROR] Synthesized typestates do not unify. Expected {expected_inputs}->{expected_outputs}, got {in_type}->{out_type}")
             return False
 
         # 2. Permanent Cache to <trees_dir>/micro/synthesized_nodes.json
