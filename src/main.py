@@ -70,7 +70,7 @@ TREES_DIR = get_resource_path("trees")
 FRONTEND_DIR = get_resource_path("frontend_dist")
 
 # Import our new modular architecture
-from router import HardwareProfiler, MCTSEngine
+from router import HardwareProfiler, MCTSEngine, SynthesisContext
 from lattice import LatticeOrchestrator, AlgebraicSignature
 from unification import ExecutionContext, UnificationGate
 from planner import ZeroShotPlanner
@@ -227,6 +227,8 @@ def run_prompt(req: RunRequest):
             return {"logs": log_buffer, "path": [], "virtual_edges": [], "code": f"# Routing Error: {e}"}
     else:
         # 1. ZeroShotPlanner
+        if ModelManager.get_instance().has_translator_pass():
+            log_buffer.append({"msg": "Phase 0: LLM Pre-Translator — translating natural language prompt...", "type": "info"})
         log_buffer.append({"msg": "Phase 1: ZeroShotPlanner — building macro execution graph...", "type": "info"})
         planner = ZeroShotPlanner(global_orchestrator, rag_engine=global_rag_engine)
         try:
@@ -278,7 +280,18 @@ def run_prompt(req: RunRequest):
                     fetcher = FetcherFactory.get_fetcher(global_orchestrator.active_domain)
                     try:
                         gap_concept = f"{step_id}: convert {expected_inputs} to {expected_outputs}"
-                        synth_micro_json = synth.synthesize_micro_cell(gap_concept, expected_inputs, expected_outputs, fetcher)
+                        synth_ctx = SynthesisContext(
+                            gap_concept=gap_concept,
+                            input_type=expected_inputs,
+                            output_type=expected_outputs,
+                            domain=global_orchestrator.active_domain or '',
+                            input_file_hint=context.extracted_parameters.get("input_filename", ""),
+                            prompt_hint=req.prompt[:150],
+                        )
+                        synth_micro_json = synth.synthesize_micro_cell(
+                            gap_concept, expected_inputs, expected_outputs, fetcher,
+                            context_hint=synth_ctx.to_context_hint(),
+                        )
                         if UnificationGate.validate_synthesis(synth_micro_json, expected_inputs, expected_outputs, trees_dir=TREES_DIR):
                             synth_confidence = 0.85
                     except Exception as e:

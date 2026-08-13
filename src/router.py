@@ -34,6 +34,42 @@ _STOP_WORDS = frozenset({
     'script', 'create', 'def', 'that', 'returns', 'result',
 })
 
+# Multiplier applied to the score of a type-incompatible candidate.
+# A value of 0.15 means an incompatible cell must be ~6.7× more semantically
+# similar than a compatible one to beat it. Tunable here without touching logic.
+TYPE_MISMATCH_DISCOUNT = 0.15
+
+
+from dataclasses import dataclass, field
+
+
+@dataclass
+class SynthesisContext:
+    """
+    Carries runtime context from the router/planner into SynthesisEngine so it
+    can generate domain-aware, grounded code without any static string checks.
+
+    Assembled from already-available runtime data (orchestrator.active_domain,
+    context.extracted_parameters, prompt fragment).  No parsing logic lives here.
+    """
+    gap_concept: str
+    input_type: str
+    output_type: str
+    domain: str = ""
+    input_file_hint: str = ""
+    prompt_hint: str = ""
+
+    def to_context_hint(self) -> str:
+        """Formats a grounding string for the synthesis LLM prompt. Pure formatting, zero logic."""
+        parts = []
+        if self.domain:
+            parts.append(f"domain={self.domain}")
+        if self.input_file_hint:
+            parts.append(f"input_file={self.input_file_hint}")
+        if self.prompt_hint:
+            parts.append(f"user_intent={self.prompt_hint[:150]}")
+        return ", ".join(parts)
+
 
 class HardwareProfiler:
     """
@@ -162,6 +198,22 @@ class MCTSEngine:
             if c.type == "micro":
                 self.micro_by_type.setdefault(c.inputs.type_name, []).append(c)
 
+        # Re-index 'any'-typed cells under every known concrete type so MCTS
+        # can reach them from any starting typestate.  'any'-typed cells are
+        # universally compatible; excluding them from concrete-type searches was
+        # the root cause of MCTS finding no path for opencv / vague prompts.
+        all_known_types = set(self.micro_by_type.keys()) - {"any"}
+        any_cells = self.micro_by_type.get("any", [])
+        for c in any_cells:
+            for t in all_known_types:
+                bucket = self.micro_by_type.setdefault(t, [])
+                if c not in bucket:          # avoid duplicates if already indexed
+                    bucket.append(c)
+        logger.debug(
+            f"[MCTS INIT] Indexed {len(any_cells)} 'any'-typed cells under "
+            f"{len(all_known_types)} concrete types."
+        )
+
     def search(self, start_type: str, target_type: str, iterations: int = 1000) -> list:
         logger.debug(f"MCTSEngine.search started with start_type={start_type}, target_type={target_type}, iterations={iterations}")
         # Root node acts as the starting typestate
@@ -199,16 +251,30 @@ class MCTSEngine:
             current = max(current.children, key=lambda c: c.ucb1(c_param=0.5))
         return current
 
+    def _get_reachable_cells(self, current_type: str) -> list:
+        """
+        Returns all micro cells reachable from current_type, merging type-specific
+        and 'any'-typed cells.  After __init__ re-indexing, 'any' cells are already
+        included in concrete-type buckets, but this helper is kept as a safety net
+        for cells injected dynamically after construction (e.g. synthesized nodes).
+        """
+        type_specific = self.micro_by_type.get(current_type, [])
+        universal = self.micro_by_type.get("any", [])
+        seen = {c.cell_id for c in type_specific}
+        return type_specific + [c for c in universal if c.cell_id not in seen]
+
     def _expand(self, node: MCTSNode):
         if node.cell_id == "ROOT":
-            # For root, get all MicroCells that match start_type
-            candidates = self.micro_by_type.get(node.current_type, [])
+            # For root, get all MicroCells that match start_type (including any-typed)
+            candidates = self._get_reachable_cells(node.current_type)
         else:
             candidates = self.orchestrator.get_neighbors(node.cell_id)
 
         for cell in candidates:
-            if cell.type == "micro" and cell.inputs.type_name == node.current_type:
-                # UnificationGate filtering happens here natively because we verify type_name match
+            if cell.type == "micro" and (
+                cell.inputs.type_name == node.current_type
+                or cell.inputs.type_name == "any"
+            ):
                 child = MCTSNode(cell_id=cell.cell_id, current_type=cell.outputs.type_name, parent=node)
                 node.children.append(child)
 
@@ -219,23 +285,22 @@ class MCTSEngine:
         max_depth = 15
 
         while current_type != target_type and depth < max_depth:
-            if current_id == "ROOT":
-                neighbors = self.micro_by_type.get(current_type, [])
-            else:
-                neighbors = [c for c in self.micro_by_type.get(current_type, [])
-                             if getattr(c, 'node_type', 'function') == 'function']
-            
+            neighbors = [
+                c for c in self._get_reachable_cells(current_type)
+                if getattr(c, 'node_type', 'function') == 'function'
+            ]
+
             if not neighbors:
-                return 0.0 # Dead end
-            
+                return 0.0  # Dead end
+
             next_cell = random.choice(neighbors)
             current_type = next_cell.outputs.type_name
             current_id = next_cell.cell_id
             depth += 1
-            
+
         if current_type == target_type:
             return 1.0
-        return 0.0 # Exceeded max_depth
+        return 0.0  # Exceeded max_depth
 
     def _backpropagate(self, node: MCTSNode, reward: float):
         current = node
@@ -483,7 +548,17 @@ class LatticeRouter:
                         try:
                             # We formulate the gap concept as the coercion between types
                             gap_concept = f"convert {current_type} to {target_type}"
-                            micro_json = synth.synthesize_micro_cell(gap_concept, current_type, target_type, fetcher)
+                            synth_ctx = SynthesisContext(
+                                gap_concept=gap_concept,
+                                input_type=current_type,
+                                output_type=target_type,
+                                domain=getattr(self.orchestrator, 'active_domain', '') or '',
+                                prompt_hint=prompt[:150] if prompt else '',
+                            )
+                            micro_json = synth.synthesize_micro_cell(
+                                gap_concept, current_type, target_type, fetcher,
+                                context_hint=synth_ctx.to_context_hint(),
+                            )
                             
                             from unification import UnificationGate
                             if UnificationGate.validate_synthesis(micro_json, current_type, target_type):
@@ -598,33 +673,39 @@ class LatticeRouter:
                         "tensorflow": "tf", "tf": "tensorflow"
                     }
                     expanded_tokens = set(filtered_tokens)
-                    for pt in filtered_tokens:
-                        if pt in MODULE_ALIASES:
-                            expanded_tokens.add(MODULE_ALIASES[pt])
+
+                    # Decompose sub-word API tokens (e.g., imread -> im, read; cvtcolor -> cvt, color)
+                    cell_sub_tokens = set(id_parts)
+                    for part in list(id_parts):
+                        sub_parts = re.findall(r"[a-z]+|[0-9]+", part)
+                        for sp in sub_parts:
+                            if len(sp) > 1:
+                                cell_sub_tokens.add(sp)
 
                     # Dynamic domain-agnostic keyword overlap coverage
                     token_hits = 0
                     for token in expanded_tokens:
-                        if token in cid_lower or any(token in p for p in id_parts) or any(token in kw for kw in kws):
+                        if token in cid_lower or any(token in p or p in token for p in cell_sub_tokens) or any(token in kw for kw in kws):
                             token_hits += 1
-                    
+
                     keyword_score = (token_hits / max(len(expanded_tokens), 1)) * 0.5
 
-                    penalty = 0.0
-                    # Small structural penalty for internal inspector/boolean check methods
-                    if cid_lower.startswith("is_") or cid_lower.startswith("has_") or "have_" in cid_lower or "haveimage" in cid_lower:
-                        penalty += 0.3
+                    # Typestate compatibility: incompatible candidates receive a strong
+                    # multiplicative discount rather than a flat subtracted penalty.
+                    # This means a wrong-type cell can only win if nothing else qualifies.
+                    type_match = (
+                        current_type is None
+                        or getattr(cell.inputs, 'type_name', 'any') == 'any'
+                        or getattr(cell.inputs, 'type_name', '') == current_type
+                    )
+                    type_factor = 1.0 if type_match else TYPE_MISMATCH_DISCOUNT
 
-                    # Typestate compatibility penalty for mismatched input types
-                    if current_type and getattr(cell, 'inputs', None) and getattr(cell.inputs, 'type_name', '') != 'any':
-                        if getattr(cell.inputs, 'type_name', '') != current_type:
-                            penalty += 0.5
-                            
-                    adjusted_dist = dist + keyword_score - penalty
+                    adjusted_dist = (dist + keyword_score) * type_factor
                     logger.debug(
                         f"[ROUTER CANDIDATE] cell={cell.cell_id} | dist={dist:.3f} | "
                         f"kw_score={keyword_score:.3f} (hits={token_hits}/{len(expanded_tokens)}) | "
-                        f"penalty={penalty:.2f} | adjusted_dist={adjusted_dist:.3f}"
+                        f"type_match={type_match} | type_factor={type_factor:.2f} | "
+                        f"adjusted_dist={adjusted_dist:.3f}"
                     )
                     scored_results.append((adjusted_dist, float(dist), cell))
 

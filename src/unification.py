@@ -9,6 +9,21 @@ logger = get_logger('unification')
 # We need AlgebraicSignature imported. It's safe to import it dynamically or statically if lattice.py is in same dir.
 from lattice import AlgebraicSignature
 
+# Template placeholder tokens used by UnificationGate.unify() in code_template strings.
+# Derived from the actual template strings — if placeholders change, update here.
+_TEMPLATE_STRINGS = (
+    "{input_var}",
+    "{output_var}",
+    "{input_filename}",
+    "{output_filename}",
+    "{input_source}",
+)
+_UNIFY_PLACEHOLDERS = frozenset(
+    token
+    for template in _TEMPLATE_STRINGS
+    for token in re.findall(r"\{(\w+)\}", template)
+)
+
 
 class ExecutionContext:
     """Manages variables and literal extraction arguments at runtime using type-state keys."""
@@ -83,7 +98,7 @@ class UnificationGate:
     """Performs dynamic monadic structural unification across cell signatures."""
 
     @staticmethod
-    def inject_parameters(code_template: str, parameters: list[str]) -> str:
+    def inject_parameters(code_template: str, parameters: list[str], context=None) -> str:
         """
         Universally injects parameters into a function call code template using AST.
         e.g. output_var = cv2.cvtColor(input_var) -> output_var = cv2.cvtColor(input_var, cv2.COLOR_BGR2GRAY)
@@ -120,21 +135,27 @@ class UnificationGate:
                             if any(ext in p_str for ext in [".csv", ".jpg", ".jpeg", ".png", ".json", ".parquet", ".html", ".txt", ".pdf"]):
                                 is_read_func = any(rk in func_name for rk in ["read", "load", "imread", "open"])
                                 is_write_func = any(wk in func_name for wk in ["write", "save", "export", "to", "imwrite"])
-                                is_output_name = any(ok in p_str for ok in ["out", "clean", "result", "dest", "new", "target", "export", "save"])
-                                is_input_name = any(ik in p_str for ik in ["in", "src", "source", "input", "raw", "orig"])
+
+                                in_fname = context.extracted_parameters.get("input_filename") if context and context.extracted_parameters else None
+                                out_fname = context.extracted_parameters.get("output_filename") if context and context.extracted_parameters else None
+
+                                is_input_name = (in_fname and str(in_fname).strip("'\"").lower() in p_str) or any(ik in p_str for ik in ["in", "src", "source", "input", "raw", "orig"])
+                                is_output_name = (out_fname and str(out_fname).strip("'\"").lower() in p_str) or any(ok in p_str for ok in ["out", "clean", "result", "dest", "new", "target", "export", "save"])
 
                                 if is_read_func and not is_output_name:
                                     has_match = True
                                 elif is_write_func and not is_input_name:
                                     has_match = True
 
-                            # 2. Keyword argument key relevance for sorting/filtering/converting
+                            # 2. Keyword & Positional argument key relevance for sorting/filtering/converting
                             if "=" in p_str:
                                 kw_key = p_str.split("=")[0].strip().lower()
                                 if kw_key in ["ascending", "by", "axis", "inplace"] and any(sk in func_name for sk in ["sort", "order", "rank"]):
                                     has_match = True
                                 elif kw_key in ["code", "color", "cmap", "mode"] and any(ck in func_name for ck in ["cvt", "convert", "transform"]):
                                     has_match = True
+                            elif (p_str.startswith("'") or p_str.startswith('"')) and any(sk in func_name for sk in ["sort", "order", "rank", "by", "group"]):
+                                has_match = True
 
                             # 3. Sub-token diff ratio matching
                             if not has_match:
@@ -243,7 +264,20 @@ class UnificationGate:
                 if h != repr(in_fname) and h != repr(out_fname) and h != in_fname and h != out_fname
             ]
             if injected_params:
-                compiled_snippet = UnificationGate.inject_parameters(compiled_snippet, injected_params)
+                compiled_snippet = UnificationGate.inject_parameters(compiled_snippet, injected_params, context=context)
+        
+        # If write/export call has no filename argument, inject output_filename if available
+        if out_fname and compiled_snippet:
+            try:
+                tree = ast.parse(compiled_snippet)
+                for node in ast.walk(tree):
+                    if isinstance(node, ast.Call):
+                        func_name = node.func.attr.lower() if isinstance(node.func, ast.Attribute) else (node.func.id.lower() if isinstance(node.func, ast.Name) else "")
+                        if any(wk in func_name for wk in ["to_csv", "imwrite", "savefig", "to_json", "to_parquet", "to_excel"]):
+                            if not node.args:
+                                compiled_snippet = UnificationGate.inject_parameters(compiled_snippet, [repr(out_fname)], context=context)
+            except Exception:
+                pass
 
         # AST Lineage Repair: Ensure transformed variables in context are properly consumed by downstream calls
         compiled_snippet = UnificationGate.fix_dead_variables_in_snippet(context, compiled_snippet, current_output_var=output_var_name)
@@ -407,11 +441,11 @@ class UnificationGate:
 
         builtin_names = set(dir(builtins))
         context_vars = set(context.registry.keys()) if context else set()
-        context_vars.add("input_source") # NEVER try to import this
-        
-        # We also want to ignore pandas, np, etc if they are already imported elsewhere, but the AST visitor handles `stored_names`
-        # which includes imports. However, if the code uses `pd` but `pd` isn't imported, it might prepend `import pd` which will fail.
-        # But this is a generic resolver. Let's fix the `input_source` issue first.
+        # _UNIFY_PLACEHOLDERS covers all template placeholder names (input_var, output_var, etc.)
+        # so they are never mistaken for importable modules regardless of context.
+        context_vars.update(_UNIFY_PLACEHOLDERS)
+        context_vars.add("input_source")  # legacy guard; also present in _UNIFY_PLACEHOLDERS
+
         required_imports = loaded_names - stored_names - builtin_names - context_vars
 
         # Q-7 fix: alias map — resolve common short names to their correct import statements.

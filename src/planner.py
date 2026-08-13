@@ -9,15 +9,21 @@ logger = get_logger("planner")
 from lattice import LatticeOrchestrator, MicroCell
 from inference import ModelManager
 
+# Reward for cells whose domain matches the active prompt domain.
+# A small boost to prefer in-domain candidates without excluding cross-domain ones.
+DOMAIN_AFFINITY_BONUS = 0.10
+
+
 class ZeroShotPlanner:
     def __init__(self, orchestrator: LatticeOrchestrator, rag_engine=None):
+
         self.orchestrator = orchestrator
         self.rag_engine = rag_engine
 
     def _get_available_micro_nodes_context(self, prompt: str) -> str:
         """Returns a string summary of available Micro-Nodes for the LLM context."""
         if self.rag_engine:
-            return self.rag_engine.get_relevant_context(prompt, top_k=10)
+            return self.rag_engine.get_relevant_context(prompt, top_k=25)
         else:
             # Fallback if no RAG is provided
             available_nodes = []
@@ -136,46 +142,18 @@ class ZeroShotPlanner:
             concept_coverage = concept_hits / max(len(h_tokens), 1)
             seq_ratio = SequenceMatcher(None, hallucinated_id.lower(), cid_lower).ratio()
 
-            action_bonus = 0.0
-            action_syns = {
-                "read": {"read", "load", "open", "imread", "get", "fetch"},
-                "load": {"read", "load", "open", "imread", "get", "fetch"},
-                "write": {"write", "save", "export", "imwrite", "to", "dump"},
-                "save": {"write", "save", "export", "imwrite", "to", "dump"},
-                "convert": {"convert", "cvt", "transform", "change"},
-                "sort": {"sort", "order", "arrange", "rank"},
-                "drop": {"drop", "remove", "delete"},
-            }
-            for ht in h_tokens:
-                if ht in action_syns:
-                    target_syns = action_syns[ht]
-                    if any(syn in core_c_tokens or any(syn in ct for ct in core_c_tokens) for syn in target_syns):
-                        action_bonus += 0.35
-                    else:
-                        action_bonus -= 0.35
+            # Dynamic domain affinity bonus: reward cells from the same domain as the prompt.
+            domain_bonus = DOMAIN_AFFINITY_BONUS if (
+                active_domains and cell_domain and cell_domain in active_domains
+            ) else 0.0
 
-            container_boost = 0.0
-            if any(k in h_tokens or k in prompt_lower for k in ["dataframe", "df", "rows", "table"]):
-                if "dataframe" in cid_lower:
-                    container_boost += 0.25
-                elif "series" in cid_lower:
-                    container_boost -= 0.15
-
-            id_length_penalty = (len(cid_lower) - 12) * 0.01 if len(cid_lower) > 12 else 0.0
-            if any(primary in cid_lower for primary in ["dataframe", "series", "ndarray", "matrix", "tensor", "image"]):
-                id_length_penalty = max(0.0, id_length_penalty - 0.06)
-
-            obscure_penalty = 0.0
-            if any(obs in cid_lower for obs in ["cuda", "gpumat", "ocl", "gapi", "multi", "randu", "reshape", "metadata", "list_like", "common_convert"]):
-                obscure_penalty += 0.35
-
-            score = (concept_coverage * 0.50) + (seq_ratio * 0.25) + domain_bonus + action_bonus + container_boost - id_length_penalty - obscure_penalty
+            score = (concept_coverage * 0.65) + (seq_ratio * 0.35) + domain_bonus
 
             if score > best_score:
                 best_score = score
                 best_cell_id = cid
 
-        if best_cell_id and best_score >= 0.30:
+        if best_cell_id and best_score >= 0.20:
             logger.info(f"[PLANNER AUTO-CORRECT] Fuzzy matched '{hallucinated_id}' -> '{best_cell_id}' (score: {best_score:.3f})")
             return best_cell_id
         
@@ -273,11 +251,30 @@ class ZeroShotPlanner:
             ]
         }
 
+    def run_llm_pre_translator_pass(self, prompt: str) -> str:
+        """
+        [Profile E] Pre-translates raw human prompts into structured, unambiguous functional step specifications.
+        """
+        logger.info(f"[PROFILE E PRE-TRANSLATOR] Translating prompt: '{prompt}'")
+        sys_prompt = "You are a software execution intent translator. Convert raw user prompts into an explicit, unambiguous step-by-step functional specification. List each required data operation clearly without ambiguity."
+        trans_prompt = f"User Request: {prompt}\n\nProvide an explicit step-by-step technical execution specification:"
+        try:
+            translated = ModelManager.get_instance().generate_text(trans_prompt, max_tokens=512, system_prompt=sys_prompt)
+            if translated and len(translated.strip()) > 10:
+                logger.info(f"[PROFILE E PRE-TRANSLATOR SUCCESS] Translated prompt -> {translated[:150]}...")
+                return translated.strip()
+        except Exception as e:
+            logger.warning(f"[PROFILE E PRE-TRANSLATOR ERROR] {e}. Falling back to original prompt.")
+        return prompt
+
     def run_planning_pass(self, prompt: str) -> dict:
         """
         Runs the LLM as a transient state machine to generate a Macro-Node graph.
         Enforces strict JSON grammar.
         """
+        if ModelManager.get_instance().has_translator_pass():
+            prompt = self.run_llm_pre_translator_pass(prompt)
+
         trunc_prompt = prompt[:100] + ("..." if len(prompt) > 100 else "")
         logger.info(f"Starting run_planning_pass with prompt: {trunc_prompt}")
         logger.info("Executing inference with JSON constraint via ModelManager...")
