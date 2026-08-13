@@ -257,8 +257,8 @@ def run_prompt(req: RunRequest):
 
             # Auto-correct: if the planner hallucinated a cell ID that doesn't exist,
             # try fuzzy matching against all known cells before falling back to gap-bridging.
-            # This is the primary path for resolving SYNTH_* names to real lattice cells.
-            if target_cell is None:
+            # (Excludes SYNTH_* steps which are intended for direct LLM synthesis).
+            if target_cell is None and not step_id.startswith("SYNTH_"):
                 corrected_id = planner._find_closest_existing_cell(step_id, req.prompt)
                 if corrected_id:
                     target_cell = global_orchestrator.loaded_cells.get(corrected_id)
