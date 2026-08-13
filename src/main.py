@@ -255,6 +255,17 @@ def run_prompt(req: RunRequest):
         for i, step_id in enumerate(sub_cells_ids):
             target_cell = global_orchestrator.loaded_cells.get(step_id)
 
+            # Auto-correct: if the planner hallucinated a cell ID that doesn't exist,
+            # try fuzzy matching against all known cells before falling back to gap-bridging.
+            # This is the primary path for resolving SYNTH_* names to real lattice cells.
+            if target_cell is None:
+                corrected_id = planner._find_closest_existing_cell(step_id, req.prompt)
+                if corrected_id:
+                    target_cell = global_orchestrator.loaded_cells.get(corrected_id)
+                    if target_cell:
+                        log_buffer.append({"msg": f"[AUTO-CORRECT] '{step_id}' → '{corrected_id}'", "type": "info"})
+                        step_id = corrected_id
+
             if target_cell is None:
                 expected_inputs = current_signature.type_name
                 expected_outputs = "any"
@@ -265,7 +276,7 @@ def run_prompt(req: RunRequest):
                         break
 
                 log_buffer.append({"msg": f"Planner flagged MISSING_NODE ({step_id}) for {expected_inputs}->{expected_outputs}.", "type": "warn"})
-                
+
                 # 1. Composition Confidence (reuse shared_mcts — no re-construction overhead)
                 comp_path = shared_mcts.search(expected_inputs, expected_outputs, iterations=200)
                 comp_confidence = 1.0 / (len(comp_path) + 1) if comp_path else 0.0

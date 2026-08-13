@@ -41,14 +41,31 @@ class SynthesisEngine:
         """
         import ast as _ast
 
+        # ── Pre-step: Canonicalize all placeholder references to valid Python identifiers ──
+        # Both braced ({input_var}) and bare (input_var) forms are replaced with
+        # a unique temp name (_nstl_ph_name_) so the code is valid Python for
+        # ast.parse() and compile().  The braces in {input_var} make it a Python
+        # set display, causing "cannot assign to set display" SyntaxErrors.
+        _TEMP_PREFIX = "_nstl_ph_"
+        temp_code = code
+        for name in placeholder_names:
+            # Replace braced form first: {name} → _nstl_ph_name_
+            temp_code = temp_code.replace('{' + name + '}', _TEMP_PREFIX + name + '_')
+            # Replace bare form: word-boundary match only
+            temp_code = re.sub(
+                rf'(?<!\{{)\b{re.escape(name)}\b(?!\}})',
+                _TEMP_PREFIX + name + '_',
+                temp_code,
+            )
+
         # ── Step 1: Strip module-level Return nodes ───────────────────────────────
         try:
-            tree = _ast.parse(code)
+            tree = _ast.parse(temp_code)
             original_len = len(tree.body)
             tree.body = [node for node in tree.body if not isinstance(node, _ast.Return)]
             if len(tree.body) != original_len:
                 _ast.fix_missing_locations(tree)
-                code = _ast.unparse(tree)
+                temp_code = _ast.unparse(tree)
                 logger.info(
                     f"[SYNTHESIS REPAIR] Stripped "
                     f"{original_len - len(tree.body)} module-level Return node(s)."
@@ -57,25 +74,22 @@ class SynthesisEngine:
             # Cannot parse yet — proceed; compile gate below catches hard failures.
             pass
 
-        # ── Step 2: Compilation gate (before placeholder bracing) ─────────────────
+        # ── Step 2: Compilation gate (temp_code is valid Python at this point) ───
         try:
-            compile(code, "<synthesis>", "exec")
+            compile(temp_code, "<synthesis>", "exec")
         except SyntaxError as e:
             raise ValueError(
                 f"[SYNTHESIS REPAIR] Code failed compilation gate after structural repair: {e}\n"
-                f"Code:\n{code}"
+                f"Code:\n{temp_code}"
             )
 
-        # ── Step 3: Normalize bare placeholder names → {braced} form ─────────────
-        # Word-boundary match ensures identifiers like `my_input_var` are untouched.
+        # ── Step 3: Restore {braced} placeholder form ─────────────────────────────
+        # Converts _nstl_ph_name_ → {name} so UnificationGate.unify() can substitute.
+        result = temp_code
         for name in placeholder_names:
-            code = re.sub(
-                rf'(?<!\{{)\b{re.escape(name)}\b(?!\}})',
-                '{' + name + '}',
-                code,
-            )
+            result = result.replace(_TEMP_PREFIX + name + '_', '{' + name + '}')
 
-        return code
+        return result
 
     def synthesize_micro_cell(
         self,
