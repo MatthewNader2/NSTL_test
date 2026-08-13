@@ -156,7 +156,7 @@ Use the following Official Documentation as your absolute ground truth:"""
         prompt = f"{system_prompt}\n\nTask: {gap_concept}\nLive Context:\n{live_docs}"
 
         logger.info("Executing generation via ModelManager...")
-        result_text = ModelManager.get_instance().generate_text(prompt, max_tokens=1024)
+        result_text = ModelManager.get_instance().generate_text(prompt, max_tokens=2048)
 
         cleaned_text = result_text.strip()
         if "```json" in cleaned_text:
@@ -164,7 +164,7 @@ Use the following Official Documentation as your absolute ground truth:"""
         elif "```" in cleaned_text:
             cleaned_text = cleaned_text.split("```")[1].split("```")[0].strip()
 
-        # ── Parse with layered repair fallbacks (handles unescaped control chars like \n) ──────
+        # ── Parse with layered repair fallbacks (handles unescaped control chars, raw # comments, truncation) ──
         micro_json = None
 
         # Stage 1: Try strict=False (permits raw unescaped newlines/tabs inside string fields)
@@ -173,32 +173,40 @@ Use the following Official Documentation as your absolute ground truth:"""
         except Exception as e:
             logger.warning(f"Initial JSON parse failed ({e}); attempting multi-stage repair...")
 
-        # Stage 2: Extract substring between first '{' and last '}' and parse with strict=False
+        # Stage 2: Strip Python comments (# ...) outside string literals & trailing commas
         if micro_json is None:
-            first_brace = cleaned_text.find('{')
-            last_brace = cleaned_text.rfind('}')
-            if first_brace != -1 and last_brace > first_brace:
-                sub = cleaned_text[first_brace:last_brace+1]
-                try:
-                    micro_json = json.loads(sub, strict=False)
-                except Exception:
-                    pass
-
-        # Stage 3: Remove trailing commas before } or ] and retry strict=False
-        if micro_json is None:
-            repaired = re.sub(r',\s*([\}\]])', r'\1', cleaned_text)
+            no_comments = re.sub(r'^\s*#.*$', '', cleaned_text, flags=re.MULTILINE)
+            repaired = re.sub(r',\s*([\}\]])', r'\1', no_comments)
             try:
                 micro_json = json.loads(repaired, strict=False)
             except Exception:
                 pass
 
-        # Stage 4: Robust DOTALL regex extraction for "code" block fallback
+        # Stage 3: Handle truncated/unterminated JSON (auto-close quotes and braces)
         if micro_json is None:
-            code_match = re.search(r'"code"\s*:\s*"(.*?)"\s*,\s*"dependencies"', cleaned_text, re.DOTALL)
+            first_brace = cleaned_text.find('{')
+            if first_brace != -1:
+                sub = cleaned_text[first_brace:]
+                # Strip raw comments
+                sub = re.sub(r'^\s*#.*$', '', sub, flags=re.MULTILINE)
+                # Count open/close quotes and braces
+                if sub.count('"') % 2 != 0:
+                    sub += '"'
+                open_b = sub.count('{') - sub.count('}')
+                if open_b > 0:
+                    sub += '}' * open_b
+                try:
+                    micro_json = json.loads(sub, strict=False)
+                except Exception:
+                    pass
+
+        # Stage 4: Robust DOTALL regex extraction for "code" block fallback (handles partial/truncated code)
+        if micro_json is None:
+            code_match = re.search(r'"code"\s*:\s*"(.*?)"(?=\s*,\s*"|\s*\}|\s*$)', cleaned_text, re.DOTALL)
             if not code_match:
-                code_match = re.search(r'"code"\s*:\s*"(.*?)"\s*\}', cleaned_text, re.DOTALL)
+                code_match = re.search(r'"code"\s*:\s*"(.*)', cleaned_text, re.DOTALL)
             if code_match:
-                code_str = code_match.group(1).replace('\\"', '"').replace('\\n', '\n')
+                code_str = code_match.group(1).replace('\\"', '"').replace('\\n', '\n').rstrip('"\n\r\t ')
                 safe_id = re.sub(r'[^a-zA-Z0-9_]', '_', gap_concept).lower()[:40]
                 micro_json = {
                     "cell_id": f"micro_synthesized_{safe_id}",
