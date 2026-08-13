@@ -136,12 +136,12 @@ Schema:
   "inputs": {{ "type_name": "{expected_input}", "state": "raw" }},
   "outputs": {{ "type_name": "{expected_output}", "state": "computed" }},
   "domain_implementations": {{
-    "Python_Core": {
-      "code": "import module_name\n{output_var} = module_name.process({input_var})",
+    "Python_Core": {{
+      "code": "import module_name\n{{output_var}} = module_name.process({{input_var}})",
       "dependencies": []
-    }
-  }
-}
+    }}
+  }}
+}}
 
 CRITICAL INSTRUCTION: The `code` field MUST contain ACTUAL, functional Python code that implements the concept. DO NOT output placeholder text like `<library>` or `...`. You MUST replace `...` with real library calls and real logic appropriate for the concept.
 CRITICAL INSTRUCTION 2: You MUST use the exact placeholder strings `{{input_var}}` and `{{output_var}}` in your python logic for the main input and output of the cell. The engine will dynamically replace these at runtime. Do NOT use hardcoded variable names for the input or output.
