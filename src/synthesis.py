@@ -41,13 +41,18 @@ class SynthesisEngine:
         """
         import ast as _ast
 
+        # Strip trailing JSON delimiters (e.g. }, }, ], ", ",) leaked by LLM string formatting
+        lines = temp_code.rstrip().splitlines()
+        while lines and lines[-1].strip() in ("}", "},", "]", "],", '"', '",'):
+            lines.pop()
+        temp_code = "\n".join(lines)
+
         # ── Pre-step: Canonicalize all placeholder references to valid Python identifiers ──
         # Both braced ({input_var}) and bare (input_var) forms are replaced with
         # a unique temp name (_nstl_ph_name_) so the code is valid Python for
         # ast.parse() and compile().  The braces in {input_var} make it a Python
         # set display, causing "cannot assign to set display" SyntaxErrors.
         _TEMP_PREFIX = "_nstl_ph_"
-        temp_code = code
         for name in placeholder_names:
             # Replace braced form first: {name} → _nstl_ph_name_
             temp_code = temp_code.replace('{' + name + '}', _TEMP_PREFIX + name + '_')
@@ -137,13 +142,13 @@ Schema:
   "outputs": {{ "type_name": "{expected_output}", "state": "computed" }},
   "domain_implementations": {{
     "Python_Core": {{
-      "code": "import module_name\n{{output_var}} = module_name.process({{input_var}})",
+      "code": "# Functional Python statements operating on {{input_var}}\n{{output_var}} = {{input_var}}",
       "dependencies": []
     }}
   }}
 }}
 
-CRITICAL INSTRUCTION: The `code` field MUST contain ACTUAL, functional Python code that implements the concept. DO NOT output placeholder text like `<library>` or `...`. You MUST replace `...` with real library calls and real logic appropriate for the concept.
+CRITICAL INSTRUCTION: The `code` field MUST contain ACTUAL, working Python code. Import any required libraries (e.g. pandas as pd, cv2, numpy as np, math) directly in the code. Do NOT output placeholder text like `module_name` or `...`.
 CRITICAL INSTRUCTION 2: You MUST use the exact placeholder strings `{{input_var}}` and `{{output_var}}` in your python logic for the main input and output of the cell. The engine will dynamically replace these at runtime. Do NOT use hardcoded variable names for the input or output.
 
 Use the following Official Documentation as your absolute ground truth:"""
