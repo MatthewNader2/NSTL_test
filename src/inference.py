@@ -481,6 +481,7 @@ class BenchmarkProfile_C(InferenceProfile):
             self._dim = int(detected_dimension)
         
         # Load LLM
+        llm_dir = os.path.join(MODELS_DIR, "llms", llm_name)
         all_ggufs = [f for f in os.listdir(llm_dir) if f.lower().endswith('.gguf')] if os.path.exists(llm_dir) else []
         gguf_files = sorted(all_ggufs, key=lambda f: (1 if '-of-' in f.lower() else 0, f))
         if not gguf_files:
