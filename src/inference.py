@@ -132,7 +132,7 @@ def _load_embedder_model(emb_path: str, emb_device: str):
         emb_path, 
         device=emb_device, 
         trust_remote_code=True, 
-        model_kwargs={'low_cpu_mem_usage': False, 'default_task': 'retrieval'}
+        model_kwargs={'low_cpu_mem_usage': False}
     )
 
 # Setup benchmarking logger
@@ -532,17 +532,17 @@ class BenchmarkProfile_C(InferenceProfile):
     def get_embedding(self, text: str) -> List[float]:
         try:
             return self.embedder.encode([text], convert_to_numpy=True, task="retrieval")[0].tolist()
-        except TypeError:
+        except Exception:
             return self.embedder.encode([text], convert_to_numpy=True)[0].tolist()
 
     def get_embeddings(self, texts: List[str]) -> List[List[float]]:
-        """Vectorised batch encode — one GPU/CPU kernel call for all N texts."""
+        """Vectorised batch encode — chunked GPU/CPU calls for all N texts."""
         if not texts:
             return []
         try:
-            return self.embedder.encode(texts, convert_to_numpy=True, task="retrieval", batch_size=64).tolist()
-        except TypeError:
-            return self.embedder.encode(texts, convert_to_numpy=True, batch_size=64).tolist()
+            return self.embedder.encode(texts, convert_to_numpy=True, task="retrieval", batch_size=64, show_progress_bar=False).tolist()
+        except Exception:
+            return self.embedder.encode(texts, convert_to_numpy=True, batch_size=64, show_progress_bar=False).tolist()
 
     def generate_text(self, prompt: str, max_tokens: int = 2048, schema: dict = None, system_prompt: str = None) -> str:
         messages = []

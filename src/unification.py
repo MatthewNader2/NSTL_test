@@ -94,10 +94,29 @@ class ExecutionContext:
         return None
 
 
-# Formal Top Type ⊤ in NSTL Type System (unifies with every type tau: unify(⊤, tau) = True)
-TOP_TYPE_SET = frozenset({"any", "Any", "*", "top", "TOP", "ANY", "unknown", "object"})
+class TopTypeSentinel:
+    """Formal Top Type ⊤ sentinel in NSTL type system."""
+    _instance = None
+    def __new__(cls):
+        if cls._instance is None:
+            cls._instance = super().__new__(cls)
+        return cls._instance
+    def __repr__(self):
+        return "⊤"
+    def __str__(self):
+        return "any"
 
-def types_unify(expected_type: str, actual_type: str) -> bool:
+TOP_TYPE_SENTINEL = TopTypeSentinel()
+TOP_TYPE_SET = frozenset({"any", "Any", "*", "top", "TOP", "ANY", "unknown", "object", TOP_TYPE_SENTINEL})
+
+def is_top_type(t) -> bool:
+    if t is TOP_TYPE_SENTINEL or isinstance(t, TopTypeSentinel):
+        return True
+    if not t:
+        return True
+    return str(t).strip() in TOP_TYPE_SET
+
+def types_unify(expected_type, actual_type) -> bool:
     """
     Formal unification operator unify(tau_expected, tau_actual).
     Returns True iff tau_expected and tau_actual unify.
@@ -106,12 +125,10 @@ def types_unify(expected_type: str, actual_type: str) -> bool:
       2. unify(tau, ⊤) = True for all tau
       3. unify(tau, tau) = True (Exact identity)
     """
-    if not expected_type or not actual_type:
+    if is_top_type(expected_type) or is_top_type(actual_type):
         return True
     exp_clean = str(expected_type).strip()
     act_clean = str(actual_type).strip()
-    if exp_clean in TOP_TYPE_SET or act_clean in TOP_TYPE_SET:
-        return True
     return exp_clean == act_clean
 
 class UnificationGate:

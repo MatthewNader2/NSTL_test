@@ -41,6 +41,7 @@ class SynthesisEngine:
         """
         import ast as _ast
 
+        temp_code = code
         # Strip trailing JSON delimiters (e.g. }, }, ], ", ",) leaked by LLM string formatting
         lines = temp_code.rstrip().splitlines()
         while lines and lines[-1].strip() in ("}", "},", "]", "],", '"', '",'):

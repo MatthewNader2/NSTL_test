@@ -44,10 +44,9 @@ class LocalRAG:
     def _get_model_cache_path(self):
         try:
             profile = ModelManager.get_instance().active_profile
-            model_name = "__".join(filter(None, [
-                getattr(profile, "embedder_name", None) or ModelManager.get_instance().current_profile_name,
-                str(ModelManager.get_instance().embedding_dimension),
-            ]))
+            emb_name = getattr(profile, "embedder_name", None) or "default_embedder"
+            dim = ModelManager.get_instance().embedding_dimension
+            model_name = f"{emb_name}__dim{dim}"
         except Exception:
             model_name = "unknown_model"
         # Sanitize model name

@@ -101,17 +101,8 @@ PROFILES_TO_TEST = [
 ]
 
 def start_server():
-    import socket
-    # Ensure port 58102 is completely free before starting
-    for _ in range(15):
-        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        s.settimeout(0.5)
-        res = s.connect_ex(('127.0.0.1', 58102))
-        s.close()
-        if res != 0:
-            break
-        time.sleep(1)
-
+    subprocess.run("fuser -k 58102/tcp || pkill -9 -f 'python3 src/main.py' || true", shell=True, capture_output=True)
+    time.sleep(1)
     env = os.environ.copy()
     env["TEST_HEADLESS"] = "1"
     proc = subprocess.Popen(["python3", "src/main.py"], env=env, cwd=PROJECT_ROOT)

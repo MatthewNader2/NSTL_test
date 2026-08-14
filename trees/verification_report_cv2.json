@@ -1,0 +1,802 @@
+[
+  {
+    "cell_id": "CV2_CAMSHIFT_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "tuple",
+    "type_match": false,
+    "error": "OpenCV(4.12.0) :-1: error: (-5:Bad argument) in function 'CamShift'\n> Overload resolution failed:\n>  - Can't parse 'window'. Expected sequence length 4, got 8\n>  - Can't parse 'window'. Expected sequence length 4, got 8\n"
+  },
+  {
+    "cell_id": "CV2_CANNY_DEFAULT",
+    "verified": true,
+    "observed_output_type": "ndarray",
+    "declared_output_type": "Mat",
+    "type_match": true,
+    "error": null
+  },
+  {
+    "cell_id": "CV2_EMD_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "Mat",
+    "type_match": false,
+    "error": "OpenCV(4.12.0) /io/opencv/modules/imgproc/src/emd_new.cpp:947: error: (-2:Unspecified error) in function 'float cv::EMD(cv::InputArray, cv::InputArray, int, cv::InputArray, float*, cv::OutputArray)'\n> The sign1 must be 32FC1 (expected: 'sign1.type() == CV_32FC1'), where\n>     'sign1.type()' is 16\n> must be equal to\n>     'CV_32FC1' is 5\n"
+  },
+  {
+    "cell_id": "CV2_GAUSSIANBLUR_DEFAULT",
+    "verified": true,
+    "observed_output_type": "ndarray",
+    "declared_output_type": "Mat",
+    "type_match": true,
+    "error": null
+  },
+  {
+    "cell_id": "CV2_HOUGHCIRCLES_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "Mat",
+    "type_match": false,
+    "error": "OpenCV(4.12.0) /io/opencv/modules/imgproc/src/hough.cpp:2284: error: (-215:Assertion failed) !_image.empty() && _image.type() == CV_8UC1 && (_image.isMat() || _image.isUMat()) in function 'HoughCircles'\n"
+  },
+  {
+    "cell_id": "CV2_HOUGHCIRCLESWITHACCUMULATOR_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "Mat",
+    "type_match": false,
+    "error": "OpenCV(4.12.0) /io/opencv/modules/imgproc/src/hough.cpp:2284: error: (-215:Assertion failed) !_image.empty() && _image.type() == CV_8UC1 && (_image.isMat() || _image.isUMat()) in function 'HoughCircles'\n"
+  },
+  {
+    "cell_id": "CV2_HOUGHLINES_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "Mat",
+    "type_match": false,
+    "error": "OpenCV(4.12.0) :-1: error: (-5:Bad argument) in function 'HoughLines'\n> Overload resolution failed:\n>  - Argument 'threshold' is required to be an integer\n>  - Argument 'threshold' is required to be an integer\n"
+  },
+  {
+    "cell_id": "CV2_HOUGHLINESP_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "Mat",
+    "type_match": false,
+    "error": "OpenCV(4.12.0) :-1: error: (-5:Bad argument) in function 'HoughLinesP'\n> Overload resolution failed:\n>  - Argument 'threshold' is required to be an integer\n>  - Argument 'threshold' is required to be an integer\n"
+  },
+  {
+    "cell_id": "CV2_HOUGHLINESPOINTSET_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "Mat",
+    "type_match": false,
+    "error": "OpenCV(4.12.0) :-1: error: (-5:Bad argument) in function 'HoughLinesPointSet'\n> Overload resolution failed:\n>  - Argument 'threshold' is required to be an integer\n>  - Argument 'threshold' is required to be an integer\n"
+  },
+  {
+    "cell_id": "CV2_HOUGHLINESWITHACCUMULATOR_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "Mat",
+    "type_match": false,
+    "error": "OpenCV(4.12.0) :-1: error: (-5:Bad argument) in function 'HoughLinesWithAccumulator'\n> Overload resolution failed:\n>  - Argument 'threshold' is required to be an integer\n>  - Argument 'threshold' is required to be an integer\n"
+  },
+  {
+    "cell_id": "CV2_HUMOMENTS_DEFAULT",
+    "verified": true,
+    "observed_output_type": "ndarray",
+    "declared_output_type": "Mat",
+    "type_match": true,
+    "error": null
+  },
+  {
+    "cell_id": "CV2_LUT_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "Mat",
+    "type_match": false,
+    "error": "OpenCV(4.12.0) /io/opencv/modules/core/src/lut.cpp:159: error: (-215:Assertion failed) (lutcn == cn || lutcn == 1) && _lut.total() == 256 && _lut.isContinuous() && (depth == CV_8U || depth == CV_8S) in function 'LUT'\n"
+  },
+  {
+    "cell_id": "CV2_LAPLACIAN_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "Mat",
+    "type_match": false,
+    "error": "OpenCV(4.12.0) /io/opencv/modules/imgproc/src/filter.simd.hpp:3250: error: (-213:The function/feature is not implemented) Unsupported combination of source format (=16), and destination format (=17) in function 'getLinearFilter'\n"
+  },
+  {
+    "cell_id": "CV2_MAHALANOBIS_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "float",
+    "type_match": false,
+    "error": "OpenCV(4.12.0) /io/opencv/modules/core/src/matmul.dispatch.cpp:843: error: (-215:Assertion failed) len == icovar.rows && len == icovar.cols in function 'Mahalanobis'\n"
+  },
+  {
+    "cell_id": "CV2_PCABACKPROJECT_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "Mat",
+    "type_match": false,
+    "error": "OpenCV(4.12.0) /io/opencv/modules/core/src/pca.cpp:325: error: (-215:Assertion failed) !mean.empty() && !eigenvectors.empty() && ((mean.rows == 1 && eigenvectors.rows == data.cols) || (mean.cols == 1 && eigenvectors.rows == data.rows)) in function 'backProject'\n"
+  },
+  {
+    "cell_id": "CV2_PCACOMPUTE_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "Mat",
+    "type_match": false,
+    "error": "OpenCV(4.12.0) /io/opencv/modules/core/src/pca.cpp:72: error: (-215:Assertion failed) data.channels() == 1 in function 'operator()'\n"
+  },
+  {
+    "cell_id": "CV2_PCACOMPUTE2_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "Mat",
+    "type_match": false,
+    "error": "OpenCV(4.12.0) /io/opencv/modules/core/src/pca.cpp:72: error: (-215:Assertion failed) data.channels() == 1 in function 'operator()'\n"
+  },
+  {
+    "cell_id": "CV2_PCAPROJECT_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "Mat",
+    "type_match": false,
+    "error": "OpenCV(4.12.0) /io/opencv/modules/core/src/pca.cpp:295: error: (-215:Assertion failed) !mean.empty() && !eigenvectors.empty() && ((mean.rows == 1 && mean.cols == data.cols) || (mean.cols == 1 && mean.rows == data.rows)) in function 'project'\n"
+  },
+  {
+    "cell_id": "CV2_PSNR_DEFAULT",
+    "verified": true,
+    "observed_output_type": "float",
+    "declared_output_type": "float",
+    "type_match": true,
+    "error": null
+  },
+  {
+    "cell_id": "CV2_RQDECOMP3X3_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "Mat",
+    "type_match": false,
+    "error": "OpenCV(4.12.0) /io/opencv/modules/core/src/matrix_wrap.cpp:1346: error: (-215:Assertion failed) mtype == type0 || (CV_MAT_CN(mtype) == 1 && ((1 << type0) & fixedDepthMask) != 0) in function 'create'\n"
+  },
+  {
+    "cell_id": "CV2_RODRIGUES_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "Mat",
+    "type_match": false,
+    "error": "OpenCV(4.12.0) /io/opencv/modules/calib3d/src/calibration_base.cpp:131: error: (-2:Unspecified error) in function 'void cv::Rodrigues(cv::InputArray, cv::OutputArray, cv::OutputArray)'\n> Input matrix must be 1x3 or 3x1 for a rotation vector, or 3x3 for a rotation matrix:\n>     '((srcSz == Size(3, 1) || srcSz == Size(1, 3)) && srccn == 1) || (srcSz == Size(1, 1) && srccn == 3) || (srcSz == Size(3, 3) && srccn == 1)'\n> where\n>     'srcSz' is [8 x 8]\n"
+  },
+  {
+    "cell_id": "CV2_SVBACKSUBST_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "Mat",
+    "type_match": false,
+    "error": "OpenCV(4.12.0) /io/opencv/modules/core/src/lapack.cpp:1518: error: (-210:Unsupported format or combination of formats)  in function 'backSubst'\n"
+  },
+  {
+    "cell_id": "CV2_SVDECOMP_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "Mat",
+    "type_match": false,
+    "error": "OpenCV(4.12.0) /io/opencv/modules/core/src/lapack.cpp:1414: error: (-215:Assertion failed) type == CV_32F || type == CV_64F in function '_SVDcompute'\n"
+  },
+  {
+    "cell_id": "CV2_SCHARR_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "Mat",
+    "type_match": false,
+    "error": "OpenCV(4.12.0) /io/opencv/modules/imgproc/src/deriv.cpp:66: error: (-215:Assertion failed) dx >= 0 && dy >= 0 && dx+dy == 1 in function 'getScharrKernels'\n"
+  },
+  {
+    "cell_id": "CV2_SOBEL_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "Mat",
+    "type_match": false,
+    "error": "OpenCV(4.12.0) /io/opencv/modules/imgproc/src/filter.simd.hpp:3096: error: (-213:The function/feature is not implemented) Unsupported combination of buffer format (=21), and destination format (=17) in function 'getLinearColumnFilter'\n"
+  },
+  {
+    "cell_id": "CV2_ABSDIFF_DEFAULT",
+    "verified": true,
+    "observed_output_type": "ndarray",
+    "declared_output_type": "Mat",
+    "type_match": true,
+    "error": null
+  },
+  {
+    "cell_id": "CV2_ACCUMULATE_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "Mat",
+    "type_match": false,
+    "error": "OpenCV(4.12.0) /io/opencv/modules/imgproc/src/accum.cpp:332: error: (-215:Assertion failed) func != 0 in function 'accumulate'\n"
+  },
+  {
+    "cell_id": "CV2_ACCUMULATEPRODUCT_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "Mat",
+    "type_match": false,
+    "error": "OpenCV(4.12.0) /io/opencv/modules/imgproc/src/accum.cpp:533: error: (-215:Assertion failed) func != 0 in function 'accumulateProduct'\n"
+  },
+  {
+    "cell_id": "CV2_ACCUMULATESQUARE_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "Mat",
+    "type_match": false,
+    "error": "OpenCV(4.12.0) /io/opencv/modules/imgproc/src/accum.cpp:430: error: (-215:Assertion failed) func != 0 in function 'accumulateSquare'\n"
+  },
+  {
+    "cell_id": "CV2_ACCUMULATEWEIGHTED_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "Mat",
+    "type_match": false,
+    "error": "OpenCV(4.12.0) /io/opencv/modules/imgproc/src/accum.cpp:635: error: (-215:Assertion failed) func != 0 in function 'accumulateWeighted'\n"
+  },
+  {
+    "cell_id": "CV2_ADAPTIVETHRESHOLD_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "Mat",
+    "type_match": false,
+    "error": "OpenCV(4.12.0) /io/opencv/modules/imgproc/src/thresh.cpp:1908: error: (-215:Assertion failed) src.type() == CV_8UC1 in function 'adaptiveThreshold'\n"
+  },
+  {
+    "cell_id": "CV2_ADD_DEFAULT",
+    "verified": true,
+    "observed_output_type": "ndarray",
+    "declared_output_type": "Mat",
+    "type_match": true,
+    "error": null
+  },
+  {
+    "cell_id": "CV2_ADDTEXT_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "None",
+    "type_match": false,
+    "error": "Can't parse 'org'. Input argument doesn't provide sequence protocol"
+  },
+  {
+    "cell_id": "CV2_ADDWEIGHTED_DEFAULT",
+    "verified": true,
+    "observed_output_type": "ndarray",
+    "declared_output_type": "Mat",
+    "type_match": true,
+    "error": null
+  },
+  {
+    "cell_id": "CV2_APPLYCOLORMAP_DEFAULT",
+    "verified": true,
+    "observed_output_type": "ndarray",
+    "declared_output_type": "Mat",
+    "type_match": true,
+    "error": null
+  },
+  {
+    "cell_id": "CV2_APPROXPOLYDP_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "Mat",
+    "type_match": false,
+    "error": "OpenCV(4.12.0) /io/opencv/modules/imgproc/src/approx.cpp:690: error: (-215:Assertion failed) npoints >= 0 && (depth == CV_32S || depth == CV_32F) in function 'approxPolyDP'\n"
+  },
+  {
+    "cell_id": "CV2_APPROXPOLYN_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "Mat",
+    "type_match": false,
+    "error": "OpenCV(4.12.0) /io/opencv/modules/imgproc/src/approx.cpp:965: error: (-215:Assertion failed) nsides > 2 in function 'approxPolyN'\n"
+  },
+  {
+    "cell_id": "CV2_ARCLENGTH_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "float",
+    "type_match": false,
+    "error": "OpenCV(4.12.0) /io/opencv/modules/imgproc/src/shapedescr.cpp:280: error: (-215:Assertion failed) count >= 0 && (depth == CV_32F || depth == CV_32S) in function 'arcLength'\n"
+  },
+  {
+    "cell_id": "CV2_ARROWEDLINE_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "Mat",
+    "type_match": false,
+    "error": "OpenCV(4.12.0) :-1: error: (-5:Bad argument) in function 'arrowedLine'\n> Overload resolution failed:\n>  - Can't parse 'pt1'. Input argument doesn't provide sequence protocol\n>  - Can't parse 'pt1'. Input argument doesn't provide sequence protocol\n"
+  },
+  {
+    "cell_id": "CV2_BATCHDISTANCE_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "Mat",
+    "type_match": false,
+    "error": "OpenCV(4.12.0) /io/opencv/modules/core/src/batch_distance.cpp:274: error: (-215:Assertion failed) type == src2.type() && src1.cols == src2.cols && (type == CV_32F || type == CV_8U) in function 'batchDistance'\n"
+  },
+  {
+    "cell_id": "CV2_BILATERALFILTER_DEFAULT",
+    "verified": true,
+    "observed_output_type": "ndarray",
+    "declared_output_type": "Mat",
+    "type_match": true,
+    "error": null
+  },
+  {
+    "cell_id": "CV2_BITWISE_AND_DEFAULT",
+    "verified": true,
+    "observed_output_type": "ndarray",
+    "declared_output_type": "Mat",
+    "type_match": true,
+    "error": null
+  },
+  {
+    "cell_id": "CV2_BITWISE_NOT_DEFAULT",
+    "verified": true,
+    "observed_output_type": "ndarray",
+    "declared_output_type": "Mat",
+    "type_match": true,
+    "error": null
+  },
+  {
+    "cell_id": "CV2_BITWISE_OR_DEFAULT",
+    "verified": true,
+    "observed_output_type": "ndarray",
+    "declared_output_type": "Mat",
+    "type_match": true,
+    "error": null
+  },
+  {
+    "cell_id": "CV2_BITWISE_XOR_DEFAULT",
+    "verified": true,
+    "observed_output_type": "ndarray",
+    "declared_output_type": "Mat",
+    "type_match": true,
+    "error": null
+  },
+  {
+    "cell_id": "CV2_BLENDLINEAR_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "Mat",
+    "type_match": false,
+    "error": "OpenCV(4.12.0) /io/opencv/modules/imgproc/src/blend.cpp:384: error: (-215:Assertion failed) type == _src2.type() && _weights1.type() == CV_32FC1 && _weights2.type() == CV_32FC1 in function 'blendLinear'\n"
+  },
+  {
+    "cell_id": "CV2_BLUR_DEFAULT",
+    "verified": true,
+    "observed_output_type": "ndarray",
+    "declared_output_type": "Mat",
+    "type_match": true,
+    "error": null
+  },
+  {
+    "cell_id": "CV2_BORDERINTERPOLATE_DEFAULT",
+    "verified": true,
+    "observed_output_type": "int",
+    "declared_output_type": "int",
+    "type_match": true,
+    "error": null
+  },
+  {
+    "cell_id": "CV2_BOUNDINGRECT_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "cv2.Rect",
+    "type_match": false,
+    "error": "OpenCV(4.12.0) /io/opencv/modules/imgproc/src/geometry.cpp:619: error: (-215:Assertion failed) img.depth() <= CV_8S && img.channels() == 1 in function 'maskBoundingRect'\n"
+  },
+  {
+    "cell_id": "CV2_BOXFILTER_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "Mat",
+    "type_match": false,
+    "error": "OpenCV(4.12.0) /io/opencv/modules/imgproc/src/box_filter.simd.hpp:1244: error: (-213:The function/feature is not implemented) Unsupported combination of sum format (=20), and destination format (=17) in function 'getColumnSumFilter'\n"
+  },
+  {
+    "cell_id": "CV2_BOXPOINTS_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "Mat",
+    "type_match": false,
+    "error": "OpenCV(4.12.0) :-1: error: (-5:Bad argument) in function 'boxPoints'\n> Overload resolution failed:\n>  - Can't parse 'box' as RotatedRect. Expected sequence length 3, got 8\n>  - Can't parse 'box' as RotatedRect. Expected sequence length 3, got 8\n"
+  },
+  {
+    "cell_id": "CV2_BROADCAST_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "Mat",
+    "type_match": false,
+    "error": "OpenCV(4.12.0) /io/opencv/modules/core/src/matrix_transform.cpp:823: error: (-2:Unspecified error) in function 'void cv::broadcast(cv::InputArray, cv::InputArray, cv::OutputArray)'\n> broadcast: input array must be single channel (expected: 'src.channels() == 1'), where\n>     'src.channels()' is 3\n> must be equal to\n>     '1' is 1\n"
+  },
+  {
+    "cell_id": "CV2_BUILDOPTICALFLOWPYRAMID_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "Mat",
+    "type_match": false,
+    "error": "OpenCV(4.12.0) :-1: error: (-5:Bad argument) in function 'buildOpticalFlowPyramid'\n> Overload resolution failed:\n>  - Can't parse 'winSize'. Expected sequence length 2, got 8\n>  - Can't parse 'winSize'. Expected sequence length 2, got 8\n"
+  },
+  {
+    "cell_id": "CV2_CALCBACKPROJECT_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "Mat",
+    "type_match": false,
+    "error": "OpenCV(4.12.0) :-1: error: (-5:Bad argument) in function 'calcBackProject'\n> Overload resolution failed:\n>  - Can't parse 3D array as 'channels' vector argument\n>  - Can't parse 3D array as 'channels' vector argument\n"
+  },
+  {
+    "cell_id": "CV2_CALCCOVARMATRIX_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "Mat",
+    "type_match": false,
+    "error": "OpenCV(4.12.0) /io/opencv/modules/core/src/matmul.dispatch.cpp:784: error: (-215:Assertion failed) ((flags & cv::COVAR_ROWS) != 0) ^ ((flags & cv::COVAR_COLS) != 0) in function 'calcCovarMatrix'\n"
+  },
+  {
+    "cell_id": "CV2_CALCHIST_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "Mat",
+    "type_match": false,
+    "error": "OpenCV(4.12.0) :-1: error: (-5:Bad argument) in function 'calcHist'\n> Overload resolution failed:\n>  - Can't parse 3D array as 'channels' vector argument\n>  - Can't parse 3D array as 'channels' vector argument\n"
+  },
+  {
+    "cell_id": "CV2_CALCOPTICALFLOWFARNEBACK_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "Mat",
+    "type_match": false,
+    "error": "OpenCV(4.12.0) /io/opencv/modules/video/src/optflowgf.cpp:1115: error: (-215:Assertion failed) prev0.size() == next0.size() && prev0.channels() == next0.channels() && prev0.channels() == 1 && pyrScale_ < 1 in function 'calc'\n"
+  },
+  {
+    "cell_id": "CV2_CALCOPTICALFLOWPYRLK_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "Mat",
+    "type_match": false,
+    "error": "OpenCV(4.12.0) /io/opencv/modules/video/src/lkpyramid.cpp:1281: error: (-215:Assertion failed) (npoints = prevPtsMat.checkVector(2, CV_32F, true)) >= 0 in function 'calc'\n"
+  },
+  {
+    "cell_id": "CV2_CALIBRATECAMERA_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "Mat",
+    "type_match": false,
+    "error": "OpenCV(4.12.0) :-1: error: (-5:Bad argument) in function 'calibrateCamera'\n> Overload resolution failed:\n>  - Can't parse 'imageSize'. Expected sequence length 2, got 8\n>  - Can't parse 'imageSize'. Expected sequence length 2, got 8\n"
+  },
+  {
+    "cell_id": "CV2_CALIBRATECAMERAEXTENDED_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "Mat",
+    "type_match": false,
+    "error": "OpenCV(4.12.0) :-1: error: (-5:Bad argument) in function 'calibrateCameraExtended'\n> Overload resolution failed:\n>  - Can't parse 'imageSize'. Expected sequence length 2, got 8\n>  - Can't parse 'imageSize'. Expected sequence length 2, got 8\n"
+  },
+  {
+    "cell_id": "CV2_CALIBRATECAMERARO_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "Mat",
+    "type_match": false,
+    "error": "OpenCV(4.12.0) :-1: error: (-5:Bad argument) in function 'calibrateCameraRO'\n> Overload resolution failed:\n>  - Can't parse 'imageSize'. Expected sequence length 2, got 8\n>  - Can't parse 'imageSize'. Expected sequence length 2, got 8\n"
+  },
+  {
+    "cell_id": "CV2_CALIBRATECAMERAROEXTENDED_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "Mat",
+    "type_match": false,
+    "error": "OpenCV(4.12.0) :-1: error: (-5:Bad argument) in function 'calibrateCameraROExtended'\n> Overload resolution failed:\n>  - Can't parse 'imageSize'. Expected sequence length 2, got 8\n>  - Can't parse 'imageSize'. Expected sequence length 2, got 8\n"
+  },
+  {
+    "cell_id": "CV2_CALIBRATEHANDEYE_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "Mat",
+    "type_match": false,
+    "error": "OpenCV(4.12.0) /io/opencv/modules/calib3d/src/calibration_base.cpp:131: error: (-2:Unspecified error) in function 'void cv::Rodrigues(cv::InputArray, cv::OutputArray, cv::OutputArray)'\n> Input matrix must be 1x3 or 3x1 for a rotation vector, or 3x3 for a rotation matrix:\n>     '((srcSz == Size(3, 1) || srcSz == Size(1, 3)) && srccn == 1) || (srcSz == Size(1, 1) && srccn == 3) || (srcSz == Size(3, 3) && srccn == 1)'\n> where\n>     'srcSz' is [3 x 8]\n"
+  },
+  {
+    "cell_id": "CV2_CALIBRATEROBOTWORLDHANDEYE_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "Mat",
+    "type_match": false,
+    "error": "OpenCV(4.12.0) /io/opencv/modules/calib3d/src/calibration_base.cpp:131: error: (-2:Unspecified error) in function 'void cv::Rodrigues(cv::InputArray, cv::OutputArray, cv::OutputArray)'\n> Input matrix must be 1x3 or 3x1 for a rotation vector, or 3x3 for a rotation matrix:\n>     '((srcSz == Size(3, 1) || srcSz == Size(1, 3)) && srccn == 1) || (srcSz == Size(1, 1) && srccn == 3) || (srcSz == Size(3, 3) && srccn == 1)'\n> where\n>     'srcSz' is [3 x 8]\n"
+  },
+  {
+    "cell_id": "CV2_CALIBRATIONMATRIXVALUES_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "tuple",
+    "type_match": false,
+    "error": "OpenCV(4.12.0) :-1: error: (-5:Bad argument) in function 'calibrationMatrixValues'\n> Overload resolution failed:\n>  - Can't parse 'imageSize'. Expected sequence length 2, got 8\n>  - Can't parse 'imageSize'. Expected sequence length 2, got 8\n"
+  },
+  {
+    "cell_id": "CV2_CARTTOPOLAR_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "Mat",
+    "type_match": false,
+    "error": "OpenCV(4.12.0) /io/opencv/modules/core/src/mathfuncs.cpp:290: error: (-215:Assertion failed) X.size == Y.size && type == Y.type() && (depth == CV_32F || depth == CV_64F) in function 'cartToPolar'\n"
+  },
+  {
+    "cell_id": "CV2_CHECKCHESSBOARD_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "bool",
+    "type_match": false,
+    "error": "OpenCV(4.12.0) /io/opencv/modules/calib3d/src/checkchessboard.cpp:155: error: (-215:Assertion failed) img.channels() == 1 && img.depth() == CV_8U in function 'checkChessboard'\n"
+  },
+  {
+    "cell_id": "CV2_CHECKHARDWARESUPPORT_DEFAULT",
+    "verified": true,
+    "observed_output_type": "bool",
+    "declared_output_type": "bool",
+    "type_match": true,
+    "error": null
+  },
+  {
+    "cell_id": "CV2_CHECKRANGE_DEFAULT",
+    "verified": true,
+    "observed_output_type": "tuple",
+    "declared_output_type": "tuple",
+    "type_match": true,
+    "error": null
+  },
+  {
+    "cell_id": "CV2_CIRCLE_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "Mat",
+    "type_match": false,
+    "error": "OpenCV(4.12.0) :-1: error: (-5:Bad argument) in function 'circle'\n> Overload resolution failed:\n>  - Can't parse 'center'. Input argument doesn't provide sequence protocol\n>  - Can't parse 'center'. Input argument doesn't provide sequence protocol\n"
+  },
+  {
+    "cell_id": "CV2_CLIPLINE_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "tuple",
+    "type_match": false,
+    "error": "Can't parse 'imgRect'. Expected sequence length 4, got 8"
+  },
+  {
+    "cell_id": "CV2_COLORCHANGE_DEFAULT",
+    "verified": true,
+    "observed_output_type": "ndarray",
+    "declared_output_type": "Mat",
+    "type_match": true,
+    "error": null
+  },
+  {
+    "cell_id": "CV2_COMPARE_DEFAULT",
+    "verified": true,
+    "observed_output_type": "ndarray",
+    "declared_output_type": "Mat",
+    "type_match": true,
+    "error": null
+  },
+  {
+    "cell_id": "CV2_COMPAREHIST_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "float",
+    "type_match": false,
+    "error": "OpenCV(4.12.0) /io/opencv/modules/imgproc/src/histogram.cpp:2036: error: (-215:Assertion failed) H1.type() == H2.type() && H1.depth() == CV_32F in function 'compareHist'\n"
+  },
+  {
+    "cell_id": "CV2_COMPLETESYMM_DEFAULT",
+    "verified": true,
+    "observed_output_type": "ndarray",
+    "declared_output_type": "Mat",
+    "type_match": true,
+    "error": null
+  },
+  {
+    "cell_id": "CV2_COMPOSERT_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "Mat",
+    "type_match": false,
+    "error": "OpenCV(4.12.0) /io/opencv/modules/calib3d/src/calibration_base.cpp:387: error: (-215:Assertion failed) rtype == CV_32F || rtype == CV_64F in function 'composeRT'\n"
+  },
+  {
+    "cell_id": "CV2_COMPUTECORRESPONDEPILINES_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "Mat",
+    "type_match": false,
+    "error": "OpenCV(4.12.0) /io/opencv/modules/calib3d/src/fundam.cpp:967: error: (-5:Bad argument) The input should be a 2D or 3D point set in function 'computeCorrespondEpilines'\n"
+  },
+  {
+    "cell_id": "CV2_COMPUTEECC_DEFAULT",
+    "verified": true,
+    "observed_output_type": "float",
+    "declared_output_type": "float",
+    "type_match": true,
+    "error": null
+  },
+  {
+    "cell_id": "CV2_CONNECTEDCOMPONENTS_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "Mat",
+    "type_match": false,
+    "error": "OpenCV(4.12.0) /io/opencv/modules/imgproc/src/connectedcomponents.cpp:5623: error: (-215:Assertion failed) L.channels() == 1 && I.channels() == 1 in function 'connectedComponents_sub1'\n"
+  },
+  {
+    "cell_id": "CV2_CONNECTEDCOMPONENTSWITHALGORITHM_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "Mat",
+    "type_match": false,
+    "error": "OpenCV(4.12.0) /io/opencv/modules/imgproc/src/connectedcomponents.cpp:5741: error: (-210:Unsupported format or combination of formats) the type of labels must be 16u or 32s in function 'connectedComponents'\n"
+  },
+  {
+    "cell_id": "CV2_CONNECTEDCOMPONENTSWITHSTATS_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "Mat",
+    "type_match": false,
+    "error": "OpenCV(4.12.0) /io/opencv/modules/imgproc/src/connectedcomponents.cpp:5623: error: (-215:Assertion failed) L.channels() == 1 && I.channels() == 1 in function 'connectedComponents_sub1'\n"
+  },
+  {
+    "cell_id": "CV2_CONNECTEDCOMPONENTSWITHSTATSWITHALGORITHM_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "Mat",
+    "type_match": false,
+    "error": "OpenCV(4.12.0) /io/opencv/modules/imgproc/src/connectedcomponents.cpp:5766: error: (-210:Unsupported format or combination of formats) the type of labels must be 16u or 32s in function 'connectedComponentsWithStats'\n"
+  },
+  {
+    "cell_id": "CV2_CONTOURAREA_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "float",
+    "type_match": false,
+    "error": "OpenCV(4.12.0) /io/opencv/modules/imgproc/src/shapedescr.cpp:315: error: (-215:Assertion failed) npoints >= 0 && (depth == CV_32F || depth == CV_32S) in function 'contourArea'\n"
+  },
+  {
+    "cell_id": "CV2_CONVERTFP16_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "Mat",
+    "type_match": false,
+    "error": "OpenCV(4.12.0) /io/opencv/modules/core/src/convert.dispatch.cpp:380: error: (-210:Unsupported format or combination of formats) Unsupported input depth in function 'convertFp16'\n"
+  },
+  {
+    "cell_id": "CV2_CONVERTMAPS_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "Mat",
+    "type_match": false,
+    "error": "OpenCV(4.12.0) /io/opencv/modules/imgproc/src/imgwarp.cpp:1844: error: (-215:Assertion failed) (m1type == CV_16SC2 && (nninterpolate || m2type == CV_16UC1 || m2type == CV_16SC1)) || (m2type == CV_16SC2 && (nninterpolate || m1type == CV_16UC1 || m1type == CV_16SC1)) || (m1type == CV_32FC1 && m2type == CV_32FC1) || (m1type == CV_32FC2 && m2->empty()) in function 'convertMaps'\n"
+  },
+  {
+    "cell_id": "CV2_CONVERTPOINTSFROMHOMOGENEOUS_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "Mat",
+    "type_match": false,
+    "error": "OpenCV(4.12.0) /io/opencv/modules/calib3d/src/fundam.cpp:1037: error: (-215:Assertion failed) npoints >= 0 in function 'convertPointsFromHomogeneous'\n"
+  },
+  {
+    "cell_id": "CV2_CONVERTPOINTSTOHOMOGENEOUS_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "Mat",
+    "type_match": false,
+    "error": "OpenCV(4.12.0) /io/opencv/modules/calib3d/src/fundam.cpp:1138: error: (-215:Assertion failed) npoints >= 0 in function 'convertPointsToHomogeneous'\n"
+  },
+  {
+    "cell_id": "CV2_CONVERTSCALEABS_DEFAULT",
+    "verified": true,
+    "observed_output_type": "ndarray",
+    "declared_output_type": "Mat",
+    "type_match": true,
+    "error": null
+  },
+  {
+    "cell_id": "CV2_CONVEXHULL_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "Mat",
+    "type_match": false,
+    "error": "OpenCV(4.12.0) /io/opencv/modules/imgproc/src/convhull.cpp:143: error: (-215:Assertion failed) total >= 0 && (depth == CV_32F || depth == CV_32S) in function 'convexHull'\n"
+  },
+  {
+    "cell_id": "CV2_CONVEXITYDEFECTS_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "Mat",
+    "type_match": false,
+    "error": "OpenCV(4.12.0) /io/opencv/modules/imgproc/src/convhull.cpp:319: error: (-215:Assertion failed) npoints >= 0 in function 'convexityDefects'\n"
+  },
+  {
+    "cell_id": "CV2_COPYMAKEBORDER_DEFAULT",
+    "verified": true,
+    "observed_output_type": "ndarray",
+    "declared_output_type": "Mat",
+    "type_match": true,
+    "error": null
+  },
+  {
+    "cell_id": "CV2_COPYTO_DEFAULT",
+    "verified": true,
+    "observed_output_type": "ndarray",
+    "declared_output_type": "Mat",
+    "type_match": true,
+    "error": null
+  },
+  {
+    "cell_id": "CV2_CORNEREIGENVALSANDVECS_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "Mat",
+    "type_match": false,
+    "error": "OpenCV(4.12.0) :-1: error: (-5:Bad argument) in function 'cornerEigenValsAndVecs'\n> Overload resolution failed:\n>  - Argument 'ksize' is required to be an integer\n>  - Argument 'ksize' is required to be an integer\n"
+  },
+  {
+    "cell_id": "CV2_CORNERHARRIS_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "Mat",
+    "type_match": false,
+    "error": "OpenCV(4.12.0) :-1: error: (-5:Bad argument) in function 'cornerHarris'\n> Overload resolution failed:\n>  - Argument 'ksize' is required to be an integer\n>  - Argument 'ksize' is required to be an integer\n"
+  },
+  {
+    "cell_id": "CV2_CORNERMINEIGENVAL_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "Mat",
+    "type_match": false,
+    "error": "OpenCV(4.12.0) /io/opencv/modules/imgproc/src/corner.cpp:254: error: (-215:Assertion failed) src.type() == CV_8UC1 || src.type() == CV_32FC1 in function 'cornerEigenValsVecs'\n"
+  },
+  {
+    "cell_id": "CV2_CORNERSUBPIX_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "Mat",
+    "type_match": false,
+    "error": "OpenCV(4.12.0) :-1: error: (-5:Bad argument) in function 'cornerSubPix'\n> Overload resolution failed:\n>  - Can't parse 'winSize'. Expected sequence length 2, got 8\n>  - Can't parse 'winSize'. Expected sequence length 2, got 8\n"
+  },
+  {
+    "cell_id": "CV2_CORRECTMATCHES_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "Mat",
+    "type_match": false,
+    "error": "OpenCV(4.12.0) /io/opencv/modules/calib3d/src/triangulate.cpp:152: error: (-209:Sizes of input arguments do not match) The fundamental matrix must be a 3x3 matrix in function 'icvCorrectMatches'\n"
+  },
+  {
+    "cell_id": "CV2_COUNTNONZERO_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "int",
+    "type_match": false,
+    "error": "OpenCV(4.12.0) /io/opencv/modules/core/src/count_non_zero.dispatch.cpp:124: error: (-215:Assertion failed) cn == 1 in function 'countNonZero'\n"
+  },
+  {
+    "cell_id": "CV2_CREATEALIGNMTB_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "AlignMTB",
+    "type_match": false,
+    "error": "Argument 'max_bits' is required to be an integer"
+  },
+  {
+    "cell_id": "CV2_CREATEBACKGROUNDSUBTRACTORKNN_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "BackgroundSubtractorKNN",
+    "type_match": false,
+    "error": "Argument 'history' is required to be an integer"
+  }
+]
