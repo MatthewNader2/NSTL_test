@@ -4328,30 +4328,6 @@
       }
     },
     {
-      "cell_id": "micro_synthesized_convert_any",
-      "type": "micro",
-      "stage": 1,
-      "keywords": [
-        "convert_any"
-      ],
-      "inputs": {
-        "type_name": "any",
-        "state": "raw"
-      },
-      "outputs": {
-        "type_name": "any",
-        "state": "computed"
-      },
-      "domain_implementations": {
-        "Python_Core": {
-          "code": "import math\n{output_var} = math.sqrt(float({input_var}))",
-          "dependencies": [
-            "math"
-          ]
-        }
-      }
-    },
-    {
       "cell_id": "micro_synthesized_synth_groupby_mean",
       "type": "micro",
       "stage": 1,
@@ -4371,30 +4347,6 @@
           "code": "import math\n{output_var} = math.sqrt(float({input_var}))",
           "dependencies": [
             "math"
-          ]
-        }
-      }
-    },
-    {
-      "cell_id": "micro_synthesized_read_image",
-      "type": "micro",
-      "stage": 1,
-      "keywords": [
-        "SYNTH_READ_IMAGE"
-      ],
-      "inputs": {
-        "type_name": "str",
-        "state": "raw"
-      },
-      "outputs": {
-        "type_name": "any",
-        "state": "computed"
-      },
-      "domain_implementations": {
-        "Python_Core": {
-          "code": "import json\n{output_var} = json.loads({input_var})",
-          "dependencies": [
-            "json"
           ]
         }
       }
@@ -4444,6 +4396,353 @@
           "dependencies": [
             "json"
           ]
+        }
+      }
+    },
+    {
+      "cell_id": "micro_synthesized_SYNTH_CALCULATE_SUM",
+      "type": "micro",
+      "stage": 1,
+      "keywords": [
+        "SYNTH_CALCULATE_SUM"
+      ],
+      "inputs": {
+        "type_name": "any",
+        "state": "raw"
+      },
+      "outputs": {
+        "type_name": "any",
+        "state": "computed"
+      },
+      "domain_implementations": {
+        "Python_Core": {
+          "code": "import math\n{output_var} = math.sqrt(float({input_var}))",
+          "dependencies": [
+            "math"
+          ]
+        }
+      }
+    },
+    {
+      "cell_id": "micro_synthesized_synthesize",
+      "type": "micro",
+      "stage": 1,
+      "keywords": [
+        "SYNTH_EXTRACT_JSON"
+      ],
+      "inputs": {
+        "type_name": "any",
+        "state": "raw"
+      },
+      "outputs": {
+        "type_name": "any",
+        "state": "computed"
+      },
+      "domain_implementations": {
+        "Python_Core": {
+          "code": "import json\n{output_var} = json.loads({input_var})",
+          "dependencies": [
+            "json"
+          ]
+        }
+      }
+    },
+    {
+      "cell_id": "micro_synthesized_read_image",
+      "type": "micro",
+      "stage": 1,
+      "keywords": [
+        "read_image"
+      ],
+      "inputs": {
+        "type_name": "str",
+        "state": "raw"
+      },
+      "outputs": {
+        "type_name": "any",
+        "state": "computed"
+      },
+      "domain_implementations": {
+        "Python_Core": {
+          "code": "import json\n{output_var} = json.loads({input_var})",
+          "dependencies": [
+            "json"
+          ]
+        }
+      }
+    },
+    {
+      "cell_id": "micro_synthesized_synthesize_grayscale",
+      "type": "micro",
+      "stage": 1,
+      "keywords": [
+        "SYNTH_GRAYSCALE"
+      ],
+      "inputs": {
+        "type_name": "any",
+        "state": "raw"
+      },
+      "outputs": {
+        "type_name": "any",
+        "state": "computed"
+      },
+      "domain_implementations": {
+        "Python_Core": {
+          "code": "import math\n{output_var} = math.sqrt(float({input_var}))",
+          "dependencies": [
+            "math"
+          ]
+        }
+      }
+    },
+    {
+      "cell_id": "micro_synthesized_synth_read_image",
+      "type": "micro",
+      "stage": 1,
+      "keywords": [
+        "SYNTH_READ_IMAGE"
+      ],
+      "inputs": {
+        "type_name": "str",
+        "state": "raw"
+      },
+      "outputs": {
+        "type_name": "any",
+        "state": "computed"
+      },
+      "domain_implementations": {
+        "Python_Core": {
+          "code": "import json\n{output_var} = json.loads({input_var})",
+          "dependencies": [
+            "json"
+          ]
+        }
+      }
+    },
+    {
+      "cell_id": "micro_synthesized_synth_cleanup",
+      "type": "micro",
+      "stage": 1,
+      "keywords": [
+        "SYNTH_CLEANUP"
+      ],
+      "inputs": {
+        "type_name": "any",
+        "state": "raw"
+      },
+      "outputs": {
+        "type_name": "any",
+        "state": "computed"
+      },
+      "domain_implementations": {
+        "Python_Core": {
+          "code": "import math\n{output_var} = math.sqrt(float({input_var}))",
+          "dependencies": [
+            "math"
+          ]
+        }
+      }
+    },
+    {
+      "cell_id": "micro_synthesized_convert_any",
+      "type": "micro",
+      "stage": 1,
+      "keywords": [
+        "convert_any"
+      ],
+      "inputs": {
+        "type_name": "any",
+        "state": "raw"
+      },
+      "outputs": {
+        "type_name": "any",
+        "state": "computed"
+      },
+      "domain_implementations": {
+        "Python_Core": {
+          "code": "import math\n{output_var} = math.sqrt(float({input_var}))",
+          "dependencies": [
+            "math"
+          ]
+        }
+      }
+    },
+    {
+      "cell_id": "micro_synthesized_synth_sum_output",
+      "type": "micro",
+      "stage": 1,
+      "keywords": [
+        "SYNTH_SUM_OUTPUT"
+      ],
+      "inputs": {
+        "type_name": "any",
+        "state": "raw"
+      },
+      "outputs": {
+        "type_name": "any",
+        "state": "computed"
+      },
+      "domain_implementations": {
+        "Python_Core": {
+          "code": "import math\n{output_var} = math.sqrt(float({input_var}))",
+          "dependencies": [
+            "math"
+          ]
+        }
+      }
+    },
+    {
+      "cell_id": "micro_synthesized_synth_calculate_sum",
+      "type": "micro",
+      "stage": 1,
+      "keywords": [
+        "SYNTH_CALCULATE_SUM"
+      ],
+      "inputs": {
+        "type_name": "any",
+        "state": "raw"
+      },
+      "outputs": {
+        "type_name": "any",
+        "state": "computed"
+      },
+      "domain_implementations": {
+        "Python_Core": {
+          "code": "import math\n{output_var} = math.sqrt(float({input_var}))",
+          "dependencies": [
+            "math"
+          ]
+        }
+      }
+    },
+    {
+      "cell_id": "micro_synthesized_synth_extract_json",
+      "type": "micro",
+      "stage": 1,
+      "keywords": [
+        "SYNTH_EXTRACT_JSON"
+      ],
+      "inputs": {
+        "type_name": "any",
+        "state": "raw"
+      },
+      "outputs": {
+        "type_name": "any",
+        "state": "computed"
+      },
+      "domain_implementations": {
+        "Python_Core": {
+          "code": "import json\n{output_var} = json.loads(input_var)\nreturn output_var",
+          "dependencies": [
+            "json"
+          ]
+        }
+      }
+    },
+    {
+      "cell_id": "micro_synthesized_synth_process_input_data__convert_any_to",
+      "type": "micro",
+      "stage": 1,
+      "keywords": [
+        "SYNTH_PROCESS_INPUT_DATA: convert any to any"
+      ],
+      "inputs": {
+        "type_name": "any",
+        "state": "raw"
+      },
+      "outputs": {
+        "type_name": "any",
+        "state": "computed"
+      },
+      "domain_implementations": {
+        "Python_Core": {
+          "code": "import module_name\n{output_var} = module_name.convert_any({input_var})",
+          "dependencies": []
+        }
+      }
+    },
+    {
+      "cell_id": "micro_synthesized_synth_cleanup__convert_any_to_any",
+      "type": "micro",
+      "stage": 1,
+      "keywords": [
+        "SYNTH_CLEANUP: convert any to any"
+      ],
+      "inputs": {
+        "type_name": "any",
+        "state": "raw"
+      },
+      "outputs": {
+        "type_name": "any",
+        "state": "computed"
+      },
+      "domain_implementations": {
+        "Python_Core": {
+          "code": "import module_name\n{output_var} = module_name.synth_cleanup({input_var})",
+          "dependencies": []
+        }
+      }
+    },
+    {
+      "cell_id": "micro_synthesized_synth_transform__convert_any_to_any",
+      "type": "micro",
+      "stage": 1,
+      "keywords": [
+        "SYNTH_TRANSFORM: convert any to any"
+      ],
+      "inputs": {
+        "type_name": "any",
+        "state": "raw"
+      },
+      "outputs": {
+        "type_name": "any",
+        "state": "computed"
+      },
+      "domain_implementations": {
+        "Python_Core": {
+          "code": "import module_name\n{output_var} = module_name.transform({input_var})",
+          "dependencies": []
+        }
+      }
+    },
+    {
+      "cell_id": "micro_synthesized_synth_sum_output__convert_any_to_any",
+      "type": "micro",
+      "stage": 1,
+      "keywords": [
+        "SYNTH_SUM_OUTPUT: convert any to any"
+      ],
+      "inputs": {
+        "type_name": "any",
+        "state": "raw"
+      },
+      "outputs": {
+        "type_name": "any",
+        "state": "computed"
+      },
+      "domain_implementations": {
+        "Python_Core": {
+          "code": "import module_name\n{output_var} = module_name.convert_any({input_var})",
+          "dependencies": []
+        }
+      }
+    },
+    {
+      "cell_id": "micro_synthesized_good_cell",
+      "type": "micro",
+      "stage": 1,
+      "inputs": {
+        "type_name": "str",
+        "state": "raw"
+      },
+      "outputs": {
+        "type_name": "DataFrame",
+        "state": "computed"
+      },
+      "domain_implementations": {
+        "Python_Core": {
+          "code": "import pandas as pd\n{output_var} = pd.read_csv({input_var})",
+          "dependencies": []
         }
       }
     }

@@ -49,6 +49,92 @@ if not hasattr(transformers.configuration_utils.PretrainedConfig, 'is_decoder'):
 if not hasattr(transformers.configuration_utils.PretrainedConfig, 'add_cross_attention'):
     transformers.configuration_utils.PretrainedConfig.add_cross_attention = False
 
+# Defensive monkeypatch for Qwen3Model __init__ dtype parameter compatibility
+try:
+    import transformers.models.qwen3.modeling_qwen3 as qwen3_mod
+    _orig_qwen3_init = qwen3_mod.Qwen3Model.__init__
+    def _patched_qwen3_init(self, config, *args, **kwargs):
+        kwargs.pop('dtype', None)
+        return _orig_qwen3_init(self, config, *args, **kwargs)
+    qwen3_mod.Qwen3Model.__init__ = _patched_qwen3_init
+except Exception:
+    pass
+
+class GGUFEmbeddingModel:
+    def __init__(self, gguf_path: str, device: str = None):
+        from llama_cpp import Llama
+        from router import HardwareProfiler
+        if not device:
+            device = HardwareProfiler.get_embedder_device()
+        gpu_layers = -1 if device == "cuda" else 0
+        n_threads = max(1, (os.cpu_count() or 4) // 2)
+        self.llama = Llama(model_path=gguf_path, embedding=True, verbose=False, n_gpu_layers=gpu_layers, n_threads=n_threads, n_ctx=4096)
+        res = self.llama.create_embedding("test")
+        emb = res['data'][0]['embedding']
+        if isinstance(emb, list) and len(emb) > 0 and isinstance(emb[0], list):
+            self._dim = len(emb[0])
+        else:
+            self._dim = len(emb)
+
+    def get_sentence_embedding_dimension(self) -> int:
+        return self._dim
+
+    def encode(self, texts, convert_to_numpy=True, **kwargs):
+        import numpy as np
+        if isinstance(texts, str):
+            texts = [texts]
+        embeddings = []
+        chunk_size = 64
+        for i in range(0, len(texts), chunk_size):
+            chunk = [(t.strip() or " ")[:4000] for t in texts[i:i + chunk_size]]
+            try:
+                res = self.llama.create_embedding(chunk)
+                for item in res['data']:
+                    emb = item['embedding']
+                    if isinstance(emb, list) and len(emb) > 0 and isinstance(emb[0], list):
+                        seq_len = len(emb)
+                        h_size = len(emb[0])
+                        emb = [sum(emb[k][j] for k in range(seq_len)) / seq_len for j in range(h_size)]
+                    embeddings.append(emb)
+            except Exception:
+                for t_clean in chunk:
+                    try:
+                        res = self.llama.create_embedding(t_clean)
+                        emb = res['data'][0]['embedding']
+                        if isinstance(emb, list) and len(emb) > 0 and isinstance(emb[0], list):
+                            seq_len = len(emb)
+                            h_size = len(emb[0])
+                            emb = [sum(emb[k][j] for k in range(seq_len)) / seq_len for j in range(h_size)]
+                        embeddings.append(emb)
+                    except Exception:
+                        embeddings.append([0.0] * self._dim)
+        if convert_to_numpy:
+            return np.array(embeddings, dtype=np.float32)
+        return embeddings
+
+def _load_embedder_model(emb_path: str, emb_device: str):
+    if os.path.exists(emb_path):
+        if os.path.isfile(emb_path) and emb_path.lower().endswith(".gguf"):
+            return GGUFEmbeddingModel(emb_path, device=emb_device)
+        if os.path.isdir(emb_path):
+            ggufs = [f for f in os.listdir(emb_path) if f.lower().endswith(".gguf")]
+            if ggufs:
+                return GGUFEmbeddingModel(os.path.join(emb_path, ggufs[0]), device=emb_device)
+
+    import gc, torch
+    gc.collect()
+    if torch.cuda.is_available():
+        torch.cuda.empty_cache()
+    from sentence_transformers import SentenceTransformer
+    if emb_device == "mps":
+        emb_device = "cpu"
+    return SentenceTransformer(
+        emb_path, 
+        device=emb_device, 
+        trust_remote_code=True, 
+        model_kwargs={'low_cpu_mem_usage': False, 'default_task': 'retrieval'}
+    )
+
 # Setup benchmarking logger
 bench_logger = logging.getLogger("Benchmark")
 bench_logger.setLevel(logging.INFO)
@@ -81,6 +167,9 @@ class InferenceProfile(ABC):
     @abstractmethod
     def can_feedback_check(self) -> bool:
         pass
+
+    def has_translator_pass(self) -> bool:
+        return False
 
     @property
     @abstractmethod
@@ -116,9 +205,7 @@ class BenchmarkProfile_A(InferenceProfile):
             model_path = embedder_name  # Fallback to HuggingFace hub if local missing
             
         device = HardwareProfiler.get_embedder_device()
-        if device == "mps":
-             device = "cpu" # SentenceTransformers MPS support is flaky
-        self.model = SentenceTransformer(model_path, device=device, trust_remote_code=True, model_kwargs={"low_cpu_mem_usage": True})
+        self.model = _load_embedder_model(model_path, device)
 
     def get_embedding(self, text: str) -> List[float]:
         try:
@@ -378,10 +465,17 @@ class BenchmarkProfile_C(InferenceProfile):
         if not os.path.exists(emb_path):
             emb_path = embedder_name
             
-        emb_device = HardwareProfiler.get_embedder_device()
-        if emb_device == "mps": emb_device = "cpu"
-        self.embedder = SentenceTransformer(emb_path, device=emb_device, trust_remote_code=True, model_kwargs={'low_cpu_mem_usage': False})
-        detected_dimension = self.embedder.get_sentence_embedding_dimension()
+        llm_device = HardwareProfiler.get_llm_device()
+        # When an LLM is active on GPU, route the text embedder to CPU to preserve 100% CUDA VRAM for the 7B LLM
+        emb_device = "cpu" if llm_device == "cuda" else HardwareProfiler.get_embedder_device()
+        self.embedder = _load_embedder_model(emb_path, emb_device)
+        detected_dimension = getattr(self.embedder, "get_sentence_embedding_dimension", lambda: None)()
+        if not detected_dimension:
+            try:
+                sample = self.get_embedding("test")
+                detected_dimension = len(sample)
+            except Exception:
+                pass
         if detected_dimension:
             self._dim = int(detected_dimension)
         
@@ -399,7 +493,6 @@ class BenchmarkProfile_C(InferenceProfile):
         if torch.cuda.is_available():
             torch.cuda.empty_cache()
 
-        llm_device = HardwareProfiler.get_llm_device()
         gpu_layers = -1 if llm_device == "cuda" else 0
         n_threads = max(1, (os.cpu_count() or 4) // 2)
 
@@ -481,14 +574,21 @@ class BenchmarkProfile_C(InferenceProfile):
     def feedback_check(self, generated_code: str) -> str:
         import ast
         import re
-        prompt = f"Rewrite this Python code to use clean, standard variable names (like df for dataframes). Do not change what the code does, only rename the variables to be professional. Return ONLY the code inside ```python block.\n\n```python\n{generated_code.strip()}\n```"
-        sys_prompt = "You are a professional Python engineer. Your task is to clean up variable names in the provided code."
+        prompt = f"Rewrite this Python code to use clean, standard variable names (like df for dataframes). Do not change what the code does or remove any function arguments, only rename the variables to be professional. Return ONLY the code inside ```python block.\n\n```python\n{generated_code.strip()}\n```"
+        sys_prompt = "You are a professional Python engineer. Your task is to clean up variable names in the provided code without removing any function arguments or literal strings."
         try:
             corrected = self.generate_text(prompt, max_tokens=1024, system_prompt=sys_prompt)
             if "```python" in corrected:
                 corrected = corrected.split("```python")[1].split("```")[0].strip()
             elif "```" in corrected:
                 corrected = corrected.split("```")[1].split("```")[0].strip()
+            
+            # AST Parity Check: Verify literal string parameters were not stripped by LLM rewrite
+            gen_literals = set(re.findall(r"['\"]([^'\"]+)['\"]", generated_code))
+            cor_literals = set(re.findall(r"['\"]([^'\"]+)['\"]", corrected))
+            if not gen_literals.issubset(cor_literals):
+                return generated_code
+
             tree = ast.parse(corrected)
             return corrected if corrected.strip() else generated_code
         except Exception:
@@ -503,6 +603,11 @@ class BenchmarkProfile_D(BenchmarkProfile_C):
         return False
         
     def can_feedback_check(self) -> bool:
+        return True
+
+class BenchmarkProfile_E(BenchmarkProfile_C):
+    """Profile E: Includes an initial LLM Translation pre-pass before standard planning & execution."""
+    def has_translator_pass(self) -> bool:
         return True
 
 class ModelManager:
@@ -544,6 +649,9 @@ class ModelManager:
                 new_profile.load_models(embedder_name, llm_name)
             elif profile_type == "D":
                 new_profile = BenchmarkProfile_D()
+                new_profile.load_models(embedder_name, llm_name)
+            elif profile_type == "E":
+                new_profile = BenchmarkProfile_E()
                 new_profile.load_models(embedder_name, llm_name)
             else:
                 raise ValueError(f"Unknown profile: {profile_type}")
@@ -591,6 +699,10 @@ class ModelManager:
     def can_feedback_check(self) -> bool:
         if self.active_profile is None: return False
         return self.active_profile.can_feedback_check()
+
+    def has_translator_pass(self) -> bool:
+        if self.active_profile is None: return False
+        return self.active_profile.has_translator_pass()
         
     def feedback_check(self, generated_code: str) -> str:
         if self.active_profile is None: return generated_code

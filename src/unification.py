@@ -94,6 +94,26 @@ class ExecutionContext:
         return None
 
 
+# Formal Top Type ⊤ in NSTL Type System (unifies with every type tau: unify(⊤, tau) = True)
+TOP_TYPE_SET = frozenset({"any", "Any", "*", "top", "TOP", "ANY", "unknown", "object"})
+
+def types_unify(expected_type: str, actual_type: str) -> bool:
+    """
+    Formal unification operator unify(tau_expected, tau_actual).
+    Returns True iff tau_expected and tau_actual unify.
+    Rules:
+      1. unify(⊤, tau) = True for all tau (Top type wildcard)
+      2. unify(tau, ⊤) = True for all tau
+      3. unify(tau, tau) = True (Exact identity)
+    """
+    if not expected_type or not actual_type:
+        return True
+    exp_clean = str(expected_type).strip()
+    act_clean = str(actual_type).strip()
+    if exp_clean in TOP_TYPE_SET or act_clean in TOP_TYPE_SET:
+        return True
+    return exp_clean == act_clean
+
 class UnificationGate:
     """Performs dynamic monadic structural unification across cell signatures."""
 
@@ -139,8 +159,12 @@ class UnificationGate:
                                 in_fname = context.extracted_parameters.get("input_filename") if context and context.extracted_parameters else None
                                 out_fname = context.extracted_parameters.get("output_filename") if context and context.extracted_parameters else None
 
-                                is_input_name = (in_fname and str(in_fname).strip("'\"").lower() in p_str) or any(ik in p_str for ik in ["in", "src", "source", "input", "raw", "orig"])
-                                is_output_name = (out_fname and str(out_fname).strip("'\"").lower() in p_str) or any(ok in p_str for ok in ["out", "clean", "result", "dest", "new", "target", "export", "save"])
+                                in_name_clean = str(in_fname).strip("'\"").lower() if in_fname else ""
+                                out_name_clean = str(out_fname).strip("'\"").lower() if out_fname else ""
+                                p_name_clean = str(p_str).strip("'\"").lower()
+
+                                is_input_name = (in_name_clean and p_name_clean == in_name_clean) or any(ik in p_name_clean for ik in ["input", "source", "src", "raw", "orig", "in_file", "input_file"])
+                                is_output_name = (out_name_clean and p_name_clean == out_name_clean) or any(ok in p_name_clean for ok in ["out", "clean", "result", "dest", "new", "target", "export", "save"])
 
                                 if is_read_func and not is_output_name:
                                     has_match = True
@@ -174,9 +198,13 @@ class UnificationGate:
                             dummy_tree = ast.parse(dummy_code)
                             dummy_call = dummy_tree.body[0].value
                             
-                            # Transfer positional arguments
+                            # Transfer positional arguments (deduplicated)
+                            existing_args = {ast.unparse(a) for a in node.args}
                             for arg in dummy_call.args:
-                                node.args.append(arg)
+                                arg_repr = ast.unparse(arg)
+                                if arg_repr not in existing_args:
+                                    node.args.append(arg)
+                                    existing_args.add(arg_repr)
                             
                             # Transfer keyword arguments
                             for kwarg in dummy_call.keywords:
@@ -224,11 +252,14 @@ class UnificationGate:
             in_fname = context.extracted_parameters.get("input_filename")
             out_fname = context.extracted_parameters.get("output_filename")
 
-            # Ensure write/save cells receive out_fname as 1st argument if template only had {input_var}
+            # Ensure write/save cells receive out_fname as 1st argument if template only had {input_var} or ()
             if out_fname:
                 compiled_snippet = compiled_snippet.replace("{output_filename}", repr(out_fname))
-                if any(kw in cell_id.lower() for kw in ["imwrite", "savefig"]) and repr(out_fname) not in compiled_snippet:
-                    compiled_snippet = compiled_snippet.replace("({input_var})", f"({repr(out_fname)}, {{input_var}})")
+                if any(kw in cell_id.lower() for kw in ["imwrite", "savefig", "to_csv", "to_json", "to_parquet", "to_excel"]) and repr(out_fname) not in compiled_snippet:
+                    if "({input_var})" in compiled_snippet:
+                        compiled_snippet = compiled_snippet.replace("({input_var})", f"({repr(out_fname)}, {{input_var}})")
+                    elif "()" in compiled_snippet:
+                        compiled_snippet = compiled_snippet.replace("()", f"({repr(out_fname)})")
 
             compiled_snippet = compiled_snippet.replace("{input_var}", matching_input_var)
             compiled_snippet = compiled_snippet.replace("{output_var}", output_var_name)
@@ -256,7 +287,9 @@ class UnificationGate:
                 )
 
         # 2. Dynamic heuristic parameter injection via AST
-        cell_heuristics = getattr(target_cell, "matched_heuristics", []) or context.extracted_parameters.get("heuristics", [])
+        prompt_heuristics = context.extracted_parameters.get("heuristics", []) if context and context.extracted_parameters else []
+        cell_matched = getattr(target_cell, "matched_heuristics", []) or []
+        cell_heuristics = list(dict.fromkeys(list(cell_matched) + list(prompt_heuristics)))
         if cell_heuristics and compiled_snippet:
             # Filter out filenames from heuristics so they aren't injected twice
             injected_params = [
@@ -311,27 +344,6 @@ class UnificationGate:
         snippet = re.sub(r"\b([a-zA-Z_][a-zA-Z0-9_]*)\.([a-zA-Z_][a-zA-Z0-9_]*)\(", _rebind_caller, snippet)
         return snippet
 
-# Formal Top Type ⊤ in NSTL Type System (unifies with every type tau: unify(⊤, tau) = True)
-TOP_TYPE_SET = frozenset({"any", "Any", "*", "top", "TOP", "ANY", "unknown", "object"})
-
-def types_unify(expected_type: str, actual_type: str) -> bool:
-    """
-    Formal unification operator unify(tau_expected, tau_actual).
-    Returns True iff tau_expected and tau_actual unify.
-    Rules:
-      1. unify(⊤, tau) = True for all tau (Top type wildcard)
-      2. unify(tau, ⊤) = True for all tau
-      3. unify(tau, tau) = True (Exact identity)
-    """
-    if not expected_type or not actual_type:
-        return True
-    exp_clean = str(expected_type).strip()
-    act_clean = str(actual_type).strip()
-    if exp_clean in TOP_TYPE_SET or act_clean in TOP_TYPE_SET:
-        return True
-    return exp_clean == act_clean
-
-class UnificationGate:
     @staticmethod
     def validate_synthesis(
         synthesized_dict: dict,

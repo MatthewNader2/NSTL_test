@@ -45,9 +45,7 @@ class LocalRAG:
         try:
             profile = ModelManager.get_instance().active_profile
             model_name = "__".join(filter(None, [
-                ModelManager.get_instance().current_profile_name,
-                getattr(profile, "embedder_name", None),
-                getattr(profile, "llm_name", None),
+                getattr(profile, "embedder_name", None) or ModelManager.get_instance().current_profile_name,
                 str(ModelManager.get_instance().embedding_dimension),
             ]))
         except Exception:
@@ -116,7 +114,7 @@ class LocalRAG:
                     f"Flow: {cell.inputs.type_name} -> {cell.outputs.type_name}"
                 )
                 cell_hash = hashlib.sha256(text_repr.encode("utf-8")).hexdigest()
-                if cell_id in self.cell_cache and self.cell_cache[cell_id].get("hash") == cell_hash:
+                if cell_id in self.cell_cache and self.cell_cache[cell_id].get("embedding") is not None:
                     self.cell_cache[cell_id]["schema"] = schema
                 else:
                     new_or_changed_cells.append({
@@ -341,7 +339,7 @@ class LocalRAG:
                 continue
             cell = self.id_to_schema[idx]
             cid = cell.get("cell_id", "")
-            if "__" in cid or "___" in cid or cid.endswith("_DEFAULT") or "_DEFAULT" in cid:
+            if "__" in cid or "___" in cid:
                 continue
             
             # Semantic Gravity: Boost by adding to IP distance based on keyword matches

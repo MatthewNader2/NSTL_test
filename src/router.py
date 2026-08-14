@@ -23,6 +23,7 @@ logging.getLogger("transformers").setLevel(logging.ERROR)
 
 from log_config import get_logger
 from lattice import AlgebraicSignature
+from unification import types_unify, TOP_TYPE_SET
 
 logger = get_logger('router')
 
@@ -224,7 +225,7 @@ class MCTSEngine:
             leaf = self._select(root)
             
             # 2. Expansion (with Unification Filter)
-            if leaf.current_type != target_type and leaf.visits > 0:
+            if not types_unify(leaf.current_type, target_type) and leaf.visits > 0:
                 self._expand(leaf)
                 if leaf.children:
                     leaf = random.choice(leaf.children)
@@ -271,10 +272,7 @@ class MCTSEngine:
             candidates = self.orchestrator.get_neighbors(node.cell_id)
 
         for cell in candidates:
-            if cell.type == "micro" and (
-                cell.inputs.type_name == node.current_type
-                or cell.inputs.type_name == "any"
-            ):
+            if cell.type == "micro" and types_unify(cell.inputs.type_name, node.current_type):
                 child = MCTSNode(cell_id=cell.cell_id, current_type=cell.outputs.type_name, parent=node)
                 node.children.append(child)
 
@@ -284,7 +282,7 @@ class MCTSEngine:
         depth = 0
         max_depth = 15
 
-        while current_type != target_type and depth < max_depth:
+        while not types_unify(current_type, target_type) and depth < max_depth:
             neighbors = [
                 c for c in self._get_reachable_cells(current_type)
                 if getattr(c, 'node_type', 'function') == 'function'
@@ -298,7 +296,7 @@ class MCTSEngine:
             current_id = next_cell.cell_id
             depth += 1
 
-        if current_type == target_type:
+        if types_unify(current_type, target_type):
             return 1.0
         return 0.0  # Exceeded max_depth
 
@@ -320,7 +318,7 @@ class MCTSEngine:
             if cell is None:
                 break
             path.append(cell)
-            if best_child.current_type == target_type:
+            if types_unify(best_child.current_type, target_type):
                 return path
             current = best_child
         return []
@@ -423,7 +421,7 @@ class LatticeRouter:
                     and c.cell_id != (current_node.cell_id if current_node else "")
             ]
             best_global_micro, global_micro_score = self._score_and_select_best(
-                global_micro_candidates, goal_embedding, goal, current_type
+                global_micro_candidates, goal_embedding, goal, current_type, current_node
             )
 
             macro_candidates = [
@@ -432,7 +430,7 @@ class LatticeRouter:
                 if c.type == "macro"
             ]
             best_macro, macro_score = self._score_and_select_best(
-                macro_candidates, goal_embedding, goal, current_type
+                macro_candidates, goal_embedding, goal, current_type, current_node
             )
 
             if (
@@ -446,29 +444,22 @@ class LatticeRouter:
                     # Fallback to intent_expansion or sub_cells if algorithmic_steps is empty
                     expansion = getattr(best_macro, 'intent_expansion', None) or getattr(best_macro, 'sub_cells', [])
                 
-                expansion_goals = []
-                for item in expansion:
-                    if isinstance(item, str):
-                        expansion_goals.append(item)
-                    else:
-                        expansion_goals.append(getattr(item, 'cell_id', str(item)))
-                logger.info(
-                    f"[FRACTAL UNFOLDING] Abstract goal '{goal}' expanded into {len(expansion_goals)} sub-operations."
-                )
-                goals = expansion_goals + goals
-                continue
+                if expansion:
+                    logger.info(
+                        f"[ROUTER UNSTAGE] Unfolding MacroCell '{best_macro.cell_id}' into {len(expansion)} sub-goals."
+                    )
+                    goals = list(expansion) + goals
+                    continue
 
-            if step == 0:
+            # 1. Entry Point Resolution
+            if step == 0 or current_node is None:
                 candidates = [
-                    c
-                    for c in self.orchestrator.get_all_available_cells()
-                    if c.type == "micro"
-                    and (getattr(c, 'node_type', None) in [None, 'function'])
-                    and c.inputs.matches(AlgebraicSignature(current_type, current_state))
+                    c for c in global_micro_candidates
+                    if c.inputs.matches(AlgebraicSignature(current_type, current_state))
                 ]
                     
                 best_node, best_score = self._score_and_select_best(
-                    candidates, goal_embedding, goal, current_type
+                    candidates, goal_embedding, goal, current_type, current_node
                 )
                 if best_node:
                     logger.debug(f"[ROUTER] best_score={best_score} for node {best_node.cell_id}")
@@ -491,7 +482,7 @@ class LatticeRouter:
 
             strict_candidates = self.orchestrator.get_neighbors(current_node.cell_id)
             best_local_node, best_local_score = self._score_and_select_best(
-                strict_candidates, goal_embedding, goal, current_type
+                strict_candidates, goal_embedding, goal, current_type, current_node
             )
 
             # 2. Relaxed Topology (Global) Search
@@ -500,7 +491,7 @@ class LatticeRouter:
                 if c.type == "micro" and getattr(c, 'node_type', 'function') == 'function' and c.cell_id != current_node.cell_id
             ]
             best_global_node, best_global_score = self._score_and_select_best(
-                global_candidates, goal_embedding, goal, current_type
+                global_candidates, goal_embedding, goal, current_type, current_node
             )
 
             # BUG 1 FIX: Initialize best_node to None so the control flow is always safe.
@@ -516,7 +507,7 @@ class LatticeRouter:
                 # BUG 1 FIX: Use .type_name instead of .get("input_type")
                 target_type = best_global_node.inputs.type_name
 
-                if target_type == current_type:
+                if types_unify(target_type, current_type):
                     logger.info(
                         f"  [+] VIRTUAL EDGE COMPILED! Tunneling to -> {best_global_node.cell_id} (Score: {best_global_score:.2f})"
                     )
@@ -630,7 +621,7 @@ class LatticeRouter:
         return final_path, virtual_edges
 
     def _score_and_select_best(
-        self, candidates: list, prompt_embedding: np.ndarray, goal: str = "", current_type: str = None
+        self, candidates: list, prompt_embedding: np.ndarray, goal: str = "", current_type: str = None, current_node = None
     ) -> tuple:
         """FAISS Vector Database Lookup - O(1) Constraint Filtering inside O(log N) Graph Traverse"""
         if not candidates or self.rag_engine is None or self.rag_engine.index is None:
@@ -662,7 +653,6 @@ class LatticeRouter:
                     
                     filtered_tokens = {pt for pt in prompt_tokens if pt not in _STOP_WORDS and len(pt) > 2}
 
-                    # Module alias expansion (e.g. opencv <-> cv2, pandas <-> pd)
                     MODULE_ALIASES = {
                         "opencv": "cv2", "cv2": "opencv",
                         "pandas": "pd", "pd": "pandas",
@@ -672,7 +662,22 @@ class LatticeRouter:
                         "scikit": "sklearn", "sklearn": "scikit",
                         "tensorflow": "tf", "tf": "tensorflow"
                     }
+                    SYNONYM_EXPANSIONS = {
+                        "missing": ["na", "null", "nan", "dropna"],
+                        "null": ["na", "missing", "nan", "dropna"],
+                        "na": ["missing", "null", "dropna"],
+                        "grayscale": ["gray", "cvtcolor", "bgr2gray"],
+                        "gray": ["grayscale", "cvtcolor", "bgr2gray"],
+                        "read": ["imread", "read_csv", "load", "open"],
+                        "save": ["imwrite", "to_csv", "save"],
+                        "write": ["imwrite", "to_csv", "save"],
+                    }
                     expanded_tokens = set(filtered_tokens)
+                    for token in list(filtered_tokens):
+                        if token in MODULE_ALIASES:
+                            expanded_tokens.add(MODULE_ALIASES[token])
+                        if token in SYNONYM_EXPANSIONS:
+                            expanded_tokens.update(SYNONYM_EXPANSIONS[token])
 
                     # Decompose sub-word API tokens (e.g., imread -> im, read; cvtcolor -> cvt, color)
                     cell_sub_tokens = set(id_parts)
@@ -681,18 +686,26 @@ class LatticeRouter:
                         for sp in sub_parts:
                             if len(sp) > 1:
                                 cell_sub_tokens.add(sp)
+                                if sp.startswith("im") and len(sp) > 3:
+                                    cell_sub_tokens.add(sp[2:])
+                                elif sp.startswith("to") and len(sp) > 3:
+                                    cell_sub_tokens.add(sp[2:])
 
                     # Dynamic domain-agnostic keyword overlap coverage
                     token_hits = 0
                     for token in expanded_tokens:
-                        if token in cid_lower or any(token in p or p in token for p in cell_sub_tokens) or any(token in kw for kw in kws):
+                        hit = (
+                            token in cid_lower
+                            or any(token == p or (len(token) >= 3 and len(p) >= 3 and (token.startswith(p) or p.startswith(token))) for p in cell_sub_tokens)
+                            or any(token == kw or (len(token) >= 3 and len(kw) >= 3 and (token.startswith(kw) or kw.startswith(token))) for kw in kws)
+                        )
+                        if hit:
                             token_hits += 1
 
                     keyword_score = (token_hits / max(len(expanded_tokens), 1)) * 0.5
 
                     # Typestate compatibility: incompatible candidates receive a strong
                     # multiplicative discount rather than a flat subtracted penalty.
-                    # This means a wrong-type cell can only win if nothing else qualifies.
                     type_match = (
                         current_type is None
                         or getattr(cell.inputs, 'type_name', 'any') == 'any'
@@ -700,11 +713,47 @@ class LatticeRouter:
                     )
                     type_factor = 1.0 if type_match else TYPE_MISMATCH_DISCOUNT
 
-                    adjusted_dist = (dist + keyword_score) * type_factor
+                    # Domain affinity factor: heavily penalize cross-domain mismatch
+                    # when operating on domain-specific typestates or within an active domain chain
+                    cell_domain = getattr(cell, 'domain_name', '').lower()
+                    if not cell_domain:
+                        cell_domain = cell.cell_id.split('_')[0].lower()
+
+                    domain_factor = 1.0
+                    expected_domains = set()
+                    if current_type == "DataFrame":
+                        expected_domains = {"pandas", "pd"}
+                    elif current_type in ("Mat", "Image"):
+                        expected_domains = {"opencv", "cv2"}
+                    elif current_type in ("ndarray", "Array"):
+                        expected_domains = {"numpy", "np"}
+                    elif current_node and getattr(current_node, 'domain_name', None):
+                        c_dom = current_node.domain_name.lower()
+                        if c_dom not in ("python", "core", "builtins", "generic"):
+                            expected_domains = {c_dom}
+
+                    if expected_domains and cell_domain:
+                        in_input_type = getattr(cell.inputs, 'type_name', '')
+                        out_output_type = getattr(cell.outputs, 'type_name', '')
+                        is_domain_match = (
+                            cell_domain in expected_domains
+                            or in_input_type in ("DataFrame", "Mat")
+                            or out_output_type in ("DataFrame", "Mat")
+                        )
+                        if not is_domain_match:
+                            domain_factor = 0.1
+
+                    # Interactive terminal input discount: prevent builtins.input from matching generic 'input' words
+                    if cell.cell_id in ("BUILTINS_INPUT", "SYS_STDIN_READ"):
+                        prompt_lower = (goal or "").lower()
+                        if not any(k in prompt_lower for k in ["prompt user", "ask user", "interactive", "console input", "stdin"]):
+                            domain_factor *= 0.05
+
+                    adjusted_dist = (dist + keyword_score) * type_factor * domain_factor
                     logger.debug(
                         f"[ROUTER CANDIDATE] cell={cell.cell_id} | dist={dist:.3f} | "
                         f"kw_score={keyword_score:.3f} (hits={token_hits}/{len(expanded_tokens)}) | "
-                        f"type_match={type_match} | type_factor={type_factor:.2f} | "
+                        f"type_match={type_match} | type_factor={type_factor:.2f} | domain_factor={domain_factor:.2f} | "
                         f"adjusted_dist={adjusted_dist:.3f}"
                     )
                     scored_results.append((adjusted_dist, float(dist), cell))

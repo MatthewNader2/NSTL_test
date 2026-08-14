@@ -150,6 +150,7 @@ Schema:
 
 CRITICAL INSTRUCTION: The `code` field MUST contain ACTUAL, working Python code. Import any required libraries (e.g. pandas as pd, cv2, numpy as np, math) directly in the code. Do NOT output placeholder text like `module_name` or `...`.
 CRITICAL INSTRUCTION 2: You MUST use the exact placeholder strings `{{input_var}}` and `{{output_var}}` in your python logic for the main input and output of the cell. The engine will dynamically replace these at runtime. Do NOT use hardcoded variable names for the input or output.
+CRITICAL INSTRUCTION 3: Do NOT call interactive input functions like `input()`, `sys.stdin`, or `raw_input()`. Assume input data or filenames are already available in `{{input_var}}`.
 
 Use the following Official Documentation as your absolute ground truth:"""
 

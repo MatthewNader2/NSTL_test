@@ -85,6 +85,8 @@ export default function TitleBar({ embedderModel, llmModel, onModelSwap }) {
           <Layers size={12} color="var(--accent)" />
           <select value={embedderModel} onChange={handleEmbedderChange} style={selectStyle}>
             <option value="jina-embeddings-v5-text-nano">Jina v5 Nano (Embedder)</option>
+            <option value="jina-embeddings-v5-text-small">Jina v5 Small (Embedder)</option>
+            <option value="Qwen3-Embedding-0.6B-GGUF">Qwen3 0.6B GGUF (Embedder)</option>
             <option value="jinaai/jina-embeddings-v2-small-en">Jina v2 Small (Embedder)</option>
             <option value="BAAI/bge-small-en-v1.5">BGE Small v1.5 (Embedder)</option>
           </select>

@@ -90,6 +90,7 @@ _engine_ready = None
 # (inject_transient_macro modifies loaded_cells and rebuilds topology).
 _orchestrator_lock = threading.Lock()
 _engine_state_lock = threading.Lock()
+_current_init_thread = None
 
 def infer_goal_output_type(prompt: str) -> str:
     """
@@ -460,11 +461,22 @@ def initialize_engine(req: InitRequest = InitRequest()):
     """Non-blocking initialization — spawns a daemon thread for the heavy model/FAISS
     load and returns {status: initializing} immediately. The frontend's existing
     /api/status polling handles the wait with zero extra client-side changes."""
-    global global_orchestrator, global_rag_engine, engine_device, _engine_ready
+    global global_orchestrator, global_rag_engine, engine_device, _engine_ready, _current_init_thread
 
     with _engine_state_lock:
-        if _engine_ready is False:
-            return {"status": "initializing", "device": engine_device}
+        if _current_init_thread is not None and _current_init_thread.is_alive():
+            _current_init_thread.join(timeout=30)
+
+        mm = ModelManager.get_instance()
+        req_emb = req.embedder_model or (getattr(mm.active_profile, 'embedder_name', '') if mm.active_profile else '')
+        req_llm = req.llm_model or (getattr(mm.active_profile, 'llm_name', '') if mm.active_profile else '')
+        if (_engine_ready is True and 
+            mm.current_profile_name == req.profile and
+            getattr(mm.active_profile, 'embedder_name', '') == req_emb and
+            getattr(mm.active_profile, 'llm_name', '') == req_llm):
+            logger.info(f"Engine already initialized with Profile {req.profile}. Skipping re-init.")
+            return {"status": "ready", "device": engine_device}
+
         _engine_ready = False
 
     def _do_init():
@@ -494,6 +506,7 @@ def initialize_engine(req: InitRequest = InitRequest()):
             logger.error(f"Engine initialization failed: {e}\n{tb_str}")
 
     t = threading.Thread(target=_do_init, daemon=True)
+    _current_init_thread = t
     t.start()
     return {"status": "initializing", "device": engine_device}
 
@@ -776,7 +789,7 @@ if __name__ == "__main__":
     server_thread.start()
 
     # Auto-initialize engine in server mode so API is ready out-of-the-box
-    if _engine_ready is None:
+    if _engine_ready is None and os.environ.get("TEST_HEADLESS") != "1":
         initialize_engine(InitRequest(
             profile=args.profile,
             embedder_model=args.embedder,
