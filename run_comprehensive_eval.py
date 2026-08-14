@@ -168,8 +168,8 @@ def stop_server(proc):
             proc.wait(timeout=5)
         except subprocess.TimeoutExpired:
             proc.kill()
-    subprocess.run("pkill -9 -f 'python3 src/main.py' || true", shell=True, capture_output=True)
-    time.sleep(2)
+    subprocess.run("fuser -k 58102/tcp || pkill -9 -f 'python3 src/main.py' || true", shell=True, capture_output=True)
+    time.sleep(3)
 
 def run_eval():
     all_results = []
