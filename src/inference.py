@@ -268,7 +268,8 @@ class BenchmarkProfile_B(InferenceProfile):
             
         model_dir = os.path.join(MODELS_DIR, "llms", llm_name)
         # Find the .gguf file inside the directory
-        gguf_files = sorted(f for f in os.listdir(model_dir) if f.lower().endswith('.gguf')) if os.path.exists(model_dir) else []
+        all_ggufs = [f for f in os.listdir(model_dir) if f.lower().endswith('.gguf')] if os.path.exists(model_dir) else []
+        gguf_files = sorted(all_ggufs, key=lambda f: (1 if '-of-' in f.lower() else 0, f))
         if not gguf_files:
             raise FileNotFoundError(f"No .gguf model found in {model_dir}")
         model_path = os.path.join(model_dir, gguf_files[0])
@@ -480,8 +481,8 @@ class BenchmarkProfile_C(InferenceProfile):
             self._dim = int(detected_dimension)
         
         # Load LLM
-        llm_dir = os.path.join(MODELS_DIR, "llms", llm_name)
-        gguf_files = sorted(f for f in os.listdir(llm_dir) if f.lower().endswith('.gguf')) if os.path.exists(llm_dir) else []
+        all_ggufs = [f for f in os.listdir(llm_dir) if f.lower().endswith('.gguf')] if os.path.exists(llm_dir) else []
+        gguf_files = sorted(all_ggufs, key=lambda f: (1 if '-of-' in f.lower() else 0, f))
         if not gguf_files:
             raise FileNotFoundError(f"No .gguf model found in {llm_dir}")
         llm_path = os.path.join(llm_dir, gguf_files[0])
