@@ -5,8 +5,8 @@ import os
 import sqlite3
 import sys
 
-# Import fix_node from fix_trees.py
-from fix_trees import fix_node
+# Import fix_node and sanitize_type from fix_trees.py
+from fix_trees import fix_node, sanitize_type
 
 DB_PATH = os.path.join("trees", "lattice.db")
 
@@ -28,7 +28,8 @@ def init_db(db_file=DB_PATH):
             output_state TEXT,
             code TEXT,
             dependencies TEXT,
-            configuration_schema TEXT
+            configuration_schema TEXT,
+            verified INTEGER DEFAULT 0
         )
     ''')
     cursor.execute('CREATE INDEX IF NOT EXISTS idx_input ON nodes(input_type, input_state)')
@@ -94,6 +95,10 @@ def compile_json_nodes_to_db(json_filepath, conn, filter_verified_only=False):
             out_type = "ndarray"
             out_state = "computed"
 
+        # Sanitize type names
+        in_type = sanitize_type(in_type, cell_id, domain_name)
+        out_type = sanitize_type(out_type, cell_id, domain_name)
+
         # Discard wildcards
         if in_type.lower() in ("any", "any_computed"):
             in_type = "ndarray"
@@ -101,12 +106,13 @@ def compile_json_nodes_to_db(json_filepath, conn, filter_verified_only=False):
             out_type = "ndarray"
 
         node_type = cell.get("node_type", "function")
+        verified_val = 1 if cell.get("verified") is True else 0
 
         cursor.execute('''
             INSERT OR REPLACE INTO nodes 
-            (cell_id, domain_name, node_type, stage, keywords, input_type, input_state, output_type, output_state, code, dependencies, configuration_schema)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        ''', (cell_id, domain_name, node_type, 1, keywords_json, in_type, in_state, out_type, out_state, code, deps_json, '[]'))
+            (cell_id, domain_name, node_type, stage, keywords, input_type, input_state, output_type, output_state, code, dependencies, configuration_schema, verified)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ''', (cell_id, domain_name, node_type, 1, keywords_json, in_type, in_state, out_type, out_state, code, deps_json, '[]', verified_val))
         compiled_count += 1
 
     conn.commit()
@@ -140,8 +146,20 @@ def main():
 
     conn.close()
     conn_nstl.close()
+
+    # Harvest core algorithmic & control flow patterns into DB
+    sys.path.insert(0, os.path.join(project_root, "harvesting"))
+    try:
+        from pattern_harvester import harvest_core_patterns
+        harvest_core_patterns(db_path)
+        harvest_core_patterns(nstl_db_path)
+        print("[+] Harvested core algorithmic patterns into SQLite DBs.")
+    except Exception as e:
+        print(f"[-] Warning: Failed to run pattern harvester: {e}")
+
     print("[*] Compilation Complete. `trees/lattice.db` and `trees/nstl_lattice.db` are ready!")
 
 
 if __name__ == "__main__":
     main()
+

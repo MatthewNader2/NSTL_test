@@ -206,6 +206,15 @@ class BenchmarkProfile_A(InferenceProfile):
             
         device = HardwareProfiler.get_embedder_device()
         self.model = _load_embedder_model(model_path, device)
+        detected_dimension = getattr(self.model, "get_sentence_embedding_dimension", lambda: None)()
+        if not detected_dimension:
+            try:
+                sample = self.get_embedding("test")
+                detected_dimension = len(sample)
+            except Exception:
+                pass
+        if detected_dimension:
+            self._dim = int(detected_dimension)
 
     def get_embedding(self, text: str) -> List[float]:
         try:
@@ -218,9 +227,9 @@ class BenchmarkProfile_A(InferenceProfile):
         if not texts:
             return []
         try:
-            return self.model.encode(texts, convert_to_numpy=True, task="retrieval", batch_size=64).tolist()
+            return self.model.encode(texts, convert_to_numpy=True, task="retrieval", batch_size=256).tolist()
         except TypeError:
-            return self.model.encode(texts, convert_to_numpy=True, batch_size=64).tolist()
+            return self.model.encode(texts, convert_to_numpy=True, batch_size=256).tolist()
 
     def generate_text(self, prompt: str, max_tokens: int = 2048, schema: dict = None, system_prompt: str = None) -> str:
         raise RuntimeError("Profile A (Embedding Only) does not support text generation.")
@@ -466,9 +475,7 @@ class BenchmarkProfile_C(InferenceProfile):
         if not os.path.exists(emb_path):
             emb_path = embedder_name
             
-        llm_device = HardwareProfiler.get_llm_device()
-        # When an LLM is active on GPU, route the text embedder to CPU to preserve 100% CUDA VRAM for the 7B LLM
-        emb_device = "cpu" if llm_device == "cuda" else HardwareProfiler.get_embedder_device()
+        emb_device = HardwareProfiler.get_embedder_device()
         self.embedder = _load_embedder_model(emb_path, emb_device)
         detected_dimension = getattr(self.embedder, "get_sentence_embedding_dimension", lambda: None)()
         if not detected_dimension:
@@ -495,6 +502,7 @@ class BenchmarkProfile_C(InferenceProfile):
         if torch.cuda.is_available():
             torch.cuda.empty_cache()
 
+        llm_device = HardwareProfiler.get_llm_device()
         gpu_layers = -1 if llm_device == "cuda" else 0
         n_threads = max(1, (os.cpu_count() or 4) // 2)
 
@@ -542,9 +550,18 @@ class BenchmarkProfile_C(InferenceProfile):
         if not texts:
             return []
         try:
+            import torch
+            if torch.get_num_threads() < 4:
+                torch.set_num_threads(min(8, os.cpu_count() or 4))
+        except Exception:
+            pass
+        try:
             return self.embedder.encode(texts, convert_to_numpy=True, task="retrieval", batch_size=64, show_progress_bar=False).tolist()
         except Exception:
-            return self.embedder.encode(texts, convert_to_numpy=True, batch_size=64, show_progress_bar=False).tolist()
+            try:
+                return self.embedder.encode(texts, convert_to_numpy=True, task="retrieval", batch_size=32, show_progress_bar=False).tolist()
+            except Exception:
+                return self.embedder.encode(texts, convert_to_numpy=True, batch_size=32, show_progress_bar=False).tolist()
 
     def generate_text(self, prompt: str, max_tokens: int = 2048, schema: dict = None, system_prompt: str = None) -> str:
         messages = []
@@ -637,6 +654,15 @@ class ModelManager:
 
     def initialize_profile(self, profile_type: str, embedder_name: str = None, llm_name: str = None):
         with self._lock:
+            import gc
+            import torch
+            if hasattr(self, 'active_profile') and self.active_profile is not None:
+                del self.active_profile
+                self.active_profile = None
+                gc.collect()
+                if torch.cuda.is_available():
+                    torch.cuda.empty_cache()
+
             # Re-initialize if the models change, even if the profile type is the same
             logging.info(f"Loading BenchmarkProfile_{profile_type} models persistently...")
             t0 = time.time()

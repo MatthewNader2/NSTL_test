@@ -10,6 +10,9 @@ import faiss
 import numpy as np
 from inference import ModelManager
 from router import HardwareProfiler
+from tokenizer import CellTokenizer, AliasRegistry
+from config import TYPE_MISMATCH_DISCOUNT, DOMAIN_MATCH_FACTOR, DOMAIN_NEUTRAL_FACTOR, DOMAIN_CONFLICT_FACTOR
+from lattice import is_subtype
 
 # Cache lives next to the trees directory, inside a hidden .rag_cache folder
 _CACHE_DIR_NAME = ".rag_cache"
@@ -45,7 +48,7 @@ class LocalRAG:
         try:
             profile = ModelManager.get_instance().active_profile
             emb_name = getattr(profile, "embedder_name", None) or "default_embedder"
-            dim = ModelManager.get_instance().embedding_dimension
+            dim = getattr(profile, "_dim", None) or ModelManager.get_instance().embedding_dimension
             model_name = f"{emb_name}__dim{dim}"
         except Exception:
             model_name = "unknown_model"
@@ -369,33 +372,23 @@ class LocalRAG:
 
         return "\n".join(results)
 
-    def find_closest_cell_by_embedding(self, query_text: str, domain_hint: str = "") -> Optional[str]:
-        """Uses FAISS vector embedding search with contextual prompt guidance and dynamic domain weighting."""
+    def find_closest_cell_by_embedding(self, query_text: str, domain_hint: str = "", expected_type: str = "any") -> Optional[str]:
+        """Uses FAISS vector embedding search with clean embedding-centric scoring."""
         if self.index is None or self.index.ntotal == 0:
             return None
 
         try:
-            # 1. Dynamically extract available domain names from indexed schemas (zero hardcoding)
-            common_words = {"read", "write", "file", "into", "from", "name", "with", "path", "copy", "get", "set", "save", "load", "drop", "sort", "data", "list", "dict", "str", "int", "float", "bool", "type", "func", "node", "core", "test", "main", "init", "base"}
-            available_domains = {
-                cell.get("domain_name", "").lower()
-                for cell in self.id_to_schema.values() if cell.get("domain_name")
-            }
-            for cell in self.id_to_schema.values():
-                parts = cell.get("cell_id", "").lower().split("_")
-                if len(parts) > 1 and len(parts[0]) > 2 and parts[0] not in common_words:
-                    available_domains.add(parts[0])
-
-            available_domains = {d for d in available_domains if len(d) >= 3 and d not in common_words}
-
-            alias_map = {"opencv": "cv2", "pd": "pandas", "np": "numpy", "plt": "matplotlib", "pytorch": "torch", "sklearn": "scikit"}
+            # 1. Use AliasRegistry instead of triplicated common_words/alias_map
+            alias_reg = AliasRegistry.build_from_cells(list(self.id_to_schema.values()))
+            
             active_domains = set()
-            for d in available_domains:
-                if d and d in domain_hint.lower():
-                    active_domains.add(d)
-            for alias, target in alias_map.items():
-                if alias in domain_hint.lower() and target in available_domains:
-                    active_domains.add(target)
+            dh_lower = domain_hint.lower()
+            dh_tokens = set(re.findall(r"[a-zA-Z0-9]+", dh_lower))
+            
+            for canonical in alias_reg._reverse:
+                aliases = alias_reg.get_aliases(canonical)
+                if any(alias in dh_tokens or alias in dh_lower for alias in aliases):
+                    active_domains.add(canonical)
 
             # Contextualize query string for vector model
             contextual_query = f"{domain_hint}: {query_text}" if domain_hint else query_text
@@ -409,139 +402,78 @@ class LocalRAG:
             search_k = min(500, self.index.ntotal)
             distances, indices = self.index.search(raw_emb, search_k)
 
-            # Tokenize query text for sub-token similarity
-            q_tokens = set(re.findall(r"[a-zA-Z0-9]+", query_text.lower())) - active_domains - {"micro", "macro", "default"}
-
             best_cell_id = None
             best_score = -10.0
-            from difflib import SequenceMatcher
 
             candidate_indices = list(indices[0])
-            # Container variant expansion: if a Series/Index cell is in candidates, also evaluate its DataFrame sibling
-            expanded_indices = set(candidate_indices)
-            for idx in candidate_indices:
-                if idx in self.id_to_schema:
-                    cid = self.id_to_schema[idx].get("cell_id", "")
-                    if "SERIES_" in cid or "INDEX_" in cid:
-                        alt_cid = cid.replace("SERIES_", "DATAFRAME_").replace("INDEX_", "DATAFRAME_")
-                        for s_idx, s_cell in self.id_to_schema.items():
-                            if s_cell.get("cell_id") == alt_cid:
-                                expanded_indices.add(s_idx)
-                                break
+            candidate_distances = list(distances[0])
 
-            for dist, idx in zip([0.70] * len(expanded_indices), expanded_indices):
+            # Container Sibling Expansion (VIO-49)
+            expanded_candidates = []
+            seen_idx = set()
+            for dist, idx in zip(candidate_distances, candidate_indices):
                 if idx == -1 or idx not in self.id_to_schema:
                     continue
+                if idx not in seen_idx:
+                    seen_idx.add(idx)
+                    expanded_candidates.append((dist, idx))
+                
+                c = self.id_to_schema[idx]
+                in_dict = c.get("inputs", {})
+                c_in_type = in_dict.get("type_name", in_dict.get("input_type", "any"))
+                
+                for s_idx, s_cell in self.id_to_schema.items():
+                    if s_idx in seen_idx:
+                        continue
+                    s_in_dict = s_cell.get("inputs", {})
+                    s_in_type = s_in_dict.get("type_name", s_in_dict.get("input_type", "any"))
+                    
+                    if is_subtype(s_in_type, c_in_type) or is_subtype(c_in_type, s_in_type):
+                        if set(s_cell.get("keywords", [])) == set(c.get("keywords", [])):
+                            seen_idx.add(s_idx)
+                            expanded_candidates.append((dist, s_idx))
+
+            for dist, idx in expanded_candidates:
                 cell = self.id_to_schema[idx]
                 cid = cell.get("cell_id", "")
+                
                 node_type = cell.get("node_type", "function")
-                if node_type not in [None, "function"]:
+                if node_type == "macro":
+                    continue
+                
+                if "___" in cid.lower():
                     continue
 
-                cid_lower = cid.lower()
-                if "___" in cid_lower:
-                    continue
-
-                cell_dom = cell.get("domain_name", "").lower() or (cid_lower.split("_")[0] if "_" in cid_lower else "")
-
-                domain_weight = 0.0
-                if active_domains:
-                    if cell_dom in active_domains:
-                        domain_weight += 0.35
-                    elif cell_dom in available_domains:
-                        domain_weight -= 0.45
-
-                # Calculate sub-token containment with dynamic API sub-word decomposition
-                raw_c_tokens = {kw.lower() for kw in cell.get("keywords", [])} | set(re.findall(r"[a-zA-Z0-9]+", cid_lower))
-                c_tokens = set(raw_c_tokens)
-                for tok in raw_c_tokens:
-                    if tok.startswith("im") and len(tok) > 2:
-                        c_tokens.add("im")
-                        c_tokens.add(tok[2:])
-                    if "imread" in tok:
-                        c_tokens.update(["im", "read", "load"])
-                    if "imwrite" in tok:
-                        c_tokens.update(["im", "write", "save"])
-                    if "cvtcolor" in tok:
-                        c_tokens.update(["cvt", "color", "convert", "grayscale"])
-                    if "dropna" in tok:
-                        c_tokens.update(["drop", "na", "rows", "missing", "values"])
-                    if "fillna" in tok:
-                        c_tokens.update(["fill", "na", "missing", "values"])
-                    if "to_csv" in tok:
-                        c_tokens.update(["to", "csv", "save", "write"])
-                    if "read_csv" in tok:
-                        c_tokens.update(["read", "csv", "load"])
-                    if "sort_values" in tok:
-                        c_tokens.update(["sort", "values", "order", "descending", "ascending"])
-                    if tok.startswith("cvt") and len(tok) > 3:
-                        c_tokens.add("cvt")
-                        c_tokens.add(tok[3:])
-                    if tok.startswith("read") and len(tok) > 4:
-                        c_tokens.add("read")
-                        c_tokens.add(tok[4:])
-                    if tok.startswith("write") and len(tok) > 5:
-                        c_tokens.add("write")
-                        c_tokens.add(tok[5:])
-                    if tok.startswith("to") and len(tok) > 2:
-                        c_tokens.add("to")
-                        c_tokens.add(tok[2:])
-
-                core_c_tokens = c_tokens - available_domains - {"micro", "macro", "default"}
-                if not core_c_tokens:
-                    core_c_tokens = c_tokens
-
-                concept_hits = 0
-                if q_tokens:
-                    for qt in q_tokens:
-                        if any((qt in ct or ct in qt) or (len(qt) >= 4 and len(ct) >= 4 and (qt[:4] in ct or ct[:4] in qt)) or SequenceMatcher(None, qt, ct).ratio() >= 0.55 for ct in core_c_tokens):
-                            concept_hits += 1
-                    concept_coverage = concept_hits / max(len(q_tokens), 1)
+                # Type Compatibility Factor
+                in_dict = cell.get("inputs", {})
+                in_type = in_dict.get("type_name", in_dict.get("input_type", "any"))
+                if expected_type == "any" or in_type == "any" or is_subtype(in_type, expected_type):
+                    type_compatibility_factor = 1.0
                 else:
-                    concept_coverage = 0.0
-
-                # Action verb alignment check (dynamic semantic intent boost/penalty)
-                action_bonus = 0.0
-                action_syns = {
-                    "read": {"read", "load", "open", "imread", "get", "fetch"},
-                    "load": {"read", "load", "open", "imread", "get", "fetch"},
-                    "write": {"write", "save", "export", "imwrite", "to", "dump"},
-                    "save": {"write", "save", "export", "imwrite", "to", "dump"},
-                    "convert": {"convert", "cvt", "transform", "change"},
-                    "sort": {"sort", "order", "arrange", "rank"},
-                    "drop": {"drop", "remove", "delete"},
-                }
-                for qt in q_tokens:
-                    if qt in action_syns:
-                        target_syns = action_syns[qt]
-                        if any(syn in core_c_tokens or any(syn in ct for ct in core_c_tokens) for syn in target_syns):
-                            action_bonus += 0.35
-                        else:
-                            action_bonus -= 0.35
-
-                seq_ratio = SequenceMatcher(None, query_text.lower(), cid_lower).ratio()
-                id_len_penalty = (len(cid_lower) - 12) * 0.01 if len(cid_lower) > 12 else 0.0
-                if any(primary in cid_lower for primary in ["dataframe", "series", "ndarray", "matrix", "tensor", "image"]):
-                    id_len_penalty = max(0.0, id_len_penalty - 0.06)
-
-                container_boost = 0.0
-                if any(k in q_tokens or k in domain_hint.lower() for k in ["dataframe", "df", "rows", "table"]):
-                    if "dataframe" in cid_lower:
-                        container_boost += 0.25
-                    elif "series" in cid_lower:
-                        container_boost -= 0.15
-
-                # Obscure module penalty (prefer clean root functions over cuda, gpumat, ocl, gapi, multi, randu, or obscure internal variants)
-                obscure_penalty = 0.0
-                if any(obs in cid_lower for obs in ["cuda", "gpumat", "ocl", "gapi", "multi", "randu", "reshape", "metadata", "list_like", "common_convert"]):
-                    obscure_penalty += 0.35
-
-                # Hybrid score combining Vector Space Embedding (40%), Token Coverage (35%), Sequence Ratio (25%), Domain & Action Weight
-                score = (float(dist) * 0.40) + (concept_coverage * 0.35) + (seq_ratio * 0.25) + domain_weight + action_bonus + container_boost - id_len_penalty - obscure_penalty
-
-                if "imread" in cid_lower or "rectangle" in cid_lower or "to_csv" in cid_lower or "sort" in cid_lower or "drop" in cid_lower:
-                    self.logger.info(f"[FAISS DEBUG] '{query_text}' vs '{cid}': dist={dist:.3f}, domain={domain_weight:.3f}, cov={concept_coverage:.3f}, act={action_bonus:.3f}, container={container_boost:.3f}, len_pen={id_len_penalty:.3f}, score={score:.3f}")
-
+                    type_compatibility_factor = TYPE_MISMATCH_DISCOUNT
+                
+                # Domain Affinity Factor
+                cid_lower = cid.lower()
+                cell_dom = cell.get("domain_name", "").lower() or (cid_lower.split("_")[0] if "_" in cid_lower else "")
+                cell_dom = alias_reg.resolve(cell_dom)
+                
+                if active_domains and cell_dom in active_domains:
+                    domain_affinity_factor = DOMAIN_MATCH_FACTOR
+                elif cell_dom in ["core", "python", ""]:
+                    domain_affinity_factor = DOMAIN_NEUTRAL_FACTOR
+                elif active_domains:
+                    domain_affinity_factor = DOMAIN_CONFLICT_FACTOR
+                else:
+                    domain_affinity_factor = DOMAIN_NEUTRAL_FACTOR
+                
+                # Replace token extraction with CellTokenizer.tokenize_cell(cell_id, keywords)
+                c_tokens = CellTokenizer.tokenize_cell(cid, set(cell.get("keywords", [])))
+                
+                # Clean formula
+                score = float(dist) * type_compatibility_factor * domain_affinity_factor
+                
+                self.logger.debug(f"[FAISS DEBUG] '{query_text}' vs '{cid}': dist={dist:.3f}, type_factor={type_compatibility_factor:.3f}, domain_factor={domain_affinity_factor:.3f}, score={score:.3f}")
+                
                 if score > best_score:
                     best_score = score
                     best_cell_id = cid

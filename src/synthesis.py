@@ -17,8 +17,8 @@ _CODE_PLACEHOLDERS = frozenset(
 
 
 class SynthesisEngine:
-    def __init__(self):
-        pass
+    def __init__(self, trees_dir: str = "trees"):
+        self.trees_dir = trees_dir
 
     @staticmethod
     def _repair_synthesized_code(
@@ -42,36 +42,34 @@ class SynthesisEngine:
         import ast as _ast
 
         temp_code = code
-        # Strip trailing JSON delimiters (e.g. }, }, ], ", ",) leaked by LLM string formatting
-        lines = temp_code.rstrip().splitlines()
-        while lines and lines[-1].strip() in ("}", "},", "]", "],", '"', '",'):
-            lines.pop()
-        temp_code = "\n".join(lines)
 
         # ── Pre-step: Canonicalize all placeholder references to valid Python identifiers ──
-        # Both braced ({input_var}) and bare (input_var) forms are replaced with
-        # a unique temp name (_nstl_ph_name_) so the code is valid Python for
-        # ast.parse() and compile().  The braces in {input_var} make it a Python
-        # set display, causing "cannot assign to set display" SyntaxErrors.
+        # Braced form ({input_var}) is replaced with a unique temp name (_nstl_ph_name_)
+        # so the code is valid Python for ast.parse() and compile().
         _TEMP_PREFIX = "_nstl_ph_"
         for name in placeholder_names:
-            # Replace braced form first: {name} → _nstl_ph_name_
             temp_code = temp_code.replace('{' + name + '}', _TEMP_PREFIX + name + '_')
-            # Replace bare form: word-boundary match only
-            temp_code = re.sub(
-                rf'(?<!\{{)\b{re.escape(name)}\b(?!\}})',
-                _TEMP_PREFIX + name + '_',
-                temp_code,
-            )
 
-        # ── Step 1: Strip module-level Return nodes ───────────────────────────────
+        class RenameTransformer(_ast.NodeTransformer):
+            def visit_Name(self, node):
+                if node.id in placeholder_names:
+                    node.id = _TEMP_PREFIX + node.id + '_'
+                return node
+
+        # ── Step 1: AST Transformations (Strip Return & Replace Bare Placeholders) ────
         try:
             tree = _ast.parse(temp_code)
+            
+            # Apply AST-safe replacement of bare placeholder names
+            tree = RenameTransformer().visit(tree)
+            
             original_len = len(tree.body)
             tree.body = [node for node in tree.body if not isinstance(node, _ast.Return)]
+            
+            _ast.fix_missing_locations(tree)
+            temp_code = _ast.unparse(tree)
+            
             if len(tree.body) != original_len:
-                _ast.fix_missing_locations(tree)
-                temp_code = _ast.unparse(tree)
                 logger.info(
                     f"[SYNTHESIS REPAIR] Stripped "
                     f"{original_len - len(tree.body)} module-level Return node(s)."
@@ -118,7 +116,32 @@ class SynthesisEngine:
                              assembled by the caller from runtime context — no parsing
                              happens inside this method.
         """
+        import os
+        # Phase 4 Memo-Cache Check: Check if an identical/high-similarity synthesized node is already cached
+        cache_path = os.path.join(self.trees_dir, "micro", "synthesized_nodes.json")
+        
+        domain = "Python_Core"
+        if context_hint:
+            match = re.search(r"domain=([^,]+)", context_hint)
+            if match and match.group(1).strip():
+                domain = match.group(1).strip()
+        if os.path.exists(cache_path):
+            try:
+                with open(cache_path, "r", encoding="utf-8") as f:
+                    cached_data = json.load(f)
+                    for cell in cached_data.get("cells", []):
+                        if isinstance(cell, dict):
+                            c_in = cell.get("inputs", {}).get("type_name", "")
+                            c_out = cell.get("outputs", {}).get("type_name", "")
+                            kws = " ".join(cell.get("keywords", []))
+                            if c_in == expected_input and c_out == expected_output and (gap_concept.lower() in kws.lower() or kws.lower() in gap_concept.lower()):
+                                logger.info(f"[SYNTHESIS MEMO-CACHE HIT] Reusing cached synthesized cell: {cell.get('cell_id')}")
+                                return cell
+            except Exception as e:
+                logger.warning(f"[SYNTHESIS MEMO-CACHE WARNING] Could not read cache: {e}")
+
         logger.info(f"Fetching live docs for concept: {gap_concept}")
+
         live_docs = fetcher.fetch(gap_concept)
         if not live_docs:
             logger.warning(f"No live docs found for {gap_concept}. Proceeding with zero-shot knowledge.")
@@ -142,7 +165,7 @@ Schema:
   "inputs": {{ "type_name": "{expected_input}", "state": "raw" }},
   "outputs": {{ "type_name": "{expected_output}", "state": "computed" }},
   "domain_implementations": {{
-    "Python_Core": {{
+    "{domain}": {{
       "code": "# Functional Python statements operating on {{input_var}}\n{{output_var}} = {{input_var}}",
       "dependencies": []
     }}
@@ -166,39 +189,20 @@ Use the following Official Documentation as your absolute ground truth:"""
         elif "```" in cleaned_text:
             cleaned_text = cleaned_text.split("```")[1].split("```")[0].strip()
 
-        # ── Parse with layered repair fallbacks (handles unescaped control chars, raw # comments, truncation) ──
+        # ── Parse with structured JSON extraction ──
         micro_json = None
-
-        # Stage 1: Try strict=False (permits raw unescaped newlines/tabs inside string fields)
         try:
             micro_json = json.loads(cleaned_text, strict=False)
         except Exception as e:
-            logger.warning(f"Initial JSON parse failed ({e}); attempting multi-stage repair...")
-
-        # Stage 2: Strip Python comments (# ...) outside string literals & trailing commas
-        if micro_json is None:
-            no_comments = re.sub(r'^\s*#.*$', '', cleaned_text, flags=re.MULTILINE)
-            repaired = re.sub(r',\s*([\}\]])', r'\1', no_comments)
-            try:
-                micro_json = json.loads(repaired, strict=False)
-            except Exception:
-                pass
-
-        # Stage 3: Handle truncated/unterminated JSON (auto-close quotes and braces)
-        if micro_json is None:
+            logger.warning(f"Initial JSON parse failed ({e}); attempting structural extraction...")
+            
+            # Find the outermost JSON object
             first_brace = cleaned_text.find('{')
-            if first_brace != -1:
-                sub = cleaned_text[first_brace:]
-                # Strip raw comments
-                sub = re.sub(r'^\s*#.*$', '', sub, flags=re.MULTILINE)
-                # Count open/close quotes and braces
-                if sub.count('"') % 2 != 0:
-                    sub += '"'
-                open_b = sub.count('{') - sub.count('}')
-                if open_b > 0:
-                    sub += '}' * open_b
+            last_brace = cleaned_text.rfind('}')
+            if first_brace != -1 and last_brace != -1 and last_brace > first_brace:
+                extracted_json = cleaned_text[first_brace:last_brace + 1]
                 try:
-                    micro_json = json.loads(sub, strict=False)
+                    micro_json = json.loads(extracted_json, strict=False)
                 except Exception:
                     pass
 
@@ -218,7 +222,7 @@ Use the following Official Documentation as your absolute ground truth:"""
                     "inputs": {"type_name": expected_input, "state": "raw"},
                     "outputs": {"type_name": expected_output, "state": "computed"},
                     "domain_implementations": {
-                        "Python_Core": {
+                        domain: {
                             "code": code_str,
                             "dependencies": []
                         }
@@ -234,7 +238,7 @@ Use the following Official Documentation as your absolute ground truth:"""
                 )
 
         # ── AST structural repair on the extracted code string ───────────────────
-        impl = micro_json.get("domain_implementations", {}).get("Python_Core", {})
+        impl = micro_json.get("domain_implementations", {}).get(domain, {})
         raw_code = impl.get("code", "")
         if raw_code:
             try:

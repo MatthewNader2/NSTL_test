@@ -11,28 +11,24 @@
       "inputs":  { "type_name": "str", "state": "source_identifier" },
       "outputs": { "type_name": "str", "state": "filepath_written" },
       "algorithmic_steps": [
-        "1. EXTRACT: Read data from the source (CSV, JSON, DB, API)",
-        "2. VALIDATE: Check schema, detect nulls, type mismatches",
-        "3. CLEAN: Drop nulls, remove duplicates, normalize column names",
-        "4. TRANSFORM: Apply business rules — aggregation, joins, derived columns",
-        "5. LOAD: Export the result to the target format (Parquet, DB, CSV)"
+        "1. EXTRACT: Read data from CSV file source",
+        "2. CLEAN: Drop null/missing values",
+        "3. DEDUPLICATE: Remove duplicate records",
+        "4. TRANSFORM: Sort data by key column",
+        "5. LOAD: Export result to Parquet format"
       ],
       "sub_cells": [
-        "PANDAS_READ_CSV",
-        "PANDAS_DROP_NA",
-        "PANDAS_DROP_DUPLICATES",
-        "PANDAS_RENAME_COLUMNS",
-        "PANDAS_GROUPBY_AGG",
-        "PANDAS_RESET_INDEX",
-        "PANDAS_TO_PARQUET"
+        "PANDAS_READ_CSV_DEFAULT",
+        "PANDAS_DROPNA_DEFAULT",
+        "PANDAS_DROP_DUPLICATES_DEFAULT",
+        "PANDAS_SORT_VALUES_DEFAULT",
+        "PANDAS_TO_PARQUET_DEFAULT"
       ],
       "internal_topology": {
-        "PANDAS_READ_CSV":       ["PANDAS_DROP_NA"],
-        "PANDAS_DROP_NA":        ["PANDAS_DROP_DUPLICATES"],
-        "PANDAS_DROP_DUPLICATES":["PANDAS_RENAME_COLUMNS"],
-        "PANDAS_RENAME_COLUMNS": ["PANDAS_GROUPBY_AGG"],
-        "PANDAS_GROUPBY_AGG":    ["PANDAS_RESET_INDEX"],
-        "PANDAS_RESET_INDEX":    ["PANDAS_TO_PARQUET"]
+        "PANDAS_READ_CSV_DEFAULT":       ["PANDAS_DROPNA_DEFAULT"],
+        "PANDAS_DROPNA_DEFAULT":        ["PANDAS_DROP_DUPLICATES_DEFAULT"],
+        "PANDAS_DROP_DUPLICATES_DEFAULT":["PANDAS_SORT_VALUES_DEFAULT"],
+        "PANDAS_SORT_VALUES_DEFAULT":   ["PANDAS_TO_PARQUET_DEFAULT"]
       }
     },
     {
@@ -43,30 +39,29 @@
       "inputs":  { "type_name": "str", "state": "source_identifier" },
       "outputs": { "type_name": "str", "state": "filepath_written" },
       "algorithmic_steps": [
-        "1. LOAD: Ingest the dataset from file",
-        "2. PREPROCESS: Drop nulls, encode categoricals, scale numeric features",
-        "3. SPLIT: Partition into train/test sets (80/20)",
-        "4. TRAIN: Fit a classifier on the training split",
-        "5. EVALUATE: Compute accuracy and cross-validation metrics",
-        "6. PERSIST: Save the trained model to disk"
+        "1. LOAD: Ingest the dataset from CSV source file",
+        "2. PREPROCESS: Select numeric features and scale features with StandardScaler",
+        "3. SPLIT: Partition into train and test splits",
+        "4. TRAIN: Fit a RandomForestClassifier model",
+        "5. PREDICT: Generate predictions on test features",
+        "6. PERSIST: Save prediction results to disk"
       ],
       "sub_cells": [
-        "PANDAS_READ_CSV",
-        "PANDAS_DROP_NA",
-        "SKLEARN_LABEL_ENCODER",
+        "PANDAS_READ_CSV_DEFAULT",
+        "SKLEARN_SELECT_NUMERIC",
         "SKLEARN_STANDARD_SCALER",
         "SKLEARN_TRAIN_TEST_SPLIT",
-        "SKLEARN_RANDOM_FOREST",
-        "SKLEARN_CROSS_VALIDATE",
-        "SKLEARN_SAVE_MODEL"
+        "SKLEARN_RANDOM_FOREST_FIT",
+        "SKLEARN_MODEL_PREDICT",
+        "PANDAS_SAVE_PREDICTIONS"
       ],
       "internal_topology": {
-        "PANDAS_READ_CSV":        ["PANDAS_DROP_NA"],
-        "PANDAS_DROP_NA":         ["SKLEARN_LABEL_ENCODER"],
-        "SKLEARN_LABEL_ENCODER":  ["SKLEARN_STANDARD_SCALER"],
-        "SKLEARN_STANDARD_SCALER":["SKLEARN_TRAIN_TEST_SPLIT"],
-        "SKLEARN_TRAIN_TEST_SPLIT":["SKLEARN_RANDOM_FOREST", "SKLEARN_CROSS_VALIDATE"],
-        "SKLEARN_RANDOM_FOREST":  ["SKLEARN_SAVE_MODEL"]
+        "PANDAS_READ_CSV_DEFAULT":  ["SKLEARN_SELECT_NUMERIC"],
+        "SKLEARN_SELECT_NUMERIC":   ["SKLEARN_STANDARD_SCALER"],
+        "SKLEARN_STANDARD_SCALER":  ["SKLEARN_TRAIN_TEST_SPLIT"],
+        "SKLEARN_TRAIN_TEST_SPLIT":  ["SKLEARN_RANDOM_FOREST_FIT"],
+        "SKLEARN_RANDOM_FOREST_FIT":["SKLEARN_MODEL_PREDICT"],
+        "SKLEARN_MODEL_PREDICT":    ["PANDAS_SAVE_PREDICTIONS"]
       }
     },
     {
@@ -77,25 +72,21 @@
       "inputs":  { "type_name": "str", "state": "source_identifier" },
       "outputs": { "type_name": "str", "state": "filepath_written" },
       "algorithmic_steps": [
-        "1. LOAD: Read dataset from source",
-        "2. DESCRIBE: Compute summary statistics across all columns",
-        "3. VISUALIZE DISTRIBUTIONS: Plot histogram for each numeric column",
-        "4. VISUALIZE CORRELATIONS: Generate a correlation heatmap",
-        "5. EXPORT: Save the cleaned data for downstream use"
+        "1. LOAD: Read dataset from CSV source file",
+        "2. CLEAN: Drop nulls",
+        "3. DESCRIBE: Compute summary statistics across all columns",
+        "4. EXPORT: Save summary statistics to CSV report file"
       ],
       "sub_cells": [
-        "PANDAS_READ_CSV",
-        "PANDAS_DROP_NA",
-        "PANDAS_DESCRIBE",
-        "PANDAS_CORR",
-        "MPL_HISTOGRAM",
-        "MPL_HEATMAP",
-        "PANDAS_TO_CSV"
+        "PANDAS_READ_CSV_DEFAULT",
+        "PANDAS_DROPNA_DEFAULT",
+        "PANDAS_DESCRIBE_DEFAULT",
+        "PANDAS_TO_CSV_DEFAULT"
       ],
       "internal_topology": {
-        "PANDAS_READ_CSV":  ["PANDAS_DROP_NA"],
-        "PANDAS_DROP_NA":   ["PANDAS_DESCRIBE", "PANDAS_CORR", "MPL_HISTOGRAM", "PANDAS_TO_CSV"],
-        "PANDAS_CORR":      ["MPL_HEATMAP"]
+        "PANDAS_READ_CSV_DEFAULT": ["PANDAS_DROPNA_DEFAULT"],
+        "PANDAS_DROPNA_DEFAULT":   ["PANDAS_DESCRIBE_DEFAULT"],
+        "PANDAS_DESCRIBE_DEFAULT": ["PANDAS_TO_CSV_DEFAULT"]
       }
     },
     {
@@ -106,22 +97,36 @@
       "inputs":  { "type_name": "dict", "state": "parsed_object" },
       "outputs": { "type_name": "list", "state": "sorted" },
       "algorithmic_steps": [
-        "1. INITIALIZE: Create open set (priority queue) with start node; closed set empty",
-        "2. COST MAPS: g(n) = real cost from start; h(n) = heuristic estimate to goal; f(n) = g+h",
-        "3. EXPAND: Pop lowest f(n) node from open set",
-        "4. GOAL CHECK: If current node == goal, reconstruct path and return",
-        "5. GENERATE NEIGHBORS: For each valid neighbor, compute tentative g-score",
-        "6. RELAXATION: If tentative g < recorded g, update and add to open set",
-        "7. REPEAT: Continue until goal reached or open set empty"
+        "1. BUILD: Parse graph adjacency structure from dict",
+        "2. HEURISTIC SEARCH: Execute A* priority queue search with distance heuristics",
+        "3. RECONSTRUCT: Return reconstructed shortest path list"
       ],
       "sub_cells": [
-        "PYTHON_LOAD_JSON",
-        "PYTHON_LIST_SORT",
-        "PYTHON_DUMP_JSON"
+        "PYTHON_GRAPH_BUILD_CELL",
+        "PYTHON_ASTAR_PATHFINDING"
       ],
       "internal_topology": {
-        "PYTHON_LOAD_JSON": ["PYTHON_LIST_SORT"],
-        "PYTHON_LIST_SORT":  ["PYTHON_DUMP_JSON"]
+        "PYTHON_GRAPH_BUILD_CELL": ["PYTHON_ASTAR_PATHFINDING"]
+      }
+    },
+    {
+      "cell_id": "MACRO_DIJKSTRA",
+      "type": "macro",
+      "stage": 2,
+      "keywords": ["dijkstra", "shortest path", "graph", "heapq", "weights", "distances"],
+      "inputs":  { "type_name": "dict", "state": "parsed_object" },
+      "outputs": { "type_name": "dict", "state": "distances" },
+      "algorithmic_steps": [
+        "1. BUILD: Parse graph adjacency dict",
+        "2. RELAXATION: Execute Dijkstra priority queue edge relaxation",
+        "3. OUTPUT: Return dictionary of shortest distance costs"
+      ],
+      "sub_cells": [
+        "PYTHON_GRAPH_BUILD_CELL",
+        "PYTHON_DIJKSTRA_SHORTEST_PATH"
+      ],
+      "internal_topology": {
+        "PYTHON_GRAPH_BUILD_CELL": ["PYTHON_DIJKSTRA_SHORTEST_PATH"]
       }
     },
     {
@@ -130,25 +135,20 @@
       "stage": 2,
       "keywords": ["text", "embedding", "nlp", "faiss", "vector", "search", "sentence transformer"],
       "inputs":  { "type_name": "str", "state": "source_identifier" },
-      "outputs": { "type_name": "dict", "state": "evaluation_metrics" },
+      "outputs": { "type_name": "dict", "state": "search_results" },
       "algorithmic_steps": [
-        "1. LOAD: Read raw text corpus from file",
-        "2. TOKENIZE: Split text into sentences or chunks",
-        "3. CLEAN: Strip whitespace, lowercase, remove stop words",
-        "4. EMBED: Encode each chunk with a sentence transformer",
-        "5. INDEX: Add embeddings to a FAISS vector index",
-        "6. QUERY: Accept a query string and retrieve top-k similar chunks"
+        "1. ENCODE: Transform input text to dense vector embeddings using SentenceTransformer",
+        "2. INDEX: Add dense embeddings to FAISS vector index",
+        "3. QUERY: Search FAISS index and return top-k nearest match dictionary"
       ],
       "sub_cells": [
-        "PYTHON_OPEN_FILE_READ",
-        "PYTHON_STR_SPLIT",
-        "PYTHON_STR_STRIP",
-        "PYTHON_STR_LOWER"
+        "SENTENCE_TRANSFORMER_ENCODE",
+        "FAISS_INDEX_ADD",
+        "FAISS_INDEX_SEARCH"
       ],
       "internal_topology": {
-        "PYTHON_OPEN_FILE_READ": ["PYTHON_STR_SPLIT"],
-        "PYTHON_STR_SPLIT":       ["PYTHON_STR_STRIP"],
-        "PYTHON_STR_STRIP":        ["PYTHON_STR_LOWER"]
+        "SENTENCE_TRANSFORMER_ENCODE": ["FAISS_INDEX_ADD"],
+        "FAISS_INDEX_ADD":             ["FAISS_INDEX_SEARCH"]
       }
     },
     {
@@ -160,11 +160,12 @@
       "outputs": { "type_name": "str", "state": "server_started" },
       "algorithmic_steps": [
         "1. CREATE APP: Instantiate Flask application",
-        "2. DATABASE: Initialize SQLite or in-memory store",
-        "3. ROUTES: Register GET (list), POST (create), PUT (update), DELETE endpoints",
-        "4. ERROR HANDLERS: 404 and 500 error handlers",
-        "5. CORS: Enable cross-origin requests for frontend",
-        "6. RUN: Start the development server"
+        "2. DATABASE: Initialize SQLite connection",
+        "3. GET ROUTE: Register GET endpoint",
+        "4. POST ROUTE: Register POST endpoint",
+        "5. ERROR HANDLERS: Register 404/500 error handlers",
+        "6. CORS: Enable cross-origin resource sharing",
+        "7. RUN: Start development web server"
       ],
       "sub_cells": [
         "FLASK_CREATE_APP",
@@ -176,12 +177,12 @@
         "FLASK_RUN_DEBUG"
       ],
       "internal_topology": {
-        "FLASK_CREATE_APP":     ["FLASK_SQLITE_CONNECT", "FLASK_ENABLE_CORS", "FLASK_ERROR_HANDLER"],
+        "FLASK_CREATE_APP":     ["FLASK_SQLITE_CONNECT"],
         "FLASK_SQLITE_CONNECT": ["FLASK_ADD_GET_ROUTE"],
         "FLASK_ADD_GET_ROUTE":  ["FLASK_ADD_POST_ROUTE"],
-        "FLASK_ADD_POST_ROUTE": ["FLASK_RUN_DEBUG"],
-        "FLASK_ENABLE_CORS":    ["FLASK_ADD_GET_ROUTE"],
-        "FLASK_ERROR_HANDLER":  ["FLASK_ADD_GET_ROUTE"]
+        "FLASK_ADD_POST_ROUTE": ["FLASK_ERROR_HANDLER"],
+        "FLASK_ERROR_HANDLER":  ["FLASK_ENABLE_CORS"],
+        "FLASK_ENABLE_CORS":    ["FLASK_RUN_DEBUG"]
       }
     }
   ]

@@ -1,3 +1,5 @@
+# DEPRECATED: This backup file is retained for historical reference only.
+# Do NOT import or execute code from this module.
 # main.py — NSTL Engine (FastAPI + PyWebview Integration)
 import json
 import logging

@@ -6,17 +6,23 @@ import json
 import threading
 import subprocess
 import traceback
+import sys
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+import config
+PROJECT_ROOT = config.PROJECT_ROOT
+API_HOST = config.API_HOST
+API_PORT = config.API_PORT
 
 def start_server():
     env = os.environ.copy()
     env["TEST_HEADLESS"] = "1"
     # Ensure it's using the correct python from environment if needed, but 'python3' is fine
-    proc = subprocess.Popen(["python3", "src/main.py"], env=env, cwd="/media/matthew/New Volume/grad_test/nstl_prototype")
+    proc = subprocess.Popen(["python3", "src/main.py"], env=env, cwd=str(PROJECT_ROOT))
     
     print("Waiting for server to boot...")
     while True:
         try:
-            urllib.request.urlopen("http://127.0.0.1:58102/api/status", timeout=1)
+            urllib.request.urlopen(f"http://{API_HOST}:{API_PORT}/api/status", timeout=1)
             break
         except Exception:
             time.sleep(1)
@@ -28,7 +34,7 @@ def init_server(profile, emb_model, llm_model):
     print("Sending initialize...")
     init_payload = {"profile": profile, "embedder_model": emb_model, "llm_model": llm_model}
     req = urllib.request.Request(
-        "http://127.0.0.1:58102/api/initialize", 
+        f"http://{API_HOST}:{API_PORT}/api/initialize", 
         data=json.dumps(init_payload).encode(), 
         headers={"Content-Type": "application/json"}
     )
@@ -41,7 +47,7 @@ def init_server(profile, emb_model, llm_model):
     start_wait = time.time()
     while time.time() - start_wait < 1200:
         try:
-            resp = json.loads(urllib.request.urlopen("http://127.0.0.1:58102/api/status").read().decode())
+            resp = json.loads(urllib.request.urlopen(f"http://{API_HOST}:{API_PORT}/api/status").read().decode())
             if resp.get("status") == "ready":
                 return True
         except:
@@ -52,7 +58,7 @@ def init_server(profile, emb_model, llm_model):
 def generate_code(prompt):
     run_payload = {"prompt": prompt}
     req = urllib.request.Request(
-        "http://127.0.0.1:58102/api/run", 
+        f"http://{API_HOST}:{API_PORT}/api/run", 
         data=json.dumps(run_payload).encode(), 
         headers={"Content-Type": "application/json"}
     )
@@ -64,7 +70,7 @@ def generate_code(prompt):
         return None
 
 def run_eval():
-    with open('eval_dataset.json', 'r') as f:
+    with open(os.path.join(str(PROJECT_ROOT), 'eval_dataset.json'), 'r') as f:
         dataset = json.load(f)
         
     results = []
@@ -115,12 +121,13 @@ def run_eval():
                 error_msg = "No code generated."
             else:
                 # Write to temp file
-                with open('temp_eval_run.py', 'w') as f:
+                temp_file = os.path.join(str(PROJECT_ROOT), 'temp_eval_run.py')
+                with open(temp_file, 'w') as f:
                     f.write(code)
                 
                 # Execute
                 try:
-                    run_proc = subprocess.run(["python3", "temp_eval_run.py"], capture_output=True, text=True, timeout=30)
+                    run_proc = subprocess.run(["python3", temp_file], capture_output=True, text=True, timeout=30)
                     stdout_str = run_proc.stdout
                     stderr_str = run_proc.stderr
                     
@@ -140,7 +147,7 @@ def run_eval():
                             except Exception as e:
                                 error_msg = f"Validation script crashed: {e}\n{traceback.format_exc()}"
                         else:
-                            passed = True # No validation script = pass if it didn't crash
+                            passed = None # No validation script = unvalidated
                 except subprocess.TimeoutExpired:
                     error_msg = "Execution timed out after 30 seconds."
                 except Exception as e:
@@ -167,10 +174,10 @@ def run_eval():
             proc.wait(timeout=5)
         except subprocess.TimeoutExpired:
             proc.kill()
-        subprocess.run("pkill -9 -f 'python3 src/main.py' || true", shell=True, capture_output=True)
+        subprocess.run(f"fuser -k {API_PORT}/tcp || pkill -9 -f 'python3 src/main.py' || true", shell=True, capture_output=True)
         time.sleep(3)
 
-    with open('evaluation_results.json', 'w') as f:
+    with open(os.path.join(str(PROJECT_ROOT), 'evaluation_results.json'), 'w') as f:
         json.dump(results, f, indent=4)
     print("Evaluations completed. Results saved to evaluation_results.json")
 

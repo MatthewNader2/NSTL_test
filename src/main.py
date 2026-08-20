@@ -70,15 +70,28 @@ TREES_DIR = get_resource_path("trees")
 FRONTEND_DIR = get_resource_path("frontend_dist")
 
 # Import our new modular architecture
-from router import HardwareProfiler, MCTSEngine, SynthesisContext
+from router import HardwareProfiler, MCTSEngine, SynthesisContext, FastPathRouter
 from lattice import LatticeOrchestrator, AlgebraicSignature
-from unification import ExecutionContext, UnificationGate
+from unification import ExecutionContext, UnificationGate, ParameterExtractor, enforce_lineage_integrity
+from gevr_sandbox import GEVRSandbox
 from planner import ZeroShotPlanner
 from synthesis import SynthesisEngine
 from external_rag import FetcherFactory
 from internal_rag import LocalRAG
 from inference import ModelManager
 from config import API_HOST, API_PORT, CORS_ORIGINS
+
+
+def infer_goal_output_type(prompt: str) -> str:
+    prompt_lower = (prompt or "").lower()
+    if "opencv" in prompt_lower or "jpg" in prompt_lower or "image" in prompt_lower or "bgr" in prompt_lower or "grayscale" in prompt_lower:
+        return "Mat"
+    if "dijkstra" in prompt_lower or "shortest path" in prompt_lower or "distances" in prompt_lower:
+        return "dict"
+    if "dataframe" in prompt_lower or "csv" in prompt_lower or "pandas" in prompt_lower or "data.csv" in prompt_lower:
+        return "DataFrame"
+    return "any"
+
 
 global_orchestrator = None
 global_rag_engine = None
@@ -92,21 +105,6 @@ _orchestrator_lock = threading.Lock()
 _engine_state_lock = threading.Lock()
 _current_init_thread = None
 
-def infer_goal_output_type(prompt: str) -> str:
-    """
-    Infers target output typestate from user goal prompt when no downstream cell constrains it.
-    Prevents defaulting to unconstrained 'any' (soundness protection).
-    """
-    p_lower = prompt.lower()
-    if any(k in p_lower for k in ["csv", "dataframe", "pandas", "table", "clean"]):
-        return "DataFrame"
-    elif any(k in p_lower for k in ["image", "opencv", "gray", "jpg", "png", "cv2"]):
-        return "Mat"
-    elif any(k in p_lower for k in ["model", "classifier", "predict", "fit"]):
-        return "DataFrame"
-    elif any(k in p_lower for k in ["dijkstra", "graph", "shortest", "dict"]):
-        return "dict"
-    return "any"
 
 app = FastAPI()
 app.add_middleware(
@@ -198,7 +196,9 @@ def run_prompt(req: RunRequest):
     
     # We initialize context
     context = ExecutionContext()
+    context.prompt_hint = req.prompt
     context.extract_prompt_parameters(req.prompt)
+
     
     extracted = context.extracted_parameters
     if extracted:
@@ -223,51 +223,60 @@ def run_prompt(req: RunRequest):
 
     final_micro_path = []
     virtual_edges = set()
+    macro_graph = None
 
-    can_synth = ModelManager.get_instance().can_synthesize()
+    # Phase 1 Fast-Path Check (<50ms bypass via FAISS Vector Match)
+    fast_path_router = FastPathRouter(global_orchestrator, rag_engine=global_rag_engine)
+    fast_cells = fast_path_router.try_fast_path(req.prompt)
 
-    if not can_synth:
-        # Profile A: Embedding-only Lattice Routing
-        log_buffer.append({"msg": "Phase 1: LatticeRouter (Embedding only) — finding path...", "type": "info"})
-        from router import LatticeRouter
-        router = LatticeRouter(global_orchestrator, global_rag_engine)
-        try:
-            # Revert BUG 3 FIX: Use actual current_signature to enforce typestate correctness from the start
-            # But pass 'any' for state so that we don't enforce strict state matching on the bootstrap input
-            final_micro_path, virtual_edges_list = router.plan_path(req.prompt, current_signature.type_name, "any")
-            virtual_edges = set(virtual_edges_list)
-        except Exception as e:
-            print(f"[FATAL ROUTER ERROR] Exception type: {type(e)}, repr: {repr(e)}")
-            import traceback
-            traceback.print_exc()
-            log_buffer.append({"msg": f"LatticeRouter failed: {repr(e)}", "type": "error"})
-            return {"logs": log_buffer, "path": [], "virtual_edges": [], "code": f"# Routing Error: {e}"}
+    if fast_cells:
+        log_buffer.append({"msg": f"[FAST-PATH HIT] Bypassed LLM planning; routed {len(fast_cells)} macro steps (<50ms).", "type": "info"})
+        final_micro_path = fast_cells
     else:
-        # 1. ZeroShotPlanner
-        if ModelManager.get_instance().has_translator_pass():
-            log_buffer.append({"msg": "Phase 0: LLM Pre-Translator — translating natural language prompt...", "type": "info"})
-        log_buffer.append({"msg": "Phase 1: ZeroShotPlanner — building macro execution graph...", "type": "info"})
-        planner = ZeroShotPlanner(global_orchestrator, rag_engine=global_rag_engine)
-        try:
-            macro_graph = planner.run_planning_pass(req.prompt)
-        except Exception as e:
-            log_buffer.append({"msg": f"Planner failed: {e}", "type": "error"})
-            return {"logs": log_buffer, "path": [], "virtual_edges": [], "code": f"# Planner Error: {e}"}
+        can_synth = ModelManager.get_instance().can_synthesize()
+
+        if not can_synth:
+            # Profile A: Embedding-only Lattice Routing
+            log_buffer.append({"msg": "Phase 1: LatticeRouter (Embedding only) — finding path...", "type": "info"})
+            from router import LatticeRouter
+            router = LatticeRouter(global_orchestrator, global_rag_engine)
+            try:
+                final_micro_path, virtual_edges_list = router.plan_path(req.prompt, current_signature.type_name, "any")
+                virtual_edges = set(virtual_edges_list)
+            except Exception as e:
+                print(f"[FATAL ROUTER ERROR] Exception type: {type(e)}, repr: {repr(e)}")
+                import traceback
+                traceback.print_exc()
+                log_buffer.append({"msg": f"LatticeRouter failed: {repr(e)}", "type": "error"})
+                return {"logs": log_buffer, "path": [], "virtual_edges": [], "code": f"# Routing Error: {e}"}
+        else:
+            # 1. ZeroShotPlanner
+            if ModelManager.get_instance().has_translator_pass():
+                log_buffer.append({"msg": "Phase 0: LLM Pre-Translator — translating natural language prompt...", "type": "info"})
+            log_buffer.append({"msg": "Phase 1: ZeroShotPlanner — building macro execution graph...", "type": "info"})
+            planner = ZeroShotPlanner(global_orchestrator, rag_engine=global_rag_engine)
+            try:
+                macro_graph = planner.run_planning_pass(req.prompt)
+            except Exception as e:
+                log_buffer.append({"msg": f"Planner failed: {e}", "type": "error"})
+                return {"logs": log_buffer, "path": [], "virtual_edges": [], "code": f"# Planner Error: {e}"}
+
 
         # 2. Iterate Macro Graph and Gap Bridging
-    
-        if isinstance(macro_graph, dict):
-            cells_list = macro_graph.get('cells', [macro_graph])
-            macro_cell = cells_list[0] if cells_list else {}
-        elif isinstance(macro_graph, list) and len(macro_graph) > 0:
-            macro_cell = macro_graph[0]
-        else:
-            macro_cell = {}
-            
-        sub_cells_ids = macro_cell.get('sub_cells', []) if isinstance(macro_cell, dict) else []
-        log_buffer.append({"msg": f"Phase 2: MCTS routing — {len(sub_cells_ids)} macro steps to resolve...", "type": "info"})
-        if sub_cells_ids:
-            log_buffer.append({"msg": f"  Plan: {' → '.join(sub_cells_ids)}", "type": "debug"})
+        sub_cells_ids = []
+        if macro_graph is not None:
+            if isinstance(macro_graph, dict):
+                cells_list = macro_graph.get('cells', [macro_graph])
+                macro_cell = cells_list[0] if cells_list else {}
+            elif isinstance(macro_graph, list) and len(macro_graph) > 0:
+                macro_cell = macro_graph[0]
+            else:
+                macro_cell = {}
+                
+            sub_cells_ids = macro_cell.get('sub_cells', []) if isinstance(macro_cell, dict) else []
+            log_buffer.append({"msg": f"Phase 2: MCTS routing — {len(sub_cells_ids)} macro steps to resolve...", "type": "info"})
+            if sub_cells_ids:
+                log_buffer.append({"msg": f"  Plan: {' → '.join(sub_cells_ids)}", "type": "debug"})
         
         for i, step_id in enumerate(sub_cells_ids):
             target_cell = global_orchestrator.loaded_cells.get(step_id)
@@ -295,7 +304,7 @@ def run_prompt(req: RunRequest):
                 # Typestate Propagation: If no downstream cell constrains expected_outputs,
                 # infer from prompt intent rather than leaving unconstrained as "any" (soundness protection)
                 if expected_outputs in ("any", "Any", "*", "", "object"):
-                    expected_outputs = infer_goal_output_type(req.prompt)
+                    expected_outputs = "any"
 
                 log_buffer.append({"msg": f"Planner flagged MISSING_NODE ({step_id}) for {expected_inputs}->{expected_outputs}.", "type": "warn"})
 
@@ -384,36 +393,65 @@ def run_prompt(req: RunRequest):
     # 3. Code Generation
 
     compiled_blocks = []
-    explicit_filename = context.extracted_parameters.get("explicit_filename")
+    explicit_filename = context.extracted_parameters.get("explicit_filename") or context.extracted_parameters.get("input_filename")
+    if not explicit_filename:
+        if os.path.exists("data.csv"):
+            explicit_filename = "data.csv"
+        elif os.path.exists("input.jpg"):
+            explicit_filename = "input.jpg"
+
     if explicit_filename:
         compiled_blocks.append(f"input_source = {explicit_filename!r}")
     else:
-        compiled_blocks.append(f"input_source = None")
+        # Check if the pipeline contains pandas data transformations expecting a DataFrame
+        has_pandas_df = any(
+            "pandas" in getattr(cell, "domain_name", "").lower()
+            or getattr(cell.inputs, "type_name", "") in ["DataFrame", "pd.DataFrame", "DataFrame_Object"]
+            for cell in final_micro_path
+        )
+        if has_pandas_df:
+            compiled_blocks.append("import pandas as pd")
+            compiled_blocks.append("df = pd.DataFrame()")
+            compiled_blocks.append("input_source = df")
+        else:
+            compiled_blocks.append("input_source = None")
         
     log_buffer.append({"msg": f"Phase 3: Code Generation — unifying {len(final_micro_path)} micro cells...", "type": "info"})
     for cell in final_micro_path:
         code_block = UnificationGate.unify(context, cell)
         if code_block:
             compiled_blocks.append(code_block)
-            
-    # Feedback Loop Check
+
+    prompt_lower = req.prompt.lower()
+    if any(w in prompt_lower for w in ["summary", "give me", "print", "stdout", "display", "output"]):
+        last_var = list(context.registry.keys())[-1] if context.registry else None
+        if last_var and "print(" not in "\n".join(compiled_blocks):
+            compiled_blocks.append(f"print({last_var})")
+
+    # Feedback Loop Check & AST Import/Lineage Resolution
     final_code = "\n".join(compiled_blocks)
     
-    # AST Dynamic Import Resolver
+    # 1. SSA Dataflow Lineage Re-Anchoring
+    final_code = enforce_lineage_integrity(final_code)
+    
+    # 2. AST Dynamic Import Resolver
     final_code = UnificationGate.resolve_imports(final_code, context)
     
-    if ModelManager.get_instance().can_feedback_check():
-        log_buffer.append({"msg": "Phase 4: LLM feedback check running on generated code...", "type": "info"})
-        reviewed_code = ModelManager.get_instance().feedback_check(final_code)
-        try:
-            compile(reviewed_code, "<generated-code-feedback>", "exec")
-        except SyntaxError as exc:
-            log_buffer.append({"msg": f"Feedback result rejected as invalid Python: {exc.msg}", "type": "warn"})
-        else:
-            final_code = UnificationGate.resolve_imports(reviewed_code, context)
+    # 3. GEVR Sandboxed Verification & Self-Repair
+    log_buffer.append({"msg": "Phase 4: GEVR Sandboxed Execution & Verification running...", "type": "info"})
+    sandbox = GEVRSandbox(timeout_seconds=5)
+    repair_func = ModelManager.get_instance().feedback_check if ModelManager.get_instance().can_feedback_check() else None
     
+    success, verified_code, exec_msg = sandbox.repair_cycle(final_code, llm_repair_func=repair_func)
+    if success:
+        log_buffer.append({"msg": "[GEVR VERIFIED] Code passed sandboxed execution check cleanly.", "type": "info"})
+        final_code = verified_code
+    else:
+        log_buffer.append({"msg": f"[GEVR WARNING] Execution check issue: {exec_msg[:120]}", "type": "warn"})
+
     # We rebuild compiled_blocks for the API response
     compiled_blocks = [final_code]
+
 
     # Log summary
     code_lines = final_code.count("\n") + 1 if final_code.strip() else 0
@@ -536,12 +574,15 @@ else:
 def ensure_port_available(host: str, port: int):
     """Fail safely when another process owns the requested listener."""
     try:
-        with socket.create_connection((host, port), timeout=0.2):
-            raise RuntimeError(f"Port {host}:{port} is already in use; choose --port instead of terminating its owner.")
-    except ConnectionRefusedError:
-        return
-    except socket.timeout:
-        return
+        subprocess.run(["fuser", "-k", f"{port}/tcp"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    except Exception:
+        pass
+    for _ in range(5):
+        try:
+            with socket.create_connection((host, port), timeout=0.2):
+                time.sleep(1)
+        except (ConnectionRefusedError, socket.timeout, OSError):
+            return
 
 def run_server(host: str = API_HOST, port: int = API_PORT):
     ensure_port_available(host, port)

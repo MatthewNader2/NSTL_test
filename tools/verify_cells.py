@@ -27,63 +27,38 @@ if str(PROJECT_ROOT) not in sys.path:
 
 def get_synthetic_value(param_name: str, param_type: str, default_val=None):
     """Generate a synthetic input stand-in object based on parameter name and type."""
-    p_name_lower = param_name.lower()
     p_type_lower = param_type.lower() if param_type else ""
 
-    # Known OpenCV specific argument names & types
-    if p_name_lower == "code":
-        return cv2.COLOR_BGR2GRAY
-    if p_name_lower in ("ksize", "dsize", "size"):
-        return (3, 3)
-    if p_name_lower in ("thresh", "threshold", "maxval"):
-        return 128.0
-    if p_name_lower in ("sigmax", "sigmay", "fx", "fy"):
-        return 1.0
-    if p_name_lower in ("threshold1", "threshold2"):
-        return 50.0
-    if p_name_lower in ("mode", "method"):
-        return 0
-    if p_name_lower == "flags":
-        return 0
-
-    # Image / Mat inputs
-    if "mat" in p_type_lower or p_name_lower in ("src", "img", "image", "frame"):
-        return np.zeros((8, 8, 3), dtype=np.uint8)
-
-    # Pandas inputs
-    if "dataframe" in p_type_lower or p_name_lower in ("df", "data"):
-        return pd.DataFrame({"a": [1, 2, 3], "b": [4.0, 5.0, 6.0]})
-    if "series" in p_type_lower:
-        return pd.Series([1.0, 2.0, 3.0])
-
-    # Numpy inputs
-    if "ndarray" in p_type_lower or p_name_lower in ("arr", "array", "a", "x", "y"):
-        return np.array([1.0, 2.0, 3.0, 4.0], dtype=np.float64)
-
-    # Basic types
-    if "int" in p_type_lower:
-        return 1
-    if "float" in p_type_lower or "double" in p_type_lower:
-        return 1.0
-    if "bool" in p_type_lower:
-        return True
-    if "str" in p_type_lower or "file" in p_name_lower or "path" in p_name_lower:
-        return "synthetic_data.csv"
-    if "tuple" in p_type_lower or "shape" in p_name_lower:
-        return (8, 8)
-    if "dict" in p_type_lower:
-        return {"a": 1}
-    if "list" in p_type_lower:
-        return [1, 2, 3]
-
-    # Fallback to default representation or uint8 array
     if default_val is not None and default_val != "None" and default_val != "...":
         try:
             return eval(default_val, {"cv2": cv2, "np": np, "pd": pd})
         except Exception:
             pass
 
-    return np.zeros((8, 8, 3), dtype=np.uint8)
+    if "mat" in p_type_lower or "ndarray" in p_type_lower:
+        return np.zeros((8, 8, 3), dtype=np.uint8)
+    if "dataframe" in p_type_lower:
+        return pd.DataFrame({"a": [1, 2, 3], "b": [4.0, 5.0, 6.0]})
+    if "series" in p_type_lower:
+        return pd.Series([1.0, 2.0, 3.0])
+    if "int" in p_type_lower:
+        return 1
+    if "float" in p_type_lower or "double" in p_type_lower:
+        return 1.0
+    if "bool" in p_type_lower:
+        return True
+    if "str" in p_type_lower:
+        return "synthetic_data.csv"
+    if "tuple" in p_type_lower:
+        return (1, 1)
+    if "dict" in p_type_lower:
+        return {"a": 1}
+    if "list" in p_type_lower:
+        return [1, 2, 3]
+    if "graph" in p_type_lower:
+        return {'A': {'B': 1}, 'B': {'A': 1}}
+    
+    return None
 
 
 def verify_single_node(node: dict) -> dict:
@@ -142,8 +117,6 @@ def verify_single_node(node: dict) -> dict:
         elif declared_out_type == "Series" and isinstance(result, pd.Series):
             type_match = True
         elif declared_out_type.lower() in (obs_type.lower(), "any", "object"):
-            type_match = True
-        elif result is not None:
             type_match = True
 
         return {

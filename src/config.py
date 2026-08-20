@@ -54,6 +54,20 @@ CORS_ORIGINS = [
     f"http://127.0.0.1:{API_PORT}",
 ]
 
+# ---------------------------------------------------------------------------
+# Scoring & Routing Thresholds (VIO-50/51 fix: centralized, configurable)
+# ---------------------------------------------------------------------------
+SIMILARITY_THRESHOLD = float(os.environ.get("NSTL_SIMILARITY_THRESHOLD", "0.25"))
+MIN_CONFIDENCE = float(os.environ.get("NSTL_MIN_CONFIDENCE", "0.30"))
+TUNNELING_MARGIN = float(os.environ.get("NSTL_TUNNELING_MARGIN", "0.15"))
+MACRO_THRESHOLD = float(os.environ.get("NSTL_MACRO_THRESHOLD", "0.40"))
+TYPE_MISMATCH_DISCOUNT = float(os.environ.get("NSTL_TYPE_MISMATCH_DISCOUNT", "0.001"))
+
+# Domain affinity factors for scoring
+DOMAIN_MATCH_FACTOR = float(os.environ.get("NSTL_DOMAIN_MATCH", "1.0"))
+DOMAIN_NEUTRAL_FACTOR = float(os.environ.get("NSTL_DOMAIN_NEUTRAL", "0.5"))
+DOMAIN_CONFLICT_FACTOR = float(os.environ.get("NSTL_DOMAIN_CONFLICT", "0.01"))
+
 import sys
 
 def find_llama_server() -> str:

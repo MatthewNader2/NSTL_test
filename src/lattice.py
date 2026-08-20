@@ -2,8 +2,8 @@ import json
 import os
 import sqlite3
 import threading
-from dataclasses import dataclass
-from typing import List, Dict, Optional, Set, Any
+from dataclasses import dataclass, field
+from typing import List, Dict, Optional, Set, Any, FrozenSet, Tuple
 from abc import ABC
 from log_config import get_logger
 
@@ -11,20 +11,108 @@ from log_config import get_logger
 _synth_file_lock = threading.Lock()
 logger = get_logger('lattice')
 
-@dataclass(slots=True)
+def canonical_type_name(name: str) -> str:
+    if not name:
+        return "any"
+    mapping = {
+        "dataframe": "DataFrame",
+        "pd.dataframe": "DataFrame",
+        "ndarray": "ndarray",
+        "np.ndarray": "ndarray",
+        "matrix": "ndarray",
+        "csr_matrix": "SparseMatrix",
+        "str": "str",
+        "int": "int",
+        "float": "float",
+        "list": "list",
+        "dict": "dict",
+        "graph": "Graph"
+    }
+    return mapping.get(str(name).lower().strip(), str(name))
+
+def is_subtype(sub: str, super_: str) -> bool:
+    """Checks if `sub` is a subtype of `super_` in the NSTL type hierarchy.
+    
+    The hierarchy is data-driven and extensible. New types can be registered
+    by adding entries to _TYPE_HIERARCHY.
+    """
+    if sub == super_ or super_ == "any" or sub == "any":
+        return True
+    return super_ in _TYPE_HIERARCHY.get(sub, set())
+
+
+# Extensible type hierarchy: maps type_name -> set of supertypes.
+# Add new types here to extend the lattice without touching logic.
+_TYPE_HIERARCHY: Dict[str, Set[str]] = {
+    "SparseMatrix": {"ndarray", "any"},
+    "DataFrame": {"any"},
+    "Series": {"ndarray", "any"},
+    "ndarray": {"any"},
+    "int": {"float", "numeric", "any"},
+    "float": {"numeric", "any"},
+    "Graph": {"dict", "any"},
+    # Expanded types (VIO-09 fix)
+    "Mat": {"ndarray", "any"},
+    "Image": {"ndarray", "any"},
+    "Tensor": {"ndarray", "any"},
+    "PIL.Image": {"Image", "any"},
+    "numeric": {"any"},
+    "bool": {"int", "numeric", "any"},
+    "str": {"any"},
+    "list": {"any"},
+    "dict": {"any"},
+    "tuple": {"any"},
+    "set": {"any"},
+    "bytes": {"any"},
+    "None": {"any"},
+}
+
+@dataclass(frozen=True, slots=True)
 class AlgebraicSignature:
     type_name: str
     state: str
+    qualifiers: FrozenSet[Tuple[str, str]] = field(default_factory=frozenset)
+
+    @classmethod
+    def from_string(cls, type_str: str, state_str: str = "any", **kwargs) -> "AlgebraicSignature":
+        quals = frozenset((k, str(v)) for k, v in kwargs.items())
+        return cls(type_name=canonical_type_name(type_str), state=str(state_str).lower(), qualifiers=quals)
 
     def matches(self, other: 'AlgebraicSignature') -> bool:
-        """Structural unification with 'any' wildcard support."""
-        if self.type_name != "any" and other.type_name != "any":
-            if self.type_name != other.type_name:
+        """Structural unification with bounded subtyping and qualifier subset checking."""
+        if self.type_name == "any" or other.type_name == "any":
+            return True
+
+        if self.type_name != other.type_name:
+            if not is_subtype(self.type_name, other.type_name) and not is_subtype(other.type_name, self.type_name):
                 return False
+
+        if self.state != "any" and other.state != "any" and self.state != other.state:
+            return False
+
+        if other.qualifiers and not other.qualifiers.issubset(self.qualifiers):
+            return False
+
         return True
 
+
+@dataclass
+class ParameterSlot:
+    """Formal parameter declaration for a Cell's code template.
+    
+    Replaces the ad-hoc string heuristics in unification.py (VIO-25/26)
+    with a structured schema that the unification engine can bind against.
+    """
+    name: str
+    role: str = ""           # e.g., 'SOURCE_URI', 'COLUMN_NAME', 'SORT_ORDER', or free-form
+    type_hint: str = "any"   # e.g., 'str', 'int', 'bool', 'float'
+    default: Any = None
+    required: bool = True
+
+
 class Cell(ABC):
-    __slots__ = ["cell_id", "stage", "keywords", "type", "inputs", "outputs", "domain_name", "node_type", "_db_path"]
+    __slots__ = ["cell_id", "stage", "keywords", "type", "inputs", "outputs", "domain_name", "node_type", "_db_path", "_code_template", "dependencies", "parameters", "metadata_tags"]
+
 
     def __init__(
         self,
@@ -47,30 +135,12 @@ class Cell(ABC):
         self.domain_name = domain_name
         self.node_type = node_type
         self._db_path = db_path
-
-class MicroCell(Cell):
-    __slots__ = ["_code_template", "intent_expansion", "matched_heuristics"]
-    # Class-level connection cache: avoids opening 100+ connections during unrolling
-    _conn_cache: dict = {}
-
-    def __init__(
-        self,
-        cell_id: str,
-        stage: int,
-        keywords: set,
-        inputs: AlgebraicSignature,
-        outputs: AlgebraicSignature,
-        domain_name: str = "",
-        node_type: str = "function",
-        cell_type: str = "micro",
-        intent_expansion: list = None,
-        db_path: str = ""
-    ):
-        super().__init__(cell_id, stage, keywords, cell_type, inputs, outputs, domain_name, node_type, db_path)
         self._code_template = None
-        self.intent_expansion = intent_expansion or []
-        self.matched_heuristics = []
+        self.dependencies = []
+        self.parameters: List[ParameterSlot] = []
+        self.metadata_tags: Dict[str, Any] = {}  # e.g., {'requires_user_interaction': True, 'is_sink': True}
 
+    _conn_cache: dict = {}
     _db_lock = threading.Lock()
 
     @classmethod
@@ -105,6 +175,28 @@ class MicroCell(Cell):
     def code_template(self, value):
         self._code_template = value
 
+
+class MicroCell(Cell):
+    __slots__ = ["intent_expansion", "matched_heuristics"]
+
+    def __init__(
+        self,
+        cell_id: str,
+        stage: int,
+        keywords: set,
+        inputs: AlgebraicSignature,
+        outputs: AlgebraicSignature,
+        domain_name: str = "",
+        node_type: str = "function",
+        cell_type: str = "micro",
+        intent_expansion: list = None,
+        db_path: str = ""
+    ):
+        super().__init__(cell_id, stage, keywords, cell_type, inputs, outputs, domain_name, node_type, db_path)
+        self.intent_expansion = intent_expansion or []
+        self.matched_heuristics = []
+
+
 class MacroCell(Cell):
     __slots__ = ["algorithmic_steps"]
 
@@ -123,6 +215,7 @@ class MacroCell(Cell):
     ):
         super().__init__(cell_id, stage, keywords, cell_type, inputs, outputs, domain_name, node_type, db_path)
         self.algorithmic_steps = algorithmic_steps or []
+
 
 class LatticeOrchestrator:
     def __init__(self, trees_directory="trees", active_domain="Python_Core"):
@@ -181,7 +274,7 @@ class LatticeOrchestrator:
             return
             
         try:
-            conn = sqlite3.connect(self.db_path)
+            conn = sqlite3.connect(self.db_path, check_same_thread=False)
             cursor = conn.cursor()
             cursor.execute("SELECT cell_id, domain_name, node_type, stage, keywords, input_type, input_state, output_type, output_state FROM nodes")
             rows = cursor.fetchall()
@@ -221,6 +314,28 @@ class LatticeOrchestrator:
                         node_type=node_type,
                         db_path=self.db_path
                     )
+                
+                # Load parameter schema if available
+                try:
+                    param_cursor = conn.cursor()
+                    param_cursor.execute("SELECT parameters, metadata_tags FROM nodes WHERE cell_id = ?", (cell_id,))
+                    param_row = param_cursor.fetchone()
+                    param_cursor.close()
+                    if param_row:
+                        if param_row[0]:
+                            try:
+                                params_data = json.loads(param_row[0])
+                                cell.parameters = [ParameterSlot(**p) for p in params_data]
+                            except (json.JSONDecodeError, TypeError):
+                                pass
+                        if param_row[1]:
+                            try:
+                                cell.metadata_tags = json.loads(param_row[1])
+                            except (json.JSONDecodeError, TypeError):
+                                pass
+                except Exception:
+                    pass  # columns may not exist yet in older DBs
+
                 self.loaded_cells[cell.cell_id] = cell
                 logger.debug(f"Loaded {node_type} cell {cell.cell_id} from SQLite.")
                 

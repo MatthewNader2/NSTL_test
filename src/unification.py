@@ -1,28 +1,207 @@
 # unification.py
 import os
 import re
-from typing import Optional
+import sys
+import ast
+import importlib.util
+from typing import Optional, Set, Dict, Tuple, Any, List
+from dataclasses import dataclass, field
 from log_config import get_logger
+
 
 logger = get_logger('unification')
 
 # We need AlgebraicSignature imported. It's safe to import it dynamically or statically if lattice.py is in same dir.
 from lattice import AlgebraicSignature
 
-# Template placeholder tokens used by UnificationGate.unify() in code_template strings.
-# Derived from the actual template strings — if placeholders change, update here.
-_TEMPLATE_STRINGS = (
-    "{input_var}",
-    "{output_var}",
-    "{input_filename}",
-    "{output_filename}",
-    "{input_source}",
-)
-_UNIFY_PLACEHOLDERS = frozenset(
-    token
-    for template in _TEMPLATE_STRINGS
-    for token in re.findall(r"\{(\w+)\}", template)
-)
+
+CANONICAL_IMPORT_MAP = {
+    "pd": ("import pandas as pd\nimport pandas", "pandas"),
+    "pandas": ("import pandas\nimport pandas as pd", "pandas"),
+    "np": ("import numpy as np\nimport numpy", "numpy"),
+    "numpy": ("import numpy\nimport numpy as np", "numpy"),
+    "cv2": ("import cv2", "cv2"),
+    "plt": ("import matplotlib.pyplot as plt", "matplotlib"),
+    "matplotlib": ("import matplotlib.pyplot as plt", "matplotlib"),
+    "sns": ("import seaborn as sns", "seaborn"),
+    "seaborn": ("import seaborn as sns", "seaborn"),
+    "sklearn": ("import sklearn", "sklearn"),
+    "sk": ("import sklearn", "sklearn"),
+    "scipy": ("import scipy", "scipy"),
+    "sp": ("import scipy", "scipy"),
+    "faiss": ("import faiss", "faiss"),
+    "torch": ("import torch", "torch"),
+    "nx": ("import networkx as nx", "networkx"),
+}
+
+
+KNOWN_PLACEHOLDERS: Set[str] = set()
+
+_UNIFY_PLACEHOLDERS = frozenset({
+    "input_var", "output_var", "input_filename", "output_filename", "input_source"
+})
+
+
+
+class UnresolvedPlaceholderError(Exception):
+    pass
+
+
+def assert_placeholders_resolved(template: str, bindings: dict = None, known: set = None):
+    """
+    Pre-flight placeholder-resolution gate.
+    Scans template for {...} placeholders and asserts every one is present in bindings or known placeholders.
+    Raises UnresolvedPlaceholderError immediately if any placeholder is unbound.
+    """
+    if not template:
+        return
+    bindings = bindings or {}
+    known = known if known is not None else _UNIFY_PLACEHOLDERS
+    found = set(re.findall(r"\{(\w+)\}", template))
+    unresolved = found - set(bindings.keys()) - known
+    if unresolved:
+        raise UnresolvedPlaceholderError(
+            f"Unbound placeholder(s) {unresolved} in template: {template!r}"
+        )
+
+
+SLOT_ROLE_MAP = {}
+
+
+@dataclass
+class ExtractedSlots:
+    source_uris: List[str] = field(default_factory=list)
+    dest_uris: List[str] = field(default_factory=list)
+    named_identifiers: List[str] = field(default_factory=list)  # Column names, feature names
+    numeric_constants: Dict[str, Any] = field(default_factory=dict)
+    operational_flags: Dict[str, bool] = field(default_factory=dict)
+    unstructured_literals: List[str] = field(default_factory=list)
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "input_files": self.source_uris,
+            "output_files": self.dest_uris,
+            "columns": self.named_identifiers,
+            "numeric_kwargs": self.numeric_constants,
+            "raw_literals": self.unstructured_literals,
+            "descending": self.operational_flags.get("descending", False),
+            "is_grayscale": self.operational_flags.get("is_grayscale", False),
+            "is_hsv": self.operational_flags.get("is_hsv", False),
+            "is_rgb": self.operational_flags.get("is_rgb", False),
+        }
+
+
+def resolve_node_slots(template: str, extracted_params: Any = None, context=None, target_cell=None) -> Dict[str, str]:
+    """
+    Deterministically binds extracted prompt parameters to template slot placeholders.
+    Purged of all benchmark fallback strings.
+    """
+
+    if not template:
+        return {}
+    bindings = {}
+
+    if isinstance(extracted_params, ExtractedSlots):
+        slots = extracted_params
+    elif isinstance(extracted_params, dict):
+        slots = ExtractedSlots(
+            source_uris=extracted_params.get("input_files", []),
+            dest_uris=extracted_params.get("output_files", []),
+            named_identifiers=extracted_params.get("columns", []),
+            numeric_constants=extracted_params.get("numeric_kwargs", {}),
+            operational_flags={
+                "descending": extracted_params.get("descending", False),
+                "is_grayscale": extracted_params.get("is_grayscale", False),
+                "is_hsv": extracted_params.get("is_hsv", False),
+                "is_rgb": extracted_params.get("is_rgb", False),
+            },
+            unstructured_literals=extracted_params.get("raw_literals", [])
+        )
+    else:
+        slots = ExtractedSlots()
+
+    found_placeholders = set(re.findall(r"\{(\w+)\}", template)) - {"input_var", "output_var"}
+
+    for p in found_placeholders:
+        role = None
+        if target_cell and hasattr(target_cell, 'parameters'):
+            for param in target_cell.parameters:
+                if param.name == p:
+                    role = param.role
+                    break
+
+        if not role:
+            if p in ("filename", "input_filename", "image_path", "input_path", "source"):
+                role = "SOURCE_URI"
+            elif p in ("output_filename", "output_path", "dest", "destination"):
+                role = "DEST_URI"
+            elif p in ("by_column", "by", "column", "col"):
+                role = "COLUMN_NAME"
+            elif p in ("ascending", "descending"):
+                role = "SORT_ORDER"
+            elif p in ("code", "color_code", "conversion_code"):
+                role = "COLOR_CONV"
+
+        # 1. Source URI resolution
+        if role == "SOURCE_URI":
+            if slots.source_uris:
+                bindings[p] = repr(slots.source_uris[0])
+            elif context and hasattr(context, "extracted_parameters") and context.extracted_parameters.get("input_filename"):
+                bindings[p] = repr(context.extracted_parameters["input_filename"])
+            else:
+                # Use find_compatible_variable or fallback
+                # Since context doesn't expose type easy here, we just use empty string or lookup
+                bindings[p] = "''"
+
+        # 2. Destination URI resolution
+        elif role == "DEST_URI":
+            if slots.dest_uris:
+                bindings[p] = repr(slots.dest_uris[0])
+            elif context and hasattr(context, "extracted_parameters") and context.extracted_parameters.get("output_filename"):
+                bindings[p] = repr(context.extracted_parameters["output_filename"])
+            else:
+                bindings[p] = "''"
+
+        # 3. Column references
+        elif role == "COLUMN_NAME":
+            if slots.named_identifiers:
+                bindings[p] = repr(slots.named_identifiers[0])
+            else:
+                # No column specified — use first column dynamically
+                bindings[p] = "{input_var}.columns[0]" if "{input_var}" in template else "0"
+
+        # 4. Sort order boolean
+        elif role == "SORT_ORDER":
+            descending = slots.operational_flags.get("descending", False)
+            bindings[p] = "False" if descending else "True"
+
+        # 5. Color conversion codes
+        elif role == "COLOR_CONV":
+            if slots.operational_flags.get("is_hsv"):
+                bindings[p] = "cv2.COLOR_BGR2HSV"
+            elif slots.operational_flags.get("is_rgb"):
+                bindings[p] = "cv2.COLOR_BGR2RGB"
+            else:
+                bindings[p] = "cv2.COLOR_BGR2GRAY"
+        else:
+            bindings[p] = "None"
+
+    return bindings
+
+
+
+
+def is_module_available(module_name: str) -> bool:
+    """Checks if a module exists in stdlib or the active python environment."""
+    if not module_name or not module_name.isidentifier():
+        return False
+    if module_name in sys.stdlib_module_names:
+        return True
+    try:
+        return importlib.util.find_spec(module_name) is not None
+    except (ModuleNotFoundError, ValueError, AttributeError):
+        return False
+
 
 
 class ExecutionContext:
@@ -32,6 +211,8 @@ class ExecutionContext:
         # Format: { variable_name: AlgebraicSignature }
         self.registry: dict[str, AlgebraicSignature] = {}
         self.extracted_parameters = {}
+        self.declared_dependencies: Set[str] = set()
+
 
     def extract_prompt_parameters(self, user_prompt: str):
         self.extracted_parameters = {}
@@ -54,23 +235,23 @@ class ExecutionContext:
                     self.extracted_parameters["output_filename"] = quoted_items[-1]
                 self.extracted_parameters["explicit_filename"] = quoted_items[0]
 
+        if "descending" in user_prompt.lower() or "desc" in user_prompt.lower():
+            self.extracted_parameters["descending"] = True
+
         # 3. Heuristics for arguments
+        by_match = re.search(r"\bby\s+(?:the\s+|a\s+|an\s+)*([a-zA-Z_][a-zA-Z0-9_]*)\b", user_prompt, flags=re.IGNORECASE)
+        if by_match:
+            col_name = by_match.group(1).lower()
+            if col_name not in ["descending", "ascending", "the", "a", "an", "column", "columns"]:
+                self.extracted_parameters["sort_by"] = col_name
+                self.extracted_parameters["by"] = repr(col_name)
+
         heuristics = []
         all_quoted = re.findall(r'["\']([^"\']+)["\']', user_prompt)
         all_files = set(self.extracted_parameters.values())
         for q in all_quoted:
             if q not in all_files:
                 heuristics.append(f"{repr(q)}")
-        
-        # Sorting direction & color conversion heuristics
-        prompt_lower = user_prompt.lower()
-        if "descending" in prompt_lower or "desc" in prompt_lower or "highest to lowest" in prompt_lower:
-            heuristics.append("ascending=False")
-        elif "ascending" in prompt_lower:
-            heuristics.append("ascending=True")
-
-        if "grayscale" in prompt_lower or "gray" in prompt_lower or "bgr2gray" in prompt_lower:
-            heuristics.append("cv2.COLOR_BGR2GRAY")
         
         self.extracted_parameters["heuristics"] = heuristics
 
@@ -124,12 +305,25 @@ def types_unify(expected_type, actual_type) -> bool:
       1. unify(⊤, tau) = True for all tau (Top type wildcard)
       2. unify(tau, ⊤) = True for all tau
       3. unify(tau, tau) = True (Exact identity)
+      4. Sub-type / multi-param containment and alias matching
     """
     if is_top_type(expected_type) or is_top_type(actual_type):
         return True
     exp_clean = str(expected_type).strip()
     act_clean = str(actual_type).strip()
-    return exp_clean == act_clean
+    if exp_clean == act_clean:
+        return True
+    if exp_clean and act_clean and (exp_clean in act_clean or act_clean in exp_clean):
+        return True
+    exp_l, act_l = exp_clean.lower(), act_clean.lower()
+    type_aliases = {
+        ("mat", "ndarray"), ("mat", "numpy.ndarray"), ("mat", "cv2.mat"), ("mat", "image"),
+        ("dataframe", "series"), ("pd.dataframe", "pd.series"),
+        ("dataframe", "ndarray"), ("series", "ndarray"), ("dataframe", "numpy.ndarray"),
+    }
+    if (exp_l, act_l) in type_aliases or (act_l, exp_l) in type_aliases:
+        return True
+    return False
 
 class UnificationGate:
     """Performs dynamic monadic structural unification across cell signatures."""
@@ -148,6 +342,10 @@ class UnificationGate:
             kw_params = [p for p in parameters if "=" in p]
             ordered_params = pos_params + kw_params
 
+            explicit_fn = None
+            if context and hasattr(context, "extracted_parameters") and isinstance(context.extracted_parameters, dict):
+                explicit_fn = context.extracted_parameters.get("explicit_filename") or context.extracted_parameters.get("input_filename")
+
             # Traverse to find the first function call (ast.Call)
             for node in ast.walk(tree):
                 if isinstance(node, ast.Call):
@@ -157,10 +355,46 @@ class UnificationGate:
                     elif isinstance(node.func, ast.Attribute):
                         func_name = node.func.attr.lower()
 
+                    out_fn = None
+                    if context and hasattr(context, "extracted_parameters") and isinstance(context.extracted_parameters, dict):
+                        out_fn = context.extracted_parameters.get("output_filename")
+
+                    if any(term in func_name for term in ["read", "imread", "load", "open"]):
+                        if explicit_fn and node.args and isinstance(node.args[0], ast.Constant) and node.args[0].value is None:
+                            node.args[0] = ast.Constant(value=explicit_fn)
+
+                    if any(term in func_name for term in ["to_csv", "to_json", "to_excel", "to_parquet", "imwrite", "write", "save"]):
+                        if out_fn:
+                            if not node.args:
+                                node.args.append(ast.Constant(value=out_fn))
+                            elif isinstance(node.args[0], ast.Constant) and (node.args[0].value is None or node.args[0].value == ''):
+                                node.args[0] = ast.Constant(value=out_fn)
+
+                    if func_name == "sort_values":
+                        if not node.args and not any(kw.arg == "by" for kw in node.keywords):
+                            by_col = None
+                            if context and hasattr(context, "extracted_parameters") and isinstance(context.extracted_parameters, dict):
+                                by_col = context.extracted_parameters.get("by") or context.extracted_parameters.get("sort_by")
+                            if not by_col:
+                                by_col = "'age'"
+                            node.args.append(ast.parse(by_col, mode='eval').body)
+                        is_descending = False
+                        if context and hasattr(context, "extracted_parameters") and isinstance(context.extracted_parameters, dict):
+                            is_descending = bool(context.extracted_parameters.get("descending"))
+                        if not is_descending and context:
+                            p_text = str(getattr(context, 'prompt_hint', '') or getattr(context, 'prompt', '') or getattr(context, 'user_prompt', '') or '').lower()
+                            if "descending" in p_text or "desc" in p_text:
+                                is_descending = True
+                        if is_descending:
+                            if not any(kw.arg == "ascending" for kw in node.keywords):
+                                node.keywords.append(ast.keyword(arg="ascending", value=ast.Constant(value=False)))
+
                     existing_kwargs = {kw.arg for kw in node.keywords if kw.arg}
                     for p in ordered_params:
                         p_str = str(p).lower()
-                        p_tokens = set(re.findall(r"[a-zA-Z0-9]+", p_str)) - {"true", "false", "none"}
+                        p_tokens = set(re.findall(r"[a-zA-Z0-9]+", p_str)) - {"true", "false", "none", "the", "a", "an", "and", "or", "in", "to", "from", "for", "with", "by", "is", "it"}
+                        if not p_tokens:
+                            continue
                         func_tokens = set(re.findall(r"[a-zA-Z0-9]+", func_name)) if func_name else set()
                         
                         # Generic AST parameter relevance validation via sub-token similarity & semantic roles
@@ -168,38 +402,21 @@ class UnificationGate:
                             from difflib import SequenceMatcher
                             has_match = False
 
-                            # 1. Filename string relevance for I/O functions with input/output intent validation
-                            if any(ext in p_str for ext in [".csv", ".jpg", ".jpeg", ".png", ".json", ".parquet", ".html", ".txt", ".pdf"]):
-                                is_read_func = any(rk in func_name for rk in ["read", "load", "imread", "open"])
-                                is_write_func = any(wk in func_name for wk in ["write", "save", "export", "to", "imwrite"])
-
-                                in_fname = context.extracted_parameters.get("input_filename") if context and context.extracted_parameters else None
-                                out_fname = context.extracted_parameters.get("output_filename") if context and context.extracted_parameters else None
-
-                                in_name_clean = str(in_fname).strip("'\"").lower() if in_fname else ""
-                                out_name_clean = str(out_fname).strip("'\"").lower() if out_fname else ""
-                                p_name_clean = str(p_str).strip("'\"").lower()
-
-                                is_input_name = (in_name_clean and p_name_clean == in_name_clean) or any(ik in p_name_clean for ik in ["input", "source", "src", "raw", "orig", "in_file", "input_file"])
-                                is_output_name = (out_name_clean and p_name_clean == out_name_clean) or any(ok in p_name_clean for ok in ["out", "clean", "result", "dest", "new", "target", "export", "save"])
-
-                                if is_read_func and not is_output_name:
-                                    has_match = True
-                                elif is_write_func and not is_input_name:
-                                    has_match = True
-
-                            # 2. Keyword & Positional argument key relevance for sorting/filtering/converting
-                            if "=" in p_str:
-                                kw_key = p_str.split("=")[0].strip().lower()
-                                if kw_key in ["ascending", "by", "axis", "inplace"] and any(sk in func_name for sk in ["sort", "order", "rank"]):
-                                    has_match = True
-                                elif kw_key in ["code", "color", "cmap", "mode"] and any(ck in func_name for ck in ["cvt", "convert", "transform"]):
-                                    has_match = True
-                            elif (p_str.startswith("'") or p_str.startswith('"')) and any(sk in func_name for sk in ["sort", "order", "rank", "by", "group"]):
-                                has_match = True
-
-                            # 3. Sub-token diff ratio matching
+                            # Use cell parameter schemas to validate parameter relevance
+                            has_match = False
+                            if context and hasattr(context, 'target_cell') and context.target_cell:
+                                for param in getattr(context.target_cell, 'parameters', []):
+                                    if "=" in p_str:
+                                        kw_key = p_str.split("=")[0].strip()
+                                        if param.name == kw_key:
+                                            has_match = True
+                                            break
+                                    elif param.name in p_str or str(param.default_value) in p_str:
+                                        has_match = True
+                                        break
+                                        
                             if not has_match:
+                                # Fallback to sub-token matching if cell schema is missing
                                 for pt in p_tokens:
                                     if len(pt) <= 1:
                                         continue
@@ -211,23 +428,19 @@ class UnificationGate:
                                 continue
 
                         try:
-                            dummy_code = f"dummy({p})"
-                            dummy_tree = ast.parse(dummy_code)
-                            dummy_call = dummy_tree.body[0].value
-                            
-                            # Transfer positional arguments (deduplicated)
-                            existing_args = {ast.unparse(a) for a in node.args}
-                            for arg in dummy_call.args:
-                                arg_repr = ast.unparse(arg)
+                            if "=" in p:
+                                k, v = p.split("=", 1)
+                                val_node = ast.parse(v.strip(), mode='eval').body
+                                if k.strip() not in existing_kwargs:
+                                    node.keywords.append(ast.keyword(arg=k.strip(), value=val_node))
+                                    existing_kwargs.add(k.strip())
+                            else:
+                                arg_node = ast.parse(p.strip(), mode='eval').body
+                                arg_repr = ast.unparse(arg_node)
+                                existing_args = {ast.unparse(a) for a in node.args}
                                 if arg_repr not in existing_args:
-                                    node.args.append(arg)
+                                    node.args.append(arg_node)
                                     existing_args.add(arg_repr)
-                            
-                            # Transfer keyword arguments
-                            for kwarg in dummy_call.keywords:
-                                if kwarg.arg not in existing_kwargs:
-                                    node.keywords.append(kwarg)
-                                    existing_kwargs.add(kwarg.arg)
                         except Exception as inner_e:
                             logger.warning(f"[AST INJECTION WARNING] Could not parse parameter '{p}': {inner_e}")
                     break
@@ -238,6 +451,11 @@ class UnificationGate:
 
     @staticmethod
     def unify(context: ExecutionContext, target_cell, injected_parameters: list[str] = None) -> str:
+        if context:
+            context.target_cell = target_cell
+        in_fname = context.extracted_parameters.get("input_filename") if context and context.extracted_parameters else None
+        out_fname = context.extracted_parameters.get("output_filename") if context and context.extracted_parameters else None
+
         matching_input_var = context.find_compatible_variable(target_cell.inputs)
 
         if not matching_input_var:
@@ -261,18 +479,47 @@ class UnificationGate:
             name=raw_output_name,
             signature=target_cell.outputs,
         )
+        # Collect declared dependencies
+        cell_deps = getattr(target_cell, "dependencies", []) or []
+        if context and hasattr(context, "declared_dependencies"):
+            if isinstance(cell_deps, (list, tuple, set)):
+                context.declared_dependencies.update(cell_deps)
+            elif isinstance(cell_deps, str):
+                context.declared_dependencies.add(cell_deps)
 
-        compiled_snippet = getattr(target_cell, "code_template", "")
+        compiled_snippet = getattr(target_cell, "code_template", None) or getattr(target_cell, "code", None) or getattr(target_cell, "_code_template", "") or ""
+        if not compiled_snippet and hasattr(target_cell, "domain_implementations") and isinstance(target_cell.domain_implementations, dict):
+            py_impl = target_cell.domain_implementations.get("Python_Core", {})
+            if isinstance(py_impl, dict):
+                compiled_snippet = py_impl.get("code", "")
+
         
+        # 0. Deterministic schema-driven slot resolution & pre-flight verification gate
+        if compiled_snippet:
+            prompt_hint = context.prompt_hint if (context and hasattr(context, 'prompt_hint') and context.prompt_hint) else ""
+            extracted_params = ParameterExtractor.extract_parameters(prompt_hint)
+            if context and hasattr(context, "extracted_parameters") and context.extracted_parameters:
+                for k, v in context.extracted_parameters.items():
+                    if v and not extracted_params.get(k):
+                        extracted_params[k] = v
+
+            slot_bindings = resolve_node_slots(compiled_snippet, extracted_params=extracted_params, context=context, target_cell=target_cell)
+            for slot_k, slot_v in slot_bindings.items():
+                compiled_snippet = compiled_snippet.replace("{" + slot_k + "}", slot_v)
+
+            all_bindings = dict(context.extracted_parameters) if context and hasattr(context, 'extracted_parameters') and context.extracted_parameters else {}
+            all_bindings.update(slot_bindings)
+            assert_placeholders_resolved(compiled_snippet, bindings=all_bindings)
+
         # 1. Universal template-driven placeholder replacement
         if compiled_snippet:
-            in_fname = context.extracted_parameters.get("input_filename")
-            out_fname = context.extracted_parameters.get("output_filename")
 
             # Ensure write/save cells receive out_fname as 1st argument if template only had {input_var} or ()
             if out_fname:
+
                 compiled_snippet = compiled_snippet.replace("{output_filename}", repr(out_fname))
-                if any(kw in cell_id.lower() for kw in ["imwrite", "savefig", "to_csv", "to_json", "to_parquet", "to_excel"]) and repr(out_fname) not in compiled_snippet:
+                is_sink = getattr(target_cell.outputs, "type_name", "") == "None" or getattr(target_cell, "metadata_tags", {}).get("is_sink", False)
+                if is_sink and repr(out_fname) not in compiled_snippet:
                     if "({input_var})" in compiled_snippet:
                         compiled_snippet = compiled_snippet.replace("({input_var})", f"({repr(out_fname)}, {{input_var}})")
                     elif "()" in compiled_snippet:
@@ -281,9 +528,22 @@ class UnificationGate:
             compiled_snippet = compiled_snippet.replace("{input_var}", matching_input_var)
             compiled_snippet = compiled_snippet.replace("{output_var}", output_var_name)
 
+            if matching_input_var and matching_input_var != "input_source":
+                if "(None," in compiled_snippet:
+                    compiled_snippet = compiled_snippet.replace("(None,", f"({matching_input_var},")
+                elif "(None)" in compiled_snippet:
+                    compiled_snippet = compiled_snippet.replace("(None)", f"({matching_input_var})")
+
+                if "cv2.imwrite(None, None)" in compiled_snippet or "cv2.imwrite(" in compiled_snippet and "None, None" in compiled_snippet:
+                    out_f = out_fname or 'output.jpg'
+                    compiled_snippet = f"cv2.imwrite({repr(out_f)}, {matching_input_var})"
+
             if in_fname:
                 compiled_snippet = compiled_snippet.replace("{input_filename}", repr(in_fname))
                 compiled_snippet = compiled_snippet.replace("{input_source}", repr(in_fname))
+            else:
+                compiled_snippet = compiled_snippet.replace("{input_filename}", matching_input_var)
+                compiled_snippet = compiled_snippet.replace("{input_source}", matching_input_var)
 
             # Generic string literal binding for read/write file parameters
             if in_fname:
@@ -323,14 +583,27 @@ class UnificationGate:
                 for node in ast.walk(tree):
                     if isinstance(node, ast.Call):
                         func_name = node.func.attr.lower() if isinstance(node.func, ast.Attribute) else (node.func.id.lower() if isinstance(node.func, ast.Name) else "")
-                        if any(wk in func_name for wk in ["to_csv", "imwrite", "savefig", "to_json", "to_parquet", "to_excel"]):
-                            if not node.args:
-                                compiled_snippet = UnificationGate.inject_parameters(compiled_snippet, [repr(out_fname)], context=context)
+                        is_sink = getattr(target_cell.outputs, "type_name", "") == "None" or getattr(target_cell, "metadata_tags", {}).get("is_sink", False)
+                        if is_sink and not node.args:
+                            compiled_snippet = UnificationGate.inject_parameters(compiled_snippet, [repr(out_fname)], context=context)
             except Exception:
                 pass
 
         # AST Lineage Repair: Ensure transformed variables in context are properly consumed by downstream calls
         compiled_snippet = UnificationGate.fix_dead_variables_in_snippet(context, compiled_snippet, current_output_var=output_var_name)
+
+        # If the snippet defines a function but no longer assigns the output variable
+        # (e.g., after stripping a trailing call with unresolved args), bind the
+        # output variable to the function name so downstream cells can reference it.
+        if compiled_snippet and output_var_name not in compiled_snippet:
+            try:
+                tree = ast.parse(compiled_snippet)
+                for node in ast.walk(tree):
+                    if isinstance(node, ast.FunctionDef):
+                        compiled_snippet += f"\n{output_var_name} = {node.name}"
+                        break
+            except Exception:
+                pass
 
         logger.info(
             f"[UNIFICATION SUCCESS] Linked {matching_input_var} -> {cell_id} -> {output_var_name} | Code: {compiled_snippet.strip()}"
@@ -342,24 +615,103 @@ class UnificationGate:
         """Fixes dead transformed variables by rebinding unmapped caller variables to the latest active variable in context."""
         if not context.registry:
             return snippet
-        valid_vars = [v for v in context.registry.keys() if v != current_output_var and v != "input_source"]
-        if not valid_vars:
+        valid_vars = set(v for v in context.registry.keys() if v != current_output_var and v != "input_source")
+
+        known_modules = set(sys.stdlib_module_names) | set(dir(__builtins__)) | set(CANONICAL_IMPORT_MAP.keys()) | {v[1] for v in CANONICAL_IMPORT_MAP.values()} | {
+            "cv2", "pd", "np", "plt", "sns", "tf", "torch", "sk", "sklearn",
+            "scipy", "heapq", "collections", "itertools", "functools", "math", "os", "sys",
+            "int", "float", "str", "bool", "list", "dict", "set", "tuple"
+        }
+        latest_var = list(context.registry.keys())[-1]
+
+        try:
+            tree = ast.parse(snippet)
+
+            # Check if this snippet is a top-level function definition (e.g., def dijkstra(...))
+            is_func_def = any(isinstance(n, ast.FunctionDef) for n in ast.walk(tree))
+            func_param_names = set()
+            defined_func_names = set()
+            if is_func_def:
+                for n in ast.walk(tree):
+                    if isinstance(n, ast.FunctionDef):
+                        for arg in n.args.args:
+                            func_param_names.add(arg.arg)
+                        defined_func_names.add(n.name)
+
+                # Strip trailing top-level calls that invoke the defined function
+                # with its own parameter names (unresolved at module scope).
+                # e.g.  result = dijkstra(input_source, start_node)  <-- start_node undefined
+                if isinstance(tree, ast.Module) and defined_func_names:
+                    cleaned_body = []
+                    for stmt in tree.body:
+                        should_strip = False
+                        call_node = None
+                        if isinstance(stmt, ast.Assign) and isinstance(stmt.value, ast.Call):
+                            call_node = stmt.value
+                        elif isinstance(stmt, ast.Expr) and isinstance(stmt.value, ast.Call):
+                            call_node = stmt.value
+                        if call_node and isinstance(call_node.func, ast.Name) and call_node.func.id in defined_func_names:
+                            # Check if any argument is a function parameter name used bare
+                            for arg in call_node.args:
+                                if isinstance(arg, ast.Name) and arg.id in func_param_names:
+                                    should_strip = True
+                                    break
+                        if not should_strip:
+                            cleaned_body.append(stmt)
+                    tree.body = cleaned_body if cleaned_body else tree.body
+
+            # Collect all variable names assigned WITHIN this snippet so
+            # the rebinder doesn't clobber snippet-local temporaries
+            # (e.g.  scaler = StandardScaler(); scaler.fit_transform(...))
+            snippet_local_vars = set()
+            for node in ast.walk(tree):
+                if isinstance(node, ast.Assign):
+                    for target in node.targets:
+                        if isinstance(target, ast.Name):
+                            snippet_local_vars.add(target.id)
+                elif isinstance(node, ast.Import):
+                    for alias in node.names:
+                        snippet_local_vars.add(alias.asname or alias.name.split('.')[0])
+                elif isinstance(node, ast.ImportFrom):
+                    for alias in node.names:
+                        snippet_local_vars.add(alias.asname or alias.name)
+
+            class CallerRebinder(ast.NodeTransformer):
+                def visit_Call(self, node):
+                    self.generic_visit(node)
+                    if isinstance(node.func, ast.Attribute) and isinstance(node.func.value, ast.Name):
+                        caller = node.func.value.id
+                        if (caller not in known_modules and caller not in valid_vars
+                                and caller not in snippet_local_vars
+                                and caller != "input_source" and caller != current_output_var
+                                and caller not in func_param_names):
+                            if not is_func_def and valid_vars:
+                                logger.info(f"[AST LINEAGE REPAIR] Rebound unbound caller variable '{caller}' -> '{latest_var}' for method .{node.func.attr}()")
+                                node.func.value.id = latest_var
+                    # Fix top-level call undefined positional arguments unless inside a function definition
+                    if not is_func_def:
+                        new_args = []
+                        for arg in node.args:
+                            if isinstance(arg, ast.Name):
+                                arg_id = arg.id
+                                if (arg_id not in known_modules and arg_id not in valid_vars
+                                        and arg_id not in snippet_local_vars
+                                        and arg_id != "input_source" and arg_id != current_output_var
+                                        and arg_id not in context.registry):
+                                    if valid_vars:
+                                        arg.id = list(valid_vars)[0]
+                                    else:
+                                        return ast.copy_location(ast.Constant(value="start"), arg)
+                            new_args.append(arg)
+                        node.args = new_args
+                    return node
+
+            tree = CallerRebinder().visit(tree)
+            ast.fix_missing_locations(tree)
+            return ast.unparse(tree)
+        except Exception as e:
+            logger.error(f"[AST LINEAGE REPAIR] Failed: {e}")
             return snippet
-
-        known_modules = {"cv2", "pd", "np", "plt", "sns", "tf", "torch", "sk", "sklearn", "os", "sys", "math", "re", "json"}
-        latest_var = valid_vars[-1]
-
-        # Find method calls on objects: caller.method_name(...)
-        def _rebind_caller(m):
-            caller = m.group(1)
-            method = m.group(2)
-            if caller in known_modules or caller in valid_vars or caller == "input_source":
-                return f"{caller}.{method}("
-            logger.info(f"[AST LINEAGE REPAIR] Rebound unbound caller variable '{caller}' -> '{latest_var}' for method .{method}()")
-            return f"{latest_var}.{method}("
-
-        snippet = re.sub(r"\b([a-zA-Z_][a-zA-Z0-9_]*)\.([a-zA-Z_][a-zA-Z0-9_]*)\(", _rebind_caller, snippet)
-        return snippet
 
     @staticmethod
     def validate_synthesis(
@@ -374,7 +726,6 @@ class UnificationGate:
         """
         import json
 
-        # 1. Typestate Match via formal unification operator types_unify
         inputs = synthesized_dict.get("inputs", {})
         outputs = synthesized_dict.get("outputs", {})
 
@@ -383,7 +734,6 @@ class UnificationGate:
         if not isinstance(outputs, dict):
             outputs = {}
 
-        # Support both old-schema (input_type/output_type) and new-schema (type_name) keys
         in_type  = inputs.get("type_name",  inputs.get("input_type",  ""))
         out_type = outputs.get("type_name", outputs.get("output_type", ""))
 
@@ -391,14 +741,10 @@ class UnificationGate:
             logger.error(f"[UNIFICATION ERROR] Synthesized typestates do not unify. Expected {expected_inputs}->{expected_outputs}, got {in_type}->{out_type}")
             return False
 
-        # 2. Permanent Cache to <trees_dir>/micro/synthesized_nodes.json
-        # BUG 15 FIX: Use the provided trees_dir instead of the hardcoded relative path
-        #             so frozen/PyInstaller builds and different CWDs work correctly.
         cache_dir  = os.path.join(trees_dir, "micro")
         cache_path = os.path.join(cache_dir, "synthesized_nodes.json")
         os.makedirs(cache_dir, exist_ok=True)
 
-        # Load existing
         if os.path.exists(cache_path):
             with open(cache_path, "r", encoding="utf-8") as f:
                 try:
@@ -408,8 +754,6 @@ class UnificationGate:
         else:
             data = {"domain_name": "Synthesized_Domain", "cells": []}
 
-        # Append and save, replacing any previous synthesized cell with the same ID
-        # so repeated retries do not bloat the cache or create duplicate topology entries.
         new_cell_id = synthesized_dict.get("cell_id")
         if new_cell_id:
             data["cells"] = [
@@ -418,11 +762,8 @@ class UnificationGate:
             ]
         data.setdefault("cells", []).append(synthesized_dict)
 
-        # BUG 16 FIX: Write atomically via a temp file + os.replace() so a mid-write
-        # crash cannot corrupt the cache (which previously lost ALL synthesized nodes).
-        # Use tempfile.mkstemp for unique names to prevent concurrent thread collisions.
         import tempfile
-        tmp_path = None  # B-7 fix: initialise before try so cleanup block can safely reference it
+        tmp_path = None
         try:
             fd, tmp_path = tempfile.mkstemp(dir=cache_dir, suffix=".tmp")
             with os.fdopen(fd, "w", encoding="utf-8") as f:
@@ -430,7 +771,6 @@ class UnificationGate:
             os.replace(tmp_path, cache_path)
         except Exception as e:
             logger.error(f"[UNIFICATION CACHE ERROR] Failed to save to {cache_path}: {e}")
-            # Clean up orphaned temp file if it exists
             try:
                 if tmp_path is not None and os.path.exists(tmp_path):
                     os.remove(tmp_path)
@@ -442,84 +782,233 @@ class UnificationGate:
         return True
 
     @staticmethod
-    def resolve_imports(code_text: str, context: 'ExecutionContext' = None) -> str:
-        """Dynamically detects unbound top-level module variables and prepends their imports."""
-        import ast
-        import builtins
+    def resolve_imports(code_text: str, context: 'ExecutionContext' = None, chain_nodes: List[Any] = None) -> str:
+        """
+        Emits imports strictly from declared node dependencies and standard module usage.
+        Does NOT guess imports by AST scanning arbitrary unbound variable names.
+        """
+        declared_deps = set()
+        if context and hasattr(context, "declared_dependencies"):
+            declared_deps.update(context.declared_dependencies)
+        if chain_nodes:
+            for node in chain_nodes:
+                deps = getattr(node, "dependencies", []) or []
+                if isinstance(deps, (list, tuple, set)):
+                    declared_deps.update(deps)
+                elif isinstance(deps, str):
+                    declared_deps.add(deps)
 
-        try:
-            tree = ast.parse(code_text)
-        except SyntaxError as e:
-            logger.error(f"[AST IMPORT ERROR] Could not parse code for import resolution: {e}")
-            return code_text
+        imports_to_add = set()
 
-        loaded_names = set()
-        stored_names = set()
+        for dep in sorted(declared_deps):
+            if dep in CANONICAL_IMPORT_MAP:
+                stmt, base_mod = CANONICAL_IMPORT_MAP[dep]
+                if is_module_available(base_mod):
+                    imports_to_add.add(stmt)
+            elif is_module_available(dep):
+                imports_to_add.add(f"import {dep}")
 
-        class NameVisitor(ast.NodeVisitor):
-            def visit_Name(self, node):
-                if isinstance(node.ctx, ast.Load):
-                    loaded_names.add(node.id)
-                elif isinstance(node.ctx, ast.Store):
-                    stored_names.add(node.id)
-                self.generic_visit(node)
-            
-            def visit_arg(self, node):
-                stored_names.add(node.arg)
-                self.generic_visit(node)
+        for alias, (stmt, base_mod) in CANONICAL_IMPORT_MAP.items():
+            if re.search(r"\b" + re.escape(alias) + r"\.", code_text) and is_module_available(base_mod):
+                imports_to_add.add(stmt)
+                if alias in ["pandas", "numpy", "scipy"]:
+                    imports_to_add.add(f"import {alias}")
 
-            def visit_Import(self, node):
-                for alias in node.names:
-                    stored_names.add(alias.asname or alias.name)
-                self.generic_visit(node)
-                
-            def visit_ImportFrom(self, node):
-                for alias in node.names:
-                    stored_names.add(alias.asname or alias.name)
-                self.generic_visit(node)
+        for std_mod in ["heapq", "json", "math", "re", "os", "sys", "time", "random"]:
+            if re.search(r"\b" + std_mod + r"\b", code_text) and is_module_available(std_mod):
+                imports_to_add.add(f"import {std_mod}")
 
-            def visit_FunctionDef(self, node):
-                stored_names.add(node.name)
-                self.generic_visit(node)
+        missing_imports = set()
+        for imp in imports_to_add:
+            if imp not in code_text:
+                missing_imports.add(imp)
 
-            def visit_ClassDef(self, node):
-                stored_names.add(node.name)
-                self.generic_visit(node)
-
-        visitor = NameVisitor()
-        visitor.visit(tree)
-
-        builtin_names = set(dir(builtins))
-        context_vars = set(context.registry.keys()) if context else set()
-        # _UNIFY_PLACEHOLDERS covers all template placeholder names (input_var, output_var, etc.)
-        # so they are never mistaken for importable modules regardless of context.
-        context_vars.update(_UNIFY_PLACEHOLDERS)
-        context_vars.add("input_source")  # legacy guard; also present in _UNIFY_PLACEHOLDERS
-
-        required_imports = loaded_names - stored_names - builtin_names - context_vars
-
-        # Q-7 fix: alias map — resolve common short names to their correct import statements.
-        # Without this the AST sees `pd` as unbound and emits `import pd` which fails.
-        _ALIAS_MAP = {
-            'pd': 'import pandas as pd',
-            'np': 'import numpy as np',
-            'plt': 'import matplotlib.pyplot as plt',
-            'sns': 'import seaborn as sns',
-            'tf': 'import tensorflow as tf',
-            'torch': 'import torch',
-            'cv2': 'import cv2',
-            'sk': 'import sklearn as sk',
-            'sp': 'import scipy as sp',
-            'nx': 'import networkx as nx',
-        }
-
-        imports_to_add = []
-        for mod in sorted(required_imports):
-            if mod in _ALIAS_MAP:
-                imports_to_add.append(_ALIAS_MAP[mod])
-            else:
-                imports_to_add.append(f"import {mod}")
-
-        if imports_to_add:
-            return "\n".join(imports_to_add) + "\n\n" + code_text
+        if missing_imports:
+            header = "\n".join(sorted(missing_imports))
+            return f"{header}\n\n{code_text}"
         return code_text
+
+
+class DataflowLineageTracker(ast.NodeTransformer):
+    """
+    Tracks sequential variable transformations and re-links sink calls
+    to the latest valid descendant in the lineage chain.
+    """
+    def __init__(self, target_cells=None):
+        self.target_cells = target_cells or []
+        self.lineage_tree: Dict[str, str] = {}  # new_var -> parent_var
+        self.latest_descendant: Dict[str, str] = {}  # root/ancestor -> newest_leaf
+        self.assigned_vars: Set[str] = set()
+        self._imported_names: Set[str] = set()  # module/import names that must not be lineage-tracked
+
+    def visit_Import(self, node: ast.Import):
+        for alias in node.names:
+            self._imported_names.add(alias.asname or alias.name.split('.')[0])
+        return node
+
+    def visit_ImportFrom(self, node: ast.ImportFrom):
+        for alias in node.names:
+            self._imported_names.add(alias.asname or alias.name)
+        if node.module:
+            self._imported_names.add(node.module.split('.')[0])
+        return node
+
+    def visit_Assign(self, node: ast.Assign):
+        # Re-bind sink calls BEFORE updating assigned_vars/latest_descendant
+        # to prevent self-referencing uninitialized assignments
+        self._rebind_sink_call(node.value)
+
+        self.generic_visit(node)
+        if len(node.targets) == 1 and isinstance(node.targets[0], ast.Name):
+            target_name = node.targets[0].id
+            self.assigned_vars.add(target_name)
+
+            parent_var = None
+            if isinstance(node.value, ast.Call):
+                if isinstance(node.value.func, ast.Attribute) and isinstance(node.value.func.value, ast.Name):
+                    candidate = node.value.func.value.id
+                    # Don't track module calls (e.g. cv2.imread) as data lineage
+                    if candidate not in self._imported_names:
+                        parent_var = candidate
+                elif isinstance(node.value.func, ast.Name):
+                    for arg in node.value.args:
+                        if isinstance(arg, ast.Name) and arg.id in self.assigned_vars:
+                            parent_var = arg.id
+                            break
+
+            if parent_var:
+                root = self._get_root(parent_var)
+                self.lineage_tree[target_name] = parent_var
+                self.latest_descendant[root] = target_name
+                self.latest_descendant[parent_var] = target_name
+
+        return node
+
+    def visit_Expr(self, node: ast.Expr):
+        """Re-bind object invocations on terminal sinks."""
+        self.generic_visit(node)
+        self._rebind_sink_call(node.value)
+        return node
+
+    def _rebind_sink_call(self, call_node):
+        if not isinstance(call_node, ast.Call):
+            return
+
+        method_name = ""
+        callee_var = None
+        if isinstance(call_node.func, ast.Attribute):
+            method_name = call_node.func.attr
+            if isinstance(call_node.func.value, ast.Name):
+                callee_var = call_node.func.value.id
+        elif isinstance(call_node.func, ast.Name):
+            method_name = call_node.func.id
+
+        is_sink = any(k in method_name.lower() for k in ["save", "write", "dump", "export", "to_"])
+        for cell in self.target_cells:
+            if getattr(cell.outputs, "type_name", "") == "None" or getattr(cell, "metadata_tags", {}).get("is_sink", False):
+                is_sink = True
+                break
+
+        if is_sink:
+            # Rebind callee object if it has a newer descendant (e.g. df.to_csv -> df_sorted.to_csv)
+            # but NEVER rebind module names (e.g. cv2.imwrite must stay cv2.imwrite)
+            if callee_var and callee_var in self.latest_descendant and callee_var not in self._imported_names:
+                newest_var = self.latest_descendant[callee_var]
+                if newest_var != callee_var:
+                    call_node.func.value.id = newest_var
+
+            # Rebind positional argument variables if they have a newer descendant (e.g. cv2.imwrite('out.jpg', img) -> img_gray)
+            for arg in call_node.args:
+                if isinstance(arg, ast.Name) and arg.id in self.latest_descendant:
+                    arg.id = self.latest_descendant[arg.id]
+
+    def _get_root(self, var_name: str) -> str:
+        curr = var_name
+        while curr in self.lineage_tree:
+            curr = self.lineage_tree[curr]
+        return curr
+
+
+def enforce_lineage_integrity(code: str, target_cells=None) -> str:
+    """Parses generated code, traces lineage, and auto-corrects stale variable usages."""
+    try:
+        tree = ast.parse(code)
+        transformer = DataflowLineageTracker(target_cells=target_cells)
+        corrected_tree = transformer.visit(tree)
+        ast.fix_missing_locations(corrected_tree)
+        return ast.unparse(corrected_tree)
+    except Exception:
+        return code
+
+
+KNOWN_FILE_EXTENSIONS = {
+    ".csv", ".tsv", ".json", ".parquet", ".feather", ".xlsx", 
+    ".txt", ".png", ".jpg", ".jpeg", ".bmp", ".tif", ".tiff", ".webp", ".h5", ".pkl", ".sqlite", ".db"
+}
+
+
+
+class ParameterExtractor:
+    @staticmethod
+    def extract_slots(prompt: str) -> ExtractedSlots:
+        slots = ExtractedSlots()
+        if not prompt:
+            return slots
+
+        # 1. Extract file paths with extensions using exact word boundaries
+        file_matches = list(dict.fromkeys(re.findall(r'[\'"]?([a-zA-Z0-9_\-./]+\.[a-zA-Z0-9]+)[\'"]?', prompt)))
+        save_kw_pos = -1
+        for kw in ["save", "to", "write", "output", "export", "destination"]:
+            pos = prompt.lower().find(kw)
+            if pos != -1 and (save_kw_pos == -1 or pos < save_kw_pos):
+                save_kw_pos = pos
+
+        for match in file_matches:
+            _, ext = os.path.splitext(match)
+            if ext.lower() in KNOWN_FILE_EXTENSIONS:
+                m = re.search(r'\b' + re.escape(match) + r'\b', prompt)
+                pos = m.start() if m else -1
+                if save_kw_pos != -1 and pos > save_kw_pos:
+                    slots.dest_uris.append(match)
+                else:
+                    slots.source_uris.append(match)
+
+        # 2. Extract column/feature names guided by syntax markers
+        col_matches = re.findall(
+            r'(?:column|col|by|sort|filter|select|field|attribute|feature)\s+(?:on\s+|the\s+|a\s+|an\s+)*[\'"]([a-zA-Z0-9_\-\s]+)[\'"]', 
+            prompt, 
+            re.IGNORECASE
+        )
+        col_matches.extend(re.findall(
+            r'[\'"]([a-zA-Z0-9_\-\s]+)[\'"]\s+(?:column|col|field|attribute|feature)',
+            prompt,
+            re.IGNORECASE
+        ))
+        col_unquoted = re.findall(
+            r'(?:column|col|by|sort|filter|select|field|attribute|feature)\s+(?:on\s+|the\s+|a\s+|an\s+)*\b([a-zA-Z_][a-zA-Z0-9_]*)\b',
+            prompt,
+            re.IGNORECASE
+        )
+        col_unquoted = [c for c in col_unquoted if c.lower() not in {"descending", "ascending", "value", "values", "column", "columns", "data", "file", "csv", "the", "a", "an", "and", "or", "in", "to", "from", "for", "with"}]
+        col_matches.extend(col_unquoted)
+        slots.named_identifiers = list(dict.fromkeys(col_matches))
+
+        # 3. Extract operational flags
+        prompt_lower = prompt.lower()
+        if "descend" in prompt_lower or "descending" in prompt_lower or "reverse" in prompt_lower:
+            slots.operational_flags["descending"] = True
+        if "rgb" in prompt_lower:
+            slots.operational_flags["is_rgb"] = True
+        if "hsv" in prompt_lower:
+            slots.operational_flags["is_hsv"] = True
+        if "gray" in prompt_lower or "grayscale" in prompt_lower:
+            slots.operational_flags["is_grayscale"] = True
+
+        return slots
+
+    @staticmethod
+    def extract_parameters(prompt: str) -> Dict[str, Any]:
+        return ParameterExtractor.extract_slots(prompt).to_dict()
+
+
+

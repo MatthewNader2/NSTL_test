@@ -6,8 +6,9 @@ from typing import Dict, Any, Optional
 from log_config import get_logger
 logger = get_logger("planner")
 
-from lattice import LatticeOrchestrator, MicroCell
+from lattice import LatticeOrchestrator, MicroCell, AlgebraicSignature
 from inference import ModelManager
+from tokenizer import CellTokenizer, AliasRegistry
 
 # Reward for cells whose domain matches the active prompt domain.
 # A small boost to prefer in-domain candidates without excluding cross-domain ones.
@@ -41,8 +42,67 @@ class ZeroShotPlanner:
             context_str = context_str[:6000] + "\n... (truncated)"
         return context_str
         
+    def ground_step_to_cell(self, step_descriptor: str, expected_input_sig: Optional[AlgebraicSignature] = None) -> Optional[Any]:
+        """
+        Grounds an LLM plan step to the most semantically relevant, 
+        type-compatible verified cell in lattice.db using vector retrieval.
+        """
+        if not step_descriptor:
+            return None
+
+        # 1. Check exact cell_id match
+        cell = self.orchestrator.loaded_cells.get(step_descriptor)
+        if cell:
+            return cell
+
+        # 2. Vector search grounding
+        from inference import ModelManager
+        from router import LatticeRouter
+        from unification import types_unify
+        import numpy as np
+
+        model_manager = ModelManager.get_instance()
+        try:
+            step_embeddings = model_manager.get_embeddings([step_descriptor])
+            if not step_embeddings:
+                return None
+            step_embedding = step_embeddings[0]
+        except Exception as e:
+            logger.warning(f"[PLANNER GROUNDING ERROR] Could not embed '{step_descriptor}': {e}")
+            return None
+
+        candidate_cells = self.orchestrator.get_all_available_cells()
+        exp_type = expected_input_sig.type_name if expected_input_sig else "any"
+
+        # Filter by input typestate compatibility
+        type_valid_candidates = [
+            c for c in candidate_cells 
+            if c.type == "micro" and types_unify(c.inputs.type_name, exp_type)
+        ]
+
+        if not type_valid_candidates:
+            type_valid_candidates = [c for c in candidate_cells if c.type == "micro"]
+
+        if not hasattr(self, "_router_instance") or self._router_instance is None:
+            self._router_instance = LatticeRouter(self.orchestrator, self.rag_engine)
+
+        best_cell, score = self._router_instance._score_and_select_best(
+            type_valid_candidates, np.array([step_embedding], dtype=np.float32), 
+            goal=step_descriptor, current_type=exp_type
+        )
+
+        if best_cell and score >= 0.20:
+            logger.info(f"[PLANNER GROUNDING] Grounded step '{step_descriptor}' -> '{best_cell.cell_id}' (score: {score:.3f})")
+            return best_cell
+
+        return None
+
     def _find_closest_existing_cell(self, hallucinated_id: str, prompt: str = "") -> Optional[str]:
         """Fully dynamic tree-agnostic fuzzy matching using FAISS vector search with fallback to NLP sub-token ratio."""
+        grounded = self.ground_step_to_cell(hallucinated_id)
+        if grounded:
+            return grounded.cell_id
+
         all_cells = self.orchestrator.get_all_available_cells()
 
         # 1. Dynamically extract all available domain names from loaded trees (zero hardcoding)
@@ -59,12 +119,12 @@ class ZeroShotPlanner:
         available_domains = {d for d in available_domains if len(d) >= 3 and d not in common_words}
 
         prompt_lower = prompt.lower()
-        alias_map = {"opencv": "cv2", "pd": "pandas", "np": "numpy", "plt": "matplotlib", "pytorch": "torch", "sklearn": "scikit"}
+        alias_registry = AliasRegistry.build_from_cells(all_cells)
         active_domains = set()
         for d in available_domains:
             if d and d in prompt_lower:
                 active_domains.add(d)
-        for alias, target in alias_map.items():
+        for alias, target in alias_registry._forward.items():
             if alias in prompt_lower and target in available_domains:
                 active_domains.add(target)
 
@@ -88,47 +148,14 @@ class ZeroShotPlanner:
         from difflib import SequenceMatcher
 
         for cell in all_cells:
-            if getattr(cell, 'node_type', 'function') not in [None, 'function']:
+            if getattr(cell, 'node_type', 'function') == 'macro':
                 continue
 
             cid = cell.cell_id
             cid_lower = cid.lower()
             cell_domain = getattr(cell, "domain_name", "").lower() or (cid_lower.split("_")[0] if "_" in cid_lower else "")
 
-            raw_c_tokens = {kw.lower() for kw in getattr(cell, "keywords", [])} | set(re.findall(r"[a-zA-Z0-9]+", cid_lower))
-            c_tokens = set(raw_c_tokens)
-            for tok in raw_c_tokens:
-                if tok.startswith("im") and len(tok) > 2:
-                    c_tokens.add("im")
-                    c_tokens.add(tok[2:])
-                if "imread" in tok:
-                    c_tokens.update(["im", "read", "load"])
-                if "imwrite" in tok:
-                    c_tokens.update(["im", "write", "save"])
-                if "cvtcolor" in tok:
-                    c_tokens.update(["cvt", "color", "convert", "grayscale"])
-                if "dropna" in tok:
-                    c_tokens.update(["drop", "na", "rows", "missing", "values"])
-                if "fillna" in tok:
-                    c_tokens.update(["fill", "na", "missing", "values"])
-                if "to_csv" in tok:
-                    c_tokens.update(["to", "csv", "save", "write"])
-                if "read_csv" in tok:
-                    c_tokens.update(["read", "csv", "load"])
-                if "sort_values" in tok:
-                    c_tokens.update(["sort", "values", "order", "descending", "ascending"])
-                if tok.startswith("cvt") and len(tok) > 3:
-                    c_tokens.add("cvt")
-                    c_tokens.add(tok[3:])
-                if tok.startswith("read") and len(tok) > 4:
-                    c_tokens.add("read")
-                    c_tokens.add(tok[4:])
-                if tok.startswith("write") and len(tok) > 5:
-                    c_tokens.add("write")
-                    c_tokens.add(tok[5:])
-                if tok.startswith("to") and len(tok) > 2:
-                    c_tokens.add("to")
-                    c_tokens.add(tok[2:])
+            c_tokens = CellTokenizer.tokenize_cell(cid, set(getattr(cell, "keywords", [])))
 
             core_c_tokens = c_tokens - available_domains - {"micro", "macro", "default"}
             if not core_c_tokens:
@@ -337,7 +364,7 @@ Schema:
 Available Micro-Nodes for your sub_cells:
 {available_context}
 
-CRITICAL INSTRUCTION: Your `sub_cells` array should contain a MINIMAL, CONCISE sequence of node IDs (typically 2 to 5 steps) that accomplish the user request. DO NOT include extra, redundant, or repetitive steps after the goal is completed.
+CRITICAL INSTRUCTION: Your `sub_cells` array should contain a sequence of node IDs (typically 2 to 8 steps) that fully accomplish all operations requested by the user. For long multi-step workflows (such as machine learning or data transformation pipelines), make sure to include all necessary operational stages (e.g. READ -> DROPNA -> SELECT_NUMERIC -> SCALE -> FIT_MODEL -> EVALUATE_PRINT). DO NOT truncate or omit trailing stages requested by the user.
 You must choose from the Available Micro-Nodes IF a suitable node exists. 
 IF a specific step is required but no suitable micro-node exists in the available list, you MUST invent a new logical node ID starting with 'SYNTH_' (e.g., 'SYNTH_CALCULATE_SUM', 'SYNTH_EXTRACT_JSON'). The engine will dynamically synthesize this node at runtime."""
 
@@ -365,7 +392,14 @@ IF a specific step is required but no suitable micro-node exists in the availabl
             logger.info("Successfully parsed LLM output as JSON.")
         except json.JSONDecodeError as e:
             logger.warning(f"JSON parsing error: {e}. Attempting regex recovery of sub_cells...")
-            sub_matches = re.findall(r'["\'](PANDAS_[A-Z0-9_]+|CV2_[A-Z0-9_]+|NUMPY_[A-Z0-9_]+|SYNTH_[A-Z0-9_]+)["\']', clean_text)
+            prefixes = {"SYNTH"}
+            for cid in self.orchestrator.loaded_cells.keys():
+                parts = cid.split("_")
+                if len(parts) > 1:
+                    prefixes.add(parts[0])
+            prefix_pattern = "|".join(prefixes)
+            pattern = rf'["\'](({prefix_pattern})_[A-Z0-9_]+)["\']'
+            sub_matches = [m[0] for m in re.findall(pattern, clean_text)]
             if sub_matches:
                 logger.info(f"Regex recovered {len(sub_matches)} cell IDs: {sub_matches}")
                 macro_json = {

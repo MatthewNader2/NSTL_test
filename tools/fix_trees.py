@@ -31,6 +31,53 @@ def fix_union_type(type_name):
         
     return type_name
 
+VALID_TYPES = {
+    'dataframe', 'series', 'ndarray', 'mat', 'image', 'tensor',
+    'int', 'float', 'str', 'dict', 'list', 'graph', 'model',
+    'bool', 'tuple', 'set', 'bytes', 'object', 'none', 'nonetype',
+    'sparsematrix', 'sparse_matrix', 'index', 'multiindex', 'numeric',
+    'flask', 'faissindex', 'faiss_index'
+}
+
+def is_self_named_type(type_name: str, cell_id: str) -> bool:
+    if not type_name:
+        return False
+    t_lower = type_name.lower().strip()
+    if t_lower in VALID_TYPES:
+        return False
+    clean_id = cell_id.replace('_DEFAULT', '').replace('_CELL', '')
+    parts = clean_id.split('_')
+    for part in parts:
+        if part and len(part) > 2 and part.lower() not in (
+            'pandas', 'sklearn', 'scipy', 'numpy', 'cv2', 'default', 'cell',
+            'python', 'io', 'libs', 'core', 'arrays'
+        ):
+            if t_lower == part.lower():
+                return True
+    if t_lower == clean_id.lower() or t_lower in ('tags', 'resolution', 'scope', 'type', 'dtype', 'slice'):
+        return True
+    return False
+
+def sanitize_type(type_name: str, cell_id: str, domain_name: str) -> str:
+    if not type_name or is_self_named_type(type_name, cell_id):
+        domain = (domain_name or '').lower()
+        if 'cv2' in domain or 'image' in domain:
+            return 'ndarray'
+        elif 'pandas' in domain or 'data' in domain:
+            t_lower = (type_name or '').lower()
+            if 'expanding' in t_lower or 'rolling' in t_lower:
+                return 'DataFrame'
+            elif 'timestamp' in t_lower or 'datetime' in t_lower or 'timedelta' in t_lower:
+                return 'str'
+            elif 'index' in t_lower:
+                return 'Index'
+            else:
+                return 'object'
+        elif 'sklearn' in domain or 'scipy' in domain or 'numpy' in domain:
+            return 'ndarray'
+        return 'object'
+    return type_name
+
 def fix_node(node, domain_name):
     # Fix union types
     if "inputs" in node and "type_name" in node["inputs"]:
@@ -39,6 +86,11 @@ def fix_node(node, domain_name):
         node["outputs"]["type_name"] = fix_union_type(node["outputs"]["type_name"])
         
     cell_id = node.get("cell_id", "")
+    if "inputs" in node and "type_name" in node["inputs"]:
+        node["inputs"]["type_name"] = sanitize_type(node["inputs"]["type_name"], cell_id, domain_name)
+    if "outputs" in node and "type_name" in node["outputs"]:
+        node["outputs"]["type_name"] = sanitize_type(node["outputs"]["type_name"], cell_id, domain_name)
+
     parts = cell_id.split('_')
     
     # 1. Infer class from cell_id if input is "any" and it's an instance method

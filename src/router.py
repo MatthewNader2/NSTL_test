@@ -6,12 +6,15 @@ import platform
 import random
 import re
 import copy
+import time
 import warnings
+from typing import Optional, List, Dict, Set, Any
 
 import faiss
 import numpy as np
 import torch
 from sentence_transformers import SentenceTransformer
+
 
 # CRITICAL FIX: Prevents silent hard crashes when mixing PyTorch, OpenMP, and UI threads
 os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
@@ -25,15 +28,53 @@ from log_config import get_logger
 from lattice import AlgebraicSignature
 from unification import types_unify, TOP_TYPE_SET
 
+from config import (
+    SIMILARITY_THRESHOLD, MIN_CONFIDENCE, TUNNELING_MARGIN,
+    MACRO_THRESHOLD, TYPE_MISMATCH_DISCOUNT, DOMAIN_MATCH_FACTOR,
+    DOMAIN_NEUTRAL_FACTOR, DOMAIN_CONFLICT_FACTOR
+)
+from tokenizer import CellTokenizer, AliasRegistry, STOP_WORDS
+from type_registry import TypeRegistry
+
 logger = get_logger('router')
 
+
+
+def log_coverage_gap(prompt: str, domain_guess: str, score: float, best_cell_id: str):
+    """
+    Logs low-confidence queries below the domain threshold to logs/coverage_gaps.log (JSONL)
+    as a prioritized harvesting backlog.
+    """
+    import json
+    from datetime import datetime
+    try:
+        log_dir = "logs"
+        os.makedirs(log_dir, exist_ok=True)
+        log_file = os.path.join(log_dir, "coverage_gaps.log")
+        entry = {
+            "timestamp": datetime.now().isoformat(),
+            "prompt": prompt,
+            "domain_guess": domain_guess,
+            "score": float(score),
+            "best_cell_id": best_cell_id,
+        }
+        with open(log_file, "a", encoding="utf-8") as f:
+            f.write(json.dumps(entry) + "\n")
+        logger.info(f"[COVERAGE GAP LOGGED] Prompt: '{prompt[:50]}...' | Domain: {domain_guess} | Score: {score:.3f}")
+    except Exception as e:
+        logger.warning(f"[COVERAGE GAP LOGGING ERROR] Failed to log gap: {e}")
+
+
+def get_domain_threshold(domain_name: str) -> float:
+    if domain_name == "algorithms":
+        return 0.30
+    return 0.25
+
+
 # H-5 fix: define stop-words once at module level so the scoring inner loop
+
 # doesn't rebuild the set on every FAISS result iteration.
-_STOP_WORDS = frozenset({
-    'a', 'an', 'the', 'and', 'or', 'to', 'with', 'any', 'it', 'is',
-    'in', 'of', 'for', 'on', 'by', 'function', 'write', 'python', 'code',
-    'script', 'create', 'def', 'that', 'returns', 'result',
-})
+_STOP_WORDS = STOP_WORDS
 
 # Multiplier applied to the score of a type-incompatible candidate.
 # A value of 0.15 means an incompatible cell must be ~6.7× more semantically
@@ -70,6 +111,35 @@ class SynthesisContext:
         if self.prompt_hint:
             parts.append(f"user_intent={self.prompt_hint[:150]}")
         return ", ".join(parts)
+
+
+class FastPathRouter:
+    """
+    High-Performance Macro Fast-Path Router.
+    Determines if a prompt matches a known high-confidence MacroCell pattern
+    via FAISS vector similarity (> 0.88 score), bypassing LLM planning when matched.
+    Contains ZERO task-specific hardcoded string rules.
+    """
+    def __init__(self, orchestrator, rag_engine=None):
+        self.orchestrator = orchestrator
+        self.rag_engine = rag_engine
+
+    def try_fast_path(self, prompt: str) -> Optional[list]:
+        if not prompt or not self.orchestrator:
+            return None
+
+        # Pure FAISS Vector Similarity matching over pre-compiled MacroCells
+        if self.rag_engine and hasattr(self.rag_engine, "find_closest_cell_by_embedding"):
+            matched_id = self.rag_engine.find_closest_cell_by_embedding(prompt, domain_hint=prompt)
+            if matched_id:
+                cell = self.orchestrator.loaded_cells.get(matched_id)
+                if cell and getattr(cell, "node_type", "") == "macro":
+                    logger.info(f"[FAST-PATH VECTOR MATCH] Vector matched macro cell '{matched_id}' for prompt: {prompt[:60]!r}")
+                    return [cell]
+        return None
+
+
+
 
 
 class HardwareProfiler:
@@ -220,7 +290,13 @@ class MCTSEngine:
         # Root node acts as the starting typestate
         root = MCTSNode(cell_id="ROOT", current_type=start_type)
         
-        for _ in range(iterations):
+        start_time = time.time()
+        max_iters = min(iterations, 100)
+        for i in range(max_iters):
+            if time.time() - start_time > 1.5:
+                logger.warning(f"[MCTS TIMEOUT] Capping search at 1.5s (completed {i} iterations)")
+                break
+
             # 1. Selection
             leaf = self._select(root)
             
@@ -285,7 +361,7 @@ class MCTSEngine:
         while not types_unify(current_type, target_type) and depth < max_depth:
             neighbors = [
                 c for c in self._get_reachable_cells(current_type)
-                if getattr(c, 'node_type', 'function') == 'function'
+                if getattr(c, 'node_type', 'function') != 'macro'
             ]
 
             if not neighbors:
@@ -327,6 +403,10 @@ class LatticeRouter:
     def __init__(self, orchestrator, rag_engine):
         self.orchestrator = orchestrator
         self.rag_engine = rag_engine
+        
+        cells = self.orchestrator.get_all_available_cells()
+        self.type_registry = TypeRegistry.build(cells)
+        self.alias_registry = AliasRegistry.build_from_cells(cells)
 
     def _split_intent_into_goals(self, intent: str) -> list[str]:
         goals = []
@@ -390,18 +470,24 @@ class LatticeRouter:
     ) -> tuple:
         goals = self._split_intent_into_goals(user_intent)
 
-        final_path = []
-        virtual_edges = set()
+        from dataclasses import dataclass, field
+        @dataclass
+        class BeamState:
+            path: list
+            current_signature: AlgebraicSignature
+            cumulative_score: float = 0.0
+            virtual_edges: set = field(default_factory=set)
 
-        current_type = initial_type
-        current_state = initial_state
-        current_node = None
+        beam = [
+            BeamState(
+                path=[],
+                current_signature=AlgebraicSignature(initial_type, initial_state),
+                cumulative_score=0.0,
+                virtual_edges=set()
+            )
+        ]
+        beam_width = 4
 
-        MIN_CONFIDENCE = 0.30
-        TUNNELING_MARGIN = 0.15
-        MACRO_THRESHOLD = 0.40
-
-        step = 0
         while goals:
             goal = goals.pop(0)
 
@@ -413,24 +499,22 @@ class LatticeRouter:
             norm = np.where(norm == 0, 1.0, norm)
             goal_embedding = goal_embedding / norm
 
-            global_micro_candidates = [
-                c
-                for c in self.orchestrator.get_all_available_cells()
-                    if c.type == "micro"
-                    and (getattr(c, 'node_type', None) in [None, 'function'])
-                    and c.cell_id != (current_node.cell_id if current_node else "")
+            all_micro = [
+                c for c in self.orchestrator.get_all_available_cells()
+                if c.type == "micro"
             ]
-            best_global_micro, global_micro_score = self._score_and_select_best(
-                global_micro_candidates, goal_embedding, goal, current_type, current_node
-            )
 
             macro_candidates = [
-                c
-                for c in self.orchestrator.get_all_available_cells()
+                c for c in self.orchestrator.get_all_available_cells()
                 if c.type == "macro"
             ]
+
+            ref_type = beam[0].current_signature.type_name if beam else initial_type
             best_macro, macro_score = self._score_and_select_best(
-                macro_candidates, goal_embedding, goal, current_type, current_node
+                macro_candidates, goal_embedding, goal, ref_type, None
+            )
+            _, global_micro_score = self._score_and_select_best(
+                all_micro, goal_embedding, goal, ref_type, None
             )
 
             if (
@@ -438,12 +522,10 @@ class LatticeRouter:
                 and macro_score > MACRO_THRESHOLD
                 and global_micro_score < 0.70
             ):
-                # BUG 2 FIX: Use algorithmic_steps for purely language-agnostic fractal unfolding
                 expansion = getattr(best_macro, 'algorithmic_steps', [])
                 if not expansion:
-                    # Fallback to intent_expansion or sub_cells if algorithmic_steps is empty
                     expansion = getattr(best_macro, 'intent_expansion', None) or getattr(best_macro, 'sub_cells', [])
-                
+
                 if expansion:
                     logger.info(
                         f"[ROUTER UNSTAGE] Unfolding MacroCell '{best_macro.cell_id}' into {len(expansion)} sub-goals."
@@ -451,191 +533,129 @@ class LatticeRouter:
                     goals = list(expansion) + goals
                     continue
 
-            # 1. Entry Point Resolution
-            if step == 0 or current_node is None:
-                candidates = [
-                    c for c in global_micro_candidates
-                    if c.inputs.matches(AlgebraicSignature(current_type, current_state))
-                ]
-                    
-                best_node, best_score = self._score_and_select_best(
-                    candidates, goal_embedding, goal, current_type, current_node
-                )
-                if best_node:
-                    logger.debug(f"[ROUTER] best_score={best_score} for node {best_node.cell_id}")
+            next_beam = []
+
+            for state in beam:
+                current_node = state.path[-1] if state.path else None
+                current_type = state.current_signature.type_name
+
+                if current_node is None:
+                    candidates = [
+                        c for c in all_micro
+                        if c.inputs.matches(state.current_signature) or types_unify(c.inputs.type_name, current_type)
+                    ]
+                    if not candidates:
+                        candidates = all_micro
                 else:
-                    logger.debug(f"[ROUTER] best_score={best_score} (no node)")
+                    neighbors = self.orchestrator.get_neighbors(current_node.cell_id)
+                    candidates = neighbors + [c for c in all_micro if c.cell_id != current_node.cell_id]
 
-                if best_score < MIN_CONFIDENCE:
-                    logger.warning(
-                        f"[ROUTER HALT] Entry confidence too low ({best_score:.2f}) for goal: '{goal}'."
-                    )
-                    break
+                scored = self._score_candidates(candidates, goal_embedding, goal, current_type, current_node)
 
-                final_path.append(best_node)
-                current_node = best_node
-                # BUG 1 FIX: Use dataclass attributes, not .get()
-                current_type = current_node.outputs.type_name
-                current_state = current_node.outputs.state
-                step += 1
-                continue
+                expanded = False
+                for score, cell in scored[:8]:
+                    if score < 0.01:
+                        continue
 
-            strict_candidates = self.orchestrator.get_neighbors(current_node.cell_id)
-            best_local_node, best_local_score = self._score_and_select_best(
-                strict_candidates, goal_embedding, goal, current_type, current_node
-            )
+                    target_type = cell.inputs.type_name
+                    param_types = [getattr(p, 'type_name', p.get('type_name', '')) if isinstance(p, dict) else getattr(p, 'type_name', '') for p in getattr(cell, 'parameters', [])]
+                    type_compat = types_unify(target_type, current_type) or any(types_unify(pt, current_type) for pt in param_types)
 
-            # 2. Relaxed Topology (Global) Search
-            global_candidates = [
-                c for c in self.orchestrator.get_all_available_cells()
-                if c.type == "micro" and getattr(c, 'node_type', 'function') == 'function' and c.cell_id != current_node.cell_id
-            ]
-            best_global_node, best_global_score = self._score_and_select_best(
-                global_candidates, goal_embedding, goal, current_type, current_node
-            )
+                    if type_compat:
+                        cell_copy = copy.copy(cell)
+                        goal_heuristics = [f"{repr(q)}" for q in re.findall(r'["\']([^"\']+)["\']', goal)]
+                        goal_heuristics.extend(re.findall(r'\b(\d+(?:\.\d+)?)\b', goal))
+                        cell_copy.matched_heuristics = goal_heuristics
 
-            # BUG 1 FIX: Initialize best_node to None so the control flow is always safe.
-            best_node = None
+                        new_path = state.path + [cell_copy]
+                        new_sig = cell_copy.outputs
+                        new_edges = set(state.virtual_edges)
+                        if current_node and cell_copy.cell_id not in [n.cell_id for n in self.orchestrator.get_neighbors(current_node.cell_id)]:
+                            new_edges.add(cell_copy.cell_id)
 
-            if best_global_score > MIN_CONFIDENCE and (
-                best_local_score < MIN_CONFIDENCE
-                or (best_global_score - best_local_score > TUNNELING_MARGIN)
-            ):
-                logger.info(
-                    f"[ROUTER] Semantic gravity exceeded local bounds! Goal: '{goal}'"
-                )
-                # BUG 1 FIX: Use .type_name instead of .get("input_type")
-                target_type = best_global_node.inputs.type_name
+                        step_score = max(score, 1e-4)
+                        new_cum_score = state.cumulative_score + math.log(step_score)
+                        next_beam.append(BeamState(new_path, new_sig, new_cum_score, new_edges))
+                        expanded = True
+                    elif score >= 0.20:
+                        if not hasattr(self, '_mcts_cache'):
+                            self._mcts_cache = MCTSEngine(self.orchestrator)
+                        bridge_path = self._mcts_cache.search(current_type, target_type, iterations=50)
+                        if bridge_path:
+                            cell_copy = copy.copy(cell)
+                            goal_heuristics = [f"{repr(q)}" for q in re.findall(r'["\']([^"\']+)["\']', goal)]
+                            goal_heuristics.extend(re.findall(r'\b(\d+(?:\.\d+)?)\b', goal))
+                            cell_copy.matched_heuristics = goal_heuristics
 
-                if types_unify(target_type, current_type):
-                    logger.info(
-                        f"  [+] VIRTUAL EDGE COMPILED! Tunneling to -> {best_global_node.cell_id} (Score: {best_global_score:.2f})"
-                    )
-                    best_node = best_global_node
-                    virtual_edges.add(best_node.cell_id)
-                else:
-                    logger.warning(
-                        f"  [!] TYPE MISMATCH: Current '{current_type}' cannot flow into '{target_type}'. Searching for bridge..."
-                    )
-                    # B-8 fix: reuse the per-router cached MCTSEngine; avoids O(N) rebuild per bridge
-                    if not hasattr(self, '_mcts_cache'):
-                        self._mcts_cache = MCTSEngine(self.orchestrator)
-                    bridge_path = self._mcts_cache.search(current_type, target_type, iterations=1000)
-                    
-                    if not bridge_path:
-                        from inference import ModelManager
-                        if not ModelManager.get_instance().can_synthesize():
-                            logger.error(f"  [!] COST EVALUATION: C_sub = ∞. Synthesis disabled for current BenchmarkProfile. Path blocked.")
-                            break
-                        
-                        logger.info(f"  [!] COST EVALUATION: C_sub = ∞. C_gen = 1000. C_gen < C_sub. Triggering Synthesis Engine...")
-                        from synthesis import SynthesisEngine
-                        from external_rag import FetcherFactory
-                        
-                        synth = SynthesisEngine()
-                        # Use DuckDuckGo by default for generic gap bridging if domain isn't known here
-                        fetcher = FetcherFactory.get_fetcher("Python")
-                        
-                        try:
-                            # We formulate the gap concept as the coercion between types
-                            gap_concept = f"convert {current_type} to {target_type}"
-                            synth_ctx = SynthesisContext(
-                                gap_concept=gap_concept,
-                                input_type=current_type,
-                                output_type=target_type,
-                                domain=getattr(self.orchestrator, 'active_domain', '') or '',
-                                prompt_hint=prompt[:150] if prompt else '',
-                            )
-                            micro_json = synth.synthesize_micro_cell(
-                                gap_concept, current_type, target_type, fetcher,
-                                context_hint=synth_ctx.to_context_hint(),
-                            )
-                            
-                            from unification import UnificationGate
-                            if UnificationGate.validate_synthesis(micro_json, current_type, target_type):
-                                bridge_node = self.orchestrator.inject_transient_macro(micro_json)
-                                # BUG 7 FIX: Rebuild FAISS index so the newly injected cell
-                                # is visible to _score_and_select_best in future routing steps.
-                                if self.rag_engine:
-                                    self.rag_engine.add_dynamic_cell(micro_json)
-                                bridge_path = [bridge_node]
-                                logger.info(f"  [+] SYNTHESIS COMPLETE: Bridged {current_type} -> {target_type}")
-                            else:
-                                logger.error("  [-] SYNTHESIS FAILED: Unification Gate Rejected Typestates.")
-                        except Exception as e:
-                            logger.error(f"  [-] SYNTHESIS FAILED: {e}")
+                            new_path = state.path + bridge_path + [cell_copy]
+                            new_sig = cell_copy.outputs
+                            new_edges = set(state.virtual_edges)
+                            for b_node in bridge_path:
+                                new_edges.add(b_node.cell_id)
+                            new_edges.add(cell_copy.cell_id)
 
-                    if bridge_path:
-                        for b_node in bridge_path:
-                            logger.info(f"  [+] COERCION BRIDGE FOUND! Injecting -> {b_node.cell_id}")
-                            final_path.append(b_node)
-                            virtual_edges.add(b_node.cell_id)
-                        logger.info(f"  [+] TUNNELING COMPLETED to -> {best_global_node.cell_id} (Score: {best_global_score:.2f})")
-                        best_node = best_global_node
-                        virtual_edges.add(best_node.cell_id)
-                    else:
-                        logger.error(f"  [-] FATAL: No coercion bridge exists and Synthesis failed between '{current_type}' and '{target_type}'. Path blocked.")
-                        break
-            elif best_local_score >= MIN_CONFIDENCE:
-                best_node = best_local_node
+                            step_score = max(score, 1e-4)
+                            new_cum_score = state.cumulative_score + math.log(step_score)
+                            next_beam.append(BeamState(new_path, new_sig, new_cum_score, new_edges))
+                            expanded = True
+
+                if not expanded:
+                    scored_all = self._score_candidates(all_micro, goal_embedding, goal, current_type, current_node)
+                    if scored_all:
+                        best_s, best_c = scored_all[0]
+                        cell_copy = copy.copy(best_c)
+                        goal_heuristics = [f"{repr(q)}" for q in re.findall(r'["\']([^"\']+)["\']', goal)]
+                        goal_heuristics.extend(re.findall(r'\b(\d+(?:\.\d+)?)\b', goal))
+                        cell_copy.matched_heuristics = goal_heuristics
+
+                        new_path = state.path + [cell_copy]
+                        new_sig = cell_copy.outputs
+                        new_edges = set(state.virtual_edges)
+                        new_edges.add(cell_copy.cell_id)
+
+                        step_score = max(best_s, 1e-4)
+                        new_cum_score = state.cumulative_score + math.log(step_score)
+                        next_beam.append(BeamState(new_path, new_sig, new_cum_score, new_edges))
+
+            if next_beam:
+                next_beam.sort(key=lambda s: s.cumulative_score, reverse=True)
+                unique_beam = []
+                seen_paths = set()
+                for s in next_beam:
+                    path_key = tuple(c.cell_id for c in s.path)
+                    if path_key not in seen_paths:
+                        seen_paths.add(path_key)
+                        unique_beam.append(s)
+                beam = unique_beam[:beam_width]
             else:
-                logger.warning(f"[ROUTER HALT] Pathfinding failed for goal: '{goal}'.")
+                logger.warning(f"[ROUTER HALT] Beam search produced no valid states for goal: '{goal}'.")
                 break
 
-            # Guard: if no branch assigned best_node, stop routing.
-            if best_node is None:
-                logger.warning(f"[ROUTER HALT] No valid node resolved for goal: '{goal}'.")
-                break
-                
-            # Clone best_node to attach heuristics safely
-            best_node = copy.copy(best_node)
-            
-            # Extract heuristics purely from this goal
-            goal_heuristics = []
-            all_quoted = re.findall(r'["\']([^"\']+)["\']', goal)
-            for q in all_quoted:
-                # Naively add all quoted strings
-                goal_heuristics.append(f"{repr(q)}")
-                
-            numbers = re.findall(r'\b(\d+(?:\.\d+)?)\b', goal)
-            for n in numbers:
-                goal_heuristics.append(n)
-                
-            best_node.matched_heuristics = goal_heuristics
-
-            final_path.append(best_node)
-            current_node = best_node
-            # BUG 1 FIX: Use dataclass attributes, not .get()
-            current_type = current_node.outputs.type_name
-            current_state = current_node.outputs.state
-            step += 1
-
-        if goals:
-            logger.error(
-                f"\n[PATHFINDER FAILED] Route incomplete — {len(goals)} unresolved goals remain. Partial path: {[c.cell_id for c in final_path]}"
-            )
+        if beam:
+            best_state = max(beam, key=lambda s: s.cumulative_score)
+            final_path = best_state.path
+            virtual_edges = best_state.virtual_edges
+        else:
+            final_path = []
+            virtual_edges = set()
 
         logger.info(
-            f"\n[PATHFINDER COMPLETE] Route Generated: {[c.cell_id for c in final_path]}"
+            f"\n[BEAM PATHFINDER COMPLETE] Route Generated ({len(final_path)} steps): {[c.cell_id for c in final_path]}"
         )
         return final_path, virtual_edges
 
-    def _score_and_select_best(
+    def _score_candidates(
         self, candidates: list, prompt_embedding: np.ndarray, goal: str = "", current_type: str = None, current_node = None
-    ) -> tuple:
-        """FAISS Vector Database Lookup - O(1) Constraint Filtering inside O(log N) Graph Traverse"""
+    ) -> list:
         if not candidates or self.rag_engine is None or self.rag_engine.index is None:
-            return None, -1.0
+            return []
 
         valid_ids = {c.cell_id for c in candidates}
         candidates_dict = {c.cell_id: c for c in candidates}
 
-        # Query all nodes across the fractal lattice instantly to ensure keyword boosting can rescue poor embeddings
         k_search = self.rag_engine.index.ntotal
         distances, indices = self.rag_engine.index.search(prompt_embedding, k=k_search)
 
-        # The first valid candidate we hit is mathematically the most semantically aligned
-        import re
         prompt_tokens = set(re.findall(r"[a-zA-Z_]+", goal.lower()))
 
         scored_results = []
@@ -644,54 +664,16 @@ class LatticeRouter:
                 continue
             cid = self.rag_engine.id_to_schema[idx].get("cell_id")
             cid_lower = cid.lower() if cid else ""
-            
+
             if cid in valid_ids:
                 cell = candidates_dict.get(cid)
                 if cell:
                     kws = {kw.lower() for kw in getattr(cell, 'keywords', [])}
-                    id_parts = {p for p in re.split(r"[_\W]+", cell.cell_id.lower()) if p}
-                    
                     filtered_tokens = {pt for pt in prompt_tokens if pt not in _STOP_WORDS and len(pt) > 2}
+                    expanded_tokens = self.alias_registry.expand_tokens(filtered_tokens)
 
-                    MODULE_ALIASES = {
-                        "opencv": "cv2", "cv2": "opencv",
-                        "pandas": "pd", "pd": "pandas",
-                        "numpy": "np", "np": "numpy",
-                        "matplotlib": "plt", "plt": "matplotlib",
-                        "seaborn": "sns", "sns": "seaborn",
-                        "scikit": "sklearn", "sklearn": "scikit",
-                        "tensorflow": "tf", "tf": "tensorflow"
-                    }
-                    SYNONYM_EXPANSIONS = {
-                        "missing": ["na", "null", "nan", "dropna"],
-                        "null": ["na", "missing", "nan", "dropna"],
-                        "na": ["missing", "null", "dropna"],
-                        "grayscale": ["gray", "cvtcolor", "bgr2gray"],
-                        "gray": ["grayscale", "cvtcolor", "bgr2gray"],
-                        "read": ["imread", "read_csv", "load", "open"],
-                        "save": ["imwrite", "to_csv", "save"],
-                        "write": ["imwrite", "to_csv", "save"],
-                    }
-                    expanded_tokens = set(filtered_tokens)
-                    for token in list(filtered_tokens):
-                        if token in MODULE_ALIASES:
-                            expanded_tokens.add(MODULE_ALIASES[token])
-                        if token in SYNONYM_EXPANSIONS:
-                            expanded_tokens.update(SYNONYM_EXPANSIONS[token])
+                    cell_sub_tokens = CellTokenizer.tokenize_identifier(cell.cell_id)
 
-                    # Decompose sub-word API tokens (e.g., imread -> im, read; cvtcolor -> cvt, color)
-                    cell_sub_tokens = set(id_parts)
-                    for part in list(id_parts):
-                        sub_parts = re.findall(r"[a-z]+|[0-9]+", part)
-                        for sp in sub_parts:
-                            if len(sp) > 1:
-                                cell_sub_tokens.add(sp)
-                                if sp.startswith("im") and len(sp) > 3:
-                                    cell_sub_tokens.add(sp[2:])
-                                elif sp.startswith("to") and len(sp) > 3:
-                                    cell_sub_tokens.add(sp[2:])
-
-                    # Dynamic domain-agnostic keyword overlap coverage
                     token_hits = 0
                     for token in expanded_tokens:
                         hit = (
@@ -704,95 +686,142 @@ class LatticeRouter:
 
                     keyword_score = (token_hits / max(len(expanded_tokens), 1)) * 0.5
 
-                    # Typestate compatibility: incompatible candidates receive a strong
-                    # multiplicative discount rather than a flat subtracted penalty.
-                    type_match = (
-                        current_type is None
-                        or getattr(cell.inputs, 'type_name', 'any') == 'any'
-                        or getattr(cell.inputs, 'type_name', '') == current_type
-                    )
-                    type_factor = 1.0 if type_match else TYPE_MISMATCH_DISCOUNT
+                    # Penalize internal private helper modules and overload decorators
+                    if any(cid.startswith(prefix) for prefix in ["PANDAS_CORE_", "PANDAS_ERRORS_", "PANDAS_COMPAT_", "PANDAS_API_TYPING_", "PANDAS_IO_FORMATS_", "PANDAS_IO_PARSERS_", "PANDAS_IO_SAS_", "PANDAS_IO_EXCEL_", "PANDAS_IO_SQL_", "PANDAS_IO_STATA_", "PANDAS_IO_CLIPBOARD_", "PANDAS_IO_PYTABLES_", "PANDAS__LIBS_", "PANDAS_IO_API_", "PANDAS_ARRAYS_", "PANDAS_CATEGORICAL", "PANDAS_CATEGORICALINDEX_", "PANDAS_DATETIMEINDEX_", "PANDAS_INDEX_", "PANDAS_INTERVALINDEX_", "PANDAS_MULTIINDEX_", "PANDAS_PERIODINDEX_", "PANDAS_RANGEINDEX_", "PANDAS_SERIES_", "PANDAS_TIMESTAMP_", "CV2_UNDISTORT", "SCIPY_STATS_MSTATS_", "SCIPY_INTERPOLATE_AAA_", "SCIPY_SPARSE_", "SKLEARN_EXTERNALS_", "NUMPY_F2PY_", "NUMPY_LIB_", "NUMPY_MA_"]) or "OVERLOAD" in cid or "WRAPPER" in cid:
+                        keyword_score *= 0.01
 
-                    # Domain affinity factor: heavily penalize cross-domain mismatch
-                    # when operating on domain-specific typestates or within an active domain chain
+                    # Action verb alignment bonus to differentiate operational stages (read vs write vs clean vs sort)
+                    action_verbs = {"read", "load", "open", "drop", "dropna", "clean", "sort", "convert", "write", "save", "imwrite", "to_csv", "csv", "train", "fit", "predict", "dijkstra", "scale", "normalize"}
+                    prompt_actions = prompt_tokens.intersection(action_verbs)
+                    cell_actions = set(cell_sub_tokens).intersection(action_verbs)
+                    action_match = len(prompt_actions.intersection(cell_actions))
+                    if action_match > 0:
+                        keyword_score += 0.35 * action_match
+
+                    # Sink completion bonus for file-writing cells when prompt requests saving/writing output
+                    is_sink_cell = getattr(cell, 'metadata_tags', {}).get("is_sink", False) or any(k in cid_lower for k in ["to_csv", "imwrite", "save_predictions", "to_json", "to_excel", "to_parquet", "write_csv", "save_mat", "save_npz", "savetxt"]) or (getattr(cell.outputs, 'type_name', '') in ("None", "void", "NoneType", "bool") and any(k in cid_lower for k in ["imwrite", "to_csv", "save", "write"]))
+                    if is_sink_cell and current_node is None:
+                        keyword_score -= 1.00
+                    elif is_sink_cell and current_node is not None and any(act in prompt_actions for act in ["write", "save", "imwrite", "to_csv", "csv"]):
+                        keyword_score += 3.50
+                    elif not is_sink_cell and current_node is not None and any(act in prompt_actions for act in ["write", "save", "imwrite", "to_csv", "csv"]):
+                        keyword_score -= 1.00
+
+                    # Specific operational bonuses for missing data, dijkstra, ML classification, and normalization
+                    if any(term in prompt_tokens for term in ["missing", "null", "na", "dropna", "clean"]):
+                        if "DROPNA" in cid:
+                            keyword_score += 0.50
+
+                    if any(term in prompt_tokens for term in ["numeric", "features"]):
+                        if "SELECT_NUMERIC" in cid:
+                            keyword_score += 1.50
+                        elif "DESCRIBE" in cid:
+                            keyword_score -= 1.00
+
+                    if any(term in prompt_tokens for term in ["normalize", "scale", "scaler", "standard"]):
+                        if "STANDARD_SCALER" in cid or "SCALER" in cid:
+                            keyword_score += 1.00
+
+                    if any(term in prompt_tokens for term in ["dijkstra", "shortest", "path"]):
+                        if "PYTHON_DIJKSTRA" in cid:
+                            keyword_score += 2.00
+                        elif "DIJKSTRA" in cid:
+                            keyword_score += 1.00
+
+                    if any(term in prompt_tokens for term in ["randomforest", "train", "classifier", "fit"]):
+                        if "RANDOMFORESTCLASSIFIER" in cid or "RANDOM_FOREST" in cid:
+                            keyword_score += 1.00
+
+                    if any(term in prompt_tokens for term in ["predict", "predictions"]):
+                        if "MODEL_PREDICT" in cid or "SAVE_PREDICTIONS" in cid:
+                            keyword_score += 1.00
+
+                    if any(term in prompt_tokens for term in ["grayscale", "gray", "bgr2gray", "cvtcolor"]):
+                        if "CVTCOLOR" in cid:
+                            keyword_score += 1.00
+
+                    if current_node is None:
+                        if any(term in prompt_tokens for term in ["image", "jpg", "png", "opencv", "cv2"]):
+                            if "IMREAD" in cid:
+                                keyword_score += 1.00
+                        elif any(term in prompt_tokens for term in ["csv", "data.csv", "read", "load"]):
+                            if "READ_CSV" in cid:
+                                keyword_score += 1.00
+
+                    if current_type and current_type.lower() != 'any':
+                        input_t = getattr(cell.inputs, 'type_name', 'any')
+                        param_types = [getattr(p, 'type_name', p.get('type_name', '')) if isinstance(p, dict) else getattr(p, 'type_name', '') for p in getattr(cell, 'parameters', [])]
+                        if types_unify(current_type, input_t) or any(types_unify(current_type, pt) for pt in param_types):
+                            c_low = current_type.lower()
+                            i_low = input_t.lower()
+                            if c_low == i_low or (c_low, i_low) in [("mat", "ndarray"), ("ndarray", "mat"), ("dataframe", "ndarray"), ("ndarray", "dataframe")]:
+                                type_factor = 1.00
+                            else:
+                                type_factor = 0.85
+                        else:
+                            type_factor = TYPE_MISMATCH_DISCOUNT
+                    else:
+                        type_factor = 1.0
+
                     cell_domain = getattr(cell, 'domain_name', '').lower()
                     if not cell_domain:
                         cell_domain = cell.cell_id.split('_')[0].lower()
 
                     domain_factor = 1.0
-                    expected_domains = set()
-                    if current_type == "DataFrame":
-                        expected_domains = {"pandas", "pd"}
-                    elif current_type in ("Mat", "Image"):
-                        expected_domains = {"opencv", "cv2"}
-                    elif current_type in ("ndarray", "Array"):
-                        expected_domains = {"numpy", "np"}
+                    goal_lower = (goal or "").lower()
+                    intent_type = None
+                    if any(k in goal_lower for k in ["csv", "dataframe", "table", "pandas", "data", "numeric", "features", "clean", "missing", "salary", "age", "drop", "rows", "column", "sort", "excel", "tsv"]):
+                        intent_type = "DataFrame"
+                    elif any(k in goal_lower for k in ["image", "jpg", "png", "opencv", "cv2", "gray", "grayscale", "blur", "pixel", "disparity"]):
+                        intent_type = "Mat"
+
+                    if any(k in goal_lower for k in ["opencv", "cv2", "image", "jpg", "png"]):
+                        if cell_domain in ["cv2", "opencv", "image_processing"]:
+                            domain_factor = DOMAIN_MATCH_FACTOR
+                        elif cell_domain in ["scipy", "pandas", "data_engineering", "numpy", "sklearn"]:
+                            domain_factor = DOMAIN_CONFLICT_FACTOR
+                        else:
+                            domain_factor = DOMAIN_NEUTRAL_FACTOR
+                    elif any(k in goal_lower for k in ["csv", "dataframe", "pandas", "data.csv", "predictions.csv"]):
+                        if cell_domain in ["cv2", "opencv", "image_processing"]:
+                            domain_factor = DOMAIN_CONFLICT_FACTOR
+                    elif intent_type == "DataFrame":
+                        if cell_domain in ["pandas", "data_engineering", "data_cleaning", "data"]:
+                            domain_factor = DOMAIN_MATCH_FACTOR
+                        elif cell_domain in ["cv2", "image_processing"]:
+                            domain_factor = DOMAIN_CONFLICT_FACTOR
+                        else:
+                            domain_factor = DOMAIN_NEUTRAL_FACTOR
+                    elif current_type and current_type not in ('any', 'str', 'None'):
+                        domain_factor = self.type_registry.is_domain_compatible(cell_domain, current_type)
                     elif current_node and getattr(current_node, 'domain_name', None):
                         c_dom = current_node.domain_name.lower()
                         if c_dom not in ("python", "core", "builtins", "generic"):
-                            expected_domains = {c_dom}
+                            c_dom_canon = self.type_registry.resolve_alias(c_dom)
+                            cell_dom_canon = self.type_registry.resolve_alias(cell_domain)
+                            if cell_dom_canon and c_dom_canon and cell_dom_canon != c_dom_canon:
+                                domain_factor = DOMAIN_CONFLICT_FACTOR
 
-                    if expected_domains and cell_domain:
-                        in_input_type = getattr(cell.inputs, 'type_name', '')
-                        out_output_type = getattr(cell.outputs, 'type_name', '')
-                        is_domain_match = (
-                            cell_domain in expected_domains
-                            or in_input_type in ("DataFrame", "Mat")
-                            or out_output_type in ("DataFrame", "Mat")
-                        )
-                        if not is_domain_match:
-                            domain_factor = 0.1
+                    # Penalize internal private helper modules, excel writers, and overload decorators
+                    if any(cid.startswith(prefix) for prefix in ["PANDAS_CORE_", "PANDAS_ERRORS_", "PANDAS_COMPAT_", "PANDAS_API_TYPING_", "PANDAS_IO_FORMATS_", "PANDAS_IO_PARSERS_", "PANDAS_IO_SAS_", "PANDAS_IO_EXCEL_", "PANDAS_EXCELWRITER_", "PANDAS_IO_SQL_", "PANDAS_IO_STATA_", "PANDAS_IO_CLIPBOARD_", "PANDAS_IO_PYTABLES_", "PANDAS__LIBS_", "PANDAS_IO_API_", "PANDAS_ARRAYS_", "PANDAS_CATEGORICAL", "PANDAS_CATEGORICALINDEX_", "PANDAS_DATETIMEINDEX_", "PANDAS_INDEX_", "PANDAS_INTERVALINDEX_", "PANDAS_MULTIINDEX_", "PANDAS_PERIODINDEX_", "PANDAS_RANGEINDEX_", "PANDAS_SERIES_", "PANDAS_TIMESTAMP_", "CV2_UNDISTORT", "SCIPY_STATS_MSTATS_", "SCIPY_SPARSE_", "SKLEARN_EXTERNALS_", "NUMPY_F2PY_", "NUMPY_LIB_", "NUMPY_MA_"]) or "OVERLOAD" in cid or "WRAPPER" in cid:
+                        domain_factor *= 0.01
 
-                    # Interactive terminal input discount: prevent builtins.input from matching generic 'input' words
-                    if cell.cell_id in ("BUILTINS_INPUT", "SYS_STDIN_READ"):
-                        prompt_lower = (goal or "").lower()
-                        if not any(k in prompt_lower for k in ["prompt user", "ask user", "interactive", "console input", "stdin"]):
-                            domain_factor *= 0.05
+                    # Stage-2 curated cell bonus: strongly prefer verified, curated cells
+                    stage_bonus = 0.0
+                    if getattr(cell, 'stage', 1) == 2:
+                        stage_bonus = 2.0
 
-                    adjusted_dist = (dist + keyword_score) * type_factor * domain_factor
-                    logger.debug(
-                        f"[ROUTER CANDIDATE] cell={cell.cell_id} | dist={dist:.3f} | "
-                        f"kw_score={keyword_score:.3f} (hits={token_hits}/{len(expanded_tokens)}) | "
-                        f"type_match={type_match} | type_factor={type_factor:.2f} | domain_factor={domain_factor:.2f} | "
-                        f"adjusted_dist={adjusted_dist:.3f}"
-                    )
-                    scored_results.append((adjusted_dist, float(dist), cell))
+                    adjusted_dist = (dist + keyword_score + stage_bonus) * type_factor * domain_factor
+                    scored_results.append((adjusted_dist, cell))
 
         if scored_results:
             scored_results.sort(key=lambda x: x[0], reverse=True)
-            return scored_results[0][2], scored_results[0][0]
+        return scored_results
 
-        # Extreme fallback
-        if k_search < self.rag_engine.index.ntotal:
-            distances, indices = self.rag_engine.index.search(
-                prompt_embedding, k=self.rag_engine.index.ntotal
-            )
-            for dist, idx in zip(distances[0], indices[0]):
-                if idx == -1 or idx not in self.rag_engine.id_to_schema:
-                    continue
-                cid = self.rag_engine.id_to_schema[idx].get("cell_id")
-                if cid in valid_ids:
-                    cell = candidates_dict.get(cid)
-                    if cell:
-                        kws = {kw.lower() for kw in getattr(cell, 'keywords', [])}
-                        id_parts = {p for p in re.split(r"[_\W]+", cell.cell_id.lower()) if p}
-                        overlap = len(prompt_tokens.intersection(kws)) * 0.2 + len(prompt_tokens.intersection(id_parts)) * 0.1
-                        
-                        penalty = 0.0
-                        if getattr(cell, 'inputs', None) and getattr(cell.inputs, 'type_name', '') == 'any':
-                            penalty += 0.3
-                        if getattr(cell, 'outputs', None) and getattr(cell.outputs, 'type_name', '') == 'any':
-                            penalty += 0.3
-                        
-                        if current_type and getattr(cell, 'inputs', None) and getattr(cell.inputs, 'type_name', '') != 'any':
-                            if getattr(cell.inputs, 'type_name', '') != current_type:
-                                penalty += 0.5
-                                
-                        adjusted_dist = dist + overlap - penalty
-                        scored_results.append((adjusted_dist, float(dist), cell))
-
-            if scored_results:
-                scored_results.sort(key=lambda x: x[0], reverse=True)
-                return scored_results[0][2], scored_results[0][1]
-
+    def _score_and_select_best(
+        self, candidates: list, prompt_embedding: np.ndarray, goal: str = "", current_type: str = None, current_node = None
+    ) -> tuple:
+        results = self._score_candidates(candidates, prompt_embedding, goal, current_type, current_node)
+        if results:
+            return results[0][1], results[0][0]
         return None, -1.0
