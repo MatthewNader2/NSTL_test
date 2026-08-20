@@ -9,12 +9,17 @@ Logs verification results to trees/verification_report.json and marks node verif
 import ast
 import json
 import os
+import subprocess
 import sys
 import traceback
 from pathlib import Path
 
 # Third-party imports for synthetic generation
 import cv2
+try:
+    cv2.setLogLevel(0)
+except Exception:
+    pass
 import numpy as np
 import pandas as pd
 import scipy
@@ -62,7 +67,7 @@ def get_synthetic_value(param_name: str, param_type: str, default_val=None):
 
 
 def verify_single_node(node: dict) -> dict:
-    """Execute code template for a single node with synthetic args."""
+    """Execute code template for a single node with synthetic args in an isolated subprocess."""
     cell_id = node.get("cell_id", "UNKNOWN")
     impl = node.get("domain_implementations", {}).get("Python_Core", {})
     code_template = impl.get("code", "")
@@ -71,50 +76,62 @@ def verify_single_node(node: dict) -> dict:
     if not code_template:
         return {"cell_id": cell_id, "verified": False, "error": "Empty code template"}
 
-    # Prepare execution environment
-    exec_env = {
-        "cv2": cv2,
-        "np": np,
-        "pd": pd,
-        "scipy": scipy,
-        "sk": sklearn,
-        "sklearn": sklearn,
-        "output_var": None,
-        "input_var": get_synthetic_value("input_var", node.get("inputs", [{}])[0].get("type", "Any"))
-    }
-
-    # Populate synthetic variable values for parameter placeholders
+    params = node.get("params", [])
     substitutions = {
         "output_var": "output_var",
         "input_var": "input_var"
     }
 
-    params = node.get("params", [])
+    in_type = node.get("inputs", [{}])[0].get("type", "Any") if node.get("inputs") else "Any"
+
+    setup_lines = [
+        "import cv2, numpy as np, pandas as pd, scipy, sklearn",
+        "try:",
+        "    cv2.setLogLevel(0)",
+        "except Exception: pass",
+        f"input_var = {repr(get_synthetic_value('input_var', in_type))}",
+        "output_var = None"
+    ]
+
     for p in params:
         p_name = p["name"]
         p_type = p.get("type", "Any")
         p_val = get_synthetic_value(p_name, p_type, p.get("default"))
         var_key = f"synthetic_{p_name}"
-        exec_env[var_key] = p_val
+        setup_lines.append(f"{var_key} = {repr(p_val)}")
         substitutions[p_name] = var_key
 
-    # Format execution snippet
     snippet = code_template
     for placeholder, var_name in substitutions.items():
         snippet = snippet.replace(f"{{{placeholder}}}", var_name)
 
-    try:
-        exec(snippet, exec_env)
-        result = exec_env.get("output_var")
-        obs_type = type(result).__name__ if result is not None else "None"
+    setup_lines.append(snippet)
+    setup_lines.append("print(type(output_var).__name__ if output_var is not None else 'None')")
 
-        # Check type match heuristic
+    full_script = "\n".join(setup_lines)
+
+    try:
+        proc = subprocess.run(
+            [sys.executable, "-c", full_script],
+            capture_output=True, text=True, timeout=2
+        )
+        if proc.returncode != 0:
+            return {
+                "cell_id": cell_id,
+                "verified": False,
+                "observed_output_type": None,
+                "declared_output_type": declared_out_type,
+                "type_match": False,
+                "error": proc.stderr.strip()[:200]
+            }
+        
+        obs_type = proc.stdout.strip()
         type_match = False
-        if declared_out_type in ("Mat", "ndarray") and isinstance(result, np.ndarray):
+        if declared_out_type in ("Mat", "ndarray") and obs_type in ("ndarray", "Mat"):
             type_match = True
-        elif declared_out_type == "DataFrame" and isinstance(result, pd.DataFrame):
+        elif declared_out_type == "DataFrame" and obs_type == "DataFrame":
             type_match = True
-        elif declared_out_type == "Series" and isinstance(result, pd.Series):
+        elif declared_out_type == "Series" and obs_type == "Series":
             type_match = True
         elif declared_out_type.lower() in (obs_type.lower(), "any", "object"):
             type_match = True

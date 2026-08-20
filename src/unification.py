@@ -764,49 +764,102 @@ class UnificationGate:
     @staticmethod
     def resolve_imports(code_text: str, context: 'ExecutionContext' = None, chain_nodes: List[Any] = None) -> str:
         """
-        Emits imports strictly from declared node dependencies and standard module usage.
-        Does NOT guess imports by AST scanning arbitrary unbound variable names.
+        Smart Top-of-File Import Injection System.
+        Collects required main and optional tree/node imports across the execution route,
+        deduplicates aliased import statements, strips scattered inline import lines,
+        and presents a clean, canonical PEP 8 import block at the very top of the generated code.
         """
+        # Step 1: Strip existing import lines from cell code bodies to avoid inline duplicate scattering
+        body_lines = []
+        for line in code_text.splitlines():
+            stripped = line.strip()
+            if stripped.startswith("import ") or stripped.startswith("from "):
+                continue
+            body_lines.append(line)
+        clean_code_body = "\n".join(body_lines).strip()
+
+        # Step 2: Collect tree domains and node dependencies
+        domains = set()
         declared_deps = set()
+
         if context and hasattr(context, "declared_dependencies"):
             declared_deps.update(context.declared_dependencies)
+
         if chain_nodes:
             for node in chain_nodes:
+                domain_name = getattr(node, "domain", getattr(node, "domain_name", None))
+                if domain_name:
+                    domains.add(domain_name.lower())
                 deps = getattr(node, "dependencies", []) or []
                 if isinstance(deps, (list, tuple, set)):
                     declared_deps.update(deps)
                 elif isinstance(deps, str):
                     declared_deps.add(deps)
 
-        imports_to_add = set()
+        # Infer domains from code body if chain_nodes not supplied
+        if re.search(r"\bpd\.", code_text) or "pandas" in code_text:
+            domains.add("pandas")
+        if re.search(r"\bnp\.", code_text) or "numpy" in code_text:
+            domains.add("numpy")
+        if re.search(r"\bcv2\.", code_text) or "cv2" in code_text:
+            domains.add("cv2")
+        if re.search(r"\bscipy\.", code_text) or "scipy" in code_text:
+            domains.add("scipy")
+        if "sklearn" in code_text or "StandardScaler" in code_text or "RandomForestClassifier" in code_text:
+            domains.add("sklearn")
 
-        for dep in sorted(declared_deps):
-            if dep in CANONICAL_IMPORT_MAP:
-                stmt, base_mod = CANONICAL_IMPORT_MAP[dep]
-                if is_module_available(base_mod):
-                    imports_to_add.add(stmt)
-            elif is_module_available(dep):
-                imports_to_add.add(f"import {dep}")
+        stdlib_imports = set()
+        third_party_imports = set()
 
-        for alias, (stmt, base_mod) in CANONICAL_IMPORT_MAP.items():
-            if re.search(r"\b" + re.escape(alias) + r"\.", code_text) and is_module_available(base_mod):
-                imports_to_add.add(stmt)
-                if alias in ["pandas", "numpy", "scipy"]:
-                    imports_to_add.add(f"import {alias}")
+        # Step 3: Main Tree Imports
+        if "pandas" in domains or "pd" in declared_deps:
+            third_party_imports.add("import pandas as pd")
+        if "numpy" in domains or "np" in declared_deps:
+            third_party_imports.add("import numpy as np")
+        if "cv2" in domains or "opencv" in domains:
+            third_party_imports.add("import cv2")
+        if "scipy" in domains:
+            third_party_imports.add("import scipy")
+        if "sklearn" in domains:
+            third_party_imports.add("import sklearn")
 
-        for std_mod in ["heapq", "json", "math", "re", "os", "sys", "time", "random"]:
+        # Step 4: Optional Node Symbol Imports
+        symbol_optional_map = {
+            "StandardScaler": "from sklearn.preprocessing import StandardScaler",
+            "MinMaxScaler": "from sklearn.preprocessing import MinMaxScaler",
+            "RandomForestClassifier": "from sklearn.ensemble import RandomForestClassifier",
+            "RandomForestRegressor": "from sklearn.ensemble import RandomForestRegressor",
+            "GradientBoostingClassifier": "from sklearn.ensemble import GradientBoostingClassifier",
+            "LogisticRegression": "from sklearn.linear_model import LogisticRegression",
+            "LinearRegression": "from sklearn.linear_model import LinearRegression",
+            "SVC": "from sklearn.svm import SVC",
+            "SVR": "from sklearn.svm import SVR",
+            "train_test_split": "from sklearn.model_selection import train_test_split",
+            "accuracy_score": "from sklearn.metrics import accuracy_score",
+            "mean_squared_error": "from sklearn.metrics import mean_squared_error",
+        }
+
+        for symbol, import_stmt in symbol_optional_map.items():
+            if re.search(r"\b" + re.escape(symbol) + r"\b", code_text):
+                third_party_imports.add(import_stmt)
+
+        # Standard Library Imports
+        std_modules = ["heapq", "json", "math", "re", "os", "sys", "time", "random", "itertools", "functools"]
+        for std_mod in std_modules:
             if re.search(r"\b" + std_mod + r"\b", code_text) and is_module_available(std_mod):
-                imports_to_add.add(f"import {std_mod}")
+                stdlib_imports.add(f"import {std_mod}")
 
-        missing_imports = set()
-        for imp in imports_to_add:
-            if imp not in code_text:
-                missing_imports.add(imp)
+        # Assemble clean PEP 8 header
+        header_sections = []
+        if stdlib_imports:
+            header_sections.append("\n".join(sorted(stdlib_imports)))
+        if third_party_imports:
+            header_sections.append("\n".join(sorted(third_party_imports)))
 
-        if missing_imports:
-            header = "\n".join(sorted(missing_imports))
-            return f"{header}\n\n{code_text}"
-        return code_text
+        if header_sections:
+            full_header = "\n\n".join(header_sections)
+            return f"{full_header}\n\n{clean_code_body}"
+        return clean_code_body
 
 
 class DataflowLineageTracker(ast.NodeTransformer):
