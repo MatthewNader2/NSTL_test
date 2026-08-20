@@ -30,40 +30,37 @@ if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
 
-def get_synthetic_value(param_name: str, param_type: str, default_val=None):
-    """Generate a synthetic input stand-in object based on parameter name and type."""
+def get_synthetic_code(param_name: str, param_type: str, default_val=None) -> str:
+    """Generate a synthetic input Python code expression string based on parameter name and type."""
     p_type_lower = param_type.lower() if param_type else ""
 
     if default_val is not None and default_val != "None" and default_val != "...":
-        try:
-            return eval(default_val, {"cv2": cv2, "np": np, "pd": pd})
-        except Exception:
-            pass
+        return str(default_val)
 
     if "mat" in p_type_lower or "ndarray" in p_type_lower:
-        return np.zeros((8, 8, 3), dtype=np.uint8)
+        return "np.zeros((8, 8, 3), dtype=np.uint8)"
     if "dataframe" in p_type_lower:
-        return pd.DataFrame({"a": [1, 2, 3], "b": [4.0, 5.0, 6.0]})
+        return "pd.DataFrame({'a': [1, 2, 3], 'b': [4.0, 5.0, 6.0]})"
     if "series" in p_type_lower:
-        return pd.Series([1.0, 2.0, 3.0])
+        return "pd.Series([1.0, 2.0, 3.0])"
     if "int" in p_type_lower:
-        return 1
+        return "1"
     if "float" in p_type_lower or "double" in p_type_lower:
-        return 1.0
+        return "1.0"
     if "bool" in p_type_lower:
-        return True
+        return "True"
     if "str" in p_type_lower:
-        return "synthetic_data.csv"
+        return "'synthetic_data.csv'"
     if "tuple" in p_type_lower:
-        return (1, 1)
+        return "(1, 1)"
     if "dict" in p_type_lower:
-        return {"a": 1}
+        return "{'a': 1}"
     if "list" in p_type_lower:
-        return [1, 2, 3]
+        return "[1, 2, 3]"
     if "graph" in p_type_lower:
-        return {'A': {'B': 1}, 'B': {'A': 1}}
+        return "{'A': {'B': 1}, 'B': {'A': 1}}"
     
-    return None
+    return "None"
 
 
 def verify_single_node(node: dict) -> dict:
@@ -89,16 +86,16 @@ def verify_single_node(node: dict) -> dict:
         "try:",
         "    cv2.setLogLevel(0)",
         "except Exception: pass",
-        f"input_var = {repr(get_synthetic_value('input_var', in_type))}",
+        f"input_var = {get_synthetic_code('input_var', in_type)}",
         "output_var = None"
     ]
 
     for p in params:
         p_name = p["name"]
         p_type = p.get("type", "Any")
-        p_val = get_synthetic_value(p_name, p_type, p.get("default"))
+        p_code = get_synthetic_code(p_name, p_type, p.get("default"))
         var_key = f"synthetic_{p_name}"
-        setup_lines.append(f"{var_key} = {repr(p_val)}")
+        setup_lines.append(f"{var_key} = {p_code}")
         substitutions[p_name] = var_key
 
     snippet = code_template

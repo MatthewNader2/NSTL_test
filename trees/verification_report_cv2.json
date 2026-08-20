@@ -5,15 +5,15 @@
     "observed_output_type": null,
     "declared_output_type": "tuple",
     "type_match": false,
-    "error": "OpenCV(4.12.0) :-1: error: (-5:Bad argument) in function 'CamShift'\n> Overload resolution failed:\n>  - Can't parse 'window'. Expected sequence length 4, got 8\n>  - Can't parse 'window'. Expected sequence length 4, got 8\n"
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
   },
   {
     "cell_id": "CV2_CANNY_DEFAULT",
-    "verified": true,
-    "observed_output_type": "ndarray",
+    "verified": false,
+    "observed_output_type": null,
     "declared_output_type": "Mat",
-    "type_match": true,
-    "error": null
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
   },
   {
     "cell_id": "CV2_EMD_DEFAULT",
@@ -21,15 +21,15 @@
     "observed_output_type": null,
     "declared_output_type": "Mat",
     "type_match": false,
-    "error": "OpenCV(4.12.0) /io/opencv/modules/imgproc/src/emd_new.cpp:947: error: (-2:Unspecified error) in function 'float cv::EMD(cv::InputArray, cv::InputArray, int, cv::InputArray, float*, cv::OutputArray)'\n> The sign1 must be 32FC1 (expected: 'sign1.type() == CV_32FC1'), where\n>     'sign1.type()' is 16\n> must be equal to\n>     'CV_32FC1' is 5\n"
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
   },
   {
     "cell_id": "CV2_GAUSSIANBLUR_DEFAULT",
-    "verified": true,
-    "observed_output_type": "ndarray",
+    "verified": false,
+    "observed_output_type": null,
     "declared_output_type": "Mat",
-    "type_match": true,
-    "error": null
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
   },
   {
     "cell_id": "CV2_HOUGHCIRCLES_DEFAULT",
@@ -37,7 +37,7 @@
     "observed_output_type": null,
     "declared_output_type": "Mat",
     "type_match": false,
-    "error": "OpenCV(4.12.0) /io/opencv/modules/imgproc/src/hough.cpp:2284: error: (-215:Assertion failed) !_image.empty() && _image.type() == CV_8UC1 && (_image.isMat() || _image.isUMat()) in function 'HoughCircles'\n"
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
   },
   {
     "cell_id": "CV2_HOUGHCIRCLESWITHACCUMULATOR_DEFAULT",
@@ -45,7 +45,7 @@
     "observed_output_type": null,
     "declared_output_type": "Mat",
     "type_match": false,
-    "error": "OpenCV(4.12.0) /io/opencv/modules/imgproc/src/hough.cpp:2284: error: (-215:Assertion failed) !_image.empty() && _image.type() == CV_8UC1 && (_image.isMat() || _image.isUMat()) in function 'HoughCircles'\n"
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
   },
   {
     "cell_id": "CV2_HOUGHLINES_DEFAULT",
@@ -53,7 +53,7 @@
     "observed_output_type": null,
     "declared_output_type": "Mat",
     "type_match": false,
-    "error": "OpenCV(4.12.0) :-1: error: (-5:Bad argument) in function 'HoughLines'\n> Overload resolution failed:\n>  - Argument 'threshold' is required to be an integer\n>  - Argument 'threshold' is required to be an integer\n"
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
   },
   {
     "cell_id": "CV2_HOUGHLINESP_DEFAULT",
@@ -61,7 +61,7 @@
     "observed_output_type": null,
     "declared_output_type": "Mat",
     "type_match": false,
-    "error": "OpenCV(4.12.0) :-1: error: (-5:Bad argument) in function 'HoughLinesP'\n> Overload resolution failed:\n>  - Argument 'threshold' is required to be an integer\n>  - Argument 'threshold' is required to be an integer\n"
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
   },
   {
     "cell_id": "CV2_HOUGHLINESPOINTSET_DEFAULT",
@@ -69,7 +69,7 @@
     "observed_output_type": null,
     "declared_output_type": "Mat",
     "type_match": false,
-    "error": "OpenCV(4.12.0) :-1: error: (-5:Bad argument) in function 'HoughLinesPointSet'\n> Overload resolution failed:\n>  - Argument 'threshold' is required to be an integer\n>  - Argument 'threshold' is required to be an integer\n"
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
   },
   {
     "cell_id": "CV2_HOUGHLINESWITHACCUMULATOR_DEFAULT",
@@ -77,15 +77,15 @@
     "observed_output_type": null,
     "declared_output_type": "Mat",
     "type_match": false,
-    "error": "OpenCV(4.12.0) :-1: error: (-5:Bad argument) in function 'HoughLinesWithAccumulator'\n> Overload resolution failed:\n>  - Argument 'threshold' is required to be an integer\n>  - Argument 'threshold' is required to be an integer\n"
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
   },
   {
     "cell_id": "CV2_HUMOMENTS_DEFAULT",
-    "verified": true,
-    "observed_output_type": "ndarray",
+    "verified": false,
+    "observed_output_type": null,
     "declared_output_type": "Mat",
-    "type_match": true,
-    "error": null
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 8, in <module>\n    synthetic_hu = array([[[0, 0, 0],\n                   ^^^^^\nNameError: name 'array' is not defined. Did you forget to impor"
   },
   {
     "cell_id": "CV2_LUT_DEFAULT",
@@ -93,7 +93,7 @@
     "observed_output_type": null,
     "declared_output_type": "Mat",
     "type_match": false,
-    "error": "OpenCV(4.12.0) /io/opencv/modules/core/src/lut.cpp:159: error: (-215:Assertion failed) (lutcn == cn || lutcn == 1) && _lut.total() == 256 && _lut.isContinuous() && (depth == CV_8U || depth == CV_8S) in function 'LUT'\n"
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
   },
   {
     "cell_id": "CV2_LAPLACIAN_DEFAULT",
@@ -101,7 +101,7 @@
     "observed_output_type": null,
     "declared_output_type": "Mat",
     "type_match": false,
-    "error": "OpenCV(4.12.0) /io/opencv/modules/imgproc/src/filter.simd.hpp:3250: error: (-213:The function/feature is not implemented) Unsupported combination of source format (=16), and destination format (=17) in function 'getLinearFilter'\n"
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
   },
   {
     "cell_id": "CV2_MAHALANOBIS_DEFAULT",
@@ -109,7 +109,7 @@
     "observed_output_type": null,
     "declared_output_type": "float",
     "type_match": false,
-    "error": "OpenCV(4.12.0) /io/opencv/modules/core/src/matmul.dispatch.cpp:843: error: (-215:Assertion failed) len == icovar.rows && len == icovar.cols in function 'Mahalanobis'\n"
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
   },
   {
     "cell_id": "CV2_PCABACKPROJECT_DEFAULT",
@@ -117,7 +117,7 @@
     "observed_output_type": null,
     "declared_output_type": "Mat",
     "type_match": false,
-    "error": "OpenCV(4.12.0) /io/opencv/modules/core/src/pca.cpp:325: error: (-215:Assertion failed) !mean.empty() && !eigenvectors.empty() && ((mean.rows == 1 && eigenvectors.rows == data.cols) || (mean.cols == 1 && eigenvectors.rows == data.rows)) in function 'backProject'\n"
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
   },
   {
     "cell_id": "CV2_PCACOMPUTE_DEFAULT",
@@ -125,7 +125,7 @@
     "observed_output_type": null,
     "declared_output_type": "Mat",
     "type_match": false,
-    "error": "OpenCV(4.12.0) /io/opencv/modules/core/src/pca.cpp:72: error: (-215:Assertion failed) data.channels() == 1 in function 'operator()'\n"
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
   },
   {
     "cell_id": "CV2_PCACOMPUTE2_DEFAULT",
@@ -133,7 +133,7 @@
     "observed_output_type": null,
     "declared_output_type": "Mat",
     "type_match": false,
-    "error": "OpenCV(4.12.0) /io/opencv/modules/core/src/pca.cpp:72: error: (-215:Assertion failed) data.channels() == 1 in function 'operator()'\n"
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
   },
   {
     "cell_id": "CV2_PCAPROJECT_DEFAULT",
@@ -141,15 +141,15 @@
     "observed_output_type": null,
     "declared_output_type": "Mat",
     "type_match": false,
-    "error": "OpenCV(4.12.0) /io/opencv/modules/core/src/pca.cpp:295: error: (-215:Assertion failed) !mean.empty() && !eigenvectors.empty() && ((mean.rows == 1 && mean.cols == data.cols) || (mean.cols == 1 && mean.rows == data.rows)) in function 'project'\n"
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
   },
   {
     "cell_id": "CV2_PSNR_DEFAULT",
-    "verified": true,
-    "observed_output_type": "float",
+    "verified": false,
+    "observed_output_type": null,
     "declared_output_type": "float",
-    "type_match": true,
-    "error": null
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
   },
   {
     "cell_id": "CV2_RQDECOMP3X3_DEFAULT",
@@ -157,7 +157,7 @@
     "observed_output_type": null,
     "declared_output_type": "Mat",
     "type_match": false,
-    "error": "OpenCV(4.12.0) /io/opencv/modules/core/src/matrix_wrap.cpp:1346: error: (-215:Assertion failed) mtype == type0 || (CV_MAT_CN(mtype) == 1 && ((1 << type0) & fixedDepthMask) != 0) in function 'create'\n"
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
   },
   {
     "cell_id": "CV2_RODRIGUES_DEFAULT",
@@ -165,7 +165,7 @@
     "observed_output_type": null,
     "declared_output_type": "Mat",
     "type_match": false,
-    "error": "OpenCV(4.12.0) /io/opencv/modules/calib3d/src/calibration_base.cpp:131: error: (-2:Unspecified error) in function 'void cv::Rodrigues(cv::InputArray, cv::OutputArray, cv::OutputArray)'\n> Input matrix must be 1x3 or 3x1 for a rotation vector, or 3x3 for a rotation matrix:\n>     '((srcSz == Size(3, 1) || srcSz == Size(1, 3)) && srccn == 1) || (srcSz == Size(1, 1) && srccn == 3) || (srcSz == Size(3, 3) && srccn == 1)'\n> where\n>     'srcSz' is [8 x 8]\n"
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
   },
   {
     "cell_id": "CV2_SVBACKSUBST_DEFAULT",
@@ -173,7 +173,7 @@
     "observed_output_type": null,
     "declared_output_type": "Mat",
     "type_match": false,
-    "error": "OpenCV(4.12.0) /io/opencv/modules/core/src/lapack.cpp:1518: error: (-210:Unsupported format or combination of formats)  in function 'backSubst'\n"
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
   },
   {
     "cell_id": "CV2_SVDECOMP_DEFAULT",
@@ -181,7 +181,7 @@
     "observed_output_type": null,
     "declared_output_type": "Mat",
     "type_match": false,
-    "error": "OpenCV(4.12.0) /io/opencv/modules/core/src/lapack.cpp:1414: error: (-215:Assertion failed) type == CV_32F || type == CV_64F in function '_SVDcompute'\n"
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
   },
   {
     "cell_id": "CV2_SCHARR_DEFAULT",
@@ -189,7 +189,7 @@
     "observed_output_type": null,
     "declared_output_type": "Mat",
     "type_match": false,
-    "error": "OpenCV(4.12.0) /io/opencv/modules/imgproc/src/deriv.cpp:66: error: (-215:Assertion failed) dx >= 0 && dy >= 0 && dx+dy == 1 in function 'getScharrKernels'\n"
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
   },
   {
     "cell_id": "CV2_SOBEL_DEFAULT",
@@ -197,15 +197,15 @@
     "observed_output_type": null,
     "declared_output_type": "Mat",
     "type_match": false,
-    "error": "OpenCV(4.12.0) /io/opencv/modules/imgproc/src/filter.simd.hpp:3096: error: (-213:The function/feature is not implemented) Unsupported combination of buffer format (=21), and destination format (=17) in function 'getLinearColumnFilter'\n"
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
   },
   {
     "cell_id": "CV2_ABSDIFF_DEFAULT",
-    "verified": true,
-    "observed_output_type": "ndarray",
+    "verified": false,
+    "observed_output_type": null,
     "declared_output_type": "Mat",
-    "type_match": true,
-    "error": null
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
   },
   {
     "cell_id": "CV2_ACCUMULATE_DEFAULT",
@@ -213,7 +213,7 @@
     "observed_output_type": null,
     "declared_output_type": "Mat",
     "type_match": false,
-    "error": "OpenCV(4.12.0) /io/opencv/modules/imgproc/src/accum.cpp:332: error: (-215:Assertion failed) func != 0 in function 'accumulate'\n"
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
   },
   {
     "cell_id": "CV2_ACCUMULATEPRODUCT_DEFAULT",
@@ -221,7 +221,7 @@
     "observed_output_type": null,
     "declared_output_type": "Mat",
     "type_match": false,
-    "error": "OpenCV(4.12.0) /io/opencv/modules/imgproc/src/accum.cpp:533: error: (-215:Assertion failed) func != 0 in function 'accumulateProduct'\n"
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
   },
   {
     "cell_id": "CV2_ACCUMULATESQUARE_DEFAULT",
@@ -229,7 +229,7 @@
     "observed_output_type": null,
     "declared_output_type": "Mat",
     "type_match": false,
-    "error": "OpenCV(4.12.0) /io/opencv/modules/imgproc/src/accum.cpp:430: error: (-215:Assertion failed) func != 0 in function 'accumulateSquare'\n"
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
   },
   {
     "cell_id": "CV2_ACCUMULATEWEIGHTED_DEFAULT",
@@ -237,7 +237,7 @@
     "observed_output_type": null,
     "declared_output_type": "Mat",
     "type_match": false,
-    "error": "OpenCV(4.12.0) /io/opencv/modules/imgproc/src/accum.cpp:635: error: (-215:Assertion failed) func != 0 in function 'accumulateWeighted'\n"
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
   },
   {
     "cell_id": "CV2_ADAPTIVETHRESHOLD_DEFAULT",
@@ -245,15 +245,15 @@
     "observed_output_type": null,
     "declared_output_type": "Mat",
     "type_match": false,
-    "error": "OpenCV(4.12.0) /io/opencv/modules/imgproc/src/thresh.cpp:1908: error: (-215:Assertion failed) src.type() == CV_8UC1 in function 'adaptiveThreshold'\n"
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
   },
   {
     "cell_id": "CV2_ADD_DEFAULT",
-    "verified": true,
-    "observed_output_type": "ndarray",
+    "verified": false,
+    "observed_output_type": null,
     "declared_output_type": "Mat",
-    "type_match": true,
-    "error": null
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
   },
   {
     "cell_id": "CV2_ADDTEXT_DEFAULT",
@@ -261,23 +261,23 @@
     "observed_output_type": null,
     "declared_output_type": "None",
     "type_match": false,
-    "error": "Can't parse 'org'. Input argument doesn't provide sequence protocol"
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
   },
   {
     "cell_id": "CV2_ADDWEIGHTED_DEFAULT",
-    "verified": true,
-    "observed_output_type": "ndarray",
+    "verified": false,
+    "observed_output_type": null,
     "declared_output_type": "Mat",
-    "type_match": true,
-    "error": null
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
   },
   {
     "cell_id": "CV2_APPLYCOLORMAP_DEFAULT",
-    "verified": true,
-    "observed_output_type": "ndarray",
+    "verified": false,
+    "observed_output_type": null,
     "declared_output_type": "Mat",
-    "type_match": true,
-    "error": null
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
   },
   {
     "cell_id": "CV2_APPROXPOLYDP_DEFAULT",
@@ -285,7 +285,7 @@
     "observed_output_type": null,
     "declared_output_type": "Mat",
     "type_match": false,
-    "error": "OpenCV(4.12.0) /io/opencv/modules/imgproc/src/approx.cpp:690: error: (-215:Assertion failed) npoints >= 0 && (depth == CV_32S || depth == CV_32F) in function 'approxPolyDP'\n"
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
   },
   {
     "cell_id": "CV2_APPROXPOLYN_DEFAULT",
@@ -293,7 +293,7 @@
     "observed_output_type": null,
     "declared_output_type": "Mat",
     "type_match": false,
-    "error": "OpenCV(4.12.0) /io/opencv/modules/imgproc/src/approx.cpp:965: error: (-215:Assertion failed) nsides > 2 in function 'approxPolyN'\n"
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
   },
   {
     "cell_id": "CV2_ARCLENGTH_DEFAULT",
@@ -301,7 +301,7 @@
     "observed_output_type": null,
     "declared_output_type": "float",
     "type_match": false,
-    "error": "OpenCV(4.12.0) /io/opencv/modules/imgproc/src/shapedescr.cpp:280: error: (-215:Assertion failed) count >= 0 && (depth == CV_32F || depth == CV_32S) in function 'arcLength'\n"
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
   },
   {
     "cell_id": "CV2_ARROWEDLINE_DEFAULT",
@@ -309,7 +309,7 @@
     "observed_output_type": null,
     "declared_output_type": "Mat",
     "type_match": false,
-    "error": "OpenCV(4.12.0) :-1: error: (-5:Bad argument) in function 'arrowedLine'\n> Overload resolution failed:\n>  - Can't parse 'pt1'. Input argument doesn't provide sequence protocol\n>  - Can't parse 'pt1'. Input argument doesn't provide sequence protocol\n"
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
   },
   {
     "cell_id": "CV2_BATCHDISTANCE_DEFAULT",
@@ -317,47 +317,47 @@
     "observed_output_type": null,
     "declared_output_type": "Mat",
     "type_match": false,
-    "error": "OpenCV(4.12.0) /io/opencv/modules/core/src/batch_distance.cpp:274: error: (-215:Assertion failed) type == src2.type() && src1.cols == src2.cols && (type == CV_32F || type == CV_8U) in function 'batchDistance'\n"
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
   },
   {
     "cell_id": "CV2_BILATERALFILTER_DEFAULT",
-    "verified": true,
-    "observed_output_type": "ndarray",
+    "verified": false,
+    "observed_output_type": null,
     "declared_output_type": "Mat",
-    "type_match": true,
-    "error": null
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
   },
   {
     "cell_id": "CV2_BITWISE_AND_DEFAULT",
-    "verified": true,
-    "observed_output_type": "ndarray",
+    "verified": false,
+    "observed_output_type": null,
     "declared_output_type": "Mat",
-    "type_match": true,
-    "error": null
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
   },
   {
     "cell_id": "CV2_BITWISE_NOT_DEFAULT",
-    "verified": true,
-    "observed_output_type": "ndarray",
+    "verified": false,
+    "observed_output_type": null,
     "declared_output_type": "Mat",
-    "type_match": true,
-    "error": null
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
   },
   {
     "cell_id": "CV2_BITWISE_OR_DEFAULT",
-    "verified": true,
-    "observed_output_type": "ndarray",
+    "verified": false,
+    "observed_output_type": null,
     "declared_output_type": "Mat",
-    "type_match": true,
-    "error": null
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
   },
   {
     "cell_id": "CV2_BITWISE_XOR_DEFAULT",
-    "verified": true,
-    "observed_output_type": "ndarray",
+    "verified": false,
+    "observed_output_type": null,
     "declared_output_type": "Mat",
-    "type_match": true,
-    "error": null
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
   },
   {
     "cell_id": "CV2_BLENDLINEAR_DEFAULT",
@@ -365,15 +365,15 @@
     "observed_output_type": null,
     "declared_output_type": "Mat",
     "type_match": false,
-    "error": "OpenCV(4.12.0) /io/opencv/modules/imgproc/src/blend.cpp:384: error: (-215:Assertion failed) type == _src2.type() && _weights1.type() == CV_32FC1 && _weights2.type() == CV_32FC1 in function 'blendLinear'\n"
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
   },
   {
     "cell_id": "CV2_BLUR_DEFAULT",
-    "verified": true,
-    "observed_output_type": "ndarray",
+    "verified": false,
+    "observed_output_type": null,
     "declared_output_type": "Mat",
-    "type_match": true,
-    "error": null
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
   },
   {
     "cell_id": "CV2_BORDERINTERPOLATE_DEFAULT",
@@ -389,7 +389,7 @@
     "observed_output_type": null,
     "declared_output_type": "cv2.Rect",
     "type_match": false,
-    "error": "OpenCV(4.12.0) /io/opencv/modules/imgproc/src/geometry.cpp:619: error: (-215:Assertion failed) img.depth() <= CV_8S && img.channels() == 1 in function 'maskBoundingRect'\n"
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
   },
   {
     "cell_id": "CV2_BOXFILTER_DEFAULT",
@@ -397,7 +397,7 @@
     "observed_output_type": null,
     "declared_output_type": "Mat",
     "type_match": false,
-    "error": "OpenCV(4.12.0) /io/opencv/modules/imgproc/src/box_filter.simd.hpp:1244: error: (-213:The function/feature is not implemented) Unsupported combination of sum format (=20), and destination format (=17) in function 'getColumnSumFilter'\n"
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
   },
   {
     "cell_id": "CV2_BOXPOINTS_DEFAULT",
@@ -405,7 +405,7 @@
     "observed_output_type": null,
     "declared_output_type": "Mat",
     "type_match": false,
-    "error": "OpenCV(4.12.0) :-1: error: (-5:Bad argument) in function 'boxPoints'\n> Overload resolution failed:\n>  - Can't parse 'box' as RotatedRect. Expected sequence length 3, got 8\n>  - Can't parse 'box' as RotatedRect. Expected sequence length 3, got 8\n"
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 8, in <module>\n    synthetic_points = array([[[0, 0, 0],\n                       ^^^^^\nNameError: name 'array' is not defined. Did you forget "
   },
   {
     "cell_id": "CV2_BROADCAST_DEFAULT",
@@ -413,7 +413,7 @@
     "observed_output_type": null,
     "declared_output_type": "Mat",
     "type_match": false,
-    "error": "OpenCV(4.12.0) /io/opencv/modules/core/src/matrix_transform.cpp:823: error: (-2:Unspecified error) in function 'void cv::broadcast(cv::InputArray, cv::InputArray, cv::OutputArray)'\n> broadcast: input array must be single channel (expected: 'src.channels() == 1'), where\n>     'src.channels()' is 3\n> must be equal to\n>     '1' is 1\n"
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
   },
   {
     "cell_id": "CV2_BUILDOPTICALFLOWPYRAMID_DEFAULT",
@@ -421,7 +421,7 @@
     "observed_output_type": null,
     "declared_output_type": "Mat",
     "type_match": false,
-    "error": "OpenCV(4.12.0) :-1: error: (-5:Bad argument) in function 'buildOpticalFlowPyramid'\n> Overload resolution failed:\n>  - Can't parse 'winSize'. Expected sequence length 2, got 8\n>  - Can't parse 'winSize'. Expected sequence length 2, got 8\n"
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
   },
   {
     "cell_id": "CV2_CALCBACKPROJECT_DEFAULT",
@@ -429,7 +429,7 @@
     "observed_output_type": null,
     "declared_output_type": "Mat",
     "type_match": false,
-    "error": "OpenCV(4.12.0) :-1: error: (-5:Bad argument) in function 'calcBackProject'\n> Overload resolution failed:\n>  - Can't parse 3D array as 'channels' vector argument\n>  - Can't parse 3D array as 'channels' vector argument\n"
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
   },
   {
     "cell_id": "CV2_CALCCOVARMATRIX_DEFAULT",
@@ -437,7 +437,7 @@
     "observed_output_type": null,
     "declared_output_type": "Mat",
     "type_match": false,
-    "error": "OpenCV(4.12.0) /io/opencv/modules/core/src/matmul.dispatch.cpp:784: error: (-215:Assertion failed) ((flags & cv::COVAR_ROWS) != 0) ^ ((flags & cv::COVAR_COLS) != 0) in function 'calcCovarMatrix'\n"
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
   },
   {
     "cell_id": "CV2_CALCHIST_DEFAULT",
@@ -445,7 +445,7 @@
     "observed_output_type": null,
     "declared_output_type": "Mat",
     "type_match": false,
-    "error": "OpenCV(4.12.0) :-1: error: (-5:Bad argument) in function 'calcHist'\n> Overload resolution failed:\n>  - Can't parse 3D array as 'channels' vector argument\n>  - Can't parse 3D array as 'channels' vector argument\n"
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
   },
   {
     "cell_id": "CV2_CALCOPTICALFLOWFARNEBACK_DEFAULT",
@@ -453,7 +453,7 @@
     "observed_output_type": null,
     "declared_output_type": "Mat",
     "type_match": false,
-    "error": "OpenCV(4.12.0) /io/opencv/modules/video/src/optflowgf.cpp:1115: error: (-215:Assertion failed) prev0.size() == next0.size() && prev0.channels() == next0.channels() && prev0.channels() == 1 && pyrScale_ < 1 in function 'calc'\n"
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
   },
   {
     "cell_id": "CV2_CALCOPTICALFLOWPYRLK_DEFAULT",
@@ -461,7 +461,7 @@
     "observed_output_type": null,
     "declared_output_type": "Mat",
     "type_match": false,
-    "error": "OpenCV(4.12.0) /io/opencv/modules/video/src/lkpyramid.cpp:1281: error: (-215:Assertion failed) (npoints = prevPtsMat.checkVector(2, CV_32F, true)) >= 0 in function 'calc'\n"
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
   },
   {
     "cell_id": "CV2_CALIBRATECAMERA_DEFAULT",
@@ -469,7 +469,7 @@
     "observed_output_type": null,
     "declared_output_type": "Mat",
     "type_match": false,
-    "error": "OpenCV(4.12.0) :-1: error: (-5:Bad argument) in function 'calibrateCamera'\n> Overload resolution failed:\n>  - Can't parse 'imageSize'. Expected sequence length 2, got 8\n>  - Can't parse 'imageSize'. Expected sequence length 2, got 8\n"
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
   },
   {
     "cell_id": "CV2_CALIBRATECAMERAEXTENDED_DEFAULT",
@@ -477,7 +477,7 @@
     "observed_output_type": null,
     "declared_output_type": "Mat",
     "type_match": false,
-    "error": "OpenCV(4.12.0) :-1: error: (-5:Bad argument) in function 'calibrateCameraExtended'\n> Overload resolution failed:\n>  - Can't parse 'imageSize'. Expected sequence length 2, got 8\n>  - Can't parse 'imageSize'. Expected sequence length 2, got 8\n"
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
   },
   {
     "cell_id": "CV2_CALIBRATECAMERARO_DEFAULT",
@@ -485,7 +485,7 @@
     "observed_output_type": null,
     "declared_output_type": "Mat",
     "type_match": false,
-    "error": "OpenCV(4.12.0) :-1: error: (-5:Bad argument) in function 'calibrateCameraRO'\n> Overload resolution failed:\n>  - Can't parse 'imageSize'. Expected sequence length 2, got 8\n>  - Can't parse 'imageSize'. Expected sequence length 2, got 8\n"
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
   },
   {
     "cell_id": "CV2_CALIBRATECAMERAROEXTENDED_DEFAULT",
@@ -493,7 +493,7 @@
     "observed_output_type": null,
     "declared_output_type": "Mat",
     "type_match": false,
-    "error": "OpenCV(4.12.0) :-1: error: (-5:Bad argument) in function 'calibrateCameraROExtended'\n> Overload resolution failed:\n>  - Can't parse 'imageSize'. Expected sequence length 2, got 8\n>  - Can't parse 'imageSize'. Expected sequence length 2, got 8\n"
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
   },
   {
     "cell_id": "CV2_CALIBRATEHANDEYE_DEFAULT",
@@ -501,7 +501,7 @@
     "observed_output_type": null,
     "declared_output_type": "Mat",
     "type_match": false,
-    "error": "OpenCV(4.12.0) /io/opencv/modules/calib3d/src/calibration_base.cpp:131: error: (-2:Unspecified error) in function 'void cv::Rodrigues(cv::InputArray, cv::OutputArray, cv::OutputArray)'\n> Input matrix must be 1x3 or 3x1 for a rotation vector, or 3x3 for a rotation matrix:\n>     '((srcSz == Size(3, 1) || srcSz == Size(1, 3)) && srccn == 1) || (srcSz == Size(1, 1) && srccn == 3) || (srcSz == Size(3, 3) && srccn == 1)'\n> where\n>     'srcSz' is [3 x 8]\n"
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
   },
   {
     "cell_id": "CV2_CALIBRATEROBOTWORLDHANDEYE_DEFAULT",
@@ -509,7 +509,7 @@
     "observed_output_type": null,
     "declared_output_type": "Mat",
     "type_match": false,
-    "error": "OpenCV(4.12.0) /io/opencv/modules/calib3d/src/calibration_base.cpp:131: error: (-2:Unspecified error) in function 'void cv::Rodrigues(cv::InputArray, cv::OutputArray, cv::OutputArray)'\n> Input matrix must be 1x3 or 3x1 for a rotation vector, or 3x3 for a rotation matrix:\n>     '((srcSz == Size(3, 1) || srcSz == Size(1, 3)) && srccn == 1) || (srcSz == Size(1, 1) && srccn == 3) || (srcSz == Size(3, 3) && srccn == 1)'\n> where\n>     'srcSz' is [3 x 8]\n"
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
   },
   {
     "cell_id": "CV2_CALIBRATIONMATRIXVALUES_DEFAULT",
@@ -517,7 +517,7 @@
     "observed_output_type": null,
     "declared_output_type": "tuple",
     "type_match": false,
-    "error": "OpenCV(4.12.0) :-1: error: (-5:Bad argument) in function 'calibrationMatrixValues'\n> Overload resolution failed:\n>  - Can't parse 'imageSize'. Expected sequence length 2, got 8\n>  - Can't parse 'imageSize'. Expected sequence length 2, got 8\n"
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
   },
   {
     "cell_id": "CV2_CARTTOPOLAR_DEFAULT",
@@ -525,7 +525,7 @@
     "observed_output_type": null,
     "declared_output_type": "Mat",
     "type_match": false,
-    "error": "OpenCV(4.12.0) /io/opencv/modules/core/src/mathfuncs.cpp:290: error: (-215:Assertion failed) X.size == Y.size && type == Y.type() && (depth == CV_32F || depth == CV_64F) in function 'cartToPolar'\n"
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
   },
   {
     "cell_id": "CV2_CHECKCHESSBOARD_DEFAULT",
@@ -533,7 +533,7 @@
     "observed_output_type": null,
     "declared_output_type": "bool",
     "type_match": false,
-    "error": "OpenCV(4.12.0) /io/opencv/modules/calib3d/src/checkchessboard.cpp:155: error: (-215:Assertion failed) img.channels() == 1 && img.depth() == CV_8U in function 'checkChessboard'\n"
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
   },
   {
     "cell_id": "CV2_CHECKHARDWARESUPPORT_DEFAULT",
@@ -545,11 +545,11 @@
   },
   {
     "cell_id": "CV2_CHECKRANGE_DEFAULT",
-    "verified": true,
-    "observed_output_type": "tuple",
+    "verified": false,
+    "observed_output_type": null,
     "declared_output_type": "tuple",
-    "type_match": true,
-    "error": null
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
   },
   {
     "cell_id": "CV2_CIRCLE_DEFAULT",
@@ -557,7 +557,7 @@
     "observed_output_type": null,
     "declared_output_type": "Mat",
     "type_match": false,
-    "error": "OpenCV(4.12.0) :-1: error: (-5:Bad argument) in function 'circle'\n> Overload resolution failed:\n>  - Can't parse 'center'. Input argument doesn't provide sequence protocol\n>  - Can't parse 'center'. Input argument doesn't provide sequence protocol\n"
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
   },
   {
     "cell_id": "CV2_CLIPLINE_DEFAULT",
@@ -565,23 +565,23 @@
     "observed_output_type": null,
     "declared_output_type": "tuple",
     "type_match": false,
-    "error": "Can't parse 'imgRect'. Expected sequence length 4, got 8"
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 10, in <module>\n    output_var = cv2.clipLine(synthetic_imgRect, synthetic_pt1, synthetic_pt2)\nTypeError: Can't parse 'pt1'. Input argument d"
   },
   {
     "cell_id": "CV2_COLORCHANGE_DEFAULT",
-    "verified": true,
-    "observed_output_type": "ndarray",
+    "verified": false,
+    "observed_output_type": null,
     "declared_output_type": "Mat",
-    "type_match": true,
-    "error": null
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
   },
   {
     "cell_id": "CV2_COMPARE_DEFAULT",
-    "verified": true,
-    "observed_output_type": "ndarray",
+    "verified": false,
+    "observed_output_type": null,
     "declared_output_type": "Mat",
-    "type_match": true,
-    "error": null
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
   },
   {
     "cell_id": "CV2_COMPAREHIST_DEFAULT",
@@ -589,15 +589,15 @@
     "observed_output_type": null,
     "declared_output_type": "float",
     "type_match": false,
-    "error": "OpenCV(4.12.0) /io/opencv/modules/imgproc/src/histogram.cpp:2036: error: (-215:Assertion failed) H1.type() == H2.type() && H1.depth() == CV_32F in function 'compareHist'\n"
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
   },
   {
     "cell_id": "CV2_COMPLETESYMM_DEFAULT",
-    "verified": true,
-    "observed_output_type": "ndarray",
+    "verified": false,
+    "observed_output_type": null,
     "declared_output_type": "Mat",
-    "type_match": true,
-    "error": null
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
   },
   {
     "cell_id": "CV2_COMPOSERT_DEFAULT",
@@ -605,7 +605,7 @@
     "observed_output_type": null,
     "declared_output_type": "Mat",
     "type_match": false,
-    "error": "OpenCV(4.12.0) /io/opencv/modules/calib3d/src/calibration_base.cpp:387: error: (-215:Assertion failed) rtype == CV_32F || rtype == CV_64F in function 'composeRT'\n"
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
   },
   {
     "cell_id": "CV2_COMPUTECORRESPONDEPILINES_DEFAULT",
@@ -613,15 +613,15 @@
     "observed_output_type": null,
     "declared_output_type": "Mat",
     "type_match": false,
-    "error": "OpenCV(4.12.0) /io/opencv/modules/calib3d/src/fundam.cpp:967: error: (-5:Bad argument) The input should be a 2D or 3D point set in function 'computeCorrespondEpilines'\n"
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
   },
   {
     "cell_id": "CV2_COMPUTEECC_DEFAULT",
-    "verified": true,
-    "observed_output_type": "float",
+    "verified": false,
+    "observed_output_type": null,
     "declared_output_type": "float",
-    "type_match": true,
-    "error": null
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
   },
   {
     "cell_id": "CV2_CONNECTEDCOMPONENTS_DEFAULT",
@@ -629,7 +629,7 @@
     "observed_output_type": null,
     "declared_output_type": "Mat",
     "type_match": false,
-    "error": "OpenCV(4.12.0) /io/opencv/modules/imgproc/src/connectedcomponents.cpp:5623: error: (-215:Assertion failed) L.channels() == 1 && I.channels() == 1 in function 'connectedComponents_sub1'\n"
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
   },
   {
     "cell_id": "CV2_CONNECTEDCOMPONENTSWITHALGORITHM_DEFAULT",
@@ -637,7 +637,7 @@
     "observed_output_type": null,
     "declared_output_type": "Mat",
     "type_match": false,
-    "error": "OpenCV(4.12.0) /io/opencv/modules/imgproc/src/connectedcomponents.cpp:5741: error: (-210:Unsupported format or combination of formats) the type of labels must be 16u or 32s in function 'connectedComponents'\n"
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
   },
   {
     "cell_id": "CV2_CONNECTEDCOMPONENTSWITHSTATS_DEFAULT",
@@ -645,7 +645,7 @@
     "observed_output_type": null,
     "declared_output_type": "Mat",
     "type_match": false,
-    "error": "OpenCV(4.12.0) /io/opencv/modules/imgproc/src/connectedcomponents.cpp:5623: error: (-215:Assertion failed) L.channels() == 1 && I.channels() == 1 in function 'connectedComponents_sub1'\n"
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
   },
   {
     "cell_id": "CV2_CONNECTEDCOMPONENTSWITHSTATSWITHALGORITHM_DEFAULT",
@@ -653,7 +653,7 @@
     "observed_output_type": null,
     "declared_output_type": "Mat",
     "type_match": false,
-    "error": "OpenCV(4.12.0) /io/opencv/modules/imgproc/src/connectedcomponents.cpp:5766: error: (-210:Unsupported format or combination of formats) the type of labels must be 16u or 32s in function 'connectedComponentsWithStats'\n"
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
   },
   {
     "cell_id": "CV2_CONTOURAREA_DEFAULT",
@@ -661,7 +661,7 @@
     "observed_output_type": null,
     "declared_output_type": "float",
     "type_match": false,
-    "error": "OpenCV(4.12.0) /io/opencv/modules/imgproc/src/shapedescr.cpp:315: error: (-215:Assertion failed) npoints >= 0 && (depth == CV_32F || depth == CV_32S) in function 'contourArea'\n"
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
   },
   {
     "cell_id": "CV2_CONVERTFP16_DEFAULT",
@@ -669,7 +669,7 @@
     "observed_output_type": null,
     "declared_output_type": "Mat",
     "type_match": false,
-    "error": "OpenCV(4.12.0) /io/opencv/modules/core/src/convert.dispatch.cpp:380: error: (-210:Unsupported format or combination of formats) Unsupported input depth in function 'convertFp16'\n"
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
   },
   {
     "cell_id": "CV2_CONVERTMAPS_DEFAULT",
@@ -677,7 +677,7 @@
     "observed_output_type": null,
     "declared_output_type": "Mat",
     "type_match": false,
-    "error": "OpenCV(4.12.0) /io/opencv/modules/imgproc/src/imgwarp.cpp:1844: error: (-215:Assertion failed) (m1type == CV_16SC2 && (nninterpolate || m2type == CV_16UC1 || m2type == CV_16SC1)) || (m2type == CV_16SC2 && (nninterpolate || m1type == CV_16UC1 || m1type == CV_16SC1)) || (m1type == CV_32FC1 && m2type == CV_32FC1) || (m1type == CV_32FC2 && m2->empty()) in function 'convertMaps'\n"
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
   },
   {
     "cell_id": "CV2_CONVERTPOINTSFROMHOMOGENEOUS_DEFAULT",
@@ -685,7 +685,7 @@
     "observed_output_type": null,
     "declared_output_type": "Mat",
     "type_match": false,
-    "error": "OpenCV(4.12.0) /io/opencv/modules/calib3d/src/fundam.cpp:1037: error: (-215:Assertion failed) npoints >= 0 in function 'convertPointsFromHomogeneous'\n"
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
   },
   {
     "cell_id": "CV2_CONVERTPOINTSTOHOMOGENEOUS_DEFAULT",
@@ -693,15 +693,15 @@
     "observed_output_type": null,
     "declared_output_type": "Mat",
     "type_match": false,
-    "error": "OpenCV(4.12.0) /io/opencv/modules/calib3d/src/fundam.cpp:1138: error: (-215:Assertion failed) npoints >= 0 in function 'convertPointsToHomogeneous'\n"
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
   },
   {
     "cell_id": "CV2_CONVERTSCALEABS_DEFAULT",
-    "verified": true,
-    "observed_output_type": "ndarray",
+    "verified": false,
+    "observed_output_type": null,
     "declared_output_type": "Mat",
-    "type_match": true,
-    "error": null
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
   },
   {
     "cell_id": "CV2_CONVEXHULL_DEFAULT",
@@ -709,7 +709,7 @@
     "observed_output_type": null,
     "declared_output_type": "Mat",
     "type_match": false,
-    "error": "OpenCV(4.12.0) /io/opencv/modules/imgproc/src/convhull.cpp:143: error: (-215:Assertion failed) total >= 0 && (depth == CV_32F || depth == CV_32S) in function 'convexHull'\n"
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
   },
   {
     "cell_id": "CV2_CONVEXITYDEFECTS_DEFAULT",
@@ -717,23 +717,23 @@
     "observed_output_type": null,
     "declared_output_type": "Mat",
     "type_match": false,
-    "error": "OpenCV(4.12.0) /io/opencv/modules/imgproc/src/convhull.cpp:319: error: (-215:Assertion failed) npoints >= 0 in function 'convexityDefects'\n"
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
   },
   {
     "cell_id": "CV2_COPYMAKEBORDER_DEFAULT",
-    "verified": true,
-    "observed_output_type": "ndarray",
+    "verified": false,
+    "observed_output_type": null,
     "declared_output_type": "Mat",
-    "type_match": true,
-    "error": null
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
   },
   {
     "cell_id": "CV2_COPYTO_DEFAULT",
-    "verified": true,
-    "observed_output_type": "ndarray",
+    "verified": false,
+    "observed_output_type": null,
     "declared_output_type": "Mat",
-    "type_match": true,
-    "error": null
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
   },
   {
     "cell_id": "CV2_CORNEREIGENVALSANDVECS_DEFAULT",
@@ -741,7 +741,7 @@
     "observed_output_type": null,
     "declared_output_type": "Mat",
     "type_match": false,
-    "error": "OpenCV(4.12.0) :-1: error: (-5:Bad argument) in function 'cornerEigenValsAndVecs'\n> Overload resolution failed:\n>  - Argument 'ksize' is required to be an integer\n>  - Argument 'ksize' is required to be an integer\n"
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
   },
   {
     "cell_id": "CV2_CORNERHARRIS_DEFAULT",
@@ -749,7 +749,7 @@
     "observed_output_type": null,
     "declared_output_type": "Mat",
     "type_match": false,
-    "error": "OpenCV(4.12.0) :-1: error: (-5:Bad argument) in function 'cornerHarris'\n> Overload resolution failed:\n>  - Argument 'ksize' is required to be an integer\n>  - Argument 'ksize' is required to be an integer\n"
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
   },
   {
     "cell_id": "CV2_CORNERMINEIGENVAL_DEFAULT",
@@ -757,7 +757,7 @@
     "observed_output_type": null,
     "declared_output_type": "Mat",
     "type_match": false,
-    "error": "OpenCV(4.12.0) /io/opencv/modules/imgproc/src/corner.cpp:254: error: (-215:Assertion failed) src.type() == CV_8UC1 || src.type() == CV_32FC1 in function 'cornerEigenValsVecs'\n"
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
   },
   {
     "cell_id": "CV2_CORNERSUBPIX_DEFAULT",
@@ -765,7 +765,7 @@
     "observed_output_type": null,
     "declared_output_type": "Mat",
     "type_match": false,
-    "error": "OpenCV(4.12.0) :-1: error: (-5:Bad argument) in function 'cornerSubPix'\n> Overload resolution failed:\n>  - Can't parse 'winSize'. Expected sequence length 2, got 8\n>  - Can't parse 'winSize'. Expected sequence length 2, got 8\n"
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
   },
   {
     "cell_id": "CV2_CORRECTMATCHES_DEFAULT",
@@ -773,7 +773,7 @@
     "observed_output_type": null,
     "declared_output_type": "Mat",
     "type_match": false,
-    "error": "OpenCV(4.12.0) /io/opencv/modules/calib3d/src/triangulate.cpp:152: error: (-209:Sizes of input arguments do not match) The fundamental matrix must be a 3x3 matrix in function 'icvCorrectMatches'\n"
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
   },
   {
     "cell_id": "CV2_COUNTNONZERO_DEFAULT",
@@ -781,7 +781,7 @@
     "observed_output_type": null,
     "declared_output_type": "int",
     "type_match": false,
-    "error": "OpenCV(4.12.0) /io/opencv/modules/core/src/count_non_zero.dispatch.cpp:124: error: (-215:Assertion failed) cn == 1 in function 'countNonZero'\n"
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
   },
   {
     "cell_id": "CV2_CREATEALIGNMTB_DEFAULT",
@@ -789,7 +789,7 @@
     "observed_output_type": null,
     "declared_output_type": "AlignMTB",
     "type_match": false,
-    "error": "Argument 'max_bits' is required to be an integer"
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
   },
   {
     "cell_id": "CV2_CREATEBACKGROUNDSUBTRACTORKNN_DEFAULT",
@@ -797,6 +797,2830 @@
     "observed_output_type": null,
     "declared_output_type": "BackgroundSubtractorKNN",
     "type_match": false,
-    "error": "Argument 'history' is required to be an integer"
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
+  },
+  {
+    "cell_id": "CV2_CREATEBACKGROUNDSUBTRACTORMOG2_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "BackgroundSubtractorMOG2",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
+  },
+  {
+    "cell_id": "CV2_CREATECLAHE_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "CLAHE",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
+  },
+  {
+    "cell_id": "CV2_CREATECALIBRATEDEBEVEC_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "CalibrateDebevec",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
+  },
+  {
+    "cell_id": "CV2_CREATECALIBRATEROBERTSON_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "CalibrateRobertson",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
+  },
+  {
+    "cell_id": "CV2_CREATEGENERALIZEDHOUGHBALLARD_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "GeneralizedHoughBallard",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
+  },
+  {
+    "cell_id": "CV2_CREATEGENERALIZEDHOUGHGUIL_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "GeneralizedHoughGuil",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
+  },
+  {
+    "cell_id": "CV2_CREATEHANNINGWINDOW_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "Mat",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 9, in <module>\n    synthetic_dst = array([[[0, 0, 0],\n                    ^^^^^\nNameError: name 'array' is not defined. Did you forget to imp"
+  },
+  {
+    "cell_id": "CV2_CREATELINESEGMENTDETECTOR_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "LineSegmentDetector",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
+  },
+  {
+    "cell_id": "CV2_CREATEMERGEDEBEVEC_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "MergeDebevec",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
+  },
+  {
+    "cell_id": "CV2_CREATEMERGEMERTENS_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "MergeMertens",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
+  },
+  {
+    "cell_id": "CV2_CREATEMERGEROBERTSON_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "MergeRobertson",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
+  },
+  {
+    "cell_id": "CV2_CREATETONEMAP_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "Tonemap",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
+  },
+  {
+    "cell_id": "CV2_CREATETONEMAPDRAGO_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "TonemapDrago",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
+  },
+  {
+    "cell_id": "CV2_CREATETONEMAPMANTIUK_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "TonemapMantiuk",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
+  },
+  {
+    "cell_id": "CV2_CREATETONEMAPREINHARD_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "TonemapReinhard",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
+  },
+  {
+    "cell_id": "CV2_CUBEROOT_DEFAULT",
+    "verified": true,
+    "observed_output_type": "float",
+    "declared_output_type": "float",
+    "type_match": true,
+    "error": null
+  },
+  {
+    "cell_id": "CV2_CURRENTUIFRAMEWORK_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "str",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
+  },
+  {
+    "cell_id": "CV2_CVTCOLOR_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "Mat",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
+  },
+  {
+    "cell_id": "CV2_CVTCOLORTWOPLANE_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "Mat",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
+  },
+  {
+    "cell_id": "CV2_DCT_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "Mat",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
+  },
+  {
+    "cell_id": "CV2_DECOLOR_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "Mat",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
+  },
+  {
+    "cell_id": "CV2_DECOMPOSEESSENTIALMAT_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "Mat",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
+  },
+  {
+    "cell_id": "CV2_DECOMPOSEHOMOGRAPHYMAT_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "Mat",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
+  },
+  {
+    "cell_id": "CV2_DECOMPOSEPROJECTIONMATRIX_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "Mat",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
+  },
+  {
+    "cell_id": "CV2_DEMOSAICING_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "Mat",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
+  },
+  {
+    "cell_id": "CV2_DENOISE_TVL1_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "None",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
+  },
+  {
+    "cell_id": "CV2_DESTROYALLWINDOWS_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "None",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
+  },
+  {
+    "cell_id": "CV2_DESTROYWINDOW_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "None",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 8, in <module>\n    output_var = cv2.destroyWindow(synthetic_winname)\ncv2.error: OpenCV(4.12.0) /io/opencv/modules/highgui/src/window.cpp:1289"
+  },
+  {
+    "cell_id": "CV2_DETAILENHANCE_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "Mat",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
+  },
+  {
+    "cell_id": "CV2_DETERMINANT_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "float",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
+  },
+  {
+    "cell_id": "CV2_DFT_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "Mat",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
+  },
+  {
+    "cell_id": "CV2_DILATE_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "Mat",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
+  },
+  {
+    "cell_id": "CV2_DISPLAYOVERLAY_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "None",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 10, in <module>\n    output_var = cv2.displayOverlay(synthetic_winname, synthetic_text)\ncv2.error: OpenCV(4.12.0) /io/opencv/modules/highgui/s"
+  },
+  {
+    "cell_id": "CV2_DISPLAYSTATUSBAR_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "None",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 10, in <module>\n    output_var = cv2.displayStatusBar(synthetic_winname, synthetic_text)\ncv2.error: OpenCV(4.12.0) /io/opencv/modules/highgui"
+  },
+  {
+    "cell_id": "CV2_DISTANCETRANSFORM_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "Mat",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
+  },
+  {
+    "cell_id": "CV2_DISTANCETRANSFORMWITHLABELS_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "Mat",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
+  },
+  {
+    "cell_id": "CV2_DIVSPECTRUMS_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "Mat",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
+  },
+  {
+    "cell_id": "CV2_DIVIDE_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "Mat",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
+  },
+  {
+    "cell_id": "CV2_DRAWCHESSBOARDCORNERS_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "Mat",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
+  },
+  {
+    "cell_id": "CV2_DRAWCONTOURS_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "Mat",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
+  },
+  {
+    "cell_id": "CV2_DRAWFRAMEAXES_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "Mat",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
+  },
+  {
+    "cell_id": "CV2_DRAWKEYPOINTS_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "Mat",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
+  },
+  {
+    "cell_id": "CV2_DRAWMARKER_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "Mat",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
+  },
+  {
+    "cell_id": "CV2_DRAWMATCHES_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "Mat",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
+  },
+  {
+    "cell_id": "CV2_DRAWMATCHESKNN_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "Mat",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
+  },
+  {
+    "cell_id": "CV2_EDGEPRESERVINGFILTER_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "Mat",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
+  },
+  {
+    "cell_id": "CV2_EIGEN_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "Mat",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
+  },
+  {
+    "cell_id": "CV2_EIGENNONSYMMETRIC_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "Mat",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
+  },
+  {
+    "cell_id": "CV2_ELLIPSE_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "Mat",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
+  },
+  {
+    "cell_id": "CV2_ELLIPSE2POLY_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "_Sequence",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 13, in <module>\n    output_var = cv2.ellipse2Poly(synthetic_center, synthetic_axes, synthetic_angle, synthetic_arcStart, synthetic_arcEnd, sy"
+  },
+  {
+    "cell_id": "CV2_EMPTY_ARRAY_DESC_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "GArrayDesc",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
+  },
+  {
+    "cell_id": "CV2_EMPTY_GOPAQUE_DESC_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "GOpaqueDesc",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
+  },
+  {
+    "cell_id": "CV2_EMPTY_SCALAR_DESC_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "GScalarDesc",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
+  },
+  {
+    "cell_id": "CV2_EQUALIZEHIST_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "Mat",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
+  },
+  {
+    "cell_id": "CV2_ERODE_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "Mat",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
+  },
+  {
+    "cell_id": "CV2_ESTIMATEAFFINE2D_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "Mat",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
+  },
+  {
+    "cell_id": "CV2_ESTIMATEAFFINE3D_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "Mat",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
+  },
+  {
+    "cell_id": "CV2_ESTIMATEAFFINEPARTIAL2D_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "Mat",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
+  },
+  {
+    "cell_id": "CV2_ESTIMATECHESSBOARDSHARPNESS_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "Mat",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
+  },
+  {
+    "cell_id": "CV2_ESTIMATETRANSLATION3D_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "Mat",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
+  },
+  {
+    "cell_id": "CV2_EXP_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "Mat",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
+  },
+  {
+    "cell_id": "CV2_EXTRACTCHANNEL_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "Mat",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
+  },
+  {
+    "cell_id": "CV2_FASTATAN2_DEFAULT",
+    "verified": true,
+    "observed_output_type": "float",
+    "declared_output_type": "float",
+    "type_match": true,
+    "error": null
+  },
+  {
+    "cell_id": "CV2_FASTNLMEANSDENOISING_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "Mat",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
+  },
+  {
+    "cell_id": "CV2_FASTNLMEANSDENOISINGCOLORED_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "Mat",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
+  },
+  {
+    "cell_id": "CV2_FASTNLMEANSDENOISINGCOLOREDMULTI_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "Mat",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
+  },
+  {
+    "cell_id": "CV2_FASTNLMEANSDENOISINGMULTI_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "Mat",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
+  },
+  {
+    "cell_id": "CV2_FILLCONVEXPOLY_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "Mat",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
+  },
+  {
+    "cell_id": "CV2_FILLPOLY_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "Mat",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
+  },
+  {
+    "cell_id": "CV2_FILTER2D_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "Mat",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
+  },
+  {
+    "cell_id": "CV2_FILTERHOMOGRAPHYDECOMPBYVISIBLEREFPOINTS_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "Mat",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
+  },
+  {
+    "cell_id": "CV2_FILTERSPECKLES_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "Mat",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
+  },
+  {
+    "cell_id": "CV2_FIND4QUADCORNERSUBPIX_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "Mat",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
+  },
+  {
+    "cell_id": "CV2_FINDCHESSBOARDCORNERS_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "Mat",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
+  },
+  {
+    "cell_id": "CV2_FINDCHESSBOARDCORNERSSB_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "Mat",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
+  },
+  {
+    "cell_id": "CV2_FINDCHESSBOARDCORNERSSBWITHMETA_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "Mat",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
+  },
+  {
+    "cell_id": "CV2_FINDCIRCLESGRID_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "Mat",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
+  },
+  {
+    "cell_id": "CV2_FINDCONTOURS_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "Mat",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
+  },
+  {
+    "cell_id": "CV2_FINDCONTOURSLINKRUNS_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "Mat",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
+  },
+  {
+    "cell_id": "CV2_FINDESSENTIALMAT_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "Mat",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
+  },
+  {
+    "cell_id": "CV2_FINDFUNDAMENTALMAT_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "Mat",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
+  },
+  {
+    "cell_id": "CV2_FINDHOMOGRAPHY_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "Mat",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
+  },
+  {
+    "cell_id": "CV2_FINDNONZERO_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "Mat",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
+  },
+  {
+    "cell_id": "CV2_FINDTRANSFORMECC_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "Mat",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
+  },
+  {
+    "cell_id": "CV2_FITELLIPSE_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "cv2.RotatedRect",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
+  },
+  {
+    "cell_id": "CV2_FITELLIPSEAMS_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "cv2.RotatedRect",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
+  },
+  {
+    "cell_id": "CV2_FITELLIPSEDIRECT_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "cv2.RotatedRect",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
+  },
+  {
+    "cell_id": "CV2_FITLINE_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "Mat",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
+  },
+  {
+    "cell_id": "CV2_FLIP_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "Mat",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
+  },
+  {
+    "cell_id": "CV2_FLIPND_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "Mat",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
+  },
+  {
+    "cell_id": "CV2_FLOODFILL_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "Mat",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
+  },
+  {
+    "cell_id": "CV2_GEMM_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "Mat",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
+  },
+  {
+    "cell_id": "CV2_GETAFFINETRANSFORM_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "Mat",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
+  },
+  {
+    "cell_id": "CV2_GETBUILDINFORMATION_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "str",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
+  },
+  {
+    "cell_id": "CV2_GETCPUFEATURESLINE_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "str",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
+  },
+  {
+    "cell_id": "CV2_GETCPUTICKCOUNT_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "int",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
+  },
+  {
+    "cell_id": "CV2_GETCLOSESTELLIPSEPOINTS_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "Mat",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 8, in <module>\n    synthetic_points = array([[[0, 0, 0],\n                       ^^^^^\nNameError: name 'array' is not defined. Did you forget "
+  },
+  {
+    "cell_id": "CV2_GETDEFAULTALGORITHMHINT_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "AlgorithmHint",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
+  },
+  {
+    "cell_id": "CV2_GETDEFAULTNEWCAMERAMATRIX_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "Mat",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
+  },
+  {
+    "cell_id": "CV2_GETDERIVKERNELS_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "Mat",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 10, in <module>\n    synthetic_kx = array([[[0, 0, 0],\n                   ^^^^^\nNameError: name 'array' is not defined. Did you forget to impo"
+  },
+  {
+    "cell_id": "CV2_GETFONTSCALEFROMHEIGHT_DEFAULT",
+    "verified": true,
+    "observed_output_type": "float",
+    "declared_output_type": "float",
+    "type_match": true,
+    "error": null
+  },
+  {
+    "cell_id": "CV2_GETGABORKERNEL_DEFAULT",
+    "verified": true,
+    "observed_output_type": "ndarray",
+    "declared_output_type": "Mat",
+    "type_match": true,
+    "error": null
+  },
+  {
+    "cell_id": "CV2_GETGAUSSIANKERNEL_DEFAULT",
+    "verified": true,
+    "observed_output_type": "ndarray",
+    "declared_output_type": "Mat",
+    "type_match": true,
+    "error": null
+  },
+  {
+    "cell_id": "CV2_GETHARDWAREFEATURENAME_DEFAULT",
+    "verified": true,
+    "observed_output_type": "str",
+    "declared_output_type": "str",
+    "type_match": true,
+    "error": null
+  },
+  {
+    "cell_id": "CV2_GETLOGLEVEL_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "int",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
+  },
+  {
+    "cell_id": "CV2_GETNUMTHREADS_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "int",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
+  },
+  {
+    "cell_id": "CV2_GETNUMBEROFCPUS_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "int",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
+  },
+  {
+    "cell_id": "CV2_GETOPTIMALDFTSIZE_DEFAULT",
+    "verified": true,
+    "observed_output_type": "int",
+    "declared_output_type": "int",
+    "type_match": true,
+    "error": null
+  },
+  {
+    "cell_id": "CV2_GETOPTIMALNEWCAMERAMATRIX_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "Mat",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
+  },
+  {
+    "cell_id": "CV2_GETPERSPECTIVETRANSFORM_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "Mat",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
+  },
+  {
+    "cell_id": "CV2_GETRECTSUBPIX_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "Mat",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
+  },
+  {
+    "cell_id": "CV2_GETROTATIONMATRIX2D_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "Mat",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 10, in <module>\n    output_var = cv2.getRotationMatrix2D(synthetic_center, synthetic_angle, synthetic_scale)\nTypeError: Can't parse 'center'."
+  },
+  {
+    "cell_id": "CV2_GETSTRUCTURINGELEMENT_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "Mat",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 10, in <module>\n    output_var = cv2.getStructuringElement(synthetic_shape, synthetic_ksize)\ncv2.error: OpenCV(4.12.0) /io/opencv/modules/img"
+  },
+  {
+    "cell_id": "CV2_GETTEXTSIZE_DEFAULT",
+    "verified": true,
+    "observed_output_type": "tuple",
+    "declared_output_type": "tuple",
+    "type_match": true,
+    "error": null
+  },
+  {
+    "cell_id": "CV2_GETTHREADNUM_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "int",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
+  },
+  {
+    "cell_id": "CV2_GETTICKCOUNT_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "int",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
+  },
+  {
+    "cell_id": "CV2_GETTICKFREQUENCY_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "float",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
+  },
+  {
+    "cell_id": "CV2_GETTRACKBARPOS_DEFAULT",
+    "verified": true,
+    "observed_output_type": "int",
+    "declared_output_type": "int",
+    "type_match": true,
+    "error": null
+  },
+  {
+    "cell_id": "CV2_GETVALIDDISPARITYROI_DEFAULT",
+    "verified": true,
+    "observed_output_type": "tuple",
+    "declared_output_type": "cv2.Rect",
+    "type_match": false,
+    "error": null
+  },
+  {
+    "cell_id": "CV2_GETVERSIONMAJOR_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "int",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
+  },
+  {
+    "cell_id": "CV2_GETVERSIONMINOR_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "int",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
+  },
+  {
+    "cell_id": "CV2_GETVERSIONREVISION_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "int",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
+  },
+  {
+    "cell_id": "CV2_GETVERSIONSTRING_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "str",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
+  },
+  {
+    "cell_id": "CV2_GETWINDOWIMAGERECT_DEFAULT",
+    "verified": true,
+    "observed_output_type": "tuple",
+    "declared_output_type": "cv2.Rect",
+    "type_match": false,
+    "error": null
+  },
+  {
+    "cell_id": "CV2_GETWINDOWPROPERTY_DEFAULT",
+    "verified": true,
+    "observed_output_type": "float",
+    "declared_output_type": "float",
+    "type_match": true,
+    "error": null
+  },
+  {
+    "cell_id": "CV2_GOODFEATURESTOTRACK_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "Mat",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
+  },
+  {
+    "cell_id": "CV2_GOODFEATURESTOTRACKWITHQUALITY_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "Mat",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
+  },
+  {
+    "cell_id": "CV2_GRABCUT_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "Mat",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
+  },
+  {
+    "cell_id": "CV2_GROUPRECTANGLES_DEFAULT",
+    "verified": true,
+    "observed_output_type": "tuple",
+    "declared_output_type": "tuple",
+    "type_match": true,
+    "error": null
+  },
+  {
+    "cell_id": "CV2_HASNONZERO_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "bool",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
+  },
+  {
+    "cell_id": "CV2_HAVEIMAGEREADER_DEFAULT",
+    "verified": true,
+    "observed_output_type": "bool",
+    "declared_output_type": "bool",
+    "type_match": true,
+    "error": null
+  },
+  {
+    "cell_id": "CV2_HAVEIMAGEWRITER_DEFAULT",
+    "verified": true,
+    "observed_output_type": "bool",
+    "declared_output_type": "bool",
+    "type_match": true,
+    "error": null
+  },
+  {
+    "cell_id": "CV2_HAVEOPENVX_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "bool",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
+  },
+  {
+    "cell_id": "CV2_HCONCAT_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "Mat",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
+  },
+  {
+    "cell_id": "CV2_IDCT_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "Mat",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
+  },
+  {
+    "cell_id": "CV2_IDFT_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "Mat",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
+  },
+  {
+    "cell_id": "CV2_ILLUMINATIONCHANGE_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "Mat",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
+  },
+  {
+    "cell_id": "CV2_IMCOUNT_DEFAULT",
+    "verified": true,
+    "observed_output_type": "int",
+    "declared_output_type": "int",
+    "type_match": true,
+    "error": null
+  },
+  {
+    "cell_id": "CV2_IMDECODE_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "Mat",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
+  },
+  {
+    "cell_id": "CV2_IMDECODEWITHMETADATA_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "Mat",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
+  },
+  {
+    "cell_id": "CV2_IMDECODEANIMATION_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "tuple",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
+  },
+  {
+    "cell_id": "CV2_IMDECODEMULTI_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "Mat",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
+  },
+  {
+    "cell_id": "CV2_IMENCODE_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "ndarray",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 8, in <module>\n    synthetic_img = array([[[0, 0, 0],\n                    ^^^^^\nNameError: name 'array' is not defined. Did you forget to imp"
+  },
+  {
+    "cell_id": "CV2_IMENCODEWITHMETADATA_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "ndarray",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 8, in <module>\n    synthetic_img = array([[[0, 0, 0],\n                    ^^^^^\nNameError: name 'array' is not defined. Did you forget to imp"
+  },
+  {
+    "cell_id": "CV2_IMENCODEANIMATION_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "ndarray",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 8, in <module>\n    synthetic_animation = array([[[0, 0, 0],\n                          ^^^^^\nNameError: name 'array' is not defined. Did you f"
+  },
+  {
+    "cell_id": "CV2_IMENCODEMULTI_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "ndarray",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 8, in <module>\n    synthetic_imgs = array([[[0, 0, 0],\n                     ^^^^^\nNameError: name 'array' is not defined. Did you forget to i"
+  },
+  {
+    "cell_id": "CV2_IMREAD_DEFAULT",
+    "verified": true,
+    "observed_output_type": "None",
+    "declared_output_type": "Mat",
+    "type_match": false,
+    "error": null
+  },
+  {
+    "cell_id": "CV2_IMREADWITHMETADATA_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "Mat",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 8, in <module>\n    synthetic_metadata = array([[[0, 0, 0],\n                         ^^^^^\nNameError: name 'array' is not defined. Did you for"
+  },
+  {
+    "cell_id": "CV2_IMREADANIMATION_DEFAULT",
+    "verified": true,
+    "observed_output_type": "tuple",
+    "declared_output_type": "tuple",
+    "type_match": true,
+    "error": null
+  },
+  {
+    "cell_id": "CV2_IMREADMULTI_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "Mat",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 8, in <module>\n    synthetic_mats = array([[[0, 0, 0],\n                     ^^^^^\nNameError: name 'array' is not defined. Did you forget to i"
+  },
+  {
+    "cell_id": "CV2_IMSHOW_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "None",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 8, in <module>\n    synthetic_mat = array([[[0, 0, 0],\n                    ^^^^^\nNameError: name 'array' is not defined. Did you forget to imp"
+  },
+  {
+    "cell_id": "CV2_IMWRITE_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "bool",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 8, in <module>\n    synthetic_img = array([[[0, 0, 0],\n                    ^^^^^\nNameError: name 'array' is not defined. Did you forget to imp"
+  },
+  {
+    "cell_id": "CV2_IMWRITEWITHMETADATA_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "bool",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 8, in <module>\n    synthetic_img = array([[[0, 0, 0],\n                    ^^^^^\nNameError: name 'array' is not defined. Did you forget to imp"
+  },
+  {
+    "cell_id": "CV2_IMWRITEANIMATION_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "bool",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 8, in <module>\n    synthetic_animation = array([[[0, 0, 0],\n                          ^^^^^\nNameError: name 'array' is not defined. Did you f"
+  },
+  {
+    "cell_id": "CV2_IMWRITEMULTI_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "bool",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 8, in <module>\n    synthetic_img = array([[[0, 0, 0],\n                    ^^^^^\nNameError: name 'array' is not defined. Did you forget to imp"
+  },
+  {
+    "cell_id": "CV2_INRANGE_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "Mat",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
+  },
+  {
+    "cell_id": "CV2_INITCAMERAMATRIX2D_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "Mat",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
+  },
+  {
+    "cell_id": "CV2_INITINVERSERECTIFICATIONMAP_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "Mat",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
+  },
+  {
+    "cell_id": "CV2_INITUNDISTORTRECTIFYMAP_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "Mat",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
+  },
+  {
+    "cell_id": "CV2_INPAINT_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "Mat",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
+  },
+  {
+    "cell_id": "CV2_INSERTCHANNEL_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "Mat",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
+  },
+  {
+    "cell_id": "CV2_INTEGRAL_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "Mat",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
+  },
+  {
+    "cell_id": "CV2_INTEGRAL2_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "Mat",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
+  },
+  {
+    "cell_id": "CV2_INTEGRAL3_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "Mat",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
+  },
+  {
+    "cell_id": "CV2_INTERSECTCONVEXCONVEX_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "Mat",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
+  },
+  {
+    "cell_id": "CV2_INVERT_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "Mat",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
+  },
+  {
+    "cell_id": "CV2_INVERTAFFINETRANSFORM_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "Mat",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
+  },
+  {
+    "cell_id": "CV2_ISCONTOURCONVEX_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "bool",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
+  },
+  {
+    "cell_id": "CV2_KMEANS_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "Mat",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
+  },
+  {
+    "cell_id": "CV2_LINE_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "Mat",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
+  },
+  {
+    "cell_id": "CV2_LINEARPOLAR_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "Mat",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
+  },
+  {
+    "cell_id": "CV2_LOG_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "Mat",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
+  },
+  {
+    "cell_id": "CV2_LOGPOLAR_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "Mat",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
+  },
+  {
+    "cell_id": "CV2_MAGNITUDE_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "Mat",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
+  },
+  {
+    "cell_id": "CV2_MATMULDERIV_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "Mat",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
+  },
+  {
+    "cell_id": "CV2_MATCHSHAPES_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "float",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
+  },
+  {
+    "cell_id": "CV2_MATCHTEMPLATE_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "Mat",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
+  },
+  {
+    "cell_id": "CV2_MAX_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "Mat",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
+  },
+  {
+    "cell_id": "CV2_MEAN_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "cv2.Scalar",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
+  },
+  {
+    "cell_id": "CV2_MEANSHIFT_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "tuple",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
+  },
+  {
+    "cell_id": "CV2_MEANSTDDEV_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "Mat",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
+  },
+  {
+    "cell_id": "CV2_MEDIANBLUR_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "Mat",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
+  },
+  {
+    "cell_id": "CV2_MERGE_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "Mat",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
+  },
+  {
+    "cell_id": "CV2_MIN_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "Mat",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
+  },
+  {
+    "cell_id": "CV2_MINAREARECT_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "cv2.RotatedRect",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
+  },
+  {
+    "cell_id": "CV2_MINENCLOSINGCIRCLE_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "tuple",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
+  },
+  {
+    "cell_id": "CV2_MINENCLOSINGTRIANGLE_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "Mat",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
+  },
+  {
+    "cell_id": "CV2_MINMAXLOC_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "tuple",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
+  },
+  {
+    "cell_id": "CV2_MIXCHANNELS_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "Mat",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
+  },
+  {
+    "cell_id": "CV2_MOMENTS_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "cv2.Moments",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
+  },
+  {
+    "cell_id": "CV2_MORPHOLOGYEX_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "Mat",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
+  },
+  {
+    "cell_id": "CV2_MOVEWINDOW_DEFAULT",
+    "verified": true,
+    "observed_output_type": "None",
+    "declared_output_type": "None",
+    "type_match": true,
+    "error": null
+  },
+  {
+    "cell_id": "CV2_MULSPECTRUMS_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "Mat",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
+  },
+  {
+    "cell_id": "CV2_MULTRANSPOSED_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "Mat",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
+  },
+  {
+    "cell_id": "CV2_MULTIPLY_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "Mat",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
+  },
+  {
+    "cell_id": "CV2_NAMEDWINDOW_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "None",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 9, in <module>\n    output_var = cv2.namedWindow(synthetic_winname)\ncv2.error: OpenCV(4.12.0) /io/opencv/modules/highgui/src/window.cpp:1284: "
+  },
+  {
+    "cell_id": "CV2_NORM_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "float",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
+  },
+  {
+    "cell_id": "CV2_NORMALIZE_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "Mat",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
+  },
+  {
+    "cell_id": "CV2_PATCHNANS_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "Mat",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
+  },
+  {
+    "cell_id": "CV2_PENCILSKETCH_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "Mat",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
+  },
+  {
+    "cell_id": "CV2_PERSPECTIVETRANSFORM_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "Mat",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
+  },
+  {
+    "cell_id": "CV2_PHASE_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "Mat",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
+  },
+  {
+    "cell_id": "CV2_PHASECORRELATE_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "tuple",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
+  },
+  {
+    "cell_id": "CV2_POINTPOLYGONTEST_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "float",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
+  },
+  {
+    "cell_id": "CV2_POLARTOCART_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "Mat",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
+  },
+  {
+    "cell_id": "CV2_POLLKEY_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "int",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
+  },
+  {
+    "cell_id": "CV2_POLYLINES_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "Mat",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
+  },
+  {
+    "cell_id": "CV2_POW_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "Mat",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
+  },
+  {
+    "cell_id": "CV2_PRECORNERDETECT_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "Mat",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
+  },
+  {
+    "cell_id": "CV2_PROJECTPOINTS_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "Mat",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
+  },
+  {
+    "cell_id": "CV2_PUTTEXT_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "Mat",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
+  },
+  {
+    "cell_id": "CV2_PYRDOWN_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "Mat",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
+  },
+  {
+    "cell_id": "CV2_PYRMEANSHIFTFILTERING_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "Mat",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
+  },
+  {
+    "cell_id": "CV2_PYRUP_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "Mat",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
+  },
+  {
+    "cell_id": "CV2_RANDSHUFFLE_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "Mat",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
+  },
+  {
+    "cell_id": "CV2_RANDN_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "Mat",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
+  },
+  {
+    "cell_id": "CV2_RANDU_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "Mat",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
+  },
+  {
+    "cell_id": "CV2_READOPTICALFLOW_DEFAULT",
+    "verified": true,
+    "observed_output_type": "None",
+    "declared_output_type": "Mat",
+    "type_match": false,
+    "error": null
+  },
+  {
+    "cell_id": "CV2_RECOVERPOSE_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "Mat",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
+  },
+  {
+    "cell_id": "CV2_RECTANGLE_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "Mat",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
+  },
+  {
+    "cell_id": "CV2_RECTANGLEINTERSECTIONAREA_DEFAULT",
+    "verified": true,
+    "observed_output_type": "float",
+    "declared_output_type": "float",
+    "type_match": true,
+    "error": null
+  },
+  {
+    "cell_id": "CV2_RECTIFY3COLLINEAR_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "Mat",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
+  },
+  {
+    "cell_id": "CV2_REDUCE_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "Mat",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
+  },
+  {
+    "cell_id": "CV2_REDUCEARGMAX_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "Mat",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
+  },
+  {
+    "cell_id": "CV2_REDUCEARGMIN_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "Mat",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
+  },
+  {
+    "cell_id": "CV2_REMAP_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "Mat",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
+  },
+  {
+    "cell_id": "CV2_REPEAT_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "Mat",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
+  },
+  {
+    "cell_id": "CV2_REPROJECTIMAGETO3D_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "Mat",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
+  },
+  {
+    "cell_id": "CV2_RESIZE_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "Mat",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
+  },
+  {
+    "cell_id": "CV2_RESIZEWINDOW_DEFAULT",
+    "verified": true,
+    "observed_output_type": "None",
+    "declared_output_type": "None",
+    "type_match": true,
+    "error": null
+  },
+  {
+    "cell_id": "CV2_ROTATE_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "Mat",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
+  },
+  {
+    "cell_id": "CV2_ROTATEDRECTANGLEINTERSECTION_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "Mat",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 9, in <module>\n    synthetic_intersectingRegion = array([[[0, 0, 0],\n                                   ^^^^^\nNameError: name 'array' is not "
+  },
+  {
+    "cell_id": "CV2_SAMPSONDISTANCE_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "float",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
+  },
+  {
+    "cell_id": "CV2_SCALEADD_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "Mat",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
+  },
+  {
+    "cell_id": "CV2_SEAMLESSCLONE_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "Mat",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
+  },
+  {
+    "cell_id": "CV2_SELECTROI_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "cv2.Rect",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 8, in <module>\n    synthetic_img = array([[[0, 0, 0],\n                    ^^^^^\nNameError: name 'array' is not defined. Did you forget to imp"
+  },
+  {
+    "cell_id": "CV2_SELECTROIS_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "_Sequence",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 8, in <module>\n    synthetic_img = array([[[0, 0, 0],\n                    ^^^^^\nNameError: name 'array' is not defined. Did you forget to imp"
+  },
+  {
+    "cell_id": "CV2_SEPFILTER2D_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "Mat",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
+  },
+  {
+    "cell_id": "CV2_SETIDENTITY_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "Mat",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
+  },
+  {
+    "cell_id": "CV2_SETLOGLEVEL_DEFAULT",
+    "verified": true,
+    "observed_output_type": "int",
+    "declared_output_type": "int",
+    "type_match": true,
+    "error": null
+  },
+  {
+    "cell_id": "CV2_SETNUMTHREADS_DEFAULT",
+    "verified": true,
+    "observed_output_type": "None",
+    "declared_output_type": "None",
+    "type_match": true,
+    "error": null
+  },
+  {
+    "cell_id": "CV2_SETRNGSEED_DEFAULT",
+    "verified": true,
+    "observed_output_type": "None",
+    "declared_output_type": "None",
+    "type_match": true,
+    "error": null
+  },
+  {
+    "cell_id": "CV2_SETTRACKBARMAX_DEFAULT",
+    "verified": true,
+    "observed_output_type": "None",
+    "declared_output_type": "None",
+    "type_match": true,
+    "error": null
+  },
+  {
+    "cell_id": "CV2_SETTRACKBARMIN_DEFAULT",
+    "verified": true,
+    "observed_output_type": "None",
+    "declared_output_type": "None",
+    "type_match": true,
+    "error": null
+  },
+  {
+    "cell_id": "CV2_SETTRACKBARPOS_DEFAULT",
+    "verified": true,
+    "observed_output_type": "None",
+    "declared_output_type": "None",
+    "type_match": true,
+    "error": null
+  },
+  {
+    "cell_id": "CV2_SETUSEOPENVX_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "None",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 8, in <module>\n    output_var = cv2.setUseOpenVX(synthetic_flag)\ncv2.error: OpenCV(4.12.0) /io/opencv/modules/core/src/ovx.cpp:101: error: (-"
+  },
+  {
+    "cell_id": "CV2_SETUSEOPTIMIZED_DEFAULT",
+    "verified": true,
+    "observed_output_type": "None",
+    "declared_output_type": "None",
+    "type_match": true,
+    "error": null
+  },
+  {
+    "cell_id": "CV2_SETWINDOWPROPERTY_DEFAULT",
+    "verified": true,
+    "observed_output_type": "None",
+    "declared_output_type": "None",
+    "type_match": true,
+    "error": null
+  },
+  {
+    "cell_id": "CV2_SETWINDOWTITLE_DEFAULT",
+    "verified": true,
+    "observed_output_type": "None",
+    "declared_output_type": "None",
+    "type_match": true,
+    "error": null
+  },
+  {
+    "cell_id": "CV2_SOLVE_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "Mat",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
+  },
+  {
+    "cell_id": "CV2_SOLVECUBIC_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "Mat",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
+  },
+  {
+    "cell_id": "CV2_SOLVELP_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "Mat",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
+  },
+  {
+    "cell_id": "CV2_SOLVEP3P_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "Mat",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
+  },
+  {
+    "cell_id": "CV2_SOLVEPNP_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "Mat",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
+  },
+  {
+    "cell_id": "CV2_SOLVEPNPGENERIC_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "Mat",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
+  },
+  {
+    "cell_id": "CV2_SOLVEPNPRANSAC_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "Mat",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
+  },
+  {
+    "cell_id": "CV2_SOLVEPNPREFINELM_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "Mat",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
+  },
+  {
+    "cell_id": "CV2_SOLVEPNPREFINEVVS_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "Mat",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
+  },
+  {
+    "cell_id": "CV2_SOLVEPOLY_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "Mat",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
+  },
+  {
+    "cell_id": "CV2_SORT_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "Mat",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
+  },
+  {
+    "cell_id": "CV2_SORTIDX_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "Mat",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
+  },
+  {
+    "cell_id": "CV2_SPATIALGRADIENT_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "Mat",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
+  },
+  {
+    "cell_id": "CV2_SPLIT_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "Mat",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
+  },
+  {
+    "cell_id": "CV2_SQRBOXFILTER_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "Mat",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
+  },
+  {
+    "cell_id": "CV2_SQRT_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "Mat",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
+  },
+  {
+    "cell_id": "CV2_STACKBLUR_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "Mat",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
+  },
+  {
+    "cell_id": "CV2_STARTWINDOWTHREAD_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "int",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
+  },
+  {
+    "cell_id": "CV2_STEREOCALIBRATE_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "Mat",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
+  },
+  {
+    "cell_id": "CV2_STEREOCALIBRATEEXTENDED_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "Mat",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
+  },
+  {
+    "cell_id": "CV2_STEREORECTIFY_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "Mat",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
+  },
+  {
+    "cell_id": "CV2_STEREORECTIFYUNCALIBRATED_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "Mat",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
+  },
+  {
+    "cell_id": "CV2_STYLIZATION_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "Mat",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
+  },
+  {
+    "cell_id": "CV2_SUBTRACT_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "Mat",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
+  },
+  {
+    "cell_id": "CV2_SUMELEMS_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "cv2.Scalar",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
+  },
+  {
+    "cell_id": "CV2_TEXTUREFLATTENING_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "Mat",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
+  },
+  {
+    "cell_id": "CV2_THRESHOLD_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "Mat",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
+  },
+  {
+    "cell_id": "CV2_THRESHOLDWITHMASK_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "Mat",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
+  },
+  {
+    "cell_id": "CV2_TRACE_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "cv2.Scalar",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
+  },
+  {
+    "cell_id": "CV2_TRANSFORM_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "Mat",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
+  },
+  {
+    "cell_id": "CV2_TRANSPOSE_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "Mat",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
+  },
+  {
+    "cell_id": "CV2_TRANSPOSEND_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "Mat",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
+  },
+  {
+    "cell_id": "CV2_TRIANGULATEPOINTS_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "Mat",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
+  },
+  {
+    "cell_id": "CV2_UNDISTORT_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "Mat",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
+  },
+  {
+    "cell_id": "CV2_UNDISTORTIMAGEPOINTS_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "Mat",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
+  },
+  {
+    "cell_id": "CV2_UNDISTORTPOINTS_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "Mat",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
+  },
+  {
+    "cell_id": "CV2_UNDISTORTPOINTSITER_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "Mat",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
+  },
+  {
+    "cell_id": "CV2_USEOPENVX_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "bool",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
+  },
+  {
+    "cell_id": "CV2_USEOPTIMIZED_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "bool",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
+  },
+  {
+    "cell_id": "CV2_VALIDATEDISPARITY_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "Mat",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
+  },
+  {
+    "cell_id": "CV2_VCONCAT_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "Mat",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
+  },
+  {
+    "cell_id": "CV2_WAITKEY_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "int",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
+  },
+  {
+    "cell_id": "CV2_WAITKEYEX_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "int",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
+  },
+  {
+    "cell_id": "CV2_WARPAFFINE_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "Mat",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
+  },
+  {
+    "cell_id": "CV2_WARPPERSPECTIVE_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "Mat",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
+  },
+  {
+    "cell_id": "CV2_WARPPOLAR_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "Mat",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
+  },
+  {
+    "cell_id": "CV2_WATERSHED_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "Mat",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
+  },
+  {
+    "cell_id": "CV2_WRITEOPTICALFLOW_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "bool",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 8, in <module>\n    synthetic_flow = array([[[0, 0, 0],\n                     ^^^^^\nNameError: name 'array' is not defined. Did you forget to i"
+  },
+  {
+    "cell_id": "CV2_CREATETRACKBAR_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "None",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 12, in <module>\n    output_var = cv2.createTrackbar(synthetic_trackbarName, synthetic_windowName, synthetic_value, synthetic_count, synthetic"
+  },
+  {
+    "cell_id": "CV2_CREATEBUTTON_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "None",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 12, in <module>\n    output_var = cv2.createButton(synthetic_buttonName, synthetic_onChange)\nTypeError: onChange must be callable"
+  },
+  {
+    "cell_id": "CV2_SETMOUSECALLBACK_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "None",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 10, in <module>\n    output_var = cv2.setMouseCallback(synthetic_windowName, synthetic_onMouse)\nTypeError: on_mouse must be callable"
+  },
+  {
+    "cell_id": "CV2_CV_8UC_DEFAULT",
+    "verified": true,
+    "observed_output_type": "int",
+    "declared_output_type": "int",
+    "type_match": true,
+    "error": null
+  },
+  {
+    "cell_id": "CV2_CV_8SC_DEFAULT",
+    "verified": true,
+    "observed_output_type": "int",
+    "declared_output_type": "int",
+    "type_match": true,
+    "error": null
+  },
+  {
+    "cell_id": "CV2_CV_16UC_DEFAULT",
+    "verified": true,
+    "observed_output_type": "int",
+    "declared_output_type": "int",
+    "type_match": true,
+    "error": null
+  },
+  {
+    "cell_id": "CV2_CV_16SC_DEFAULT",
+    "verified": true,
+    "observed_output_type": "int",
+    "declared_output_type": "int",
+    "type_match": true,
+    "error": null
+  },
+  {
+    "cell_id": "CV2_CV_32SC_DEFAULT",
+    "verified": true,
+    "observed_output_type": "int",
+    "declared_output_type": "int",
+    "type_match": true,
+    "error": null
+  },
+  {
+    "cell_id": "CV2_CV_32FC_DEFAULT",
+    "verified": true,
+    "observed_output_type": "int",
+    "declared_output_type": "int",
+    "type_match": true,
+    "error": null
+  },
+  {
+    "cell_id": "CV2_CV_64FC_DEFAULT",
+    "verified": true,
+    "observed_output_type": "int",
+    "declared_output_type": "int",
+    "type_match": true,
+    "error": null
+  },
+  {
+    "cell_id": "CV2_CV_16FC_DEFAULT",
+    "verified": true,
+    "observed_output_type": "int",
+    "declared_output_type": "int",
+    "type_match": true,
+    "error": null
+  },
+  {
+    "cell_id": "CV2_CV_MAKETYPE_DEFAULT",
+    "verified": true,
+    "observed_output_type": "int",
+    "declared_output_type": "int",
+    "type_match": true,
+    "error": null
+  },
+  {
+    "cell_id": "CV2_DNN_REGISTERLAYER_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "None",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 9, in <module>\n    output_var = cv2.dnn_registerLayer(synthetic_layerTypeName, synthetic_layerClass)\nTypeError: class must be callable"
+  },
+  {
+    "cell_id": "CV2_DNN_UNREGISTERLAYER_DEFAULT",
+    "verified": true,
+    "observed_output_type": "None",
+    "declared_output_type": "None",
+    "type_match": true,
+    "error": null
+  },
+  {
+    "cell_id": "CV2_REDIRECTERROR_DEFAULT",
+    "verified": true,
+    "observed_output_type": "None",
+    "declared_output_type": "None",
+    "type_match": true,
+    "error": null
+  },
+  {
+    "cell_id": "CV2_AKAZE_CREATE_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "Mat",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
+  },
+  {
+    "cell_id": "CV2_AFFINEFEATURE_CREATE_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "Mat",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 8, in <module>\n    output_var = cv2.AffineFeature_create(synthetic_backend)\nTypeError: Expected Ptr<cv::Feature2D> for argument 'backend'"
+  },
+  {
+    "cell_id": "CV2_AGASTFEATUREDETECTOR_CREATE_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "Mat",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
+  },
+  {
+    "cell_id": "CV2_BFMATCHER_CREATE_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "Mat",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
+  },
+  {
+    "cell_id": "CV2_BRISK_CREATE_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "Mat",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
+  },
+  {
+    "cell_id": "CV2_CASCADECLASSIFIER_CONVERT_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "Mat",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 9, in <module>\n    output_var = cv2.CascadeClassifier_convert(synthetic_oldcascade, synthetic_newcascade)\nTypeError: Can't convert object to "
+  },
+  {
+    "cell_id": "CV2_DISOPTICALFLOW_CREATE_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "Mat",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
+  },
+  {
+    "cell_id": "CV2_DESCRIPTORMATCHER_CREATE_DEFAULT",
+    "verified": true,
+    "observed_output_type": "DescriptorMatcher",
+    "declared_output_type": "Mat",
+    "type_match": false,
+    "error": null
+  },
+  {
+    "cell_id": "CV2_FACEDETECTORYN_CREATE_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "Mat",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 10, in <module>\n    output_var = cv2.FaceDetectorYN_create(synthetic_model, synthetic_config, synthetic_input_size)\ncv2.error: OpenCV(4.12.0)"
+  },
+  {
+    "cell_id": "CV2_FACERECOGNIZERSF_CREATE_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "Mat",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 9, in <module>\n    output_var = cv2.FaceRecognizerSF_create(synthetic_model, synthetic_config)\ncv2.error: OpenCV(4.12.0) :-1: error: (-5:Bad "
+  },
+  {
+    "cell_id": "CV2_FARNEBACKOPTICALFLOW_CREATE_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "Mat",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
+  },
+  {
+    "cell_id": "CV2_FASTFEATUREDETECTOR_CREATE_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "Mat",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
+  },
+  {
+    "cell_id": "CV2_FLANNBASEDMATCHER_CREATE_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "Mat",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
+  },
+  {
+    "cell_id": "CV2_GFTTDETECTOR_CREATE_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "Mat",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
+  },
+  {
+    "cell_id": "CV2_GIN_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "Mat",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
+  },
+  {
+    "cell_id": "CV2_GOUT_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "Mat",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
+  },
+  {
+    "cell_id": "CV2_HOGDESCRIPTOR_GETDAIMLERPEOPLEDETECTOR_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "Mat",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
+  },
+  {
+    "cell_id": "CV2_HOGDESCRIPTOR_GETDEFAULTPEOPLEDETECTOR_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "Mat",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
+  },
+  {
+    "cell_id": "CV2_KAZE_CREATE_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "Mat",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
+  },
+  {
+    "cell_id": "CV2_KEYPOINT_CONVERT_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "Mat",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 8, in <module>\n    output_var = cv2.KeyPoint_convert(synthetic_keypoints)\ncv2.error: OpenCV(4.12.0) :-1: error: (-5:Bad argument) in function"
+  },
+  {
+    "cell_id": "CV2_KEYPOINT_OVERLAP_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "Mat",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 9, in <module>\n    output_var = cv2.KeyPoint_overlap(synthetic_kp1, synthetic_kp2)\nTypeError: Expected cv::KeyPoint for argument 'kp1'"
+  },
+  {
+    "cell_id": "CV2_MSER_CREATE_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "Mat",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
+  },
+  {
+    "cell_id": "CV2_ORB_CREATE_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "Mat",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
+  },
+  {
+    "cell_id": "CV2_QRCODEENCODER_CREATE_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "Mat",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
+  },
+  {
+    "cell_id": "CV2_SIFT_CREATE_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "Mat",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
+  },
+  {
+    "cell_id": "CV2_SIMPLEBLOBDETECTOR_CREATE_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "Mat",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
+  },
+  {
+    "cell_id": "CV2_SPARSEPYRLKOPTICALFLOW_CREATE_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "Mat",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
+  },
+  {
+    "cell_id": "CV2_STEREOBM_CREATE_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "Mat",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
+  },
+  {
+    "cell_id": "CV2_STEREOSGBM_CREATE_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "Mat",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
+  },
+  {
+    "cell_id": "CV2_STITCHER_CREATE_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "Mat",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
+  },
+  {
+    "cell_id": "CV2_TRACKERDASIAMRPN_CREATE_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "Mat",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
+  },
+  {
+    "cell_id": "CV2_TRACKERGOTURN_CREATE_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "Mat",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
+  },
+  {
+    "cell_id": "CV2_TRACKERMIL_CREATE_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "Mat",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
+  },
+  {
+    "cell_id": "CV2_TRACKERNANO_CREATE_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "Mat",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
+  },
+  {
+    "cell_id": "CV2_TRACKERVIT_CREATE_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "Mat",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
+  },
+  {
+    "cell_id": "CV2_UMAT_CONTEXT_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "Mat",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
+  },
+  {
+    "cell_id": "CV2_UMAT_QUEUE_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "Mat",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
+  },
+  {
+    "cell_id": "CV2_VARIATIONALREFINEMENT_CREATE_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "Mat",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
+  },
+  {
+    "cell_id": "CV2_VIDEOCAPTURE_WAITANY_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "Mat",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 8, in <module>\n    output_var = cv2.VideoCapture_waitAny(synthetic_streams)\nTypeError: Can't parse 'streams'. Input argument doesn't provide "
+  },
+  {
+    "cell_id": "CV2_VIDEOWRITER_FOURCC_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "Mat",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 11, in <module>\n    output_var = cv2.VideoWriter_fourcc(synthetic_c1, synthetic_c2, synthetic_c3, synthetic_c4)\nTypeError: Expected single ch"
+  },
+  {
+    "cell_id": "CV2_BOOTSTRAP_DEFAULT",
+    "verified": false,
+    "observed_output_type": null,
+    "declared_output_type": "Mat",
+    "type_match": false,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
   }
 ]

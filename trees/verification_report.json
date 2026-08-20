@@ -5,7 +5,7 @@
     "observed_output_type": null,
     "declared_output_type": "tuple",
     "type_match": false,
-    "error": "name 'subprocess' is not defined"
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
   },
   {
     "cell_id": "CV2_CANNY_DEFAULT",
@@ -13,7 +13,7 @@
     "observed_output_type": null,
     "declared_output_type": "Mat",
     "type_match": false,
-    "error": "name 'subprocess' is not defined"
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
   },
   {
     "cell_id": "CV2_EMD_DEFAULT",
@@ -21,7 +21,7 @@
     "observed_output_type": null,
     "declared_output_type": "Mat",
     "type_match": false,
-    "error": "name 'subprocess' is not defined"
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
   },
   {
     "cell_id": "CV2_GAUSSIANBLUR_DEFAULT",
@@ -29,7 +29,7 @@
     "observed_output_type": null,
     "declared_output_type": "Mat",
     "type_match": false,
-    "error": "name 'subprocess' is not defined"
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
   },
   {
     "cell_id": "CV2_HOUGHCIRCLES_DEFAULT",
@@ -37,7 +37,7 @@
     "observed_output_type": null,
     "declared_output_type": "Mat",
     "type_match": false,
-    "error": "name 'subprocess' is not defined"
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
   },
   {
     "cell_id": "CV2_HOUGHCIRCLESWITHACCUMULATOR_DEFAULT",
@@ -45,7 +45,7 @@
     "observed_output_type": null,
     "declared_output_type": "Mat",
     "type_match": false,
-    "error": "name 'subprocess' is not defined"
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
   },
   {
     "cell_id": "CV2_HOUGHLINES_DEFAULT",
@@ -53,7 +53,7 @@
     "observed_output_type": null,
     "declared_output_type": "Mat",
     "type_match": false,
-    "error": "name 'subprocess' is not defined"
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
   },
   {
     "cell_id": "CV2_HOUGHLINESP_DEFAULT",
@@ -61,7 +61,7 @@
     "observed_output_type": null,
     "declared_output_type": "Mat",
     "type_match": false,
-    "error": "name 'subprocess' is not defined"
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
   },
   {
     "cell_id": "CV2_HOUGHLINESPOINTSET_DEFAULT",
@@ -69,7 +69,7 @@
     "observed_output_type": null,
     "declared_output_type": "Mat",
     "type_match": false,
-    "error": "name 'subprocess' is not defined"
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
   },
   {
     "cell_id": "CV2_HOUGHLINESWITHACCUMULATOR_DEFAULT",
@@ -77,7 +77,7 @@
     "observed_output_type": null,
     "declared_output_type": "Mat",
     "type_match": false,
-    "error": "name 'subprocess' is not defined"
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
   },
   {
     "cell_id": "CV2_HUMOMENTS_DEFAULT",
@@ -85,7 +85,7 @@
     "observed_output_type": null,
     "declared_output_type": "Mat",
     "type_match": false,
-    "error": "name 'subprocess' is not defined"
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 8, in <module>\n    synthetic_hu = array([[[0, 0, 0],\n                   ^^^^^\nNameError: name 'array' is not defined. Did you forget to impor"
   },
   {
     "cell_id": "CV2_LUT_DEFAULT",
@@ -93,7 +93,7 @@
     "observed_output_type": null,
     "declared_output_type": "Mat",
     "type_match": false,
-    "error": "name 'subprocess' is not defined"
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
   },
   {
     "cell_id": "CV2_LAPLACIAN_DEFAULT",
@@ -101,7 +101,7 @@
     "observed_output_type": null,
     "declared_output_type": "Mat",
     "type_match": false,
-    "error": "name 'subprocess' is not defined"
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
   },
   {
     "cell_id": "CV2_MAHALANOBIS_DEFAULT",
@@ -109,7 +109,7 @@
     "observed_output_type": null,
     "declared_output_type": "float",
     "type_match": false,
-    "error": "name 'subprocess' is not defined"
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
   },
   {
     "cell_id": "CV2_PCABACKPROJECT_DEFAULT",
@@ -117,7 +117,7 @@
     "observed_output_type": null,
     "declared_output_type": "Mat",
     "type_match": false,
-    "error": "name 'subprocess' is not defined"
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
   },
   {
     "cell_id": "CV2_PCACOMPUTE_DEFAULT",
@@ -125,7 +125,7 @@
     "observed_output_type": null,
     "declared_output_type": "Mat",
     "type_match": false,
-    "error": "name 'subprocess' is not defined"
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
   },
   {
     "cell_id": "CV2_PCACOMPUTE2_DEFAULT",
@@ -133,7 +133,7 @@
     "observed_output_type": null,
     "declared_output_type": "Mat",
     "type_match": false,
-    "error": "name 'subprocess' is not defined"
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
   },
   {
     "cell_id": "CV2_PCAPROJECT_DEFAULT",
@@ -141,7 +141,7 @@
     "observed_output_type": null,
     "declared_output_type": "Mat",
     "type_match": false,
-    "error": "name 'subprocess' is not defined"
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
   },
   {
     "cell_id": "CV2_PSNR_DEFAULT",
@@ -149,7 +149,7 @@
     "observed_output_type": null,
     "declared_output_type": "float",
     "type_match": false,
-    "error": "name 'subprocess' is not defined"
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
   },
   {
     "cell_id": "CV2_RQDECOMP3X3_DEFAULT",
@@ -157,7 +157,7 @@
     "observed_output_type": null,
     "declared_output_type": "Mat",
     "type_match": false,
-    "error": "name 'subprocess' is not defined"
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
   },
   {
     "cell_id": "CV2_RODRIGUES_DEFAULT",
@@ -165,7 +165,7 @@
     "observed_output_type": null,
     "declared_output_type": "Mat",
     "type_match": false,
-    "error": "name 'subprocess' is not defined"
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
   },
   {
     "cell_id": "CV2_SVBACKSUBST_DEFAULT",
@@ -173,7 +173,7 @@
     "observed_output_type": null,
     "declared_output_type": "Mat",
     "type_match": false,
-    "error": "name 'subprocess' is not defined"
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
   },
   {
     "cell_id": "CV2_SVDECOMP_DEFAULT",
@@ -181,7 +181,7 @@
     "observed_output_type": null,
     "declared_output_type": "Mat",
     "type_match": false,
-    "error": "name 'subprocess' is not defined"
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
   },
   {
     "cell_id": "CV2_SCHARR_DEFAULT",
@@ -189,7 +189,7 @@
     "observed_output_type": null,
     "declared_output_type": "Mat",
     "type_match": false,
-    "error": "name 'subprocess' is not defined"
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
   },
   {
     "cell_id": "CV2_SOBEL_DEFAULT",
@@ -197,7 +197,7 @@
     "observed_output_type": null,
     "declared_output_type": "Mat",
     "type_match": false,
-    "error": "name 'subprocess' is not defined"
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
   },
   {
     "cell_id": "CV2_ABSDIFF_DEFAULT",
@@ -205,7 +205,7 @@
     "observed_output_type": null,
     "declared_output_type": "Mat",
     "type_match": false,
-    "error": "name 'subprocess' is not defined"
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
   },
   {
     "cell_id": "CV2_ACCUMULATE_DEFAULT",
@@ -213,7 +213,7 @@
     "observed_output_type": null,
     "declared_output_type": "Mat",
     "type_match": false,
-    "error": "name 'subprocess' is not defined"
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
   },
   {
     "cell_id": "CV2_ACCUMULATEPRODUCT_DEFAULT",
@@ -221,7 +221,7 @@
     "observed_output_type": null,
     "declared_output_type": "Mat",
     "type_match": false,
-    "error": "name 'subprocess' is not defined"
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
   },
   {
     "cell_id": "CV2_ACCUMULATESQUARE_DEFAULT",
@@ -229,7 +229,7 @@
     "observed_output_type": null,
     "declared_output_type": "Mat",
     "type_match": false,
-    "error": "name 'subprocess' is not defined"
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
   },
   {
     "cell_id": "CV2_ACCUMULATEWEIGHTED_DEFAULT",
@@ -237,7 +237,7 @@
     "observed_output_type": null,
     "declared_output_type": "Mat",
     "type_match": false,
-    "error": "name 'subprocess' is not defined"
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
   },
   {
     "cell_id": "CV2_ADAPTIVETHRESHOLD_DEFAULT",
@@ -245,7 +245,7 @@
     "observed_output_type": null,
     "declared_output_type": "Mat",
     "type_match": false,
-    "error": "name 'subprocess' is not defined"
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
   },
   {
     "cell_id": "CV2_ADD_DEFAULT",
@@ -253,7 +253,7 @@
     "observed_output_type": null,
     "declared_output_type": "Mat",
     "type_match": false,
-    "error": "name 'subprocess' is not defined"
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
   },
   {
     "cell_id": "CV2_ADDTEXT_DEFAULT",
@@ -261,7 +261,7 @@
     "observed_output_type": null,
     "declared_output_type": "None",
     "type_match": false,
-    "error": "name 'subprocess' is not defined"
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
   },
   {
     "cell_id": "CV2_ADDWEIGHTED_DEFAULT",
@@ -269,7 +269,7 @@
     "observed_output_type": null,
     "declared_output_type": "Mat",
     "type_match": false,
-    "error": "name 'subprocess' is not defined"
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
   },
   {
     "cell_id": "CV2_APPLYCOLORMAP_DEFAULT",
@@ -277,7 +277,7 @@
     "observed_output_type": null,
     "declared_output_type": "Mat",
     "type_match": false,
-    "error": "name 'subprocess' is not defined"
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
   },
   {
     "cell_id": "CV2_APPROXPOLYDP_DEFAULT",
@@ -285,7 +285,7 @@
     "observed_output_type": null,
     "declared_output_type": "Mat",
     "type_match": false,
-    "error": "name 'subprocess' is not defined"
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
   },
   {
     "cell_id": "CV2_APPROXPOLYN_DEFAULT",
@@ -293,7 +293,7 @@
     "observed_output_type": null,
     "declared_output_type": "Mat",
     "type_match": false,
-    "error": "name 'subprocess' is not defined"
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
   },
   {
     "cell_id": "CV2_ARCLENGTH_DEFAULT",
@@ -301,7 +301,7 @@
     "observed_output_type": null,
     "declared_output_type": "float",
     "type_match": false,
-    "error": "name 'subprocess' is not defined"
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
   },
   {
     "cell_id": "CV2_ARROWEDLINE_DEFAULT",
@@ -309,7 +309,7 @@
     "observed_output_type": null,
     "declared_output_type": "Mat",
     "type_match": false,
-    "error": "name 'subprocess' is not defined"
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
   },
   {
     "cell_id": "CV2_BATCHDISTANCE_DEFAULT",
@@ -317,7 +317,7 @@
     "observed_output_type": null,
     "declared_output_type": "Mat",
     "type_match": false,
-    "error": "name 'subprocess' is not defined"
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
   },
   {
     "cell_id": "CV2_BILATERALFILTER_DEFAULT",
@@ -325,7 +325,7 @@
     "observed_output_type": null,
     "declared_output_type": "Mat",
     "type_match": false,
-    "error": "name 'subprocess' is not defined"
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
   },
   {
     "cell_id": "CV2_BITWISE_AND_DEFAULT",
@@ -333,7 +333,7 @@
     "observed_output_type": null,
     "declared_output_type": "Mat",
     "type_match": false,
-    "error": "name 'subprocess' is not defined"
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
   },
   {
     "cell_id": "CV2_BITWISE_NOT_DEFAULT",
@@ -341,7 +341,7 @@
     "observed_output_type": null,
     "declared_output_type": "Mat",
     "type_match": false,
-    "error": "name 'subprocess' is not defined"
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
   },
   {
     "cell_id": "CV2_BITWISE_OR_DEFAULT",
@@ -349,7 +349,7 @@
     "observed_output_type": null,
     "declared_output_type": "Mat",
     "type_match": false,
-    "error": "name 'subprocess' is not defined"
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
   },
   {
     "cell_id": "CV2_BITWISE_XOR_DEFAULT",
@@ -357,7 +357,7 @@
     "observed_output_type": null,
     "declared_output_type": "Mat",
     "type_match": false,
-    "error": "name 'subprocess' is not defined"
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
   },
   {
     "cell_id": "CV2_BLENDLINEAR_DEFAULT",
@@ -365,7 +365,7 @@
     "observed_output_type": null,
     "declared_output_type": "Mat",
     "type_match": false,
-    "error": "name 'subprocess' is not defined"
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
   },
   {
     "cell_id": "CV2_BLUR_DEFAULT",
@@ -373,15 +373,15 @@
     "observed_output_type": null,
     "declared_output_type": "Mat",
     "type_match": false,
-    "error": "name 'subprocess' is not defined"
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
   },
   {
     "cell_id": "CV2_BORDERINTERPOLATE_DEFAULT",
-    "verified": false,
-    "observed_output_type": null,
+    "verified": true,
+    "observed_output_type": "int",
     "declared_output_type": "int",
-    "type_match": false,
-    "error": "name 'subprocess' is not defined"
+    "type_match": true,
+    "error": null
   },
   {
     "cell_id": "CV2_BOUNDINGRECT_DEFAULT",
@@ -389,7 +389,7 @@
     "observed_output_type": null,
     "declared_output_type": "cv2.Rect",
     "type_match": false,
-    "error": "name 'subprocess' is not defined"
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
   },
   {
     "cell_id": "CV2_BOXFILTER_DEFAULT",
@@ -397,7 +397,7 @@
     "observed_output_type": null,
     "declared_output_type": "Mat",
     "type_match": false,
-    "error": "name 'subprocess' is not defined"
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
   },
   {
     "cell_id": "CV2_BOXPOINTS_DEFAULT",
@@ -405,7 +405,7 @@
     "observed_output_type": null,
     "declared_output_type": "Mat",
     "type_match": false,
-    "error": "name 'subprocess' is not defined"
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 8, in <module>\n    synthetic_points = array([[[0, 0, 0],\n                       ^^^^^\nNameError: name 'array' is not defined. Did you forget "
   },
   {
     "cell_id": "CV2_BROADCAST_DEFAULT",
@@ -413,7 +413,7 @@
     "observed_output_type": null,
     "declared_output_type": "Mat",
     "type_match": false,
-    "error": "name 'subprocess' is not defined"
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
   },
   {
     "cell_id": "CV2_BUILDOPTICALFLOWPYRAMID_DEFAULT",
@@ -421,7 +421,7 @@
     "observed_output_type": null,
     "declared_output_type": "Mat",
     "type_match": false,
-    "error": "name 'subprocess' is not defined"
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
   },
   {
     "cell_id": "CV2_CALCBACKPROJECT_DEFAULT",
@@ -429,7 +429,7 @@
     "observed_output_type": null,
     "declared_output_type": "Mat",
     "type_match": false,
-    "error": "name 'subprocess' is not defined"
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
   },
   {
     "cell_id": "CV2_CALCCOVARMATRIX_DEFAULT",
@@ -437,7 +437,7 @@
     "observed_output_type": null,
     "declared_output_type": "Mat",
     "type_match": false,
-    "error": "name 'subprocess' is not defined"
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
   },
   {
     "cell_id": "CV2_CALCHIST_DEFAULT",
@@ -445,7 +445,7 @@
     "observed_output_type": null,
     "declared_output_type": "Mat",
     "type_match": false,
-    "error": "name 'subprocess' is not defined"
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
   },
   {
     "cell_id": "CV2_CALCOPTICALFLOWFARNEBACK_DEFAULT",
@@ -453,7 +453,7 @@
     "observed_output_type": null,
     "declared_output_type": "Mat",
     "type_match": false,
-    "error": "name 'subprocess' is not defined"
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
   },
   {
     "cell_id": "CV2_CALCOPTICALFLOWPYRLK_DEFAULT",
@@ -461,7 +461,7 @@
     "observed_output_type": null,
     "declared_output_type": "Mat",
     "type_match": false,
-    "error": "name 'subprocess' is not defined"
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
   },
   {
     "cell_id": "CV2_CALIBRATECAMERA_DEFAULT",
@@ -469,7 +469,7 @@
     "observed_output_type": null,
     "declared_output_type": "Mat",
     "type_match": false,
-    "error": "name 'subprocess' is not defined"
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
   },
   {
     "cell_id": "CV2_CALIBRATECAMERAEXTENDED_DEFAULT",
@@ -477,7 +477,7 @@
     "observed_output_type": null,
     "declared_output_type": "Mat",
     "type_match": false,
-    "error": "name 'subprocess' is not defined"
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
   },
   {
     "cell_id": "CV2_CALIBRATECAMERARO_DEFAULT",
@@ -485,7 +485,7 @@
     "observed_output_type": null,
     "declared_output_type": "Mat",
     "type_match": false,
-    "error": "name 'subprocess' is not defined"
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
   },
   {
     "cell_id": "CV2_CALIBRATECAMERAROEXTENDED_DEFAULT",
@@ -493,7 +493,7 @@
     "observed_output_type": null,
     "declared_output_type": "Mat",
     "type_match": false,
-    "error": "name 'subprocess' is not defined"
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
   },
   {
     "cell_id": "CV2_CALIBRATEHANDEYE_DEFAULT",
@@ -501,7 +501,7 @@
     "observed_output_type": null,
     "declared_output_type": "Mat",
     "type_match": false,
-    "error": "name 'subprocess' is not defined"
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
   },
   {
     "cell_id": "CV2_CALIBRATEROBOTWORLDHANDEYE_DEFAULT",
@@ -509,7 +509,7 @@
     "observed_output_type": null,
     "declared_output_type": "Mat",
     "type_match": false,
-    "error": "name 'subprocess' is not defined"
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
   },
   {
     "cell_id": "CV2_CALIBRATIONMATRIXVALUES_DEFAULT",
@@ -517,7 +517,7 @@
     "observed_output_type": null,
     "declared_output_type": "tuple",
     "type_match": false,
-    "error": "name 'subprocess' is not defined"
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
   },
   {
     "cell_id": "CV2_CARTTOPOLAR_DEFAULT",
@@ -525,7 +525,7 @@
     "observed_output_type": null,
     "declared_output_type": "Mat",
     "type_match": false,
-    "error": "name 'subprocess' is not defined"
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
   },
   {
     "cell_id": "CV2_CHECKCHESSBOARD_DEFAULT",
@@ -533,15 +533,15 @@
     "observed_output_type": null,
     "declared_output_type": "bool",
     "type_match": false,
-    "error": "name 'subprocess' is not defined"
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
   },
   {
     "cell_id": "CV2_CHECKHARDWARESUPPORT_DEFAULT",
-    "verified": false,
-    "observed_output_type": null,
+    "verified": true,
+    "observed_output_type": "bool",
     "declared_output_type": "bool",
-    "type_match": false,
-    "error": "name 'subprocess' is not defined"
+    "type_match": true,
+    "error": null
   },
   {
     "cell_id": "CV2_CHECKRANGE_DEFAULT",
@@ -549,7 +549,7 @@
     "observed_output_type": null,
     "declared_output_type": "tuple",
     "type_match": false,
-    "error": "name 'subprocess' is not defined"
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
   },
   {
     "cell_id": "CV2_CIRCLE_DEFAULT",
@@ -557,7 +557,7 @@
     "observed_output_type": null,
     "declared_output_type": "Mat",
     "type_match": false,
-    "error": "name 'subprocess' is not defined"
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
   },
   {
     "cell_id": "CV2_CLIPLINE_DEFAULT",
@@ -565,7 +565,7 @@
     "observed_output_type": null,
     "declared_output_type": "tuple",
     "type_match": false,
-    "error": "name 'subprocess' is not defined"
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 10, in <module>\n    output_var = cv2.clipLine(synthetic_imgRect, synthetic_pt1, synthetic_pt2)\nTypeError: Can't parse 'pt1'. Input argument d"
   },
   {
     "cell_id": "CV2_COLORCHANGE_DEFAULT",
@@ -573,7 +573,7 @@
     "observed_output_type": null,
     "declared_output_type": "Mat",
     "type_match": false,
-    "error": "name 'subprocess' is not defined"
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
   },
   {
     "cell_id": "CV2_COMPARE_DEFAULT",
@@ -581,7 +581,7 @@
     "observed_output_type": null,
     "declared_output_type": "Mat",
     "type_match": false,
-    "error": "name 'subprocess' is not defined"
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
   },
   {
     "cell_id": "CV2_COMPAREHIST_DEFAULT",
@@ -589,7 +589,7 @@
     "observed_output_type": null,
     "declared_output_type": "float",
     "type_match": false,
-    "error": "name 'subprocess' is not defined"
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
   },
   {
     "cell_id": "CV2_COMPLETESYMM_DEFAULT",
@@ -597,7 +597,7 @@
     "observed_output_type": null,
     "declared_output_type": "Mat",
     "type_match": false,
-    "error": "name 'subprocess' is not defined"
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
   },
   {
     "cell_id": "CV2_COMPOSERT_DEFAULT",
@@ -605,7 +605,7 @@
     "observed_output_type": null,
     "declared_output_type": "Mat",
     "type_match": false,
-    "error": "name 'subprocess' is not defined"
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
   },
   {
     "cell_id": "CV2_COMPUTECORRESPONDEPILINES_DEFAULT",
@@ -613,7 +613,7 @@
     "observed_output_type": null,
     "declared_output_type": "Mat",
     "type_match": false,
-    "error": "name 'subprocess' is not defined"
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
   },
   {
     "cell_id": "CV2_COMPUTEECC_DEFAULT",
@@ -621,7 +621,7 @@
     "observed_output_type": null,
     "declared_output_type": "float",
     "type_match": false,
-    "error": "name 'subprocess' is not defined"
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
   },
   {
     "cell_id": "CV2_CONNECTEDCOMPONENTS_DEFAULT",
@@ -629,7 +629,7 @@
     "observed_output_type": null,
     "declared_output_type": "Mat",
     "type_match": false,
-    "error": "name 'subprocess' is not defined"
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
   },
   {
     "cell_id": "CV2_CONNECTEDCOMPONENTSWITHALGORITHM_DEFAULT",
@@ -637,7 +637,7 @@
     "observed_output_type": null,
     "declared_output_type": "Mat",
     "type_match": false,
-    "error": "name 'subprocess' is not defined"
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
   },
   {
     "cell_id": "CV2_CONNECTEDCOMPONENTSWITHSTATS_DEFAULT",
@@ -645,7 +645,7 @@
     "observed_output_type": null,
     "declared_output_type": "Mat",
     "type_match": false,
-    "error": "name 'subprocess' is not defined"
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
   },
   {
     "cell_id": "CV2_CONNECTEDCOMPONENTSWITHSTATSWITHALGORITHM_DEFAULT",
@@ -653,7 +653,7 @@
     "observed_output_type": null,
     "declared_output_type": "Mat",
     "type_match": false,
-    "error": "name 'subprocess' is not defined"
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
   },
   {
     "cell_id": "CV2_CONTOURAREA_DEFAULT",
@@ -661,7 +661,7 @@
     "observed_output_type": null,
     "declared_output_type": "float",
     "type_match": false,
-    "error": "name 'subprocess' is not defined"
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
   },
   {
     "cell_id": "CV2_CONVERTFP16_DEFAULT",
@@ -669,7 +669,7 @@
     "observed_output_type": null,
     "declared_output_type": "Mat",
     "type_match": false,
-    "error": "name 'subprocess' is not defined"
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
   },
   {
     "cell_id": "CV2_CONVERTMAPS_DEFAULT",
@@ -677,7 +677,7 @@
     "observed_output_type": null,
     "declared_output_type": "Mat",
     "type_match": false,
-    "error": "name 'subprocess' is not defined"
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
   },
   {
     "cell_id": "CV2_CONVERTPOINTSFROMHOMOGENEOUS_DEFAULT",
@@ -685,7 +685,7 @@
     "observed_output_type": null,
     "declared_output_type": "Mat",
     "type_match": false,
-    "error": "name 'subprocess' is not defined"
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
   },
   {
     "cell_id": "CV2_CONVERTPOINTSTOHOMOGENEOUS_DEFAULT",
@@ -693,7 +693,7 @@
     "observed_output_type": null,
     "declared_output_type": "Mat",
     "type_match": false,
-    "error": "name 'subprocess' is not defined"
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
   },
   {
     "cell_id": "CV2_CONVERTSCALEABS_DEFAULT",
@@ -701,7 +701,7 @@
     "observed_output_type": null,
     "declared_output_type": "Mat",
     "type_match": false,
-    "error": "name 'subprocess' is not defined"
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
   },
   {
     "cell_id": "CV2_CONVEXHULL_DEFAULT",
@@ -709,7 +709,7 @@
     "observed_output_type": null,
     "declared_output_type": "Mat",
     "type_match": false,
-    "error": "name 'subprocess' is not defined"
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
   },
   {
     "cell_id": "CV2_CONVEXITYDEFECTS_DEFAULT",
@@ -717,7 +717,7 @@
     "observed_output_type": null,
     "declared_output_type": "Mat",
     "type_match": false,
-    "error": "name 'subprocess' is not defined"
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
   },
   {
     "cell_id": "CV2_COPYMAKEBORDER_DEFAULT",
@@ -725,7 +725,7 @@
     "observed_output_type": null,
     "declared_output_type": "Mat",
     "type_match": false,
-    "error": "name 'subprocess' is not defined"
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
   },
   {
     "cell_id": "CV2_COPYTO_DEFAULT",
@@ -733,7 +733,7 @@
     "observed_output_type": null,
     "declared_output_type": "Mat",
     "type_match": false,
-    "error": "name 'subprocess' is not defined"
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
   },
   {
     "cell_id": "CV2_CORNEREIGENVALSANDVECS_DEFAULT",
@@ -741,7 +741,7 @@
     "observed_output_type": null,
     "declared_output_type": "Mat",
     "type_match": false,
-    "error": "name 'subprocess' is not defined"
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
   },
   {
     "cell_id": "CV2_CORNERHARRIS_DEFAULT",
@@ -749,7 +749,7 @@
     "observed_output_type": null,
     "declared_output_type": "Mat",
     "type_match": false,
-    "error": "name 'subprocess' is not defined"
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
   },
   {
     "cell_id": "CV2_CORNERMINEIGENVAL_DEFAULT",
@@ -757,7 +757,7 @@
     "observed_output_type": null,
     "declared_output_type": "Mat",
     "type_match": false,
-    "error": "name 'subprocess' is not defined"
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
   },
   {
     "cell_id": "CV2_CORNERSUBPIX_DEFAULT",
@@ -765,7 +765,7 @@
     "observed_output_type": null,
     "declared_output_type": "Mat",
     "type_match": false,
-    "error": "name 'subprocess' is not defined"
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
   },
   {
     "cell_id": "CV2_CORRECTMATCHES_DEFAULT",
@@ -773,7 +773,7 @@
     "observed_output_type": null,
     "declared_output_type": "Mat",
     "type_match": false,
-    "error": "name 'subprocess' is not defined"
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
   },
   {
     "cell_id": "CV2_COUNTNONZERO_DEFAULT",
@@ -781,7 +781,7 @@
     "observed_output_type": null,
     "declared_output_type": "int",
     "type_match": false,
-    "error": "name 'subprocess' is not defined"
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
   },
   {
     "cell_id": "CV2_CREATEALIGNMTB_DEFAULT",
@@ -789,7 +789,7 @@
     "observed_output_type": null,
     "declared_output_type": "AlignMTB",
     "type_match": false,
-    "error": "name 'subprocess' is not defined"
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
   },
   {
     "cell_id": "CV2_CREATEBACKGROUNDSUBTRACTORKNN_DEFAULT",
@@ -797,6 +797,6 @@
     "observed_output_type": null,
     "declared_output_type": "BackgroundSubtractorKNN",
     "type_match": false,
-    "error": "name 'subprocess' is not defined"
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    input_var = array([[[0, 0, 0],\n                ^^^^^\nNameError: name 'array' is not defined. Did you forget to import 'arr"
   }
 ]
