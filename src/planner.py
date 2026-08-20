@@ -208,32 +208,6 @@ class ZeroShotPlanner:
                         logger.warning(f"MISSING_NODE: LLM hallucinated node '{sub_id}'. Auto-correcting to SYNTH_{sub_id.upper()}")
                         sub_cells[i] = f"SYNTH_{sub_id.upper()}"
 
-            # Entry point typestate alignment: Ensure the macro begins with a valid bootstrap reader
-            # if the first sub-cell expects a complex domain type (DataFrame, Mat, etc.) from a file input
-            if sub_cells:
-                first_cell = self.orchestrator.loaded_cells.get(sub_cells[0])
-                if first_cell and hasattr(first_cell, "inputs"):
-                    first_in = getattr(first_cell.inputs, "type_name", "any")
-                    if first_in not in ("str", "any", "source_identifier", "Any", "*"):
-                        # Check if a reader node exists later in sub_cells
-                        reader_idx = -1
-                        for idx, sid in enumerate(sub_cells):
-                            scell = self.orchestrator.loaded_cells.get(sid)
-                            if scell and hasattr(scell, "inputs") and scell.inputs.type_name in ("str", "source_identifier"):
-                                reader_idx = idx
-                                break
-                        if reader_idx > 0:
-                            reader_id = sub_cells.pop(reader_idx)
-                            sub_cells.insert(0, reader_id)
-                            logger.info(f"[PLANNER ENTRY-ALIGN] Moved reader node '{reader_id}' to entry position.")
-                        elif reader_idx == -1:
-                            for cand in self.orchestrator.get_all_available_cells():
-                                if (hasattr(cand, "inputs") and hasattr(cand, "outputs") and
-                                    cand.inputs.type_name in ("str", "source_identifier") and
-                                    cand.outputs.type_name == first_in):
-                                    sub_cells.insert(0, cand.cell_id)
-                                    logger.info(f"[PLANNER ENTRY-ALIGN] Prepended reader node '{cand.cell_id}' for entry type '{first_in}'")
-                                    break
         return True
 
     def _run_deterministic_planning_pass(self, prompt: str) -> dict:

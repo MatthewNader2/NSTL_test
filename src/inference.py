@@ -10,39 +10,6 @@ import sys
 import types
 from config import MODELS_DIR, LOGS_DIR
 
-# Robust package mock for transformers.onnx for jinaai / HuggingFace model compatibility
-class DummyPackage(types.ModuleType):
-    def __init__(self, name):
-        super().__init__(name)
-        self.__path__ = []
-    def __getattr__(self, attr):
-        if attr in ('__file__', '__spec__'):
-            raise AttributeError(attr)
-        val = type(attr, (object,), {})
-        setattr(self, attr, val)
-        return val
-
-if 'transformers.onnx' not in sys.modules:
-    sys.modules['transformers.onnx'] = DummyPackage('transformers.onnx')
-if 'transformers.onnx.utils' not in sys.modules:
-    sys.modules['transformers.onnx.utils'] = DummyPackage('transformers.onnx.utils')
-
-# Defensive fallback for timm.data compatibility with newer/older versions
-try:
-    import timm.data
-    if not hasattr(timm.data, 'ImageNetInfo'):
-        timm.data.ImageNetInfo = type('ImageNetInfo', (object,), {})
-    if not hasattr(timm.data, 'infer_imagenet_subset'):
-        timm.data.infer_imagenet_subset = lambda *args, **kwargs: None
-except ImportError:
-    pass
-
-import transformers.pytorch_utils
-if not hasattr(transformers.pytorch_utils, 'find_pruneable_heads_and_indices'):
-    def find_pruneable_heads_and_indices(*args, **kwargs):
-        return set(), []
-    transformers.pytorch_utils.find_pruneable_heads_and_indices = find_pruneable_heads_and_indices
-
 import transformers.configuration_utils
 if not hasattr(transformers.configuration_utils.PretrainedConfig, 'is_decoder'):
     transformers.configuration_utils.PretrainedConfig.is_decoder = False

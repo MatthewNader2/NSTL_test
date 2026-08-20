@@ -132,14 +132,10 @@ class AliasRegistry:
     router.py (VIO-07), and internal_rag.py (VIO-62).
     """
 
-    # Seed aliases from well-known Python conventions
-    _SEED_ALIASES: Dict[str, str] = {
-        'pd': 'pandas', 'np': 'numpy', 'cv2': 'opencv',
-        'plt': 'matplotlib', 'sns': 'seaborn', 'tf': 'tensorflow',
-        'sk': 'scikit', 'sklearn': 'scikit', 'pytorch': 'torch',
-        'cvt': 'cvtcolor', 'convert': 'cvtcolor', 'color': 'cvtcolor', 'grayscale': 'cvtcolor', 'gray': 'cvtcolor', 'bgr': 'cvtcolor', 'bgr2gray': 'cvtcolor',
-        'missing': 'dropna', 'null': 'dropna', 'na': 'dropna', 'dropna': 'drop', 'sort_values': 'sort', 'save': 'write', 'imwrite': 'save', 'to_csv': 'save', 'csv': 'save', 'imread': 'read', 'load': 'read',
-    }
+    # Aliases are supplied by each harvested cell's metadata.  Keeping a
+    # built-in synonym list made retrieval favour the handful of benchmark
+    # APIs represented in that list and made new domains second-class.
+    _SEED_ALIASES: Dict[str, str] = {}
 
     def __init__(self):
         self._forward: Dict[str, str] = dict(self._SEED_ALIASES)
@@ -161,6 +157,18 @@ class AliasRegistry:
             domain = getattr(cell, 'domain_name', '') or ''
             if domain and len(domain) >= 2:
                 seen_domains.add(domain.lower())
+
+            metadata = getattr(cell, "metadata_tags", {}) or {}
+            aliases = metadata.get("domain_aliases", metadata.get("aliases", []))
+            if isinstance(aliases, str):
+                aliases = [aliases]
+            if domain and isinstance(aliases, (list, tuple, set)):
+                canonical = domain.lower()
+                for alias in aliases:
+                    alias = str(alias).strip().lower()
+                    if alias:
+                        registry._forward[alias] = canonical
+                        registry._reverse.setdefault(canonical, set()).add(alias)
         
         # Register any new domains as self-aliases
         for domain in seen_domains:

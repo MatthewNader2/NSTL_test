@@ -6,7 +6,6 @@ import unittest
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "src")))
 
 from unification import UnificationGate, types_unify, TOP_TYPE_SET
-from main import infer_goal_output_type
 
 class TestTypePropagationSoundness(unittest.TestCase):
     def test_types_unify_operator(self):
@@ -77,12 +76,6 @@ class TestTypePropagationSoundness(unittest.TestCase):
             trees_dir="trees"
         )
         self.assertTrue(is_valid_good, "UnificationGate wrongly rejected a valid matching typestate ('DataFrame').")
-
-    def test_typestate_propagation_inference(self):
-        """Verify prompt intent typestate propagation when downstream cell is unconstrained."""
-        self.assertEqual(infer_goal_output_type("Read data.csv and drop missing values"), "DataFrame")
-        self.assertEqual(infer_goal_output_type("Convert input.jpg to grayscale with opencv"), "Mat")
-        self.assertEqual(infer_goal_output_type("Compute dijkstra shortest path algorithm"), "dict")
 
     def test_lattice_no_any_outputs_invariant(self):
         """Lattice Invariant Test: Harvested Tier 1-4 node files have zero output wildcards."""

@@ -65,21 +65,9 @@ def log_coverage_gap(prompt: str, domain_guess: str, score: float, best_cell_id:
         logger.warning(f"[COVERAGE GAP LOGGING ERROR] Failed to log gap: {e}")
 
 
-def get_domain_threshold(domain_name: str) -> float:
-    if domain_name == "algorithms":
-        return 0.30
-    return 0.25
-
-
 # H-5 fix: define stop-words once at module level so the scoring inner loop
-
 # doesn't rebuild the set on every FAISS result iteration.
 _STOP_WORDS = STOP_WORDS
-
-# Multiplier applied to the score of a type-incompatible candidate.
-# A value of 0.15 means an incompatible cell must be ~6.7× more semantically
-# similar than a compatible one to beat it. Tunable here without touching logic.
-TYPE_MISMATCH_DISCOUNT = 0.15
 
 
 from dataclasses import dataclass, field
@@ -653,7 +641,7 @@ class LatticeRouter:
         valid_ids = {c.cell_id for c in candidates}
         candidates_dict = {c.cell_id: c for c in candidates}
 
-        k_search = self.rag_engine.index.ntotal
+        k_search = min(300, self.rag_engine.index.ntotal)
         distances, indices = self.rag_engine.index.search(prompt_embedding, k=k_search)
 
         prompt_tokens = set(re.findall(r"[a-zA-Z_]+", goal.lower()))
@@ -686,78 +674,20 @@ class LatticeRouter:
 
                     keyword_score = (token_hits / max(len(expanded_tokens), 1)) * 0.5
 
-                    # Penalize internal private helper modules and overload decorators
-                    if any(cid.startswith(prefix) for prefix in ["PANDAS_CORE_", "PANDAS_ERRORS_", "PANDAS_COMPAT_", "PANDAS_API_TYPING_", "PANDAS_IO_FORMATS_", "PANDAS_IO_PARSERS_", "PANDAS_IO_SAS_", "PANDAS_IO_EXCEL_", "PANDAS_IO_SQL_", "PANDAS_IO_STATA_", "PANDAS_IO_CLIPBOARD_", "PANDAS_IO_PYTABLES_", "PANDAS__LIBS_", "PANDAS_IO_API_", "PANDAS_ARRAYS_", "PANDAS_CATEGORICAL", "PANDAS_CATEGORICALINDEX_", "PANDAS_DATETIMEINDEX_", "PANDAS_INDEX_", "PANDAS_INTERVALINDEX_", "PANDAS_MULTIINDEX_", "PANDAS_PERIODINDEX_", "PANDAS_RANGEINDEX_", "PANDAS_SERIES_", "PANDAS_TIMESTAMP_", "CV2_UNDISTORT", "SCIPY_STATS_MSTATS_", "SCIPY_INTERPOLATE_AAA_", "SCIPY_SPARSE_", "SKLEARN_EXTERNALS_", "NUMPY_F2PY_", "NUMPY_LIB_", "NUMPY_MA_"]) or "OVERLOAD" in cid or "WRAPPER" in cid:
+                    # Cell publication and lifecycle are data properties, not
+                    # cell-ID naming conventions.  Harvesters must tag helpers
+                    # explicitly so a new library gets identical treatment.
+                    metadata = getattr(cell, "metadata_tags", {}) or {}
+                    if metadata.get("is_active", True) is False or metadata.get("is_deprecated", False):
+                        continue
+                    if metadata.get("is_internal", False) or metadata.get("visibility") == "internal":
                         keyword_score *= 0.01
-
-                    # Action verb alignment bonus to differentiate operational stages (read vs write vs clean vs sort)
-                    action_verbs = {"read", "load", "open", "drop", "dropna", "clean", "sort", "convert", "write", "save", "imwrite", "to_csv", "csv", "train", "fit", "predict", "dijkstra", "scale", "normalize"}
-                    prompt_actions = prompt_tokens.intersection(action_verbs)
-                    cell_actions = set(cell_sub_tokens).intersection(action_verbs)
-                    action_match = len(prompt_actions.intersection(cell_actions))
-                    if action_match > 0:
-                        keyword_score += 0.35 * action_match
-
-                    # Sink completion bonus for file-writing cells when prompt requests saving/writing output
-                    is_sink_cell = getattr(cell, 'metadata_tags', {}).get("is_sink", False) or any(k in cid_lower for k in ["to_csv", "imwrite", "save_predictions", "to_json", "to_excel", "to_parquet", "write_csv", "save_mat", "save_npz", "savetxt"]) or (getattr(cell.outputs, 'type_name', '') in ("None", "void", "NoneType", "bool") and any(k in cid_lower for k in ["imwrite", "to_csv", "save", "write"]))
-                    if is_sink_cell and current_node is None:
-                        keyword_score -= 1.00
-                    elif is_sink_cell and current_node is not None and any(act in prompt_actions for act in ["write", "save", "imwrite", "to_csv", "csv"]):
-                        keyword_score += 3.50
-                    elif not is_sink_cell and current_node is not None and any(act in prompt_actions for act in ["write", "save", "imwrite", "to_csv", "csv"]):
-                        keyword_score -= 1.00
-
-                    # Specific operational bonuses for missing data, dijkstra, ML classification, and normalization
-                    if any(term in prompt_tokens for term in ["missing", "null", "na", "dropna", "clean"]):
-                        if "DROPNA" in cid:
-                            keyword_score += 0.50
-
-                    if any(term in prompt_tokens for term in ["numeric", "features"]):
-                        if "SELECT_NUMERIC" in cid:
-                            keyword_score += 1.50
-                        elif "DESCRIBE" in cid:
-                            keyword_score -= 1.00
-
-                    if any(term in prompt_tokens for term in ["normalize", "scale", "scaler", "standard"]):
-                        if "STANDARD_SCALER" in cid or "SCALER" in cid:
-                            keyword_score += 1.00
-
-                    if any(term in prompt_tokens for term in ["dijkstra", "shortest", "path"]):
-                        if "PYTHON_DIJKSTRA" in cid:
-                            keyword_score += 2.00
-                        elif "DIJKSTRA" in cid:
-                            keyword_score += 1.00
-
-                    if any(term in prompt_tokens for term in ["randomforest", "train", "classifier", "fit"]):
-                        if "RANDOMFORESTCLASSIFIER" in cid or "RANDOM_FOREST" in cid:
-                            keyword_score += 1.00
-
-                    if any(term in prompt_tokens for term in ["predict", "predictions"]):
-                        if "MODEL_PREDICT" in cid or "SAVE_PREDICTIONS" in cid:
-                            keyword_score += 1.00
-
-                    if any(term in prompt_tokens for term in ["grayscale", "gray", "bgr2gray", "cvtcolor"]):
-                        if "CVTCOLOR" in cid:
-                            keyword_score += 1.00
-
-                    if current_node is None:
-                        if any(term in prompt_tokens for term in ["image", "jpg", "png", "opencv", "cv2"]):
-                            if "IMREAD" in cid:
-                                keyword_score += 1.00
-                        elif any(term in prompt_tokens for term in ["csv", "data.csv", "read", "load"]):
-                            if "READ_CSV" in cid:
-                                keyword_score += 1.00
 
                     if current_type and current_type.lower() != 'any':
                         input_t = getattr(cell.inputs, 'type_name', 'any')
                         param_types = [getattr(p, 'type_name', p.get('type_name', '')) if isinstance(p, dict) else getattr(p, 'type_name', '') for p in getattr(cell, 'parameters', [])]
                         if types_unify(current_type, input_t) or any(types_unify(current_type, pt) for pt in param_types):
-                            c_low = current_type.lower()
-                            i_low = input_t.lower()
-                            if c_low == i_low or (c_low, i_low) in [("mat", "ndarray"), ("ndarray", "mat"), ("dataframe", "ndarray"), ("ndarray", "dataframe")]:
-                                type_factor = 1.00
-                            else:
-                                type_factor = 0.85
+                            type_factor = 1.00 if current_type.lower() == input_t.lower() else 0.85
                         else:
                             type_factor = TYPE_MISMATCH_DISCOUNT
                     else:
@@ -767,49 +697,31 @@ class LatticeRouter:
                     if not cell_domain:
                         cell_domain = cell.cell_id.split('_')[0].lower()
 
-                    domain_factor = 1.0
-                    goal_lower = (goal or "").lower()
-                    intent_type = None
-                    if any(k in goal_lower for k in ["csv", "dataframe", "table", "pandas", "data", "numeric", "features", "clean", "missing", "salary", "age", "drop", "rows", "column", "sort", "excel", "tsv"]):
-                        intent_type = "DataFrame"
-                    elif any(k in goal_lower for k in ["image", "jpg", "png", "opencv", "cv2", "gray", "grayscale", "blur", "pixel", "disparity"]):
-                        intent_type = "Mat"
+                    known_domains = {
+                        self.alias_registry.resolve(getattr(candidate, "domain_name", ""))
+                        for candidate in candidates if getattr(candidate, "domain_name", "")
+                    }
+                    prompt_domains = {
+                        self.alias_registry.resolve(token)
+                        for token in CellTokenizer.tokenize_prompt(goal)
+                    }
+                    active_domains = known_domains.intersection(prompt_domains)
+                    canonical_cell_domain = self.alias_registry.resolve(cell_domain)
+                    if active_domains:
+                        domain_factor = (
+                            DOMAIN_MATCH_FACTOR if canonical_cell_domain in active_domains
+                            else DOMAIN_CONFLICT_FACTOR
+                        )
+                    elif current_node and getattr(current_node, "domain_name", ""):
+                        previous_domain = self.alias_registry.resolve(current_node.domain_name)
+                        domain_factor = (
+                            DOMAIN_NEUTRAL_FACTOR if previous_domain == canonical_cell_domain
+                            else DOMAIN_CONFLICT_FACTOR
+                        )
+                    else:
+                        domain_factor = DOMAIN_NEUTRAL_FACTOR
 
-                    if any(k in goal_lower for k in ["opencv", "cv2", "image", "jpg", "png"]):
-                        if cell_domain in ["cv2", "opencv", "image_processing"]:
-                            domain_factor = DOMAIN_MATCH_FACTOR
-                        elif cell_domain in ["scipy", "pandas", "data_engineering", "numpy", "sklearn"]:
-                            domain_factor = DOMAIN_CONFLICT_FACTOR
-                        else:
-                            domain_factor = DOMAIN_NEUTRAL_FACTOR
-                    elif any(k in goal_lower for k in ["csv", "dataframe", "pandas", "data.csv", "predictions.csv"]):
-                        if cell_domain in ["cv2", "opencv", "image_processing"]:
-                            domain_factor = DOMAIN_CONFLICT_FACTOR
-                    elif intent_type == "DataFrame":
-                        if cell_domain in ["pandas", "data_engineering", "data_cleaning", "data"]:
-                            domain_factor = DOMAIN_MATCH_FACTOR
-                        elif cell_domain in ["cv2", "image_processing"]:
-                            domain_factor = DOMAIN_CONFLICT_FACTOR
-                        else:
-                            domain_factor = DOMAIN_NEUTRAL_FACTOR
-                    elif current_type and current_type not in ('any', 'str', 'None'):
-                        domain_factor = self.type_registry.is_domain_compatible(cell_domain, current_type)
-                    elif current_node and getattr(current_node, 'domain_name', None):
-                        c_dom = current_node.domain_name.lower()
-                        if c_dom not in ("python", "core", "builtins", "generic"):
-                            c_dom_canon = self.type_registry.resolve_alias(c_dom)
-                            cell_dom_canon = self.type_registry.resolve_alias(cell_domain)
-                            if cell_dom_canon and c_dom_canon and cell_dom_canon != c_dom_canon:
-                                domain_factor = DOMAIN_CONFLICT_FACTOR
-
-                    # Penalize internal private helper modules, excel writers, and overload decorators
-                    if any(cid.startswith(prefix) for prefix in ["PANDAS_CORE_", "PANDAS_ERRORS_", "PANDAS_COMPAT_", "PANDAS_API_TYPING_", "PANDAS_IO_FORMATS_", "PANDAS_IO_PARSERS_", "PANDAS_IO_SAS_", "PANDAS_IO_EXCEL_", "PANDAS_EXCELWRITER_", "PANDAS_IO_SQL_", "PANDAS_IO_STATA_", "PANDAS_IO_CLIPBOARD_", "PANDAS_IO_PYTABLES_", "PANDAS__LIBS_", "PANDAS_IO_API_", "PANDAS_ARRAYS_", "PANDAS_CATEGORICAL", "PANDAS_CATEGORICALINDEX_", "PANDAS_DATETIMEINDEX_", "PANDAS_INDEX_", "PANDAS_INTERVALINDEX_", "PANDAS_MULTIINDEX_", "PANDAS_PERIODINDEX_", "PANDAS_RANGEINDEX_", "PANDAS_SERIES_", "PANDAS_TIMESTAMP_", "CV2_UNDISTORT", "SCIPY_STATS_MSTATS_", "SCIPY_SPARSE_", "SKLEARN_EXTERNALS_", "NUMPY_F2PY_", "NUMPY_LIB_", "NUMPY_MA_"]) or "OVERLOAD" in cid or "WRAPPER" in cid:
-                        domain_factor *= 0.01
-
-                    # Stage-2 curated cell bonus: strongly prefer verified, curated cells
-                    stage_bonus = 0.0
-                    if getattr(cell, 'stage', 1) == 2:
-                        stage_bonus = 2.0
+                    stage_bonus = 0.10 if metadata.get("verified", False) else 0.0
 
                     adjusted_dist = (dist + keyword_score + stage_bonus) * type_factor * domain_factor
                     scored_results.append((adjusted_dist, cell))

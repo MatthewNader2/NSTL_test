@@ -276,11 +276,15 @@ class LatticeOrchestrator:
         try:
             conn = sqlite3.connect(self.db_path, check_same_thread=False)
             cursor = conn.cursor()
-            cursor.execute("SELECT cell_id, domain_name, node_type, stage, keywords, input_type, input_state, output_type, output_state FROM nodes")
-            rows = cursor.fetchall()
+            try:
+                cursor.execute("SELECT cell_id, domain_name, node_type, stage, keywords, input_type, input_state, output_type, output_state, parameters, metadata_tags FROM nodes")
+                rows = cursor.fetchall()
+            except sqlite3.OperationalError:
+                cursor.execute("SELECT cell_id, domain_name, node_type, stage, keywords, input_type, input_state, output_type, output_state FROM nodes")
+                rows = [r + (None, None) for r in cursor.fetchall()]
             
             for row in rows:
-                cell_id, domain_name, node_type, stage, keywords_json, in_type, in_state, out_type, out_state = row
+                cell_id, domain_name, node_type, stage, keywords_json, in_type, in_state, out_type, out_state, param_json, meta_json = row
                 
                 try:
                     keywords = json.loads(keywords_json) if keywords_json else []
@@ -290,8 +294,6 @@ class LatticeOrchestrator:
                 in_sig = AlgebraicSignature(type_name=in_type, state=in_state)
                 out_sig = AlgebraicSignature(type_name=out_type, state=out_state)
 
-                # B-5 fix: respect node_type; build MacroCell for macro nodes
-                # instead of blindly casting everything to MicroCell.
                 if node_type == "macro":
                     cell = MacroCell(
                         cell_id=cell_id,
@@ -315,26 +317,17 @@ class LatticeOrchestrator:
                         db_path=self.db_path
                     )
                 
-                # Load parameter schema if available
-                try:
-                    param_cursor = conn.cursor()
-                    param_cursor.execute("SELECT parameters, metadata_tags FROM nodes WHERE cell_id = ?", (cell_id,))
-                    param_row = param_cursor.fetchone()
-                    param_cursor.close()
-                    if param_row:
-                        if param_row[0]:
-                            try:
-                                params_data = json.loads(param_row[0])
-                                cell.parameters = [ParameterSlot(**p) for p in params_data]
-                            except (json.JSONDecodeError, TypeError):
-                                pass
-                        if param_row[1]:
-                            try:
-                                cell.metadata_tags = json.loads(param_row[1])
-                            except (json.JSONDecodeError, TypeError):
-                                pass
-                except Exception:
-                    pass  # columns may not exist yet in older DBs
+                if param_json:
+                    try:
+                        params_data = json.loads(param_json)
+                        cell.parameters = [ParameterSlot(**p) for p in params_data]
+                    except (json.JSONDecodeError, TypeError):
+                        pass
+                if meta_json:
+                    try:
+                        cell.metadata_tags = json.loads(meta_json)
+                    except (json.JSONDecodeError, TypeError):
+                        pass
 
                 self.loaded_cells[cell.cell_id] = cell
                 logger.debug(f"Loaded {node_type} cell {cell.cell_id} from SQLite.")

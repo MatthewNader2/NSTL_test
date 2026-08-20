@@ -82,17 +82,6 @@ from inference import ModelManager
 from config import API_HOST, API_PORT, CORS_ORIGINS
 
 
-def infer_goal_output_type(prompt: str) -> str:
-    prompt_lower = (prompt or "").lower()
-    if "opencv" in prompt_lower or "jpg" in prompt_lower or "image" in prompt_lower or "bgr" in prompt_lower or "grayscale" in prompt_lower:
-        return "Mat"
-    if "dijkstra" in prompt_lower or "shortest path" in prompt_lower or "distances" in prompt_lower:
-        return "dict"
-    if "dataframe" in prompt_lower or "csv" in prompt_lower or "pandas" in prompt_lower or "data.csv" in prompt_lower:
-        return "DataFrame"
-    return "any"
-
-
 global_orchestrator = None
 global_rag_engine = None
 engine_device = "cpu"
@@ -394,11 +383,6 @@ def run_prompt(req: RunRequest):
 
     compiled_blocks = []
     explicit_filename = context.extracted_parameters.get("explicit_filename") or context.extracted_parameters.get("input_filename")
-    if not explicit_filename:
-        if os.path.exists("data.csv"):
-            explicit_filename = "data.csv"
-        elif os.path.exists("input.jpg"):
-            explicit_filename = "input.jpg"
 
     if explicit_filename:
         compiled_blocks.append(f"input_source = {explicit_filename!r}")

@@ -136,10 +136,16 @@ class GEVRSandbox:
         name_err = re.search(r"NameError: name '([a-zA-Z0-9_]+)' is not defined", error_trace)
         if name_err:
             missing_name = name_err.group(1)
-            if missing_name in CANONICAL_IMPORT_MAP:
-                stmt, _ = CANONICAL_IMPORT_MAP[missing_name]
-                if stmt not in code:
+            try:
+                from unification import resolve_unbound_module
+                stmt = resolve_unbound_module(missing_name)
+                if stmt and stmt not in code:
                     return f"{stmt}\n{code}"
+            except ImportError:
+                if missing_name in CANONICAL_IMPORT_MAP:
+                    stmt, _ = CANONICAL_IMPORT_MAP[missing_name]
+                    if stmt not in code:
+                        return f"{stmt}\n{code}"
 
         # 2. Fix module not found if standard alias was used
         mod_err = re.search(r"ModuleNotFoundError: No module named '([a-zA-Z0-9_]+)'", error_trace)

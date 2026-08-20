@@ -85,7 +85,8 @@ import os
 pd.DataFrame({'col1': [1, 2, np.nan, 4], 'col2': [10, 20, 30, 40]}).to_csv('data.csv', index=False)
 """,
         "validate": """
-assert stdout.strip() != '', 'Expected some summary output to stdout'
+stdout_clean = stdout.strip().lower()
+assert any(term in stdout_clean for term in ["mean", "std", "count", "min", "max", "50%", "describe", "summary", "shape"]), f"Expected statistical summary output, got: {stdout[:200]}"
 """
     },
     {

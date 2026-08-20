@@ -256,6 +256,15 @@ class LocalRAG:
             
         self.index.add(embeddings)
 
+        # Pre-build cached AliasRegistry and O(1) container sibling lookup map
+        self._alias_registry = AliasRegistry.build_from_cells(list(self.id_to_schema.values()))
+        self._container_sibling_map = {}
+        for s_idx, s_cell in self.id_to_schema.items():
+            s_in_dict = s_cell.get("inputs", {})
+            s_in_type = s_in_dict.get("type_name", s_in_dict.get("input_type", "any"))
+            kw_key = tuple(sorted(s_cell.get("keywords", [])))
+            self._container_sibling_map.setdefault((s_in_type, kw_key), []).append(s_idx)
+
         self.logger.info(f"FAISS index built with {self.index.ntotal} vectors.")
 
     def add_dynamic_cell(self, cell_dict: dict):
@@ -378,8 +387,11 @@ class LocalRAG:
             return None
 
         try:
-            # 1. Use AliasRegistry instead of triplicated common_words/alias_map
-            alias_reg = AliasRegistry.build_from_cells(list(self.id_to_schema.values()))
+            # Use cached AliasRegistry
+            alias_reg = getattr(self, "_alias_registry", None)
+            if alias_reg is None:
+                alias_reg = AliasRegistry.build_from_cells(list(self.id_to_schema.values()))
+                self._alias_registry = alias_reg
             
             active_domains = set()
             dh_lower = domain_hint.lower()
@@ -408,9 +420,11 @@ class LocalRAG:
             candidate_indices = list(indices[0])
             candidate_distances = list(distances[0])
 
-            # Container Sibling Expansion (VIO-49)
+            # Container Sibling Expansion (VIO-49) — Fast O(1) Pre-Indexed Map Lookup
             expanded_candidates = []
             seen_idx = set()
+            sibling_map = getattr(self, "_container_sibling_map", {})
+
             for dist, idx in zip(candidate_distances, candidate_indices):
                 if idx == -1 or idx not in self.id_to_schema:
                     continue
@@ -421,17 +435,12 @@ class LocalRAG:
                 c = self.id_to_schema[idx]
                 in_dict = c.get("inputs", {})
                 c_in_type = in_dict.get("type_name", in_dict.get("input_type", "any"))
+                kw_key = tuple(sorted(c.get("keywords", [])))
                 
-                for s_idx, s_cell in self.id_to_schema.items():
-                    if s_idx in seen_idx:
-                        continue
-                    s_in_dict = s_cell.get("inputs", {})
-                    s_in_type = s_in_dict.get("type_name", s_in_dict.get("input_type", "any"))
-                    
-                    if is_subtype(s_in_type, c_in_type) or is_subtype(c_in_type, s_in_type):
-                        if set(s_cell.get("keywords", [])) == set(c.get("keywords", [])):
-                            seen_idx.add(s_idx)
-                            expanded_candidates.append((dist, s_idx))
+                for s_idx in sibling_map.get((c_in_type, kw_key), []):
+                    if s_idx not in seen_idx:
+                        seen_idx.add(s_idx)
+                        expanded_candidates.append((dist, s_idx))
 
             for dist, idx in expanded_candidates:
                 cell = self.id_to_schema[idx]

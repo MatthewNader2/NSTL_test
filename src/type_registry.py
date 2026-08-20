@@ -66,34 +66,20 @@ class TypeRegistry:
 
     def is_domain_compatible(self, cell_domain: str, expected_type: str) -> float:
         """
-        Returns a compatibility factor:
+        Returns a compatibility factor dynamically derived from harvested type-domain associations:
           1.0 if cell_domain is in domains_for_type(expected_type) or expected_type is 'any'
-          0.5 if no domain information is available (neutral)
-          0.01 if cell_domain conflicts with expected_type's domains
+          0.5 if no domain information is available for expected_type (neutral)
+          0.01 if cell_domain conflicts with expected_type's registered domains
         """
-        if expected_type == 'any':
+        if not expected_type or expected_type.lower() in ('any', 'top', '*'):
             return 1.0
             
         canonical_cell_domain = self.resolve_alias(cell_domain or '')
-
-        # Domain-specific typestate invariants
-        if expected_type in ('DataFrame', 'Series', 'pd.DataFrame', 'DataFrame_Object'):
-            if canonical_cell_domain in ('opencv', 'cv2', 'image_processing'):
-                return 0.01
-            if canonical_cell_domain in ('pandas', 'scikit', 'scipy', 'numpy', 'python', 'core', 'data_engineering', 'ml', 'generic', 'synthesized_domain'):
-                return 1.0
-
-        if expected_type in ('Mat', 'Image', 'cv2.Mat', 'Mat_Object'):
-            if canonical_cell_domain in ('pandas', 'data_engineering'):
-                return 0.01
-            if canonical_cell_domain in ('opencv', 'cv2', 'numpy', 'python', 'core', 'image_processing', 'image', 'generic', 'synthesized_domain'):
-                return 1.0
+        if not canonical_cell_domain or canonical_cell_domain in ('python', 'core', 'generic', 'synthesized_domain'):
+            return 1.0
 
         expected_domains = self.domains_for_type(expected_type)
         if not expected_domains:
-            return 0.5
-            
-        if not canonical_cell_domain:
             return 0.5
             
         if canonical_cell_domain in expected_domains:

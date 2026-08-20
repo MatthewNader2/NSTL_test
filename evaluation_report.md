@@ -15,11 +15,11 @@ This paper evaluation report documents the benchmark of the hardened **Neural Sy
 
 | Task ID | Domain | Profile A | Profile D | Validation Status |
 |---|---|---|---|---|
-| `pandas_csv_clean` | Data Engineering | 30.330s (PASSED) | 31.856s (PASSED) | **PASSED** |
-| `opencv_gray_convert` | Image Processing | 29.138s (PASSED) | 33.680s (PASSED) | **PASSED** |
-| `vague_data_transform` | Vague Human Prompt | 20.593s (PASSED) | 20.882s (PASSED) | **PASSED** |
-| `long_ml_pipeline` | Long ML/Data Pipeline | 41.304s (PASSED) | 42.843s (PASSED) | **PASSED** |
-| `dijkstra_algorithm` | Multi-Step Algorithm | 12.566s (PASSED) | 12.641s (PASSED) | **PASSED** |
+| `pandas_csv_clean` | Data Engineering | 19.454s (PASSED) | 20.385s (PASSED) | **PASSED** |
+| `opencv_gray_convert` | Image Processing | 21.702s (PASSED) | 18.086s (PASSED) | **PASSED** |
+| `vague_data_transform` | Vague Human Prompt | 29.644s (FAILED) | 27.288s (FAILED) | **FAILED** |
+| `long_ml_pipeline` | Long ML/Data Pipeline | 44.704s (FAILED) | 46.720s (FAILED) | **FAILED** |
+| `dijkstra_algorithm` | Multi-Step Algorithm | 12.228s (PASSED) | 15.030s (FAILED) | **FAILED** |
 
 ---
 
@@ -27,13 +27,13 @@ This paper evaluation report documents the benchmark of the hardened **Neural Sy
 
 ### A. Mean Execution Latency per Profile
 
-- **Profile A**: **26.786s** average generation latency
-- **Profile D**: **28.380s** average generation latency
+- **Profile A**: **25.546s** average generation latency
+- **Profile D**: **25.502s** average generation latency
 
 ### B. AST Node Program Complexity
 
-- **Profile A**: Average AST Node Count = **106.8 nodes**
-- **Profile D**: Average AST Node Count = **106.8 nodes**
+- **Profile A**: Average AST Node Count = **83.3 nodes**
+- **Profile D**: Average AST Node Count = **52.5 nodes**
 
 ---
 
