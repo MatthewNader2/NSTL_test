@@ -680,6 +680,8 @@ class UnificationGate:
                                         and arg_id not in context.registry):
                                     if valid_vars:
                                         arg.id = list(valid_vars)[0]
+                                    else:
+                                        return ast.copy_location(ast.Constant(value=arg_id), arg)
                             new_args.append(arg)
                         node.args = new_args
                     return node
