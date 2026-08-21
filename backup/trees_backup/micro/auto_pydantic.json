@@ -1,0 +1,605 @@
+{
+  "domain_name": "pydantic_domain",
+  "cells": [
+    {
+      "cell_id": "micro_pydantic_Field",
+      "type": "micro",
+      "stage": 1,
+      "keywords": [
+        "pydantic",
+        "Field"
+      ],
+      "inputs": {
+        "type_name": "Tuple[Any, Callable[[], Any] | Callable[[dict[str, Any]], Any] | None, str | None, int | None, str | AliasPath | AliasChoices | None, str | None, str | None, Callable[[str, FieldInfo], str] | None, str | None, list[Any] | None, bool | None, str | types.Discriminator | None, Deprecated | str | bool | None, JsonDict | Callable[[JsonDict], None] | None, bool | None, bool | None, bool, bool | None, bool | None, bool | None, str | Pattern[str] | None, bool | None, bool | None, annotated_types.SupportsGt | None, annotated_types.SupportsGe | None, annotated_types.SupportsLt | None, annotated_types.SupportsLe | None, float | None, bool | None, int | None, int | None, int | None, int | None, Literal['smart', 'left_to_right'], bool | None, Unpack[_EmptyKwargs]]",
+        "state": "raw"
+      },
+      "outputs": {
+        "type_name": "Any",
+        "state": "computed"
+      },
+      "domain_implementations": {
+        "Python_Core": {
+          "code": "import pydantic\n{output_var} = pydantic.Field(*{input_var})",
+          "dependencies": [
+            "pydantic"
+          ]
+        }
+      }
+    },
+    {
+      "cell_id": "micro_pydantic_PrivateAttr",
+      "type": "micro",
+      "stage": 1,
+      "keywords": [
+        "pydantic",
+        "PrivateAttr"
+      ],
+      "inputs": {
+        "type_name": "Tuple[Any, Callable[[], Any] | None, Literal[False]]",
+        "state": "raw"
+      },
+      "outputs": {
+        "type_name": "Any",
+        "state": "computed"
+      },
+      "domain_implementations": {
+        "Python_Core": {
+          "code": "import pydantic\n{output_var} = pydantic.PrivateAttr(*{input_var})",
+          "dependencies": [
+            "pydantic"
+          ]
+        }
+      }
+    },
+    {
+      "cell_id": "micro_pydantic_computed_field",
+      "type": "micro",
+      "stage": 1,
+      "keywords": [
+        "pydantic",
+        "computed_field"
+      ],
+      "inputs": {
+        "type_name": "Tuple[PropertyT | None, str | None, int | None, str | None, Callable[[str, ComputedFieldInfo], str] | None, str | None, Deprecated | str | bool | None, list[Any] | None, JsonDict | Callable[[JsonDict], None] | None, bool | None, Any]",
+        "state": "raw"
+      },
+      "outputs": {
+        "type_name": "PropertyT | Callable[[PropertyT], PropertyT]",
+        "state": "computed"
+      },
+      "domain_implementations": {
+        "Python_Core": {
+          "code": "import pydantic\n{output_var} = pydantic.computed_field(*{input_var})",
+          "dependencies": [
+            "pydantic"
+          ]
+        }
+      }
+    },
+    {
+      "cell_id": "micro_pydantic_conbytes",
+      "type": "micro",
+      "stage": 1,
+      "keywords": [
+        "pydantic",
+        "conbytes"
+      ],
+      "inputs": {
+        "type_name": "Tuple[int | None, int | None, bool | None]",
+        "state": "raw"
+      },
+      "outputs": {
+        "type_name": "type[bytes]",
+        "state": "computed"
+      },
+      "domain_implementations": {
+        "Python_Core": {
+          "code": "import pydantic\n{output_var} = pydantic.conbytes(*{input_var})",
+          "dependencies": [
+            "pydantic"
+          ]
+        }
+      }
+    },
+    {
+      "cell_id": "micro_pydantic_condate",
+      "type": "micro",
+      "stage": 1,
+      "keywords": [
+        "pydantic",
+        "condate"
+      ],
+      "inputs": {
+        "type_name": "Tuple[bool | None, date | None, date | None, date | None, date | None]",
+        "state": "raw"
+      },
+      "outputs": {
+        "type_name": "type[date]",
+        "state": "computed"
+      },
+      "domain_implementations": {
+        "Python_Core": {
+          "code": "import pydantic\n{output_var} = pydantic.condate(*{input_var})",
+          "dependencies": [
+            "pydantic"
+          ]
+        }
+      }
+    },
+    {
+      "cell_id": "micro_pydantic_condecimal",
+      "type": "micro",
+      "stage": 1,
+      "keywords": [
+        "pydantic",
+        "condecimal"
+      ],
+      "inputs": {
+        "type_name": "Tuple[bool | None, int | Decimal | None, int | Decimal | None, int | Decimal | None, int | Decimal | None, int | Decimal | None, int | None, int | None, bool | None]",
+        "state": "raw"
+      },
+      "outputs": {
+        "type_name": "type[Decimal]",
+        "state": "computed"
+      },
+      "domain_implementations": {
+        "Python_Core": {
+          "code": "import pydantic\n{output_var} = pydantic.condecimal(*{input_var})",
+          "dependencies": [
+            "pydantic"
+          ]
+        }
+      }
+    },
+    {
+      "cell_id": "micro_pydantic_confloat",
+      "type": "micro",
+      "stage": 1,
+      "keywords": [
+        "pydantic",
+        "confloat"
+      ],
+      "inputs": {
+        "type_name": "Tuple[bool | None, float | None, float | None, float | None, float | None, float | None, bool | None]",
+        "state": "raw"
+      },
+      "outputs": {
+        "type_name": "type[float]",
+        "state": "computed"
+      },
+      "domain_implementations": {
+        "Python_Core": {
+          "code": "import pydantic\n{output_var} = pydantic.confloat(*{input_var})",
+          "dependencies": [
+            "pydantic"
+          ]
+        }
+      }
+    },
+    {
+      "cell_id": "micro_pydantic_confrozenset",
+      "type": "micro",
+      "stage": 1,
+      "keywords": [
+        "pydantic",
+        "confrozenset"
+      ],
+      "inputs": {
+        "type_name": "Tuple[type[HashableItemType], int | None, int | None]",
+        "state": "raw"
+      },
+      "outputs": {
+        "type_name": "type[frozenset[HashableItemType]]",
+        "state": "computed"
+      },
+      "domain_implementations": {
+        "Python_Core": {
+          "code": "import pydantic\n{output_var} = pydantic.confrozenset(*{input_var})",
+          "dependencies": [
+            "pydantic"
+          ]
+        }
+      }
+    },
+    {
+      "cell_id": "micro_pydantic_conint",
+      "type": "micro",
+      "stage": 1,
+      "keywords": [
+        "pydantic",
+        "conint"
+      ],
+      "inputs": {
+        "type_name": "Tuple[bool | None, int | None, int | None, int | None, int | None, int | None]",
+        "state": "raw"
+      },
+      "outputs": {
+        "type_name": "type[int]",
+        "state": "computed"
+      },
+      "domain_implementations": {
+        "Python_Core": {
+          "code": "import pydantic\n{output_var} = pydantic.conint(*{input_var})",
+          "dependencies": [
+            "pydantic"
+          ]
+        }
+      }
+    },
+    {
+      "cell_id": "micro_pydantic_conlist",
+      "type": "micro",
+      "stage": 1,
+      "keywords": [
+        "pydantic",
+        "conlist"
+      ],
+      "inputs": {
+        "type_name": "Tuple[type[AnyItemType], int | None, int | None, bool | None]",
+        "state": "raw"
+      },
+      "outputs": {
+        "type_name": "type[list[AnyItemType]]",
+        "state": "computed"
+      },
+      "domain_implementations": {
+        "Python_Core": {
+          "code": "import pydantic\n{output_var} = pydantic.conlist(*{input_var})",
+          "dependencies": [
+            "pydantic"
+          ]
+        }
+      }
+    },
+    {
+      "cell_id": "micro_pydantic_conset",
+      "type": "micro",
+      "stage": 1,
+      "keywords": [
+        "pydantic",
+        "conset"
+      ],
+      "inputs": {
+        "type_name": "Tuple[type[HashableItemType], int | None, int | None]",
+        "state": "raw"
+      },
+      "outputs": {
+        "type_name": "type[set[HashableItemType]]",
+        "state": "computed"
+      },
+      "domain_implementations": {
+        "Python_Core": {
+          "code": "import pydantic\n{output_var} = pydantic.conset(*{input_var})",
+          "dependencies": [
+            "pydantic"
+          ]
+        }
+      }
+    },
+    {
+      "cell_id": "micro_pydantic_constr",
+      "type": "micro",
+      "stage": 1,
+      "keywords": [
+        "pydantic",
+        "constr"
+      ],
+      "inputs": {
+        "type_name": "Tuple[bool | None, bool | None, bool | None, bool | None, int | None, int | None, str | Pattern[str] | None]",
+        "state": "raw"
+      },
+      "outputs": {
+        "type_name": "type[str]",
+        "state": "computed"
+      },
+      "domain_implementations": {
+        "Python_Core": {
+          "code": "import pydantic\n{output_var} = pydantic.constr(*{input_var})",
+          "dependencies": [
+            "pydantic"
+          ]
+        }
+      }
+    },
+    {
+      "cell_id": "micro_pydantic_create_model",
+      "type": "micro",
+      "stage": 1,
+      "keywords": [
+        "pydantic",
+        "create_model"
+      ],
+      "inputs": {
+        "type_name": "Tuple[str, ConfigDict | None, str | None, type[ModelT] | tuple[type[ModelT], ...] | None, str | None, dict[str, Callable[..., Any]] | None, dict[str, Any] | None, Any | tuple[str, Any]]",
+        "state": "raw"
+      },
+      "outputs": {
+        "type_name": "type[ModelT]",
+        "state": "computed"
+      },
+      "domain_implementations": {
+        "Python_Core": {
+          "code": "import pydantic\n{output_var} = pydantic.create_model(*{input_var})",
+          "dependencies": [
+            "pydantic"
+          ]
+        }
+      }
+    },
+    {
+      "cell_id": "micro_pydantic_field_serializer",
+      "type": "micro",
+      "stage": 1,
+      "keywords": [
+        "pydantic",
+        "field_serializer"
+      ],
+      "inputs": {
+        "type_name": "Tuple[str, Literal['plain', 'wrap'], Any, WhenUsed, bool | None]",
+        "state": "raw"
+      },
+      "outputs": {
+        "type_name": "Callable[[_FieldWrapSerializerT], _FieldWrapSerializerT] | Callable[[_FieldPlainSerializerT], _FieldPlainSerializerT]",
+        "state": "computed"
+      },
+      "domain_implementations": {
+        "Python_Core": {
+          "code": "import pydantic\n{output_var} = pydantic.field_serializer(*{input_var})",
+          "dependencies": [
+            "pydantic"
+          ]
+        }
+      }
+    },
+    {
+      "cell_id": "micro_pydantic_field_validator",
+      "type": "micro",
+      "stage": 1,
+      "keywords": [
+        "pydantic",
+        "field_validator"
+      ],
+      "inputs": {
+        "type_name": "Tuple[str, str, FieldValidatorModes, bool | None, Any]",
+        "state": "raw"
+      },
+      "outputs": {
+        "type_name": "Callable[[Any], Any]",
+        "state": "computed"
+      },
+      "domain_implementations": {
+        "Python_Core": {
+          "code": "import pydantic\n{output_var} = pydantic.field_validator(*{input_var})",
+          "dependencies": [
+            "pydantic"
+          ]
+        }
+      }
+    },
+    {
+      "cell_id": "micro_pydantic_model_serializer",
+      "type": "micro",
+      "stage": 1,
+      "keywords": [
+        "pydantic",
+        "model_serializer"
+      ],
+      "inputs": {
+        "type_name": "Tuple[_ModelPlainSerializerT | _ModelWrapSerializerT | None, Literal['plain', 'wrap'], WhenUsed, Any]",
+        "state": "raw"
+      },
+      "outputs": {
+        "type_name": "_ModelPlainSerializerT | Callable[[_ModelWrapSerializerT], _ModelWrapSerializerT] | Callable[[_ModelPlainSerializerT], _ModelPlainSerializerT]",
+        "state": "computed"
+      },
+      "domain_implementations": {
+        "Python_Core": {
+          "code": "import pydantic\n{output_var} = pydantic.model_serializer(*{input_var})",
+          "dependencies": [
+            "pydantic"
+          ]
+        }
+      }
+    },
+    {
+      "cell_id": "micro_pydantic_model_validator",
+      "type": "micro",
+      "stage": 1,
+      "keywords": [
+        "pydantic",
+        "model_validator"
+      ],
+      "inputs": {
+        "type_name": "Literal['wrap', 'before', 'after']",
+        "state": "raw"
+      },
+      "outputs": {
+        "type_name": "Any",
+        "state": "computed"
+      },
+      "domain_implementations": {
+        "Python_Core": {
+          "code": "import pydantic\n{output_var} = pydantic.model_validator({input_var})",
+          "dependencies": [
+            "pydantic"
+          ]
+        }
+      }
+    },
+    {
+      "cell_id": "micro_pydantic_parse_obj_as",
+      "type": "micro",
+      "stage": 1,
+      "keywords": [
+        "pydantic",
+        "parse_obj_as"
+      ],
+      "inputs": {
+        "type_name": "Tuple[type[T], Any, NameFactory | None]",
+        "state": "raw"
+      },
+      "outputs": {
+        "type_name": "T",
+        "state": "computed"
+      },
+      "domain_implementations": {
+        "Python_Core": {
+          "code": "import pydantic\n{output_var} = pydantic.parse_obj_as(*{input_var})",
+          "dependencies": [
+            "pydantic"
+          ]
+        }
+      }
+    },
+    {
+      "cell_id": "micro_pydantic_schema_json_of",
+      "type": "micro",
+      "stage": 1,
+      "keywords": [
+        "pydantic",
+        "schema_json_of"
+      ],
+      "inputs": {
+        "type_name": "Tuple[Any, NameFactory | None, bool, str, type[GenerateJsonSchema], Any]",
+        "state": "raw"
+      },
+      "outputs": {
+        "type_name": "str",
+        "state": "computed"
+      },
+      "domain_implementations": {
+        "Python_Core": {
+          "code": "import pydantic\n{output_var} = pydantic.schema_json_of(*{input_var})",
+          "dependencies": [
+            "pydantic"
+          ]
+        }
+      }
+    },
+    {
+      "cell_id": "micro_pydantic_schema_of",
+      "type": "micro",
+      "stage": 1,
+      "keywords": [
+        "pydantic",
+        "schema_of"
+      ],
+      "inputs": {
+        "type_name": "Tuple[Any, NameFactory | None, bool, str, type[GenerateJsonSchema]]",
+        "state": "raw"
+      },
+      "outputs": {
+        "type_name": "dict[str, Any]",
+        "state": "computed"
+      },
+      "domain_implementations": {
+        "Python_Core": {
+          "code": "import pydantic\n{output_var} = pydantic.schema_of(*{input_var})",
+          "dependencies": [
+            "pydantic"
+          ]
+        }
+      }
+    },
+    {
+      "cell_id": "micro_pydantic_validate_call",
+      "type": "micro",
+      "stage": 1,
+      "keywords": [
+        "pydantic",
+        "validate_call"
+      ],
+      "inputs": {
+        "type_name": "Tuple[AnyCallableT | None, ConfigDict | None, bool]",
+        "state": "raw"
+      },
+      "outputs": {
+        "type_name": "AnyCallableT | Callable[[AnyCallableT], AnyCallableT]",
+        "state": "computed"
+      },
+      "domain_implementations": {
+        "Python_Core": {
+          "code": "import pydantic\n{output_var} = pydantic.validate_call(*{input_var})",
+          "dependencies": [
+            "pydantic"
+          ]
+        }
+      }
+    },
+    {
+      "cell_id": "micro_pydantic_validate_email",
+      "type": "micro",
+      "stage": 1,
+      "keywords": [
+        "pydantic",
+        "validate_email"
+      ],
+      "inputs": {
+        "type_name": "str",
+        "state": "raw"
+      },
+      "outputs": {
+        "type_name": "tuple[str, str]",
+        "state": "computed"
+      },
+      "domain_implementations": {
+        "Python_Core": {
+          "code": "import pydantic\n{output_var} = pydantic.validate_email({input_var})",
+          "dependencies": [
+            "pydantic"
+          ]
+        }
+      }
+    },
+    {
+      "cell_id": "micro_pydantic_validator",
+      "type": "micro",
+      "stage": 1,
+      "keywords": [
+        "pydantic",
+        "validator"
+      ],
+      "inputs": {
+        "type_name": "Tuple[str, str, bool, bool, bool, bool | None, bool]",
+        "state": "raw"
+      },
+      "outputs": {
+        "type_name": "Callable[[_V1ValidatorType], _V1ValidatorType]",
+        "state": "computed"
+      },
+      "domain_implementations": {
+        "Python_Core": {
+          "code": "import pydantic\n{output_var} = pydantic.validator(*{input_var})",
+          "dependencies": [
+            "pydantic"
+          ]
+        }
+      }
+    },
+    {
+      "cell_id": "micro_pydantic_with_config",
+      "type": "micro",
+      "stage": 1,
+      "keywords": [
+        "pydantic",
+        "with_config"
+      ],
+      "inputs": {
+        "type_name": "Tuple[ConfigDict | None, Any]",
+        "state": "raw"
+      },
+      "outputs": {
+        "type_name": "Callable[[_TypeT], _TypeT]",
+        "state": "computed"
+      },
+      "domain_implementations": {
+        "Python_Core": {
+          "code": "import pydantic\n{output_var} = pydantic.with_config(*{input_var})",
+          "dependencies": [
+            "pydantic"
+          ]
+        }
+      }
+    }
+  ]
+}

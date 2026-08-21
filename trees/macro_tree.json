@@ -1,0 +1,327 @@
+{
+  "library": "macro",
+  "version": "1.0",
+  "main_imports": [],
+  "nodes": [
+    {
+      "cell_id": "MACRO_ETL_PIPELINE",
+      "type": "macro",
+      "stage": 1,
+      "keywords": [
+        "etl",
+        "extract transform load",
+        "pipeline",
+        "data engineering",
+        "ingest clean export"
+      ],
+      "inputs": {
+        "type_name": "str",
+        "state": "source_identifier"
+      },
+      "outputs": {
+        "type_name": "str",
+        "state": "filepath_written"
+      },
+      "algorithmic_steps": [
+        "1. EXTRACT: Read data from CSV file source",
+        "2. CLEAN: Drop null/missing values",
+        "3. DEDUPLICATE: Remove duplicate records",
+        "4. TRANSFORM: Sort data by key column",
+        "5. LOAD: Export result to Parquet format"
+      ],
+      "sub_cells": [
+        "PANDAS_READ_CSV_DEFAULT",
+        "PANDAS_DROPNA_DEFAULT",
+        "PANDAS_DROP_DUPLICATES_DEFAULT",
+        "PANDAS_SORT_VALUES_DEFAULT",
+        "PANDAS_TO_PARQUET_DEFAULT"
+      ],
+      "internal_topology": {
+        "PANDAS_READ_CSV_DEFAULT": [
+          "PANDAS_DROPNA_DEFAULT"
+        ],
+        "PANDAS_DROPNA_DEFAULT": [
+          "PANDAS_DROP_DUPLICATES_DEFAULT"
+        ],
+        "PANDAS_DROP_DUPLICATES_DEFAULT": [
+          "PANDAS_SORT_VALUES_DEFAULT"
+        ],
+        "PANDAS_SORT_VALUES_DEFAULT": [
+          "PANDAS_TO_PARQUET_DEFAULT"
+        ]
+      }
+    },
+    {
+      "cell_id": "MACRO_ML_CLASSIFICATION_PIPELINE",
+      "type": "macro",
+      "stage": 2,
+      "keywords": [
+        "machine learning",
+        "classification",
+        "ml pipeline",
+        "supervised",
+        "train test",
+        "predict"
+      ],
+      "inputs": {
+        "type_name": "str",
+        "state": "source_identifier"
+      },
+      "outputs": {
+        "type_name": "str",
+        "state": "filepath_written"
+      },
+      "algorithmic_steps": [
+        "1. LOAD: Ingest the dataset from CSV source file",
+        "2. PREPROCESS: Select numeric features and scale features with StandardScaler",
+        "3. SPLIT: Partition into train and test splits",
+        "4. TRAIN: Fit a RandomForestClassifier model",
+        "5. PREDICT: Generate predictions on test features",
+        "6. PERSIST: Save prediction results to disk"
+      ],
+      "sub_cells": [
+        "PANDAS_READ_CSV_DEFAULT",
+        "SKLEARN_SELECT_NUMERIC",
+        "SKLEARN_STANDARD_SCALER",
+        "SKLEARN_TRAIN_TEST_SPLIT",
+        "SKLEARN_RANDOM_FOREST_FIT",
+        "SKLEARN_MODEL_PREDICT",
+        "PANDAS_SAVE_PREDICTIONS"
+      ],
+      "internal_topology": {
+        "PANDAS_READ_CSV_DEFAULT": [
+          "SKLEARN_SELECT_NUMERIC"
+        ],
+        "SKLEARN_SELECT_NUMERIC": [
+          "SKLEARN_STANDARD_SCALER"
+        ],
+        "SKLEARN_STANDARD_SCALER": [
+          "SKLEARN_TRAIN_TEST_SPLIT"
+        ],
+        "SKLEARN_TRAIN_TEST_SPLIT": [
+          "SKLEARN_RANDOM_FOREST_FIT"
+        ],
+        "SKLEARN_RANDOM_FOREST_FIT": [
+          "SKLEARN_MODEL_PREDICT"
+        ],
+        "SKLEARN_MODEL_PREDICT": [
+          "PANDAS_SAVE_PREDICTIONS"
+        ]
+      }
+    },
+    {
+      "cell_id": "MACRO_EDA_REPORT",
+      "type": "macro",
+      "stage": 1,
+      "keywords": [
+        "eda",
+        "exploratory data analysis",
+        "report",
+        "visualize",
+        "profile",
+        "statistics"
+      ],
+      "inputs": {
+        "type_name": "str",
+        "state": "source_identifier"
+      },
+      "outputs": {
+        "type_name": "str",
+        "state": "filepath_written"
+      },
+      "algorithmic_steps": [
+        "1. LOAD: Read dataset from CSV source file",
+        "2. CLEAN: Drop nulls",
+        "3. DESCRIBE: Compute summary statistics across all columns",
+        "4. EXPORT: Save summary statistics to CSV report file"
+      ],
+      "sub_cells": [
+        "PANDAS_READ_CSV_DEFAULT",
+        "PANDAS_DROPNA_DEFAULT",
+        "PANDAS_DESCRIBE_DEFAULT",
+        "PANDAS_TO_CSV_DEFAULT"
+      ],
+      "internal_topology": {
+        "PANDAS_READ_CSV_DEFAULT": [
+          "PANDAS_DROPNA_DEFAULT"
+        ],
+        "PANDAS_DROPNA_DEFAULT": [
+          "PANDAS_DESCRIBE_DEFAULT"
+        ],
+        "PANDAS_DESCRIBE_DEFAULT": [
+          "PANDAS_TO_CSV_DEFAULT"
+        ]
+      }
+    },
+    {
+      "cell_id": "MACRO_ASTAR_PATHFINDING",
+      "type": "macro",
+      "stage": 2,
+      "keywords": [
+        "a*",
+        "astar",
+        "pathfinding",
+        "shortest path",
+        "graph",
+        "heuristic",
+        "search"
+      ],
+      "inputs": {
+        "type_name": "dict",
+        "state": "parsed_object"
+      },
+      "outputs": {
+        "type_name": "list",
+        "state": "sorted"
+      },
+      "algorithmic_steps": [
+        "1. BUILD: Parse graph adjacency structure from dict",
+        "2. HEURISTIC SEARCH: Execute A* priority queue search with distance heuristics",
+        "3. RECONSTRUCT: Return reconstructed shortest path list"
+      ],
+      "sub_cells": [
+        "PYTHON_GRAPH_BUILD_CELL",
+        "PYTHON_ASTAR_PATHFINDING"
+      ],
+      "internal_topology": {
+        "PYTHON_GRAPH_BUILD_CELL": [
+          "PYTHON_ASTAR_PATHFINDING"
+        ]
+      }
+    },
+    {
+      "cell_id": "MACRO_DIJKSTRA",
+      "type": "macro",
+      "stage": 2,
+      "keywords": [
+        "dijkstra",
+        "shortest path",
+        "graph",
+        "heapq",
+        "weights",
+        "distances"
+      ],
+      "inputs": {
+        "type_name": "dict",
+        "state": "parsed_object"
+      },
+      "outputs": {
+        "type_name": "dict",
+        "state": "distances"
+      },
+      "algorithmic_steps": [
+        "1. BUILD: Parse graph adjacency dict",
+        "2. RELAXATION: Execute Dijkstra priority queue edge relaxation",
+        "3. OUTPUT: Return dictionary of shortest distance costs"
+      ],
+      "sub_cells": [
+        "PYTHON_GRAPH_BUILD_CELL",
+        "PYTHON_DIJKSTRA_SHORTEST_PATH"
+      ],
+      "internal_topology": {
+        "PYTHON_GRAPH_BUILD_CELL": [
+          "PYTHON_DIJKSTRA_SHORTEST_PATH"
+        ]
+      }
+    },
+    {
+      "cell_id": "MACRO_TEXT_EMBEDDING_PIPELINE",
+      "type": "macro",
+      "stage": 2,
+      "keywords": [
+        "text",
+        "embedding",
+        "nlp",
+        "faiss",
+        "vector",
+        "search",
+        "sentence transformer"
+      ],
+      "inputs": {
+        "type_name": "str",
+        "state": "source_identifier"
+      },
+      "outputs": {
+        "type_name": "dict",
+        "state": "search_results"
+      },
+      "algorithmic_steps": [
+        "1. ENCODE: Transform input text to dense vector embeddings using SentenceTransformer",
+        "2. INDEX: Add dense embeddings to FAISS vector index",
+        "3. QUERY: Search FAISS index and return top-k nearest match dictionary"
+      ],
+      "sub_cells": [
+        "SENTENCE_TRANSFORMER_ENCODE",
+        "FAISS_INDEX_ADD",
+        "FAISS_INDEX_SEARCH"
+      ],
+      "internal_topology": {
+        "SENTENCE_TRANSFORMER_ENCODE": [
+          "FAISS_INDEX_ADD"
+        ],
+        "FAISS_INDEX_ADD": [
+          "FAISS_INDEX_SEARCH"
+        ]
+      }
+    },
+    {
+      "cell_id": "MACRO_FLASK_CRUD_API",
+      "type": "macro",
+      "stage": 2,
+      "keywords": [
+        "flask",
+        "crud",
+        "api",
+        "rest",
+        "create read update delete",
+        "web service"
+      ],
+      "inputs": {
+        "type_name": "str",
+        "state": "source_identifier"
+      },
+      "outputs": {
+        "type_name": "str",
+        "state": "server_started"
+      },
+      "algorithmic_steps": [
+        "1. CREATE APP: Instantiate Flask application",
+        "2. DATABASE: Initialize SQLite connection",
+        "3. GET ROUTE: Register GET endpoint",
+        "4. POST ROUTE: Register POST endpoint",
+        "5. ERROR HANDLERS: Register 404/500 error handlers",
+        "6. CORS: Enable cross-origin resource sharing",
+        "7. RUN: Start development web server"
+      ],
+      "sub_cells": [
+        "FLASK_CREATE_APP",
+        "FLASK_SQLITE_CONNECT",
+        "FLASK_ADD_GET_ROUTE",
+        "FLASK_ADD_POST_ROUTE",
+        "FLASK_ERROR_HANDLER",
+        "FLASK_ENABLE_CORS",
+        "FLASK_RUN_DEBUG"
+      ],
+      "internal_topology": {
+        "FLASK_CREATE_APP": [
+          "FLASK_SQLITE_CONNECT"
+        ],
+        "FLASK_SQLITE_CONNECT": [
+          "FLASK_ADD_GET_ROUTE"
+        ],
+        "FLASK_ADD_GET_ROUTE": [
+          "FLASK_ADD_POST_ROUTE"
+        ],
+        "FLASK_ADD_POST_ROUTE": [
+          "FLASK_ERROR_HANDLER"
+        ],
+        "FLASK_ERROR_HANDLER": [
+          "FLASK_ENABLE_CORS"
+        ],
+        "FLASK_ENABLE_CORS": [
+          "FLASK_RUN_DEBUG"
+        ]
+      }
+    }
+  ]
+}

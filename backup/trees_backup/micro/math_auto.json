@@ -1,0 +1,1492 @@
+{
+  "domain_name": "math",
+  "version": "1.0.0",
+  "description": "Auto-compiled from harvested_math.py",
+  "cells": [
+    {
+      "cell_id": "MATH_ACOS",
+      "type": "micro",
+      "node_type": "function",
+      "stage": 1,
+      "description": "Return the arc cosine (measured in radians) of x. The result is between 0 and pi.",
+      "keywords": [
+        "math",
+        "acos"
+      ],
+      "inputs": {
+        "type_name": "any",
+        "state": "x"
+      },
+      "outputs": {
+        "type_name": "any",
+        "state": "result_any"
+      },
+      "domain_implementations": {
+        "Python_Core": {
+          "code": "import math\n{output_var} = math.acos({input_var})",
+          "dependencies": [
+            "math"
+          ]
+        }
+      }
+    },
+    {
+      "cell_id": "MATH_ACOSH",
+      "type": "micro",
+      "node_type": "function",
+      "stage": 1,
+      "description": "Return the inverse hyperbolic cosine of x.",
+      "keywords": [
+        "math",
+        "acosh"
+      ],
+      "inputs": {
+        "type_name": "any",
+        "state": "x"
+      },
+      "outputs": {
+        "type_name": "any",
+        "state": "result_any"
+      },
+      "domain_implementations": {
+        "Python_Core": {
+          "code": "import math\n{output_var} = math.acosh({input_var})",
+          "dependencies": [
+            "math"
+          ]
+        }
+      }
+    },
+    {
+      "cell_id": "MATH_ASIN",
+      "type": "micro",
+      "node_type": "function",
+      "stage": 1,
+      "description": "Return the arc sine (measured in radians) of x. The result is between -pi/2 and pi/2.",
+      "keywords": [
+        "math",
+        "asin"
+      ],
+      "inputs": {
+        "type_name": "any",
+        "state": "x"
+      },
+      "outputs": {
+        "type_name": "any",
+        "state": "result_any"
+      },
+      "domain_implementations": {
+        "Python_Core": {
+          "code": "import math\n{output_var} = math.asin({input_var})",
+          "dependencies": [
+            "math"
+          ]
+        }
+      }
+    },
+    {
+      "cell_id": "MATH_ASINH",
+      "type": "micro",
+      "node_type": "function",
+      "stage": 1,
+      "description": "Return the inverse hyperbolic sine of x.",
+      "keywords": [
+        "math",
+        "asinh"
+      ],
+      "inputs": {
+        "type_name": "any",
+        "state": "x"
+      },
+      "outputs": {
+        "type_name": "any",
+        "state": "result_any"
+      },
+      "domain_implementations": {
+        "Python_Core": {
+          "code": "import math\n{output_var} = math.asinh({input_var})",
+          "dependencies": [
+            "math"
+          ]
+        }
+      }
+    },
+    {
+      "cell_id": "MATH_ATAN",
+      "type": "micro",
+      "node_type": "function",
+      "stage": 1,
+      "description": "Return the arc tangent (measured in radians) of x. The result is between -pi/2 and pi/2.",
+      "keywords": [
+        "math",
+        "atan"
+      ],
+      "inputs": {
+        "type_name": "any",
+        "state": "x"
+      },
+      "outputs": {
+        "type_name": "any",
+        "state": "result_any"
+      },
+      "domain_implementations": {
+        "Python_Core": {
+          "code": "import math\n{output_var} = math.atan({input_var})",
+          "dependencies": [
+            "math"
+          ]
+        }
+      }
+    },
+    {
+      "cell_id": "MATH_ATAN2",
+      "type": "micro",
+      "node_type": "function",
+      "stage": 1,
+      "description": "Return the arc tangent (measured in radians) of y/x. Unlike atan(y/x), the signs of both x and y are considered.",
+      "keywords": [
+        "math",
+        "atan2"
+      ],
+      "inputs": {
+        "type_name": "any",
+        "state": "y"
+      },
+      "outputs": {
+        "type_name": "any",
+        "state": "result_any"
+      },
+      "domain_implementations": {
+        "Python_Core": {
+          "code": "import math\n{output_var} = math.atan2({input_var})",
+          "dependencies": [
+            "math"
+          ]
+        }
+      }
+    },
+    {
+      "cell_id": "MATH_ATANH",
+      "type": "micro",
+      "node_type": "function",
+      "stage": 1,
+      "description": "Return the inverse hyperbolic tangent of x.",
+      "keywords": [
+        "math",
+        "atanh"
+      ],
+      "inputs": {
+        "type_name": "any",
+        "state": "x"
+      },
+      "outputs": {
+        "type_name": "any",
+        "state": "result_any"
+      },
+      "domain_implementations": {
+        "Python_Core": {
+          "code": "import math\n{output_var} = math.atanh({input_var})",
+          "dependencies": [
+            "math"
+          ]
+        }
+      }
+    },
+    {
+      "cell_id": "MATH_CBRT",
+      "type": "micro",
+      "node_type": "function",
+      "stage": 1,
+      "description": "Return the cube root of x.",
+      "keywords": [
+        "math",
+        "cbrt"
+      ],
+      "inputs": {
+        "type_name": "any",
+        "state": "x"
+      },
+      "outputs": {
+        "type_name": "any",
+        "state": "result_any"
+      },
+      "domain_implementations": {
+        "Python_Core": {
+          "code": "import math\n{output_var} = math.cbrt({input_var})",
+          "dependencies": [
+            "math"
+          ]
+        }
+      }
+    },
+    {
+      "cell_id": "MATH_CEIL",
+      "type": "micro",
+      "node_type": "function",
+      "stage": 1,
+      "description": "Return the ceiling of x as an Integral. This is the smallest integer >= x.",
+      "keywords": [
+        "math",
+        "ceil"
+      ],
+      "inputs": {
+        "type_name": "any",
+        "state": "x"
+      },
+      "outputs": {
+        "type_name": "any",
+        "state": "result_any"
+      },
+      "domain_implementations": {
+        "Python_Core": {
+          "code": "import math\n{output_var} = math.ceil({input_var})",
+          "dependencies": [
+            "math"
+          ]
+        }
+      }
+    },
+    {
+      "cell_id": "MATH_COMB",
+      "type": "micro",
+      "node_type": "function",
+      "stage": 1,
+      "description": "Number of ways to choose k items from n items without repetition and without order. Evaluates to n! / (k! * (n - k)!) when k <= n and evaluates to zero when k > n.",
+      "keywords": [
+        "math",
+        "comb"
+      ],
+      "inputs": {
+        "type_name": "any",
+        "state": "n"
+      },
+      "outputs": {
+        "type_name": "any",
+        "state": "result_any"
+      },
+      "domain_implementations": {
+        "Python_Core": {
+          "code": "import math\n{output_var} = math.comb({input_var})",
+          "dependencies": [
+            "math"
+          ]
+        }
+      }
+    },
+    {
+      "cell_id": "MATH_COPYSIGN",
+      "type": "micro",
+      "node_type": "function",
+      "stage": 1,
+      "description": "Return a float with the magnitude (absolute value) of x but the sign of y. On platforms that support signed zeros, copysign(1.0, -0.0) returns -1.0.",
+      "keywords": [
+        "math",
+        "copysign"
+      ],
+      "inputs": {
+        "type_name": "any",
+        "state": "x"
+      },
+      "outputs": {
+        "type_name": "any",
+        "state": "result_any"
+      },
+      "domain_implementations": {
+        "Python_Core": {
+          "code": "import math\n{output_var} = math.copysign({input_var})",
+          "dependencies": [
+            "math"
+          ]
+        }
+      }
+    },
+    {
+      "cell_id": "MATH_COS",
+      "type": "micro",
+      "node_type": "function",
+      "stage": 1,
+      "description": "Return the cosine of x (measured in radians).",
+      "keywords": [
+        "math",
+        "cos"
+      ],
+      "inputs": {
+        "type_name": "any",
+        "state": "x"
+      },
+      "outputs": {
+        "type_name": "any",
+        "state": "result_any"
+      },
+      "domain_implementations": {
+        "Python_Core": {
+          "code": "import math\n{output_var} = math.cos({input_var})",
+          "dependencies": [
+            "math"
+          ]
+        }
+      }
+    },
+    {
+      "cell_id": "MATH_COSH",
+      "type": "micro",
+      "node_type": "function",
+      "stage": 1,
+      "description": "Return the hyperbolic cosine of x.",
+      "keywords": [
+        "math",
+        "cosh"
+      ],
+      "inputs": {
+        "type_name": "any",
+        "state": "x"
+      },
+      "outputs": {
+        "type_name": "any",
+        "state": "result_any"
+      },
+      "domain_implementations": {
+        "Python_Core": {
+          "code": "import math\n{output_var} = math.cosh({input_var})",
+          "dependencies": [
+            "math"
+          ]
+        }
+      }
+    },
+    {
+      "cell_id": "MATH_DEGREES",
+      "type": "micro",
+      "node_type": "function",
+      "stage": 1,
+      "description": "Convert angle x from radians to degrees.",
+      "keywords": [
+        "math",
+        "degrees"
+      ],
+      "inputs": {
+        "type_name": "any",
+        "state": "x"
+      },
+      "outputs": {
+        "type_name": "any",
+        "state": "result_any"
+      },
+      "domain_implementations": {
+        "Python_Core": {
+          "code": "import math\n{output_var} = math.degrees({input_var})",
+          "dependencies": [
+            "math"
+          ]
+        }
+      }
+    },
+    {
+      "cell_id": "MATH_DIST",
+      "type": "micro",
+      "node_type": "function",
+      "stage": 1,
+      "description": "Return the Euclidean distance between two points p and q. The points should be specified as sequences (or iterables) of coordinates.  Both inputs must have the same dimension.",
+      "keywords": [
+        "math",
+        "dist"
+      ],
+      "inputs": {
+        "type_name": "any",
+        "state": "p"
+      },
+      "outputs": {
+        "type_name": "any",
+        "state": "result_any"
+      },
+      "domain_implementations": {
+        "Python_Core": {
+          "code": "import math\n{output_var} = math.dist({input_var})",
+          "dependencies": [
+            "math"
+          ]
+        }
+      }
+    },
+    {
+      "cell_id": "MATH_ERF",
+      "type": "micro",
+      "node_type": "function",
+      "stage": 1,
+      "description": "Error function at x.",
+      "keywords": [
+        "math",
+        "erf"
+      ],
+      "inputs": {
+        "type_name": "any",
+        "state": "x"
+      },
+      "outputs": {
+        "type_name": "any",
+        "state": "result_any"
+      },
+      "domain_implementations": {
+        "Python_Core": {
+          "code": "import math\n{output_var} = math.erf({input_var})",
+          "dependencies": [
+            "math"
+          ]
+        }
+      }
+    },
+    {
+      "cell_id": "MATH_ERFC",
+      "type": "micro",
+      "node_type": "function",
+      "stage": 1,
+      "description": "Complementary error function at x.",
+      "keywords": [
+        "math",
+        "erfc"
+      ],
+      "inputs": {
+        "type_name": "any",
+        "state": "x"
+      },
+      "outputs": {
+        "type_name": "any",
+        "state": "result_any"
+      },
+      "domain_implementations": {
+        "Python_Core": {
+          "code": "import math\n{output_var} = math.erfc({input_var})",
+          "dependencies": [
+            "math"
+          ]
+        }
+      }
+    },
+    {
+      "cell_id": "MATH_EXP",
+      "type": "micro",
+      "node_type": "function",
+      "stage": 1,
+      "description": "Return e raised to the power of x.",
+      "keywords": [
+        "math",
+        "exp"
+      ],
+      "inputs": {
+        "type_name": "any",
+        "state": "x"
+      },
+      "outputs": {
+        "type_name": "any",
+        "state": "result_any"
+      },
+      "domain_implementations": {
+        "Python_Core": {
+          "code": "import math\n{output_var} = math.exp({input_var})",
+          "dependencies": [
+            "math"
+          ]
+        }
+      }
+    },
+    {
+      "cell_id": "MATH_EXP2",
+      "type": "micro",
+      "node_type": "function",
+      "stage": 1,
+      "description": "Return 2 raised to the power of x.",
+      "keywords": [
+        "math",
+        "exp2"
+      ],
+      "inputs": {
+        "type_name": "any",
+        "state": "x"
+      },
+      "outputs": {
+        "type_name": "any",
+        "state": "result_any"
+      },
+      "domain_implementations": {
+        "Python_Core": {
+          "code": "import math\n{output_var} = math.exp2({input_var})",
+          "dependencies": [
+            "math"
+          ]
+        }
+      }
+    },
+    {
+      "cell_id": "MATH_EXPM1",
+      "type": "micro",
+      "node_type": "function",
+      "stage": 1,
+      "description": "Return exp(x)-1. This function avoids the loss of precision involved in the direct evaluation of exp(x)-1 for small x.",
+      "keywords": [
+        "math",
+        "expm1"
+      ],
+      "inputs": {
+        "type_name": "any",
+        "state": "x"
+      },
+      "outputs": {
+        "type_name": "any",
+        "state": "result_any"
+      },
+      "domain_implementations": {
+        "Python_Core": {
+          "code": "import math\n{output_var} = math.expm1({input_var})",
+          "dependencies": [
+            "math"
+          ]
+        }
+      }
+    },
+    {
+      "cell_id": "MATH_FABS",
+      "type": "micro",
+      "node_type": "function",
+      "stage": 1,
+      "description": "Return the absolute value of the float x.",
+      "keywords": [
+        "math",
+        "fabs"
+      ],
+      "inputs": {
+        "type_name": "any",
+        "state": "x"
+      },
+      "outputs": {
+        "type_name": "any",
+        "state": "result_any"
+      },
+      "domain_implementations": {
+        "Python_Core": {
+          "code": "import math\n{output_var} = math.fabs({input_var})",
+          "dependencies": [
+            "math"
+          ]
+        }
+      }
+    },
+    {
+      "cell_id": "MATH_FACTORIAL",
+      "type": "micro",
+      "node_type": "function",
+      "stage": 1,
+      "description": "Find n!. Raise a ValueError if x is negative or non-integral.",
+      "keywords": [
+        "math",
+        "factorial"
+      ],
+      "inputs": {
+        "type_name": "any",
+        "state": "n"
+      },
+      "outputs": {
+        "type_name": "any",
+        "state": "result_any"
+      },
+      "domain_implementations": {
+        "Python_Core": {
+          "code": "import math\n{output_var} = math.factorial({input_var})",
+          "dependencies": [
+            "math"
+          ]
+        }
+      }
+    },
+    {
+      "cell_id": "MATH_FLOOR",
+      "type": "micro",
+      "node_type": "function",
+      "stage": 1,
+      "description": "Return the floor of x as an Integral. This is the largest integer <= x.",
+      "keywords": [
+        "math",
+        "floor"
+      ],
+      "inputs": {
+        "type_name": "any",
+        "state": "x"
+      },
+      "outputs": {
+        "type_name": "any",
+        "state": "result_any"
+      },
+      "domain_implementations": {
+        "Python_Core": {
+          "code": "import math\n{output_var} = math.floor({input_var})",
+          "dependencies": [
+            "math"
+          ]
+        }
+      }
+    },
+    {
+      "cell_id": "MATH_FMA",
+      "type": "micro",
+      "node_type": "function",
+      "stage": 1,
+      "description": "Fused multiply-add operation. Compute (x * y) + z with a single round.",
+      "keywords": [
+        "math",
+        "fma"
+      ],
+      "inputs": {
+        "type_name": "any",
+        "state": "x"
+      },
+      "outputs": {
+        "type_name": "any",
+        "state": "result_any"
+      },
+      "domain_implementations": {
+        "Python_Core": {
+          "code": "import math\n{output_var} = math.fma({input_var})",
+          "dependencies": [
+            "math"
+          ]
+        }
+      }
+    },
+    {
+      "cell_id": "MATH_FMOD",
+      "type": "micro",
+      "node_type": "function",
+      "stage": 1,
+      "description": "Return fmod(x, y), according to platform C. x % y may differ.",
+      "keywords": [
+        "math",
+        "fmod"
+      ],
+      "inputs": {
+        "type_name": "any",
+        "state": "x"
+      },
+      "outputs": {
+        "type_name": "any",
+        "state": "result_any"
+      },
+      "domain_implementations": {
+        "Python_Core": {
+          "code": "import math\n{output_var} = math.fmod({input_var})",
+          "dependencies": [
+            "math"
+          ]
+        }
+      }
+    },
+    {
+      "cell_id": "MATH_FREXP",
+      "type": "micro",
+      "node_type": "function",
+      "stage": 1,
+      "description": "Return the mantissa and exponent of x, as pair (m, e). m is a float and e is an int, such that x = m * 2.**e. If x is 0, m and e are both 0.  Else 0.5 <= abs(m) < 1.0.",
+      "keywords": [
+        "math",
+        "frexp"
+      ],
+      "inputs": {
+        "type_name": "any",
+        "state": "x"
+      },
+      "outputs": {
+        "type_name": "any",
+        "state": "result_any"
+      },
+      "domain_implementations": {
+        "Python_Core": {
+          "code": "import math\n{output_var} = math.frexp({input_var})",
+          "dependencies": [
+            "math"
+          ]
+        }
+      }
+    },
+    {
+      "cell_id": "MATH_FSUM",
+      "type": "micro",
+      "node_type": "function",
+      "stage": 1,
+      "description": "Return an accurate floating-point sum of values in the iterable seq. Assumes IEEE-754 floating-point arithmetic.",
+      "keywords": [
+        "math",
+        "fsum"
+      ],
+      "inputs": {
+        "type_name": "any",
+        "state": "seq"
+      },
+      "outputs": {
+        "type_name": "any",
+        "state": "result_any"
+      },
+      "domain_implementations": {
+        "Python_Core": {
+          "code": "import math\n{output_var} = math.fsum({input_var})",
+          "dependencies": [
+            "math"
+          ]
+        }
+      }
+    },
+    {
+      "cell_id": "MATH_GAMMA",
+      "type": "micro",
+      "node_type": "function",
+      "stage": 1,
+      "description": "Gamma function at x.",
+      "keywords": [
+        "math",
+        "gamma"
+      ],
+      "inputs": {
+        "type_name": "any",
+        "state": "x"
+      },
+      "outputs": {
+        "type_name": "any",
+        "state": "result_any"
+      },
+      "domain_implementations": {
+        "Python_Core": {
+          "code": "import math\n{output_var} = math.gamma({input_var})",
+          "dependencies": [
+            "math"
+          ]
+        }
+      }
+    },
+    {
+      "cell_id": "MATH_GCD",
+      "type": "micro",
+      "node_type": "function",
+      "stage": 1,
+      "description": "Greatest Common Divisor.",
+      "keywords": [
+        "math",
+        "gcd"
+      ],
+      "inputs": {
+        "type_name": "any",
+        "state": "integers"
+      },
+      "outputs": {
+        "type_name": "any",
+        "state": "result_any"
+      },
+      "domain_implementations": {
+        "Python_Core": {
+          "code": "import math\n{output_var} = math.gcd({input_var})",
+          "dependencies": [
+            "math"
+          ]
+        }
+      }
+    },
+    {
+      "cell_id": "MATH_ISCLOSE",
+      "type": "micro",
+      "node_type": "function",
+      "stage": 1,
+      "description": "Determine whether two floating-point numbers are close in value. rel_tol maximum difference for being considered \"close\", relative to the magnitude of the input values",
+      "keywords": [
+        "math",
+        "isclose"
+      ],
+      "inputs": {
+        "type_name": "any",
+        "state": "a"
+      },
+      "outputs": {
+        "type_name": "any",
+        "state": "result_any"
+      },
+      "domain_implementations": {
+        "Python_Core": {
+          "code": "import math\n{output_var} = math.isclose({input_var})",
+          "dependencies": [
+            "math"
+          ]
+        }
+      }
+    },
+    {
+      "cell_id": "MATH_ISFINITE",
+      "type": "micro",
+      "node_type": "function",
+      "stage": 1,
+      "description": "Return True if x is neither an infinity nor a NaN, and False otherwise.",
+      "keywords": [
+        "math",
+        "isfinite"
+      ],
+      "inputs": {
+        "type_name": "any",
+        "state": "x"
+      },
+      "outputs": {
+        "type_name": "any",
+        "state": "result_any"
+      },
+      "domain_implementations": {
+        "Python_Core": {
+          "code": "import math\n{output_var} = math.isfinite({input_var})",
+          "dependencies": [
+            "math"
+          ]
+        }
+      }
+    },
+    {
+      "cell_id": "MATH_ISINF",
+      "type": "micro",
+      "node_type": "function",
+      "stage": 1,
+      "description": "Return True if x is a positive or negative infinity, and False otherwise.",
+      "keywords": [
+        "math",
+        "isinf"
+      ],
+      "inputs": {
+        "type_name": "any",
+        "state": "x"
+      },
+      "outputs": {
+        "type_name": "any",
+        "state": "result_any"
+      },
+      "domain_implementations": {
+        "Python_Core": {
+          "code": "import math\n{output_var} = math.isinf({input_var})",
+          "dependencies": [
+            "math"
+          ]
+        }
+      }
+    },
+    {
+      "cell_id": "MATH_ISNAN",
+      "type": "micro",
+      "node_type": "function",
+      "stage": 1,
+      "description": "Return True if x is a NaN (not a number), and False otherwise.",
+      "keywords": [
+        "math",
+        "isnan"
+      ],
+      "inputs": {
+        "type_name": "any",
+        "state": "x"
+      },
+      "outputs": {
+        "type_name": "any",
+        "state": "result_any"
+      },
+      "domain_implementations": {
+        "Python_Core": {
+          "code": "import math\n{output_var} = math.isnan({input_var})",
+          "dependencies": [
+            "math"
+          ]
+        }
+      }
+    },
+    {
+      "cell_id": "MATH_ISQRT",
+      "type": "micro",
+      "node_type": "function",
+      "stage": 1,
+      "description": "Return the integer part of the square root of the input.",
+      "keywords": [
+        "math",
+        "isqrt"
+      ],
+      "inputs": {
+        "type_name": "any",
+        "state": "n"
+      },
+      "outputs": {
+        "type_name": "any",
+        "state": "result_any"
+      },
+      "domain_implementations": {
+        "Python_Core": {
+          "code": "import math\n{output_var} = math.isqrt({input_var})",
+          "dependencies": [
+            "math"
+          ]
+        }
+      }
+    },
+    {
+      "cell_id": "MATH_LCM",
+      "type": "micro",
+      "node_type": "function",
+      "stage": 1,
+      "description": "Least Common Multiple.",
+      "keywords": [
+        "math",
+        "lcm"
+      ],
+      "inputs": {
+        "type_name": "any",
+        "state": "integers"
+      },
+      "outputs": {
+        "type_name": "any",
+        "state": "result_any"
+      },
+      "domain_implementations": {
+        "Python_Core": {
+          "code": "import math\n{output_var} = math.lcm({input_var})",
+          "dependencies": [
+            "math"
+          ]
+        }
+      }
+    },
+    {
+      "cell_id": "MATH_LDEXP",
+      "type": "micro",
+      "node_type": "function",
+      "stage": 1,
+      "description": "Return x * (2**i). This is essentially the inverse of frexp().",
+      "keywords": [
+        "math",
+        "ldexp"
+      ],
+      "inputs": {
+        "type_name": "any",
+        "state": "x"
+      },
+      "outputs": {
+        "type_name": "any",
+        "state": "result_any"
+      },
+      "domain_implementations": {
+        "Python_Core": {
+          "code": "import math\n{output_var} = math.ldexp({input_var})",
+          "dependencies": [
+            "math"
+          ]
+        }
+      }
+    },
+    {
+      "cell_id": "MATH_LGAMMA",
+      "type": "micro",
+      "node_type": "function",
+      "stage": 1,
+      "description": "Natural logarithm of absolute value of Gamma function at x.",
+      "keywords": [
+        "math",
+        "lgamma"
+      ],
+      "inputs": {
+        "type_name": "any",
+        "state": "x"
+      },
+      "outputs": {
+        "type_name": "any",
+        "state": "result_any"
+      },
+      "domain_implementations": {
+        "Python_Core": {
+          "code": "import math\n{output_var} = math.lgamma({input_var})",
+          "dependencies": [
+            "math"
+          ]
+        }
+      }
+    },
+    {
+      "cell_id": "MATH_LOG10",
+      "type": "micro",
+      "node_type": "function",
+      "stage": 1,
+      "description": "Return the base 10 logarithm of x.",
+      "keywords": [
+        "math",
+        "log10"
+      ],
+      "inputs": {
+        "type_name": "any",
+        "state": "x"
+      },
+      "outputs": {
+        "type_name": "any",
+        "state": "result_any"
+      },
+      "domain_implementations": {
+        "Python_Core": {
+          "code": "import math\n{output_var} = math.log10({input_var})",
+          "dependencies": [
+            "math"
+          ]
+        }
+      }
+    },
+    {
+      "cell_id": "MATH_LOG1P",
+      "type": "micro",
+      "node_type": "function",
+      "stage": 1,
+      "description": "Return the natural logarithm of 1+x (base e). The result is computed in a way which is accurate for x near zero.",
+      "keywords": [
+        "math",
+        "log1p"
+      ],
+      "inputs": {
+        "type_name": "any",
+        "state": "x"
+      },
+      "outputs": {
+        "type_name": "any",
+        "state": "result_any"
+      },
+      "domain_implementations": {
+        "Python_Core": {
+          "code": "import math\n{output_var} = math.log1p({input_var})",
+          "dependencies": [
+            "math"
+          ]
+        }
+      }
+    },
+    {
+      "cell_id": "MATH_LOG2",
+      "type": "micro",
+      "node_type": "function",
+      "stage": 1,
+      "description": "Return the base 2 logarithm of x.",
+      "keywords": [
+        "math",
+        "log2"
+      ],
+      "inputs": {
+        "type_name": "any",
+        "state": "x"
+      },
+      "outputs": {
+        "type_name": "any",
+        "state": "result_any"
+      },
+      "domain_implementations": {
+        "Python_Core": {
+          "code": "import math\n{output_var} = math.log2({input_var})",
+          "dependencies": [
+            "math"
+          ]
+        }
+      }
+    },
+    {
+      "cell_id": "MATH_MODF",
+      "type": "micro",
+      "node_type": "function",
+      "stage": 1,
+      "description": "Return the fractional and integer parts of x. Both results carry the sign of x and are floats.",
+      "keywords": [
+        "math",
+        "modf"
+      ],
+      "inputs": {
+        "type_name": "any",
+        "state": "x"
+      },
+      "outputs": {
+        "type_name": "any",
+        "state": "result_any"
+      },
+      "domain_implementations": {
+        "Python_Core": {
+          "code": "import math\n{output_var} = math.modf({input_var})",
+          "dependencies": [
+            "math"
+          ]
+        }
+      }
+    },
+    {
+      "cell_id": "MATH_NEXTAFTER",
+      "type": "micro",
+      "node_type": "function",
+      "stage": 1,
+      "description": "Return the floating-point value the given number of steps after x towards y. If steps is not specified or is None, it defaults to 1. Raises a TypeError, if x or y is not a double, or if steps is not an integer.",
+      "keywords": [
+        "math",
+        "nextafter"
+      ],
+      "inputs": {
+        "type_name": "any",
+        "state": "x"
+      },
+      "outputs": {
+        "type_name": "any",
+        "state": "result_any"
+      },
+      "domain_implementations": {
+        "Python_Core": {
+          "code": "import math\n{output_var} = math.nextafter({input_var})",
+          "dependencies": [
+            "math"
+          ]
+        }
+      }
+    },
+    {
+      "cell_id": "MATH_PERM",
+      "type": "micro",
+      "node_type": "function",
+      "stage": 1,
+      "description": "Number of ways to choose k items from n items without repetition and with order. Evaluates to n! / (n - k)! when k <= n and evaluates to zero when k > n.",
+      "keywords": [
+        "math",
+        "perm"
+      ],
+      "inputs": {
+        "type_name": "any",
+        "state": "n"
+      },
+      "outputs": {
+        "type_name": "any",
+        "state": "result_any"
+      },
+      "domain_implementations": {
+        "Python_Core": {
+          "code": "import math\n{output_var} = math.perm({input_var})",
+          "dependencies": [
+            "math"
+          ]
+        }
+      }
+    },
+    {
+      "cell_id": "MATH_POW",
+      "type": "micro",
+      "node_type": "function",
+      "stage": 1,
+      "description": "Return x**y (x to the power of y).",
+      "keywords": [
+        "math",
+        "pow"
+      ],
+      "inputs": {
+        "type_name": "any",
+        "state": "x"
+      },
+      "outputs": {
+        "type_name": "any",
+        "state": "result_any"
+      },
+      "domain_implementations": {
+        "Python_Core": {
+          "code": "import math\n{output_var} = math.pow({input_var})",
+          "dependencies": [
+            "math"
+          ]
+        }
+      }
+    },
+    {
+      "cell_id": "MATH_PROD",
+      "type": "micro",
+      "node_type": "function",
+      "stage": 1,
+      "description": "Calculate the product of all the elements in the input iterable. The default start value for the product is 1. When the iterable is empty, return the start value.  This function is",
+      "keywords": [
+        "math",
+        "prod"
+      ],
+      "inputs": {
+        "type_name": "any",
+        "state": "iterable"
+      },
+      "outputs": {
+        "type_name": "any",
+        "state": "result_any"
+      },
+      "domain_implementations": {
+        "Python_Core": {
+          "code": "import math\n{output_var} = math.prod({input_var})",
+          "dependencies": [
+            "math"
+          ]
+        }
+      }
+    },
+    {
+      "cell_id": "MATH_RADIANS",
+      "type": "micro",
+      "node_type": "function",
+      "stage": 1,
+      "description": "Convert angle x from degrees to radians.",
+      "keywords": [
+        "math",
+        "radians"
+      ],
+      "inputs": {
+        "type_name": "any",
+        "state": "x"
+      },
+      "outputs": {
+        "type_name": "any",
+        "state": "result_any"
+      },
+      "domain_implementations": {
+        "Python_Core": {
+          "code": "import math\n{output_var} = math.radians({input_var})",
+          "dependencies": [
+            "math"
+          ]
+        }
+      }
+    },
+    {
+      "cell_id": "MATH_REMAINDER",
+      "type": "micro",
+      "node_type": "function",
+      "stage": 1,
+      "description": "Difference between x and the closest integer multiple of y. Return x - n*y where n*y is the closest integer multiple of y. In the case where x is exactly halfway between two multiples of y, the nearest even value of n is used. The result is always exact.",
+      "keywords": [
+        "math",
+        "remainder"
+      ],
+      "inputs": {
+        "type_name": "any",
+        "state": "x"
+      },
+      "outputs": {
+        "type_name": "any",
+        "state": "result_any"
+      },
+      "domain_implementations": {
+        "Python_Core": {
+          "code": "import math\n{output_var} = math.remainder({input_var})",
+          "dependencies": [
+            "math"
+          ]
+        }
+      }
+    },
+    {
+      "cell_id": "MATH_SIN",
+      "type": "micro",
+      "node_type": "function",
+      "stage": 1,
+      "description": "Return the sine of x (measured in radians).",
+      "keywords": [
+        "math",
+        "sin"
+      ],
+      "inputs": {
+        "type_name": "any",
+        "state": "x"
+      },
+      "outputs": {
+        "type_name": "any",
+        "state": "result_any"
+      },
+      "domain_implementations": {
+        "Python_Core": {
+          "code": "import math\n{output_var} = math.sin({input_var})",
+          "dependencies": [
+            "math"
+          ]
+        }
+      }
+    },
+    {
+      "cell_id": "MATH_SINH",
+      "type": "micro",
+      "node_type": "function",
+      "stage": 1,
+      "description": "Return the hyperbolic sine of x.",
+      "keywords": [
+        "math",
+        "sinh"
+      ],
+      "inputs": {
+        "type_name": "any",
+        "state": "x"
+      },
+      "outputs": {
+        "type_name": "any",
+        "state": "result_any"
+      },
+      "domain_implementations": {
+        "Python_Core": {
+          "code": "import math\n{output_var} = math.sinh({input_var})",
+          "dependencies": [
+            "math"
+          ]
+        }
+      }
+    },
+    {
+      "cell_id": "MATH_SQRT",
+      "type": "micro",
+      "node_type": "function",
+      "stage": 1,
+      "description": "Return the square root of x.",
+      "keywords": [
+        "math",
+        "sqrt"
+      ],
+      "inputs": {
+        "type_name": "any",
+        "state": "x"
+      },
+      "outputs": {
+        "type_name": "any",
+        "state": "result_any"
+      },
+      "domain_implementations": {
+        "Python_Core": {
+          "code": "import math\n{output_var} = math.sqrt({input_var})",
+          "dependencies": [
+            "math"
+          ]
+        }
+      }
+    },
+    {
+      "cell_id": "MATH_SUMPROD",
+      "type": "micro",
+      "node_type": "function",
+      "stage": 1,
+      "description": "Return the sum of products of values from two iterables p and q. Roughly equivalent to: sum(itertools.starmap(operator.mul, zip(p, q, strict=True)))",
+      "keywords": [
+        "math",
+        "sumprod"
+      ],
+      "inputs": {
+        "type_name": "any",
+        "state": "p"
+      },
+      "outputs": {
+        "type_name": "any",
+        "state": "result_any"
+      },
+      "domain_implementations": {
+        "Python_Core": {
+          "code": "import math\n{output_var} = math.sumprod({input_var})",
+          "dependencies": [
+            "math"
+          ]
+        }
+      }
+    },
+    {
+      "cell_id": "MATH_TAN",
+      "type": "micro",
+      "node_type": "function",
+      "stage": 1,
+      "description": "Return the tangent of x (measured in radians).",
+      "keywords": [
+        "math",
+        "tan"
+      ],
+      "inputs": {
+        "type_name": "any",
+        "state": "x"
+      },
+      "outputs": {
+        "type_name": "any",
+        "state": "result_any"
+      },
+      "domain_implementations": {
+        "Python_Core": {
+          "code": "import math\n{output_var} = math.tan({input_var})",
+          "dependencies": [
+            "math"
+          ]
+        }
+      }
+    },
+    {
+      "cell_id": "MATH_TANH",
+      "type": "micro",
+      "node_type": "function",
+      "stage": 1,
+      "description": "Return the hyperbolic tangent of x.",
+      "keywords": [
+        "math",
+        "tanh"
+      ],
+      "inputs": {
+        "type_name": "any",
+        "state": "x"
+      },
+      "outputs": {
+        "type_name": "any",
+        "state": "result_any"
+      },
+      "domain_implementations": {
+        "Python_Core": {
+          "code": "import math\n{output_var} = math.tanh({input_var})",
+          "dependencies": [
+            "math"
+          ]
+        }
+      }
+    },
+    {
+      "cell_id": "MATH_TRUNC",
+      "type": "micro",
+      "node_type": "function",
+      "stage": 1,
+      "description": "Truncates the Real x to the nearest Integral toward 0. Uses the __trunc__ magic method.",
+      "keywords": [
+        "math",
+        "trunc"
+      ],
+      "inputs": {
+        "type_name": "any",
+        "state": "x"
+      },
+      "outputs": {
+        "type_name": "any",
+        "state": "result_any"
+      },
+      "domain_implementations": {
+        "Python_Core": {
+          "code": "import math\n{output_var} = math.trunc({input_var})",
+          "dependencies": [
+            "math"
+          ]
+        }
+      }
+    },
+    {
+      "cell_id": "MATH_ULP",
+      "type": "micro",
+      "node_type": "function",
+      "stage": 1,
+      "description": "Return the value of the least significant bit of the float x.",
+      "keywords": [
+        "math",
+        "ulp"
+      ],
+      "inputs": {
+        "type_name": "any",
+        "state": "x"
+      },
+      "outputs": {
+        "type_name": "any",
+        "state": "result_any"
+      },
+      "domain_implementations": {
+        "Python_Core": {
+          "code": "import math\n{output_var} = math.ulp({input_var})",
+          "dependencies": [
+            "math"
+          ]
+        }
+      }
+    }
+  ]
+}

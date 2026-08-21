@@ -1,0 +1,343 @@
+{
+  "domain_name": "Pandas_Data_Engineering",
+  "version": "2.0.0",
+  "description": "Complete pandas data engineering micro-cell library. Covers ingestion, cleaning, transformation, aggregation, and export — the full lifecycle of a DataFrame.",
+  "cells": [
+    {
+      "cell_id": "PANDAS_READ_CSV",
+      "type": "micro",
+      "stage": 1,
+      "keywords": ["pandas", "read_csv", "csv", "read", "file", "ingest", "load", "comma", "tabular"],
+      "inputs":  { "type_name": "str", "state": "source_identifier" },
+      "outputs": { "type_name": "DataFrame", "state": "raw_dataframe" },
+      "domain_implementations": {
+        "Python_Core": {
+          "code": "import pandas as pd\n{output_var} = pd.read_csv({input_var})",
+          "dependencies": ["pandas"]
+        }
+      }
+    },
+    {
+      "cell_id": "PANDAS_READ_JSON",
+      "type": "micro",
+      "stage": 1,
+      "keywords": ["json", "read", "file", "ingest", "nested", "load"],
+      "inputs":  { "type_name": "str", "state": "source_identifier" },
+      "outputs": { "type_name": "DataFrame", "state": "raw_dataframe" },
+      "domain_implementations": {
+        "Python_Core": {
+          "code": "import pandas as pd\n{output_var} = pd.read_json({input_var})",
+          "dependencies": ["pandas"]
+        }
+      }
+    },
+    {
+      "cell_id": "PANDAS_READ_EXCEL",
+      "type": "micro",
+      "stage": 1,
+      "keywords": ["excel", "xlsx", "read", "spreadsheet", "ingest", "xls"],
+      "inputs":  { "type_name": "str", "state": "source_identifier" },
+      "outputs": { "type_name": "DataFrame", "state": "raw_dataframe" },
+      "domain_implementations": {
+        "Python_Core": {
+          "code": "import pandas as pd\n{output_var} = pd.read_excel({input_var})",
+          "dependencies": ["pandas", "openpyxl"]
+        }
+      }
+    },
+    {
+      "cell_id": "PANDAS_READ_PARQUET",
+      "type": "micro",
+      "stage": 1,
+      "keywords": ["parquet", "read", "columnar", "binary", "arrow", "load"],
+      "inputs":  { "type_name": "str", "state": "source_identifier" },
+      "outputs": { "type_name": "DataFrame", "state": "raw_dataframe" },
+      "domain_implementations": {
+        "Python_Core": {
+          "code": "import pandas as pd\n{output_var} = pd.read_parquet({input_var})",
+          "dependencies": ["pandas", "pyarrow"]
+        }
+      }
+    },
+    {
+      "cell_id": "PANDAS_DROP_NA",
+      "type": "micro",
+      "stage": 2,
+      "keywords": ["dropna", "missing", "null", "nan", "clean", "remove", "nulls"],
+      "inputs":  { "type_name": "DataFrame", "state": "raw_dataframe" },
+      "outputs": { "type_name": "DataFrame", "state": "cleaned_dataframe" },
+      "domain_implementations": {
+        "Python_Core": {
+          "code": "{output_var} = {input_var}.dropna()",
+          "dependencies": ["pandas"]
+        }
+      }
+    },
+    {
+      "cell_id": "PANDAS_FILL_NA",
+      "type": "micro",
+      "stage": 2,
+      "keywords": ["fillna", "impute", "fill", "missing", "null", "replace"],
+      "inputs":  { "type_name": "DataFrame", "state": "raw_dataframe" },
+      "outputs": { "type_name": "DataFrame", "state": "imputed_dataframe" },
+      "domain_implementations": {
+        "Python_Core": {
+          "code": "{output_var} = {input_var}.fillna({input_var}.mean(numeric_only=True))",
+          "dependencies": ["pandas"]
+        }
+      }
+    },
+    {
+      "cell_id": "PANDAS_DROP_DUPLICATES",
+      "type": "micro",
+      "stage": 2,
+      "keywords": ["duplicates", "unique", "deduplicate", "clean", "remove"],
+      "inputs":  { "type_name": "DataFrame", "state": "cleaned_dataframe" },
+      "outputs": { "type_name": "DataFrame", "state": "deduplicated_dataframe" },
+      "domain_implementations": {
+        "Python_Core": {
+          "code": "{output_var} = {input_var}.drop_duplicates()",
+          "dependencies": ["pandas"]
+        }
+      }
+    },
+    {
+      "cell_id": "PANDAS_RENAME_COLUMNS",
+      "type": "micro",
+      "stage": 2,
+      "keywords": ["rename", "columns", "headers", "relabel", "fields"],
+      "inputs":  { "type_name": "DataFrame", "state": "raw_dataframe" },
+      "outputs": { "type_name": "DataFrame", "state": "relabeled_dataframe" },
+      "domain_implementations": {
+        "Python_Core": {
+          "code": "{output_var} = {input_var}.rename(columns=lambda c: c.strip().lower().replace(' ', '_'))",
+          "dependencies": ["pandas"]
+        }
+      }
+    },
+    {
+      "cell_id": "PANDAS_SELECT_COLUMNS",
+      "type": "micro",
+      "stage": 2,
+      "keywords": ["select", "columns", "subset", "project", "filter", "fields"],
+      "inputs":  { "type_name": "DataFrame", "state": "cleaned_dataframe" },
+      "outputs": { "type_name": "DataFrame", "state": "projected_dataframe" },
+      "domain_implementations": {
+        "Python_Core": {
+          "code": "_numeric_cols = {input_var}.select_dtypes(include='number').columns.tolist()\n{output_var} = {input_var}[_numeric_cols]",
+          "dependencies": ["pandas"]
+        }
+      }
+    },
+    {
+      "cell_id": "PANDAS_FILTER_ROWS",
+      "type": "micro",
+      "stage": 2,
+      "keywords": ["filter", "query", "rows", "where", "condition", "subset"],
+      "inputs":  { "type_name": "DataFrame", "state": "cleaned_dataframe" },
+      "outputs": { "type_name": "DataFrame", "state": "filtered_dataframe" },
+      "domain_implementations": {
+        "Python_Core": {
+          "code": "_col = {input_var}.select_dtypes(include='number').columns[0]\n{output_var} = {input_var}[{input_var}[_col].notna()]",
+          "dependencies": ["pandas"]
+        }
+      }
+    },
+    {
+      "cell_id": "PANDAS_GROUPBY_AGG",
+      "type": "micro",
+      "stage": 3,
+      "keywords": ["groupby", "aggregate", "group", "mean", "sum", "count", "pivot"],
+      "inputs":  { "type_name": "DataFrame", "state": "cleaned_dataframe" },
+      "outputs": { "type_name": "DataFrame", "state": "aggregated_dataframe" },
+      "domain_implementations": {
+        "Python_Core": {
+          "code": "_cat_cols = {input_var}.select_dtypes(include=['object', 'category']).columns\n_group_col = _cat_cols[0] if len(_cat_cols) > 0 else {input_var}.columns[0]\n{output_var} = {input_var}.groupby(_group_col).mean(numeric_only=True)",
+          "dependencies": ["pandas"]
+        }
+      }
+    },
+    {
+      "cell_id": "PANDAS_SORT_VALUES",
+      "type": "micro",
+      "stage": 3,
+      "keywords": ["sort", "order", "rank", "ascending", "descending", "values"],
+      "inputs":  { "type_name": "DataFrame", "state": "cleaned_dataframe" },
+      "outputs": { "type_name": "DataFrame", "state": "sorted_dataframe" },
+      "domain_implementations": {
+        "Python_Core": {
+          "code": "_sort_col = {input_var}.select_dtypes(include='number').columns[0]\n{output_var} = {input_var}.sort_values(by=_sort_col, ascending=False)",
+          "dependencies": ["pandas"]
+        }
+      }
+    },
+    {
+      "cell_id": "PANDAS_MERGE",
+      "type": "micro",
+      "stage": 3,
+      "keywords": ["merge", "join", "combine", "left join", "inner join", "dataframe"],
+      "inputs":  { "type_name": "DataFrame", "state": "cleaned_dataframe" },
+      "outputs": { "type_name": "DataFrame", "state": "merged_dataframe" },
+      "domain_implementations": {
+        "Python_Core": {
+          "code": "# Merge with itself on the first shared column as a placeholder\n_key = {input_var}.columns[0]\n{output_var} = pd.merge({input_var}, {input_var}, on=_key, suffixes=('_left', '_right'))",
+          "dependencies": ["pandas"]
+        }
+      }
+    },
+    {
+      "cell_id": "PANDAS_PIVOT_TABLE",
+      "type": "micro",
+      "stage": 3,
+      "keywords": ["pivot", "pivot table", "crosstab", "reshape", "wide", "aggregate"],
+      "inputs":  { "type_name": "DataFrame", "state": "cleaned_dataframe" },
+      "outputs": { "type_name": "DataFrame", "state": "pivoted_dataframe" },
+      "domain_implementations": {
+        "Python_Core": {
+          "code": "import pandas as pd\n_cols = {input_var}.columns.tolist()\n{output_var} = pd.pivot_table({input_var}, values=_cols[-1], index=_cols[0], aggfunc='mean')",
+          "dependencies": ["pandas"]
+        }
+      }
+    },
+    {
+      "cell_id": "PANDAS_MELT",
+      "type": "micro",
+      "stage": 3,
+      "keywords": ["melt", "unpivot", "reshape", "long", "tidy", "wide to long"],
+      "inputs":  { "type_name": "DataFrame", "state": "pivoted_dataframe" },
+      "outputs": { "type_name": "DataFrame", "state": "melted_dataframe" },
+      "domain_implementations": {
+        "Python_Core": {
+          "code": "import pandas as pd\n{output_var} = pd.melt({input_var})",
+          "dependencies": ["pandas"]
+        }
+      }
+    },
+    {
+      "cell_id": "PANDAS_DESCRIBE",
+      "type": "micro",
+      "stage": 3,
+      "keywords": ["describe", "statistics", "summary", "profile", "mean", "std"],
+      "inputs":  { "type_name": "DataFrame", "state": "cleaned_dataframe" },
+      "outputs": { "type_name": "DataFrame", "state": "statistics_dataframe" },
+      "domain_implementations": {
+        "Python_Core": {
+          "code": "{output_var} = {input_var}.describe()",
+          "dependencies": ["pandas"]
+        }
+      }
+    },
+    {
+      "cell_id": "PANDAS_RESET_INDEX",
+      "type": "micro",
+      "stage": 3,
+      "keywords": ["reset", "index", "reindex", "flatten", "clean index"],
+      "inputs":  { "type_name": "DataFrame", "state": "aggregated_dataframe" },
+      "outputs": { "type_name": "DataFrame", "state": "cleaned_dataframe" },
+      "domain_implementations": {
+        "Python_Core": {
+          "code": "{output_var} = {input_var}.reset_index(drop=False)",
+          "dependencies": ["pandas"]
+        }
+      }
+    },
+    {
+      "cell_id": "PANDAS_ASTYPE",
+      "type": "micro",
+      "stage": 2,
+      "keywords": ["astype", "cast", "convert", "dtype", "type", "integer", "float", "string"],
+      "inputs":  { "type_name": "DataFrame", "state": "raw_dataframe" },
+      "outputs": { "type_name": "DataFrame", "state": "typed_dataframe" },
+      "domain_implementations": {
+        "Python_Core": {
+          "code": "_num_cols = {input_var}.select_dtypes(include=['object']).columns\nfor _c in _num_cols:\n    try:\n        {input_var}[_c] = pd.to_numeric({input_var}[_c], errors='ignore')\n{output_var} = {input_var}",
+          "dependencies": ["pandas"]
+        }
+      }
+    },
+    {
+      "cell_id": "PANDAS_APPLY",
+      "type": "micro",
+      "stage": 3,
+      "keywords": ["apply", "transform", "map", "lambda", "function", "column"],
+      "inputs":  { "type_name": "DataFrame", "state": "cleaned_dataframe" },
+      "outputs": { "type_name": "DataFrame", "state": "transformed_dataframe" },
+      "domain_implementations": {
+        "Python_Core": {
+          "code": "_num_cols = {input_var}.select_dtypes(include='number').columns\n{output_var} = {input_var}.copy()\nfor _c in _num_cols:\n    {output_var}[_c] = {input_var}[_c].apply(lambda x: x)",
+          "dependencies": ["pandas"]
+        }
+      }
+    },
+    {
+      "cell_id": "PANDAS_TO_CSV",
+      "type": "micro",
+      "stage": 4,
+      "keywords": ["to_csv", "export", "save", "write", "csv", "output"],
+      "inputs":  { "type_name": "DataFrame", "state": "cleaned_dataframe" },
+      "outputs": { "type_name": "str", "state": "filepath_written" },
+      "domain_implementations": {
+        "Python_Core": {
+          "code": "_path = 'export.csv'\n{input_var}.to_csv(_path, index=False)\n{output_var} = _path",
+          "dependencies": ["pandas"]
+        }
+      }
+    },
+    {
+      "cell_id": "PANDAS_TO_JSON",
+      "type": "micro",
+      "stage": 4,
+      "keywords": ["to_json", "export", "save", "write", "json", "output"],
+      "inputs":  { "type_name": "DataFrame", "state": "cleaned_dataframe" },
+      "outputs": { "type_name": "str", "state": "filepath_written" },
+      "domain_implementations": {
+        "Python_Core": {
+          "code": "_path = 'export.json'\n{input_var}.to_json(_path, orient='records', indent=2)\n{output_var} = _path",
+          "dependencies": ["pandas"]
+        }
+      }
+    },
+    {
+      "cell_id": "PANDAS_TO_PARQUET",
+      "type": "micro",
+      "stage": 4,
+      "keywords": ["to_parquet", "export", "save", "binary", "columnar", "arrow"],
+      "inputs":  { "type_name": "DataFrame", "state": "cleaned_dataframe" },
+      "outputs": { "type_name": "str", "state": "filepath_written" },
+      "domain_implementations": {
+        "Python_Core": {
+          "code": "_path = 'export.parquet'\n{input_var}.to_parquet(_path, index=False)\n{output_var} = _path",
+          "dependencies": ["pandas", "pyarrow"]
+        }
+      }
+    },
+    {
+      "cell_id": "PANDAS_VALUE_COUNTS",
+      "type": "micro",
+      "stage": 3,
+      "keywords": ["value_counts", "frequency", "count", "distribution", "histogram"],
+      "inputs":  { "type_name": "DataFrame", "state": "cleaned_dataframe" },
+      "outputs": { "type_name": "DataFrame", "state": "frequency_dataframe" },
+      "domain_implementations": {
+        "Python_Core": {
+          "code": "_col = {input_var}.select_dtypes(include=['object', 'category']).columns\nif len(_col) == 0:\n    _col = [{input_var}.columns[0]]\n{output_var} = {input_var}[_col[0]].value_counts().reset_index()",
+          "dependencies": ["pandas"]
+        }
+      }
+    },
+    {
+      "cell_id": "PANDAS_CORR",
+      "type": "micro",
+      "stage": 3,
+      "keywords": ["correlation", "corr", "relationship", "covariance", "feature analysis"],
+      "inputs":  { "type_name": "DataFrame", "state": "cleaned_dataframe" },
+      "outputs": { "type_name": "DataFrame", "state": "correlation_matrix" },
+      "domain_implementations": {
+        "Python_Core": {
+          "code": "{output_var} = {input_var}.select_dtypes(include='number').corr()",
+          "dependencies": ["pandas"]
+        }
+      }
+    }
+  ]
+}

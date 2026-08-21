@@ -1,0 +1,24 @@
+{
+  "domain_name": "Synthesized_Domain",
+  "cells": [
+    {
+      "cell_id": "micro_synthesized_good_cell",
+      "type": "micro",
+      "stage": 1,
+      "inputs": {
+        "type_name": "str",
+        "state": "raw"
+      },
+      "outputs": {
+        "type_name": "DataFrame",
+        "state": "computed"
+      },
+      "domain_implementations": {
+        "Python_Core": {
+          "code": "import pandas as pd\n{output_var} = pd.read_csv({input_var})",
+          "dependencies": []
+        }
+      }
+    }
+  ]
+}

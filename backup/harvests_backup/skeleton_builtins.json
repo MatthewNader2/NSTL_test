@@ -1,0 +1,1889 @@
+[
+  {
+    "name": "add_note",
+    "contexts": [
+      "builtins.ArithmeticError",
+      "builtins.AssertionError",
+      "builtins.AttributeError",
+      "builtins.BaseException",
+      "builtins.BaseExceptionGroup",
+      "builtins.BlockingIOError",
+      "builtins.BrokenPipeError",
+      "builtins.BufferError",
+      "builtins.BytesWarning",
+      "builtins.ChildProcessError",
+      "builtins.ConnectionAbortedError",
+      "builtins.ConnectionError",
+      "builtins.ConnectionRefusedError",
+      "builtins.ConnectionResetError",
+      "builtins.DeprecationWarning",
+      "builtins.EOFError",
+      "builtins.EncodingWarning",
+      "builtins.EnvironmentError",
+      "builtins.Exception",
+      "builtins.ExceptionGroup",
+      "builtins.FileExistsError",
+      "builtins.FileNotFoundError",
+      "builtins.FloatingPointError",
+      "builtins.FutureWarning",
+      "builtins.GeneratorExit",
+      "builtins.ImportError",
+      "builtins.ImportWarning",
+      "builtins.IndentationError",
+      "builtins.IndexError",
+      "builtins.InterruptedError",
+      "builtins.IsADirectoryError",
+      "builtins.KeyError",
+      "builtins.KeyboardInterrupt",
+      "builtins.LookupError",
+      "builtins.MemoryError",
+      "builtins.ModuleNotFoundError",
+      "builtins.NameError",
+      "builtins.NotADirectoryError",
+      "builtins.NotImplementedError",
+      "builtins.OverflowError",
+      "builtins.PendingDeprecationWarning",
+      "builtins.PermissionError",
+      "builtins.ProcessLookupError",
+      "builtins.RecursionError",
+      "builtins.ReferenceError",
+      "builtins.ResourceWarning",
+      "builtins.RuntimeError",
+      "builtins.RuntimeWarning",
+      "builtins.StopAsyncIteration",
+      "builtins.StopIteration",
+      "builtins.SyntaxError",
+      "builtins.SyntaxWarning",
+      "builtins.SystemError",
+      "builtins.SystemExit",
+      "builtins.TabError",
+      "builtins.TimeoutError",
+      "builtins.TypeError",
+      "builtins.UnboundLocalError",
+      "builtins.UnicodeDecodeError",
+      "builtins.UnicodeEncodeError",
+      "builtins.UnicodeError",
+      "builtins.UnicodeTranslateError",
+      "builtins.UnicodeWarning",
+      "builtins.UserWarning",
+      "builtins.ValueError",
+      "builtins.Warning",
+      "builtins.ZeroDivisionError"
+    ],
+    "is_method": true,
+    "params": [
+      "*args",
+      "**kwargs"
+    ],
+    "doc": "Exception.add_note(note) --\nadd a note to the exception"
+  },
+  {
+    "name": "with_traceback",
+    "contexts": [
+      "builtins.ArithmeticError",
+      "builtins.AssertionError",
+      "builtins.AttributeError",
+      "builtins.BaseException",
+      "builtins.BaseExceptionGroup",
+      "builtins.BlockingIOError",
+      "builtins.BrokenPipeError",
+      "builtins.BufferError",
+      "builtins.BytesWarning",
+      "builtins.ChildProcessError",
+      "builtins.ConnectionAbortedError",
+      "builtins.ConnectionError",
+      "builtins.ConnectionRefusedError",
+      "builtins.ConnectionResetError",
+      "builtins.DeprecationWarning",
+      "builtins.EOFError",
+      "builtins.EncodingWarning",
+      "builtins.EnvironmentError",
+      "builtins.Exception",
+      "builtins.ExceptionGroup",
+      "builtins.FileExistsError",
+      "builtins.FileNotFoundError",
+      "builtins.FloatingPointError",
+      "builtins.FutureWarning",
+      "builtins.GeneratorExit",
+      "builtins.ImportError",
+      "builtins.ImportWarning",
+      "builtins.IndentationError",
+      "builtins.IndexError",
+      "builtins.InterruptedError",
+      "builtins.IsADirectoryError",
+      "builtins.KeyError",
+      "builtins.KeyboardInterrupt",
+      "builtins.LookupError",
+      "builtins.MemoryError",
+      "builtins.ModuleNotFoundError",
+      "builtins.NameError",
+      "builtins.NotADirectoryError",
+      "builtins.NotImplementedError",
+      "builtins.OverflowError",
+      "builtins.PendingDeprecationWarning",
+      "builtins.PermissionError",
+      "builtins.ProcessLookupError",
+      "builtins.RecursionError",
+      "builtins.ReferenceError",
+      "builtins.ResourceWarning",
+      "builtins.RuntimeError",
+      "builtins.RuntimeWarning",
+      "builtins.StopAsyncIteration",
+      "builtins.StopIteration",
+      "builtins.SyntaxError",
+      "builtins.SyntaxWarning",
+      "builtins.SystemError",
+      "builtins.SystemExit",
+      "builtins.TabError",
+      "builtins.TimeoutError",
+      "builtins.TypeError",
+      "builtins.UnboundLocalError",
+      "builtins.UnicodeDecodeError",
+      "builtins.UnicodeEncodeError",
+      "builtins.UnicodeError",
+      "builtins.UnicodeTranslateError",
+      "builtins.UnicodeWarning",
+      "builtins.UserWarning",
+      "builtins.ValueError",
+      "builtins.Warning",
+      "builtins.ZeroDivisionError"
+    ],
+    "is_method": true,
+    "params": [
+      "*args",
+      "**kwargs"
+    ],
+    "doc": "Exception.with_traceback(tb) --\nset self.__traceback__ to tb and return self."
+  },
+  {
+    "name": "derive",
+    "contexts": [
+      "builtins.BaseExceptionGroup",
+      "builtins.ExceptionGroup"
+    ],
+    "is_method": true,
+    "params": [
+      "*args",
+      "**kwargs"
+    ],
+    "doc": ""
+  },
+  {
+    "name": "split",
+    "contexts": [
+      "builtins.BaseExceptionGroup",
+      "builtins.ExceptionGroup",
+      "builtins.bytearray",
+      "builtins.bytes",
+      "builtins.str"
+    ],
+    "is_method": true,
+    "params": [
+      "*args",
+      "**kwargs"
+    ],
+    "doc": ""
+  },
+  {
+    "name": "subgroup",
+    "contexts": [
+      "builtins.BaseExceptionGroup",
+      "builtins.ExceptionGroup"
+    ],
+    "is_method": true,
+    "params": [
+      "*args",
+      "**kwargs"
+    ],
+    "doc": ""
+  },
+  {
+    "name": "abs",
+    "contexts": [
+      "builtins"
+    ],
+    "is_method": false,
+    "params": [
+      "x"
+    ],
+    "doc": "Return the absolute value of the argument."
+  },
+  {
+    "name": "aiter",
+    "contexts": [
+      "builtins"
+    ],
+    "is_method": false,
+    "params": [
+      "async_iterable"
+    ],
+    "doc": "Return an AsyncIterator for an AsyncIterable object."
+  },
+  {
+    "name": "all",
+    "contexts": [
+      "builtins"
+    ],
+    "is_method": false,
+    "params": [
+      "iterable"
+    ],
+    "doc": "Return True if bool(x) is True for all values x in the iterable.\n\nIf the iterable is empty, return True."
+  },
+  {
+    "name": "anext",
+    "contexts": [
+      "builtins"
+    ],
+    "is_method": false,
+    "params": [
+      "*args",
+      "**kwargs"
+    ],
+    "doc": "async anext(aiterator[, default])\n\nReturn the next item from the async iterator.  If default is given and the async\niterator is exhausted, it is returned instead of raising StopAsyncIteration."
+  },
+  {
+    "name": "any",
+    "contexts": [
+      "builtins"
+    ],
+    "is_method": false,
+    "params": [
+      "iterable"
+    ],
+    "doc": "Return True if bool(x) is True for any x in the iterable.\n\nIf the iterable is empty, return False."
+  },
+  {
+    "name": "ascii",
+    "contexts": [
+      "builtins"
+    ],
+    "is_method": false,
+    "params": [
+      "obj"
+    ],
+    "doc": "Return an ASCII-only representation of an object.\n\nAs repr(), return a string containing a printable representation of an\nobject, but escape the non-ASCII characters in the string returned by"
+  },
+  {
+    "name": "bin",
+    "contexts": [
+      "builtins"
+    ],
+    "is_method": false,
+    "params": [
+      "number"
+    ],
+    "doc": "Return the binary representation of an integer.\n\n>>> bin(2796202)\n'0b1010101010101010101010'"
+  },
+  {
+    "name": "as_integer_ratio",
+    "contexts": [
+      "builtins.bool",
+      "builtins.float",
+      "builtins.int"
+    ],
+    "is_method": true,
+    "params": [],
+    "doc": "Return a pair of integers, whose ratio is equal to the original int.\n\nThe ratio is in lowest terms and has a positive denominator.\n"
+  },
+  {
+    "name": "bit_count",
+    "contexts": [
+      "builtins.bool",
+      "builtins.int"
+    ],
+    "is_method": true,
+    "params": [],
+    "doc": "Number of ones in the binary representation of the absolute value of self.\n\nAlso known as the population count.\n"
+  },
+  {
+    "name": "bit_length",
+    "contexts": [
+      "builtins.bool",
+      "builtins.int"
+    ],
+    "is_method": true,
+    "params": [],
+    "doc": "Number of bits necessary to represent self in binary.\n\n>>> bin(37)\n'0b100101'"
+  },
+  {
+    "name": "conjugate",
+    "contexts": [
+      "builtins.bool",
+      "builtins.complex",
+      "builtins.float",
+      "builtins.int"
+    ],
+    "is_method": true,
+    "params": [
+      "*args",
+      "**kwargs"
+    ],
+    "doc": "Returns self, the complex conjugate of any int."
+  },
+  {
+    "name": "from_bytes",
+    "contexts": [
+      "builtins.bool",
+      "builtins.int"
+    ],
+    "is_method": true,
+    "params": [
+      "bytes",
+      "byteorder",
+      "signed"
+    ],
+    "doc": "Return the integer represented by the given array of bytes.\n\nbytes\n  Holds the array of bytes to convert.  The argument must either"
+  },
+  {
+    "name": "is_integer",
+    "contexts": [
+      "builtins.bool",
+      "builtins.float",
+      "builtins.int"
+    ],
+    "is_method": true,
+    "params": [],
+    "doc": "Returns True. Exists for duck type compatibility with float.is_integer."
+  },
+  {
+    "name": "to_bytes",
+    "contexts": [
+      "builtins.bool",
+      "builtins.int"
+    ],
+    "is_method": true,
+    "params": [
+      "length",
+      "byteorder",
+      "signed"
+    ],
+    "doc": "Return an array of bytes representing an integer.\n\nlength\n  Length of bytes object to use.  An OverflowError is raised if the"
+  },
+  {
+    "name": "breakpoint",
+    "contexts": [
+      "builtins"
+    ],
+    "is_method": false,
+    "params": [
+      "*args",
+      "**kwargs"
+    ],
+    "doc": "breakpoint(*args, **kws)\n\nCall sys.breakpointhook(*args, **kws).  sys.breakpointhook() must accept\nwhatever arguments are passed."
+  },
+  {
+    "name": "append",
+    "contexts": [
+      "builtins.bytearray",
+      "builtins.list"
+    ],
+    "is_method": true,
+    "params": [
+      "item"
+    ],
+    "doc": "Append a single item to the end of the bytearray.\n\nitem\n  The item to be appended."
+  },
+  {
+    "name": "capitalize",
+    "contexts": [
+      "builtins.bytearray",
+      "builtins.bytes",
+      "builtins.str"
+    ],
+    "is_method": true,
+    "params": [
+      "*args",
+      "**kwargs"
+    ],
+    "doc": "B.capitalize() -> copy of B\n\nReturn a copy of B with only its first character capitalized (ASCII)\nand the rest lower-cased."
+  },
+  {
+    "name": "center",
+    "contexts": [
+      "builtins.bytearray",
+      "builtins.bytes",
+      "builtins.str"
+    ],
+    "is_method": true,
+    "params": [
+      "width",
+      "fillchar"
+    ],
+    "doc": "Return a centered string of length width.\n\nPadding is done using the specified fill character."
+  },
+  {
+    "name": "clear",
+    "contexts": [
+      "builtins.bytearray",
+      "builtins.dict",
+      "builtins.list",
+      "builtins.set"
+    ],
+    "is_method": true,
+    "params": [],
+    "doc": "Remove all items from the bytearray."
+  },
+  {
+    "name": "copy",
+    "contexts": [
+      "builtins.bytearray",
+      "builtins.dict",
+      "builtins.frozenset",
+      "builtins.list",
+      "builtins.set"
+    ],
+    "is_method": true,
+    "params": [],
+    "doc": "Return a copy of B."
+  },
+  {
+    "name": "count",
+    "contexts": [
+      "builtins.bytearray",
+      "builtins.bytes",
+      "builtins.list",
+      "builtins.range",
+      "builtins.str",
+      "builtins.tuple"
+    ],
+    "is_method": true,
+    "params": [
+      "*args",
+      "**kwargs"
+    ],
+    "doc": "B.count(sub[, start[, end]]) -> int\n\nReturn the number of non-overlapping occurrences of subsection sub in\nbytes B[start:end].  Optional arguments start and end are interpreted"
+  },
+  {
+    "name": "decode",
+    "contexts": [
+      "builtins.bytearray",
+      "builtins.bytes"
+    ],
+    "is_method": true,
+    "params": [
+      "encoding",
+      "errors"
+    ],
+    "doc": "Decode the bytearray using the codec registered for encoding.\n\nencoding\n  The encoding with which to decode the bytearray."
+  },
+  {
+    "name": "endswith",
+    "contexts": [
+      "builtins.bytearray",
+      "builtins.bytes",
+      "builtins.str"
+    ],
+    "is_method": true,
+    "params": [
+      "*args",
+      "**kwargs"
+    ],
+    "doc": "B.endswith(suffix[, start[, end]]) -> bool\n\nReturn True if B ends with the specified suffix, False otherwise.\nWith optional start, test B beginning at that position."
+  },
+  {
+    "name": "expandtabs",
+    "contexts": [
+      "builtins.bytearray",
+      "builtins.bytes",
+      "builtins.str"
+    ],
+    "is_method": true,
+    "params": [
+      "tabsize"
+    ],
+    "doc": "Return a copy where all tab characters are expanded using spaces.\n\nIf tabsize is not given, a tab size of 8 characters is assumed."
+  },
+  {
+    "name": "extend",
+    "contexts": [
+      "builtins.bytearray",
+      "builtins.list"
+    ],
+    "is_method": true,
+    "params": [
+      "iterable_of_ints"
+    ],
+    "doc": "Append all the items from the iterator or sequence to the end of the bytearray.\n\niterable_of_ints\n  The iterable of items to append."
+  },
+  {
+    "name": "find",
+    "contexts": [
+      "builtins.bytearray",
+      "builtins.bytes",
+      "builtins.str"
+    ],
+    "is_method": true,
+    "params": [
+      "*args",
+      "**kwargs"
+    ],
+    "doc": "B.find(sub[, start[, end]]) -> int\n\nReturn the lowest index in B where subsection sub is found,\nsuch that sub is contained within B[start,end].  Optional"
+  },
+  {
+    "name": "fromhex",
+    "contexts": [
+      "builtins.bytearray",
+      "builtins.bytes",
+      "builtins.float"
+    ],
+    "is_method": true,
+    "params": [
+      "string"
+    ],
+    "doc": "Create a bytearray object from a string of hexadecimal numbers.\n\nSpaces between two numbers are accepted.\nExample: bytearray.fromhex('B9 01EF') -> bytearray(b'\\\\xb9\\\\x01\\\\xef')"
+  },
+  {
+    "name": "hex",
+    "contexts": [
+      "builtins.bytearray",
+      "builtins.bytes",
+      "builtins.float",
+      "builtins",
+      "builtins.memoryview"
+    ],
+    "is_method": true,
+    "params": [
+      "*args",
+      "**kwargs"
+    ],
+    "doc": "Create a string of hexadecimal numbers from a bytearray object.\n\n  sep\n    An optional single character or byte to separate hex bytes."
+  },
+  {
+    "name": "index",
+    "contexts": [
+      "builtins.bytearray",
+      "builtins.bytes",
+      "builtins.list",
+      "builtins.range",
+      "builtins.str",
+      "builtins.tuple"
+    ],
+    "is_method": true,
+    "params": [
+      "*args",
+      "**kwargs"
+    ],
+    "doc": "B.index(sub[, start[, end]]) -> int\n\nReturn the lowest index in B where subsection sub is found,\nsuch that sub is contained within B[start,end].  Optional"
+  },
+  {
+    "name": "insert",
+    "contexts": [
+      "builtins.bytearray",
+      "builtins.list"
+    ],
+    "is_method": true,
+    "params": [
+      "index",
+      "item"
+    ],
+    "doc": "Insert a single item into the bytearray before the given index.\n\nindex\n  The index where the value is to be inserted."
+  },
+  {
+    "name": "isalnum",
+    "contexts": [
+      "builtins.bytearray",
+      "builtins.bytes",
+      "builtins.str"
+    ],
+    "is_method": true,
+    "params": [
+      "*args",
+      "**kwargs"
+    ],
+    "doc": "B.isalnum() -> bool\n\nReturn True if all characters in B are alphanumeric\nand there is at least one character in B, False otherwise."
+  },
+  {
+    "name": "isalpha",
+    "contexts": [
+      "builtins.bytearray",
+      "builtins.bytes",
+      "builtins.str"
+    ],
+    "is_method": true,
+    "params": [
+      "*args",
+      "**kwargs"
+    ],
+    "doc": "B.isalpha() -> bool\n\nReturn True if all characters in B are alphabetic\nand there is at least one character in B, False otherwise."
+  },
+  {
+    "name": "isascii",
+    "contexts": [
+      "builtins.bytearray",
+      "builtins.bytes",
+      "builtins.str"
+    ],
+    "is_method": true,
+    "params": [
+      "*args",
+      "**kwargs"
+    ],
+    "doc": "B.isascii() -> bool\n\nReturn True if B is empty or all characters in B are ASCII,\nFalse otherwise."
+  },
+  {
+    "name": "isdigit",
+    "contexts": [
+      "builtins.bytearray",
+      "builtins.bytes",
+      "builtins.str"
+    ],
+    "is_method": true,
+    "params": [
+      "*args",
+      "**kwargs"
+    ],
+    "doc": "B.isdigit() -> bool\n\nReturn True if all characters in B are digits\nand there is at least one character in B, False otherwise."
+  },
+  {
+    "name": "islower",
+    "contexts": [
+      "builtins.bytearray",
+      "builtins.bytes",
+      "builtins.str"
+    ],
+    "is_method": true,
+    "params": [
+      "*args",
+      "**kwargs"
+    ],
+    "doc": "B.islower() -> bool\n\nReturn True if all cased characters in B are lowercase and there is\nat least one cased character in B, False otherwise."
+  },
+  {
+    "name": "isspace",
+    "contexts": [
+      "builtins.bytearray",
+      "builtins.bytes",
+      "builtins.str"
+    ],
+    "is_method": true,
+    "params": [
+      "*args",
+      "**kwargs"
+    ],
+    "doc": "B.isspace() -> bool\n\nReturn True if all characters in B are whitespace\nand there is at least one character in B, False otherwise."
+  },
+  {
+    "name": "istitle",
+    "contexts": [
+      "builtins.bytearray",
+      "builtins.bytes",
+      "builtins.str"
+    ],
+    "is_method": true,
+    "params": [
+      "*args",
+      "**kwargs"
+    ],
+    "doc": "B.istitle() -> bool\n\nReturn True if B is a titlecased string and there is at least one\ncharacter in B, i.e. uppercase characters may only follow uncased"
+  },
+  {
+    "name": "isupper",
+    "contexts": [
+      "builtins.bytearray",
+      "builtins.bytes",
+      "builtins.str"
+    ],
+    "is_method": true,
+    "params": [
+      "*args",
+      "**kwargs"
+    ],
+    "doc": "B.isupper() -> bool\n\nReturn True if all cased characters in B are uppercase and there is\nat least one cased character in B, False otherwise."
+  },
+  {
+    "name": "join",
+    "contexts": [
+      "builtins.bytearray",
+      "builtins.bytes",
+      "builtins.str"
+    ],
+    "is_method": true,
+    "params": [
+      "iterable_of_bytes"
+    ],
+    "doc": "Concatenate any number of bytes/bytearray objects.\n\nThe bytearray whose method is called is inserted in between each pair.\n"
+  },
+  {
+    "name": "ljust",
+    "contexts": [
+      "builtins.bytearray",
+      "builtins.bytes",
+      "builtins.str"
+    ],
+    "is_method": true,
+    "params": [
+      "width",
+      "fillchar"
+    ],
+    "doc": "Return a left-justified string of length width.\n\nPadding is done using the specified fill character."
+  },
+  {
+    "name": "lower",
+    "contexts": [
+      "builtins.bytearray",
+      "builtins.bytes",
+      "builtins.str"
+    ],
+    "is_method": true,
+    "params": [
+      "*args",
+      "**kwargs"
+    ],
+    "doc": "B.lower() -> copy of B\n\nReturn a copy of B with all ASCII characters converted to lowercase."
+  },
+  {
+    "name": "lstrip",
+    "contexts": [
+      "builtins.bytearray",
+      "builtins.bytes",
+      "builtins.str"
+    ],
+    "is_method": true,
+    "params": [
+      "bytes"
+    ],
+    "doc": "Strip leading bytes contained in the argument.\n\nIf the argument is omitted or None, strip leading ASCII whitespace."
+  },
+  {
+    "name": "maketrans",
+    "contexts": [
+      "builtins.bytearray",
+      "builtins.bytes",
+      "builtins.str"
+    ],
+    "is_method": true,
+    "params": [
+      "frm",
+      "to"
+    ],
+    "doc": "Return a translation table useable for the bytes or bytearray translate method.\n\nThe returned table will be one where each byte in frm is mapped to the byte at\nthe same position in to."
+  },
+  {
+    "name": "partition",
+    "contexts": [
+      "builtins.bytearray",
+      "builtins.bytes",
+      "builtins.str"
+    ],
+    "is_method": true,
+    "params": [
+      "sep"
+    ],
+    "doc": "Partition the bytearray into three parts using the given separator.\n\nThis will search for the separator sep in the bytearray. If the separator is\nfound, returns a 3-tuple containing the part before the separator, the"
+  },
+  {
+    "name": "pop",
+    "contexts": [
+      "builtins.bytearray",
+      "builtins.dict",
+      "builtins.list",
+      "builtins.set"
+    ],
+    "is_method": true,
+    "params": [
+      "index"
+    ],
+    "doc": "Remove and return a single item from B.\n\n  index\n    The index from where to remove the item."
+  },
+  {
+    "name": "remove",
+    "contexts": [
+      "builtins.bytearray",
+      "builtins.list",
+      "builtins.set"
+    ],
+    "is_method": true,
+    "params": [
+      "value"
+    ],
+    "doc": "Remove the first occurrence of a value in the bytearray.\n\nvalue\n  The value to remove."
+  },
+  {
+    "name": "removeprefix",
+    "contexts": [
+      "builtins.bytearray",
+      "builtins.bytes",
+      "builtins.str"
+    ],
+    "is_method": true,
+    "params": [
+      "prefix"
+    ],
+    "doc": "Return a bytearray with the given prefix string removed if present.\n\nIf the bytearray starts with the prefix string, return\nbytearray[len(prefix):].  Otherwise, return a copy of the original"
+  },
+  {
+    "name": "removesuffix",
+    "contexts": [
+      "builtins.bytearray",
+      "builtins.bytes",
+      "builtins.str"
+    ],
+    "is_method": true,
+    "params": [
+      "suffix"
+    ],
+    "doc": "Return a bytearray with the given suffix string removed if present.\n\nIf the bytearray ends with the suffix string and that suffix is not\nempty, return bytearray[:-len(suffix)].  Otherwise, return a copy of"
+  },
+  {
+    "name": "replace",
+    "contexts": [
+      "builtins.bytearray",
+      "builtins.bytes",
+      "builtins.str"
+    ],
+    "is_method": true,
+    "params": [
+      "old",
+      "new",
+      "count"
+    ],
+    "doc": "Return a copy with all occurrences of substring old replaced by new.\n\n  count\n    Maximum number of occurrences to replace."
+  },
+  {
+    "name": "reverse",
+    "contexts": [
+      "builtins.bytearray",
+      "builtins.list"
+    ],
+    "is_method": true,
+    "params": [],
+    "doc": "Reverse the order of the values in B in place."
+  },
+  {
+    "name": "rfind",
+    "contexts": [
+      "builtins.bytearray",
+      "builtins.bytes",
+      "builtins.str"
+    ],
+    "is_method": true,
+    "params": [
+      "*args",
+      "**kwargs"
+    ],
+    "doc": "B.rfind(sub[, start[, end]]) -> int\n\nReturn the highest index in B where subsection sub is found,\nsuch that sub is contained within B[start,end].  Optional"
+  },
+  {
+    "name": "rindex",
+    "contexts": [
+      "builtins.bytearray",
+      "builtins.bytes",
+      "builtins.str"
+    ],
+    "is_method": true,
+    "params": [
+      "*args",
+      "**kwargs"
+    ],
+    "doc": "B.rindex(sub[, start[, end]]) -> int\n\nReturn the highest index in B where subsection sub is found,\nsuch that sub is contained within B[start,end].  Optional"
+  },
+  {
+    "name": "rjust",
+    "contexts": [
+      "builtins.bytearray",
+      "builtins.bytes",
+      "builtins.str"
+    ],
+    "is_method": true,
+    "params": [
+      "width",
+      "fillchar"
+    ],
+    "doc": "Return a right-justified string of length width.\n\nPadding is done using the specified fill character."
+  },
+  {
+    "name": "rpartition",
+    "contexts": [
+      "builtins.bytearray",
+      "builtins.bytes",
+      "builtins.str"
+    ],
+    "is_method": true,
+    "params": [
+      "sep"
+    ],
+    "doc": "Partition the bytearray into three parts using the given separator.\n\nThis will search for the separator sep in the bytearray, starting at the end.\nIf the separator is found, returns a 3-tuple containing the part before the"
+  },
+  {
+    "name": "rsplit",
+    "contexts": [
+      "builtins.bytearray",
+      "builtins.bytes",
+      "builtins.str"
+    ],
+    "is_method": true,
+    "params": [
+      "sep",
+      "maxsplit"
+    ],
+    "doc": "Return a list of the sections in the bytearray, using sep as the delimiter.\n\n  sep\n    The delimiter according which to split the bytearray."
+  },
+  {
+    "name": "rstrip",
+    "contexts": [
+      "builtins.bytearray",
+      "builtins.bytes",
+      "builtins.str"
+    ],
+    "is_method": true,
+    "params": [
+      "bytes"
+    ],
+    "doc": "Strip trailing bytes contained in the argument.\n\nIf the argument is omitted or None, strip trailing ASCII whitespace."
+  },
+  {
+    "name": "splitlines",
+    "contexts": [
+      "builtins.bytearray",
+      "builtins.bytes",
+      "builtins.str"
+    ],
+    "is_method": true,
+    "params": [
+      "keepends"
+    ],
+    "doc": "Return a list of the lines in the bytearray, breaking at line boundaries.\n\nLine breaks are not included in the resulting list unless keepends is given and\ntrue."
+  },
+  {
+    "name": "startswith",
+    "contexts": [
+      "builtins.bytearray",
+      "builtins.bytes",
+      "builtins.str"
+    ],
+    "is_method": true,
+    "params": [
+      "*args",
+      "**kwargs"
+    ],
+    "doc": "B.startswith(prefix[, start[, end]]) -> bool\n\nReturn True if B starts with the specified prefix, False otherwise.\nWith optional start, test B beginning at that position."
+  },
+  {
+    "name": "strip",
+    "contexts": [
+      "builtins.bytearray",
+      "builtins.bytes",
+      "builtins.str"
+    ],
+    "is_method": true,
+    "params": [
+      "bytes"
+    ],
+    "doc": "Strip leading and trailing bytes contained in the argument.\n\nIf the argument is omitted or None, strip leading and trailing ASCII whitespace."
+  },
+  {
+    "name": "swapcase",
+    "contexts": [
+      "builtins.bytearray",
+      "builtins.bytes",
+      "builtins.str"
+    ],
+    "is_method": true,
+    "params": [
+      "*args",
+      "**kwargs"
+    ],
+    "doc": "B.swapcase() -> copy of B\n\nReturn a copy of B with uppercase ASCII characters converted\nto lowercase ASCII and vice versa."
+  },
+  {
+    "name": "title",
+    "contexts": [
+      "builtins.bytearray",
+      "builtins.bytes",
+      "builtins.str"
+    ],
+    "is_method": true,
+    "params": [
+      "*args",
+      "**kwargs"
+    ],
+    "doc": "B.title() -> copy of B\n\nReturn a titlecased version of B, i.e. ASCII words start with uppercase\ncharacters, all remaining cased characters have lowercase."
+  },
+  {
+    "name": "translate",
+    "contexts": [
+      "builtins.bytearray",
+      "builtins.bytes",
+      "builtins.str"
+    ],
+    "is_method": true,
+    "params": [
+      "table",
+      "delete"
+    ],
+    "doc": "Return a copy with each character mapped by the given translation table.\n\n  table\n    Translation table, which must be a bytes object of length 256."
+  },
+  {
+    "name": "upper",
+    "contexts": [
+      "builtins.bytearray",
+      "builtins.bytes",
+      "builtins.str"
+    ],
+    "is_method": true,
+    "params": [
+      "*args",
+      "**kwargs"
+    ],
+    "doc": "B.upper() -> copy of B\n\nReturn a copy of B with all ASCII characters converted to uppercase."
+  },
+  {
+    "name": "zfill",
+    "contexts": [
+      "builtins.bytearray",
+      "builtins.bytes",
+      "builtins.str"
+    ],
+    "is_method": true,
+    "params": [
+      "width"
+    ],
+    "doc": "Pad a numeric string with zeros on the left, to fill a field of the given width.\n\nThe original string is never truncated."
+  },
+  {
+    "name": "callable",
+    "contexts": [
+      "builtins"
+    ],
+    "is_method": false,
+    "params": [
+      "obj"
+    ],
+    "doc": "Return whether the object is callable (i.e., some kind of function).\n\nNote that classes are callable, as are instances of classes with a\n__call__() method."
+  },
+  {
+    "name": "chr",
+    "contexts": [
+      "builtins"
+    ],
+    "is_method": false,
+    "params": [
+      "i"
+    ],
+    "doc": "Return a Unicode string of one character with ordinal i; 0 <= i <= 0x10ffff."
+  },
+  {
+    "name": "compile",
+    "contexts": [
+      "builtins"
+    ],
+    "is_method": false,
+    "params": [
+      "source",
+      "filename",
+      "mode",
+      "flags",
+      "dont_inherit",
+      "optimize",
+      "_feature_version"
+    ],
+    "doc": "Compile source into a code object that can be executed by exec() or eval().\n\nThe source code may represent a Python module, statement or expression.\nThe filename will be used for run-time error messages."
+  },
+  {
+    "name": "delattr",
+    "contexts": [
+      "builtins"
+    ],
+    "is_method": false,
+    "params": [
+      "obj",
+      "name"
+    ],
+    "doc": "Deletes the named attribute from the given object.\n\ndelattr(x, 'y') is equivalent to ``del x.y``"
+  },
+  {
+    "name": "fromkeys",
+    "contexts": [
+      "builtins.dict"
+    ],
+    "is_method": true,
+    "params": [
+      "iterable",
+      "value"
+    ],
+    "doc": "Create a new dictionary with keys from iterable and values set to value."
+  },
+  {
+    "name": "get",
+    "contexts": [
+      "builtins.dict"
+    ],
+    "is_method": true,
+    "params": [
+      "key",
+      "default"
+    ],
+    "doc": "Return the value for key if key is in the dictionary, else default."
+  },
+  {
+    "name": "items",
+    "contexts": [
+      "builtins.dict"
+    ],
+    "is_method": true,
+    "params": [
+      "*args",
+      "**kwargs"
+    ],
+    "doc": "D.items() -> a set-like object providing a view on D's items"
+  },
+  {
+    "name": "keys",
+    "contexts": [
+      "builtins.dict"
+    ],
+    "is_method": true,
+    "params": [
+      "*args",
+      "**kwargs"
+    ],
+    "doc": "D.keys() -> a set-like object providing a view on D's keys"
+  },
+  {
+    "name": "popitem",
+    "contexts": [
+      "builtins.dict"
+    ],
+    "is_method": true,
+    "params": [],
+    "doc": "Remove and return a (key, value) pair as a 2-tuple.\n\nPairs are returned in LIFO (last-in, first-out) order.\nRaises KeyError if the dict is empty."
+  },
+  {
+    "name": "setdefault",
+    "contexts": [
+      "builtins.dict"
+    ],
+    "is_method": true,
+    "params": [
+      "key",
+      "default"
+    ],
+    "doc": "Insert key with a value of default if key is not in the dictionary.\n\nReturn the value for key if key is in the dictionary, else default."
+  },
+  {
+    "name": "update",
+    "contexts": [
+      "builtins.dict",
+      "builtins.set"
+    ],
+    "is_method": true,
+    "params": [
+      "*args",
+      "**kwargs"
+    ],
+    "doc": "D.update([E, ]**F) -> None.  Update D from mapping/iterable E and F.\nIf E is present and has a .keys() method, then does:  for k in E.keys(): D[k] = E[k]\nIf E is present and lacks a .keys() method, then does:  for k, v in E: D[k] = v\nIn either case, this is followed by: for k in F:  D[k] = F[k]"
+  },
+  {
+    "name": "values",
+    "contexts": [
+      "builtins.dict"
+    ],
+    "is_method": true,
+    "params": [
+      "*args",
+      "**kwargs"
+    ],
+    "doc": "D.values() -> an object providing a view on D's values"
+  },
+  {
+    "name": "dir",
+    "contexts": [
+      "builtins"
+    ],
+    "is_method": false,
+    "params": [
+      "*args",
+      "**kwargs"
+    ],
+    "doc": "dir([object]) -> list of strings\n\nIf called without an argument, return the names in the current scope.\nElse, return an alphabetized list of names comprising (some of) the attributes"
+  },
+  {
+    "name": "divmod",
+    "contexts": [
+      "builtins"
+    ],
+    "is_method": false,
+    "params": [
+      "x",
+      "y"
+    ],
+    "doc": "Return the tuple (x//y, x%y).  Invariant: div*y + mod == x."
+  },
+  {
+    "name": "eval",
+    "contexts": [
+      "builtins"
+    ],
+    "is_method": false,
+    "params": [
+      "source",
+      "globals",
+      "locals"
+    ],
+    "doc": "Evaluate the given source in the context of globals and locals.\n\nThe source may be a string representing a Python expression\nor a code object as returned by compile()."
+  },
+  {
+    "name": "exec",
+    "contexts": [
+      "builtins"
+    ],
+    "is_method": false,
+    "params": [
+      "source",
+      "globals",
+      "locals",
+      "closure"
+    ],
+    "doc": "Execute the given source in the context of globals and locals.\n\nThe source may be a string representing one or more Python statements\nor a code object as returned by compile()."
+  },
+  {
+    "name": "format",
+    "contexts": [
+      "builtins",
+      "builtins.str"
+    ],
+    "is_method": false,
+    "params": [
+      "value",
+      "format_spec"
+    ],
+    "doc": "Return type(value).__format__(value, format_spec)\n\nMany built-in types implement format_spec according to the\nFormat Specification Mini-language. See help('FORMATTING')."
+  },
+  {
+    "name": "difference",
+    "contexts": [
+      "builtins.frozenset",
+      "builtins.set"
+    ],
+    "is_method": true,
+    "params": [
+      "*args",
+      "**kwargs"
+    ],
+    "doc": "Return the difference of two or more sets as a new set.\n\n(i.e. all elements that are in this set but not the others.)"
+  },
+  {
+    "name": "intersection",
+    "contexts": [
+      "builtins.frozenset",
+      "builtins.set"
+    ],
+    "is_method": true,
+    "params": [
+      "*args",
+      "**kwargs"
+    ],
+    "doc": "Return the intersection of two sets as a new set.\n\n(i.e. all elements that are in both sets.)"
+  },
+  {
+    "name": "isdisjoint",
+    "contexts": [
+      "builtins.frozenset",
+      "builtins.set"
+    ],
+    "is_method": true,
+    "params": [
+      "*args",
+      "**kwargs"
+    ],
+    "doc": "Return True if two sets have a null intersection."
+  },
+  {
+    "name": "issubset",
+    "contexts": [
+      "builtins.frozenset",
+      "builtins.set"
+    ],
+    "is_method": true,
+    "params": [
+      "other"
+    ],
+    "doc": "Test whether every element in the set is in other."
+  },
+  {
+    "name": "issuperset",
+    "contexts": [
+      "builtins.frozenset",
+      "builtins.set"
+    ],
+    "is_method": true,
+    "params": [
+      "other"
+    ],
+    "doc": "Test whether every element in other is in the set."
+  },
+  {
+    "name": "symmetric_difference",
+    "contexts": [
+      "builtins.frozenset",
+      "builtins.set"
+    ],
+    "is_method": true,
+    "params": [
+      "*args",
+      "**kwargs"
+    ],
+    "doc": "Return the symmetric difference of two sets as a new set.\n\n(i.e. all elements that are in exactly one of the sets.)"
+  },
+  {
+    "name": "union",
+    "contexts": [
+      "builtins.frozenset",
+      "builtins.set"
+    ],
+    "is_method": true,
+    "params": [
+      "*args",
+      "**kwargs"
+    ],
+    "doc": "Return the union of sets as a new set.\n\n(i.e. all elements that are in either set.)"
+  },
+  {
+    "name": "getattr",
+    "contexts": [
+      "builtins"
+    ],
+    "is_method": false,
+    "params": [
+      "*args",
+      "**kwargs"
+    ],
+    "doc": "getattr(object, name[, default]) -> value\n\nGet a named attribute from an object; getattr(x, 'y') is equivalent to x.y.\nWhen a default argument is given, it is returned when the attribute doesn't"
+  },
+  {
+    "name": "globals",
+    "contexts": [
+      "builtins"
+    ],
+    "is_method": false,
+    "params": [],
+    "doc": "Return the dictionary containing the current scope's global variables.\n\nNOTE: Updates to this dictionary *will* affect name lookups in the current\nglobal scope and vice-versa."
+  },
+  {
+    "name": "hasattr",
+    "contexts": [
+      "builtins"
+    ],
+    "is_method": false,
+    "params": [
+      "obj",
+      "name"
+    ],
+    "doc": "Return whether the object has an attribute with the given name.\n\nThis is done by calling getattr(obj, name) and catching AttributeError."
+  },
+  {
+    "name": "hash",
+    "contexts": [
+      "builtins"
+    ],
+    "is_method": false,
+    "params": [
+      "obj"
+    ],
+    "doc": "Return the hash value for the given object.\n\nTwo objects that compare equal must also have the same hash value, but the\nreverse is not necessarily true."
+  },
+  {
+    "name": "id",
+    "contexts": [
+      "builtins"
+    ],
+    "is_method": false,
+    "params": [
+      "obj"
+    ],
+    "doc": "Return the identity of an object.\n\nThis is guaranteed to be unique among simultaneously existing objects.\n(CPython uses the object's memory address.)"
+  },
+  {
+    "name": "input",
+    "contexts": [
+      "builtins"
+    ],
+    "is_method": false,
+    "params": [
+      "prompt"
+    ],
+    "doc": "Read a string from standard input.  The trailing newline is stripped.\n\nThe prompt string, if given, is printed to standard output without a\ntrailing newline before reading input."
+  },
+  {
+    "name": "isinstance",
+    "contexts": [
+      "builtins"
+    ],
+    "is_method": false,
+    "params": [
+      "obj",
+      "class_or_tuple"
+    ],
+    "doc": "Return whether an object is an instance of a class or of a subclass thereof.\n\nA tuple, as in ``isinstance(x, (A, B, ...))``, may be given as the target to\ncheck against. This is equivalent to ``isinstance(x, A) or isinstance(x, B)"
+  },
+  {
+    "name": "issubclass",
+    "contexts": [
+      "builtins"
+    ],
+    "is_method": false,
+    "params": [
+      "cls",
+      "class_or_tuple"
+    ],
+    "doc": "Return whether 'cls' is derived from another class or is the same class.\n\nA tuple, as in ``issubclass(x, (A, B, ...))``, may be given as the target to\ncheck against. This is equivalent to ``issubclass(x, A) or issubclass(x, B)"
+  },
+  {
+    "name": "iter",
+    "contexts": [
+      "builtins"
+    ],
+    "is_method": false,
+    "params": [
+      "*args",
+      "**kwargs"
+    ],
+    "doc": "iter(iterable) -> iterator\niter(callable, sentinel) -> iterator\n\nGet an iterator from an object.  In the first form, the argument must"
+  },
+  {
+    "name": "len",
+    "contexts": [
+      "builtins"
+    ],
+    "is_method": false,
+    "params": [
+      "obj"
+    ],
+    "doc": "Return the number of items in a container."
+  },
+  {
+    "name": "sort",
+    "contexts": [
+      "builtins.list"
+    ],
+    "is_method": true,
+    "params": [
+      "key",
+      "reverse"
+    ],
+    "doc": "Sort the list in ascending order and return None.\n\nThe sort is in-place (i.e. the list itself is modified) and stable (i.e. the\norder of two equal elements is maintained)."
+  },
+  {
+    "name": "locals",
+    "contexts": [
+      "builtins"
+    ],
+    "is_method": false,
+    "params": [],
+    "doc": "Return a dictionary containing the current scope's local variables.\n\nNOTE: Whether or not updates to this dictionary will affect name lookups in\nthe local scope and vice-versa is *implementation dependent* and not"
+  },
+  {
+    "name": "max",
+    "contexts": [
+      "builtins"
+    ],
+    "is_method": false,
+    "params": [
+      "*args",
+      "**kwargs"
+    ],
+    "doc": "max(iterable, *[, default=obj, key=func]) -> value\nmax(arg1, arg2, *args, *[, key=func]) -> value\n\nWith a single iterable argument, return its biggest item. The"
+  },
+  {
+    "name": "cast",
+    "contexts": [
+      "builtins.memoryview"
+    ],
+    "is_method": true,
+    "params": [
+      "*args",
+      "**kwargs"
+    ],
+    "doc": "Cast a memoryview to a new format or shape."
+  },
+  {
+    "name": "release",
+    "contexts": [
+      "builtins.memoryview"
+    ],
+    "is_method": true,
+    "params": [],
+    "doc": "Release the underlying buffer exposed by the memoryview object."
+  },
+  {
+    "name": "tobytes",
+    "contexts": [
+      "builtins.memoryview"
+    ],
+    "is_method": true,
+    "params": [
+      "order"
+    ],
+    "doc": "Return the data in the buffer as a byte string.\n\nOrder can be {'C', 'F', 'A'}. When order is 'C' or 'F', the data of the\noriginal array is converted to C or Fortran order. For contiguous views,"
+  },
+  {
+    "name": "tolist",
+    "contexts": [
+      "builtins.memoryview"
+    ],
+    "is_method": true,
+    "params": [],
+    "doc": "Return the data in the buffer as a list of elements."
+  },
+  {
+    "name": "toreadonly",
+    "contexts": [
+      "builtins.memoryview"
+    ],
+    "is_method": true,
+    "params": [],
+    "doc": "Return a readonly version of the memoryview."
+  },
+  {
+    "name": "min",
+    "contexts": [
+      "builtins"
+    ],
+    "is_method": false,
+    "params": [
+      "*args",
+      "**kwargs"
+    ],
+    "doc": "min(iterable, *[, default=obj, key=func]) -> value\nmin(arg1, arg2, *args, *[, key=func]) -> value\n\nWith a single iterable argument, return its smallest item. The"
+  },
+  {
+    "name": "next",
+    "contexts": [
+      "builtins"
+    ],
+    "is_method": false,
+    "params": [
+      "*args",
+      "**kwargs"
+    ],
+    "doc": "next(iterator[, default])\n\nReturn the next item from the iterator. If default is given and the iterator\nis exhausted, it is returned instead of raising StopIteration."
+  },
+  {
+    "name": "oct",
+    "contexts": [
+      "builtins"
+    ],
+    "is_method": false,
+    "params": [
+      "number"
+    ],
+    "doc": "Return the octal representation of an integer.\n\n>>> oct(342391)\n'0o1234567'"
+  },
+  {
+    "name": "open",
+    "contexts": [
+      "builtins"
+    ],
+    "is_method": false,
+    "params": [
+      "file",
+      "mode",
+      "buffering",
+      "encoding",
+      "errors",
+      "newline",
+      "closefd",
+      "opener"
+    ],
+    "doc": "Open file and return a stream.  Raise OSError upon failure.\n\nfile is either a text or byte string giving the name (and the path\nif the file isn't in the current working directory) of the file to"
+  },
+  {
+    "name": "ord",
+    "contexts": [
+      "builtins"
+    ],
+    "is_method": false,
+    "params": [
+      "c"
+    ],
+    "doc": "Return the Unicode code point for a one-character string."
+  },
+  {
+    "name": "pow",
+    "contexts": [
+      "builtins"
+    ],
+    "is_method": false,
+    "params": [
+      "base",
+      "exp",
+      "mod"
+    ],
+    "doc": "Equivalent to base**exp with 2 arguments or base**exp % mod with 3 arguments\n\nSome types, such as ints, are able to use a more efficient algorithm when\ninvoked using the three argument form."
+  },
+  {
+    "name": "print",
+    "contexts": [
+      "builtins"
+    ],
+    "is_method": false,
+    "params": [
+      "args",
+      "sep",
+      "end",
+      "file",
+      "flush"
+    ],
+    "doc": "Prints the values to a stream, or to sys.stdout by default.\n\nsep\n  string inserted between values, default a space."
+  },
+  {
+    "name": "deleter",
+    "contexts": [
+      "builtins.property"
+    ],
+    "is_method": true,
+    "params": [
+      "*args",
+      "**kwargs"
+    ],
+    "doc": "Descriptor to obtain a copy of the property with a different deleter."
+  },
+  {
+    "name": "getter",
+    "contexts": [
+      "builtins.property"
+    ],
+    "is_method": true,
+    "params": [
+      "*args",
+      "**kwargs"
+    ],
+    "doc": "Descriptor to obtain a copy of the property with a different getter."
+  },
+  {
+    "name": "setter",
+    "contexts": [
+      "builtins.property"
+    ],
+    "is_method": true,
+    "params": [
+      "*args",
+      "**kwargs"
+    ],
+    "doc": "Descriptor to obtain a copy of the property with a different setter."
+  },
+  {
+    "name": "repr",
+    "contexts": [
+      "builtins"
+    ],
+    "is_method": false,
+    "params": [
+      "obj"
+    ],
+    "doc": "Return the canonical string representation of the object.\n\nFor many object types, including most builtins, eval(repr(obj)) == obj."
+  },
+  {
+    "name": "round",
+    "contexts": [
+      "builtins"
+    ],
+    "is_method": false,
+    "params": [
+      "number",
+      "ndigits"
+    ],
+    "doc": "Round a number to a given precision in decimal digits.\n\nThe return value is an integer if ndigits is omitted or None.  Otherwise\nthe return value has the same type as the number.  ndigits may be negative."
+  },
+  {
+    "name": "add",
+    "contexts": [
+      "builtins.set"
+    ],
+    "is_method": true,
+    "params": [
+      "*args",
+      "**kwargs"
+    ],
+    "doc": "Add an element to a set.\n\nThis has no effect if the element is already present."
+  },
+  {
+    "name": "difference_update",
+    "contexts": [
+      "builtins.set"
+    ],
+    "is_method": true,
+    "params": [
+      "*args",
+      "**kwargs"
+    ],
+    "doc": "Remove all elements of another set from this set."
+  },
+  {
+    "name": "discard",
+    "contexts": [
+      "builtins.set"
+    ],
+    "is_method": true,
+    "params": [
+      "*args",
+      "**kwargs"
+    ],
+    "doc": "Remove an element from a set if it is a member.\n\nUnlike set.remove(), the discard() method does not raise\nan exception when an element is missing from the set."
+  },
+  {
+    "name": "intersection_update",
+    "contexts": [
+      "builtins.set"
+    ],
+    "is_method": true,
+    "params": [
+      "*args",
+      "**kwargs"
+    ],
+    "doc": "Update a set with the intersection of itself and another."
+  },
+  {
+    "name": "symmetric_difference_update",
+    "contexts": [
+      "builtins.set"
+    ],
+    "is_method": true,
+    "params": [
+      "*args",
+      "**kwargs"
+    ],
+    "doc": "Update a set with the symmetric difference of itself and another."
+  },
+  {
+    "name": "setattr",
+    "contexts": [
+      "builtins"
+    ],
+    "is_method": false,
+    "params": [
+      "obj",
+      "name",
+      "value"
+    ],
+    "doc": "Sets the named attribute on the given object to the specified value.\n\nsetattr(x, 'y', v) is equivalent to ``x.y = v``"
+  },
+  {
+    "name": "indices",
+    "contexts": [
+      "builtins.slice"
+    ],
+    "is_method": true,
+    "params": [
+      "*args",
+      "**kwargs"
+    ],
+    "doc": "S.indices(len) -> (start, stop, stride)\n\nAssuming a sequence of length len, calculate the start and stop\nindices, and the stride length of the extended slice described by"
+  },
+  {
+    "name": "sorted",
+    "contexts": [
+      "builtins"
+    ],
+    "is_method": false,
+    "params": [
+      "iterable",
+      "key",
+      "reverse"
+    ],
+    "doc": "Return a new list containing all items from the iterable in ascending order.\n\nA custom key function can be supplied to customize the sort order, and the\nreverse flag can be set to request the result in descending order."
+  },
+  {
+    "name": "casefold",
+    "contexts": [
+      "builtins.str"
+    ],
+    "is_method": true,
+    "params": [],
+    "doc": "Return a version of the string suitable for caseless comparisons."
+  },
+  {
+    "name": "encode",
+    "contexts": [
+      "builtins.str"
+    ],
+    "is_method": true,
+    "params": [
+      "encoding",
+      "errors"
+    ],
+    "doc": "Encode the string using the codec registered for encoding.\n\nencoding\n  The encoding in which to encode the string."
+  },
+  {
+    "name": "format_map",
+    "contexts": [
+      "builtins.str"
+    ],
+    "is_method": true,
+    "params": [
+      "*args",
+      "**kwargs"
+    ],
+    "doc": "S.format_map(mapping) -> str\n\nReturn a formatted version of S, using substitutions from mapping.\nThe substitutions are identified by braces ('{' and '}')."
+  },
+  {
+    "name": "isdecimal",
+    "contexts": [
+      "builtins.str"
+    ],
+    "is_method": true,
+    "params": [],
+    "doc": "Return True if the string is a decimal string, False otherwise.\n\nA string is a decimal string if all characters in the string are decimal and\nthere is at least one character in the string."
+  },
+  {
+    "name": "isidentifier",
+    "contexts": [
+      "builtins.str"
+    ],
+    "is_method": true,
+    "params": [],
+    "doc": "Return True if the string is a valid Python identifier, False otherwise.\n\nCall keyword.iskeyword(s) to test whether string s is a reserved identifier,\nsuch as \"def\" or \"class\"."
+  },
+  {
+    "name": "isnumeric",
+    "contexts": [
+      "builtins.str"
+    ],
+    "is_method": true,
+    "params": [],
+    "doc": "Return True if the string is a numeric string, False otherwise.\n\nA string is numeric if all characters in the string are numeric and there is at\nleast one character in the string."
+  },
+  {
+    "name": "isprintable",
+    "contexts": [
+      "builtins.str"
+    ],
+    "is_method": true,
+    "params": [],
+    "doc": "Return True if all characters in the string are printable, False otherwise.\n\nA character is printable if repr() may use it in its output."
+  },
+  {
+    "name": "sum",
+    "contexts": [
+      "builtins"
+    ],
+    "is_method": false,
+    "params": [
+      "iterable",
+      "start"
+    ],
+    "doc": "Return the sum of a 'start' value (default: 0) plus an iterable of numbers\n\nWhen the iterable is empty, return the start value.\nThis function is intended specifically for use with numeric values and may"
+  },
+  {
+    "name": "mro",
+    "contexts": [
+      "builtins.type"
+    ],
+    "is_method": true,
+    "params": [],
+    "doc": "Return a type's method resolution order."
+  },
+  {
+    "name": "vars",
+    "contexts": [
+      "builtins"
+    ],
+    "is_method": false,
+    "params": [
+      "*args",
+      "**kwargs"
+    ],
+    "doc": "vars([object]) -> dictionary\n\nWithout arguments, equivalent to locals().\nWith an argument, equivalent to object.__dict__."
+  }
+]

@@ -1,0 +1,1307 @@
+{
+  "domain_name": "pandas",
+  "version": "1.0.0",
+  "description": "Auto-compiled from harvested_pandas.py",
+  "cells": [
+    {
+      "cell_id": "PANDAS_ARROWDTYPE_CONSTRUCT_FROM_STRING",
+      "type": "micro",
+      "node_type": "function",
+      "stage": 1,
+      "keywords": [
+        "pandas.ArrowDtype",
+        "construct_from_string"
+      ],
+      "inputs": {
+        "type_name": "str",
+        "state": "string"
+      },
+      "outputs": {
+        "type_name": "ArrowDtype",
+        "state": "result_arrowdtype"
+      },
+      "domain_implementations": {
+        "Python_Core": {
+          "code": "{output_var} = pandas.ArrowDtype.construct_from_string({input_var})",
+          "dependencies": [
+            "pandas"
+          ]
+        }
+      }
+    },
+    {
+      "cell_id": "PANDAS_ARROWDTYPE_EMPTY",
+      "type": "micro",
+      "node_type": "function",
+      "stage": 1,
+      "keywords": [
+        "pandas.ArrowDtype",
+        "empty"
+      ],
+      "inputs": {
+        "type_name": "ArrowDtype",
+        "state": "source_arrowdtype"
+      },
+      "outputs": {
+        "type_name": "ExtensionArray",
+        "state": "result_extensionarray"
+      },
+      "domain_implementations": {
+        "Python_Core": {
+          "code": "{output_var} = {input_var}.empty()",
+          "dependencies": [
+            "pandas"
+          ]
+        }
+      }
+    },
+    {
+      "cell_id": "PANDAS_ARROWDTYPE_IS_DTYPE",
+      "type": "micro",
+      "node_type": "function",
+      "stage": 1,
+      "keywords": [
+        "pandas.ArrowDtype",
+        "is_dtype"
+      ],
+      "inputs": {
+        "type_name": "object",
+        "state": "dtype"
+      },
+      "outputs": {
+        "type_name": "bool",
+        "state": "result_bool"
+      },
+      "domain_implementations": {
+        "Python_Core": {
+          "code": "{output_var} = pandas.ArrowDtype.is_dtype({input_var})",
+          "dependencies": [
+            "pandas"
+          ]
+        }
+      }
+    },
+    {
+      "cell_id": "PANDAS_BOOLEANDTYPE_CONSTRUCT_FROM_STRING",
+      "type": "micro",
+      "node_type": "function",
+      "stage": 1,
+      "keywords": [
+        "pandas.BooleanDtype",
+        "construct_from_string"
+      ],
+      "inputs": {
+        "type_name": "str",
+        "state": "string"
+      },
+      "outputs": {
+        "type_name": "Self",
+        "state": "result_self"
+      },
+      "domain_implementations": {
+        "Python_Core": {
+          "code": "{output_var} = pandas.BooleanDtype.construct_from_string({input_var})",
+          "dependencies": [
+            "pandas"
+          ]
+        }
+      }
+    },
+    {
+      "cell_id": "PANDAS_BOOLEANDTYPE_EMPTY",
+      "type": "micro",
+      "node_type": "function",
+      "stage": 1,
+      "keywords": [
+        "pandas.BooleanDtype",
+        "empty"
+      ],
+      "inputs": {
+        "type_name": "BooleanDtype",
+        "state": "source_booleandtype"
+      },
+      "outputs": {
+        "type_name": "ExtensionArray",
+        "state": "result_extensionarray"
+      },
+      "domain_implementations": {
+        "Python_Core": {
+          "code": "{output_var} = {input_var}.empty()",
+          "dependencies": [
+            "pandas"
+          ]
+        }
+      }
+    },
+    {
+      "cell_id": "PANDAS_BOOLEANDTYPE_FROM_NUMPY_DTYPE",
+      "type": "micro",
+      "node_type": "function",
+      "stage": 1,
+      "keywords": [
+        "pandas.BooleanDtype",
+        "from_numpy_dtype"
+      ],
+      "inputs": {
+        "type_name": "np.dtype",
+        "state": "dtype"
+      },
+      "outputs": {
+        "type_name": "BaseMaskedDtype",
+        "state": "result_basemaskeddtype"
+      },
+      "domain_implementations": {
+        "Python_Core": {
+          "code": "{output_var} = pandas.BooleanDtype.from_numpy_dtype({input_var})",
+          "dependencies": [
+            "pandas"
+          ]
+        }
+      }
+    },
+    {
+      "cell_id": "PANDAS_BOOLEANDTYPE_IS_DTYPE",
+      "type": "micro",
+      "node_type": "function",
+      "stage": 1,
+      "keywords": [
+        "pandas.BooleanDtype",
+        "is_dtype"
+      ],
+      "inputs": {
+        "type_name": "object",
+        "state": "dtype"
+      },
+      "outputs": {
+        "type_name": "bool",
+        "state": "result_bool"
+      },
+      "domain_implementations": {
+        "Python_Core": {
+          "code": "{output_var} = pandas.BooleanDtype.is_dtype({input_var})",
+          "dependencies": [
+            "pandas"
+          ]
+        }
+      }
+    },
+    {
+      "cell_id": "PANDAS_CATEGORICAL_ADD_CATEGORIES",
+      "type": "micro",
+      "node_type": "function",
+      "stage": 1,
+      "keywords": [
+        "pandas.Categorical",
+        "add_categories"
+      ],
+      "inputs": {
+        "type_name": "Categorical",
+        "state": "source_categorical"
+      },
+      "outputs": {
+        "type_name": "Self",
+        "state": "result_self"
+      },
+      "domain_implementations": {
+        "Python_Core": {
+          "code": "{output_var} = {input_var}.add_categories()",
+          "dependencies": [
+            "pandas"
+          ]
+        }
+      }
+    },
+    {
+      "cell_id": "PANDAS_CATEGORICAL_ARGMAX",
+      "type": "micro",
+      "node_type": "function",
+      "stage": 1,
+      "keywords": [
+        "pandas.Categorical",
+        "argmax"
+      ],
+      "inputs": {
+        "type_name": "Categorical",
+        "state": "source_categorical"
+      },
+      "outputs": {
+        "type_name": "any",
+        "state": "result_any"
+      },
+      "domain_implementations": {
+        "Python_Core": {
+          "code": "{output_var} = {input_var}.argmax()",
+          "dependencies": [
+            "pandas"
+          ]
+        }
+      }
+    },
+    {
+      "cell_id": "PANDAS_CATEGORICAL_ARGMIN",
+      "type": "micro",
+      "node_type": "function",
+      "stage": 1,
+      "keywords": [
+        "pandas.Categorical",
+        "argmin"
+      ],
+      "inputs": {
+        "type_name": "Categorical",
+        "state": "source_categorical"
+      },
+      "outputs": {
+        "type_name": "any",
+        "state": "result_any"
+      },
+      "domain_implementations": {
+        "Python_Core": {
+          "code": "{output_var} = {input_var}.argmin()",
+          "dependencies": [
+            "pandas"
+          ]
+        }
+      }
+    },
+    {
+      "cell_id": "PANDAS_CATEGORICAL_ARGSORT",
+      "type": "micro",
+      "node_type": "function",
+      "stage": 1,
+      "keywords": [
+        "pandas.Categorical",
+        "argsort"
+      ],
+      "inputs": {
+        "type_name": "Categorical",
+        "state": "source_categorical"
+      },
+      "outputs": {
+        "type_name": "any",
+        "state": "result_any"
+      },
+      "domain_implementations": {
+        "Python_Core": {
+          "code": "{output_var} = {input_var}.argsort()",
+          "dependencies": [
+            "pandas"
+          ]
+        }
+      }
+    },
+    {
+      "cell_id": "PANDAS_CATEGORICAL_AS_ORDERED",
+      "type": "micro",
+      "node_type": "function",
+      "stage": 1,
+      "keywords": [
+        "pandas.Categorical",
+        "as_ordered"
+      ],
+      "inputs": {
+        "type_name": "Categorical",
+        "state": "source_categorical"
+      },
+      "outputs": {
+        "type_name": "Self",
+        "state": "result_self"
+      },
+      "domain_implementations": {
+        "Python_Core": {
+          "code": "{output_var} = {input_var}.as_ordered()",
+          "dependencies": [
+            "pandas"
+          ]
+        }
+      }
+    },
+    {
+      "cell_id": "PANDAS_CATEGORICAL_AS_UNORDERED",
+      "type": "micro",
+      "node_type": "function",
+      "stage": 1,
+      "keywords": [
+        "pandas.Categorical",
+        "as_unordered"
+      ],
+      "inputs": {
+        "type_name": "Categorical",
+        "state": "source_categorical"
+      },
+      "outputs": {
+        "type_name": "Self",
+        "state": "result_self"
+      },
+      "domain_implementations": {
+        "Python_Core": {
+          "code": "{output_var} = {input_var}.as_unordered()",
+          "dependencies": [
+            "pandas"
+          ]
+        }
+      }
+    },
+    {
+      "cell_id": "PANDAS_CATEGORICAL_ASTYPE",
+      "type": "micro",
+      "node_type": "function",
+      "stage": 1,
+      "keywords": [
+        "pandas.Categorical",
+        "astype"
+      ],
+      "inputs": {
+        "type_name": "Categorical",
+        "state": "source_categorical"
+      },
+      "outputs": {
+        "type_name": "ArrayLike",
+        "state": "result_arraylike"
+      },
+      "domain_implementations": {
+        "Python_Core": {
+          "code": "{output_var} = {input_var}.astype()",
+          "dependencies": [
+            "pandas"
+          ]
+        }
+      }
+    },
+    {
+      "cell_id": "PANDAS_CATEGORICAL_CHECK_FOR_ORDERED",
+      "type": "micro",
+      "node_type": "function",
+      "stage": 1,
+      "keywords": [
+        "pandas.Categorical",
+        "check_for_ordered"
+      ],
+      "inputs": {
+        "type_name": "Categorical",
+        "state": "source_categorical"
+      },
+      "outputs": {
+        "type_name": "None",
+        "state": "result_none"
+      },
+      "domain_implementations": {
+        "Python_Core": {
+          "code": "{output_var} = {input_var}.check_for_ordered()",
+          "dependencies": [
+            "pandas"
+          ]
+        }
+      }
+    },
+    {
+      "cell_id": "PANDAS_CATEGORICAL_COPY",
+      "type": "micro",
+      "node_type": "function",
+      "stage": 1,
+      "keywords": [
+        "pandas.Categorical",
+        "copy"
+      ],
+      "inputs": {
+        "type_name": "Categorical",
+        "state": "source_categorical"
+      },
+      "outputs": {
+        "type_name": "any",
+        "state": "result_any"
+      },
+      "domain_implementations": {
+        "Python_Core": {
+          "code": "{output_var} = {input_var}.copy()",
+          "dependencies": [
+            "pandas"
+          ]
+        }
+      }
+    },
+    {
+      "cell_id": "PANDAS_CATEGORICAL_DELETE",
+      "type": "micro",
+      "node_type": "function",
+      "stage": 1,
+      "keywords": [
+        "pandas.Categorical",
+        "delete"
+      ],
+      "inputs": {
+        "type_name": "Categorical",
+        "state": "source_categorical"
+      },
+      "outputs": {
+        "type_name": "any",
+        "state": "result_any"
+      },
+      "domain_implementations": {
+        "Python_Core": {
+          "code": "{output_var} = {input_var}.delete()",
+          "dependencies": [
+            "pandas"
+          ]
+        }
+      }
+    },
+    {
+      "cell_id": "PANDAS_CATEGORICAL_DESCRIBE",
+      "type": "micro",
+      "node_type": "function",
+      "stage": 1,
+      "keywords": [
+        "pandas.Categorical",
+        "describe"
+      ],
+      "inputs": {
+        "type_name": "Categorical",
+        "state": "source_categorical"
+      },
+      "outputs": {
+        "type_name": "DataFrame",
+        "state": "result_dataframe"
+      },
+      "domain_implementations": {
+        "Python_Core": {
+          "code": "{output_var} = {input_var}.describe()",
+          "dependencies": [
+            "pandas"
+          ]
+        }
+      }
+    },
+    {
+      "cell_id": "PANDAS_CATEGORICAL_DROPNA",
+      "type": "micro",
+      "node_type": "function",
+      "stage": 1,
+      "keywords": [
+        "pandas.Categorical",
+        "dropna"
+      ],
+      "inputs": {
+        "type_name": "Categorical",
+        "state": "source_categorical"
+      },
+      "outputs": {
+        "type_name": "Self",
+        "state": "result_self"
+      },
+      "domain_implementations": {
+        "Python_Core": {
+          "code": "{output_var} = {input_var}.dropna()",
+          "dependencies": [
+            "pandas"
+          ]
+        }
+      }
+    },
+    {
+      "cell_id": "PANDAS_CATEGORICAL_DUPLICATED",
+      "type": "micro",
+      "node_type": "function",
+      "stage": 1,
+      "keywords": [
+        "pandas.Categorical",
+        "duplicated"
+      ],
+      "inputs": {
+        "type_name": "Categorical",
+        "state": "source_categorical"
+      },
+      "outputs": {
+        "type_name": "npt.NDArray",
+        "state": "]_computed"
+      },
+      "domain_implementations": {
+        "Python_Core": {
+          "code": "{output_var} = {input_var}.duplicated()",
+          "dependencies": [
+            "pandas"
+          ]
+        }
+      }
+    },
+    {
+      "cell_id": "PANDAS_CATEGORICAL_EQUALS",
+      "type": "micro",
+      "node_type": "function",
+      "stage": 1,
+      "keywords": [
+        "pandas.Categorical",
+        "equals"
+      ],
+      "inputs": {
+        "type_name": "Categorical",
+        "state": "source_categorical"
+      },
+      "outputs": {
+        "type_name": "bool",
+        "state": "result_bool"
+      },
+      "domain_implementations": {
+        "Python_Core": {
+          "code": "{output_var} = {input_var}.equals()",
+          "dependencies": [
+            "pandas"
+          ]
+        }
+      }
+    },
+    {
+      "cell_id": "PANDAS_CATEGORICAL_FACTORIZE",
+      "type": "micro",
+      "node_type": "function",
+      "stage": 1,
+      "keywords": [
+        "pandas.Categorical",
+        "factorize"
+      ],
+      "inputs": {
+        "type_name": "Categorical",
+        "state": "source_categorical"
+      },
+      "outputs": {
+        "type_name": "tuple",
+        "state": "result_tuple"
+      },
+      "domain_implementations": {
+        "Python_Core": {
+          "code": "{output_var} = {input_var}.factorize()",
+          "dependencies": [
+            "pandas"
+          ]
+        }
+      }
+    },
+    {
+      "cell_id": "PANDAS_CATEGORICAL_FILLNA",
+      "type": "micro",
+      "node_type": "function",
+      "stage": 1,
+      "keywords": [
+        "pandas.Categorical",
+        "fillna"
+      ],
+      "inputs": {
+        "type_name": "Categorical",
+        "state": "source_categorical"
+      },
+      "outputs": {
+        "type_name": "Self",
+        "state": "result_self"
+      },
+      "domain_implementations": {
+        "Python_Core": {
+          "code": "{output_var} = {input_var}.fillna()",
+          "dependencies": [
+            "pandas"
+          ]
+        }
+      }
+    },
+    {
+      "cell_id": "PANDAS_CATEGORICAL_FROM_CODES",
+      "type": "micro",
+      "node_type": "function",
+      "stage": 1,
+      "keywords": [
+        "pandas.Categorical",
+        "from_codes"
+      ],
+      "inputs": {
+        "type_name": "Categorical",
+        "state": "codes"
+      },
+      "outputs": {
+        "type_name": "Self",
+        "state": "result_self"
+      },
+      "domain_implementations": {
+        "Python_Core": {
+          "code": "{output_var} = {input_var}.from_codes()",
+          "dependencies": [
+            "pandas"
+          ]
+        }
+      }
+    },
+    {
+      "cell_id": "PANDAS_CATEGORICAL_INSERT",
+      "type": "micro",
+      "node_type": "function",
+      "stage": 1,
+      "keywords": [
+        "pandas.Categorical",
+        "insert"
+      ],
+      "inputs": {
+        "type_name": "Categorical",
+        "state": "source_categorical"
+      },
+      "outputs": {
+        "type_name": "Self",
+        "state": "result_self"
+      },
+      "domain_implementations": {
+        "Python_Core": {
+          "code": "{output_var} = {input_var}.insert()",
+          "dependencies": [
+            "pandas"
+          ]
+        }
+      }
+    },
+    {
+      "cell_id": "PANDAS_CATEGORICAL_INTERPOLATE",
+      "type": "micro",
+      "node_type": "function",
+      "stage": 1,
+      "keywords": [
+        "pandas.Categorical",
+        "interpolate"
+      ],
+      "inputs": {
+        "type_name": "Categorical",
+        "state": "source_categorical"
+      },
+      "outputs": {
+        "type_name": "Self",
+        "state": "result_self"
+      },
+      "domain_implementations": {
+        "Python_Core": {
+          "code": "{output_var} = {input_var}.interpolate()",
+          "dependencies": [
+            "pandas"
+          ]
+        }
+      }
+    },
+    {
+      "cell_id": "PANDAS_CATEGORICAL_ISIN",
+      "type": "micro",
+      "node_type": "function",
+      "stage": 1,
+      "keywords": [
+        "pandas.Categorical",
+        "isin"
+      ],
+      "inputs": {
+        "type_name": "Categorical",
+        "state": "source_categorical"
+      },
+      "outputs": {
+        "type_name": "npt.NDArray",
+        "state": "]_computed"
+      },
+      "domain_implementations": {
+        "Python_Core": {
+          "code": "{output_var} = {input_var}.isin()",
+          "dependencies": [
+            "pandas"
+          ]
+        }
+      }
+    },
+    {
+      "cell_id": "PANDAS_CATEGORICAL_ISNA",
+      "type": "micro",
+      "node_type": "function",
+      "stage": 1,
+      "keywords": [
+        "pandas.Categorical",
+        "isna"
+      ],
+      "inputs": {
+        "type_name": "Categorical",
+        "state": "source_categorical"
+      },
+      "outputs": {
+        "type_name": "npt.NDArray",
+        "state": "]_computed"
+      },
+      "domain_implementations": {
+        "Python_Core": {
+          "code": "{output_var} = {input_var}.isna()",
+          "dependencies": [
+            "pandas"
+          ]
+        }
+      }
+    },
+    {
+      "cell_id": "PANDAS_CATEGORICAL_ISNULL",
+      "type": "micro",
+      "node_type": "function",
+      "stage": 1,
+      "keywords": [
+        "pandas.Categorical",
+        "isnull"
+      ],
+      "inputs": {
+        "type_name": "Categorical",
+        "state": "source_categorical"
+      },
+      "outputs": {
+        "type_name": "npt.NDArray",
+        "state": "]_computed"
+      },
+      "domain_implementations": {
+        "Python_Core": {
+          "code": "{output_var} = {input_var}.isnull()",
+          "dependencies": [
+            "pandas"
+          ]
+        }
+      }
+    },
+    {
+      "cell_id": "PANDAS_CATEGORICAL_MAP",
+      "type": "micro",
+      "node_type": "function",
+      "stage": 1,
+      "keywords": [
+        "pandas.Categorical",
+        "map"
+      ],
+      "inputs": {
+        "type_name": "Categorical",
+        "state": "source_categorical"
+      },
+      "outputs": {
+        "type_name": "any",
+        "state": "result_any"
+      },
+      "domain_implementations": {
+        "Python_Core": {
+          "code": "{output_var} = {input_var}.map()",
+          "dependencies": [
+            "pandas"
+          ]
+        }
+      }
+    },
+    {
+      "cell_id": "PANDAS_CATEGORICAL_MAX",
+      "type": "micro",
+      "node_type": "function",
+      "stage": 1,
+      "keywords": [
+        "pandas.Categorical",
+        "max"
+      ],
+      "inputs": {
+        "type_name": "Categorical",
+        "state": "source_categorical"
+      },
+      "outputs": {
+        "type_name": "any",
+        "state": "result_any"
+      },
+      "domain_implementations": {
+        "Python_Core": {
+          "code": "{output_var} = {input_var}.max()",
+          "dependencies": [
+            "pandas"
+          ]
+        }
+      }
+    },
+    {
+      "cell_id": "PANDAS_CATEGORICAL_MEMORY_USAGE",
+      "type": "micro",
+      "node_type": "function",
+      "stage": 1,
+      "keywords": [
+        "pandas.Categorical",
+        "memory_usage"
+      ],
+      "inputs": {
+        "type_name": "Categorical",
+        "state": "source_categorical"
+      },
+      "outputs": {
+        "type_name": "int",
+        "state": "result_int"
+      },
+      "domain_implementations": {
+        "Python_Core": {
+          "code": "{output_var} = {input_var}.memory_usage()",
+          "dependencies": [
+            "pandas"
+          ]
+        }
+      }
+    },
+    {
+      "cell_id": "PANDAS_CATEGORICAL_MIN",
+      "type": "micro",
+      "node_type": "function",
+      "stage": 1,
+      "keywords": [
+        "pandas.Categorical",
+        "min"
+      ],
+      "inputs": {
+        "type_name": "Categorical",
+        "state": "source_categorical"
+      },
+      "outputs": {
+        "type_name": "any",
+        "state": "result_any"
+      },
+      "domain_implementations": {
+        "Python_Core": {
+          "code": "{output_var} = {input_var}.min()",
+          "dependencies": [
+            "pandas"
+          ]
+        }
+      }
+    },
+    {
+      "cell_id": "PANDAS_CATEGORICAL_NOTNA",
+      "type": "micro",
+      "node_type": "function",
+      "stage": 1,
+      "keywords": [
+        "pandas.Categorical",
+        "notna"
+      ],
+      "inputs": {
+        "type_name": "Categorical",
+        "state": "source_categorical"
+      },
+      "outputs": {
+        "type_name": "npt.NDArray",
+        "state": "]_computed"
+      },
+      "domain_implementations": {
+        "Python_Core": {
+          "code": "{output_var} = {input_var}.notna()",
+          "dependencies": [
+            "pandas"
+          ]
+        }
+      }
+    },
+    {
+      "cell_id": "PANDAS_CATEGORICAL_NOTNULL",
+      "type": "micro",
+      "node_type": "function",
+      "stage": 1,
+      "keywords": [
+        "pandas.Categorical",
+        "notnull"
+      ],
+      "inputs": {
+        "type_name": "Categorical",
+        "state": "source_categorical"
+      },
+      "outputs": {
+        "type_name": "npt.NDArray",
+        "state": "]_computed"
+      },
+      "domain_implementations": {
+        "Python_Core": {
+          "code": "{output_var} = {input_var}.notnull()",
+          "dependencies": [
+            "pandas"
+          ]
+        }
+      }
+    },
+    {
+      "cell_id": "PANDAS_CATEGORICAL_RAVEL",
+      "type": "micro",
+      "node_type": "function",
+      "stage": 1,
+      "keywords": [
+        "pandas.Categorical",
+        "ravel"
+      ],
+      "inputs": {
+        "type_name": "Categorical",
+        "state": "source_categorical"
+      },
+      "outputs": {
+        "type_name": "any",
+        "state": "result_any"
+      },
+      "domain_implementations": {
+        "Python_Core": {
+          "code": "{output_var} = {input_var}.ravel()",
+          "dependencies": [
+            "pandas"
+          ]
+        }
+      }
+    },
+    {
+      "cell_id": "PANDAS_CATEGORICAL_REMOVE_CATEGORIES",
+      "type": "micro",
+      "node_type": "function",
+      "stage": 1,
+      "keywords": [
+        "pandas.Categorical",
+        "remove_categories"
+      ],
+      "inputs": {
+        "type_name": "Categorical",
+        "state": "source_categorical"
+      },
+      "outputs": {
+        "type_name": "Self",
+        "state": "result_self"
+      },
+      "domain_implementations": {
+        "Python_Core": {
+          "code": "{output_var} = {input_var}.remove_categories()",
+          "dependencies": [
+            "pandas"
+          ]
+        }
+      }
+    },
+    {
+      "cell_id": "PANDAS_CATEGORICAL_REMOVE_UNUSED_CATEGORIES",
+      "type": "micro",
+      "node_type": "function",
+      "stage": 1,
+      "keywords": [
+        "pandas.Categorical",
+        "remove_unused_categories"
+      ],
+      "inputs": {
+        "type_name": "Categorical",
+        "state": "source_categorical"
+      },
+      "outputs": {
+        "type_name": "Self",
+        "state": "result_self"
+      },
+      "domain_implementations": {
+        "Python_Core": {
+          "code": "{output_var} = {input_var}.remove_unused_categories()",
+          "dependencies": [
+            "pandas"
+          ]
+        }
+      }
+    },
+    {
+      "cell_id": "PANDAS_CATEGORICAL_RENAME_CATEGORIES",
+      "type": "micro",
+      "node_type": "function",
+      "stage": 1,
+      "keywords": [
+        "pandas.Categorical",
+        "rename_categories"
+      ],
+      "inputs": {
+        "type_name": "Categorical",
+        "state": "source_categorical"
+      },
+      "outputs": {
+        "type_name": "Self",
+        "state": "result_self"
+      },
+      "domain_implementations": {
+        "Python_Core": {
+          "code": "{output_var} = {input_var}.rename_categories()",
+          "dependencies": [
+            "pandas"
+          ]
+        }
+      }
+    },
+    {
+      "cell_id": "PANDAS_CATEGORICAL_REORDER_CATEGORIES",
+      "type": "micro",
+      "node_type": "function",
+      "stage": 1,
+      "keywords": [
+        "pandas.Categorical",
+        "reorder_categories"
+      ],
+      "inputs": {
+        "type_name": "Categorical",
+        "state": "source_categorical"
+      },
+      "outputs": {
+        "type_name": "Self",
+        "state": "result_self"
+      },
+      "domain_implementations": {
+        "Python_Core": {
+          "code": "{output_var} = {input_var}.reorder_categories()",
+          "dependencies": [
+            "pandas"
+          ]
+        }
+      }
+    },
+    {
+      "cell_id": "PANDAS_CATEGORICAL_REPEAT",
+      "type": "micro",
+      "node_type": "function",
+      "stage": 1,
+      "keywords": [
+        "pandas.Categorical",
+        "repeat"
+      ],
+      "inputs": {
+        "type_name": "Categorical",
+        "state": "source_categorical"
+      },
+      "outputs": {
+        "type_name": "any",
+        "state": "result_any"
+      },
+      "domain_implementations": {
+        "Python_Core": {
+          "code": "{output_var} = {input_var}.repeat()",
+          "dependencies": [
+            "pandas"
+          ]
+        }
+      }
+    },
+    {
+      "cell_id": "PANDAS_CATEGORICAL_RESHAPE",
+      "type": "micro",
+      "node_type": "function",
+      "stage": 1,
+      "keywords": [
+        "pandas.Categorical",
+        "reshape"
+      ],
+      "inputs": {
+        "type_name": "Categorical",
+        "state": "source_categorical"
+      },
+      "outputs": {
+        "type_name": "any",
+        "state": "result_any"
+      },
+      "domain_implementations": {
+        "Python_Core": {
+          "code": "{output_var} = {input_var}.reshape()",
+          "dependencies": [
+            "pandas"
+          ]
+        }
+      }
+    },
+    {
+      "cell_id": "PANDAS_CATEGORICAL_SEARCHSORTED",
+      "type": "micro",
+      "node_type": "function",
+      "stage": 1,
+      "keywords": [
+        "pandas.Categorical",
+        "searchsorted"
+      ],
+      "inputs": {
+        "type_name": "Categorical",
+        "state": "source_categorical"
+      },
+      "outputs": {
+        "type_name": "npt.NDArray",
+        "state": "result_npt.ndarray"
+      },
+      "domain_implementations": {
+        "Python_Core": {
+          "code": "{output_var} = {input_var}.searchsorted()",
+          "dependencies": [
+            "pandas"
+          ]
+        }
+      }
+    },
+    {
+      "cell_id": "PANDAS_CATEGORICAL_SET_CATEGORIES",
+      "type": "micro",
+      "node_type": "function",
+      "stage": 1,
+      "keywords": [
+        "pandas.Categorical",
+        "set_categories"
+      ],
+      "inputs": {
+        "type_name": "Categorical",
+        "state": "source_categorical"
+      },
+      "outputs": {
+        "type_name": "any",
+        "state": "result_any"
+      },
+      "domain_implementations": {
+        "Python_Core": {
+          "code": "{output_var} = {input_var}.set_categories()",
+          "dependencies": [
+            "pandas"
+          ]
+        }
+      }
+    },
+    {
+      "cell_id": "PANDAS_CATEGORICAL_SET_ORDERED",
+      "type": "micro",
+      "node_type": "function",
+      "stage": 1,
+      "keywords": [
+        "pandas.Categorical",
+        "set_ordered"
+      ],
+      "inputs": {
+        "type_name": "Categorical",
+        "state": "source_categorical"
+      },
+      "outputs": {
+        "type_name": "Self",
+        "state": "result_self"
+      },
+      "domain_implementations": {
+        "Python_Core": {
+          "code": "{output_var} = {input_var}.set_ordered()",
+          "dependencies": [
+            "pandas"
+          ]
+        }
+      }
+    },
+    {
+      "cell_id": "PANDAS_CATEGORICAL_SHIFT",
+      "type": "micro",
+      "node_type": "function",
+      "stage": 1,
+      "keywords": [
+        "pandas.Categorical",
+        "shift"
+      ],
+      "inputs": {
+        "type_name": "Categorical",
+        "state": "source_categorical"
+      },
+      "outputs": {
+        "type_name": "any",
+        "state": "result_any"
+      },
+      "domain_implementations": {
+        "Python_Core": {
+          "code": "{output_var} = {input_var}.shift()",
+          "dependencies": [
+            "pandas"
+          ]
+        }
+      }
+    },
+    {
+      "cell_id": "PANDAS_CATEGORICAL_SORT_VALUES",
+      "type": "micro",
+      "node_type": "function",
+      "stage": 1,
+      "keywords": [
+        "pandas.Categorical",
+        "sort_values"
+      ],
+      "inputs": {
+        "type_name": "Categorical",
+        "state": "source_categorical"
+      },
+      "outputs": {
+        "type_name": "Self",
+        "state": "result_self"
+      },
+      "domain_implementations": {
+        "Python_Core": {
+          "code": "{output_var} = {input_var}.sort_values()",
+          "dependencies": [
+            "pandas"
+          ]
+        }
+      }
+    },
+    {
+      "cell_id": "PANDAS_CATEGORICAL_SWAPAXES",
+      "type": "micro",
+      "node_type": "function",
+      "stage": 1,
+      "keywords": [
+        "pandas.Categorical",
+        "swapaxes"
+      ],
+      "inputs": {
+        "type_name": "Categorical",
+        "state": "source_categorical"
+      },
+      "outputs": {
+        "type_name": "any",
+        "state": "result_any"
+      },
+      "domain_implementations": {
+        "Python_Core": {
+          "code": "{output_var} = {input_var}.swapaxes()",
+          "dependencies": [
+            "pandas"
+          ]
+        }
+      }
+    },
+    {
+      "cell_id": "PANDAS_CATEGORICAL_TAKE",
+      "type": "micro",
+      "node_type": "function",
+      "stage": 1,
+      "keywords": [
+        "pandas.Categorical",
+        "take"
+      ],
+      "inputs": {
+        "type_name": "Categorical",
+        "state": "source_categorical"
+      },
+      "outputs": {
+        "type_name": "Self",
+        "state": "result_self"
+      },
+      "domain_implementations": {
+        "Python_Core": {
+          "code": "{output_var} = {input_var}.take()",
+          "dependencies": [
+            "pandas"
+          ]
+        }
+      }
+    },
+    {
+      "cell_id": "PANDAS_CATEGORICAL_TO_LIST",
+      "type": "micro",
+      "node_type": "function",
+      "stage": 1,
+      "keywords": [
+        "pandas.Categorical",
+        "to_list"
+      ],
+      "inputs": {
+        "type_name": "Categorical",
+        "state": "source_categorical"
+      },
+      "outputs": {
+        "type_name": "any",
+        "state": "result_any"
+      },
+      "domain_implementations": {
+        "Python_Core": {
+          "code": "{output_var} = {input_var}.to_list()",
+          "dependencies": [
+            "pandas"
+          ]
+        }
+      }
+    }
+  ]
+}

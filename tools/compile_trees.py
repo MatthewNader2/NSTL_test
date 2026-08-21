@@ -39,15 +39,18 @@ def init_db(db_file=DB_PATH):
     return conn
 
 
-def compile_json_nodes_to_db(json_filepath, conn, filter_verified_only=False):
-    """Compile structured/enriched node JSON files to SQLite lattice database."""
+def compile_tree_file_to_db(json_filepath, conn, filter_verified_only=False):
+    """Compile structured 1-file tree JSON to SQLite lattice database."""
     basename = os.path.basename(json_filepath)
-    domain_name = basename.replace("enriched_", "").replace("verified_", "").replace("structural_", "").replace(".json", "")
+    if not basename.endswith("_tree.json"):
+        return
+
+    domain_name = basename.replace("_tree.json", "")
 
     with open(json_filepath, 'r', encoding='utf-8') as f:
         data = json.load(f)
 
-    nodes = data.get("cells", data) if isinstance(data, dict) else data
+    nodes = data.get("nodes", data.get("cells", [])) if isinstance(data, dict) else data
     if not isinstance(nodes, list):
         return
 
@@ -75,53 +78,56 @@ def compile_json_nodes_to_db(json_filepath, conn, filter_verified_only=False):
 
         inputs = cell.get("inputs", [{}])
         if isinstance(inputs, list) and inputs:
-            in_type = inputs[0].get("type", inputs[0].get("type_name", "ndarray"))
+            in_type = inputs[0].get("type", inputs[0].get("type_name", "AnyObject"))
             in_state = inputs[0].get("state", "raw")
-        elif isinstance(inputs, dict):
-            in_type = inputs.get("type_name", inputs.get("type", "ndarray"))
-            in_state = inputs.get("state", "raw")
         else:
-            in_type = "ndarray"
+            in_type = "AnyObject"
             in_state = "raw"
 
         outputs = cell.get("outputs", [{}])
         if isinstance(outputs, list) and outputs:
-            out_type = outputs[0].get("type", outputs[0].get("type_name", "ndarray"))
+            out_type = outputs[0].get("type", outputs[0].get("type_name", "AnyObject"))
             out_state = outputs[0].get("state", "computed")
-        elif isinstance(outputs, dict):
-            out_type = outputs.get("type_name", outputs.get("type", "ndarray"))
-            out_state = outputs.get("state", "computed")
         else:
-            out_type = "ndarray"
+            out_type = "AnyObject"
             out_state = "computed"
 
         # Sanitize type names
         in_type = sanitize_type(in_type, cell_id, domain_name)
         out_type = sanitize_type(out_type, cell_id, domain_name)
 
-        # Discard wildcards
-        if in_type.lower() in ("any", "any_computed"):
-            in_type = "ndarray"
-        if out_type.lower() in ("any", "any_computed"):
-            out_type = "ndarray"
-
         node_type = cell.get("node_type", "function")
         verified_val = 1 if cell.get("verified") is True else 0
+
+        # Store variants schema if present (for Nested Special Nodes)
+        variants = cell.get("variants", [])
+        config_schema = json.dumps({"variants": variants}) if variants else '[]'
 
         cursor.execute('''
             INSERT OR REPLACE INTO nodes 
             (cell_id, domain_name, node_type, stage, keywords, input_type, input_state, output_type, output_state, code, dependencies, configuration_schema, verified)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        ''', (cell_id, domain_name, node_type, 1, keywords_json, in_type, in_state, out_type, out_state, code, deps_json, '[]', verified_val))
+        ''', (cell_id, domain_name, node_type, 1, keywords_json, in_type, in_state, out_type, out_state, code, deps_json, config_schema, verified_val))
         compiled_count += 1
 
+        # Also compile nested variant sub-nodes into lattice DB so router can match them directly
+        for v in variants:
+            v_id = f"{cell_id}_{v.get('variant_id', '')}".upper()
+            v_keywords = keywords + v.get("keywords", [])
+            v_code = v.get("code_snippet", code)
+            cursor.execute('''
+                INSERT OR REPLACE INTO nodes 
+                (cell_id, domain_name, node_type, stage, keywords, input_type, input_state, output_type, output_state, code, dependencies, configuration_schema, verified)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ''', (v_id, domain_name, "special_variant", 1, json.dumps(v_keywords), in_type, in_state, out_type, out_state, v_code, deps_json, '[]', verified_val))
+            compiled_count += 1
+
     conn.commit()
-    print(f"[+] Compiled {compiled_count} Tier 1-4 nodes from {basename} -> SQLite lattice DB.")
+    print(f"[+] Compiled {compiled_count} nodes & variants from {basename} -> SQLite lattice DB.")
 
 
 def main():
     project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    harvests_dir = os.environ.get("NSTL_HARVESTS_DIR", os.path.join(project_root, "harvests"))
     trees_dir = os.path.join(project_root, "trees")
 
     db_path = os.path.join(trees_dir, "lattice.db")
@@ -135,14 +141,12 @@ def main():
     conn = init_db(db_path)
     conn_nstl = init_db(nstl_db_path)
 
-    json_files = glob.glob(os.path.join(harvests_dir, "enriched_*.json"))
-    if not json_files:
-        json_files = glob.glob(os.path.join(harvests_dir, "structural_*.json"))
+    tree_files = glob.glob(os.path.join(trees_dir, "*_tree.json"))
 
-    print(f"[*] Starting Compilation of {len(json_files)} library node sets to SQLite...")
-    for jf in json_files:
-        compile_json_nodes_to_db(jf, conn, filter_verified_only=False)
-        compile_json_nodes_to_db(jf, conn_nstl, filter_verified_only=False)
+    print(f"[*] Starting Compilation of {len(tree_files)} 1-file tree JSONs to SQLite...")
+    for tf in tree_files:
+        compile_tree_file_to_db(tf, conn, filter_verified_only=False)
+        compile_tree_file_to_db(tf, conn_nstl, filter_verified_only=False)
 
     conn.close()
     conn_nstl.close()

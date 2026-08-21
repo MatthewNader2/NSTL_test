@@ -1,0 +1,217 @@
+{
+  "domain_name": "Python_Builtins",
+  "version": "2.0.0",
+  "description": "Core Python built-in operations — the bedrock of every pipeline. These micro-cells cover I/O, type casting, string manipulation, file handling, and control primitives.",
+  "cells": [
+    {
+      "cell_id": "PYTHON_OPEN_FILE_READ",
+      "type": "micro",
+      "stage": 1,
+      "keywords": ["open", "file", "read", "text", "load", "filesystem", "input"],
+      "inputs":  { "type_name": "str", "state": "source_identifier" },
+      "outputs": { "type_name": "str", "state": "raw_text" },
+      "domain_implementations": {
+        "Python_Core": {
+          "code": "with open({input_var}, 'r', encoding='utf-8') as _fh:\n    {output_var} = _fh.read()",
+          "dependencies": []
+        }
+      }
+    },
+    {
+      "cell_id": "PYTHON_WRITE_FILE",
+      "type": "micro",
+      "stage": 1,
+      "keywords": ["write", "save", "file", "output", "export", "text"],
+      "inputs":  { "type_name": "str", "state": "raw_text" },
+      "outputs": { "type_name": "str", "state": "filepath_written" },
+      "domain_implementations": {
+        "Python_Core": {
+          "code": "_out_path = 'output.txt'\nwith open(_out_path, 'w', encoding='utf-8') as _fh:\n    _fh.write({input_var})\n{output_var} = _out_path",
+          "dependencies": []
+        }
+      }
+    },
+    {
+      "cell_id": "PYTHON_PRINT",
+      "type": "micro",
+      "stage": 1,
+      "keywords": ["print", "display", "show", "output", "console", "log"],
+      "inputs":  { "type_name": "str", "state": "raw_text" },
+      "outputs": { "type_name": "str", "state": "printed" },
+      "domain_implementations": {
+        "Python_Core": {
+          "code": "print({input_var})\n{output_var} = {input_var}",
+          "dependencies": []
+        }
+      }
+    },
+    {
+      "cell_id": "PYTHON_STR_SPLIT",
+      "type": "micro",
+      "stage": 1,
+      "keywords": ["split", "tokenize", "words", "delimiter", "string"],
+      "inputs":  { "type_name": "str", "state": "raw_text" },
+      "outputs": { "type_name": "list", "state": "tokens" },
+      "domain_implementations": {
+        "Python_Core": {
+          "code": "{output_var} = {input_var}.split()",
+          "dependencies": []
+        }
+      }
+    },
+    {
+      "cell_id": "PYTHON_STR_STRIP",
+      "type": "micro",
+      "stage": 1,
+      "keywords": ["strip", "trim", "whitespace", "clean", "string"],
+      "inputs":  { "type_name": "str", "state": "raw_text" },
+      "outputs": { "type_name": "str", "state": "cleaned_text" },
+      "domain_implementations": {
+        "Python_Core": {
+          "code": "{output_var} = {input_var}.strip()",
+          "dependencies": []
+        }
+      }
+    },
+    {
+      "cell_id": "PYTHON_STR_LOWER",
+      "type": "micro",
+      "stage": 1,
+      "keywords": ["lower", "lowercase", "normalize", "text", "case"],
+      "inputs":  { "type_name": "str", "state": "raw_text" },
+      "outputs": { "type_name": "str", "state": "lowercased" },
+      "domain_implementations": {
+        "Python_Core": {
+          "code": "{output_var} = {input_var}.lower()",
+          "dependencies": []
+        }
+      }
+    },
+    {
+      "cell_id": "PYTHON_STR_JOIN",
+      "type": "micro",
+      "stage": 1,
+      "keywords": ["join", "concatenate", "combine", "list", "string"],
+      "inputs":  { "type_name": "list", "state": "tokens" },
+      "outputs": { "type_name": "str", "state": "joined_text" },
+      "domain_implementations": {
+        "Python_Core": {
+          "code": "{output_var} = ' '.join({input_var})",
+          "dependencies": []
+        }
+      }
+    },
+    {
+      "cell_id": "PYTHON_LOAD_JSON",
+      "type": "micro",
+      "stage": 1,
+      "keywords": ["json", "parse", "load", "deserialize", "dict"],
+      "inputs":  { "type_name": "str", "state": "raw_text" },
+      "outputs": { "type_name": "dict", "state": "parsed_object" },
+      "domain_implementations": {
+        "Python_Core": {
+          "code": "import json\n{output_var} = json.loads({input_var})",
+          "dependencies": []
+        }
+      }
+    },
+    {
+      "cell_id": "PYTHON_DUMP_JSON",
+      "type": "micro",
+      "stage": 1,
+      "keywords": ["json", "serialize", "dump", "export", "dict"],
+      "inputs":  { "type_name": "dict", "state": "parsed_object" },
+      "outputs": { "type_name": "str", "state": "raw_text" },
+      "domain_implementations": {
+        "Python_Core": {
+          "code": "import json\n{output_var} = json.dumps({input_var}, indent=2)",
+          "dependencies": []
+        }
+      }
+    },
+    {
+      "cell_id": "PYTHON_LIST_SORT",
+      "type": "micro",
+      "stage": 1,
+      "keywords": ["sort", "order", "rank", "list", "ascending"],
+      "inputs":  { "type_name": "list", "state": "unsorted" },
+      "outputs": { "type_name": "list", "state": "sorted" },
+      "domain_implementations": {
+        "Python_Core": {
+          "code": "{output_var} = sorted({input_var})",
+          "dependencies": []
+        }
+      }
+    },
+    {
+      "cell_id": "PYTHON_LIST_LEN",
+      "type": "micro",
+      "stage": 1,
+      "keywords": ["length", "count", "size", "len", "list"],
+      "inputs":  { "type_name": "list", "state": "tokens" },
+      "outputs": { "type_name": "int", "state": "count" },
+      "domain_implementations": {
+        "Python_Core": {
+          "code": "{output_var} = len({input_var})",
+          "dependencies": []
+        }
+      }
+    },
+    {
+      "cell_id": "PYTHON_RANGE",
+      "type": "micro",
+      "stage": 1,
+      "keywords": ["range", "sequence", "iterate", "loop", "int"],
+      "inputs":  { "type_name": "int", "state": "count" },
+      "outputs": { "type_name": "list", "state": "index_sequence" },
+      "domain_implementations": {
+        "Python_Core": {
+          "code": "{output_var} = list(range({input_var}))",
+          "dependencies": []
+        }
+      }
+    },
+    {
+      "cell_id": "PYTHON_ENUMERATE",
+      "type": "micro",
+      "stage": 1,
+      "keywords": ["enumerate", "index", "iterate", "pair", "list"],
+      "inputs":  { "type_name": "list", "state": "tokens" },
+      "outputs": { "type_name": "list", "state": "indexed_pairs" },
+      "domain_implementations": {
+        "Python_Core": {
+          "code": "{output_var} = list(enumerate({input_var}))",
+          "dependencies": []
+        }
+      }
+    },
+    {
+      "cell_id": "PYTHON_DICT_KEYS",
+      "type": "micro",
+      "stage": 1,
+      "keywords": ["keys", "dict", "fields", "extract", "headers"],
+      "inputs":  { "type_name": "dict", "state": "parsed_object" },
+      "outputs": { "type_name": "list", "state": "keys" },
+      "domain_implementations": {
+        "Python_Core": {
+          "code": "{output_var} = list({input_var}.keys())",
+          "dependencies": []
+        }
+      }
+    },
+    {
+      "cell_id": "PYTHON_ZIP",
+      "type": "micro",
+      "stage": 1,
+      "keywords": ["zip", "pair", "combine", "merge", "lists"],
+      "inputs":  { "type_name": "list", "state": "index_sequence" },
+      "outputs": { "type_name": "list", "state": "zipped_pairs" },
+      "domain_implementations": {
+        "Python_Core": {
+          "code": "{output_var} = list(zip({input_var}, {input_var}))",
+          "dependencies": []
+        }
+      }
+    }
+  ]
+}
