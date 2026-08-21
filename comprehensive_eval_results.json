@@ -5,12 +5,12 @@
         "llm": "auto",
         "task_id": "pandas_csv_clean",
         "category": "Data Engineering",
-        "passed": true,
-        "latency_sec": 19.454,
-        "ast_nodes": 54,
+        "passed": false,
+        "latency_sec": 45.675,
+        "ast_nodes": 46,
         "virtual_edges": 3,
-        "error": "",
-        "code": "import pandas as pd\nimport pandas\n\ninput_source = 'data.csv'\nimport pandas as pd\nread_csv_cell = pd.read_csv(input_source)\ndropna_cell = read_csv_cell.dropna()\nsort_values_default = dropna_cell.sort_values(by='age', ascending=False)\nto_csv_default = 'cleaned_data.csv'\nsort_values_default.to_csv('cleaned_data.csv', index=False)"
+        "error": "Runtime Error (code 1): Traceback (most recent call last):\n  File \"/media/matthew/New Volume/grad_test/nstl_prototype/temp_eval_code.py\", line 5, in <module>\n    _libs_missing_checknull_default = pandas._libs.missing.checknu",
+        "code": "import pandas as pd\n\ninput_source = 'data.csv'\nread_csv_cell = pd.read_csv(input_source)\n_libs_missing_checknull_default = pandas._libs.missing.checknull('data.csv')\nperiodindex_sortlevel_default = read_csv_cell.sortlevel()\n_libs_index_maskedint64engine_clear_mapping_default = read_csv_cell.clear_mapping()"
     },
     {
         "profile": "Profile A",
@@ -18,12 +18,12 @@
         "llm": "auto",
         "task_id": "opencv_gray_convert",
         "category": "Image Processing",
-        "passed": true,
-        "latency_sec": 21.702,
+        "passed": false,
+        "latency_sec": 47.152,
         "ast_nodes": 51,
         "virtual_edges": 2,
-        "error": "",
-        "code": "input_source = 'input.jpg'\nimport cv2\ncv2_imread_cell = cv2.imread('input.jpg')\nimport cv2\ncv2_cvtcolor_cell = cv2.cvtColor(cv2_imread_cell, cv2.COLOR_BGR2GRAY)\nimport cv2\ncv2_imwrite_cell = cv2.imwrite('output.jpg', cv2_cvtcolor_cell)\nprint(cv2_imwrite_cell)"
+        "error": "Runtime Error (code 1): Traceback (most recent call last):\n  File \"/media/matthew/New Volume/grad_test/nstl_prototype/temp_eval_code.py\", line 4, in <module>\n    cv2_imreadwithmetadata_file_node_map = cv2.imreadWithMetadata(",
+        "code": "import cv2\n\ninput_source = 'input.jpg'\ncv2_imreadwithmetadata_file_node_map = cv2.imreadWithMetadata(cv2.FILE_NODE_MAP)\ncv2_fastnlmeansdenoisingcolored_color_bgr2gray = cv2.fastNlMeansDenoisingColored(cv2.COLOR_BGR2GRAY)\ncv2_pcaproject_cap_openni_image_generator_output_mode = cv2.PCAProject(None, None, cv2.CAP_OPENNI_IMAGE_GENERATOR_OUTPUT_MODE)\nprint(cv2_pcaproject_cap_openni_image_generator_output_mode)"
     },
     {
         "profile": "Profile A",
@@ -32,11 +32,11 @@
         "task_id": "vague_data_transform",
         "category": "Vague Human Prompt",
         "passed": false,
-        "latency_sec": 29.644,
-        "ast_nodes": 87,
+        "latency_sec": 55.848,
+        "ast_nodes": 59,
         "virtual_edges": 3,
-        "error": "Runtime Error (code 1): Traceback (most recent call last):\n  File \"/media/matthew/New Volume/grad_test/nstl_prototype/temp_eval_code.py\", line 9, in <module>\n    core_interchange_dataframe_protocol_dlpackdevicetype_conjugate",
-        "code": "import pandas\nimport pandas as pd\nimport pandas as pd\nimport pandas\n\nimport pandas as pd\ndf = pd.DataFrame()\ninput_source = df\ncore_interchange_dataframe_protocol_dlpackdevicetype_conjugate_default = input_source.conjugate()\ncore_missing_clean_interp_method_default = pandas.core.missing.clean_interp_method(None, None, None)\ncore_array_algos_transforms_shift_default = pandas.core.array_algos.transforms.shift(None, None, None, None)\nio_formats_printing_format_object_summary_default = pandas.io.formats.printing.format_object_summary(None, None)\nprint(io_formats_printing_format_object_summary_default)"
+        "error": "Runtime Error (code 1): Traceback (most recent call last):\n  File \"/media/matthew/New Volume/grad_test/nstl_prototype/temp_eval_code.py\", line 4, in <module>\n    sklearn_multiclass_validate_data_default = sklearn.multiclass.",
+        "code": "import sklearn\n\ninput_source = None\nsklearn_multiclass_validate_data_default = sklearn.multiclass.validate_data(None, None)\nsklearn_decomposition_non_negative_factorization_default = sklearn.decomposition.non_negative_factorization(None)\nsklearn_preprocessing_quantiletransformer_fit_transform_default = sklearn_decomposition_non_negative_factorization_default.fit_transform(None, None)\nsklearn_datasets_dump_svmlight_file_default = sklearn.datasets.dump_svmlight_file(None, None, None)\nprint(sklearn_datasets_dump_svmlight_file_default)"
     },
     {
         "profile": "Profile A",
@@ -45,11 +45,11 @@
         "task_id": "long_ml_pipeline",
         "category": "Long ML/Data Pipeline",
         "passed": false,
-        "latency_sec": 44.704,
-        "ast_nodes": 105,
-        "virtual_edges": 6,
-        "error": "Runtime Error (code 1): Traceback (most recent call last):\n  File \"/media/matthew/New Volume/grad_test/nstl_prototype/temp_eval_code.py\", line 15, in <module>\n    model.fit(sklearn_standard_scaler, sklearn_standard_scaler)\n ",
-        "code": "import pandas as pd\nimport pandas\nimport sklearn\n\ninput_source = 'data.csv'\nimport pandas as pd\nread_csv_cell = pd.read_csv(input_source)\ndropna_default = read_csv_cell.dropna()\nsklearn_select_numeric = dropna_default.select_dtypes(include=['number'])\nfrom sklearn.preprocessing import StandardScaler\nscaler = StandardScaler()\nsklearn_standard_scaler = scaler.fit_transform(sklearn_select_numeric)\nfrom sklearn.ensemble import RandomForestClassifier\nmodel = RandomForestClassifier()\nmodel.fit(sklearn_standard_scaler, sklearn_standard_scaler)\nsklearn_random_forest_fit = model\nsklearn_metrics_homogeneity_completeness_v_measure_default = sklearn.metrics.homogeneity_completeness_v_measure(None, None)\nsklearn_svm_svc_predict_log_proba_default = sklearn_metrics_homogeneity_completeness_v_measure_default.predict_log_proba(None)"
+        "latency_sec": 68.719,
+        "ast_nodes": 98,
+        "virtual_edges": 7,
+        "error": "Runtime Error (code 1): Traceback (most recent call last):\n  File \"/media/matthew/New Volume/grad_test/nstl_prototype/temp_eval_code.py\", line 6, in <module>\n    multiindex_drop_default = read_csv_cell.drop(None)\n  File \"/ho",
+        "code": "import pandas as pd\nimport sklearn\n\ninput_source = 'data.csv'\nread_csv_cell = pd.read_csv(input_source)\nmultiindex_drop_default = read_csv_cell.drop(None)\ncore_arrays_numeric_is_integer_dtype_default = pandas.core.arrays.numeric.is_integer_dtype(None)\nplotting_deregister_matplotlib_converters_default = pandas.plotting.deregister_matplotlib_converters(read_csv_cell)\nsklearn_semi_supervised_selftrainingclassifier_predict_default = plotting_deregister_matplotlib_converters_default.predict(None, None)\nsklearn_metrics_precision_recall_fscore_support_default = sklearn.metrics.precision_recall_fscore_support(None, None)\n_out_df = pd.DataFrame(sklearn_metrics_precision_recall_fscore_support_default)\nsave_predictions = _out_df.to_csv('predictions.csv', index=False)"
     },
     {
         "profile": "Profile A",
@@ -57,12 +57,12 @@
         "llm": "auto",
         "task_id": "dijkstra_algorithm",
         "category": "Multi-Step Algorithm",
-        "passed": true,
-        "latency_sec": 12.228,
-        "ast_nodes": 145,
+        "passed": false,
+        "latency_sec": 19.262,
+        "ast_nodes": 156,
         "virtual_edges": 1,
-        "error": "",
-        "code": "input_source = None\npython_graph_build_cell = input_source\nimport heapq\n\ndef dijkstra(graph, start_node):\n    distances = {node: float('inf') for node in graph}\n    distances[start_node] = 0\n    pq = [(0, start_node)]\n    while pq:\n        curr_dist, curr_node = heapq.heappop(pq)\n        if curr_dist > distances[curr_node]:\n            continue\n        for neighbor, weight in graph[curr_node].items():\n            dist = curr_dist + weight\n            if dist < distances[neighbor]:\n                distances[neighbor] = dist\n                heapq.heappush(pq, (dist, neighbor))\n    return distances\npython_dijkstra_shortest_path = dijkstra"
+        "error": "Runtime Error (code 1): Traceback (most recent call last):\n  File \"/media/matthew/New Volume/grad_test/nstl_prototype/temp_eval_code.py\", line 22, in <module>\n    cv2_sampsondistance_dist_welsch = cv2.sampsonDistance(None, N",
+        "code": "import heapq\n\nimport cv2\n\ninput_source = None\n\ndef dijkstra(graph, start_node):\n    distances = {node: float('inf') for node in graph}\n    distances[start_node] = 0\n    pq = [(0, start_node)]\n    while pq:\n        curr_dist, curr_node = heapq.heappop(pq)\n        if curr_dist > distances[curr_node]:\n            continue\n        for neighbor, weight in graph[curr_node].items():\n            dist = curr_dist + weight\n            if dist < distances[neighbor]:\n                distances[neighbor] = dist\n                heapq.heappush(pq, (dist, neighbor))\n    return distances\npython_dijkstra_shortest_path = dijkstra\ncv2_sampsondistance_dist_welsch = cv2.sampsonDistance(None, None, cv2.DIST_WELSCH)"
     },
     {
         "profile": "Profile D",
@@ -70,12 +70,12 @@
         "llm": "Qwen2.5-Coder-7B-Instruct-GGUF",
         "task_id": "pandas_csv_clean",
         "category": "Data Engineering",
-        "passed": true,
-        "latency_sec": 20.385,
-        "ast_nodes": 54,
+        "passed": false,
+        "latency_sec": 51.594,
+        "ast_nodes": 42,
         "virtual_edges": 3,
-        "error": "",
-        "code": "import pandas as pd\nimport pandas\n\ninput_source = 'data.csv'\nimport pandas as pd\nread_csv_default = pd.read_csv(input_source)\ndropna_default = read_csv_default.dropna()\nsort_values_default = dropna_default.sort_values(by='age', ascending=False)\nto_csv_default = 'cleaned_data.csv'\nsort_values_default.to_csv('cleaned_data.csv', index=False)"
+        "error": "Runtime Error (code 1): Traceback (most recent call last):\n  File \"/media/matthew/New Volume/grad_test/nstl_prototype/temp_eval_code.py\", line 6, in <module>\n    arrays_arrowstringarray_searchsorted_default = read_csv_cell.s",
+        "code": "import pandas as pd\n\ninput_source = 'data.csv'\nread_csv_cell = pd.read_csv(input_source)\ncategoricalindex_drop_duplicates_default = read_csv_cell.drop_duplicates()\narrays_arrowstringarray_searchsorted_default = read_csv_cell.searchsorted('data.csv')\ndataframe_to_string_default = arrays_arrowstringarray_searchsorted_default.to_string()"
     },
     {
         "profile": "Profile D",
@@ -83,12 +83,12 @@
         "llm": "Qwen2.5-Coder-7B-Instruct-GGUF",
         "task_id": "opencv_gray_convert",
         "category": "Image Processing",
-        "passed": true,
-        "latency_sec": 18.086,
-        "ast_nodes": 51,
+        "passed": false,
+        "latency_sec": 46.556,
+        "ast_nodes": 56,
         "virtual_edges": 2,
-        "error": "",
-        "code": "input_source = 'input.jpg'\nimport cv2\ncv2_imread_cell = cv2.imread('input.jpg')\nimport cv2\ncv2_cvtcolor_cell = cv2.cvtColor(cv2_imread_cell, cv2.COLOR_BGR2GRAY)\nimport cv2\ncv2_imwrite_cell = cv2.imwrite('output.jpg', cv2_cvtcolor_cell)\nprint(cv2_imwrite_cell)"
+        "error": "Runtime Error (code 1): Traceback (most recent call last):\n  File \"/media/matthew/New Volume/grad_test/nstl_prototype/temp_eval_code.py\", line 4, in <module>\n    cv2_readopticalflow_file_storage_read = cv2.readOpticalFlow(cv",
+        "code": "import cv2\n\ninput_source = 'input.jpg'\ncv2_readopticalflow_file_storage_read = cv2.readOpticalFlow(cv2.FILE_STORAGE_READ)\ncv2_ellipse_color_bgr2gray = cv2.ellipse(None, None, None, None, None, None, cv2.COLOR_BGR2GRAY)\ncv2_flip_image_metadata_iccp = cv2.flip(None, cv2.IMAGE_METADATA_ICCP)\nprint(cv2_flip_image_metadata_iccp)"
     },
     {
         "profile": "Profile D",
@@ -97,11 +97,11 @@
         "task_id": "vague_data_transform",
         "category": "Vague Human Prompt",
         "passed": false,
-        "latency_sec": 27.288,
-        "ast_nodes": 73,
+        "latency_sec": 64.134,
+        "ast_nodes": 52,
         "virtual_edges": 3,
-        "error": "Runtime Error (code 1): Traceback (most recent call last):\n  File \"/media/matthew/New Volume/grad_test/nstl_prototype/temp_eval_code.py\", line 7, in <module>\n    sklearn_utils_metadata_routing_process_routing_default = sklea",
-        "code": "import numpy\nimport numpy\nimport numpy as np\nimport sklearn\n\ninput_source = None\nsklearn_utils_metadata_routing_process_routing_default = sklearn.utils.metadata_routing.process_routing(None, None, None)\nsklearn_datasets_clear_data_home_default = sklearn.datasets.clear_data_home(sklearn_utils_metadata_routing_process_routing_default)\nsklearn_compose_make_column_transformer_default = sklearn.compose.make_column_transformer(None)\nsklearn_externals_array_api_compat_numpy_cumulative_sum_default = sklearn.externals.array_api_compat.numpy.cumulative_sum(None, None)\nprint(sklearn_externals_array_api_compat_numpy_cumulative_sum_default)"
+        "error": "Runtime Error (code 1): Traceback (most recent call last):\n  File \"/media/matthew/New Volume/grad_test/nstl_prototype/temp_eval_code.py\", line 4, in <module>\n    sklearn_datasets_fetch_openml_default = sklearn.datasets.fetch",
+        "code": "import sklearn\n\ninput_source = None\nsklearn_datasets_fetch_openml_default = sklearn.datasets.fetch_openml(input_source)\nsklearn_preprocessing_kbinsdiscretizer_set_params_default = sklearn_datasets_fetch_openml_default.set_params(None)\nsklearn_preprocessing_quantiletransformer_fit_transform_default = sklearn_preprocessing_kbinsdiscretizer_set_params_default.fit_transform(None, None)\nsklearn_manifold_tsne_set_output_default = sklearn_preprocessing_quantiletransformer_fit_transform_default.set_output()\nprint(sklearn_manifold_tsne_set_output_default)"
     },
     {
         "profile": "Profile D",
@@ -110,11 +110,11 @@
         "task_id": "long_ml_pipeline",
         "category": "Long ML/Data Pipeline",
         "passed": false,
-        "latency_sec": 46.72,
-        "ast_nodes": 117,
-        "virtual_edges": 6,
-        "error": "Runtime Error (code 1): Traceback (most recent call last):\n  File \"/media/matthew/New Volume/grad_test/nstl_prototype/temp_eval_code.py\", line 15, in <module>\n    model.fit(sklearn_standard_scaler_cell, sklearn_standard_scal",
-        "code": "import pandas as pd\nimport pandas\nimport sklearn\n\ninput_source = 'data.csv'\nimport pandas as pd\nread_csv_default = pd.read_csv(input_source)\ndropna_default = read_csv_default.dropna()\nsklearn_select_numeric = dropna_default.select_dtypes(include=['number'])\nfrom sklearn.preprocessing import StandardScaler\nscaler = StandardScaler()\nsklearn_standard_scaler_cell = scaler.fit_transform(sklearn_select_numeric)\nfrom sklearn.ensemble import RandomForestClassifier\nmodel = RandomForestClassifier()\nmodel.fit(sklearn_standard_scaler_cell, sklearn_standard_scaler_cell)\nsklearn_random_forest_fit = model\nsklearn_model_predict = sklearn_random_forest_fit.predict(sklearn_random_forest_fit)\nimport pandas as pd\n_out_df = pd.DataFrame(sklearn_model_predict)\nsave_predictions_cell = _out_df.to_csv('predictions.csv', index=False)"
+        "latency_sec": 116.56,
+        "ast_nodes": 94,
+        "virtual_edges": 7,
+        "error": "Runtime Error (code 1): Traceback (most recent call last):\n  File \"/media/matthew/New Volume/grad_test/nstl_prototype/temp_eval_code.py\", line 8, in <module>\n    core_api_to_numeric_default = pandas.core.api.to_numeric(None)",
+        "code": "import numpy as np\nimport pandas as pd\nimport sklearn\n\ninput_source = 'data.csv'\nread_csv_default = pd.read_csv(input_source)\narrays_numpyextensionarray_dropna_default = read_csv_default.dropna()\ncore_api_to_numeric_default = pandas.core.api.to_numeric(None)\ncore_indexes_accessors_arrowtemporalproperties_normalize_default = read_csv_default.normalize(None, None)\nsklearn_ensemble_randomforestregressor_fit_default = core_indexes_accessors_arrowtemporalproperties_normalize_default.fit(None, None)\nsklearn_metrics_precisionrecalldisplay_from_predictions_default = sklearn_ensemble_randomforestregressor_fit_default.from_predictions(None, None, None)\n_out_df = pd.DataFrame(sklearn_metrics_precisionrecalldisplay_from_predictions_default)\nsave_predictions_cell = _out_df.to_csv('predictions.csv', index=False)"
     },
     {
         "profile": "Profile D",
@@ -123,10 +123,10 @@
         "task_id": "dijkstra_algorithm",
         "category": "Multi-Step Algorithm",
         "passed": false,
-        "latency_sec": 15.03,
-        "ast_nodes": 35,
+        "latency_sec": 25.628,
+        "ast_nodes": 156,
         "virtual_edges": 1,
-        "error": "Runtime Error (code 1): Traceback (most recent call last):\n  File \"/media/matthew/New Volume/grad_test/nstl_prototype/temp_eval_code.py\", line 4, in <module>\n    scipy_sparse_csgraph_shortest_path_default = scipy.sparse.csgr",
-        "code": "import scipy\n\ninput_source = None\nscipy_sparse_csgraph_shortest_path_default = scipy.sparse.csgraph.shortest_path(None)\nscipy_spatial_distance_cdist_default = scipy.spatial.distance.cdist(None, None, None)"
+        "error": "Runtime Error (code 1): Traceback (most recent call last):\n  File \"/media/matthew/New Volume/grad_test/nstl_prototype/temp_eval_code.py\", line 22, in <module>\n    cv2_batchdistance_dist_mask_3 = cv2.batchDistance(None, None,",
+        "code": "import heapq\n\nimport cv2\n\ninput_source = None\n\ndef dijkstra(graph, start_node):\n    distances = {node: float('inf') for node in graph}\n    distances[start_node] = 0\n    pq = [(0, start_node)]\n    while pq:\n        curr_dist, curr_node = heapq.heappop(pq)\n        if curr_dist > distances[curr_node]:\n            continue\n        for neighbor, weight in graph[curr_node].items():\n            dist = curr_dist + weight\n            if dist < distances[neighbor]:\n                distances[neighbor] = dist\n                heapq.heappush(pq, (dist, neighbor))\n    return distances\npython_dijkstra_shortest_path = dijkstra\ncv2_batchdistance_dist_mask_3 = cv2.batchDistance(None, None, cv2.DIST_MASK_3)"
     }
 ]

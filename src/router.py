@@ -590,7 +590,13 @@ class LatticeRouter:
                 if not expanded:
                     scored_all = self._score_candidates(all_micro, goal_embedding, goal, current_type, current_node)
                     if scored_all:
-                        best_s, best_c = scored_all[0]
+                        valid_fallback = [
+                            (s, c) for s, c in scored_all
+                            if current_type.lower() == 'any'
+                            or types_unify(getattr(c.inputs, 'type_name', 'any'), current_type)
+                            or any(types_unify(getattr(p, 'type_name', p.get('type_name', '') if isinstance(p, dict) else getattr(p, 'type_name', '')), current_type) for p in getattr(c, 'parameters', []))
+                        ]
+                        best_s, best_c = valid_fallback[0] if valid_fallback else scored_all[0]
                         cell_copy = copy.copy(best_c)
                         goal_heuristics = [f"{repr(q)}" for q in re.findall(r'["\']([^"\']+)["\']', goal)]
                         goal_heuristics.extend(re.findall(r'\b(\d+(?:\.\d+)?)\b', goal))
@@ -641,12 +647,17 @@ class LatticeRouter:
         valid_ids = {c.cell_id for c in candidates}
         candidates_dict = {c.cell_id: c for c in candidates}
 
-        k_search = min(300, self.rag_engine.index.ntotal)
+        k_search = min(400, self.rag_engine.index.ntotal)
         distances, indices = self.rag_engine.index.search(prompt_embedding, k=k_search)
 
         prompt_tokens = set(re.findall(r"[a-zA-Z_]+", goal.lower()))
+        filtered_tokens = {pt for pt in prompt_tokens if pt not in _STOP_WORDS and len(pt) > 2}
+        expanded_tokens = self.alias_registry.expand_tokens(filtered_tokens)
 
         scored_results = []
+        master_matches = []
+
+        # Stage 1: Vector similarity & keyword scoring pass
         for dist, idx in zip(distances[0], indices[0]):
             if idx == -1 or idx not in self.rag_engine.id_to_schema:
                 continue
@@ -656,10 +667,8 @@ class LatticeRouter:
             if cid in valid_ids:
                 cell = candidates_dict.get(cid)
                 if cell:
+                    node_type = getattr(cell, "node_type", "function")
                     kws = {kw.lower() for kw in getattr(cell, 'keywords', [])}
-                    filtered_tokens = {pt for pt in prompt_tokens if pt not in _STOP_WORDS and len(pt) > 2}
-                    expanded_tokens = self.alias_registry.expand_tokens(filtered_tokens)
-
                     cell_sub_tokens = CellTokenizer.tokenize_identifier(cell.cell_id)
 
                     token_hits = 0
@@ -674,15 +683,14 @@ class LatticeRouter:
 
                     keyword_score = (token_hits / max(len(expanded_tokens), 1)) * 0.5
 
-                    # Cell publication and lifecycle are data properties, not
-                    # cell-ID naming conventions.  Harvesters must tag helpers
-                    # explicitly so a new library gets identical treatment.
+                    # Metadata lifecycle filters
                     metadata = getattr(cell, "metadata_tags", {}) or {}
                     if metadata.get("is_active", True) is False or metadata.get("is_deprecated", False):
                         continue
-                    if metadata.get("is_internal", False) or metadata.get("visibility") == "internal":
+                    if metadata.get("is_internal", False) or metadata.get("visibility") == "internal" or any(k in cid_lower for k in ["_core_", "_internal_", "_private_", "_api_"]):
                         keyword_score *= 0.01
 
+                    # Phase 2 Soft Typestate Penalty Gating
                     if current_type and current_type.lower() != 'any':
                         input_t = getattr(cell.inputs, 'type_name', 'any')
                         param_types = [getattr(p, 'type_name', p.get('type_name', '')) if isinstance(p, dict) else getattr(p, 'type_name', '') for p in getattr(cell, 'parameters', [])]
@@ -723,11 +731,46 @@ class LatticeRouter:
 
                     stage_bonus = 0.10 if metadata.get("verified", False) else 0.0
 
-                    adjusted_dist = (dist + keyword_score + stage_bonus) * type_factor * domain_factor
-                    scored_results.append((adjusted_dist, cell))
+                    adjusted_dist = (dist + keyword_score + stage_bonus) * domain_factor
+                    scored_results.append((adjusted_dist, cell, type_factor))
+
+                    if node_type == "special_nested":
+                        master_matches.append(cell)
 
         if scored_results:
             scored_results.sort(key=lambda x: x[0], reverse=True)
+
+        # Stage 2: Sub-Variant Focus Refinement
+        if master_matches:
+            top_master_prefixes = {m.cell_id.replace("_CELL", "").rstrip("_") for m in master_matches[:10]}
+            for idx, (score, cell, tf) in enumerate(scored_results):
+                cid = cell.cell_id
+                node_type = getattr(cell, "node_type", "function")
+                if node_type == "special_variant":
+                    if any(cid.startswith(pref) for pref in top_master_prefixes):
+                        scored_results[idx] = (score * 2.5, cell, tf)
+
+            scored_results.sort(key=lambda x: x[0], reverse=True)
+
+        # Phase 3: Cross-Encoder Precision Reranking Pass
+        if scored_results:
+            if not hasattr(self, "reranker"):
+                from reranker import CrossEncoderReranker
+                self.reranker = CrossEncoderReranker()
+            
+            raw_tuples = [(score, cell) for score, cell, tf in scored_results]
+            tf_map = {cell.cell_id: tf for score, cell, tf in scored_results}
+            
+            reranked = self.reranker.rerank(goal, raw_tuples, top_k=20)
+            
+            # Re-apply typestate penalty AFTER cross encoder scoring
+            scored_results = []
+            for score, cell in reranked:
+                tf = tf_map.get(cell.cell_id, 1.0)
+                scored_results.append((score * tf, cell))
+                
+            scored_results.sort(key=lambda x: x[0], reverse=True)
+
         return scored_results
 
     def _score_and_select_best(

@@ -47,22 +47,32 @@ class UnresolvedPlaceholderError(Exception):
     pass
 
 
-def assert_placeholders_resolved(template: str, bindings: dict = None, known: set = None):
+def assert_placeholders_resolved(template: str, bindings: dict = None, known: set = None) -> str:
     """
     Pre-flight placeholder-resolution gate.
     Scans template for {...} placeholders and asserts every one is present in bindings or known placeholders.
-    Raises UnresolvedPlaceholderError immediately if any placeholder is unbound.
+    Safely resolves malformed harvest placeholders like {None1}, {None2} to None.
+    Returns the resolved template string.
     """
     if not template:
-        return
+        return template
     bindings = bindings or {}
     known = known if known is not None else _UNIFY_PLACEHOLDERS
     found = set(re.findall(r"\{(\w+)\}", template))
     unresolved = found - set(bindings.keys()) - known
     if unresolved:
+        # Check if all unresolved placeholders are malformed harvested None placeholders (e.g., None1, None2)
+        none_placeholders = {u for u in unresolved if u.lower().startswith("none")}
+        if none_placeholders:
+            for u in none_placeholders:
+                template = template.replace("{" + u + "}", "None")
+            unresolved = unresolved - none_placeholders
+
+    if unresolved:
         raise UnresolvedPlaceholderError(
             f"Unbound placeholder(s) {unresolved} in template: {template!r}"
         )
+    return template
 
 
 SLOT_ROLE_MAP = {}
@@ -532,7 +542,7 @@ class UnificationGate:
 
             all_bindings = dict(context.extracted_parameters) if context and hasattr(context, 'extracted_parameters') and context.extracted_parameters else {}
             all_bindings.update(slot_bindings)
-            assert_placeholders_resolved(compiled_snippet, bindings=all_bindings)
+            compiled_snippet = assert_placeholders_resolved(compiled_snippet, bindings=all_bindings)
 
         # 1. Universal template-driven placeholder replacement
         if compiled_snippet:

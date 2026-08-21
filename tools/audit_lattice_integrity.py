@@ -170,25 +170,23 @@ def audit_database(db_path: str):
 def main():
     os.makedirs(LOGS_DIR, exist_ok=True)
     db_main = os.path.join(TREES_DIR, "lattice.db")
-    db_nstl = os.path.join(TREES_DIR, "nstl_lattice.db")
 
     res_main = audit_database(db_main)
-    res_nstl = audit_database(db_nstl)
 
     md = []
     md.append("# Micro-Lattice Integrity Audit Report")
     md.append("")
-    md.append(f"**Audit Execution Time**: 2026-08-19")
+    md.append(f"**Audit Execution Time**: 2026-08-21")
     md.append("")
     md.append("## Summary Statistics")
     md.append("")
-    md.append("| Metric | `trees/lattice.db` | `trees/nstl_lattice.db` | Target Invariant |")
-    md.append("| --- | --- | --- | --- |")
-    md.append(f"| **Total Nodes** | {res_main['total_nodes']} | {res_nstl['total_nodes']} | N/A |")
-    md.append(f"| **1. Self-Named Type Bugs** | `{len(res_main['self_named_bugs'])}` | `{len(res_nstl['self_named_bugs'])}` | **MUST BE 0** |")
-    md.append(f"| **2. Unchecked 'any' Fallbacks** | `{len(res_main['any_outputs'])}` | `{len(res_nstl['any_outputs'])}` | Minimise / 0 |")
-    md.append(f"| **3. Verified Micro-Cells** | `{res_main['verified_count']}` / {res_main['total_nodes']} | `{res_nstl['verified_count']}` / {res_nstl['total_nodes']} | Maximize |")
-    md.append(f"| **4. Valid Parameter Slot Coverage** | `{res_main['valid_slots_count']}` / {res_main['total_nodes']} | `{res_nstl['valid_slots_count']}` / {res_nstl['total_nodes']} | 100% |")
+    md.append("| Metric | `trees/lattice.db` | Target Invariant |")
+    md.append("| --- | --- | --- |")
+    md.append(f"| **Total Nodes** | {res_main['total_nodes']} | N/A |")
+    md.append(f"| **1. Self-Named Type Bugs** | `{len(res_main['self_named_bugs'])}` | **MUST BE 0** |")
+    md.append(f"| **2. Unchecked 'any' Fallbacks** | `{len(res_main['any_outputs'])}` | Minimise / 0 |")
+    md.append(f"| **3. Verified Micro-Cells** | `{res_main['verified_count']}` / {res_main['total_nodes']} | Maximize |")
+    md.append(f"| **4. Valid Parameter Slot Coverage** | `{res_main['valid_slots_count']}` / {res_main['total_nodes']} | 100% |")
     md.append("")
 
     md.append("## Invariant 1: Self-Named Type Bug Audit")

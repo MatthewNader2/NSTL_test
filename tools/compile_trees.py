@@ -131,25 +131,19 @@ def main():
     trees_dir = os.path.join(project_root, "trees")
 
     db_path = os.path.join(trees_dir, "lattice.db")
-    nstl_db_path = os.path.join(trees_dir, "nstl_lattice.db")
 
-    # Re-initialize DBs cleanly
-    for p in (db_path, nstl_db_path):
-        if os.path.exists(p):
-            os.remove(p)
+    if os.path.exists(db_path):
+        os.remove(db_path)
 
     conn = init_db(db_path)
-    conn_nstl = init_db(nstl_db_path)
 
     tree_files = glob.glob(os.path.join(trees_dir, "*_tree.json"))
 
     print(f"[*] Starting Compilation of {len(tree_files)} 1-file tree JSONs to SQLite...")
     for tf in tree_files:
         compile_tree_file_to_db(tf, conn, filter_verified_only=False)
-        compile_tree_file_to_db(tf, conn_nstl, filter_verified_only=False)
 
     conn.close()
-    conn_nstl.close()
 
     # Harvest core algorithmic & control flow patterns into DB
     sys.path.insert(0, os.path.join(project_root, "harvesting"))

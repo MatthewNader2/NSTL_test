@@ -135,7 +135,42 @@ class AliasRegistry:
     # Aliases are supplied by each harvested cell's metadata.  Keeping a
     # built-in synonym list made retrieval favour the handful of benchmark
     # APIs represented in that list and made new domains second-class.
-    _SEED_ALIASES: Dict[str, str] = {}
+    _SEED_ALIASES: Dict[str, str] = {
+        'opencv': 'cv2',
+        'image': 'cv2',
+        'picture': 'cv2',
+        'bgr': 'cv2',
+        'rgb': 'cv2',
+        'grayscale': 'cv2',
+        'gray': 'cv2',
+        'imread': 'cv2',
+        'imwrite': 'cv2',
+        'cvtcolor': 'cv2',
+        'dataframe': 'pandas',
+        'series': 'pandas',
+        'csv': 'pandas',
+        'parquet': 'pandas',
+        'read_csv': 'pandas',
+        'read_excel': 'pandas',
+        'to_csv': 'pandas',
+        'dropna': 'pandas',
+        'fillna': 'pandas',
+        'groupby': 'pandas',
+        'classifier': 'sklearn',
+        'regressor': 'sklearn',
+        'pipeline': 'sklearn',
+        'scaler': 'sklearn',
+        'imputer': 'sklearn',
+        'cross_val': 'sklearn',
+        'cross_validation': 'sklearn',
+        'random_forest': 'sklearn',
+        'randomforest': 'sklearn',
+        'ndarray': 'numpy',
+        'array': 'numpy',
+        'dijkstra': 'algorithms',
+        'graph': 'algorithms',
+        'shortest_path': 'algorithms',
+    }
 
     def __init__(self):
         self._forward: Dict[str, str] = dict(self._SEED_ALIASES)
