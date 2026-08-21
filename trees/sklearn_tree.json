@@ -7,12 +7,12 @@
   "optional_imports": {},
   "nodes": [
     {
-      "cell_id": "SKLEARN_FEATURE_SCALER",
+      "cell_id": "SKLEARN_MIXIN_FAMILY",
       "domain": "sklearn",
-      "name": "Scaler",
+      "name": "Mixin_family",
       "node_type": "special_nested",
-      "function": "sklearn.preprocessing.Scaler",
-      "description": "Scikit-Learn feature scaling master node with 9 dynamically reflected scalers.",
+      "function": "sklearn.Mixin",
+      "description": "sklearn dynamic class family Mixin with 3 reflected variants.",
       "inputs": [
         {
           "name": "X",
@@ -21,7 +21,7 @@
       ],
       "outputs": [
         {
-          "name": "X_scaled",
+          "name": "X_out",
           "type": "ndarray"
         }
       ],
@@ -33,7 +33,1273 @@
       ],
       "domain_implementations": {
         "Python_Core": {
-          "code": "{output_var} = StandardScaler().fit_transform({input_var})"
+          "code": "{output_var} = ClassifierMixin().fit_transform({input_var})"
+        }
+      },
+      "variants": [
+        {
+          "variant_id": "CLASSIFIERMIXIN",
+          "code_flag": "ClassifierMixin",
+          "keywords": [
+            "classifiermixin",
+            "ixin",
+            "lassifier"
+          ],
+          "description": "Dynamically reflected class ClassifierMixin",
+          "code_snippet": "{output_var} = ClassifierMixin().fit_transform({input_var})"
+        },
+        {
+          "variant_id": "METAESTIMATORMIXIN",
+          "code_flag": "MetaEstimatorMixin",
+          "keywords": [
+            "eta",
+            "ixin",
+            "metaestimatormixin",
+            "stimator"
+          ],
+          "description": "Dynamically reflected class MetaEstimatorMixin",
+          "code_snippet": "{output_var} = MetaEstimatorMixin().fit_transform({input_var})"
+        },
+        {
+          "variant_id": "REGRESSORMIXIN",
+          "code_flag": "RegressorMixin",
+          "keywords": [
+            "egressor",
+            "ixin",
+            "regressormixin"
+          ],
+          "description": "Dynamically reflected class RegressorMixin",
+          "code_snippet": "{output_var} = RegressorMixin().fit_transform({input_var})"
+        }
+      ]
+    },
+    {
+      "cell_id": "SKLEARN_MEANS_FAMILY",
+      "domain": "sklearn",
+      "name": "Means_family",
+      "node_type": "special_nested",
+      "function": "sklearn.Means",
+      "description": "sklearn dynamic class family Means with 3 reflected variants.",
+      "inputs": [
+        {
+          "name": "X",
+          "type": "ndarray"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "X_out",
+          "type": "ndarray"
+        }
+      ],
+      "params": [
+        {
+          "name": "X",
+          "type": "ndarray"
+        }
+      ],
+      "domain_implementations": {
+        "Python_Core": {
+          "code": "{output_var} = BisectingKMeans().fit_transform({input_var})"
+        }
+      },
+      "variants": [
+        {
+          "variant_id": "BISECTINGKMEANS",
+          "code_flag": "BisectingKMeans",
+          "keywords": [
+            "bisectingkmeans",
+            "eans",
+            "isecting",
+            "km"
+          ],
+          "description": "Dynamically reflected class BisectingKMeans",
+          "code_snippet": "{output_var} = BisectingKMeans().fit_transform({input_var})"
+        },
+        {
+          "variant_id": "KMEANS",
+          "code_flag": "KMeans",
+          "keywords": [
+            "eans",
+            "km",
+            "kmeans"
+          ],
+          "description": "Dynamically reflected class KMeans",
+          "code_snippet": "{output_var} = KMeans().fit_transform({input_var})"
+        },
+        {
+          "variant_id": "MINIBATCHKMEANS",
+          "code_flag": "MiniBatchKMeans",
+          "keywords": [
+            "atch",
+            "eans",
+            "ini",
+            "km",
+            "minibatchkmeans"
+          ],
+          "description": "Dynamically reflected class MiniBatchKMeans",
+          "code_snippet": "{output_var} = MiniBatchKMeans().fit_transform({input_var})"
+        }
+      ]
+    },
+    {
+      "cell_id": "SKLEARN_A_FAMILY",
+      "domain": "sklearn",
+      "name": "A_family",
+      "node_type": "special_nested",
+      "function": "sklearn.A",
+      "description": "sklearn dynamic class family A with 6 reflected variants.",
+      "inputs": [
+        {
+          "name": "X",
+          "type": "ndarray"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "X_out",
+          "type": "ndarray"
+        }
+      ],
+      "params": [
+        {
+          "name": "X",
+          "type": "ndarray"
+        }
+      ],
+      "domain_implementations": {
+        "Python_Core": {
+          "code": "{output_var} = FastICA().fit_transform({input_var})"
+        }
+      },
+      "variants": [
+        {
+          "variant_id": "FASTICA",
+          "code_flag": "FastICA",
+          "keywords": [
+            "ast",
+            "fastica",
+            "ica"
+          ],
+          "description": "Dynamically reflected class FastICA",
+          "code_snippet": "{output_var} = FastICA().fit_transform({input_var})"
+        },
+        {
+          "variant_id": "INCREMENTALPCA",
+          "code_flag": "IncrementalPCA",
+          "keywords": [
+            "incrementalpca",
+            "ncremental",
+            "pca"
+          ],
+          "description": "Dynamically reflected class IncrementalPCA",
+          "code_snippet": "{output_var} = IncrementalPCA().fit_transform({input_var})"
+        },
+        {
+          "variant_id": "KERNELPCA",
+          "code_flag": "KernelPCA",
+          "keywords": [
+            "ernel",
+            "kernelpca",
+            "pca"
+          ],
+          "description": "Dynamically reflected class KernelPCA",
+          "code_snippet": "{output_var} = KernelPCA().fit_transform({input_var})"
+        },
+        {
+          "variant_id": "MINIBATCHSPARSEPCA",
+          "code_flag": "MiniBatchSparsePCA",
+          "keywords": [
+            "atch",
+            "ini",
+            "minibatchsparsepca",
+            "parse",
+            "pca"
+          ],
+          "description": "Dynamically reflected class MiniBatchSparsePCA",
+          "code_snippet": "{output_var} = MiniBatchSparsePCA().fit_transform({input_var})"
+        },
+        {
+          "variant_id": "PCA",
+          "code_flag": "PCA",
+          "keywords": [
+            "pca"
+          ],
+          "description": "Dynamically reflected class PCA",
+          "code_snippet": "{output_var} = PCA().fit_transform({input_var})"
+        },
+        {
+          "variant_id": "SPARSEPCA",
+          "code_flag": "SparsePCA",
+          "keywords": [
+            "parse",
+            "pca",
+            "sparsepca"
+          ],
+          "description": "Dynamically reflected class SparsePCA",
+          "code_snippet": "{output_var} = SparsePCA().fit_transform({input_var})"
+        }
+      ]
+    },
+    {
+      "cell_id": "SKLEARN_CLASSIFIER_FAMILY",
+      "domain": "sklearn",
+      "name": "Classifier_family",
+      "node_type": "special_nested",
+      "function": "sklearn.Classifier",
+      "description": "sklearn dynamic class family Classifier with 3 reflected variants.",
+      "inputs": [
+        {
+          "name": "X",
+          "type": "ndarray"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "X_out",
+          "type": "ndarray"
+        }
+      ],
+      "params": [
+        {
+          "name": "X",
+          "type": "ndarray"
+        }
+      ],
+      "domain_implementations": {
+        "Python_Core": {
+          "code": "{output_var} = OneVsOneClassifier().fit_transform({input_var})"
+        }
+      },
+      "variants": [
+        {
+          "variant_id": "ONEVSONECLASSIFIER",
+          "code_flag": "OneVsOneClassifier",
+          "keywords": [
+            "lassifier",
+            "ne",
+            "onevsoneclassifier"
+          ],
+          "description": "Dynamically reflected class OneVsOneClassifier",
+          "code_snippet": "{output_var} = OneVsOneClassifier().fit_transform({input_var})"
+        },
+        {
+          "variant_id": "ONEVSRESTCLASSIFIER",
+          "code_flag": "OneVsRestClassifier",
+          "keywords": [
+            "est",
+            "lassifier",
+            "ne",
+            "onevsrestclassifier"
+          ],
+          "description": "Dynamically reflected class OneVsRestClassifier",
+          "code_snippet": "{output_var} = OneVsRestClassifier().fit_transform({input_var})"
+        },
+        {
+          "variant_id": "OUTPUTCODECLASSIFIER",
+          "code_flag": "OutputCodeClassifier",
+          "keywords": [
+            "lassifier",
+            "ode",
+            "outputcodeclassifier",
+            "utput"
+          ],
+          "description": "Dynamically reflected class OutputCodeClassifier",
+          "code_snippet": "{output_var} = OutputCodeClassifier().fit_transform({input_var})"
+        }
+      ]
+    },
+    {
+      "cell_id": "SKLEARN_REGRESSOR_FAMILY",
+      "domain": "sklearn",
+      "name": "Regressor_family",
+      "node_type": "special_nested",
+      "function": "sklearn.Regressor",
+      "description": "sklearn dynamic class family Regressor with 9 reflected variants.",
+      "inputs": [
+        {
+          "name": "X",
+          "type": "ndarray"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "X_out",
+          "type": "ndarray"
+        }
+      ],
+      "params": [
+        {
+          "name": "X",
+          "type": "ndarray"
+        }
+      ],
+      "domain_implementations": {
+        "Python_Core": {
+          "code": "{output_var} = GammaRegressor().fit_transform({input_var})"
+        }
+      },
+      "variants": [
+        {
+          "variant_id": "GAMMAREGRESSOR",
+          "code_flag": "GammaRegressor",
+          "keywords": [
+            "amma",
+            "egressor",
+            "gammaregressor"
+          ],
+          "description": "Dynamically reflected class GammaRegressor",
+          "code_snippet": "{output_var} = GammaRegressor().fit_transform({input_var})"
+        },
+        {
+          "variant_id": "HUBERREGRESSOR",
+          "code_flag": "HuberRegressor",
+          "keywords": [
+            "egressor",
+            "huberregressor",
+            "uber"
+          ],
+          "description": "Dynamically reflected class HuberRegressor",
+          "code_snippet": "{output_var} = HuberRegressor().fit_transform({input_var})"
+        },
+        {
+          "variant_id": "PASSIVEAGGRESSIVEREGRESSOR",
+          "code_flag": "PassiveAggressiveRegressor",
+          "keywords": [
+            "assive",
+            "egressor",
+            "ggressive",
+            "passiveaggressiveregressor"
+          ],
+          "description": "Dynamically reflected class PassiveAggressiveRegressor",
+          "code_snippet": "{output_var} = PassiveAggressiveRegressor().fit_transform({input_var})"
+        },
+        {
+          "variant_id": "POISSONREGRESSOR",
+          "code_flag": "PoissonRegressor",
+          "keywords": [
+            "egressor",
+            "oisson",
+            "poissonregressor"
+          ],
+          "description": "Dynamically reflected class PoissonRegressor",
+          "code_snippet": "{output_var} = PoissonRegressor().fit_transform({input_var})"
+        },
+        {
+          "variant_id": "QUANTILEREGRESSOR",
+          "code_flag": "QuantileRegressor",
+          "keywords": [
+            "egressor",
+            "quantileregressor",
+            "uantile"
+          ],
+          "description": "Dynamically reflected class QuantileRegressor",
+          "code_snippet": "{output_var} = QuantileRegressor().fit_transform({input_var})"
+        },
+        {
+          "variant_id": "RANSACREGRESSOR",
+          "code_flag": "RANSACRegressor",
+          "keywords": [
+            "egressor",
+            "ransacr",
+            "ransacregressor"
+          ],
+          "description": "Dynamically reflected class RANSACRegressor",
+          "code_snippet": "{output_var} = RANSACRegressor().fit_transform({input_var})"
+        },
+        {
+          "variant_id": "SGDREGRESSOR",
+          "code_flag": "SGDRegressor",
+          "keywords": [
+            "egressor",
+            "sgdr",
+            "sgdregressor"
+          ],
+          "description": "Dynamically reflected class SGDRegressor",
+          "code_snippet": "{output_var} = SGDRegressor().fit_transform({input_var})"
+        },
+        {
+          "variant_id": "THEILSENREGRESSOR",
+          "code_flag": "TheilSenRegressor",
+          "keywords": [
+            "egressor",
+            "en",
+            "heil",
+            "theilsenregressor"
+          ],
+          "description": "Dynamically reflected class TheilSenRegressor",
+          "code_snippet": "{output_var} = TheilSenRegressor().fit_transform({input_var})"
+        },
+        {
+          "variant_id": "TWEEDIEREGRESSOR",
+          "code_flag": "TweedieRegressor",
+          "keywords": [
+            "egressor",
+            "tweedieregressor",
+            "weedie"
+          ],
+          "description": "Dynamically reflected class TweedieRegressor",
+          "code_snippet": "{output_var} = TweedieRegressor().fit_transform({input_var})"
+        }
+      ]
+    },
+    {
+      "cell_id": "SKLEARN_WARNING_FAMILY",
+      "domain": "sklearn",
+      "name": "Warning_family",
+      "node_type": "special_nested",
+      "function": "sklearn.Warning",
+      "description": "sklearn dynamic class family Warning with 10 reflected variants.",
+      "inputs": [
+        {
+          "name": "X",
+          "type": "ndarray"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "X_out",
+          "type": "ndarray"
+        }
+      ],
+      "params": [
+        {
+          "name": "X",
+          "type": "ndarray"
+        }
+      ],
+      "domain_implementations": {
+        "Python_Core": {
+          "code": "{output_var} = ConvergenceWarning().fit_transform({input_var})"
+        }
+      },
+      "variants": [
+        {
+          "variant_id": "CONVERGENCEWARNING",
+          "code_flag": "ConvergenceWarning",
+          "keywords": [
+            "arning",
+            "convergencewarning",
+            "onvergence"
+          ],
+          "description": "Dynamically reflected class ConvergenceWarning",
+          "code_snippet": "{output_var} = ConvergenceWarning().fit_transform({input_var})"
+        },
+        {
+          "variant_id": "DATACONVERSIONWARNING",
+          "code_flag": "DataConversionWarning",
+          "keywords": [
+            "arning",
+            "ata",
+            "dataconversionwarning",
+            "onversion"
+          ],
+          "description": "Dynamically reflected class DataConversionWarning",
+          "code_snippet": "{output_var} = DataConversionWarning().fit_transform({input_var})"
+        },
+        {
+          "variant_id": "DATADIMENSIONALITYWARNING",
+          "code_flag": "DataDimensionalityWarning",
+          "keywords": [
+            "arning",
+            "ata",
+            "datadimensionalitywarning",
+            "imensionality"
+          ],
+          "description": "Dynamically reflected class DataDimensionalityWarning",
+          "code_snippet": "{output_var} = DataDimensionalityWarning().fit_transform({input_var})"
+        },
+        {
+          "variant_id": "EFFICIENCYWARNING",
+          "code_flag": "EfficiencyWarning",
+          "keywords": [
+            "arning",
+            "efficiencywarning",
+            "fficiency"
+          ],
+          "description": "Dynamically reflected class EfficiencyWarning",
+          "code_snippet": "{output_var} = EfficiencyWarning().fit_transform({input_var})"
+        },
+        {
+          "variant_id": "ESTIMATORCHECKFAILEDWARNING",
+          "code_flag": "EstimatorCheckFailedWarning",
+          "keywords": [
+            "ailed",
+            "arning",
+            "estimatorcheckfailedwarning",
+            "heck",
+            "stimator"
+          ],
+          "description": "Dynamically reflected class EstimatorCheckFailedWarning",
+          "code_snippet": "{output_var} = EstimatorCheckFailedWarning().fit_transform({input_var})"
+        },
+        {
+          "variant_id": "FITFAILEDWARNING",
+          "code_flag": "FitFailedWarning",
+          "keywords": [
+            "ailed",
+            "arning",
+            "fitfailedwarning",
+            "it"
+          ],
+          "description": "Dynamically reflected class FitFailedWarning",
+          "code_snippet": "{output_var} = FitFailedWarning().fit_transform({input_var})"
+        },
+        {
+          "variant_id": "INCONSISTENTVERSIONWARNING",
+          "code_flag": "InconsistentVersionWarning",
+          "keywords": [
+            "arning",
+            "ersion",
+            "inconsistentversionwarning",
+            "nconsistent"
+          ],
+          "description": "Dynamically reflected class InconsistentVersionWarning",
+          "code_snippet": "{output_var} = InconsistentVersionWarning().fit_transform({input_var})"
+        },
+        {
+          "variant_id": "POSITIVESPECTRUMWARNING",
+          "code_flag": "PositiveSpectrumWarning",
+          "keywords": [
+            "arning",
+            "ositive",
+            "pectrum",
+            "positivespectrumwarning"
+          ],
+          "description": "Dynamically reflected class PositiveSpectrumWarning",
+          "code_snippet": "{output_var} = PositiveSpectrumWarning().fit_transform({input_var})"
+        },
+        {
+          "variant_id": "SKIPTESTWARNING",
+          "code_flag": "SkipTestWarning",
+          "keywords": [
+            "arning",
+            "est",
+            "kip",
+            "skiptestwarning"
+          ],
+          "description": "Dynamically reflected class SkipTestWarning",
+          "code_snippet": "{output_var} = SkipTestWarning().fit_transform({input_var})"
+        },
+        {
+          "variant_id": "UNDEFINEDMETRICWARNING",
+          "code_flag": "UndefinedMetricWarning",
+          "keywords": [
+            "arning",
+            "etric",
+            "ndefined",
+            "undefinedmetricwarning"
+          ],
+          "description": "Dynamically reflected class UndefinedMetricWarning",
+          "code_snippet": "{output_var} = UndefinedMetricWarning().fit_transform({input_var})"
+        }
+      ]
+    },
+    {
+      "cell_id": "SKLEARN_SAMPLER_FAMILY",
+      "domain": "sklearn",
+      "name": "Sampler_family",
+      "node_type": "special_nested",
+      "function": "sklearn.Sampler",
+      "description": "sklearn dynamic class family Sampler with 3 reflected variants.",
+      "inputs": [
+        {
+          "name": "X",
+          "type": "ndarray"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "X_out",
+          "type": "ndarray"
+        }
+      ],
+      "params": [
+        {
+          "name": "X",
+          "type": "ndarray"
+        }
+      ],
+      "domain_implementations": {
+        "Python_Core": {
+          "code": "{output_var} = AdditiveChi2Sampler().fit_transform({input_var})"
+        }
+      },
+      "variants": [
+        {
+          "variant_id": "ADDITIVECHI2SAMPLER",
+          "code_flag": "AdditiveChi2Sampler",
+          "keywords": [
+            "additivechi2sampler",
+            "ampler",
+            "dditive",
+            "hi2"
+          ],
+          "description": "Dynamically reflected class AdditiveChi2Sampler",
+          "code_snippet": "{output_var} = AdditiveChi2Sampler().fit_transform({input_var})"
+        },
+        {
+          "variant_id": "RBFSAMPLER",
+          "code_flag": "RBFSampler",
+          "keywords": [
+            "ampler",
+            "rbfs",
+            "rbfsampler"
+          ],
+          "description": "Dynamically reflected class RBFSampler",
+          "code_snippet": "{output_var} = RBFSampler().fit_transform({input_var})"
+        },
+        {
+          "variant_id": "SKEWEDCHI2SAMPLER",
+          "code_flag": "SkewedChi2Sampler",
+          "keywords": [
+            "ampler",
+            "hi2",
+            "kewed",
+            "skewedchi2sampler"
+          ],
+          "description": "Dynamically reflected class SkewedChi2Sampler",
+          "code_snippet": "{output_var} = SkewedChi2Sampler().fit_transform({input_var})"
+        }
+      ]
+    },
+    {
+      "cell_id": "SKLEARN_REGRESSION_FAMILY",
+      "domain": "sklearn",
+      "name": "Regression_family",
+      "node_type": "special_nested",
+      "function": "sklearn.Regression",
+      "description": "sklearn dynamic class family Regression with 3 reflected variants.",
+      "inputs": [
+        {
+          "name": "X",
+          "type": "ndarray"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "X_out",
+          "type": "ndarray"
+        }
+      ],
+      "params": [
+        {
+          "name": "X",
+          "type": "ndarray"
+        }
+      ],
+      "domain_implementations": {
+        "Python_Core": {
+          "code": "{output_var} = ARDRegression().fit_transform({input_var})"
+        }
+      },
+      "variants": [
+        {
+          "variant_id": "ARDREGRESSION",
+          "code_flag": "ARDRegression",
+          "keywords": [
+            "ardr",
+            "ardregression",
+            "egression"
+          ],
+          "description": "Dynamically reflected class ARDRegression",
+          "code_snippet": "{output_var} = ARDRegression().fit_transform({input_var})"
+        },
+        {
+          "variant_id": "LINEARREGRESSION",
+          "code_flag": "LinearRegression",
+          "keywords": [
+            "egression",
+            "inear",
+            "linearregression"
+          ],
+          "description": "Dynamically reflected class LinearRegression",
+          "code_snippet": "{output_var} = LinearRegression().fit_transform({input_var})"
+        },
+        {
+          "variant_id": "LOGISTICREGRESSION",
+          "code_flag": "LogisticRegression",
+          "keywords": [
+            "egression",
+            "logisticregression",
+            "ogistic"
+          ],
+          "description": "Dynamically reflected class LogisticRegression",
+          "code_snippet": "{output_var} = LogisticRegression().fit_transform({input_var})"
+        }
+      ]
+    },
+    {
+      "cell_id": "SKLEARN_V_FAMILY",
+      "domain": "sklearn",
+      "name": "V_family",
+      "node_type": "special_nested",
+      "function": "sklearn.V",
+      "description": "sklearn dynamic class family V with 3 reflected variants.",
+      "inputs": [
+        {
+          "name": "X",
+          "type": "ndarray"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "X_out",
+          "type": "ndarray"
+        }
+      ],
+      "params": [
+        {
+          "name": "X",
+          "type": "ndarray"
+        }
+      ],
+      "domain_implementations": {
+        "Python_Core": {
+          "code": "{output_var} = GridSearchCV().fit_transform({input_var})"
+        }
+      },
+      "variants": [
+        {
+          "variant_id": "GRIDSEARCHCV",
+          "code_flag": "GridSearchCV",
+          "keywords": [
+            "cv",
+            "earch",
+            "gridsearchcv",
+            "rid"
+          ],
+          "description": "Dynamically reflected class GridSearchCV",
+          "code_snippet": "{output_var} = GridSearchCV().fit_transform({input_var})"
+        },
+        {
+          "variant_id": "RANDOMIZEDSEARCHCV",
+          "code_flag": "RandomizedSearchCV",
+          "keywords": [
+            "andomized",
+            "cv",
+            "earch",
+            "randomizedsearchcv"
+          ],
+          "description": "Dynamically reflected class RandomizedSearchCV",
+          "code_snippet": "{output_var} = RandomizedSearchCV().fit_transform({input_var})"
+        },
+        {
+          "variant_id": "TUNEDTHRESHOLDCLASSIFIERCV",
+          "code_flag": "TunedThresholdClassifierCV",
+          "keywords": [
+            "cv",
+            "hreshold",
+            "lassifier",
+            "tunedthresholdclassifiercv",
+            "uned"
+          ],
+          "description": "Dynamically reflected class TunedThresholdClassifierCV",
+          "code_snippet": "{output_var} = TunedThresholdClassifierCV().fit_transform({input_var})"
+        }
+      ]
+    },
+    {
+      "cell_id": "SKLEARN_DISPLAY_FAMILY",
+      "domain": "sklearn",
+      "name": "Display_family",
+      "node_type": "special_nested",
+      "function": "sklearn.Display",
+      "description": "sklearn dynamic class family Display with 5 reflected variants.",
+      "inputs": [
+        {
+          "name": "X",
+          "type": "ndarray"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "X_out",
+          "type": "ndarray"
+        }
+      ],
+      "params": [
+        {
+          "name": "X",
+          "type": "ndarray"
+        }
+      ],
+      "domain_implementations": {
+        "Python_Core": {
+          "code": "{output_var} = ConfusionMatrixDisplay().fit_transform({input_var})"
+        }
+      },
+      "variants": [
+        {
+          "variant_id": "CONFUSIONMATRIXDISPLAY",
+          "code_flag": "ConfusionMatrixDisplay",
+          "keywords": [
+            "atrix",
+            "confusionmatrixdisplay",
+            "isplay",
+            "onfusion"
+          ],
+          "description": "Dynamically reflected class ConfusionMatrixDisplay",
+          "code_snippet": "{output_var} = ConfusionMatrixDisplay().fit_transform({input_var})"
+        },
+        {
+          "variant_id": "DETCURVEDISPLAY",
+          "code_flag": "DetCurveDisplay",
+          "keywords": [
+            "detcurvedisplay",
+            "et",
+            "isplay",
+            "urve"
+          ],
+          "description": "Dynamically reflected class DetCurveDisplay",
+          "code_snippet": "{output_var} = DetCurveDisplay().fit_transform({input_var})"
+        },
+        {
+          "variant_id": "PRECISIONRECALLDISPLAY",
+          "code_flag": "PrecisionRecallDisplay",
+          "keywords": [
+            "ecall",
+            "isplay",
+            "precisionrecalldisplay",
+            "recision"
+          ],
+          "description": "Dynamically reflected class PrecisionRecallDisplay",
+          "code_snippet": "{output_var} = PrecisionRecallDisplay().fit_transform({input_var})"
+        },
+        {
+          "variant_id": "PREDICTIONERRORDISPLAY",
+          "code_flag": "PredictionErrorDisplay",
+          "keywords": [
+            "isplay",
+            "predictionerrordisplay",
+            "rediction",
+            "rror"
+          ],
+          "description": "Dynamically reflected class PredictionErrorDisplay",
+          "code_snippet": "{output_var} = PredictionErrorDisplay().fit_transform({input_var})"
+        },
+        {
+          "variant_id": "ROCCURVEDISPLAY",
+          "code_flag": "RocCurveDisplay",
+          "keywords": [
+            "isplay",
+            "oc",
+            "roccurvedisplay",
+            "urve"
+          ],
+          "description": "Dynamically reflected class RocCurveDisplay",
+          "code_snippet": "{output_var} = RocCurveDisplay().fit_transform({input_var})"
+        }
+      ]
+    },
+    {
+      "cell_id": "SKLEARN_SPLIT_FAMILY",
+      "domain": "sklearn",
+      "name": "Split_family",
+      "node_type": "special_nested",
+      "function": "sklearn.Split",
+      "description": "sklearn dynamic class family Split with 6 reflected variants.",
+      "inputs": [
+        {
+          "name": "X",
+          "type": "ndarray"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "X_out",
+          "type": "ndarray"
+        }
+      ],
+      "params": [
+        {
+          "name": "X",
+          "type": "ndarray"
+        }
+      ],
+      "domain_implementations": {
+        "Python_Core": {
+          "code": "{output_var} = BaseShuffleSplit().fit_transform({input_var})"
+        }
+      },
+      "variants": [
+        {
+          "variant_id": "BASESHUFFLESPLIT",
+          "code_flag": "BaseShuffleSplit",
+          "keywords": [
+            "ase",
+            "baseshufflesplit",
+            "huffle",
+            "plit"
+          ],
+          "description": "Dynamically reflected class BaseShuffleSplit",
+          "code_snippet": "{output_var} = BaseShuffleSplit().fit_transform({input_var})"
+        },
+        {
+          "variant_id": "GROUPSHUFFLESPLIT",
+          "code_flag": "GroupShuffleSplit",
+          "keywords": [
+            "groupshufflesplit",
+            "huffle",
+            "plit",
+            "roup"
+          ],
+          "description": "Dynamically reflected class GroupShuffleSplit",
+          "code_snippet": "{output_var} = GroupShuffleSplit().fit_transform({input_var})"
+        },
+        {
+          "variant_id": "PREDEFINEDSPLIT",
+          "code_flag": "PredefinedSplit",
+          "keywords": [
+            "plit",
+            "predefinedsplit",
+            "redefined"
+          ],
+          "description": "Dynamically reflected class PredefinedSplit",
+          "code_snippet": "{output_var} = PredefinedSplit().fit_transform({input_var})"
+        },
+        {
+          "variant_id": "SHUFFLESPLIT",
+          "code_flag": "ShuffleSplit",
+          "keywords": [
+            "huffle",
+            "plit",
+            "shufflesplit"
+          ],
+          "description": "Dynamically reflected class ShuffleSplit",
+          "code_snippet": "{output_var} = ShuffleSplit().fit_transform({input_var})"
+        },
+        {
+          "variant_id": "STRATIFIEDSHUFFLESPLIT",
+          "code_flag": "StratifiedShuffleSplit",
+          "keywords": [
+            "huffle",
+            "plit",
+            "stratifiedshufflesplit",
+            "tratified"
+          ],
+          "description": "Dynamically reflected class StratifiedShuffleSplit",
+          "code_snippet": "{output_var} = StratifiedShuffleSplit().fit_transform({input_var})"
+        },
+        {
+          "variant_id": "TIMESERIESSPLIT",
+          "code_flag": "TimeSeriesSplit",
+          "keywords": [
+            "eries",
+            "ime",
+            "plit",
+            "timeseriessplit"
+          ],
+          "description": "Dynamically reflected class TimeSeriesSplit",
+          "code_snippet": "{output_var} = TimeSeriesSplit().fit_transform({input_var})"
+        }
+      ]
+    },
+    {
+      "cell_id": "SKLEARN_FOLD_FAMILY",
+      "domain": "sklearn",
+      "name": "Fold_family",
+      "node_type": "special_nested",
+      "function": "sklearn.Fold",
+      "description": "sklearn dynamic class family Fold with 6 reflected variants.",
+      "inputs": [
+        {
+          "name": "X",
+          "type": "ndarray"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "X_out",
+          "type": "ndarray"
+        }
+      ],
+      "params": [
+        {
+          "name": "X",
+          "type": "ndarray"
+        }
+      ],
+      "domain_implementations": {
+        "Python_Core": {
+          "code": "{output_var} = GroupKFold().fit_transform({input_var})"
+        }
+      },
+      "variants": [
+        {
+          "variant_id": "GROUPKFOLD",
+          "code_flag": "GroupKFold",
+          "keywords": [
+            "groupkfold",
+            "kf",
+            "old",
+            "roup"
+          ],
+          "description": "Dynamically reflected class GroupKFold",
+          "code_snippet": "{output_var} = GroupKFold().fit_transform({input_var})"
+        },
+        {
+          "variant_id": "KFOLD",
+          "code_flag": "KFold",
+          "keywords": [
+            "kf",
+            "kfold",
+            "old"
+          ],
+          "description": "Dynamically reflected class KFold",
+          "code_snippet": "{output_var} = KFold().fit_transform({input_var})"
+        },
+        {
+          "variant_id": "REPEATEDKFOLD",
+          "code_flag": "RepeatedKFold",
+          "keywords": [
+            "epeated",
+            "kf",
+            "old",
+            "repeatedkfold"
+          ],
+          "description": "Dynamically reflected class RepeatedKFold",
+          "code_snippet": "{output_var} = RepeatedKFold().fit_transform({input_var})"
+        },
+        {
+          "variant_id": "REPEATEDSTRATIFIEDKFOLD",
+          "code_flag": "RepeatedStratifiedKFold",
+          "keywords": [
+            "epeated",
+            "kf",
+            "old",
+            "repeatedstratifiedkfold",
+            "tratified"
+          ],
+          "description": "Dynamically reflected class RepeatedStratifiedKFold",
+          "code_snippet": "{output_var} = RepeatedStratifiedKFold().fit_transform({input_var})"
+        },
+        {
+          "variant_id": "STRATIFIEDGROUPKFOLD",
+          "code_flag": "StratifiedGroupKFold",
+          "keywords": [
+            "kf",
+            "old",
+            "roup",
+            "stratifiedgroupkfold",
+            "tratified"
+          ],
+          "description": "Dynamically reflected class StratifiedGroupKFold",
+          "code_snippet": "{output_var} = StratifiedGroupKFold().fit_transform({input_var})"
+        },
+        {
+          "variant_id": "STRATIFIEDKFOLD",
+          "code_flag": "StratifiedKFold",
+          "keywords": [
+            "kf",
+            "old",
+            "stratifiedkfold",
+            "tratified"
+          ],
+          "description": "Dynamically reflected class StratifiedKFold",
+          "code_snippet": "{output_var} = StratifiedKFold().fit_transform({input_var})"
+        }
+      ]
+    },
+    {
+      "cell_id": "SKLEARN_OUT_FAMILY",
+      "domain": "sklearn",
+      "name": "Out_family",
+      "node_type": "special_nested",
+      "function": "sklearn.Out",
+      "description": "sklearn dynamic class family Out with 4 reflected variants.",
+      "inputs": [
+        {
+          "name": "X",
+          "type": "ndarray"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "X_out",
+          "type": "ndarray"
+        }
+      ],
+      "params": [
+        {
+          "name": "X",
+          "type": "ndarray"
+        }
+      ],
+      "domain_implementations": {
+        "Python_Core": {
+          "code": "{output_var} = LeaveOneGroupOut().fit_transform({input_var})"
+        }
+      },
+      "variants": [
+        {
+          "variant_id": "LEAVEONEGROUPOUT",
+          "code_flag": "LeaveOneGroupOut",
+          "keywords": [
+            "eave",
+            "leaveonegroupout",
+            "ne",
+            "roup",
+            "ut"
+          ],
+          "description": "Dynamically reflected class LeaveOneGroupOut",
+          "code_snippet": "{output_var} = LeaveOneGroupOut().fit_transform({input_var})"
+        },
+        {
+          "variant_id": "LEAVEONEOUT",
+          "code_flag": "LeaveOneOut",
+          "keywords": [
+            "eave",
+            "leaveoneout",
+            "ne",
+            "ut"
+          ],
+          "description": "Dynamically reflected class LeaveOneOut",
+          "code_snippet": "{output_var} = LeaveOneOut().fit_transform({input_var})"
+        },
+        {
+          "variant_id": "LEAVEPGROUPSOUT",
+          "code_flag": "LeavePGroupsOut",
+          "keywords": [
+            "eave",
+            "leavepgroupsout",
+            "pg",
+            "roups",
+            "ut"
+          ],
+          "description": "Dynamically reflected class LeavePGroupsOut",
+          "code_snippet": "{output_var} = LeavePGroupsOut().fit_transform({input_var})"
+        },
+        {
+          "variant_id": "LEAVEPOUT",
+          "code_flag": "LeavePOut",
+          "keywords": [
+            "eave",
+            "leavepout",
+            "po",
+            "ut"
+          ],
+          "description": "Dynamically reflected class LeavePOut",
+          "code_snippet": "{output_var} = LeavePOut().fit_transform({input_var})"
+        }
+      ]
+    },
+    {
+      "cell_id": "SKLEARN_B_FAMILY",
+      "domain": "sklearn",
+      "name": "B_family",
+      "node_type": "special_nested",
+      "function": "sklearn.B",
+      "description": "sklearn dynamic class family B with 5 reflected variants.",
+      "inputs": [
+        {
+          "name": "X",
+          "type": "ndarray"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "X_out",
+          "type": "ndarray"
+        }
+      ],
+      "params": [
+        {
+          "name": "X",
+          "type": "ndarray"
+        }
+      ],
+      "domain_implementations": {
+        "Python_Core": {
+          "code": "{output_var} = BernoulliNB().fit_transform({input_var})"
+        }
+      },
+      "variants": [
+        {
+          "variant_id": "BERNOULLINB",
+          "code_flag": "BernoulliNB",
+          "keywords": [
+            "bernoullinb",
+            "ernoulli",
+            "nb"
+          ],
+          "description": "Dynamically reflected class BernoulliNB",
+          "code_snippet": "{output_var} = BernoulliNB().fit_transform({input_var})"
+        },
+        {
+          "variant_id": "CATEGORICALNB",
+          "code_flag": "CategoricalNB",
+          "keywords": [
+            "ategorical",
+            "categoricalnb",
+            "nb"
+          ],
+          "description": "Dynamically reflected class CategoricalNB",
+          "code_snippet": "{output_var} = CategoricalNB().fit_transform({input_var})"
+        },
+        {
+          "variant_id": "COMPLEMENTNB",
+          "code_flag": "ComplementNB",
+          "keywords": [
+            "complementnb",
+            "nb",
+            "omplement"
+          ],
+          "description": "Dynamically reflected class ComplementNB",
+          "code_snippet": "{output_var} = ComplementNB().fit_transform({input_var})"
+        },
+        {
+          "variant_id": "GAUSSIANNB",
+          "code_flag": "GaussianNB",
+          "keywords": [
+            "aussian",
+            "gaussiannb",
+            "nb"
+          ],
+          "description": "Dynamically reflected class GaussianNB",
+          "code_snippet": "{output_var} = GaussianNB().fit_transform({input_var})"
+        },
+        {
+          "variant_id": "MULTINOMIALNB",
+          "code_flag": "MultinomialNB",
+          "keywords": [
+            "multinomialnb",
+            "nb",
+            "ultinomial"
+          ],
+          "description": "Dynamically reflected class MultinomialNB",
+          "code_snippet": "{output_var} = MultinomialNB().fit_transform({input_var})"
+        }
+      ]
+    },
+    {
+      "cell_id": "SKLEARN_TRANSFORMER_FAMILY",
+      "domain": "sklearn",
+      "name": "Transformer_family",
+      "node_type": "special_nested",
+      "function": "sklearn.Transformer",
+      "description": "sklearn dynamic class family Transformer with 4 reflected variants.",
+      "inputs": [
+        {
+          "name": "X",
+          "type": "ndarray"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "X_out",
+          "type": "ndarray"
+        }
+      ],
+      "params": [
+        {
+          "name": "X",
+          "type": "ndarray"
+        }
+      ],
+      "domain_implementations": {
+        "Python_Core": {
+          "code": "{output_var} = FunctionTransformer().fit_transform({input_var})"
         }
       },
       "variants": [
@@ -45,9 +1311,153 @@
             "ransformer",
             "unction"
           ],
-          "description": "Scikit-Learn feature scaler FunctionTransformer",
+          "description": "Dynamically reflected class FunctionTransformer",
           "code_snippet": "{output_var} = FunctionTransformer().fit_transform({input_var})"
         },
+        {
+          "variant_id": "POWERTRANSFORMER",
+          "code_flag": "PowerTransformer",
+          "keywords": [
+            "ower",
+            "powertransformer",
+            "ransformer"
+          ],
+          "description": "Dynamically reflected class PowerTransformer",
+          "code_snippet": "{output_var} = PowerTransformer().fit_transform({input_var})"
+        },
+        {
+          "variant_id": "QUANTILETRANSFORMER",
+          "code_flag": "QuantileTransformer",
+          "keywords": [
+            "quantiletransformer",
+            "ransformer",
+            "uantile"
+          ],
+          "description": "Dynamically reflected class QuantileTransformer",
+          "code_snippet": "{output_var} = QuantileTransformer().fit_transform({input_var})"
+        },
+        {
+          "variant_id": "SPLINETRANSFORMER",
+          "code_flag": "SplineTransformer",
+          "keywords": [
+            "pline",
+            "ransformer",
+            "splinetransformer"
+          ],
+          "description": "Dynamically reflected class SplineTransformer",
+          "code_snippet": "{output_var} = SplineTransformer().fit_transform({input_var})"
+        }
+      ]
+    },
+    {
+      "cell_id": "SKLEARN_ENCODER_FAMILY",
+      "domain": "sklearn",
+      "name": "Encoder_family",
+      "node_type": "special_nested",
+      "function": "sklearn.Encoder",
+      "description": "sklearn dynamic class family Encoder with 4 reflected variants.",
+      "inputs": [
+        {
+          "name": "X",
+          "type": "ndarray"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "X_out",
+          "type": "ndarray"
+        }
+      ],
+      "params": [
+        {
+          "name": "X",
+          "type": "ndarray"
+        }
+      ],
+      "domain_implementations": {
+        "Python_Core": {
+          "code": "{output_var} = LabelEncoder().fit_transform({input_var})"
+        }
+      },
+      "variants": [
+        {
+          "variant_id": "LABELENCODER",
+          "code_flag": "LabelEncoder",
+          "keywords": [
+            "abel",
+            "labelencoder",
+            "ncoder"
+          ],
+          "description": "Dynamically reflected class LabelEncoder",
+          "code_snippet": "{output_var} = LabelEncoder().fit_transform({input_var})"
+        },
+        {
+          "variant_id": "ONEHOTENCODER",
+          "code_flag": "OneHotEncoder",
+          "keywords": [
+            "ncoder",
+            "ne",
+            "onehotencoder",
+            "ot"
+          ],
+          "description": "Dynamically reflected class OneHotEncoder",
+          "code_snippet": "{output_var} = OneHotEncoder().fit_transform({input_var})"
+        },
+        {
+          "variant_id": "ORDINALENCODER",
+          "code_flag": "OrdinalEncoder",
+          "keywords": [
+            "ncoder",
+            "ordinalencoder",
+            "rdinal"
+          ],
+          "description": "Dynamically reflected class OrdinalEncoder",
+          "code_snippet": "{output_var} = OrdinalEncoder().fit_transform({input_var})"
+        },
+        {
+          "variant_id": "TARGETENCODER",
+          "code_flag": "TargetEncoder",
+          "keywords": [
+            "arget",
+            "ncoder",
+            "targetencoder"
+          ],
+          "description": "Dynamically reflected class TargetEncoder",
+          "code_snippet": "{output_var} = TargetEncoder().fit_transform({input_var})"
+        }
+      ]
+    },
+    {
+      "cell_id": "SKLEARN_SCALER_FAMILY",
+      "domain": "sklearn",
+      "name": "Scaler_family",
+      "node_type": "special_nested",
+      "function": "sklearn.Scaler",
+      "description": "sklearn dynamic class family Scaler with 4 reflected variants.",
+      "inputs": [
+        {
+          "name": "X",
+          "type": "ndarray"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "X_out",
+          "type": "ndarray"
+        }
+      ],
+      "params": [
+        {
+          "name": "X",
+          "type": "ndarray"
+        }
+      ],
+      "domain_implementations": {
+        "Python_Core": {
+          "code": "{output_var} = MaxAbsScaler().fit_transform({input_var})"
+        }
+      },
+      "variants": [
         {
           "variant_id": "MAXABSSCALER",
           "code_flag": "MaxAbsScaler",
@@ -57,7 +1467,7 @@
             "caler",
             "maxabsscaler"
           ],
-          "description": "Scikit-Learn feature scaler MaxAbsScaler",
+          "description": "Dynamically reflected class MaxAbsScaler",
           "code_snippet": "{output_var} = MaxAbsScaler().fit_transform({input_var})"
         },
         {
@@ -69,40 +1479,8 @@
             "in",
             "minmaxscaler"
           ],
-          "description": "Scikit-Learn feature scaler MinMaxScaler",
+          "description": "Dynamically reflected class MinMaxScaler",
           "code_snippet": "{output_var} = MinMaxScaler().fit_transform({input_var})"
-        },
-        {
-          "variant_id": "NORMALIZER",
-          "code_flag": "Normalizer",
-          "keywords": [
-            "normalizer",
-            "ormalizer"
-          ],
-          "description": "Scikit-Learn feature scaler Normalizer",
-          "code_snippet": "{output_var} = Normalizer().fit_transform({input_var})"
-        },
-        {
-          "variant_id": "POWERTRANSFORMER",
-          "code_flag": "PowerTransformer",
-          "keywords": [
-            "ower",
-            "powertransformer",
-            "ransformer"
-          ],
-          "description": "Scikit-Learn feature scaler PowerTransformer",
-          "code_snippet": "{output_var} = PowerTransformer().fit_transform({input_var})"
-        },
-        {
-          "variant_id": "QUANTILETRANSFORMER",
-          "code_flag": "QuantileTransformer",
-          "keywords": [
-            "quantiletransformer",
-            "ransformer",
-            "uantile"
-          ],
-          "description": "Scikit-Learn feature scaler QuantileTransformer",
-          "code_snippet": "{output_var} = QuantileTransformer().fit_transform({input_var})"
         },
         {
           "variant_id": "ROBUSTSCALER",
@@ -112,19 +1490,8 @@
             "obust",
             "robustscaler"
           ],
-          "description": "Scikit-Learn feature scaler RobustScaler",
+          "description": "Dynamically reflected class RobustScaler",
           "code_snippet": "{output_var} = RobustScaler().fit_transform({input_var})"
-        },
-        {
-          "variant_id": "SPLINETRANSFORMER",
-          "code_flag": "SplineTransformer",
-          "keywords": [
-            "pline",
-            "ransformer",
-            "splinetransformer"
-          ],
-          "description": "Scikit-Learn feature scaler SplineTransformer",
-          "code_snippet": "{output_var} = SplineTransformer().fit_transform({input_var})"
         },
         {
           "variant_id": "STANDARDSCALER",
@@ -134,8 +1501,203 @@
             "standardscaler",
             "tandard"
           ],
-          "description": "Scikit-Learn feature scaler StandardScaler",
+          "description": "Dynamically reflected class StandardScaler",
           "code_snippet": "{output_var} = StandardScaler().fit_transform({input_var})"
+        }
+      ]
+    },
+    {
+      "cell_id": "SKLEARN_PROJECTION_FAMILY",
+      "domain": "sklearn",
+      "name": "Projection_family",
+      "node_type": "special_nested",
+      "function": "sklearn.Projection",
+      "description": "sklearn dynamic class family Projection with 3 reflected variants.",
+      "inputs": [
+        {
+          "name": "X",
+          "type": "ndarray"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "X_out",
+          "type": "ndarray"
+        }
+      ],
+      "params": [
+        {
+          "name": "X",
+          "type": "ndarray"
+        }
+      ],
+      "domain_implementations": {
+        "Python_Core": {
+          "code": "{output_var} = BaseRandomProjection().fit_transform({input_var})"
+        }
+      },
+      "variants": [
+        {
+          "variant_id": "BASERANDOMPROJECTION",
+          "code_flag": "BaseRandomProjection",
+          "keywords": [
+            "andom",
+            "ase",
+            "baserandomprojection",
+            "rojection"
+          ],
+          "description": "Dynamically reflected class BaseRandomProjection",
+          "code_snippet": "{output_var} = BaseRandomProjection().fit_transform({input_var})"
+        },
+        {
+          "variant_id": "GAUSSIANRANDOMPROJECTION",
+          "code_flag": "GaussianRandomProjection",
+          "keywords": [
+            "andom",
+            "aussian",
+            "gaussianrandomprojection",
+            "rojection"
+          ],
+          "description": "Dynamically reflected class GaussianRandomProjection",
+          "code_snippet": "{output_var} = GaussianRandomProjection().fit_transform({input_var})"
+        },
+        {
+          "variant_id": "SPARSERANDOMPROJECTION",
+          "code_flag": "SparseRandomProjection",
+          "keywords": [
+            "andom",
+            "parse",
+            "rojection",
+            "sparserandomprojection"
+          ],
+          "description": "Dynamically reflected class SparseRandomProjection",
+          "code_snippet": "{output_var} = SparseRandomProjection().fit_transform({input_var})"
+        }
+      ]
+    },
+    {
+      "cell_id": "SKLEARN_C_FAMILY",
+      "domain": "sklearn",
+      "name": "C_family",
+      "node_type": "special_nested",
+      "function": "sklearn.C",
+      "description": "sklearn dynamic class family C with 3 reflected variants.",
+      "inputs": [
+        {
+          "name": "X",
+          "type": "ndarray"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "X_out",
+          "type": "ndarray"
+        }
+      ],
+      "params": [
+        {
+          "name": "X",
+          "type": "ndarray"
+        }
+      ],
+      "domain_implementations": {
+        "Python_Core": {
+          "code": "{output_var} = LinearSVC().fit_transform({input_var})"
+        }
+      },
+      "variants": [
+        {
+          "variant_id": "LINEARSVC",
+          "code_flag": "LinearSVC",
+          "keywords": [
+            "inear",
+            "linearsvc",
+            "svc"
+          ],
+          "description": "Dynamically reflected class LinearSVC",
+          "code_snippet": "{output_var} = LinearSVC().fit_transform({input_var})"
+        },
+        {
+          "variant_id": "NUSVC",
+          "code_flag": "NuSVC",
+          "keywords": [
+            "nusvc",
+            "svc"
+          ],
+          "description": "Dynamically reflected class NuSVC",
+          "code_snippet": "{output_var} = NuSVC().fit_transform({input_var})"
+        },
+        {
+          "variant_id": "SVC",
+          "code_flag": "SVC",
+          "keywords": [
+            "svc"
+          ],
+          "description": "Dynamically reflected class SVC",
+          "code_snippet": "{output_var} = SVC().fit_transform({input_var})"
+        }
+      ]
+    },
+    {
+      "cell_id": "SKLEARN_R_FAMILY",
+      "domain": "sklearn",
+      "name": "R_family",
+      "node_type": "special_nested",
+      "function": "sklearn.R",
+      "description": "sklearn dynamic class family R with 3 reflected variants.",
+      "inputs": [
+        {
+          "name": "X",
+          "type": "ndarray"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "X_out",
+          "type": "ndarray"
+        }
+      ],
+      "params": [
+        {
+          "name": "X",
+          "type": "ndarray"
+        }
+      ],
+      "domain_implementations": {
+        "Python_Core": {
+          "code": "{output_var} = LinearSVR().fit_transform({input_var})"
+        }
+      },
+      "variants": [
+        {
+          "variant_id": "LINEARSVR",
+          "code_flag": "LinearSVR",
+          "keywords": [
+            "inear",
+            "linearsvr",
+            "svr"
+          ],
+          "description": "Dynamically reflected class LinearSVR",
+          "code_snippet": "{output_var} = LinearSVR().fit_transform({input_var})"
+        },
+        {
+          "variant_id": "NUSVR",
+          "code_flag": "NuSVR",
+          "keywords": [
+            "nusvr",
+            "svr"
+          ],
+          "description": "Dynamically reflected class NuSVR",
+          "code_snippet": "{output_var} = NuSVR().fit_transform({input_var})"
+        },
+        {
+          "variant_id": "SVR",
+          "code_flag": "SVR",
+          "keywords": [
+            "svr"
+          ],
+          "description": "Dynamically reflected class SVR",
+          "code_snippet": "{output_var} = SVR().fit_transform({input_var})"
         }
       ]
     },

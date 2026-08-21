@@ -636,7 +636,7 @@
       "outputs": [
         {
           "name": "output_var",
-          "type": "int"
+          "type": "AnyObject"
         }
       ],
       "domain_implementations": {
@@ -3265,7 +3265,7 @@
       "outputs": [
         {
           "name": "output_var",
-          "type": "int"
+          "type": "AnyObject"
         }
       ],
       "domain_implementations": {
@@ -3648,7 +3648,7 @@
       "outputs": [
         {
           "name": "output_var",
-          "type": "TextIO"
+          "type": "Other"
         }
       ],
       "domain_implementations": {
@@ -3743,7 +3743,7 @@
       "outputs": [
         {
           "name": "output_var",
-          "type": "int"
+          "type": "AnyObject"
         }
       ],
       "domain_implementations": {

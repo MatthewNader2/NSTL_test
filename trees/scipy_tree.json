@@ -7,130 +7,619 @@
   "optional_imports": {},
   "nodes": [
     {
-      "cell_id": "SCIPY_OPTIMIZE_MINIMIZE",
+      "cell_id": "SCIPY_INTERPOLATOR_FAMILY",
       "domain": "scipy",
-      "name": "minimize",
+      "name": "Interpolator_family",
       "node_type": "special_nested",
-      "function": "scipy.optimize.minimize",
-      "description": "SciPy optimize minimize master node with 9 dynamically reflected algorithms.",
+      "function": "scipy.Interpolator",
+      "description": "scipy dynamic class family Interpolator with 10 reflected variants.",
       "inputs": [
         {
-          "name": "fun",
-          "type": "Callable"
+          "name": "X",
+          "type": "ndarray"
         }
       ],
       "outputs": [
         {
-          "name": "res",
-          "type": "OptimizeResult"
+          "name": "X_out",
+          "type": "ndarray"
         }
       ],
       "params": [
         {
-          "name": "fun",
-          "type": "Callable"
-        },
-        {
-          "name": "x0",
+          "name": "X",
           "type": "ndarray"
-        },
-        {
-          "name": "method",
-          "type": "str"
         }
       ],
       "domain_implementations": {
         "Python_Core": {
-          "code": "{output_var} = scipy.optimize.minimize({input_var}, [0.0, 0.0], method='Nelder-Mead')"
+          "code": "{output_var} = Akima1DInterpolator().fit_transform({input_var})"
         }
       },
       "variants": [
         {
-          "variant_id": "METHOD_NELDER_MEAD",
-          "code_flag": "'Nelder-Mead'",
+          "variant_id": "AKIMA1DINTERPOLATOR",
+          "code_flag": "Akima1DInterpolator",
           "keywords": [
-            "ead",
-            "elder",
-            "nelder-mead"
+            "akima1dinterpolator",
+            "di",
+            "kima1",
+            "nterpolator"
           ],
-          "description": "SciPy optimization method Nelder-Mead",
-          "code_snippet": "{output_var} = scipy.optimize.minimize({input_var}, [0.0, 0.0], method='Nelder-Mead')"
+          "description": "Dynamically reflected class Akima1DInterpolator",
+          "code_snippet": "{output_var} = Akima1DInterpolator().fit_transform({input_var})"
         },
         {
-          "variant_id": "METHOD_POWELL",
-          "code_flag": "'Powell'",
+          "variant_id": "BARYCENTRICINTERPOLATOR",
+          "code_flag": "BarycentricInterpolator",
           "keywords": [
-            "owell",
-            "powell"
+            "arycentric",
+            "barycentricinterpolator",
+            "nterpolator"
           ],
-          "description": "SciPy optimization method Powell",
-          "code_snippet": "{output_var} = scipy.optimize.minimize({input_var}, [0.0, 0.0], method='Powell')"
+          "description": "Dynamically reflected class BarycentricInterpolator",
+          "code_snippet": "{output_var} = BarycentricInterpolator().fit_transform({input_var})"
         },
         {
-          "variant_id": "METHOD_CG",
-          "code_flag": "'CG'",
+          "variant_id": "CLOUGHTOCHER2DINTERPOLATOR",
+          "code_flag": "CloughTocher2DInterpolator",
           "keywords": [
-            "cg"
+            "cloughtocher2dinterpolator",
+            "di",
+            "lough",
+            "nterpolator",
+            "ocher2"
           ],
-          "description": "SciPy optimization method CG",
-          "code_snippet": "{output_var} = scipy.optimize.minimize({input_var}, [0.0, 0.0], method='CG')"
+          "description": "Dynamically reflected class CloughTocher2DInterpolator",
+          "code_snippet": "{output_var} = CloughTocher2DInterpolator().fit_transform({input_var})"
         },
         {
-          "variant_id": "METHOD_BFGS",
-          "code_flag": "'BFGS'",
+          "variant_id": "FLOATERHORMANNINTERPOLATOR",
+          "code_flag": "FloaterHormannInterpolator",
           "keywords": [
-            "bfgs"
+            "floaterhormanninterpolator",
+            "loater",
+            "nterpolator",
+            "ormann"
           ],
-          "description": "SciPy optimization method BFGS",
-          "code_snippet": "{output_var} = scipy.optimize.minimize({input_var}, [0.0, 0.0], method='BFGS')"
+          "description": "Dynamically reflected class FloaterHormannInterpolator",
+          "code_snippet": "{output_var} = FloaterHormannInterpolator().fit_transform({input_var})"
         },
         {
-          "variant_id": "METHOD_L_BFGS_B",
-          "code_flag": "'L-BFGS-B'",
+          "variant_id": "KROGHINTERPOLATOR",
+          "code_flag": "KroghInterpolator",
           "keywords": [
-            "bfgs",
-            "l-bfgs-b"
+            "kroghinterpolator",
+            "nterpolator",
+            "rogh"
           ],
-          "description": "SciPy optimization method L-BFGS-B",
-          "code_snippet": "{output_var} = scipy.optimize.minimize({input_var}, [0.0, 0.0], method='L-BFGS-B')"
+          "description": "Dynamically reflected class KroghInterpolator",
+          "code_snippet": "{output_var} = KroghInterpolator().fit_transform({input_var})"
         },
         {
-          "variant_id": "METHOD_TNC",
-          "code_flag": "'TNC'",
+          "variant_id": "LINEARNDINTERPOLATOR",
+          "code_flag": "LinearNDInterpolator",
           "keywords": [
-            "tnc"
+            "inear",
+            "linearndinterpolator",
+            "ndi",
+            "nterpolator"
           ],
-          "description": "SciPy optimization method TNC",
-          "code_snippet": "{output_var} = scipy.optimize.minimize({input_var}, [0.0, 0.0], method='TNC')"
+          "description": "Dynamically reflected class LinearNDInterpolator",
+          "code_snippet": "{output_var} = LinearNDInterpolator().fit_transform({input_var})"
         },
         {
-          "variant_id": "METHOD_COBYLA",
-          "code_flag": "'COBYLA'",
+          "variant_id": "NEARESTNDINTERPOLATOR",
+          "code_flag": "NearestNDInterpolator",
           "keywords": [
-            "cobyla"
+            "earest",
+            "ndi",
+            "nearestndinterpolator",
+            "nterpolator"
           ],
-          "description": "SciPy optimization method COBYLA",
-          "code_snippet": "{output_var} = scipy.optimize.minimize({input_var}, [0.0, 0.0], method='COBYLA')"
+          "description": "Dynamically reflected class NearestNDInterpolator",
+          "code_snippet": "{output_var} = NearestNDInterpolator().fit_transform({input_var})"
         },
         {
-          "variant_id": "METHOD_SLSQP",
-          "code_flag": "'SLSQP'",
+          "variant_id": "PCHIPINTERPOLATOR",
+          "code_flag": "PchipInterpolator",
           "keywords": [
-            "slsqp"
+            "chip",
+            "nterpolator",
+            "pchipinterpolator"
           ],
-          "description": "SciPy optimization method SLSQP",
-          "code_snippet": "{output_var} = scipy.optimize.minimize({input_var}, [0.0, 0.0], method='SLSQP')"
+          "description": "Dynamically reflected class PchipInterpolator",
+          "code_snippet": "{output_var} = PchipInterpolator().fit_transform({input_var})"
         },
         {
-          "variant_id": "METHOD_TRUST_CONSTR",
-          "code_flag": "'trust-constr'",
+          "variant_id": "RBFINTERPOLATOR",
+          "code_flag": "RBFInterpolator",
           "keywords": [
-            "constr",
-            "trust",
-            "trust-constr"
+            "nterpolator",
+            "rbfi",
+            "rbfinterpolator"
           ],
-          "description": "SciPy optimization method trust-constr",
-          "code_snippet": "{output_var} = scipy.optimize.minimize({input_var}, [0.0, 0.0], method='trust-constr')"
+          "description": "Dynamically reflected class RBFInterpolator",
+          "code_snippet": "{output_var} = RBFInterpolator().fit_transform({input_var})"
+        },
+        {
+          "variant_id": "REGULARGRIDINTERPOLATOR",
+          "code_flag": "RegularGridInterpolator",
+          "keywords": [
+            "egular",
+            "nterpolator",
+            "regulargridinterpolator",
+            "rid"
+          ],
+          "description": "Dynamically reflected class RegularGridInterpolator",
+          "code_snippet": "{output_var} = RegularGridInterpolator().fit_transform({input_var})"
+        }
+      ]
+    },
+    {
+      "cell_id": "SCIPY_POLY_FAMILY",
+      "domain": "scipy",
+      "name": "Poly_family",
+      "node_type": "special_nested",
+      "function": "scipy.Poly",
+      "description": "scipy dynamic class family Poly with 3 reflected variants.",
+      "inputs": [
+        {
+          "name": "X",
+          "type": "ndarray"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "X_out",
+          "type": "ndarray"
+        }
+      ],
+      "params": [
+        {
+          "name": "X",
+          "type": "ndarray"
+        }
+      ],
+      "domain_implementations": {
+        "Python_Core": {
+          "code": "{output_var} = BPoly().fit_transform({input_var})"
+        }
+      },
+      "variants": [
+        {
+          "variant_id": "BPOLY",
+          "code_flag": "BPoly",
+          "keywords": [
+            "bp",
+            "bpoly",
+            "oly"
+          ],
+          "description": "Dynamically reflected class BPoly",
+          "code_snippet": "{output_var} = BPoly().fit_transform({input_var})"
+        },
+        {
+          "variant_id": "NDPPOLY",
+          "code_flag": "NdPPoly",
+          "keywords": [
+            "ndppoly",
+            "oly",
+            "pp"
+          ],
+          "description": "Dynamically reflected class NdPPoly",
+          "code_snippet": "{output_var} = NdPPoly().fit_transform({input_var})"
+        },
+        {
+          "variant_id": "PPOLY",
+          "code_flag": "PPoly",
+          "keywords": [
+            "oly",
+            "pp",
+            "ppoly"
+          ],
+          "description": "Dynamically reflected class PPoly",
+          "code_snippet": "{output_var} = PPoly().fit_transform({input_var})"
+        }
+      ]
+    },
+    {
+      "cell_id": "SCIPY_SPLINE_FAMILY",
+      "domain": "scipy",
+      "name": "Spline_family",
+      "node_type": "special_nested",
+      "function": "scipy.Spline",
+      "description": "scipy dynamic class family Spline with 14 reflected variants.",
+      "inputs": [
+        {
+          "name": "X",
+          "type": "ndarray"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "X_out",
+          "type": "ndarray"
+        }
+      ],
+      "params": [
+        {
+          "name": "X",
+          "type": "ndarray"
+        }
+      ],
+      "domain_implementations": {
+        "Python_Core": {
+          "code": "{output_var} = BSpline().fit_transform({input_var})"
+        }
+      },
+      "variants": [
+        {
+          "variant_id": "BSPLINE",
+          "code_flag": "BSpline",
+          "keywords": [
+            "bs",
+            "bspline",
+            "pline"
+          ],
+          "description": "Dynamically reflected class BSpline",
+          "code_snippet": "{output_var} = BSpline().fit_transform({input_var})"
+        },
+        {
+          "variant_id": "BIVARIATESPLINE",
+          "code_flag": "BivariateSpline",
+          "keywords": [
+            "bivariatespline",
+            "ivariate",
+            "pline"
+          ],
+          "description": "Dynamically reflected class BivariateSpline",
+          "code_snippet": "{output_var} = BivariateSpline().fit_transform({input_var})"
+        },
+        {
+          "variant_id": "CUBICHERMITESPLINE",
+          "code_flag": "CubicHermiteSpline",
+          "keywords": [
+            "cubichermitespline",
+            "ermite",
+            "pline",
+            "ubic"
+          ],
+          "description": "Dynamically reflected class CubicHermiteSpline",
+          "code_snippet": "{output_var} = CubicHermiteSpline().fit_transform({input_var})"
+        },
+        {
+          "variant_id": "CUBICSPLINE",
+          "code_flag": "CubicSpline",
+          "keywords": [
+            "cubicspline",
+            "pline",
+            "ubic"
+          ],
+          "description": "Dynamically reflected class CubicSpline",
+          "code_snippet": "{output_var} = CubicSpline().fit_transform({input_var})"
+        },
+        {
+          "variant_id": "INTERPOLATEDUNIVARIATESPLINE",
+          "code_flag": "InterpolatedUnivariateSpline",
+          "keywords": [
+            "interpolatedunivariatespline",
+            "nivariate",
+            "nterpolated",
+            "pline"
+          ],
+          "description": "Dynamically reflected class InterpolatedUnivariateSpline",
+          "code_snippet": "{output_var} = InterpolatedUnivariateSpline().fit_transform({input_var})"
+        },
+        {
+          "variant_id": "LSQBIVARIATESPLINE",
+          "code_flag": "LSQBivariateSpline",
+          "keywords": [
+            "ivariate",
+            "lsqb",
+            "lsqbivariatespline",
+            "pline"
+          ],
+          "description": "Dynamically reflected class LSQBivariateSpline",
+          "code_snippet": "{output_var} = LSQBivariateSpline().fit_transform({input_var})"
+        },
+        {
+          "variant_id": "LSQSPHEREBIVARIATESPLINE",
+          "code_flag": "LSQSphereBivariateSpline",
+          "keywords": [
+            "ivariate",
+            "lsqs",
+            "lsqspherebivariatespline",
+            "phere",
+            "pline"
+          ],
+          "description": "Dynamically reflected class LSQSphereBivariateSpline",
+          "code_snippet": "{output_var} = LSQSphereBivariateSpline().fit_transform({input_var})"
+        },
+        {
+          "variant_id": "LSQUNIVARIATESPLINE",
+          "code_flag": "LSQUnivariateSpline",
+          "keywords": [
+            "lsqu",
+            "lsqunivariatespline",
+            "nivariate",
+            "pline"
+          ],
+          "description": "Dynamically reflected class LSQUnivariateSpline",
+          "code_snippet": "{output_var} = LSQUnivariateSpline().fit_transform({input_var})"
+        },
+        {
+          "variant_id": "NDBSPLINE",
+          "code_flag": "NdBSpline",
+          "keywords": [
+            "bs",
+            "ndbspline",
+            "pline"
+          ],
+          "description": "Dynamically reflected class NdBSpline",
+          "code_snippet": "{output_var} = NdBSpline().fit_transform({input_var})"
+        },
+        {
+          "variant_id": "RECTBIVARIATESPLINE",
+          "code_flag": "RectBivariateSpline",
+          "keywords": [
+            "ect",
+            "ivariate",
+            "pline",
+            "rectbivariatespline"
+          ],
+          "description": "Dynamically reflected class RectBivariateSpline",
+          "code_snippet": "{output_var} = RectBivariateSpline().fit_transform({input_var})"
+        },
+        {
+          "variant_id": "RECTSPHEREBIVARIATESPLINE",
+          "code_flag": "RectSphereBivariateSpline",
+          "keywords": [
+            "ect",
+            "ivariate",
+            "phere",
+            "pline",
+            "rectspherebivariatespline"
+          ],
+          "description": "Dynamically reflected class RectSphereBivariateSpline",
+          "code_snippet": "{output_var} = RectSphereBivariateSpline().fit_transform({input_var})"
+        },
+        {
+          "variant_id": "SMOOTHBIVARIATESPLINE",
+          "code_flag": "SmoothBivariateSpline",
+          "keywords": [
+            "ivariate",
+            "mooth",
+            "pline",
+            "smoothbivariatespline"
+          ],
+          "description": "Dynamically reflected class SmoothBivariateSpline",
+          "code_snippet": "{output_var} = SmoothBivariateSpline().fit_transform({input_var})"
+        },
+        {
+          "variant_id": "SMOOTHSPHEREBIVARIATESPLINE",
+          "code_flag": "SmoothSphereBivariateSpline",
+          "keywords": [
+            "ivariate",
+            "mooth",
+            "phere",
+            "pline",
+            "smoothspherebivariatespline"
+          ],
+          "description": "Dynamically reflected class SmoothSphereBivariateSpline",
+          "code_snippet": "{output_var} = SmoothSphereBivariateSpline().fit_transform({input_var})"
+        },
+        {
+          "variant_id": "UNIVARIATESPLINE",
+          "code_flag": "UnivariateSpline",
+          "keywords": [
+            "nivariate",
+            "pline",
+            "univariatespline"
+          ],
+          "description": "Dynamically reflected class UnivariateSpline",
+          "code_snippet": "{output_var} = UnivariateSpline().fit_transform({input_var})"
+        }
+      ]
+    },
+    {
+      "cell_id": "SCIPY_T_FAMILY",
+      "domain": "scipy",
+      "name": "T_family",
+      "node_type": "special_nested",
+      "function": "scipy.T",
+      "description": "scipy dynamic class family T with 3 reflected variants.",
+      "inputs": [
+        {
+          "name": "X",
+          "type": "ndarray"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "X_out",
+          "type": "ndarray"
+        }
+      ],
+      "params": [
+        {
+          "name": "X",
+          "type": "ndarray"
+        }
+      ],
+      "domain_implementations": {
+        "Python_Core": {
+          "code": "{output_var} = CZT().fit_transform({input_var})"
+        }
+      },
+      "variants": [
+        {
+          "variant_id": "CZT",
+          "code_flag": "CZT",
+          "keywords": [
+            "czt"
+          ],
+          "description": "Dynamically reflected class CZT",
+          "code_snippet": "{output_var} = CZT().fit_transform({input_var})"
+        },
+        {
+          "variant_id": "SHORTTIMEFFT",
+          "code_flag": "ShortTimeFFT",
+          "keywords": [
+            "fft",
+            "hort",
+            "ime",
+            "shorttimefft"
+          ],
+          "description": "Dynamically reflected class ShortTimeFFT",
+          "code_snippet": "{output_var} = ShortTimeFFT().fit_transform({input_var})"
+        },
+        {
+          "variant_id": "ZOOMFFT",
+          "code_flag": "ZoomFFT",
+          "keywords": [
+            "fft",
+            "oom",
+            "zoomfft"
+          ],
+          "description": "Dynamically reflected class ZoomFFT",
+          "code_snippet": "{output_var} = ZoomFFT().fit_transform({input_var})"
+        }
+      ]
+    },
+    {
+      "cell_id": "SCIPY_METHOD_FAMILY",
+      "domain": "scipy",
+      "name": "Method_family",
+      "node_type": "special_nested",
+      "function": "scipy.Method",
+      "description": "scipy dynamic class family Method with 3 reflected variants.",
+      "inputs": [
+        {
+          "name": "X",
+          "type": "ndarray"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "X_out",
+          "type": "ndarray"
+        }
+      ],
+      "params": [
+        {
+          "name": "X",
+          "type": "ndarray"
+        }
+      ],
+      "domain_implementations": {
+        "Python_Core": {
+          "code": "{output_var} = BootstrapMethod().fit_transform({input_var})"
+        }
+      },
+      "variants": [
+        {
+          "variant_id": "BOOTSTRAPMETHOD",
+          "code_flag": "BootstrapMethod",
+          "keywords": [
+            "bootstrapmethod",
+            "ethod",
+            "ootstrap"
+          ],
+          "description": "Dynamically reflected class BootstrapMethod",
+          "code_snippet": "{output_var} = BootstrapMethod().fit_transform({input_var})"
+        },
+        {
+          "variant_id": "MONTECARLOMETHOD",
+          "code_flag": "MonteCarloMethod",
+          "keywords": [
+            "arlo",
+            "ethod",
+            "montecarlomethod",
+            "onte"
+          ],
+          "description": "Dynamically reflected class MonteCarloMethod",
+          "code_snippet": "{output_var} = MonteCarloMethod().fit_transform({input_var})"
+        },
+        {
+          "variant_id": "PERMUTATIONMETHOD",
+          "code_flag": "PermutationMethod",
+          "keywords": [
+            "ermutation",
+            "ethod",
+            "permutationmethod"
+          ],
+          "description": "Dynamically reflected class PermutationMethod",
+          "code_snippet": "{output_var} = PermutationMethod().fit_transform({input_var})"
+        }
+      ]
+    },
+    {
+      "cell_id": "SCIPY_WARNING_FAMILY",
+      "domain": "scipy",
+      "name": "Warning_family",
+      "node_type": "special_nested",
+      "function": "scipy.Warning",
+      "description": "scipy dynamic class family Warning with 3 reflected variants.",
+      "inputs": [
+        {
+          "name": "X",
+          "type": "ndarray"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "X_out",
+          "type": "ndarray"
+        }
+      ],
+      "params": [
+        {
+          "name": "X",
+          "type": "ndarray"
+        }
+      ],
+      "domain_implementations": {
+        "Python_Core": {
+          "code": "{output_var} = ConstantInputWarning().fit_transform({input_var})"
+        }
+      },
+      "variants": [
+        {
+          "variant_id": "CONSTANTINPUTWARNING",
+          "code_flag": "ConstantInputWarning",
+          "keywords": [
+            "arning",
+            "constantinputwarning",
+            "nput",
+            "onstant"
+          ],
+          "description": "Dynamically reflected class ConstantInputWarning",
+          "code_snippet": "{output_var} = ConstantInputWarning().fit_transform({input_var})"
+        },
+        {
+          "variant_id": "DEGENERATEDATAWARNING",
+          "code_flag": "DegenerateDataWarning",
+          "keywords": [
+            "arning",
+            "ata",
+            "degeneratedatawarning",
+            "egenerate"
+          ],
+          "description": "Dynamically reflected class DegenerateDataWarning",
+          "code_snippet": "{output_var} = DegenerateDataWarning().fit_transform({input_var})"
+        },
+        {
+          "variant_id": "NEARCONSTANTINPUTWARNING",
+          "code_flag": "NearConstantInputWarning",
+          "keywords": [
+            "arning",
+            "ear",
+            "nearconstantinputwarning",
+            "nput",
+            "onstant"
+          ],
+          "description": "Dynamically reflected class NearConstantInputWarning",
+          "code_snippet": "{output_var} = NearConstantInputWarning().fit_transform({input_var})"
         }
       ]
     },
@@ -61481,6 +61970,201 @@
       "verified": false,
       "description": "scipy milp function.",
       "verification_error": "Traceback (most recent call last):\n  File \"<string>\", line 12, in <module>\n    output_var = scipy.optimize.milp(synthetic_c)\n  File \"/home/matthew/.pyenv/versions/3.13.5/lib/python3.13/site-packages/s"
+    },
+    {
+      "cell_id": "SCIPY_OPTIMIZE_MINIMIZE_DEFAULT",
+      "domain": "scipy",
+      "name": "minimize",
+      "params": [
+        {
+          "name": "fun",
+          "type": "ndarray",
+          "required": true,
+          "default": null,
+          "param_doc": "Parameter fun for minimize."
+        },
+        {
+          "name": "x0",
+          "type": "ndarray",
+          "required": true,
+          "default": null,
+          "param_doc": "Parameter x0 for minimize."
+        },
+        {
+          "name": "args",
+          "type": "ndarray",
+          "required": false,
+          "default": "()",
+          "param_doc": "Parameter args for minimize."
+        },
+        {
+          "name": "method",
+          "type": "ndarray",
+          "required": false,
+          "default": "None",
+          "param_doc": "Parameter method for minimize."
+        },
+        {
+          "name": "jac",
+          "type": "ndarray",
+          "required": false,
+          "default": "None",
+          "param_doc": "Parameter jac for minimize."
+        },
+        {
+          "name": "hess",
+          "type": "ndarray",
+          "required": false,
+          "default": "None",
+          "param_doc": "Parameter hess for minimize."
+        },
+        {
+          "name": "hessp",
+          "type": "ndarray",
+          "required": false,
+          "default": "None",
+          "param_doc": "Parameter hessp for minimize."
+        },
+        {
+          "name": "bounds",
+          "type": "ndarray",
+          "required": false,
+          "default": "None",
+          "param_doc": "Parameter bounds for minimize."
+        },
+        {
+          "name": "constraints",
+          "type": "ndarray",
+          "required": false,
+          "default": "()",
+          "param_doc": "Parameter constraints for minimize."
+        },
+        {
+          "name": "tol",
+          "type": "ndarray",
+          "required": false,
+          "default": "None",
+          "param_doc": "Parameter tol for minimize."
+        },
+        {
+          "name": "callback",
+          "type": "ndarray",
+          "required": false,
+          "default": "None",
+          "param_doc": "Parameter callback for minimize."
+        },
+        {
+          "name": "options",
+          "type": "ndarray",
+          "required": false,
+          "default": "None",
+          "param_doc": "Parameter options for minimize."
+        }
+      ],
+      "inputs": [
+        {
+          "name": "fun",
+          "type": "ndarray"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "output",
+          "type": "ndarray"
+        }
+      ],
+      "domain_implementations": {
+        "Python_Core": {
+          "code": "{output_var} = scipy.optimize.minimize({fun}, {x0})",
+          "dependencies": [
+            "scipy"
+          ]
+        }
+      },
+      "provenance": "structural",
+      "verified": false,
+      "description": "scipy minimize function.",
+      "verification_error": "Traceback (most recent call last):\n  File \"<string>\", line 19, in <module>\n    output_var = scipy.optimize.minimize(synthetic_fun, synthetic_x0)\n  File \"/home/matthew/.pyenv/versions/3.13.5/lib/python"
+    },
+    {
+      "cell_id": "SCIPY_OPTIMIZE_MINIMIZE_SCALAR_DEFAULT",
+      "domain": "scipy",
+      "name": "minimize_scalar",
+      "params": [
+        {
+          "name": "fun",
+          "type": "ndarray",
+          "required": true,
+          "default": null,
+          "param_doc": "Parameter fun for minimize_scalar."
+        },
+        {
+          "name": "bracket",
+          "type": "ndarray",
+          "required": false,
+          "default": "None",
+          "param_doc": "Parameter bracket for minimize_scalar."
+        },
+        {
+          "name": "bounds",
+          "type": "ndarray",
+          "required": false,
+          "default": "None",
+          "param_doc": "Parameter bounds for minimize_scalar."
+        },
+        {
+          "name": "args",
+          "type": "ndarray",
+          "required": false,
+          "default": "()",
+          "param_doc": "Parameter args for minimize_scalar."
+        },
+        {
+          "name": "method",
+          "type": "ndarray",
+          "required": false,
+          "default": "None",
+          "param_doc": "Parameter method for minimize_scalar."
+        },
+        {
+          "name": "tol",
+          "type": "ndarray",
+          "required": false,
+          "default": "None",
+          "param_doc": "Parameter tol for minimize_scalar."
+        },
+        {
+          "name": "options",
+          "type": "ndarray",
+          "required": false,
+          "default": "None",
+          "param_doc": "Parameter options for minimize_scalar."
+        }
+      ],
+      "inputs": [
+        {
+          "name": "fun",
+          "type": "ndarray"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "output",
+          "type": "ndarray"
+        }
+      ],
+      "domain_implementations": {
+        "Python_Core": {
+          "code": "{output_var} = scipy.optimize.minimize_scalar({fun})",
+          "dependencies": [
+            "scipy"
+          ]
+        }
+      },
+      "provenance": "structural",
+      "verified": false,
+      "description": "scipy minimize_scalar function.",
+      "verification_error": "Traceback (most recent call last):\n  File \"<string>\", line 14, in <module>\n    output_var = scipy.optimize.minimize_scalar(synthetic_fun)\n  File \"/home/matthew/.pyenv/versions/3.13.5/lib/python3.13/si"
     },
     {
       "cell_id": "SCIPY_OPTIMIZE_MINPACK_CURVE_FIT_DEFAULT",
