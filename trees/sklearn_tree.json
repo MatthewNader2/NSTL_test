@@ -7,6 +7,139 @@
   "optional_imports": {},
   "nodes": [
     {
+      "cell_id": "SKLEARN_FEATURE_SCALER",
+      "domain": "sklearn",
+      "name": "Scaler",
+      "node_type": "special_nested",
+      "function": "sklearn.preprocessing.Scaler",
+      "description": "Scikit-Learn feature scaling master node with 9 dynamically reflected scalers.",
+      "inputs": [
+        {
+          "name": "X",
+          "type": "ndarray"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "X_scaled",
+          "type": "ndarray"
+        }
+      ],
+      "params": [
+        {
+          "name": "X",
+          "type": "ndarray"
+        }
+      ],
+      "domain_implementations": {
+        "Python_Core": {
+          "code": "{output_var} = StandardScaler().fit_transform({input_var})"
+        }
+      },
+      "variants": [
+        {
+          "variant_id": "FUNCTIONTRANSFORMER",
+          "code_flag": "FunctionTransformer",
+          "keywords": [
+            "functiontransformer",
+            "ransformer",
+            "unction"
+          ],
+          "description": "Scikit-Learn feature scaler FunctionTransformer",
+          "code_snippet": "{output_var} = FunctionTransformer().fit_transform({input_var})"
+        },
+        {
+          "variant_id": "MAXABSSCALER",
+          "code_flag": "MaxAbsScaler",
+          "keywords": [
+            "ax",
+            "bs",
+            "caler",
+            "maxabsscaler"
+          ],
+          "description": "Scikit-Learn feature scaler MaxAbsScaler",
+          "code_snippet": "{output_var} = MaxAbsScaler().fit_transform({input_var})"
+        },
+        {
+          "variant_id": "MINMAXSCALER",
+          "code_flag": "MinMaxScaler",
+          "keywords": [
+            "ax",
+            "caler",
+            "in",
+            "minmaxscaler"
+          ],
+          "description": "Scikit-Learn feature scaler MinMaxScaler",
+          "code_snippet": "{output_var} = MinMaxScaler().fit_transform({input_var})"
+        },
+        {
+          "variant_id": "NORMALIZER",
+          "code_flag": "Normalizer",
+          "keywords": [
+            "normalizer",
+            "ormalizer"
+          ],
+          "description": "Scikit-Learn feature scaler Normalizer",
+          "code_snippet": "{output_var} = Normalizer().fit_transform({input_var})"
+        },
+        {
+          "variant_id": "POWERTRANSFORMER",
+          "code_flag": "PowerTransformer",
+          "keywords": [
+            "ower",
+            "powertransformer",
+            "ransformer"
+          ],
+          "description": "Scikit-Learn feature scaler PowerTransformer",
+          "code_snippet": "{output_var} = PowerTransformer().fit_transform({input_var})"
+        },
+        {
+          "variant_id": "QUANTILETRANSFORMER",
+          "code_flag": "QuantileTransformer",
+          "keywords": [
+            "quantiletransformer",
+            "ransformer",
+            "uantile"
+          ],
+          "description": "Scikit-Learn feature scaler QuantileTransformer",
+          "code_snippet": "{output_var} = QuantileTransformer().fit_transform({input_var})"
+        },
+        {
+          "variant_id": "ROBUSTSCALER",
+          "code_flag": "RobustScaler",
+          "keywords": [
+            "caler",
+            "obust",
+            "robustscaler"
+          ],
+          "description": "Scikit-Learn feature scaler RobustScaler",
+          "code_snippet": "{output_var} = RobustScaler().fit_transform({input_var})"
+        },
+        {
+          "variant_id": "SPLINETRANSFORMER",
+          "code_flag": "SplineTransformer",
+          "keywords": [
+            "pline",
+            "ransformer",
+            "splinetransformer"
+          ],
+          "description": "Scikit-Learn feature scaler SplineTransformer",
+          "code_snippet": "{output_var} = SplineTransformer().fit_transform({input_var})"
+        },
+        {
+          "variant_id": "STANDARDSCALER",
+          "code_flag": "StandardScaler",
+          "keywords": [
+            "caler",
+            "standardscaler",
+            "tandard"
+          ],
+          "description": "Scikit-Learn feature scaler StandardScaler",
+          "code_snippet": "{output_var} = StandardScaler().fit_transform({input_var})"
+        }
+      ]
+    },
+    {
       "cell_id": "SKLEARN_CALIBRATION_BASEESTIMATOR_GET_METADATA_ROUTING_DEFAULT",
       "domain": "sklearn",
       "name": "get_metadata_routing",

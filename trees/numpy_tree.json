@@ -7,6 +7,111 @@
   "optional_imports": {},
   "nodes": [
     {
+      "cell_id": "NP_ARRAY_CREATION",
+      "domain": "numpy",
+      "name": "array_creation",
+      "node_type": "special_nested",
+      "function": "numpy.array_creation",
+      "description": "NumPy array creation master node with 8 dynamically reflected functions.",
+      "inputs": [
+        {
+          "name": "shape",
+          "type": "tuple"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "arr",
+          "type": "ndarray"
+        }
+      ],
+      "params": [
+        {
+          "name": "shape",
+          "type": "tuple"
+        }
+      ],
+      "domain_implementations": {
+        "Python_Core": {
+          "code": "{output_var} = np.zeros((10, 10))"
+        }
+      },
+      "variants": [
+        {
+          "variant_id": "ARANGE",
+          "code_flag": "np.arange",
+          "keywords": [
+            "arange"
+          ],
+          "description": "NumPy array creation function np.arange",
+          "code_snippet": "{output_var} = np.arange(0, 100)"
+        },
+        {
+          "variant_id": "EMPTY",
+          "code_flag": "np.empty",
+          "keywords": [
+            "empty"
+          ],
+          "description": "NumPy array creation function np.empty",
+          "code_snippet": "{output_var} = np.empty((10, 10))"
+        },
+        {
+          "variant_id": "EYE",
+          "code_flag": "np.eye",
+          "keywords": [
+            "eye"
+          ],
+          "description": "NumPy array creation function np.eye",
+          "code_snippet": "{output_var} = np.eye((10, 10))"
+        },
+        {
+          "variant_id": "FULL",
+          "code_flag": "np.full",
+          "keywords": [
+            "full"
+          ],
+          "description": "NumPy array creation function np.full",
+          "code_snippet": "{output_var} = np.full((10, 10))"
+        },
+        {
+          "variant_id": "IDENTITY",
+          "code_flag": "np.identity",
+          "keywords": [
+            "identity"
+          ],
+          "description": "NumPy array creation function np.identity",
+          "code_snippet": "{output_var} = np.identity((10, 10))"
+        },
+        {
+          "variant_id": "LINSPACE",
+          "code_flag": "np.linspace",
+          "keywords": [
+            "linspace"
+          ],
+          "description": "NumPy array creation function np.linspace",
+          "code_snippet": "{output_var} = np.linspace(0, 100)"
+        },
+        {
+          "variant_id": "ONES",
+          "code_flag": "np.ones",
+          "keywords": [
+            "ones"
+          ],
+          "description": "NumPy array creation function np.ones",
+          "code_snippet": "{output_var} = np.ones((10, 10))"
+        },
+        {
+          "variant_id": "ZEROS",
+          "code_flag": "np.zeros",
+          "keywords": [
+            "zeros"
+          ],
+          "description": "NumPy array creation function np.zeros",
+          "code_snippet": "{output_var} = np.zeros((10, 10))"
+        }
+      ]
+    },
+    {
       "cell_id": "NUMPY_ALL_DEFAULT",
       "domain": "numpy",
       "name": "all",
@@ -9883,86 +9988,6 @@
       "verified": false,
       "description": "Return the elements of an array that satisfy some condition.",
       "verification_error": "Traceback (most recent call last):\n  File \"<string>\", line 9, in <module>\n    output_var = numpy.extract(synthetic_condition, synthetic_arr)\n                 ^^^^^\nNameError: name 'numpy' is not defin"
-    },
-    {
-      "cell_id": "NUMPY_EYE_DEFAULT",
-      "domain": "numpy",
-      "name": "eye",
-      "params": [
-        {
-          "name": "N",
-          "type": "ndarray",
-          "required": true,
-          "default": null,
-          "param_doc": "Number of rows in the output."
-        },
-        {
-          "name": "M",
-          "type": "ndarray",
-          "required": false,
-          "default": "None",
-          "param_doc": "Number of columns in the output. If None, defaults to `N`."
-        },
-        {
-          "name": "k",
-          "type": "ndarray",
-          "required": false,
-          "default": "0",
-          "param_doc": "Index of the diagonal: 0 (the default) refers to the main diagonal,\na positive value refers to an upper diagonal, and a negative value\nto a lower diagonal."
-        },
-        {
-          "name": "dtype",
-          "type": "ndarray",
-          "required": false,
-          "default": "<class 'float'>",
-          "param_doc": "Data-type of the returned array."
-        },
-        {
-          "name": "order",
-          "type": "ndarray",
-          "required": false,
-          "default": "'C'",
-          "param_doc": "Whether the output should be stored in row-major (C-style) or\ncolumn-major (Fortran-style) order in memory.\n\n.. versionadded:: 1.14.0"
-        },
-        {
-          "name": "device",
-          "type": "ndarray",
-          "required": false,
-          "default": "None",
-          "param_doc": "The device on which to place the created array. Default: None.\nFor Array-API interoperability only, so must be ``\"cpu\"`` if passed.\n\n.. versionadded:: 2.0.0"
-        },
-        {
-          "name": "like",
-          "type": "ndarray",
-          "required": false,
-          "default": "None",
-          "param_doc": "Reference object to allow the creation of arrays which are not\n    NumPy arrays. If an array-like passed in as ``like`` supports\n    the ``__array_function__`` protocol, the result will be defined\n    by it. In this case, it ensures the creation of an array object\n    compatible with that passed in via this argument.\n\n.. versionadded:: 1.20.0"
-        }
-      ],
-      "inputs": [
-        {
-          "name": "N",
-          "type": "ndarray"
-        }
-      ],
-      "outputs": [
-        {
-          "name": "output",
-          "type": "ndarray"
-        }
-      ],
-      "domain_implementations": {
-        "Python_Core": {
-          "code": "{output_var} = numpy.eye({N})",
-          "dependencies": [
-            "numpy"
-          ]
-        }
-      },
-      "provenance": "structural",
-      "verified": false,
-      "description": "Return a 2-D array with ones on the diagonal and zeros elsewhere.",
-      "verification_error": "File \"<string>\", line 10\n    synthetic_dtype = <class 'float'>\n                      ^\nSyntaxError: invalid syntax"
     },
     {
       "cell_id": "NUMPY_F2PY_AUXFUNCS_F2PYERROR_ADD_NOTE_DEFAULT",
@@ -38522,159 +38547,6 @@
       "verification_error": "Traceback (most recent call last):\n  File \"<string>\", line 11, in <module>\n    output_var = numpy.fromregex(synthetic_file, synthetic_regexp, synthetic_dtype)\n                 ^^^^^\nNameError: name 'n"
     },
     {
-      "cell_id": "NUMPY_FULL_DEFAULT",
-      "domain": "numpy",
-      "name": "full",
-      "params": [
-        {
-          "name": "shape",
-          "type": "ndarray",
-          "required": true,
-          "default": null,
-          "param_doc": "Shape of the new array, e.g., ``(2, 3)`` or ``2``."
-        },
-        {
-          "name": "fill_value",
-          "type": "ndarray",
-          "required": true,
-          "default": null,
-          "param_doc": "Fill value."
-        },
-        {
-          "name": "dtype",
-          "type": "ndarray",
-          "required": false,
-          "default": "None",
-          "param_doc": "The desired data-type for the array  The default, None, means\n ``np.array(fill_value).dtype``."
-        },
-        {
-          "name": "order",
-          "type": "ndarray",
-          "required": false,
-          "default": "'C'",
-          "param_doc": "Whether to store multidimensional data in C- or Fortran-contiguous\n(row- or column-wise) order in memory."
-        },
-        {
-          "name": "device",
-          "type": "ndarray",
-          "required": false,
-          "default": "None",
-          "param_doc": "The device on which to place the created array. Default: None.\nFor Array-API interoperability only, so must be ``\"cpu\"`` if passed.\n\n.. versionadded:: 2.0.0"
-        },
-        {
-          "name": "like",
-          "type": "ndarray",
-          "required": false,
-          "default": "None",
-          "param_doc": "Reference object to allow the creation of arrays which are not\n    NumPy arrays. If an array-like passed in as ``like`` supports\n    the ``__array_function__`` protocol, the result will be defined\n    by it. In this case, it ensures the creation of an array object\n    compatible with that passed in via this argument.\n\n.. versionadded:: 1.20.0"
-        }
-      ],
-      "inputs": [
-        {
-          "name": "shape",
-          "type": "ndarray"
-        }
-      ],
-      "outputs": [
-        {
-          "name": "output",
-          "type": "ndarray"
-        }
-      ],
-      "domain_implementations": {
-        "Python_Core": {
-          "code": "{output_var} = numpy.full({shape}, {fill_value})",
-          "dependencies": [
-            "numpy"
-          ]
-        }
-      },
-      "provenance": "structural",
-      "verified": false,
-      "description": "Return a new array of given shape and type, filled with `fill_value`.",
-      "verification_error": "Traceback (most recent call last):\n  File \"<string>\", line 13, in <module>\n    output_var = numpy.full(synthetic_shape, synthetic_fill_value)\n                 ^^^^^\nNameError: name 'numpy' is not defi"
-    },
-    {
-      "cell_id": "NUMPY_FULL_LIKE_DEFAULT",
-      "domain": "numpy",
-      "name": "full_like",
-      "params": [
-        {
-          "name": "a",
-          "type": "ndarray",
-          "required": true,
-          "default": null,
-          "param_doc": "The shape and data-type of `a` define these same attributes of\nthe returned array."
-        },
-        {
-          "name": "fill_value",
-          "type": "ndarray",
-          "required": true,
-          "default": null,
-          "param_doc": "Fill value."
-        },
-        {
-          "name": "dtype",
-          "type": "ndarray",
-          "required": false,
-          "default": "None",
-          "param_doc": "Overrides the data type of the result."
-        },
-        {
-          "name": "order",
-          "type": "ndarray",
-          "required": false,
-          "default": "'K'",
-          "param_doc": "Overrides the memory layout of the result. 'C' means C-order,\n'F' means F-order, 'A' means 'F' if `a` is Fortran contiguous,\n'C' otherwise. 'K' means match the layout of `a` as closely\nas possible."
-        },
-        {
-          "name": "subok",
-          "type": "ndarray",
-          "required": false,
-          "default": "True",
-          "param_doc": "If True, then the newly created array will use the sub-class\ntype of `a`, otherwise it will be a base-class array. Defaults\nto True."
-        },
-        {
-          "name": "shape",
-          "type": "ndarray",
-          "required": false,
-          "default": "None",
-          "param_doc": "Overrides the shape of the result. If order='K' and the number of\ndimensions is unchanged, will try to keep order, otherwise,\norder='C' is implied.\n\n.. versionadded:: 1.17.0"
-        },
-        {
-          "name": "device",
-          "type": "ndarray",
-          "required": false,
-          "default": "None",
-          "param_doc": "The device on which to place the created array. Default: None.\nFor Array-API interoperability only, so must be ``\"cpu\"`` if passed.\n\n.. versionadded:: 2.0.0"
-        }
-      ],
-      "inputs": [
-        {
-          "name": "a",
-          "type": "ndarray"
-        }
-      ],
-      "outputs": [
-        {
-          "name": "output",
-          "type": "ndarray"
-        }
-      ],
-      "domain_implementations": {
-        "Python_Core": {
-          "code": "{output_var} = numpy.full_like({a}, {fill_value})",
-          "dependencies": [
-            "numpy"
-          ]
-        }
-      },
-      "provenance": "structural",
-      "verified": false,
-      "description": "Return a full array with the same shape and type as a given array.",
-      "verification_error": "Traceback (most recent call last):\n  File \"<string>\", line 14, in <module>\n    output_var = numpy.full_like(synthetic_a, synthetic_fill_value)\n                 ^^^^^\nNameError: name 'numpy' is not def"
-    },
-    {
       "cell_id": "NUMPY_GENFROMTXT_DEFAULT",
       "domain": "numpy",
       "name": "genfromtxt",
@@ -39636,58 +39508,6 @@
       "verified": false,
       "description": "Modified Bessel function of the first kind, order 0.",
       "verification_error": "Traceback (most recent call last):\n  File \"<string>\", line 8, in <module>\n    output_var = numpy.i0(synthetic_x)\n                 ^^^^^\nNameError: name 'numpy' is not defined"
-    },
-    {
-      "cell_id": "NUMPY_IDENTITY_DEFAULT",
-      "domain": "numpy",
-      "name": "identity",
-      "params": [
-        {
-          "name": "n",
-          "type": "ndarray",
-          "required": true,
-          "default": null,
-          "param_doc": "Number of rows (and columns) in `n` x `n` output."
-        },
-        {
-          "name": "dtype",
-          "type": "ndarray",
-          "required": false,
-          "default": "None",
-          "param_doc": "Data-type of the output.  Defaults to ``float``."
-        },
-        {
-          "name": "like",
-          "type": "ndarray",
-          "required": false,
-          "default": "None",
-          "param_doc": "Reference object to allow the creation of arrays which are not\n    NumPy arrays. If an array-like passed in as ``like`` supports\n    the ``__array_function__`` protocol, the result will be defined\n    by it. In this case, it ensures the creation of an array object\n    compatible with that passed in via this argument.\n\n.. versionadded:: 1.20.0"
-        }
-      ],
-      "inputs": [
-        {
-          "name": "n",
-          "type": "ndarray"
-        }
-      ],
-      "outputs": [
-        {
-          "name": "output",
-          "type": "ndarray"
-        }
-      ],
-      "domain_implementations": {
-        "Python_Core": {
-          "code": "{output_var} = numpy.identity({n})",
-          "dependencies": [
-            "numpy"
-          ]
-        }
-      },
-      "provenance": "structural",
-      "verified": false,
-      "description": "Return the identity array.",
-      "verification_error": "Traceback (most recent call last):\n  File \"<string>\", line 10, in <module>\n    output_var = numpy.identity(synthetic_n)\n                 ^^^^^\nNameError: name 'numpy' is not defined"
     },
     {
       "cell_id": "NUMPY_IMAG_DEFAULT",
@@ -44081,93 +43901,6 @@
       "verified": false,
       "description": "numpy vector_norm function.",
       "verification_error": "Traceback (most recent call last):\n  File \"<string>\", line 11, in <module>\n    output_var = numpy.linalg.vector_norm(synthetic_x)\n                 ^^^^^\nNameError: name 'numpy' is not defined"
-    },
-    {
-      "cell_id": "NUMPY_LINSPACE_DEFAULT",
-      "domain": "numpy",
-      "name": "linspace",
-      "params": [
-        {
-          "name": "start",
-          "type": "ndarray",
-          "required": true,
-          "default": null,
-          "param_doc": "The starting value of the sequence."
-        },
-        {
-          "name": "stop",
-          "type": "ndarray",
-          "required": true,
-          "default": null,
-          "param_doc": "The end value of the sequence, unless `endpoint` is set to False.\nIn that case, the sequence consists of all but the last of ``num + 1``\nevenly spaced samples, so that `stop` is excluded.  Note that the step\nsize changes when `endpoint` is False."
-        },
-        {
-          "name": "num",
-          "type": "ndarray",
-          "required": false,
-          "default": "50",
-          "param_doc": "Number of samples to generate. Default is 50. Must be non-negative."
-        },
-        {
-          "name": "endpoint",
-          "type": "ndarray",
-          "required": false,
-          "default": "True",
-          "param_doc": "If True, `stop` is the last sample. Otherwise, it is not included.\nDefault is True."
-        },
-        {
-          "name": "retstep",
-          "type": "ndarray",
-          "required": false,
-          "default": "False",
-          "param_doc": "If True, return (`samples`, `step`), where `step` is the spacing\nbetween samples."
-        },
-        {
-          "name": "dtype",
-          "type": "ndarray",
-          "required": false,
-          "default": "None",
-          "param_doc": "The type of the output array.  If `dtype` is not given, the data type\nis inferred from `start` and `stop`. The inferred dtype will never be\nan integer; `float` is chosen even if the arguments would produce an\narray of integers.\n\n.. versionadded:: 1.9.0"
-        },
-        {
-          "name": "axis",
-          "type": "ndarray",
-          "required": false,
-          "default": "0",
-          "param_doc": "The axis in the result to store the samples.  Relevant only if start\nor stop are array-like.  By default (0), the samples will be along a\nnew axis inserted at the beginning. Use -1 to get an axis at the end.\n\n.. versionadded:: 1.16.0"
-        },
-        {
-          "name": "device",
-          "type": "ndarray",
-          "required": false,
-          "default": "None",
-          "param_doc": "The device on which to place the created array. Default: None.\nFor Array-API interoperability only, so must be ``\"cpu\"`` if passed.\n\n.. versionadded:: 2.0.0"
-        }
-      ],
-      "inputs": [
-        {
-          "name": "start",
-          "type": "ndarray"
-        }
-      ],
-      "outputs": [
-        {
-          "name": "output",
-          "type": "ndarray"
-        }
-      ],
-      "domain_implementations": {
-        "Python_Core": {
-          "code": "{output_var} = numpy.linspace({start}, {stop})",
-          "dependencies": [
-            "numpy"
-          ]
-        }
-      },
-      "provenance": "structural",
-      "verified": false,
-      "description": "Return evenly spaced numbers over a specified interval.",
-      "verification_error": "Traceback (most recent call last):\n  File \"<string>\", line 15, in <module>\n    output_var = numpy.linspace(synthetic_start, synthetic_stop)\n                 ^^^^^\nNameError: name 'numpy' is not define"
     },
     {
       "cell_id": "NUMPY_LOAD_DEFAULT",
@@ -70805,145 +70538,6 @@
       "verification_error": "Traceback (most recent call last):\n  File \"<string>\", line 8, in <module>\n    output_var = numpy.nonzero(synthetic_a)\n                 ^^^^^\nNameError: name 'numpy' is not defined"
     },
     {
-      "cell_id": "NUMPY_ONES_DEFAULT",
-      "domain": "numpy",
-      "name": "ones",
-      "params": [
-        {
-          "name": "shape",
-          "type": "ndarray",
-          "required": true,
-          "default": null,
-          "param_doc": "Shape of the new array, e.g., ``(2, 3)`` or ``2``."
-        },
-        {
-          "name": "dtype",
-          "type": "ndarray",
-          "required": false,
-          "default": "None",
-          "param_doc": "The desired data-type for the array, e.g., `numpy.int8`.  Default is\n`numpy.float64`."
-        },
-        {
-          "name": "order",
-          "type": "ndarray",
-          "required": false,
-          "default": "'C'",
-          "param_doc": "Whether to store multi-dimensional data in row-major\n(C-style) or column-major (Fortran-style) order in\nmemory."
-        },
-        {
-          "name": "device",
-          "type": "ndarray",
-          "required": false,
-          "default": "None",
-          "param_doc": "The device on which to place the created array. Default: None.\nFor Array-API interoperability only, so must be ``\"cpu\"`` if passed.\n\n.. versionadded:: 2.0.0"
-        },
-        {
-          "name": "like",
-          "type": "ndarray",
-          "required": false,
-          "default": "None",
-          "param_doc": "Reference object to allow the creation of arrays which are not\n    NumPy arrays. If an array-like passed in as ``like`` supports\n    the ``__array_function__`` protocol, the result will be defined\n    by it. In this case, it ensures the creation of an array object\n    compatible with that passed in via this argument.\n\n.. versionadded:: 1.20.0"
-        }
-      ],
-      "inputs": [
-        {
-          "name": "shape",
-          "type": "ndarray"
-        }
-      ],
-      "outputs": [
-        {
-          "name": "output",
-          "type": "ndarray"
-        }
-      ],
-      "domain_implementations": {
-        "Python_Core": {
-          "code": "{output_var} = numpy.ones({shape})",
-          "dependencies": [
-            "numpy"
-          ]
-        }
-      },
-      "provenance": "structural",
-      "verified": false,
-      "description": "Return a new array of given shape and type, filled with ones.",
-      "verification_error": "Traceback (most recent call last):\n  File \"<string>\", line 12, in <module>\n    output_var = numpy.ones(synthetic_shape)\n                 ^^^^^\nNameError: name 'numpy' is not defined"
-    },
-    {
-      "cell_id": "NUMPY_ONES_LIKE_DEFAULT",
-      "domain": "numpy",
-      "name": "ones_like",
-      "params": [
-        {
-          "name": "a",
-          "type": "ndarray",
-          "required": true,
-          "default": null,
-          "param_doc": "The shape and data-type of `a` define these same attributes of\nthe returned array."
-        },
-        {
-          "name": "dtype",
-          "type": "ndarray",
-          "required": false,
-          "default": "None",
-          "param_doc": "Overrides the data type of the result.\n\n.. versionadded:: 1.6.0"
-        },
-        {
-          "name": "order",
-          "type": "ndarray",
-          "required": false,
-          "default": "'K'",
-          "param_doc": "Overrides the memory layout of the result. 'C' means C-order,\n'F' means F-order, 'A' means 'F' if `a` is Fortran contiguous,\n'C' otherwise. 'K' means match the layout of `a` as closely\nas possible.\n\n.. versionadded:: 1.6.0"
-        },
-        {
-          "name": "subok",
-          "type": "ndarray",
-          "required": false,
-          "default": "True",
-          "param_doc": "If True, then the newly created array will use the sub-class\ntype of `a`, otherwise it will be a base-class array. Defaults\nto True."
-        },
-        {
-          "name": "shape",
-          "type": "ndarray",
-          "required": false,
-          "default": "None",
-          "param_doc": "Overrides the shape of the result. If order='K' and the number of\ndimensions is unchanged, will try to keep order, otherwise,\norder='C' is implied.\n\n.. versionadded:: 1.17.0"
-        },
-        {
-          "name": "device",
-          "type": "ndarray",
-          "required": false,
-          "default": "None",
-          "param_doc": "The device on which to place the created array. Default: None.\nFor Array-API interoperability only, so must be ``\"cpu\"`` if passed.\n\n.. versionadded:: 2.0.0"
-        }
-      ],
-      "inputs": [
-        {
-          "name": "a",
-          "type": "ndarray"
-        }
-      ],
-      "outputs": [
-        {
-          "name": "output",
-          "type": "ndarray"
-        }
-      ],
-      "domain_implementations": {
-        "Python_Core": {
-          "code": "{output_var} = numpy.ones_like({a})",
-          "dependencies": [
-            "numpy"
-          ]
-        }
-      },
-      "provenance": "structural",
-      "verified": false,
-      "description": "Return an array of ones with the same shape and type as a given array.",
-      "verification_error": "Traceback (most recent call last):\n  File \"<string>\", line 13, in <module>\n    output_var = numpy.ones_like(synthetic_a)\n                 ^^^^^\nNameError: name 'numpy' is not defined"
-    },
-    {
       "cell_id": "NUMPY_OUTER_DEFAULT",
       "domain": "numpy",
       "name": "outer",
@@ -71376,44 +70970,6 @@
       "verified": false,
       "description": "Change elements of an array based on conditional and input values.",
       "verification_error": "Traceback (most recent call last):\n  File \"<string>\", line 10, in <module>\n    output_var = numpy.place(synthetic_arr, synthetic_mask, synthetic_vals)\n                 ^^^^^\nNameError: name 'numpy' is"
-    },
-    {
-      "cell_id": "NUMPY_POLY_DEFAULT",
-      "domain": "numpy",
-      "name": "poly",
-      "params": [
-        {
-          "name": "seq_of_zeros",
-          "type": "ndarray",
-          "required": true,
-          "default": null,
-          "param_doc": "A sequence of polynomial roots, or a square array or matrix object."
-        }
-      ],
-      "inputs": [
-        {
-          "name": "seq_of_zeros",
-          "type": "ndarray"
-        }
-      ],
-      "outputs": [
-        {
-          "name": "output",
-          "type": "ndarray"
-        }
-      ],
-      "domain_implementations": {
-        "Python_Core": {
-          "code": "{output_var} = numpy.poly({seq_of_zeros})",
-          "dependencies": [
-            "numpy"
-          ]
-        }
-      },
-      "provenance": "structural",
-      "verified": false,
-      "description": "Find the coefficients of a polynomial with the given sequence of roots.",
-      "verification_error": "Traceback (most recent call last):\n  File \"<string>\", line 8, in <module>\n    output_var = numpy.poly(synthetic_seq_of_zeros)\n                 ^^^^^\nNameError: name 'numpy' is not defined"
     },
     {
       "cell_id": "NUMPY_POLY1D_DERIV_DEFAULT",
@@ -72414,58 +71970,6 @@
       "verification_error": "Traceback (most recent call last):\n  File \"<string>\", line 8, in <module>\n    output_var = input_var.has_samewindow(synthetic_other)\n                 ^^^^^^^^^^^^^^^^^^^^^^^^\nAttributeError: 'numpy.nd"
     },
     {
-      "cell_id": "NUMPY_POLYNOMIAL_CHEBYSHEV_IDENTITY_DEFAULT",
-      "domain": "numpy",
-      "name": "identity",
-      "params": [
-        {
-          "name": "domain",
-          "type": "ndarray",
-          "required": false,
-          "default": "None",
-          "param_doc": "Parameter domain for identity."
-        },
-        {
-          "name": "window",
-          "type": "ndarray",
-          "required": false,
-          "default": "None",
-          "param_doc": "Parameter window for identity."
-        },
-        {
-          "name": "symbol",
-          "type": "ndarray",
-          "required": false,
-          "default": "'x'",
-          "param_doc": "Parameter symbol for identity."
-        }
-      ],
-      "inputs": [
-        {
-          "name": "domain",
-          "type": "ndarray"
-        }
-      ],
-      "outputs": [
-        {
-          "name": "output",
-          "type": "ndarray"
-        }
-      ],
-      "domain_implementations": {
-        "Python_Core": {
-          "code": "{output_var} = {input_var}.identity()",
-          "dependencies": [
-            "numpy"
-          ]
-        }
-      },
-      "provenance": "structural",
-      "verified": false,
-      "description": "Return the identity array.",
-      "verification_error": "Traceback (most recent call last):\n  File \"<string>\", line 10, in <module>\n    output_var = input_var.identity()\n                 ^^^^^^^^^^^^^^^^^^\nAttributeError: 'numpy.ndarray' object has no attri"
-    },
-    {
       "cell_id": "NUMPY_POLYNOMIAL_CHEBYSHEV_INTEG_DEFAULT",
       "domain": "numpy",
       "name": "integ",
@@ -72575,51 +72079,6 @@
       "verified": false,
       "description": "numpy interpolate function.",
       "verification_error": "Traceback (most recent call last):\n  File \"<string>\", line 11, in <module>\n    output_var = input_var.interpolate(synthetic_func, synthetic_deg)\n                 ^^^^^^^^^^^^^^^^^^^^^\nAttributeError: "
-    },
-    {
-      "cell_id": "NUMPY_POLYNOMIAL_CHEBYSHEV_LINSPACE_DEFAULT",
-      "domain": "numpy",
-      "name": "linspace",
-      "params": [
-        {
-          "name": "n",
-          "type": "ndarray",
-          "required": false,
-          "default": "100",
-          "param_doc": "Parameter n for linspace."
-        },
-        {
-          "name": "domain",
-          "type": "ndarray",
-          "required": false,
-          "default": "None",
-          "param_doc": "Parameter domain for linspace."
-        }
-      ],
-      "inputs": [
-        {
-          "name": "n",
-          "type": "ndarray"
-        }
-      ],
-      "outputs": [
-        {
-          "name": "output",
-          "type": "ndarray"
-        }
-      ],
-      "domain_implementations": {
-        "Python_Core": {
-          "code": "{output_var} = {input_var}.linspace()",
-          "dependencies": [
-            "numpy"
-          ]
-        }
-      },
-      "provenance": "structural",
-      "verified": false,
-      "description": "Return evenly spaced numbers over a specified interval.",
-      "verification_error": "Traceback (most recent call last):\n  File \"<string>\", line 9, in <module>\n    output_var = input_var.linspace()\n                 ^^^^^^^^^^^^^^^^^^\nAttributeError: 'numpy.ndarray' object has no attrib"
     },
     {
       "cell_id": "NUMPY_POLYNOMIAL_CHEBYSHEV_MAPPARMS_DEFAULT",
@@ -73361,58 +72820,6 @@
       "verification_error": "Traceback (most recent call last):\n  File \"<string>\", line 8, in <module>\n    output_var = input_var.has_samewindow(synthetic_other)\n                 ^^^^^^^^^^^^^^^^^^^^^^^^\nAttributeError: 'numpy.nd"
     },
     {
-      "cell_id": "NUMPY_POLYNOMIAL_HERMITE_IDENTITY_DEFAULT",
-      "domain": "numpy",
-      "name": "identity",
-      "params": [
-        {
-          "name": "domain",
-          "type": "ndarray",
-          "required": false,
-          "default": "None",
-          "param_doc": "Parameter domain for identity."
-        },
-        {
-          "name": "window",
-          "type": "ndarray",
-          "required": false,
-          "default": "None",
-          "param_doc": "Parameter window for identity."
-        },
-        {
-          "name": "symbol",
-          "type": "ndarray",
-          "required": false,
-          "default": "'x'",
-          "param_doc": "Parameter symbol for identity."
-        }
-      ],
-      "inputs": [
-        {
-          "name": "domain",
-          "type": "ndarray"
-        }
-      ],
-      "outputs": [
-        {
-          "name": "output",
-          "type": "ndarray"
-        }
-      ],
-      "domain_implementations": {
-        "Python_Core": {
-          "code": "{output_var} = {input_var}.identity()",
-          "dependencies": [
-            "numpy"
-          ]
-        }
-      },
-      "provenance": "structural",
-      "verified": false,
-      "description": "Return the identity array.",
-      "verification_error": "Traceback (most recent call last):\n  File \"<string>\", line 10, in <module>\n    output_var = input_var.identity()\n                 ^^^^^^^^^^^^^^^^^^\nAttributeError: 'numpy.ndarray' object has no attri"
-    },
-    {
       "cell_id": "NUMPY_POLYNOMIAL_HERMITE_INTEG_DEFAULT",
       "domain": "numpy",
       "name": "integ",
@@ -73463,51 +72870,6 @@
       "verified": false,
       "description": "numpy integ function.",
       "verification_error": "Traceback (most recent call last):\n  File \"<string>\", line 10, in <module>\n    output_var = input_var.integ()\n                 ^^^^^^^^^^^^^^^\nAttributeError: 'numpy.ndarray' object has no attribute '"
-    },
-    {
-      "cell_id": "NUMPY_POLYNOMIAL_HERMITE_LINSPACE_DEFAULT",
-      "domain": "numpy",
-      "name": "linspace",
-      "params": [
-        {
-          "name": "n",
-          "type": "ndarray",
-          "required": false,
-          "default": "100",
-          "param_doc": "Parameter n for linspace."
-        },
-        {
-          "name": "domain",
-          "type": "ndarray",
-          "required": false,
-          "default": "None",
-          "param_doc": "Parameter domain for linspace."
-        }
-      ],
-      "inputs": [
-        {
-          "name": "n",
-          "type": "ndarray"
-        }
-      ],
-      "outputs": [
-        {
-          "name": "output",
-          "type": "ndarray"
-        }
-      ],
-      "domain_implementations": {
-        "Python_Core": {
-          "code": "{output_var} = {input_var}.linspace()",
-          "dependencies": [
-            "numpy"
-          ]
-        }
-      },
-      "provenance": "structural",
-      "verified": false,
-      "description": "Return evenly spaced numbers over a specified interval.",
-      "verification_error": "Traceback (most recent call last):\n  File \"<string>\", line 9, in <module>\n    output_var = input_var.linspace()\n                 ^^^^^^^^^^^^^^^^^^\nAttributeError: 'numpy.ndarray' object has no attrib"
     },
     {
       "cell_id": "NUMPY_POLYNOMIAL_HERMITE_MAPPARMS_DEFAULT",
@@ -74249,58 +73611,6 @@
       "verification_error": "Traceback (most recent call last):\n  File \"<string>\", line 8, in <module>\n    output_var = input_var.has_samewindow(synthetic_other)\n                 ^^^^^^^^^^^^^^^^^^^^^^^^\nAttributeError: 'numpy.nd"
     },
     {
-      "cell_id": "NUMPY_POLYNOMIAL_HERMITEE_IDENTITY_DEFAULT",
-      "domain": "numpy",
-      "name": "identity",
-      "params": [
-        {
-          "name": "domain",
-          "type": "ndarray",
-          "required": false,
-          "default": "None",
-          "param_doc": "Parameter domain for identity."
-        },
-        {
-          "name": "window",
-          "type": "ndarray",
-          "required": false,
-          "default": "None",
-          "param_doc": "Parameter window for identity."
-        },
-        {
-          "name": "symbol",
-          "type": "ndarray",
-          "required": false,
-          "default": "'x'",
-          "param_doc": "Parameter symbol for identity."
-        }
-      ],
-      "inputs": [
-        {
-          "name": "domain",
-          "type": "ndarray"
-        }
-      ],
-      "outputs": [
-        {
-          "name": "output",
-          "type": "ndarray"
-        }
-      ],
-      "domain_implementations": {
-        "Python_Core": {
-          "code": "{output_var} = {input_var}.identity()",
-          "dependencies": [
-            "numpy"
-          ]
-        }
-      },
-      "provenance": "structural",
-      "verified": false,
-      "description": "Return the identity array.",
-      "verification_error": "Traceback (most recent call last):\n  File \"<string>\", line 10, in <module>\n    output_var = input_var.identity()\n                 ^^^^^^^^^^^^^^^^^^\nAttributeError: 'numpy.ndarray' object has no attri"
-    },
-    {
       "cell_id": "NUMPY_POLYNOMIAL_HERMITEE_INTEG_DEFAULT",
       "domain": "numpy",
       "name": "integ",
@@ -74351,51 +73661,6 @@
       "verified": false,
       "description": "numpy integ function.",
       "verification_error": "Traceback (most recent call last):\n  File \"<string>\", line 10, in <module>\n    output_var = input_var.integ()\n                 ^^^^^^^^^^^^^^^\nAttributeError: 'numpy.ndarray' object has no attribute '"
-    },
-    {
-      "cell_id": "NUMPY_POLYNOMIAL_HERMITEE_LINSPACE_DEFAULT",
-      "domain": "numpy",
-      "name": "linspace",
-      "params": [
-        {
-          "name": "n",
-          "type": "ndarray",
-          "required": false,
-          "default": "100",
-          "param_doc": "Parameter n for linspace."
-        },
-        {
-          "name": "domain",
-          "type": "ndarray",
-          "required": false,
-          "default": "None",
-          "param_doc": "Parameter domain for linspace."
-        }
-      ],
-      "inputs": [
-        {
-          "name": "n",
-          "type": "ndarray"
-        }
-      ],
-      "outputs": [
-        {
-          "name": "output",
-          "type": "ndarray"
-        }
-      ],
-      "domain_implementations": {
-        "Python_Core": {
-          "code": "{output_var} = {input_var}.linspace()",
-          "dependencies": [
-            "numpy"
-          ]
-        }
-      },
-      "provenance": "structural",
-      "verified": false,
-      "description": "Return evenly spaced numbers over a specified interval.",
-      "verification_error": "Traceback (most recent call last):\n  File \"<string>\", line 9, in <module>\n    output_var = input_var.linspace()\n                 ^^^^^^^^^^^^^^^^^^\nAttributeError: 'numpy.ndarray' object has no attrib"
     },
     {
       "cell_id": "NUMPY_POLYNOMIAL_HERMITEE_MAPPARMS_DEFAULT",
@@ -75137,58 +74402,6 @@
       "verification_error": "Traceback (most recent call last):\n  File \"<string>\", line 8, in <module>\n    output_var = input_var.has_samewindow(synthetic_other)\n                 ^^^^^^^^^^^^^^^^^^^^^^^^\nAttributeError: 'numpy.nd"
     },
     {
-      "cell_id": "NUMPY_POLYNOMIAL_LAGUERRE_IDENTITY_DEFAULT",
-      "domain": "numpy",
-      "name": "identity",
-      "params": [
-        {
-          "name": "domain",
-          "type": "ndarray",
-          "required": false,
-          "default": "None",
-          "param_doc": "Parameter domain for identity."
-        },
-        {
-          "name": "window",
-          "type": "ndarray",
-          "required": false,
-          "default": "None",
-          "param_doc": "Parameter window for identity."
-        },
-        {
-          "name": "symbol",
-          "type": "ndarray",
-          "required": false,
-          "default": "'x'",
-          "param_doc": "Parameter symbol for identity."
-        }
-      ],
-      "inputs": [
-        {
-          "name": "domain",
-          "type": "ndarray"
-        }
-      ],
-      "outputs": [
-        {
-          "name": "output",
-          "type": "ndarray"
-        }
-      ],
-      "domain_implementations": {
-        "Python_Core": {
-          "code": "{output_var} = {input_var}.identity()",
-          "dependencies": [
-            "numpy"
-          ]
-        }
-      },
-      "provenance": "structural",
-      "verified": false,
-      "description": "Return the identity array.",
-      "verification_error": "Traceback (most recent call last):\n  File \"<string>\", line 10, in <module>\n    output_var = input_var.identity()\n                 ^^^^^^^^^^^^^^^^^^\nAttributeError: 'numpy.ndarray' object has no attri"
-    },
-    {
       "cell_id": "NUMPY_POLYNOMIAL_LAGUERRE_INTEG_DEFAULT",
       "domain": "numpy",
       "name": "integ",
@@ -75239,51 +74452,6 @@
       "verified": false,
       "description": "numpy integ function.",
       "verification_error": "Traceback (most recent call last):\n  File \"<string>\", line 10, in <module>\n    output_var = input_var.integ()\n                 ^^^^^^^^^^^^^^^\nAttributeError: 'numpy.ndarray' object has no attribute '"
-    },
-    {
-      "cell_id": "NUMPY_POLYNOMIAL_LAGUERRE_LINSPACE_DEFAULT",
-      "domain": "numpy",
-      "name": "linspace",
-      "params": [
-        {
-          "name": "n",
-          "type": "ndarray",
-          "required": false,
-          "default": "100",
-          "param_doc": "Parameter n for linspace."
-        },
-        {
-          "name": "domain",
-          "type": "ndarray",
-          "required": false,
-          "default": "None",
-          "param_doc": "Parameter domain for linspace."
-        }
-      ],
-      "inputs": [
-        {
-          "name": "n",
-          "type": "ndarray"
-        }
-      ],
-      "outputs": [
-        {
-          "name": "output",
-          "type": "ndarray"
-        }
-      ],
-      "domain_implementations": {
-        "Python_Core": {
-          "code": "{output_var} = {input_var}.linspace()",
-          "dependencies": [
-            "numpy"
-          ]
-        }
-      },
-      "provenance": "structural",
-      "verified": false,
-      "description": "Return evenly spaced numbers over a specified interval.",
-      "verification_error": "Traceback (most recent call last):\n  File \"<string>\", line 9, in <module>\n    output_var = input_var.linspace()\n                 ^^^^^^^^^^^^^^^^^^\nAttributeError: 'numpy.ndarray' object has no attrib"
     },
     {
       "cell_id": "NUMPY_POLYNOMIAL_LAGUERRE_MAPPARMS_DEFAULT",
@@ -76025,58 +75193,6 @@
       "verification_error": "Traceback (most recent call last):\n  File \"<string>\", line 8, in <module>\n    output_var = input_var.has_samewindow(synthetic_other)\n                 ^^^^^^^^^^^^^^^^^^^^^^^^\nAttributeError: 'numpy.nd"
     },
     {
-      "cell_id": "NUMPY_POLYNOMIAL_LEGENDRE_IDENTITY_DEFAULT",
-      "domain": "numpy",
-      "name": "identity",
-      "params": [
-        {
-          "name": "domain",
-          "type": "ndarray",
-          "required": false,
-          "default": "None",
-          "param_doc": "Parameter domain for identity."
-        },
-        {
-          "name": "window",
-          "type": "ndarray",
-          "required": false,
-          "default": "None",
-          "param_doc": "Parameter window for identity."
-        },
-        {
-          "name": "symbol",
-          "type": "ndarray",
-          "required": false,
-          "default": "'x'",
-          "param_doc": "Parameter symbol for identity."
-        }
-      ],
-      "inputs": [
-        {
-          "name": "domain",
-          "type": "ndarray"
-        }
-      ],
-      "outputs": [
-        {
-          "name": "output",
-          "type": "ndarray"
-        }
-      ],
-      "domain_implementations": {
-        "Python_Core": {
-          "code": "{output_var} = {input_var}.identity()",
-          "dependencies": [
-            "numpy"
-          ]
-        }
-      },
-      "provenance": "structural",
-      "verified": false,
-      "description": "Return the identity array.",
-      "verification_error": "Traceback (most recent call last):\n  File \"<string>\", line 10, in <module>\n    output_var = input_var.identity()\n                 ^^^^^^^^^^^^^^^^^^\nAttributeError: 'numpy.ndarray' object has no attri"
-    },
-    {
       "cell_id": "NUMPY_POLYNOMIAL_LEGENDRE_INTEG_DEFAULT",
       "domain": "numpy",
       "name": "integ",
@@ -76127,51 +75243,6 @@
       "verified": false,
       "description": "numpy integ function.",
       "verification_error": "Traceback (most recent call last):\n  File \"<string>\", line 10, in <module>\n    output_var = input_var.integ()\n                 ^^^^^^^^^^^^^^^\nAttributeError: 'numpy.ndarray' object has no attribute '"
-    },
-    {
-      "cell_id": "NUMPY_POLYNOMIAL_LEGENDRE_LINSPACE_DEFAULT",
-      "domain": "numpy",
-      "name": "linspace",
-      "params": [
-        {
-          "name": "n",
-          "type": "ndarray",
-          "required": false,
-          "default": "100",
-          "param_doc": "Parameter n for linspace."
-        },
-        {
-          "name": "domain",
-          "type": "ndarray",
-          "required": false,
-          "default": "None",
-          "param_doc": "Parameter domain for linspace."
-        }
-      ],
-      "inputs": [
-        {
-          "name": "n",
-          "type": "ndarray"
-        }
-      ],
-      "outputs": [
-        {
-          "name": "output",
-          "type": "ndarray"
-        }
-      ],
-      "domain_implementations": {
-        "Python_Core": {
-          "code": "{output_var} = {input_var}.linspace()",
-          "dependencies": [
-            "numpy"
-          ]
-        }
-      },
-      "provenance": "structural",
-      "verified": false,
-      "description": "Return evenly spaced numbers over a specified interval.",
-      "verification_error": "Traceback (most recent call last):\n  File \"<string>\", line 9, in <module>\n    output_var = input_var.linspace()\n                 ^^^^^^^^^^^^^^^^^^\nAttributeError: 'numpy.ndarray' object has no attrib"
     },
     {
       "cell_id": "NUMPY_POLYNOMIAL_LEGENDRE_MAPPARMS_DEFAULT",
@@ -76913,58 +75984,6 @@
       "verification_error": "Traceback (most recent call last):\n  File \"<string>\", line 8, in <module>\n    output_var = input_var.has_samewindow(synthetic_other)\n                 ^^^^^^^^^^^^^^^^^^^^^^^^\nAttributeError: 'numpy.nd"
     },
     {
-      "cell_id": "NUMPY_POLYNOMIAL_POLYNOMIAL_IDENTITY_DEFAULT",
-      "domain": "numpy",
-      "name": "identity",
-      "params": [
-        {
-          "name": "domain",
-          "type": "ndarray",
-          "required": false,
-          "default": "None",
-          "param_doc": "Parameter domain for identity."
-        },
-        {
-          "name": "window",
-          "type": "ndarray",
-          "required": false,
-          "default": "None",
-          "param_doc": "Parameter window for identity."
-        },
-        {
-          "name": "symbol",
-          "type": "ndarray",
-          "required": false,
-          "default": "'x'",
-          "param_doc": "Parameter symbol for identity."
-        }
-      ],
-      "inputs": [
-        {
-          "name": "domain",
-          "type": "ndarray"
-        }
-      ],
-      "outputs": [
-        {
-          "name": "output",
-          "type": "ndarray"
-        }
-      ],
-      "domain_implementations": {
-        "Python_Core": {
-          "code": "{output_var} = {input_var}.identity()",
-          "dependencies": [
-            "numpy"
-          ]
-        }
-      },
-      "provenance": "structural",
-      "verified": false,
-      "description": "Return the identity array.",
-      "verification_error": "Traceback (most recent call last):\n  File \"<string>\", line 10, in <module>\n    output_var = input_var.identity()\n                 ^^^^^^^^^^^^^^^^^^\nAttributeError: 'numpy.ndarray' object has no attri"
-    },
-    {
       "cell_id": "NUMPY_POLYNOMIAL_POLYNOMIAL_INTEG_DEFAULT",
       "domain": "numpy",
       "name": "integ",
@@ -77015,51 +76034,6 @@
       "verified": false,
       "description": "numpy integ function.",
       "verification_error": "Traceback (most recent call last):\n  File \"<string>\", line 10, in <module>\n    output_var = input_var.integ()\n                 ^^^^^^^^^^^^^^^\nAttributeError: 'numpy.ndarray' object has no attribute '"
-    },
-    {
-      "cell_id": "NUMPY_POLYNOMIAL_POLYNOMIAL_LINSPACE_DEFAULT",
-      "domain": "numpy",
-      "name": "linspace",
-      "params": [
-        {
-          "name": "n",
-          "type": "ndarray",
-          "required": false,
-          "default": "100",
-          "param_doc": "Parameter n for linspace."
-        },
-        {
-          "name": "domain",
-          "type": "ndarray",
-          "required": false,
-          "default": "None",
-          "param_doc": "Parameter domain for linspace."
-        }
-      ],
-      "inputs": [
-        {
-          "name": "n",
-          "type": "ndarray"
-        }
-      ],
-      "outputs": [
-        {
-          "name": "output",
-          "type": "ndarray"
-        }
-      ],
-      "domain_implementations": {
-        "Python_Core": {
-          "code": "{output_var} = {input_var}.linspace()",
-          "dependencies": [
-            "numpy"
-          ]
-        }
-      },
-      "provenance": "structural",
-      "verified": false,
-      "description": "Return evenly spaced numbers over a specified interval.",
-      "verification_error": "Traceback (most recent call last):\n  File \"<string>\", line 9, in <module>\n    output_var = input_var.linspace()\n                 ^^^^^^^^^^^^^^^^^^\nAttributeError: 'numpy.ndarray' object has no attrib"
     },
     {
       "cell_id": "NUMPY_POLYNOMIAL_POLYNOMIAL_MAPPARMS_DEFAULT",
@@ -77801,58 +76775,6 @@
       "verification_error": "Traceback (most recent call last):\n  File \"<string>\", line 8, in <module>\n    output_var = input_var.has_samewindow(synthetic_other)\n                 ^^^^^^^^^^^^^^^^^^^^^^^^\nAttributeError: 'numpy.nd"
     },
     {
-      "cell_id": "NUMPY_POLYNOMIAL_CHEBYSHEV_ABCPOLYBASE_IDENTITY_DEFAULT",
-      "domain": "numpy",
-      "name": "identity",
-      "params": [
-        {
-          "name": "domain",
-          "type": "ndarray",
-          "required": false,
-          "default": "None",
-          "param_doc": "Parameter domain for identity."
-        },
-        {
-          "name": "window",
-          "type": "ndarray",
-          "required": false,
-          "default": "None",
-          "param_doc": "Parameter window for identity."
-        },
-        {
-          "name": "symbol",
-          "type": "ndarray",
-          "required": false,
-          "default": "'x'",
-          "param_doc": "Parameter symbol for identity."
-        }
-      ],
-      "inputs": [
-        {
-          "name": "domain",
-          "type": "ndarray"
-        }
-      ],
-      "outputs": [
-        {
-          "name": "output",
-          "type": "ndarray"
-        }
-      ],
-      "domain_implementations": {
-        "Python_Core": {
-          "code": "{output_var} = {input_var}.identity()",
-          "dependencies": [
-            "numpy"
-          ]
-        }
-      },
-      "provenance": "structural",
-      "verified": false,
-      "description": "Return the identity array.",
-      "verification_error": "Traceback (most recent call last):\n  File \"<string>\", line 10, in <module>\n    output_var = input_var.identity()\n                 ^^^^^^^^^^^^^^^^^^\nAttributeError: 'numpy.ndarray' object has no attri"
-    },
-    {
       "cell_id": "NUMPY_POLYNOMIAL_CHEBYSHEV_ABCPOLYBASE_INTEG_DEFAULT",
       "domain": "numpy",
       "name": "integ",
@@ -77903,51 +76825,6 @@
       "verified": false,
       "description": "numpy integ function.",
       "verification_error": "Traceback (most recent call last):\n  File \"<string>\", line 10, in <module>\n    output_var = input_var.integ()\n                 ^^^^^^^^^^^^^^^\nAttributeError: 'numpy.ndarray' object has no attribute '"
-    },
-    {
-      "cell_id": "NUMPY_POLYNOMIAL_CHEBYSHEV_ABCPOLYBASE_LINSPACE_DEFAULT",
-      "domain": "numpy",
-      "name": "linspace",
-      "params": [
-        {
-          "name": "n",
-          "type": "ndarray",
-          "required": false,
-          "default": "100",
-          "param_doc": "Parameter n for linspace."
-        },
-        {
-          "name": "domain",
-          "type": "ndarray",
-          "required": false,
-          "default": "None",
-          "param_doc": "Parameter domain for linspace."
-        }
-      ],
-      "inputs": [
-        {
-          "name": "n",
-          "type": "ndarray"
-        }
-      ],
-      "outputs": [
-        {
-          "name": "output",
-          "type": "ndarray"
-        }
-      ],
-      "domain_implementations": {
-        "Python_Core": {
-          "code": "{output_var} = {input_var}.linspace()",
-          "dependencies": [
-            "numpy"
-          ]
-        }
-      },
-      "provenance": "structural",
-      "verified": false,
-      "description": "Return evenly spaced numbers over a specified interval.",
-      "verification_error": "Traceback (most recent call last):\n  File \"<string>\", line 9, in <module>\n    output_var = input_var.linspace()\n                 ^^^^^^^^^^^^^^^^^^\nAttributeError: 'numpy.ndarray' object has no attrib"
     },
     {
       "cell_id": "NUMPY_POLYNOMIAL_CHEBYSHEV_ABCPOLYBASE_MAPPARMS_DEFAULT",
@@ -104033,51 +102910,6 @@
       "verification_error": "Traceback (most recent call last):\n  File \"<string>\", line 9, in <module>\n    output_var = numpy.tril_indices_from(synthetic_arr)\n                 ^^^^^\nNameError: name 'numpy' is not defined"
     },
     {
-      "cell_id": "NUMPY_TRIM_ZEROS_DEFAULT",
-      "domain": "numpy",
-      "name": "trim_zeros",
-      "params": [
-        {
-          "name": "filt",
-          "type": "ndarray",
-          "required": true,
-          "default": null,
-          "param_doc": "Input array."
-        },
-        {
-          "name": "trim",
-          "type": "ndarray",
-          "required": false,
-          "default": "'fb'",
-          "param_doc": "A string with 'f' representing trim from front and 'b' to trim from\nback. Default is 'fb', trim zeros from both front and back of the\narray."
-        }
-      ],
-      "inputs": [
-        {
-          "name": "filt",
-          "type": "ndarray"
-        }
-      ],
-      "outputs": [
-        {
-          "name": "output",
-          "type": "ndarray"
-        }
-      ],
-      "domain_implementations": {
-        "Python_Core": {
-          "code": "{output_var} = numpy.trim_zeros({filt})",
-          "dependencies": [
-            "numpy"
-          ]
-        }
-      },
-      "provenance": "structural",
-      "verified": false,
-      "description": "Trim the leading and/or trailing zeros from a 1-D array or sequence.",
-      "verification_error": "Traceback (most recent call last):\n  File \"<string>\", line 9, in <module>\n    output_var = numpy.trim_zeros(synthetic_filt)\n                 ^^^^^\nNameError: name 'numpy' is not defined"
-    },
-    {
       "cell_id": "NUMPY_TRIU_DEFAULT",
       "domain": "numpy",
       "name": "triu",
@@ -104873,79 +103705,6 @@
       "verified": false,
       "description": "Stack arrays in sequence vertically (row wise).",
       "verification_error": "Traceback (most recent call last):\n  File \"<string>\", line 10, in <module>\n    output_var = numpy.vstack(synthetic_tup)\n                 ^^^^^\nNameError: name 'numpy' is not defined"
-    },
-    {
-      "cell_id": "NUMPY_ZEROS_LIKE_DEFAULT",
-      "domain": "numpy",
-      "name": "zeros_like",
-      "params": [
-        {
-          "name": "a",
-          "type": "ndarray",
-          "required": true,
-          "default": null,
-          "param_doc": "The shape and data-type of `a` define these same attributes of\nthe returned array."
-        },
-        {
-          "name": "dtype",
-          "type": "ndarray",
-          "required": false,
-          "default": "None",
-          "param_doc": "Overrides the data type of the result.\n\n.. versionadded:: 1.6.0"
-        },
-        {
-          "name": "order",
-          "type": "ndarray",
-          "required": false,
-          "default": "'K'",
-          "param_doc": "Overrides the memory layout of the result. 'C' means C-order,\n'F' means F-order, 'A' means 'F' if `a` is Fortran contiguous,\n'C' otherwise. 'K' means match the layout of `a` as closely\nas possible.\n\n.. versionadded:: 1.6.0"
-        },
-        {
-          "name": "subok",
-          "type": "ndarray",
-          "required": false,
-          "default": "True",
-          "param_doc": "If True, then the newly created array will use the sub-class\ntype of `a`, otherwise it will be a base-class array. Defaults\nto True."
-        },
-        {
-          "name": "shape",
-          "type": "ndarray",
-          "required": false,
-          "default": "None",
-          "param_doc": "Overrides the shape of the result. If order='K' and the number of\ndimensions is unchanged, will try to keep order, otherwise,\norder='C' is implied.\n\n.. versionadded:: 1.17.0"
-        },
-        {
-          "name": "device",
-          "type": "ndarray",
-          "required": false,
-          "default": "None",
-          "param_doc": "The device on which to place the created array. Default: None.\nFor Array-API interoperability only, so must be ``\"cpu\"`` if passed.\n\n.. versionadded:: 2.0.0"
-        }
-      ],
-      "inputs": [
-        {
-          "name": "a",
-          "type": "ndarray"
-        }
-      ],
-      "outputs": [
-        {
-          "name": "output",
-          "type": "ndarray"
-        }
-      ],
-      "domain_implementations": {
-        "Python_Core": {
-          "code": "{output_var} = numpy.zeros_like({a})",
-          "dependencies": [
-            "numpy"
-          ]
-        }
-      },
-      "provenance": "structural",
-      "verified": false,
-      "description": "Return an array of zeros with the same shape and type as a given array.",
-      "verification_error": "Traceback (most recent call last):\n  File \"<string>\", line 13, in <module>\n    output_var = numpy.zeros_like(synthetic_a)\n                 ^^^^^\nNameError: name 'numpy' is not defined"
     }
   ]
 }

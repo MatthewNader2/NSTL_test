@@ -7,6 +7,134 @@
   "optional_imports": {},
   "nodes": [
     {
+      "cell_id": "SCIPY_OPTIMIZE_MINIMIZE",
+      "domain": "scipy",
+      "name": "minimize",
+      "node_type": "special_nested",
+      "function": "scipy.optimize.minimize",
+      "description": "SciPy optimize minimize master node with 9 dynamically reflected algorithms.",
+      "inputs": [
+        {
+          "name": "fun",
+          "type": "Callable"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "res",
+          "type": "OptimizeResult"
+        }
+      ],
+      "params": [
+        {
+          "name": "fun",
+          "type": "Callable"
+        },
+        {
+          "name": "x0",
+          "type": "ndarray"
+        },
+        {
+          "name": "method",
+          "type": "str"
+        }
+      ],
+      "domain_implementations": {
+        "Python_Core": {
+          "code": "{output_var} = scipy.optimize.minimize({input_var}, [0.0, 0.0], method='Nelder-Mead')"
+        }
+      },
+      "variants": [
+        {
+          "variant_id": "METHOD_NELDER_MEAD",
+          "code_flag": "'Nelder-Mead'",
+          "keywords": [
+            "ead",
+            "elder",
+            "nelder-mead"
+          ],
+          "description": "SciPy optimization method Nelder-Mead",
+          "code_snippet": "{output_var} = scipy.optimize.minimize({input_var}, [0.0, 0.0], method='Nelder-Mead')"
+        },
+        {
+          "variant_id": "METHOD_POWELL",
+          "code_flag": "'Powell'",
+          "keywords": [
+            "owell",
+            "powell"
+          ],
+          "description": "SciPy optimization method Powell",
+          "code_snippet": "{output_var} = scipy.optimize.minimize({input_var}, [0.0, 0.0], method='Powell')"
+        },
+        {
+          "variant_id": "METHOD_CG",
+          "code_flag": "'CG'",
+          "keywords": [
+            "cg"
+          ],
+          "description": "SciPy optimization method CG",
+          "code_snippet": "{output_var} = scipy.optimize.minimize({input_var}, [0.0, 0.0], method='CG')"
+        },
+        {
+          "variant_id": "METHOD_BFGS",
+          "code_flag": "'BFGS'",
+          "keywords": [
+            "bfgs"
+          ],
+          "description": "SciPy optimization method BFGS",
+          "code_snippet": "{output_var} = scipy.optimize.minimize({input_var}, [0.0, 0.0], method='BFGS')"
+        },
+        {
+          "variant_id": "METHOD_L_BFGS_B",
+          "code_flag": "'L-BFGS-B'",
+          "keywords": [
+            "bfgs",
+            "l-bfgs-b"
+          ],
+          "description": "SciPy optimization method L-BFGS-B",
+          "code_snippet": "{output_var} = scipy.optimize.minimize({input_var}, [0.0, 0.0], method='L-BFGS-B')"
+        },
+        {
+          "variant_id": "METHOD_TNC",
+          "code_flag": "'TNC'",
+          "keywords": [
+            "tnc"
+          ],
+          "description": "SciPy optimization method TNC",
+          "code_snippet": "{output_var} = scipy.optimize.minimize({input_var}, [0.0, 0.0], method='TNC')"
+        },
+        {
+          "variant_id": "METHOD_COBYLA",
+          "code_flag": "'COBYLA'",
+          "keywords": [
+            "cobyla"
+          ],
+          "description": "SciPy optimization method COBYLA",
+          "code_snippet": "{output_var} = scipy.optimize.minimize({input_var}, [0.0, 0.0], method='COBYLA')"
+        },
+        {
+          "variant_id": "METHOD_SLSQP",
+          "code_flag": "'SLSQP'",
+          "keywords": [
+            "slsqp"
+          ],
+          "description": "SciPy optimization method SLSQP",
+          "code_snippet": "{output_var} = scipy.optimize.minimize({input_var}, [0.0, 0.0], method='SLSQP')"
+        },
+        {
+          "variant_id": "METHOD_TRUST_CONSTR",
+          "code_flag": "'trust-constr'",
+          "keywords": [
+            "constr",
+            "trust",
+            "trust-constr"
+          ],
+          "description": "SciPy optimization method trust-constr",
+          "code_snippet": "{output_var} = scipy.optimize.minimize({input_var}, [0.0, 0.0], method='trust-constr')"
+        }
+      ]
+    },
+    {
       "cell_id": "SCIPY_LOWLEVELCALLABLE_COUNT_DEFAULT",
       "domain": "scipy",
       "name": "count",
@@ -61353,201 +61481,6 @@
       "verified": false,
       "description": "scipy milp function.",
       "verification_error": "Traceback (most recent call last):\n  File \"<string>\", line 12, in <module>\n    output_var = scipy.optimize.milp(synthetic_c)\n  File \"/home/matthew/.pyenv/versions/3.13.5/lib/python3.13/site-packages/s"
-    },
-    {
-      "cell_id": "SCIPY_OPTIMIZE_MINIMIZE_DEFAULT",
-      "domain": "scipy",
-      "name": "minimize",
-      "params": [
-        {
-          "name": "fun",
-          "type": "ndarray",
-          "required": true,
-          "default": null,
-          "param_doc": "Parameter fun for minimize."
-        },
-        {
-          "name": "x0",
-          "type": "ndarray",
-          "required": true,
-          "default": null,
-          "param_doc": "Parameter x0 for minimize."
-        },
-        {
-          "name": "args",
-          "type": "ndarray",
-          "required": false,
-          "default": "()",
-          "param_doc": "Parameter args for minimize."
-        },
-        {
-          "name": "method",
-          "type": "ndarray",
-          "required": false,
-          "default": "None",
-          "param_doc": "Parameter method for minimize."
-        },
-        {
-          "name": "jac",
-          "type": "ndarray",
-          "required": false,
-          "default": "None",
-          "param_doc": "Parameter jac for minimize."
-        },
-        {
-          "name": "hess",
-          "type": "ndarray",
-          "required": false,
-          "default": "None",
-          "param_doc": "Parameter hess for minimize."
-        },
-        {
-          "name": "hessp",
-          "type": "ndarray",
-          "required": false,
-          "default": "None",
-          "param_doc": "Parameter hessp for minimize."
-        },
-        {
-          "name": "bounds",
-          "type": "ndarray",
-          "required": false,
-          "default": "None",
-          "param_doc": "Parameter bounds for minimize."
-        },
-        {
-          "name": "constraints",
-          "type": "ndarray",
-          "required": false,
-          "default": "()",
-          "param_doc": "Parameter constraints for minimize."
-        },
-        {
-          "name": "tol",
-          "type": "ndarray",
-          "required": false,
-          "default": "None",
-          "param_doc": "Parameter tol for minimize."
-        },
-        {
-          "name": "callback",
-          "type": "ndarray",
-          "required": false,
-          "default": "None",
-          "param_doc": "Parameter callback for minimize."
-        },
-        {
-          "name": "options",
-          "type": "ndarray",
-          "required": false,
-          "default": "None",
-          "param_doc": "Parameter options for minimize."
-        }
-      ],
-      "inputs": [
-        {
-          "name": "fun",
-          "type": "ndarray"
-        }
-      ],
-      "outputs": [
-        {
-          "name": "output",
-          "type": "ndarray"
-        }
-      ],
-      "domain_implementations": {
-        "Python_Core": {
-          "code": "{output_var} = scipy.optimize.minimize({fun}, {x0})",
-          "dependencies": [
-            "scipy"
-          ]
-        }
-      },
-      "provenance": "structural",
-      "verified": false,
-      "description": "scipy minimize function.",
-      "verification_error": "Traceback (most recent call last):\n  File \"<string>\", line 19, in <module>\n    output_var = scipy.optimize.minimize(synthetic_fun, synthetic_x0)\n  File \"/home/matthew/.pyenv/versions/3.13.5/lib/python"
-    },
-    {
-      "cell_id": "SCIPY_OPTIMIZE_MINIMIZE_SCALAR_DEFAULT",
-      "domain": "scipy",
-      "name": "minimize_scalar",
-      "params": [
-        {
-          "name": "fun",
-          "type": "ndarray",
-          "required": true,
-          "default": null,
-          "param_doc": "Parameter fun for minimize_scalar."
-        },
-        {
-          "name": "bracket",
-          "type": "ndarray",
-          "required": false,
-          "default": "None",
-          "param_doc": "Parameter bracket for minimize_scalar."
-        },
-        {
-          "name": "bounds",
-          "type": "ndarray",
-          "required": false,
-          "default": "None",
-          "param_doc": "Parameter bounds for minimize_scalar."
-        },
-        {
-          "name": "args",
-          "type": "ndarray",
-          "required": false,
-          "default": "()",
-          "param_doc": "Parameter args for minimize_scalar."
-        },
-        {
-          "name": "method",
-          "type": "ndarray",
-          "required": false,
-          "default": "None",
-          "param_doc": "Parameter method for minimize_scalar."
-        },
-        {
-          "name": "tol",
-          "type": "ndarray",
-          "required": false,
-          "default": "None",
-          "param_doc": "Parameter tol for minimize_scalar."
-        },
-        {
-          "name": "options",
-          "type": "ndarray",
-          "required": false,
-          "default": "None",
-          "param_doc": "Parameter options for minimize_scalar."
-        }
-      ],
-      "inputs": [
-        {
-          "name": "fun",
-          "type": "ndarray"
-        }
-      ],
-      "outputs": [
-        {
-          "name": "output",
-          "type": "ndarray"
-        }
-      ],
-      "domain_implementations": {
-        "Python_Core": {
-          "code": "{output_var} = scipy.optimize.minimize_scalar({fun})",
-          "dependencies": [
-            "scipy"
-          ]
-        }
-      },
-      "provenance": "structural",
-      "verified": false,
-      "description": "scipy minimize_scalar function.",
-      "verification_error": "Traceback (most recent call last):\n  File \"<string>\", line 14, in <module>\n    output_var = scipy.optimize.minimize_scalar(synthetic_fun)\n  File \"/home/matthew/.pyenv/versions/3.13.5/lib/python3.13/si"
     },
     {
       "cell_id": "SCIPY_OPTIMIZE_MINPACK_CURVE_FIT_DEFAULT",

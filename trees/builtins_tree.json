@@ -20,10 +20,12 @@
         "error handling",
         "Python"
       ],
-      "inputs": {
-        "type_name": "Arithmeticerror",
-        "state": "input_var"
-      },
+      "inputs": [
+        {
+          "name": "input_var",
+          "type": "AnyObject"
+        }
+      ],
       "outputs": [
         {
           "name": "output_var",
@@ -51,10 +53,12 @@
         "error handling",
         "traceback"
       ],
-      "inputs": {
-        "type_name": "Arithmeticerror",
-        "state": "input_var"
-      },
+      "inputs": [
+        {
+          "name": "input_var",
+          "type": "AnyObject"
+        }
+      ],
       "outputs": [
         {
           "name": "output_var",
@@ -80,10 +84,12 @@
         "derive",
         "exception handling"
       ],
-      "inputs": {
-        "type_name": "Baseexceptiongroup",
-        "state": "input_var"
-      },
+      "inputs": [
+        {
+          "name": "input_var",
+          "type": "AnyObject"
+        }
+      ],
       "outputs": [
         {
           "name": "output_var",
@@ -109,10 +115,12 @@
         "split",
         "default parameters"
       ],
-      "inputs": {
-        "type_name": "Baseexceptiongroup",
-        "state": "input_var"
-      },
+      "inputs": [
+        {
+          "name": "input_var",
+          "type": "AnyObject"
+        }
+      ],
       "outputs": [
         {
           "name": "output_var",
@@ -140,10 +148,12 @@
         "error grouping",
         "exception management"
       ],
-      "inputs": {
-        "type_name": "Baseexceptiongroup",
-        "state": "input_var"
-      },
+      "inputs": [
+        {
+          "name": "input_var",
+          "type": "AnyObject"
+        }
+      ],
       "outputs": [
         {
           "name": "output_var",
@@ -171,10 +181,12 @@
         "number",
         "magnitude"
       ],
-      "inputs": {
-        "type_name": "abs",
-        "state": "input_var"
-      },
+      "inputs": [
+        {
+          "name": "input_var",
+          "type": "AnyObject"
+        }
+      ],
       "outputs": [
         {
           "name": "output_var",
@@ -200,10 +212,12 @@
         "async iterable",
         "asynchronous iteration"
       ],
-      "inputs": {
-        "type_name": "aiter",
-        "state": "input_var"
-      },
+      "inputs": [
+        {
+          "name": "input_var",
+          "type": "AnyObject"
+        }
+      ],
       "outputs": [
         {
           "name": "output_var",
@@ -229,10 +243,12 @@
         "iterable",
         "boolean check"
       ],
-      "inputs": {
-        "type_name": "all",
-        "state": "input_var"
-      },
+      "inputs": [
+        {
+          "name": "input_var",
+          "type": "AnyObject"
+        }
+      ],
       "outputs": [
         {
           "name": "output_var",
@@ -258,10 +274,12 @@
         "anext",
         "default"
       ],
-      "inputs": {
-        "type_name": "anext",
-        "state": "input_var"
-      },
+      "inputs": [
+        {
+          "name": "input_var",
+          "type": "AnyObject"
+        }
+      ],
       "outputs": [
         {
           "name": "output_var",
@@ -289,10 +307,12 @@
         "condition",
         "check"
       ],
-      "inputs": {
-        "type_name": "any",
-        "state": "input_var"
-      },
+      "inputs": [
+        {
+          "name": "input_var",
+          "type": "AnyObject"
+        }
+      ],
       "outputs": [
         {
           "name": "output_var",
@@ -318,10 +338,12 @@
         "built-in",
         "string conversion"
       ],
-      "inputs": {
-        "type_name": "ascii",
-        "state": "input_var"
-      },
+      "inputs": [
+        {
+          "name": "input_var",
+          "type": "AnyObject"
+        }
+      ],
       "outputs": [
         {
           "name": "output_var",
@@ -347,10 +369,12 @@
         "conversion",
         "thresholding"
       ],
-      "inputs": {
-        "type_name": "bin",
-        "state": "input_var"
-      },
+      "inputs": [
+        {
+          "name": "input_var",
+          "type": "AnyObject"
+        }
+      ],
       "outputs": [
         {
           "name": "output_var",
@@ -378,10 +402,12 @@
         "boolean conversion",
         "ratio calculation"
       ],
-      "inputs": {
-        "type_name": "Bool",
-        "state": "input_var"
-      },
+      "inputs": [
+        {
+          "name": "input_var",
+          "type": "AnyObject"
+        }
+      ],
       "outputs": [
         {
           "name": "output_var",
@@ -409,10 +435,12 @@
         "count",
         "set bits"
       ],
-      "inputs": {
-        "type_name": "Bool",
-        "state": "input_var"
-      },
+      "inputs": [
+        {
+          "name": "input_var",
+          "type": "AnyObject"
+        }
+      ],
       "outputs": [
         {
           "name": "output_var",
@@ -440,10 +468,12 @@
         "integer length",
         "binary digits"
       ],
-      "inputs": {
-        "type_name": "Bool",
-        "state": "input_var"
-      },
+      "inputs": [
+        {
+          "name": "input_var",
+          "type": "AnyObject"
+        }
+      ],
       "outputs": [
         {
           "name": "output_var",
@@ -471,10 +501,12 @@
         "imaginary",
         "complex"
       ],
-      "inputs": {
-        "type_name": "Bool",
-        "state": "input_var"
-      },
+      "inputs": [
+        {
+          "name": "input_var",
+          "type": "AnyObject"
+        }
+      ],
       "outputs": [
         {
           "name": "output_var",
@@ -500,10 +532,12 @@
         "byteorder",
         "signed"
       ],
-      "inputs": {
-        "type_name": "Bool",
-        "state": "input_var"
-      },
+      "inputs": [
+        {
+          "name": "input_var",
+          "type": "AnyObject"
+        }
+      ],
       "outputs": [
         {
           "name": "output_var",
@@ -529,10 +563,12 @@
         "is_integer",
         "default"
       ],
-      "inputs": {
-        "type_name": "Bool",
-        "state": "input_var"
-      },
+      "inputs": [
+        {
+          "name": "input_var",
+          "type": "AnyObject"
+        }
+      ],
       "outputs": [
         {
           "name": "output_var",
@@ -558,10 +594,12 @@
         "byteorder big",
         "signed False"
       ],
-      "inputs": {
-        "type_name": "Bool",
-        "state": "input_var"
-      },
+      "inputs": [
+        {
+          "name": "input_var",
+          "type": "AnyObject"
+        }
+      ],
       "outputs": [
         {
           "name": "output_var",
@@ -589,10 +627,12 @@
         "development",
         "execution"
       ],
-      "inputs": {
-        "type_name": "breakpoint",
-        "state": "input_var"
-      },
+      "inputs": [
+        {
+          "name": "input_var",
+          "type": "AnyObject"
+        }
+      ],
       "outputs": [
         {
           "name": "output_var",
@@ -618,10 +658,12 @@
         "append",
         "item"
       ],
-      "inputs": {
-        "type_name": "Bytearray",
-        "state": "input_var"
-      },
+      "inputs": [
+        {
+          "name": "input_var",
+          "type": "AnyObject"
+        }
+      ],
       "outputs": [
         {
           "name": "output_var",
@@ -647,10 +689,12 @@
         "capitalize",
         "string method"
       ],
-      "inputs": {
-        "type_name": "Bytearray",
-        "state": "input_var"
-      },
+      "inputs": [
+        {
+          "name": "input_var",
+          "type": "AnyObject"
+        }
+      ],
       "outputs": [
         {
           "name": "output_var",
@@ -677,10 +721,12 @@
         "width",
         "fillchar"
       ],
-      "inputs": {
-        "type_name": "Bytearray",
-        "state": "input_var"
-      },
+      "inputs": [
+        {
+          "name": "input_var",
+          "type": "AnyObject"
+        }
+      ],
       "outputs": [
         {
           "name": "output_var",
@@ -706,10 +752,12 @@
         "clear",
         "empty"
       ],
-      "inputs": {
-        "type_name": "Bytearray",
-        "state": "input_var"
-      },
+      "inputs": [
+        {
+          "name": "input_var",
+          "type": "AnyObject"
+        }
+      ],
       "outputs": [
         {
           "name": "output_var",
@@ -735,10 +783,12 @@
         "copy",
         "default"
       ],
-      "inputs": {
-        "type_name": "Bytearray",
-        "state": "input_var"
-      },
+      "inputs": [
+        {
+          "name": "input_var",
+          "type": "AnyObject"
+        }
+      ],
       "outputs": [
         {
           "name": "output_var",
@@ -764,10 +814,12 @@
         "count",
         "default"
       ],
-      "inputs": {
-        "type_name": "Bytearray",
-        "state": "input_var"
-      },
+      "inputs": [
+        {
+          "name": "input_var",
+          "type": "AnyObject"
+        }
+      ],
       "outputs": [
         {
           "name": "output_var",
@@ -793,10 +845,12 @@
         "decode",
         "default"
       ],
-      "inputs": {
-        "type_name": "Bytearray",
-        "state": "input_var"
-      },
+      "inputs": [
+        {
+          "name": "input_var",
+          "type": "AnyObject"
+        }
+      ],
       "outputs": [
         {
           "name": "output_var",
@@ -822,10 +876,12 @@
         "endswith",
         "string"
       ],
-      "inputs": {
-        "type_name": "Bytearray",
-        "state": "input_var"
-      },
+      "inputs": [
+        {
+          "name": "input_var",
+          "type": "AnyObject"
+        }
+      ],
       "outputs": [
         {
           "name": "output_var",
@@ -851,10 +907,12 @@
         "expandtabs",
         "tabsize"
       ],
-      "inputs": {
-        "type_name": "Bytearray",
-        "state": "input_var"
-      },
+      "inputs": [
+        {
+          "name": "input_var",
+          "type": "AnyObject"
+        }
+      ],
       "outputs": [
         {
           "name": "output_var",
@@ -881,10 +939,12 @@
         "iterable",
         "integers"
       ],
-      "inputs": {
-        "type_name": "Bytearray",
-        "state": "input_var"
-      },
+      "inputs": [
+        {
+          "name": "input_var",
+          "type": "AnyObject"
+        }
+      ],
       "outputs": [
         {
           "name": "output_var",
@@ -912,10 +972,12 @@
         "index",
         "substring"
       ],
-      "inputs": {
-        "type_name": "Bytearray",
-        "state": "input_var"
-      },
+      "inputs": [
+        {
+          "name": "input_var",
+          "type": "AnyObject"
+        }
+      ],
       "outputs": [
         {
           "name": "output_var",
@@ -943,10 +1005,12 @@
         "conversion",
         "bytes"
       ],
-      "inputs": {
-        "type_name": "Bytearray",
-        "state": "input_var"
-      },
+      "inputs": [
+        {
+          "name": "input_var",
+          "type": "AnyObject"
+        }
+      ],
       "outputs": [
         {
           "name": "output_var",
@@ -972,10 +1036,12 @@
         "hex",
         "conversion"
       ],
-      "inputs": {
-        "type_name": "Bytearray",
-        "state": "input_var"
-      },
+      "inputs": [
+        {
+          "name": "input_var",
+          "type": "AnyObject"
+        }
+      ],
       "outputs": [
         {
           "name": "output_var",
@@ -1003,10 +1069,12 @@
         "position",
         "element"
       ],
-      "inputs": {
-        "type_name": "Bytearray",
-        "state": "input_var"
-      },
+      "inputs": [
+        {
+          "name": "input_var",
+          "type": "AnyObject"
+        }
+      ],
       "outputs": [
         {
           "name": "output_var",
@@ -1033,10 +1101,12 @@
         "index",
         "item"
       ],
-      "inputs": {
-        "type_name": "Bytearray",
-        "state": "input_var"
-      },
+      "inputs": [
+        {
+          "name": "input_var",
+          "type": "AnyObject"
+        }
+      ],
       "outputs": [
         {
           "name": "output_var",
@@ -1062,10 +1132,12 @@
         "isalnum",
         "default"
       ],
-      "inputs": {
-        "type_name": "Bytearray",
-        "state": "input_var"
-      },
+      "inputs": [
+        {
+          "name": "input_var",
+          "type": "AnyObject"
+        }
+      ],
       "outputs": [
         {
           "name": "output_var",
@@ -1093,10 +1165,12 @@
         "alphabet",
         "characters"
       ],
-      "inputs": {
-        "type_name": "Bytearray",
-        "state": "input_var"
-      },
+      "inputs": [
+        {
+          "name": "input_var",
+          "type": "AnyObject"
+        }
+      ],
       "outputs": [
         {
           "name": "output_var",
@@ -1122,10 +1196,12 @@
         "isascii",
         "default"
       ],
-      "inputs": {
-        "type_name": "Bytearray",
-        "state": "input_var"
-      },
+      "inputs": [
+        {
+          "name": "input_var",
+          "type": "AnyObject"
+        }
+      ],
       "outputs": [
         {
           "name": "output_var",
@@ -1153,10 +1229,12 @@
         "numeric",
         "validation"
       ],
-      "inputs": {
-        "type_name": "Bytearray",
-        "state": "input_var"
-      },
+      "inputs": [
+        {
+          "name": "input_var",
+          "type": "AnyObject"
+        }
+      ],
       "outputs": [
         {
           "name": "output_var",
@@ -1182,10 +1260,12 @@
         "islower",
         "default"
       ],
-      "inputs": {
-        "type_name": "Bytearray",
-        "state": "input_var"
-      },
+      "inputs": [
+        {
+          "name": "input_var",
+          "type": "AnyObject"
+        }
+      ],
       "outputs": [
         {
           "name": "output_var",
@@ -1211,10 +1291,12 @@
         "isspace",
         "whitespace"
       ],
-      "inputs": {
-        "type_name": "Bytearray",
-        "state": "input_var"
-      },
+      "inputs": [
+        {
+          "name": "input_var",
+          "type": "AnyObject"
+        }
+      ],
       "outputs": [
         {
           "name": "output_var",
@@ -1240,10 +1322,12 @@
         "istitle",
         "default"
       ],
-      "inputs": {
-        "type_name": "Bytearray",
-        "state": "input_var"
-      },
+      "inputs": [
+        {
+          "name": "input_var",
+          "type": "AnyObject"
+        }
+      ],
       "outputs": [
         {
           "name": "output_var",
@@ -1271,10 +1355,12 @@
         "string",
         "characters"
       ],
-      "inputs": {
-        "type_name": "Bytearray",
-        "state": "input_var"
-      },
+      "inputs": [
+        {
+          "name": "input_var",
+          "type": "AnyObject"
+        }
+      ],
       "outputs": [
         {
           "name": "output_var",
@@ -1300,10 +1386,12 @@
         "join",
         "iterable"
       ],
-      "inputs": {
-        "type_name": "Bytearray",
-        "state": "input_var"
-      },
+      "inputs": [
+        {
+          "name": "input_var",
+          "type": "AnyObject"
+        }
+      ],
       "outputs": [
         {
           "name": "output_var",
@@ -1330,10 +1418,12 @@
         "width",
         "fillchar"
       ],
-      "inputs": {
-        "type_name": "Bytearray",
-        "state": "input_var"
-      },
+      "inputs": [
+        {
+          "name": "input_var",
+          "type": "AnyObject"
+        }
+      ],
       "outputs": [
         {
           "name": "output_var",
@@ -1361,10 +1451,12 @@
         "conversion",
         "ASCII"
       ],
-      "inputs": {
-        "type_name": "Bytearray",
-        "state": "input_var"
-      },
+      "inputs": [
+        {
+          "name": "input_var",
+          "type": "AnyObject"
+        }
+      ],
       "outputs": [
         {
           "name": "output_var",
@@ -1390,10 +1482,12 @@
         "lstrip",
         "default"
       ],
-      "inputs": {
-        "type_name": "Bytearray",
-        "state": "input_var"
-      },
+      "inputs": [
+        {
+          "name": "input_var",
+          "type": "AnyObject"
+        }
+      ],
       "outputs": [
         {
           "name": "output_var",
@@ -1419,10 +1513,12 @@
         "maketrans",
         "translation table"
       ],
-      "inputs": {
-        "type_name": "Bytearray",
-        "state": "input_var"
-      },
+      "inputs": [
+        {
+          "name": "input_var",
+          "type": "AnyObject"
+        }
+      ],
       "outputs": [
         {
           "name": "output_var",
@@ -1448,10 +1544,12 @@
         "partition",
         "default"
       ],
-      "inputs": {
-        "type_name": "Bytearray",
-        "state": "input_var"
-      },
+      "inputs": [
+        {
+          "name": "input_var",
+          "type": "AnyObject"
+        }
+      ],
       "outputs": [
         {
           "name": "output_var",
@@ -1477,10 +1575,12 @@
         "pop",
         "index"
       ],
-      "inputs": {
-        "type_name": "Bytearray",
-        "state": "input_var"
-      },
+      "inputs": [
+        {
+          "name": "input_var",
+          "type": "AnyObject"
+        }
+      ],
       "outputs": [
         {
           "name": "output_var",
@@ -1506,10 +1606,12 @@
         "remove",
         "element"
       ],
-      "inputs": {
-        "type_name": "Bytearray",
-        "state": "input_var"
-      },
+      "inputs": [
+        {
+          "name": "input_var",
+          "type": "AnyObject"
+        }
+      ],
       "outputs": [
         {
           "name": "output_var",
@@ -1535,10 +1637,12 @@
         "removeprefix",
         "default"
       ],
-      "inputs": {
-        "type_name": "Bytearray",
-        "state": "input_var"
-      },
+      "inputs": [
+        {
+          "name": "input_var",
+          "type": "AnyObject"
+        }
+      ],
       "outputs": [
         {
           "name": "output_var",
@@ -1564,10 +1668,12 @@
         "removesuffix",
         "default"
       ],
-      "inputs": {
-        "type_name": "Bytearray",
-        "state": "input_var"
-      },
+      "inputs": [
+        {
+          "name": "input_var",
+          "type": "AnyObject"
+        }
+      ],
       "outputs": [
         {
           "name": "output_var",
@@ -1593,10 +1699,12 @@
         "replace",
         "count"
       ],
-      "inputs": {
-        "type_name": "Bytearray",
-        "state": "input_var"
-      },
+      "inputs": [
+        {
+          "name": "input_var",
+          "type": "AnyObject"
+        }
+      ],
       "outputs": [
         {
           "name": "output_var",
@@ -1622,10 +1730,12 @@
         "reverse",
         "in-place"
       ],
-      "inputs": {
-        "type_name": "Bytearray",
-        "state": "input_var"
-      },
+      "inputs": [
+        {
+          "name": "input_var",
+          "type": "AnyObject"
+        }
+      ],
       "outputs": [
         {
           "name": "output_var",
@@ -1653,10 +1763,12 @@
         "substring",
         "index"
       ],
-      "inputs": {
-        "type_name": "Bytearray",
-        "state": "input_var"
-      },
+      "inputs": [
+        {
+          "name": "input_var",
+          "type": "AnyObject"
+        }
+      ],
       "outputs": [
         {
           "name": "output_var",
@@ -1684,10 +1796,12 @@
         "substring",
         "position"
       ],
-      "inputs": {
-        "type_name": "Bytearray",
-        "state": "input_var"
-      },
+      "inputs": [
+        {
+          "name": "input_var",
+          "type": "AnyObject"
+        }
+      ],
       "outputs": [
         {
           "name": "output_var",
@@ -1714,10 +1828,12 @@
         "width",
         "fillchar"
       ],
-      "inputs": {
-        "type_name": "Bytearray",
-        "state": "input_var"
-      },
+      "inputs": [
+        {
+          "name": "input_var",
+          "type": "AnyObject"
+        }
+      ],
       "outputs": [
         {
           "name": "output_var",
@@ -1743,10 +1859,12 @@
         "rpartition",
         "default"
       ],
-      "inputs": {
-        "type_name": "Bytearray",
-        "state": "input_var"
-      },
+      "inputs": [
+        {
+          "name": "input_var",
+          "type": "AnyObject"
+        }
+      ],
       "outputs": [
         {
           "name": "output_var",
@@ -1772,10 +1890,12 @@
         "rsplit",
         "default"
       ],
-      "inputs": {
-        "type_name": "Bytearray",
-        "state": "input_var"
-      },
+      "inputs": [
+        {
+          "name": "input_var",
+          "type": "AnyObject"
+        }
+      ],
       "outputs": [
         {
           "name": "output_var",
@@ -1801,10 +1921,12 @@
         "rstrip",
         "default"
       ],
-      "inputs": {
-        "type_name": "Bytearray",
-        "state": "input_var"
-      },
+      "inputs": [
+        {
+          "name": "input_var",
+          "type": "AnyObject"
+        }
+      ],
       "outputs": [
         {
           "name": "output_var",
@@ -1830,10 +1952,12 @@
         "splitlines",
         "keepends"
       ],
-      "inputs": {
-        "type_name": "Bytearray",
-        "state": "input_var"
-      },
+      "inputs": [
+        {
+          "name": "input_var",
+          "type": "AnyObject"
+        }
+      ],
       "outputs": [
         {
           "name": "output_var",
@@ -1859,10 +1983,12 @@
         "startswith",
         "default"
       ],
-      "inputs": {
-        "type_name": "Bytearray",
-        "state": "input_var"
-      },
+      "inputs": [
+        {
+          "name": "input_var",
+          "type": "AnyObject"
+        }
+      ],
       "outputs": [
         {
           "name": "output_var",
@@ -1888,10 +2014,12 @@
         "strip",
         "default"
       ],
-      "inputs": {
-        "type_name": "Bytearray",
-        "state": "input_var"
-      },
+      "inputs": [
+        {
+          "name": "input_var",
+          "type": "AnyObject"
+        }
+      ],
       "outputs": [
         {
           "name": "output_var",
@@ -1917,10 +2045,12 @@
         "swapcase",
         "case conversion"
       ],
-      "inputs": {
-        "type_name": "Bytearray",
-        "state": "input_var"
-      },
+      "inputs": [
+        {
+          "name": "input_var",
+          "type": "AnyObject"
+        }
+      ],
       "outputs": [
         {
           "name": "output_var",
@@ -1948,10 +2078,12 @@
         "uppercase",
         "conversion"
       ],
-      "inputs": {
-        "type_name": "Bytearray",
-        "state": "input_var"
-      },
+      "inputs": [
+        {
+          "name": "input_var",
+          "type": "AnyObject"
+        }
+      ],
       "outputs": [
         {
           "name": "output_var",
@@ -1978,10 +2110,12 @@
         "table",
         "delete"
       ],
-      "inputs": {
-        "type_name": "Bytearray",
-        "state": "input_var"
-      },
+      "inputs": [
+        {
+          "name": "input_var",
+          "type": "AnyObject"
+        }
+      ],
       "outputs": [
         {
           "name": "output_var",
@@ -2009,10 +2143,12 @@
         "conversion",
         "ASCII"
       ],
-      "inputs": {
-        "type_name": "Bytearray",
-        "state": "input_var"
-      },
+      "inputs": [
+        {
+          "name": "input_var",
+          "type": "AnyObject"
+        }
+      ],
       "outputs": [
         {
           "name": "output_var",
@@ -2038,10 +2174,12 @@
         "zfill",
         "width"
       ],
-      "inputs": {
-        "type_name": "Bytearray",
-        "state": "input_var"
-      },
+      "inputs": [
+        {
+          "name": "input_var",
+          "type": "AnyObject"
+        }
+      ],
       "outputs": [
         {
           "name": "output_var",
@@ -2069,10 +2207,12 @@
         "object",
         "check"
       ],
-      "inputs": {
-        "type_name": "callable",
-        "state": "input_var"
-      },
+      "inputs": [
+        {
+          "name": "input_var",
+          "type": "AnyObject"
+        }
+      ],
       "outputs": [
         {
           "name": "output_var",
@@ -2098,10 +2238,12 @@
         "unicode",
         "ASCII"
       ],
-      "inputs": {
-        "type_name": "chr",
-        "state": "input_var"
-      },
+      "inputs": [
+        {
+          "name": "input_var",
+          "type": "AnyObject"
+        }
+      ],
       "outputs": [
         {
           "name": "output_var",
@@ -2129,10 +2271,12 @@
         "filename",
         "mode"
       ],
-      "inputs": {
-        "type_name": "compile",
-        "state": "input_var"
-      },
+      "inputs": [
+        {
+          "name": "input_var",
+          "type": "AnyObject"
+        }
+      ],
       "outputs": [
         {
           "name": "output_var",
@@ -2158,10 +2302,12 @@
         "builtins.delattr",
         "object attribute"
       ],
-      "inputs": {
-        "type_name": "delattr",
-        "state": "input_var"
-      },
+      "inputs": [
+        {
+          "name": "input_var",
+          "type": "AnyObject"
+        }
+      ],
       "outputs": [
         {
           "name": "output_var",
@@ -2189,10 +2335,12 @@
         "iterable",
         "value"
       ],
-      "inputs": {
-        "type_name": "Dict",
-        "state": "input_var"
-      },
+      "inputs": [
+        {
+          "name": "input_var",
+          "type": "AnyObject"
+        }
+      ],
       "outputs": [
         {
           "name": "output_var",
@@ -2218,10 +2366,12 @@
         "default value",
         "key lookup"
       ],
-      "inputs": {
-        "type_name": "Dict",
-        "state": "input_var"
-      },
+      "inputs": [
+        {
+          "name": "input_var",
+          "type": "AnyObject"
+        }
+      ],
       "outputs": [
         {
           "name": "output_var",
@@ -2247,10 +2397,12 @@
         "dictionary",
         "key-value pairs"
       ],
-      "inputs": {
-        "type_name": "Dict",
-        "state": "input_var"
-      },
+      "inputs": [
+        {
+          "name": "input_var",
+          "type": "AnyObject"
+        }
+      ],
       "outputs": [
         {
           "name": "output_var",
@@ -2278,10 +2430,12 @@
         "dictionary methods",
         "key retrieval"
       ],
-      "inputs": {
-        "type_name": "Dict",
-        "state": "input_var"
-      },
+      "inputs": [
+        {
+          "name": "input_var",
+          "type": "AnyObject"
+        }
+      ],
       "outputs": [
         {
           "name": "output_var",
@@ -2309,10 +2463,12 @@
         "key",
         "value"
       ],
-      "inputs": {
-        "type_name": "Dict",
-        "state": "input_var"
-      },
+      "inputs": [
+        {
+          "name": "input_var",
+          "type": "AnyObject"
+        }
+      ],
       "outputs": [
         {
           "name": "output_var",
@@ -2340,10 +2496,12 @@
         "dictionary update",
         "default argument"
       ],
-      "inputs": {
-        "type_name": "Dict",
-        "state": "input_var"
-      },
+      "inputs": [
+        {
+          "name": "input_var",
+          "type": "AnyObject"
+        }
+      ],
       "outputs": [
         {
           "name": "output_var",
@@ -2369,10 +2527,12 @@
         "dictionary",
         "update method"
       ],
-      "inputs": {
-        "type_name": "Dict",
-        "state": "input_var"
-      },
+      "inputs": [
+        {
+          "name": "input_var",
+          "type": "AnyObject"
+        }
+      ],
       "outputs": [
         {
           "name": "output_var",
@@ -2400,10 +2560,12 @@
         "function",
         "python"
       ],
-      "inputs": {
-        "type_name": "Dict",
-        "state": "input_var"
-      },
+      "inputs": [
+        {
+          "name": "input_var",
+          "type": "AnyObject"
+        }
+      ],
       "outputs": [
         {
           "name": "output_var",
@@ -2429,10 +2591,12 @@
         "builtin",
         "function"
       ],
-      "inputs": {
-        "type_name": "dir",
-        "state": "input_var"
-      },
+      "inputs": [
+        {
+          "name": "input_var",
+          "type": "AnyObject"
+        }
+      ],
       "outputs": [
         {
           "name": "output_var",
@@ -2458,10 +2622,12 @@
         "remainder",
         "tuple output"
       ],
-      "inputs": {
-        "type_name": "divmod",
-        "state": "input_var"
-      },
+      "inputs": [
+        {
+          "name": "input_var",
+          "type": "AnyObject"
+        }
+      ],
       "outputs": [
         {
           "name": "output_var",
@@ -2487,10 +2653,12 @@
         "built-in",
         "dynamic"
       ],
-      "inputs": {
-        "type_name": "eval",
-        "state": "input_var"
-      },
+      "inputs": [
+        {
+          "name": "input_var",
+          "type": "AnyObject"
+        }
+      ],
       "outputs": [
         {
           "name": "output_var",
@@ -2518,10 +2686,12 @@
         "runtime",
         "code execution"
       ],
-      "inputs": {
-        "type_name": "exec",
-        "state": "input_var"
-      },
+      "inputs": [
+        {
+          "name": "input_var",
+          "type": "AnyObject"
+        }
+      ],
       "outputs": [
         {
           "name": "output_var",
@@ -2547,10 +2717,12 @@
         "builtin",
         "string"
       ],
-      "inputs": {
-        "type_name": "format",
-        "state": "input_var"
-      },
+      "inputs": [
+        {
+          "name": "input_var",
+          "type": "AnyObject"
+        }
+      ],
       "outputs": [
         {
           "name": "output_var",
@@ -2576,10 +2748,12 @@
         "difference",
         "set operations"
       ],
-      "inputs": {
-        "type_name": "Frozenset",
-        "state": "input_var"
-      },
+      "inputs": [
+        {
+          "name": "input_var",
+          "type": "AnyObject"
+        }
+      ],
       "outputs": [
         {
           "name": "output_var",
@@ -2607,10 +2781,12 @@
         "set operations",
         "common elements"
       ],
-      "inputs": {
-        "type_name": "Frozenset",
-        "state": "input_var"
-      },
+      "inputs": [
+        {
+          "name": "input_var",
+          "type": "AnyObject"
+        }
+      ],
       "outputs": [
         {
           "name": "output_var",
@@ -2638,10 +2814,12 @@
         "disjoint check",
         "set theory"
       ],
-      "inputs": {
-        "type_name": "Frozenset",
-        "state": "input_var"
-      },
+      "inputs": [
+        {
+          "name": "input_var",
+          "type": "AnyObject"
+        }
+      ],
       "outputs": [
         {
           "name": "output_var",
@@ -2669,10 +2847,12 @@
         "elements",
         "comparison"
       ],
-      "inputs": {
-        "type_name": "Frozenset",
-        "state": "input_var"
-      },
+      "inputs": [
+        {
+          "name": "input_var",
+          "type": "AnyObject"
+        }
+      ],
       "outputs": [
         {
           "name": "output_var",
@@ -2698,10 +2878,12 @@
         "issuperset",
         "set comparison"
       ],
-      "inputs": {
-        "type_name": "Frozenset",
-        "state": "input_var"
-      },
+      "inputs": [
+        {
+          "name": "input_var",
+          "type": "AnyObject"
+        }
+      ],
       "outputs": [
         {
           "name": "output_var",
@@ -2727,10 +2909,12 @@
         "frozenset",
         "set operations"
       ],
-      "inputs": {
-        "type_name": "Frozenset",
-        "state": "input_var"
-      },
+      "inputs": [
+        {
+          "name": "input_var",
+          "type": "AnyObject"
+        }
+      ],
       "outputs": [
         {
           "name": "output_var",
@@ -2758,10 +2942,12 @@
         "set operations",
         "python"
       ],
-      "inputs": {
-        "type_name": "Frozenset",
-        "state": "input_var"
-      },
+      "inputs": [
+        {
+          "name": "input_var",
+          "type": "AnyObject"
+        }
+      ],
       "outputs": [
         {
           "name": "output_var",
@@ -2787,10 +2973,12 @@
         "builtin",
         "default parameters"
       ],
-      "inputs": {
-        "type_name": "getattr",
-        "state": "input_var"
-      },
+      "inputs": [
+        {
+          "name": "input_var",
+          "type": "AnyObject"
+        }
+      ],
       "outputs": [
         {
           "name": "output_var",
@@ -2816,10 +3004,12 @@
         "built-in",
         "dictionary"
       ],
-      "inputs": {
-        "type_name": "globals",
-        "state": "input_var"
-      },
+      "inputs": [
+        {
+          "name": "input_var",
+          "type": "AnyObject"
+        }
+      ],
       "outputs": [
         {
           "name": "output_var",
@@ -2846,10 +3036,12 @@
         "object",
         "attribute"
       ],
-      "inputs": {
-        "type_name": "hasattr",
-        "state": "input_var"
-      },
+      "inputs": [
+        {
+          "name": "input_var",
+          "type": "AnyObject"
+        }
+      ],
       "outputs": [
         {
           "name": "output_var",
@@ -2875,10 +3067,12 @@
         "built-in",
         "object"
       ],
-      "inputs": {
-        "type_name": "hash",
-        "state": "input_var"
-      },
+      "inputs": [
+        {
+          "name": "input_var",
+          "type": "AnyObject"
+        }
+      ],
       "outputs": [
         {
           "name": "output_var",
@@ -2904,10 +3098,12 @@
         "id",
         "object"
       ],
-      "inputs": {
-        "type_name": "id",
-        "state": "input_var"
-      },
+      "inputs": [
+        {
+          "name": "input_var",
+          "type": "AnyObject"
+        }
+      ],
       "outputs": [
         {
           "name": "output_var",
@@ -2933,10 +3129,12 @@
         "user input",
         "prompt"
       ],
-      "inputs": {
-        "type_name": "input",
-        "state": "input_var"
-      },
+      "inputs": [
+        {
+          "name": "input_var",
+          "type": "AnyObject"
+        }
+      ],
       "outputs": [
         {
           "name": "output_var",
@@ -2963,10 +3161,12 @@
         "class",
         "tuple"
       ],
-      "inputs": {
-        "type_name": "isinstance",
-        "state": "input_var"
-      },
+      "inputs": [
+        {
+          "name": "input_var",
+          "type": "AnyObject"
+        }
+      ],
       "outputs": [
         {
           "name": "output_var",
@@ -2992,10 +3192,12 @@
         "inheritance",
         "class hierarchy"
       ],
-      "inputs": {
-        "type_name": "issubclass",
-        "state": "input_var"
-      },
+      "inputs": [
+        {
+          "name": "input_var",
+          "type": "AnyObject"
+        }
+      ],
       "outputs": [
         {
           "name": "output_var",
@@ -3021,10 +3223,12 @@
         "builtins",
         "default parameters"
       ],
-      "inputs": {
-        "type_name": "iter",
-        "state": "input_var"
-      },
+      "inputs": [
+        {
+          "name": "input_var",
+          "type": "AnyObject"
+        }
+      ],
       "outputs": [
         {
           "name": "output_var",
@@ -3052,10 +3256,12 @@
         "elements",
         "iterable"
       ],
-      "inputs": {
-        "type_name": "len",
-        "state": "input_var"
-      },
+      "inputs": [
+        {
+          "name": "input_var",
+          "type": "AnyObject"
+        }
+      ],
       "outputs": [
         {
           "name": "output_var",
@@ -3081,10 +3287,12 @@
         "default sorting",
         "no arguments"
       ],
-      "inputs": {
-        "type_name": "List",
-        "state": "input_var"
-      },
+      "inputs": [
+        {
+          "name": "input_var",
+          "type": "AnyObject"
+        }
+      ],
       "outputs": [
         {
           "name": "output_var",
@@ -3112,10 +3320,12 @@
         "runtime",
         "variables"
       ],
-      "inputs": {
-        "type_name": "locals",
-        "state": "input_var"
-      },
+      "inputs": [
+        {
+          "name": "input_var",
+          "type": "AnyObject"
+        }
+      ],
       "outputs": [
         {
           "name": "output_var",
@@ -3141,10 +3351,12 @@
         "built-in",
         "function"
       ],
-      "inputs": {
-        "type_name": "max",
-        "state": "input_var"
-      },
+      "inputs": [
+        {
+          "name": "input_var",
+          "type": "AnyObject"
+        }
+      ],
       "outputs": [
         {
           "name": "output_var",
@@ -3170,10 +3382,12 @@
         "cast",
         "default"
       ],
-      "inputs": {
-        "type_name": "Memoryview",
-        "state": "input_var"
-      },
+      "inputs": [
+        {
+          "name": "input_var",
+          "type": "AnyObject"
+        }
+      ],
       "outputs": [
         {
           "name": "output_var",
@@ -3199,10 +3413,12 @@
         "release",
         "buffer"
       ],
-      "inputs": {
-        "type_name": "Memoryview",
-        "state": "input_var"
-      },
+      "inputs": [
+        {
+          "name": "input_var",
+          "type": "AnyObject"
+        }
+      ],
       "outputs": [
         {
           "name": "output_var",
@@ -3230,10 +3446,12 @@
         "default",
         "byte order"
       ],
-      "inputs": {
-        "type_name": "Memoryview",
-        "state": "input_var"
-      },
+      "inputs": [
+        {
+          "name": "input_var",
+          "type": "AnyObject"
+        }
+      ],
       "outputs": [
         {
           "name": "output_var",
@@ -3259,10 +3477,12 @@
         "tolist",
         "default"
       ],
-      "inputs": {
-        "type_name": "Memoryview",
-        "state": "input_var"
-      },
+      "inputs": [
+        {
+          "name": "input_var",
+          "type": "AnyObject"
+        }
+      ],
       "outputs": [
         {
           "name": "output_var",
@@ -3288,10 +3508,12 @@
         "readonly",
         "conversion"
       ],
-      "inputs": {
-        "type_name": "Memoryview",
-        "state": "input_var"
-      },
+      "inputs": [
+        {
+          "name": "input_var",
+          "type": "AnyObject"
+        }
+      ],
       "outputs": [
         {
           "name": "output_var",
@@ -3317,10 +3539,12 @@
         "builtin",
         "function"
       ],
-      "inputs": {
-        "type_name": "min",
-        "state": "input_var"
-      },
+      "inputs": [
+        {
+          "name": "input_var",
+          "type": "AnyObject"
+        }
+      ],
       "outputs": [
         {
           "name": "output_var",
@@ -3346,10 +3570,12 @@
         "builtin",
         "iteration"
       ],
-      "inputs": {
-        "type_name": "next",
-        "state": "input_var"
-      },
+      "inputs": [
+        {
+          "name": "input_var",
+          "type": "AnyObject"
+        }
+      ],
       "outputs": [
         {
           "name": "output_var",
@@ -3377,10 +3603,12 @@
         "integer",
         "binary"
       ],
-      "inputs": {
-        "type_name": "oct",
-        "state": "input_var"
-      },
+      "inputs": [
+        {
+          "name": "input_var",
+          "type": "AnyObject"
+        }
+      ],
       "outputs": [
         {
           "name": "output_var",
@@ -3411,10 +3639,12 @@
         "closefd",
         "opener"
       ],
-      "inputs": {
-        "type_name": "open",
-        "state": "input_var"
-      },
+      "inputs": [
+        {
+          "name": "input_var",
+          "type": "AnyObject"
+        }
+      ],
       "outputs": [
         {
           "name": "output_var",
@@ -3440,10 +3670,12 @@
         "ord",
         "character"
       ],
-      "inputs": {
-        "type_name": "ord",
-        "state": "input_var"
-      },
+      "inputs": [
+        {
+          "name": "input_var",
+          "type": "AnyObject"
+        }
+      ],
       "outputs": [
         {
           "name": "output_var",
@@ -3471,10 +3703,12 @@
         "integer",
         "math"
       ],
-      "inputs": {
-        "type_name": "pow",
-        "state": "input_var"
-      },
+      "inputs": [
+        {
+          "name": "input_var",
+          "type": "AnyObject"
+        }
+      ],
       "outputs": [
         {
           "name": "output_var",
@@ -3500,10 +3734,12 @@
         "default",
         "output"
       ],
-      "inputs": {
-        "type_name": "print",
-        "state": "input_var"
-      },
+      "inputs": [
+        {
+          "name": "input_var",
+          "type": "AnyObject"
+        }
+      ],
       "outputs": [
         {
           "name": "output_var",
@@ -3531,10 +3767,12 @@
         "attribute",
         "removal"
       ],
-      "inputs": {
-        "type_name": "Property",
-        "state": "input_var"
-      },
+      "inputs": [
+        {
+          "name": "input_var",
+          "type": "AnyObject"
+        }
+      ],
       "outputs": [
         {
           "name": "output_var",
@@ -3560,10 +3798,12 @@
         "getter",
         "builtins"
       ],
-      "inputs": {
-        "type_name": "Property",
-        "state": "input_var"
-      },
+      "inputs": [
+        {
+          "name": "input_var",
+          "type": "AnyObject"
+        }
+      ],
       "outputs": [
         {
           "name": "output_var",
@@ -3589,10 +3829,12 @@
         "setter",
         "default"
       ],
-      "inputs": {
-        "type_name": "Property",
-        "state": "input_var"
-      },
+      "inputs": [
+        {
+          "name": "input_var",
+          "type": "AnyObject"
+        }
+      ],
       "outputs": [
         {
           "name": "output_var",
@@ -3618,10 +3860,12 @@
         "repr",
         "object"
       ],
-      "inputs": {
-        "type_name": "repr",
-        "state": "input_var"
-      },
+      "inputs": [
+        {
+          "name": "input_var",
+          "type": "AnyObject"
+        }
+      ],
       "outputs": [
         {
           "name": "output_var",
@@ -3647,10 +3891,12 @@
         "number",
         "decimal places"
       ],
-      "inputs": {
-        "type_name": "round",
-        "state": "input_var"
-      },
+      "inputs": [
+        {
+          "name": "input_var",
+          "type": "AnyObject"
+        }
+      ],
       "outputs": [
         {
           "name": "output_var",
@@ -3678,10 +3924,12 @@
         "python",
         "default"
       ],
-      "inputs": {
-        "type_name": "Set",
-        "state": "input_var"
-      },
+      "inputs": [
+        {
+          "name": "input_var",
+          "type": "AnyObject"
+        }
+      ],
       "outputs": [
         {
           "name": "output_var",
@@ -3707,10 +3955,12 @@
         "update",
         "builtin function"
       ],
-      "inputs": {
-        "type_name": "Set",
-        "state": "input_var"
-      },
+      "inputs": [
+        {
+          "name": "input_var",
+          "type": "AnyObject"
+        }
+      ],
       "outputs": [
         {
           "name": "output_var",
@@ -3738,10 +3988,12 @@
         "empty",
         "default"
       ],
-      "inputs": {
-        "type_name": "Set",
-        "state": "input_var"
-      },
+      "inputs": [
+        {
+          "name": "input_var",
+          "type": "AnyObject"
+        }
+      ],
       "outputs": [
         {
           "name": "output_var",
@@ -3767,10 +4019,12 @@
         "update",
         "common elements"
       ],
-      "inputs": {
-        "type_name": "Set",
-        "state": "input_var"
-      },
+      "inputs": [
+        {
+          "name": "input_var",
+          "type": "AnyObject"
+        }
+      ],
       "outputs": [
         {
           "name": "output_var",
@@ -3798,10 +4052,12 @@
         "python",
         "set operations"
       ],
-      "inputs": {
-        "type_name": "Set",
-        "state": "input_var"
-      },
+      "inputs": [
+        {
+          "name": "input_var",
+          "type": "AnyObject"
+        }
+      ],
       "outputs": [
         {
           "name": "output_var",
@@ -3827,10 +4083,12 @@
         "object",
         "attribute"
       ],
-      "inputs": {
-        "type_name": "setattr",
-        "state": "input_var"
-      },
+      "inputs": [
+        {
+          "name": "input_var",
+          "type": "AnyObject"
+        }
+      ],
       "outputs": [
         {
           "name": "output_var",
@@ -3856,10 +4114,12 @@
         "indices",
         "default"
       ],
-      "inputs": {
-        "type_name": "Slice",
-        "state": "input_var"
-      },
+      "inputs": [
+        {
+          "name": "input_var",
+          "type": "AnyObject"
+        }
+      ],
       "outputs": [
         {
           "name": "output_var",
@@ -3886,10 +4146,12 @@
         "key",
         "reverse"
       ],
-      "inputs": {
-        "type_name": "sorted",
-        "state": "input_var"
-      },
+      "inputs": [
+        {
+          "name": "input_var",
+          "type": "AnyObject"
+        }
+      ],
       "outputs": [
         {
           "name": "output_var",
@@ -3917,10 +4179,12 @@
         "unicode",
         "normalization"
       ],
-      "inputs": {
-        "type_name": "Str",
-        "state": "input_var"
-      },
+      "inputs": [
+        {
+          "name": "input_var",
+          "type": "AnyObject"
+        }
+      ],
       "outputs": [
         {
           "name": "output_var",
@@ -3947,10 +4211,12 @@
         "encoding",
         "errors"
       ],
-      "inputs": {
-        "type_name": "Str",
-        "state": "input_var"
-      },
+      "inputs": [
+        {
+          "name": "input_var",
+          "type": "AnyObject"
+        }
+      ],
       "outputs": [
         {
           "name": "output_var",
@@ -3978,10 +4244,12 @@
         "template string",
         "dictionary substitution"
       ],
-      "inputs": {
-        "type_name": "Str",
-        "state": "input_var"
-      },
+      "inputs": [
+        {
+          "name": "input_var",
+          "type": "AnyObject"
+        }
+      ],
       "outputs": [
         {
           "name": "output_var",
@@ -4007,10 +4275,12 @@
         "decimal",
         "isdecimal"
       ],
-      "inputs": {
-        "type_name": "Str",
-        "state": "input_var"
-      },
+      "inputs": [
+        {
+          "name": "input_var",
+          "type": "AnyObject"
+        }
+      ],
       "outputs": [
         {
           "name": "output_var",
@@ -4038,10 +4308,12 @@
         "name",
         "syntax"
       ],
-      "inputs": {
-        "type_name": "Str",
-        "state": "input_var"
-      },
+      "inputs": [
+        {
+          "name": "input_var",
+          "type": "AnyObject"
+        }
+      ],
       "outputs": [
         {
           "name": "output_var",
@@ -4067,10 +4339,12 @@
         "numeric",
         "check"
       ],
-      "inputs": {
-        "type_name": "Str",
-        "state": "input_var"
-      },
+      "inputs": [
+        {
+          "name": "input_var",
+          "type": "AnyObject"
+        }
+      ],
       "outputs": [
         {
           "name": "output_var",
@@ -4098,10 +4372,12 @@
         "characters",
         "whitespace"
       ],
-      "inputs": {
-        "type_name": "Str",
-        "state": "input_var"
-      },
+      "inputs": [
+        {
+          "name": "input_var",
+          "type": "AnyObject"
+        }
+      ],
       "outputs": [
         {
           "name": "output_var",
@@ -4127,10 +4403,12 @@
         "iterable",
         "start"
       ],
-      "inputs": {
-        "type_name": "sum",
-        "state": "input_var"
-      },
+      "inputs": [
+        {
+          "name": "input_var",
+          "type": "AnyObject"
+        }
+      ],
       "outputs": [
         {
           "name": "output_var",
@@ -4156,10 +4434,12 @@
         "mro",
         "class hierarchy"
       ],
-      "inputs": {
-        "type_name": "Type",
-        "state": "input_var"
-      },
+      "inputs": [
+        {
+          "name": "input_var",
+          "type": "AnyObject"
+        }
+      ],
       "outputs": [
         {
           "name": "output_var",
@@ -4185,10 +4465,12 @@
         "vars",
         "dictionary"
       ],
-      "inputs": {
-        "type_name": "vars",
-        "state": "input_var"
-      },
+      "inputs": [
+        {
+          "name": "input_var",
+          "type": "AnyObject"
+        }
+      ],
       "outputs": [
         {
           "name": "output_var",
@@ -4216,10 +4498,12 @@
         "__eq__",
         "comparison"
       ],
-      "inputs": {
-        "type_name": "Arithmeticerror",
-        "state": "input_var"
-      },
+      "inputs": [
+        {
+          "name": "input_var",
+          "type": "AnyObject"
+        }
+      ],
       "outputs": [
         {
           "name": "output_var",
@@ -4245,10 +4529,12 @@
         "__format__",
         "format_spec"
       ],
-      "inputs": {
-        "type_name": "Arithmeticerror",
-        "state": "input_var"
-      },
+      "inputs": [
+        {
+          "name": "input_var",
+          "type": "AnyObject"
+        }
+      ],
       "outputs": [
         {
           "name": "output_var",
@@ -4276,10 +4562,12 @@
         "builtin",
         "error handling"
       ],
-      "inputs": {
-        "type_name": "Arithmeticerror",
-        "state": "input_var"
-      },
+      "inputs": [
+        {
+          "name": "input_var",
+          "type": "AnyObject"
+        }
+      ],
       "outputs": [
         {
           "name": "output_var",
@@ -4307,10 +4595,12 @@
         "built-in method",
         "error handling"
       ],
-      "inputs": {
-        "type_name": "Arithmeticerror",
-        "state": "input_var"
-      },
+      "inputs": [
+        {
+          "name": "input_var",
+          "type": "AnyObject"
+        }
+      ],
       "outputs": [
         {
           "name": "output_var",
@@ -4338,10 +4628,12 @@
         "exception",
         "numeric"
       ],
-      "inputs": {
-        "type_name": "Arithmeticerror",
-        "state": "input_var"
-      },
+      "inputs": [
+        {
+          "name": "input_var",
+          "type": "AnyObject"
+        }
+      ],
       "outputs": [
         {
           "name": "output_var",
@@ -4369,10 +4661,12 @@
         "exception",
         "hashing"
       ],
-      "inputs": {
-        "type_name": "Arithmeticerror",
-        "state": "input_var"
-      },
+      "inputs": [
+        {
+          "name": "input_var",
+          "type": "AnyObject"
+        }
+      ],
       "outputs": [
         {
           "name": "output_var",
@@ -4400,10 +4694,12 @@
         "exception",
         "error"
       ],
-      "inputs": {
-        "type_name": "Arithmeticerror",
-        "state": "input_var"
-      },
+      "inputs": [
+        {
+          "name": "input_var",
+          "type": "AnyObject"
+        }
+      ],
       "outputs": [
         {
           "name": "output_var",
@@ -4431,10 +4727,12 @@
         "error handling",
         "subclassing"
       ],
-      "inputs": {
-        "type_name": "Arithmeticerror",
-        "state": "input_var"
-      },
+      "inputs": [
+        {
+          "name": "input_var",
+          "type": "AnyObject"
+        }
+      ],
       "outputs": [
         {
           "name": "output_var",
@@ -4462,10 +4760,12 @@
         "less than or equal",
         "numeric comparison"
       ],
-      "inputs": {
-        "type_name": "Arithmeticerror",
-        "state": "input_var"
-      },
+      "inputs": [
+        {
+          "name": "input_var",
+          "type": "AnyObject"
+        }
+      ],
       "outputs": [
         {
           "name": "output_var",
@@ -4493,10 +4793,12 @@
         "less than",
         "numeric error"
       ],
-      "inputs": {
-        "type_name": "Arithmeticerror",
-        "state": "input_var"
-      },
+      "inputs": [
+        {
+          "name": "input_var",
+          "type": "AnyObject"
+        }
+      ],
       "outputs": [
         {
           "name": "output_var",
@@ -4524,10 +4826,12 @@
         "exception",
         "builtin"
       ],
-      "inputs": {
-        "type_name": "Arithmeticerror",
-        "state": "input_var"
-      },
+      "inputs": [
+        {
+          "name": "input_var",
+          "type": "AnyObject"
+        }
+      ],
       "outputs": [
         {
           "name": "output_var",
@@ -4555,10 +4859,12 @@
         "builtin",
         "exception"
       ],
-      "inputs": {
-        "type_name": "Arithmeticerror",
-        "state": "input_var"
-      },
+      "inputs": [
+        {
+          "name": "input_var",
+          "type": "AnyObject"
+        }
+      ],
       "outputs": [
         {
           "name": "output_var",
@@ -4586,10 +4892,12 @@
         "pickle",
         "serialization"
       ],
-      "inputs": {
-        "type_name": "Arithmeticerror",
-        "state": "input_var"
-      },
+      "inputs": [
+        {
+          "name": "input_var",
+          "type": "AnyObject"
+        }
+      ],
       "outputs": [
         {
           "name": "output_var",
@@ -4617,10 +4925,12 @@
         "exception",
         "representation"
       ],
-      "inputs": {
-        "type_name": "Arithmeticerror",
-        "state": "input_var"
-      },
+      "inputs": [
+        {
+          "name": "input_var",
+          "type": "AnyObject"
+        }
+      ],
       "outputs": [
         {
           "name": "output_var",
@@ -4648,10 +4958,12 @@
         "state",
         "exception"
       ],
-      "inputs": {
-        "type_name": "Arithmeticerror",
-        "state": "input_var"
-      },
+      "inputs": [
+        {
+          "name": "input_var",
+          "type": "AnyObject"
+        }
+      ],
       "outputs": [
         {
           "name": "output_var",
@@ -4679,10 +4991,12 @@
         "size",
         "memory usage"
       ],
-      "inputs": {
-        "type_name": "Arithmeticerror",
-        "state": "input_var"
-      },
+      "inputs": [
+        {
+          "name": "input_var",
+          "type": "AnyObject"
+        }
+      ],
       "outputs": [
         {
           "name": "output_var",
@@ -4710,10 +5024,12 @@
         "error message",
         "string representation"
       ],
-      "inputs": {
-        "type_name": "Arithmeticerror",
-        "state": "input_var"
-      },
+      "inputs": [
+        {
+          "name": "input_var",
+          "type": "AnyObject"
+        }
+      ],
       "outputs": [
         {
           "name": "output_var",
@@ -4741,10 +5057,12 @@
         "args",
         "empty"
       ],
-      "inputs": {
-        "type_name": "Arithmeticerror",
-        "state": "input_var"
-      },
+      "inputs": [
+        {
+          "name": "input_var",
+          "type": "AnyObject"
+        }
+      ],
       "outputs": [
         {
           "name": "output_var",
@@ -4772,10 +5090,12 @@
         "property",
         "exception"
       ],
-      "inputs": {
-        "type_name": "Attributeerror",
-        "state": "input_var"
-      },
+      "inputs": [
+        {
+          "name": "input_var",
+          "type": "AnyObject"
+        }
+      ],
       "outputs": [
         {
           "name": "output_var",
@@ -4801,10 +5121,12 @@
         "obj",
         "property"
       ],
-      "inputs": {
-        "type_name": "Attributeerror",
-        "state": "input_var"
-      },
+      "inputs": [
+        {
+          "name": "input_var",
+          "type": "AnyObject"
+        }
+      ],
       "outputs": [
         {
           "name": "output_var",
@@ -4832,10 +5154,12 @@
         "error grouping",
         "Python builtins"
       ],
-      "inputs": {
-        "type_name": "Baseexceptiongroup",
-        "state": "input_var"
-      },
+      "inputs": [
+        {
+          "name": "input_var",
+          "type": "AnyObject"
+        }
+      ],
       "outputs": [
         {
           "name": "output_var",
@@ -4863,10 +5187,12 @@
         "default",
         "empty"
       ],
-      "inputs": {
-        "type_name": "Baseexceptiongroup",
-        "state": "input_var"
-      },
+      "inputs": [
+        {
+          "name": "input_var",
+          "type": "AnyObject"
+        }
+      ],
       "outputs": [
         {
           "name": "output_var",
@@ -4894,10 +5220,12 @@
         "error grouping",
         "exception message"
       ],
-      "inputs": {
-        "type_name": "Baseexceptiongroup",
-        "state": "input_var"
-      },
+      "inputs": [
+        {
+          "name": "input_var",
+          "type": "AnyObject"
+        }
+      ],
       "outputs": [
         {
           "name": "output_var",
@@ -4925,10 +5253,12 @@
         "exception",
         "file"
       ],
-      "inputs": {
-        "type_name": "Blockingioerror",
-        "state": "input_var"
-      },
+      "inputs": [
+        {
+          "name": "input_var",
+          "type": "AnyObject"
+        }
+      ],
       "outputs": [
         {
           "name": "output_var",
@@ -4956,10 +5286,12 @@
         "exception",
         "file operation"
       ],
-      "inputs": {
-        "type_name": "Blockingioerror",
-        "state": "input_var"
-      },
+      "inputs": [
+        {
+          "name": "input_var",
+          "type": "AnyObject"
+        }
+      ],
       "outputs": [
         {
           "name": "output_var",
@@ -4987,10 +5319,12 @@
         "I/O",
         "error"
       ],
-      "inputs": {
-        "type_name": "Blockingioerror",
-        "state": "input_var"
-      },
+      "inputs": [
+        {
+          "name": "input_var",
+          "type": "AnyObject"
+        }
+      ],
       "outputs": [
         {
           "name": "output_var",
@@ -5018,10 +5352,12 @@
         "I/O",
         "error"
       ],
-      "inputs": {
-        "type_name": "Blockingioerror",
-        "state": "input_var"
-      },
+      "inputs": [
+        {
+          "name": "input_var",
+          "type": "AnyObject"
+        }
+      ],
       "outputs": [
         {
           "name": "output_var",
@@ -5049,10 +5385,12 @@
         "I/O",
         "error"
       ],
-      "inputs": {
-        "type_name": "Blockingioerror",
-        "state": "input_var"
-      },
+      "inputs": [
+        {
+          "name": "input_var",
+          "type": "AnyObject"
+        }
+      ],
       "outputs": [
         {
           "name": "output_var",
@@ -5080,10 +5418,12 @@
         "I/O",
         "error"
       ],
-      "inputs": {
-        "type_name": "Blockingioerror",
-        "state": "input_var"
-      },
+      "inputs": [
+        {
+          "name": "input_var",
+          "type": "AnyObject"
+        }
+      ],
       "outputs": [
         {
           "name": "output_var",
@@ -5111,10 +5451,12 @@
         "module",
         "import"
       ],
-      "inputs": {
-        "type_name": "Importerror",
-        "state": "input_var"
-      },
+      "inputs": [
+        {
+          "name": "input_var",
+          "type": "AnyObject"
+        }
+      ],
       "outputs": [
         {
           "name": "output_var",
@@ -5142,10 +5484,12 @@
         "exception",
         "module"
       ],
-      "inputs": {
-        "type_name": "Importerror",
-        "state": "input_var"
-      },
+      "inputs": [
+        {
+          "name": "input_var",
+          "type": "AnyObject"
+        }
+      ],
       "outputs": [
         {
           "name": "output_var",
@@ -5173,10 +5517,12 @@
         "file",
         "exception"
       ],
-      "inputs": {
-        "type_name": "Importerror",
-        "state": "input_var"
-      },
+      "inputs": [
+        {
+          "name": "input_var",
+          "type": "AnyObject"
+        }
+      ],
       "outputs": [
         {
           "name": "output_var",
@@ -5204,10 +5550,12 @@
         "builtin",
         "exception"
       ],
-      "inputs": {
-        "type_name": "Indentationerror",
-        "state": "input_var"
-      },
+      "inputs": [
+        {
+          "name": "input_var",
+          "type": "AnyObject"
+        }
+      ],
       "outputs": [
         {
           "name": "output_var",
@@ -5233,10 +5581,12 @@
         "end_offset",
         "property"
       ],
-      "inputs": {
-        "type_name": "Indentationerror",
-        "state": "input_var"
-      },
+      "inputs": [
+        {
+          "name": "input_var",
+          "type": "AnyObject"
+        }
+      ],
       "outputs": [
         {
           "name": "output_var",
@@ -5262,10 +5612,12 @@
         "lineno",
         "property"
       ],
-      "inputs": {
-        "type_name": "Indentationerror",
-        "state": "input_var"
-      },
+      "inputs": [
+        {
+          "name": "input_var",
+          "type": "AnyObject"
+        }
+      ],
       "outputs": [
         {
           "name": "output_var",
@@ -5293,10 +5645,12 @@
         "builtin",
         "exception"
       ],
-      "inputs": {
-        "type_name": "Indentationerror",
-        "state": "input_var"
-      },
+      "inputs": [
+        {
+          "name": "input_var",
+          "type": "AnyObject"
+        }
+      ],
       "outputs": [
         {
           "name": "output_var",
@@ -5324,10 +5678,12 @@
         "property",
         "error"
       ],
-      "inputs": {
-        "type_name": "Indentationerror",
-        "state": "input_var"
-      },
+      "inputs": [
+        {
+          "name": "input_var",
+          "type": "AnyObject"
+        }
+      ],
       "outputs": [
         {
           "name": "output_var",
@@ -5355,10 +5711,12 @@
         "builtin",
         "exception"
       ],
-      "inputs": {
-        "type_name": "Indentationerror",
-        "state": "input_var"
-      },
+      "inputs": [
+        {
+          "name": "input_var",
+          "type": "AnyObject"
+        }
+      ],
       "outputs": [
         {
           "name": "output_var",
@@ -5386,10 +5744,12 @@
         "iteration",
         "end"
       ],
-      "inputs": {
-        "type_name": "Stopiteration",
-        "state": "input_var"
-      },
+      "inputs": [
+        {
+          "name": "input_var",
+          "type": "AnyObject"
+        }
+      ],
       "outputs": [
         {
           "name": "output_var",
@@ -5417,10 +5777,12 @@
         "exception",
         "exit status"
       ],
-      "inputs": {
-        "type_name": "Systemexit",
-        "state": "input_var"
-      },
+      "inputs": [
+        {
+          "name": "input_var",
+          "type": "AnyObject"
+        }
+      ],
       "outputs": [
         {
           "name": "output_var",
@@ -5448,10 +5810,12 @@
         "error",
         "exception"
       ],
-      "inputs": {
-        "type_name": "Unicodedecodeerror",
-        "state": "input_var"
-      },
+      "inputs": [
+        {
+          "name": "input_var",
+          "type": "AnyObject"
+        }
+      ],
       "outputs": [
         {
           "name": "output_var",
@@ -5479,10 +5843,12 @@
         "default",
         "error"
       ],
-      "inputs": {
-        "type_name": "Unicodedecodeerror",
-        "state": "input_var"
-      },
+      "inputs": [
+        {
+          "name": "input_var",
+          "type": "AnyObject"
+        }
+      ],
       "outputs": [
         {
           "name": "output_var",
@@ -5510,10 +5876,12 @@
         "exception",
         "encoding"
       ],
-      "inputs": {
-        "type_name": "Unicodedecodeerror",
-        "state": "input_var"
-      },
+      "inputs": [
+        {
+          "name": "input_var",
+          "type": "AnyObject"
+        }
+      ],
       "outputs": [
         {
           "name": "output_var",
@@ -5541,10 +5909,12 @@
         "exception",
         "error"
       ],
-      "inputs": {
-        "type_name": "Unicodedecodeerror",
-        "state": "input_var"
-      },
+      "inputs": [
+        {
+          "name": "input_var",
+          "type": "AnyObject"
+        }
+      ],
       "outputs": [
         {
           "name": "output_var",
@@ -5572,10 +5942,12 @@
         "builtin",
         "exception"
       ],
-      "inputs": {
-        "type_name": "Unicodedecodeerror",
-        "state": "input_var"
-      },
+      "inputs": [
+        {
+          "name": "input_var",
+          "type": "AnyObject"
+        }
+      ],
       "outputs": [
         {
           "name": "output_var",
@@ -5603,10 +5975,12 @@
         "builtin",
         "Python"
       ],
-      "inputs": {
-        "type_name": "Bool",
-        "state": "input_var"
-      },
+      "inputs": [
+        {
+          "name": "input_var",
+          "type": "AnyObject"
+        }
+      ],
       "outputs": [
         {
           "name": "output_var",
@@ -5632,10 +6006,12 @@
         "add",
         "boolean addition"
       ],
-      "inputs": {
-        "type_name": "Bool",
-        "state": "input_var"
-      },
+      "inputs": [
+        {
+          "name": "input_var",
+          "type": "AnyObject"
+        }
+      ],
       "outputs": [
         {
           "name": "output_var",
@@ -5661,10 +6037,12 @@
         "and",
         "True"
       ],
-      "inputs": {
-        "type_name": "Bool",
-        "state": "input_var"
-      },
+      "inputs": [
+        {
+          "name": "input_var",
+          "type": "AnyObject"
+        }
+      ],
       "outputs": [
         {
           "name": "output_var",
@@ -5692,10 +6070,12 @@
         "binary operation",
         "conversion"
       ],
-      "inputs": {
-        "type_name": "Bool",
-        "state": "input_var"
-      },
+      "inputs": [
+        {
+          "name": "input_var",
+          "type": "AnyObject"
+        }
+      ],
       "outputs": [
         {
           "name": "output_var",
@@ -5721,10 +6101,12 @@
         "ceil",
         "rounding"
       ],
-      "inputs": {
-        "type_name": "Bool",
-        "state": "input_var"
-      },
+      "inputs": [
+        {
+          "name": "input_var",
+          "type": "AnyObject"
+        }
+      ],
       "outputs": [
         {
           "name": "output_var",
@@ -5752,10 +6134,12 @@
         "remainder",
         "tuple"
       ],
-      "inputs": {
-        "type_name": "Bool",
-        "state": "input_var"
-      },
+      "inputs": [
+        {
+          "name": "input_var",
+          "type": "AnyObject"
+        }
+      ],
       "outputs": [
         {
           "name": "output_var",
@@ -5783,10 +6167,12 @@
         "dunder method",
         "Python built-in"
       ],
-      "inputs": {
-        "type_name": "Bool",
-        "state": "input_var"
-      },
+      "inputs": [
+        {
+          "name": "input_var",
+          "type": "AnyObject"
+        }
+      ],
       "outputs": [
         {
           "name": "output_var",
@@ -5814,10 +6200,12 @@
         "constant",
         "property"
       ],
-      "inputs": {
-        "type_name": "Bool",
-        "state": "input_var"
-      },
+      "inputs": [
+        {
+          "name": "input_var",
+          "type": "AnyObject"
+        }
+      ],
       "outputs": [
         {
           "name": "output_var",
@@ -5843,10 +6231,12 @@
         "__floordiv__",
         "integer division"
       ],
-      "inputs": {
-        "type_name": "Bool",
-        "state": "input_var"
-      },
+      "inputs": [
+        {
+          "name": "input_var",
+          "type": "AnyObject"
+        }
+      ],
       "outputs": [
         {
           "name": "output_var",
@@ -5872,10 +6262,12 @@
         "constructor",
         "getnewargs"
       ],
-      "inputs": {
-        "type_name": "Bool",
-        "state": "input_var"
-      },
+      "inputs": [
+        {
+          "name": "input_var",
+          "type": "AnyObject"
+        }
+      ],
       "outputs": [
         {
           "name": "output_var",
@@ -5901,10 +6293,12 @@
         "index",
         "dunder method"
       ],
-      "inputs": {
-        "type_name": "Bool",
-        "state": "input_var"
-      },
+      "inputs": [
+        {
+          "name": "input_var",
+          "type": "AnyObject"
+        }
+      ],
       "outputs": [
         {
           "name": "output_var",
@@ -5932,10 +6326,12 @@
         "binary",
         "truthy"
       ],
-      "inputs": {
-        "type_name": "Bool",
-        "state": "input_var"
-      },
+      "inputs": [
+        {
+          "name": "input_var",
+          "type": "AnyObject"
+        }
+      ],
       "outputs": [
         {
           "name": "output_var",
@@ -5961,10 +6357,12 @@
         "invert",
         "not"
       ],
-      "inputs": {
-        "type_name": "Bool",
-        "state": "input_var"
-      },
+      "inputs": [
+        {
+          "name": "input_var",
+          "type": "AnyObject"
+        }
+      ],
       "outputs": [
         {
           "name": "output_var",
@@ -5990,10 +6388,12 @@
         "left shift",
         "binary operation"
       ],
-      "inputs": {
-        "type_name": "Bool",
-        "state": "input_var"
-      },
+      "inputs": [
+        {
+          "name": "input_var",
+          "type": "AnyObject"
+        }
+      ],
       "outputs": [
         {
           "name": "output_var",
@@ -6019,10 +6419,12 @@
         "mod",
         "binary operation"
       ],
-      "inputs": {
-        "type_name": "Bool",
-        "state": "input_var"
-      },
+      "inputs": [
+        {
+          "name": "input_var",
+          "type": "AnyObject"
+        }
+      ],
       "outputs": [
         {
           "name": "output_var",
@@ -6049,10 +6451,12 @@
         "False",
         "dunder"
       ],
-      "inputs": {
-        "type_name": "Bool",
-        "state": "input_var"
-      },
+      "inputs": [
+        {
+          "name": "input_var",
+          "type": "AnyObject"
+        }
+      ],
       "outputs": [
         {
           "name": "output_var",
@@ -6080,10 +6484,12 @@
         "logical",
         "binary"
       ],
-      "inputs": {
-        "type_name": "Bool",
-        "state": "input_var"
-      },
+      "inputs": [
+        {
+          "name": "input_var",
+          "type": "AnyObject"
+        }
+      ],
       "outputs": [
         {
           "name": "output_var",
@@ -6109,10 +6515,12 @@
         "or",
         "True"
       ],
-      "inputs": {
-        "type_name": "Bool",
-        "state": "input_var"
-      },
+      "inputs": [
+        {
+          "name": "input_var",
+          "type": "AnyObject"
+        }
+      ],
       "outputs": [
         {
           "name": "output_var",
@@ -6140,10 +6548,12 @@
         "binary",
         "sign"
       ],
-      "inputs": {
-        "type_name": "Bool",
-        "state": "input_var"
-      },
+      "inputs": [
+        {
+          "name": "input_var",
+          "type": "AnyObject"
+        }
+      ],
       "outputs": [
         {
           "name": "output_var",
@@ -6169,10 +6579,12 @@
         "power",
         "exponentiation"
       ],
-      "inputs": {
-        "type_name": "Bool",
-        "state": "input_var"
-      },
+      "inputs": [
+        {
+          "name": "input_var",
+          "type": "AnyObject"
+        }
+      ],
       "outputs": [
         {
           "name": "output_var",
@@ -6200,10 +6612,12 @@
         "binary",
         "operator"
       ],
-      "inputs": {
-        "type_name": "Bool",
-        "state": "input_var"
-      },
+      "inputs": [
+        {
+          "name": "input_var",
+          "type": "AnyObject"
+        }
+      ],
       "outputs": [
         {
           "name": "output_var",
@@ -6229,10 +6643,12 @@
         "and",
         "True"
       ],
-      "inputs": {
-        "type_name": "Bool",
-        "state": "input_var"
-      },
+      "inputs": [
+        {
+          "name": "input_var",
+          "type": "AnyObject"
+        }
+      ],
       "outputs": [
         {
           "name": "output_var",
@@ -6258,10 +6674,12 @@
         "rdivmod",
         "integer division"
       ],
-      "inputs": {
-        "type_name": "Bool",
-        "state": "input_var"
-      },
+      "inputs": [
+        {
+          "name": "input_var",
+          "type": "AnyObject"
+        }
+      ],
       "outputs": [
         {
           "name": "output_var",
@@ -6287,10 +6705,12 @@
         "rfloordiv",
         "integer division"
       ],
-      "inputs": {
-        "type_name": "Bool",
-        "state": "input_var"
-      },
+      "inputs": [
+        {
+          "name": "input_var",
+          "type": "AnyObject"
+        }
+      ],
       "outputs": [
         {
           "name": "output_var",
@@ -6316,10 +6736,12 @@
         "right shift",
         "binary operation"
       ],
-      "inputs": {
-        "type_name": "Bool",
-        "state": "input_var"
-      },
+      "inputs": [
+        {
+          "name": "input_var",
+          "type": "AnyObject"
+        }
+      ],
       "outputs": [
         {
           "name": "output_var",
@@ -6345,10 +6767,12 @@
         "rmod",
         "True"
       ],
-      "inputs": {
-        "type_name": "Bool",
-        "state": "input_var"
-      },
+      "inputs": [
+        {
+          "name": "input_var",
+          "type": "AnyObject"
+        }
+      ],
       "outputs": [
         {
           "name": "output_var",
@@ -6376,10 +6800,12 @@
         "binary operation",
         "boolean multiplication"
       ],
-      "inputs": {
-        "type_name": "Bool",
-        "state": "input_var"
-      },
+      "inputs": [
+        {
+          "name": "input_var",
+          "type": "AnyObject"
+        }
+      ],
       "outputs": [
         {
           "name": "output_var",
@@ -6407,10 +6833,12 @@
         "operator",
         "truthy"
       ],
-      "inputs": {
-        "type_name": "Bool",
-        "state": "input_var"
-      },
+      "inputs": [
+        {
+          "name": "input_var",
+          "type": "AnyObject"
+        }
+      ],
       "outputs": [
         {
           "name": "output_var",
@@ -6438,10 +6866,12 @@
         "constant",
         "property"
       ],
-      "inputs": {
-        "type_name": "Bool",
-        "state": "input_var"
-      },
+      "inputs": [
+        {
+          "name": "input_var",
+          "type": "AnyObject"
+        }
+      ],
       "outputs": [
         {
           "name": "output_var",
@@ -6469,10 +6899,12 @@
         "modulus",
         "integer"
       ],
-      "inputs": {
-        "type_name": "Bool",
-        "state": "input_var"
-      },
+      "inputs": [
+        {
+          "name": "input_var",
+          "type": "AnyObject"
+        }
+      ],
       "outputs": [
         {
           "name": "output_var",
@@ -6498,10 +6930,12 @@
         "right shift",
         "binary operation"
       ],
-      "inputs": {
-        "type_name": "Bool",
-        "state": "input_var"
-      },
+      "inputs": [
+        {
+          "name": "input_var",
+          "type": "AnyObject"
+        }
+      ],
       "outputs": [
         {
           "name": "output_var",
@@ -6527,10 +6961,12 @@
         "right shift",
         "binary operation"
       ],
-      "inputs": {
-        "type_name": "Bool",
-        "state": "input_var"
-      },
+      "inputs": [
+        {
+          "name": "input_var",
+          "type": "AnyObject"
+        }
+      ],
       "outputs": [
         {
           "name": "output_var",
@@ -6558,10 +6994,12 @@
         "binary operation",
         "boolean"
       ],
-      "inputs": {
-        "type_name": "Bool",
-        "state": "input_var"
-      },
+      "inputs": [
+        {
+          "name": "input_var",
+          "type": "AnyObject"
+        }
+      ],
       "outputs": [
         {
           "name": "output_var",
@@ -6587,10 +7025,12 @@
         "rtruediv",
         "division"
       ],
-      "inputs": {
-        "type_name": "Bool",
-        "state": "input_var"
-      },
+      "inputs": [
+        {
+          "name": "input_var",
+          "type": "AnyObject"
+        }
+      ],
       "outputs": [
         {
           "name": "output_var",
@@ -6618,10 +7058,12 @@
         "operation",
         "logical"
       ],
-      "inputs": {
-        "type_name": "Bool",
-        "state": "input_var"
-      },
+      "inputs": [
+        {
+          "name": "input_var",
+          "type": "AnyObject"
+        }
+      ],
       "outputs": [
         {
           "name": "output_var",
@@ -6649,10 +7091,12 @@
         "binary",
         "logic"
       ],
-      "inputs": {
-        "type_name": "Bool",
-        "state": "input_var"
-      },
+      "inputs": [
+        {
+          "name": "input_var",
+          "type": "AnyObject"
+        }
+      ],
       "outputs": [
         {
           "name": "output_var",
@@ -6680,10 +7124,12 @@
         "integer",
         "float"
       ],
-      "inputs": {
-        "type_name": "Bool",
-        "state": "input_var"
-      },
+      "inputs": [
+        {
+          "name": "input_var",
+          "type": "AnyObject"
+        }
+      ],
       "outputs": [
         {
           "name": "output_var",
@@ -6711,10 +7157,12 @@
         "builtin",
         "method"
       ],
-      "inputs": {
-        "type_name": "Bool",
-        "state": "input_var"
-      },
+      "inputs": [
+        {
+          "name": "input_var",
+          "type": "AnyObject"
+        }
+      ],
       "outputs": [
         {
           "name": "output_var",
@@ -6742,10 +7190,12 @@
         "comparison",
         "logical"
       ],
-      "inputs": {
-        "type_name": "Bool",
-        "state": "input_var"
-      },
+      "inputs": [
+        {
+          "name": "input_var",
+          "type": "AnyObject"
+        }
+      ],
       "outputs": [
         {
           "name": "output_var",
@@ -6773,10 +7223,12 @@
         "property",
         "default"
       ],
-      "inputs": {
-        "type_name": "Bool",
-        "state": "input_var"
-      },
+      "inputs": [
+        {
+          "name": "input_var",
+          "type": "AnyObject"
+        }
+      ],
       "outputs": [
         {
           "name": "output_var",
@@ -6804,10 +7256,12 @@
         "default",
         "constant"
       ],
-      "inputs": {
-        "type_name": "Bool",
-        "state": "input_var"
-      },
+      "inputs": [
+        {
+          "name": "input_var",
+          "type": "AnyObject"
+        }
+      ],
       "outputs": [
         {
           "name": "output_var",
@@ -6835,10 +7289,12 @@
         "property",
         "default"
       ],
-      "inputs": {
-        "type_name": "Bool",
-        "state": "input_var"
-      },
+      "inputs": [
+        {
+          "name": "input_var",
+          "type": "AnyObject"
+        }
+      ],
       "outputs": [
         {
           "name": "output_var",
@@ -6866,10 +7322,12 @@
         "default",
         "constant"
       ],
-      "inputs": {
-        "type_name": "Bool",
-        "state": "input_var"
-      },
+      "inputs": [
+        {
+          "name": "input_var",
+          "type": "AnyObject"
+        }
+      ],
       "outputs": [
         {
           "name": "output_var",
@@ -6897,10 +7355,12 @@
         "size",
         "dunder"
       ],
-      "inputs": {
-        "type_name": "Bytearray",
-        "state": "input_var"
-      },
+      "inputs": [
+        {
+          "name": "input_var",
+          "type": "AnyObject"
+        }
+      ],
       "outputs": [
         {
           "name": "output_var",
@@ -6926,10 +7386,12 @@
         "buffer",
         "flags"
       ],
-      "inputs": {
-        "type_name": "Bytearray",
-        "state": "input_var"
-      },
+      "inputs": [
+        {
+          "name": "input_var",
+          "type": "AnyObject"
+        }
+      ],
       "outputs": [
         {
           "name": "output_var",
@@ -6957,10 +7419,12 @@
         "search",
         "membership"
       ],
-      "inputs": {
-        "type_name": "Bytearray",
-        "state": "input_var"
-      },
+      "inputs": [
+        {
+          "name": "input_var",
+          "type": "AnyObject"
+        }
+      ],
       "outputs": [
         {
           "name": "output_var",
@@ -6986,10 +7450,12 @@
         "delitem",
         "index"
       ],
-      "inputs": {
-        "type_name": "Bytearray",
-        "state": "input_var"
-      },
+      "inputs": [
+        {
+          "name": "input_var",
+          "type": "AnyObject"
+        }
+      ],
       "outputs": [
         {
           "name": "output_var",
@@ -7017,10 +7483,12 @@
         "retrieve",
         "element"
       ],
-      "inputs": {
-        "type_name": "Bytearray",
-        "state": "input_var"
-      },
+      "inputs": [
+        {
+          "name": "input_var",
+          "type": "AnyObject"
+        }
+      ],
       "outputs": [
         {
           "name": "output_var",
@@ -7046,10 +7514,12 @@
         "iadd",
         "append"
       ],
-      "inputs": {
-        "type_name": "Bytearray",
-        "state": "input_var"
-      },
+      "inputs": [
+        {
+          "name": "input_var",
+          "type": "AnyObject"
+        }
+      ],
       "outputs": [
         {
           "name": "output_var",
@@ -7077,10 +7547,12 @@
         "in-place",
         "doubled"
       ],
-      "inputs": {
-        "type_name": "Bytearray",
-        "state": "input_var"
-      },
+      "inputs": [
+        {
+          "name": "input_var",
+          "type": "AnyObject"
+        }
+      ],
       "outputs": [
         {
           "name": "output_var",
@@ -7106,10 +7578,12 @@
         "iteration",
         "dunder method"
       ],
-      "inputs": {
-        "type_name": "Bytearray",
-        "state": "input_var"
-      },
+      "inputs": [
+        {
+          "name": "input_var",
+          "type": "AnyObject"
+        }
+      ],
       "outputs": [
         {
           "name": "output_var",
@@ -7137,10 +7611,12 @@
         "dunder",
         "__len__"
       ],
-      "inputs": {
-        "type_name": "Bytearray",
-        "state": "input_var"
-      },
+      "inputs": [
+        {
+          "name": "input_var",
+          "type": "AnyObject"
+        }
+      ],
       "outputs": [
         {
           "name": "output_var",
@@ -7166,10 +7642,12 @@
         "release_buffer",
         "buffer management"
       ],
-      "inputs": {
-        "type_name": "Bytearray",
-        "state": "input_var"
-      },
+      "inputs": [
+        {
+          "name": "input_var",
+          "type": "AnyObject"
+        }
+      ],
       "outputs": [
         {
           "name": "output_var",
@@ -7196,10 +7674,12 @@
         "index",
         "value"
       ],
-      "inputs": {
-        "type_name": "Bytearray",
-        "state": "input_var"
-      },
+      "inputs": [
+        {
+          "name": "input_var",
+          "type": "AnyObject"
+        }
+      ],
       "outputs": [
         {
           "name": "output_var",
@@ -7227,10 +7707,12 @@
         "built-in",
         "method"
       ],
-      "inputs": {
-        "type_name": "Bytes",
-        "state": "input_var"
-      },
+      "inputs": [
+        {
+          "name": "input_var",
+          "type": "AnyObject"
+        }
+      ],
       "outputs": [
         {
           "name": "output_var",
@@ -7257,10 +7739,12 @@
         "instance",
         "owner"
       ],
-      "inputs": {
-        "type_name": "Classmethod",
-        "state": "input_var"
-      },
+      "inputs": [
+        {
+          "name": "input_var",
+          "type": "AnyObject"
+        }
+      ],
       "outputs": [
         {
           "name": "output_var",
@@ -7288,10 +7772,12 @@
         "Python",
         "number"
       ],
-      "inputs": {
-        "type_name": "Complex",
-        "state": "input_var"
-      },
+      "inputs": [
+        {
+          "name": "input_var",
+          "type": "AnyObject"
+        }
+      ],
       "outputs": [
         {
           "name": "output_var",
@@ -7319,10 +7805,12 @@
         "merge",
         "dictionary"
       ],
-      "inputs": {
-        "type_name": "Dict",
-        "state": "input_var"
-      },
+      "inputs": [
+        {
+          "name": "input_var",
+          "type": "AnyObject"
+        }
+      ],
       "outputs": [
         {
           "name": "output_var",
@@ -7348,10 +7836,12 @@
         "reversed",
         "iteration"
       ],
-      "inputs": {
-        "type_name": "Dict",
-        "state": "input_var"
-      },
+      "inputs": [
+        {
+          "name": "input_var",
+          "type": "AnyObject"
+        }
+      ],
       "outputs": [
         {
           "name": "output_var",
@@ -7379,10 +7869,12 @@
         "sequence",
         "index"
       ],
-      "inputs": {
-        "type_name": "Enumerate",
-        "state": "input_var"
-      },
+      "inputs": [
+        {
+          "name": "input_var",
+          "type": "AnyObject"
+        }
+      ],
       "outputs": [
         {
           "name": "output_var",
@@ -7408,10 +7900,12 @@
         "getformat",
         "typestr"
       ],
-      "inputs": {
-        "type_name": "Float",
-        "state": "input_var"
-      },
+      "inputs": [
+        {
+          "name": "input_var",
+          "type": "AnyObject"
+        }
+      ],
       "outputs": [
         {
           "name": "output_var",
@@ -7439,10 +7933,12 @@
         "enter method",
         "resource management"
       ],
-      "inputs": {
-        "type_name": "Memoryview",
-        "state": "input_var"
-      },
+      "inputs": [
+        {
+          "name": "input_var",
+          "type": "AnyObject"
+        }
+      ],
       "outputs": [
         {
           "name": "output_var",
@@ -7470,10 +7966,12 @@
         "resource cleanup",
         "context manager"
       ],
-      "inputs": {
-        "type_name": "Memoryview",
-        "state": "input_var"
-      },
+      "inputs": [
+        {
+          "name": "input_var",
+          "type": "AnyObject"
+        }
+      ],
       "outputs": [
         {
           "name": "output_var",
@@ -7501,10 +7999,12 @@
         "default",
         "built-in"
       ],
-      "inputs": {
-        "type_name": "Memoryview",
-        "state": "input_var"
-      },
+      "inputs": [
+        {
+          "name": "input_var",
+          "type": "AnyObject"
+        }
+      ],
       "outputs": [
         {
           "name": "output_var",
@@ -7532,10 +8032,12 @@
         "default",
         "built-in"
       ],
-      "inputs": {
-        "type_name": "Memoryview",
-        "state": "input_var"
-      },
+      "inputs": [
+        {
+          "name": "input_var",
+          "type": "AnyObject"
+        }
+      ],
       "outputs": [
         {
           "name": "output_var",
@@ -7563,10 +8065,12 @@
         "default",
         "built-in"
       ],
-      "inputs": {
-        "type_name": "Memoryview",
-        "state": "input_var"
-      },
+      "inputs": [
+        {
+          "name": "input_var",
+          "type": "AnyObject"
+        }
+      ],
       "outputs": [
         {
           "name": "output_var",
@@ -7592,10 +8096,12 @@
         "format",
         "default"
       ],
-      "inputs": {
-        "type_name": "Memoryview",
-        "state": "input_var"
-      },
+      "inputs": [
+        {
+          "name": "input_var",
+          "type": "AnyObject"
+        }
+      ],
       "outputs": [
         {
           "name": "output_var",
@@ -7623,10 +8129,12 @@
         "property",
         "size"
       ],
-      "inputs": {
-        "type_name": "Memoryview",
-        "state": "input_var"
-      },
+      "inputs": [
+        {
+          "name": "input_var",
+          "type": "AnyObject"
+        }
+      ],
       "outputs": [
         {
           "name": "output_var",
@@ -7654,10 +8162,12 @@
         "size",
         "bytes"
       ],
-      "inputs": {
-        "type_name": "Memoryview",
-        "state": "input_var"
-      },
+      "inputs": [
+        {
+          "name": "input_var",
+          "type": "AnyObject"
+        }
+      ],
       "outputs": [
         {
           "name": "output_var",
@@ -7685,10 +8195,12 @@
         "dimensions",
         "shape"
       ],
-      "inputs": {
-        "type_name": "Memoryview",
-        "state": "input_var"
-      },
+      "inputs": [
+        {
+          "name": "input_var",
+          "type": "AnyObject"
+        }
+      ],
       "outputs": [
         {
           "name": "output_var",
@@ -7714,10 +8226,12 @@
         "readonly",
         "property"
       ],
-      "inputs": {
-        "type_name": "Memoryview",
-        "state": "input_var"
-      },
+      "inputs": [
+        {
+          "name": "input_var",
+          "type": "AnyObject"
+        }
+      ],
       "outputs": [
         {
           "name": "output_var",
@@ -7745,10 +8259,12 @@
         "array",
         "dimensions"
       ],
-      "inputs": {
-        "type_name": "Memoryview",
-        "state": "input_var"
-      },
+      "inputs": [
+        {
+          "name": "input_var",
+          "type": "AnyObject"
+        }
+      ],
       "outputs": [
         {
           "name": "output_var",
@@ -7776,10 +8292,12 @@
         "default",
         "built-in"
       ],
-      "inputs": {
-        "type_name": "Memoryview",
-        "state": "input_var"
-      },
+      "inputs": [
+        {
+          "name": "input_var",
+          "type": "AnyObject"
+        }
+      ],
       "outputs": [
         {
           "name": "output_var",
@@ -7807,10 +8325,12 @@
         "default",
         "built-in"
       ],
-      "inputs": {
-        "type_name": "Memoryview",
-        "state": "input_var"
-      },
+      "inputs": [
+        {
+          "name": "input_var",
+          "type": "AnyObject"
+        }
+      ],
       "outputs": [
         {
           "name": "output_var",
@@ -7838,10 +8358,12 @@
         "object deletion",
         "attribute removal"
       ],
-      "inputs": {
-        "type_name": "Property",
-        "state": "input_var"
-      },
+      "inputs": [
+        {
+          "name": "input_var",
+          "type": "AnyObject"
+        }
+      ],
       "outputs": [
         {
           "name": "output_var",
@@ -7868,10 +8390,12 @@
         "instance",
         "value"
       ],
-      "inputs": {
-        "type_name": "Property",
-        "state": "input_var"
-      },
+      "inputs": [
+        {
+          "name": "input_var",
+          "type": "AnyObject"
+        }
+      ],
       "outputs": [
         {
           "name": "output_var",
@@ -7899,10 +8423,12 @@
         "class attribute",
         "method"
       ],
-      "inputs": {
-        "type_name": "Property",
-        "state": "input_var"
-      },
+      "inputs": [
+        {
+          "name": "input_var",
+          "type": "AnyObject"
+        }
+      ],
       "outputs": [
         {
           "name": "output_var",
@@ -7928,10 +8454,12 @@
         "fdel",
         "deleter"
       ],
-      "inputs": {
-        "type_name": "Property",
-        "state": "input_var"
-      },
+      "inputs": [
+        {
+          "name": "input_var",
+          "type": "AnyObject"
+        }
+      ],
       "outputs": [
         {
           "name": "output_var",
@@ -7957,10 +8485,12 @@
         "getter",
         "attribute"
       ],
-      "inputs": {
-        "type_name": "Property",
-        "state": "input_var"
-      },
+      "inputs": [
+        {
+          "name": "input_var",
+          "type": "AnyObject"
+        }
+      ],
       "outputs": [
         {
           "name": "output_var",
@@ -7988,10 +8518,12 @@
         "attribute",
         "method"
       ],
-      "inputs": {
-        "type_name": "Property",
-        "state": "input_var"
-      },
+      "inputs": [
+        {
+          "name": "input_var",
+          "type": "AnyObject"
+        }
+      ],
       "outputs": [
         {
           "name": "output_var",
@@ -8019,10 +8551,12 @@
         "python",
         "iteration"
       ],
-      "inputs": {
-        "type_name": "Range",
-        "state": "input_var"
-      },
+      "inputs": [
+        {
+          "name": "input_var",
+          "type": "AnyObject"
+        }
+      ],
       "outputs": [
         {
           "name": "output_var",
@@ -8050,10 +8584,12 @@
         "default",
         "built-in"
       ],
-      "inputs": {
-        "type_name": "Range",
-        "state": "input_var"
-      },
+      "inputs": [
+        {
+          "name": "input_var",
+          "type": "AnyObject"
+        }
+      ],
       "outputs": [
         {
           "name": "output_var",
@@ -8079,10 +8615,12 @@
         "length",
         "hint"
       ],
-      "inputs": {
-        "type_name": "Reversed",
-        "state": "input_var"
-      },
+      "inputs": [
+        {
+          "name": "input_var",
+          "type": "AnyObject"
+        }
+      ],
       "outputs": [
         {
           "name": "output_var",
@@ -8110,10 +8648,12 @@
         "update method",
         "set operations"
       ],
-      "inputs": {
-        "type_name": "Set",
-        "state": "input_var"
-      },
+      "inputs": [
+        {
+          "name": "input_var",
+          "type": "AnyObject"
+        }
+      ],
       "outputs": [
         {
           "name": "output_var",
@@ -8141,10 +8681,12 @@
         "difference",
         "in-place"
       ],
-      "inputs": {
-        "type_name": "Set",
-        "state": "input_var"
-      },
+      "inputs": [
+        {
+          "name": "input_var",
+          "type": "AnyObject"
+        }
+      ],
       "outputs": [
         {
           "name": "output_var",
@@ -8170,10 +8712,12 @@
         "xor",
         "binary operation"
       ],
-      "inputs": {
-        "type_name": "Set",
-        "state": "input_var"
-      },
+      "inputs": [
+        {
+          "name": "input_var",
+          "type": "AnyObject"
+        }
+      ],
       "outputs": [
         {
           "name": "output_var",
@@ -8201,10 +8745,12 @@
         "class",
         "function"
       ],
-      "inputs": {
-        "type_name": "Staticmethod",
-        "state": "input_var"
-      },
+      "inputs": [
+        {
+          "name": "input_var",
+          "type": "AnyObject"
+        }
+      ],
       "outputs": [
         {
           "name": "output_var",
@@ -8232,10 +8778,12 @@
         "class",
         "object"
       ],
-      "inputs": {
-        "type_name": "Type",
-        "state": "input_var"
-      },
+      "inputs": [
+        {
+          "name": "input_var",
+          "type": "AnyObject"
+        }
+      ],
       "outputs": [
         {
           "name": "output_var",
@@ -8263,10 +8811,12 @@
         "class creation",
         "Python builtins"
       ],
-      "inputs": {
-        "type_name": "Type",
-        "state": "input_var"
-      },
+      "inputs": [
+        {
+          "name": "input_var",
+          "type": "AnyObject"
+        }
+      ],
       "outputs": [
         {
           "name": "output_var",
@@ -8294,10 +8844,12 @@
         "class",
         "object"
       ],
-      "inputs": {
-        "type_name": "Type",
-        "state": "input_var"
-      },
+      "inputs": [
+        {
+          "name": "input_var",
+          "type": "AnyObject"
+        }
+      ],
       "outputs": [
         {
           "name": "output_var",
@@ -8325,10 +8877,12 @@
         "class hierarchy",
         "inheritance"
       ],
-      "inputs": {
-        "type_name": "Type",
-        "state": "input_var"
-      },
+      "inputs": [
+        {
+          "name": "input_var",
+          "type": "AnyObject"
+        }
+      ],
       "outputs": [
         {
           "name": "output_var",
