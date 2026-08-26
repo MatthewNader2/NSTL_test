@@ -1,84 +1,76 @@
 """
 tools/compile_trees.py - Neuro-Symbolic Topological Lattice (NSTL)
-Compiles harvested JSON tree files and stubs into the relational SQLite database `trees/lattice.db`.
+Compiles harvested JSON tree files into the relational SQLite database.
 """
 
 from __future__ import annotations
 import glob
 import json
 import os
-import re
 import sqlite3
 import sys
 from pathlib import Path
-from typing import Any
+from typing import Any, Dict, Iterator, List, Optional, Tuple
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 DB_PATH = os.path.join(PROJECT_ROOT, "trees", "lattice.db")
 
+# Exact-match canonicalization — no substring false-positives
+_TYPE_CANONICAL_MAP = {
+    "any": "any", "anyobject": "any", "object": "any", "unknown": "any",
+    "": "any", "*": "any", "top": "any",
+    "_callable": "any", "callable": "any",
+    "_sequence": "list", "sequence": "list",
+    "_mapping": "dict", "mapping": "dict",
+    "dataframe": "DataFrame", "pd.dataframe": "DataFrame",
+    "series": "Series", "pd.series": "Series",
+    "ndarray": "ndarray", "numpy.ndarray": "ndarray", "array": "ndarray",
+    "mat": "Mat", "matlike": "Mat", "image": "Mat", "umat": "Mat",
+    "cv2.typing.matlike": "Mat",
+    "str": "str", "string": "str", "filepath": "str", "path": "str", "pathlike": "str",
+    "int": "int", "integer": "int",
+    "float": "float", "double": "float",
+    "bool": "bool", "boolean": "bool",
+    "dict": "dict", "dictionary": "dict", "graph": "dict",
+    "list": "list", "tuple": "list", "sequence": "list",
+    "nonetype": "None", "none": "None",
+}
+
 
 def sanitize_type_name(t: str) -> str:
-    """Normalizes type strings to standard lattice canonical types."""
     if not t:
         return "any"
     t_clean = str(t).strip()
-    t_lower = t_clean.lower()
-
-    if t_lower in ("any", "anyobject", "object", "*", "top", "unknown", ""):
-        return "any"
-    if t_lower in ("_callable", "callable"):
-        return "any"
-    if t_lower in ("_sequence", "sequence"):
-        return "list"
-    if t_lower in ("_mapping", "mapping"):
-        return "dict"
-
-    if "dataframe" in t_lower:
-        return "DataFrame"
-    if "series" in t_lower:
-        return "Series"
-    if "ndarray" in t_lower or "array" in t_lower:
-        return "ndarray"
-    if "mat" in t_lower or "image" in t_lower or "umat" in t_lower:
-        return "Mat"
-    if "str" in t_lower or "filepath" in t_lower or "path" in t_lower:
-        return "str"
-    if "int" in t_lower or "integer" in t_lower:
-        return "int"
-    if "float" in t_lower or "double" in t_lower:
-        return "float"
-    if "bool" in t_lower or "boolean" in t_lower:
-        return "bool"
-    if "dict" in t_lower or "graph" in t_lower:
-        return "dict"
-    if "list" in t_lower or "tuple" in t_lower:
-        return "list"
-
-    return t_clean
+    return _TYPE_CANONICAL_MAP.get(t_clean.lower(), t_clean)
 
 
 def determine_stage(cell_id: str, code: str, in_type: str, out_type: str, raw_stage: Any = None) -> int:
-    """Accurately classifies node into Stage 1 (Source), Stage 2 (Transform), or Stage 3 (Sink)."""
     cid_lower = cell_id.lower()
     code_lower = (code or "").lower()
 
-    # Stage 3: Sinks / Exporters / Writers
     sink_indicators = [
         "to_csv", "to_parquet", "to_json", "to_excel", "to_sql", "to_feather", "to_pickle",
         "imwrite", "savefig", "save", "export", "dump", "tofile", "write"
     ]
-    if any(k in cid_lower for k in sink_indicators) or any(f".{k}(" in code_lower for k in sink_indicators):
+    if any(k in cid_lower for k in sink_indicators):
         return 3
+    if code_lower:
+        for k in sink_indicators:
+            if f".{k}(" in code_lower:
+                return 3
     if out_type in ("None", "NoneType", "filepath_written") and in_type not in ("any", "str"):
         return 3
 
-    # Stage 1: Ingest / Readers / Loaders / Creators
     source_indicators = [
         "read_csv", "read_parquet", "read_json", "read_excel", "read_sql", "read_feather",
         "imread", "load", "from_", "create_", "zeros", "ones", "arange", "linspace"
     ]
-    if any(k in cid_lower for k in source_indicators) or any(f"{k}(" in code_lower for k in source_indicators):
+    if any(k in cid_lower for k in source_indicators):
         return 1
+    if code_lower:
+        for k in source_indicators:
+            if f"{k}(" in code_lower:
+                return 1
     if in_type in ("str", "int", "None") and out_type in ("DataFrame", "ndarray", "Mat"):
         return 1
 
@@ -86,6 +78,140 @@ def determine_stage(cell_id: str, code: str, in_type: str, out_type: str, raw_st
         return raw_stage
 
     return 2
+
+
+def _extract_code_template(cell: Dict[str, Any]) -> str:
+    """
+    Extracts the best available code template from a cell dict.
+    Order: code_template > code > domain_implementations.Python_Core.code
+    """
+    return (
+        cell.get("code_template", "")
+        or cell.get("code", "")
+        or cell.get("domain_implementations", {}).get("Python_Core", {}).get("code", "")
+    )
+
+
+def _params_to_dict(params: Any) -> Dict[str, Any]:
+    """
+    Converts a params list [ {"name": "x", "type": "int", "default": 5} ]
+    into a dict { "x": {"type": "int", "default_value": 5} } for runtime lookup.
+    """
+    if not isinstance(params, list):
+        return params if isinstance(params, dict) else {}
+
+    result = {}
+    for p in params:
+        if not isinstance(p, dict):
+            continue
+        name = p.get("name")
+        if not name:
+            continue
+        entry = {"type": p.get("type", "any")}
+        if "default" in p and p["default"] is not None and p["default"] != "...":
+            entry["default_value"] = p["default"]
+        if "required" in p:
+            entry["required"] = p["required"]
+        if "param_doc" in p:
+            entry["doc"] = p["param_doc"]
+        result[name] = entry
+    return result
+
+
+def _resolve_first_port(ports: Any) -> Tuple[str, str]:
+    """Resolves type and state from the first port (dict or list format)."""
+    if isinstance(ports, dict) and ports:
+        first = next(iter(ports.values()))
+        if isinstance(first, dict):
+            return (
+                first.get("type_name", first.get("type", "any")),
+                first.get("state", "raw")
+            )
+        return "any", "raw"
+    elif isinstance(ports, list) and ports:
+        first = ports[0]
+        if isinstance(first, dict):
+            return (
+                first.get("type_name", first.get("type", "any")),
+                first.get("state", "raw")
+            )
+        return "any", "raw"
+    return "any", "raw"
+
+
+def _iter_cells_to_compile(cell: Dict[str, Any]) -> Iterator[Dict[str, Any]]:
+    """
+    Yields the executable cell dicts that should be inserted into the database.
+
+    For special_nested nodes with variants: emit one row per variant, skip parent.
+    For all others: emit the cell as-is.
+    """
+    node_type = str(cell.get("node_type", "")).lower()
+    variants = cell.get("variants", [])
+
+    # Flatten special_nested variant containers
+    if node_type == "special_nested" and isinstance(variants, list) and variants:
+        parent_id = cell.get("cell_id", "").upper().strip()
+        parent_inputs = cell.get("inputs", {})
+        parent_outputs = cell.get("outputs", {})
+        parent_params = cell.get("params", [])
+        parent_keywords = set(cell.get("keywords", []))
+        parent_domain = cell.get("domain_name", cell.get("domain", "generic")).lower()
+
+        for variant in variants:
+            if not isinstance(variant, dict):
+                continue
+
+            variant_id = variant.get("variant_id", "")
+            if not variant_id:
+                continue
+
+            new_cell = {
+                "cell_id": f"{parent_id}_{variant_id}".upper(),
+                "domain_name": parent_domain,
+                "node_type": "function",
+                "node_role": "function",
+                "inputs": variant.get("inputs", parent_inputs),
+                "outputs": variant.get("outputs", parent_outputs),
+                "keywords": list(parent_keywords | set(variant.get("keywords", []))),
+                "dependencies": cell.get("dependencies", []),
+                "stage": cell.get("stage"),
+            }
+
+            # Code priority: variant code_snippet > variant code > parent template
+            code = (
+                variant.get("code_snippet", "")
+                or variant.get("code", "")
+                or _extract_code_template(cell)
+            )
+            new_cell["code_template"] = code
+
+            # Build configuration_schema from parent params + variant-specific overrides
+            cfg = _params_to_dict(parent_params)
+            # Merge variant fields that aren't structural metadata
+            for k, v in variant.items():
+                if k in ("variant_id", "code_snippet", "code", "keywords", "description",
+                         "inputs", "outputs", "variants"):
+                    continue
+                cfg[k] = v
+            new_cell["parameters"] = cfg
+
+            yield new_cell
+        return
+
+    # Regular node: normalize code field name and params
+    regular = dict(cell)
+    if "code" in regular and "code_template" not in regular:
+        regular["code_template"] = regular.pop("code")
+    elif not regular.get("code_template"):
+        regular["code_template"] = _extract_code_template(regular)
+
+    # Convert params list to dict for runtime resolver
+    if "params" in regular and isinstance(regular["params"], list):
+        regular["parameters"] = _params_to_dict(regular["params"])
+        del regular["params"]
+
+    yield regular
 
 
 def init_db(db_file=DB_PATH) -> sqlite3.Connection:
@@ -119,89 +245,71 @@ def init_db(db_file=DB_PATH) -> sqlite3.Connection:
 
 
 def compile_file_to_db(json_filepath: str, conn: sqlite3.Connection):
-    """Compiles a harvested JSON file into the SQLite lattice table."""
     try:
         with open(json_filepath, 'r', encoding='utf-8') as f:
             data = json.load(f)
-    except Exception:
+    except Exception as e:
+        print(f"[!] Failed to load {json_filepath}: {e}")
         return
 
     nodes = data.get("nodes", data.get("cells", data)) if isinstance(data, dict) else data
     if not isinstance(nodes, list):
+        print(f"[!] Unexpected structure in {json_filepath}")
         return
 
     cursor = conn.cursor()
     compiled_count = 0
 
-    for cell in nodes:
-        if not isinstance(cell, dict):
+    for raw_node in nodes:
+        if not isinstance(raw_node, dict):
             continue
 
-        cell_id = cell.get("cell_id", "").upper().strip()
-        if not cell_id or cell_id.startswith("_"):
-            continue
+        for cell in _iter_cells_to_compile(raw_node):
+            cell_id = cell.get("cell_id", "").upper().strip()
+            if not cell_id or cell_id.startswith("_"):
+                continue
 
-        # Filter out builtins exception noise during database compilation
-        cell_id_lower = cell_id.lower()
-        if "arithmeticerror" in cell_id_lower or "baseexception" in cell_id_lower or "add_note" in cell_id_lower or "lookuperror" in cell_id_lower:
-            continue
+            # Filter out exception-class noise
+            cid_lower = cell_id.lower()
+            noise = ("arithmeticerror", "baseexception", "add_note", "lookuperror",
+                     "exception", "warning", "error", "zombie")
+            if any(p in cid_lower for p in noise):
+                continue
 
-        domain_name = cell.get("domain_name", cell.get("domain", "generic")).lower()
-        node_type = cell.get("node_type", cell.get("type", "function"))
-        node_role = cell.get("node_role", "macro" if node_type == "macro" else "function")
-        keywords = json.dumps(cell.get("keywords", []))
+            domain_name = cell.get("domain_name", cell.get("domain", "generic")).lower()
+            node_type = cell.get("node_type", cell.get("type", "function"))
+            node_role = cell.get("node_role", "macro" if node_type == "macro" else "function")
+            keywords = json.dumps(cell.get("keywords", []))
 
-        # Multi-port inputs resolution
-        inputs = cell.get("inputs", {})
-        if isinstance(inputs, dict) and inputs:
-            first_port = next(iter(inputs.values()))
-            if isinstance(first_port, dict):
-                in_type = first_port.get("type_name", first_port.get("type", "any"))
-                in_state = first_port.get("state", "raw")
-            else:
-                in_type = "any"
-                in_state = "raw"
-        elif isinstance(inputs, list) and inputs:
-            in_type = inputs[0].get("type_name", inputs[0].get("type", "any"))
-            in_state = inputs[0].get("state", "raw")
-        else:
-            in_type = "any"
-            in_state = "raw"
+            in_type, in_state = _resolve_first_port(cell.get("inputs", {}))
+            out_type, out_state = _resolve_first_port(cell.get("outputs", {}))
 
-        # Multi-port outputs resolution
-        outputs = cell.get("outputs", {})
-        if isinstance(outputs, dict) and outputs:
-            first_out = next(iter(outputs.values()))
-            if isinstance(first_out, dict):
-                out_type = first_out.get("type_name", first_out.get("type", "any"))
-                out_state = first_out.get("state", "computed")
-            else:
-                out_type = "any"
-                out_state = "computed"
-        elif isinstance(outputs, list) and outputs:
-            out_type = outputs[0].get("type_name", outputs[0].get("type", "any"))
-            out_state = outputs[0].get("state", "computed")
-        else:
-            out_type = "any"
-            out_state = "computed"
+            in_type = sanitize_type_name(in_type)
+            out_type = sanitize_type_name(out_type)
 
-        # Sanitize types (eliminates AnyObject, _Callable, etc.)
-        in_type = sanitize_type_name(in_type)
-        out_type = sanitize_type_name(out_type)
+            code = cell.get("code_template", cell.get("code", ""))
+            stage = determine_stage(cell_id, code, in_type, out_type, cell.get("stage"))
 
-        code = cell.get("code_template", cell.get("code", ""))
-        stage = determine_stage(cell_id, code, in_type, out_type, cell.get("stage"))
+            deps = cell.get("dependencies", [])
+            if not deps and domain_name and domain_name not in ("generic", "python_core", "core"):
+                deps = [f"import {domain_name}"]
+            deps_json = json.dumps(deps)
 
-        deps = json.dumps(cell.get("dependencies", [f"import {domain_name}"]))
-        config_schema = json.dumps(cell.get("parameters", cell.get("inputs", {})))
-        verified_val = 1 if cell.get("verified") else 0
+            parameters = cell.get("parameters", cell.get("inputs", {}))
+            config_schema = json.dumps(parameters)
 
-        cursor.execute('''
-            INSERT OR REPLACE INTO nodes
-            (cell_id, domain_name, node_type, node_role, stage, keywords, input_type, input_state, output_type, output_state, code, dependencies, configuration_schema, verified)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        ''', (cell_id, domain_name, node_type, node_role, stage, keywords, in_type, in_state, out_type, out_state, code, deps, config_schema, verified_val))
-        compiled_count += 1
+            verified_val = 1 if cell.get("verified") else 0
+
+            cursor.execute('''
+                INSERT OR REPLACE INTO nodes
+                (cell_id, domain_name, node_type, node_role, stage, keywords,
+                 input_type, input_state, output_type, output_state, code,
+                 dependencies, configuration_schema, verified)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ''', (cell_id, domain_name, node_type, node_role, stage, keywords,
+                  in_type, in_state, out_type, out_state, code,
+                  deps_json, config_schema, verified_val))
+            compiled_count += 1
 
     conn.commit()
     print(f"[+] Compiled {compiled_count} nodes from {os.path.basename(json_filepath)} -> SQLite DB.")
@@ -216,9 +324,14 @@ def main():
 
     conn = init_db(db_path)
 
-    # Priority order: Compile trees/*_tree.json first, then harvests (skipping skeletons and builtins)
-    tree_files = sorted([f for f in glob.glob(os.path.join(trees_dir, "*_tree.json")) if "builtins" not in f])
-    harvest_files = sorted([f for f in glob.glob(os.path.join(PROJECT_ROOT, "harvests", "*.json")) if "builtins" not in f and "skeleton" not in f])
+    tree_files = sorted([
+        f for f in glob.glob(os.path.join(trees_dir, "*_tree.json"))
+        if "builtins" not in f
+    ])
+    harvest_files = sorted([
+        f for f in glob.glob(os.path.join(PROJECT_ROOT, "harvests", "*.json"))
+        if "builtins" not in f and "skeleton" not in f
+    ])
     all_files = tree_files + harvest_files
 
     print(f"[*] Starting Compilation of {len(all_files)} tree JSON files to SQLite...")
@@ -227,7 +340,6 @@ def main():
 
     conn.close()
 
-    # Harvest clean core patterns into lattice.db
     sys.path.insert(0, os.path.join(PROJECT_ROOT, "harvesting"))
     try:
         from pattern_harvester import harvest_core_patterns

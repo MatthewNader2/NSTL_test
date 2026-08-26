@@ -1,7 +1,7 @@
 """
 src/lattice.py - Neuro-Symbolic Topological Lattice (NSTL)
 Defines formal algebraic type signatures, multi-port cell nodes,
-and ultra-lightweight on-demand topology resolution (<15 MB RAM footprint).
+and ultra-lightweight on-demand topology resolution.
 """
 
 from __future__ import annotations
@@ -11,14 +11,14 @@ import sqlite3
 import threading
 from abc import ABC
 from dataclasses import dataclass, field
-from typing import Dict, List, Optional, Set, Tuple, Any, FrozenSet
+from typing import Dict, List, Optional, Set, Tuple, Any, FrozenSet, Union
 from log_config import get_logger
 
 logger = get_logger('lattice')
 
 
 class TypeRegistry:
-    """Dynamic Poset Type Hierarchy."""
+    """Dynamic Poset Type Hierarchy with safe incremental registration."""
     _instance: Optional[TypeRegistry] = None
     _lock = threading.Lock()
 
@@ -35,13 +35,16 @@ class TypeRegistry:
             return cls._instance
 
     def _register_default_types(self):
+        # Register base types first to avoid forward-reference issues
         self.register_type("any")
         self.register_type("object", super_type="any")
+        self.register_type("numeric", super_type="object")
         self.register_type("None", super_type="any")
+
+        # Register leaf types
         self.register_type("str", super_type="object")
         self.register_type("int", super_type="numeric")
         self.register_type("float", super_type="numeric")
-        self.register_type("numeric", super_type="object")
         self.register_type("bool", super_type="int")
         self.register_type("list", super_type="object")
         self.register_type("dict", super_type="object")
@@ -49,11 +52,13 @@ class TypeRegistry:
 
     def register_type(self, type_name: str, super_type: Optional[str] = None):
         name = type_name.strip()
+        if not name:
+            return
         if name not in self._parents:
             self._parents[name] = set()
         if super_type:
             super_name = super_type.strip()
-            if super_name not in self._parents:
+            if super_name and super_name not in self._parents:
                 self._parents[super_name] = set()
             self._parents[name].add(super_name)
 
@@ -69,6 +74,8 @@ class TypeRegistry:
 
         if super_c == "any" or sub_c == "any" or sub_c == super_c:
             return True
+        if sub_c not in self._parents:
+            return False
 
         visited = set()
         queue = [sub_c]
@@ -122,7 +129,8 @@ class Cell(ABC):
     __slots__ = [
         "cell_id", "stage", "keywords", "cell_type",
         "inputs", "outputs", "domain_name", "node_type", "node_role",
-        "dependencies", "code_template", "metadata_tags", "_db_path"
+        "dependencies", "code_template", "metadata_tags", "_db_path",
+        "configuration_schema"
     ]
 
     def __init__(
@@ -131,29 +139,74 @@ class Cell(ABC):
         stage: int,
         keywords: Set[str],
         cell_type: str,
-        inputs: Dict[str, PortSignature],
-        outputs: Dict[str, PortSignature],
+        inputs: Optional[Dict[str, Union[PortSignature, AlgebraicSignature, dict]]] = None,
+        outputs: Optional[Dict[str, Union[PortSignature, AlgebraicSignature, dict]]] = None,
         domain_name: str = "",
         node_type: str = "function",
         node_role: str = "function",
         dependencies: Optional[List[str]] = None,
         code_template: str = "",
         metadata_tags: Optional[Dict[str, Any]] = None,
-        db_path: str = ""
+        db_path: str = "",
+        configuration_schema: Optional[Dict[str, Any]] = None
     ):
         self.cell_id = cell_id
         self.stage = stage
         self.keywords = set(keywords) if keywords else set()
         self.cell_type = cell_type
-        self.inputs = inputs
-        self.outputs = outputs
         self.domain_name = domain_name
         self.node_type = node_type
-        self.node_role = node_role
+        self.node_role = str(node_role).lower() if node_role else "function"
         self.dependencies = dependencies or []
         self.code_template = code_template
         self.metadata_tags = metadata_tags or {}
         self._db_path = db_path
+        self.configuration_schema = configuration_schema or {}
+
+        # Defensive normalization: accept PortSignature, AlgebraicSignature, or raw dicts
+        self.inputs: Dict[str, PortSignature] = {}
+        for k, v in (inputs or {}).items():
+            if isinstance(v, PortSignature):
+                self.inputs[k] = v
+            elif isinstance(v, AlgebraicSignature):
+                self.inputs[k] = PortSignature(name=k, signature=v)
+            elif isinstance(v, dict):
+                sig = AlgebraicSignature(
+                    type_name=v.get("type_name", "any"),
+                    state=v.get("state", "any"),
+                    qualifiers=frozenset(tuple(q) for q in v.get("qualifiers", []))
+                )
+                self.inputs[k] = PortSignature(
+                    name=k,
+                    signature=sig,
+                    required=v.get("required", True),
+                    default_value=v.get("default_value"),
+                    doc=v.get("doc", "")
+                )
+            else:
+                self.inputs[k] = PortSignature(name=k, signature=AlgebraicSignature("any", "any"))
+
+        self.outputs: Dict[str, PortSignature] = {}
+        for k, v in (outputs or {}).items():
+            if isinstance(v, PortSignature):
+                self.outputs[k] = v
+            elif isinstance(v, AlgebraicSignature):
+                self.outputs[k] = PortSignature(name=k, signature=v)
+            elif isinstance(v, dict):
+                sig = AlgebraicSignature(
+                    type_name=v.get("type_name", "any"),
+                    state=v.get("state", "any"),
+                    qualifiers=frozenset(tuple(q) for q in v.get("qualifiers", []))
+                )
+                self.outputs[k] = PortSignature(
+                    name=k,
+                    signature=sig,
+                    required=v.get("required", True),
+                    default_value=v.get("default_value"),
+                    doc=v.get("doc", "")
+                )
+            else:
+                self.outputs[k] = PortSignature(name=k, signature=AlgebraicSignature("any", "any"))
 
     @property
     def primary_input(self) -> AlgebraicSignature:
@@ -167,17 +220,30 @@ class Cell(ABC):
             return AlgebraicSignature("None", "any")
         return next(iter(self.outputs.values())).signature
 
+    def __repr__(self) -> str:
+        return (
+            f"<{self.__class__.__name__} {self.cell_id} "
+            f"({self.domain_name}) {self.primary_input} -> {self.primary_output}>"
+        )
+
 
 class MicroCell(Cell):
+    __slots__ = ()  # Inherit parent slots exactly; no extra __dict__
+
     def __init__(self, **kwargs):
         kwargs["cell_type"] = "micro"
         super().__init__(**kwargs)
 
 
 class MacroCell(Cell):
-    __slots__ = ["sub_cells", "algorithmic_steps"]
+    __slots__ = ("sub_cells", "algorithmic_steps")
 
-    def __init__(self, sub_cells: Optional[List[str]] = None, algorithmic_steps: Optional[List[str]] = None, **kwargs):
+    def __init__(
+        self,
+        sub_cells: Optional[List[str]] = None,
+        algorithmic_steps: Optional[List[str]] = None,
+        **kwargs
+    ):
         kwargs["cell_type"] = "macro"
         super().__init__(**kwargs)
         self.sub_cells = sub_cells or []
@@ -187,7 +253,6 @@ class MacroCell(Cell):
 class LatticeOrchestrator:
     """
     Manages the live typed DAG using lazy on-demand bucket resolution.
-    RAM footprint is ~15 MB for 24,000 cells (zero 88-million edge overhead).
     """
     def __init__(self, trees_directory="trees", active_domain="Python_Core"):
         self.trees_directory = trees_directory
@@ -212,7 +277,7 @@ class LatticeOrchestrator:
             cursor.execute("""
                 SELECT cell_id, domain_name, node_type, node_role, stage,
                        keywords, input_type, input_state, output_type, output_state,
-                       code, dependencies, configuration_schema
+                       code, dependencies, configuration_schema, verified
                 FROM nodes
             """)
             rows = cursor.fetchall()
@@ -220,7 +285,7 @@ class LatticeOrchestrator:
             for row in rows:
                 (cell_id, domain_name, node_type, node_role, stage,
                  keywords_json, in_type, in_state, out_type, out_state,
-                 code, deps_json, config_json) = row
+                 code, deps_json, config_json, verified) = row
 
                 try:
                     keywords = set(json.loads(keywords_json)) if keywords_json else set()
@@ -232,40 +297,34 @@ class LatticeOrchestrator:
                 except Exception:
                     dependencies = []
 
+                try:
+                    configuration_schema = json.loads(config_json) if config_json else {}
+                except Exception:
+                    configuration_schema = {}
+
                 in_sig = AlgebraicSignature(type_name=in_type or "any", state=in_state or "any")
                 out_sig = AlgebraicSignature(type_name=out_type or "None", state=out_state or "any")
 
                 inputs = {"input_data": PortSignature(name="input_data", signature=in_sig)}
                 outputs = {"output_data": PortSignature(name="output_data", signature=out_sig)}
 
-                if node_type == "macro" or str(node_role).lower() == "macro":
-                    cell = MacroCell(
-                        cell_id=cell_id,
-                        stage=stage or 1,
-                        keywords=keywords,
-                        inputs=inputs,
-                        outputs=outputs,
-                        domain_name=domain_name or self.active_domain,
-                        node_type="macro",
-                        node_role="macro",
-                        dependencies=dependencies,
-                        code_template=code or "",
-                        db_path=self.db_path
-                    )
-                else:
-                    cell = MicroCell(
-                        cell_id=cell_id,
-                        stage=stage or 1,
-                        keywords=keywords,
-                        inputs=inputs,
-                        outputs=outputs,
-                        domain_name=domain_name or self.active_domain,
-                        node_type=node_type or "function",
-                        node_role=str(node_role).lower() if node_role else "function",
-                        dependencies=dependencies,
-                        code_template=code or "",
-                        db_path=self.db_path
-                    )
+                is_macro = node_type == "macro" or str(node_role).lower() == "macro"
+                cell_cls = MacroCell if is_macro else MicroCell
+
+                cell = cell_cls(
+                    cell_id=cell_id,
+                    stage=stage or 1,
+                    keywords=keywords,
+                    inputs=inputs,
+                    outputs=outputs,
+                    domain_name=domain_name or self.active_domain,
+                    node_type="macro" if is_macro else (node_type or "function"),
+                    node_role=str(node_role).lower() if node_role else "function",
+                    dependencies=dependencies,
+                    code_template=code or "",
+                    db_path=self.db_path,
+                    configuration_schema=configuration_schema
+                )
 
                 self.loaded_cells[cell.cell_id] = cell
 
@@ -275,14 +334,17 @@ class LatticeOrchestrator:
             logger.error(f"[LATTICE] Database load error: {e}")
 
     def build_topology(self):
-        """Builds O(N) inverse bucket lookup in milliseconds (<15 MB RAM)."""
+        """Builds O(N) inverse bucket lookup."""
         with self._lock:
             self._cells_by_input.clear()
             for cell in self.loaded_cells.values():
                 in_sig = cell.primary_input
                 key = (in_sig.type_name, in_sig.state)
                 self._cells_by_input.setdefault(key, []).append(cell)
-            logger.info(f"[LATTICE] Indexed {len(self.loaded_cells)} cells into {len(self._cells_by_input)} typestate buckets.")
+            logger.info(
+                f"[LATTICE] Indexed {len(self.loaded_cells)} cells into "
+                f"{len(self._cells_by_input)} typestate buckets."
+            )
 
     def inject_cell(self, cell: Cell):
         """Thread-safe incremental addition of a synthesized cell into the orchestrator."""
@@ -292,7 +354,7 @@ class LatticeOrchestrator:
             self._cells_by_input.setdefault((in_sig.type_name, in_sig.state), []).append(cell)
 
     def get_neighbors(self, cell_id: str) -> List[Cell]:
-        """Returns type-compatible downstream successor cells on-demand in O(1) amortized time."""
+        """Returns type-compatible downstream successor cells on-demand."""
         cell = self.loaded_cells.get(cell_id)
         if not cell:
             return []
@@ -301,14 +363,19 @@ class LatticeOrchestrator:
         neighbors = []
         seen = set()
 
-        for (in_type, in_state), target_cells in self._cells_by_input.items():
-            if out_sig.unifies_with(AlgebraicSignature(in_type, in_state)):
-                for tgt in target_cells:
-                    if tgt.cell_id != cell_id and tgt.cell_id not in seen:
-                        seen.add(tgt.cell_id)
-                        neighbors.append(tgt)
+        with self._lock:
+            for (in_type, in_state), target_cells in self._cells_by_input.items():
+                if out_sig.unifies_with(AlgebraicSignature(in_type, in_state)):
+                    for tgt in target_cells:
+                        if tgt.cell_id != cell_id and tgt.cell_id not in seen:
+                            seen.add(tgt.cell_id)
+                            neighbors.append(tgt)
         return neighbors
 
     def get_all_available_cells(self) -> List[Cell]:
         """Returns all loaded cells in the active lattice."""
         return list(self.loaded_cells.values())
+
+    def get_cell(self, cell_id: str) -> Optional[Cell]:
+        """Safe accessor for a single cell by ID."""
+        return self.loaded_cells.get(cell_id)

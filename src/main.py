@@ -6,11 +6,7 @@ Main FastAPI Server, REST API Endpoints, and 4-Phase Synthesis Pipeline.
 from __future__ import annotations
 import os
 import sys
-import socket
-import subprocess
 import threading
-import time
-import warnings
 from dataclasses import asdict
 from typing import List, Dict, Set, Any, Optional
 
@@ -20,13 +16,12 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
-# Initialize centralized logging
 from log_config import setup_logging, get_logger
 setup_logging()
 logger = get_logger("main")
 
 from config import API_HOST, API_PORT, CORS_ORIGINS
-from lattice import LatticeOrchestrator, AlgebraicSignature, Cell, MicroCell
+from lattice import LatticeOrchestrator, AlgebraicSignature, Cell, MicroCell, MacroCell
 from unification import ExecutionContext, UnificationGate
 from router import HardwareProfiler, LatticeRouter, MCTSEngine
 from planner import ZeroShotPlanner
@@ -56,7 +51,6 @@ def get_resource_path(relative_path: str) -> str:
 TREES_DIR = get_resource_path("trees")
 FRONTEND_DIR = get_resource_path("frontend_dist")
 
-# Global engine state
 global_orchestrator: Optional[LatticeOrchestrator] = None
 global_rag_engine: Optional[LocalRAG] = None
 engine_device: str = "cpu"
@@ -121,15 +115,46 @@ def get_cells():
     return {"cells": cells, "count": len(cells)}
 
 
+def _expand_macro(cell: MacroCell, orchestrator: LatticeOrchestrator, _depth: int = 0, _visited: Optional[Set[str]] = None) -> List[Cell]:
+    """
+    Recursively expands a MacroCell into its constituent MicroCells.
+    Guards against infinite recursion and skips self-referential sub-cells
+    gracefully instead of aborting the entire expansion.
+    """
+    if _visited is None:
+        _visited = set()
+
+    if _depth > 5:
+        logger.warning(f"[MACRO EXPANSION] Recursion limit hit for {cell.cell_id}")
+        return []
+    if cell.cell_id in _visited:
+        logger.error(f"[MACRO EXPANSION] Circular reference detected at {cell.cell_id}")
+        return []
+
+    _visited.add(cell.cell_id)
+    expanded: List[Cell] = []
+
+    for sub_id in cell.sub_cells:
+        # Skip self-referential entries gracefully
+        if sub_id == cell.cell_id:
+            logger.warning(f"[MACRO EXPANSION] Self-reference skipped in {cell.cell_id}")
+            continue
+
+        sub = orchestrator.loaded_cells.get(sub_id)
+        if sub is None:
+            logger.warning(f"[MACRO EXPANSION] Sub-cell '{sub_id}' missing from lattice; skipping.")
+            continue
+        if isinstance(sub, MacroCell):
+            expanded.extend(_expand_macro(sub, orchestrator, _depth + 1, _visited))
+        else:
+            expanded.append(sub)
+
+    _visited.discard(cell.cell_id)
+    return expanded
+
+
 @app.post("/api/run")
 def run_prompt(req: RunRequest):
-    """
-    Main 4-Phase Program Synthesis Pipeline:
-    Phase 1: Semantic Intent Routing / Planning
-    Phase 2: Typestate Resolution & Dynamic Gap Bridging
-    Phase 3: Type-Monadic Unification & Code Generation
-    Phase 4: Sandboxed Verification & Feedback Repair
-    """
     if _engine_ready is not True or global_orchestrator is None or global_rag_engine is None:
         return {
             "logs": [{"msg": "Engine is loading. Please wait for initialization.", "type": "warn"}],
@@ -141,28 +166,20 @@ def run_prompt(req: RunRequest):
     log_buffer = []
     log_buffer.append({"msg": f"[PROMPT] {req.prompt[:100]}...", "type": "system"})
 
-    # ─────────────────────────────────────────────────────────────
-    # Phase 1: Planning / Routing
-    # ─────────────────────────────────────────────────────────────
     model_mgr = ModelManager.get_instance()
     resolved_path: List[Cell] = []
     virtual_edges: Set[str] = set()
 
     if not model_mgr.can_synthesize():
-        # Profile A: Pure Embedding-Guided Beam Search
         log_buffer.append({"msg": "Phase 1: Embedding-guided Beam Search pathfinding...", "type": "info"})
         router = LatticeRouter(global_orchestrator, global_rag_engine)
         resolved_path, virtual_edges = router.plan_path(req.prompt)
     else:
-        # Profiles B/C/D: Structured Macro Planning
         log_buffer.append({"msg": "Phase 1: ZeroShotPlanner decomposing prompt into topological DAG...", "type": "info"})
         planner = ZeroShotPlanner(global_orchestrator, global_rag_engine)
         plan_dict = planner.run_planning_pass(req.prompt)
         sub_cells = plan_dict.get("cells", [{}])[0].get("sub_cells", [])
 
-        # ─────────────────────────────────────────────────────────
-        # Phase 2: Typestate Resolution & Gap Bridging
-        # ─────────────────────────────────────────────────────────
         log_buffer.append({"msg": f"Phase 2: Resolving {len(sub_cells)} plan steps across the lattice...", "type": "info"})
         mcts = MCTSEngine(global_orchestrator)
         synthesis_engine = SynthesisEngine(trees_dir=TREES_DIR)
@@ -174,11 +191,9 @@ def run_prompt(req: RunRequest):
             target_cell = global_orchestrator.loaded_cells.get(step_id)
 
             if target_cell is None or step_id.startswith("SYNTH_"):
-                # Bridge gap: Attempt MCTS or Live Doc Synthesis
                 log_buffer.append({"msg": f"Gap detected for step '{step_id}'. Bridging...", "type": "warn"})
                 expected_out = AlgebraicSignature("any", "any")
 
-                # Try MCTS first
                 bridge = mcts.search(current_sig, expected_out)
                 if bridge:
                     for b in bridge:
@@ -187,19 +202,24 @@ def run_prompt(req: RunRequest):
                         current_sig = b.primary_output
                     continue
 
-                # Fallback to LLM Synthesis
                 if model_mgr.can_synthesize():
                     try:
+                        gap_name = step_id.replace("SYNTH_", "").replace("_", " ")
                         synth_dict = synthesis_engine.synthesize_micro_cell(
-                            gap_concept=step_id.replace("SYNTH_", "").replace("_", " "),
+                            gap_concept=gap_name,
                             expected_input=current_sig.type_name,
                             expected_output="any",
                             fetcher=fetcher
                         )
                         if UnificationGate.validate_synthesis(synth_dict, current_sig, expected_out, TREES_DIR):
-                            # Instantiate and inject
-                            in_sig = AlgebraicSignature(synth_dict["inputs"]["type_name"], synth_dict["inputs"]["state"])
-                            out_sig = AlgebraicSignature(synth_dict["outputs"]["type_name"], synth_dict["outputs"]["state"])
+                            in_sig = AlgebraicSignature(
+                                synth_dict["inputs"]["type_name"],
+                                synth_dict["inputs"]["state"]
+                            )
+                            out_sig = AlgebraicSignature(
+                                synth_dict["outputs"]["type_name"],
+                                synth_dict["outputs"]["state"]
+                            )
                             new_cell = MicroCell(
                                 cell_id=synth_dict["cell_id"],
                                 stage=synth_dict.get("stage", 2),
@@ -216,24 +236,32 @@ def run_prompt(req: RunRequest):
                         log_buffer.append({"msg": f"Synthesis failed for {step_id}: {e}", "type": "error"})
 
             if target_cell:
-                # Type continuity check
-                if not current_sig.unifies_with(target_cell.primary_input):
-                    bridge = mcts.search(current_sig, target_cell.primary_input)
-                    for b in bridge:
-                        resolved_path.append(b)
-                        virtual_edges.add(b.cell_id)
-                        current_sig = b.primary_output
+                if isinstance(target_cell, MacroCell):
+                    expanded = _expand_macro(target_cell, global_orchestrator)
+                    for sub in expanded:
+                        if not current_sig.unifies_with(sub.primary_input):
+                            bridge = mcts.search(current_sig, sub.primary_input)
+                            for b in bridge:
+                                resolved_path.append(b)
+                                virtual_edges.add(b.cell_id)
+                                current_sig = b.primary_output
+                        resolved_path.append(sub)
+                        current_sig = sub.primary_output
+                else:
+                    if not current_sig.unifies_with(target_cell.primary_input):
+                        bridge = mcts.search(current_sig, target_cell.primary_input)
+                        for b in bridge:
+                            resolved_path.append(b)
+                            virtual_edges.add(b.cell_id)
+                            current_sig = b.primary_output
 
-                resolved_path.append(target_cell)
-                current_sig = target_cell.primary_output
+                    resolved_path.append(target_cell)
+                    current_sig = target_cell.primary_output
 
     if not resolved_path:
         log_buffer.append({"msg": "Failed to construct a valid execution route.", "type": "error"})
         return {"logs": log_buffer, "path": [], "virtual_edges": [], "code": "# Path generation failed."}
 
-    # ─────────────────────────────────────────────────────────────
-    # Phase 3: Monadic Code Unification
-    # ─────────────────────────────────────────────────────────────
     log_buffer.append({"msg": f"Phase 3: Monadic unification across {len(resolved_path)} cells...", "type": "info"})
     context = ExecutionContext(prompt=req.prompt)
     code_blocks: List[str] = []
@@ -249,9 +277,6 @@ def run_prompt(req: RunRequest):
     raw_synthesized_code = "\n".join(code_blocks)
     full_code = UnificationGate.resolve_imports(raw_synthesized_code, context)
 
-    # ─────────────────────────────────────────────────────────────
-    # Phase 4: Sandboxed Verification & Feedback Repair
-    # ─────────────────────────────────────────────────────────────
     log_buffer.append({"msg": "Phase 4: Running sandboxed execution check...", "type": "info"})
     sandbox = GEVRSandbox(timeout_seconds=5.0)
 

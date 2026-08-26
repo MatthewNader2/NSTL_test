@@ -1,7 +1,6 @@
 """
 src/planner.py - Neuro-Symbolic Topological Lattice (NSTL)
-Translates user natural language requests into structured MacroCell DAGs
-using LLMs with JSON schema constraints, or a deterministic typestate fallback.
+Translates user natural language requests into structured MacroCell DAGs.
 """
 
 from __future__ import annotations
@@ -17,20 +16,14 @@ logger = get_logger("planner")
 
 
 class ZeroShotPlanner:
-    """
-    Decomposes high-level natural language goals into a structured topological
-    execution graph of micro-cells.
-    """
     def __init__(self, orchestrator: LatticeOrchestrator, rag_engine=None):
         self.orchestrator = orchestrator
         self.rag_engine = rag_engine
 
     def _get_relevant_context(self, prompt: str) -> str:
-        """Retrieves top-25 candidate micro-nodes formatted as a compact schema."""
         if self.rag_engine:
             return self.rag_engine.get_relevant_context(prompt, top_k=25)
 
-        # Fallback if RAG is uninitialized
         cells = [c for c in self.orchestrator.loaded_cells.values() if isinstance(c, MicroCell)]
         lines = []
         for c in cells[:25]:
@@ -38,11 +31,6 @@ class ZeroShotPlanner:
         return "\n".join(lines)
 
     def run_planning_pass(self, prompt: str) -> Dict[str, Any]:
-        """
-        Executes the planning pass:
-        1. If LLM is unavailable: uses deterministic typestate search.
-        2. If LLM is available: prompts for a strict JSON execution DAG.
-        """
         model_mgr = ModelManager.get_instance()
 
         if not model_mgr.can_synthesize():
@@ -71,7 +59,7 @@ Available Verified Micro-Nodes:
 
 RULES:
 1. Select exclusively from the Available Verified Micro-Nodes when a suitable node exists.
-2. For end-to-end I/O pipelines (e.g. read CSV/image, transform, save to file), you MUST include the full sequence: Source Node (e.g. PANDAS_READ_CSV, CV2_IMREAD) -> Processing Nodes -> Sink/Export Node (e.g. PANDAS_TO_CSV, CV2_IMWRITE).
+2. For end-to-end I/O pipelines (e.g. read CSV/image, transform, save to file), you MUST include the full sequence: Source Node -> Processing Nodes -> Sink/Export Node.
 3. If an essential step has no matching node, invent a node ID prefixed with 'SYNTH_'."""
 
         full_prompt = f"{system_prompt}\n\nUser Request: {prompt}"
@@ -82,7 +70,6 @@ RULES:
             logger.error(f"[PLANNER ERROR] LLM generation failed: {e}")
             return self._run_deterministic_planner(prompt)
 
-        # Clean markdown wrappers if present
         clean_json = raw_output.strip()
         if clean_json.startswith("```"):
             clean_json = clean_json.split("\n", 1)[-1]
@@ -99,13 +86,11 @@ RULES:
             return self._run_deterministic_planner(prompt)
 
     def _validate_and_register_plan(self, macro_data: Dict[str, Any]):
-        """Validates sub_cells, grounds near-miss IDs via FAISS, and registers the macro."""
         cells = macro_data.get("cells", [])
         for cell_dict in cells:
             sub_cells = cell_dict.get("sub_cells", [])
             for i, sub_id in enumerate(sub_cells):
                 if sub_id not in self.orchestrator.loaded_cells:
-                    # 1. Try vector grounding to existing verified cell
                     if self.rag_engine and hasattr(self.rag_engine, "index") and self.rag_engine.index is not None:
                         clean_query = sub_id.replace("SYNTH_", "").replace("_", " ")
                         raw_emb = np.array([ModelManager.get_instance().get_embedding(clean_query)], dtype=np.float32)
@@ -118,15 +103,17 @@ RULES:
                                 match_id = match_schema.get("cell_id")
                                 sim = float(dists[0][0])
                                 if match_id and sim >= 0.70 and match_id in self.orchestrator.loaded_cells:
+                                    matched_cell = self.orchestrator.loaded_cells[match_id]
+                                    # Prevent circular macro references
+                                    if isinstance(matched_cell, MacroCell):
+                                        continue
                                     logger.info(f"[PLANNER GROUNDING] Mapped '{sub_id}' -> '{match_id}' (sim={sim:.3f})")
                                     sub_cells[i] = match_id
                                     continue
 
-                    # 2. Mark unknown as SYNTH_
                     if not sub_id.startswith("SYNTH_"):
                         sub_cells[i] = f"SYNTH_{sub_id.upper()}"
 
-            # Create and register MacroCell
             in_sig = AlgebraicSignature("str", "source_identifier")
             out_sig = AlgebraicSignature("any", "any")
             macro_cell = MacroCell(
@@ -141,14 +128,12 @@ RULES:
             self.orchestrator.inject_cell(macro_cell)
 
     def _run_deterministic_planner(self, prompt: str) -> Dict[str, Any]:
-        """
-        Pure deterministic search: selects a chain of type-compatible cells
-        by matching tokens in the prompt against cell keywords.
-        """
         tokens = set(re.findall(r"[a-zA-Z_]+", prompt.lower()))
         available_micro = [
             c for c in self.orchestrator.loaded_cells.values()
             if isinstance(c, MicroCell)
+            and c.code_template
+            and c.code_template.strip()
         ]
 
         curr_sig = AlgebraicSignature("str", "source_identifier")
@@ -156,7 +141,6 @@ RULES:
         used_ids = set()
 
         for _ in range(6):
-            # Find type-compatible candidates
             compatible = [
                 c for c in available_micro
                 if c.cell_id not in used_ids and curr_sig.unifies_with(c.primary_input)
@@ -164,7 +148,6 @@ RULES:
             if not compatible:
                 break
 
-            # Score by token overlap
             best_cell = None
             best_score = -1
             for c in compatible:
@@ -172,8 +155,24 @@ RULES:
                 id_tokens = {p.lower() for p in c.cell_id.split("_")}
                 overlap += len(tokens.intersection(id_tokens))
 
-                if overlap > best_score:
-                    best_score = overlap
+                # Encourage natural pipeline progression: Source -> Transform -> Sink
+                stage_bonus = 0
+                if not selected_ids:
+                    if c.stage == 1:
+                        stage_bonus = 2
+                else:
+                    last_stage = self.orchestrator.loaded_cells[selected_ids[-1]].stage
+                    if c.stage == last_stage:
+                        stage_bonus = 1
+                    elif c.stage == last_stage + 1:
+                        stage_bonus = 2
+                    elif c.stage < last_stage:
+                        stage_bonus = -1
+
+                total_score = overlap + stage_bonus
+
+                if total_score > best_score:
+                    best_score = total_score
                     best_cell = c
 
             if not best_cell or best_score <= 0:

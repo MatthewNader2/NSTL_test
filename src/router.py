@@ -9,7 +9,6 @@ import math
 import os
 import random
 import re
-import copy
 import time
 from dataclasses import dataclass, field
 from typing import Optional, List, Dict, Set, Tuple, Any
@@ -17,16 +16,12 @@ from typing import Optional, List, Dict, Set, Tuple, Any
 import numpy as np
 import torch
 from log_config import get_logger
-from lattice import LatticeOrchestrator, Cell, MicroCell, MacroCell, AlgebraicSignature, TypeRegistry
+from lattice import LatticeOrchestrator, Cell, MicroCell, MacroCell, AlgebraicSignature
 
 logger = get_logger('router')
 
 
 class HardwareProfiler:
-    """
-    Cross-Platform Dynamic Hardware Auto-Profiler.
-    Detects host hardware and assigns compute backends.
-    """
     _cached_device: Optional[str] = None
     _config: Dict[str, str] = {
         'embedder': 'auto',
@@ -70,7 +65,6 @@ class HardwareProfiler:
 
 
 class MCTSNode:
-    """Lightweight search node for typestate reachability tree search."""
     __slots__ = ['cell_id', 'signature', 'parent', 'children', 'visits', 'q_value']
 
     def __init__(self, cell_id: str, signature: AlgebraicSignature, parent: Optional[MCTSNode] = None):
@@ -89,15 +83,10 @@ class MCTSNode:
 
 
 class MCTSEngine:
-    """
-    Monte Carlo Tree Search for finding intermediate type-converting cells
-    when a typestate gap exists between consecutive plan steps.
-    """
     def __init__(self, orchestrator: LatticeOrchestrator):
         self.orchestrator = orchestrator
 
     def search(self, start_sig: AlgebraicSignature, target_sig: AlgebraicSignature, max_depth: int = 6, timeout_sec: float = 1.5) -> List[Cell]:
-        """Searches the lattice topology for a valid chain of cells from start_sig to target_sig."""
         root = MCTSNode(cell_id="ROOT", signature=start_sig)
         start_time = time.time()
 
@@ -105,19 +94,14 @@ class MCTSEngine:
             if time.time() - start_time > timeout_sec:
                 break
 
-            # 1. Selection
             leaf = self._select(root)
 
-            # 2. Expansion
             if not leaf.signature.unifies_with(target_sig) and leaf.visits > 0:
                 self._expand(leaf)
                 if leaf.children:
                     leaf = random.choice(leaf.children)
 
-            # 3. Simulation
             reward = self._simulate(leaf, target_sig, max_depth)
-
-            # 4. Backpropagation
             self._backpropagate(leaf, reward)
 
         return self._extract_best_path(root, target_sig)
@@ -190,22 +174,13 @@ class BeamCandidate:
 
 
 class LatticeRouter:
-    """
-    Semantic Router: Routes natural language intents to paths through the lattice
-    using FAISS vector tunneling and type-monadic beam search.
-    """
     def __init__(self, orchestrator: LatticeOrchestrator, rag_engine=None):
         self.orchestrator = orchestrator
         self.rag_engine = rag_engine
         self.mcts = MCTSEngine(orchestrator)
 
     def _split_intent_into_goals(self, intent: str) -> List[str]:
-        """
-        Splits compound natural language instructions into ordered sub-goals
-        respecting clause boundaries.
-        """
-        # Split on sentence/clause delimiters while ignoring punctuation inside quotes
-        pattern = r'(?:\s*;\s*|\s*,\s*(?=(?:and|then|after|next)\b)|\s*\.\s+|\n+)'
+        pattern = r'(?:\s*;\s*|\s*,\s*|\s*\.\s+|\n+)'
         raw_goals = re.split(pattern, intent, flags=re.IGNORECASE)
         goals = [g.strip() for g in raw_goals if g.strip()]
         return goals if goals else [intent.strip()]
@@ -217,10 +192,6 @@ class LatticeRouter:
         initial_state: str = "source_identifier",
         beam_width: int = 3
     ) -> Tuple[List[Cell], Set[str]]:
-        """
-        Main pathfinding algorithm:
-        Explores the lattice using type-constrained beam search over semantic goals.
-        """
         goals = self._split_intent_into_goals(user_intent)
         start_sig = AlgebraicSignature(initial_type, initial_state)
 
@@ -232,7 +203,6 @@ class LatticeRouter:
         model_mgr = ModelManager.get_instance()
 
         for goal in goals:
-            # 1. Embed current sub-goal
             goal_embeddings = model_mgr.get_embeddings([goal])
             if not goal_embeddings:
                 continue
@@ -242,17 +212,21 @@ class LatticeRouter:
             next_beam: List[BeamCandidate] = []
 
             for state in beam:
-                # 2. Score candidates using Semantic Tunneling (FAISS + Typestate Check)
                 candidates = self._score_candidates(goal_vec, state.current_signature)
 
                 for score, cell in candidates[:beam_width * 2]:
-                    # Type-Monadic Unification Gate Check
+                    last_stage = state.path[-1].stage if state.path else 0
+                    cell_stage = cell.stage or 2
+
+                    # Penalize stage regression (e.g., sink -> source)
+                    if last_stage > 0 and cell_stage < last_stage:
+                        score *= 0.6
+
                     if state.current_signature.unifies_with(cell.primary_input):
                         new_path = state.path + [cell]
                         new_sig = cell.primary_output
                         new_edges = set(state.virtual_edges)
 
-                        # Track jump edges outside standard adjacency
                         if state.path:
                             last_id = state.path[-1].cell_id
                             neighbors = [n.cell_id for n in self.orchestrator.get_neighbors(last_id)]
@@ -268,7 +242,6 @@ class LatticeRouter:
                             )
                         )
                     else:
-                        # 3. Gap Bridging via MCTS
                         bridge = self.mcts.search(state.current_signature, cell.primary_input)
                         if bridge:
                             new_path = state.path + bridge + [cell]
@@ -289,7 +262,6 @@ class LatticeRouter:
 
             if next_beam:
                 next_beam.sort(key=lambda b: b.score, reverse=True)
-                # Deduplicate beam states by path cell_ids
                 unique_beam = []
                 seen_paths = set()
                 for b in next_beam:
@@ -315,9 +287,6 @@ class LatticeRouter:
         current_sig: AlgebraicSignature,
         top_k: int = 50
     ) -> List[Tuple[float, Cell]]:
-        """
-        Retrieves top-k candidates from FAISS and applies formal typestate filtering.
-        """
         if self.rag_engine is None or self.rag_engine.index is None:
             return []
 
@@ -331,17 +300,23 @@ class LatticeRouter:
 
             cell_id = self.rag_engine.id_to_schema[idx].get("cell_id")
             cell = self.orchestrator.loaded_cells.get(cell_id)
-            if not cell or cell.node_type != "function":
+            if not cell:
                 continue
 
-            # Base score from cosine similarity
+            # Never route through macros — they are expanded by the planner
+            if cell.node_type == "macro":
+                continue
+
+            # Skip cells with empty templates (non-executable)
+            if not cell.code_template or not cell.code_template.strip():
+                continue
+
             sim = float(dist)
 
-            # Typestate affinity multiplier
             if current_sig.unifies_with(cell.primary_input):
                 type_multiplier = 1.0
             else:
-                type_multiplier = 0.5  # Soft penalty for candidates requiring bridging
+                type_multiplier = 0.5
 
             scored.append((sim * type_multiplier, cell))
 
