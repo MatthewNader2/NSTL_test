@@ -156,10 +156,13 @@ def verify_all_macros(db_path: str = None) -> bool:
         return False
 
     conn = sqlite3.connect(db_path)
-    macro_files = glob.glob(os.path.join(PROJECT_ROOT, "trees", "macro", "*.json"))
+    trees_dir = os.path.join(PROJECT_ROOT, "trees")
+    macro_files = glob.glob(os.path.join(trees_dir, "macro", "*.json"))
+    if os.path.exists(os.path.join(trees_dir, "macro_tree.json")):
+        macro_files.append(os.path.join(trees_dir, "macro_tree.json"))
 
     if not macro_files:
-        print("[-] Warning: No macro JSON files found in trees/macro/")
+        print("[-] Warning: No macro JSON files found in trees/")
         return False
 
     total_macros = 0

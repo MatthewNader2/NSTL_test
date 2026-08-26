@@ -1,46 +1,51 @@
-# NSTL Engine - Evaluation Report (Profile A & Profile D)
+# NSTL Engine - Evaluation Report (Profiles A, C, D, E)
 
 ## 1. Executive Summary & Evaluation Matrix
 
-This paper evaluation report documents the benchmark of the hardened **Neural Syntax Tree Lattice (NSTL)** engine across target evaluation configurations on the verified 21,753-node lattice database:
+This evaluation report documents the benchmark of the **Neural Syntax Tree Lattice (NSTL)** engine across target evaluation configurations for 1 representative model of each category (Embedder: `jina-embeddings-v5-text-small`, LLM: `qwen2.5-coder-1.5b-instruct`) across all 5 domain categories (excluding Profile B):
 
-- **Profile A**: Deterministic / No LLM (`jina-embeddings-v5-text-nano`)
+- **Profile A**: Deterministic / Embedding-Only (`jina-embeddings-v5-text-small`)
 
-- **Profile D**: Dedicated Embedder (`jina-embeddings-v5-text-small`) + 7B LLM (`Qwen2.5-Coder-7B-Instruct-GGUF`), zero-shot code synthesis disabled
+- **Profile C**: Full Pipeline with Zero-Shot Code Synthesis (`jina-embeddings-v5-text-small` + `qwen2.5-coder-1.5b-instruct`)
+
+- **Profile D**: Synthesis Disabled (`jina-embeddings-v5-text-small` + `qwen2.5-coder-1.5b-instruct`)
+
+- **Profile E**: Pre-Translation Pass + Code Synthesis (`jina-embeddings-v5-text-small` + `qwen2.5-coder-1.5b-instruct`)
 
 
 ---
 
 ## 2. Benchmark Summary Table
 
-| Task ID | Domain | Profile A | Profile D | Validation Status |
-|---|---|---|---|---|
-| `pandas_csv_clean` | Data Engineering | 45.675s (FAILED) | 51.594s (FAILED) | **FAILED** |
-| `opencv_gray_convert` | Image Processing | 47.152s (FAILED) | 46.556s (FAILED) | **FAILED** |
-| `vague_data_transform` | Vague Human Prompt | 55.848s (FAILED) | 64.134s (FAILED) | **FAILED** |
-| `long_ml_pipeline` | Long ML/Data Pipeline | 68.719s (FAILED) | 116.560s (FAILED) | **FAILED** |
-| `dijkstra_algorithm` | Multi-Step Algorithm | 19.262s (FAILED) | 25.628s (FAILED) | **FAILED** |
+| Task ID | Domain Category | Profile A | Profile C | Profile D | Profile E | Overall Status |
+|---|---|---|---|---|---|---|
+| `pandas_csv_clean` | Data Engineering | 1.531s (FAILED) | 1.512s (PASSED) | 1.589s (FAILED) | 1.455s (PASSED) | **PARTIAL / FAILED** |
+| `opencv_gray_convert` | Image Processing | 1.682s (FAILED) | 1.329s (FAILED) | 2.195s (FAILED) | 1.329s (FAILED) | **PARTIAL / FAILED** |
+| `vague_data_transform` | Vague Human Prompt | 2.087s (FAILED) | 8.717s (FAILED) | 2.627s (FAILED) | 8.661s (FAILED) | **PARTIAL / FAILED** |
+| `long_ml_pipeline` | Long ML/Data Pipeline | 2.972s (FAILED) | 8.278s (FAILED) | 4.043s (FAILED) | 8.294s (FAILED) | **PARTIAL / FAILED** |
+| `dijkstra_algorithm` | Multi-Step Algorithm | 2.302s (FAILED) | 2.838s (FAILED) | 3.478s (FAILED) | 2.843s (FAILED) | **PARTIAL / FAILED** |
 
 ---
 
-## 3. Performance & Latency Breakdown
+## 3. Performance & Accuracy Breakdown
 
-### A. Mean Execution Latency per Profile
+### A. Pass Rate & Accuracy
 
-- **Profile A**: **47.331s** average generation latency
-- **Profile D**: **60.894s** average generation latency
+- **Profile A**: 0/5 Passed (**0.0%**)
+- **Profile C**: 1/5 Passed (**20.0%**)
+- **Profile D**: 0/5 Passed (**0.0%**)
+- **Profile E**: 1/5 Passed (**20.0%**)
 
-### B. AST Node Program Complexity
+### B. Mean Execution Latency per Profile
 
-- **Profile A**: Average AST Node Count = **0.0 nodes**
-- **Profile D**: Average AST Node Count = **0.0 nodes**
+- **Profile A**: **2.115s** average latency
+- **Profile C**: **4.535s** average latency
+- **Profile D**: **2.786s** average latency
+- **Profile E**: **4.516s** average latency
 
----
+### C. AST Program Complexity
 
-## 4. Soundness & Structural Integrity Confirmation
-
-1. **Zero Hardcoded Fallbacks & Task-Sniffing Rules**: Verification confirmed that 0 keyword task-sniffing shortcuts or benchmark fallbacks were triggered during execution.
-
-2. **GEVR Sandboxed Execution & Verification**: All generated programs passed sandboxed execution with strict stdout/file assertion checks.
-
-3. **Lattice Invariant Compliance**: The lattice database was compiled with 21,753 verified nodes, maintaining 0 self-named function type bugs (`cvtColor`, `Expanding`, `slice` mapped to canonical types).
+- **Profile A**: Average AST Node Count = **61.2 nodes**
+- **Profile C**: Average AST Node Count = **44.0 nodes**
+- **Profile D**: Average AST Node Count = **65.6 nodes**
+- **Profile E**: Average AST Node Count = **44.0 nodes**

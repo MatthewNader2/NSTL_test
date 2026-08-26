@@ -177,6 +177,12 @@ def setup_task_fixtures(task_id: str):
         dummy_df.to_csv("data.csv", index=False)
 
 def execute_task_run(task, profile_name, emb_model, llm_model):
+    import gc
+    import torch
+    gc.collect()
+    if torch.cuda.is_available():
+        torch.cuda.empty_cache()
+
     t_id = task["task_id"]
     prompt = task["prompt"]
 
@@ -192,7 +198,10 @@ def execute_task_run(task, profile_name, emb_model, llm_model):
             print(f"    [!] Setup error: {se}")
 
     t0 = time.time()
-    res = run_prompt(RunRequest(prompt=prompt))
+    try:
+        res = run_prompt(RunRequest(prompt=prompt))
+    except Exception as re:
+        res = {"code": f"# Execution Exception: {re}", "virtual_edges": []}
     t1 = time.time()
     latency = t1 - t0
 
@@ -239,6 +248,10 @@ def execute_task_run(task, profile_name, emb_model, llm_model):
     status_str = "PASSED" if passed else "FAILED"
     print(f"    [=> {status_str}] Latency: {latency:.3f}s | AST Nodes: {ast_nodes} | VEdges: {len(v_edges)} | Err: {error_detail}", flush=True)
 
+    gc.collect()
+    if torch.cuda.is_available():
+        torch.cuda.empty_cache()
+
     return {
         "profile": profile_name,
         "embedder": emb_model,
@@ -254,42 +267,53 @@ def execute_task_run(task, profile_name, emb_model, llm_model):
     }
 
 def run_comprehensive_evaluation():
+    import gc
+    import torch
     print("=" * 70)
-    print("NSTL COMPREHENSIVE BENCHMARK RUN (Limited to Profile A & Profile D)")
+    print("NSTL COMPREHENSIVE BENCHMARK RUN (Profiles A, C, D, E)")
     print("=" * 70)
 
     matrix_results = {}
     raw_results = []
 
+    profiles_to_test = [
+        ("Profile A", "A", "jina-embeddings-v5-text-small", "auto"),
+        ("Profile C", "C", "jina-embeddings-v5-text-small", "qwen2.5-coder-1.5b-instruct"),
+        ("Profile D", "D", "jina-embeddings-v5-text-small", "qwen2.5-coder-1.5b-instruct"),
+        ("Profile E", "E", "jina-embeddings-v5-text-small", "qwen2.5-coder-1.5b-instruct"),
+    ]
+
     for task in STRESS_TASKS:
         matrix_results[task["task_id"]] = {
             "category": task["category"],
             "Profile A": None,
+            "Profile C": None,
             "Profile D": None,
+            "Profile E": None,
             "passed_all": True
         }
 
-    # 1. Profile A (Deterministic / No LLM)
-    print("\n>>> Running Profile A (Deterministic / No LLM - Embedder: jina-embeddings-v5-text-nano)...")
-    if init_engine_profile("A", "jina-embeddings-v5-text-nano", "auto"):
-        for task in STRESS_TASKS:
-            print(f"  [-] Task: {task['task_id']}...")
-            res = execute_task_run(task, "Profile A", "jina-embeddings-v5-text-nano", "auto")
-            raw_results.append(res)
-            matrix_results[task["task_id"]]["Profile A"] = res
-            if not res["passed"]:
-                matrix_results[task["task_id"]]["passed_all"] = False
+    for prof_label, prof_code, emb_model, llm_model in profiles_to_test:
+        print(f"\n>>> Running {prof_label} (Embedder: {emb_model}, LLM: {llm_model})...")
+        gc.collect()
+        if torch.cuda.is_available():
+            torch.cuda.empty_cache()
+        clear_synthesis_cache()
+        if init_engine_profile(prof_code, emb_model, llm_model):
+            for task in STRESS_TASKS:
+                print(f"  [-] Task: {task['task_id']} ({task['category']})...")
+                res = execute_task_run(task, prof_label, emb_model, llm_model)
+                raw_results.append(res)
+                matrix_results[task["task_id"]][prof_label] = res
+                if not res["passed"]:
+                    matrix_results[task["task_id"]]["passed_all"] = False
+        else:
+            print(f"  [!] Failed to initialize {prof_label}")
 
-    # 2. Profile D (Synthesis Disabled)
-    print("\n>>> Running Profile D (Synthesis Disabled - Embedder: jina-embeddings-v5-text-small, LLM: Qwen2.5-Coder-7B-Instruct-GGUF)...")
-    if init_engine_profile("D", "jina-embeddings-v5-text-small", "Qwen2.5-Coder-7B-Instruct-GGUF"):
-        for task in STRESS_TASKS:
-            print(f"  [-] Task: {task['task_id']}...")
-            res = execute_task_run(task, "Profile D", "jina-embeddings-v5-text-small", "Qwen2.5-Coder-7B-Instruct-GGUF")
-            raw_results.append(res)
-            matrix_results[task["task_id"]]["Profile D"] = res
-            if not res["passed"]:
-                matrix_results[task["task_id"]]["passed_all"] = False
+        gc.collect()
+        if torch.cuda.is_available():
+            torch.cuda.empty_cache()
+        time.sleep(1.0)
 
     # Save raw results JSON
     with open('comprehensive_eval_results.json', 'w') as f:
@@ -302,34 +326,39 @@ def run_comprehensive_evaluation():
 def generate_markdown_report(matrix_results, raw_results):
     report_path = os.path.join(PROJECT_ROOT, "evaluation_report.md")
 
-    # Calculate metrics
-    prof_keys = ["Profile A", "Profile D"]
+    prof_keys = ["Profile A", "Profile C", "Profile D", "Profile E"]
     latencies = {pk: [] for pk in prof_keys}
     ast_counts = {pk: [] for pk in prof_keys}
+    pass_counts = {pk: 0 for pk in prof_keys}
+    total_counts = {pk: 0 for pk in prof_keys}
 
     for item in raw_results:
         pk = item["profile"]
         if pk in latencies:
             latencies[pk].append(item["latency_sec"])
+            total_counts[pk] += 1
             if item["passed"]:
+                pass_counts[pk] += 1
+                ast_counts[pk].append(item["ast_nodes"])
+            else:
                 ast_counts[pk].append(item["ast_nodes"])
 
     avg_lat = {pk: float(np.mean(latencies[pk])) if latencies[pk] else 0.0 for pk in prof_keys}
     avg_ast = {pk: float(np.mean(ast_counts[pk])) if ast_counts[pk] else 0.0 for pk in prof_keys}
 
     lines = []
-    lines.append("# NSTL Engine - Evaluation Report (Profile A & Profile D)\n")
+    lines.append("# NSTL Engine - Evaluation Report (Profiles A, C, D, E)\n")
     lines.append("## 1. Executive Summary & Evaluation Matrix\n")
-    lines.append("This paper evaluation report documents the benchmark of the hardened **Neural Syntax Tree Lattice (NSTL)** engine across target evaluation configurations on the verified 21,753-node lattice database:\n")
-    lines.append("- **Profile A**: Deterministic / No LLM (`jina-embeddings-v5-text-nano`)\n")
-    lines.append("- **Profile D**: Dedicated Embedder (`jina-embeddings-v5-text-small`) + 7B LLM (`Qwen2.5-Coder-7B-Instruct-GGUF`), zero-shot code synthesis disabled\n")
+    lines.append("This evaluation report documents the benchmark of the **Neural Syntax Tree Lattice (NSTL)** engine across target evaluation configurations for 1 representative model of each category (Embedder: `jina-embeddings-v5-text-small`, LLM: `qwen2.5-coder-1.5b-instruct`) across all 5 domain categories (excluding Profile B):\n")
+    lines.append("- **Profile A**: Deterministic / Embedding-Only (`jina-embeddings-v5-text-small`)\n")
+    lines.append("- **Profile C**: Full Pipeline with Zero-Shot Code Synthesis (`jina-embeddings-v5-text-small` + `qwen2.5-coder-1.5b-instruct`)\n")
+    lines.append("- **Profile D**: Synthesis Disabled (`jina-embeddings-v5-text-small` + `qwen2.5-coder-1.5b-instruct`)\n")
+    lines.append("- **Profile E**: Pre-Translation Pass + Code Synthesis (`jina-embeddings-v5-text-small` + `qwen2.5-coder-1.5b-instruct`)\n")
 
     lines.append("\n---\n")
     lines.append("## 2. Benchmark Summary Table\n")
-    lines.append("| Task ID | Domain | Profile A | Profile D | Validation Status |")
-    lines.append("|---|---|---|---|---|")
-
-    passed_all_count = 0
+    lines.append("| Task ID | Domain Category | Profile A | Profile C | Profile D | Profile E | Overall Status |")
+    lines.append("|---|---|---|---|---|---|---|")
 
     for task in STRESS_TASKS:
         t_id = task["task_id"]
@@ -343,29 +372,28 @@ def generate_markdown_report(matrix_results, raw_results):
             return f"{res['latency_sec']:.3f}s ({status})"
 
         p_a = fmt_cell(row["Profile A"])
+        p_c = fmt_cell(row["Profile C"])
         p_d = fmt_cell(row["Profile D"])
+        p_e = fmt_cell(row["Profile E"])
 
-        status_str = "PASSED" if row["passed_all"] else "FAILED"
-        if row["passed_all"]:
-            passed_all_count += 1
+        status_str = "PASSED" if row["passed_all"] else "PARTIAL / FAILED"
 
-        lines.append(f"| `{t_id}` | {cat} | {p_a} | {p_d} | **{status_str}** |")
+        lines.append(f"| `{t_id}` | {cat} | {p_a} | {p_c} | {p_d} | {p_e} | **{status_str}** |")
 
     lines.append("\n---\n")
-    lines.append("## 3. Performance & Latency Breakdown\n")
-    lines.append("### A. Mean Execution Latency per Profile\n")
+    lines.append("## 3. Performance & Accuracy Breakdown\n")
+    lines.append("### A. Pass Rate & Accuracy\n")
     for pk in prof_keys:
-        lines.append(f"- **{pk}**: **{avg_lat[pk]:.3f}s** average generation latency")
+        rate = (pass_counts[pk] / total_counts[pk] * 100.0) if total_counts[pk] > 0 else 0.0
+        lines.append(f"- **{pk}**: {pass_counts[pk]}/{total_counts[pk]} Passed (**{rate:.1f}%**)")
 
-    lines.append("\n### B. AST Node Program Complexity\n")
+    lines.append("\n### B. Mean Execution Latency per Profile\n")
+    for pk in prof_keys:
+        lines.append(f"- **{pk}**: **{avg_lat[pk]:.3f}s** average latency")
+
+    lines.append("\n### C. AST Program Complexity\n")
     for pk in prof_keys:
         lines.append(f"- **{pk}**: Average AST Node Count = **{avg_ast[pk]:.1f} nodes**")
-
-    lines.append("\n---\n")
-    lines.append("## 4. Soundness & Structural Integrity Confirmation\n")
-    lines.append("1. **Zero Hardcoded Fallbacks & Task-Sniffing Rules**: Verification confirmed that 0 keyword task-sniffing shortcuts or benchmark fallbacks were triggered during execution.\n")
-    lines.append("2. **GEVR Sandboxed Execution & Verification**: All generated programs passed sandboxed execution with strict stdout/file assertion checks.\n")
-    lines.append("3. **Lattice Invariant Compliance**: The lattice database was compiled with 21,753 verified nodes, maintaining 0 self-named function type bugs (`cvtColor`, `Expanding`, `slice` mapped to canonical types).\n")
 
     with open(report_path, "w", encoding="utf-8") as f:
         f.write("\n".join(lines))
@@ -374,3 +402,4 @@ def generate_markdown_report(matrix_results, raw_results):
 
 if __name__ == "__main__":
     run_comprehensive_evaluation()
+

@@ -1,99 +1,27 @@
-import json
-import re
-from log_config import get_logger
+"""
+src/synthesis.py - Neuro-Symbolic Topological Lattice (NSTL)
+Dynamic MicroCell Synthesizer: Grounded in Live API Documentation.
+"""
 
+from __future__ import annotations
+import ast
+import json
+import os
+import re
+from typing import Dict, Any, Optional
+from log_config import get_logger
 from external_rag import LiveDocFetcher
 from inference import ModelManager
 
 logger = get_logger('synthesis')
 
-# Placeholder names the synthesis prompt instructs the LLM to use.
-# Derived from the template strings — update this tuple if placeholders ever change.
-_CODE_PLACEHOLDERS = frozenset(
-    token
-    for template in ("{input_var}", "{output_var}")
-    for token in re.findall(r"\{(\w+)\}", template)
-)
-
 
 class SynthesisEngine:
+    """
+    Synthesizes missing computational primitives on-demand using live documentation lookup.
+    """
     def __init__(self, trees_dir: str = "trees"):
         self.trees_dir = trees_dir
-
-    @staticmethod
-    def _repair_synthesized_code(
-        code: str,
-        placeholder_names: frozenset = _CODE_PLACEHOLDERS,
-    ) -> str:
-        """
-        AST-based structural repair of LLM-synthesized code. Runs in this order:
-
-        1. Strip bare Return nodes at module scope — the LLM often writes code as if
-           it is inside a function body.  Detected via ast.Return in ast.Module.body
-           and removed structurally (no text matching).
-
-        2. Compilation gate — reject code that still cannot compile as a module-level
-           script after the strip.  Caller catches ValueError and falls back to MCTS.
-
-        3. Normalize bare placeholder names (e.g. input_var → {input_var}) so that
-           UnificationGate.unify() can substitute them at runtime.  Uses word-boundary
-           regex so partial matches inside longer identifiers are never touched.
-        """
-        import ast as _ast
-
-        temp_code = code
-
-        # ── Pre-step: Canonicalize all placeholder references to valid Python identifiers ──
-        # Braced form ({input_var}) is replaced with a unique temp name (_nstl_ph_name_)
-        # so the code is valid Python for ast.parse() and compile().
-        _TEMP_PREFIX = "_nstl_ph_"
-        for name in placeholder_names:
-            temp_code = temp_code.replace('{' + name + '}', _TEMP_PREFIX + name + '_')
-
-        class RenameTransformer(_ast.NodeTransformer):
-            def visit_Name(self, node):
-                if node.id in placeholder_names:
-                    node.id = _TEMP_PREFIX + node.id + '_'
-                return node
-
-        # ── Step 1: AST Transformations (Strip Return & Replace Bare Placeholders) ────
-        try:
-            tree = _ast.parse(temp_code)
-            
-            # Apply AST-safe replacement of bare placeholder names
-            tree = RenameTransformer().visit(tree)
-            
-            original_len = len(tree.body)
-            tree.body = [node for node in tree.body if not isinstance(node, _ast.Return)]
-            
-            _ast.fix_missing_locations(tree)
-            temp_code = _ast.unparse(tree)
-            
-            if len(tree.body) != original_len:
-                logger.info(
-                    f"[SYNTHESIS REPAIR] Stripped "
-                    f"{original_len - len(tree.body)} module-level Return node(s)."
-                )
-        except SyntaxError:
-            # Cannot parse yet — proceed; compile gate below catches hard failures.
-            pass
-
-        # ── Step 2: Compilation gate (temp_code is valid Python at this point) ───
-        try:
-            compile(temp_code, "<synthesis>", "exec")
-        except SyntaxError as e:
-            raise ValueError(
-                f"[SYNTHESIS REPAIR] Code failed compilation gate after structural repair: {e}\n"
-                f"Code:\n{temp_code}"
-            )
-
-        # ── Step 3: Restore {braced} placeholder form ─────────────────────────────
-        # Converts _nstl_ph_name_ → {name} so UnificationGate.unify() can substitute.
-        result = temp_code
-        for name in placeholder_names:
-            result = result.replace(_TEMP_PREFIX + name + '_', '{' + name + '}')
-
-        return result
 
     def synthesize_micro_cell(
         self,
@@ -101,152 +29,63 @@ class SynthesisEngine:
         expected_input: str,
         expected_output: str,
         fetcher: LiveDocFetcher,
-        context_hint: str = "",
-    ) -> dict:
+        domain: str = "Python_Core"
+    ) -> Dict[str, Any]:
         """
-        Dynamically generates a MicroCell to bridge a topological gap using live docs.
-        Enforces strict VRAM/RAM purging and JSON grammar (A↑, R↓).
-
-        Args:
-            gap_concept:     Logical description of the bridging operation.
-            expected_input:  Required input typestate name.
-            expected_output: Required output typestate name.
-            fetcher:         Live documentation fetcher for the target domain.
-            context_hint:    Optional grounding string (domain, file hints, user intent)
-                             assembled by the caller from runtime context — no parsing
-                             happens inside this method.
+        Queries official API documentation and uses the LLM to synthesize
+        a verified, type-annotated MicroCell.
         """
-        import os
-        # Phase 4 Memo-Cache Check: Check if an identical/high-similarity synthesized node is already cached
-        cache_path = os.path.join(self.trees_dir, "micro", "synthesized_nodes.json")
-        
-        domain = "Python_Core"
-        if context_hint:
-            match = re.search(r"domain=([^,]+)", context_hint)
-            if match and match.group(1).strip():
-                domain = match.group(1).strip()
-        if os.path.exists(cache_path):
-            try:
-                with open(cache_path, "r", encoding="utf-8") as f:
-                    cached_data = json.load(f)
-                    for cell in cached_data.get("cells", []):
-                        if isinstance(cell, dict):
-                            c_in = cell.get("inputs", {}).get("type_name", "")
-                            c_out = cell.get("outputs", {}).get("type_name", "")
-                            kws = " ".join(cell.get("keywords", []))
-                            if c_in == expected_input and c_out == expected_output and (gap_concept.lower() in kws.lower() or kws.lower() in gap_concept.lower()):
-                                logger.info(f"[SYNTHESIS MEMO-CACHE HIT] Reusing cached synthesized cell: {cell.get('cell_id')}")
-                                return cell
-            except Exception as e:
-                logger.warning(f"[SYNTHESIS MEMO-CACHE WARNING] Could not read cache: {e}")
+        logger.info(f"[SYNTHESIS] Fetching live documentation for: '{gap_concept}'")
+        live_docs = fetcher.fetch(gap_concept) or "No live documentation available."
 
-        logger.info(f"Fetching live docs for concept: {gap_concept}")
+        system_prompt = f"""You are an expert Software Engineer. Synthesize a single verified Python computational node implementing: '{gap_concept}'.
+Output ONLY a valid JSON object matching the schema below. No markdown formatting, no explanations.
 
-        live_docs = fetcher.fetch(gap_concept)
-        if not live_docs:
-            logger.warning(f"No live docs found for {gap_concept}. Proceeding with zero-shot knowledge.")
-            live_docs = "No external documentation available."
-
-        # Inject caller-supplied grounding block when available.
-        grounding_block = (
-            f"\nContextual Grounding (infer the correct library and domain from this):\n{context_hint}\n"
-            if context_hint else ""
-        )
-
-        system_prompt = f"""You are an expert Software Engineer. You must write a Phase 2 MicroCell JSON that implements the concept '{gap_concept}'.
-You MUST output ONLY valid JSON matching the schema. No markdown, no explanations.
-{grounding_block}
 Schema:
 {{
-  "cell_id": "micro_synthesized_<concept>",
+  "cell_id": "micro_synthesized_{re.sub(r'[^a-zA-Z0-9_]', '_', gap_concept).lower()[:30]}",
   "type": "micro",
-  "stage": 1,
-  "keywords": ["<concept>"],
-  "inputs": {{ "type_name": "{expected_input}", "state": "raw" }},
+  "stage": 2,
+  "keywords": ["{gap_concept}"],
+  "inputs": {{ "type_name": "{expected_input}", "state": "any" }},
   "outputs": {{ "type_name": "{expected_output}", "state": "computed" }},
-  "domain_implementations": {{
-    "{domain}": {{
-      "code": "# Functional Python statements operating on {{input_var}}\n{{output_var}} = {{input_var}}",
-      "dependencies": []
-    }}
-  }}
+  "dependencies": ["<import statement>"],
+  "code_template": "{{output_var}} = <function_call>({{input_var}})"
 }}
 
-CRITICAL INSTRUCTION: The `code` field MUST contain ACTUAL, working Python code. Import any required libraries (e.g. pandas as pd, cv2, numpy as np, math) directly in the code. Do NOT output placeholder text like `module_name` or `...`.
-CRITICAL INSTRUCTION 2: You MUST use the exact placeholder strings `{{input_var}}` and `{{output_var}}` in your python logic for the main input and output of the cell. The engine will dynamically replace these at runtime. Do NOT use hardcoded variable names for the input or output.
-CRITICAL INSTRUCTION 3: Do NOT call interactive input functions like `input()`, `sys.stdin`, or `raw_input()`. Assume input data or filenames are already available in `{{input_var}}`.
+Documentation Reference:
+{live_docs[:1500]}
 
-Use the following Official Documentation as your absolute ground truth:"""
+RULES:
+1. The `code_template` MUST use `{{output_var}}` for output assignment and `{{input_var}}` for the input argument.
+2. Put all necessary import statements in the `dependencies` array (e.g. ["import pandas as pd", "import cv2"]).
+3. Ensure the code is strictly non-interactive (do not use input() or sys.stdin)."""
 
-        prompt = f"{system_prompt}\n\nTask: {gap_concept}\nLive Context:\n{live_docs}"
+        full_prompt = f"{system_prompt}\n\nTask: {gap_concept}"
 
-        logger.info("Executing generation via ModelManager...")
-        result_text = ModelManager.get_instance().generate_text(prompt, max_tokens=2048)
+        result_text = ModelManager.get_instance().generate_text(full_prompt, max_tokens=1024)
 
-        cleaned_text = result_text.strip()
-        if "```json" in cleaned_text:
-            cleaned_text = cleaned_text.split("```json")[1].split("```")[0].strip()
-        elif "```" in cleaned_text:
-            cleaned_text = cleaned_text.split("```")[1].split("```")[0].strip()
+        # Clean markdown formatting
+        clean_json = result_text.strip()
+        if clean_json.startswith("```"):
+            clean_json = clean_json.split("\n", 1)[-1]
+        if clean_json.endswith("```"):
+            clean_json = clean_json.rsplit("```", 1)[0]
+        clean_json = clean_json.strip()
 
-        # ── Parse with structured JSON extraction ──
-        micro_json = None
         try:
-            micro_json = json.loads(cleaned_text, strict=False)
-        except Exception as e:
-            logger.warning(f"Initial JSON parse failed ({e}); attempting structural extraction...")
-            
-            # Find the outermost JSON object
-            first_brace = cleaned_text.find('{')
-            last_brace = cleaned_text.rfind('}')
-            if first_brace != -1 and last_brace != -1 and last_brace > first_brace:
-                extracted_json = cleaned_text[first_brace:last_brace + 1]
-                try:
-                    micro_json = json.loads(extracted_json, strict=False)
-                except Exception:
-                    pass
+            cell_dict = json.loads(clean_json)
+        except json.JSONDecodeError as e:
+            logger.error(f"[SYNTHESIS ERROR] Invalid JSON from model: {e}")
+            raise ValueError(f"Model failed to generate valid JSON for {gap_concept}") from e
 
-        # Stage 4: Robust DOTALL regex extraction for "code" block fallback (handles partial/truncated code)
-        if micro_json is None:
-            code_match = re.search(r'"code"\s*:\s*"(.*?)"(?=\s*,\s*"|\s*\}|\s*$)', cleaned_text, re.DOTALL)
-            if not code_match:
-                code_match = re.search(r'"code"\s*:\s*"(.*)', cleaned_text, re.DOTALL)
-            if code_match:
-                code_str = code_match.group(1).replace('\\"', '"').replace('\\n', '\n').rstrip('"\n\r\t ')
-                safe_id = re.sub(r'[^a-zA-Z0-9_]', '_', gap_concept).lower()[:40]
-                micro_json = {
-                    "cell_id": f"micro_synthesized_{safe_id}",
-                    "type": "micro",
-                    "stage": 1,
-                    "keywords": [gap_concept],
-                    "inputs": {"type_name": expected_input, "state": "raw"},
-                    "outputs": {"type_name": expected_output, "state": "computed"},
-                    "domain_implementations": {
-                        domain: {
-                            "code": code_str,
-                            "dependencies": []
-                        }
-                    }
-                }
-            else:
-                logger.error(
-                    f"Failed to parse Synthesis LLM output.\n"
-                    f"Raw output:\n{result_text[:500]}"
-                )
-                raise ValueError(
-                    f"Synthesized output was not valid JSON. Raw output: {result_text[:200]}"
-                )
+        # Validate template syntax by substituting dummy identifiers
+        template = cell_dict.get("code_template", "")
+        test_code = template.replace("{output_var}", "out_var").replace("{input_var}", "in_var")
+        try:
+            ast.parse(test_code)
+        except SyntaxError as e:
+            logger.error(f"[SYNTHESIS ERROR] Synthesized code has syntax errors: {e}\n{test_code}")
+            raise ValueError(f"Synthesized template for {gap_concept} failed AST parse check.") from e
 
-        # ── AST structural repair on the extracted code string ───────────────────
-        impl = micro_json.get("domain_implementations", {}).get(domain, {})
-        raw_code = impl.get("code", "")
-        if raw_code:
-            try:
-                impl["code"] = SynthesisEngine._repair_synthesized_code(raw_code)
-                logger.info("[SYNTHESIS REPAIR] Code passed structural repair and compilation gate.")
-            except ValueError as repair_err:
-                logger.error(f"[SYNTHESIS REPAIR FAILED] {repair_err}")
-                # Re-raise so router.py / main.py catch it and fall back to MCTS.
-                raise
-
-        return micro_json
+        return cell_dict

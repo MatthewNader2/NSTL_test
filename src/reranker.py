@@ -1,81 +1,82 @@
-import logging
-import re
-from typing import List, Tuple, Any, Optional
+"""
+src/reranker.py - Neuro-Symbolic Topological Lattice (NSTL)
+Cross-Encoder Joint Scorer for High-Precision Candidate Reranking.
+"""
 
-logger = logging.getLogger("CrossEncoderReranker")
+from __future__ import annotations
+import math
+from typing import List, Tuple, Any, Optional
+from log_config import get_logger
+
+logger = get_logger("reranker")
+
 
 class CrossEncoderReranker:
     """
-    Lightweight Precision Cross-Encoder Reranker.
-    Jointly scores (prompt, candidate_description) pairs over the top recall candidates.
-    Bypasses heavy GPU workloads by executing lightweight scoring on CPU.
+    Precision Cross-Encoder: Evaluates (prompt, cell_doc) pairs jointly
+    to eliminate false-positive vector recall before graph traversal.
     """
+    _instance: Optional[CrossEncoderReranker] = None
+
+    @classmethod
+    def get_instance(cls) -> CrossEncoderReranker:
+        if cls._instance is None:
+            cls._instance = cls()
+        return cls._instance
+
     def __init__(self):
         self._model = None
         self._initialized = False
+        self._init_model()
 
     def _init_model(self):
         if self._initialized:
             return
         try:
             from sentence_transformers import CrossEncoder
-            # Lightweight ms-marco / MiniLM cross encoder for rapid precision scoring
             self._model = CrossEncoder("cross-encoder/ms-marco-MiniLM-L-6-v2", device="cpu")
-            self._initialized = True
-            logger.info("[RERANKER INIT] Loaded local cross-encoder model 'cross-encoder/ms-marco-MiniLM-L-6-v2' on CPU.")
+            logger.info("[RERANKER] Loaded CrossEncoder model on CPU.")
         except Exception as e:
-            logger.warning(f"[RERANKER INIT WARNING] Could not load CrossEncoder model: {e}. Fallback to lexical alignment.")
+            logger.warning(f"[RERANKER WARNING] Could not load CrossEncoder: {e}. Operating in pass-through mode.")
             self._model = None
-            self._initialized = True
+        self._initialized = True
 
-    def rerank(self, prompt: str, scored_candidates: List[Tuple[float, Any]], top_k: int = 20) -> List[Tuple[float, Any]]:
-        """
-        Reranks top candidate tuples (score, cell) using cross-encoder joint scoring.
-        """
-        if not scored_candidates:
-            return []
+    def rerank(
+        self,
+        prompt: str,
+        candidates: List[Tuple[float, Any]],
+        top_k: int = 20
+    ) -> List[Tuple[float, Any]]:
+        """Reranks candidate tuples (score, cell) using cross-encoder scores."""
+        if not candidates or self._model is None:
+            return candidates
 
-        if not self._initialized:
-            self._init_model()
+        to_rank = candidates[:top_k]
+        remaining = candidates[top_k:]
 
-        candidates_to_rank = scored_candidates[:top_k]
-        remaining_candidates = scored_candidates[top_k:]
+        try:
+            pairs = []
+            for bi_score, cell in to_rank:
+                cid = getattr(cell, "cell_id", "")
+                kws = " ".join(getattr(cell, "keywords", []))
+                in_sig = getattr(cell, "primary_input", "")
+                out_sig = getattr(cell, "primary_output", "")
+                doc = f"Cell: {cid}. Keywords: {kws}. Input: {in_sig}, Output: {out_sig}."
+                pairs.append([prompt, doc])
 
-        if self._model is not None:
-            try:
-                pairs = []
-                for score, cell in candidates_to_rank:
-                    cid = getattr(cell, "cell_id", "")
-                    desc = getattr(cell, "description", "") or cid
-                    in_t = getattr(getattr(cell, "inputs", {}), "type_name", "")
-                    out_t = getattr(getattr(cell, "outputs", {}), "type_name", "")
-                    doc = f"ID: {cid}. {desc}. Input: {in_t}, Output: {out_t}."
-                    pairs.append([prompt, doc])
+            cross_scores = self._model.predict(pairs)
 
-                cross_scores = self._model.predict(pairs)
-                
-                reranked = []
-                for idx, (bi_score, cell) in enumerate(candidates_to_rank):
-                    c_score = float(cross_scores[idx])
-                    # Combine bi-encoder score and cross-encoder score
-                    combined_score = (bi_score * 0.4) + (c_score * 0.6)
-                    reranked.append((combined_score, cell))
+            reranked = []
+            for idx, (bi_score, cell) in enumerate(to_rank):
+                score_val = float(cross_scores[idx])
+                # Sigmoid normalization
+                prob = 1.0 / (1.0 + math.exp(-max(min(score_val, 20.0), -20.0)))
+                # Harmonic blend of vector retrieval and joint cross-encoder probability
+                combined = (bi_score * 0.4) + (prob * 0.6)
+                reranked.append((combined, cell))
 
-                reranked.sort(key=lambda x: x[0], reverse=True)
-                return reranked + remaining_candidates
-            except Exception as e:
-                logger.warning(f"[RERANKER RUN WARNING] Cross-encoder inference failed: {e}. Returning bi-encoder ranking.")
-                return scored_candidates
-
-        # Fallback precision alignment scoring if model is absent
-        reranked = []
-        prompt_words = set(re.findall(r"[a-zA-Z_]+", prompt.lower()))
-        for score, cell in candidates_to_rank:
-            cid = getattr(cell, "cell_id", "").lower()
-            desc = (getattr(cell, "description", "") or "").lower()
-            hits = sum(1 for w in prompt_words if len(w) > 2 and (w in cid or w in desc))
-            boost = (hits / max(len(prompt_words), 1)) * 0.3
-            reranked.append((score + boost, cell))
-
-        reranked.sort(key=lambda x: x[0], reverse=True)
-        return reranked + remaining_candidates
+            reranked.sort(key=lambda x: x[0], reverse=True)
+            return reranked + remaining
+        except Exception as e:
+            logger.error(f"[RERANKER ERROR] Reranking failed: {e}")
+            return candidates
