@@ -13,6 +13,8 @@ import os
 import sys
 import threading
 import traceback
+import signal
+import resource
 from typing import Tuple, Optional, Callable, Dict, Any
 from log_config import get_logger
 
@@ -23,26 +25,47 @@ def _init_worker(paths: list[str]):
     for p in paths:
         if p not in sys.path:
             sys.path.insert(0, p)
-    # Pre-import core data science packages to eliminate cold-start module import overhead
-    try:
-        import numpy
-        import pandas
-        import cv2
-        import sklearn
-        import matplotlib
-        matplotlib.use("Agg")
-    except Exception:
-        pass
+    for pkg in ['numpy', 'pandas', 'cv2', 'sklearn', 'matplotlib']:
+        try:
+            mod = __import__(pkg)
+            if pkg == 'matplotlib':
+                mod.use('Agg')
+        except ImportError:
+            pass  # Package not installed, skip pre-warming
 
+
+_BLOCKED_MODULES = frozenset({
+    'os', 'subprocess', 'shutil', 'socket', 'sys', 'ctypes',
+    'signal', 'resource', 'importlib', 'pathlib', 'tempfile',
+    'multiprocessing', 'threading', 'http', 'urllib', 'ftplib',
+    'smtplib', 'telnetlib', 'xmlrpc', 'code', 'codeop', 'compile',
+    'compileall', 'py_compile', 'zipimport', 'pkgutil',
+})
+
+def _restricted_import(name, *args, **kwargs):
+    base = name.split('.')[0]
+    if base in _BLOCKED_MODULES:
+        raise ImportError(f"Import of '{name}' is blocked in NSTL sandbox for security.")
+    return __builtins__.__import__(name, *args, **kwargs) if hasattr(__builtins__, '__import__') else __import__(name, *args, **kwargs)
 
 def _sandbox_worker_exec(code: str) -> Dict[str, Any]:
     """Isolated execution unit executed within persistent worker process."""
+    if sys.platform != "win32":
+        try:
+            resource.setrlimit(resource.RLIMIT_AS, (1024 * 1024 * 1024, 1024 * 1024 * 1024))
+            resource.setrlimit(resource.RLIMIT_CPU, (5, 5))
+        except Exception:
+            pass
+
     stdout_buf = io.StringIO()
     stderr_buf = io.StringIO()
 
     with contextlib.redirect_stdout(stdout_buf), contextlib.redirect_stderr(stderr_buf):
         try:
-            exec_globals: Dict[str, Any] = {"__name__": "__main__"}
+            exec_globals: Dict[str, Any] = {
+                "__name__": "__main__",
+                "__builtins__": {"__import__": _restricted_import, "print": print, "range": range, "len": len, "int": int, "float": float, "str": str, "bool": bool, "list": list, "dict": dict, "tuple": tuple, "set": set, "frozenset": frozenset, "type": type, "isinstance": isinstance, "issubclass": issubclass, "hasattr": hasattr, "getattr": getattr, "setattr": setattr, "enumerate": enumerate, "zip": zip, "map": map, "filter": filter, "sorted": sorted, "reversed": reversed, "min": min, "max": max, "sum": sum, "abs": abs, "round": round, "pow": pow, "divmod": divmod, "any": any, "all": all, "repr": repr, "iter": iter, "next": next, "slice": slice, "complex": complex, "bytes": bytes, "bytearray": bytearray, "memoryview": memoryview, "object": object, "staticmethod": staticmethod, "classmethod": classmethod, "property": property, "super": super, "True": True, "False": False, "None": None, "ValueError": ValueError, "TypeError": TypeError, "KeyError": KeyError, "IndexError": IndexError, "RuntimeError": RuntimeError, "StopIteration": StopIteration, "AttributeError": AttributeError, "Exception": Exception, "NotImplementedError": NotImplementedError, "ZeroDivisionError": ZeroDivisionError, "OverflowError": OverflowError}
+            }
             exec(code, exec_globals)
             return {
                 "success": True,

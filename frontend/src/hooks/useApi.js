@@ -2,6 +2,14 @@
 
 const ALLOWED_ORIGINS_PATTERN = /^https?:\/\/(localhost|127\.0\.0\.1|10\.0\.2\.2)(:\d+)?$/;
 
+const DEFAULT_TIMEOUT_MS = 30000;
+
+function fetchWithTimeout(url, options = {}, timeoutMs = DEFAULT_TIMEOUT_MS) {
+  const controller = new AbortController();
+  const id = setTimeout(() => controller.abort(), timeoutMs);
+  return fetch(url, { ...options, signal: controller.signal }).finally(() => clearTimeout(id));
+}
+
 function safeGetStorage(key) {
   try {
     if (typeof window !== "undefined" && "localStorage" in window && window.localStorage) {
@@ -68,55 +76,56 @@ async function checkedJson(res) {
 
 export async function fetchStatus() {
   const base = getApiBase();
-  return fetch(`${base}/api/status`);
+  return fetchWithTimeout(`${base}/api/status`, {}, 5000);
 }
 
 export async function fetchHealth() {
   const base = getApiBase();
-  return fetch(`${base}/api/health`);
+  return fetchWithTimeout(`${base}/api/health`, {}, 5000);
 }
 
 export async function fetchCells() {
   const base = getApiBase();
-  const res = await fetch(`${base}/api/cells`);
+  const res = await fetchWithTimeout(`${base}/api/cells`);
   const data = await checkedJson(res);
   return data.cells || [];
 }
 
 export async function runPrompt(prompt) {
   const base = getApiBase();
-  const res = await fetch(`${base}/api/run`, {
+  const res = await fetchWithTimeout(`${base}/api/run`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ prompt }),
-  });
+  }, 60000);
   return checkedJson(res);
 }
 
 export async function initializeEngine(profile, embedder_model, llm_model, embedder_device, llm_device, trees_storage) {
   const base = getApiBase();
-  const res = await fetch(`${base}/api/initialize`, {
+  const res = await fetchWithTimeout(`${base}/api/initialize`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ profile, embedder_model, llm_model, embedder_device, llm_device, trees_storage }),
-  });
+  }, 120000);
   return checkedJson(res);
 }
 
 export async function toggleBenchmark() {
   const base = getApiBase();
-  const res = await fetch(`${base}/api/benchmark/toggle`, { method: "POST" });
+  const res = await fetchWithTimeout(`${base}/api/benchmark/toggle`, { method: "POST" });
   return checkedJson(res);
 }
 
 export async function getBenchmarkStatus() {
   const base = getApiBase();
-  const res = await fetch(`${base}/api/benchmark/status`);
+  const res = await fetchWithTimeout(`${base}/api/benchmark/status`);
   return checkedJson(res);
 }
 
 export async function fetchAvailableModels() {
   const base = getApiBase();
-  const res = await fetch(`${base}/api/models`);
+  const res = await fetchWithTimeout(`${base}/api/models`);
   return checkedJson(res);
 }
+

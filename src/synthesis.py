@@ -12,6 +12,7 @@ from typing import Dict, Any, Optional
 from log_config import get_logger
 from external_rag import LiveDocFetcher
 from inference import ModelManager
+from utils import extract_json_from_llm, validate_code_template
 
 logger = get_logger('synthesis')
 
@@ -90,29 +91,15 @@ RULES:
 
         result_text = ModelManager.get_instance().generate_text(full_prompt, max_tokens=1024)
 
-        # Clean markdown formatting
-        clean_json = result_text.strip()
-        if clean_json.startswith("```"):
-            clean_json = clean_json.split("\n", 1)[-1]
-        if clean_json.endswith("```"):
-            clean_json = clean_json.rsplit("```", 1)[0]
-        clean_json = clean_json.strip()
-
-        try:
-            cell_dict = json.loads(clean_json)
-        except json.JSONDecodeError as e:
-            logger.error(f"[SYNTHESIS ERROR] Invalid JSON from model: {e}")
-            raise ValueError(f"Model failed to generate valid JSON for {gap_concept}") from e
+        cell_dict = extract_json_from_llm(result_text)
+        if cell_dict is None:
+            logger.error(f"[SYNTHESIS ERROR] Failed to extract JSON from model output")
+            raise ValueError(f"Model failed to generate valid JSON for {gap_concept}")
 
         # Validate template syntax by substituting dummy identifiers for all placeholders
         template = cell_dict.get("code_template", "")
-        test_code = template
-        for ph in set(re.findall(r"\{([a-zA-Z0-9_]+)\}", test_code)):
-            test_code = test_code.replace(f"{{{ph}}}", "dummy_var")
-        try:
-            ast.parse(test_code)
-        except SyntaxError as e:
-            logger.error(f"[SYNTHESIS ERROR] Synthesized code has syntax errors: {e}\n{test_code}")
-            raise ValueError(f"Synthesized template for {gap_concept} failed AST parse check.") from e
+        if not validate_code_template(template):
+            logger.error(f"[SYNTHESIS ERROR] Synthesized template failed AST validation")
+            raise ValueError(f"Synthesized template for {gap_concept} failed AST parse check.")
 
         return cell_dict

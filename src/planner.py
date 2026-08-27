@@ -8,6 +8,7 @@ from typing import Any, Dict, List, Optional, Set, Tuple
 
 from log_config import get_logger
 from lattice import LatticeOrchestrator, Cell, MacroCell, MicroCell, AlgebraicSignature
+from utils import extract_json_from_llm
 
 logger = get_logger('planner')
 
@@ -123,24 +124,7 @@ RULES:
         return "\n".join(lines)
 
     def _safe_parse_json(self, raw: str) -> Optional[Dict[str, Any]]:
-        if not raw:
-            return None
-        text = raw.strip()
-        if text.startswith("```"):
-            text = re.sub(r"^```(?:json)?\s*", "", text)
-            text = re.sub(r"\s*```$", "", text)
-        try:
-            return json.loads(text)
-        except json.JSONDecodeError:
-            pass
-        start = text.find('{')
-        end = text.rfind('}')
-        if start != -1 and end != -1 and end > start:
-            try:
-                return json.loads(text[start:end+1])
-            except Exception:
-                pass
-        return None
+        return extract_json_from_llm(raw)
 
     @staticmethod
     def _compute_overlap(keywords: Set[str], cell_keywords: Set[str]) -> Tuple[int, Set[str]]:

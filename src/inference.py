@@ -208,8 +208,7 @@ class BenchmarkProfile_C(InferenceProfile):
         if schema:
             kwargs["response_format"] = {"type": "json_object", "schema": schema}
 
-        with self._lock:
-            response = self.llm.create_chat_completion(**kwargs)
+        response = self.llm.create_chat_completion(**kwargs)
         return response['choices'][0]['message']['content'].strip()
 
     def can_synthesize(self) -> bool:

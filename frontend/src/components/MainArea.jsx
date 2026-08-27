@@ -31,11 +31,13 @@ export default function MainArea({ className = "" }) {
 
   const handleDownload = useCallback(() => {
     const a = document.createElement("a");
-    a.href = URL.createObjectURL(new Blob([generatedCode], { type: "text/plain" }));
+    const blobUrl = URL.createObjectURL(new Blob([generatedCode], { type: "text/plain" }));
+    a.href = blobUrl;
     a.download = "generated_pipeline.py";
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
+    URL.revokeObjectURL(blobUrl);
   }, [generatedCode]);
 
   const switchTab = (id) => {

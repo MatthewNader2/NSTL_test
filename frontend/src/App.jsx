@@ -54,7 +54,10 @@ export default function App() {
       }
     };
 
+    let polling = false;
     const monitorStatus = async () => {
+      if (polling) return;  // Prevent pileup if previous poll hasn't finished
+      polling = true;
       try {
         const res = await fetchStatus();
         if (res.ok) {
@@ -104,6 +107,8 @@ export default function App() {
       } catch (err) {
         console.debug("Engine not reachable yet:", err.message);
         setBootStatus({ status: "connecting", message: "Waiting for backend...", device: "cpu", cells_loaded: 0 });
+      } finally {
+        polling = false;
       }
     };
 

@@ -34,8 +34,10 @@ class CrossEncoderReranker:
             return
         try:
             from sentence_transformers import CrossEncoder
-            self._model = CrossEncoder("cross-encoder/ms-marco-MiniLM-L-6-v2", device="cpu")
-            logger.info("[RERANKER] Loaded CrossEncoder model on CPU.")
+            import torch
+            device = "cuda" if torch.cuda.is_available() else "cpu"
+            self._model = CrossEncoder("cross-encoder/ms-marco-MiniLM-L-6-v2", device=device)
+            logger.info(f"[RERANKER] Loaded CrossEncoder model on {device.upper()}.")
         except Exception as e:
             logger.warning(f"[RERANKER WARNING] Could not load CrossEncoder: {e}. Operating in pass-through mode.")
             self._model = None

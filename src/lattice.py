@@ -11,6 +11,7 @@ import os
 import re
 import sqlite3
 import threading
+from collections import deque
 from abc import ABC
 from dataclasses import dataclass, field
 from typing import Dict, List, Optional, Set, Tuple, Any, FrozenSet, Union
@@ -96,9 +97,9 @@ class TypeRegistry:
             return False
 
         visited = set()
-        queue = [sub_c]
+        queue = deque([sub_c])
         while queue:
-            curr = queue.pop(0)
+            curr = queue.popleft()
             if curr == super_c:
                 return True
             visited.add(curr)
@@ -390,60 +391,94 @@ class LatticeOrchestrator:
         return list(self.loaded_cells.values())
 
     def load_from_database(self, db_path: Optional[str] = None):
-        if db_path is not None:
-            self.db_path = db_path
-        if not os.path.exists(self.db_path):
-            logger.warning(f"[LATTICE] No SQLite DB found at {self.db_path}")
-            return
-
-        self.loaded_cells.clear()
-
-        try:
-            conn = sqlite3.connect(self.db_path, check_same_thread=False)
-            cursor = conn.cursor()
-            cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name IN ('nodes', 'cells')")
-            tables = [row[0] for row in cursor.fetchall()]
-
-            if "nodes" in tables:
-                cursor.execute("""
-                    SELECT cell_id, domain_name, node_type, node_role, stage,
-                           keywords, input_type, input_state, output_type, output_state,
-                           code, dependencies, configuration_schema, verified
-                    FROM nodes
-                """)
-                rows = cursor.fetchall()
-                for row in rows:
-                    (cell_id, domain_name, node_type, node_role, stage,
-                     keywords_json, in_type, in_state, out_type, out_state,
-                     code, deps_json, config_json, verified) = row
-
-                    try:
-                        keywords = set(json.loads(keywords_json)) if keywords_json else set()
-                    except Exception:
-                        keywords = set()
-
-                    try:
-                        dependencies = json.loads(deps_json) if deps_json else []
-                    except Exception:
-                        dependencies = []
-
-                    try:
-                        configuration_schema = json.loads(config_json) if config_json else {}
-                    except Exception:
-                        configuration_schema = {}
-
-                    in_sig = AlgebraicSignature(type_name=in_type or "any", state=in_state or "any")
-                    out_sig = AlgebraicSignature(type_name=out_type or "None", state=out_state or "any")
-
-                    inputs: Dict[str, PortSignature] = {}
-                    outputs: Dict[str, PortSignature] = {}
-                    if isinstance(configuration_schema, dict) and configuration_schema:
-                        raw_in = configuration_schema.get("inputs", configuration_schema)
-                        if isinstance(raw_in, dict):
-                            for p_name, p_val in raw_in.items():
-                                if p_name in ("inputs", "outputs"):
-                                    continue
-                                if isinstance(p_val, dict):
+        with self._lock:
+            if db_path is not None:
+                self.db_path = db_path
+            if not os.path.exists(self.db_path):
+                logger.warning(f"[LATTICE] No SQLite DB found at {self.db_path}")
+                return
+    
+            self.loaded_cells.clear()
+    
+            try:
+                conn = sqlite3.connect(self.db_path, check_same_thread=False)
+                cursor = conn.cursor()
+                cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name IN ('nodes', 'cells')")
+                tables = [row[0] for row in cursor.fetchall()]
+    
+                if "nodes" in tables:
+                    cursor.execute("""
+                        SELECT cell_id, domain_name, node_type, node_role, stage,
+                               keywords, input_type, input_state, output_type, output_state,
+                               code, dependencies, configuration_schema, verified
+                        FROM nodes
+                    """)
+                    rows = cursor.fetchall()
+                    for row in rows:
+                        (cell_id, domain_name, node_type, node_role, stage,
+                         keywords_json, in_type, in_state, out_type, out_state,
+                         code, deps_json, config_json, verified) = row
+    
+                        try:
+                            keywords = set(json.loads(keywords_json)) if keywords_json else set()
+                        except Exception:
+                            keywords = set()
+    
+                        try:
+                            dependencies = json.loads(deps_json) if deps_json else []
+                        except Exception:
+                            dependencies = []
+    
+                        try:
+                            configuration_schema = json.loads(config_json) if config_json else {}
+                        except Exception:
+                            configuration_schema = {}
+    
+                        in_sig = AlgebraicSignature(type_name=in_type or "any", state=in_state or "any")
+                        out_sig = AlgebraicSignature(type_name=out_type or "None", state=out_state or "any")
+    
+                        inputs: Dict[str, PortSignature] = {}
+                        outputs: Dict[str, PortSignature] = {}
+                        if isinstance(configuration_schema, dict) and configuration_schema:
+                            raw_in = configuration_schema.get("inputs", configuration_schema)
+                            if isinstance(raw_in, dict):
+                                for p_name, p_val in raw_in.items():
+                                    if p_name in ("inputs", "outputs"):
+                                        continue
+                                    if isinstance(p_val, dict):
+                                        p_type = p_val.get("type_name", p_val.get("type", in_type or "any"))
+                                        p_state = p_val.get("state", in_state or "any")
+                                        inputs[p_name] = PortSignature(
+                                            name=p_name,
+                                            signature=AlgebraicSignature(type_name=str(p_type), state=str(p_state)),
+                                            required=p_val.get("required", True),
+                                            default_value=p_val.get("default_value", p_val.get("default")),
+                                            doc=p_val.get("doc", p_val.get("param_doc", ""))
+                                        )
+                                    elif isinstance(p_val, str):
+                                        inputs[p_name] = PortSignature(
+                                            name=p_name,
+                                            signature=AlgebraicSignature(type_name=p_val, state="any")
+                                        )
+                            raw_out = configuration_schema.get("outputs", {})
+                            if isinstance(raw_out, dict):
+                                for p_name, p_val in raw_out.items():
+                                    if isinstance(p_val, dict):
+                                        p_type = p_val.get("type_name", out_type or "any")
+                                        p_state = p_val.get("state", out_state or "any")
+                                        outputs[p_name] = PortSignature(
+                                            name=p_name,
+                                            signature=AlgebraicSignature(type_name=str(p_type), state=str(p_state))
+                                        )
+                                    elif isinstance(p_val, str):
+                                        outputs[p_name] = PortSignature(
+                                            name=p_name,
+                                            signature=AlgebraicSignature(type_name=p_val, state="any")
+                                        )
+                        elif isinstance(configuration_schema, list) and configuration_schema:
+                            for p_val in configuration_schema:
+                                if isinstance(p_val, dict) and "name" in p_val:
+                                    p_name = p_val["name"]
                                     p_type = p_val.get("type_name", p_val.get("type", in_type or "any"))
                                     p_state = p_val.get("state", in_state or "any")
                                     inputs[p_name] = PortSignature(
@@ -453,147 +488,114 @@ class LatticeOrchestrator:
                                         default_value=p_val.get("default_value", p_val.get("default")),
                                         doc=p_val.get("doc", p_val.get("param_doc", ""))
                                     )
-                                elif isinstance(p_val, str):
-                                    inputs[p_name] = PortSignature(
-                                        name=p_name,
-                                        signature=AlgebraicSignature(type_name=p_val, state="any")
-                                    )
-                        raw_out = configuration_schema.get("outputs", {})
-                        if isinstance(raw_out, dict):
-                            for p_name, p_val in raw_out.items():
-                                if isinstance(p_val, dict):
-                                    p_type = p_val.get("type_name", out_type or "any")
-                                    p_state = p_val.get("state", out_state or "any")
-                                    outputs[p_name] = PortSignature(
-                                        name=p_name,
-                                        signature=AlgebraicSignature(type_name=str(p_type), state=str(p_state))
-                                    )
-                                elif isinstance(p_val, str):
-                                    outputs[p_name] = PortSignature(
-                                        name=p_name,
-                                        signature=AlgebraicSignature(type_name=p_val, state="any")
-                                    )
-                    elif isinstance(configuration_schema, list) and configuration_schema:
-                        for p_val in configuration_schema:
-                            if isinstance(p_val, dict) and "name" in p_val:
-                                p_name = p_val["name"]
-                                p_type = p_val.get("type_name", p_val.get("type", in_type or "any"))
+    
+                        if not inputs:
+                            inputs = {"input_data": PortSignature(name="input_data", signature=in_sig)}
+                        if not outputs:
+                            outputs = {"output_data": PortSignature(name="output_data", signature=out_sig)}
+    
+                        is_macro = node_type == "macro" or str(node_role).lower() == "macro"
+                        cell_cls = MacroCell if is_macro else MicroCell
+    
+                        cell = cell_cls(
+                            cell_id=cell_id,
+                            stage=stage or 1,
+                            keywords=keywords,
+                            inputs=inputs,
+                            outputs=outputs,
+                            domain_name=domain_name or self.active_domain,
+                            node_type="macro" if is_macro else (node_type or "function"),
+                            node_role=str(node_role).lower() if node_role else "function",
+                            dependencies=dependencies,
+                            code_template=code or "",
+                            db_path=self.db_path,
+                            configuration_schema=configuration_schema,
+                            verified=bool(verified)
+                        )
+                        self.loaded_cells[cell.cell_id] = cell
+    
+                elif "cells" in tables:
+                    cursor.execute("""
+                        SELECT cell_id, stage, input_type, input_state, output_type, output_state,
+                               code_template, configuration_schema, dependencies
+                        FROM cells
+                    """)
+                    rows = cursor.fetchall()
+                    for row in rows:
+                        (cell_id, stage, in_type, in_state, out_type, out_state,
+                         code, config_json, deps_json) = row
+    
+                        try:
+                            dependencies = json.loads(deps_json) if deps_json else []
+                        except Exception:
+                            dependencies = []
+    
+                        try:
+                            configuration_schema = json.loads(config_json) if config_json else {}
+                        except Exception:
+                            configuration_schema = {}
+    
+                        in_sig = AlgebraicSignature(type_name=in_type or "any", state=in_state or "any")
+                        out_sig = AlgebraicSignature(type_name=out_type or "None", state=out_state or "any")
+    
+                        inputs: Dict[str, PortSignature] = {}
+                        outputs: Dict[str, PortSignature] = {}
+    
+                        if isinstance(configuration_schema, dict) and ("inputs" in configuration_schema or "outputs" in configuration_schema):
+                            raw_in = configuration_schema.get("inputs", {})
+                            for p_name, p_val in raw_in.items():
+                                p_type = p_val.get("type_name", in_type or "any")
                                 p_state = p_val.get("state", in_state or "any")
                                 inputs[p_name] = PortSignature(
                                     name=p_name,
                                     signature=AlgebraicSignature(type_name=str(p_type), state=str(p_state)),
                                     required=p_val.get("required", True),
-                                    default_value=p_val.get("default_value", p_val.get("default")),
-                                    doc=p_val.get("doc", p_val.get("param_doc", ""))
+                                    default_value=p_val.get("default_value", p_val.get("default"))
                                 )
-
-                    if not inputs:
-                        inputs = {"input_data": PortSignature(name="input_data", signature=in_sig)}
-                    if not outputs:
-                        outputs = {"output_data": PortSignature(name="output_data", signature=out_sig)}
-
-                    is_macro = node_type == "macro" or str(node_role).lower() == "macro"
-                    cell_cls = MacroCell if is_macro else MicroCell
-
-                    cell = cell_cls(
-                        cell_id=cell_id,
-                        stage=stage or 1,
-                        keywords=keywords,
-                        inputs=inputs,
-                        outputs=outputs,
-                        domain_name=domain_name or self.active_domain,
-                        node_type="macro" if is_macro else (node_type or "function"),
-                        node_role=str(node_role).lower() if node_role else "function",
-                        dependencies=dependencies,
-                        code_template=code or "",
-                        db_path=self.db_path,
-                        configuration_schema=configuration_schema,
-                        verified=bool(verified)
-                    )
-                    self.loaded_cells[cell.cell_id] = cell
-
-            elif "cells" in tables:
-                cursor.execute("""
-                    SELECT cell_id, stage, input_type, input_state, output_type, output_state,
-                           code_template, configuration_schema, dependencies
-                    FROM cells
-                """)
-                rows = cursor.fetchall()
-                for row in rows:
-                    (cell_id, stage, in_type, in_state, out_type, out_state,
-                     code, config_json, deps_json) = row
-
-                    try:
-                        dependencies = json.loads(deps_json) if deps_json else []
-                    except Exception:
-                        dependencies = []
-
-                    try:
-                        configuration_schema = json.loads(config_json) if config_json else {}
-                    except Exception:
-                        configuration_schema = {}
-
-                    in_sig = AlgebraicSignature(type_name=in_type or "any", state=in_state or "any")
-                    out_sig = AlgebraicSignature(type_name=out_type or "None", state=out_state or "any")
-
-                    inputs: Dict[str, PortSignature] = {}
-                    outputs: Dict[str, PortSignature] = {}
-
-                    if isinstance(configuration_schema, dict) and ("inputs" in configuration_schema or "outputs" in configuration_schema):
-                        raw_in = configuration_schema.get("inputs", {})
-                        for p_name, p_val in raw_in.items():
-                            p_type = p_val.get("type_name", in_type or "any")
-                            p_state = p_val.get("state", in_state or "any")
-                            inputs[p_name] = PortSignature(
-                                name=p_name,
-                                signature=AlgebraicSignature(type_name=str(p_type), state=str(p_state)),
-                                required=p_val.get("required", True),
-                                default_value=p_val.get("default_value", p_val.get("default"))
-                            )
-                        raw_out = configuration_schema.get("outputs", {})
-                        for p_name, p_val in raw_out.items():
-                            p_type = p_val.get("type_name", out_type or "any")
-                            p_state = p_val.get("state", out_state or "any")
-                            outputs[p_name] = PortSignature(
-                                name=p_name,
-                                signature=AlgebraicSignature(type_name=str(p_type), state=str(p_state))
-                            )
-
-                    if not inputs:
-                        inputs = {"input_data": PortSignature(name="input_data", signature=in_sig)}
-                    if not outputs:
-                        outputs = {"output_data": PortSignature(name="output_data", signature=out_sig)}
-
-                    keywords = set(re.findall(r'[a-zA-Z0-9]+', cell_id.lower())) - {"cell", "default", "broken", "distractor"}
-                    for p in inputs.values():
-                        if p.state != "any":
-                            keywords.update(re.findall(r'[a-zA-Z0-9]+', p.state.lower()))
-                        if p.name:
-                            keywords.update(re.findall(r'[a-zA-Z0-9]+', p.name.lower()))
-                    for p in outputs.values():
-                        if p.state != "any":
-                            keywords.update(re.findall(r'[a-zA-Z0-9]+', p.state.lower()))
-
-                    cell = MicroCell(
-                        cell_id=cell_id,
-                        stage=stage or 1,
-                        keywords=keywords,
-                        inputs=inputs,
-                        outputs=outputs,
-                        domain_name="pandas",
-                        node_type="function",
-                        node_role="function",
-                        dependencies=dependencies,
-                        code_template=code or "",
-                        db_path=self.db_path,
-                        configuration_schema=configuration_schema
-                    )
-                    self.loaded_cells[cell.cell_id] = cell
-
-            conn.close()
-            logger.info(f"[LATTICE] Loaded {len(self.loaded_cells)} cells from database.")
-        except Exception as e:
-            logger.error(f"[LATTICE] Database load error: {e}")
+                            raw_out = configuration_schema.get("outputs", {})
+                            for p_name, p_val in raw_out.items():
+                                p_type = p_val.get("type_name", out_type or "any")
+                                p_state = p_val.get("state", out_state or "any")
+                                outputs[p_name] = PortSignature(
+                                    name=p_name,
+                                    signature=AlgebraicSignature(type_name=str(p_type), state=str(p_state))
+                                )
+    
+                        if not inputs:
+                            inputs = {"input_data": PortSignature(name="input_data", signature=in_sig)}
+                        if not outputs:
+                            outputs = {"output_data": PortSignature(name="output_data", signature=out_sig)}
+    
+                        keywords = set(re.findall(r'[a-zA-Z0-9]+', cell_id.lower())) - {"cell", "default", "broken", "distractor"}
+                        for p in inputs.values():
+                            if p.state != "any":
+                                keywords.update(re.findall(r'[a-zA-Z0-9]+', p.state.lower()))
+                            if p.name:
+                                keywords.update(re.findall(r'[a-zA-Z0-9]+', p.name.lower()))
+                        for p in outputs.values():
+                            if p.state != "any":
+                                keywords.update(re.findall(r'[a-zA-Z0-9]+', p.state.lower()))
+    
+                        cell = MicroCell(
+                            cell_id=cell_id,
+                            stage=stage or 1,
+                            keywords=keywords,
+                            inputs=inputs,
+                            outputs=outputs,
+                            domain_name="pandas",
+                            node_type="function",
+                            node_role="function",
+                            dependencies=dependencies,
+                            code_template=code or "",
+                            db_path=self.db_path,
+                            configuration_schema=configuration_schema
+                        )
+                        self.loaded_cells[cell.cell_id] = cell
+    
+                conn.close()
+                logger.info(f"[LATTICE] Loaded {len(self.loaded_cells)} cells from database.")
+            except Exception as e:
+                logger.error(f"[LATTICE] Database load error: {e}")
 
     def build_reachability_matrix(self) -> None:
         """
@@ -626,9 +628,9 @@ class LatticeOrchestrator:
             # Transitive closure (BFS reachability)
             for t in all_types:
                 reachable = set([t])
-                queue = [t]
+                queue = deque([t])
                 while queue:
-                    curr = queue.pop(0)
+                    curr = queue.popleft()
                     for nxt in direct_adj.get(curr, []):
                         if nxt not in reachable:
                             reachable.add(nxt)
@@ -697,9 +699,9 @@ class LatticeOrchestrator:
         curr_type = sig_val.type_name
         with registry._lock:
             ancestors = set()
-            queue = list(registry._parents.get(curr_type, []))
+            queue = deque(registry._parents.get(curr_type, []))
             while queue:
-                p = queue.pop(0)
+                p = queue.popleft()
                 if p not in ancestors:
                     ancestors.add(p)
                     queue.extend(registry._parents.get(p, []))

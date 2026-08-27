@@ -7,6 +7,8 @@ Provides real-time endpoints for health monitoring, domain metadata, and program
 
 from __future__ import annotations
 import os
+import asyncio
+import platform
 import resource
 import sys
 import time
@@ -103,7 +105,7 @@ async def health_check():
         import psutil
         rss_bytes = psutil.Process(os.getpid()).memory_info().rss
     except ImportError:
-        rss_bytes = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss * 1024
+        rss_bytes = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss * (1 if platform.system() == 'Darwin' else 1024)
 
     return HealthResponse(
         status="healthy",
@@ -156,7 +158,7 @@ async def synthesize_pipeline(request: SynthesizeRequest):
 
     # 1. Routing
     t_start = time.perf_counter()
-    cells = router.plan_path(request.prompt, return_tuple=False)
+    cells = await asyncio.to_thread(router.plan_path, request.prompt, return_tuple=False)
     route_dt = (time.perf_counter() - t_start) * 1000.0
 
     if not cells:
@@ -167,14 +169,14 @@ async def synthesize_pipeline(request: SynthesizeRequest):
 
     # 2. Synthesis
     t_synth = time.perf_counter()
-    code = gate.unify_and_emit(cells, request.prompt)
+    code = await asyncio.to_thread(gate.unify_and_emit, cells, request.prompt)
     synth_dt = (time.perf_counter() - t_synth) * 1000.0
     total_dt = (time.perf_counter() - t_start) * 1000.0
 
     # 3. Optional Sandbox Execution
     sandbox_result = None
     if request.execute_in_sandbox:
-        sandbox_result = sandbox.execute(code, timeout=request.timeout_seconds)
+        sandbox_result = await asyncio.to_thread(sandbox.execute, code, request.timeout_seconds)
 
     path_ids = [c.cell_id for c in cells]
     return SynthesizeResponse(

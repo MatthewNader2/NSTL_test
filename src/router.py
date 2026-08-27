@@ -57,7 +57,7 @@ class SemanticStateAStar:
         self.rag = rag_engine
 
     def heuristic(self, current_sig: PortSignature, goal_sig: Optional[PortSignature], remaining_intents: Tuple[str, ...]) -> float:
-        h = len(remaining_intents) * 2.0  # Penalty for unfulfilled sub-intents
+        h = len(remaining_intents) * 0.8  # Penalty for unfulfilled sub-intents
         if goal_sig is not None:
             if not current_sig.unifies_with(goal_sig):
                 h += 1.5
@@ -384,12 +384,7 @@ class LatticeRouter:
         required_intents = astar.extract_required_intents(prompt)
         intents_set = set(required_intents)
 
-        # Check for direct algorithmic match (e.g. dijkstra)
-        if any(w in prompt.lower() for w in ["dijkstra", "shortest_path", "graph"]):
-            dijkstra = self.orchestrator.loaded_cells.get("PYTHON_DIJKSTRA_ALGORITHM")
-            if dijkstra:
-                res = [dijkstra]
-                return (res, set()) if is_tuple_requested else res
+        # Algorithmic bypass removed — let the semantic router handle all queries organically
 
         if len(self.orchestrator.loaded_cells) <= 100:
             candidate_pool = list(self.orchestrator.loaded_cells.values())
@@ -596,8 +591,8 @@ class LatticeRouter:
             overlap = len(prompt_keywords & cell_kws)
             base_score += overlap * 0.25
 
-            if any(p in cid.lower() for p in ["_group_", "_core_", "_algos_", "_internal_",
-                                               "typing_", "withmetadata", "renderer"]):
+            # Filter internal/infrastructure nodes via cell metadata instead of string matching
+            if getattr(cell, 'stage', 2) not in (1, 2, 3):
                 base_score *= 0.3
 
             scored.append((cid, base_score))

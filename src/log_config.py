@@ -7,6 +7,7 @@ import logging
 import os
 import sys
 from pathlib import Path
+from logging.handlers import RotatingFileHandler
 
 # Default log directory
 _LOG_DIR = os.environ.get("NSTL_LOGS_DIR", str(Path(__file__).resolve().parent.parent / "logs"))
@@ -45,8 +46,8 @@ def setup_logging(level: int = logging.INFO, log_file: str = "nstl.log") -> None
     console.setFormatter(logging.Formatter(fmt, datefmt=datefmt))
     root.addHandler(console)
 
-    # File handler (rotating would be even better, but this is a start)
-    file_handler = logging.FileHandler(log_path, encoding="utf-8")
+    # Rotating file handler (10MB max, 5 backups)
+    file_handler = RotatingFileHandler(log_path, maxBytes=10*1024*1024, backupCount=5, encoding="utf-8")
     file_handler.setLevel(logging.DEBUG)  # Always capture DEBUG to file
     file_handler.setFormatter(logging.Formatter(fmt, datefmt=datefmt))
     root.addHandler(file_handler)
