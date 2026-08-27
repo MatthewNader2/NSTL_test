@@ -55,6 +55,8 @@ class TypeRegistry:
         self.register_type("Mat", super_type="ndarray")
         self.register_type("DataFrame", super_type="object")
         self.register_type("Series", super_type="object")
+        self.register_type("Figure", super_type="object")
+        self.register_type("Graph", super_type="object")
 
     def register_type(self, type_name: str, super_type: Optional[str] = None):
         name = type_name.strip()
@@ -226,7 +228,7 @@ class Cell(ABC):
     ):
         self.cell_id = cell_id
         self.stage = stage
-        self.keywords = set(keywords) if keywords else set()
+        self.keywords = set(k.lower() for k in keywords if len(str(k)) >= 3) if keywords else set()
         self.cell_type = cell_type
         self.domain_name = domain_name
         self.node_type = node_type
@@ -363,6 +365,7 @@ class LatticeOrchestrator:
         self.loaded_cells: Dict[str, Cell] = {}
         # Indexed bucket lookup tables for O(1) successor and predecessor retrieval
         self._cells_by_input: Dict[Tuple[str, str], List[Cell]] = {}
+        self._cells_by_stage_input: Dict[Tuple[int, str, str], List[Cell]] = {}
         self._cells_by_output: Dict[Tuple[str, str], List[Cell]] = {}
         self._lock = threading.Lock()
 
@@ -416,23 +419,43 @@ class LatticeOrchestrator:
                     out_sig = AlgebraicSignature(type_name=out_type or "None", state=out_state or "any")
 
                     inputs: Dict[str, PortSignature] = {}
+                    outputs: Dict[str, PortSignature] = {}
                     if isinstance(configuration_schema, dict) and configuration_schema:
-                        for p_name, p_val in configuration_schema.items():
-                            if isinstance(p_val, dict):
-                                p_type = p_val.get("type_name", p_val.get("type", in_type or "any"))
-                                p_state = p_val.get("state", in_state or "any")
-                                inputs[p_name] = PortSignature(
-                                    name=p_name,
-                                    signature=AlgebraicSignature(type_name=str(p_type), state=str(p_state)),
-                                    required=p_val.get("required", True),
-                                    default_value=p_val.get("default_value", p_val.get("default")),
-                                    doc=p_val.get("doc", p_val.get("param_doc", ""))
-                                )
-                            elif isinstance(p_val, str):
-                                inputs[p_name] = PortSignature(
-                                    name=p_name,
-                                    signature=AlgebraicSignature(type_name=p_val, state="any")
-                                )
+                        raw_in = configuration_schema.get("inputs", configuration_schema)
+                        if isinstance(raw_in, dict):
+                            for p_name, p_val in raw_in.items():
+                                if p_name in ("inputs", "outputs"):
+                                    continue
+                                if isinstance(p_val, dict):
+                                    p_type = p_val.get("type_name", p_val.get("type", in_type or "any"))
+                                    p_state = p_val.get("state", in_state or "any")
+                                    inputs[p_name] = PortSignature(
+                                        name=p_name,
+                                        signature=AlgebraicSignature(type_name=str(p_type), state=str(p_state)),
+                                        required=p_val.get("required", True),
+                                        default_value=p_val.get("default_value", p_val.get("default")),
+                                        doc=p_val.get("doc", p_val.get("param_doc", ""))
+                                    )
+                                elif isinstance(p_val, str):
+                                    inputs[p_name] = PortSignature(
+                                        name=p_name,
+                                        signature=AlgebraicSignature(type_name=p_val, state="any")
+                                    )
+                        raw_out = configuration_schema.get("outputs", {})
+                        if isinstance(raw_out, dict):
+                            for p_name, p_val in raw_out.items():
+                                if isinstance(p_val, dict):
+                                    p_type = p_val.get("type_name", out_type or "any")
+                                    p_state = p_val.get("state", out_state or "any")
+                                    outputs[p_name] = PortSignature(
+                                        name=p_name,
+                                        signature=AlgebraicSignature(type_name=str(p_type), state=str(p_state))
+                                    )
+                                elif isinstance(p_val, str):
+                                    outputs[p_name] = PortSignature(
+                                        name=p_name,
+                                        signature=AlgebraicSignature(type_name=p_val, state="any")
+                                    )
                     elif isinstance(configuration_schema, list) and configuration_schema:
                         for p_val in configuration_schema:
                             if isinstance(p_val, dict) and "name" in p_val:
@@ -449,7 +472,8 @@ class LatticeOrchestrator:
 
                     if not inputs:
                         inputs = {"input_data": PortSignature(name="input_data", signature=in_sig)}
-                    outputs = {"output_data": PortSignature(name="output_data", signature=out_sig)}
+                    if not outputs:
+                        outputs = {"output_data": PortSignature(name="output_data", signature=out_sig)}
 
                     is_macro = node_type == "macro" or str(node_role).lower() == "macro"
                     cell_cls = MacroCell if is_macro else MicroCell
@@ -554,13 +578,15 @@ class LatticeOrchestrator:
             logger.error(f"[LATTICE] Database load error: {e}")
 
     def build_topology(self):
-        """Builds O(1) indexed lookup tables for both inputs and outputs."""
+        """Builds O(1) indexed lookup tables for both inputs, stages, and outputs."""
         with self._lock:
             self._cells_by_input.clear()
+            self._cells_by_stage_input.clear()
             self._cells_by_output.clear()
             for cell in self.loaded_cells.values():
                 in_sig = cell.primary_input
                 self._cells_by_input.setdefault((in_sig.type_name, in_sig.state), []).append(cell)
+                self._cells_by_stage_input.setdefault((cell.stage, in_sig.type_name, in_sig.state), []).append(cell)
                 out_sig = cell.primary_output
                 self._cells_by_output.setdefault((out_sig.type_name, out_sig.state), []).append(cell)
             logger.info(
@@ -574,10 +600,15 @@ class LatticeOrchestrator:
             self.loaded_cells[cell.cell_id] = cell
             in_sig = cell.primary_input
             self._cells_by_input.setdefault((in_sig.type_name, in_sig.state), []).append(cell)
+            self._cells_by_stage_input.setdefault((cell.stage, in_sig.type_name, in_sig.state), []).append(cell)
             out_sig = cell.primary_output
             self._cells_by_output.setdefault((out_sig.type_name, out_sig.state), []).append(cell)
 
-    def get_successors_for_sig(self, sig: AlgebraicSignature) -> List[Cell]:
+    def register_cell(self, cell: Cell):
+        """Alias for inject_cell."""
+        self.inject_cell(cell)
+
+    def get_successors_for_sig(self, sig: AlgebraicSignature, stage: Optional[int] = None) -> List[Cell]:
         """Returns type-compatible downstream successor cells in O(1) dictionary lookups."""
         registry = TypeRegistry.get_instance()
         applicable_types = {sig.type_name, "any", "AnyObject", "object", "*"}
@@ -599,7 +630,11 @@ class LatticeOrchestrator:
         with self._lock:
             for t in applicable_types:
                 for s in applicable_states:
-                    for cell in self._cells_by_input.get((t, s), []):
+                    if stage is not None:
+                        bucket = self._cells_by_stage_input.get((stage, t, s), [])
+                    else:
+                        bucket = self._cells_by_input.get((t, s), [])
+                    for cell in bucket:
                         if cell.cell_id not in seen_ids:
                             if sig.unifies_with(cell.primary_input) or cell.can_accept(sig):
                                 seen_ids.add(cell.cell_id)

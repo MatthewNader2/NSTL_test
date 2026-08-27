@@ -170,7 +170,7 @@ CORE_CODE_PATTERNS: List[Dict[str, Any]] = [
         "node_type": "function",
         "node_role": "function",
         "stage": 1,
-        "keywords": ["imread", "read", "load", "image", "cv2", "picture"],
+        "keywords": ["imread", "read", "load", "image", "cv2", "picture", "jpg", "png", "jpeg"],
         "inputs": {
             "filepath": {"type_name": "str", "state": "source_identifier", "required": True}
         },
@@ -203,10 +203,10 @@ CORE_CODE_PATTERNS: List[Dict[str, Any]] = [
         "node_type": "function",
         "node_role": "function",
         "stage": 3,
-        "keywords": ["imwrite", "save", "write", "image", "export", "cv2", "output"],
+        "keywords": ["imwrite", "save", "write", "image", "export", "cv2", "output", "gray", "jpg", "png"],
         "inputs": {
-            "dest_path": {"type_name": "str", "state": "dest_identifier", "required": True},
-            "img": {"type_name": "Mat", "state": "any", "required": True}
+            "img": {"type_name": "Mat", "state": "any", "required": True},
+            "dest_path": {"type_name": "str", "state": "dest_identifier", "required": True}
         },
         "outputs": {
             "output_data": {"type_name": "bool", "state": "written"}
@@ -249,6 +249,57 @@ CORE_CODE_PATTERNS: List[Dict[str, Any]] = [
             "    return distances\n\n"
             "{output_var} = dijkstra({graph}, {start})"
         )
+    },
+
+    # 5. Machine Learning & Visualization Primitives (Cross-Domain Bridges)
+    {
+        "cell_id": "SKLEARN_STANDARD_SCALER",
+        "domain_name": "sklearn",
+        "node_type": "function",
+        "node_role": "function",
+        "stage": 2,
+        "keywords": ["sklearn", "standardscaler", "standardize", "scale", "features", "transform", "scaler", "preprocessing"],
+        "inputs": {
+            "data": {"type_name": "DataFrame", "state": "any", "required": True}
+        },
+        "outputs": {
+            "output_data": {"type_name": "ndarray", "state": "scaled"}
+        },
+        "dependencies": ["from sklearn.preprocessing import StandardScaler"],
+        "code_template": "{output_var} = StandardScaler().fit_transform({data})"
+    },
+    {
+        "cell_id": "MATPLOTLIB_HISTOGRAM",
+        "domain_name": "matplotlib",
+        "node_type": "function",
+        "node_role": "function",
+        "stage": 2,
+        "keywords": ["matplotlib", "hist", "histogram", "plot", "distribution", "figure", "feature"],
+        "inputs": {
+            "data": {"type_name": "ndarray", "state": "any", "required": True}
+        },
+        "outputs": {
+            "output_data": {"type_name": "Figure", "state": "plotted"}
+        },
+        "dependencies": ["import matplotlib.pyplot as plt"],
+        "code_template": "plt.figure()\nplt.hist({data})\n{output_var} = plt.gcf()"
+    },
+    {
+        "cell_id": "MATPLOTLIB_SAVEFIG",
+        "domain_name": "matplotlib",
+        "node_type": "function",
+        "node_role": "function",
+        "stage": 3,
+        "keywords": ["savefig", "save", "figure", "plot", "export", "png", "image", "matplotlib"],
+        "inputs": {
+            "fig": {"type_name": "Figure", "state": "any", "required": True},
+            "dest_path": {"type_name": "str", "state": "dest_identifier", "required": True}
+        },
+        "outputs": {
+            "output_data": {"type_name": "str", "state": "filepath_written"}
+        },
+        "dependencies": ["import matplotlib.pyplot as plt"],
+        "code_template": "{fig}.savefig({dest_path})\nplt.close({fig})\n{output_var} = {dest_path}"
     }
 ]
 

@@ -142,40 +142,13 @@ RULES:
                 pass
         return None
 
-    def _find_best_match_for_stage(
-        self,
-        stage: int,
-        current_sig: AlgebraicSignature,
-        context: List[Any],
-        keywords: Set[str],
-        goal_domain: Optional[str] = None,
-        exclude: Optional[Set[str]] = None
-    ) -> Optional[str]:
-        exclude = exclude or set()
-        best_match = None
-        best_score = -1.0
-        for entry in context:
-            cid = ""
-            score = 0.0
-            if isinstance(entry, dict):
-                cid = entry.get("cell_id", "")
-                score = float(entry.get("score", 0.0))
-            elif isinstance(entry, (list, tuple)) and len(entry) >= 1:
-                cid = str(entry[0])
-                score = float(entry[1]) if len(entry) > 1 else 0.0
-            elif isinstance(entry, str):
-                m = re.search(r"ID:\s*([A-Z0-9_]+)", entry)
-                cid = m.group(1) if m else ""
-
     @staticmethod
     def _compute_overlap(keywords: Set[str], cell_keywords: Set[str]) -> Tuple[int, Set[str]]:
         overlap = 0
         matched = set()
         for pk in keywords:
-            pk_l = pk.lower()
             for ck in cell_keywords:
-                ck_l = ck.lower()
-                if pk_l == ck_l or (len(pk_l) >= 3 and pk_l in ck_l) or (len(ck_l) >= 3 and ck_l in pk_l):
+                if pk == ck or ck.startswith(pk) or pk.startswith(ck):
                     overlap += 1
                     matched.add(pk)
                     break
@@ -188,9 +161,11 @@ RULES:
         context: List[Any],
         keywords: Set[str],
         goal_domain: Optional[str] = None,
-        exclude: Optional[Set[str]] = None
+        exclude: Optional[Set[str]] = None,
+        prompt_order: Optional[List[str]] = None
     ) -> Optional[str]:
         exclude = exclude or set()
+        query_kws = {k.lower() for k in keywords if len(k) >= 3}
         best_match = None
         best_score = -1.0
 
@@ -209,12 +184,22 @@ RULES:
             if not current_sig.unifies_with(cell.primary_input) and not cell.can_accept(current_sig):
                 continue
 
-            cell_kws = set(k.lower() for k in cell.keywords)
-            overlap, _ = self._compute_overlap(keywords, cell_kws)
-            if stage == 2 and keywords and overlap == 0:
+            overlap, matched_kws = self._compute_overlap(query_kws, cell.keywords)
+            if stage == 2 and query_kws and overlap == 0:
                 continue
 
-            score += overlap * 0.35
+            score += overlap * 0.4
+
+            if prompt_order and matched_kws:
+                pos_list = [prompt_order.index(k) for k in matched_kws if k in prompt_order]
+                if pos_list:
+                    min_pos = min(pos_list)
+                    score += (len(prompt_order) - min_pos) / len(prompt_order) * 0.25
+
+            if getattr(cell, "verified", False) or getattr(cell, "verified", 0) == 1:
+                score *= 1.3
+            if cell.primary_input.type_name != "any" and current_sig.type_name != "any":
+                score *= 1.2
 
             if goal_domain:
                 if (cell.domain_name or "").lower() == goal_domain.lower():
@@ -224,7 +209,7 @@ RULES:
 
             # Penalize noise helper nodes
             if any(p in cid.lower() for p in ["_group_", "_internal_", "typing_", "withmetadata", "default"]):
-                score *= 0.7
+                score *= 0.6
 
             if score > best_score:
                 best_score = score
@@ -232,16 +217,31 @@ RULES:
 
         if best_match is None:
             # Fallback to O(1) typed lattice successors directly
-            successors = self.orchestrator.get_successors_for_sig(current_sig)
+            successors = self.orchestrator.get_successors_for_sig(current_sig, stage=stage)
             for cell in successors:
-                if cell.cell_id in exclude or cell.stage != stage:
+                if cell.cell_id in exclude:
                     continue
-                cell_kws = set(k.lower() for k in cell.keywords)
-                overlap, _ = self._compute_overlap(keywords, cell_kws)
-                if stage == 2 and keywords and overlap == 0:
-                    continue
+                if not cell.keywords:
+                    if stage == 2 and query_kws:
+                        continue
+                    overlap, matched_kws = 0, []
+                else:
+                    overlap, matched_kws = self._compute_overlap(query_kws, cell.keywords)
+                    if stage == 2 and query_kws and overlap == 0:
+                        continue
 
                 score = 0.5 + overlap * 0.4
+                if prompt_order and matched_kws:
+                    pos_list = [prompt_order.index(k) for k in matched_kws if k in prompt_order]
+                    if pos_list:
+                        min_pos = min(pos_list)
+                        score += (len(prompt_order) - min_pos) / len(prompt_order) * 0.25
+
+                if getattr(cell, "verified", False) or getattr(cell, "verified", 0) == 1:
+                    score *= 1.3
+                if cell.primary_input.type_name != "any" and current_sig.type_name != "any":
+                    score *= 1.2
+
                 if goal_domain:
                     if (cell.domain_name or "").lower() == goal_domain.lower():
                         score *= 1.3
@@ -258,13 +258,18 @@ RULES:
     GENERIC_STOP_WORDS = {
         "and", "then", "to", "with", "from", "the", "a", "an", "in", "on", "of", "for",
         "is", "it", "this", "that", "values", "data", "file", "dataframe", "image",
-        "load", "save", "input", "output", "read", "write"
+        "load", "save", "input", "output", "read", "write", "csv", "out", "img", "txt",
+        "jpg", "jpeg", "png", "json", "table", "dataset", "picture", "figure"
     }
 
     def _deterministic_fallback(self, prompt: str, context: List[Any]) -> Dict[str, Any]:
         prompt_lower = prompt.lower()
+        prompt_tokens_ordered = [
+            t for t in re.findall(r"[a-zA-Z0-9]+", prompt_lower)
+            if t not in self.GENERIC_STOP_WORDS
+        ]
         all_tokens = set(re.findall(r"[a-zA-Z0-9]+", prompt_lower))
-        meaningful_keywords = all_tokens - self.GENERIC_STOP_WORDS
+        meaningful_keywords = set(prompt_tokens_ordered)
 
         goal_domain = None
         if context:
@@ -277,7 +282,9 @@ RULES:
         current_sig = AlgebraicSignature("str", "source_identifier")
 
         # Stage 1: Source Loader (uses all_tokens to match read/load)
-        stage1_match = self._find_best_match_for_stage(1, current_sig, context, all_tokens, goal_domain)
+        stage1_match = self._find_best_match_for_stage(
+            1, current_sig, context, all_tokens, goal_domain, prompt_order=prompt_tokens_ordered
+        )
         if stage1_match:
             path.append(stage1_match)
             current_sig = self.orchestrator.loaded_cells[stage1_match].primary_output
@@ -285,15 +292,18 @@ RULES:
             _, matched1 = self._compute_overlap(meaningful_keywords, set(k.lower() for k in cell1.keywords))
             meaningful_keywords -= matched1
 
-        # Stage 2: Transformations (consume remaining action keywords)
-        while True:
-            stage2_match = self._find_best_match_for_stage(2, current_sig, context, meaningful_keywords, goal_domain, exclude=set(path))
+        # Stage 2: Transformations (consume remaining action keywords in prompt order)
+        while meaningful_keywords:
+            stage2_match = self._find_best_match_for_stage(
+                2, current_sig, context, meaningful_keywords, goal_domain,
+                exclude=set(path), prompt_order=prompt_tokens_ordered
+            )
             if not stage2_match:
                 break
             cell = self.orchestrator.loaded_cells[stage2_match]
             cell_kws = set(k.lower() for k in cell.keywords)
             _, matched = self._compute_overlap(meaningful_keywords, cell_kws)
-            if len(matched) == 0 and len(path) > 1:
+            if len(matched) == 0:
                 break
             path.append(stage2_match)
             current_sig = cell.primary_output
@@ -302,7 +312,10 @@ RULES:
                 break
 
         # Stage 3: Sink / Export
-        stage3_match = self._find_best_match_for_stage(3, current_sig, context, all_tokens, goal_domain, exclude=set(path))
+        stage3_match = self._find_best_match_for_stage(
+            3, current_sig, context, all_tokens, goal_domain,
+            exclude=set(path), prompt_order=prompt_tokens_ordered
+        )
         if stage3_match:
             path.append(stage3_match)
 
