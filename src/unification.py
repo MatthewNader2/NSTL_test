@@ -153,50 +153,9 @@ class PlaceholderResolver:
       4. Fallback to None
     """
 
-    DEFAULT_STRATEGIES: Dict[str, str] = {
-        # Primary data / input objects
-        "input_var": "primary_data",
-        "df": "primary_data",
-        "src": "primary_data",
-        "img": "primary_data",
-        "image": "primary_data",
-        "data": "primary_data",
-        "graph": "primary_data",
-        "array": "primary_data",
-        "mat": "primary_data",
-        "x": "primary_data",
-        "y": "primary_data",
-        # File paths
-        "filepath": "source_file",
-        "filename": "source_file",
-        "input_filename": "source_file",
-        "source": "source_file",
-        "input_file": "source_file",
-        "path": "source_file",
-        "fname": "source_file",
-        "in_path": "source_file",
-        # Dest paths
-        "dest_path": "dest_file",
-        "output_filename": "dest_file",
-        "destination": "dest_file",
-        "output_file": "dest_file",
-        "dest": "dest_file",
-        "out_path": "dest_file",
-        "out_file": "dest_file",
-        # Columns / axes
-        "by": "column_name",
-        "by_column": "column_name",
-        "column": "column_name",
-        "columns": "column_name",
-        "cols": "column_name",
-        "axis": "column_name",
-        "index": "column_name",
-        # Flags
-        "ascending": "sort_flag",
-        "descending": "sort_flag",
-        "inplace": "bool_false",
-        "header": "bool_true",
-        "index_col": "bool_false",
+    KNOWN_FILE_EXTENSIONS = {
+        'csv', 'json', 'jpg', 'jpeg', 'png', 'bmp', 'txt', 'db', 'h5', 'hdf5',
+        'pdf', 'md', 'py', 'npz', 'pkl', 'pickle', 'feather', 'orc', 'avro', 'yaml', 'yml', 'toml', 'ini'
     }
 
     @classmethod
@@ -210,23 +169,105 @@ class PlaceholderResolver:
     ) -> str:
         ph = placeholder.strip()
 
+        # 1. Explicit arguments take precedence
         if ph in explicit_args:
             val = explicit_args[ph]
             if isinstance(val, str):
                 return json.dumps(val)
             return repr(val)
 
-        strategy = cls.DEFAULT_STRATEGIES.get(ph, "unknown")
-        if strategy == "primary_data" and primary_input_override is not None:
-            context_result = primary_input_override
-        else:
-            resolver = getattr(cls, f"_resolve_{strategy}", cls._resolve_unknown)
-            context_result = resolver(context, cell, ph)
+        # 2. PortSignature matching from cell.inputs
+        port = cell.inputs.get(ph)
+        if port is not None:
+            sig = port.signature
+            state = (sig.state or "").lower()
+            type_name = (sig.type_name or "").lower()
 
-        if context_result is not None:
-            return context_result
+            if state == "source_identifier":
+                b = context.find_compatible_variable(AlgebraicSignature("str", "source_identifier"))
+                if b and b.literal_value:
+                    return b.literal_value
+                if context.extracted_files:
+                    return json.dumps(context.extracted_files[0])
 
-        # Schema defaults (only if context has no binding)
+            elif state == "dest_identifier":
+                b = context.find_compatible_variable(AlgebraicSignature("str", "dest_identifier"))
+                if b and b.literal_value:
+                    return b.literal_value
+                if context.extracted_files:
+                    return json.dumps(context.extracted_files[-1])
+
+            elif state == "column_name":
+                b = context.find_compatible_variable(AlgebraicSignature("str", "column_name"))
+                if b and b.literal_value:
+                    return b.literal_value
+
+            elif state == "sort_flag":
+                b = context.find_compatible_variable(AlgebraicSignature("bool", "sort_flag"))
+                if b and b.literal_value:
+                    return b.literal_value
+
+            elif type_name in ("dataframe", "mat", "ndarray", "dict", "list", "series"):
+                if cell.stage != 1:
+                    latest = context.get_latest_data_variable()
+                    if latest:
+                        return latest
+
+            # Port default value
+            if port.default_value is not None and port.default_value != "...":
+                dv = str(port.default_value)
+                if dv in ("True", "False", "None") or dv.replace('.', '', 1).isdigit():
+                    return dv
+                if any(dv.startswith(pfx) for pfx in ("cv2.", "np.", "pd.", "plt.", "scipy.", "sklearn.")):
+                    return dv
+                return json.dumps(dv)
+
+        # 3. Semantic name fallback strategies
+        ph_lower = ph.lower()
+        if ph_lower in ("input_var", "df", "src", "img", "image", "data", "array", "mat", "x", "y"):
+            if primary_input_override is not None:
+                return primary_input_override
+            latest = context.get_latest_data_variable()
+            if latest:
+                return latest
+
+        if ph_lower in ("filepath", "filename", "input_filename", "source", "input_file", "path", "fname", "in_path"):
+            b = context.find_compatible_variable(AlgebraicSignature("str", "source_identifier"))
+            if b and b.literal_value:
+                return b.literal_value
+            if context.extracted_files:
+                return json.dumps(context.extracted_files[0])
+
+        if ph_lower in ("dest_path", "output_filename", "destination", "output_file", "dest", "out_path", "out_file"):
+            b = context.find_compatible_variable(AlgebraicSignature("str", "dest_identifier"))
+            if b and b.literal_value:
+                return b.literal_value
+            if context.extracted_files:
+                return json.dumps(context.extracted_files[-1])
+
+        if ph_lower in ("by", "by_column", "column", "columns", "cols", "axis", "index"):
+            b = context.find_compatible_variable(AlgebraicSignature("str", "column_name"))
+            if b and b.literal_value:
+                return b.literal_value
+
+        if ph_lower in ("ascending", "descending", "sort_flag"):
+            b = context.find_compatible_variable(AlgebraicSignature("bool", "sort_flag"))
+            if b and b.literal_value:
+                return b.literal_value
+
+        if ph_lower == "graph":
+            b = context.find_compatible_variable(AlgebraicSignature("dict", "adjacency_dict"))
+            if b and b.literal_value:
+                return b.literal_value
+            return "{'A': {'B': 1, 'C': 4}, 'B': {'A': 1, 'C': 2, 'D': 5}, 'C': {'A': 4, 'B': 2, 'D': 1}, 'D': {'B': 5, 'C': 1}}"
+
+        if ph_lower == "start":
+            b = context.find_compatible_variable(AlgebraicSignature("str", "source_node"))
+            if b and b.literal_value:
+                return b.literal_value
+            return "'A'"
+
+        # 4. Check configuration_schema defaults
         cfg = cell.configuration_schema or {}
         if isinstance(cfg, list):
             cfg = {p.get("name"): p for p in cfg if isinstance(p, dict) and "name" in p}
@@ -237,63 +278,21 @@ class PlaceholderResolver:
                 dv = param_meta["default_value"]
                 if dv is not None and dv != "...":
                     if isinstance(dv, str):
-                        # If it looks like a module constant (cv2.COLOR_*), don't quote
-                        if re.match(r"^[a-zA-Z_][a-zA-Z0-9_]*\.[a-zA-Z_][a-zA-Z0-9_]*$", dv):
+                        if any(dv.startswith(pfx) for pfx in ("cv2.", "np.", "pd.", "plt.", "scipy.", "sklearn.")):
                             return dv
                         return json.dumps(dv)
                     return repr(dv)
             if isinstance(param_meta, (str, int, float, bool)):
                 return repr(param_meta)
 
-        return "None"
-
-    @classmethod
-    def _resolve_primary_data(cls, context: ExecutionContext, cell: Cell, ph: str) -> Optional[str]:
-        return context.get_latest_data_variable()
-
-    @classmethod
-    def _resolve_source_file(cls, context: ExecutionContext, cell: Cell, ph: str) -> Optional[str]:
-        b = context.find_compatible_variable(AlgebraicSignature("str", "source_identifier"))
-        return b.literal_value if (b and b.literal_value) else None
-
-    @classmethod
-    def _resolve_dest_file(cls, context: ExecutionContext, cell: Cell, ph: str) -> Optional[str]:
-        b = context.find_compatible_variable(AlgebraicSignature("str", "dest_identifier"))
-        if b and b.literal_value:
-            return b.literal_value
-        # Fallback: if only one file was mentioned, user probably wants to write there
-        if context.extracted_files:
-            return json.dumps(context.extracted_files[-1])
-        return None
-
-    @classmethod
-    def _resolve_column_name(cls, context: ExecutionContext, cell: Cell, ph: str) -> Optional[str]:
-        b = context.find_compatible_variable(AlgebraicSignature("str", "column_name"))
-        if b and b.literal_value:
-            return b.literal_value
-        return None
-
-    @classmethod
-    def _resolve_sort_flag(cls, context: ExecutionContext, cell: Cell, ph: str) -> Optional[str]:
-        b = context.find_compatible_variable(AlgebraicSignature("bool", "sort_flag"))
-        return b.literal_value if (b and b.literal_value) else None
-
-    @classmethod
-    def _resolve_bool_true(cls, context: ExecutionContext, cell: Cell, ph: str) -> Optional[str]:
-        return "True"
-
-    @classmethod
-    def _resolve_bool_false(cls, context: ExecutionContext, cell: Cell, ph: str) -> Optional[str]:
-        return "False"
-
-    @classmethod
-    def _resolve_unknown(cls, context: ExecutionContext, cell: Cell, ph: str) -> Optional[str]:
+        # 5. Check ExecutionContext variables by exact name
         binding = context.get_variable(ph)
         if binding and binding.literal_value is not None:
             return binding.literal_value
         if binding:
             return binding.name
-        return None
+
+        return "None"
 
 
 class UnificationGate:
@@ -343,20 +342,15 @@ class UnificationGate:
     ) -> str:
         explicit_args = explicit_arguments or {}
 
-        # Stage-aware input resolution:
+        # Stage-aware primary input resolution:
         if cell.stage == 1:
             file_binding = context.find_compatible_variable(AlgebraicSignature("str", "source_identifier"))
             if file_binding and file_binding.literal_value:
                 primary_input_var = file_binding.literal_value
+            elif context.extracted_files:
+                primary_input_var = json.dumps(context.extracted_files[0])
             else:
-                primary_input_var = None
-                for name in reversed(context._var_order):
-                    binding = context._scope[name]
-                    if binding.signature.type_name == "str" and binding.literal_value:
-                        primary_input_var = binding.literal_value
-                        break
-                if primary_input_var is None:
-                    primary_input_var = "None"
+                primary_input_var = "None"
         else:
             primary_input_var = context.get_latest_data_variable()
             if primary_input_var is None:
@@ -398,20 +392,22 @@ class UnificationGate:
             )
             transformed = transformed.replace(f"{{{ph}}}", resolved)
 
-        # Post-process: strip over-quoting of module constants.
-        # Templates like cv2.cvtColor({src}, '{code}') produce 'cv2.COLOR_BGR2GRAY'
-        # when {code} resolves to cv2.COLOR_BGR2GRAY. Remove extraneous quotes.
+        # Safe unquoting: only strip quotes around known Python module constants (e.g. 'cv2.COLOR_BGR2GRAY')
+        # NEVER strip quotes from filenames like 'data.csv'
+        def _unquote_module_constant(m):
+            const_expr = m.group(1)
+            ext = const_expr.split('.')[-1].lower()
+            if ext in PlaceholderResolver.KNOWN_FILE_EXTENSIONS:
+                return m.group(0)  # Keep filename quoted!
+            if any(const_expr.startswith(pfx) for pfx in ("cv2.", "np.", "pd.", "plt.", "scipy.", "sklearn.")):
+                return const_expr
+            return m.group(0)
+
         transformed = re.sub(
             r"['\"]([a-zA-Z_][a-zA-Z0-9_]*\.[a-zA-Z_][a-zA-Z0-9_]*)['\"]",
-            r"\1",
+            _unquote_module_constant,
             transformed
         )
-
-        # Safety: if the line looks like an attribute access on a string literal,
-        # something went wrong with quoting. E.g. 'data.csv' -> data.csv
-        # This is a last-ditch guard against bad templates.
-        if re.search(r"\b[a-zA-Z_][a-zA-Z0-9_]*\.(csv|json|jpg|png|parquet)\b", transformed):
-            logger.warning(f"[UNIFICATION GUARD] Suspicious unquoted filename in {cell.cell_id}: {transformed}")
 
         context.declare_variable(
             base_name=f"{raw_out_name}_out",
@@ -471,12 +467,12 @@ class UnificationGate:
             for dep in context.declared_dependencies:
                 existing_imports.add(dep)
 
-        used_names: Set[str] = set()
+        module_access_names: Set[str] = set()
         for node in ast.walk(ast.Module(body=body_nodes, type_ignores=[])):
-            if isinstance(node, ast.Name) and isinstance(node.ctx, ast.Load):
-                used_names.add(node.id)
-            elif isinstance(node, ast.Attribute) and isinstance(node.value, ast.Name):
-                used_names.add(node.value.id)
+            if isinstance(node, ast.Attribute) and isinstance(node.value, ast.Name):
+                module_access_names.add(node.value.id)
+            elif isinstance(node, ast.Call) and isinstance(node.func, ast.Name):
+                module_access_names.add(node.func.id)
 
         required_imports: Set[str] = set()
         for imp in existing_imports:
@@ -488,10 +484,10 @@ class UnificationGate:
                 continue
             required_imports.add(imp)
 
-        for name in used_names:
+        for name in module_access_names:
             if name in UnificationGate.CANONICAL_IMPORTS:
                 required_imports.add(UnificationGate.CANONICAL_IMPORTS[name])
-            elif name in sys.stdlib_module_names:
+            elif name in sys.stdlib_module_names and name not in ("str", "int", "float", "list", "dict", "set", "tuple", "bool", "print", "len", "max", "min", "range"):
                 required_imports.add(f"import {name}")
 
         new_tree = ast.Module(body=body_nodes, type_ignores=[])

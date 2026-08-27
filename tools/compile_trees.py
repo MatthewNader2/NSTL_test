@@ -103,10 +103,16 @@ def determine_stage(cell_id: str, code: str, in_type: str, out_type: str, raw_st
     return 2
 
 
+KNOWN_FILE_EXTS = {
+    'csv', 'json', 'jpg', 'jpeg', 'png', 'bmp', 'txt', 'db', 'h5', 'hdf5',
+    'pdf', 'md', 'npz', 'pkl', 'pickle', 'feather', 'orc', 'avro', 'yaml', 'yml', 'toml', 'ini', 'parquet'
+}
+
+
 def _validate_template(code_template: str, cell_id: str, node_role: str = "function") -> Tuple[bool, Optional[str]]:
     """
     Validates that a code template is syntactically valid Python when placeholders
-    are replaced with dummy values. Also checks for hardcoded filenames/constants.
+    are replaced with dummy values. Also checks for hardcoded filenames/constants using AST.
     """
     if not code_template or not code_template.strip():
         # Macros legitimately have no code template; they use sub_cells
@@ -122,31 +128,30 @@ def _validate_template(code_template: str, cell_id: str, node_role: str = "funct
     for ph in placeholders:
         test_code = test_code.replace(f"{{{ph}}}", "dummy_var")
 
-    # Check for hardcoded filenames that are NOT module paths.
-    # Module paths like pandas.io.json, pandas.io.parquet are OK.
-    # We look for bare filenames without dots (or with just one extension dot).
-    hardcoded = re.search(
-        r"(?<![a-zA-Z0-9_\.])"           # not preceded by module path
-        r"[a-zA-Z0-9_\-/]+"
-        r"\.(csv|json|jpg|jpeg|png|bmp|txt|db|h5|hdf5|pdf|md|py|npz|pkl|pickle|feather|orc|avro|yaml|yml|toml|ini)"
-        r"(?![a-zA-Z0-9_])",               # not followed by more path
-        test_code,
-        re.IGNORECASE
-    )
-    if hardcoded:
-        match_str = hardcoded.group(0)
-        # Reject only if it's not inside a string literal and not a module path
-        if not (match_str.startswith(("'", '"')) and match_str.endswith(("'", '"'))):
-            # Extra check: if it contains / or looks like a module path (has dots before it), allow
-            if "/" not in match_str and ".." not in match_str:
-                # But reject bare filenames like data.csv without quotes
-                if not re.match(r"^[a-zA-Z_][a-zA-Z0-9_]*\.[a-zA-Z_][a-zA-Z0-9_]*$", match_str):
-                    return False, f"Hardcoded filename detected: {match_str}"
-
     try:
-        ast.parse(test_code)
+        parsed_tree = ast.parse(test_code)
     except SyntaxError as e:
         return False, f"Syntax error after placeholder substitution: {e}"
+
+    # AST Walk: inspect Attribute nodes for unquoted bare filenames (e.g. data.csv passed as argument)
+    for parent in ast.walk(parsed_tree):
+        for child in ast.iter_child_nodes(parent):
+            if isinstance(child, ast.Attribute):
+                # If child is the function being called (e.g. dist.pdf(x) or resp.json()), it's a valid method call
+                if isinstance(parent, ast.Call) and parent.func is child:
+                    continue
+                if child.attr.lower() in KNOWN_FILE_EXTS:
+                    if isinstance(child.value, ast.Name):
+                        if child.value.id not in ("pd", "pandas", "np", "numpy", "cv2", "scipy", "sklearn", "plt", "matplotlib"):
+                            return False, f"Bare unquoted filename detected as attribute argument: {child.value.id}.{child.attr}"
+
+            # Check string constants for hardcoded filenames in templates (e.g. pd.read_csv("data.csv") without placeholder)
+            if isinstance(child, ast.Constant) and isinstance(child.value, str):
+                val = child.value.strip()
+                if any(val.lower().endswith(f".{ext}") for ext in KNOWN_FILE_EXTS):
+                    if not ("{" in val and "}" in val):
+                        if "/" not in val and "\\" not in val and len(val.split(".")) == 2:
+                            return False, f"Hardcoded string filename detected: '{val}' (must use a placeholder)"
 
     return True, None
 
@@ -347,7 +352,9 @@ def compile_file_to_db(json_filepath: str, conn: sqlite3.Connection):
                 rejected_count += 1
                 continue
 
-            keywords = json.dumps(cell.get("keywords", []))
+            params = cell.get("params", cell.get("parameters", cell.get("inputs", {})))
+            config_schema_dict = _params_to_dict(params) if isinstance(params, list) else params
+            config_schema = json.dumps(config_schema_dict)
 
             in_type, in_state = _resolve_first_port(cell.get("inputs", {}))
             out_type, out_state = _resolve_first_port(cell.get("outputs", {}))
@@ -357,14 +364,23 @@ def compile_file_to_db(json_filepath: str, conn: sqlite3.Connection):
 
             stage = determine_stage(cell_id, code, in_type, out_type, cell.get("stage"))
 
+            # Refine stage 3 sink ports: ensure primary input reflects data object being written
+            if stage == 3 and isinstance(config_schema_dict, dict):
+                for p_name, p_meta in config_schema_dict.items():
+                    p_type = sanitize_type_name(p_meta.get("type", p_meta.get("type_name", "")) if isinstance(p_meta, dict) else str(p_meta))
+                    if p_type in ("Mat", "DataFrame", "ndarray", "Series", "dict", "list"):
+                        in_type = p_type
+                        in_state = "any"
+                        break
+                if any(k in cell_id.lower() for k in ("to_csv", "imwrite", "savefig", "to_parquet", "to_json")):
+                    out_state = "filepath_written"
+
             deps = cell.get("dependencies", [])
             if not deps and domain_name and domain_name not in ("generic", "python_core", "core"):
                 deps = [f"import {domain_name}"]
             deps_json = json.dumps(deps)
 
-            parameters = cell.get("parameters", cell.get("inputs", {}))
-            config_schema = json.dumps(parameters)
-
+            keywords = json.dumps(cell.get("keywords", []))
             verified_val = 1 if cell.get("verified") else 0
 
             cursor.execute("SELECT source_priority FROM nodes WHERE cell_id = ?", (cell_id,))

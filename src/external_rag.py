@@ -66,11 +66,49 @@ class DuckDuckGoFetcher(LiveDocFetcher):
             return ""
 
 
+import importlib
+import inspect
+
+
+class IntrospectionFetcher(LiveDocFetcher):
+    """
+    Introspects installed Python modules directly using inspect.getdoc() and inspect.signature().
+    Zero network latency, 100% grounded and deterministic.
+    """
+    KNOWN_MODULES = ["pandas", "numpy", "cv2", "sklearn", "scipy", "matplotlib", "heapq", "math", "json", "os", "sys"]
+
+    def fetch(self, query: str) -> str:
+        clean_q = query.strip().lower().replace(" ", "_")
+        tokens = [t for t in query.strip().lower().split() if len(t) > 2]
+
+        for mod_name in self.KNOWN_MODULES:
+            try:
+                mod = importlib.import_module(mod_name)
+            except ImportError:
+                continue
+
+            # Check direct attribute match
+            for attr in dir(mod):
+                if attr.startswith("_"):
+                    continue
+                attr_lower = attr.lower()
+                if clean_q == attr_lower or any(t == attr_lower for t in tokens):
+                    obj = getattr(mod, attr, None)
+                    if obj is not None:
+                        doc = inspect.getdoc(obj) or f"{mod_name}.{attr}"
+                        try:
+                            sig = str(inspect.signature(obj))
+                        except Exception:
+                            sig = "()"
+                        return f"Signature: {mod_name}.{attr}{sig}\n\nDocumentation:\n{doc[:1500]}"
+
+        # Fallback to PyPi search if introspection yields nothing
+        return PyPiFetcher().fetch(query)
+
+
 class FetcherFactory:
     @staticmethod
     def get_fetcher(domain_context: str) -> LiveDocFetcher:
         if "Rust" in domain_context:
             return CratesIoFetcher()
-        elif "Python" in domain_context:
-            return PyPiFetcher()
-        return DuckDuckGoFetcher()
+        return IntrospectionFetcher()

@@ -440,7 +440,9 @@ def run_enhancement_and_audit():
             "nodes": final_nodes
         }
 
-        target_file = PROJECT_ROOT / "trees" / f"{lib}_tree.json"
+        target_dir = PROJECT_ROOT / "trees" / "auto"
+        target_dir.mkdir(parents=True, exist_ok=True)
+        target_file = target_dir / f"{lib}_tree.json"
         with open(target_file, "w", encoding="utf-8") as f:
             json.dump(tree_doc, f, indent=2)
 
@@ -450,7 +452,7 @@ def run_enhancement_and_audit():
             "pruned_non_existent": missing_func_count
         }
 
-        print(f"[+] Saved clean 1-file tree: trees/{lib}_tree.json ({len(final_nodes)} nodes)")
+        print(f"[+] Saved clean 1-file tree: trees/auto/{lib}_tree.json ({len(final_nodes)} nodes)")
 
     print("\n[*] Processing Macro Tree: 'macro'...")
     macro_source = PROJECT_ROOT / "trees" / "macro" / "algorithms.json"
@@ -467,11 +469,11 @@ def run_enhancement_and_audit():
         "nodes": macro_nodes
     }
 
-    macro_target = PROJECT_ROOT / "trees" / "macro_tree.json"
+    macro_target = target_dir / "macro_tree.json"
     with open(macro_target, "w", encoding="utf-8") as f:
         json.dump(macro_doc, f, indent=2)
 
-    print(f"[+] Saved clean 1-file tree: trees/macro_tree.json ({len(macro_nodes)} macro trees)")
+    print(f"[+] Saved clean 1-file tree: trees/auto/macro_tree.json ({len(macro_nodes)} macro trees)")
 
     report_path = PROJECT_ROOT / "logs" / "non_existent_functions_report.json"
     report_path.parent.mkdir(parents=True, exist_ok=True)

@@ -7,7 +7,7 @@ import re
 from typing import Any, Dict, List, Optional, Set
 
 from log_config import get_logger
-from lattice import LatticeOrchestrator, Cell, MacroCell, MicroCell
+from lattice import LatticeOrchestrator, Cell, MacroCell, MicroCell, AlgebraicSignature
 
 logger = get_logger('planner')
 
@@ -25,8 +25,25 @@ class ZeroShotPlanner:
         self.rag = rag
 
     def run_planning_pass(self, prompt: str, profile: str = "C") -> Dict[str, Any]:
+        prompt_lower = prompt.lower()
         if self.ALGO_PATTERNS.search(prompt):
-            logger.info("[PLANNER] Algorithmic task detected; bypassing lattice for synthesis.")
+            # Check if a verified algorithmic seed exists in the lattice
+            matching_algo_cells = [
+                c.cell_id for c in self.orchestrator.loaded_cells.values()
+                if (c.domain_name in ("algorithms", "python_core") or c.stage == 2)
+                and any(k.lower() in prompt_lower for k in c.keywords if len(k) > 3)
+            ]
+            if matching_algo_cells:
+                logger.info(f"[PLANNER] Algorithmic seed found in lattice: {matching_algo_cells[0]}")
+                return {
+                    "cells": [{
+                        "cell_id": "macro_algo_seeded",
+                        "type": "macro",
+                        "stage": 2,
+                        "sub_cells": [matching_algo_cells[0]]
+                    }]
+                }
+            logger.info("[PLANNER] Algorithmic task detected with no exact seed; routing to synthesis.")
             return {
                 "cells": [{
                     "cell_id": "macro_algo_synth",
@@ -130,7 +147,7 @@ RULES:
         if start != -1 and end != -1 and end > start:
             try:
                 return json.loads(text[start:end+1])
-            except json.JSONDecodeError:
+            except Exception:
                 pass
         return None
 
@@ -138,15 +155,15 @@ RULES:
         prompt_lower = prompt.lower()
         keywords = set(re.findall(r"[a-zA-Z_]+", prompt_lower))
 
+        # Dynamic domain inference from top context candidate
         goal_domain = None
-        if any(k in prompt_lower for k in ["csv", "dataframe", "pandas"]):
-            goal_domain = "pandas"
-        elif any(k in prompt_lower for k in ["image", "opencv", "cv2", "gray"]):
-            goal_domain = "cv2"
+        if context:
+            top = context[0]
+            if isinstance(top, dict) and top.get("domain") and top.get("domain") not in ("generic", "python_core"):
+                goal_domain = top.get("domain")
 
         path = []
-        current_type = "str"
-        current_state = "source_identifier"
+        current_sig = AlgebraicSignature("str", "source_identifier")
 
         for stage in [1, 2, 3]:
             best_match = None
@@ -167,7 +184,7 @@ RULES:
                 cell = self.orchestrator.loaded_cells.get(cid)
                 if not cell or cell.stage != stage:
                     continue
-                if cell.primary_input.type_name != current_type:
+                if not current_sig.unifies_with(cell.primary_input):
                     continue
 
                 score += len(keywords & set(k.lower() for k in cell.keywords)) * 0.2
@@ -181,8 +198,7 @@ RULES:
             if best_match:
                 path.append(best_match)
                 cell = self.orchestrator.loaded_cells[best_match]
-                current_type = cell.primary_output.type_name
-                current_state = cell.primary_output.state
+                current_sig = cell.primary_output
 
         return {
             "cells": [{

@@ -174,29 +174,52 @@ class LocalRAG:
             self.id_to_schema[new_idx] = cell_dict
             logger.info(f"[RAG] Dynamically indexed synthesized cell: {cid}")
 
-    def get_relevant_context(self, prompt: str, top_k: int = 25) -> str:
-        """Retrieves formatted context lines for the top-k most semantically aligned cells."""
+    def get_relevant_context(self, prompt: str, top_k: int = 25) -> List[Dict[str, Any]]:
+        """Retrieves structured context list for the top-k most semantically aligned cells."""
         if self.index is None or self.index.ntotal == 0:
-            return "No verified cells loaded."
+            return []
 
         raw_emb = np.array([ModelManager.get_instance().get_embedding(prompt)], dtype=np.float32)
         norm = np.linalg.norm(raw_emb)
         if norm == 0:
-            return "Embedding failure."
+            return []
         raw_emb = raw_emb / norm
 
         search_k = min(top_k, self.index.ntotal)
         distances, indices = self.index.search(raw_emb, search_k)
 
-        lines = []
+        results: List[Dict[str, Any]] = []
         for dist, idx in zip(distances[0], indices[0]):
             if idx == -1 or idx not in self.id_to_schema:
                 continue
             schema = self.id_to_schema[idx]
+            cid = schema.get("cell_id", "")
+            results.append({
+                "cell_id": cid,
+                "score": float(dist),
+                "schema": schema,
+                "domain": schema.get("domain", "generic"),
+                "primary_input": schema.get("primary_input", "any"),
+                "primary_output": schema.get("primary_output", "any"),
+                "text": f"ID: {cid} | In: {schema.get('primary_input', 'any')} -> Out: {schema.get('primary_output', 'any')} | Domain: {schema.get('domain', 'generic')}"
+            })
+        return results
+
+    def format_context_for_prompt(self, context_items: List[Dict[str, Any]]) -> str:
+        """Formats structured context list into a prompt-friendly string for LLMs."""
+        if not context_items:
+            return "No verified cells available."
+        lines = []
+        for item in context_items:
             lines.append(
-                f"- ID: {schema.get('cell_id')} | "
-                f"In: {schema.get('primary_input', 'any')} -> "
-                f"Out: {schema.get('primary_output', 'any')} | "
-                f"Domain: {schema.get('domain', 'generic')}"
+                f"- ID: {item.get('cell_id')} | "
+                f"In: {item.get('primary_input', 'any')} -> "
+                f"Out: {item.get('primary_output', 'any')} | "
+                f"Domain: {item.get('domain', 'generic')}"
             )
         return "\n".join(lines)
+
+    def find_closest_cell_by_embedding(self, prompt: str) -> Optional[Dict[str, Any]]:
+        """Finds the single closest cell by cosine similarity."""
+        results = self.get_relevant_context(prompt, top_k=1)
+        return results[0] if results else None

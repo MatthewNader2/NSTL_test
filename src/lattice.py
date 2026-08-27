@@ -25,6 +25,7 @@ class TypeRegistry:
     def __init__(self):
         self._parents: Dict[str, Set[str]] = {}
         self._aliases: Dict[str, str] = {}
+        self._subtype_cache: Dict[Tuple[str, str], bool] = {}
         self._register_default_types()
 
     @classmethod
@@ -49,6 +50,10 @@ class TypeRegistry:
         self.register_type("list", super_type="object")
         self.register_type("dict", super_type="object")
         self.register_type("tuple", super_type="object")
+        self.register_type("ndarray", super_type="object")
+        self.register_type("Mat", super_type="ndarray")
+        self.register_type("DataFrame", super_type="object")
+        self.register_type("Series", super_type="object")
 
     def register_type(self, type_name: str, super_type: Optional[str] = None):
         name = type_name.strip()
@@ -61,6 +66,7 @@ class TypeRegistry:
             if super_name and super_name not in self._parents:
                 self._parents[super_name] = set()
             self._parents[name].add(super_name)
+        self._subtype_cache.clear()
 
     def canonical_name(self, type_name: str) -> str:
         if not type_name:
@@ -74,19 +80,29 @@ class TypeRegistry:
 
         if super_c == "any" or sub_c == "any" or sub_c == super_c:
             return True
+
+        cache_key = (sub_c, super_c)
+        if cache_key in self._subtype_cache:
+            return self._subtype_cache[cache_key]
+
         if sub_c not in self._parents:
+            self._subtype_cache[cache_key] = False
             return False
 
         visited = set()
         queue = [sub_c]
+        result = False
         while queue:
             curr = queue.pop(0)
             if curr == super_c:
-                return True
+                result = True
+                break
             if curr not in visited:
                 visited.add(curr)
                 queue.extend(self._parents.get(curr, []))
-        return False
+
+        self._subtype_cache[cache_key] = result
+        return result
 
 
 @dataclass(frozen=True, slots=True)
@@ -99,16 +115,23 @@ class AlgebraicSignature:
         return self.type_name.lower() in ("any", "*", "top", "anyobject", "object")
 
     def unifies_with(self, other: 'AlgebraicSignature') -> bool:
-        if self.is_top() or other.is_top():
-            return True
+        """
+        Returns True if `self` (producer output) unifies with `other` (consumer input).
+        """
+        # 1. State check: if both specify a concrete state, they must match
+        if self.state != "any" and other.state != "any":
+            if self.state.lower() != other.state.lower():
+                return False
+
+        # 2. Type satisfaction check
+        if other.is_top():
+            return True  # Consumer accepts anything
+        if self.is_top():
+            return False # Producer is untyped, cannot guarantee concrete type
 
         registry = TypeRegistry.get_instance()
         if not registry.is_subtype(self.type_name, other.type_name):
             return False
-
-        if self.state != "any" and other.state != "any":
-            if self.state.lower() != other.state.lower():
-                return False
 
         if other.qualifiers and not other.qualifiers.issubset(self.qualifiers):
             return False
@@ -136,9 +159,9 @@ class Cell(ABC):
     def __init__(
         self,
         cell_id: str,
-        stage: int,
-        keywords: Set[str],
-        cell_type: str,
+        stage: int = 2,
+        keywords: Optional[Union[Set[str], List[str]]] = None,
+        cell_type: str = "micro",
         inputs: Optional[Dict[str, Union[PortSignature, AlgebraicSignature, dict]]] = None,
         outputs: Optional[Dict[str, Union[PortSignature, AlgebraicSignature, dict]]] = None,
         domain_name: str = "",
@@ -148,7 +171,7 @@ class Cell(ABC):
         code_template: str = "",
         metadata_tags: Optional[Dict[str, Any]] = None,
         db_path: str = "",
-        configuration_schema: Optional[Dict[str, Any]] = None
+        configuration_schema: Optional[Dict[str, Any]] = None,
     ):
         self.cell_id = cell_id
         self.stage = stage
@@ -212,6 +235,9 @@ class Cell(ABC):
     def primary_input(self) -> AlgebraicSignature:
         if not self.inputs:
             return AlgebraicSignature("any", "any")
+        for p in self.inputs.values():
+            if p.signature.type_name in ("DataFrame", "Mat", "ndarray", "Series", "dict", "list") and p.signature.state != "source_identifier":
+                return p.signature
         return next(iter(self.inputs.values())).signature
 
     @property
@@ -305,7 +331,42 @@ class LatticeOrchestrator:
                 in_sig = AlgebraicSignature(type_name=in_type or "any", state=in_state or "any")
                 out_sig = AlgebraicSignature(type_name=out_type or "None", state=out_state or "any")
 
-                inputs = {"input_data": PortSignature(name="input_data", signature=in_sig)}
+                # Multi-port reconstruction from configuration_schema
+                inputs: Dict[str, PortSignature] = {}
+                if isinstance(configuration_schema, dict) and configuration_schema:
+                    for p_name, p_val in configuration_schema.items():
+                        if isinstance(p_val, dict):
+                            p_type = p_val.get("type_name", p_val.get("type", in_type or "any"))
+                            p_state = p_val.get("state", in_state or "any")
+                            inputs[p_name] = PortSignature(
+                                name=p_name,
+                                signature=AlgebraicSignature(type_name=str(p_type), state=str(p_state)),
+                                required=p_val.get("required", True),
+                                default_value=p_val.get("default_value", p_val.get("default")),
+                                doc=p_val.get("doc", p_val.get("param_doc", ""))
+                            )
+                        elif isinstance(p_val, str):
+                            inputs[p_name] = PortSignature(
+                                name=p_name,
+                                signature=AlgebraicSignature(type_name=p_val, state="any")
+                            )
+                elif isinstance(configuration_schema, list) and configuration_schema:
+                    for p_val in configuration_schema:
+                        if isinstance(p_val, dict) and "name" in p_val:
+                            p_name = p_val["name"]
+                            p_type = p_val.get("type_name", p_val.get("type", in_type or "any"))
+                            p_state = p_val.get("state", in_state or "any")
+                            inputs[p_name] = PortSignature(
+                                name=p_name,
+                                signature=AlgebraicSignature(type_name=str(p_type), state=str(p_state)),
+                                required=p_val.get("required", True),
+                                default_value=p_val.get("default_value", p_val.get("default")),
+                                doc=p_val.get("doc", p_val.get("param_doc", ""))
+                            )
+
+                if not inputs:
+                    inputs = {"input_data": PortSignature(name="input_data", signature=in_sig)}
+
                 outputs = {"output_data": PortSignature(name="output_data", signature=out_sig)}
 
                 is_macro = node_type == "macro" or str(node_role).lower() == "macro"

@@ -62,6 +62,7 @@ class BenchmarkProfile_A(InferenceProfile):
         self.model = None
         self._dim = 384
         self.embedder_name = "default"
+        self._lock = threading.Lock()
 
     def load_models(self, embedder_name: str, llm_name: str):
         from sentence_transformers import SentenceTransformer
@@ -90,18 +91,20 @@ class BenchmarkProfile_A(InferenceProfile):
         logger.info(f"[PROFILE A] Loaded embedder '{self.embedder_name}' (dim={self._dim}) on {device.upper()}")
 
     def get_embedding(self, text: str) -> List[float]:
-        try:
-            return self.model.encode([text], convert_to_numpy=True, task="retrieval")[0].tolist()
-        except Exception:
-            return self.model.encode([text], convert_to_numpy=True)[0].tolist()
+        with self._lock:
+            try:
+                return self.model.encode([text], convert_to_numpy=True, task="retrieval")[0].tolist()
+            except Exception:
+                return self.model.encode([text], convert_to_numpy=True)[0].tolist()
 
     def get_embeddings(self, texts: List[str]) -> List[List[float]]:
         if not texts:
             return []
-        try:
-            return self.model.encode(texts, convert_to_numpy=True, task="retrieval", batch_size=128).tolist()
-        except Exception:
-            return self.model.encode(texts, convert_to_numpy=True, batch_size=128).tolist()
+        with self._lock:
+            try:
+                return self.model.encode(texts, convert_to_numpy=True, task="retrieval", batch_size=128).tolist()
+            except Exception:
+                return self.model.encode(texts, convert_to_numpy=True, batch_size=128).tolist()
 
     def generate_text(self, prompt: str, max_tokens: int = 1024, schema: Optional[dict] = None, system_prompt: Optional[str] = None) -> str:
         raise RuntimeError("Profile A does not support text generation.")
@@ -128,6 +131,7 @@ class BenchmarkProfile_C(InferenceProfile):
         self._dim = 384
         self.embedder_name = "default"
         self.llm_name = "default"
+        self._lock = threading.Lock()
 
     def load_models(self, embedder_name: str, llm_name: str):
         from sentence_transformers import SentenceTransformer
@@ -179,18 +183,20 @@ class BenchmarkProfile_C(InferenceProfile):
         logger.info(f"[PROFILE C] Loaded Embedder '{self.embedder_name}' + LLM '{self.llm_name}' on {device.upper()}")
 
     def get_embedding(self, text: str) -> List[float]:
-        try:
-            return self.embedder.encode([text], convert_to_numpy=True, task="retrieval")[0].tolist()
-        except Exception:
-            return self.embedder.encode([text], convert_to_numpy=True)[0].tolist()
+        with self._lock:
+            try:
+                return self.embedder.encode([text], convert_to_numpy=True, task="retrieval")[0].tolist()
+            except Exception:
+                return self.embedder.encode([text], convert_to_numpy=True)[0].tolist()
 
     def get_embeddings(self, texts: List[str]) -> List[List[float]]:
         if not texts:
             return []
-        try:
-            return self.embedder.encode(texts, convert_to_numpy=True, task="retrieval", batch_size=128).tolist()
-        except Exception:
-            return self.embedder.encode(texts, convert_to_numpy=True, batch_size=128).tolist()
+        with self._lock:
+            try:
+                return self.embedder.encode(texts, convert_to_numpy=True, task="retrieval", batch_size=128).tolist()
+            except Exception:
+                return self.embedder.encode(texts, convert_to_numpy=True, batch_size=128).tolist()
 
     def generate_text(self, prompt: str, max_tokens: int = 1024, schema: Optional[dict] = None, system_prompt: Optional[str] = None) -> str:
         messages = []
@@ -202,7 +208,8 @@ class BenchmarkProfile_C(InferenceProfile):
         if schema:
             kwargs["response_format"] = {"type": "json_object", "schema": schema}
 
-        response = self.llm.create_chat_completion(**kwargs)
+        with self._lock:
+            response = self.llm.create_chat_completion(**kwargs)
         return response['choices'][0]['message']['content'].strip()
 
     def can_synthesize(self) -> bool:

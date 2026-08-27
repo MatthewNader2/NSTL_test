@@ -81,7 +81,7 @@ class MCTSNode:
 
 
 class MCTSEngine:
-    """Monte Carlo Tree Search for bridging typestate gaps."""
+    """Deterministic A* / Best-First typestate bridge engine over the typed lattice."""
 
     def __init__(self, orchestrator: LatticeOrchestrator):
         self.orchestrator = orchestrator
@@ -90,123 +90,58 @@ class MCTSEngine:
         self,
         start_sig: AlgebraicSignature,
         goal_sig: AlgebraicSignature,
-        max_depth: int = 5,
+        max_depth: int = 6,
         iterations: int = 300,
         prompt_keywords: Optional[Set[str]] = None
     ) -> List[Cell]:
-        """Returns List[Cell] to match main.py's append expectations."""
+        """Returns List[Cell] to bridge between start_sig and goal_sig."""
         if start_sig.unifies_with(goal_sig):
             return []
 
-        root = MCTSNode("__root__", start_sig)
-        best_path_ids: List[str] = []
-        best_score = -1.0
-
-        for _ in range(iterations):
-            node = self._select(root)
-            if node is None:
-                continue
-            reward, path_ids = self._rollout(node, goal_sig, max_depth, prompt_keywords)
-            self._backpropagate(node, reward)
-            if reward > best_score and path_ids:
-                best_score = reward
-                best_path_ids = path_ids
-
-        cells: List[Cell] = []
-        for cid in best_path_ids:
-            cell = self.orchestrator.loaded_cells.get(cid)
-            if cell:
-                cells.append(cell)
-        return cells
-
-    def _select(self, node: MCTSNode) -> Optional[MCTSNode]:
-        current = node
-        depth = 0
-        while current.children and depth < 10:
-            if any(c.visits == 0 for c in current.children):
-                return next(c for c in current.children if c.visits == 0)
-            current = max(current.children, key=lambda c: c.ucb1())
-            depth += 1
-        return current
-
-    def _rollout(
-        self,
-        node: MCTSNode,
-        goal_sig: AlgebraicSignature,
-        max_depth: int,
-        prompt_keywords: Optional[Set[str]]
-    ) -> Tuple[float, List[str]]:
-        current_sig = node.signature
-        path: List[str] = []
-        visited: Set[str] = set()
-
-        for depth in range(max_depth):
-            if current_sig.unifies_with(goal_sig):
-                return 1.0, path
-
-            candidates = self._get_compatible_neighbors(current_sig, visited, prompt_keywords)
-            if not candidates:
-                break
-
-            weights = [score for _, score in candidates]
-            total = sum(weights)
-            if total == 0:
-                break
-            r = random.uniform(0, total)
-            cumsum = 0.0
-            chosen_id = candidates[0][0]
-            for cid, w in candidates:
-                cumsum += w
-                if r <= cumsum:
-                    chosen_id = cid
-                    break
-
-            cell = self.orchestrator.loaded_cells.get(chosen_id)
-            if not cell:
-                break
-
-            path.append(chosen_id)
-            visited.add(chosen_id)
-            current_sig = cell.primary_output
-
-        if current_sig.unifies_with(goal_sig):
-            return 1.0, path
-        if current_sig.type_name == goal_sig.type_name:
-            return 0.5, path
-        return 0.0, path
-
-    def _get_compatible_neighbors(
-        self,
-        sig: AlgebraicSignature,
-        visited: Set[str],
-        prompt_keywords: Optional[Set[str]]
-    ) -> List[Tuple[str, float]]:
-        results: List[Tuple[str, float]] = []
+        import heapq
+        # Priority queue entries: (cost, depth, counter, current_sig, [cell_ids])
+        counter = 0
+        pq = [(0.0, 0, counter, start_sig, [])]
+        visited_sigs = set()
         kw_set = prompt_keywords or set()
 
-        for cid, cell in self.orchestrator.loaded_cells.items():
-            if cid in visited:
+        while pq:
+            cost, depth, _, curr_sig, path = heapq.heappop(pq)
+
+            if curr_sig.unifies_with(goal_sig) and path:
+                return [self.orchestrator.loaded_cells[cid] for cid in path if cid in self.orchestrator.loaded_cells]
+
+            if depth >= max_depth:
                 continue
-            if not sig.unifies_with(cell.primary_input):
+
+            sig_key = (curr_sig.type_name, curr_sig.state)
+            if sig_key in visited_sigs:
                 continue
+            visited_sigs.add(sig_key)
 
-            score = 1.0
-            if kw_set:
-                cell_kws = set(k.lower() for k in cell.keywords)
-                overlap = len(kw_set & cell_kws)
-                score += overlap * 0.5
-            score -= len(cid) * 0.001
-            results.append((cid, max(score, 0.1)))
+            # Get neighbors from orchestrator using bucket lookup
+            with self.orchestrator._lock:
+                bucket_items = list(self.orchestrator._cells_by_input.items())
 
-        results.sort(key=lambda x: x[1], reverse=True)
-        return results[:20]
+            for (in_type, in_state), target_cells in bucket_items:
+                if curr_sig.unifies_with(AlgebraicSignature(in_type, in_state)):
+                    for cell in target_cells:
+                        if cell.cell_id in path:
+                            continue
 
-    def _backpropagate(self, node: Optional[MCTSNode], reward: float):
-        current = node
-        while current is not None:
-            current.visits += 1
-            current.q_value += reward
-            current = current.parent
+                        next_sig = cell.primary_output
+                        cell_kws = set(k.lower() for k in cell.keywords)
+                        overlap = len(kw_set & cell_kws) if kw_set else 0
+
+                        # Priority: prefer fewer hops, higher keyword overlap, avoid internal helper noise
+                        step_cost = 1.0 - (0.25 * min(overlap, 3))
+                        if any(p in cell.cell_id.lower() for p in ["_group_", "_internal_", "typing_"]):
+                            step_cost += 0.5
+
+                        counter += 1
+                        heapq.heappush(pq, (cost + step_cost, depth + 1, counter, next_sig, path + [cell.cell_id]))
+
+        return []
 
 
 class LatticeRouter:
@@ -240,10 +175,26 @@ class LatticeRouter:
         prompt_lower = prompt.lower()
         prompt_keywords = set(re.findall(r"[a-zA-Z_]+", prompt_lower))
 
-        algo_indicators = ["algorithm", "dijkstra", "bfs", "dfs", "quicksort", "mergesort",
-                           "binary search", "a-star", "astar", "topological sort"]
-        if any(ind in prompt_lower for ind in algo_indicators):
-            logger.info("[ROUTER] Algorithmic task detected; returning empty path for synthesis fallback.")
+        # Check for algorithmic seeds first
+        algo_indicators = ["dijkstra", "shortest_path", "bfs", "dfs", "quicksort", "mergesort",
+                           "binary_search", "a_star", "astar", "topological_sort"]
+        matched_indicators = [ind for ind in algo_indicators if ind in prompt_lower or ind.replace("_", "") in prompt_lower.replace(" ", "")]
+        if matched_indicators:
+            candidates: List[Tuple[str, int]] = []
+            for c in self.orchestrator.loaded_cells.values():
+                if c.domain_name in ("algorithms", "python_core", "generic", "macro") or isinstance(c, MacroCell):
+                    cid_lower = c.cell_id.lower()
+                    cell_kws = {k.lower() for k in c.keywords}
+                    algo_overlap = sum(1 for ind in matched_indicators if ind in cid_lower or ind in cell_kws or any(ind in k for k in cell_kws))
+                    if algo_overlap > 0:
+                        candidates.append((c.cell_id, algo_overlap))
+
+            if candidates:
+                candidates.sort(key=lambda x: x[1], reverse=True)
+                best_algo_id = candidates[0][0]
+                logger.info(f"[ROUTER] Algorithmic seed found: {best_algo_id}")
+                return self._ids_to_cells([best_algo_id]), set()
+            logger.info("[ROUTER] Algorithmic task detected without seed; yielding to synthesis.")
             return [], set()
 
         current_sig = AlgebraicSignature(
@@ -262,7 +213,7 @@ class LatticeRouter:
             candidates: List[Tuple[List[str], AlgebraicSignature, float]] = []
 
             for path, sig, score in beam:
-                if sig.unifies_with(goal_sig):
+                if sig.unifies_with(goal_sig) and path:
                     return self._ids_to_cells(path), set()
 
                 seq_key = "->".join(path)
@@ -280,6 +231,9 @@ class LatticeRouter:
                     next_nodes = self._keyword_fallback(sig, prompt_keywords, top_k=10)
 
                 for cid, node_score in next_nodes:
+                    if cid in path:
+                        continue
+
                     cell = self.orchestrator.loaded_cells.get(cid)
                     if not cell:
                         continue
@@ -325,7 +279,7 @@ class LatticeRouter:
         prompt_keywords: Set[str],
         top_k: int = 25
     ) -> List[Tuple[str, float]]:
-        """Robust to any RAG return format: dicts, tuples, or strings."""
+        """Scores candidate cells with strict type pre-filtering and domain alignment."""
         try:
             raw_candidates = self.rag.get_relevant_context(prompt, top_k=top_k * 2)
         except Exception as e:
@@ -335,48 +289,41 @@ class LatticeRouter:
         if not raw_candidates:
             return []
 
-        first = raw_candidates[0]
+        # Handle list of dicts from RAG directly
         entries: List[Dict[str, Any]] = []
-
-        if isinstance(first, dict):
-            entries = raw_candidates
-        elif isinstance(first, (list, tuple)):
+        if isinstance(raw_candidates, list):
             for item in raw_candidates:
-                if isinstance(item, (list, tuple)) and len(item) >= 2:
+                if isinstance(item, dict):
+                    entries.append(item)
+                elif isinstance(item, (list, tuple)) and len(item) >= 2:
                     entries.append({
                         "cell_id": str(item[0]),
-                        "score": float(item[1]) if len(item) > 1 else 0.5,
-                        "text": str(item[2]) if len(item) > 2 else ""
+                        "score": float(item[1]) if len(item) > 1 else 0.5
                     })
-                else:
-                    entries.append({"cell_id": str(item), "score": 0.5, "text": ""})
-        elif isinstance(first, str):
-            for s in raw_candidates:
-                m = re.search(r"ID:\s*([A-Z0-9_]+)", s)
-                cid = m.group(1) if m else ""
-                sm = re.search(r"score[:\s=]+([0-9.]+)", s, re.IGNORECASE)
-                score = float(sm.group(1)) if sm else 0.5
-                entries.append({"cell_id": cid, "score": score, "text": s})
-        else:
-            logger.warning(f"[ROUTER] Unknown RAG format: {type(first)}")
-            return []
 
         scored: List[Tuple[str, float]] = []
         prompt_lower = prompt.lower()
 
+        # Infer active domain dynamically
         domain_hint = None
-        domain_keywords = {
-            "pandas": ["csv", "dataframe", "df", "read_csv", "to_csv", "dropna", "groupby"],
-            "cv2": ["image", "opencv", "grayscale", "cvtcolor", "imread", "imwrite", "blur"],
-            "numpy": ["array", "ndarray", "reshape", "linspace", "zeros", "ones"],
-            "sklearn": ["classifier", "regressor", "fit", "predict", "train_test_split", "scaler"],
-            "scipy": ["sparse", "csgraph", "optimize", "integrate", "fft"],
-            "matplotlib": ["plot", "figure", "subplot", "savefig"],
-        }
-        for domain, kws in domain_keywords.items():
-            if any(k in prompt_lower for k in kws):
-                domain_hint = domain
-                break
+        if entries:
+            top_dom = entries[0].get("domain", "")
+            if top_dom and top_dom not in ("generic", "python_core"):
+                domain_hint = top_dom.lower()
+
+        if not domain_hint:
+            domain_map = {
+                "pandas": ["csv", "dataframe", "df", "read_csv", "to_csv", "dropna"],
+                "cv2": ["image", "opencv", "grayscale", "cvtcolor", "imread", "imwrite"],
+                "numpy": ["array", "ndarray", "reshape", "linspace", "zeros"],
+                "sklearn": ["classifier", "regressor", "fit", "predict", "scaler"],
+                "scipy": ["sparse", "csgraph", "optimize", "integrate"],
+                "matplotlib": ["plot", "figure", "subplot", "savefig"],
+            }
+            for d, kws in domain_map.items():
+                if any(k in prompt_lower for k in kws):
+                    domain_hint = d
+                    break
 
         for entry in entries:
             cid = entry.get("cell_id", "")
@@ -387,26 +334,27 @@ class LatticeRouter:
             if not cell:
                 continue
 
-            base_score = float(entry.get("score", 0.0))
+            # STRICT TYPE PRE-FILTERING (C3 FIX):
+            # If the candidate cell cannot accept the current signature, reject immediately!
+            if not current_sig.unifies_with(cell.primary_input):
+                continue
 
-            type_match = current_sig.unifies_with(cell.primary_input)
-            if type_match:
-                base_score *= 1.0
-            else:
-                base_score *= 0.3
+            base_score = float(entry.get("score", 0.5))
 
             if domain_hint:
                 cell_domain = (cell.domain_name or "").lower()
-                if domain_hint != cell_domain and cell_domain not in ("generic", "macro", "python_core"):
-                    base_score *= 0.4
+                if domain_hint == cell_domain:
+                    base_score *= 1.4
+                elif cell_domain not in ("generic", "macro", "python_core"):
+                    base_score *= 0.3
 
             cell_kws = set(k.lower() for k in cell.keywords)
             overlap = len(prompt_keywords & cell_kws)
-            base_score += overlap * 0.15
+            base_score += overlap * 0.25
 
             if any(p in cid.lower() for p in ["_group_", "_core_", "_algos_", "_internal_",
                                                "typing_", "withmetadata", "renderer"]):
-                base_score *= 0.5
+                base_score *= 0.3
 
             scored.append((cid, base_score))
 

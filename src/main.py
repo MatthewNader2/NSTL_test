@@ -304,7 +304,9 @@ def run_prompt(req: RunRequest):
         "logs": log_buffer,
         "path": path_formatted,
         "virtual_edges": list(virtual_edges),
-        "code": final_code
+        "code": final_code,
+        "verified": bool(verified),
+        "exec_error": str(exec_msg) if not verified else None
     }
 
 
@@ -359,8 +361,6 @@ def run_server(host: str = API_HOST, port: int = API_PORT):
 
 if __name__ == "__main__":
     import argparse
-    import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000)
     parser = argparse.ArgumentParser(description="NSTL Engine Server")
     parser.add_argument("--profile", type=str, default="C")
     parser.add_argument("--port", type=int, default=API_PORT)

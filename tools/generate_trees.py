@@ -354,15 +354,15 @@ def _get_rag_context(concept: str, top_k: int = 8) -> str:
 
 def cmd_macro(args):
     """Generate macro-cell JSON for one or more algorithmic concepts via LLM."""
+    sys.path.insert(0, os.path.join(ROOT_DIR, "src"))
     sys.path.insert(0, ROOT_DIR)
 
     # Lazy-import to avoid requiring LLM for scrape/seed commands
     from inference import ModelManager
-    log.info("Loading ModelManager with BenchmarkProfile_B …")
+    log.info("Loading ModelManager with BenchmarkProfile_C …")
     mm = ModelManager.get_instance()
     if mm.profile is None:
-        mm.initialize_profile("B")
-    mm.benchmarking_enabled = False   # silence latency logs during generation
+        mm.initialize_profile("C")
 
     for concept in args.concepts:
         log.info(f"Generating macro-cell for: '{concept}'")
@@ -400,10 +400,14 @@ Algorithm to encode: {concept}"""
 
         try:
             raw = mm.generate_text(prompt, max_tokens=2048)
-            data = json.loads(raw)
-        except json.JSONDecodeError as e:
+            clean_raw = raw.strip()
+            if clean_raw.startswith("```"):
+                clean_raw = clean_raw.split("\n", 1)[-1]
+            if clean_raw.endswith("```"):
+                clean_raw = clean_raw.rsplit("```", 1)[0]
+            data = json.loads(clean_raw.strip())
+        except Exception as e:
             log.error(f"LLM produced invalid JSON for '{concept}': {e}")
-            log.debug(f"Raw output: {raw[:500]}")
             continue
 
         slug     = concept.lower().replace(" ", "_").replace("*", "star").replace("/", "_")
@@ -418,13 +422,13 @@ def cmd_expand(args):
     common use-cases that introspection cannot detect (e.g. method chaining,
     context managers, decorator patterns).
     """
+    sys.path.insert(0, os.path.join(ROOT_DIR, "src"))
     sys.path.insert(0, ROOT_DIR)
     from inference import ModelManager
-    log.info("Loading ModelManager with BenchmarkProfile_B …")
+    log.info("Loading ModelManager with BenchmarkProfile_C …")
     mm = ModelManager.get_instance()
     if mm.profile is None:
-        mm.initialize_profile("B")
-    mm.benchmarking_enabled = False
+        mm.initialize_profile("C")
 
     for lib in args.libraries:
         log.info(f"Expanding micro-cells for library: '{lib}'")
