@@ -1,6 +1,7 @@
 """
 src/unification.py - Neuro-Symbolic Topological Lattice (NSTL)
 Formal Type-Monadic Unification Gate, Parameter Binding, and AST Code Synthesizer.
+FIXED: robust filename quoting, expanded placeholder strategies, safer template binding.
 """
 
 from __future__ import annotations
@@ -38,7 +39,8 @@ class ExecutionContext:
     )
     COLUMN_STOP_WORDS = {
         "descending", "ascending", "the", "a", "an", "column", "columns",
-        "data", "file", "csv", "by", "sort", "order", "and", "or", "in", "of"
+        "data", "file", "csv", "by", "sort", "order", "and", "or", "in", "of",
+        "to", "from", "with", "into", "as"
     }
 
     def __init__(self, prompt: str = ""):
@@ -47,29 +49,34 @@ class ExecutionContext:
         self._var_counter: Dict[str, int] = {}
         self._var_order: List[str] = []
         self.prompt_hint: str = prompt
+        self.extracted_files: List[str] = []
         if prompt:
             self._extract_prompt_literals(prompt)
 
     def _extract_prompt_literals(self, prompt: str):
-        ext_pattern = rf"[\'\"]?([a-zA-Z0-9_\-./]+\.(?:{self.FILE_EXTENSIONS}))[\'\"]?"
+        # Match filenames with or without quotes. Captures WITHOUT quotes.
+        ext_pattern = rf"\b([a-zA-Z0-9_\-./]+\.(?:{self.FILE_EXTENSIONS}))\b"
         files = re.findall(ext_pattern, prompt, re.IGNORECASE)
         files = list(dict.fromkeys(files))
+        self.extracted_files = files
 
         if files:
+            # ALWAYS quote filenames for safe Python insertion
             self.declare_variable(
                 "input_file",
                 AlgebraicSignature("str", "source_identifier"),
-                literal_value=repr(files[0])
+                literal_value=json.dumps(files[0])  # proper JSON quoting
             )
             if len(files) > 1:
                 self.declare_variable(
                     "output_file",
                     AlgebraicSignature("str", "dest_identifier"),
-                    literal_value=repr(files[-1])
+                    literal_value=json.dumps(files[-1])
                 )
 
+        # Column extraction: sort by 'age', column 'name', etc.
         col_pattern = (
-            r"(?:column|col|by|sort\s+by)\s+"
+            r"(?:column|col|by|sort\s+by|group\s+by)\s+"
             r"(?:the\s+|a\s+|an\s+)*[\'\"]?([a-zA-Z_][a-zA-Z0-9_]*)[\'\"]?"
         )
         for match in re.finditer(col_pattern, prompt, re.IGNORECASE):
@@ -78,7 +85,7 @@ class ExecutionContext:
                 self.declare_variable(
                     "by_col",
                     AlgebraicSignature("str", "column_name"),
-                    literal_value=repr(col_name)
+                    literal_value=json.dumps(col_name)
                 )
 
         p_lower = prompt.lower()
@@ -128,7 +135,7 @@ class ExecutionContext:
     def get_latest_data_variable(self) -> Optional[str]:
         for var_name in reversed(self._var_order):
             binding = self._scope[var_name]
-            if binding.signature.type_name not in ("str", "bool", "int", "None"):
+            if binding.signature.type_name not in ("str", "bool", "int", "None", "float"):
                 return var_name
         return None
 
@@ -147,6 +154,7 @@ class PlaceholderResolver:
     """
 
     DEFAULT_STRATEGIES: Dict[str, str] = {
+        # Primary data / input objects
         "input_var": "primary_data",
         "df": "primary_data",
         "src": "primary_data",
@@ -156,19 +164,39 @@ class PlaceholderResolver:
         "graph": "primary_data",
         "array": "primary_data",
         "mat": "primary_data",
+        "x": "primary_data",
+        "y": "primary_data",
+        # File paths
         "filepath": "source_file",
         "filename": "source_file",
         "input_filename": "source_file",
         "source": "source_file",
         "input_file": "source_file",
+        "path": "source_file",
+        "fname": "source_file",
+        "in_path": "source_file",
+        # Dest paths
         "dest_path": "dest_file",
         "output_filename": "dest_file",
         "destination": "dest_file",
         "output_file": "dest_file",
         "dest": "dest_file",
+        "out_path": "dest_file",
+        "out_file": "dest_file",
+        # Columns / axes
         "by": "column_name",
         "by_column": "column_name",
+        "column": "column_name",
+        "columns": "column_name",
+        "cols": "column_name",
+        "axis": "column_name",
+        "index": "column_name",
+        # Flags
         "ascending": "sort_flag",
+        "descending": "sort_flag",
+        "inplace": "bool_false",
+        "header": "bool_true",
+        "index_col": "bool_false",
     }
 
     @classmethod
@@ -183,7 +211,10 @@ class PlaceholderResolver:
         ph = placeholder.strip()
 
         if ph in explicit_args:
-            return repr(explicit_args[ph])
+            val = explicit_args[ph]
+            if isinstance(val, str):
+                return json.dumps(val)
+            return repr(val)
 
         strategy = cls.DEFAULT_STRATEGIES.get(ph, "unknown")
         if strategy == "primary_data" and primary_input_override is not None:
@@ -198,13 +229,19 @@ class PlaceholderResolver:
         # Schema defaults (only if context has no binding)
         cfg = cell.configuration_schema or {}
         if isinstance(cfg, list):
-            # Convert list-format params to dict for lookup
             cfg = {p.get("name"): p for p in cfg if isinstance(p, dict) and "name" in p}
 
         if ph in cfg:
             param_meta = cfg[ph]
             if isinstance(param_meta, dict) and "default_value" in param_meta:
-                return str(param_meta["default_value"])
+                dv = param_meta["default_value"]
+                if dv is not None and dv != "...":
+                    if isinstance(dv, str):
+                        # If it looks like a module constant (cv2.COLOR_*), don't quote
+                        if re.match(r"^[a-zA-Z_][a-zA-Z0-9_]*\.[a-zA-Z_][a-zA-Z0-9_]*$", dv):
+                            return dv
+                        return json.dumps(dv)
+                    return repr(dv)
             if isinstance(param_meta, (str, int, float, bool)):
                 return repr(param_meta)
 
@@ -222,7 +259,12 @@ class PlaceholderResolver:
     @classmethod
     def _resolve_dest_file(cls, context: ExecutionContext, cell: Cell, ph: str) -> Optional[str]:
         b = context.find_compatible_variable(AlgebraicSignature("str", "dest_identifier"))
-        return b.literal_value if (b and b.literal_value) else None
+        if b and b.literal_value:
+            return b.literal_value
+        # Fallback: if only one file was mentioned, user probably wants to write there
+        if context.extracted_files:
+            return json.dumps(context.extracted_files[-1])
+        return None
 
     @classmethod
     def _resolve_column_name(cls, context: ExecutionContext, cell: Cell, ph: str) -> Optional[str]:
@@ -235,6 +277,14 @@ class PlaceholderResolver:
     def _resolve_sort_flag(cls, context: ExecutionContext, cell: Cell, ph: str) -> Optional[str]:
         b = context.find_compatible_variable(AlgebraicSignature("bool", "sort_flag"))
         return b.literal_value if (b and b.literal_value) else None
+
+    @classmethod
+    def _resolve_bool_true(cls, context: ExecutionContext, cell: Cell, ph: str) -> Optional[str]:
+        return "True"
+
+    @classmethod
+    def _resolve_bool_false(cls, context: ExecutionContext, cell: Cell, ph: str) -> Optional[str]:
+        return "False"
 
     @classmethod
     def _resolve_unknown(cls, context: ExecutionContext, cell: Cell, ph: str) -> Optional[str]:
@@ -294,14 +344,11 @@ class UnificationGate:
         explicit_args = explicit_arguments or {}
 
         # Stage-aware input resolution:
-        # Stage 1 (Source) cells ingest file paths / initial parameters.
-        # Stage 2+ cells consume data variables from the pipeline.
         if cell.stage == 1:
             file_binding = context.find_compatible_variable(AlgebraicSignature("str", "source_identifier"))
             if file_binding and file_binding.literal_value:
                 primary_input_var = file_binding.literal_value
             else:
-                # Fallback: any string literal in context (e.g., extracted filenames)
                 primary_input_var = None
                 for name in reversed(context._var_order):
                     binding = context._scope[name]
@@ -343,7 +390,7 @@ class UnificationGate:
 
         transformed = raw_code.replace("{output_var}", output_var_name)
 
-        placeholders = set(re.findall(r"\{([a-zA-Z0-9_]+)\}", transformed))
+        placeholders = set(re.findall(r"\{([a-zA-Z_][a-zA-Z0-9_]*)\}", transformed))
         for ph in placeholders:
             resolved = PlaceholderResolver.resolve(
                 ph, context, cell, explicit_args,
@@ -359,6 +406,12 @@ class UnificationGate:
             r"\1",
             transformed
         )
+
+        # Safety: if the line looks like an attribute access on a string literal,
+        # something went wrong with quoting. E.g. 'data.csv' -> data.csv
+        # This is a last-ditch guard against bad templates.
+        if re.search(r"\b[a-zA-Z_][a-zA-Z0-9_]*\.(csv|json|jpg|png|parquet)\b", transformed):
+            logger.warning(f"[UNIFICATION GUARD] Suspicious unquoted filename in {cell.cell_id}: {transformed}")
 
         context.declare_variable(
             base_name=f"{raw_out_name}_out",
@@ -381,9 +434,9 @@ class UnificationGate:
                         return mod
         domain_map = {
             "opencv": "cv2", "cv2": "cv2",
-            "pandas": "pandas", "numpy": "numpy",
+            "pandas": "pd", "numpy": "np",
             "scipy": "scipy", "sklearn": "sklearn",
-            "matplotlib": "matplotlib", "json": "json",
+            "matplotlib": "plt", "json": "json",
             "math": "math", "os": "os", "sys": "sys",
         }
         return domain_map.get((cell.domain_name or "").lower(), "")

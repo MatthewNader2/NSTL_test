@@ -1,45 +1,75 @@
 """
-src/planner.py - Neuro-Symbolic Topological Lattice (NSTL)
-Translates user natural language requests into structured MacroCell DAGs.
+src/planner.py - Zero-Shot Planner with algorithmic-task bypass and robust JSON.
 """
 
-from __future__ import annotations
 import json
 import re
-import numpy as np
-from typing import Dict, Any, Optional, List
-from log_config import get_logger
-from lattice import LatticeOrchestrator, MicroCell, MacroCell, AlgebraicSignature, PortSignature
-from inference import ModelManager
+from typing import Any, Dict, List, Optional, Set
 
-logger = get_logger("planner")
+from log_config import get_logger
+from lattice import LatticeOrchestrator, Cell, MacroCell, MicroCell
+
+logger = get_logger('planner')
 
 
 class ZeroShotPlanner:
-    def __init__(self, orchestrator: LatticeOrchestrator, rag_engine=None):
+    ALGO_PATTERNS = re.compile(
+        r"\b(dijkstra|bfs|dfs|a\s*star|astar|quicksort|mergesort|heapsort|"
+        r"binary\s*search|topological\s*sort|bellman.?ford|floyd.?warshall|"
+        r"kruskal|prim|kmp|rsa|sha|md5|algorithm)\b",
+        re.IGNORECASE
+    )
+
+    def __init__(self, orchestrator: LatticeOrchestrator, rag: Any):
         self.orchestrator = orchestrator
-        self.rag_engine = rag_engine
+        self.rag = rag
 
-    def _get_relevant_context(self, prompt: str) -> str:
-        if self.rag_engine:
-            return self.rag_engine.get_relevant_context(prompt, top_k=25)
+    def run_planning_pass(self, prompt: str, profile: str = "C") -> Dict[str, Any]:
+        if self.ALGO_PATTERNS.search(prompt):
+            logger.info("[PLANNER] Algorithmic task detected; bypassing lattice for synthesis.")
+            return {
+                "cells": [{
+                    "cell_id": "macro_algo_synth",
+                    "type": "macro",
+                    "stage": 2,
+                    "sub_cells": [f"SYNTH_ALGO_{self._slugify(prompt)[:30]}"]
+                }]
+            }
 
-        cells = [c for c in self.orchestrator.loaded_cells.values() if isinstance(c, MicroCell)]
-        lines = []
-        for c in cells[:25]:
-            lines.append(f"- ID: {c.cell_id} | In: {c.primary_input} -> Out: {c.primary_output}")
-        return "\n".join(lines)
+        context = self.rag.get_relevant_context(prompt, top_k=25)
+        context_str = self._format_context(context)
 
-    def run_planning_pass(self, prompt: str) -> Dict[str, Any]:
-        model_mgr = ModelManager.get_instance()
+        system_prompt = self._build_system_prompt(context_str)
+        user_prompt = f"User Request: {prompt}\n\nOutput ONLY valid JSON."
 
-        if not model_mgr.can_synthesize():
-            logger.info("[PLANNER] LLM disabled; using deterministic typestate planner.")
-            return self._run_deterministic_planner(prompt)
+        raw = None
+        try:
+            from inference import ModelManager
+            mm = ModelManager.get_instance()
+            if mm.can_synthesize():
+                raw = mm.generate_text(system_prompt + "\n" + user_prompt, max_tokens=1024)
+        except Exception as e:
+            logger.warning(f"[PLANNER] LLM generation unavailable: {e}")
 
-        context_nodes = self._get_relevant_context(prompt)
+        parsed = self._safe_parse_json(raw) if raw else None
+        if parsed is None:
+            logger.warning("[PLANNER] Invalid or missing JSON from LLM. Falling back to deterministic planner.")
+            return self._deterministic_fallback(prompt, context)
 
-        system_prompt = f"""You are a Software Architect. Decompose the user request into a strict sequence of verified computational node IDs.
+        for cell_block in parsed.get("cells", []):
+            grounded = []
+            for sub in cell_block.get("sub_cells", []):
+                existing = self._find_closest_existing_cell(sub)
+                if existing:
+                    grounded.append(existing)
+                else:
+                    grounded.append(sub)
+            cell_block["sub_cells"] = grounded
+
+        return parsed
+
+    def _build_system_prompt(self, context_str: str) -> str:
+        return f"""You are a Software Architect. Decompose the user request into a strict sequence of verified computational node IDs.
 Output ONLY valid JSON matching the schema below. No markdown formatting, no commentary.
 
 Schema:
@@ -55,146 +85,123 @@ Schema:
 }}
 
 Available Verified Micro-Nodes:
-{context_nodes}
+{context_str}
 
 RULES:
 1. Select exclusively from the Available Verified Micro-Nodes when a suitable node exists.
-2. For end-to-end I/O pipelines (e.g. read CSV/image, transform, save to file), you MUST include the full sequence: Source Node -> Processing Nodes -> Sink/Export Node.
-3. If an essential step has no matching node, invent a node ID prefixed with 'SYNTH_'."""
+2. If an essential step has no matching node, invent a new node ID prefixed with 'SYNTH_' (e.g. 'SYNTH_CALCULATE_METRIC'). The engine will synthesize it at runtime.
+3. Order sub_cells sequentially from data source -> transformations -> output/sink.
+4. For algorithmic tasks (sorting, graph search, etc.), use a single SYNTH_ node rather than forcing library primitives.
+"""
 
-        full_prompt = f"{system_prompt}\n\nUser Request: {prompt}"
+    def _format_context(self, context: List[Any]) -> str:
+        lines = []
+        for entry in context:
+            cid = ""
+            if isinstance(entry, dict):
+                cid = entry.get("cell_id", "UNKNOWN")
+            elif isinstance(entry, (list, tuple)) and len(entry) >= 1:
+                cid = str(entry[0])
+            elif isinstance(entry, str):
+                m = re.search(r"ID:\s*([A-Z0-9_]+)", entry)
+                cid = m.group(1) if m else "UNKNOWN"
 
+            cell = self.orchestrator.loaded_cells.get(cid)
+            if not cell:
+                continue
+            in_sig = f"{cell.primary_input.type_name}[{cell.primary_input.state}]"
+            out_sig = f"{cell.primary_output.type_name}[{cell.primary_output.state}]"
+            lines.append(f"- ID: {cid} | In: {in_sig} -> Out: {out_sig} | Domain: {cell.domain_name}")
+        return "\n".join(lines)
+
+    def _safe_parse_json(self, raw: str) -> Optional[Dict[str, Any]]:
+        if not raw:
+            return None
+        text = raw.strip()
+        if text.startswith("```"):
+            text = re.sub(r"^```(?:json)?\s*", "", text)
+            text = re.sub(r"\s*```$", "", text)
         try:
-            raw_output = model_mgr.generate_text(full_prompt, max_tokens=3072)
-        except Exception as e:
-            logger.error(f"[PLANNER ERROR] LLM generation failed: {e}")
-            return self._run_deterministic_planner(prompt)
+            return json.loads(text)
+        except json.JSONDecodeError:
+            pass
+        start = text.find('{')
+        end = text.rfind('}')
+        if start != -1 and end != -1 and end > start:
+            try:
+                return json.loads(text[start:end+1])
+            except json.JSONDecodeError:
+                pass
+        return None
 
-        clean_json = raw_output.strip()
-        if clean_json.startswith("```"):
-            clean_json = clean_json.split("\n", 1)[-1]
-        if clean_json.endswith("```"):
-            clean_json = clean_json.rsplit("```", 1)[0]
-        clean_json = clean_json.strip()
+    def _deterministic_fallback(self, prompt: str, context: List[Any]) -> Dict[str, Any]:
+        prompt_lower = prompt.lower()
+        keywords = set(re.findall(r"[a-zA-Z_]+", prompt_lower))
 
-        try:
-            macro_data = json.loads(clean_json)
-            self._validate_and_register_plan(macro_data)
-            return macro_data
-        except (json.JSONDecodeError, ValueError) as e:
-            logger.warning(f"[PLANNER] Invalid JSON from LLM ({e}). Falling back to deterministic planner.")
-            return self._run_deterministic_planner(prompt)
+        goal_domain = None
+        if any(k in prompt_lower for k in ["csv", "dataframe", "pandas"]):
+            goal_domain = "pandas"
+        elif any(k in prompt_lower for k in ["image", "opencv", "cv2", "gray"]):
+            goal_domain = "cv2"
 
-    def _validate_and_register_plan(self, macro_data: Dict[str, Any]):
-        cells = macro_data.get("cells", [])
-        for cell_dict in cells:
-            sub_cells = cell_dict.get("sub_cells", [])
-            for i, sub_id in enumerate(sub_cells):
-                if sub_id not in self.orchestrator.loaded_cells:
-                    if self.rag_engine and hasattr(self.rag_engine, "index") and self.rag_engine.index is not None:
-                        clean_query = sub_id.replace("SYNTH_", "").replace("_", " ")
-                        raw_emb = np.array([ModelManager.get_instance().get_embedding(clean_query)], dtype=np.float32)
-                        norm = np.linalg.norm(raw_emb)
-                        if norm > 0:
-                            raw_emb = raw_emb / norm
-                            dists, indices = self.rag_engine.index.search(raw_emb, k=1)
-                            if len(indices[0]) > 0 and indices[0][0] != -1:
-                                match_schema = self.rag_engine.id_to_schema.get(indices[0][0], {})
-                                match_id = match_schema.get("cell_id")
-                                sim = float(dists[0][0])
-                                if match_id and sim >= 0.70 and match_id in self.orchestrator.loaded_cells:
-                                    matched_cell = self.orchestrator.loaded_cells[match_id]
-                                    # Prevent circular macro references
-                                    if isinstance(matched_cell, MacroCell):
-                                        continue
-                                    logger.info(f"[PLANNER GROUNDING] Mapped '{sub_id}' -> '{match_id}' (sim={sim:.3f})")
-                                    sub_cells[i] = match_id
-                                    continue
+        path = []
+        current_type = "str"
+        current_state = "source_identifier"
 
-                    if not sub_id.startswith("SYNTH_"):
-                        sub_cells[i] = f"SYNTH_{sub_id.upper()}"
+        for stage in [1, 2, 3]:
+            best_match = None
+            best_score = -1.0
+            for entry in context:
+                cid = ""
+                score = 0.0
+                if isinstance(entry, dict):
+                    cid = entry.get("cell_id", "")
+                    score = entry.get("score", 0.0)
+                elif isinstance(entry, (list, tuple)) and len(entry) >= 1:
+                    cid = str(entry[0])
+                    score = float(entry[1]) if len(entry) > 1 else 0.0
+                elif isinstance(entry, str):
+                    m = re.search(r"ID:\s*([A-Z0-9_]+)", entry)
+                    cid = m.group(1) if m else ""
 
-            in_sig = AlgebraicSignature("str", "source_identifier")
-            out_sig = AlgebraicSignature("any", "any")
-            macro_cell = MacroCell(
-                cell_id=cell_dict.get("cell_id", "macro_dynamic"),
-                stage=1,
-                keywords=set(),
-                inputs={"input_data": PortSignature("input_data", in_sig)},
-                outputs={"output_data": PortSignature("output_data", out_sig)},
-                sub_cells=sub_cells,
-                domain_name=self.orchestrator.active_domain
-            )
-            self.orchestrator.inject_cell(macro_cell)
+                cell = self.orchestrator.loaded_cells.get(cid)
+                if not cell or cell.stage != stage:
+                    continue
+                if cell.primary_input.type_name != current_type:
+                    continue
 
-    def _run_deterministic_planner(self, prompt: str) -> Dict[str, Any]:
-        tokens = set(re.findall(r"[a-zA-Z_]+", prompt.lower()))
-        available_micro = [
-            c for c in self.orchestrator.loaded_cells.values()
-            if isinstance(c, MicroCell)
-            and c.code_template
-            and c.code_template.strip()
-        ]
+                score += len(keywords & set(k.lower() for k in cell.keywords)) * 0.2
+                if goal_domain and cell.domain_name != goal_domain:
+                    score *= 0.5
 
-        curr_sig = AlgebraicSignature("str", "source_identifier")
-        selected_ids: List[str] = []
-        used_ids = set()
+                if score > best_score:
+                    best_score = score
+                    best_match = cid
 
-        for _ in range(6):
-            compatible = [
-                c for c in available_micro
-                if c.cell_id not in used_ids and curr_sig.unifies_with(c.primary_input)
-            ]
-            if not compatible:
-                break
-
-            best_cell = None
-            best_score = -1
-            for c in compatible:
-                overlap = len(tokens.intersection({k.lower() for k in c.keywords}))
-                id_tokens = {p.lower() for p in c.cell_id.split("_")}
-                overlap += len(tokens.intersection(id_tokens))
-
-                # Encourage natural pipeline progression: Source -> Transform -> Sink
-                stage_bonus = 0
-                if not selected_ids:
-                    if c.stage == 1:
-                        stage_bonus = 2
-                else:
-                    last_stage = self.orchestrator.loaded_cells[selected_ids[-1]].stage
-                    if c.stage == last_stage:
-                        stage_bonus = 1
-                    elif c.stage == last_stage + 1:
-                        stage_bonus = 2
-                    elif c.stage < last_stage:
-                        stage_bonus = -1
-
-                total_score = overlap + stage_bonus
-
-                if total_score > best_score:
-                    best_score = total_score
-                    best_cell = c
-
-            if not best_cell or best_score <= 0:
-                break
-
-            selected_ids.append(best_cell.cell_id)
-            used_ids.add(best_cell.cell_id)
-            curr_sig = best_cell.primary_output
-
-            if curr_sig.type_name in ("None", "NoneType"):
-                break
-
-        if not selected_ids:
-            raise ValueError(f"Deterministic planner could not resolve an executable path for: '{prompt}'")
+            if best_match:
+                path.append(best_match)
+                cell = self.orchestrator.loaded_cells[best_match]
+                current_type = cell.primary_output.type_name
+                current_state = cell.primary_output.state
 
         return {
-            "cells": [
-                {
-                    "cell_id": "macro_deterministic_plan",
-                    "type": "macro",
-                    "stage": 1,
-                    "sub_cells": selected_ids
-                }
-            ]
+            "cells": [{
+                "cell_id": "macro_fallback",
+                "type": "macro",
+                "stage": 1,
+                "sub_cells": path
+            }]
         }
+
+    def _find_closest_existing_cell(self, cell_id: str) -> Optional[str]:
+        if cell_id in self.orchestrator.loaded_cells:
+            return cell_id
+        cid_upper = cell_id.upper()
+        for cid in self.orchestrator.loaded_cells:
+            if cid_upper in cid or cid in cid_upper:
+                return cid
+        return None
+
+    @staticmethod
+    def _slugify(text: str) -> str:
+        return re.sub(r"[^a-zA-Z0-9_]+", "_", text).strip("_").upper()

@@ -1,51 +1,50 @@
-# NSTL Engine - Evaluation Report (Profiles A, C, D, E)
+# NSTL Comprehensive Evaluation Report
 
-## 1. Executive Summary & Evaluation Matrix
+## Profile A
 
-This evaluation report documents the benchmark of the **Neural Syntax Tree Lattice (NSTL)** engine across target evaluation configurations for 1 representative model of each category (Embedder: `jina-embeddings-v5-text-small`, LLM: `qwen2.5-coder-1.5b-instruct`) across all 5 domain categories (excluding Profile B):
+**Pass Rate:** 2/5 (40.0%)
 
-- **Profile A**: Deterministic / Embedding-Only (`jina-embeddings-v5-text-small`)
+| Task | Status | Latency | AST Nodes | Error |
+|------|--------|---------|-----------|-------|
+| pandas_csv_clean | FAILED | 0.66s | 17 | Traceback (most recent call last):   File "/tmp/nstl_eval_pa |
+| opencv_gray_convert | FAILED | 0.46s | 12 | Traceback (most recent call last):   File "/tmp/nstl_eval_op |
+| vague_data_transform | FAILED | 0.58s | 12 | Traceback (most recent call last):   File "/tmp/nstl_eval_va |
+| long_ml_pipeline | PASSED | 0.75s | 14 |  |
+| dijkstra_algorithm | PASSED | 0.10s | 1 |  |
 
-- **Profile C**: Full Pipeline with Zero-Shot Code Synthesis (`jina-embeddings-v5-text-small` + `qwen2.5-coder-1.5b-instruct`)
+## Profile C
 
-- **Profile D**: Synthesis Disabled (`jina-embeddings-v5-text-small` + `qwen2.5-coder-1.5b-instruct`)
+**Pass Rate:** 0/5 (0.0%)
 
-- **Profile E**: Pre-Translation Pass + Code Synthesis (`jina-embeddings-v5-text-small` + `qwen2.5-coder-1.5b-instruct`)
+| Task | Status | Latency | AST Nodes | Error |
+|------|--------|---------|-----------|-------|
+| pandas_csv_clean | FAILED | 6.29s | 49 | rs.py", line 1620, in __init__     self._engine = self._make |
+| opencv_gray_convert | FAILED | 5.13s | 40 | [ WARN:0@0.010] global loadsave.cpp:275 findDecoder imread_( |
+| vague_data_transform | FAILED | 3.90s | 25 | rs.py", line 1620, in __init__     self._engine = self._make |
+| long_ml_pipeline | FAILED | 10.33s | 70 | readers.py", line 1620, in __init__     self._engine = self. |
+| dijkstra_algorithm | FAILED | 2.88s | 119 | Traceback (most recent call last):   File "/tmp/nstl_eval_di |
 
+## Profile D
 
----
+**Pass Rate:** 3/5 (60.0%)
 
-## 2. Benchmark Summary Table
+| Task | Status | Latency | AST Nodes | Error |
+|------|--------|---------|-----------|-------|
+| pandas_csv_clean | FAILED | 1.10s | 14 |  |
+| opencv_gray_convert | FAILED | 0.72s | 13 |  |
+| vague_data_transform | PASSED | 0.89s | 13 |  |
+| long_ml_pipeline | PASSED | 0.57s | 14 |  |
+| dijkstra_algorithm | PASSED | 0.10s | 1 |  |
 
-| Task ID | Domain Category | Profile A | Profile C | Profile D | Profile E | Overall Status |
-|---|---|---|---|---|---|---|
-| `pandas_csv_clean` | Data Engineering | 3.191s (FAILED) | 1.835s (FAILED) | 3.615s (FAILED) | 1.731s (FAILED) | **PARTIAL / FAILED** |
-| `opencv_gray_convert` | Image Processing | 35.897s (FAILED) | 3.191s (FAILED) | 37.481s (FAILED) | 3.091s (FAILED) | **PARTIAL / FAILED** |
-| `vague_data_transform` | Vague Human Prompt | 1.360s (FAILED) | 3.040s (FAILED) | 1.945s (FAILED) | 3.000s (FAILED) | **PARTIAL / FAILED** |
-| `long_ml_pipeline` | Long ML/Data Pipeline | 6.092s (FAILED) | 8.493s (FAILED) | 7.297s (FAILED) | 8.405s (FAILED) | **PARTIAL / FAILED** |
-| `dijkstra_algorithm` | Multi-Step Algorithm | 3.431s (FAILED) | 7.331s (FAILED) | 3.859s (FAILED) | 7.361s (FAILED) | **PARTIAL / FAILED** |
+## Profile E
 
----
+**Pass Rate:** 0/5 (0.0%)
 
-## 3. Performance & Accuracy Breakdown
+| Task | Status | Latency | AST Nodes | Error |
+|------|--------|---------|-----------|-------|
+| pandas_csv_clean | FAILED | 5.36s | 49 | rs.py", line 1620, in __init__     self._engine = self._make |
+| opencv_gray_convert | FAILED | 4.34s | 40 | [ WARN:0@0.010] global loadsave.cpp:275 findDecoder imread_( |
+| vague_data_transform | FAILED | 3.30s | 25 | rs.py", line 1620, in __init__     self._engine = self._make |
+| long_ml_pipeline | FAILED | 9.14s | 70 | readers.py", line 1620, in __init__     self._engine = self. |
+| dijkstra_algorithm | FAILED | 2.64s | 119 | Traceback (most recent call last):   File "/tmp/nstl_eval_di |
 
-### A. Pass Rate & Accuracy
-
-- **Profile A**: 0/5 Passed (**0.0%**)
-- **Profile C**: 0/5 Passed (**0.0%**)
-- **Profile D**: 0/5 Passed (**0.0%**)
-- **Profile E**: 0/5 Passed (**0.0%**)
-
-### B. Mean Execution Latency per Profile
-
-- **Profile A**: **9.994s** average latency
-- **Profile C**: **4.778s** average latency
-- **Profile D**: **10.839s** average latency
-- **Profile E**: **4.718s** average latency
-
-### C. AST Program Complexity
-
-- **Profile A**: Average AST Node Count = **51.6 nodes**
-- **Profile C**: Average AST Node Count = **64.2 nodes**
-- **Profile D**: Average AST Node Count = **49.2 nodes**
-- **Profile E**: Average AST Node Count = **64.2 nodes**

@@ -359,6 +359,8 @@ def run_server(host: str = API_HOST, port: int = API_PORT):
 
 if __name__ == "__main__":
     import argparse
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=8000)
     parser = argparse.ArgumentParser(description="NSTL Engine Server")
     parser.add_argument("--profile", type=str, default="C")
     parser.add_argument("--port", type=int, default=API_PORT)
