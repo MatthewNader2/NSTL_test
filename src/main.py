@@ -1,373 +1,194 @@
+# src/main.py
 """
-src/main.py - Neuro-Symbolic Topological Lattice (NSTL) Engine
-Main FastAPI Server, REST API Endpoints, and 4-Phase Synthesis Pipeline.
+src/main.py - Neuro-Symbolic Topological Lattice (NSTL)
+Production REST API Server powered by FastAPI.
+Provides real-time endpoints for health monitoring, domain metadata, and program synthesis.
 """
 
 from __future__ import annotations
 import os
+import resource
 import sys
-import threading
-from dataclasses import asdict
-from typing import List, Dict, Set, Any, Optional
+import time
+from contextlib import asynccontextmanager
+from pathlib import Path
+from typing import Optional, Dict, Any, List
 
-import uvicorn
-from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
-from fastapi.staticfiles import StaticFiles
-from pydantic import BaseModel
+SRC_DIR = str(Path(__file__).resolve().parent)
+if SRC_DIR not in sys.path:
+    sys.path.insert(0, SRC_DIR)
 
-from log_config import setup_logging, get_logger
-setup_logging()
-logger = get_logger("main")
+from fastapi import FastAPI, HTTPException, status
+from pydantic import BaseModel, Field
 
-from config import API_HOST, API_PORT, CORS_ORIGINS
-from lattice import LatticeOrchestrator, AlgebraicSignature, Cell, MicroCell, MacroCell
-from unification import ExecutionContext, UnificationGate
-from router import HardwareProfiler, LatticeRouter, MCTSEngine
-from planner import ZeroShotPlanner
-from synthesis import SynthesisEngine
+from lattice import LatticeOrchestrator
+from router import LatticeRouter
+from unification import UnificationGate
 from gevr_sandbox import GEVRSandbox
-from external_rag import FetcherFactory
-from internal_rag import LocalRAG
-from inference import ModelManager
+
+DB_PATH = os.environ.get("NSTL_DB_PATH", "trees/lattice.db")
 
 
-def get_resource_path(relative_path: str) -> str:
-    if getattr(sys, "frozen", False) and hasattr(sys, "_MEIPASS"):
-        meipass_path = os.path.join(sys._MEIPASS, relative_path)
-        if os.path.exists(meipass_path):
-            return meipass_path
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Preloads the lattice orchestrator, router, unification gate, and sandbox pool on server startup."""
+    print(f"[*] Preloading NSTL Lattice Database from '{DB_PATH}'...")
+    t0 = time.perf_counter()
+    orchestrator = LatticeOrchestrator()
+    orchestrator.load_from_database(DB_PATH)
+    orchestrator.build_topology()
+    router = LatticeRouter(orchestrator=orchestrator, internal_rag=None)
+    gate = UnificationGate()
+    sandbox = GEVRSandbox()
 
-    src_dir = os.path.dirname(os.path.abspath(__file__))
-    src_path = os.path.join(src_dir, relative_path)
-    if os.path.exists(src_path):
-        return src_path
+    app.state.orchestrator = orchestrator
+    app.state.router = router
+    app.state.gate = gate
+    app.state.sandbox = sandbox
+    app.state.start_time = time.time()
 
-    root_dir = os.path.abspath(os.path.join(src_dir, ".."))
-    root_path = os.path.join(root_dir, relative_path)
-    return root_path if os.path.exists(root_path) else relative_path
+    elapsed = (time.perf_counter() - t0) * 1000
+    print(f"[✓] NSTL API Server ready with {len(orchestrator.loaded_cells)} nodes loaded in {elapsed:.1f}ms.")
+    yield
 
 
-TREES_DIR = get_resource_path("trees")
-FRONTEND_DIR = get_resource_path("frontend_dist")
-
-global_orchestrator: Optional[LatticeOrchestrator] = None
-global_rag_engine: Optional[LocalRAG] = None
-engine_device: str = "cpu"
-_engine_ready: Optional[bool | str] = None
-_engine_state_lock = threading.Lock()
-_current_init_thread: Optional[threading.Thread] = None
-
-app = FastAPI(title="NSTL Engine")
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=CORS_ORIGINS,
-    allow_methods=["*"],
-    allow_headers=["*"],
+app = FastAPI(
+    title="NSTL Neuro-Symbolic Topological Lattice API",
+    description="High-throughput REST API for real-time sub-15ms neuro-symbolic program synthesis.",
+    version="1.0.0",
+    lifespan=lifespan
 )
 
 
-class RunRequest(BaseModel):
+class SynthesizeRequest(BaseModel):
+    prompt: str = Field(..., description="Natural language specification of the pipeline or task")
+    execute_in_sandbox: bool = Field(default=False, description="Whether to execute synthesized code in isolated GEVR worker sandbox")
+    timeout_seconds: float = Field(default=5.0, ge=0.5, le=30.0, description="Sandbox execution timeout limit")
+
+
+class SynthesizeResponse(BaseModel):
     prompt: str
+    path: List[str]
+    code: str
+    route_latency_ms: float
+    synthesis_latency_ms: float
+    total_latency_ms: float
+    sandbox_result: Optional[Dict[str, Any]] = None
 
 
-class InitRequest(BaseModel):
-    profile: str = "C"
-    embedder_model: str = ""
-    llm_model: str = ""
-    embedder_device: str = "auto"
-    llm_device: str = "auto"
-    trees_storage: str = "ram"
+class HealthResponse(BaseModel):
+    status: str
+    nodes_count: int
+    uptime_seconds: float
+    memory_rss_mb: float
 
 
-@app.get("/api/status")
-def get_status():
-    if _engine_ready is None:
-        return {"status": "uninitialized", "device": engine_device, "cells_loaded": 0}
-    if _engine_ready is False:
-        cells = len(global_orchestrator.loaded_cells) if global_orchestrator else 0
-        return {"status": "loading", "device": engine_device, "cells_loaded": cells}
-    if isinstance(_engine_ready, str):
-        return {"status": "error", "message": _engine_ready, "device": engine_device, "cells_loaded": 0}
-    return {"status": "ready", "device": engine_device, "cells_loaded": len(global_orchestrator.loaded_cells)}
+class DomainInfo(BaseModel):
+    total_nodes: int
+    curated_seeds: int
 
 
-@app.get("/api/health")
-def health():
-    return {"status": "ok", "cells_loaded": len(global_orchestrator.loaded_cells) if global_orchestrator else 0}
+class DomainsResponse(BaseModel):
+    domains: Dict[str, DomainInfo]
+    total_domains: int
+    total_nodes: int
 
 
-@app.get("/api/cells")
-def get_cells():
-    if global_orchestrator is None:
-        return {"cells": [], "count": 0}
-    cells = []
-    for cell in global_orchestrator.loaded_cells.values():
-        cells.append({
-            "cell_id": cell.cell_id,
-            "stage": cell.stage,
-            "type": cell.cell_type,
-            "keywords": list(cell.keywords),
-            "primary_input": asdict(cell.primary_input),
-            "primary_output": asdict(cell.primary_output),
-            "code_template": cell.code_template
-        })
-    return {"cells": cells, "count": len(cells)}
+@app.get("/health", response_model=HealthResponse, tags=["Monitoring"])
+async def health_check():
+    """Health check endpoint reporting uptime, lattice size, and memory footprint."""
+    uptime = time.time() - getattr(app.state, "start_time", time.time())
+    nodes_count = len(app.state.orchestrator.loaded_cells) if hasattr(app.state, "orchestrator") else 0
+    try:
+        import psutil
+        rss_bytes = psutil.Process(os.getpid()).memory_info().rss
+    except ImportError:
+        rss_bytes = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss * 1024
+
+    return HealthResponse(
+        status="healthy",
+        nodes_count=nodes_count,
+        uptime_seconds=round(uptime, 2),
+        memory_rss_mb=round(rss_bytes / 1024 / 1024, 2)
+    )
 
 
-def _expand_macro(cell: MacroCell, orchestrator: LatticeOrchestrator, _depth: int = 0, _visited: Optional[Set[str]] = None) -> List[Cell]:
-    """
-    Recursively expands a MacroCell into its constituent MicroCells.
-    Guards against infinite recursion and skips self-referential sub-cells
-    gracefully instead of aborting the entire expansion.
-    """
-    if _visited is None:
-        _visited = set()
+@app.get("/domains", response_model=DomainsResponse, tags=["Metadata"])
+async def get_domains():
+    """Returns domain distribution and curated seed counts across the active lattice."""
+    if not hasattr(app.state, "orchestrator"):
+        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail="Lattice not initialized")
 
-    if _depth > 5:
-        logger.warning(f"[MACRO EXPANSION] Recursion limit hit for {cell.cell_id}")
-        return []
-    if cell.cell_id in _visited:
-        logger.error(f"[MACRO EXPANSION] Circular reference detected at {cell.cell_id}")
-        return []
+    orchestrator: LatticeOrchestrator = app.state.orchestrator
+    domain_stats: Dict[str, Dict[str, int]] = {}
 
-    _visited.add(cell.cell_id)
-    expanded: List[Cell] = []
+    for cell in orchestrator.loaded_cells.values():
+        dom = cell.domain_name or "generic"
+        if dom not in domain_stats:
+            domain_stats[dom] = {"total_nodes": 0, "curated_seeds": 0}
+        domain_stats[dom]["total_nodes"] += 1
+        if getattr(cell, "verified", False):
+            domain_stats[dom]["curated_seeds"] += 1
 
-    for sub_id in cell.sub_cells:
-        # Skip self-referential entries gracefully
-        if sub_id == cell.cell_id:
-            logger.warning(f"[MACRO EXPANSION] Self-reference skipped in {cell.cell_id}")
-            continue
-
-        sub = orchestrator.loaded_cells.get(sub_id)
-        if sub is None:
-            logger.warning(f"[MACRO EXPANSION] Sub-cell '{sub_id}' missing from lattice; skipping.")
-            continue
-        if isinstance(sub, MacroCell):
-            expanded.extend(_expand_macro(sub, orchestrator, _depth + 1, _visited))
-        else:
-            expanded.append(sub)
-
-    _visited.discard(cell.cell_id)
-    return expanded
-
-
-@app.post("/api/run")
-def run_prompt(req: RunRequest):
-    if _engine_ready is not True or global_orchestrator is None or global_rag_engine is None:
-        return {
-            "logs": [{"msg": "Engine is loading. Please wait for initialization.", "type": "warn"}],
-            "path": [],
-            "virtual_edges": [],
-            "code": "# Engine is not ready."
-        }
-
-    log_buffer = []
-    log_buffer.append({"msg": f"[PROMPT] {req.prompt[:100]}...", "type": "system"})
-
-    model_mgr = ModelManager.get_instance()
-    resolved_path: List[Cell] = []
-    virtual_edges: Set[str] = set()
-
-    if not model_mgr.can_synthesize():
-        log_buffer.append({"msg": "Phase 1: Embedding-guided Beam Search pathfinding...", "type": "info"})
-        router = LatticeRouter(global_orchestrator, global_rag_engine)
-        resolved_path, virtual_edges = router.plan_path(req.prompt)
-    else:
-        log_buffer.append({"msg": "Phase 1: ZeroShotPlanner decomposing prompt into topological DAG...", "type": "info"})
-        planner = ZeroShotPlanner(global_orchestrator, global_rag_engine)
-        plan_dict = planner.run_planning_pass(req.prompt)
-        sub_cells = plan_dict.get("cells", [{}])[0].get("sub_cells", [])
-
-        log_buffer.append({"msg": f"Phase 2: Resolving {len(sub_cells)} plan steps across the lattice...", "type": "info"})
-        mcts = MCTSEngine(global_orchestrator)
-        synthesis_engine = SynthesisEngine(trees_dir=TREES_DIR)
-        fetcher = FetcherFactory.get_fetcher(global_orchestrator.active_domain)
-
-        current_sig = AlgebraicSignature("str", "source_identifier")
-
-        for step_id in sub_cells:
-            target_cell = global_orchestrator.loaded_cells.get(step_id)
-
-            if target_cell is None or step_id.startswith("SYNTH_"):
-                log_buffer.append({"msg": f"Gap detected for step '{step_id}'. Bridging...", "type": "warn"})
-                expected_out = AlgebraicSignature("any", "any")
-
-                bridge = mcts.search(current_sig, expected_out)
-                if bridge:
-                    for b in bridge:
-                        resolved_path.append(b)
-                        virtual_edges.add(b.cell_id)
-                        current_sig = b.primary_output
-                    continue
-
-                if model_mgr.can_synthesize():
-                    try:
-                        gap_name = step_id.replace("SYNTH_", "").replace("_", " ")
-                        synth_dict = synthesis_engine.synthesize_micro_cell(
-                            gap_concept=gap_name,
-                            expected_input=current_sig.type_name,
-                            expected_output="any",
-                            fetcher=fetcher
-                        )
-                        if UnificationGate.validate_synthesis(synth_dict, current_sig, expected_out, TREES_DIR):
-                            in_sig = AlgebraicSignature(
-                                synth_dict["inputs"]["type_name"],
-                                synth_dict["inputs"]["state"]
-                            )
-                            out_sig = AlgebraicSignature(
-                                synth_dict["outputs"]["type_name"],
-                                synth_dict["outputs"]["state"]
-                            )
-                            new_cell = MicroCell(
-                                cell_id=synth_dict["cell_id"],
-                                stage=synth_dict.get("stage", 2),
-                                keywords=set(synth_dict.get("keywords", [])),
-                                inputs={"input_data": in_sig},
-                                outputs={"output_data": out_sig},
-                                dependencies=synth_dict.get("dependencies", []),
-                                code_template=synth_dict.get("code_template", "")
-                            )
-                            global_orchestrator.inject_cell(new_cell)
-                            target_cell = new_cell
-                            virtual_edges.add(target_cell.cell_id)
-                    except Exception as e:
-                        log_buffer.append({"msg": f"Synthesis failed for {step_id}: {e}", "type": "error"})
-
-            if target_cell:
-                if isinstance(target_cell, MacroCell):
-                    expanded = _expand_macro(target_cell, global_orchestrator)
-                    for sub in expanded:
-                        if not current_sig.unifies_with(sub.primary_input):
-                            bridge = mcts.search(current_sig, sub.primary_input)
-                            for b in bridge:
-                                resolved_path.append(b)
-                                virtual_edges.add(b.cell_id)
-                                current_sig = b.primary_output
-                        resolved_path.append(sub)
-                        current_sig = sub.primary_output
-                else:
-                    if not current_sig.unifies_with(target_cell.primary_input):
-                        bridge = mcts.search(current_sig, target_cell.primary_input)
-                        for b in bridge:
-                            resolved_path.append(b)
-                            virtual_edges.add(b.cell_id)
-                            current_sig = b.primary_output
-
-                    resolved_path.append(target_cell)
-                    current_sig = target_cell.primary_output
-
-    if not resolved_path:
-        log_buffer.append({"msg": "Failed to construct a valid execution route.", "type": "error"})
-        return {"logs": log_buffer, "path": [], "virtual_edges": [], "code": "# Path generation failed."}
-
-    log_buffer.append({"msg": f"Phase 3: Monadic unification across {len(resolved_path)} cells...", "type": "info"})
-    context = ExecutionContext(prompt=req.prompt)
-    code_blocks: List[str] = []
-
-    for cell in resolved_path:
-        try:
-            block = UnificationGate.unify_cell(context, cell)
-            if block:
-                code_blocks.append(block)
-        except Exception as e:
-            log_buffer.append({"msg": f"Unification error on {cell.cell_id}: {e}", "type": "error"})
-
-    raw_synthesized_code = "\n".join(code_blocks)
-    full_code = UnificationGate.resolve_imports(raw_synthesized_code, context)
-
-    log_buffer.append({"msg": "Phase 4: Running sandboxed execution check...", "type": "info"})
-    sandbox = GEVRSandbox(timeout_seconds=5.0)
-
-    feedback_func = model_mgr.feedback_check if model_mgr.can_feedback_check() else None
-    verified, final_code, exec_msg = sandbox.repair_cycle(full_code, llm_repair_func=feedback_func)
-
-    if verified:
-        log_buffer.append({"msg": "[GEVR SUCCESS] Generated code verified successfully.", "type": "info"})
-    else:
-        log_buffer.append({"msg": f"[GEVR WARNING] Execution check encountered an issue: {exec_msg[:100]}", "type": "warn"})
-
-    path_formatted = [
-        {
-            "cell_id": c.cell_id,
-            "stage": c.stage,
-            "type": c.cell_type,
-            "keywords": list(c.keywords),
-            "primary_input": asdict(c.primary_input),
-            "primary_output": asdict(c.primary_output),
-        }
-        for c in resolved_path
-    ]
-
-    return {
-        "status": "SUCCESS" if verified else "FAILED_VERIFICATION",
-        "verified": bool(verified),
-        "path": [c.cell_id for c in resolved_path],
-        "path_details": path_formatted,
-        "logs": log_buffer,
-        "virtual_edges": list(virtual_edges),
-        "code": final_code,
-        "error": str(exec_msg) if not verified else None,
-        "exec_error": str(exec_msg) if not verified else None
+    formatted_domains = {
+        dom: DomainInfo(total_nodes=data["total_nodes"], curated_seeds=data["curated_seeds"])
+        for dom, data in sorted(domain_stats.items())
     }
 
-
-@app.post("/api/initialize")
-def initialize_engine(req: InitRequest = InitRequest()):
-    global global_orchestrator, global_rag_engine, engine_device, _engine_ready, _current_init_thread
-
-    with _engine_state_lock:
-        if _current_init_thread is not None and _current_init_thread.is_alive():
-            _current_init_thread.join(timeout=30)
-        _engine_ready = False
-
-    def _do_init():
-        global global_orchestrator, global_rag_engine, engine_device, _engine_ready
-        try:
-            logger.info(f"Initializing NSTL Engine (Profile={req.profile})...")
-            HardwareProfiler.set_config(req.embedder_device, req.llm_device, req.trees_storage)
-            ModelManager.get_instance().initialize_profile(req.profile, req.embedder_model, req.llm_model)
-            engine_device = HardwareProfiler.get_optimal_device()
-
-            new_orchestrator = LatticeOrchestrator(trees_directory=TREES_DIR)
-            new_rag_engine = LocalRAG(trees_dir=TREES_DIR, orchestrator=new_orchestrator)
-
-            with _engine_state_lock:
-                global_orchestrator = new_orchestrator
-                global_rag_engine = new_rag_engine
-                _engine_ready = True
-
-            logger.info(f"[READY] Engine fully initialized on {engine_device.upper()}")
-        except Exception as e:
-            with _engine_state_lock:
-                _engine_ready = str(e)
-            logger.error(f"[INIT ERROR] {e}")
-
-    t = threading.Thread(target=_do_init, daemon=True)
-    _current_init_thread = t
-    t.start()
-    return {"status": "initializing", "device": engine_device}
+    return DomainsResponse(
+        domains=formatted_domains,
+        total_domains=len(formatted_domains),
+        total_nodes=len(orchestrator.loaded_cells)
+    )
 
 
-if os.path.exists(FRONTEND_DIR):
-    app.mount("/", StaticFiles(directory=FRONTEND_DIR, html=True), name="frontend")
-else:
-    @app.get("/")
-    def index():
-        return {"msg": "Frontend not found, serving API only."}
+@app.post("/synthesize", response_model=SynthesizeResponse, tags=["Synthesis"])
+async def synthesize_pipeline(request: SynthesizeRequest):
+    """
+    Synthesizes executable code from a natural language prompt via A* topological routing and typestate unification.
+    """
+    if not request.prompt or not request.prompt.strip():
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Prompt must not be empty.")
 
+    router: LatticeRouter = app.state.router
+    gate: UnificationGate = app.state.gate
+    sandbox: GEVRSandbox = app.state.sandbox
 
-def run_server(host: str = API_HOST, port: int = API_PORT):
-    uvicorn.run(app, host=host, port=port, log_level="error")
+    # 1. Routing
+    t_start = time.perf_counter()
+    cells = router.plan_path(request.prompt, return_tuple=False)
+    route_dt = (time.perf_counter() - t_start) * 1000.0
+
+    if not cells:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"No valid path found through lattice for prompt: {request.prompt}"
+        )
+
+    # 2. Synthesis
+    t_synth = time.perf_counter()
+    code = gate.unify_and_emit(cells, request.prompt)
+    synth_dt = (time.perf_counter() - t_synth) * 1000.0
+    total_dt = (time.perf_counter() - t_start) * 1000.0
+
+    # 3. Optional Sandbox Execution
+    sandbox_result = None
+    if request.execute_in_sandbox:
+        sandbox_result = sandbox.execute(code, timeout=request.timeout_seconds)
+
+    path_ids = [c.cell_id for c in cells]
+    return SynthesizeResponse(
+        prompt=request.prompt,
+        path=path_ids,
+        code=code,
+        route_latency_ms=round(route_dt, 2),
+        synthesis_latency_ms=round(synth_dt, 2),
+        total_latency_ms=round(total_dt, 2),
+        sandbox_result=sandbox_result
+    )
 
 
 if __name__ == "__main__":
-    import argparse
-    parser = argparse.ArgumentParser(description="NSTL Engine Server")
-    parser.add_argument("--profile", type=str, default="C")
-    parser.add_argument("--port", type=int, default=API_PORT)
-    args = parser.parse_args()
-
-    initialize_engine(InitRequest(profile=args.profile))
-    run_server(API_HOST, args.port)
+    import uvicorn
+    port = int(os.environ.get("PORT", 8000))
+    uvicorn.run("main:app", host="0.0.0.0", port=port, reload=False)

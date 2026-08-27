@@ -385,6 +385,10 @@ class LatticeOrchestrator:
         self.load_from_database()
         self.build_topology()
 
+    @property
+    def cells(self) -> List[Cell]:
+        return list(self.loaded_cells.values())
+
     def load_from_database(self, db_path: Optional[str] = None):
         if db_path is not None:
             self.db_path = db_path

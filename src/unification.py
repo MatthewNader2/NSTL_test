@@ -468,6 +468,21 @@ class UnificationGate:
     def __init__(self):
         pass
 
+    def unify_and_emit(self, cells: List[Cell], prompt: str = "") -> str:
+        """
+        Unifies a sequence of cells into a clean, executable Python script with resolved imports.
+        """
+        if not cells:
+            return ""
+        context = ExecutionContext(prompt=prompt)
+        statements = []
+        for cell in cells:
+            code = self.unify_cell(context, cell)
+            if code:
+                statements.append(code)
+        raw_body = "\n".join(statements)
+        return self.resolve_imports(raw_body, context)
+
     @staticmethod
     def unify_cell(
         context: ExecutionContext,

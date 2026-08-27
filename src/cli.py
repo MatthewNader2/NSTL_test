@@ -7,6 +7,11 @@ import re
 import sqlite3
 import sys
 from pathlib import Path
+
+SRC_DIR = str(Path(__file__).resolve().parent)
+if SRC_DIR not in sys.path:
+    sys.path.insert(0, SRC_DIR)
+
 from typing import Optional, List, Dict, Any
 
 from .schema import CellSchema, TreeSchema, PortSchema
@@ -219,6 +224,72 @@ def cmd_validate(args):
         print("\n✅ All nodes in database passed 100% AST dry-run validation!")
 
 
+import cmd
+import time
+from .lattice import LatticeOrchestrator
+from .router import LatticeRouter
+from .unification import UnificationGate, DynamicPlaceholderResolver
+from .gevr_sandbox import GEVRSandbox
+
+
+class NSTLInteractiveShell(cmd.Cmd):
+    intro = "\n=== NSTL Neuro-Symbolic Topological Lattice Shell ===\nType a prompt to synthesize code, or 'exit' / 'quit' to quit.\n"
+    prompt = "NSTL > "
+
+    def __init__(self, db_path="trees/lattice.db"):
+        super().__init__()
+        print(f"[*] Initializing Lattice from {db_path}...")
+        t0 = time.perf_counter()
+        self.orchestrator = LatticeOrchestrator()
+        self.orchestrator.load_from_database(db_path)
+        self.orchestrator.build_topology()
+        self.router = LatticeRouter(self.orchestrator)
+        self.sandbox = GEVRSandbox()
+        self.resolver = DynamicPlaceholderResolver()
+        self.gate = UnificationGate()
+        print(f"[✓] Lattice ready with {len(self.orchestrator.cells)} nodes in {(time.perf_counter()-t0)*1000:.1f}ms.\n")
+
+    def default(self, line):
+        if not line.strip():
+            return
+        t0 = time.perf_counter()
+        
+        # 1. Routing
+        cells = self.router.plan_path(line, return_tuple=False)
+        if not cells:
+            print("[!] No valid path found through lattice.")
+            return
+        
+        path_ids = [c.cell_id for c in cells]
+        route_time = (time.perf_counter() - t0) * 1000
+        print(f"\n[+] Path ({route_time:.2f}ms): {' -> '.join(path_ids)}")
+        
+        # 2. Synthesis
+        final_code = self.gate.unify_and_emit(cells, line)
+        print(f"\n--- Synthesized Code ---\n{final_code}\n------------------------")
+        
+        # 3. Sandbox Verification
+        res = self.sandbox.execute(final_code, timeout=5)
+        status = "PASSED" if res["success"] else f"FAILED ({res.get('error')})"
+        print(f"[+] Sandbox Execution: {status}\n")
+
+    def do_exit(self, line):
+        print("\nExiting NSTL Shell.")
+        return True
+
+    def do_quit(self, line):
+        return self.do_exit(line)
+
+    def do_EOF(self, line):
+        return self.do_exit(line)
+
+
+def cmd_shell(args):
+    """Launches the interactive REPL shell."""
+    shell = NSTLInteractiveShell(db_path=args.db)
+    shell.cmdloop()
+
+
 def main():
     parser = argparse.ArgumentParser(prog="python -m src.cli", description="NSTL Toolchain CLI")
     subparsers = parser.add_subparsers(dest="command", required=True)
@@ -241,6 +312,11 @@ def main():
     p_validate = subparsers.add_parser("validate", help="Validate AST syntax and schema of all nodes in SQLite")
     p_validate.add_argument("--db", type=str, default="trees/lattice.db", help="Path to SQLite database")
     p_validate.set_defaults(func=cmd_validate)
+
+    # shell
+    p_shell = subparsers.add_parser("shell", help="Launch real-time interactive synthesis REPL shell")
+    p_shell.add_argument("--db", type=str, default="trees/lattice.db", help="Path to SQLite database")
+    p_shell.set_defaults(func=cmd_shell)
 
     args = parser.parse_args()
     args.func(args)
