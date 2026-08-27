@@ -5,6 +5,7 @@ and ultra-lightweight on-demand topology resolution.
 """
 
 from __future__ import annotations
+import functools
 import json
 import os
 import re
@@ -21,13 +22,16 @@ logger = get_logger('lattice')
 class TypeRegistry:
     """Dynamic Poset Type Hierarchy with safe incremental registration."""
     _instance: Optional[TypeRegistry] = None
-    _lock = threading.Lock()
+    _lock = threading.RLock()
 
     def __init__(self):
         self._parents: Dict[str, Set[str]] = {}
         self._aliases: Dict[str, str] = {}
-        self._subtype_cache: Dict[Tuple[str, str], bool] = {}
         self._register_default_types()
+
+    @property
+    def poset(self) -> Dict[str, Set[str]]:
+        return self._parents
 
     @classmethod
     def get_instance(cls) -> TypeRegistry:
@@ -69,7 +73,10 @@ class TypeRegistry:
             if super_name and super_name not in self._parents:
                 self._parents[super_name] = set()
             self._parents[name].add(super_name)
-        self._subtype_cache.clear()
+        try:
+            self.is_subtype.cache_clear()
+        except AttributeError:
+            pass
 
     def canonical_name(self, type_name: str) -> str:
         if not type_name:
@@ -77,35 +84,29 @@ class TypeRegistry:
         clean = str(type_name).strip()
         return self._aliases.get(clean.lower(), clean)
 
+    @functools.lru_cache(maxsize=8192)
     def is_subtype(self, sub: str, super_: str) -> bool:
         sub_c = self.canonical_name(sub)
         super_c = self.canonical_name(super_)
 
-        if super_c == "any" or sub_c == "any" or sub_c == super_c:
+        if super_c in ("any", "Any", "object", "DataObject", "*", "top") or sub_c in ("any", "Any") or sub_c == super_c:
             return True
 
-        cache_key = (sub_c, super_c)
-        if cache_key in self._subtype_cache:
-            return self._subtype_cache[cache_key]
-
         if sub_c not in self._parents:
-            self._subtype_cache[cache_key] = False
             return False
 
         visited = set()
         queue = [sub_c]
-        result = False
         while queue:
             curr = queue.pop(0)
             if curr == super_c:
-                result = True
-                break
-            if curr not in visited:
-                visited.add(curr)
-                queue.extend(self._parents.get(curr, []))
+                return True
+            visited.add(curr)
+            for parent in self._parents.get(curr, []):
+                if parent not in visited:
+                    queue.append(parent)
 
-        self._subtype_cache[cache_key] = result
-        return result
+        return False
 
 
 @dataclass(frozen=True, slots=True)
@@ -378,7 +379,8 @@ class LatticeOrchestrator:
         self._cells_by_input: Dict[Tuple[str, str], List[Cell]] = {}
         self._cells_by_stage_input: Dict[Tuple[int, str, str], List[Cell]] = {}
         self._cells_by_output: Dict[Tuple[str, str], List[Cell]] = {}
-        self._lock = threading.Lock()
+        self._cells_by_keyword: Dict[str, List[Cell]] = {}
+        self._lock = threading.RLock()
 
         self.load_from_database()
         self.build_topology()
@@ -589,18 +591,79 @@ class LatticeOrchestrator:
         except Exception as e:
             logger.error(f"[LATTICE] Database load error: {e}")
 
+    def build_reachability_matrix(self) -> None:
+        """
+        Precomputes transitive reachability between typestates as bitsets
+        for instant O(1) dead-end pruning during A* expansion.
+        """
+        with self._lock:
+            reg = TypeRegistry.get_instance()
+            all_types = list(set(list(reg.poset.keys()) + [
+                "DataFrame", "ndarray", "Mat", "Figure", "Graph", "Tensor", "Series", "Dataset",
+                "str", "int", "float", "bool", "dict", "list", "None", "any", "Image", "AudioData"
+            ]))
+            self.type_to_idx = {t: i for i, t in enumerate(all_types)}
+            self.reachability_bitsets: Dict[str, int] = {}
+
+            # Build direct transition adjacency
+            direct_adj: Dict[str, Set[str]] = {t: set() for t in all_types}
+            for cell in self.loaded_cells.values():
+                in_sig = cell.primary_input
+                out_sig = cell.primary_output
+                if in_sig and out_sig:
+                    in_t = in_sig.type_name
+                    out_t = out_sig.type_name
+                    direct_adj.setdefault(in_t, set()).add(out_t)
+                    if in_t == "Mat":
+                        direct_adj.setdefault("ndarray", set()).add(out_t)
+                    if in_t == "Series":
+                        direct_adj.setdefault("DataFrame", set()).add(out_t)
+
+            # Transitive closure (BFS reachability)
+            for t in all_types:
+                reachable = set([t])
+                queue = [t]
+                while queue:
+                    curr = queue.pop(0)
+                    for nxt in direct_adj.get(curr, []):
+                        if nxt not in reachable:
+                            reachable.add(nxt)
+                            queue.append(nxt)
+
+                bitset = 0
+                for r in reachable:
+                    if r in self.type_to_idx:
+                        bitset |= (1 << self.type_to_idx[r])
+                self.reachability_bitsets[t] = bitset
+            logger.info(f"[LATTICE] Reachability bitset matrix precomputed for {len(all_types)} types.")
+
+    def can_reach_type(self, source_type: str, target_type: str) -> bool:
+        """O(1) Bitwise Reachability Check."""
+        if source_type == target_type or target_type in ("any", "None", "str", "object"):
+            return True
+        if not hasattr(self, "reachability_bitsets") or not self.reachability_bitsets:
+            return True
+        if source_type not in self.reachability_bitsets or target_type not in self.type_to_idx:
+            return True  # Permissive fallback for dynamic types
+        target_bit = 1 << self.type_to_idx[target_type]
+        return bool(self.reachability_bitsets[source_type] & target_bit)
+
     def build_topology(self):
         """Builds O(1) indexed lookup tables for both inputs, stages, and outputs."""
         with self._lock:
             self._cells_by_input.clear()
             self._cells_by_stage_input.clear()
             self._cells_by_output.clear()
+            self._cells_by_keyword.clear()
             for cell in self.loaded_cells.values():
                 in_sig = cell.primary_input
                 self._cells_by_input.setdefault((in_sig.type_name, in_sig.state), []).append(cell)
                 self._cells_by_stage_input.setdefault((cell.stage, in_sig.type_name, in_sig.state), []).append(cell)
                 out_sig = cell.primary_output
                 self._cells_by_output.setdefault((out_sig.type_name, out_sig.state), []).append(cell)
+                for kw in cell.keywords:
+                    self._cells_by_keyword.setdefault(kw.lower(), []).append(cell)
+            self.build_reachability_matrix()
             logger.info(
                 f"[LATTICE] Indexed {len(self.loaded_cells)} cells into "
                 f"{len(self._cells_by_input)} input buckets and {len(self._cells_by_output)} output buckets."
@@ -615,6 +678,8 @@ class LatticeOrchestrator:
             self._cells_by_stage_input.setdefault((cell.stage, in_sig.type_name, in_sig.state), []).append(cell)
             out_sig = cell.primary_output
             self._cells_by_output.setdefault((out_sig.type_name, out_sig.state), []).append(cell)
+            for kw in cell.keywords:
+                self._cells_by_keyword.setdefault(kw.lower(), []).append(cell)
 
     def register_cell(self, cell: Cell):
         """Alias for inject_cell."""

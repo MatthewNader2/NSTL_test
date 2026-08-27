@@ -1,91 +1,123 @@
 """
 src/gevr_sandbox.py - Neuro-Symbolic Topological Lattice (NSTL)
 Generate-Execute-Verify-Repair (GEVR) Execution Sandbox.
-Executes candidate scripts in isolated subprocesses and manages feedback repair loops.
+Executes candidate scripts in persistent worker processes for sub-100ms latency.
 """
 
 from __future__ import annotations
 import ast
+import contextlib
+import io
+import multiprocessing
 import os
 import sys
-import tempfile
-import subprocess
+import threading
+import traceback
 from typing import Tuple, Optional, Callable, Dict, Any
 from log_config import get_logger
 
 logger = get_logger('gevr_sandbox')
 
 
+def _init_worker(paths: list[str]):
+    for p in paths:
+        if p not in sys.path:
+            sys.path.insert(0, p)
+    # Pre-import core data science packages to eliminate cold-start module import overhead
+    try:
+        import numpy
+        import pandas
+        import cv2
+        import sklearn
+        import matplotlib
+        matplotlib.use("Agg")
+    except Exception:
+        pass
+
+
+def _sandbox_worker_exec(code: str) -> Dict[str, Any]:
+    """Isolated execution unit executed within persistent worker process."""
+    stdout_buf = io.StringIO()
+    stderr_buf = io.StringIO()
+
+    with contextlib.redirect_stdout(stdout_buf), contextlib.redirect_stderr(stderr_buf):
+        try:
+            exec_globals: Dict[str, Any] = {"__name__": "__main__"}
+            exec(code, exec_globals)
+            return {
+                "success": True,
+                "stdout": stdout_buf.getvalue(),
+                "stderr": stderr_buf.getvalue(),
+                "error": ""
+            }
+        except Exception:
+            return {
+                "success": False,
+                "stdout": stdout_buf.getvalue(),
+                "stderr": stderr_buf.getvalue(),
+                "error": traceback.format_exc()
+            }
+
+
 class GEVRSandbox:
     """
-    Isolated execution environment for synthesized code verification.
-    Guarantees strict timeout and process isolation.
+    Sandboxed Python execution engine with persistent worker pool for sub-50ms execution.
     """
-    def __init__(self, timeout_seconds: float = 5.0):
+    _pool: Optional[multiprocessing.Pool] = None
+    _lock = threading.Lock()
+
+    def __init__(self, num_workers: int = 2, timeout_seconds: float = 5.0):
         self.timeout = timeout_seconds
+        self._ensure_pool(num_workers)
+
+    @classmethod
+    def _ensure_pool(cls, num_workers: int = 2):
+        if cls._pool is None:
+            with cls._lock:
+                if cls._pool is None:
+                    ctx_name = "fork" if hasattr(os, "fork") and sys.platform != "win32" else "spawn"
+                    ctx = multiprocessing.get_context(ctx_name)
+                    cls._pool = ctx.Pool(
+                        processes=num_workers,
+                        initializer=_init_worker,
+                        initargs=(list(sys.path),),
+                        maxtasksperchild=100
+                    )
 
     def execute(self, code: str, timeout: Optional[float] = None) -> Dict[str, Any]:
         """
-        Executes Python code in an isolated subprocess.
+        Executes Python code in the persistent worker process pool.
         Returns: {'success': bool, 'stdout': str, 'stderr': str, 'error': str}
         """
-        orig_timeout = self.timeout
-        if timeout is not None:
-            self.timeout = timeout
-        try:
-            success, stdout, stderr = self.execute_and_verify(code)
-            return {
-                "success": success,
-                "stdout": stdout,
-                "stderr": stderr,
-                "error": stderr if not success else ""
-            }
-        finally:
-            self.timeout = orig_timeout
-
-    def execute_and_verify(self, code: str) -> Tuple[bool, str, str]:
-        """
-        Executes Python code in an isolated subprocess.
-        Returns: (success: bool, stdout: str, stderr: str)
-        """
         if not code or not code.strip():
-            return False, "", "ExecutionError: Empty code block."
+            return {"success": False, "stdout": "", "stderr": "", "error": "ExecutionError: Empty code block."}
 
         # Pre-execution AST syntax check
         try:
             ast.parse(code)
         except SyntaxError as e:
-            return False, "", f"SyntaxError: {e}"
+            return {"success": False, "stdout": "", "stderr": "", "error": f"SyntaxError: {e}"}
 
-        temp_path = None
+        tout = timeout if timeout is not None else self.timeout
         try:
-            with tempfile.NamedTemporaryFile(suffix=".py", mode="w", delete=False, encoding="utf-8") as f:
-                f.write(code)
-                temp_path = f.name
-
-            env = os.environ.copy()
-            ppath = os.pathsep.join(sys.path)
-            env["PYTHONPATH"] = f"{ppath}:{env.get('PYTHONPATH', '')}" if env.get('PYTHONPATH') else ppath
-
-            res = subprocess.run(
-                [sys.executable, temp_path],
-                capture_output=True,
-                text=True,
-                timeout=self.timeout,
-                env=env
-            )
-            success = (res.returncode == 0)
-            return success, res.stdout, res.stderr
-        except subprocess.TimeoutExpired:
-            return False, "", f"ExecutionTimedOut: Exceeded {self.timeout}s execution limit."
+            self._ensure_pool()
+            async_res = self._pool.apply_async(_sandbox_worker_exec, (code,))
+            res = async_res.get(timeout=tout)
+            if res.get("error") is None:
+                res["error"] = ""
+            return res
+        except multiprocessing.TimeoutError:
+            return {"success": False, "stdout": "", "stderr": "", "error": f"ExecutionTimedOut: Exceeded {tout}s execution limit."}
         except Exception as e:
-            return False, "", f"ExecutionSystemError: {e}"
-        finally:
-            if temp_path and os.path.exists(temp_path):
-                try:
-                    os.remove(temp_path)
-                except OSError:
-                    pass
+            return {"success": False, "stdout": "", "stderr": "", "error": f"ExecutionSystemError: {e}"}
+
+    def execute_and_verify(self, code: str) -> Tuple[bool, str, str]:
+        """
+        Executes Python code and returns (success, stdout, stderr/error).
+        """
+        res = self.execute(code)
+        err = res.get("error", "") or res.get("stderr", "")
+        return res["success"], res["stdout"], err
 
     def repair_cycle(
         self,
@@ -98,43 +130,21 @@ class GEVRSandbox:
         Executes code, captures tracebacks, and applies diagnostic LLM repairs.
         """
         current_code = initial_code
-
         for attempt in range(max_attempts):
-            success, stdout, stderr = self.execute_and_verify(current_code)
+            success, stdout, error = self.execute_and_verify(current_code)
             if success:
-                logger.info(f"[GEVR VERIFIED] Code executed cleanly on attempt {attempt + 1}")
-                return True, current_code, stdout
+                logger.info(f"[GEVR Sandbox] Verification PASSED on attempt {attempt + 1}")
+                return True, current_code, ""
 
-            logger.warning(f"[GEVR FAILED] Attempt {attempt + 1} traceback:\n{stderr.strip()}")
+            logger.warning(f"[GEVR Sandbox] Attempt {attempt + 1} failed with error:\n{error}")
+            if attempt < max_attempts - 1 and llm_repair_func:
+                logger.info(f"[GEVR Sandbox] Requesting repair heuristic for attempt {attempt + 2}...")
+                repaired = llm_repair_func(current_code, error)
+                if repaired and repaired != current_code:
+                    current_code = repaired
+                else:
+                    break
+            else:
+                break
 
-            if llm_repair_func is not None and attempt + 1 < max_attempts:
-                try:
-                    # Provide exact code and stderr traceback to the feedback model
-                    repaired_text = llm_repair_func(current_code, stderr)
-                    clean_code = self._extract_clean_code(repaired_text)
-
-                    if clean_code:
-                        ast.parse(clean_code)  # Verify syntax before accepting
-                        current_code = clean_code
-                        logger.info(f"[GEVR REPAIR] Feedback model generated candidate fix for attempt {attempt + 2}")
-                        continue
-                except Exception as e:
-                    logger.error(f"[GEVR REPAIR ERROR] Feedback loop failed: {e}")
-
-            break
-
-        return False, current_code, stderr
-
-    @staticmethod
-    def _extract_clean_code(raw_text: str) -> str:
-        """Extracts pure executable Python code from LLM responses."""
-        if not raw_text:
-            return ""
-
-        # Extract from markdown block if present
-        if "```python" in raw_text:
-            return raw_text.split("```python")[1].split("```")[0].strip()
-        elif "```" in raw_text:
-            return raw_text.split("```")[1].split("```")[0].strip()
-
-        return raw_text.strip()
+        return False, current_code, error

@@ -133,6 +133,11 @@ class SemanticStateAStar:
 
                 out_sig = cell.primary_output
 
+                # O(1) Bitset Dead-End Reachability Pruning
+                if goal_sig is not None and hasattr(self.orchestrator, "can_reach_type"):
+                    if not self.orchestrator.can_reach_type(out_sig.type_name, goal_sig.type_name):
+                        continue
+
                 # Check which intents this cell satisfies
                 cell_tags = set(getattr(cell, "semantic_tags", [])) | set(getattr(cell, "keywords", [])) | {cell.cell_id.lower()}
 
@@ -408,17 +413,29 @@ class LatticeRouter:
                 except Exception as e:
                     logger.warning(f"[ROUTER] RAG candidate retrieval error: {e}")
             else:
-                other_scored = []
-                for c in self.orchestrator.loaded_cells.values():
-                    if getattr(c, "verified", False):
-                        continue
-                    if any(h in c.cell_id.lower() for h in ["_default", "_internal", "_group_", "typing_"]):
-                        continue
-                    overlap = len(intents_set & c.keywords)
-                    if overlap >= 2:
-                        other_scored.append((c, overlap))
-                other_scored.sort(key=lambda x: x[1], reverse=True)
-                candidate_pool.extend([c for c, _ in other_scored[:30]])
+                if hasattr(self.orchestrator, "_cells_by_keyword") and self.orchestrator._cells_by_keyword:
+                    matched_counts: Dict[Cell, int] = {}
+                    for intent in intents_set:
+                        for c in self.orchestrator._cells_by_keyword.get(intent.lower(), []):
+                            if getattr(c, "verified", False):
+                                continue
+                            if any(h in c.cell_id.lower() for h in ["_default", "_internal", "_group_", "typing_"]):
+                                continue
+                            matched_counts[c] = matched_counts.get(c, 0) + 1
+                    other_scored = [c for c, count in matched_counts.items() if count >= 2]
+                    candidate_pool.extend(other_scored[:40])
+                else:
+                    other_scored = []
+                    for c in self.orchestrator.loaded_cells.values():
+                        if getattr(c, "verified", False):
+                            continue
+                        if any(h in c.cell_id.lower() for h in ["_default", "_internal", "_group_", "typing_"]):
+                            continue
+                        overlap = len(intents_set & c.keywords)
+                        if overlap >= 2:
+                            other_scored.append((c, overlap))
+                    other_scored.sort(key=lambda x: x[1], reverse=True)
+                    candidate_pool.extend([c for c, _ in other_scored[:30]])
 
             candidate_pool = list({c.cell_id: c for c in candidate_pool}.values())
 
