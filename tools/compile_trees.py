@@ -422,26 +422,36 @@ def compile_file_to_db(json_filepath: str, conn: sqlite3.Connection):
     print(f"[+] Compiled {compiled_count} nodes from {os.path.basename(json_filepath)} -> SQLite DB. (rejected {rejected_count})")
 
 
-def main():
+def compile_database(output_db: str = DB_PATH, domain_filter: Optional[List[str]] = None):
+    if os.path.exists(output_db):
+        os.remove(output_db)
+
+    conn = init_db(output_db)
     trees_dir = os.path.join(PROJECT_ROOT, "trees")
-    db_path = os.path.join(trees_dir, "lattice.db")
 
-    if os.path.exists(db_path):
-        os.remove(db_path)
+    if domain_filter:
+        tree_files = []
+        for d in domain_filter:
+            tf = os.path.join(trees_dir, f"{d}_tree.json")
+            if os.path.exists(tf):
+                tree_files.append(tf)
+        harvest_files = []
+        for d in domain_filter:
+            harvest_files.extend(glob.glob(os.path.join(PROJECT_ROOT, "harvests", f"*{d}*.json")))
+        harvest_files = sorted(set(f for f in harvest_files if "skeleton" not in f))
+    else:
+        tree_files = sorted([
+            f for f in glob.glob(os.path.join(trees_dir, "*_tree.json"))
+            if "builtins" not in f
+        ])
+        harvest_files = sorted([
+            f for f in glob.glob(os.path.join(PROJECT_ROOT, "harvests", "*.json"))
+            if "builtins" not in f and "skeleton" not in f
+        ])
 
-    conn = init_db(db_path)
+    all_files = sorted(set(tree_files + harvest_files))
 
-    tree_files = sorted([
-        f for f in glob.glob(os.path.join(trees_dir, "*_tree.json"))
-        if "builtins" not in f
-    ])
-    harvest_files = sorted([
-        f for f in glob.glob(os.path.join(PROJECT_ROOT, "harvests", "*.json"))
-        if "builtins" not in f and "skeleton" not in f
-    ])
-    all_files = tree_files + harvest_files
-
-    print(f"[*] Starting Compilation of {len(all_files)} tree JSON files to SQLite...")
+    print(f"[*] Starting Compilation of {len(all_files)} tree JSON files to {output_db}...")
     for hf in all_files:
         compile_file_to_db(hf, conn)
 
@@ -450,11 +460,21 @@ def main():
     sys.path.insert(0, os.path.join(PROJECT_ROOT, "harvesting"))
     try:
         from pattern_harvester import harvest_core_patterns
-        harvest_core_patterns(db_path)
+        harvest_core_patterns(output_db)
     except Exception as e:
         print(f"[!] Warning on pattern_harvester: {e}")
 
-    print(f"[*] Compilation Complete: '{db_path}' is clean, multi-ported, and ready.")
+    print(f"[*] Compilation Complete: '{output_db}' is clean, multi-ported, and ready.")
+
+
+def main():
+    import argparse
+    parser = argparse.ArgumentParser(description="NSTL Tree Compiler")
+    parser.add_argument("--output", type=str, default=DB_PATH, help="Target SQLite DB path")
+    parser.add_argument("--domains", nargs="*", default=None, help="Filter by specific domains (e.g. pandas macro)")
+    args = parser.parse_args()
+
+    compile_database(output_db=args.output, domain_filter=args.domains)
 
 
 if __name__ == "__main__":

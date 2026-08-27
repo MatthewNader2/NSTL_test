@@ -122,14 +122,6 @@ class DynamicPlaceholderResolver:
             if matching_vars:
                 return matching_vars[-1]
 
-        # Check _scope in ExecutionContext if available
-        if hasattr(context, "find_compatible_variable"):
-            sig_to_find = port_sig.signature if hasattr(port_sig, "signature") else port_sig
-            if isinstance(sig_to_find, AlgebraicSignature):
-                b = context.find_compatible_variable(sig_to_find)
-                if b and b.literal_value is not None:
-                    return b.literal_value
-
         # 2. File / URI Source & Destination resolution based on state
         if state in ("source_identifier", "filepath_read", "input_uri") or port_name in ("filepath", "filename", "input_filename", "input_file", "source"):
             if hasattr(context, "source_files") and context.source_files:
@@ -163,6 +155,9 @@ class DynamicPlaceholderResolver:
 
         # 3. Column name resolution
         if state == "column_name" or port_name in ("by", "column", "columns"):
+            if port_name == "by" and hasattr(context, "by_column") and context.by_column:
+                col = context.by_column
+                return f'"{col}"' if not (col.startswith('"') or col.startswith("'")) else col
             if hasattr(context, "columns") and context.columns:
                 col = context.columns[0]
                 return f'"{col}"' if not (col.startswith('"') or col.startswith("'")) else col
@@ -275,6 +270,7 @@ class ExecutionContext:
         self.source_files: List[str] = []
         self.dest_files: List[str] = []
         self.columns: List[str] = []
+        self.by_column: Optional[str] = None
         self.flags: Dict[str, Any] = {}
         self.parameters: Dict[str, Any] = dict(parameters) if parameters else {}
 
@@ -291,9 +287,10 @@ class ExecutionContext:
             self._extract_prompt_literals(prompt)
 
     def _extract_prompt_literals(self, prompt: str):
-        # Match filenames with or without quotes. Captures WITHOUT quotes.
-        ext_pattern = rf"\b([a-zA-Z0-9_\-./]+\.(?:{self.FILE_EXTENSIONS}))\b"
-        files = re.findall(ext_pattern, prompt, re.IGNORECASE)
+        # Match filenames and paths with or without quotes/leading slashes. Captures clean path.
+        ext_pattern = rf'(?:^|[\s"\'`\(])([/~a-zA-Z0-9_\-.]+\.(?:{self.FILE_EXTENSIONS}))'
+        raw_files = re.findall(ext_pattern, prompt, re.IGNORECASE)
+        files = [f.strip(".,;:\"'`()") for f in raw_files if f]
         files = list(dict.fromkeys(files))
         self.extracted_files = files
 
@@ -313,9 +310,20 @@ class ExecutionContext:
                     literal_value=json.dumps(files[-1])
                 )
 
-        # Column extraction: sort by 'age', column 'name', etc.
+        # Explicit 'by' column extraction (e.g. group by region, sort by salary)
+        by_match = re.search(
+            r"(?:group\s+by|sort\s+by|by)\s+(?:the\s+|a\s+|an\s+)*[\'\"]?([a-zA-Z_][a-zA-Z0-9_]*)[\'\"]?",
+            prompt,
+            re.IGNORECASE
+        )
+        if by_match:
+            by_col = by_match.group(1)
+            if by_col.lower() not in self.COLUMN_STOP_WORDS:
+                self.by_column = by_col
+
+        # Column extraction: sort by 'age', column 'name', group by region, sum revenue, etc.
         col_pattern = (
-            r"(?:column|col|by|sort\s+by|group\s+by)\s+"
+            r"(?:column|col|by|sort\s+by|group\s+by|sum|mean|aggregate|average|count|min|max|filter\s+by)\s+"
             r"(?:the\s+|a\s+|an\s+)*[\'\"]?([a-zA-Z_][a-zA-Z0-9_]*)[\'\"]?"
         )
         for match in re.finditer(col_pattern, prompt, re.IGNORECASE):

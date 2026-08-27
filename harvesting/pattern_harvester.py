@@ -52,7 +52,7 @@ CORE_CODE_PATTERNS: List[Dict[str, Any]] = [
         "node_type": "function",
         "node_role": "function",
         "stage": 1,
-        "keywords": ["read_csv", "csv", "load", "dataframe", "ingest", "table"],
+        "keywords": ["read_csv", "read", "csv", "load", "dataframe", "ingest", "table", "sales", "data", "employees", "input"],
         "inputs": {
             "filepath": {"type_name": "str", "state": "source_identifier", "required": True}
         },
@@ -68,7 +68,7 @@ CORE_CODE_PATTERNS: List[Dict[str, Any]] = [
         "node_type": "function",
         "node_role": "function",
         "stage": 2,
-        "keywords": ["dropna", "clean", "null", "missing", "na", "filter"],
+        "keywords": ["dropna", "drop", "clean", "null", "missing", "na", "filter", "values"],
         "inputs": {
             "df": {"type_name": "DataFrame", "state": "any", "required": True}
         },
@@ -79,12 +79,45 @@ CORE_CODE_PATTERNS: List[Dict[str, Any]] = [
         "code_template": "{output_var} = {df}.dropna()"
     },
     {
+        "cell_id": "PANDAS_FILLNA_MEAN",
+        "domain_name": "pandas",
+        "node_type": "function",
+        "node_role": "function",
+        "stage": 2,
+        "keywords": ["fillna", "fill", "missing", "mean", "impute", "imputation", "nan", "null", "values"],
+        "inputs": {
+            "df": {"type_name": "DataFrame", "state": "any", "required": True}
+        },
+        "outputs": {
+            "output_data": {"type_name": "DataFrame", "state": "imputed"}
+        },
+        "dependencies": ["import pandas as pd"],
+        "code_template": "{output_var} = {df}.fillna({df}.mean(numeric_only=True))"
+    },
+    {
+        "cell_id": "PANDAS_GROUPBY_SUM",
+        "domain_name": "pandas",
+        "node_type": "function",
+        "node_role": "function",
+        "stage": 2,
+        "keywords": ["groupby", "group", "by", "sum", "aggregate", "revenue", "region", "total", "sales"],
+        "inputs": {
+            "df": {"type_name": "DataFrame", "state": "any", "required": True},
+            "by": {"type_name": "str", "state": "column_name", "required": False, "default_value": "region"}
+        },
+        "outputs": {
+            "output_data": {"type_name": "DataFrame", "state": "aggregated"}
+        },
+        "dependencies": ["import pandas as pd"],
+        "code_template": "{output_var} = {df}.groupby({by}, as_index=False).sum(numeric_only=True)"
+    },
+    {
         "cell_id": "PANDAS_SORT_VALUES",
         "domain_name": "pandas",
         "node_type": "function",
         "node_role": "function",
         "stage": 2,
-        "keywords": ["sort", "sort_values", "order", "descending", "ascending", "by"],
+        "keywords": ["sort", "sort_values", "order", "descending", "ascending", "by", "salary", "age", "values"],
         "inputs": {
             "df": {"type_name": "DataFrame", "state": "any", "required": True},
             "by": {"type_name": "str", "state": "column_name", "required": False, "default_value": "0"},
@@ -118,7 +151,7 @@ CORE_CODE_PATTERNS: List[Dict[str, Any]] = [
         "node_type": "function",
         "node_role": "function",
         "stage": 3,
-        "keywords": ["to_csv", "save", "export", "write", "csv"],
+        "keywords": ["to_csv", "save", "export", "write", "csv", "report", "imputed", "top_earners", "output"],
         "inputs": {
             "df": {"type_name": "DataFrame", "state": "any", "required": True},
             "dest_path": {"type_name": "str", "state": "dest_identifier", "required": True}
