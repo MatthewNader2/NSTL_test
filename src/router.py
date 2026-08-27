@@ -119,34 +119,29 @@ class MCTSEngine:
                 continue
             visited_sigs.add(sig_key)
 
-            # Get neighbors from orchestrator using bucket lookup
-            with self.orchestrator._lock:
-                bucket_items = list(self.orchestrator._cells_by_input.items())
+            # O(1) indexed lookup of downstream successors
+            for cell in self.orchestrator.get_successors_for_sig(curr_sig):
+                if cell.cell_id in path:
+                    continue
 
-            for (in_type, in_state), target_cells in bucket_items:
-                if curr_sig.unifies_with(AlgebraicSignature(in_type, in_state)):
-                    for cell in target_cells:
-                        if cell.cell_id in path:
-                            continue
+                next_sig = cell.primary_output
+                cell_kws = set(k.lower() for k in cell.keywords)
+                overlap = len(kw_set & cell_kws) if kw_set else 0
 
-                        next_sig = cell.primary_output
-                        cell_kws = set(k.lower() for k in cell.keywords)
-                        overlap = len(kw_set & cell_kws) if kw_set else 0
+                # Priority: prefer fewer hops, higher keyword overlap, avoid internal helper noise
+                step_cost = 1.0 - (0.25 * min(overlap, 3))
+                if any(p in cell.cell_id.lower() for p in ["_group_", "_internal_", "typing_"]):
+                    step_cost += 0.5
 
-                        # Priority: prefer fewer hops, higher keyword overlap, avoid internal helper noise
-                        step_cost = 1.0 - (0.25 * min(overlap, 3))
-                        if any(p in cell.cell_id.lower() for p in ["_group_", "_internal_", "typing_"]):
-                            step_cost += 0.5
-
-                        counter += 1
-                        heapq.heappush(pq, (cost + step_cost, depth + 1, counter, next_sig, path + [cell.cell_id]))
+                counter += 1
+                heapq.heappush(pq, (cost + step_cost, depth + 1, counter, next_sig, path + [cell.cell_id]))
 
         return []
 
 
 class LatticeRouter:
     """
-    Semantic router with type-monadic beam search.
+    Semantic router with type-monadic beam search and planner synchronization.
     Returns (List[Cell], Set[str]) to match main.py contract.
     """
 
@@ -172,31 +167,49 @@ class LatticeRouter:
         beam_width: int = 5,
         max_steps: int = 12
     ) -> Tuple[List[Cell], Set[str]]:
+        from planner import ZeroShotPlanner
+
         prompt_lower = prompt.lower()
         prompt_keywords = set(re.findall(r"[a-zA-Z_]+", prompt_lower))
 
-        # Check for algorithmic seeds first
-        algo_indicators = ["dijkstra", "shortest_path", "bfs", "dfs", "quicksort", "mergesort",
-                           "binary_search", "a_star", "astar", "topological_sort"]
-        matched_indicators = [ind for ind in algo_indicators if ind in prompt_lower or ind.replace("_", "") in prompt_lower.replace(" ", "")]
-        if matched_indicators:
-            candidates: List[Tuple[str, int]] = []
-            for c in self.orchestrator.loaded_cells.values():
-                if c.domain_name in ("algorithms", "python_core", "generic", "macro") or isinstance(c, MacroCell):
-                    cid_lower = c.cell_id.lower()
-                    cell_kws = {k.lower() for k in c.keywords}
-                    algo_overlap = sum(1 for ind in matched_indicators if ind in cid_lower or ind in cell_kws or any(ind in k for k in cell_kws))
-                    if algo_overlap > 0:
-                        candidates.append((c.cell_id, algo_overlap))
+        # Use ZeroShotPlanner to obtain the topological stage plan / waypoints
+        planner = ZeroShotPlanner(self.orchestrator, self.rag)
+        plan_dict = planner.run_planning_pass(prompt)
+        cells_blocks = plan_dict.get("cells", [])
+        sub_cells = cells_blocks[0].get("sub_cells", []) if cells_blocks else []
 
-            if candidates:
-                candidates.sort(key=lambda x: x[1], reverse=True)
-                best_algo_id = candidates[0][0]
-                logger.info(f"[ROUTER] Algorithmic seed found: {best_algo_id}")
-                return self._ids_to_cells([best_algo_id]), set()
-            logger.info("[ROUTER] Algorithmic task detected without seed; yielding to synthesis.")
-            return [], set()
+        if sub_cells:
+            resolved_path: List[Cell] = []
+            current_sig = AlgebraicSignature(
+                start_type or "str",
+                start_state or "source_identifier"
+            )
 
+            for step_id in sub_cells:
+                target_cell = self.orchestrator.loaded_cells.get(step_id)
+                if not target_cell:
+                    continue
+
+                if current_sig.unifies_with(target_cell.primary_input) or target_cell.can_accept(current_sig):
+                    resolved_path.append(target_cell)
+                    current_sig = target_cell.primary_output
+                else:
+                    # Bridge gap between current signature and target cell's required input
+                    bridge = self.mcts.search(current_sig, target_cell.primary_input, prompt_keywords=prompt_keywords)
+                    if bridge:
+                        resolved_path.extend(bridge)
+                        current_sig = bridge[-1].primary_output
+                    resolved_path.append(target_cell)
+                    current_sig = target_cell.primary_output
+
+                # If this cell is a Stage 3 sink (exporter/writer), terminate path immediately
+                if target_cell.stage == 3:
+                    break
+
+            if resolved_path:
+                return resolved_path, set()
+
+        # Pure beam search fallback if planner returned no sub-cells
         current_sig = AlgebraicSignature(
             start_type or "str",
             start_state or "source_identifier"
@@ -213,7 +226,7 @@ class LatticeRouter:
             candidates: List[Tuple[List[str], AlgebraicSignature, float]] = []
 
             for path, sig, score in beam:
-                if sig.unifies_with(goal_sig) and path:
+                if (sig.unifies_with(goal_sig) or sig.state in ("filepath_written", "written")) and path:
                     return self._ids_to_cells(path), set()
 
                 seq_key = "->".join(path)
@@ -251,14 +264,6 @@ class LatticeRouter:
 
         if beam:
             best_path, best_sig, _ = max(beam, key=lambda x: x[2])
-            if not best_sig.unifies_with(goal_sig):
-                try:
-                    bridge = self.mcts.search(best_sig, goal_sig, prompt_keywords=prompt_keywords)
-                    if bridge:
-                        return self._ids_to_cells(best_path + [c.cell_id for c in bridge]), set()
-                except Exception as e:
-                    logger.error(f"[ROUTER] MCTS bridging failed: {e}")
-
             if best_path:
                 return self._ids_to_cells(best_path), set()
 
@@ -311,19 +316,14 @@ class LatticeRouter:
             if top_dom and top_dom not in ("generic", "python_core"):
                 domain_hint = top_dom.lower()
 
-        if not domain_hint:
-            domain_map = {
-                "pandas": ["csv", "dataframe", "df", "read_csv", "to_csv", "dropna"],
-                "cv2": ["image", "opencv", "grayscale", "cvtcolor", "imread", "imwrite"],
-                "numpy": ["array", "ndarray", "reshape", "linspace", "zeros"],
-                "sklearn": ["classifier", "regressor", "fit", "predict", "scaler"],
-                "scipy": ["sparse", "csgraph", "optimize", "integrate"],
-                "matplotlib": ["plot", "figure", "subplot", "savefig"],
-            }
-            for d, kws in domain_map.items():
-                if any(k in prompt_lower for k in kws):
-                    domain_hint = d
-                    break
+        if not domain_hint and entries:
+            domain_counts: Dict[str, float] = {}
+            for entry in entries[:5]:
+                d = (entry.get("domain") or "").lower()
+                if d and d not in ("generic", "python_core", "macro"):
+                    domain_counts[d] = domain_counts.get(d, 0.0) + float(entry.get("score", 0.5))
+            if domain_counts:
+                domain_hint = max(domain_counts, key=domain_counts.get)
 
         for entry in entries:
             cid = entry.get("cell_id", "")

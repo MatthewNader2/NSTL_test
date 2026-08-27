@@ -210,6 +210,25 @@ def _iter_cells_to_compile(cell: Dict[str, Any]) -> Iterator[Dict[str, Any]]:
     node_type = str(cell.get("node_type", "")).lower()
     variants = cell.get("variants", [])
 
+    # 1. ALWAYS yield the master cell itself!
+    regular = dict(cell)
+    if "variants" in regular:
+        del regular["variants"]
+    if "code" in regular and "code_template" not in regular:
+        regular["code_template"] = regular.pop("code")
+    elif not regular.get("code_template"):
+        regular["code_template"] = _extract_code_template(regular)
+
+    if "params" in regular and isinstance(regular["params"], list):
+        regular["parameters"] = _params_to_dict(regular["params"])
+        del regular["params"]
+
+    master_code = regular.get("code_template", "")
+    master_placeholders = set(re.findall(r"\{([a-zA-Z_][a-zA-Z0-9_]*)\}", master_code))
+
+    yield regular
+
+    # 2. If variants exist, yield only structurally valid variants
     if node_type == "special_nested" and isinstance(variants, list) and variants:
         parent_id = cell.get("cell_id", "").upper().strip()
         parent_inputs = cell.get("inputs", {})
@@ -218,12 +237,26 @@ def _iter_cells_to_compile(cell: Dict[str, Any]) -> Iterator[Dict[str, Any]]:
         parent_keywords = set(cell.get("keywords", []))
         parent_domain = cell.get("domain_name", cell.get("domain", "generic")).lower()
 
+        # Crucial required placeholders that must not be stripped
+        crucial_phs = master_placeholders & {"filename", "filepath", "src", "img", "image", "df", "data", "x", "y"}
+
         for variant in variants:
             if not isinstance(variant, dict):
                 continue
 
             variant_id = variant.get("variant_id", "")
             if not variant_id:
+                continue
+
+            code = (
+                variant.get("code_snippet", "")
+                or variant.get("code", "")
+                or master_code
+            )
+
+            variant_phs = set(re.findall(r"\{([a-zA-Z_][a-zA-Z0-9_]*)\}", code))
+            # Reject bogus variant if it stripped all crucial placeholders from the function call
+            if crucial_phs and not (variant_phs & crucial_phs):
                 continue
 
             new_cell = {
@@ -236,14 +269,8 @@ def _iter_cells_to_compile(cell: Dict[str, Any]) -> Iterator[Dict[str, Any]]:
                 "keywords": list(parent_keywords | set(variant.get("keywords", []))),
                 "dependencies": cell.get("dependencies", []),
                 "stage": cell.get("stage"),
+                "code_template": code
             }
-
-            code = (
-                variant.get("code_snippet", "")
-                or variant.get("code", "")
-                or _extract_code_template(cell)
-            )
-            new_cell["code_template"] = code
 
             cfg = _params_to_dict(parent_params)
             for k, v in variant.items():
@@ -254,19 +281,6 @@ def _iter_cells_to_compile(cell: Dict[str, Any]) -> Iterator[Dict[str, Any]]:
             new_cell["parameters"] = cfg
 
             yield new_cell
-        return
-
-    regular = dict(cell)
-    if "code" in regular and "code_template" not in regular:
-        regular["code_template"] = regular.pop("code")
-    elif not regular.get("code_template"):
-        regular["code_template"] = _extract_code_template(regular)
-
-    if "params" in regular and isinstance(regular["params"], list):
-        regular["parameters"] = _params_to_dict(regular["params"])
-        del regular["params"]
-
-    yield regular
 
 
 def init_db(db_file: str = DB_PATH) -> sqlite3.Connection:
@@ -338,8 +352,7 @@ def compile_file_to_db(json_filepath: str, conn: sqlite3.Connection):
             domain_name = cell.get("domain_name", cell.get("domain", "generic")).lower()
             node_type = cell.get("node_type", cell.get("type", "function"))
             node_role = cell.get("node_role", "macro" if node_type == "macro" else "function")
-
-            code = cell.get("code_template", cell.get("code", ""))
+            code = _extract_code_template(cell)
 
             # === TEMPLATE VALIDATION (now node_role is defined) ===
             is_valid, reject_reason = _validate_template(code, cell_id, node_role=node_role)
@@ -363,6 +376,11 @@ def compile_file_to_db(json_filepath: str, conn: sqlite3.Connection):
             out_type = sanitize_type_name(out_type)
 
             stage = determine_stage(cell_id, code, in_type, out_type, cell.get("stage"))
+
+            # Refine stage 1 loader ports: ensure input state is source_identifier
+            if stage == 1:
+                if in_type in ("str", "any"):
+                    in_state = "source_identifier"
 
             # Refine stage 3 sink ports: ensure primary input reflects data object being written
             if stage == 3 and isinstance(config_schema_dict, dict):

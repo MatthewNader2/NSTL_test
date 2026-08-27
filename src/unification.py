@@ -18,6 +18,21 @@ from lattice import AlgebraicSignature, PortSignature, Cell, TypeRegistry
 logger = get_logger('unification')
 
 
+class UnresolvedPlaceholderError(Exception):
+    """Raised when a code template contains unresolvable placeholder slots."""
+    pass
+
+
+def assert_placeholders_resolved(code_str: str, bindings: Optional[Dict[str, Any]] = None) -> None:
+    test_code = code_str
+    if bindings:
+        for k, v in bindings.items():
+            test_code = test_code.replace(f"{{{k}}}", str(v))
+    unbound = re.findall(r"\{([a-zA-Z_][a-zA-Z0-9_]*)\}", test_code)
+    if unbound:
+        raise UnresolvedPlaceholderError(f"Unresolved placeholders found in code: {set(unbound)}")
+
+
 class UnificationFailure(Exception):
     pass
 
@@ -159,6 +174,33 @@ class PlaceholderResolver:
     }
 
     @classmethod
+    def _is_module_attribute(cls, expr_str: str, context: ExecutionContext, cell: Cell) -> bool:
+        if not expr_str or not isinstance(expr_str, str):
+            return False
+        ext = expr_str.split('.')[-1].lower() if '.' in expr_str else ""
+        if ext in cls.KNOWN_FILE_EXTENSIONS or '/' in expr_str or '\\' in expr_str:
+            return False
+        try:
+            pnode = ast.parse(expr_str, mode='eval').body
+            if not isinstance(pnode, ast.Attribute):
+                return False
+            curr = pnode
+            while isinstance(curr, ast.Attribute):
+                curr = curr.value
+            if not isinstance(curr, ast.Name):
+                return False
+            root_mod = curr.id
+            if root_mod in sys.modules or root_mod in getattr(sys, "stdlib_module_names", ()):
+                return True
+            if any(root_mod in dep for dep in context.declared_dependencies) or any(root_mod in dep for dep in (cell.dependencies or [])):
+                return True
+            import importlib.util
+            spec = importlib.util.find_spec(root_mod)
+            return spec is not None
+        except Exception:
+            return False
+
+    @classmethod
     def resolve(
         cls,
         placeholder: str,
@@ -218,7 +260,7 @@ class PlaceholderResolver:
                 dv = str(port.default_value)
                 if dv in ("True", "False", "None") or dv.replace('.', '', 1).isdigit():
                     return dv
-                if any(dv.startswith(pfx) for pfx in ("cv2.", "np.", "pd.", "plt.", "scipy.", "sklearn.")):
+                if cls._is_module_attribute(dv, context, cell):
                     return dv
                 return json.dumps(dv)
 
@@ -259,13 +301,13 @@ class PlaceholderResolver:
             b = context.find_compatible_variable(AlgebraicSignature("dict", "adjacency_dict"))
             if b and b.literal_value:
                 return b.literal_value
-            return "{'A': {'B': 1, 'C': 4}, 'B': {'A': 1, 'C': 2, 'D': 5}, 'C': {'A': 4, 'B': 2, 'D': 1}, 'D': {'B': 5, 'C': 1}}"
+            return "input_graph"
 
         if ph_lower == "start":
             b = context.find_compatible_variable(AlgebraicSignature("str", "source_node"))
             if b and b.literal_value:
                 return b.literal_value
-            return "'A'"
+            return "start_node"
 
         # 4. Check configuration_schema defaults
         cfg = cell.configuration_schema or {}
@@ -278,7 +320,7 @@ class PlaceholderResolver:
                 dv = param_meta["default_value"]
                 if dv is not None and dv != "...":
                     if isinstance(dv, str):
-                        if any(dv.startswith(pfx) for pfx in ("cv2.", "np.", "pd.", "plt.", "scipy.", "sklearn.")):
+                        if cls._is_module_attribute(dv, context, cell):
                             return dv
                         return json.dumps(dv)
                     return repr(dv)
@@ -392,15 +434,46 @@ class UnificationGate:
             )
             transformed = transformed.replace(f"{{{ph}}}", resolved)
 
-        # Safe unquoting: only strip quotes around known Python module constants (e.g. 'cv2.COLOR_BGR2GRAY')
-        # NEVER strip quotes from filenames like 'data.csv'
+        # Safe unquoting: dynamically check if the expression is a valid Python attribute chain
+        # rooted in an importable module (e.g. cv2.COLOR_BGR2GRAY, torch.float32, np.int64).
+        # NEVER strips quotes from filenames like 'data.csv'.
         def _unquote_module_constant(m):
-            const_expr = m.group(1)
-            ext = const_expr.split('.')[-1].lower()
-            if ext in PlaceholderResolver.KNOWN_FILE_EXTENSIONS:
-                return m.group(0)  # Keep filename quoted!
-            if any(const_expr.startswith(pfx) for pfx in ("cv2.", "np.", "pd.", "plt.", "scipy.", "sklearn.")):
-                return const_expr
+            candidate = m.group(1)
+            ext = candidate.split('.')[-1].lower()
+            if ext in PlaceholderResolver.KNOWN_FILE_EXTENSIONS or '/' in candidate or '\\' in candidate:
+                return m.group(0)
+
+            try:
+                node = ast.parse(candidate, mode='eval').body
+                if not isinstance(node, ast.Attribute):
+                    return m.group(0)
+
+                curr = node
+                while isinstance(curr, ast.Attribute):
+                    curr = curr.value
+                if not isinstance(curr, ast.Name):
+                    return m.group(0)
+                root_module = curr.id
+
+                is_known_mod = False
+                if root_module in sys.modules or root_module in getattr(sys, "stdlib_module_names", ()):
+                    is_known_mod = True
+                elif any(root_module in dep for dep in context.declared_dependencies) or any(root_module in dep for dep in (cell.dependencies or [])):
+                    is_known_mod = True
+                else:
+                    import importlib.util
+                    try:
+                        spec = importlib.util.find_spec(root_module)
+                        if spec is not None:
+                            is_known_mod = True
+                    except (ImportError, ValueError, AttributeError):
+                        pass
+
+                if is_known_mod:
+                    return candidate
+            except Exception:
+                pass
+
             return m.group(0)
 
         transformed = re.sub(
@@ -408,6 +481,8 @@ class UnificationGate:
             _unquote_module_constant,
             transformed
         )
+
+        assert_placeholders_resolved(transformed)
 
         context.declare_variable(
             base_name=f"{raw_out_name}_out",

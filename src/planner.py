@@ -13,47 +13,32 @@ logger = get_logger('planner')
 
 
 class ZeroShotPlanner:
-    ALGO_PATTERNS = re.compile(
-        r"\b(dijkstra|bfs|dfs|a\s*star|astar|quicksort|mergesort|heapsort|"
-        r"binary\s*search|topological\s*sort|bellman.?ford|floyd.?warshall|"
-        r"kruskal|prim|kmp|rsa|sha|md5|algorithm)\b",
-        re.IGNORECASE
-    )
-
     def __init__(self, orchestrator: LatticeOrchestrator, rag: Any):
         self.orchestrator = orchestrator
         self.rag = rag
 
     def run_planning_pass(self, prompt: str, profile: str = "C") -> Dict[str, Any]:
-        prompt_lower = prompt.lower()
-        if self.ALGO_PATTERNS.search(prompt):
-            # Check if a verified algorithmic seed exists in the lattice
-            matching_algo_cells = [
-                c.cell_id for c in self.orchestrator.loaded_cells.values()
-                if (c.domain_name in ("algorithms", "python_core") or c.stage == 2)
-                and any(k.lower() in prompt_lower for k in c.keywords if len(k) > 3)
-            ]
-            if matching_algo_cells:
-                logger.info(f"[PLANNER] Algorithmic seed found in lattice: {matching_algo_cells[0]}")
-                return {
-                    "cells": [{
-                        "cell_id": "macro_algo_seeded",
-                        "type": "macro",
-                        "stage": 2,
-                        "sub_cells": [matching_algo_cells[0]]
-                    }]
-                }
-            logger.info("[PLANNER] Algorithmic task detected with no exact seed; routing to synthesis.")
-            return {
-                "cells": [{
-                    "cell_id": "macro_algo_synth",
-                    "type": "macro",
-                    "stage": 2,
-                    "sub_cells": [f"SYNTH_ALGO_{self._slugify(prompt)[:30]}"]
-                }]
-            }
+        context = self.rag.get_relevant_context(prompt, top_k=60)
 
-        context = self.rag.get_relevant_context(prompt, top_k=25)
+        # Check for algorithmic seeds via RAG domain / macro detection
+        if context:
+            for entry in context[:3]:
+                if isinstance(entry, dict):
+                    cid = entry.get("cell_id", "")
+                    dom = (entry.get("domain") or "").lower()
+                    score = float(entry.get("score", 0.0))
+                    cell = self.orchestrator.loaded_cells.get(cid)
+                    if (dom in ("algorithms", "algorithm") or (cell and isinstance(cell, MacroCell) and cell.algorithmic_steps)) and score > 0.35:
+                        logger.info(f"[PLANNER] Algorithmic seed found via RAG: {cid}")
+                        return {
+                            "cells": [{
+                                "cell_id": "macro_algo_seeded",
+                                "type": "macro",
+                                "stage": 2,
+                                "sub_cells": [cid]
+                            }]
+                        }
+
         context_str = self._format_context(context)
 
         system_prompt = self._build_system_prompt(context_str)
@@ -151,54 +136,136 @@ RULES:
                 pass
         return None
 
-    def _deterministic_fallback(self, prompt: str, context: List[Any]) -> Dict[str, Any]:
-        prompt_lower = prompt.lower()
-        keywords = set(re.findall(r"[a-zA-Z_]+", prompt_lower))
+    def _find_best_match_for_stage(
+        self,
+        stage: int,
+        current_sig: AlgebraicSignature,
+        context: List[Any],
+        keywords: Set[str],
+        goal_domain: Optional[str] = None,
+        exclude: Optional[Set[str]] = None
+    ) -> Optional[str]:
+        exclude = exclude or set()
+        best_match = None
+        best_score = -1.0
+        for entry in context:
+            cid = ""
+            score = 0.0
+            if isinstance(entry, dict):
+                cid = entry.get("cell_id", "")
+                score = float(entry.get("score", 0.0))
+            elif isinstance(entry, (list, tuple)) and len(entry) >= 1:
+                cid = str(entry[0])
+                score = float(entry[1]) if len(entry) > 1 else 0.0
+            elif isinstance(entry, str):
+                m = re.search(r"ID:\s*([A-Z0-9_]+)", entry)
+                cid = m.group(1) if m else ""
 
-        # Dynamic domain inference from top context candidate
-        goal_domain = None
-        if context:
-            top = context[0]
-            if isinstance(top, dict) and top.get("domain") and top.get("domain") not in ("generic", "python_core"):
-                goal_domain = top.get("domain")
+            if not cid or cid in exclude:
+                continue
 
-        path = []
-        current_sig = AlgebraicSignature("str", "source_identifier")
+            cell = self.orchestrator.loaded_cells.get(cid)
+            if not cell or cell.stage != stage:
+                continue
 
-        for stage in [1, 2, 3]:
-            best_match = None
-            best_score = -1.0
-            for entry in context:
-                cid = ""
-                score = 0.0
-                if isinstance(entry, dict):
-                    cid = entry.get("cell_id", "")
-                    score = entry.get("score", 0.0)
-                elif isinstance(entry, (list, tuple)) and len(entry) >= 1:
-                    cid = str(entry[0])
-                    score = float(entry[1]) if len(entry) > 1 else 0.0
-                elif isinstance(entry, str):
-                    m = re.search(r"ID:\s*([A-Z0-9_]+)", entry)
-                    cid = m.group(1) if m else ""
+            if not current_sig.unifies_with(cell.primary_input) and not cell.can_accept(current_sig):
+                continue
 
-                cell = self.orchestrator.loaded_cells.get(cid)
-                if not cell or cell.stage != stage:
+            cell_kws = set(k.lower() for k in cell.keywords)
+            overlap = len(keywords & cell_kws)
+            if stage == 2 and keywords and overlap == 0:
+                continue
+
+            score += overlap * 0.35
+
+            if goal_domain:
+                if (cell.domain_name or "").lower() == goal_domain.lower():
+                    score *= 1.3
+                elif (cell.domain_name or "").lower() not in ("generic", "python_core", "macro"):
+                    score *= 0.4
+
+            # Penalize noise helper nodes
+            if any(p in cid.lower() for p in ["_group_", "_internal_", "typing_", "withmetadata", "default"]):
+                score *= 0.7
+
+            if score > best_score:
+                best_score = score
+                best_match = cid
+
+        if best_match is None:
+            # Fallback to O(1) typed lattice successors directly
+            successors = self.orchestrator.get_successors_for_sig(current_sig)
+            for cell in successors:
+                if cell.cell_id in exclude or cell.stage != stage:
                     continue
-                if not current_sig.unifies_with(cell.primary_input):
+                cell_kws = set(k.lower() for k in cell.keywords)
+                overlap = len(keywords & cell_kws)
+                if stage == 2 and keywords and overlap == 0:
                     continue
 
-                score += len(keywords & set(k.lower() for k in cell.keywords)) * 0.2
-                if goal_domain and cell.domain_name != goal_domain:
-                    score *= 0.5
-
+                score = 0.5 + overlap * 0.4
+                if goal_domain:
+                    if (cell.domain_name or "").lower() == goal_domain.lower():
+                        score *= 1.3
+                    elif (cell.domain_name or "").lower() not in ("generic", "python_core", "macro"):
+                        score *= 0.4
+                if any(p in cell.cell_id.lower() for p in ["_group_", "_internal_", "typing_", "withmetadata", "default"]):
+                    score *= 0.6
                 if score > best_score:
                     best_score = score
-                    best_match = cid
+                    best_match = cell.cell_id
 
-            if best_match:
-                path.append(best_match)
-                cell = self.orchestrator.loaded_cells[best_match]
-                current_sig = cell.primary_output
+        return best_match
+
+    GENERIC_STOP_WORDS = {
+        "and", "then", "to", "with", "from", "the", "a", "an", "in", "on", "of", "for",
+        "is", "it", "this", "that", "values", "data", "file", "dataframe", "image",
+        "load", "save", "input", "output", "read", "write"
+    }
+
+    def _deterministic_fallback(self, prompt: str, context: List[Any]) -> Dict[str, Any]:
+        prompt_lower = prompt.lower()
+        all_tokens = set(re.findall(r"[a-zA-Z_]+", prompt_lower))
+        meaningful_keywords = all_tokens - self.GENERIC_STOP_WORDS
+
+        goal_domain = None
+        if context:
+            for c in context:
+                if isinstance(c, dict) and c.get("domain") and c.get("domain") not in ("generic", "python_core", "macro"):
+                    goal_domain = c.get("domain")
+                    break
+
+        path: List[str] = []
+        current_sig = AlgebraicSignature("str", "source_identifier")
+
+        # Stage 1: Source Loader (uses all_tokens to match read/load)
+        stage1_match = self._find_best_match_for_stage(1, current_sig, context, all_tokens, goal_domain)
+        if stage1_match:
+            path.append(stage1_match)
+            current_sig = self.orchestrator.loaded_cells[stage1_match].primary_output
+            cell1 = self.orchestrator.loaded_cells[stage1_match]
+            meaningful_keywords -= set(k.lower() for k in cell1.keywords)
+
+        # Stage 2: Transformations (consume remaining action keywords)
+        while True:
+            stage2_match = self._find_best_match_for_stage(2, current_sig, context, meaningful_keywords, goal_domain, exclude=set(path))
+            if not stage2_match:
+                break
+            cell = self.orchestrator.loaded_cells[stage2_match]
+            cell_kws = set(k.lower() for k in cell.keywords)
+            matched = meaningful_keywords & cell_kws
+            if len(matched) == 0 and len(path) > 1:
+                break
+            path.append(stage2_match)
+            current_sig = cell.primary_output
+            meaningful_keywords -= matched
+            if not meaningful_keywords or len(path) >= 6:
+                break
+
+        # Stage 3: Sink / Export
+        stage3_match = self._find_best_match_for_stage(3, current_sig, context, all_tokens, goal_domain, exclude=set(path))
+        if stage3_match:
+            path.append(stage3_match)
 
         return {
             "cells": [{

@@ -235,10 +235,35 @@ class Cell(ABC):
     def primary_input(self) -> AlgebraicSignature:
         if not self.inputs:
             return AlgebraicSignature("any", "any")
-        for p in self.inputs.values():
-            if p.signature.type_name in ("DataFrame", "Mat", "ndarray", "Series", "dict", "list") and p.signature.state != "source_identifier":
-                return p.signature
+
+        # Stage-driven primary input selection:
+        if self.stage == 1:
+            # Stage 1 (Source/Loader): primary input is source_identifier/filepath
+            for p in self.inputs.values():
+                if p.signature.state in ("source_identifier", "source_uri"):
+                    return p.signature
+        elif self.stage == 3:
+            # Stage 3 (Sink/Writer): primary input is data payload to be exported
+            for p in self.inputs.values():
+                if p.signature.state not in ("dest_identifier", "source_identifier", "source_uri"):
+                    return p.signature
+        else:
+            # Stage 2 (Transform): primary input is required data port (not configuration metadata)
+            for p in self.inputs.values():
+                if p.required and p.signature.state not in ("source_identifier", "dest_identifier", "column_name", "sort_flag"):
+                    return p.signature
+            for p in self.inputs.values():
+                if p.signature.state not in ("source_identifier", "dest_identifier", "column_name", "sort_flag"):
+                    return p.signature
+
         return next(iter(self.inputs.values())).signature
+
+    def can_accept(self, sig: AlgebraicSignature) -> bool:
+        """Returns True if this cell has any input port that unifies with `sig`."""
+        for p in self.inputs.values():
+            if sig.unifies_with(p.signature):
+                return True
+        return False
 
     @property
     def primary_output(self) -> AlgebraicSignature:
@@ -285,8 +310,9 @@ class LatticeOrchestrator:
         self.db_path = os.path.join(trees_directory, "lattice.db")
         self.active_domain = active_domain
         self.loaded_cells: Dict[str, Cell] = {}
-        # Inverse bucket index: (input_type, input_state) -> List[Cell]
+        # Indexed bucket lookup tables for O(1) successor and predecessor retrieval
         self._cells_by_input: Dict[Tuple[str, str], List[Cell]] = {}
+        self._cells_by_output: Dict[Tuple[str, str], List[Cell]] = {}
         self._lock = threading.Lock()
 
         self.load_from_database()
@@ -395,16 +421,18 @@ class LatticeOrchestrator:
             logger.error(f"[LATTICE] Database load error: {e}")
 
     def build_topology(self):
-        """Builds O(N) inverse bucket lookup."""
+        """Builds O(1) indexed lookup tables for both inputs and outputs."""
         with self._lock:
             self._cells_by_input.clear()
+            self._cells_by_output.clear()
             for cell in self.loaded_cells.values():
                 in_sig = cell.primary_input
-                key = (in_sig.type_name, in_sig.state)
-                self._cells_by_input.setdefault(key, []).append(cell)
+                self._cells_by_input.setdefault((in_sig.type_name, in_sig.state), []).append(cell)
+                out_sig = cell.primary_output
+                self._cells_by_output.setdefault((out_sig.type_name, out_sig.state), []).append(cell)
             logger.info(
                 f"[LATTICE] Indexed {len(self.loaded_cells)} cells into "
-                f"{len(self._cells_by_input)} typestate buckets."
+                f"{len(self._cells_by_input)} input buckets and {len(self._cells_by_output)} output buckets."
             )
 
     def inject_cell(self, cell: Cell):
@@ -413,25 +441,63 @@ class LatticeOrchestrator:
             self.loaded_cells[cell.cell_id] = cell
             in_sig = cell.primary_input
             self._cells_by_input.setdefault((in_sig.type_name, in_sig.state), []).append(cell)
+            out_sig = cell.primary_output
+            self._cells_by_output.setdefault((out_sig.type_name, out_sig.state), []).append(cell)
+
+    def get_successors_for_sig(self, sig: AlgebraicSignature) -> List[Cell]:
+        """Returns type-compatible downstream successor cells in O(1) dictionary lookups."""
+        registry = TypeRegistry.get_instance()
+        applicable_types = {sig.type_name, "any", "AnyObject", "object", "*"}
+        curr_type = sig.type_name
+        with registry._lock:
+            ancestors = set()
+            queue = list(registry._parents.get(curr_type, []))
+            while queue:
+                p = queue.pop(0)
+                if p not in ancestors:
+                    ancestors.add(p)
+                    queue.extend(registry._parents.get(p, []))
+            applicable_types.update(ancestors)
+
+        applicable_states = {sig.state, "any"}
+        candidates: List[Cell] = []
+        seen_ids: Set[str] = set()
+
+        with self._lock:
+            for t in applicable_types:
+                for s in applicable_states:
+                    for cell in self._cells_by_input.get((t, s), []):
+                        if cell.cell_id not in seen_ids:
+                            if sig.unifies_with(cell.primary_input) or cell.can_accept(sig):
+                                seen_ids.add(cell.cell_id)
+                                candidates.append(cell)
+
+        return candidates
+
+    def get_predecessors_for_sig(self, sig: AlgebraicSignature) -> List[Cell]:
+        """Returns type-compatible upstream predecessor cells in O(1) dictionary lookups."""
+        applicable_types = {sig.type_name, "any", "AnyObject", "object", "*"}
+        applicable_states = {sig.state, "any"}
+        candidates: List[Cell] = []
+        seen_ids: Set[str] = set()
+
+        with self._lock:
+            for t in applicable_types:
+                for s in applicable_states:
+                    for cell in self._cells_by_output.get((t, s), []):
+                        if cell.cell_id not in seen_ids:
+                            if cell.primary_output.unifies_with(sig):
+                                seen_ids.add(cell.cell_id)
+                                candidates.append(cell)
+
+        return candidates
 
     def get_neighbors(self, cell_id: str) -> List[Cell]:
-        """Returns type-compatible downstream successor cells on-demand."""
+        """Returns type-compatible downstream successor cells on-demand in O(1)."""
         cell = self.loaded_cells.get(cell_id)
         if not cell:
             return []
-
-        out_sig = cell.primary_output
-        neighbors = []
-        seen = set()
-
-        with self._lock:
-            for (in_type, in_state), target_cells in self._cells_by_input.items():
-                if out_sig.unifies_with(AlgebraicSignature(in_type, in_state)):
-                    for tgt in target_cells:
-                        if tgt.cell_id != cell_id and tgt.cell_id not in seen:
-                            seen.add(tgt.cell_id)
-                            neighbors.append(tgt)
-        return neighbors
+        return [c for c in self.get_successors_for_sig(cell.primary_output) if c.cell_id != cell_id]
 
     def get_all_available_cells(self) -> List[Cell]:
         """Returns all loaded cells in the active lattice."""

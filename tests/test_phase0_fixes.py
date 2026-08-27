@@ -143,6 +143,70 @@ class TestPhase0CriticalFixes(unittest.TestCase):
         bridge = mcts.search(AlgebraicSignature("DataFrame", "raw"), AlgebraicSignature("DataFrame", "cleaned"))
         self.assertIsInstance(bridge, list)
 
+    def test_multi_port_resolution_pandas_sort(self):
+        """Verify multi-port cell PANDAS_SORT_VALUES correctly resolves by and ascending from prompt."""
+        ctx = ExecutionContext(prompt="sort data.csv by age ascending")
+        cell = MicroCell(
+            cell_id="PANDAS_SORT_VALUES",
+            stage=2,
+            code_template="{output_var} = {df}.sort_values(by={by}, ascending={ascending})",
+            inputs={
+                "df": PortSignature(name="df", signature=AlgebraicSignature("DataFrame", "raw")),
+                "by": PortSignature(name="by", signature=AlgebraicSignature("str", "column_name")),
+                "ascending": PortSignature(name="ascending", signature=AlgebraicSignature("bool", "sort_flag"), default_value=True)
+            },
+            outputs={"output_var": PortSignature(name="output_var", signature=AlgebraicSignature("DataFrame", "sorted"))},
+            dependencies=["import pandas as pd"]
+        )
+        ctx.declare_variable("df_in", AlgebraicSignature("DataFrame", "raw"))
+        code = UnificationGate.unify_cell(ctx, cell)
+        self.assertIn('by="age"', code.replace("'", '"'))
+        self.assertIn("ascending=True", code)
+
+    def test_dynamic_module_quote_unquoting(self):
+        """Verify arbitrary module constants are dynamically unquoted without a hardcoded whitelist."""
+        ctx = ExecutionContext(prompt="process data")
+        
+        # 1. Filename must STAY quoted
+        cell_file = MicroCell(
+            cell_id="test_read",
+            stage=1,
+            code_template="{output_var} = pd.read_csv({filepath})",
+            inputs={"filepath": PortSignature(name="filepath", signature=AlgebraicSignature("str", "source_identifier"), default_value="data.csv")},
+            outputs={"output_var": PortSignature(name="output_var", signature=AlgebraicSignature("DataFrame", "raw"))},
+            dependencies=["import pandas as pd"]
+        )
+        code_file = UnificationGate.unify_cell(ctx, cell_file)
+        self.assertTrue('"data.csv"' in code_file or "'data.csv'" in code_file)
+
+        # 2. Module constant from any valid module (e.g. cv2, np) must be UNQUOTED
+        cell_mod = MicroCell(
+            cell_id="test_const",
+            stage=2,
+            code_template="{output_var} = cv2.cvtColor({src}, {code})",
+            inputs={
+                "src": PortSignature(name="src", signature=AlgebraicSignature("Mat", "raw")),
+                "code": PortSignature(name="code", signature=AlgebraicSignature("int", "code"), default_value="cv2.COLOR_BGR2GRAY")
+            },
+            outputs={"output_var": PortSignature(name="output_var", signature=AlgebraicSignature("Mat", "grayscale"))},
+            dependencies=["import cv2"]
+        )
+        code_mod = UnificationGate.unify_cell(ctx, cell_mod)
+        self.assertIn("cv2.COLOR_BGR2GRAY", code_mod)
+        self.assertNotIn("'cv2.COLOR_BGR2GRAY'", code_mod)
+
+    def test_orchestrator_o1_successor_index(self):
+        """Verify LatticeOrchestrator O(1) successor lookup."""
+        orchestrator = LatticeOrchestrator(trees_directory=os.path.join(ROOT_DIR, "trees"))
+        self.assertGreater(len(orchestrator._cells_by_input), 0)
+        self.assertGreater(len(orchestrator._cells_by_output), 0)
+
+        successors = orchestrator.get_successors_for_sig(AlgebraicSignature("str", "source_identifier"))
+        self.assertGreater(len(successors), 0)
+        # Should include readers like PANDAS_READ_CSV or CV2_IMREAD
+        succ_ids = [c.cell_id for c in successors]
+        self.assertTrue(any("READ_CSV" in cid for cid in succ_ids))
+
     def test_c14_embedder_thread_safety(self):
         """Verify SentenceTransformer thread-safe inference lock."""
         from inference import BenchmarkProfile_A
