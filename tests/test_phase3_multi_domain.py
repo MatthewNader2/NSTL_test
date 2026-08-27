@@ -281,3 +281,62 @@ def test_task4_adversarial_distractor_inoculation():
         df_res = pd.read_csv(out_csv)
         assert df_res.equals(df), "Saved dataframe does not match original data!"
         print("✅ Task 4 (Adversarial Distractor Inoculation) PASSED")
+
+
+def test_out_of_order_prompt_planning():
+    """Task 5: Out-of-Order Natural Language Prompt Planning and Typestate Synthesis."""
+    ensure_all_trees_db()
+
+    orchestrator = LatticeOrchestrator()
+    orchestrator.load_from_database(DB_PATH)
+    orchestrator.build_topology()
+
+    router = LatticeRouter(orchestrator=orchestrator, internal_rag=None)
+    sandbox = GEVRSandbox()
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        data_csv = os.path.join(tmpdir, "data.csv")
+        cleaned_csv = os.path.join(tmpdir, "cleaned.csv")
+        df = pd.DataFrame({
+            "name": ["Alice", "Bob", "Charlie", "David"],
+            "age": [30.0, None, 22.0, 45.0]
+        })
+        df.to_csv(data_csv, index=False)
+
+        # Intentionally out-of-order: destination stated first, source middle, transformations last
+        prompt = f"Save to {cleaned_csv} the dataset from {data_csv} after dropping missing values and sorting by age ascending"
+
+        t0 = time.perf_counter()
+        path, _ = router.plan_path(prompt, return_tuple=True)
+        latency_ms = (time.perf_counter() - t0) * 1000
+
+        cell_ids = [c.cell_id for c in path]
+        print(f"\n[Phase 3 - Out of Order] Path: {cell_ids} in {latency_ms:.2f}ms")
+
+        # 1. Path structure assertion: despite out-of-order phrasing, data flow must be correct
+        expected_path = [
+            "PANDAS_READ_CSV",
+            "PANDAS_DROPNA",
+            "PANDAS_SORT_VALUES",
+            "PANDAS_TO_CSV"
+        ]
+        assert cell_ids == expected_path, f"Expected {expected_path}, got {cell_ids}"
+
+        # 2. Latency assertion (< 100ms)
+        assert latency_ms < 100.0, f"Latency exceeded 100ms: {latency_ms:.2f}ms"
+
+        # 3. Code Generation & Sandbox Execution
+        ctx = ExecutionContext(prompt=prompt)
+        lines = [UnificationGate.unify_cell(ctx, c) for c in path]
+        code = UnificationGate.resolve_imports("\n".join(lines), ctx)
+        print(f"[Phase 3 - Out of Order] Generated Code:\n{code}\n")
+
+        result = sandbox.execute(code, timeout=5)
+        assert result["success"], f"GEVR execution failed: {result.get('error')}"
+        assert os.path.exists(cleaned_csv), "cleaned.csv was not created!"
+
+        df_res = pd.read_csv(cleaned_csv)
+        assert len(df_res) == 3, f"Expected 3 rows after dropna, got {len(df_res)}"
+        assert list(df_res["name"]) == ["Charlie", "Alice", "David"], f"Incorrect sort order: {list(df_res['name'])}"
+        print("✅ Task 5 (Out-of-Order Prompt Planning) PASSED")
+

@@ -294,21 +294,38 @@ class ExecutionContext:
         files = list(dict.fromkeys(files))
         self.extracted_files = files
 
-        if files:
-            # ALWAYS quote filenames for safe Python insertion
-            self.source_files = [files[0]]
+        src_file, dst_file = None, None
+
+        dest_pattern = rf'(?:save|write|export|output|dump)?\s*(?:figure\s+|image\s+|data\s+|table\s+|results\s+|dataset\s+)*(?:to|into)\s+[\"\'`]?([/~a-zA-Z0-9_\-.]+\.(?:{self.FILE_EXTENSIONS}))'
+        dest_m = re.search(dest_pattern, prompt, re.IGNORECASE)
+        if dest_m:
+            dst_file = dest_m.group(1).strip('.,;:\"\'`()')
+
+        src_pattern = rf'(?:read|load|ingest|import|from)\s+(?:image\s+|data\s+|table\s+|file\s+|dataset\s+)*[\"\'`]?([/~a-zA-Z0-9_\-.]+\.(?:{self.FILE_EXTENSIONS}))'
+        src_m = re.search(src_pattern, prompt, re.IGNORECASE)
+        if src_m:
+            src_file = src_m.group(1).strip('.,;:\"\'`()')
+
+        if not src_file and files:
+            src_file = files[0]
+        if not dst_file and len(files) > 1:
+            candidates = [f for f in files if f != src_file]
+            dst_file = candidates[-1] if candidates else files[-1]
+
+        if src_file:
+            self.source_files = [src_file]
             self.declare_variable(
                 "input_file",
                 AlgebraicSignature("str", "source_identifier"),
-                literal_value=json.dumps(files[0])  # proper JSON quoting
+                literal_value=json.dumps(src_file)
             )
-            if len(files) > 1:
-                self.dest_files = [files[-1]]
-                self.declare_variable(
-                    "output_file",
-                    AlgebraicSignature("str", "dest_identifier"),
-                    literal_value=json.dumps(files[-1])
-                )
+        if dst_file:
+            self.dest_files = [dst_file]
+            self.declare_variable(
+                "output_file",
+                AlgebraicSignature("str", "dest_identifier"),
+                literal_value=json.dumps(dst_file)
+            )
 
         # Explicit 'by' column extraction (e.g. group by region, sort by salary)
         by_match = re.search(

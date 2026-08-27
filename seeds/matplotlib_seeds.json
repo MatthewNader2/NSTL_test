@@ -1,0 +1,61 @@
+[
+  {
+    "cell_id": "MATPLOTLIB_HISTOGRAM",
+    "domain_name": "matplotlib",
+    "node_type": "function",
+    "node_role": "function",
+    "stage": 2,
+    "keywords": ["matplotlib", "hist", "histogram", "plot", "distribution", "figure", "feature", "frequency", "frequency distribution"],
+    "semantic_tags": ["histogram", "hist", "plot", "distribution", "frequency distribution", "figure"],
+    "inputs": {
+      "data": {
+        "type_name": "ndarray",
+        "state": "any",
+        "required": true
+      }
+    },
+    "outputs": {
+      "output_data": {
+        "type_name": "Figure",
+        "state": "plotted"
+      }
+    },
+    "dependencies": [
+      "import matplotlib.pyplot as plt"
+    ],
+    "code_template": "plt.figure()\nplt.hist({data})\n{output_var} = plt.gcf()",
+    "verified": 1
+  },
+  {
+    "cell_id": "MATPLOTLIB_SAVEFIG",
+    "domain_name": "matplotlib",
+    "node_type": "function",
+    "node_role": "function",
+    "stage": 3,
+    "keywords": ["savefig", "save", "figure", "plot", "export", "png", "image", "matplotlib", "chart"],
+    "semantic_tags": ["save", "savefig", "export", "figure", "plot", "image", "png"],
+    "inputs": {
+      "fig": {
+        "type_name": "Figure",
+        "state": "any",
+        "required": true
+      },
+      "dest_path": {
+        "type_name": "str",
+        "state": "dest_identifier",
+        "required": true
+      }
+    },
+    "outputs": {
+      "output_data": {
+        "type_name": "str",
+        "state": "filepath_written"
+      }
+    },
+    "dependencies": [
+      "import matplotlib.pyplot as plt"
+    ],
+    "code_template": "{fig}.savefig({dest_path})\nplt.close({fig})\n{output_var} = {dest_path}",
+    "verified": 1
+  }
+]

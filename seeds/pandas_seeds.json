@@ -1,0 +1,214 @@
+[
+  {
+    "cell_id": "PANDAS_READ_CSV",
+    "domain_name": "pandas",
+    "node_type": "function",
+    "node_role": "function",
+    "stage": 1,
+    "keywords": ["read_csv", "read", "csv", "load", "dataframe", "ingest", "table", "sales", "data", "employees", "input", "dataset"],
+    "semantic_tags": ["read", "load", "csv", "ingest", "dataframe", "table", "dataset"],
+    "inputs": {
+      "filepath": {
+        "type_name": "str",
+        "state": "source_identifier",
+        "required": true
+      }
+    },
+    "outputs": {
+      "output_data": {
+        "type_name": "DataFrame",
+        "state": "raw"
+      }
+    },
+    "dependencies": [
+      "import pandas as pd"
+    ],
+    "code_template": "{output_var} = pd.read_csv({filepath})",
+    "verified": 1
+  },
+  {
+    "cell_id": "PANDAS_DROPNA",
+    "domain_name": "pandas",
+    "node_type": "function",
+    "node_role": "function",
+    "stage": 2,
+    "keywords": ["dropna", "drop", "clean", "null", "missing", "na", "filter", "values", "cleaning"],
+    "semantic_tags": ["drop", "dropna", "clean", "cleaning", "missing", "null", "na"],
+    "inputs": {
+      "df": {
+        "type_name": "DataFrame",
+        "state": "any",
+        "required": true
+      }
+    },
+    "outputs": {
+      "output_data": {
+        "type_name": "DataFrame",
+        "state": "cleaned"
+      }
+    },
+    "dependencies": [
+      "import pandas as pd"
+    ],
+    "code_template": "{output_var} = {df}.dropna()",
+    "verified": 1
+  },
+  {
+    "cell_id": "PANDAS_FILLNA_MEAN",
+    "domain_name": "pandas",
+    "node_type": "function",
+    "node_role": "function",
+    "stage": 2,
+    "keywords": ["fillna", "fill", "missing", "mean", "impute", "imputation", "nan", "null", "values"],
+    "semantic_tags": ["fill", "fillna", "impute", "imputation", "mean", "missing"],
+    "inputs": {
+      "df": {
+        "type_name": "DataFrame",
+        "state": "any",
+        "required": true
+      }
+    },
+    "outputs": {
+      "output_data": {
+        "type_name": "DataFrame",
+        "state": "imputed"
+      }
+    },
+    "dependencies": [
+      "import pandas as pd"
+    ],
+    "code_template": "{output_var} = {df}.fillna({df}.mean(numeric_only=True))",
+    "verified": 1
+  },
+  {
+    "cell_id": "PANDAS_GROUPBY_SUM",
+    "domain_name": "pandas",
+    "node_type": "function",
+    "node_role": "function",
+    "stage": 2,
+    "keywords": ["groupby", "group", "by", "sum", "aggregate", "revenue", "region", "total", "sales"],
+    "semantic_tags": ["groupby", "group", "sum", "aggregate", "aggregation"],
+    "inputs": {
+      "df": {
+        "type_name": "DataFrame",
+        "state": "any",
+        "required": true
+      },
+      "by": {
+        "type_name": "str",
+        "state": "column_name",
+        "required": false,
+        "default_value": "region"
+      }
+    },
+    "outputs": {
+      "output_data": {
+        "type_name": "DataFrame",
+        "state": "aggregated"
+      }
+    },
+    "dependencies": [
+      "import pandas as pd"
+    ],
+    "code_template": "{output_var} = {df}.groupby({by}, as_index=False).sum(numeric_only=True)",
+    "verified": 1
+  },
+  {
+    "cell_id": "PANDAS_SORT_VALUES",
+    "domain_name": "pandas",
+    "node_type": "function",
+    "node_role": "function",
+    "stage": 2,
+    "keywords": ["sort", "sort_values", "order", "descending", "ascending", "by", "salary", "age", "values", "sorting"],
+    "semantic_tags": ["sort", "sort_values", "sorting", "order", "ascending", "descending"],
+    "inputs": {
+      "df": {
+        "type_name": "DataFrame",
+        "state": "any",
+        "required": true
+      },
+      "by": {
+        "type_name": "str",
+        "state": "column_name",
+        "required": false,
+        "default_value": "0"
+      },
+      "ascending": {
+        "type_name": "bool",
+        "state": "sort_flag",
+        "required": false,
+        "default_value": "True"
+      }
+    },
+    "outputs": {
+      "output_data": {
+        "type_name": "DataFrame",
+        "state": "sorted"
+      }
+    },
+    "dependencies": [
+      "import pandas as pd"
+    ],
+    "code_template": "{output_var} = {df}.sort_values(by={by}, ascending={ascending})",
+    "verified": 1
+  },
+  {
+    "cell_id": "PANDAS_DESCRIBE",
+    "domain_name": "pandas",
+    "node_type": "function",
+    "node_role": "function",
+    "stage": 2,
+    "keywords": ["describe", "summary", "stats", "statistics", "exploratory", "eda", "clean", "process", "transform", "values"],
+    "semantic_tags": ["describe", "summary", "statistics", "stats"],
+    "inputs": {
+      "df": {
+        "type_name": "DataFrame",
+        "state": "any",
+        "required": true
+      }
+    },
+    "outputs": {
+      "output_data": {
+        "type_name": "DataFrame",
+        "state": "summary"
+      }
+    },
+    "dependencies": [
+      "import pandas as pd"
+    ],
+    "code_template": "{output_var} = {df}.describe()\nprint({output_var})",
+    "verified": 1
+  },
+  {
+    "cell_id": "PANDAS_TO_CSV",
+    "domain_name": "pandas",
+    "node_type": "function",
+    "node_role": "function",
+    "stage": 3,
+    "keywords": ["to_csv", "save", "export", "write", "csv", "report", "imputed", "top_earners", "output"],
+    "semantic_tags": ["save", "write", "to_csv", "export", "csv"],
+    "inputs": {
+      "df": {
+        "type_name": "DataFrame",
+        "state": "any",
+        "required": true
+      },
+      "dest_path": {
+        "type_name": "str",
+        "state": "dest_identifier",
+        "required": true
+      }
+    },
+    "outputs": {
+      "output_data": {
+        "type_name": "str",
+        "state": "filepath_written"
+      }
+    },
+    "dependencies": [
+      "import pandas as pd"
+    ],
+    "code_template": "{df}.to_csv({dest_path}, index=False)\n{output_var} = {dest_path}",
+    "verified": 1
+  }
+]

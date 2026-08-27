@@ -1,0 +1,89 @@
+[
+  {
+    "cell_id": "PYTHON_LAMBDA_BINARY_OP",
+    "domain_name": "python_core",
+    "node_type": "function",
+    "node_role": "function",
+    "stage": 2,
+    "keywords": ["function", "def", "lambda", "add", "sum", "operator", "binary", "math"],
+    "semantic_tags": ["add", "operator", "binary", "math", "lambda"],
+    "inputs": {
+      "a": {
+        "type_name": "numeric",
+        "state": "any",
+        "required": true
+      },
+      "b": {
+        "type_name": "numeric",
+        "state": "any",
+        "required": true
+      }
+    },
+    "outputs": {
+      "output_data": {
+        "type_name": "numeric",
+        "state": "computed"
+      }
+    },
+    "dependencies": [],
+    "code_template": "{output_var} = {a} + {b}",
+    "verified": 1
+  },
+  {
+    "cell_id": "PYTHON_PRINT_STDOUT",
+    "domain_name": "python_core",
+    "node_type": "function",
+    "node_role": "function",
+    "stage": 3,
+    "keywords": ["print", "stdout", "display", "output", "show", "summary"],
+    "semantic_tags": ["print", "stdout", "display", "show"],
+    "inputs": {
+      "data": {
+        "type_name": "any",
+        "state": "any",
+        "required": true
+      }
+    },
+    "outputs": {
+      "output_data": {
+        "type_name": "None",
+        "state": "displayed"
+      }
+    },
+    "dependencies": [],
+    "code_template": "print({data})",
+    "verified": 1
+  },
+  {
+    "cell_id": "PYTHON_DIJKSTRA_ALGORITHM",
+    "domain_name": "algorithms",
+    "node_type": "function",
+    "node_role": "function",
+    "stage": 2,
+    "keywords": ["dijkstra", "shortest_path", "graph", "heapq", "pathfinding", "distances"],
+    "semantic_tags": ["dijkstra", "shortest_path", "graph", "pathfinding"],
+    "inputs": {
+      "graph": {
+        "type_name": "dict",
+        "state": "adjacency_dict",
+        "required": false
+      },
+      "start": {
+        "type_name": "str",
+        "state": "source_node",
+        "required": false
+      }
+    },
+    "outputs": {
+      "output_data": {
+        "type_name": "dict",
+        "state": "distances"
+      }
+    },
+    "dependencies": [
+      "import heapq"
+    ],
+    "code_template": "import heapq\n\ndef dijkstra(graph, start):\n    distances = {node: float('inf') for node in graph}\n    distances[start] = 0\n    pq = [(0, start)]\n    while pq:\n        curr_dist, curr_node = heapq.heappop(pq)\n        if curr_dist > distances[curr_node]:\n            continue\n        for neighbor, weight in graph.get(curr_node, {}).items():\n            dist = curr_dist + weight\n            if dist < distances[neighbor]:\n                distances[neighbor] = dist\n                heapq.heappush(pq, (dist, neighbor))\n    return distances\n\n{output_var} = dijkstra({graph}, {start})",
+    "verified": 1
+  }
+]

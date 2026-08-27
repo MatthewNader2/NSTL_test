@@ -460,7 +460,7 @@ def compile_database(output_db: str = DB_PATH, domain_filter: Optional[List[str]
     sys.path.insert(0, os.path.join(PROJECT_ROOT, "harvesting"))
     try:
         from pattern_harvester import harvest_core_patterns
-        harvest_core_patterns(output_db)
+        harvest_core_patterns(output_db, domain_filter=domain_filter)
     except Exception as e:
         print(f"[!] Warning on pattern_harvester: {e}")
 

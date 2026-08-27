@@ -206,7 +206,7 @@ class Cell(ABC):
         "cell_id", "stage", "keywords", "cell_type",
         "inputs", "outputs", "domain_name", "node_type", "node_role",
         "dependencies", "code_template", "metadata_tags", "_db_path",
-        "configuration_schema"
+        "configuration_schema", "verified", "semantic_tags"
     ]
 
     def __init__(
@@ -225,6 +225,8 @@ class Cell(ABC):
         metadata_tags: Optional[Dict[str, Any]] = None,
         db_path: str = "",
         configuration_schema: Optional[Dict[str, Any]] = None,
+        verified: bool = False,
+        semantic_tags: Optional[List[str]] = None
     ):
         self.cell_id = cell_id
         self.stage = stage
@@ -238,6 +240,8 @@ class Cell(ABC):
         self.metadata_tags = metadata_tags or {}
         self._db_path = db_path
         self.configuration_schema = configuration_schema or {}
+        self.verified = bool(verified)
+        self.semantic_tags = list(semantic_tags) if semantic_tags else list(self.keywords)
 
         # Defensive normalization: accept PortSignature, AlgebraicSignature, or raw dicts
         self.inputs: Dict[str, PortSignature] = {}
@@ -285,49 +289,56 @@ class Cell(ABC):
                 self.outputs[k] = PortSignature(name=k, signature=AlgebraicSignature("any", "any"))
 
     @property
-    def primary_input(self) -> AlgebraicSignature:
+    def primary_input(self) -> PortSignature:
+        """
+        Identifies the main data port based on typestate and stage,
+        independent of dictionary insertion order.
+        """
         if not self.inputs:
-            return AlgebraicSignature("any", "any")
+            return PortSignature("input_data", AlgebraicSignature("any", "any"))
 
-        # Stage-driven primary input selection:
+        # Stage 1 (Source): expects URI / path identifier
         if self.stage == 1:
-            # Stage 1 (Source/Loader): primary input is source_identifier/filepath
             for p in self.inputs.values():
-                if p.signature.state in ("source_identifier", "source_uri"):
-                    return p.signature
-        elif self.stage == 3:
-            # Stage 3 (Sink/Writer): primary input is data payload to be exported
-            for p in self.inputs.values():
-                if p.signature.state not in ("dest_identifier", "source_identifier", "source_uri"):
-                    return p.signature
-        else:
-            # Stage 2 (Transform): primary input is required data port (not configuration metadata)
-            for p in self.inputs.values():
-                if p.required and p.signature.state not in ("source_identifier", "dest_identifier", "column_name", "sort_flag"):
-                    return p.signature
-            for p in self.inputs.values():
-                if p.signature.state not in ("source_identifier", "dest_identifier", "column_name", "sort_flag"):
-                    return p.signature
+                if p.state in ("source_identifier", "filepath_read", "input_uri", "source_uri"):
+                    return p
+            return next(iter(self.inputs.values()))
 
-        return next(iter(self.inputs.values())).signature
-
-    def can_accept(self, sig: AlgebraicSignature) -> bool:
-        """Returns True if this cell has any input port that unifies with `sig`."""
+        # Stage 2 & 3: prioritize container data types over parameter primitives
+        data_types = {"DataFrame", "ndarray", "Mat", "Figure", "Graph", "Tensor", "Series", "Dataset"}
         for p in self.inputs.values():
-            if sig.unifies_with(p.signature):
+            if p.type_name in data_types or p.state in ("raw", "cleaned", "sorted", "plotted", "scaled", "data_payload"):
+                return p
+
+        # Fallback to the first non-primitive port if available
+        for p in self.inputs.values():
+            if p.type_name not in ("str", "int", "float", "bool"):
+                return p
+
+        return next(iter(self.inputs.values()))
+
+    def can_accept(self, sig: Union[AlgebraicSignature, PortSignature]) -> bool:
+        """Returns True if this cell has any input port that unifies with `sig`."""
+        target_sig = sig.signature if hasattr(sig, "signature") else sig
+        for p in self.inputs.values():
+            if target_sig.unifies_with(p.signature):
                 return True
         return False
 
     @property
-    def primary_output(self) -> AlgebraicSignature:
+    def primary_output(self) -> PortSignature:
         if not self.outputs:
-            return AlgebraicSignature("None", "any")
-        return next(iter(self.outputs.values())).signature
+            return PortSignature("output_data", AlgebraicSignature("None", "any"))
+        data_types = {"DataFrame", "ndarray", "Mat", "Figure", "Graph", "Tensor", "Series", "Dataset"}
+        for p in self.outputs.values():
+            if p.type_name in data_types or p.state in ("raw", "cleaned", "sorted", "plotted", "scaled", "data_payload", "filepath_written"):
+                return p
+        return next(iter(self.outputs.values()))
 
     def __repr__(self) -> str:
         return (
             f"<{self.__class__.__name__} {self.cell_id} "
-            f"({self.domain_name}) {self.primary_input} -> {self.primary_output}>"
+            f"({self.domain_name}) {self.primary_input.signature} -> {self.primary_output.signature}>"
         )
 
 
@@ -490,7 +501,8 @@ class LatticeOrchestrator:
                         dependencies=dependencies,
                         code_template=code or "",
                         db_path=self.db_path,
-                        configuration_schema=configuration_schema
+                        configuration_schema=configuration_schema,
+                        verified=bool(verified)
                     )
                     self.loaded_cells[cell.cell_id] = cell
 
@@ -608,11 +620,12 @@ class LatticeOrchestrator:
         """Alias for inject_cell."""
         self.inject_cell(cell)
 
-    def get_successors_for_sig(self, sig: AlgebraicSignature, stage: Optional[int] = None) -> List[Cell]:
+    def get_successors_for_sig(self, sig: Union[AlgebraicSignature, PortSignature], stage: Optional[int] = None) -> List[Cell]:
         """Returns type-compatible downstream successor cells in O(1) dictionary lookups."""
+        sig_val = sig.signature if hasattr(sig, "signature") else sig
         registry = TypeRegistry.get_instance()
-        applicable_types = {sig.type_name, "any", "AnyObject", "object", "*"}
-        curr_type = sig.type_name
+        applicable_types = {sig_val.type_name, "any", "AnyObject", "object", "*"}
+        curr_type = sig_val.type_name
         with registry._lock:
             ancestors = set()
             queue = list(registry._parents.get(curr_type, []))
@@ -623,7 +636,7 @@ class LatticeOrchestrator:
                     queue.extend(registry._parents.get(p, []))
             applicable_types.update(ancestors)
 
-        applicable_states = {sig.state, "any"}
+        applicable_states = {sig_val.state, "any"}
         candidates: List[Cell] = []
         seen_ids: Set[str] = set()
 
@@ -636,9 +649,8 @@ class LatticeOrchestrator:
                         bucket = self._cells_by_input.get((t, s), [])
                     for cell in bucket:
                         if cell.cell_id not in seen_ids:
-                            if sig.unifies_with(cell.primary_input) or cell.can_accept(sig):
-                                seen_ids.add(cell.cell_id)
-                                candidates.append(cell)
+                            seen_ids.add(cell.cell_id)
+                            candidates.append(cell)
 
         return candidates
 

@@ -263,68 +263,38 @@ RULES:
     }
 
     def _deterministic_fallback(self, prompt: str, context: List[Any]) -> Dict[str, Any]:
-        prompt_lower = prompt.lower()
-        prompt_tokens_ordered = [
-            t for t in re.findall(r"[a-zA-Z0-9]+", prompt_lower)
-            if t not in self.GENERIC_STOP_WORDS
-        ]
-        all_tokens = set(re.findall(r"[a-zA-Z0-9]+", prompt_lower))
-        meaningful_keywords = set(prompt_tokens_ordered)
+        from router import SemanticStateAStar
+        from lattice import PortSignature, AlgebraicSignature
 
-        goal_domain = None
+        astar = SemanticStateAStar(self.orchestrator, self.rag)
+
+        candidate_pool = []
         if context:
-            for c in context:
-                if isinstance(c, dict) and c.get("domain") and c.get("domain") not in ("generic", "python_core", "macro"):
-                    goal_domain = c.get("domain")
-                    break
+            for entry in context:
+                if isinstance(entry, dict):
+                    cid = entry.get("cell_id", "")
+                    c = self.orchestrator.loaded_cells.get(cid)
+                    if c:
+                        candidate_pool.append(c)
+        for c in self.orchestrator.loaded_cells.values():
+            if getattr(c, "verified", False):
+                candidate_pool.append(c)
 
-        path: List[str] = []
-        current_sig = AlgebraicSignature("str", "source_identifier")
+        intents = astar.extract_required_intents(prompt)
 
-        # Stage 1: Source Loader (uses all_tokens to match read/load)
-        stage1_match = self._find_best_match_for_stage(
-            1, current_sig, context, all_tokens, goal_domain, prompt_order=prompt_tokens_ordered
-        )
-        if stage1_match:
-            path.append(stage1_match)
-            current_sig = self.orchestrator.loaded_cells[stage1_match].primary_output
-            cell1 = self.orchestrator.loaded_cells[stage1_match]
-            _, matched1 = self._compute_overlap(meaningful_keywords, set(k.lower() for k in cell1.keywords))
-            meaningful_keywords -= matched1
+        start_sig = PortSignature("input_data", AlgebraicSignature("str", "source_identifier"))
+        if any(w in prompt.lower() for w in ["graph", "adjacency", "dijkstra", "shortest_path"]):
+            start_sig = PortSignature("graph", AlgebraicSignature("dict", "adjacency_dict"))
 
-        # Stage 2: Transformations (consume remaining action keywords in prompt order)
-        while meaningful_keywords:
-            stage2_match = self._find_best_match_for_stage(
-                2, current_sig, context, meaningful_keywords, goal_domain,
-                exclude=set(path), prompt_order=prompt_tokens_ordered
-            )
-            if not stage2_match:
-                break
-            cell = self.orchestrator.loaded_cells[stage2_match]
-            cell_kws = set(k.lower() for k in cell.keywords)
-            _, matched = self._compute_overlap(meaningful_keywords, cell_kws)
-            if len(matched) == 0:
-                break
-            path.append(stage2_match)
-            current_sig = cell.primary_output
-            meaningful_keywords -= matched
-            if not meaningful_keywords or len(path) >= 6:
-                break
-
-        # Stage 3: Sink / Export
-        stage3_match = self._find_best_match_for_stage(
-            3, current_sig, context, all_tokens, goal_domain,
-            exclude=set(path), prompt_order=prompt_tokens_ordered
-        )
-        if stage3_match:
-            path.append(stage3_match)
+        path = astar.search(start_sig, None, intents, candidate_pool=candidate_pool)
+        sub_cells = [c.cell_id for c in path]
 
         return {
             "cells": [{
                 "cell_id": "macro_fallback",
                 "type": "macro",
                 "stage": 1,
-                "sub_cells": path
+                "sub_cells": sub_cells
             }]
         }
 

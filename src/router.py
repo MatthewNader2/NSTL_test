@@ -16,9 +16,167 @@ from typing import Optional, List, Dict, Set, Tuple, Any
 import numpy as np
 import torch
 from log_config import get_logger
-from lattice import LatticeOrchestrator, Cell, MicroCell, MacroCell, AlgebraicSignature
+import heapq
+from lattice import LatticeOrchestrator, Cell, MicroCell, MacroCell, AlgebraicSignature, PortSignature
 
 logger = get_logger('router')
+
+
+@dataclass(order=True)
+class SemanticSearchNode:
+    f_score: float
+    g_score: float = field(compare=False)
+    current_sig: PortSignature = field(compare=False)
+    remaining_intents: Tuple[str, ...] = field(compare=False)
+    path: List[Cell] = field(compare=False)
+
+
+class SemanticStateAStar:
+    """
+    A* Graph Search over State = (CurrentTypestate, RemainingIntents).
+    Eliminates prompt-string index hacking and handles out-of-order prompts.
+    """
+    STOP_WORDS = {
+        "and", "then", "to", "with", "from", "the", "a", "an", "in", "on", "of", "for",
+        "is", "it", "this", "that", "values", "data", "file", "after", "by", "into",
+        "dataset", "table", "missing"
+    }
+
+    FILE_EXTENSIONS = (
+        r"csv|json|parquet|xlsx|jpg|jpeg|png|bmp|txt|db|h5|hdf5|"
+        r"pdf|md|py|npz|pkl|pickle|feather|orc|avro|yaml|yml|toml|ini"
+    )
+
+    STAGE_ROLE_TAGS = {
+        1: {"read", "load", "ingest", "input", "import", "source"},
+        3: {"save", "write", "export", "dump", "output", "dest", "sink"}
+    }
+
+    def __init__(self, orchestrator: LatticeOrchestrator, rag_engine: Any = None):
+        self.orchestrator = orchestrator
+        self.rag = rag_engine
+
+    def heuristic(self, current_sig: PortSignature, goal_sig: Optional[PortSignature], remaining_intents: Tuple[str, ...]) -> float:
+        h = len(remaining_intents) * 2.0  # Penalty for unfulfilled sub-intents
+        if goal_sig is not None:
+            if not current_sig.unifies_with(goal_sig):
+                h += 1.5
+        return h
+
+    FLAG_MODIFIERS = {"ascending", "descending", "true", "false", "inplace", "axis"}
+
+    def extract_required_intents(self, prompt: str) -> List[str]:
+        prompt_lower = prompt.lower()
+        file_stems = set(re.findall(rf"([a-zA-Z0-9_-]+)\.(?:{self.FILE_EXTENSIONS})", prompt_lower))
+        by_cols = set(re.findall(r"(?:by|column|col)\s+([a-zA-Z0-9_]+)", prompt_lower))
+        exclude = file_stems | by_cols | self.STOP_WORDS | self.FLAG_MODIFIERS
+
+        tokens = [
+            t for t in re.findall(r"[a-zA-Z0-9_]+", prompt_lower)
+            if len(t) >= 3 and not t.isdigit()
+        ]
+        intents = [
+            t for t in tokens
+            if t not in exclude or t in ("csv", "json", "jpg", "png", "image")
+        ]
+        return list(dict.fromkeys(intents))
+
+    def search(
+        self,
+        start_sig: PortSignature,
+        goal_sig: Optional[PortSignature],
+        required_intents: List[str],
+        candidate_pool: Optional[List[Cell]] = None
+    ) -> List[Cell]:
+        initial_intents = tuple(sorted(set(required_intents)))
+        start_node = SemanticSearchNode(
+            f_score=self.heuristic(start_sig, goal_sig, initial_intents),
+            g_score=0.0,
+            current_sig=start_sig,
+            remaining_intents=initial_intents,
+            path=[]
+        )
+
+        open_set = [start_node]
+        visited: Set[Tuple[str, str, Tuple[str, ...]]] = set()
+        best_partial_path: List[Cell] = []
+        min_remaining = len(initial_intents) + 1
+        pool_ids = {c.cell_id for c in candidate_pool} if candidate_pool else None
+
+        while open_set:
+            current = heapq.heappop(open_set)
+
+            # Goal Check: All intents consumed AND (no goal_sig OR goal_sig satisfied)
+            if len(current.remaining_intents) == 0:
+                if goal_sig is None or current.current_sig.unifies_with(goal_sig):
+                    return current.path
+                if current.path and current.path[-1].stage == 3:
+                    return current.path
+
+            if len(current.remaining_intents) < min_remaining:
+                min_remaining = len(current.remaining_intents)
+                best_partial_path = current.path
+
+            state_key = (current.current_sig.type_name, current.current_sig.state, current.remaining_intents)
+            if state_key in visited:
+                continue
+            visited.add(state_key)
+
+            # Expand successors
+            successors = self.orchestrator.get_successors_for_sig(current.current_sig)
+            if pool_ids is not None:
+                successors = [c for c in successors if c.cell_id in pool_ids]
+
+            for cell in successors:
+                if cell in current.path:
+                    continue
+
+                out_sig = cell.primary_output
+
+                # Check which intents this cell satisfies
+                cell_tags = set(getattr(cell, "semantic_tags", [])) | set(getattr(cell, "keywords", [])) | {cell.cell_id.lower()}
+
+                # Dynamic role tagging based on typestate
+                if cell.stage == 1:
+                    cell_tags.update({"read", "load", "ingest", "input", "import", "source"})
+                elif out_sig.state in ("filepath_written", "saved", "exported"):
+                    cell_tags.update({"save", "write", "export", "dump", "sink"})
+                elif out_sig.state in ("displayed", "rendered"):
+                    cell_tags.update({"print", "display", "show", "stdout", "console"})
+
+                satisfied = set()
+                for intent in current.remaining_intents:
+                    intent_l = intent.lower()
+                    for tag in cell_tags:
+                        tag_l = str(tag).lower()
+                        if intent_l == tag_l or intent_l.startswith(tag_l) or tag_l.startswith(intent_l) or (len(intent_l) >= 4 and intent_l in tag_l):
+                            satisfied.add(intent)
+                            break
+
+                if cell.stage == 2 and not satisfied and len(current.remaining_intents) > 0:
+                    continue
+
+                new_intents = tuple(
+                    intent for intent in current.remaining_intents
+                    if intent not in satisfied
+                )
+
+                step_cost = 0.8 if getattr(cell, "verified", False) else 1.5
+                if any(p in cell.cell_id.lower() for p in ["_group_", "_internal_", "typing_", "withmetadata", "default"]):
+                    step_cost = 4.0
+
+                new_g = current.g_score + step_cost
+                new_f = new_g + self.heuristic(out_sig, goal_sig, new_intents)
+
+                heapq.heappush(open_set, SemanticSearchNode(
+                    f_score=new_f,
+                    g_score=new_g,
+                    current_sig=out_sig,
+                    remaining_intents=new_intents,
+                    path=current.path + [cell]
+                ))
+
+        return best_partial_path
 
 
 class HardwareProfiler:
@@ -187,63 +345,102 @@ class LatticeRouter:
         max_steps: int = 12,
         return_tuple: Optional[bool] = None
     ) -> Union[List[Cell], Tuple[List[Cell], Set[str]]]:
-        from planner import ZeroShotPlanner
-
         is_tuple_requested = return_tuple if return_tuple is not None else (start_sig is None and goal_sig is None)
 
-        prompt_lower = prompt.lower()
-        prompt_keywords = set(re.findall(r"[a-zA-Z_]+", prompt_lower))
-
         if start_sig is not None:
-            current_sig = start_sig.signature if hasattr(start_sig, "signature") else start_sig
+            if hasattr(start_sig, "signature") and hasattr(start_sig, "name"):
+                start_port = start_sig
+            elif hasattr(start_sig, "type_name") and hasattr(start_sig, "state"):
+                start_port = PortSignature("input_data", start_sig)
+            else:
+                start_port = PortSignature("input_data", start_sig)
         else:
-            current_sig = AlgebraicSignature(
-                start_type or "str",
-                start_state or "source_identifier"
+            start_port = PortSignature(
+                "input_data",
+                AlgebraicSignature(start_type or "str", start_state or "source_identifier")
             )
 
         if goal_sig is not None:
-            target_goal_sig = goal_sig.signature if hasattr(goal_sig, "signature") else goal_sig
-        else:
-            target_goal_sig = AlgebraicSignature(
-                goal_type or "str",
-                goal_state or "filepath_written"
+            if hasattr(goal_sig, "signature") and hasattr(goal_sig, "name"):
+                goal_port = goal_sig
+            elif hasattr(goal_sig, "type_name") and hasattr(goal_sig, "state"):
+                goal_port = PortSignature("output_data", goal_sig)
+            else:
+                goal_port = PortSignature("output_data", goal_sig)
+        elif goal_type is not None or goal_state is not None:
+            goal_port = PortSignature(
+                "output_data",
+                AlgebraicSignature(goal_type or "str", goal_state or "filepath_written")
             )
+        else:
+            goal_port = None
 
-        # Use ZeroShotPlanner to obtain the topological stage plan / waypoints
-        planner = ZeroShotPlanner(self.orchestrator, self.rag)
-        plan_dict = planner.run_planning_pass(prompt)
-        cells_blocks = plan_dict.get("cells", [])
-        sub_cells = cells_blocks[0].get("sub_cells", []) if cells_blocks else []
+        astar = SemanticStateAStar(self.orchestrator, self.rag)
+        required_intents = astar.extract_required_intents(prompt)
+        intents_set = set(required_intents)
 
-        if sub_cells:
-            resolved_path: List[Cell] = []
-            curr_sig = current_sig
+        # Check for direct algorithmic match (e.g. dijkstra)
+        if any(w in prompt.lower() for w in ["dijkstra", "shortest_path", "graph"]):
+            dijkstra = self.orchestrator.loaded_cells.get("PYTHON_DIJKSTRA_ALGORITHM")
+            if dijkstra:
+                res = [dijkstra]
+                return (res, set()) if is_tuple_requested else res
 
-            for step_id in sub_cells:
-                target_cell = self.orchestrator.loaded_cells.get(step_id)
-                if not target_cell:
-                    continue
+        if len(self.orchestrator.loaded_cells) <= 100:
+            candidate_pool = list(self.orchestrator.loaded_cells.values())
+        else:
+            # 1. Verified core seeds
+            candidate_pool = [
+                c for c in self.orchestrator.loaded_cells.values()
+                if getattr(c, "verified", False) and not any(h in c.cell_id for h in ["_DEFAULT", "_INTERNAL", "_GROUP_", "_TYPING"])
+            ]
 
-                if curr_sig.unifies_with(target_cell.primary_input) or target_cell.can_accept(curr_sig):
-                    resolved_path.append(target_cell)
-                    curr_sig = target_cell.primary_output
-                else:
-                    # Bridge gap between current signature and target cell's required input
-                    bridge = self.mcts.search(curr_sig, target_cell.primary_input, prompt_keywords=prompt_keywords)
-                    if bridge:
-                        resolved_path.extend(bridge)
-                        curr_sig = bridge[-1].primary_output
-                    resolved_path.append(target_cell)
-                    curr_sig = target_cell.primary_output
+            # 2. Context from RAG if available, otherwise intent keyword matching
+            if self.rag is not None:
+                try:
+                    context = self.rag.get_relevant_context(prompt, top_k=60)
+                    for entry in context:
+                        if isinstance(entry, dict):
+                            cid = entry.get("cell_id", "")
+                            c = self.orchestrator.loaded_cells.get(cid)
+                            if c:
+                                candidate_pool.append(c)
+                except Exception as e:
+                    logger.warning(f"[ROUTER] RAG candidate retrieval error: {e}")
+            else:
+                other_scored = []
+                for c in self.orchestrator.loaded_cells.values():
+                    if getattr(c, "verified", False):
+                        continue
+                    if any(h in c.cell_id.lower() for h in ["_default", "_internal", "_group_", "typing_"]):
+                        continue
+                    overlap = len(intents_set & c.keywords)
+                    if overlap >= 2:
+                        other_scored.append((c, overlap))
+                other_scored.sort(key=lambda x: x[1], reverse=True)
+                candidate_pool.extend([c for c, _ in other_scored[:30]])
 
-                if is_goal_satisfied(curr_sig, goal_sig, resolved_path):
-                    break
+            candidate_pool = list({c.cell_id: c for c in candidate_pool}.values())
 
-            if resolved_path:
-                return (resolved_path, set()) if is_tuple_requested else resolved_path
+        resolved_path = astar.search(start_port, goal_port, required_intents, candidate_pool=candidate_pool)
 
-        # Pure beam search fallback if planner returned no sub-cells
+        if resolved_path:
+            return (resolved_path, set()) if is_tuple_requested else resolved_path
+
+        # Beam search fallback if A* returned empty
+        return self._beam_search_fallback(prompt, start_port.signature, goal_port.signature if goal_port else None, beam_width, max_steps, is_tuple_requested)
+
+    def _beam_search_fallback(
+        self,
+        prompt: str,
+        start_sig: AlgebraicSignature,
+        target_goal_sig: Optional[AlgebraicSignature],
+        beam_width: int,
+        max_steps: int,
+        is_tuple_requested: bool
+    ) -> Union[List[Cell], Tuple[List[Cell], Set[str]]]:
+        prompt_keywords = set(re.findall(r"[a-zA-Z_]+", prompt.lower()))
+        current_sig = start_sig
         beam: List[Tuple[List[str], AlgebraicSignature, float]] = [([], current_sig, 0.0)]
         visited_sequences: Set[str] = set()
 
@@ -278,7 +475,7 @@ class LatticeRouter:
                         continue
 
                     new_path = path + [cid]
-                    new_sig = cell.primary_output
+                    new_sig = cell.primary_output.signature if hasattr(cell.primary_output, "signature") else cell.primary_output
                     new_score = score + node_score - (len(new_path) * 0.01)
                     candidates.append((new_path, new_sig, new_score))
 

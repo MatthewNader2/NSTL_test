@@ -1,0 +1,94 @@
+[
+  {
+    "cell_id": "CV2_IMREAD",
+    "domain_name": "opencv",
+    "node_type": "function",
+    "node_role": "function",
+    "stage": 1,
+    "keywords": ["imread", "read", "load", "image", "cv2", "picture", "jpg", "png", "jpeg", "input"],
+    "semantic_tags": ["read", "load", "imread", "image", "picture", "input"],
+    "inputs": {
+      "filepath": {
+        "type_name": "str",
+        "state": "source_identifier",
+        "required": true
+      }
+    },
+    "outputs": {
+      "output_data": {
+        "type_name": "Mat",
+        "state": "raw"
+      }
+    },
+    "dependencies": [
+      "import cv2"
+    ],
+    "code_template": "{output_var} = cv2.imread({filepath})",
+    "verified": 1
+  },
+  {
+    "cell_id": "CV2_CVTCOLOR",
+    "domain_name": "opencv",
+    "node_type": "function",
+    "node_role": "function",
+    "stage": 2,
+    "keywords": ["cvtcolor", "convert", "color", "gray", "grayscale", "rgb", "hsv", "cv2"],
+    "semantic_tags": ["convert", "cvtcolor", "gray", "grayscale", "color"],
+    "inputs": {
+      "src": {
+        "type_name": "Mat",
+        "state": "any",
+        "required": true
+      },
+      "code": {
+        "type_name": "int",
+        "state": "color_code",
+        "required": false,
+        "default_value": "cv2.COLOR_BGR2GRAY"
+      }
+    },
+    "outputs": {
+      "output_data": {
+        "type_name": "Mat",
+        "state": "converted"
+      }
+    },
+    "dependencies": [
+      "import cv2"
+    ],
+    "code_template": "{output_var} = cv2.cvtColor({src}, {code})",
+    "verified": 1
+  },
+  {
+    "cell_id": "CV2_IMWRITE",
+    "domain_name": "opencv",
+    "node_type": "function",
+    "node_role": "function",
+    "stage": 3,
+    "keywords": ["imwrite", "save", "write", "image", "export", "cv2", "output", "gray", "jpg", "png"],
+    "semantic_tags": ["save", "write", "imwrite", "export", "image", "output", "gray"],
+    "inputs": {
+      "img": {
+        "type_name": "Mat",
+        "state": "any",
+        "required": true
+      },
+      "dest_path": {
+        "type_name": "str",
+        "state": "dest_identifier",
+        "required": true
+      }
+    },
+    "outputs": {
+      "output_data": {
+        "type_name": "bool",
+        "state": "written"
+      }
+    },
+    "dependencies": [
+      "import cv2"
+    ],
+    "code_template": "cv2.imwrite({dest_path}, {img})\n{output_var} = True",
+    "verified": 1
+  }
+]

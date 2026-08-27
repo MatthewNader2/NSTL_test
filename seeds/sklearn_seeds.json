@@ -1,0 +1,29 @@
+[
+  {
+    "cell_id": "SKLEARN_STANDARD_SCALER",
+    "domain_name": "sklearn",
+    "node_type": "function",
+    "node_role": "function",
+    "stage": 2,
+    "keywords": ["sklearn", "standardscaler", "standardize", "scale", "features", "transform", "scaler", "preprocessing", "z-score", "normalize", "standardization"],
+    "semantic_tags": ["standardize", "standardscaler", "scale", "scaler", "z-score", "features", "transform", "preprocessing", "normalize"],
+    "inputs": {
+      "data": {
+        "type_name": "DataFrame",
+        "state": "any",
+        "required": true
+      }
+    },
+    "outputs": {
+      "output_data": {
+        "type_name": "ndarray",
+        "state": "scaled"
+      }
+    },
+    "dependencies": [
+      "from sklearn.preprocessing import StandardScaler"
+    ],
+    "code_template": "{output_var} = StandardScaler().fit_transform({data})",
+    "verified": 1
+  }
+]
