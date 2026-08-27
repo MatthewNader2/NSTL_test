@@ -1,0 +1,184 @@
+[
+  {
+    "cell_id": "PANDAS_READ_CSV",
+    "stage": 1,
+    "inputs": {
+      "filepath": {
+        "type_name": "str",
+        "state": "source_identifier"
+      }
+    },
+    "outputs": {
+      "df": {
+        "type_name": "DataFrame",
+        "state": "raw"
+      }
+    },
+    "code_template": "{output_var} = pd.read_csv({filepath})"
+  },
+  {
+    "cell_id": "PANDAS_DROPNA",
+    "stage": 2,
+    "inputs": {
+      "df": {
+        "type_name": "DataFrame",
+        "state": "raw"
+      }
+    },
+    "outputs": {
+      "df": {
+        "type_name": "DataFrame",
+        "state": "cleaned"
+      }
+    },
+    "code_template": "{output_var} = {df}.dropna()"
+  },
+  {
+    "cell_id": "PANDAS_SORT_VALUES",
+    "stage": 2,
+    "inputs": {
+      "df": {
+        "type_name": "DataFrame",
+        "state": "cleaned"
+      },
+      "by": {
+        "type_name": "str",
+        "state": "column_name"
+      },
+      "ascending": {
+        "type_name": "bool",
+        "state": "sort_flag"
+      }
+    },
+    "outputs": {
+      "df": {
+        "type_name": "DataFrame",
+        "state": "sorted"
+      }
+    },
+    "code_template": "{output_var} = {df}.sort_values(by={by}, ascending={ascending})"
+  },
+  {
+    "cell_id": "PANDAS_TO_CSV",
+    "stage": 3,
+    "inputs": {
+      "df": {
+        "type_name": "DataFrame",
+        "state": "sorted"
+      },
+      "dest_path": {
+        "type_name": "str",
+        "state": "dest_identifier"
+      }
+    },
+    "outputs": {
+      "path": {
+        "type_name": "str",
+        "state": "filepath_written"
+      }
+    },
+    "code_template": "{df}.to_csv({dest_path}, index=False)\n{output_var} = {dest_path}"
+  },
+  {
+    "cell_id": "DISTRACTOR_BROKEN_READ",
+    "stage": 1,
+    "inputs": {
+      "x": {
+        "type_name": "int",
+        "state": "numeric"
+      }
+    },
+    "outputs": {
+      "y": {
+        "type_name": "DataFrame",
+        "state": "raw"
+      }
+    },
+    "code_template": "{output_var} = pd.read_csv(data.csv)"
+  },
+  {
+    "cell_id": "DISTRACTOR_BROKEN_SORT",
+    "stage": 2,
+    "inputs": {
+      "df": {
+        "type_name": "DataFrame",
+        "state": "cleaned"
+      }
+    },
+    "outputs": {
+      "df": {
+        "type_name": "DataFrame",
+        "state": "sorted"
+      }
+    },
+    "code_template": "{output_var} = {df}.sort_values(by=None)"
+  },
+  {
+    "cell_id": "DISTRACTOR_BROKEN_WRITE",
+    "stage": 3,
+    "inputs": {
+      "df": {
+        "type_name": "DataFrame",
+        "state": "raw"
+      }
+    },
+    "outputs": {
+      "z": {
+        "type_name": "str",
+        "state": "filepath_written"
+      }
+    },
+    "code_template": "{output_var} = {df}.to_csv()"
+  },
+  {
+    "cell_id": "PANDAS_DESCRIBE",
+    "stage": 2,
+    "inputs": {
+      "df": {
+        "type_name": "DataFrame",
+        "state": "raw"
+      }
+    },
+    "outputs": {
+      "summary": {
+        "type_name": "DataFrame",
+        "state": "summary_stats"
+      }
+    },
+    "code_template": "{output_var} = {df}.describe()"
+  },
+  {
+    "cell_id": "PANDAS_HEAD",
+    "stage": 2,
+    "inputs": {
+      "df": {
+        "type_name": "DataFrame",
+        "state": "raw"
+      }
+    },
+    "outputs": {
+      "head_df": {
+        "type_name": "DataFrame",
+        "state": "preview"
+      }
+    },
+    "code_template": "{output_var} = {df}.head()"
+  },
+  {
+    "cell_id": "PANDAS_RESET_INDEX",
+    "stage": 2,
+    "inputs": {
+      "df": {
+        "type_name": "DataFrame",
+        "state": "sorted"
+      }
+    },
+    "outputs": {
+      "df": {
+        "type_name": "DataFrame",
+        "state": "indexed"
+      }
+    },
+    "code_template": "{output_var} = {df}.reset_index(drop=True)"
+  }
+]

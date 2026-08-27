@@ -301,11 +301,14 @@ def run_prompt(req: RunRequest):
     ]
 
     return {
+        "status": "SUCCESS" if verified else "FAILED_VERIFICATION",
+        "verified": bool(verified),
+        "path": [c.cell_id for c in resolved_path],
+        "path_details": path_formatted,
         "logs": log_buffer,
-        "path": path_formatted,
         "virtual_edges": list(virtual_edges),
         "code": final_code,
-        "verified": bool(verified),
+        "error": str(exec_msg) if not verified else None,
         "exec_error": str(exec_msg) if not verified else None
     }
 

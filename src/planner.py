@@ -4,7 +4,7 @@ src/planner.py - Zero-Shot Planner with algorithmic-task bypass and robust JSON.
 
 import json
 import re
-from typing import Any, Dict, List, Optional, Set
+from typing import Any, Dict, List, Optional, Set, Tuple
 
 from log_config import get_logger
 from lattice import LatticeOrchestrator, Cell, MacroCell, MicroCell, AlgebraicSignature
@@ -18,7 +18,13 @@ class ZeroShotPlanner:
         self.rag = rag
 
     def run_planning_pass(self, prompt: str, profile: str = "C") -> Dict[str, Any]:
-        context = self.rag.get_relevant_context(prompt, top_k=60)
+        context = []
+        if self.rag is not None:
+            try:
+                context = self.rag.get_relevant_context(prompt, top_k=60)
+            except Exception as e:
+                logger.warning(f"[PLANNER] RAG retrieval failed: {e}")
+                context = []
 
         # Check for algorithmic seeds via RAG domain / macro detection
         if context:
@@ -161,6 +167,38 @@ RULES:
                 m = re.search(r"ID:\s*([A-Z0-9_]+)", entry)
                 cid = m.group(1) if m else ""
 
+    @staticmethod
+    def _compute_overlap(keywords: Set[str], cell_keywords: Set[str]) -> Tuple[int, Set[str]]:
+        overlap = 0
+        matched = set()
+        for pk in keywords:
+            pk_l = pk.lower()
+            for ck in cell_keywords:
+                ck_l = ck.lower()
+                if pk_l == ck_l or (len(pk_l) >= 3 and pk_l in ck_l) or (len(ck_l) >= 3 and ck_l in pk_l):
+                    overlap += 1
+                    matched.add(pk)
+                    break
+        return overlap, matched
+
+    def _find_best_match_for_stage(
+        self,
+        stage: int,
+        current_sig: AlgebraicSignature,
+        context: List[Any],
+        keywords: Set[str],
+        goal_domain: Optional[str] = None,
+        exclude: Optional[Set[str]] = None
+    ) -> Optional[str]:
+        exclude = exclude or set()
+        best_match = None
+        best_score = -1.0
+
+        for entry in context:
+            if not isinstance(entry, dict):
+                continue
+            cid = entry.get("cell_id", "")
+            score = float(entry.get("score", 0.0))
             if not cid or cid in exclude:
                 continue
 
@@ -172,7 +210,7 @@ RULES:
                 continue
 
             cell_kws = set(k.lower() for k in cell.keywords)
-            overlap = len(keywords & cell_kws)
+            overlap, _ = self._compute_overlap(keywords, cell_kws)
             if stage == 2 and keywords and overlap == 0:
                 continue
 
@@ -199,7 +237,7 @@ RULES:
                 if cell.cell_id in exclude or cell.stage != stage:
                     continue
                 cell_kws = set(k.lower() for k in cell.keywords)
-                overlap = len(keywords & cell_kws)
+                overlap, _ = self._compute_overlap(keywords, cell_kws)
                 if stage == 2 and keywords and overlap == 0:
                     continue
 
@@ -225,7 +263,7 @@ RULES:
 
     def _deterministic_fallback(self, prompt: str, context: List[Any]) -> Dict[str, Any]:
         prompt_lower = prompt.lower()
-        all_tokens = set(re.findall(r"[a-zA-Z_]+", prompt_lower))
+        all_tokens = set(re.findall(r"[a-zA-Z0-9]+", prompt_lower))
         meaningful_keywords = all_tokens - self.GENERIC_STOP_WORDS
 
         goal_domain = None
@@ -244,7 +282,8 @@ RULES:
             path.append(stage1_match)
             current_sig = self.orchestrator.loaded_cells[stage1_match].primary_output
             cell1 = self.orchestrator.loaded_cells[stage1_match]
-            meaningful_keywords -= set(k.lower() for k in cell1.keywords)
+            _, matched1 = self._compute_overlap(meaningful_keywords, set(k.lower() for k in cell1.keywords))
+            meaningful_keywords -= matched1
 
         # Stage 2: Transformations (consume remaining action keywords)
         while True:
@@ -253,7 +292,7 @@ RULES:
                 break
             cell = self.orchestrator.loaded_cells[stage2_match]
             cell_kws = set(k.lower() for k in cell.keywords)
-            matched = meaningful_keywords & cell_kws
+            _, matched = self._compute_overlap(meaningful_keywords, cell_kws)
             if len(matched) == 0 and len(path) > 1:
                 break
             path.append(stage2_match)

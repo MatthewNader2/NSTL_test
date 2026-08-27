@@ -15,7 +15,7 @@ ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.join(ROOT_DIR, "src"))
 
 from inference import ModelManager
-from lattice import LatticeOrchestrator
+from lattice import LatticeOrchestrator, PortSignature, AlgebraicSignature
 from internal_rag import LocalRAG
 from router import LatticeRouter
 from planner import ZeroShotPlanner
@@ -165,7 +165,13 @@ def run_smoke_test():
     path_algo, _ = router.plan_path(prompt_algo)
     print(f"    Router Path: {[c.cell_id for c in path_algo]}")
 
-    ctx_algo = ExecutionContext(prompt=prompt_algo)
+    ctx_algo = ExecutionContext(
+        prompt=prompt_algo,
+        scope={
+            "input_graph": PortSignature("input_graph", AlgebraicSignature("dict", "adjacency_dict")),
+            "start_node": PortSignature("start_node", AlgebraicSignature("str", "source_node"))
+        }
+    )
     lines_algo = [UnificationGate.unify_cell(ctx_algo, c) for c in path_algo]
     code_algo = UnificationGate.resolve_imports("\n".join(lines_algo), ctx_algo)
     print("    Generated Code:\n" + "\n".join(f"      | {l}" for l in code_algo.splitlines()))

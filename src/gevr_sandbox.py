@@ -10,7 +10,7 @@ import os
 import sys
 import tempfile
 import subprocess
-from typing import Tuple, Optional, Callable
+from typing import Tuple, Optional, Callable, Dict, Any
 from log_config import get_logger
 
 logger = get_logger('gevr_sandbox')
@@ -23,6 +23,25 @@ class GEVRSandbox:
     """
     def __init__(self, timeout_seconds: float = 5.0):
         self.timeout = timeout_seconds
+
+    def execute(self, code: str, timeout: Optional[float] = None) -> Dict[str, Any]:
+        """
+        Executes Python code in an isolated subprocess.
+        Returns: {'success': bool, 'stdout': str, 'stderr': str, 'error': str}
+        """
+        orig_timeout = self.timeout
+        if timeout is not None:
+            self.timeout = timeout
+        try:
+            success, stdout, stderr = self.execute_and_verify(code)
+            return {
+                "success": success,
+                "stdout": stdout,
+                "stderr": stderr,
+                "error": stderr if not success else ""
+            }
+        finally:
+            self.timeout = orig_timeout
 
     def execute_and_verify(self, code: str) -> Tuple[bool, str, str]:
         """

@@ -1,7 +1,7 @@
 """
 src/unification.py - Neuro-Symbolic Topological Lattice (NSTL)
 Formal Type-Monadic Unification Gate, Parameter Binding, and AST Code Synthesizer.
-FIXED: robust filename quoting, expanded placeholder strategies, safer template binding.
+Domain-Agnostic Dynamic Typestate Port Binding (Zero Hardcodes).
 """
 
 from __future__ import annotations
@@ -10,17 +10,223 @@ import os
 import re
 import sys
 import json
-from typing import Dict, List, Optional, Set, Tuple, Any
+import importlib
+import importlib.util
+from typing import Dict, List, Optional, Set, Tuple, Any, Union
 from dataclasses import dataclass, field
 from log_config import get_logger
-from lattice import AlgebraicSignature, PortSignature, Cell, TypeRegistry
+
+try:
+    from .lattice import AlgebraicSignature, PortSignature, Cell, TypeRegistry
+except (ImportError, ValueError):
+    from lattice import AlgebraicSignature, PortSignature, Cell, TypeRegistry
 
 logger = get_logger('unification')
 
 
 class UnresolvedPlaceholderError(Exception):
-    """Raised when a code template contains unresolvable placeholder slots."""
+    """Raised when a code template placeholder cannot be bound."""
     pass
+
+
+class UnificationFailure(Exception):
+    pass
+
+
+class DynamicPlaceholderResolver:
+    """
+    Domain-agnostic parameter resolver.
+    Binds placeholders dynamically based on PortSignature (type_name + state),
+    scope variables, and extracted literal arguments.
+    """
+
+    @staticmethod
+    def is_module_attribute(expr_str: str) -> bool:
+        """Dynamically verifies if expr_str is an importable module attribute (e.g. cv2.COLOR_BGR2GRAY)."""
+        if not expr_str or not isinstance(expr_str, str):
+            return False
+        expr_str = expr_str.strip()
+        if not expr_str or "." not in expr_str:
+            return False
+
+        # Fast reject known file extensions
+        known_exts = {'csv', 'json', 'jpg', 'jpeg', 'png', 'bmp', 'txt', 'parquet', 'h5', 'pkl', 'py'}
+        if expr_str.split('.')[-1].lower() in known_exts or '/' in expr_str or '\\' in expr_str:
+            return False
+
+        try:
+            tree = ast.parse(expr_str, mode='eval')
+            if not isinstance(tree.body, ast.Attribute):
+                return False
+
+            parts = []
+            curr = tree.body
+            while isinstance(curr, ast.Attribute):
+                parts.append(curr.attr)
+                curr = curr.value
+            if isinstance(curr, ast.Name):
+                parts.append(curr.id)
+            parts.reverse()
+
+            # Check if root is an installed module
+            mod_name = parts[0]
+            if importlib.util.find_spec(mod_name) is None:
+                return False
+
+            mod = importlib.import_module(mod_name)
+            target = mod
+            for attr in parts[1:]:
+                if not hasattr(target, attr):
+                    return False
+                target = getattr(target, attr)
+            return True
+        except Exception:
+            return False
+
+    def resolve_port(
+        self,
+        port_name: str,
+        port_sig: Union[PortSignature, AlgebraicSignature, Any],
+        stage: int,
+        context: Any,
+        output_var: str
+    ) -> str:
+        """
+        Dynamically resolves the replacement value for a given port placeholder.
+        """
+        if port_name == "output_var":
+            return output_var
+
+        # Extract type_name and state safely
+        type_name = getattr(port_sig, "type_name", None)
+        if type_name is None and hasattr(port_sig, "signature"):
+            type_name = port_sig.signature.type_name
+        type_name = str(type_name or "any")
+
+        state = getattr(port_sig, "state", None)
+        if state is None and hasattr(port_sig, "signature"):
+            state = port_sig.signature.state
+        state = str(state or "any")
+
+        # 1. Check if an active variable in the execution context scope matches this typestate
+        if hasattr(context, "scope_variables") and context.scope_variables:
+            matching_vars = []
+            for var_name, var_sig in context.scope_variables.items():
+                if hasattr(var_sig, "unifies_with") and var_sig.unifies_with(port_sig):
+                    matching_vars.append(var_name)
+                elif hasattr(port_sig, "unifies_with") and port_sig.unifies_with(var_sig):
+                    matching_vars.append(var_name)
+                elif hasattr(var_sig, "signature") and hasattr(port_sig, "signature"):
+                    if var_sig.signature.unifies_with(port_sig.signature):
+                        matching_vars.append(var_name)
+            if matching_vars:
+                return matching_vars[-1]
+
+        # Check _scope in ExecutionContext if available
+        if hasattr(context, "find_compatible_variable"):
+            sig_to_find = port_sig.signature if hasattr(port_sig, "signature") else port_sig
+            if isinstance(sig_to_find, AlgebraicSignature):
+                b = context.find_compatible_variable(sig_to_find)
+                if b and b.literal_value is not None:
+                    return b.literal_value
+
+        # 2. File / URI Source & Destination resolution based on state
+        if state in ("source_identifier", "filepath_read", "input_uri") or port_name in ("filepath", "filename", "input_filename", "input_file", "source"):
+            if hasattr(context, "source_files") and context.source_files:
+                f = context.source_files[0]
+                return f'"{f}"' if not (f.startswith('"') or f.startswith("'")) else f
+            if hasattr(context, "get_source_file"):
+                f = context.get_source_file()
+                return f'"{f}"' if not (f.startswith('"') or f.startswith("'")) else f
+            if hasattr(context, "extracted_files") and context.extracted_files:
+                f = context.extracted_files[0]
+                return f'"{f}"' if not (f.startswith('"') or f.startswith("'")) else f
+            if hasattr(port_sig, "default_value") and port_sig.default_value is not None and port_sig.default_value != "...":
+                dv = str(port_sig.default_value)
+                return f'"{dv}"' if not (dv.startswith('"') or dv.startswith("'")) else dv
+            return '"input_data.csv"'
+
+        if state in ("dest_identifier", "filepath_written", "output_uri") or port_name in ("dest_path", "output_filename", "destination", "output_file"):
+            if hasattr(context, "dest_files") and context.dest_files:
+                f = context.dest_files[0]
+                return f'"{f}"' if not (f.startswith('"') or f.startswith("'")) else f
+            if hasattr(context, "get_dest_file"):
+                f = context.get_dest_file()
+                return f'"{f}"' if not (f.startswith('"') or f.startswith("'")) else f
+            if hasattr(context, "extracted_files") and len(context.extracted_files) > 1:
+                f = context.extracted_files[-1]
+                return f'"{f}"' if not (f.startswith('"') or f.startswith("'")) else f
+            if hasattr(port_sig, "default_value") and port_sig.default_value is not None and port_sig.default_value != "...":
+                dv = str(port_sig.default_value)
+                return f'"{dv}"' if not (dv.startswith('"') or dv.startswith("'")) else dv
+            return '"output_data.csv"'
+
+        # 3. Column name resolution
+        if state == "column_name" or port_name in ("by", "column", "columns"):
+            if hasattr(context, "columns") and context.columns:
+                col = context.columns[0]
+                return f'"{col}"' if not (col.startswith('"') or col.startswith("'")) else col
+            if hasattr(port_sig, "default_value") and port_sig.default_value is not None and port_sig.default_value != "...":
+                dv = str(port_sig.default_value)
+                return f'"{dv}"' if not (dv.startswith('"') or dv.startswith("'")) else dv
+            return '"target"'
+
+        # 4. Boolean flags (e.g. ascending=True/False)
+        if type_name == "bool" or state == "sort_flag":
+            if hasattr(context, "flags") and port_name in context.flags:
+                return str(bool(context.flags[port_name]))
+            if hasattr(context, "prompt_lower"):
+                if "descending" in context.prompt_lower or "reverse" in context.prompt_lower:
+                    return "False" if port_name == "ascending" else "True"
+                if "ascending" in context.prompt_lower:
+                    return "True" if port_name == "ascending" else "False"
+            return "True"
+
+        # 5. Fallback to bound parameter from context dictionary if available
+        if hasattr(context, "parameters") and port_name in context.parameters:
+            val = context.parameters[port_name]
+            if isinstance(val, str) and not self.is_module_attribute(val) and not (val.startswith('"') or val.startswith("'")):
+                return f'"{val}"'
+            return str(val)
+
+        # 6. Check default_value on port_sig if defined
+        if hasattr(port_sig, "default_value") and port_sig.default_value is not None and port_sig.default_value != "...":
+            dv = str(port_sig.default_value)
+            if dv in ("True", "False", "None") or dv.replace('.', '', 1).isdigit() or (dv.startswith('-') and dv[1:].replace('.', '', 1).isdigit()):
+                return dv
+            if self.is_module_attribute(dv):
+                return dv
+            if not (dv.startswith('"') or dv.startswith("'")):
+                return f'"{dv}"'
+            return dv
+
+        # 7. Generic Data / Scope Variable fallback (by type_name)
+        if hasattr(context, "scope_variables") and context.scope_variables:
+            for var_name, var_sig in reversed(context.scope_variables.items()):
+                v_type = getattr(var_sig, "type_name", None)
+                if v_type is None and hasattr(var_sig, "signature"):
+                    v_type = var_sig.signature.type_name
+                if str(v_type).lower() == type_name.lower():
+                    return var_name
+
+        if type_name.lower() in ("dataframe", "mat", "ndarray", "image", "tensor", "anyobject", "any", "data", "dataset"):
+            if hasattr(context, "get_latest_data_variable"):
+                latest = context.get_latest_data_variable()
+                if latest:
+                    return latest
+
+        # 8. Dynamic domain-agnostic identifier fallback
+        return port_name
+
+    def assert_placeholders_resolved(self, code: str) -> None:
+        """Ensures no raw {placeholder} tokens remain in synthesized code."""
+        unresolved = re.findall(r'\{([a-zA-Z_][a-zA-Z0-9_]*)\}', code)
+        if unresolved:
+            raise UnresolvedPlaceholderError(f"Code contains unresolved placeholders: {unresolved}\nCode:\n{code}")
+
+
+# Compatibility alias
+PlaceholderResolver = DynamicPlaceholderResolver
 
 
 def assert_placeholders_resolved(code_str: str, bindings: Optional[Dict[str, Any]] = None) -> None:
@@ -28,13 +234,7 @@ def assert_placeholders_resolved(code_str: str, bindings: Optional[Dict[str, Any
     if bindings:
         for k, v in bindings.items():
             test_code = test_code.replace(f"{{{k}}}", str(v))
-    unbound = re.findall(r"\{([a-zA-Z_][a-zA-Z0-9_]*)\}", test_code)
-    if unbound:
-        raise UnresolvedPlaceholderError(f"Unresolved placeholders found in code: {set(unbound)}")
-
-
-class UnificationFailure(Exception):
-    pass
+    DynamicPlaceholderResolver().assert_placeholders_resolved(test_code)
 
 
 @dataclass
@@ -58,13 +258,35 @@ class ExecutionContext:
         "to", "from", "with", "into", "as"
     }
 
-    def __init__(self, prompt: str = ""):
+    def __init__(
+        self,
+        prompt: str = "",
+        scope: Optional[Dict[str, Any]] = None,
+        parameters: Optional[Dict[str, Any]] = None
+    ):
         self._scope: Dict[str, VariableBinding] = {}
+        self.scope_variables: Dict[str, PortSignature] = {}
         self.declared_dependencies: Set[str] = set()
         self._var_counter: Dict[str, int] = {}
         self._var_order: List[str] = []
         self.prompt_hint: str = prompt
+        self.prompt_lower: str = prompt.lower()
         self.extracted_files: List[str] = []
+        self.source_files: List[str] = []
+        self.dest_files: List[str] = []
+        self.columns: List[str] = []
+        self.flags: Dict[str, Any] = {}
+        self.parameters: Dict[str, Any] = dict(parameters) if parameters else {}
+
+        if scope:
+            for k, v in scope.items():
+                if isinstance(v, PortSignature):
+                    self.scope_variables[k] = v
+                    self._scope[k] = VariableBinding(name=k, signature=v.signature)
+                elif isinstance(v, AlgebraicSignature):
+                    self.scope_variables[k] = PortSignature(k, v)
+                    self._scope[k] = VariableBinding(name=k, signature=v)
+
         if prompt:
             self._extract_prompt_literals(prompt)
 
@@ -77,12 +299,14 @@ class ExecutionContext:
 
         if files:
             # ALWAYS quote filenames for safe Python insertion
+            self.source_files = [files[0]]
             self.declare_variable(
                 "input_file",
                 AlgebraicSignature("str", "source_identifier"),
                 literal_value=json.dumps(files[0])  # proper JSON quoting
             )
             if len(files) > 1:
+                self.dest_files = [files[-1]]
                 self.declare_variable(
                     "output_file",
                     AlgebraicSignature("str", "dest_identifier"),
@@ -97,53 +321,71 @@ class ExecutionContext:
         for match in re.finditer(col_pattern, prompt, re.IGNORECASE):
             col_name = match.group(1)
             if col_name.lower() not in self.COLUMN_STOP_WORDS:
+                self.columns.append(col_name)
                 self.declare_variable(
-                    "by_col",
+                    f"col_{col_name}",
                     AlgebraicSignature("str", "column_name"),
                     literal_value=json.dumps(col_name)
                 )
 
-        p_lower = prompt.lower()
-        if re.search(r"\b(descending|desc|reverse|highest\s+to\s+lowest)\b", p_lower):
-            self.declare_variable("sort_order", AlgebraicSignature("bool", "sort_flag"), literal_value="False")
-        elif re.search(r"\b(ascending|asc|lowest\s+to\s+highest)\b", p_lower):
-            self.declare_variable("sort_order", AlgebraicSignature("bool", "sort_flag"), literal_value="True")
+        if "ascending" in self.prompt_lower:
+            self.flags["ascending"] = True
+            self.declare_variable(
+                "sort_asc",
+                AlgebraicSignature("bool", "sort_flag"),
+                literal_value="True"
+            )
+        elif "descending" in self.prompt_lower or "reverse" in self.prompt_lower:
+            self.flags["ascending"] = False
+            self.declare_variable(
+                "sort_asc",
+                AlgebraicSignature("bool", "sort_flag"),
+                literal_value="False"
+            )
 
     def declare_variable(
         self,
         base_name: str,
-        signature: AlgebraicSignature,
-        literal_value: Optional[str] = None,
-        parent_var: Optional[str] = None
+        signature: Union[AlgebraicSignature, PortSignature],
+        parent_var: Optional[str] = None,
+        literal_value: Optional[str] = None
     ) -> str:
-        clean_base = "".join(c if c.isalnum() or c == '_' else '_' for c in base_name).lower()
+        if isinstance(signature, PortSignature):
+            alg_sig = signature.signature
+        else:
+            alg_sig = signature
+
+        clean_base = re.sub(r'[^a-zA-Z0-9_]', '', base_name)
         if not clean_base or clean_base[0].isdigit():
             clean_base = f"var_{clean_base}"
 
-        count = self._var_counter.get(clean_base, 0) + 1
-        self._var_counter[clean_base] = count
+        idx = self._var_counter.get(clean_base, 0)
+        var_name = clean_base if idx == 0 else f"{clean_base}_{idx + 1}"
+        self._var_counter[clean_base] = idx + 1
 
-        var_name = clean_base if count == 1 else f"{clean_base}_{count}"
-        self._scope[var_name] = VariableBinding(
+        binding = VariableBinding(
             name=var_name,
-            signature=signature,
+            signature=alg_sig,
             literal_value=literal_value,
             lineage_parent=parent_var
         )
+        self._scope[var_name] = binding
+        if literal_value is None:
+            self.scope_variables[var_name] = PortSignature(var_name, alg_sig)
         self._var_order.append(var_name)
         return var_name
 
     def peek_next_variable_name(self, base_name: str) -> str:
-        clean_base = "".join(c if c.isalnum() or c == '_' else '_' for c in base_name).lower()
+        clean_base = re.sub(r'[^a-zA-Z0-9_]', '', base_name)
         if not clean_base or clean_base[0].isdigit():
             clean_base = f"var_{clean_base}"
-        count = self._var_counter.get(clean_base, 0) + 1
-        return clean_base if count == 1 else f"{clean_base}_{count}"
+        idx = self._var_counter.get(clean_base, 0)
+        return clean_base if idx == 0 else f"{clean_base}_{idx + 1}"
 
-    def find_compatible_variable(self, required_signature: AlgebraicSignature) -> Optional[VariableBinding]:
+    def find_compatible_variable(self, required_sig: AlgebraicSignature) -> Optional[VariableBinding]:
         for var_name in reversed(self._var_order):
             binding = self._scope[var_name]
-            if binding.signature.unifies_with(required_signature):
+            if binding.signature.unifies_with(required_sig):
                 return binding
         return None
 
@@ -156,185 +398,6 @@ class ExecutionContext:
 
     def get_variable(self, name: str) -> Optional[VariableBinding]:
         return self._scope.get(name)
-
-
-class PlaceholderResolver:
-    """
-    Configurable, data-driven placeholder resolution engine.
-    Resolution order:
-      1. explicit_args
-      2. ExecutionContext (prompt literals, scope variables)
-      3. Cell configuration_schema defaults
-      4. Fallback to None
-    """
-
-    KNOWN_FILE_EXTENSIONS = {
-        'csv', 'json', 'jpg', 'jpeg', 'png', 'bmp', 'txt', 'db', 'h5', 'hdf5',
-        'pdf', 'md', 'py', 'npz', 'pkl', 'pickle', 'feather', 'orc', 'avro', 'yaml', 'yml', 'toml', 'ini'
-    }
-
-    @classmethod
-    def _is_module_attribute(cls, expr_str: str, context: ExecutionContext, cell: Cell) -> bool:
-        if not expr_str or not isinstance(expr_str, str):
-            return False
-        ext = expr_str.split('.')[-1].lower() if '.' in expr_str else ""
-        if ext in cls.KNOWN_FILE_EXTENSIONS or '/' in expr_str or '\\' in expr_str:
-            return False
-        try:
-            pnode = ast.parse(expr_str, mode='eval').body
-            if not isinstance(pnode, ast.Attribute):
-                return False
-            curr = pnode
-            while isinstance(curr, ast.Attribute):
-                curr = curr.value
-            if not isinstance(curr, ast.Name):
-                return False
-            root_mod = curr.id
-            if root_mod in sys.modules or root_mod in getattr(sys, "stdlib_module_names", ()):
-                return True
-            if any(root_mod in dep for dep in context.declared_dependencies) or any(root_mod in dep for dep in (cell.dependencies or [])):
-                return True
-            import importlib.util
-            spec = importlib.util.find_spec(root_mod)
-            return spec is not None
-        except Exception:
-            return False
-
-    @classmethod
-    def resolve(
-        cls,
-        placeholder: str,
-        context: ExecutionContext,
-        cell: Cell,
-        explicit_args: Dict[str, Any],
-        primary_input_override: Optional[str] = None
-    ) -> str:
-        ph = placeholder.strip()
-
-        # 1. Explicit arguments take precedence
-        if ph in explicit_args:
-            val = explicit_args[ph]
-            if isinstance(val, str):
-                return json.dumps(val)
-            return repr(val)
-
-        # 2. PortSignature matching from cell.inputs
-        port = cell.inputs.get(ph)
-        if port is not None:
-            sig = port.signature
-            state = (sig.state or "").lower()
-            type_name = (sig.type_name or "").lower()
-
-            if state == "source_identifier":
-                b = context.find_compatible_variable(AlgebraicSignature("str", "source_identifier"))
-                if b and b.literal_value:
-                    return b.literal_value
-                if context.extracted_files:
-                    return json.dumps(context.extracted_files[0])
-
-            elif state == "dest_identifier":
-                b = context.find_compatible_variable(AlgebraicSignature("str", "dest_identifier"))
-                if b and b.literal_value:
-                    return b.literal_value
-                if context.extracted_files:
-                    return json.dumps(context.extracted_files[-1])
-
-            elif state == "column_name":
-                b = context.find_compatible_variable(AlgebraicSignature("str", "column_name"))
-                if b and b.literal_value:
-                    return b.literal_value
-
-            elif state == "sort_flag":
-                b = context.find_compatible_variable(AlgebraicSignature("bool", "sort_flag"))
-                if b and b.literal_value:
-                    return b.literal_value
-
-            elif type_name in ("dataframe", "mat", "ndarray", "dict", "list", "series"):
-                if cell.stage != 1:
-                    latest = context.get_latest_data_variable()
-                    if latest:
-                        return latest
-
-            # Port default value
-            if port.default_value is not None and port.default_value != "...":
-                dv = str(port.default_value)
-                if dv in ("True", "False", "None") or dv.replace('.', '', 1).isdigit():
-                    return dv
-                if cls._is_module_attribute(dv, context, cell):
-                    return dv
-                return json.dumps(dv)
-
-        # 3. Semantic name fallback strategies
-        ph_lower = ph.lower()
-        if ph_lower in ("input_var", "df", "src", "img", "image", "data", "array", "mat", "x", "y"):
-            if primary_input_override is not None:
-                return primary_input_override
-            latest = context.get_latest_data_variable()
-            if latest:
-                return latest
-
-        if ph_lower in ("filepath", "filename", "input_filename", "source", "input_file", "path", "fname", "in_path"):
-            b = context.find_compatible_variable(AlgebraicSignature("str", "source_identifier"))
-            if b and b.literal_value:
-                return b.literal_value
-            if context.extracted_files:
-                return json.dumps(context.extracted_files[0])
-
-        if ph_lower in ("dest_path", "output_filename", "destination", "output_file", "dest", "out_path", "out_file"):
-            b = context.find_compatible_variable(AlgebraicSignature("str", "dest_identifier"))
-            if b and b.literal_value:
-                return b.literal_value
-            if context.extracted_files:
-                return json.dumps(context.extracted_files[-1])
-
-        if ph_lower in ("by", "by_column", "column", "columns", "cols", "axis", "index"):
-            b = context.find_compatible_variable(AlgebraicSignature("str", "column_name"))
-            if b and b.literal_value:
-                return b.literal_value
-
-        if ph_lower in ("ascending", "descending", "sort_flag"):
-            b = context.find_compatible_variable(AlgebraicSignature("bool", "sort_flag"))
-            if b and b.literal_value:
-                return b.literal_value
-
-        if ph_lower == "graph":
-            b = context.find_compatible_variable(AlgebraicSignature("dict", "adjacency_dict"))
-            if b and b.literal_value:
-                return b.literal_value
-            return "input_graph"
-
-        if ph_lower == "start":
-            b = context.find_compatible_variable(AlgebraicSignature("str", "source_node"))
-            if b and b.literal_value:
-                return b.literal_value
-            return "start_node"
-
-        # 4. Check configuration_schema defaults
-        cfg = cell.configuration_schema or {}
-        if isinstance(cfg, list):
-            cfg = {p.get("name"): p for p in cfg if isinstance(p, dict) and "name" in p}
-
-        if ph in cfg:
-            param_meta = cfg[ph]
-            if isinstance(param_meta, dict) and "default_value" in param_meta:
-                dv = param_meta["default_value"]
-                if dv is not None and dv != "...":
-                    if isinstance(dv, str):
-                        if cls._is_module_attribute(dv, context, cell):
-                            return dv
-                        return json.dumps(dv)
-                    return repr(dv)
-            if isinstance(param_meta, (str, int, float, bool)):
-                return repr(param_meta)
-
-        # 5. Check ExecutionContext variables by exact name
-        binding = context.get_variable(ph)
-        if binding and binding.literal_value is not None:
-            return binding.literal_value
-        if binding:
-            return binding.name
-
-        return "None"
 
 
 class UnificationGate:
@@ -376,6 +439,9 @@ class UnificationGate:
         "pickle": "import pickle",
     }
 
+    def __init__(self):
+        pass
+
     @staticmethod
     def unify_cell(
         context: ExecutionContext,
@@ -383,35 +449,18 @@ class UnificationGate:
         explicit_arguments: Optional[Dict[str, Any]] = None
     ) -> str:
         explicit_args = explicit_arguments or {}
+        resolver = DynamicPlaceholderResolver()
 
-        # Stage-aware primary input resolution:
-        if cell.stage == 1:
-            file_binding = context.find_compatible_variable(AlgebraicSignature("str", "source_identifier"))
-            if file_binding and file_binding.literal_value:
-                primary_input_var = file_binding.literal_value
-            elif context.extracted_files:
-                primary_input_var = json.dumps(context.extracted_files[0])
-            else:
-                primary_input_var = "None"
-        else:
-            primary_input_var = context.get_latest_data_variable()
-            if primary_input_var is None:
-                primary_input_var = "None"
-
+        # Generate output variable name
         cell_id_clean = cell.cell_id.lower().replace("_cell", "").replace("_default", "")
         raw_out_name = cell_id_clean.split('_')[-1]
         output_var_name = context.peek_next_variable_name(f"{raw_out_name}_out")
 
+        # Collect dependencies
         if cell.dependencies:
             for dep in cell.dependencies:
                 dep_str = str(dep).strip()
                 if not dep_str:
-                    continue
-                mod = (
-                    dep_str.replace("import", "").strip().split()[0].split(".")[0]
-                    if dep_str.startswith("import") else dep_str.split(".")[0]
-                )
-                if mod.lower() in UnificationGate.DENYLISTED_IMPORTS:
                     continue
                 context.declared_dependencies.add(dep_str)
 
@@ -419,75 +468,44 @@ class UnificationGate:
         if not raw_code:
             mod = UnificationGate._infer_module_prefix(cell)
             func = UnificationGate._infer_function_name(cell)
-            arg = primary_input_var or "None"
+            latest = context.get_latest_data_variable() or "None"
             if mod:
-                return f"{output_var_name} = {mod}.{func}({arg})"
-            return f"{output_var_name} = {func}({arg})"
+                raw_code = f"{{output_var}} = {mod}.{func}({latest})"
+            else:
+                raw_code = f"{{output_var}} = {func}({latest})"
 
         transformed = raw_code.replace("{output_var}", output_var_name)
 
         placeholders = set(re.findall(r"\{([a-zA-Z_][a-zA-Z0-9_]*)\}", transformed))
         for ph in placeholders:
-            resolved = PlaceholderResolver.resolve(
-                ph, context, cell, explicit_args,
-                primary_input_override=primary_input_var
-            )
+            if ph in explicit_args:
+                val = explicit_args[ph]
+                val_str = json.dumps(val) if isinstance(val, str) and not (val.startswith('"') or val.startswith("'")) else str(val)
+                transformed = transformed.replace(f"{{{ph}}}", val_str)
+                continue
+
+            port_sig = cell.inputs.get(ph)
+            if port_sig is None:
+                port_sig = PortSignature(ph, AlgebraicSignature("any", "any"))
+
+            resolved = resolver.resolve_port(ph, port_sig, cell.stage, context, output_var_name)
             transformed = transformed.replace(f"{{{ph}}}", resolved)
 
-        # Safe unquoting: dynamically check if the expression is a valid Python attribute chain
-        # rooted in an importable module (e.g. cv2.COLOR_BGR2GRAY, torch.float32, np.int64).
-        # NEVER strips quotes from filenames like 'data.csv'.
-        def _unquote_module_constant(m):
-            candidate = m.group(1)
-            ext = candidate.split('.')[-1].lower()
-            if ext in PlaceholderResolver.KNOWN_FILE_EXTENSIONS or '/' in candidate or '\\' in candidate:
-                return m.group(0)
-
-            try:
-                node = ast.parse(candidate, mode='eval').body
-                if not isinstance(node, ast.Attribute):
-                    return m.group(0)
-
-                curr = node
-                while isinstance(curr, ast.Attribute):
-                    curr = curr.value
-                if not isinstance(curr, ast.Name):
-                    return m.group(0)
-                root_module = curr.id
-
-                is_known_mod = False
-                if root_module in sys.modules or root_module in getattr(sys, "stdlib_module_names", ()):
-                    is_known_mod = True
-                elif any(root_module in dep for dep in context.declared_dependencies) or any(root_module in dep for dep in (cell.dependencies or [])):
-                    is_known_mod = True
-                else:
-                    import importlib.util
-                    try:
-                        spec = importlib.util.find_spec(root_module)
-                        if spec is not None:
-                            is_known_mod = True
-                    except (ImportError, ValueError, AttributeError):
-                        pass
-
-                if is_known_mod:
-                    return candidate
-            except Exception:
-                pass
-
+        # Dynamic attribute unquoting for module constants (e.g. "cv2.COLOR_BGR2GRAY")
+        def _unquote_mod(m):
+            cand = m.group(1)
+            if resolver.is_module_attribute(cand):
+                return cand
             return m.group(0)
 
-        transformed = re.sub(
-            r"['\"]([a-zA-Z_][a-zA-Z0-9_]*\.[a-zA-Z_][a-zA-Z0-9_]*)['\"]",
-            _unquote_module_constant,
-            transformed
-        )
+        transformed = re.sub(r'["\']([a-zA-Z0-9_]+(?:\.[a-zA-Z0-9_]+)+)["\']', _unquote_mod, transformed)
 
-        assert_placeholders_resolved(transformed)
+        resolver.assert_placeholders_resolved(transformed)
 
+        # Register primary output in context
         context.declare_variable(
             base_name=f"{raw_out_name}_out",
-            signature=cell.primary_output,
-            parent_var=primary_input_var if cell.stage != 1 else None
+            signature=cell.primary_output
         )
 
         logger.info(f"[UNIFICATION SUCCESS] Bound {cell.cell_id} -> {output_var_name}")

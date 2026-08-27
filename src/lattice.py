@@ -7,6 +7,7 @@ and ultra-lightweight on-demand topology resolution.
 from __future__ import annotations
 import json
 import os
+import re
 import sqlite3
 import threading
 from abc import ABC
@@ -114,38 +115,88 @@ class AlgebraicSignature:
     def is_top(self) -> bool:
         return self.type_name.lower() in ("any", "*", "top", "anyobject", "object")
 
-    def unifies_with(self, other: 'AlgebraicSignature') -> bool:
+    def unifies_with(self, other: Any) -> bool:
         """
         Returns True if `self` (producer output) unifies with `other` (consumer input).
         """
+        if hasattr(other, "signature") and isinstance(other.signature, AlgebraicSignature):
+            other_sig = other.signature
+        elif isinstance(other, AlgebraicSignature):
+            other_sig = other
+        else:
+            return False
+
         # 1. State check: if both specify a concrete state, they must match
-        if self.state != "any" and other.state != "any":
-            if self.state.lower() != other.state.lower():
+        if self.state != "any" and other_sig.state != "any":
+            if self.state.lower() != other_sig.state.lower():
                 return False
 
         # 2. Type satisfaction check
-        if other.is_top():
+        if other_sig.is_top():
             return True  # Consumer accepts anything
         if self.is_top():
             return False # Producer is untyped, cannot guarantee concrete type
 
         registry = TypeRegistry.get_instance()
-        if not registry.is_subtype(self.type_name, other.type_name):
+        if not registry.is_subtype(self.type_name, other_sig.type_name):
             return False
 
-        if other.qualifiers and not other.qualifiers.issubset(self.qualifiers):
+        if other_sig.qualifiers and not other_sig.qualifiers.issubset(self.qualifiers):
             return False
 
         return True
 
 
-@dataclass(slots=True)
 class PortSignature:
-    name: str
-    signature: AlgebraicSignature
-    required: bool = True
-    default_value: Optional[str] = None
-    doc: str = ""
+    __slots__ = ["name", "signature", "required", "default_value", "doc"]
+
+    def __init__(
+        self,
+        name: str = "",
+        signature: Union[AlgebraicSignature, str, Any] = "any",
+        required: bool = True,
+        default_value: Optional[str] = None,
+        doc: str = "",
+        **kwargs
+    ):
+        if isinstance(signature, str):
+            t_name = name if (name and (name[0].isupper() or name in ("str", "int", "float", "bool", "dict", "list", "bytes", "DataFrame", "Mat", "ndarray", "Any", "AnyObject"))) else "str"
+            self.name = name
+            self.signature = AlgebraicSignature(type_name=t_name, state=signature)
+        elif isinstance(signature, AlgebraicSignature):
+            self.name = name
+            self.signature = signature
+        elif hasattr(signature, "signature") and isinstance(signature.signature, AlgebraicSignature):
+            self.name = name or getattr(signature, "name", "")
+            self.signature = signature.signature
+        else:
+            self.name = name
+            self.signature = AlgebraicSignature("any", "any")
+
+        self.required = required
+        self.default_value = default_value
+        self.doc = doc
+
+    @property
+    def type_name(self) -> str:
+        return self.signature.type_name
+
+    @property
+    def state(self) -> str:
+        return self.signature.state
+
+    def is_top(self) -> bool:
+        return self.signature.is_top()
+
+    def unifies_with(self, other: Any) -> bool:
+        if isinstance(other, PortSignature):
+            return self.signature.unifies_with(other.signature)
+        if isinstance(other, AlgebraicSignature):
+            return self.signature.unifies_with(other)
+        return False
+
+    def __repr__(self) -> str:
+        return f"PortSignature(name={self.name!r}, signature={self.signature!r}, required={self.required})"
 
 
 class Cell(ABC):
@@ -318,102 +369,184 @@ class LatticeOrchestrator:
         self.load_from_database()
         self.build_topology()
 
-    def load_from_database(self):
+    def load_from_database(self, db_path: Optional[str] = None):
+        if db_path is not None:
+            self.db_path = db_path
         if not os.path.exists(self.db_path):
             logger.warning(f"[LATTICE] No SQLite DB found at {self.db_path}")
             return
 
+        self.loaded_cells.clear()
+
         try:
             conn = sqlite3.connect(self.db_path, check_same_thread=False)
             cursor = conn.cursor()
-            cursor.execute("""
-                SELECT cell_id, domain_name, node_type, node_role, stage,
-                       keywords, input_type, input_state, output_type, output_state,
-                       code, dependencies, configuration_schema, verified
-                FROM nodes
-            """)
-            rows = cursor.fetchall()
+            cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name IN ('nodes', 'cells')")
+            tables = [row[0] for row in cursor.fetchall()]
 
-            for row in rows:
-                (cell_id, domain_name, node_type, node_role, stage,
-                 keywords_json, in_type, in_state, out_type, out_state,
-                 code, deps_json, config_json, verified) = row
+            if "nodes" in tables:
+                cursor.execute("""
+                    SELECT cell_id, domain_name, node_type, node_role, stage,
+                           keywords, input_type, input_state, output_type, output_state,
+                           code, dependencies, configuration_schema, verified
+                    FROM nodes
+                """)
+                rows = cursor.fetchall()
+                for row in rows:
+                    (cell_id, domain_name, node_type, node_role, stage,
+                     keywords_json, in_type, in_state, out_type, out_state,
+                     code, deps_json, config_json, verified) = row
 
-                try:
-                    keywords = set(json.loads(keywords_json)) if keywords_json else set()
-                except Exception:
-                    keywords = set()
+                    try:
+                        keywords = set(json.loads(keywords_json)) if keywords_json else set()
+                    except Exception:
+                        keywords = set()
 
-                try:
-                    dependencies = json.loads(deps_json) if deps_json else []
-                except Exception:
-                    dependencies = []
+                    try:
+                        dependencies = json.loads(deps_json) if deps_json else []
+                    except Exception:
+                        dependencies = []
 
-                try:
-                    configuration_schema = json.loads(config_json) if config_json else {}
-                except Exception:
-                    configuration_schema = {}
+                    try:
+                        configuration_schema = json.loads(config_json) if config_json else {}
+                    except Exception:
+                        configuration_schema = {}
 
-                in_sig = AlgebraicSignature(type_name=in_type or "any", state=in_state or "any")
-                out_sig = AlgebraicSignature(type_name=out_type or "None", state=out_state or "any")
+                    in_sig = AlgebraicSignature(type_name=in_type or "any", state=in_state or "any")
+                    out_sig = AlgebraicSignature(type_name=out_type or "None", state=out_state or "any")
 
-                # Multi-port reconstruction from configuration_schema
-                inputs: Dict[str, PortSignature] = {}
-                if isinstance(configuration_schema, dict) and configuration_schema:
-                    for p_name, p_val in configuration_schema.items():
-                        if isinstance(p_val, dict):
-                            p_type = p_val.get("type_name", p_val.get("type", in_type or "any"))
+                    inputs: Dict[str, PortSignature] = {}
+                    if isinstance(configuration_schema, dict) and configuration_schema:
+                        for p_name, p_val in configuration_schema.items():
+                            if isinstance(p_val, dict):
+                                p_type = p_val.get("type_name", p_val.get("type", in_type or "any"))
+                                p_state = p_val.get("state", in_state or "any")
+                                inputs[p_name] = PortSignature(
+                                    name=p_name,
+                                    signature=AlgebraicSignature(type_name=str(p_type), state=str(p_state)),
+                                    required=p_val.get("required", True),
+                                    default_value=p_val.get("default_value", p_val.get("default")),
+                                    doc=p_val.get("doc", p_val.get("param_doc", ""))
+                                )
+                            elif isinstance(p_val, str):
+                                inputs[p_name] = PortSignature(
+                                    name=p_name,
+                                    signature=AlgebraicSignature(type_name=p_val, state="any")
+                                )
+                    elif isinstance(configuration_schema, list) and configuration_schema:
+                        for p_val in configuration_schema:
+                            if isinstance(p_val, dict) and "name" in p_val:
+                                p_name = p_val["name"]
+                                p_type = p_val.get("type_name", p_val.get("type", in_type or "any"))
+                                p_state = p_val.get("state", in_state or "any")
+                                inputs[p_name] = PortSignature(
+                                    name=p_name,
+                                    signature=AlgebraicSignature(type_name=str(p_type), state=str(p_state)),
+                                    required=p_val.get("required", True),
+                                    default_value=p_val.get("default_value", p_val.get("default")),
+                                    doc=p_val.get("doc", p_val.get("param_doc", ""))
+                                )
+
+                    if not inputs:
+                        inputs = {"input_data": PortSignature(name="input_data", signature=in_sig)}
+                    outputs = {"output_data": PortSignature(name="output_data", signature=out_sig)}
+
+                    is_macro = node_type == "macro" or str(node_role).lower() == "macro"
+                    cell_cls = MacroCell if is_macro else MicroCell
+
+                    cell = cell_cls(
+                        cell_id=cell_id,
+                        stage=stage or 1,
+                        keywords=keywords,
+                        inputs=inputs,
+                        outputs=outputs,
+                        domain_name=domain_name or self.active_domain,
+                        node_type="macro" if is_macro else (node_type or "function"),
+                        node_role=str(node_role).lower() if node_role else "function",
+                        dependencies=dependencies,
+                        code_template=code or "",
+                        db_path=self.db_path,
+                        configuration_schema=configuration_schema
+                    )
+                    self.loaded_cells[cell.cell_id] = cell
+
+            elif "cells" in tables:
+                cursor.execute("""
+                    SELECT cell_id, stage, input_type, input_state, output_type, output_state,
+                           code_template, configuration_schema, dependencies
+                    FROM cells
+                """)
+                rows = cursor.fetchall()
+                for row in rows:
+                    (cell_id, stage, in_type, in_state, out_type, out_state,
+                     code, config_json, deps_json) = row
+
+                    try:
+                        dependencies = json.loads(deps_json) if deps_json else []
+                    except Exception:
+                        dependencies = []
+
+                    try:
+                        configuration_schema = json.loads(config_json) if config_json else {}
+                    except Exception:
+                        configuration_schema = {}
+
+                    in_sig = AlgebraicSignature(type_name=in_type or "any", state=in_state or "any")
+                    out_sig = AlgebraicSignature(type_name=out_type or "None", state=out_state or "any")
+
+                    inputs: Dict[str, PortSignature] = {}
+                    outputs: Dict[str, PortSignature] = {}
+
+                    if isinstance(configuration_schema, dict) and ("inputs" in configuration_schema or "outputs" in configuration_schema):
+                        raw_in = configuration_schema.get("inputs", {})
+                        for p_name, p_val in raw_in.items():
+                            p_type = p_val.get("type_name", in_type or "any")
                             p_state = p_val.get("state", in_state or "any")
                             inputs[p_name] = PortSignature(
                                 name=p_name,
                                 signature=AlgebraicSignature(type_name=str(p_type), state=str(p_state)),
                                 required=p_val.get("required", True),
-                                default_value=p_val.get("default_value", p_val.get("default")),
-                                doc=p_val.get("doc", p_val.get("param_doc", ""))
+                                default_value=p_val.get("default_value", p_val.get("default"))
                             )
-                        elif isinstance(p_val, str):
-                            inputs[p_name] = PortSignature(
+                        raw_out = configuration_schema.get("outputs", {})
+                        for p_name, p_val in raw_out.items():
+                            p_type = p_val.get("type_name", out_type or "any")
+                            p_state = p_val.get("state", out_state or "any")
+                            outputs[p_name] = PortSignature(
                                 name=p_name,
-                                signature=AlgebraicSignature(type_name=p_val, state="any")
-                            )
-                elif isinstance(configuration_schema, list) and configuration_schema:
-                    for p_val in configuration_schema:
-                        if isinstance(p_val, dict) and "name" in p_val:
-                            p_name = p_val["name"]
-                            p_type = p_val.get("type_name", p_val.get("type", in_type or "any"))
-                            p_state = p_val.get("state", in_state or "any")
-                            inputs[p_name] = PortSignature(
-                                name=p_name,
-                                signature=AlgebraicSignature(type_name=str(p_type), state=str(p_state)),
-                                required=p_val.get("required", True),
-                                default_value=p_val.get("default_value", p_val.get("default")),
-                                doc=p_val.get("doc", p_val.get("param_doc", ""))
+                                signature=AlgebraicSignature(type_name=str(p_type), state=str(p_state))
                             )
 
-                if not inputs:
-                    inputs = {"input_data": PortSignature(name="input_data", signature=in_sig)}
+                    if not inputs:
+                        inputs = {"input_data": PortSignature(name="input_data", signature=in_sig)}
+                    if not outputs:
+                        outputs = {"output_data": PortSignature(name="output_data", signature=out_sig)}
 
-                outputs = {"output_data": PortSignature(name="output_data", signature=out_sig)}
+                    keywords = set(re.findall(r'[a-zA-Z0-9]+', cell_id.lower())) - {"cell", "default", "broken", "distractor"}
+                    for p in inputs.values():
+                        if p.state != "any":
+                            keywords.update(re.findall(r'[a-zA-Z0-9]+', p.state.lower()))
+                        if p.name:
+                            keywords.update(re.findall(r'[a-zA-Z0-9]+', p.name.lower()))
+                    for p in outputs.values():
+                        if p.state != "any":
+                            keywords.update(re.findall(r'[a-zA-Z0-9]+', p.state.lower()))
 
-                is_macro = node_type == "macro" or str(node_role).lower() == "macro"
-                cell_cls = MacroCell if is_macro else MicroCell
-
-                cell = cell_cls(
-                    cell_id=cell_id,
-                    stage=stage or 1,
-                    keywords=keywords,
-                    inputs=inputs,
-                    outputs=outputs,
-                    domain_name=domain_name or self.active_domain,
-                    node_type="macro" if is_macro else (node_type or "function"),
-                    node_role=str(node_role).lower() if node_role else "function",
-                    dependencies=dependencies,
-                    code_template=code or "",
-                    db_path=self.db_path,
-                    configuration_schema=configuration_schema
-                )
-
-                self.loaded_cells[cell.cell_id] = cell
+                    cell = MicroCell(
+                        cell_id=cell_id,
+                        stage=stage or 1,
+                        keywords=keywords,
+                        inputs=inputs,
+                        outputs=outputs,
+                        domain_name="pandas",
+                        node_type="function",
+                        node_role="function",
+                        dependencies=dependencies,
+                        code_template=code or "",
+                        db_path=self.db_path,
+                        configuration_schema=configuration_schema
+                    )
+                    self.loaded_cells[cell.cell_id] = cell
 
             conn.close()
             logger.info(f"[LATTICE] Loaded {len(self.loaded_cells)} cells from database.")

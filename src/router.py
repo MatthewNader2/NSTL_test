@@ -139,20 +139,37 @@ class MCTSEngine:
         return []
 
 
+def is_goal_satisfied(current_sig: Any, goal_sig: Optional[Any], selected_path: List[Cell]) -> bool:
+    """
+    Goal satisfaction checking:
+    Determines if current typestate satisfies target goal or reaches a terminal export state.
+    """
+    if goal_sig is not None:
+        target_sig = goal_sig.signature if hasattr(goal_sig, "signature") else goal_sig
+        c_sig = current_sig.signature if hasattr(current_sig, "signature") else current_sig
+        return c_sig.unifies_with(target_sig)
+    # If no explicit goal signature is provided, terminate when all intent waypoints are met
+    # and the current cell has produced a valid terminal or exported state
+    if selected_path and selected_path[-1].stage == 3:
+        return True
+    return False
+
+
 class LatticeRouter:
     """
     Semantic router with type-monadic beam search and planner synchronization.
-    Returns (List[Cell], Set[str]) to match main.py contract.
+    Supports both (List[Cell], Set[str]) and List[Cell] return formats dynamically.
     """
 
     def __init__(
         self,
         orchestrator: LatticeOrchestrator,
-        rag_engine: Any,
-        reranker: Optional[Any] = None
+        rag_engine: Any = None,
+        reranker: Optional[Any] = None,
+        internal_rag: Optional[Any] = None
     ):
         self.orchestrator = orchestrator
-        self.rag = rag_engine
+        self.rag = rag_engine if rag_engine is not None else internal_rag
         self.reranker = reranker
         self.mcts = MCTSEngine(orchestrator)
         self._keyword_cache: Dict[str, Set[str]] = {}
@@ -160,17 +177,38 @@ class LatticeRouter:
     def plan_path(
         self,
         prompt: str,
+        start_sig: Optional[Union[AlgebraicSignature, PortSignature]] = None,
+        goal_sig: Optional[Union[AlgebraicSignature, PortSignature]] = None,
         start_type: Optional[str] = None,
         start_state: Optional[str] = None,
         goal_type: Optional[str] = None,
         goal_state: Optional[str] = None,
         beam_width: int = 5,
-        max_steps: int = 12
-    ) -> Tuple[List[Cell], Set[str]]:
+        max_steps: int = 12,
+        return_tuple: Optional[bool] = None
+    ) -> Union[List[Cell], Tuple[List[Cell], Set[str]]]:
         from planner import ZeroShotPlanner
+
+        is_tuple_requested = return_tuple if return_tuple is not None else (start_sig is None and goal_sig is None)
 
         prompt_lower = prompt.lower()
         prompt_keywords = set(re.findall(r"[a-zA-Z_]+", prompt_lower))
+
+        if start_sig is not None:
+            current_sig = start_sig.signature if hasattr(start_sig, "signature") else start_sig
+        else:
+            current_sig = AlgebraicSignature(
+                start_type or "str",
+                start_state or "source_identifier"
+            )
+
+        if goal_sig is not None:
+            target_goal_sig = goal_sig.signature if hasattr(goal_sig, "signature") else goal_sig
+        else:
+            target_goal_sig = AlgebraicSignature(
+                goal_type or "str",
+                goal_state or "filepath_written"
+            )
 
         # Use ZeroShotPlanner to obtain the topological stage plan / waypoints
         planner = ZeroShotPlanner(self.orchestrator, self.rag)
@@ -180,45 +218,32 @@ class LatticeRouter:
 
         if sub_cells:
             resolved_path: List[Cell] = []
-            current_sig = AlgebraicSignature(
-                start_type or "str",
-                start_state or "source_identifier"
-            )
+            curr_sig = current_sig
 
             for step_id in sub_cells:
                 target_cell = self.orchestrator.loaded_cells.get(step_id)
                 if not target_cell:
                     continue
 
-                if current_sig.unifies_with(target_cell.primary_input) or target_cell.can_accept(current_sig):
+                if curr_sig.unifies_with(target_cell.primary_input) or target_cell.can_accept(curr_sig):
                     resolved_path.append(target_cell)
-                    current_sig = target_cell.primary_output
+                    curr_sig = target_cell.primary_output
                 else:
                     # Bridge gap between current signature and target cell's required input
-                    bridge = self.mcts.search(current_sig, target_cell.primary_input, prompt_keywords=prompt_keywords)
+                    bridge = self.mcts.search(curr_sig, target_cell.primary_input, prompt_keywords=prompt_keywords)
                     if bridge:
                         resolved_path.extend(bridge)
-                        current_sig = bridge[-1].primary_output
+                        curr_sig = bridge[-1].primary_output
                     resolved_path.append(target_cell)
-                    current_sig = target_cell.primary_output
+                    curr_sig = target_cell.primary_output
 
-                # If this cell is a Stage 3 sink (exporter/writer), terminate path immediately
-                if target_cell.stage == 3:
+                if is_goal_satisfied(curr_sig, goal_sig, resolved_path):
                     break
 
             if resolved_path:
-                return resolved_path, set()
+                return (resolved_path, set()) if is_tuple_requested else resolved_path
 
         # Pure beam search fallback if planner returned no sub-cells
-        current_sig = AlgebraicSignature(
-            start_type or "str",
-            start_state or "source_identifier"
-        )
-        goal_sig = AlgebraicSignature(
-            goal_type or "str",
-            goal_state or "filepath_written"
-        )
-
         beam: List[Tuple[List[str], AlgebraicSignature, float]] = [([], current_sig, 0.0)]
         visited_sequences: Set[str] = set()
 
@@ -226,8 +251,9 @@ class LatticeRouter:
             candidates: List[Tuple[List[str], AlgebraicSignature, float]] = []
 
             for path, sig, score in beam:
-                if (sig.unifies_with(goal_sig) or sig.state in ("filepath_written", "written")) and path:
-                    return self._ids_to_cells(path), set()
+                path_cells = self._ids_to_cells(path)
+                if is_goal_satisfied(sig, target_goal_sig, path_cells) and path:
+                    return (path_cells, set()) if is_tuple_requested else path_cells
 
                 seq_key = "->".join(path)
                 if seq_key in visited_sequences:
@@ -265,9 +291,10 @@ class LatticeRouter:
         if beam:
             best_path, best_sig, _ = max(beam, key=lambda x: x[2])
             if best_path:
-                return self._ids_to_cells(best_path), set()
+                res_cells = self._ids_to_cells(best_path)
+                return (res_cells, set()) if is_tuple_requested else res_cells
 
-        return [], set()
+        return ([], set()) if is_tuple_requested else []
 
     def _ids_to_cells(self, ids: List[str]) -> List[Cell]:
         cells: List[Cell] = []
@@ -285,6 +312,9 @@ class LatticeRouter:
         top_k: int = 25
     ) -> List[Tuple[str, float]]:
         """Scores candidate cells with strict type pre-filtering and domain alignment."""
+        if self.rag is None:
+            return []
+
         try:
             raw_candidates = self.rag.get_relevant_context(prompt, top_k=top_k * 2)
         except Exception as e:
