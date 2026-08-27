@@ -63,11 +63,16 @@ class GEVRSandbox:
                 f.write(code)
                 temp_path = f.name
 
+            env = os.environ.copy()
+            ppath = os.pathsep.join(sys.path)
+            env["PYTHONPATH"] = f"{ppath}:{env.get('PYTHONPATH', '')}" if env.get('PYTHONPATH') else ppath
+
             res = subprocess.run(
                 [sys.executable, temp_path],
                 capture_output=True,
                 text=True,
-                timeout=self.timeout
+                timeout=self.timeout,
+                env=env
             )
             success = (res.returncode == 0)
             return success, res.stdout, res.stderr

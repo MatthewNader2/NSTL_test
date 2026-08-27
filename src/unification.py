@@ -245,7 +245,8 @@ class ExecutionContext:
 
     FILE_EXTENSIONS = (
         r'csv|json|parquet|xlsx|jpg|jpeg|png|bmp|txt|db|h5|hdf5|'
-        r'pdf|md|py|npz|pkl|pickle|feather|orc|avro|yaml|yml|toml|ini'
+        r'pdf|md|py|npz|pkl|pickle|feather|orc|avro|yaml|yml|toml|ini|'
+        r'wav|mp3|flac|ogg|m4a|aac|avi|mp4|mov|mkv'
     )
     COLUMN_STOP_WORDS = {
         "descending", "ascending", "the", "a", "an", "column", "columns",
