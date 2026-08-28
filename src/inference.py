@@ -14,7 +14,7 @@ from typing import List, Optional, Dict, Any
 import numpy as np
 import torch
 from log_config import get_logger
-from config import MODELS_DIR
+from config import MODELS_DIR, settings
 
 logger = get_logger("inference")
 
@@ -179,7 +179,7 @@ class BenchmarkProfile_C(InferenceProfile):
 
         gpu_layers = -1 if device == "cuda" else 0
         # Bound context to 2048 to prevent VRAM bloat
-        self.llm = Llama(model_path=model_file, n_ctx=2048, n_gpu_layers=gpu_layers, verbose=False)
+        self.llm = Llama(model_path=model_file, n_ctx=settings.llm_context_length, n_gpu_layers=gpu_layers, verbose=False)
         logger.info(f"[PROFILE C] Loaded Embedder '{self.embedder_name}' + LLM '{self.llm_name}' on {device.upper()}")
 
     def get_embedding(self, text: str) -> List[float]:
@@ -204,7 +204,7 @@ class BenchmarkProfile_C(InferenceProfile):
             messages.append({"role": "system", "content": system_prompt})
         messages.append({"role": "user", "content": prompt})
 
-        kwargs = {"messages": messages, "max_tokens": max_tokens, "temperature": 0.1, "top_p": 0.95}
+        kwargs = {"messages": messages, "max_tokens": max_tokens, "temperature": settings.llm_temperature, "top_p": settings.llm_top_p}
         if schema:
             kwargs["response_format"] = {"type": "json_object", "schema": schema}
 

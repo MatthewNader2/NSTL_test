@@ -6,16 +6,19 @@ import os
 import re
 import sqlite3
 import sys
+import time
 from pathlib import Path
 
 SRC_DIR = str(Path(__file__).resolve().parent)
 if SRC_DIR not in sys.path:
     sys.path.insert(0, SRC_DIR)
 
-from typing import Optional, List, Dict, Any
-
-from .schema import CellSchema, TreeSchema, PortSchema
-from .harvester import IntelligentHarvester
+try:
+    from schema import CellSchema, TreeSchema, PortSchema
+    from harvester import IntelligentHarvester
+except ImportError:
+    from .schema import CellSchema, TreeSchema, PortSchema
+    from .harvester import IntelligentHarvester
 
 def cmd_harvest(args):
     """Harvest public APIs from a package and merge into trees/{domain}.json."""
@@ -225,11 +228,16 @@ def cmd_validate(args):
 
 
 import cmd
-import time
-from .lattice import LatticeOrchestrator
-from .router import LatticeRouter
-from .unification import UnificationGate, DynamicPlaceholderResolver
-from .gevr_sandbox import GEVRSandbox
+try:
+    from lattice import LatticeOrchestrator
+    from router import LatticeRouter
+    from unification import UnificationGate, DynamicPlaceholderResolver
+    from gevr_sandbox import GEVRSandbox
+except ImportError:
+    from .lattice import LatticeOrchestrator
+    from .router import LatticeRouter
+    from .unification import UnificationGate, DynamicPlaceholderResolver
+    from .gevr_sandbox import GEVRSandbox
 
 
 class NSTLInteractiveShell(cmd.Cmd):

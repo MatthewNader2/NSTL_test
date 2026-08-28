@@ -67,6 +67,10 @@ export const useStore = create((set) => ({
   // 🛠️ Developer System Logs
   systemLogs: [],
   logSystemEvent: (message, category = "SYSTEM") => set((state) => {
+    const lastLog = state.systemLogs[state.systemLogs.length - 1];
+    if (lastLog && lastLog.message === message && lastLog.category === category) {
+      return state;
+    }
     const timestamp = new Date().toLocaleTimeString();
     const newLog = { message, category, timestamp };
     return { systemLogs: [...state.systemLogs.slice(-499), newLog] };

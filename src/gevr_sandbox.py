@@ -17,6 +17,7 @@ import signal
 import resource
 from typing import Tuple, Optional, Callable, Dict, Any
 from log_config import get_logger
+from config import settings
 
 logger = get_logger('gevr_sandbox')
 
@@ -52,8 +53,8 @@ def _sandbox_worker_exec(code: str) -> Dict[str, Any]:
     """Isolated execution unit executed within persistent worker process."""
     if sys.platform != "win32":
         try:
-            resource.setrlimit(resource.RLIMIT_AS, (1024 * 1024 * 1024, 1024 * 1024 * 1024))
-            resource.setrlimit(resource.RLIMIT_CPU, (5, 5))
+            resource.setrlimit(resource.RLIMIT_AS, (settings.sandbox_max_memory_mb * 1024 * 1024, settings.sandbox_max_memory_mb * 1024 * 1024))
+            resource.setrlimit(resource.RLIMIT_CPU, (settings.sandbox_max_cpu_seconds, settings.sandbox_max_cpu_seconds))
         except Exception:
             pass
 
@@ -89,9 +90,9 @@ class GEVRSandbox:
     _pool: Optional[multiprocessing.Pool] = None
     _lock = threading.Lock()
 
-    def __init__(self, num_workers: int = 2, timeout_seconds: float = 5.0):
-        self.timeout = timeout_seconds
-        self._ensure_pool(num_workers)
+    def __init__(self, num_workers: int = None, timeout_seconds: float = None):
+        self.timeout = timeout_seconds if timeout_seconds is not None else settings.sandbox_timeout
+        self._ensure_pool(num_workers if num_workers is not None else settings.sandbox_workers)
 
     @classmethod
     def _ensure_pool(cls, num_workers: int = 2):

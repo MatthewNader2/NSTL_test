@@ -50,8 +50,8 @@ def init_server(profile, emb_model, llm_model):
             resp = json.loads(urllib.request.urlopen(f"http://{API_HOST}:{API_PORT}/api/status").read().decode())
             if resp.get("status") == "ready":
                 return True
-        except:
-            pass
+        except Exception as e:
+            print(f"Status check failed: {e}")
         time.sleep(1)
     return False
 
@@ -105,7 +105,7 @@ def run_eval():
             # Setup
             if task.get('setup_script'):
                 try:
-                    exec(task['setup_script'], globals(), globals())
+                    exec(task['setup_script'], {"__builtins__": __builtins__}, {})
                 except Exception as e:
                     print(f"Setup script failed: {e}")
                     
@@ -140,7 +140,7 @@ def run_eval():
                             # Pass stdout and stderr to the validation env
                             val_env = {"stdout": stdout_str, "stderr": stderr_str}
                             try:
-                                exec(validation_script, val_env)
+                                exec(validation_script, {"__builtins__": __builtins__, **val_env})
                                 passed = True
                             except AssertionError as ae:
                                 error_msg = f"Validation failed: {ae}"
@@ -174,7 +174,10 @@ def run_eval():
             proc.wait(timeout=5)
         except subprocess.TimeoutExpired:
             proc.kill()
-        subprocess.run(f"fuser -k {API_PORT}/tcp || pkill -9 -f 'python3 src/main.py' || true", shell=True, capture_output=True)
+        try:
+            subprocess.run(["fuser", "-k", f"{API_PORT}/tcp"], capture_output=True, timeout=5)
+        except (FileNotFoundError, subprocess.TimeoutExpired):
+            pass
         time.sleep(3)
 
     with open(os.path.join(str(PROJECT_ROOT), 'evaluation_results.json'), 'w') as f:

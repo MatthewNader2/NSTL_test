@@ -18,6 +18,7 @@ export default function Sidebar({ className = "" }) {
   const [localThinkingId, setLocalThinkingId] = useState(null);
   const [replyContext, setReplyContext] = useState(null);
   const [expandedAccordions, setExpandedAccordions] = useState({});
+  const [showAll, setShowAll] = useState(false);
 
   const chatHistory = useStore((s) => s.chatHistory);
   const addHistoryItem = useStore((s) => s.addHistoryItem);
@@ -147,100 +148,107 @@ export default function Sidebar({ className = "" }) {
             <div className="chat-empty-sub">Describe a data pipeline and the neural lattice will compile it into executable code.</div>
           </div>
         ) : (
-          chatHistory.map((item) => {
-            const isSelected = activeHistoryId === item.id;
-            const isThinking = item.isThinking;
-            const showLogs = expandedAccordions[item.id] !== undefined ? expandedAccordions[item.id] : isThinking;
+          <>
+            {chatHistory.length > 200 && !showAll && (
+              <button className="show-earlier-btn" onClick={() => setShowAll(true)}>
+                Show {chatHistory.length - 200} earlier messages
+              </button>
+            )}
+            {(chatHistory.length > 200 && !showAll ? chatHistory.slice(-200) : chatHistory).map((item) => {
+              const isSelected = activeHistoryId === item.id;
+              const isThinking = item.isThinking;
+              const showLogs = expandedAccordions[item.id] !== undefined ? expandedAccordions[item.id] : isThinking;
 
-            return (
-              <div key={item.id} className="msg-group fade-in" onClick={() => handleSelectHistory(item)}>
-                {/* User bubble */}
-                <div className="msg-user">
-                  <div className={`msg-user-bubble ${isSelected ? "selected" : ""}`}>
-                    <div className="msg-user-meta">
-                      <User size={10} />
-                      <span>{item.timestamp}</span>
+              return (
+                <div key={item.id} className="msg-group fade-in" onClick={() => handleSelectHistory(item)}>
+                  {/* User bubble */}
+                  <div className="msg-user">
+                    <div className={`msg-user-bubble ${isSelected ? "selected" : ""}`}>
+                      <div className="msg-user-meta">
+                        <User size={10} />
+                        <span>{item.timestamp}</span>
+                      </div>
+                      {item.prompt}
                     </div>
-                    {item.prompt}
+                  </div>
+
+                  {/* AI bubble */}
+                  <div className="msg-ai">
+                    <div className={`msg-ai-bubble ${isSelected ? "selected" : ""}`}>
+                      {/* Thinking toggle */}
+                      <div
+                        className={`thinking-header ${showLogs ? "open" : ""}`}
+                        onClick={(e) => toggleAccordion(item.id, e)}
+                      >
+                        <div className="thinking-label" style={{ color: isThinking ? "var(--cyan)" : "var(--t2)" }}>
+                          {isThinking
+                            ? <RefreshCw size={13} className="spinning" />
+                            : <Terminal size={13} />
+                          }
+                          <span>{isThinking ? "Thinking…" : "View execution logs"}</span>
+                        </div>
+                        <div className="thinking-actions">
+                          {!isThinking && item.code && (
+                            <button
+                              className="icon-btn"
+                              style={{ width: "auto", height: "auto", padding: "3px 8px", fontSize: "0.65rem", gap: "4px", display: "flex", alignItems: "center", color: "var(--cyan)", background: "var(--cyan-dim)", borderColor: "var(--cyan-border)", borderWidth: 1, borderStyle: "solid", borderRadius: "var(--r-sm)" }}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setReplyContext({ id: item.id, prompt: item.prompt, code: item.code });
+                                logSystemEvent(`Reply context set for ${item.id}`, "UI");
+                              }}
+                            >
+                              <MessageSquareReply size={11} />
+                              Reply
+                            </button>
+                          )}
+                          {showLogs ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
+                        </div>
+                      </div>
+
+                      {/* Log content */}
+                      {showLogs && (
+                        <div className="thinking-logs">
+                          {item.logs?.length === 0
+                            ? <span style={{ color: "var(--t3)", fontStyle: "italic" }}>Handshaking…</span>
+                            : item.logs.map((log, li) => {
+                                let col = "var(--t2)";
+                                if (log.type === "system") col = "#a78bfa";
+                                else if (log.type === "warn" || log.type === "error") col = "var(--red)";
+                                else if (log.type === "info") col = "var(--cyan)";
+                                return (
+                                  <div key={li} style={{ color: col, wordBreak: "break-word" }}>
+                                    <span style={{ opacity: 0.4 }}>[{log.time}] </span>{log.msg}
+                                  </div>
+                                );
+                              })
+                          }
+                        </div>
+                      )}
+
+                      {/* Result footer */}
+                      {!isThinking && (
+                        <div className="msg-result-footer">
+                          {item.path?.length > 0 ? (
+                            <span style={{ color: "var(--cyan)", fontSize: "0.7rem" }}>
+                              ⬡ {item.path.length} cells compiled
+                            </span>
+                          ) : (
+                            <span style={{ color: "var(--red)", fontSize: "0.7rem" }}>
+                              ⚠ No execution path found
+                            </span>
+                          )}
+                          <span style={{ color: "var(--t3)", fontSize: "0.65rem" }}>
+                            {item.code ? "✓ CODE READY" : "EMPTY"}
+                          </span>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
-
-                {/* AI bubble */}
-                <div className="msg-ai">
-                  <div className={`msg-ai-bubble ${isSelected ? "selected" : ""}`}>
-                    {/* Thinking toggle */}
-                    <div
-                      className={`thinking-header ${showLogs ? "open" : ""}`}
-                      onClick={(e) => toggleAccordion(item.id, e)}
-                    >
-                      <div className="thinking-label" style={{ color: isThinking ? "var(--cyan)" : "var(--t2)" }}>
-                        {isThinking
-                          ? <RefreshCw size={13} className="spinning" />
-                          : <Terminal size={13} />
-                        }
-                        <span>{isThinking ? "Thinking…" : "View execution logs"}</span>
-                      </div>
-                      <div className="thinking-actions">
-                        {!isThinking && item.code && (
-                          <button
-                            className="icon-btn"
-                            style={{ width: "auto", height: "auto", padding: "3px 8px", fontSize: "0.65rem", gap: "4px", display: "flex", alignItems: "center", color: "var(--cyan)", background: "var(--cyan-dim)", borderColor: "var(--cyan-border)", borderWidth: 1, borderStyle: "solid", borderRadius: "var(--r-sm)" }}
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setReplyContext({ id: item.id, prompt: item.prompt, code: item.code });
-                              logSystemEvent(`Reply context set for ${item.id}`, "UI");
-                            }}
-                          >
-                            <MessageSquareReply size={11} />
-                            Reply
-                          </button>
-                        )}
-                        {showLogs ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
-                      </div>
-                    </div>
-
-                    {/* Log content */}
-                    {showLogs && (
-                      <div className="thinking-logs">
-                        {item.logs?.length === 0
-                          ? <span style={{ color: "var(--t3)", fontStyle: "italic" }}>Handshaking…</span>
-                          : item.logs.map((log, li) => {
-                              let col = "var(--t2)";
-                              if (log.type === "system") col = "#a78bfa";
-                              else if (log.type === "warn" || log.type === "error") col = "var(--red)";
-                              else if (log.type === "info") col = "var(--cyan)";
-                              return (
-                                <div key={li} style={{ color: col, wordBreak: "break-word" }}>
-                                  <span style={{ opacity: 0.4 }}>[{log.time}] </span>{log.msg}
-                                </div>
-                              );
-                            })
-                        }
-                      </div>
-                    )}
-
-                    {/* Result footer */}
-                    {!isThinking && (
-                      <div className="msg-result-footer">
-                        {item.path?.length > 0 ? (
-                          <span style={{ color: "var(--cyan)", fontSize: "0.7rem" }}>
-                            ⬡ {item.path.length} cells compiled
-                          </span>
-                        ) : (
-                          <span style={{ color: "var(--red)", fontSize: "0.7rem" }}>
-                            ⚠ No execution path found
-                          </span>
-                        )}
-                        <span style={{ color: "var(--t3)", fontSize: "0.65rem" }}>
-                          {item.code ? "✓ CODE READY" : "EMPTY"}
-                        </span>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </div>
-            );
-          })
+              );
+            })}
+          </>
         )}
 
         {/* Suggestions (only when empty) */}

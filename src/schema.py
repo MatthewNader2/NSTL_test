@@ -70,7 +70,14 @@ class CellSchema(BaseModel):
     @classmethod
     def validate_template_syntax(cls, v: str) -> str:
         # Dry-run AST parse with dummy variables to ensure syntactically valid Python
-        dummy_code = re.sub(r"\{[a-zA-Z_][a-zA-Z0-9_]*\}", "dummy_var", v)
+        # Use unique placeholder names to avoid false positive validation
+        seen = {}
+        def _replace_ph(m):
+            name = m.group(0)
+            if name not in seen:
+                seen[name] = f"_ph_{len(seen)}"
+            return seen[name]
+        dummy_code = re.sub(r"\{[a-zA-Z_][a-zA-Z0-9_]*\}", _replace_ph, v)
         try:
             ast.parse(dummy_code)
         except SyntaxError as e:

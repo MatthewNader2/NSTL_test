@@ -5,8 +5,17 @@ import re
 import sys
 from typing import Dict, List, Any, Optional, Set, Tuple
 from pathlib import Path
-import json
-from .schema import CellSchema, PortSchema, TreeSchema
+try:
+    from schema import CellSchema, PortSchema, TreeSchema
+except ImportError:
+    from .schema import CellSchema, PortSchema, TreeSchema
+
+try:
+    from .log_config import get_logger
+except ImportError:
+    from log_config import get_logger
+
+logger = get_logger('harvester')
 
 class IntelligentHarvester:
     """
@@ -176,7 +185,8 @@ class IntelligentHarvester:
                 if cell and cell.cell_id not in seen_ids:
                     cells.append(cell)
                     seen_ids.add(cell.cell_id)
-            except Exception:
+            except Exception as e:
+                logger.warning(f"[HARVESTER] Failed to harvest '{name}': {e}")
                 continue
         return cells
 
@@ -190,8 +200,8 @@ class IntelligentHarvester:
                     for c in data.get("cells", []):
                         cell_obj = CellSchema(**c)
                         existing_cells[cell_obj.cell_id] = cell_obj
-            except Exception:
-                pass
+            except Exception as e:
+                logger.warning(f"[HARVESTER] Failed to load existing cells from {output_file}: {e}")
 
         for cell in new_cells:
             # Only add or update if existing cell is not a curated seed (priority > 10)

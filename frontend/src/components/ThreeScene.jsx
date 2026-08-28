@@ -58,17 +58,28 @@ function DormantNodes({ cells, positions, activeIds }) {
     [cells, activeIds],
   );
 
+  const prevCellIds = useRef("");
+
   useEffect(() => {
     if (!meshRef.current) return;
-    dormantCells.forEach((cell, i) => {
-      const pos = positions[cell.cell_id];
-      if (pos) {
-        dummy.position.copy(pos);
-        dummy.updateMatrix();
-        meshRef.current.setMatrixAt(i, dummy.matrix);
-      }
+
+    const currentIds = dormantCells.map((c) => c.cell_id).join(",");
+    if (prevCellIds.current === currentIds) return;
+    prevCellIds.current = currentIds;
+
+    const rafId = requestAnimationFrame(() => {
+      dormantCells.forEach((cell, i) => {
+        const pos = positions[cell.cell_id];
+        if (pos) {
+          dummy.position.copy(pos);
+          dummy.updateMatrix();
+          meshRef.current.setMatrixAt(i, dummy.matrix);
+        }
+      });
+      meshRef.current.instanceMatrix.needsUpdate = true;
     });
-    meshRef.current.instanceMatrix.needsUpdate = true;
+
+    return () => cancelAnimationFrame(rafId);
   }, [dormantCells, positions, dummy]);
 
   useEffect(

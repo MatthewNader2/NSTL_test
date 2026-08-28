@@ -52,6 +52,16 @@ async def lifespan(app: FastAPI):
     elapsed = (time.perf_counter() - t0) * 1000
     print(f"[✓] NSTL API Server ready with {len(orchestrator.loaded_cells)} nodes loaded in {elapsed:.1f}ms.")
     yield
+    # Graceful shutdown: clean up resources
+    print("[*] Shutting down NSTL engine...")
+    if hasattr(app.state, 'sandbox') and app.state.sandbox:
+        try:
+            if hasattr(app.state.sandbox, '_pool') and app.state.sandbox._pool is not None:
+                app.state.sandbox._pool.terminate()
+                app.state.sandbox._pool.join(timeout=5)
+        except Exception:
+            pass
+    print("[✓] NSTL engine shutdown complete.")
 
 
 app = FastAPI(
@@ -61,9 +71,32 @@ app = FastAPI(
     lifespan=lifespan
 )
 
+from starlette.middleware.cors import CORSMiddleware
+from config import CORS_ORIGINS
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=CORS_ORIGINS,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+@app.middleware("http")
+async def limit_request_size(request, call_next):
+    """Reject request bodies larger than 1MB to prevent abuse."""
+    content_length = request.headers.get("content-length")
+    if content_length and int(content_length) > 1_048_576:
+        from fastapi.responses import JSONResponse
+        return JSONResponse(
+            status_code=413,
+            content={"detail": "Request body too large (max 1MB)"},
+        )
+    return await call_next(request)
+
 
 class SynthesizeRequest(BaseModel):
-    prompt: str = Field(..., description="Natural language specification of the pipeline or task")
+    prompt: str = Field(..., min_length=3, max_length=5000, description="Natural language specification of the pipeline or task")
     execute_in_sandbox: bool = Field(default=False, description="Whether to execute synthesized code in isolated GEVR worker sandbox")
     timeout_seconds: float = Field(default=5.0, ge=0.5, le=30.0, description="Sandbox execution timeout limit")
 

@@ -50,19 +50,26 @@ class CratesIoFetcher(LiveDocFetcher):
 
 
 class DuckDuckGoFetcher(LiveDocFetcher):
+    """Queries DuckDuckGo Instant Answer API (JSON, no scraping)."""
     def fetch(self, query: str) -> str:
-        encoded = urllib.parse.quote(f"{query} python official documentation")
-        url = f"https://html.duckduckgo.com/html/?q={encoded}"
+        encoded = urllib.parse.quote(f"{query} python")
+        url = f"https://api.duckduckgo.com/?q={encoded}&format=json&no_html=1&skip_disambig=1"
         try:
-            req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'})
+            req = urllib.request.Request(url, headers={'User-Agent': 'NSTL-LiveDocFetcher/2.0'})
             with urllib.request.urlopen(req, timeout=5.0) as response:
-                html = response.read().decode('utf-8', errors='ignore')
-                from bs4 import BeautifulSoup
-                soup = BeautifulSoup(html, 'html.parser')
-                snippet = soup.find('a', class_='result__snippet')
-                return snippet.get_text(strip=True)[:2500] if snippet else ""
+                data = json.loads(response.read().decode())
+                # Try AbstractText (summary), then RelatedTopics
+                abstract = data.get("AbstractText", "")
+                if abstract:
+                    return abstract[:2500]
+                topics = data.get("RelatedTopics", [])
+                parts = []
+                for topic in topics[:5]:
+                    if isinstance(topic, dict) and "Text" in topic:
+                        parts.append(topic["Text"])
+                return "\n".join(parts)[:2500] if parts else ""
         except Exception as e:
-            logger.warning(f"[DDG FETCHER] Search failed for '{query}': {e}")
+            logger.warning(f"[DDG FETCHER] API query failed for '{query}': {e}")
             return ""
 
 
