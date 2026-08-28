@@ -8,6 +8,7 @@ import sqlite3
 import sys
 import time
 from pathlib import Path
+from typing import Any, Dict, List, Optional, Set, Tuple
 
 SRC_DIR = str(Path(__file__).resolve().parent)
 if SRC_DIR not in sys.path:
@@ -228,79 +229,572 @@ def cmd_validate(args):
 
 
 import cmd
+import glob
+import shutil
+
+from rich.console import Console
+from rich.panel import Panel
+from rich.table import Table
+from rich.syntax import Syntax
+from rich.text import Text
+from rich.align import Align
+from rich import box
+from rich.columns import Columns
+
 try:
     from lattice import LatticeOrchestrator
-    from router import LatticeRouter
+    from router import LatticeRouter, HardwareProfiler
     from unification import UnificationGate, DynamicPlaceholderResolver
     from gevr_sandbox import GEVRSandbox
+    from inference import ModelManager
+    from internal_rag import LocalRAG
+    from config import MODELS_DIR
 except ImportError:
     from .lattice import LatticeOrchestrator
-    from .router import LatticeRouter
+    from .router import LatticeRouter, HardwareProfiler
     from .unification import UnificationGate, DynamicPlaceholderResolver
     from .gevr_sandbox import GEVRSandbox
+    from .inference import ModelManager
+    from .internal_rag import LocalRAG
+    from .config import MODELS_DIR
+
+
+console = Console()
+
+
+def _get_available_embedders() -> List[str]:
+    """Scans MODELS_DIR/embeddings for available embedding models."""
+    emb_dir = os.path.join(MODELS_DIR, "embeddings")
+    if os.path.exists(emb_dir):
+        return sorted([
+            d for d in os.listdir(emb_dir)
+            if os.path.isdir(os.path.join(emb_dir, d)) and not d.endswith("-GGUF")
+        ])
+    return []
+
+
+def _get_available_llms() -> List[str]:
+    """Scans MODELS_DIR/llms for available GGUF LLMs."""
+    llm_dir = os.path.join(MODELS_DIR, "llms")
+    if os.path.exists(llm_dir):
+        return sorted([
+            d for d in os.listdir(llm_dir)
+            if os.path.isdir(os.path.join(llm_dir, d))
+        ])
+    return []
 
 
 class NSTLInteractiveShell(cmd.Cmd):
-    intro = "\n=== NSTL Neuro-Symbolic Topological Lattice Shell ===\nType a prompt to synthesize code, or 'exit' / 'quit' to quit.\n"
-    prompt = "NSTL > "
+    """
+    Rich Terminal User Interface (TUI) Studio for NSTL Neuro-Symbolic Synthesis.
+    Provides a visual, interactive CLI workspace with instant profile switching,
+    model exploration, real-time latency diagnostics, and self-repair cycles.
+    """
 
-    def __init__(self, db_path="trees/lattice.db"):
+    prompt = "\033[1;36mNSTL [Profile 0: Symbolic]\033[0m > "
+
+    def __init__(
+        self,
+        db_path: str = "trees/lattice.db",
+        initial_profile: str = "0",
+        embedder: str = "",
+        llm: str = "",
+        device: str = "auto"
+    ):
         super().__init__()
-        print(f"[*] Initializing Lattice from {db_path}...")
+        self.db_path = db_path
+        self.device = device
+        self.embedder_name = embedder
+        self.llm_name = llm
+        self.active_profile = "0"
+        self.rag: Optional[LocalRAG] = None
+        self.history: List[Dict[str, Any]] = []
+
+        console.print("\n[bold cyan][*] Initializing NSTL Neuro-Symbolic Engine...[/bold cyan]")
         t0 = time.perf_counter()
+
         self.orchestrator = LatticeOrchestrator()
         self.orchestrator.load_from_database(db_path)
         self.orchestrator.build_topology()
-        self.router = LatticeRouter(self.orchestrator)
+        self.gate = UnificationGate()
         self.sandbox = GEVRSandbox()
         self.resolver = DynamicPlaceholderResolver()
-        self.gate = UnificationGate()
-        print(f"[✓] Lattice ready with {len(self.orchestrator.cells)} nodes in {(time.perf_counter()-t0)*1000:.1f}ms.\n")
 
-    def default(self, line):
-        if not line.strip():
-            return
+        node_count = len(self.orchestrator.cells)
+        load_time = (time.perf_counter() - t0) * 1000.0
+        console.print(f"[bold green][✓] Lattice Graph Loaded: {node_count:,} verified nodes ({load_time:.1f}ms)[/bold green]\n")
+
+        # Initialize requested profile
+        self._switch_profile(initial_profile, embedder=embedder, llm=llm, device=device, verbose=False)
+        self._render_dashboard()
+
+    def _render_dashboard(self):
+        """Renders the top visual status dashboard."""
+        domains = set(c.domain_name for c in self.orchestrator.cells if c.domain_name)
+        prof_name = self._format_profile_name(self.active_profile)
+        prof_desc = self._get_profile_description(self.active_profile)
+
+        # Main Header Table
+        header_table = Table(box=box.ROUNDED, expand=True, border_style="cyan")
+        header_table.add_column("⚡ Layer Profile", style="bold yellow", ratio=3)
+        header_table.add_column("🧠 Neural Models", style="bold magenta", ratio=3)
+        header_table.add_column("📊 Topology & Hardware", style="bold green", ratio=3)
+
+        # Profile info
+        prof_text = f"[bold white]{prof_name}[/bold white]\n[dim]{prof_desc}[/dim]"
+
+        # Models info
+        emb_text = f"[cyan]Embedder:[/cyan] {self.embedder_name or '[dim]None (Bypassed)[/dim]'}"
+        llm_text = f"[cyan]LLM (GGUF):[/cyan] {self.llm_name or '[dim]None (Bypassed)[/dim]'}"
+        models_text = f"{emb_text}\n{llm_text}"
+
+        # Hardware & DB info
+        db_nodes = f"[cyan]Nodes:[/cyan] {len(self.orchestrator.cells):,} in {len(domains)} domains"
+        dev_info = f"[cyan]Device:[/cyan] {self.device.upper()} | [cyan]Queries:[/cyan] {len(self.history)}"
+        hardware_text = f"{db_nodes}\n{dev_info}"
+
+        header_table.add_row(prof_text, models_text, hardware_text)
+
+        # Title Banner Panel
+        title_text = Text("🧬 NSTL NEURO-SYMBOLIC TOPOLOGICAL LATTICE STUDIO", justify="center", style="bold white on blue")
+        quick_shortcuts = Text(
+            "Quick Layers: [1] 0:Symbolic  [2] A:Embedder  [3] C:Neuro-Symbolic  [4] D:Routing  [5] E:Translator\n"
+            "Commands: /profile <0|A|C|D|E> | /models | /set <key> <val> | /status | /new | /history | /clear | /exit",
+            justify="center",
+            style="dim cyan"
+        )
+
+        dashboard_panel = Panel(
+            header_table,
+            title=title_text,
+            subtitle=quick_shortcuts,
+            border_style="bright_blue",
+            padding=(0, 1)
+        )
+        console.print(dashboard_panel)
+        console.print("[dim]Type any natural language pipeline specification to synthesize code in real-time:[/dim]\n")
+
+    def _format_profile_name(self, prof: str) -> str:
+        prof_u = prof.upper()
+        if prof_u in ("0", "SYMBOLIC", "ZERO", "PURE"):
+            return "Profile 0 (Pure Symbolic Layer)"
+        elif prof_u == "A":
+            return "Profile A (Dense Embeddings RAG)"
+        elif prof_u in ("C", "B"):
+            return "Profile C (Hybrid Neuro-Symbolic + GGUF LLM)"
+        elif prof_u == "D":
+            return "Profile D (Routing-Only Benchmark)"
+        elif prof_u == "E":
+            return "Profile E (Translator Pass + Neuro-Symbolic)"
+        return f"Profile {prof_u}"
+
+    def _get_profile_description(self, prof: str) -> str:
+        prof_u = prof.upper()
+        if prof_u in ("0", "SYMBOLIC", "ZERO", "PURE"):
+            return "Sub-15ms deterministic A* search across 34K nodes. Baseline layer."
+        elif prof_u == "A":
+            return "FAISS vector retrieval with dense embedding model."
+        elif prof_u in ("C", "B"):
+            return "Embedder RAG + GGUF local LLM slot-filling & self-repair."
+        elif prof_u == "D":
+            return "LLM-guided path search without full code synthesis."
+        elif prof_u == "E":
+            return "2-stage pipeline: conversational prompt -> canonical translator."
+        return ""
+
+    def _update_prompt(self):
+        prof_label = self.active_profile.upper()
+        if prof_label in ("0", "SYMBOLIC", "ZERO", "PURE"):
+            prof_label = "0: Symbolic"
+        self.prompt = f"\033[1;36mNSTL [Profile {prof_label}]\033[0m > "
+
+    def _switch_profile(self, profile: str, embedder: str = "", llm: str = "", device: str = "auto", verbose: bool = True) -> bool:
+        p = profile.strip().upper()
+        if p in ("0", "SYMBOLIC", "ZERO", "PURE"):
+            self.active_profile = "0"
+            self.rag = None
+            self.router = LatticeRouter(self.orchestrator, internal_rag=None)
+            self._update_prompt()
+            if verbose:
+                console.print(f"[bold green][✓] Switched to {self._format_profile_name(self.active_profile)}[/bold green]\n")
+            return True
+
+        if p not in ("A", "C", "D", "E"):
+            console.print(f"[bold red][!] Unknown profile '{profile}'. Valid options: 0 (Symbolic), A, C, D, E.[/bold red]")
+            return False
+
+        # Determine default model names if not provided
+        available_emb = _get_available_embedders()
+        available_llm = _get_available_llms()
+
+        emb_choice = embedder or self.embedder_name or (available_emb[0] if available_emb else "jina-embeddings-v5-text-nano")
+        llm_choice = llm or self.llm_name or (available_llm[0] if available_llm else "qwen2.5-coder-0.5b-instruct")
+
+        if verbose:
+            console.print(f"[bold cyan][*] Loading {self._format_profile_name(p)}...[/bold cyan]")
         t0 = time.perf_counter()
-        
-        # 1. Routing
-        cells = self.router.plan_path(line, return_tuple=False)
-        if not cells:
-            print("[!] No valid path found through lattice.")
+        try:
+            HardwareProfiler.set_config(embedder_device=device, llm_device=device)
+            mm = ModelManager.get_instance()
+            mm.initialize_profile(
+                profile_type=p,
+                embedder_name=emb_choice,
+                llm_name=llm_choice if p in ("C", "D", "E") else ""
+            )
+            self.embedder_name = emb_choice
+            self.llm_name = llm_choice if p in ("C", "D", "E") else ""
+
+            if verbose:
+                console.print(f"[*] Indexing FAISS vector space for {len(self.orchestrator.cells):,} nodes...")
+            self.rag = LocalRAG(trees_dir="trees", orchestrator=self.orchestrator)
+            self.router = LatticeRouter(self.orchestrator, internal_rag=self.rag)
+
+            self.active_profile = p
+            self._update_prompt()
+            dt = (time.perf_counter() - t0) * 1000.0
+            if verbose:
+                console.print(f"[bold green][✓] {self._format_profile_name(p)} ready ({dt:.1f}ms).[/bold green]\n")
+            return True
+        except Exception as e:
+            console.print(f"[bold red][!] Failed to load Profile {p}: {e}[/bold red]")
+            console.print("[yellow][*] Reverting to Profile 0 (Pure Symbolic)...[/yellow]")
+            self.active_profile = "0"
+            self.rag = None
+            self.router = LatticeRouter(self.orchestrator, internal_rag=None)
+            self._update_prompt()
+            return False
+
+    def do_profile(self, arg: str):
+        """Switch active inference profile. Usage: profile <0|A|C|D|E>"""
+        arg = arg.strip().lstrip("/")
+        if arg.lower().startswith("profile"):
+            arg = arg[7:].strip()
+        if not arg:
+            table = Table(title="Available Profile Layers", box=box.ROUNDED, border_style="cyan")
+            table.add_column("Key", style="bold yellow")
+            table.add_column("Layer Profile", style="bold white")
+            table.add_column("Target Latency", style="bold green")
+            table.add_column("Role in NSTL Paper / Architecture", style="dim")
+
+            table.add_row("0 / symbolic", "Profile 0 (Pure Symbolic)", "< 15 ms", "Deterministic A* graph search (Baseline layer, zero neural models)")
+            table.add_row("A", "Profile A (Dense Embeddings RAG)", "~50–100 ms", "Vector embeddings (SentenceTransformer / FAISS HNSW search)")
+            table.add_row("C", "Profile C (Neuro-Symbolic LLM)", "~500 ms–2 s", "Full hybrid: Embedder + Local GGUF LLM slot-filling + Sandbox repair")
+            table.add_row("D", "Profile D (Routing Benchmark)", "~200–500 ms", "LLM-guided path search without code generation")
+            table.add_row("E", "Profile E (Translator Pass)", "~1–2 s", "Two-stage: Query Translator pass + Neuro-Symbolic synthesis")
+
+            console.print(table)
+            console.print(f"\nActive Profile: [bold yellow]{self._format_profile_name(self.active_profile)}[/bold yellow]\n")
             return
-        
+        self._switch_profile(arg)
+
+    def do_models(self, arg: str):
+        """List all available embedding models and LLMs found on disk."""
+        available_emb = _get_available_embedders()
+        available_llm = _get_available_llms()
+
+        table = Table(title="📦 Available Neural Models in models/", box=box.ROUNDED, border_style="cyan")
+        table.add_column("Category", style="bold yellow")
+        table.add_column("Model Name", style="bold white")
+        table.add_column("Status", style="bold green")
+
+        if available_emb:
+            for m in available_emb:
+                is_active = (m == self.embedder_name and self.active_profile != "0")
+                status = "[bold green]ACTIVE[/bold green]" if is_active else "[dim]Available[/dim]"
+                table.add_row("Embedding Model", m, status)
+        else:
+            table.add_row("Embedding Model", "[dim]None found in models/embeddings/[/dim]", "-")
+
+        if available_llm:
+            for m in available_llm:
+                is_active = (m == self.llm_name and self.active_profile in ("C", "D", "E"))
+                status = "[bold green]ACTIVE[/bold green]" if is_active else "[dim]Available[/dim]"
+                table.add_row("LLM (GGUF)", m, status)
+        else:
+            table.add_row("LLM (GGUF)", "[dim]None found in models/llms/[/dim]", "-")
+
+        console.print(table)
+        console.print("[dim]Use `set embedder <name>` or `set llm <name>` to activate a specific model.[/dim]\n")
+
+    def do_set(self, arg: str):
+        """Configure models or hardware device. Usage: set <embedder|llm|device> <value>"""
+        arg = arg.strip().lstrip("/")
+        if arg.lower().startswith("set"):
+            arg = arg[3:].strip()
+        parts = arg.split(maxsplit=1)
+        if len(parts) < 2:
+            console.print("[yellow]Usage: set <embedder|llm|device> <value>[/yellow]")
+            return
+        key, val = parts[0].lower(), parts[1].strip()
+
+        if key in ("embedder", "emb"):
+            self.embedder_name = val
+            console.print(f"[green][*] Embedder set to '{val}'.[/green]")
+            if self.active_profile != "0":
+                self._switch_profile(self.active_profile, embedder=val)
+        elif key == "llm":
+            self.llm_name = val
+            console.print(f"[green][*] LLM set to '{val}'.[/green]")
+            if self.active_profile in ("C", "D", "E"):
+                self._switch_profile(self.active_profile, llm=val)
+        elif key == "device":
+            self.device = val
+            console.print(f"[green][*] Compute device set to '{val}'.[/green]")
+            if self.active_profile != "0":
+                self._switch_profile(self.active_profile, device=val)
+        else:
+            console.print(f"[bold red][!] Unknown parameter '{key}'. Supported: embedder, llm, device.[/bold red]")
+
+    def do_status(self, arg: str):
+        """Display real-time system status and active configuration."""
+        self._render_dashboard()
+
+    def do_info(self, arg: str):
+        """Alias for status."""
+        self.do_status(arg)
+
+    def do_new(self, arg: str):
+        """Start a fresh chat/synthesis session and clear history."""
+        self.history.clear()
+        console.print("\n[bold green][✓] Session reset. Query history cleared.[/bold green]\n")
+
+    def do_reset(self, arg: str):
+        """Alias for new."""
+        self.do_new(arg)
+
+    def do_clear(self, arg: str):
+        """Clears the terminal screen and redraws the dashboard."""
+        os.system("clear" if os.name == "posix" else "cls")
+        self._render_dashboard()
+
+    def do_history(self, arg: str):
+        """Display query history and performance metrics for the current session."""
+        if not self.history:
+            console.print("\n[yellow]No queries executed in this session yet.[/yellow]\n")
+            return
+
+        table = Table(title=f"📜 Session History ({len(self.history)} Queries)", box=box.ROUNDED, border_style="cyan")
+        table.add_column("#", style="bold yellow", width=4)
+        table.add_column("Profile", style="bold magenta", width=12)
+        table.add_column("Prompt", style="bold white", ratio=3)
+        table.add_column("Path", style="cyan", ratio=3)
+        table.add_column("Latency", style="bold green", width=12)
+        table.add_column("Sandbox", style="bold", width=16)
+
+        for idx, item in enumerate(self.history, 1):
+            sb_style = "green" if "PASSED" in item["sandbox_status"] else "red"
+            table.add_row(
+                str(idx),
+                item["profile"],
+                item["prompt"][:40] + ("..." if len(item["prompt"]) > 40 else ""),
+                " ➔ ".join(item["path"]) if item["path"] else "[dim]None[/dim]",
+                f"{item['latency_ms']:.1f} ms",
+                f"[{sb_style}]{item['sandbox_status']}[/{sb_style}]"
+            )
+
+        console.print(table)
+        console.print("")
+
+    def default(self, line: str):
+        prompt = line.strip()
+        if not prompt:
+            return
+
+        # Handle quick numeric shortcuts for profiles (1 to 5)
+        if prompt == "1":
+            self._switch_profile("0")
+            return
+        elif prompt == "2":
+            self._switch_profile("A")
+            return
+        elif prompt == "3":
+            self._switch_profile("C")
+            return
+        elif prompt == "4":
+            self._switch_profile("D")
+            return
+        elif prompt == "5":
+            self._switch_profile("E")
+            return
+
+        # Handle slash commands
+        if prompt.startswith("/"):
+            cmd_part = prompt[1:].strip()
+            parts = cmd_part.split(maxsplit=1)
+            cmd_name = parts[0].lower()
+            cmd_arg = parts[1] if len(parts) > 1 else ""
+
+            if cmd_name in ("profile", "p"):
+                self.do_profile(cmd_arg)
+                return
+            elif cmd_name in ("models", "m"):
+                self.do_models(cmd_arg)
+                return
+            elif cmd_name == "set":
+                self.do_set(cmd_arg)
+                return
+            elif cmd_name in ("status", "info"):
+                self.do_status(cmd_arg)
+                return
+            elif cmd_name in ("new", "reset"):
+                self.do_new(cmd_arg)
+                return
+            elif cmd_name in ("clear", "cls"):
+                self.do_clear(cmd_arg)
+                return
+            elif cmd_name in ("history", "hist"):
+                self.do_history(cmd_arg)
+                return
+            elif cmd_name in ("help", "h", "?"):
+                self.do_help(cmd_arg)
+                return
+            elif cmd_name in ("exit", "quit", "q"):
+                return self.do_exit(cmd_arg)
+
+        t_total_start = time.perf_counter()
+        prof = self.active_profile.upper()
+
+        # Step 1: Optional Translator Pass (Profile E)
+        effective_prompt = prompt
+        t_trans = 0.0
+        if prof == "E":
+            mm = ModelManager.get_instance()
+            if mm.profile and mm.has_translator_pass():
+                t0_trans = time.perf_counter()
+                trans_system = "You are a precise technical translator. Convert the following user request into a concise canonical pipeline specification stating input source, exact transforms, and destination sink. Output ONLY the canonical query."
+                effective_prompt = mm.generate_text(prompt, max_tokens=128, system_prompt=trans_system)
+                t_trans = (time.perf_counter() - t0_trans) * 1000.0
+                console.print(f"[bold magenta][Translator Pass ({t_trans:.1f}ms)][/bold magenta] [italic]{effective_prompt}[/italic]")
+
+        # Step 2: Routing via LatticeRouter
+        t_route_start = time.perf_counter()
+        cells = self.router.plan_path(effective_prompt, return_tuple=False)
+        route_dt = (time.perf_counter() - t_route_start) * 1000.0
+
+        if not cells:
+            console.print(f"\n[bold red][!] No valid path found through lattice for: '{prompt}'[/bold red]\n")
+            return
+
         path_ids = [c.cell_id for c in cells]
-        route_time = (time.perf_counter() - t0) * 1000
-        print(f"\n[+] Path ({route_time:.2f}ms): {' -> '.join(path_ids)}")
-        
-        # 2. Synthesis
-        final_code = self.gate.unify_and_emit(cells, line)
-        print(f"\n--- Synthesized Code ---\n{final_code}\n------------------------")
-        
-        # 3. Sandbox Verification
-        res = self.sandbox.execute(final_code, timeout=5)
-        status = "PASSED" if res["success"] else f"FAILED ({res.get('error')})"
-        print(f"[+] Sandbox Execution: {status}\n")
+        path_arrows = " [bold green]➔[/bold green] ".join([f"[bold cyan]{cid}[/bold cyan]" for cid in path_ids])
+        console.print(f"\n[bold yellow]⚡ Routed Path ({route_dt:.2f}ms):[/bold yellow] {path_arrows}")
+
+        # Step 3: Synthesis & Code Generation
+        t_synth_start = time.perf_counter()
+        final_code = self.gate.unify_and_emit(cells, prompt)
+        synth_dt = (time.perf_counter() - t_synth_start) * 1000.0
+
+        # Step 4: Sandbox Verification & Optional Self-Repair
+        t_exec_start = time.perf_counter()
+        sandbox_res = self.sandbox.execute(final_code, timeout=5.0)
+        sandbox_dt = (time.perf_counter() - t_exec_start) * 1000.0
+
+        repaired = False
+        # If execution failed and LLM feedback is available (Profile C/E), trigger self-repair
+        if not sandbox_res.get("success", False) and prof in ("C", "E"):
+            mm = ModelManager.get_instance()
+            if mm.profile and mm.can_feedback_check():
+                console.print("  [bold yellow][*] GEVR Sandbox triggered LLM Self-Repair Cycle...[/bold yellow]")
+                t_rep_start = time.perf_counter()
+                failing_code = final_code
+                error_msg = sandbox_res.get("error", "")
+                repaired_code = mm.feedback_check(failing_code, error_msg)
+                if repaired_code and repaired_code.strip() != failing_code.strip():
+                    final_code = repaired_code
+                    repaired = True
+                    # Re-verify repaired code
+                    sandbox_res = self.sandbox.execute(final_code, timeout=5.0)
+                    rep_dt = (time.perf_counter() - t_rep_start) * 1000.0
+                    console.print(f"  [bold green][✓] Repair cycle completed ({rep_dt:.1f}ms).[/bold green]")
+
+        total_dt = (time.perf_counter() - t_total_start) * 1000.0
+
+        # Output code in a styled Syntax box
+        syntax_code = Syntax(final_code, "python", theme="monokai", line_numbers=True)
+        code_panel = Panel(
+            syntax_code,
+            title=f"[bold green]✨ Synthesized Python Code ({self._format_profile_name(self.active_profile)})[/bold green]",
+            border_style="green",
+            padding=(0, 1)
+        )
+        console.print(code_panel)
+
+        # Report Latency Metrics Bar
+        timing_elements = [
+            f"[cyan]Route:[/cyan] [bold]{route_dt:.2f}ms[/bold]",
+            f"[cyan]Synth:[/cyan] [bold]{synth_dt:.2f}ms[/bold]",
+            f"[cyan]Exec:[/cyan] [bold]{sandbox_dt:.2f}ms[/bold]"
+        ]
+        if t_trans > 0:
+            timing_elements.insert(0, f"[magenta]Trans:[/magenta] [bold]{t_trans:.1f}ms[/bold]")
+        timing_elements.append(f"[bold yellow]Total: {total_dt:.2f}ms[/bold yellow]")
+
+        # Report Sandbox Execution Status
+        if sandbox_res.get("success", False):
+            sb_badge = f"[bold green]✓ PASSED[/bold green]"
+            sb_status = "PASSED"
+        else:
+            err = sandbox_res.get("error", "Unknown error").strip()
+            first_err_line = err.splitlines()[-1] if err else "Execution Error"
+            sb_badge = f"[bold red]✗ FAILED[/bold red] [dim]({first_err_line})[/dim]"
+            sb_status = f"FAILED: {first_err_line}"
+
+        metrics_panel = Panel(
+            f"{'  │  '.join(timing_elements)}   │   [bold]Sandbox:[/bold] {sb_badge}",
+            border_style="dim",
+            padding=(0, 1)
+        )
+        console.print(metrics_panel)
+        console.print("")
+
+        # Record in history
+        self.history.append({
+            "prompt": prompt,
+            "profile": self.active_profile,
+            "path": path_ids,
+            "latency_ms": total_dt,
+            "sandbox_status": sb_status
+        })
 
     def do_exit(self, line):
-        print("\nExiting NSTL Shell.")
+        """Exit the NSTL Interactive Studio."""
+        console.print("\n[bold cyan]Exiting NSTL Studio. Goodbye![/bold cyan]\n")
         return True
 
     def do_quit(self, line):
+        """Alias for exit."""
+        return self.do_exit(line)
+
+    def do_q(self, line):
+        """Alias for exit."""
         return self.do_exit(line)
 
     def do_EOF(self, line):
+        """Handle CTRL+D / EOF."""
         return self.do_exit(line)
 
 
 def cmd_shell(args):
-    """Launches the interactive REPL shell."""
-    shell = NSTLInteractiveShell(db_path=args.db)
+    """Launches the full interactive Rich TUI studio."""
+    shell = NSTLInteractiveShell(
+        db_path=args.db,
+        initial_profile=args.profile,
+        embedder=args.embedder,
+        llm=args.llm,
+        device=args.device
+    )
     shell.cmdloop()
 
 
 def main():
-    parser = argparse.ArgumentParser(prog="python -m src.cli", description="NSTL Toolchain CLI")
-    subparsers = parser.add_subparsers(dest="command", required=True)
+    # If invoked without arguments (e.g. `python3 nstl_cli.py` or `python3 src/cli.py`), launch TUI Studio directly
+    if len(sys.argv) == 1:
+        shell = NSTLInteractiveShell()
+        shell.cmdloop()
+        return
+
+    parser = argparse.ArgumentParser(prog="python -m src.cli", description="NSTL Toolchain CLI & Interactive Studio")
+    subparsers = parser.add_subparsers(dest="command", required=False)
 
     # harvest
     p_harvest = subparsers.add_parser("harvest", help="Harvest API primitives into single-file domain JSON")
@@ -322,12 +816,20 @@ def main():
     p_validate.set_defaults(func=cmd_validate)
 
     # shell
-    p_shell = subparsers.add_parser("shell", help="Launch real-time interactive synthesis REPL shell")
+    p_shell = subparsers.add_parser("shell", help="Launch real-time interactive synthesis TUI studio")
     p_shell.add_argument("--db", type=str, default="trees/lattice.db", help="Path to SQLite database")
+    p_shell.add_argument("--profile", type=str, default="0", help="Initial inference profile (0=Symbolic/Instant, A=Embedder, C=Neuro-Symbolic LLM, D, E)")
+    p_shell.add_argument("--embedder", type=str, default="", help="Embedding model name (e.g. jina-embeddings-v5-text-nano)")
+    p_shell.add_argument("--llm", type=str, default="", help="LLM model name (e.g. qwen2.5-coder-0.5b-instruct)")
+    p_shell.add_argument("--device", type=str, default="auto", choices=["auto", "cpu", "cuda"], help="Compute device")
     p_shell.set_defaults(func=cmd_shell)
 
     args = parser.parse_args()
-    args.func(args)
+    if hasattr(args, "func"):
+        args.func(args)
+    else:
+        # Default to interactive shell
+        cmd_shell(argparse.Namespace(db="trees/lattice.db", profile="0", embedder="", llm="", device="auto"))
 
 
 if __name__ == "__main__":
