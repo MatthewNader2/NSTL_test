@@ -12,7 +12,7 @@ from typing import Dict, Any, Optional
 from log_config import get_logger
 from external_rag import LiveDocFetcher
 from inference import ModelManager
-from utils import extract_json_from_llm, validate_code_template
+from utils import extract_json_from_llm, validate_code_template, extract_code_from_llm_response
 
 logger = get_logger('synthesis')
 
@@ -97,7 +97,8 @@ RULES:
             raise ValueError(f"Model failed to generate valid JSON for {gap_concept}")
 
         # Validate template syntax by substituting dummy identifiers for all placeholders
-        template = cell_dict.get("code_template", "")
+        template = extract_code_from_llm_response(cell_dict.get("code_template", ""))
+        cell_dict["code_template"] = template
         if not validate_code_template(template):
             logger.error(f"[SYNTHESIS ERROR] Synthesized template failed AST validation")
             raise ValueError(f"Synthesized template for {gap_concept} failed AST parse check.")

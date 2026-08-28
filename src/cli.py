@@ -249,6 +249,7 @@ try:
     from inference import ModelManager
     from internal_rag import LocalRAG
     from config import MODELS_DIR
+    from utils import extract_code_from_llm_response
 except ImportError:
     from .lattice import LatticeOrchestrator
     from .router import LatticeRouter, HardwareProfiler
@@ -257,6 +258,7 @@ except ImportError:
     from .inference import ModelManager
     from .internal_rag import LocalRAG
     from .config import MODELS_DIR
+    from .utils import extract_code_from_llm_response
 
 
 console = Console()
@@ -698,7 +700,7 @@ class NSTLInteractiveShell(cmd.Cmd):
                 t_rep_start = time.perf_counter()
                 failing_code = final_code
                 error_msg = sandbox_res.get("error", "")
-                repaired_code = mm.feedback_check(failing_code, error_msg)
+                repaired_code = extract_code_from_llm_response(mm.feedback_check(failing_code, error_msg))
                 if repaired_code and repaired_code.strip() != failing_code.strip():
                     final_code = repaired_code
                     repaired = True

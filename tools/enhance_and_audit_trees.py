@@ -11,6 +11,8 @@ PROJECT_ROOT = Path(__file__).resolve().parent.parent
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
+from src.tokenizer import CellTokenizer
+
 # Dynamic Module Import Registry
 MODULES: Dict[str, Any] = {}
 for mod_name in ["cv2", "pandas", "numpy", "scipy", "sklearn", "matplotlib", "builtins"]:
@@ -99,14 +101,6 @@ def infer_concrete_output_type(func_obj: Any, current_type: str) -> str:
                         return res_type
 
     return "AnyObject"
-
-
-def build_dynamic_keywords_from_name(name: str) -> List[str]:
-    """Generates trigger keywords dynamically from flag or function name without hardcoded lists."""
-    parts = re.findall(r'[A-Z0-9]+|[a-z0-9]+', name)
-    kw_set = set(p.lower() for p in parts if len(p) > 1)
-    kw_set.add(name.lower())
-    return sorted(list(kw_set))
 
 
 def discover_module_constant_groups(mod: Any) -> Dict[str, List[str]]:
@@ -242,7 +236,7 @@ def build_dynamic_nested_special_nodes(library_name: str, nodes: List[Dict[str, 
             variants = []
             for flag in flag_attrs:
                 flag_code = f"{mod_alias}.{flag}"
-                kws = build_dynamic_keywords_from_name(flag)
+                kws = sorted(CellTokenizer.tokenize_identifier(flag))
                 snippet = transform_call_ast_with_flag(code_snippet, mod_alias, flag)
                 
                 variants.append({
@@ -286,7 +280,7 @@ def build_dynamic_nested_special_nodes(library_name: str, nodes: List[Dict[str, 
                 variants.append({
                     "variant_id": fn.upper(),
                     "code_flag": f"{mod_alias}.{fn}",
-                    "keywords": build_dynamic_keywords_from_name(fn),
+                    "keywords": sorted(CellTokenizer.tokenize_identifier(fn)),
                     "description": f"Dynamically reflected function {fn}",
                     "code_snippet": snippet
                 })
@@ -316,7 +310,7 @@ def build_dynamic_nested_special_nodes(library_name: str, nodes: List[Dict[str, 
                 variants.append({
                     "variant_id": cls_item.upper(),
                     "code_flag": cls_item,
-                    "keywords": build_dynamic_keywords_from_name(cls_item),
+                    "keywords": sorted(CellTokenizer.tokenize_identifier(cls_item)),
                     "description": f"Dynamically reflected class {cls_item}",
                     "code_snippet": snippet
                 })

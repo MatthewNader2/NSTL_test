@@ -15,6 +15,7 @@ import numpy as np
 import torch
 from log_config import get_logger
 from config import MODELS_DIR, settings
+from utils import extract_code_from_llm_response
 
 logger = get_logger("inference")
 
@@ -177,7 +178,12 @@ class BenchmarkProfile_C(InferenceProfile):
             raise FileNotFoundError(f"No GGUF model file found in {llm_dir}")
         model_file = os.path.join(llm_dir, ggufs[0])
 
-        gpu_layers = -1 if device == "cuda" else 0
+        gpu_layers = 0
+        if device == "cuda":
+            if any(k in model_file.lower() for k in ("0.5b", "1.5b", "300m", "small", "nano")):
+                gpu_layers = -1
+            else:
+                gpu_layers = 20
         # Bound context to 2048 to prevent VRAM bloat
         self.llm = Llama(model_path=model_file, n_ctx=settings.llm_context_length, n_gpu_layers=gpu_layers, verbose=False)
         logger.info(f"[PROFILE C] Loaded Embedder '{self.embedder_name}' + LLM '{self.llm_name}' on {device.upper()}")
@@ -220,7 +226,8 @@ class BenchmarkProfile_C(InferenceProfile):
     def feedback_check(self, failing_code: str, traceback_error: str) -> str:
         prompt = f"Fix the runtime error in this code and return ONLY the corrected code inside ```python ```:\n\nERROR:\n{traceback_error}\n\nCODE:\n```python\n{failing_code}\n```"
         try:
-            return self.generate_text(prompt, max_tokens=1024)
+            raw = self.generate_text(prompt, max_tokens=1024)
+            return extract_code_from_llm_response(raw)
         except Exception as e:
             logger.error(f"[FEEDBACK CHECK ERROR] {e}")
             return failing_code

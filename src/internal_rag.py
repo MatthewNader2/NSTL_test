@@ -67,11 +67,18 @@ class LocalRAG:
     def _save_cache(self):
         os.makedirs(self._cache_dir, exist_ok=True)
         path = self._get_cache_path()
+        tmp_path = path + ".tmp"
         try:
-            with open(path, "wb") as f:
+            with open(tmp_path, "wb") as f:
                 pickle.dump(self.cell_cache, f, protocol=pickle.HIGHEST_PROTOCOL)
+            os.replace(tmp_path, path)
         except Exception as e:
             logger.warning(f"[RAG CACHE] Failed to save cache: {e}")
+            if os.path.exists(tmp_path):
+                try:
+                    os.remove(tmp_path)
+                except Exception:
+                    pass
 
     def build_index(self):
         """Constructs or updates the FAISS index incrementally from loaded cells."""
@@ -114,19 +121,29 @@ class LocalRAG:
                 if cid not in seen_ids:
                     del self.cell_cache[cid]
 
-            # Embed new/modified cells
+            # Embed new/modified cells incrementally to avoid VRAM exhaustion
             if new_or_changed:
-                logger.info(f"[RAG] Batch-embedding {len(new_or_changed)} new/changed cells...")
-                texts = [item["text"] for item in new_or_changed]
-                embeddings = ModelManager.get_instance().get_embeddings(texts)
-
-                for item, emb in zip(new_or_changed, embeddings):
-                    self.cell_cache[item["cell_id"]] = {
-                        "hash": item["hash"],
-                        "embedding": emb,
-                        "schema": item["schema"]
-                    }
-                self._save_cache()
+                logger.info(f"[RAG] Batch-embedding {len(new_or_changed)} new/changed cells in chunks...")
+                chunk_size = 1000
+                total_cnt = len(new_or_changed)
+                for i in range(0, total_cnt, chunk_size):
+                    chunk = new_or_changed[i:i + chunk_size]
+                    texts = [item["text"] for item in chunk]
+                    embeddings = ModelManager.get_instance().get_embeddings(texts)
+                    for item, emb in zip(chunk, embeddings):
+                        self.cell_cache[item["cell_id"]] = {
+                            "hash": item["hash"],
+                            "embedding": emb,
+                            "schema": item["schema"]
+                        }
+                    self._save_cache()
+                    print(f"[*] RAG Embedding Progress: {min(i + chunk_size, total_cnt)} / {total_cnt} ({min(i + chunk_size, total_cnt)/total_cnt*100:.1f}%)")
+                    try:
+                        import torch
+                        if torch.cuda.is_available():
+                            torch.cuda.empty_cache()
+                    except Exception:
+                        pass
 
             if not self.cell_cache:
                 self.index = None

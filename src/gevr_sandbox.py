@@ -18,6 +18,7 @@ import resource
 from typing import Tuple, Optional, Callable, Dict, Any
 from log_config import get_logger
 from config import settings
+from utils import extract_code_from_llm_response
 
 logger = get_logger('gevr_sandbox')
 
@@ -51,21 +52,16 @@ def _restricted_import(name, *args, **kwargs):
 
 def _sandbox_worker_exec(code: str) -> Dict[str, Any]:
     """Isolated execution unit executed within persistent worker process."""
-    if sys.platform != "win32":
-        try:
-            resource.setrlimit(resource.RLIMIT_AS, (settings.sandbox_max_memory_mb * 1024 * 1024, settings.sandbox_max_memory_mb * 1024 * 1024))
-            resource.setrlimit(resource.RLIMIT_CPU, (settings.sandbox_max_cpu_seconds, settings.sandbox_max_cpu_seconds))
-        except Exception:
-            pass
-
     stdout_buf = io.StringIO()
     stderr_buf = io.StringIO()
 
     with contextlib.redirect_stdout(stdout_buf), contextlib.redirect_stderr(stderr_buf):
         try:
+            builtins_dict = dict(__builtins__.__dict__) if hasattr(__builtins__, "__dict__") else dict(__builtins__)
+            builtins_dict["__import__"] = _restricted_import
             exec_globals: Dict[str, Any] = {
                 "__name__": "__main__",
-                "__builtins__": {"__import__": _restricted_import, "print": print, "range": range, "len": len, "int": int, "float": float, "str": str, "bool": bool, "list": list, "dict": dict, "tuple": tuple, "set": set, "frozenset": frozenset, "type": type, "isinstance": isinstance, "issubclass": issubclass, "hasattr": hasattr, "getattr": getattr, "setattr": setattr, "enumerate": enumerate, "zip": zip, "map": map, "filter": filter, "sorted": sorted, "reversed": reversed, "min": min, "max": max, "sum": sum, "abs": abs, "round": round, "pow": pow, "divmod": divmod, "any": any, "all": all, "repr": repr, "iter": iter, "next": next, "slice": slice, "complex": complex, "bytes": bytes, "bytearray": bytearray, "memoryview": memoryview, "object": object, "staticmethod": staticmethod, "classmethod": classmethod, "property": property, "super": super, "True": True, "False": False, "None": None, "ValueError": ValueError, "TypeError": TypeError, "KeyError": KeyError, "IndexError": IndexError, "RuntimeError": RuntimeError, "StopIteration": StopIteration, "AttributeError": AttributeError, "Exception": Exception, "NotImplementedError": NotImplementedError, "ZeroDivisionError": ZeroDivisionError, "OverflowError": OverflowError}
+                "__builtins__": builtins_dict
             }
             exec(code, exec_globals)
             return {
@@ -99,7 +95,7 @@ class GEVRSandbox:
         if cls._pool is None:
             with cls._lock:
                 if cls._pool is None:
-                    ctx_name = "fork" if hasattr(os, "fork") and sys.platform != "win32" else "spawn"
+                    ctx_name = "spawn"
                     ctx = multiprocessing.get_context(ctx_name)
                     cls._pool = ctx.Pool(
                         processes=num_workers,
@@ -163,7 +159,7 @@ class GEVRSandbox:
             logger.warning(f"[GEVR Sandbox] Attempt {attempt + 1} failed with error:\n{error}")
             if attempt < max_attempts - 1 and llm_repair_func:
                 logger.info(f"[GEVR Sandbox] Requesting repair heuristic for attempt {attempt + 2}...")
-                repaired = llm_repair_func(current_code, error)
+                repaired = extract_code_from_llm_response(llm_repair_func(current_code, error))
                 if repaired and repaired != current_code:
                     current_code = repaired
                 else:

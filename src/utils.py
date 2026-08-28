@@ -8,7 +8,10 @@ import ast
 import json
 import re
 from typing import Any, Dict, Optional, Set
-from log_config import get_logger
+try:
+    from log_config import get_logger
+except ImportError:
+    from .log_config import get_logger
 
 logger = get_logger('utils')
 
@@ -71,3 +74,24 @@ def validate_code_template(template: str) -> bool:
         return True
     except SyntaxError:
         return False
+
+
+def extract_code_from_llm_response(text: str) -> str:
+    """Extracts executable Python code from an LLM response.
+
+    Handles:
+    - ```python\\n...\\n```
+    - ```py\\n...\\n```
+    - ```\\n...\\n``` (no language tag)
+    - Plain code with no fences at all (return trimmed/unchanged)
+    - Fenced code with leading/trailing prose outside the fence (extracts just the fenced block)
+    """
+    if not text:
+        return ""
+
+    match = re.search(r"```(?:[a-zA-Z0-9_\+\-]+)?\s*\n?(.*?)\s*```", text, re.DOTALL)
+    if match:
+        return match.group(1).strip()
+
+    return text.strip()
+
