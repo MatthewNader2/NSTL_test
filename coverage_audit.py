@@ -18,12 +18,34 @@ from pathlib import Path
 
 # domain -> (module(s) to introspect, min expected coverage before flagging)
 TARGETS = {
-    "numpy": ["numpy"],
+    "numpy": ["numpy", "numpy.linalg", "numpy.fft", "numpy.random"],
     "pandas": ["pandas"],
     "matplotlib": ["matplotlib.pyplot"],
-    "sklearn": ["sklearn.preprocessing", "sklearn.linear_model", "sklearn.model_selection"],
+    "sklearn": [
+        "sklearn.preprocessing",
+        "sklearn.linear_model",
+        "sklearn.model_selection",
+        "sklearn.svm",
+        "sklearn.tree",
+        "sklearn.naive_bayes",
+        "sklearn.ensemble",
+        "sklearn.cluster",
+        "sklearn.decomposition",
+        "sklearn.metrics",
+        "sklearn.neighbors",
+    ],
     "cv2": ["cv2"],
-    "scipy": ["scipy.stats", "scipy.optimize"],
+    "scipy": [
+        "scipy.stats",
+        "scipy.optimize",
+        "scipy.signal",
+        "scipy.spatial",
+        "scipy.interpolate",
+        "scipy.integrate",
+        "scipy.linalg",
+        "scipy.ndimage",
+        "scipy.special",
+    ],
 }
 
 TREES_DIR = Path("trees")
@@ -41,6 +63,15 @@ def public_callables(module_name: str) -> set[str]:
             continue
         if callable(obj):
             names.add(name.lower())
+            if inspect.isclass(obj):
+                for m in dir(obj):
+                    if not m.startswith("_"):
+                        try:
+                            m_obj = getattr(obj, m)
+                            if callable(m_obj):
+                                names.add(m.lower())
+                        except Exception:
+                            pass
     return names
 
 

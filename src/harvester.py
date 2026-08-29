@@ -265,6 +265,82 @@ class IntelligentHarvester:
             source_priority=100
         )
 
+    def harvest_method(self, class_name: str, cls: Any, method_name: str, method_obj: Any, parent_mod_name: Optional[str] = None) -> Optional[CellSchema]:
+        """Introspects a single public instance method on a class."""
+        if not callable(method_obj) or method_name.startswith("_"):
+            return None
+
+        # Exclude base object methods
+        if method_name in ("mro", "count", "index") and cls is object:
+            return None
+
+        doc = inspect.getdoc(method_obj) or getattr(method_obj, "__doc__", "") or ""
+        first_doc_line = doc.split("\n")[0].strip() if doc else f"{class_name}.{method_name} method"
+
+        try:
+            sig = inspect.signature(method_obj)
+        except (ValueError, TypeError):
+            sig = None
+
+        default_container = self.CONTAINER_TYPES.get(self.domain, self.CONTAINER_TYPES.get(self.package_name, "DataObject"))
+        params = [p for p in sig.parameters.keys() if p != "self"] if sig else ["data"]
+        stage = self._infer_stage(method_name, params, default_container)
+        out_state = self._infer_typestate(method_name, "raw" if stage == 1 else "processed")
+
+        clean_mod, dependencies, _ = self._resolve_module_and_dep(class_name, cls, parent_mod_name)
+
+        inputs: Dict[str, PortSchema] = {}
+        outputs: Dict[str, PortSchema] = {}
+
+        if self.domain == "pandas" and class_name in ("DataFrame", "Series"):
+            inputs["data"] = PortSchema(type_name="DataFrame", state="any", description="Input DataFrame", required=True)
+            if stage == 3:
+                inputs["dest_path"] = PortSchema(type_name="str", state="dest_identifier", description="Destination file path", required=True)
+                code_template = f"{{data}}.{method_name}({{dest_path}})\n{{output_var}} = {{dest_path}}"
+                outputs["output_data"] = PortSchema(type_name="str", state="filepath_written", required=True)
+            else:
+                code_template = f"{{output_var}} = {{data}}.{method_name}()"
+                outputs["output_data"] = PortSchema(type_name="DataFrame", state=out_state, required=True)
+            dependencies = ["import pandas as pd"]
+        elif self.domain == "cv2":
+            inputs["instance"] = PortSchema(type_name=class_name, state="any", description=f"{class_name} instance", required=True)
+            inputs["data"] = PortSchema(type_name="Mat", state="any", description="Input image or descriptors", required=True)
+            code_template = f"{{output_var}} = {{instance}}.{method_name}({{data}})"
+            outputs["output_data"] = PortSchema(type_name="any", state=out_state, required=True)
+            dependencies = ["import cv2"]
+        elif self.domain == "sklearn":
+            inputs["model"] = PortSchema(type_name=class_name, state="any", description=f"{class_name} estimator", required=True)
+            inputs["data"] = PortSchema(type_name=default_container, state="any", description="Input data", required=True)
+            code_template = f"{{output_var}} = {{model}}.{method_name}({{data}})"
+            outputs["output_data"] = PortSchema(type_name=default_container, state=out_state, required=True)
+            dependencies = [f"from {clean_mod} import {class_name}"]
+        else:
+            inputs["instance"] = PortSchema(type_name=class_name, state="any", description=f"{class_name} instance", required=True)
+            inputs["data"] = PortSchema(type_name=default_container, state="any", description="Input data", required=True)
+            code_template = f"{{output_var}} = {{instance}}.{method_name}({{data}})"
+            outputs["output_data"] = PortSchema(type_name=default_container, state=out_state, required=True)
+            dependencies = [f"from {clean_mod} import {class_name}"]
+
+        split_class = split_identifier_keywords(class_name)
+        split_method = split_identifier_keywords(method_name)
+        tags = list(dict.fromkeys([class_name.lower(), method_name.lower(), self.domain.lower(), out_state] + split_class + split_method))
+        keywords = list(dict.fromkeys(tags + [self.domain.lower(), class_name.lower(), method_name.lower()]))
+
+        cell_id = f"{self.domain.upper()}_{class_name.upper()}_{method_name.upper()}"
+        return CellSchema(
+            cell_id=cell_id,
+            stage=stage,
+            inputs=inputs,
+            outputs=outputs,
+            code_template=code_template,
+            dependencies=dependencies,
+            semantic_tags=tags,
+            keywords=keywords,
+            docstring=first_doc_line,
+            domain_name=self.domain,
+            source_priority=100
+        )
+
     def harvest_all(self, target_functions: Optional[List[str]] = None) -> List[CellSchema]:
         cells = []
         seen_ids = set()
@@ -279,13 +355,27 @@ class IntelligentHarvester:
                 if cell and cell.cell_id not in seen_ids:
                     cells.append(cell)
                     seen_ids.add(cell.cell_id)
+
+                if inspect.isclass(obj):
+                    for m_name in dir(obj):
+                        if m_name.startswith("_"):
+                            continue
+                        try:
+                            m_obj = getattr(obj, m_name, None)
+                            if m_obj is not None and callable(m_obj):
+                                m_cell = self.harvest_method(name, obj, m_name, m_obj, parent_mod_name=self.package_name)
+                                if m_cell and m_cell.cell_id not in seen_ids:
+                                    cells.append(m_cell)
+                                    seen_ids.add(m_cell.cell_id)
+                        except Exception:
+                            pass
             except Exception as e:
                 logger.warning(f"[HARVESTER] Failed to harvest '{name}': {e}")
                 continue
         return cells
 
     def harvest_modules(self, module_names: List[str]) -> List[CellSchema]:
-        """Harvests public callables across multiple submodules."""
+        """Harvests public callables and class instance methods across multiple submodules."""
         cells = []
         seen_ids = set()
 
@@ -307,6 +397,20 @@ class IntelligentHarvester:
                     if cell and cell.cell_id not in seen_ids:
                         cells.append(cell)
                         seen_ids.add(cell.cell_id)
+
+                    if inspect.isclass(obj):
+                        for m_name in dir(obj):
+                            if m_name.startswith("_"):
+                                continue
+                            try:
+                                m_obj = getattr(obj, m_name, None)
+                                if m_obj is not None and callable(m_obj):
+                                    m_cell = self.harvest_method(name, obj, m_name, m_obj, parent_mod_name=mod_name)
+                                    if m_cell and m_cell.cell_id not in seen_ids:
+                                        cells.append(m_cell)
+                                        seen_ids.add(m_cell.cell_id)
+                            except Exception:
+                                pass
                 except Exception as e:
                     logger.warning(f"[HARVESTER] Error harvesting '{name}' from '{mod_name}': {e}")
                     continue
