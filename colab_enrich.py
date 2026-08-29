@@ -58,8 +58,8 @@ DOMAINS = ["pandas", "sklearn", "numpy", "cv2", "matplotlib", "scipy", "python_c
 # Primary (recommended): Qwen2.5-14B-Instruct, Q4_K_M (~9GB). Fits a T4 (16GB) fine
 # at these short context lengths and is noticeably better at not hallucinating
 # outside the given facts than smaller models.
-MODEL_REPO = "Qwen/Qwen2.5-14B-Instruct-GGUF"
-MODEL_FILE = "qwen2.5-14b-instruct-q4_k_m.gguf"
+MODEL_REPO = "Qwen/Qwen3.5-14B-Instruct-GGUF"
+MODEL_FILE = "qwen3.5-14b-instruct-q4_k_m.gguf"
 
 # Fallback if VRAM-constrained or you want higher throughput over more cells:
 # MODEL_REPO = "Qwen/Qwen2.5-7B-Instruct-GGUF"
