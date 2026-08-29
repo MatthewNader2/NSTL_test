@@ -62,6 +62,9 @@ def init_sqlite_db(db_path: Path) -> sqlite3.Connection:
             dependencies         TEXT,
             configuration_schema TEXT,
             verified             INTEGER DEFAULT 0,
+            docstring            TEXT DEFAULT '',
+            enrichment_source    TEXT DEFAULT NULL,
+            enriched_at          TEXT DEFAULT NULL,
             source_provenance    TEXT DEFAULT 'unknown',
             source_priority      INTEGER DEFAULT 100
         )
@@ -144,8 +147,9 @@ def cmd_compile(args):
                 INSERT OR REPLACE INTO nodes
                 (cell_id, domain_name, node_type, node_role, stage, keywords,
                  input_type, input_state, output_type, output_state, code,
-                 dependencies, configuration_schema, verified, source_provenance, source_priority)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                 dependencies, configuration_schema, verified, docstring,
+                 enrichment_source, enriched_at, source_provenance, source_priority)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """, (
                 cid,
                 cell.domain_name or domain,
@@ -161,6 +165,9 @@ def cmd_compile(args):
                 deps_json,
                 cfg_json,
                 verified_val,
+                cell.docstring or "",
+                getattr(cell, "enrichment_source", None),
+                getattr(cell, "enriched_at", None),
                 jf.name,
                 cell.source_priority
             ))

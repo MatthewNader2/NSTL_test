@@ -98,7 +98,9 @@ class LocalRAG:
                 kws = " ".join(sorted(cell.keywords))
                 in_sig = f"{cell.primary_input.type_name}[{cell.primary_input.state}]"
                 out_sig = f"{cell.primary_output.type_name}[{cell.primary_output.state}]"
-                text_repr = f"ID: {cid} | Keywords: {kws} | Flow: {in_sig} -> {out_sig} | Domain: {cell.domain_name}"
+                desc = (getattr(cell, "docstring", "") or "").strip()
+                text_repr = f"{desc} | ID: {cid} | Keywords: {kws} | Flow: {in_sig} -> {out_sig} | Domain: {cell.domain_name}" if desc \
+                    else f"ID: {cid} | Keywords: {kws} | Flow: {in_sig} -> {out_sig} | Domain: {cell.domain_name}"
                 content_hash = hashlib.sha256(text_repr.encode("utf-8")).hexdigest()
 
                 schema = {
@@ -107,6 +109,8 @@ class LocalRAG:
                     "stage": cell.stage,
                     "keywords": sorted(cell.keywords),
                     "domain": cell.domain_name,
+                    "docstring": desc,
+                    "enrichment_source": getattr(cell, "enrichment_source", None),
                     "primary_input": cell.primary_input.type_name,
                     "primary_output": cell.primary_output.type_name
                 }
@@ -179,7 +183,9 @@ class LocalRAG:
             kws = " ".join(cell_dict.get("keywords", []))
             in_t = cell_dict.get("inputs", {}).get("type_name", "any")
             out_t = cell_dict.get("outputs", {}).get("type_name", "any")
-            text_repr = f"ID: {cid} | Keywords: {kws} | Flow: {in_t} -> {out_t}"
+            desc = (cell_dict.get("docstring", "") or "").strip()
+            text_repr = f"{desc} | ID: {cid} | Keywords: {kws} | Flow: {in_t} -> {out_t}" if desc \
+                else f"ID: {cid} | Keywords: {kws} | Flow: {in_t} -> {out_t}"
 
             raw_emb = np.array([ModelManager.get_instance().get_embedding(text_repr)], dtype=np.float32)
             norm = np.linalg.norm(raw_emb)

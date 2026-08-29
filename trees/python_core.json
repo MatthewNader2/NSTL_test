@@ -115,11 +115,13 @@
         "stdout",
         "summary"
       ],
-      "docstring": "",
+      "docstring": "Character and line based layer over a BufferedIOBase object, buffer.",
       "domain_name": "python_core",
       "node_type": "function",
       "node_role": "function",
-      "source_priority": 1
+      "source_priority": 1,
+      "enrichment_source": "docs",
+      "enriched_at": "2026-08-29T12:13:16.207590+00:00"
     },
     {
       "cell_id": "PYTHON_DIJKSTRA_ALGORITHM",
@@ -227,11 +229,13 @@
         "weight",
         "while"
       ],
-      "docstring": "",
+      "docstring": "Pop the smallest item off the heap, maintaining the heap invariant.",
       "domain_name": "python_core",
       "node_type": "function",
       "node_role": "function",
-      "source_priority": 1
+      "source_priority": 1,
+      "enrichment_source": "docs",
+      "enriched_at": "2026-08-29T12:13:16.207590+00:00"
     },
     {
       "cell_id": "BUILTINS_ABS_DEFAULT",
@@ -290,11 +294,13 @@
         "output_var",
         "var"
       ],
-      "docstring": "",
+      "docstring": "Return the absolute value of the argument.",
       "domain_name": "python_core",
       "node_type": "function",
       "node_role": "function",
-      "source_priority": 100
+      "source_priority": 100,
+      "enrichment_source": "docs",
+      "enriched_at": "2026-08-29T12:13:16.207590+00:00"
     },
     {
       "cell_id": "BUILTINS_AITER_DEFAULT",
@@ -347,11 +353,13 @@
         "output_var",
         "var"
       ],
-      "docstring": "",
+      "docstring": "Return an AsyncIterator for an AsyncIterable object.",
       "domain_name": "python_core",
       "node_type": "function",
       "node_role": "function",
-      "source_priority": 100
+      "source_priority": 100,
+      "enrichment_source": "docs",
+      "enriched_at": "2026-08-29T12:13:16.207590+00:00"
     },
     {
       "cell_id": "BUILTINS_ALL_DEFAULT",
@@ -404,11 +412,13 @@
         "output_var",
         "var"
       ],
-      "docstring": "",
+      "docstring": "Return True if bool(x) is True for all values x in the iterable.",
       "domain_name": "python_core",
       "node_type": "function",
       "node_role": "function",
-      "source_priority": 100
+      "source_priority": 100,
+      "enrichment_source": "docs",
+      "enriched_at": "2026-08-29T12:13:16.207590+00:00"
     },
     {
       "cell_id": "BUILTINS_ANEXT_DEFAULT",
@@ -459,11 +469,13 @@
         "output_var",
         "var"
       ],
-      "docstring": "",
+      "docstring": "Return the next item from the async iterator.",
       "domain_name": "python_core",
       "node_type": "function",
       "node_role": "function",
-      "source_priority": 100
+      "source_priority": 100,
+      "enrichment_source": "docs",
+      "enriched_at": "2026-08-29T12:13:16.207590+00:00"
     },
     {
       "cell_id": "BUILTINS_ANY_DEFAULT",
@@ -520,11 +532,13 @@
         "output_var",
         "var"
       ],
-      "docstring": "",
+      "docstring": "Return True if bool(x) is True for any x in the iterable.",
       "domain_name": "python_core",
       "node_type": "function",
       "node_role": "function",
-      "source_priority": 100
+      "source_priority": 100,
+      "enrichment_source": "docs",
+      "enriched_at": "2026-08-29T12:13:16.207590+00:00"
     },
     {
       "cell_id": "BUILTINS_ASCII_DEFAULT",
@@ -577,11 +591,13 @@
         "string conversion",
         "var"
       ],
-      "docstring": "",
+      "docstring": "Return an ASCII-only representation of an object.",
       "domain_name": "python_core",
       "node_type": "function",
       "node_role": "function",
-      "source_priority": 100
+      "source_priority": 100,
+      "enrichment_source": "docs",
+      "enriched_at": "2026-08-29T12:13:16.207590+00:00"
     },
     {
       "cell_id": "BUILTINS_BIN_DEFAULT",
@@ -636,11 +652,13 @@
         "thresholding",
         "var"
       ],
-      "docstring": "",
+      "docstring": "Return the binary representation of an integer.",
       "domain_name": "python_core",
       "node_type": "function",
       "node_role": "function",
-      "source_priority": 100
+      "source_priority": 100,
+      "enrichment_source": "docs",
+      "enriched_at": "2026-08-29T12:13:16.207590+00:00"
     },
     {
       "cell_id": "BUILTINS_BOOL_AS_INTEGER_RATIO_DEFAULT",
@@ -892,11 +910,13 @@
         "output_var",
         "var"
       ],
-      "docstring": "",
+      "docstring": "Returns self, the complex conjugate of any int.",
       "domain_name": "python_core",
       "node_type": "function",
       "node_role": "function",
-      "source_priority": 100
+      "source_priority": 100,
+      "enrichment_source": "docs",
+      "enriched_at": "2026-08-29T12:13:16.207590+00:00"
     },
     {
       "cell_id": "BUILTINS_BOOL_FROM_BYTES_DEFAULT",
@@ -957,11 +977,13 @@
         "signed",
         "var"
       ],
-      "docstring": "",
+      "docstring": "bytes(iterable_of_ints) -> bytes",
       "domain_name": "python_core",
       "node_type": "function",
       "node_role": "function",
-      "source_priority": 100
+      "source_priority": 100,
+      "enrichment_source": "docs",
+      "enriched_at": "2026-08-29T12:13:16.207590+00:00"
     },
     {
       "cell_id": "BUILTINS_BOOL_IS_INTEGER_DEFAULT",
@@ -1085,11 +1107,13 @@
         "to_bytes",
         "var"
       ],
-      "docstring": "",
+      "docstring": "bytes(iterable_of_ints) -> bytes",
       "domain_name": "python_core",
       "node_type": "function",
       "node_role": "function",
-      "source_priority": 100
+      "source_priority": 100,
+      "enrichment_source": "docs",
+      "enriched_at": "2026-08-29T12:13:16.207590+00:00"
     },
     {
       "cell_id": "BUILTINS_BREAKPOINT_DEFAULT",
@@ -1146,11 +1170,13 @@
         "python",
         "var"
       ],
-      "docstring": "",
+      "docstring": "Call sys.breakpointhook(*args, **kws). sys.breakpointhook() must accept",
       "domain_name": "python_core",
       "node_type": "function",
       "node_role": "function",
-      "source_priority": 100
+      "source_priority": 100,
+      "enrichment_source": "docs",
+      "enriched_at": "2026-08-29T12:13:16.207590+00:00"
     },
     {
       "cell_id": "BUILTINS_BYTEARRAY_APPEND_DEFAULT",
@@ -1203,11 +1229,13 @@
         "output_var",
         "var"
       ],
-      "docstring": "",
+      "docstring": "Append a single item to the end of the bytearray.",
       "domain_name": "python_core",
       "node_type": "function",
       "node_role": "function",
-      "source_priority": 100
+      "source_priority": 100,
+      "enrichment_source": "docs",
+      "enriched_at": "2026-08-29T12:13:16.207590+00:00"
     },
     {
       "cell_id": "BUILTINS_BYTEARRAY_CAPITALIZE_DEFAULT",
@@ -1260,11 +1288,13 @@
         "string method",
         "var"
       ],
-      "docstring": "",
+      "docstring": "B.capitalize() -> copy of B",
       "domain_name": "python_core",
       "node_type": "function",
       "node_role": "function",
-      "source_priority": 100
+      "source_priority": 100,
+      "enrichment_source": "docs",
+      "enriched_at": "2026-08-29T12:13:16.207590+00:00"
     },
     {
       "cell_id": "BUILTINS_BYTEARRAY_CENTER_DEFAULT",
@@ -1319,11 +1349,13 @@
         "var",
         "width"
       ],
-      "docstring": "",
+      "docstring": "Return a centered string of length width.",
       "domain_name": "python_core",
       "node_type": "function",
       "node_role": "function",
-      "source_priority": 100
+      "source_priority": 100,
+      "enrichment_source": "docs",
+      "enriched_at": "2026-08-29T12:13:16.207590+00:00"
     },
     {
       "cell_id": "BUILTINS_BYTEARRAY_CLEAR_DEFAULT",
@@ -1376,11 +1408,13 @@
         "output_var",
         "var"
       ],
-      "docstring": "",
+      "docstring": "Remove all items from the bytearray.",
       "domain_name": "python_core",
       "node_type": "function",
       "node_role": "function",
-      "source_priority": 100
+      "source_priority": 100,
+      "enrichment_source": "docs",
+      "enriched_at": "2026-08-29T12:13:16.207590+00:00"
     },
     {
       "cell_id": "BUILTINS_BYTEARRAY_COPY_DEFAULT",
@@ -1431,11 +1465,13 @@
         "output_var",
         "var"
       ],
-      "docstring": "",
+      "docstring": "Return a copy of B.",
       "domain_name": "python_core",
       "node_type": "function",
       "node_role": "function",
-      "source_priority": 100
+      "source_priority": 100,
+      "enrichment_source": "docs",
+      "enriched_at": "2026-08-29T12:13:16.207590+00:00"
     },
     {
       "cell_id": "BUILTINS_BYTEARRAY_COUNT_DEFAULT",
@@ -1486,11 +1522,13 @@
         "output_var",
         "var"
       ],
-      "docstring": "",
+      "docstring": "Return the number of non-overlapping occurrences of subsection 'sub' in bytes B[start:end].",
       "domain_name": "python_core",
       "node_type": "function",
       "node_role": "function",
-      "source_priority": 100
+      "source_priority": 100,
+      "enrichment_source": "docs",
+      "enriched_at": "2026-08-29T12:13:16.207590+00:00"
     },
     {
       "cell_id": "BUILTINS_BYTEARRAY_DECODE_DEFAULT",
@@ -1541,11 +1579,13 @@
         "output_var",
         "var"
       ],
-      "docstring": "",
+      "docstring": "Decode the bytearray using the codec registered for encoding.",
       "domain_name": "python_core",
       "node_type": "function",
       "node_role": "function",
-      "source_priority": 100
+      "source_priority": 100,
+      "enrichment_source": "docs",
+      "enriched_at": "2026-08-29T12:13:16.207590+00:00"
     },
     {
       "cell_id": "BUILTINS_BYTEARRAY_ENDSWITH_DEFAULT",
@@ -1600,11 +1640,13 @@
         "var",
         "world"
       ],
-      "docstring": "",
+      "docstring": "Return True if the bytearray ends with the specified suffix, False otherwise.",
       "domain_name": "python_core",
       "node_type": "function",
       "node_role": "function",
-      "source_priority": 100
+      "source_priority": 100,
+      "enrichment_source": "docs",
+      "enriched_at": "2026-08-29T12:13:16.207590+00:00"
     },
     {
       "cell_id": "BUILTINS_BYTEARRAY_EXPANDTABS_DEFAULT",
@@ -1657,11 +1699,13 @@
         "tabsize",
         "var"
       ],
-      "docstring": "",
+      "docstring": "Return a copy where all tab characters are expanded using spaces.",
       "domain_name": "python_core",
       "node_type": "function",
       "node_role": "function",
-      "source_priority": 100
+      "source_priority": 100,
+      "enrichment_source": "docs",
+      "enriched_at": "2026-08-29T12:13:16.207590+00:00"
     },
     {
       "cell_id": "BUILTINS_BYTEARRAY_EXTEND_DEFAULT",
@@ -1716,11 +1760,13 @@
         "output_var",
         "var"
       ],
-      "docstring": "",
+      "docstring": "Append all the items from the iterator or sequence to the end of the bytearray.",
       "domain_name": "python_core",
       "node_type": "function",
       "node_role": "function",
-      "source_priority": 100
+      "source_priority": 100,
+      "enrichment_source": "docs",
+      "enriched_at": "2026-08-29T12:13:16.207590+00:00"
     },
     {
       "cell_id": "BUILTINS_BYTEARRAY_FIND_DEFAULT",
@@ -1777,11 +1823,13 @@
         "substring",
         "var"
       ],
-      "docstring": "",
+      "docstring": "Return the lowest index in B where subsection 'sub' is found, such that 'sub' is contained within B[start:end].",
       "domain_name": "python_core",
       "node_type": "function",
       "node_role": "function",
-      "source_priority": 100
+      "source_priority": 100,
+      "enrichment_source": "docs",
+      "enriched_at": "2026-08-29T12:13:16.207590+00:00"
     },
     {
       "cell_id": "BUILTINS_BYTEARRAY_FROMHEX_DEFAULT",
@@ -1838,11 +1886,13 @@
         "output_var",
         "var"
       ],
-      "docstring": "",
+      "docstring": "Create a bytearray object from a string of hexadecimal numbers.",
       "domain_name": "python_core",
       "node_type": "function",
       "node_role": "function",
-      "source_priority": 100
+      "source_priority": 100,
+      "enrichment_source": "docs",
+      "enriched_at": "2026-08-29T12:13:16.207590+00:00"
     },
     {
       "cell_id": "BUILTINS_BYTEARRAY_HEX_DEFAULT",
@@ -1895,11 +1945,13 @@
         "output_var",
         "var"
       ],
-      "docstring": "",
+      "docstring": "Return the hexadecimal representation of an integer.",
       "domain_name": "python_core",
       "node_type": "function",
       "node_role": "function",
-      "source_priority": 100
+      "source_priority": 100,
+      "enrichment_source": "docs",
+      "enriched_at": "2026-08-29T12:13:16.207590+00:00"
     },
     {
       "cell_id": "BUILTINS_BYTEARRAY_INDEX_DEFAULT",
@@ -1956,11 +2008,13 @@
         "search",
         "var"
       ],
-      "docstring": "",
+      "docstring": "Return the lowest index in B where subsection 'sub' is found, such that 'sub' is contained within B[start:end].",
       "domain_name": "python_core",
       "node_type": "function",
       "node_role": "function",
-      "source_priority": 100
+      "source_priority": 100,
+      "enrichment_source": "docs",
+      "enriched_at": "2026-08-29T12:13:16.207590+00:00"
     },
     {
       "cell_id": "BUILTINS_BYTEARRAY_INSERT_DEFAULT",
@@ -2015,11 +2069,13 @@
         "output_var",
         "var"
       ],
-      "docstring": "",
+      "docstring": "Insert a single item into the bytearray before the given index.",
       "domain_name": "python_core",
       "node_type": "function",
       "node_role": "function",
-      "source_priority": 100
+      "source_priority": 100,
+      "enrichment_source": "docs",
+      "enriched_at": "2026-08-29T12:13:16.207590+00:00"
     },
     {
       "cell_id": "BUILTINS_BYTEARRAY_ISALNUM_DEFAULT",
@@ -2070,11 +2126,13 @@
         "output_var",
         "var"
       ],
-      "docstring": "",
+      "docstring": "B.isalnum() -> bool Return True if all characters in B are alphanumeric and there is at least one character in B, False otherwise.",
       "domain_name": "python_core",
       "node_type": "function",
       "node_role": "function",
-      "source_priority": 100
+      "source_priority": 100,
+      "enrichment_source": "docs",
+      "enriched_at": "2026-08-29T12:13:16.207590+00:00"
     },
     {
       "cell_id": "BUILTINS_BYTEARRAY_ISALPHA_DEFAULT",
@@ -2131,11 +2189,13 @@
         "string",
         "var"
       ],
-      "docstring": "",
+      "docstring": "B.isalpha() -> bool Return True if all characters in B are alphabetic and there is at least one character in B, False otherwise.",
       "domain_name": "python_core",
       "node_type": "function",
       "node_role": "function",
-      "source_priority": 100
+      "source_priority": 100,
+      "enrichment_source": "docs",
+      "enriched_at": "2026-08-29T12:13:16.207590+00:00"
     },
     {
       "cell_id": "BUILTINS_BYTEARRAY_ISASCII_DEFAULT",
@@ -2186,11 +2246,13 @@
         "output_var",
         "var"
       ],
-      "docstring": "",
+      "docstring": "B.isascii() -> bool Return True if B is empty or all characters in B are ASCII, False otherwise.",
       "domain_name": "python_core",
       "node_type": "function",
       "node_role": "function",
-      "source_priority": 100
+      "source_priority": 100,
+      "enrichment_source": "docs",
+      "enriched_at": "2026-08-29T12:13:16.207590+00:00"
     },
     {
       "cell_id": "BUILTINS_BYTEARRAY_ISDIGIT_DEFAULT",
@@ -2247,11 +2309,13 @@
         "validation",
         "var"
       ],
-      "docstring": "",
+      "docstring": "B.isdigit() -> bool Return True if all characters in B are digits and there is at least one character in B, False otherwise.",
       "domain_name": "python_core",
       "node_type": "function",
       "node_role": "function",
-      "source_priority": 100
+      "source_priority": 100,
+      "enrichment_source": "docs",
+      "enriched_at": "2026-08-29T12:13:16.207590+00:00"
     },
     {
       "cell_id": "BUILTINS_BYTEARRAY_ISLOWER_DEFAULT",
@@ -2302,11 +2366,13 @@
         "output_var",
         "var"
       ],
-      "docstring": "",
+      "docstring": "B.islower() -> bool Return True if all cased characters in B are lowercase and there is at least one cased character in B, False otherwise.",
       "domain_name": "python_core",
       "node_type": "function",
       "node_role": "function",
-      "source_priority": 100
+      "source_priority": 100,
+      "enrichment_source": "docs",
+      "enriched_at": "2026-08-29T12:13:16.207590+00:00"
     },
     {
       "cell_id": "BUILTINS_BYTEARRAY_ISSPACE_DEFAULT",
@@ -2359,11 +2425,13 @@
         "var",
         "whitespace"
       ],
-      "docstring": "",
+      "docstring": "B.isspace() -> bool Return True if all characters in B are whitespace and there is at least one character in B, False otherwise.",
       "domain_name": "python_core",
       "node_type": "function",
       "node_role": "function",
-      "source_priority": 100
+      "source_priority": 100,
+      "enrichment_source": "docs",
+      "enriched_at": "2026-08-29T12:13:16.207590+00:00"
     },
     {
       "cell_id": "BUILTINS_BYTEARRAY_ISTITLE_DEFAULT",
@@ -2414,11 +2482,13 @@
         "output_var",
         "var"
       ],
-      "docstring": "",
+      "docstring": "B.istitle() -> bool Return True if B is a titlecased string and there is at least one character in B, i.e. uppercase characters may only follow uncased characters and lowercase characters only cased ones. Return False otherwise.",
       "domain_name": "python_core",
       "node_type": "function",
       "node_role": "function",
-      "source_priority": 100
+      "source_priority": 100,
+      "enrichment_source": "docs",
+      "enriched_at": "2026-08-29T12:13:16.207590+00:00"
     },
     {
       "cell_id": "BUILTINS_BYTEARRAY_ISUPPER_DEFAULT",
@@ -2475,11 +2545,13 @@
         "uppercase",
         "var"
       ],
-      "docstring": "",
+      "docstring": "B.isupper() -> bool Return True if all cased characters in B are uppercase and there is at least one cased character in B, False otherwise.",
       "domain_name": "python_core",
       "node_type": "function",
       "node_role": "function",
-      "source_priority": 100
+      "source_priority": 100,
+      "enrichment_source": "docs",
+      "enriched_at": "2026-08-29T12:13:16.207590+00:00"
     },
     {
       "cell_id": "BUILTINS_BYTEARRAY_JOIN_DEFAULT",
@@ -2532,11 +2604,13 @@
         "output_var",
         "var"
       ],
-      "docstring": "",
+      "docstring": "Concatenate any number of bytes/bytearray objects.",
       "domain_name": "python_core",
       "node_type": "function",
       "node_role": "function",
-      "source_priority": 100
+      "source_priority": 100,
+      "enrichment_source": "docs",
+      "enriched_at": "2026-08-29T12:13:16.207590+00:00"
     },
     {
       "cell_id": "BUILTINS_BYTEARRAY_LJUST_DEFAULT",
@@ -2591,11 +2665,13 @@
         "var",
         "width"
       ],
-      "docstring": "",
+      "docstring": "Return a left-justified string of length width.",
       "domain_name": "python_core",
       "node_type": "function",
       "node_role": "function",
-      "source_priority": 100
+      "source_priority": 100,
+      "enrichment_source": "docs",
+      "enriched_at": "2026-08-29T12:13:16.207590+00:00"
     },
     {
       "cell_id": "BUILTINS_BYTEARRAY_LOWER_DEFAULT",
@@ -2652,11 +2728,13 @@
         "string",
         "var"
       ],
-      "docstring": "",
+      "docstring": "B.lower() -> copy of B Return a copy of B with all ASCII characters converted to lowercase.",
       "domain_name": "python_core",
       "node_type": "function",
       "node_role": "function",
-      "source_priority": 100
+      "source_priority": 100,
+      "enrichment_source": "docs",
+      "enriched_at": "2026-08-29T12:13:16.207590+00:00"
     },
     {
       "cell_id": "BUILTINS_BYTEARRAY_LSTRIP_DEFAULT",
@@ -2707,11 +2785,13 @@
         "output_var",
         "var"
       ],
-      "docstring": "",
+      "docstring": "Strip leading bytes contained in the argument.",
       "domain_name": "python_core",
       "node_type": "function",
       "node_role": "function",
-      "source_priority": 100
+      "source_priority": 100,
+      "enrichment_source": "docs",
+      "enriched_at": "2026-08-29T12:13:16.207590+00:00"
     },
     {
       "cell_id": "BUILTINS_BYTEARRAY_MAKETRANS_DEFAULT",
@@ -2764,11 +2844,13 @@
         "translation table",
         "var"
       ],
-      "docstring": "",
+      "docstring": "Return a translation table usable for the bytes or bytearray translate method.",
       "domain_name": "python_core",
       "node_type": "function",
       "node_role": "function",
-      "source_priority": 100
+      "source_priority": 100,
+      "enrichment_source": "docs",
+      "enriched_at": "2026-08-29T12:13:16.207590+00:00"
     },
     {
       "cell_id": "BUILTINS_BYTEARRAY_PARTITION_DEFAULT",
@@ -2819,11 +2901,13 @@
         "partition",
         "var"
       ],
-      "docstring": "",
+      "docstring": "Partition the bytearray into three parts using the given separator.",
       "domain_name": "python_core",
       "node_type": "function",
       "node_role": "function",
-      "source_priority": 100
+      "source_priority": 100,
+      "enrichment_source": "docs",
+      "enriched_at": "2026-08-29T12:13:16.207590+00:00"
     },
     {
       "cell_id": "BUILTINS_BYTEARRAY_POP_DEFAULT",
@@ -2876,11 +2960,13 @@
         "pop",
         "var"
       ],
-      "docstring": "",
+      "docstring": "Remove and return a single item from B.",
       "domain_name": "python_core",
       "node_type": "function",
       "node_role": "function",
-      "source_priority": 100
+      "source_priority": 100,
+      "enrichment_source": "docs",
+      "enriched_at": "2026-08-29T12:13:16.207590+00:00"
     },
     {
       "cell_id": "BUILTINS_BYTEARRAY_REMOVE_DEFAULT",
@@ -2935,11 +3021,13 @@
         "value",
         "var"
       ],
-      "docstring": "",
+      "docstring": "Remove the first occurrence of a value in the bytearray.",
       "domain_name": "python_core",
       "node_type": "function",
       "node_role": "function",
-      "source_priority": 100
+      "source_priority": 100,
+      "enrichment_source": "docs",
+      "enriched_at": "2026-08-29T12:13:16.207590+00:00"
     },
     {
       "cell_id": "BUILTINS_BYTEARRAY_REMOVEPREFIX_DEFAULT",
@@ -2990,11 +3078,13 @@
         "removeprefix",
         "var"
       ],
-      "docstring": "",
+      "docstring": "Return a bytearray with the given prefix string removed if present.",
       "domain_name": "python_core",
       "node_type": "function",
       "node_role": "function",
-      "source_priority": 100
+      "source_priority": 100,
+      "enrichment_source": "docs",
+      "enriched_at": "2026-08-29T12:13:16.207590+00:00"
     },
     {
       "cell_id": "BUILTINS_BYTEARRAY_REMOVESUFFIX_DEFAULT",
@@ -3045,11 +3135,13 @@
         "removesuffix",
         "var"
       ],
-      "docstring": "",
+      "docstring": "Return a bytearray with the given suffix string removed if present.",
       "domain_name": "python_core",
       "node_type": "function",
       "node_role": "function",
-      "source_priority": 100
+      "source_priority": 100,
+      "enrichment_source": "docs",
+      "enriched_at": "2026-08-29T12:13:16.207590+00:00"
     },
     {
       "cell_id": "BUILTINS_BYTEARRAY_REPLACE_DEFAULT",
@@ -3106,11 +3198,13 @@
         "replace",
         "var"
       ],
-      "docstring": "",
+      "docstring": "Return a copy with all occurrences of substring old replaced by new.",
       "domain_name": "python_core",
       "node_type": "function",
       "node_role": "function",
-      "source_priority": 100
+      "source_priority": 100,
+      "enrichment_source": "docs",
+      "enriched_at": "2026-08-29T12:13:16.207590+00:00"
     },
     {
       "cell_id": "BUILTINS_BYTEARRAY_REVERSE_DEFAULT",
@@ -3163,11 +3257,13 @@
         "reverse",
         "var"
       ],
-      "docstring": "",
+      "docstring": "Reverse the order of the values in B in place.",
       "domain_name": "python_core",
       "node_type": "function",
       "node_role": "function",
-      "source_priority": 100
+      "source_priority": 100,
+      "enrichment_source": "docs",
+      "enriched_at": "2026-08-29T12:13:16.207590+00:00"
     },
     {
       "cell_id": "BUILTINS_BYTEARRAY_RFIND_DEFAULT",
@@ -3224,11 +3320,13 @@
         "substring",
         "var"
       ],
-      "docstring": "",
+      "docstring": "Return the highest index in B where subsection 'sub' is found, such that 'sub' is contained within B[start:end].",
       "domain_name": "python_core",
       "node_type": "function",
       "node_role": "function",
-      "source_priority": 100
+      "source_priority": 100,
+      "enrichment_source": "docs",
+      "enriched_at": "2026-08-29T12:13:16.207590+00:00"
     },
     {
       "cell_id": "BUILTINS_BYTEARRAY_RINDEX_DEFAULT",
@@ -3285,11 +3383,13 @@
         "substring",
         "var"
       ],
-      "docstring": "",
+      "docstring": "Return the highest index in B where subsection 'sub' is found, such that 'sub' is contained within B[start:end].",
       "domain_name": "python_core",
       "node_type": "function",
       "node_role": "function",
-      "source_priority": 100
+      "source_priority": 100,
+      "enrichment_source": "docs",
+      "enriched_at": "2026-08-29T12:13:16.207590+00:00"
     },
     {
       "cell_id": "BUILTINS_BYTEARRAY_RJUST_DEFAULT",
@@ -3344,11 +3444,13 @@
         "var",
         "width"
       ],
-      "docstring": "",
+      "docstring": "Return a right-justified string of length width.",
       "domain_name": "python_core",
       "node_type": "function",
       "node_role": "function",
-      "source_priority": 100
+      "source_priority": 100,
+      "enrichment_source": "docs",
+      "enriched_at": "2026-08-29T12:13:16.207590+00:00"
     },
     {
       "cell_id": "BUILTINS_BYTEARRAY_RPARTITION_DEFAULT",
@@ -3399,11 +3501,13 @@
         "rpartition",
         "var"
       ],
-      "docstring": "",
+      "docstring": "Partition the bytearray into three parts using the given separator.",
       "domain_name": "python_core",
       "node_type": "function",
       "node_role": "function",
-      "source_priority": 100
+      "source_priority": 100,
+      "enrichment_source": "docs",
+      "enriched_at": "2026-08-29T12:13:16.207590+00:00"
     },
     {
       "cell_id": "BUILTINS_BYTEARRAY_RSPLIT_DEFAULT",
@@ -3454,11 +3558,13 @@
         "rsplit",
         "var"
       ],
-      "docstring": "",
+      "docstring": "Return a list of the sections in the bytearray, using sep as the delimiter.",
       "domain_name": "python_core",
       "node_type": "function",
       "node_role": "function",
-      "source_priority": 100
+      "source_priority": 100,
+      "enrichment_source": "docs",
+      "enriched_at": "2026-08-29T12:13:16.207590+00:00"
     },
     {
       "cell_id": "BUILTINS_BYTEARRAY_RSTRIP_DEFAULT",
@@ -3509,11 +3615,13 @@
         "rstrip",
         "var"
       ],
-      "docstring": "",
+      "docstring": "Strip trailing bytes contained in the argument.",
       "domain_name": "python_core",
       "node_type": "function",
       "node_role": "function",
-      "source_priority": 100
+      "source_priority": 100,
+      "enrichment_source": "docs",
+      "enriched_at": "2026-08-29T12:13:16.207590+00:00"
     },
     {
       "cell_id": "BUILTINS_BYTEARRAY_SPLITLINES_DEFAULT",
@@ -3566,11 +3674,13 @@
         "splitlines",
         "var"
       ],
-      "docstring": "",
+      "docstring": "Return a list of the lines in the bytearray, breaking at line boundaries.",
       "domain_name": "python_core",
       "node_type": "function",
       "node_role": "function",
-      "source_priority": 100
+      "source_priority": 100,
+      "enrichment_source": "docs",
+      "enriched_at": "2026-08-29T12:13:16.207590+00:00"
     },
     {
       "cell_id": "BUILTINS_BYTEARRAY_STARTSWITH_DEFAULT",
@@ -3621,11 +3731,13 @@
         "startswith",
         "var"
       ],
-      "docstring": "",
+      "docstring": "Return True if the bytearray starts with the specified prefix, False otherwise.",
       "domain_name": "python_core",
       "node_type": "function",
       "node_role": "function",
-      "source_priority": 100
+      "source_priority": 100,
+      "enrichment_source": "docs",
+      "enriched_at": "2026-08-29T12:13:16.207590+00:00"
     },
     {
       "cell_id": "BUILTINS_BYTEARRAY_STRIP_DEFAULT",
@@ -3676,11 +3788,13 @@
         "strip",
         "var"
       ],
-      "docstring": "",
+      "docstring": "Strip leading and trailing bytes contained in the argument.",
       "domain_name": "python_core",
       "node_type": "function",
       "node_role": "function",
-      "source_priority": 100
+      "source_priority": 100,
+      "enrichment_source": "docs",
+      "enriched_at": "2026-08-29T12:13:16.207590+00:00"
     },
     {
       "cell_id": "BUILTINS_BYTEARRAY_SWAPCASE_DEFAULT",
@@ -3733,11 +3847,13 @@
         "swapcase",
         "var"
       ],
-      "docstring": "",
+      "docstring": "B.swapcase() -> copy of B",
       "domain_name": "python_core",
       "node_type": "function",
       "node_role": "function",
-      "source_priority": 100
+      "source_priority": 100,
+      "enrichment_source": "docs",
+      "enriched_at": "2026-08-29T12:13:16.207590+00:00"
     },
     {
       "cell_id": "BUILTINS_BYTEARRAY_TITLE_DEFAULT",
@@ -3794,11 +3910,13 @@
         "uppercase",
         "var"
       ],
-      "docstring": "",
+      "docstring": "B.title() -> copy of B Return a titlecased version of B, i.e. ASCII words start with uppercase characters, all remaining cased characters have lowercase.",
       "domain_name": "python_core",
       "node_type": "function",
       "node_role": "function",
-      "source_priority": 100
+      "source_priority": 100,
+      "enrichment_source": "docs",
+      "enriched_at": "2026-08-29T12:13:16.207590+00:00"
     },
     {
       "cell_id": "BUILTINS_BYTEARRAY_TRANSLATE_DEFAULT",
@@ -3853,11 +3971,13 @@
         "translate",
         "var"
       ],
-      "docstring": "",
+      "docstring": "Return a copy with each character mapped by the given translation table.",
       "domain_name": "python_core",
       "node_type": "function",
       "node_role": "function",
-      "source_priority": 100
+      "source_priority": 100,
+      "enrichment_source": "docs",
+      "enriched_at": "2026-08-29T12:13:16.207590+00:00"
     },
     {
       "cell_id": "BUILTINS_BYTEARRAY_UPPER_DEFAULT",
@@ -3914,11 +4034,13 @@
         "upper",
         "var"
       ],
-      "docstring": "",
+      "docstring": "B.upper() -> copy of B Return a copy of B with all ASCII characters converted to uppercase.",
       "domain_name": "python_core",
       "node_type": "function",
       "node_role": "function",
-      "source_priority": 100
+      "source_priority": 100,
+      "enrichment_source": "docs",
+      "enriched_at": "2026-08-29T12:13:16.207590+00:00"
     },
     {
       "cell_id": "BUILTINS_BYTEARRAY_ZFILL_DEFAULT",
@@ -3971,11 +4093,13 @@
         "width",
         "zfill"
       ],
-      "docstring": "",
+      "docstring": "Pad a numeric string with zeros on the left, to fill a field of the given width.",
       "domain_name": "python_core",
       "node_type": "function",
       "node_role": "function",
-      "source_priority": 100
+      "source_priority": 100,
+      "enrichment_source": "docs",
+      "enriched_at": "2026-08-29T12:13:16.207590+00:00"
     },
     {
       "cell_id": "BUILTINS_CALLABLE_DEFAULT",
@@ -4032,11 +4156,13 @@
         "output_var",
         "var"
       ],
-      "docstring": "",
+      "docstring": "Return whether the object is callable (i.e., some kind of function).",
       "domain_name": "python_core",
       "node_type": "function",
       "node_role": "function",
-      "source_priority": 100
+      "source_priority": 100,
+      "enrichment_source": "docs",
+      "enriched_at": "2026-08-29T12:13:16.207590+00:00"
     },
     {
       "cell_id": "BUILTINS_CHR_DEFAULT",
@@ -4089,11 +4215,13 @@
         "unicode",
         "var"
       ],
-      "docstring": "",
+      "docstring": "Return a Unicode string of one character with ordinal i; 0 <= i <= 0x10ffff.",
       "domain_name": "python_core",
       "node_type": "function",
       "node_role": "function",
-      "source_priority": 100
+      "source_priority": 100,
+      "enrichment_source": "docs",
+      "enriched_at": "2026-08-29T12:13:16.207590+00:00"
     },
     {
       "cell_id": "BUILTINS_COMPILE_DEFAULT",
@@ -4150,11 +4278,13 @@
         "source",
         "var"
       ],
-      "docstring": "",
+      "docstring": "Compile source into a code object that can be executed by exec() or eval().",
       "domain_name": "python_core",
       "node_type": "function",
       "node_role": "function",
-      "source_priority": 100
+      "source_priority": 100,
+      "enrichment_source": "docs",
+      "enriched_at": "2026-08-29T12:13:16.207590+00:00"
     },
     {
       "cell_id": "BUILTINS_DELATTR_DEFAULT",
@@ -4207,11 +4337,13 @@
         "output_var",
         "var"
       ],
-      "docstring": "",
+      "docstring": "Deletes the named attribute from the given object.",
       "domain_name": "python_core",
       "node_type": "function",
       "node_role": "function",
-      "source_priority": 100
+      "source_priority": 100,
+      "enrichment_source": "docs",
+      "enriched_at": "2026-08-29T12:13:16.207590+00:00"
     },
     {
       "cell_id": "BUILTINS_DICT_FROMKEYS_DEFAULT",
@@ -4270,11 +4402,13 @@
         "value",
         "var"
       ],
-      "docstring": "",
+      "docstring": "Create a new dictionary with keys from iterable and values set to value.",
       "domain_name": "python_core",
       "node_type": "function",
       "node_role": "function",
-      "source_priority": 100
+      "source_priority": 100,
+      "enrichment_source": "docs",
+      "enriched_at": "2026-08-29T12:13:16.207590+00:00"
     },
     {
       "cell_id": "BUILTINS_DICT_GET_DEFAULT",
@@ -4331,11 +4465,13 @@
         "output_var",
         "var"
       ],
-      "docstring": "",
+      "docstring": "Return the value for key if key is in the dictionary, else default.",
       "domain_name": "python_core",
       "node_type": "function",
       "node_role": "function",
-      "source_priority": 100
+      "source_priority": 100,
+      "enrichment_source": "docs",
+      "enriched_at": "2026-08-29T12:13:16.207590+00:00"
     },
     {
       "cell_id": "BUILTINS_DICT_ITEMS_DEFAULT",
@@ -4392,11 +4528,13 @@
         "output_var",
         "var"
       ],
-      "docstring": "",
+      "docstring": "Return a set-like object providing a view on the dict's items.",
       "domain_name": "python_core",
       "node_type": "function",
       "node_role": "function",
-      "source_priority": 100
+      "source_priority": 100,
+      "enrichment_source": "docs",
+      "enriched_at": "2026-08-29T12:13:16.207590+00:00"
     },
     {
       "cell_id": "BUILTINS_DICT_KEYS_DEFAULT",
@@ -4457,11 +4595,13 @@
         "output_var",
         "var"
       ],
-      "docstring": "",
+      "docstring": "Return a set-like object providing a view on the dict's keys.",
       "domain_name": "python_core",
       "node_type": "function",
       "node_role": "function",
-      "source_priority": 100
+      "source_priority": 100,
+      "enrichment_source": "docs",
+      "enriched_at": "2026-08-29T12:13:16.207590+00:00"
     },
     {
       "cell_id": "BUILTINS_DICT_POPITEM_DEFAULT",
@@ -4518,11 +4658,13 @@
         "value",
         "var"
       ],
-      "docstring": "",
+      "docstring": "Remove and return a (key, value) pair as a 2-tuple.",
       "domain_name": "python_core",
       "node_type": "function",
       "node_role": "function",
-      "source_priority": 100
+      "source_priority": 100,
+      "enrichment_source": "docs",
+      "enriched_at": "2026-08-29T12:13:16.207590+00:00"
     },
     {
       "cell_id": "BUILTINS_DICT_SETDEFAULT_DEFAULT",
@@ -4583,11 +4725,13 @@
         "setdefault",
         "var"
       ],
-      "docstring": "",
+      "docstring": "Insert key with a value of default if key is not in the dictionary.",
       "domain_name": "python_core",
       "node_type": "function",
       "node_role": "function",
-      "source_priority": 100
+      "source_priority": 100,
+      "enrichment_source": "docs",
+      "enriched_at": "2026-08-29T12:13:16.207590+00:00"
     },
     {
       "cell_id": "BUILTINS_DICT_UPDATE_DEFAULT",
@@ -4644,11 +4788,13 @@
         "update method",
         "var"
       ],
-      "docstring": "",
+      "docstring": "D.update([E, ]**F) -> None. Update D from mapping/iterable E and F.",
       "domain_name": "python_core",
       "node_type": "function",
       "node_role": "function",
-      "source_priority": 100
+      "source_priority": 100,
+      "enrichment_source": "docs",
+      "enriched_at": "2026-08-29T12:13:16.207590+00:00"
     },
     {
       "cell_id": "BUILTINS_DICT_VALUES_DEFAULT",
@@ -4707,11 +4853,13 @@
         "values",
         "var"
       ],
-      "docstring": "",
+      "docstring": "Return an object providing a view on the dict's values.",
       "domain_name": "python_core",
       "node_type": "function",
       "node_role": "function",
-      "source_priority": 100
+      "source_priority": 100,
+      "enrichment_source": "docs",
+      "enriched_at": "2026-08-29T12:13:16.207590+00:00"
     },
     {
       "cell_id": "BUILTINS_DIR_DEFAULT",
@@ -4764,11 +4912,13 @@
         "output_var",
         "var"
       ],
-      "docstring": "",
+      "docstring": "dir([object]) -> list of strings",
       "domain_name": "python_core",
       "node_type": "function",
       "node_role": "function",
-      "source_priority": 100
+      "source_priority": 100,
+      "enrichment_source": "docs",
+      "enriched_at": "2026-08-29T12:13:16.207590+00:00"
     },
     {
       "cell_id": "BUILTINS_DIVMOD_DEFAULT",
@@ -4823,11 +4973,13 @@
         "tuple output",
         "var"
       ],
-      "docstring": "",
+      "docstring": "Return the tuple (x//y, x%y). Invariant: div*y + mod == x.",
       "domain_name": "python_core",
       "node_type": "function",
       "node_role": "function",
-      "source_priority": 100
+      "source_priority": 100,
+      "enrichment_source": "docs",
+      "enriched_at": "2026-08-29T12:13:16.207590+00:00"
     },
     {
       "cell_id": "BUILTINS_EVAL_DEFAULT",
@@ -4880,11 +5032,13 @@
         "output_var",
         "var"
       ],
-      "docstring": "",
+      "docstring": "Evaluate the given source in the context of globals and locals.",
       "domain_name": "python_core",
       "node_type": "function",
       "node_role": "function",
-      "source_priority": 100
+      "source_priority": 100,
+      "enrichment_source": "docs",
+      "enriched_at": "2026-08-29T12:13:16.207590+00:00"
     },
     {
       "cell_id": "BUILTINS_EXEC_DEFAULT",
@@ -4941,11 +5095,13 @@
         "runtime",
         "var"
       ],
-      "docstring": "",
+      "docstring": "Execute the given source in the context of globals and locals.",
       "domain_name": "python_core",
       "node_type": "function",
       "node_role": "function",
-      "source_priority": 100
+      "source_priority": 100,
+      "enrichment_source": "docs",
+      "enriched_at": "2026-08-29T12:13:16.207590+00:00"
     },
     {
       "cell_id": "BUILTINS_FORMAT_DEFAULT",
@@ -4998,11 +5154,13 @@
         "string",
         "var"
       ],
-      "docstring": "",
+      "docstring": "Return type(value).__format__(value, format_spec)",
       "domain_name": "python_core",
       "node_type": "function",
       "node_role": "function",
-      "source_priority": 100
+      "source_priority": 100,
+      "enrichment_source": "docs",
+      "enriched_at": "2026-08-29T12:13:16.207590+00:00"
     },
     {
       "cell_id": "BUILTINS_FROZENSET_DIFFERENCE_DEFAULT",
@@ -5055,11 +5213,13 @@
         "set operations",
         "var"
       ],
-      "docstring": "",
+      "docstring": "Return a new set with elements in the set that are not in the others.",
       "domain_name": "python_core",
       "node_type": "function",
       "node_role": "function",
-      "source_priority": 100
+      "source_priority": 100,
+      "enrichment_source": "docs",
+      "enriched_at": "2026-08-29T12:13:16.207590+00:00"
     },
     {
       "cell_id": "BUILTINS_FROZENSET_INTERSECTION_DEFAULT",
@@ -5116,11 +5276,13 @@
         "set operations",
         "var"
       ],
-      "docstring": "",
+      "docstring": "Return a new set with elements common to the set and all others.",
       "domain_name": "python_core",
       "node_type": "function",
       "node_role": "function",
-      "source_priority": 100
+      "source_priority": 100,
+      "enrichment_source": "docs",
+      "enriched_at": "2026-08-29T12:13:16.207590+00:00"
     },
     {
       "cell_id": "BUILTINS_FROZENSET_ISDISJOINT_DEFAULT",
@@ -5177,11 +5339,13 @@
         "set theory",
         "var"
       ],
-      "docstring": "",
+      "docstring": "Return True if two sets have a null intersection.",
       "domain_name": "python_core",
       "node_type": "function",
       "node_role": "function",
-      "source_priority": 100
+      "source_priority": 100,
+      "enrichment_source": "docs",
+      "enriched_at": "2026-08-29T12:13:16.207590+00:00"
     },
     {
       "cell_id": "BUILTINS_FROZENSET_ISSUBSET_DEFAULT",
@@ -5238,11 +5402,13 @@
         "output_var",
         "var"
       ],
-      "docstring": "",
+      "docstring": "Report whether another set contains this set.",
       "domain_name": "python_core",
       "node_type": "function",
       "node_role": "function",
-      "source_priority": 100
+      "source_priority": 100,
+      "enrichment_source": "docs",
+      "enriched_at": "2026-08-29T12:13:16.207590+00:00"
     },
     {
       "cell_id": "BUILTINS_FROZENSET_ISSUPERSET_DEFAULT",
@@ -5297,11 +5463,13 @@
         "set comparison",
         "var"
       ],
-      "docstring": "",
+      "docstring": "Report whether this set contains another set.",
       "domain_name": "python_core",
       "node_type": "function",
       "node_role": "function",
-      "source_priority": 100
+      "source_priority": 100,
+      "enrichment_source": "docs",
+      "enriched_at": "2026-08-29T12:13:16.207590+00:00"
     },
     {
       "cell_id": "BUILTINS_FROZENSET_SYMMETRIC_DIFFERENCE_DEFAULT",
@@ -5419,11 +5587,13 @@
         "union",
         "var"
       ],
-      "docstring": "",
+      "docstring": "Return a new set with elements from the set and all others.",
       "domain_name": "python_core",
       "node_type": "function",
       "node_role": "function",
-      "source_priority": 100
+      "source_priority": 100,
+      "enrichment_source": "docs",
+      "enriched_at": "2026-08-29T12:13:16.207590+00:00"
     },
     {
       "cell_id": "BUILTINS_GETATTR_DEFAULT",
@@ -5476,11 +5646,13 @@
         "output_var",
         "var"
       ],
-      "docstring": "",
+      "docstring": "getattr(object, name[, default]) -> value",
       "domain_name": "python_core",
       "node_type": "function",
       "node_role": "function",
-      "source_priority": 100
+      "source_priority": 100,
+      "enrichment_source": "docs",
+      "enriched_at": "2026-08-29T12:13:16.207590+00:00"
     },
     {
       "cell_id": "BUILTINS_GLOBALS_DEFAULT",
@@ -5533,11 +5705,13 @@
         "output_var",
         "var"
       ],
-      "docstring": "",
+      "docstring": "Return the dictionary containing the current scope's global variables.",
       "domain_name": "python_core",
       "node_type": "function",
       "node_role": "function",
-      "source_priority": 100
+      "source_priority": 100,
+      "enrichment_source": "docs",
+      "enriched_at": "2026-08-29T12:13:16.207590+00:00"
     },
     {
       "cell_id": "BUILTINS_HASATTR_DEFAULT",
@@ -5592,11 +5766,13 @@
         "output_var",
         "var"
       ],
-      "docstring": "",
+      "docstring": "Return whether the object has an attribute with the given name.",
       "domain_name": "python_core",
       "node_type": "function",
       "node_role": "function",
-      "source_priority": 100
+      "source_priority": 100,
+      "enrichment_source": "docs",
+      "enriched_at": "2026-08-29T12:13:16.207590+00:00"
     },
     {
       "cell_id": "BUILTINS_HASH_DEFAULT",
@@ -5649,11 +5825,13 @@
         "output_var",
         "var"
       ],
-      "docstring": "",
+      "docstring": "Return the hash value for the given object.",
       "domain_name": "python_core",
       "node_type": "function",
       "node_role": "function",
-      "source_priority": 100
+      "source_priority": 100,
+      "enrichment_source": "docs",
+      "enriched_at": "2026-08-29T12:13:16.207590+00:00"
     },
     {
       "cell_id": "BUILTINS_ID_DEFAULT",
@@ -5706,11 +5884,13 @@
         "output_var",
         "var"
       ],
-      "docstring": "",
+      "docstring": "Return the identity of an object.",
       "domain_name": "python_core",
       "node_type": "function",
       "node_role": "function",
-      "source_priority": 100
+      "source_priority": 100,
+      "enrichment_source": "docs",
+      "enriched_at": "2026-08-29T12:13:16.207590+00:00"
     },
     {
       "cell_id": "BUILTINS_INPUT_DEFAULT",
@@ -5761,11 +5941,13 @@
         "user input",
         "var"
       ],
-      "docstring": "",
+      "docstring": "Read a string from standard input. The trailing newline is stripped.",
       "domain_name": "python_core",
       "node_type": "function",
       "node_role": "function",
-      "source_priority": 100
+      "source_priority": 100,
+      "enrichment_source": "docs",
+      "enriched_at": "2026-08-29T12:13:16.207590+00:00"
     },
     {
       "cell_id": "BUILTINS_ISINSTANCE_DEFAULT",
@@ -5820,11 +6002,13 @@
         "tuple",
         "var"
       ],
-      "docstring": "",
+      "docstring": "Return whether an object is an instance of a class or of a subclass thereof.",
       "domain_name": "python_core",
       "node_type": "function",
       "node_role": "function",
-      "source_priority": 100
+      "source_priority": 100,
+      "enrichment_source": "docs",
+      "enriched_at": "2026-08-29T12:13:16.207590+00:00"
     },
     {
       "cell_id": "BUILTINS_ISSUBCLASS_DEFAULT",
@@ -5877,11 +6061,13 @@
         "output_var",
         "var"
       ],
-      "docstring": "",
+      "docstring": "Return whether 'cls' is derived from another class or is the same class.",
       "domain_name": "python_core",
       "node_type": "function",
       "node_role": "function",
-      "source_priority": 100
+      "source_priority": 100,
+      "enrichment_source": "docs",
+      "enriched_at": "2026-08-29T12:13:16.207590+00:00"
     },
     {
       "cell_id": "BUILTINS_ITER_DEFAULT",
@@ -5932,11 +6118,13 @@
         "output_var",
         "var"
       ],
-      "docstring": "",
+      "docstring": "iter(iterable) -> iterator",
       "domain_name": "python_core",
       "node_type": "function",
       "node_role": "function",
-      "source_priority": 100
+      "source_priority": 100,
+      "enrichment_source": "docs",
+      "enriched_at": "2026-08-29T12:13:16.207590+00:00"
     },
     {
       "cell_id": "BUILTINS_LEN_DEFAULT",
@@ -5995,11 +6183,13 @@
         "size",
         "var"
       ],
-      "docstring": "",
+      "docstring": "Return the number of items in a container.",
       "domain_name": "python_core",
       "node_type": "function",
       "node_role": "function",
-      "source_priority": 100
+      "source_priority": 100,
+      "enrichment_source": "docs",
+      "enriched_at": "2026-08-29T12:13:16.207590+00:00"
     },
     {
       "cell_id": "BUILTINS_LIST_SORT_DEFAULT",
@@ -6056,11 +6246,13 @@
         "sort",
         "var"
       ],
-      "docstring": "",
+      "docstring": "Sort the list in ascending order and return None.",
       "domain_name": "python_core",
       "node_type": "function",
       "node_role": "function",
-      "source_priority": 100
+      "source_priority": 100,
+      "enrichment_source": "docs",
+      "enriched_at": "2026-08-29T12:13:16.207590+00:00"
     },
     {
       "cell_id": "BUILTINS_LOCALS_DEFAULT",
@@ -6115,11 +6307,13 @@
         "var",
         "variables"
       ],
-      "docstring": "",
+      "docstring": "Return a dictionary containing the current scope's local variables.",
       "domain_name": "python_core",
       "node_type": "function",
       "node_role": "function",
-      "source_priority": 100
+      "source_priority": 100,
+      "enrichment_source": "docs",
+      "enriched_at": "2026-08-29T12:13:16.207590+00:00"
     },
     {
       "cell_id": "BUILTINS_MAX_DEFAULT",
@@ -6172,11 +6366,13 @@
         "output_var",
         "var"
       ],
-      "docstring": "",
+      "docstring": "max(iterable, *[, default=obj, key=func]) -> value",
       "domain_name": "python_core",
       "node_type": "function",
       "node_role": "function",
-      "source_priority": 100
+      "source_priority": 100,
+      "enrichment_source": "docs",
+      "enriched_at": "2026-08-29T12:13:16.207590+00:00"
     },
     {
       "cell_id": "BUILTINS_MEMORYVIEW_CAST_DEFAULT",
@@ -6227,11 +6423,13 @@
         "output_var",
         "var"
       ],
-      "docstring": "",
+      "docstring": "Cast a memoryview to a new format or shape.",
       "domain_name": "python_core",
       "node_type": "function",
       "node_role": "function",
-      "source_priority": 100
+      "source_priority": 100,
+      "enrichment_source": "docs",
+      "enriched_at": "2026-08-29T12:13:16.207590+00:00"
     },
     {
       "cell_id": "BUILTINS_MEMORYVIEW_RELEASE_DEFAULT",
@@ -6284,11 +6482,13 @@
         "release",
         "var"
       ],
-      "docstring": "",
+      "docstring": "Release the underlying buffer exposed by the memoryview object.",
       "domain_name": "python_core",
       "node_type": "function",
       "node_role": "function",
-      "source_priority": 100
+      "source_priority": 100,
+      "enrichment_source": "docs",
+      "enriched_at": "2026-08-29T12:13:16.207590+00:00"
     },
     {
       "cell_id": "BUILTINS_MEMORYVIEW_TOBYTES_DEFAULT",
@@ -6343,11 +6543,13 @@
         "tobytes",
         "var"
       ],
-      "docstring": "",
+      "docstring": "Return the data in the buffer as a byte string.",
       "domain_name": "python_core",
       "node_type": "function",
       "node_role": "function",
-      "source_priority": 100
+      "source_priority": 100,
+      "enrichment_source": "docs",
+      "enriched_at": "2026-08-29T12:13:16.207590+00:00"
     },
     {
       "cell_id": "BUILTINS_MEMORYVIEW_TOLIST_DEFAULT",
@@ -6398,11 +6600,13 @@
         "tolist",
         "var"
       ],
-      "docstring": "",
+      "docstring": "Return the data in the buffer as a list of elements.",
       "domain_name": "python_core",
       "node_type": "function",
       "node_role": "function",
-      "source_priority": 100
+      "source_priority": 100,
+      "enrichment_source": "docs",
+      "enriched_at": "2026-08-29T12:13:16.207590+00:00"
     },
     {
       "cell_id": "BUILTINS_MEMORYVIEW_TOREADONLY_DEFAULT",
@@ -6455,11 +6659,13 @@
         "toreadonly",
         "var"
       ],
-      "docstring": "",
+      "docstring": "Return a readonly version of the memoryview.",
       "domain_name": "python_core",
       "node_type": "function",
       "node_role": "function",
-      "source_priority": 100
+      "source_priority": 100,
+      "enrichment_source": "docs",
+      "enriched_at": "2026-08-29T12:13:16.207590+00:00"
     },
     {
       "cell_id": "BUILTINS_MIN_DEFAULT",
@@ -6512,11 +6718,13 @@
         "output_var",
         "var"
       ],
-      "docstring": "",
+      "docstring": "min(iterable, *[, default=obj, key=func]) -> value",
       "domain_name": "python_core",
       "node_type": "function",
       "node_role": "function",
-      "source_priority": 100
+      "source_priority": 100,
+      "enrichment_source": "docs",
+      "enriched_at": "2026-08-29T12:13:16.207590+00:00"
     },
     {
       "cell_id": "BUILTINS_NEXT_DEFAULT",
@@ -6569,11 +6777,13 @@
         "output_var",
         "var"
       ],
-      "docstring": "",
+      "docstring": "next(iterator[, default])",
       "domain_name": "python_core",
       "node_type": "function",
       "node_role": "function",
-      "source_priority": 100
+      "source_priority": 100,
+      "enrichment_source": "docs",
+      "enriched_at": "2026-08-29T12:13:16.207590+00:00"
     },
     {
       "cell_id": "BUILTINS_OCT_DEFAULT",
@@ -6630,11 +6840,13 @@
         "output_var",
         "var"
       ],
-      "docstring": "",
+      "docstring": "Return the octal representation of an integer.",
       "domain_name": "python_core",
       "node_type": "function",
       "node_role": "function",
-      "source_priority": 100
+      "source_priority": 100,
+      "enrichment_source": "docs",
+      "enriched_at": "2026-08-29T12:13:16.207590+00:00"
     },
     {
       "cell_id": "BUILTINS_OPEN_DEFAULT",
@@ -6699,11 +6911,13 @@
         "output_var",
         "var"
       ],
-      "docstring": "",
+      "docstring": "Open file and return a stream. Raise OSError upon failure.",
       "domain_name": "python_core",
       "node_type": "function",
       "node_role": "function",
-      "source_priority": 100
+      "source_priority": 100,
+      "enrichment_source": "docs",
+      "enriched_at": "2026-08-29T12:13:16.207590+00:00"
     },
     {
       "cell_id": "BUILTINS_ORD_DEFAULT",
@@ -6756,11 +6970,13 @@
         "output_var",
         "var"
       ],
-      "docstring": "",
+      "docstring": "Return the Unicode code point for a one-character string.",
       "domain_name": "python_core",
       "node_type": "function",
       "node_role": "function",
-      "source_priority": 100
+      "source_priority": 100,
+      "enrichment_source": "docs",
+      "enriched_at": "2026-08-29T12:13:16.207590+00:00"
     },
     {
       "cell_id": "BUILTINS_POW_DEFAULT",
@@ -6821,11 +7037,13 @@
         "power",
         "var"
       ],
-      "docstring": "",
+      "docstring": "Equivalent to base**exp with 2 arguments or base**exp % mod with 3 arguments",
       "domain_name": "python_core",
       "node_type": "function",
       "node_role": "function",
-      "source_priority": 100
+      "source_priority": 100,
+      "enrichment_source": "docs",
+      "enriched_at": "2026-08-29T12:13:16.207590+00:00"
     },
     {
       "cell_id": "BUILTINS_PRINT_DEFAULT",
@@ -6874,11 +7092,13 @@
         "print",
         "var"
       ],
-      "docstring": "",
+      "docstring": "Prints the values to a stream, or to sys.stdout by default.",
       "domain_name": "python_core",
       "node_type": "function",
       "node_role": "function",
-      "source_priority": 100
+      "source_priority": 100,
+      "enrichment_source": "docs",
+      "enriched_at": "2026-08-29T12:13:16.207590+00:00"
     },
     {
       "cell_id": "BUILTINS_PROPERTY_DELETER_DEFAULT",
@@ -6935,11 +7155,13 @@
         "removal",
         "var"
       ],
-      "docstring": "",
+      "docstring": "Descriptor to obtain a copy of the property with a different deleter.",
       "domain_name": "python_core",
       "node_type": "function",
       "node_role": "function",
-      "source_priority": 100
+      "source_priority": 100,
+      "enrichment_source": "docs",
+      "enriched_at": "2026-08-29T12:13:16.207590+00:00"
     },
     {
       "cell_id": "BUILTINS_PROPERTY_GETTER_DEFAULT",
@@ -6990,11 +7212,13 @@
         "property",
         "var"
       ],
-      "docstring": "",
+      "docstring": "Descriptor to obtain a copy of the property with a different getter.",
       "domain_name": "python_core",
       "node_type": "function",
       "node_role": "function",
-      "source_priority": 100
+      "source_priority": 100,
+      "enrichment_source": "docs",
+      "enriched_at": "2026-08-29T12:13:16.207590+00:00"
     },
     {
       "cell_id": "BUILTINS_PROPERTY_SETTER_DEFAULT",
@@ -7045,11 +7269,13 @@
         "setter",
         "var"
       ],
-      "docstring": "",
+      "docstring": "Descriptor to obtain a copy of the property with a different setter.",
       "domain_name": "python_core",
       "node_type": "function",
       "node_role": "function",
-      "source_priority": 100
+      "source_priority": 100,
+      "enrichment_source": "docs",
+      "enriched_at": "2026-08-29T12:13:16.207590+00:00"
     },
     {
       "cell_id": "BUILTINS_REPR_DEFAULT",
@@ -7102,11 +7328,13 @@
         "repr",
         "var"
       ],
-      "docstring": "",
+      "docstring": "Return the canonical string representation of the object.",
       "domain_name": "python_core",
       "node_type": "function",
       "node_role": "function",
-      "source_priority": 100
+      "source_priority": 100,
+      "enrichment_source": "docs",
+      "enriched_at": "2026-08-29T12:13:16.207590+00:00"
     },
     {
       "cell_id": "BUILTINS_ROUND_DEFAULT",
@@ -7161,11 +7389,13 @@
         "round",
         "var"
       ],
-      "docstring": "",
+      "docstring": "Round a number to a given precision in decimal digits.",
       "domain_name": "python_core",
       "node_type": "function",
       "node_role": "function",
-      "source_priority": 100
+      "source_priority": 100,
+      "enrichment_source": "docs",
+      "enriched_at": "2026-08-29T12:13:16.207590+00:00"
     },
     {
       "cell_id": "BUILTINS_SET_ADD_DEFAULT",
@@ -7220,11 +7450,13 @@
         "set",
         "var"
       ],
-      "docstring": "",
+      "docstring": "Add an element to a set. This has no effect if the element is already present.",
       "domain_name": "python_core",
       "node_type": "function",
       "node_role": "function",
-      "source_priority": 100
+      "source_priority": 100,
+      "enrichment_source": "docs",
+      "enriched_at": "2026-08-29T12:13:16.207590+00:00"
     },
     {
       "cell_id": "BUILTINS_SET_DIFFERENCE_UPDATE_DEFAULT",
@@ -7342,11 +7574,13 @@
         "set",
         "var"
       ],
-      "docstring": "",
+      "docstring": "Remove an element from a set if it is a member.",
       "domain_name": "python_core",
       "node_type": "function",
       "node_role": "function",
-      "source_priority": 100
+      "source_priority": 100,
+      "enrichment_source": "docs",
+      "enriched_at": "2026-08-29T12:13:16.207590+00:00"
     },
     {
       "cell_id": "BUILTINS_SET_INTERSECTION_UPDATE_DEFAULT",
@@ -7529,11 +7763,13 @@
         "setattr",
         "var"
       ],
-      "docstring": "",
+      "docstring": "Sets the named attribute on the given object to the specified value.",
       "domain_name": "python_core",
       "node_type": "function",
       "node_role": "function",
-      "source_priority": 100
+      "source_priority": 100,
+      "enrichment_source": "docs",
+      "enriched_at": "2026-08-29T12:13:16.207590+00:00"
     },
     {
       "cell_id": "BUILTINS_SLICE_INDICES_DEFAULT",
@@ -7584,11 +7820,13 @@
         "slice",
         "var"
       ],
-      "docstring": "",
+      "docstring": "S.indices(len) -> (start, stop, stride)",
       "domain_name": "python_core",
       "node_type": "function",
       "node_role": "function",
-      "source_priority": 100
+      "source_priority": 100,
+      "enrichment_source": "docs",
+      "enriched_at": "2026-08-29T12:13:16.207590+00:00"
     },
     {
       "cell_id": "BUILTINS_SORTED_DEFAULT",
@@ -7643,11 +7881,13 @@
         "sorted",
         "var"
       ],
-      "docstring": "",
+      "docstring": "Return a new list containing all items from the iterable in ascending order.",
       "domain_name": "python_core",
       "node_type": "function",
       "node_role": "function",
-      "source_priority": 100
+      "source_priority": 100,
+      "enrichment_source": "docs",
+      "enriched_at": "2026-08-29T12:13:16.207590+00:00"
     },
     {
       "cell_id": "BUILTINS_STR_CASEFOLD_DEFAULT",
@@ -7706,11 +7946,13 @@
         "unicode",
         "var"
       ],
-      "docstring": "",
+      "docstring": "Return a version of the string suitable for caseless comparisons.",
       "domain_name": "python_core",
       "node_type": "function",
       "node_role": "function",
-      "source_priority": 100
+      "source_priority": 100,
+      "enrichment_source": "docs",
+      "enriched_at": "2026-08-29T12:13:16.207590+00:00"
     },
     {
       "cell_id": "BUILTINS_STR_ENCODE_DEFAULT",
@@ -7767,11 +8009,13 @@
         "str.encode",
         "var"
       ],
-      "docstring": "",
+      "docstring": "Encode the string using the codec registered for encoding.",
       "domain_name": "python_core",
       "node_type": "function",
       "node_role": "function",
-      "source_priority": 100
+      "source_priority": 100,
+      "enrichment_source": "docs",
+      "enriched_at": "2026-08-29T12:13:16.207590+00:00"
     },
     {
       "cell_id": "BUILTINS_STR_FORMAT_MAP_DEFAULT",
@@ -7834,11 +8078,13 @@
         "template string",
         "var"
       ],
-      "docstring": "",
+      "docstring": "Make an iterator that computes the function using arguments from",
       "domain_name": "python_core",
       "node_type": "function",
       "node_role": "function",
-      "source_priority": 100
+      "source_priority": 100,
+      "enrichment_source": "docs",
+      "enriched_at": "2026-08-29T12:13:16.207590+00:00"
     },
     {
       "cell_id": "BUILTINS_STR_ISDECIMAL_DEFAULT",
@@ -7891,11 +8137,13 @@
         "string",
         "var"
       ],
-      "docstring": "",
+      "docstring": "Return True if the string is a decimal string, False otherwise.",
       "domain_name": "python_core",
       "node_type": "function",
       "node_role": "function",
-      "source_priority": 100
+      "source_priority": 100,
+      "enrichment_source": "docs",
+      "enriched_at": "2026-08-29T12:13:16.207590+00:00"
     },
     {
       "cell_id": "BUILTINS_STR_ISIDENTIFIER_DEFAULT",
@@ -7954,11 +8202,13 @@
         "valid",
         "var"
       ],
-      "docstring": "",
+      "docstring": "Return True if the string is a valid Python identifier, False otherwise.",
       "domain_name": "python_core",
       "node_type": "function",
       "node_role": "function",
-      "source_priority": 100
+      "source_priority": 100,
+      "enrichment_source": "docs",
+      "enriched_at": "2026-08-29T12:13:16.207590+00:00"
     },
     {
       "cell_id": "BUILTINS_STR_ISNUMERIC_DEFAULT",
@@ -8013,11 +8263,13 @@
         "string",
         "var"
       ],
-      "docstring": "",
+      "docstring": "Return True if the string is a numeric string, False otherwise.",
       "domain_name": "python_core",
       "node_type": "function",
       "node_role": "function",
-      "source_priority": 100
+      "source_priority": 100,
+      "enrichment_source": "docs",
+      "enriched_at": "2026-08-29T12:13:16.207590+00:00"
     },
     {
       "cell_id": "BUILTINS_STR_ISPRINTABLE_DEFAULT",
@@ -8076,11 +8328,13 @@
         "var",
         "whitespace"
       ],
-      "docstring": "",
+      "docstring": "Return True if all characters in the string are printable, False otherwise.",
       "domain_name": "python_core",
       "node_type": "function",
       "node_role": "function",
-      "source_priority": 100
+      "source_priority": 100,
+      "enrichment_source": "docs",
+      "enriched_at": "2026-08-29T12:13:16.207590+00:00"
     },
     {
       "cell_id": "BUILTINS_SUM_DEFAULT",
@@ -8133,11 +8387,13 @@
         "sum",
         "var"
       ],
-      "docstring": "",
+      "docstring": "Return the sum of a 'start' value (default: 0) plus an iterable of numbers",
       "domain_name": "python_core",
       "node_type": "function",
       "node_role": "function",
-      "source_priority": 100
+      "source_priority": 100,
+      "enrichment_source": "docs",
+      "enriched_at": "2026-08-29T12:13:16.207590+00:00"
     },
     {
       "cell_id": "BUILTINS_TYPE_MRO_DEFAULT",
@@ -8190,11 +8446,13 @@
         "type",
         "var"
       ],
-      "docstring": "",
+      "docstring": "Built-in immutable sequence.",
       "domain_name": "python_core",
       "node_type": "function",
       "node_role": "function",
-      "source_priority": 100
+      "source_priority": 100,
+      "enrichment_source": "docs",
+      "enriched_at": "2026-08-29T12:13:16.207590+00:00"
     },
     {
       "cell_id": "BUILTINS_VARS_DEFAULT",
@@ -8245,11 +8503,13 @@
         "var",
         "vars"
       ],
-      "docstring": "",
+      "docstring": "vars([object]) -> dictionary",
       "domain_name": "python_core",
       "node_type": "function",
       "node_role": "function",
-      "source_priority": 100
+      "source_priority": 100,
+      "enrichment_source": "docs",
+      "enriched_at": "2026-08-29T12:13:16.207590+00:00"
     },
     {
       "cell_id": "BUILTINS_STOPITERATION_VALUE_DEFAULT",
@@ -8306,11 +8566,13 @@
         "value",
         "var"
       ],
-      "docstring": "",
+      "docstring": "generator return value",
       "domain_name": "python_core",
       "node_type": "property",
       "node_role": "function",
-      "source_priority": 100
+      "source_priority": 100,
+      "enrichment_source": "docs",
+      "enriched_at": "2026-08-29T12:13:16.207590+00:00"
     },
     {
       "cell_id": "BUILTINS_SYSTEMEXIT_CODE_DEFAULT",
@@ -8367,11 +8629,13 @@
         "systemexit",
         "var"
       ],
-      "docstring": "",
+      "docstring": "exception code",
       "domain_name": "python_core",
       "node_type": "property",
       "node_role": "function",
-      "source_priority": 100
+      "source_priority": 100,
+      "enrichment_source": "docs",
+      "enriched_at": "2026-08-29T12:13:16.207590+00:00"
     },
     {
       "cell_id": "BUILTINS_BOOL___ABS___DEFAULT",
@@ -8432,11 +8696,13 @@
         "python",
         "var"
       ],
-      "docstring": "",
+      "docstring": "Return the absolute value of the argument.",
       "domain_name": "python_core",
       "node_type": "dunder",
       "node_role": "function",
-      "source_priority": 100
+      "source_priority": 100,
+      "enrichment_source": "docs",
+      "enriched_at": "2026-08-29T12:13:16.207590+00:00"
     },
     {
       "cell_id": "BUILTINS_BOOL___ADD___DEFAULT",
@@ -8611,11 +8877,13 @@
         "truth value",
         "var"
       ],
-      "docstring": "",
+      "docstring": "Returns True when the argument is true, False otherwise.",
       "domain_name": "python_core",
       "node_type": "dunder",
       "node_role": "function",
-      "source_priority": 100
+      "source_priority": 100,
+      "enrichment_source": "docs",
+      "enriched_at": "2026-08-29T12:13:16.207590+00:00"
     },
     {
       "cell_id": "BUILTINS_BOOL___CEIL___DEFAULT",
@@ -8670,11 +8938,13 @@
         "rounding",
         "var"
       ],
-      "docstring": "",
+      "docstring": "Return the ceiling of x as an Integral.",
       "domain_name": "python_core",
       "node_type": "dunder",
       "node_role": "function",
-      "source_priority": 100
+      "source_priority": 100,
+      "enrichment_source": "docs",
+      "enriched_at": "2026-08-29T12:13:16.207590+00:00"
     },
     {
       "cell_id": "BUILTINS_BOOL___DIVMOD___DEFAULT",
@@ -8733,11 +9003,13 @@
         "tuple",
         "var"
       ],
-      "docstring": "",
+      "docstring": "Return the tuple (x//y, x%y). Invariant: div*y + mod == x.",
       "domain_name": "python_core",
       "node_type": "dunder",
       "node_role": "function",
-      "source_priority": 100
+      "source_priority": 100,
+      "enrichment_source": "docs",
+      "enriched_at": "2026-08-29T12:13:16.207590+00:00"
     },
     {
       "cell_id": "BUILTINS_BOOL___FLOAT___DEFAULT",
@@ -8796,11 +9068,13 @@
         "python built-in",
         "var"
       ],
-      "docstring": "",
+      "docstring": "Convert a string or number to a floating-point number, if possible.",
       "domain_name": "python_core",
       "node_type": "dunder",
       "node_role": "function",
-      "source_priority": 100
+      "source_priority": 100,
+      "enrichment_source": "docs",
+      "enriched_at": "2026-08-29T12:13:16.207590+00:00"
     },
     {
       "cell_id": "BUILTINS_BOOL___FLOOR___DEFAULT",
@@ -8857,11 +9131,13 @@
         "property",
         "var"
       ],
-      "docstring": "",
+      "docstring": "Return the floor of x as an Integral.",
       "domain_name": "python_core",
       "node_type": "dunder",
       "node_role": "function",
-      "source_priority": 100
+      "source_priority": 100,
+      "enrichment_source": "docs",
+      "enriched_at": "2026-08-29T12:13:16.207590+00:00"
     },
     {
       "cell_id": "BUILTINS_BOOL___FLOORDIV___DEFAULT",
@@ -9097,11 +9373,13 @@
         "truthy",
         "var"
       ],
-      "docstring": "",
+      "docstring": "int([x]) -> integer int(x, base=10) -> integer",
       "domain_name": "python_core",
       "node_type": "dunder",
       "node_role": "function",
-      "source_priority": 100
+      "source_priority": 100,
+      "enrichment_source": "docs",
+      "enriched_at": "2026-08-29T12:13:16.207590+00:00"
     },
     {
       "cell_id": "BUILTINS_BOOL___INVERT___DEFAULT",
@@ -9589,11 +9867,13 @@
         "power",
         "var"
       ],
-      "docstring": "",
+      "docstring": "Equivalent to base**exp with 2 arguments or base**exp % mod with 3 arguments",
       "domain_name": "python_core",
       "node_type": "dunder",
       "node_role": "function",
-      "source_priority": 100
+      "source_priority": 100,
+      "enrichment_source": "docs",
+      "enriched_at": "2026-08-29T12:13:16.207590+00:00"
     },
     {
       "cell_id": "BUILTINS_BOOL___RADD___DEFAULT",
@@ -10144,11 +10424,13 @@
         "round",
         "var"
       ],
-      "docstring": "",
+      "docstring": "Round a number to a given precision in decimal digits.",
       "domain_name": "python_core",
       "node_type": "dunder",
       "node_role": "function",
-      "source_priority": 100
+      "source_priority": 100,
+      "enrichment_source": "docs",
+      "enriched_at": "2026-08-29T12:13:16.207590+00:00"
     },
     {
       "cell_id": "BUILTINS_BOOL___RPOW___DEFAULT",
@@ -10711,11 +10993,13 @@
         "trunc",
         "var"
       ],
-      "docstring": "",
+      "docstring": "Truncates the Real x to the nearest Integral toward 0.",
       "domain_name": "python_core",
       "node_type": "dunder",
       "node_role": "function",
-      "source_priority": 100
+      "source_priority": 100,
+      "enrichment_source": "docs",
+      "enriched_at": "2026-08-29T12:13:16.207590+00:00"
     },
     {
       "cell_id": "BUILTINS_BOOL___XOR___DEFAULT",
@@ -10837,11 +11121,13 @@
         "property",
         "var"
       ],
-      "docstring": "",
+      "docstring": "the denominator of a rational number in lowest terms",
       "domain_name": "python_core",
       "node_type": "property",
       "node_role": "function",
-      "source_priority": 100
+      "source_priority": 100,
+      "enrichment_source": "docs",
+      "enriched_at": "2026-08-29T12:13:16.207590+00:00"
     },
     {
       "cell_id": "BUILTINS_BOOL_IMAG_DEFAULT",
@@ -10896,11 +11182,13 @@
         "property",
         "var"
       ],
-      "docstring": "",
+      "docstring": "the imaginary part of a complex number",
       "domain_name": "python_core",
       "node_type": "property",
       "node_role": "function",
-      "source_priority": 100
+      "source_priority": 100,
+      "enrichment_source": "docs",
+      "enriched_at": "2026-08-29T12:13:16.207590+00:00"
     },
     {
       "cell_id": "BUILTINS_BOOL_NUMERATOR_DEFAULT",
@@ -10955,11 +11243,13 @@
         "property",
         "var"
       ],
-      "docstring": "",
+      "docstring": "the numerator of a rational number in lowest terms",
       "domain_name": "python_core",
       "node_type": "property",
       "node_role": "function",
-      "source_priority": 100
+      "source_priority": 100,
+      "enrichment_source": "docs",
+      "enriched_at": "2026-08-29T12:13:16.207590+00:00"
     },
     {
       "cell_id": "BUILTINS_BOOL_REAL_DEFAULT",
@@ -11014,11 +11304,13 @@
         "real",
         "var"
       ],
-      "docstring": "",
+      "docstring": "the real part of a complex number",
       "domain_name": "python_core",
       "node_type": "property",
       "node_role": "function",
-      "source_priority": 100
+      "source_priority": 100,
+      "enrichment_source": "docs",
+      "enriched_at": "2026-08-29T12:13:16.207590+00:00"
     },
     {
       "cell_id": "BUILTINS_BYTEARRAY___ALLOC___DEFAULT",
@@ -11510,11 +11802,13 @@
         "output_var",
         "var"
       ],
-      "docstring": "",
+      "docstring": "iter(iterable) -> iterator",
       "domain_name": "python_core",
       "node_type": "dunder",
       "node_role": "function",
-      "source_priority": 100
+      "source_priority": 100,
+      "enrichment_source": "docs",
+      "enriched_at": "2026-08-29T12:13:16.207590+00:00"
     },
     {
       "cell_id": "BUILTINS_BYTEARRAY___LEN___DEFAULT",
@@ -11573,11 +11867,13 @@
         "size",
         "var"
       ],
-      "docstring": "",
+      "docstring": "Return the number of items in a container.",
       "domain_name": "python_core",
       "node_type": "dunder",
       "node_role": "function",
-      "source_priority": 100
+      "source_priority": 100,
+      "enrichment_source": "docs",
+      "enriched_at": "2026-08-29T12:13:16.207590+00:00"
     },
     {
       "cell_id": "BUILTINS_BYTEARRAY___RELEASE_BUFFER___DEFAULT",
@@ -11756,11 +12052,13 @@
         "output_var",
         "var"
       ],
-      "docstring": "",
+      "docstring": "bytes(iterable_of_ints) -> bytes",
       "domain_name": "python_core",
       "node_type": "dunder",
       "node_role": "function",
-      "source_priority": 100
+      "source_priority": 100,
+      "enrichment_source": "docs",
+      "enriched_at": "2026-08-29T12:13:16.207590+00:00"
     },
     {
       "cell_id": "BUILTINS_CLASSMETHOD___GET___DEFAULT",
@@ -11882,11 +12180,13 @@
         "python",
         "var"
       ],
-      "docstring": "",
+      "docstring": "Create a complex number from a string or numbers.",
       "domain_name": "python_core",
       "node_type": "dunder",
       "node_role": "function",
-      "source_priority": 100
+      "source_priority": 100,
+      "enrichment_source": "docs",
+      "enriched_at": "2026-08-29T12:13:16.207590+00:00"
     },
     {
       "cell_id": "BUILTINS_DICT___IOR___DEFAULT",
@@ -12006,11 +12306,13 @@
         "reversed",
         "var"
       ],
-      "docstring": "",
+      "docstring": "Return a reverse iterator over the values of the given sequence.",
       "domain_name": "python_core",
       "node_type": "dunder",
       "node_role": "function",
-      "source_priority": 100
+      "source_priority": 100,
+      "enrichment_source": "docs",
+      "enriched_at": "2026-08-29T12:13:16.207590+00:00"
     },
     {
       "cell_id": "BUILTINS_ENUMERATE___NEXT___DEFAULT",
@@ -12069,11 +12371,13 @@
         "sequence",
         "var"
       ],
-      "docstring": "",
+      "docstring": "next(iterator[, default])",
       "domain_name": "python_core",
       "node_type": "dunder",
       "node_role": "function",
-      "source_priority": 100
+      "source_priority": 100,
+      "enrichment_source": "docs",
+      "enriched_at": "2026-08-29T12:13:16.207590+00:00"
     },
     {
       "cell_id": "BUILTINS_FLOAT___GETFORMAT___DEFAULT",
@@ -12256,11 +12560,13 @@
         "resource cleanup",
         "var"
       ],
-      "docstring": "",
+      "docstring": "Exit to the system with specified status, without normal exit processing.",
       "domain_name": "python_core",
       "node_type": "dunder",
       "node_role": "function",
-      "source_priority": 100
+      "source_priority": 100,
+      "enrichment_source": "docs",
+      "enriched_at": "2026-08-29T12:13:16.207590+00:00"
     },
     {
       "cell_id": "BUILTINS_MEMORYVIEW_C_CONTIGUOUS_DEFAULT",
@@ -12376,11 +12682,13 @@
         "property",
         "var"
       ],
-      "docstring": "",
+      "docstring": "A bool indicating whether the memory is contiguous.",
       "domain_name": "python_core",
       "node_type": "property",
       "node_role": "function",
-      "source_priority": 100
+      "source_priority": 100,
+      "enrichment_source": "docs",
+      "enriched_at": "2026-08-29T12:13:16.207590+00:00"
     },
     {
       "cell_id": "BUILTINS_MEMORYVIEW_F_CONTIGUOUS_DEFAULT",
@@ -12492,11 +12800,13 @@
         "output_var",
         "var"
       ],
-      "docstring": "",
+      "docstring": "Return type(value).__format__(value, format_spec)",
       "domain_name": "python_core",
       "node_type": "property",
       "node_role": "function",
-      "source_priority": 100
+      "source_priority": 100,
+      "enrichment_source": "docs",
+      "enriched_at": "2026-08-29T12:13:16.207590+00:00"
     },
     {
       "cell_id": "BUILTINS_MEMORYVIEW_ITEMSIZE_DEFAULT",
@@ -12553,11 +12863,13 @@
         "size",
         "var"
       ],
-      "docstring": "",
+      "docstring": "The size in bytes of each element of the memoryview.",
       "domain_name": "python_core",
       "node_type": "property",
       "node_role": "function",
-      "source_priority": 100
+      "source_priority": 100,
+      "enrichment_source": "docs",
+      "enriched_at": "2026-08-29T12:13:16.207590+00:00"
     },
     {
       "cell_id": "BUILTINS_MEMORYVIEW_NBYTES_DEFAULT",
@@ -12612,11 +12924,13 @@
         "size",
         "var"
       ],
-      "docstring": "",
+      "docstring": "The amount of space in bytes that the array would use in",
       "domain_name": "python_core",
       "node_type": "property",
       "node_role": "function",
-      "source_priority": 100
+      "source_priority": 100,
+      "enrichment_source": "docs",
+      "enriched_at": "2026-08-29T12:13:16.207590+00:00"
     },
     {
       "cell_id": "BUILTINS_MEMORYVIEW_NDIM_DEFAULT",
@@ -12673,11 +12987,13 @@
         "shape",
         "var"
       ],
-      "docstring": "",
+      "docstring": "An integer indicating how many dimensions of a multi-dimensional",
       "domain_name": "python_core",
       "node_type": "property",
       "node_role": "function",
-      "source_priority": 100
+      "source_priority": 100,
+      "enrichment_source": "docs",
+      "enriched_at": "2026-08-29T12:13:16.207590+00:00"
     },
     {
       "cell_id": "BUILTINS_MEMORYVIEW_READONLY_DEFAULT",
@@ -12730,11 +13046,13 @@
         "readonly",
         "var"
       ],
-      "docstring": "",
+      "docstring": "A bool indicating whether the memory is read only.",
       "domain_name": "python_core",
       "node_type": "property",
       "node_role": "function",
-      "source_priority": 100
+      "source_priority": 100,
+      "enrichment_source": "docs",
+      "enriched_at": "2026-08-29T12:13:16.207590+00:00"
     },
     {
       "cell_id": "BUILTINS_MEMORYVIEW_SHAPE_DEFAULT",
@@ -12791,11 +13109,13 @@
         "shape",
         "var"
       ],
-      "docstring": "",
+      "docstring": "A tuple of ndim integers giving the shape of the memory",
       "domain_name": "python_core",
       "node_type": "property",
       "node_role": "function",
-      "source_priority": 100
+      "source_priority": 100,
+      "enrichment_source": "docs",
+      "enriched_at": "2026-08-29T12:13:16.207590+00:00"
     },
     {
       "cell_id": "BUILTINS_MEMORYVIEW_STRIDES_DEFAULT",
@@ -12850,11 +13170,13 @@
         "strides",
         "var"
       ],
-      "docstring": "",
+      "docstring": "A tuple of ndim integers giving the size in bytes to access",
       "domain_name": "python_core",
       "node_type": "property",
       "node_role": "function",
-      "source_priority": 100
+      "source_priority": 100,
+      "enrichment_source": "docs",
+      "enriched_at": "2026-08-29T12:13:16.207590+00:00"
     },
     {
       "cell_id": "BUILTINS_MEMORYVIEW_SUBOFFSETS_DEFAULT",
@@ -12909,11 +13231,13 @@
         "suboffsets",
         "var"
       ],
-      "docstring": "",
+      "docstring": "A tuple of integers used internally for PIL-style arrays.",
       "domain_name": "python_core",
       "node_type": "property",
       "node_role": "function",
-      "source_priority": 100
+      "source_priority": 100,
+      "enrichment_source": "docs",
+      "enriched_at": "2026-08-29T12:13:16.207590+00:00"
     },
     {
       "cell_id": "BUILTINS_PROPERTY___DELETE___DEFAULT",
@@ -13035,11 +13359,13 @@
         "value",
         "var"
       ],
-      "docstring": "",
+      "docstring": "Build an unordered collection of unique elements.",
       "domain_name": "python_core",
       "node_type": "dunder",
       "node_role": "function",
-      "source_priority": 100
+      "source_priority": 100,
+      "enrichment_source": "docs",
+      "enriched_at": "2026-08-29T12:13:16.207590+00:00"
     },
     {
       "cell_id": "BUILTINS_PROPERTY___SET_NAME___DEFAULT",
@@ -13102,11 +13428,13 @@
         "set",
         "var"
       ],
-      "docstring": "",
+      "docstring": "str(object='') -> str str(bytes_or_buffer[, encoding[, errors]]) -> str",
       "domain_name": "python_core",
       "node_type": "dunder",
       "node_role": "function",
-      "source_priority": 100
+      "source_priority": 100,
+      "enrichment_source": "docs",
+      "enriched_at": "2026-08-29T12:13:16.207590+00:00"
     },
     {
       "cell_id": "BUILTINS_PROPERTY_FDEL_DEFAULT",

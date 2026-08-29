@@ -1,35 +1,46 @@
 """
-Tier 2 Docstring Enricher (No LLM, No Hallucination)
+Tier 2 Docstring Enricher (No LLM, Zero Hallucination)
 
-Enriches Tier 1 structural node objects with prose descriptions and per-parameter
-documentation extracted from docstrings using docstring_parser / numpydoc or
-C++/Doxygen docstring parser for OpenCV.
+Enriches Tier 1 structural cells in trees/*.json with real prose descriptions
+extracted from introspected Python libraries (pandas, sklearn, cv2, matplotlib,
+numpy, scipy, python_core) using docstring_parser and inspect.getdoc().
 
-Does NOT modify any parameter types, required flags, or code structure.
+Sets:
+  - cell["docstring"] = clean_summary
+  - cell["enrichment_source"] = "docs"
+  - cell["enriched_at"] = ISO8601 timestamp
+
+Does NOT modify any parameter types, ports, code_template, stage, or dependencies.
 """
 
+from __future__ import annotations
 import importlib
 import inspect
 import json
 import os
 import re
 import sys
+import warnings
+from datetime import datetime, timezone
 from pathlib import Path
+from typing import Any, Dict, List, Optional, Tuple
+
 import docstring_parser
 
-# Ensure project root is in sys.path
+# Suppress deprecation warnings from old dynamic imports during introspection
+warnings.filterwarnings("ignore", category=DeprecationWarning)
+
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
+if str(PROJECT_ROOT / "src") not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT / "src"))
 
 
-def parse_cv2_doxygen_doc(doc_str: str) -> tuple[str, dict[str, str]]:
-    """Parse OpenCV C++/Doxygen docstring for brief summary and @param descriptions."""
+def parse_cv2_doxygen_doc(doc_str: str) -> str:
+    """Parse OpenCV C++/Doxygen docstring for brief summary."""
     if not doc_str:
-        return "", {}
-
-    summary = ""
-    param_docs = {}
+        return ""
 
     lines = doc_str.split("\n")
     summary_lines = []
@@ -38,122 +49,233 @@ def parse_cv2_doxygen_doc(doc_str: str) -> tuple[str, dict[str, str]]:
         cleaned = line.strip().lstrip(".").strip()
         if cleaned.startswith("@brief"):
             summary_lines.append(cleaned.replace("@brief", "").strip())
-        elif cleaned.startswith("@param"):
-            match = re.match(r"@param\s+([a-zA-Z0-9_]+)\s+(.*)", cleaned)
-            if match:
-                p_name, p_desc = match.groups()
-                param_docs[p_name] = p_desc.strip()
         elif not summary_lines and cleaned and not cleaned.startswith("cvtColor") and not cleaned.startswith("@") and "(" not in cleaned:
             summary_lines.append(cleaned)
 
     summary = " ".join(summary_lines).strip()
     if not summary and lines:
-        # Fallback to first non-signature line
         for l in lines:
             cl = l.strip().lstrip(".").strip()
             if cl and "(" not in cl and not cl.startswith("@"):
                 summary = cl
                 break
 
-    return summary, param_docs
+    return summary
 
 
-def enrich_cv2_nodes(nodes: list[dict]) -> list[dict]:
-    """Enrich OpenCV structural nodes using live cv2 docstrings."""
-    import cv2
+def clean_docstring_summary(raw_doc: str, domain: str) -> str:
+    """Extracts a clean, single-paragraph or single-sentence summary from raw docstring."""
+    if not raw_doc or not raw_doc.strip():
+        return ""
 
-    for node in nodes:
-        func_name = node.get("name")
-        if not func_name:
-            cell_id = node.get("cell_id", "")
-            func_name = cell_id.replace("CV2_", "").replace("_DEFAULT", "").lower()
+    if domain == "cv2":
+        summary = parse_cv2_doxygen_doc(raw_doc)
+        if summary:
+            return summary
 
-        obj = getattr(cv2, func_name, None)
-        doc = getattr(obj, "__doc__", "") if obj else ""
-
-        summary, param_docs = parse_cv2_doxygen_doc(doc)
-        node["description"] = summary or f"OpenCV {func_name} routine."
-
-        for param in node.get("params", []):
-            p_name = param["name"]
-            if p_name in param_docs:
-                param["param_doc"] = param_docs[p_name]
-            else:
-                param["param_doc"] = f"Argument {p_name} for cv2.{func_name}."
-
-    return nodes
-
-
-def enrich_python_library_nodes(nodes: list[dict], library_name: str) -> list[dict]:
-    """Enrich pure Python library structural nodes using docstring_parser."""
     try:
-        mod = importlib.import_module(library_name)
-    except ImportError:
-        print(f"[!] Warning: Could not import {library_name} for docstring enrichment.")
-        return nodes
-
-    for node in nodes:
-        cell_id = node.get("cell_id", "")
-        func_name = node.get("name")
-
-        obj = None
-        # Attempt to resolve function object
-        if hasattr(mod, func_name):
-            obj = getattr(mod, func_name)
-        elif "." in cell_id:
-            parts = cell_id.split("_")
-            curr = mod
-            for p in parts:
-                if hasattr(curr, p):
-                    curr = getattr(curr, p)
-                elif hasattr(curr, p.lower()):
-                    curr = getattr(curr, p.lower())
-            if curr is not mod:
-                obj = curr
-
-        doc = inspect.getdoc(obj) if obj else ""
-        if not doc and obj and hasattr(obj, "__doc__"):
-            doc = getattr(obj, "__doc__", "") or ""
-
-        parsed = docstring_parser.parse(doc)
+        parsed = docstring_parser.parse(raw_doc)
         summary = parsed.short_description or ""
-        if parsed.long_description and len(summary) < 20:
-            summary = (summary + " " + parsed.long_description).strip()
+        if parsed.long_description and len(summary) < 25:
+            # Append first sentence of long description if short description is minimal
+            first_sentence = parsed.long_description.split("\n\n")[0].replace("\n", " ").strip()
+            if first_sentence and first_sentence != summary:
+                summary = (summary + " " + first_sentence).strip() if summary else first_sentence
+    except Exception:
+        # Fallback to first non-empty line
+        lines = [l.strip() for l in raw_doc.strip().splitlines() if l.strip()]
+        summary = lines[0] if lines else ""
 
-        node["description"] = summary or f"{library_name} {func_name} function."
-
-        param_doc_map = {p.arg_name: p.description for p in parsed.params if p.arg_name and p.description}
-
-        for param in node.get("params", []):
-            p_name = param["name"]
-            if p_name in param_doc_map:
-                param["param_doc"] = param_doc_map[p_name].strip()
-            else:
-                param["param_doc"] = f"Parameter {p_name} for {func_name}."
-
-    return nodes
+    # Clean formatting
+    summary = re.sub(r"\s+", " ", summary).strip()
+    # Strip common Sphinx/NumPyDoc formatting artifacts e.g. ````, `:class:`, `:func:`
+    summary = re.sub(r":(class|func|meth|mod|attr|ref):`([^`]+)`", r"\2", summary)
+    summary = re.sub(r"`([^`]+)`", r"\1", summary)
+    return summary
 
 
-def enrich_nodes(input_file: str, output_file: str, library_name: str):
-    print(f"[*] Running Tier 2 Docstring Enricher for '{library_name}'...")
-    with open(input_file, "r", encoding="utf-8") as f:
-        nodes = json.load(f)
+def resolve_symbol_from_cell(cell: Dict[str, Any], default_domain: str) -> Tuple[Optional[Any], str]:
+    """Resolves the live Python object and docstring corresponding to a Cell dict."""
+    # Method 1: Check dependencies (e.g. from sklearn.preprocessing import StandardScaler)
+    deps = cell.get("dependencies", [])
+    for dep in deps:
+        m = re.match(r"from\s+([a-zA-Z0-9_\.]+)\s+import\s+([a-zA-Z0-9_]+)", dep)
+        if m:
+            mod_name, obj_name = m.groups()
+            try:
+                mod = importlib.import_module(mod_name)
+                if hasattr(mod, obj_name):
+                    obj = getattr(mod, obj_name)
+                    doc = inspect.getdoc(obj) or getattr(obj, "__doc__", "") or ""
+                    if doc:
+                        return obj, doc
+            except Exception:
+                pass
 
-    if library_name == "cv2":
-        enriched = enrich_cv2_nodes(nodes)
-    else:
-        enriched = enrich_python_library_nodes(nodes, library_name)
+    # Method 2: Inspect code_template (e.g. pd.read_csv, plt.plot, cv2.cvtColor)
+    tmpl = cell.get("code_template", "")
+    for m in re.finditer(r"([a-zA-Z0-9_]+(?:\.[a-zA-Z0-9_]+)+)\(", tmpl):
+        full_call = m.group(1)
+        parts = full_call.split(".")
+        root_map = {
+            "pd": "pandas",
+            "np": "numpy",
+            "plt": "matplotlib.pyplot",
+            "cv2": "cv2",
+            "sklearn": "sklearn",
+            "scipy": "scipy"
+        }
+        actual_root = root_map.get(parts[0], parts[0])
+        try:
+            curr = importlib.import_module(actual_root)
+            for p in parts[1:]:
+                curr = getattr(curr, p)
+            doc = inspect.getdoc(curr) or getattr(curr, "__doc__", "") or ""
+            if doc:
+                return curr, doc
+        except Exception:
+            pass
 
-    os.makedirs(os.path.dirname(os.path.abspath(output_file)), exist_ok=True)
-    with open(output_file, "w", encoding="utf-8") as f:
-        json.dump(enriched, f, indent=2)
+    # Method 3: Cell ID path traversal through module hierarchy
+    cid = cell.get("cell_id", "")
+    clean_id = re.sub(r"_(DEFAULT|INPUT|OUTPUT)$", "", cid)
+    parts = clean_id.split("_")
 
-    print(f"[+] Enriched {len(enriched)} nodes saved to {output_file}")
+    domains_to_try = [default_domain]
+    if default_domain == "matplotlib":
+        domains_to_try = ["matplotlib.pyplot", "matplotlib"]
+    elif default_domain == "python_core":
+        domains_to_try = ["builtins", "math", "os", "sys"]
+
+    for domain_mod in domains_to_try:
+        try:
+            curr = importlib.import_module(domain_mod)
+        except Exception:
+            continue
+
+        sub_parts = parts[1:] if parts[0].lower() == default_domain.lower() else parts
+        
+        # Try full attribute name match
+        for i in range(len(sub_parts)):
+            target = "_".join(sub_parts[i:]).lower()
+            for attr in dir(curr):
+                if attr.lower() == target or attr.lower().replace("_", "") == target.replace("_", ""):
+                    obj = getattr(curr, attr)
+                    doc = inspect.getdoc(obj) or getattr(obj, "__doc__", "") or ""
+                    if doc:
+                        return obj, doc
+
+        # Try step-by-step navigation
+        for i in range(len(sub_parts)):
+            step_obj = curr
+            for sp in sub_parts[i:]:
+                found = None
+                for attr in dir(step_obj):
+                    if attr.lower() == sp.lower() or attr.lower().replace("_", "") == sp.lower().replace("_", ""):
+                        found = getattr(step_obj, attr)
+                        break
+                if found is not None:
+                    step_obj = found
+                else:
+                    step_obj = None
+                    break
+            if step_obj is not None and step_obj is not curr:
+                doc = inspect.getdoc(step_obj) or getattr(step_obj, "__doc__", "") or ""
+                if doc:
+                    return step_obj, doc
+
+    return None, ""
+
+
+def enrich_tree_file(tree_path: Path) -> Tuple[int, int, int]:
+    """
+    Enriches a single trees/{domain}.json file.
+    Returns: (total_cells, previously_enriched, newly_enriched)
+    """
+    domain = tree_path.stem
+    print(f"[*] Processing domain '{domain}' from {tree_path}...")
+
+    with open(tree_path, "r", encoding="utf-8") as f:
+        tree_data = json.load(f)
+
+    cells = tree_data.get("cells", [])
+    total_cells = len(cells)
+    previously_enriched = 0
+    newly_enriched = 0
+
+    now_iso = datetime.now(timezone.utc).isoformat()
+
+    for cell in cells:
+        existing_doc = (cell.get("docstring") or "").strip()
+        existing_source = cell.get("enrichment_source")
+
+        # Keep existing curated docstrings
+        if existing_doc and cell.get("source_priority", 100) <= 10:
+            previously_enriched += 1
+            continue
+
+        if existing_doc and existing_source:
+            previously_enriched += 1
+            continue
+
+        # Try resolving real docstring
+        obj, raw_doc = resolve_symbol_from_cell(cell, domain)
+        if raw_doc:
+            summary = clean_docstring_summary(raw_doc, domain)
+            if summary and len(summary) > 5:
+                cell["docstring"] = summary
+                cell["enrichment_source"] = "docs"
+                cell["enriched_at"] = now_iso
+                newly_enriched += 1
+            elif existing_doc:
+                previously_enriched += 1
+        elif existing_doc:
+            previously_enriched += 1
+
+    # Atomic write back to disk
+    tmp_path = tree_path.with_suffix(".json.tmp")
+    with open(tmp_path, "w", encoding="utf-8") as f:
+        json.dump(tree_data, f, indent=2, ensure_ascii=False)
+    os.replace(tmp_path, tree_path)
+
+    print(f"  [+] Domain '{domain}': {total_cells} total | {previously_enriched} prior | {newly_enriched} newly enriched from docs")
+    return total_cells, previously_enriched, newly_enriched
+
+
+def enrich_all_trees(trees_dir: Path) -> None:
+    json_files = sorted(trees_dir.glob("*.json"))
+    print(f"[*] Running Tier 2 Docstring Enrichment across {len(json_files)} trees in {trees_dir}...")
+
+    grand_total = 0
+    grand_prior = 0
+    grand_new = 0
+
+    for jf in json_files:
+        try:
+            total, prior, newly = enrich_tree_file(jf)
+            grand_total += total
+            grand_prior += prior
+            grand_new += newly
+        except Exception as e:
+            print(f"[!] Error processing {jf.name}: {e}")
+
+    print("\n" + "=" * 70)
+    print(f"[*] Tier 2 Docs Enrichment Complete:")
+    print(f"    Total Cells:            {grand_total:,}")
+    print(f"    Prior Docstrings:       {grand_prior:,}")
+    print(f"    Newly Enriched (Docs):  {grand_new:,}")
+    print(f"    Total Coverage:         {(grand_prior + grand_new) / max(grand_total, 1) * 100:.1f}%")
+    print("=" * 70 + "\n")
 
 
 if __name__ == "__main__":
-    if len(sys.argv) < 4:
-        print("Usage: python docstring_enricher.py <input_structural.json> <output_enriched.json> <library_name>")
-        sys.exit(1)
+    target_dir = PROJECT_ROOT / "trees"
+    if len(sys.argv) > 1:
+        arg_path = Path(sys.argv[1])
+        if arg_path.is_file():
+            enrich_tree_file(arg_path)
+            sys.exit(0)
+        elif arg_path.is_dir():
+            target_dir = arg_path
 
-    enrich_nodes(sys.argv[1], sys.argv[2], sys.argv[3])
+    enrich_all_trees(target_dir)

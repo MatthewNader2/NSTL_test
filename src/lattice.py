@@ -208,7 +208,8 @@ class Cell(ABC):
         "cell_id", "stage", "keywords", "cell_type",
         "inputs", "outputs", "domain_name", "node_type", "node_role",
         "dependencies", "code_template", "metadata_tags", "_db_path",
-        "configuration_schema", "verified", "semantic_tags"
+        "configuration_schema", "verified", "semantic_tags",
+        "docstring", "enrichment_source", "enriched_at"
     ]
 
     def __init__(
@@ -228,7 +229,10 @@ class Cell(ABC):
         db_path: str = "",
         configuration_schema: Optional[Dict[str, Any]] = None,
         verified: bool = False,
-        semantic_tags: Optional[List[str]] = None
+        semantic_tags: Optional[List[str]] = None,
+        docstring: str = "",
+        enrichment_source: Optional[str] = None,
+        enriched_at: Optional[str] = None
     ):
         self.cell_id = cell_id
         self.stage = stage
@@ -244,6 +248,9 @@ class Cell(ABC):
         self.configuration_schema = configuration_schema or {}
         self.verified = bool(verified)
         self.semantic_tags = list(semantic_tags) if semantic_tags else list(self.keywords)
+        self.docstring = docstring or ""
+        self.enrichment_source = enrichment_source
+        self.enriched_at = enriched_at
 
         # Defensive normalization: accept PortSignature, AlgebraicSignature, or raw dicts
         self.inputs: Dict[str, PortSignature] = {}
@@ -407,17 +414,37 @@ class LatticeOrchestrator:
                 tables = [row[0] for row in cursor.fetchall()]
     
                 if "nodes" in tables:
-                    cursor.execute("""
-                        SELECT cell_id, domain_name, node_type, node_role, stage,
-                               keywords, input_type, input_state, output_type, output_state,
-                               code, dependencies, configuration_schema, verified
-                        FROM nodes
-                    """)
+                    cursor.execute("PRAGMA table_info(nodes)")
+                    cols = [c[1] for c in cursor.fetchall()]
+                    has_enrichment = "docstring" in cols
+
+                    if has_enrichment:
+                        cursor.execute("""
+                            SELECT cell_id, domain_name, node_type, node_role, stage,
+                                   keywords, input_type, input_state, output_type, output_state,
+                                   code, dependencies, configuration_schema, verified,
+                                   docstring, enrichment_source, enriched_at
+                            FROM nodes
+                        """)
+                    else:
+                        cursor.execute("""
+                            SELECT cell_id, domain_name, node_type, node_role, stage,
+                                   keywords, input_type, input_state, output_type, output_state,
+                                   code, dependencies, configuration_schema, verified
+                            FROM nodes
+                        """)
                     rows = cursor.fetchall()
                     for row in rows:
-                        (cell_id, domain_name, node_type, node_role, stage,
-                         keywords_json, in_type, in_state, out_type, out_state,
-                         code, deps_json, config_json, verified) = row
+                        if has_enrichment:
+                            (cell_id, domain_name, node_type, node_role, stage,
+                             keywords_json, in_type, in_state, out_type, out_state,
+                             code, deps_json, config_json, verified,
+                             doc_str, enrich_src, enrich_at) = row
+                        else:
+                            (cell_id, domain_name, node_type, node_role, stage,
+                             keywords_json, in_type, in_state, out_type, out_state,
+                             code, deps_json, config_json, verified) = row
+                            doc_str, enrich_src, enrich_at = "", None, None
     
                         try:
                             keywords = set(json.loads(keywords_json)) if keywords_json else set()
@@ -510,7 +537,10 @@ class LatticeOrchestrator:
                             code_template=code or "",
                             db_path=self.db_path,
                             configuration_schema=configuration_schema,
-                            verified=bool(verified)
+                            verified=bool(verified),
+                            docstring=doc_str or "",
+                            enrichment_source=enrich_src,
+                            enriched_at=enrich_at
                         )
                         self.loaded_cells[cell.cell_id] = cell
     

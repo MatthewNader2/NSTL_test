@@ -35,6 +35,8 @@ class CellSchema(BaseModel):
     semantic_tags: List[str] = Field(default_factory=list)
     keywords: List[str] = Field(default_factory=list)
     docstring: Optional[str] = ""
+    enrichment_source: Optional[str] = None   # "docs" | "llm" | None (curated/native)
+    enriched_at: Optional[str] = None         # ISO8601 timestamp, set when enrichment_source is set
     domain_name: Optional[str] = None
     node_type: Optional[str] = "function"
     node_role: Optional[str] = "function"
