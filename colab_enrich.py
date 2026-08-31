@@ -55,15 +55,27 @@ DRIVE_LOGS = DRIVE_ROOT / "logs"
 DOMAINS = ["pandas", "sklearn", "numpy", "cv2", "matplotlib", "scipy", "python_core"]
 
 # --- Model options ---
-# Primary (recommended): Qwen2.5-14B-Instruct, Q4_K_M (~9GB). Fits a T4 (16GB) fine
-# at these short context lengths and is noticeably better at not hallucinating
-# outside the given facts than smaller models.
-MODEL_REPO = "Qwen/Qwen3.5-14B-Instruct-GGUF"
-MODEL_FILE = "qwen3.5-14b-instruct-q4_k_m.gguf"
+# Qwen3.5-9B, Q4_K_M quant (~5.7GB), via llama-cpp-python. Dense, not MoE — a
+# predictable ~6GB VRAM footprint on a free T4 with plenty of headroom for KV
+# cache at these short context lengths.
+#
+# Checked directly against Qwen3-14B (older, larger, non-.5 generation) before
+# picking this: on every benchmark both report (GPQA-Diamond, MMLU-Redux, IFEval),
+# Qwen3.5-9B beats Qwen3-14B, including Qwen3-14B's thinking-mode scores
+# (GPQA-Diamond 81.7 vs 64.0, MMLU-Redux 91.1 vs 88.6, IFEval 91.5 vs 85.4) despite
+# being ~35% smaller — newer generation with an improved architecture, not just a
+# smaller version of the same thing. "Qwen3.5-14B" genuinely doesn't exist as a
+# released size; the "Small" tier stops at 9B, "Medium" jumps straight to 27B+ MoE.
+#
+# Note: Qwen3.5-9B is natively multimodal (vision-language). The GGUF text weights
+# work standalone via llama-cpp-python with no mmproj file needed for this
+# text-only enrichment task.
+# Verified real, single-file, exact repo+filename as of writing:
+MODEL_REPO = "unsloth/Qwen3.5-9B-GGUF"
+MODEL_FILE = "Qwen3.5-9B-Q4_K_M.gguf"
 
-# Fallback if VRAM-constrained or you want higher throughput over more cells:
-# MODEL_REPO = "Qwen/Qwen2.5-7B-Instruct-GGUF"
-# MODEL_FILE = "qwen2.5-7b-instruct-q5_k_m.gguf"
+# Fallback for higher throughput at some quality cost, still fits a T4 easily:
+# MODEL_FILE = "Qwen3.5-9B-Q5_K_M.gguf"   # 6.58GB
 
 MODEL_LOCAL_DIR = Path("/content/models")             # ephemeral cache, re-downloaded
 N_CTX = 4096
@@ -88,12 +100,24 @@ def log(msg: str) -> None:
 
 
 def mount_drive() -> None:
-    try:
-        from google.colab import drive  # type: ignore
-        drive.mount("/content/drive", force_remount=False)
-    except ImportError:
-        log("Not running in Colab (google.colab unavailable) — assuming Drive path "
-            "is already available locally.")
+    """Does NOT call drive.mount() itself — that requires the live notebook
+    kernel to show the auth prompt, which isn't available when this script runs
+    as a subprocess (e.g. `!python colab_enrich.py`). Mount Drive from an actual
+    notebook cell first:
+
+        from google.colab import drive
+        drive.mount('/content/drive')
+
+    Once mounted, it's a real filesystem mount — this script (or any subprocess)
+    can read/write it directly with no further API calls needed. This function
+    just checks it's actually mounted before proceeding."""
+    if not Path("/content/drive/MyDrive").exists():
+        raise RuntimeError(
+            "Google Drive isn't mounted. Run this in its own Colab cell first, "
+            "then re-run this script:\n\n"
+            "    from google.colab import drive\n"
+            "    drive.mount('/content/drive')\n"
+        )
     DRIVE_CHECKPOINTS.mkdir(parents=True, exist_ok=True)
     DRIVE_LOGS.mkdir(parents=True, exist_ok=True)
 
@@ -109,9 +133,33 @@ def clone_repo() -> None:
         raise RuntimeError("Clone failed or repo layout changed — no trees/ dir found.")
 
 
+def get_hf_token() -> Optional[str]:
+    """Colab's Secrets panel (userdata) is the safer place for this than a plain
+    env var — it's not shown in cell output/logs and survives across sessions
+    without retyping. Falls back to a plain HF_TOKEN env var for non-Colab runs."""
+    if IS_COLAB:
+        try:
+            from google.colab import userdata
+            token = userdata.get("HF_TOKEN")
+            if token:
+                return token
+        except Exception:
+            pass  # secret not set, or userdata unavailable — fall through
+    return os.environ.get("HF_TOKEN")
+
+
 def load_model():
     from huggingface_hub import hf_hub_download
     from llama_cpp import Llama
+
+    token = get_hf_token()
+    if token:
+        log("HF_TOKEN found — using authenticated download.")
+    else:
+        log("No HF_TOKEN found (checked Colab secrets and env var) — proceeding "
+            "unauthenticated. Fine for public repos, but gated models or heavy "
+            "rate-limiting will fail without it. To add one: Colab's left sidebar "
+            "key icon -> add secret named HF_TOKEN -> enable notebook access.")
 
     MODEL_LOCAL_DIR.mkdir(parents=True, exist_ok=True)
     log(f"Ensuring model present: {MODEL_REPO}/{MODEL_FILE} (downloads if missing)...")
@@ -119,13 +167,16 @@ def load_model():
         repo_id=MODEL_REPO,
         filename=MODEL_FILE,
         local_dir=str(MODEL_LOCAL_DIR),
+        token=token,
     )
     log(f"Loading model from {model_path}")
     llm = Llama(
         model_path=model_path,
         n_ctx=N_CTX,
         n_gpu_layers=N_GPU_LAYERS,
-        verbose=False,
+        verbose=True,  # first run: confirm "offloaded N/N layers to GPU" appears —
+                       # if it doesn't, llama-cpp-python has no CUDA support and
+                       # everything is running on CPU regardless of N_GPU_LAYERS
     )
     return llm
 
