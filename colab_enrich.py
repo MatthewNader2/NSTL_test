@@ -1,38 +1,20 @@
 """
 colab_enrich.py — Tier 3 LLM enrichment for NSTL trees/*.json
+Optimized for Google Colab Free Tier (NVIDIA T4 16GB VRAM).
 
-Workflow this script assumes:
-  1. You've committed & pushed the repo (post bug-fixes) from your machine.
-  2. On Colab: clone the repo fresh, mount Drive, run this script.
-  3. It reads trees/{domain}.json from the fresh clone, but reads/writes its
-     *progress* against a checkpoint copy on Drive, so a Colab disconnect never
-     loses more than one in-flight batch.
-  4. Re-running this script (same session or a new one) picks up exactly where
-     it left off — already-enriched cells are skipped, not reprocessed.
-
-Only ever fills `docstring` when it is empty, and only ever on cells missing one.
-Never touches code_template / inputs / outputs / stage / dependencies.
-
---- Model ---
-Default: Qwen2.5-14B-Instruct-GGUF, Q4_K_M quant (~9GB), via llama-cpp-python.
-Matches the quantized-GGUF approach the project already uses locally for its
-GGUF LLM profile, so nothing new to learn. Q4_K_M 14B fits comfortably on a
-free-tier T4 (16GB VRAM) with room for KV cache at the short context lengths
-used here. If you're on a smaller GPU or want more throughput, drop
-MODEL_REPO/MODEL_FILE to the 7B instruct GGUF (see MODEL OPTIONS below) — the
-task here (short factual descriptions from already-given facts, not open-ended
-generation) does not need the full 14B to do well, so 7B is a completely
-reasonable choice if you want to move faster over ~15k+ cells.
-
-Run in Colab:
-    !pip install -q llama-cpp-python huggingface_hub
-    !python colab_enrich.py
+Key Features:
+  - 100% GPU Offload: Utilizes T4 Tensor Cores + FlashAttention.
+  - Fail-safe Checkpointing: Uses append-only JSONL deltas on Drive per batch,
+    periodically synchronizing the full tree JSON. Disconnects never lose work.
+  - Compact Prompt Serialization: Minifies prompt payloads to minimize latency.
 """
 
 from __future__ import annotations
+import atexit
 import json
 import os
 import re
+import signal
 import sys
 import time
 import shutil
@@ -42,53 +24,34 @@ from typing import Any, Dict, List, Optional
 
 # ============================== CONFIG ======================================
 
-# --- Repo / paths ---
 REPO_URL = "https://github.com/MatthewNader2/NSTL_test.git"
 IS_COLAB = Path("/content").exists()
 LOCAL_REPO_DIR = Path(__file__).resolve().parent
 LOCAL_CLONE_DIR = Path("/content/NSTL_test") if IS_COLAB else LOCAL_REPO_DIR
 DRIVE_ROOT = Path("/content/drive/MyDrive/nstl_enrichment") if IS_COLAB else LOCAL_REPO_DIR / "enrichment_checkpoints"
-DRIVE_CHECKPOINTS = DRIVE_ROOT / "checkpoints"        # working copies of trees/*.json
+DRIVE_CHECKPOINTS = DRIVE_ROOT / "checkpoints"
 DRIVE_LOGS = DRIVE_ROOT / "logs"
 
-# Which domain trees to enrich, in order. Add/remove as needed.
+# Domains to enrich in sequential order
 DOMAINS = ["pandas", "sklearn", "numpy", "cv2", "matplotlib", "scipy", "python_core"]
 
-# --- Model options ---
-# Qwen3.5-9B, Q4_K_M quant (~5.7GB), via llama-cpp-python. Dense, not MoE — a
-# predictable ~6GB VRAM footprint on a free T4 with plenty of headroom for KV
-# cache at these short context lengths.
-#
-# Checked directly against Qwen3-14B (older, larger, non-.5 generation) before
-# picking this: on every benchmark both report (GPQA-Diamond, MMLU-Redux, IFEval),
-# Qwen3.5-9B beats Qwen3-14B, including Qwen3-14B's thinking-mode scores
-# (GPQA-Diamond 81.7 vs 64.0, MMLU-Redux 91.1 vs 88.6, IFEval 91.5 vs 85.4) despite
-# being ~35% smaller — newer generation with an improved architecture, not just a
-# smaller version of the same thing. "Qwen3.5-14B" genuinely doesn't exist as a
-# released size; the "Small" tier stops at 9B, "Medium" jumps straight to 27B+ MoE.
-#
-# Note: Qwen3.5-9B is natively multimodal (vision-language). The GGUF text weights
-# work standalone via llama-cpp-python with no mmproj file needed for this
-# text-only enrichment task.
-# Verified real, single-file, exact repo+filename as of writing:
+# Default high-efficiency model for T4 (Dense 9B, fits comfortably in ~6GB VRAM)
 MODEL_REPO = "unsloth/Qwen3.5-9B-GGUF"
 MODEL_FILE = "Qwen3.5-9B-Q4_K_M.gguf"
 
-# Fallback for higher throughput at some quality cost, still fits a T4 easily:
-# MODEL_FILE = "Qwen3.5-9B-Q5_K_M.gguf"   # 6.58GB
+# Alternative ultra-fast code-specialized model if throughput is top priority:
+# MODEL_REPO = "Qwen/Qwen2.5-Coder-7B-Instruct-GGUF"
+# MODEL_FILE = "qwen2.5-coder-7b-instruct-q4_k_m.gguf"
 
-MODEL_LOCAL_DIR = Path("/content/models")             # ephemeral cache, re-downloaded
+MODEL_LOCAL_DIR = Path("/content/models")
 N_CTX = 4096
-N_GPU_LAYERS = -1   # offload everything to GPU; llama-cpp-python handles Colab's T4 fine
+N_GPU_LAYERS = -1   # Offload all layers to GPU
+N_BATCH = 1024      # Prompt processing batch size (speeds up prefill on T4)
+N_UBATCH = 512      # Physical compute micro-batch size
 
-# --- Batching ---
-# Cells per LLM call. Kept deliberately small: each cell's context (code_template,
-# ports, tags) is short, but asking a 7-14B model to track and correctly index 50+
-# independent items in one JSON array degrades reliably around output length. 20 is
-# a comfortable margin below where you start seeing dropped/merged entries; raise it
-# if you're validating cleanly and want more throughput, lower it if you see batches
-# failing schema validation.
-BATCH_SIZE = 20
+# Inference & Checkpointing Batch Settings
+BATCH_SIZE = 20                 # Items per LLM prompt
+SAVE_FULL_JSON_EVERY_N = 10     # Flush consolidated tree JSON every N batches (200 cells)
 MAX_RETRIES_PER_BATCH = 2
 
 # ============================================================================
@@ -100,21 +63,9 @@ def log(msg: str) -> None:
 
 
 def mount_drive() -> None:
-    """Does NOT call drive.mount() itself — that requires the live notebook
-    kernel to show the auth prompt, which isn't available when this script runs
-    as a subprocess (e.g. `!python colab_enrich.py`). Mount Drive from an actual
-    notebook cell first:
-
-        from google.colab import drive
-        drive.mount('/content/drive')
-
-    Once mounted, it's a real filesystem mount — this script (or any subprocess)
-    can read/write it directly with no further API calls needed. This function
-    just checks it's actually mounted before proceeding."""
-    if not Path("/content/drive/MyDrive").exists():
+    if IS_COLAB and not Path("/content/drive/MyDrive").exists():
         raise RuntimeError(
-            "Google Drive isn't mounted. Run this in its own Colab cell first, "
-            "then re-run this script:\n\n"
+            "Google Drive is not mounted. Run this in a notebook cell first:\n\n"
             "    from google.colab import drive\n"
             "    drive.mount('/content/drive')\n"
         )
@@ -122,21 +73,27 @@ def mount_drive() -> None:
     DRIVE_LOGS.mkdir(parents=True, exist_ok=True)
 
 
-def clone_repo() -> None:
+def sync_repo() -> None:
     if not IS_COLAB:
-        log("Running in local environment — using local repository directly.")
+        log("Running locally — using existing tree files.")
         return
+
     if LOCAL_CLONE_DIR.exists():
-        shutil.rmtree(LOCAL_CLONE_DIR)
-    os.system(f"git clone --depth 1 {REPO_URL} {LOCAL_CLONE_DIR}")
+        log("Checking existing repository clone...")
+        ret = os.system(f"git -C {LOCAL_CLONE_DIR} pull --depth 1")
+        if ret != 0 or not (LOCAL_CLONE_DIR / "trees").exists():
+            log("Git pull failed; re-cloning fresh...")
+            shutil.rmtree(LOCAL_CLONE_DIR, ignore_errors=True)
+            os.system(f"git clone --depth 1 {REPO_URL} {LOCAL_CLONE_DIR}")
+    else:
+        log(f"Cloning {REPO_URL}...")
+        os.system(f"git clone --depth 1 {REPO_URL} {LOCAL_CLONE_DIR}")
+
     if not (LOCAL_CLONE_DIR / "trees").exists():
-        raise RuntimeError("Clone failed or repo layout changed — no trees/ dir found.")
+        raise RuntimeError(f"Clone failed — no 'trees/' directory at {LOCAL_CLONE_DIR / 'trees'}")
 
 
 def get_hf_token() -> Optional[str]:
-    """Colab's Secrets panel (userdata) is the safer place for this than a plain
-    env var — it's not shown in cell output/logs and survives across sessions
-    without retyping. Falls back to a plain HF_TOKEN env var for non-Colab runs."""
     if IS_COLAB:
         try:
             from google.colab import userdata
@@ -144,7 +101,7 @@ def get_hf_token() -> Optional[str]:
             if token:
                 return token
         except Exception:
-            pass  # secret not set, or userdata unavailable — fall through
+            pass
     return os.environ.get("HF_TOKEN")
 
 
@@ -154,214 +111,329 @@ def load_model():
 
     token = get_hf_token()
     if token:
-        log("HF_TOKEN found — using authenticated download.")
+        log("HF_TOKEN detected — using authenticated download.")
     else:
-        log("No HF_TOKEN found (checked Colab secrets and env var) — proceeding "
-            "unauthenticated. Fine for public repos, but gated models or heavy "
-            "rate-limiting will fail without it. To add one: Colab's left sidebar "
-            "key icon -> add secret named HF_TOKEN -> enable notebook access.")
+        log("No HF_TOKEN detected — proceeding with unauthenticated download.")
 
     MODEL_LOCAL_DIR.mkdir(parents=True, exist_ok=True)
-    log(f"Ensuring model present: {MODEL_REPO}/{MODEL_FILE} (downloads if missing)...")
+    log(f"Resolving model weights: {MODEL_REPO}/{MODEL_FILE}...")
     model_path = hf_hub_download(
         repo_id=MODEL_REPO,
         filename=MODEL_FILE,
         local_dir=str(MODEL_LOCAL_DIR),
         token=token,
     )
-    log(f"Loading model from {model_path}")
+
+    log(f"Initializing Llama engine on GPU with FlashAttention enabled...")
     llm = Llama(
         model_path=model_path,
         n_ctx=N_CTX,
         n_gpu_layers=N_GPU_LAYERS,
-        verbose=True,  # first run: confirm "offloaded N/N layers to GPU" appears —
-                       # if it doesn't, llama-cpp-python has no CUDA support and
-                       # everything is running on CPU regardless of N_GPU_LAYERS
+        n_batch=N_BATCH,
+        n_ubatch=N_UBATCH,
+        flash_attn=True,
+        n_threads=2,  # Matches Colab free tier 2-vCPU allocation
+        verbose=False,
     )
+
+    # Diagnostic GPU memory check
+    try:
+        import torch
+        if torch.cuda.is_available():
+            dev_name = torch.cuda.get_device_name(0)
+            vram_free, vram_total = torch.cuda.mem_get_info()
+            log(f"Hardware Verified: {dev_name} | VRAM: {(vram_total - vram_free)/(1024**2):.0f}MB used / {vram_total/(1024**2):.0f}MB total")
+    except Exception:
+        pass
+
     return llm
 
 
-# --------------------------- checkpoint I/O ---------------------------------
+# --------------------------- Resilient I/O ----------------------------------
 
 def checkpoint_path(domain: str) -> Path:
     return DRIVE_CHECKPOINTS / f"{domain}.json"
 
 
+def jsonl_progress_path(domain: str) -> Path:
+    return DRIVE_CHECKPOINTS / f"{domain}_progress.jsonl"
+
+
 def load_working_tree(domain: str) -> Dict[str, Any]:
-    """Resume from Drive checkpoint if present, else seed from the fresh clone."""
+    """Loads domain tree, applying any existing full checkpoint and replaying delta logs."""
     ckpt = checkpoint_path(domain)
     if ckpt.exists():
-        log(f"[{domain}] Resuming from existing Drive checkpoint.")
+        log(f"[{domain}] Loading base checkpoint from Drive.")
         with open(ckpt, "r", encoding="utf-8") as f:
-            return json.load(f)
+            data = json.load(f)
+    else:
+        src = LOCAL_CLONE_DIR / "trees" / f"{domain}.json"
+        if not src.exists():
+            raise FileNotFoundError(f"No tree found for domain '{domain}' at {src}")
+        log(f"[{domain}] Seeding base tree from repo clone.")
+        with open(src, "r", encoding="utf-8") as f:
+            data = json.load(f)
 
-    src = LOCAL_CLONE_DIR / "trees" / f"{domain}.json"
-    if not src.exists():
-        raise FileNotFoundError(f"No tree found for domain '{domain}' at {src}")
-    log(f"[{domain}] No checkpoint yet — seeding from repo's trees/{domain}.json")
-    with open(src, "r", encoding="utf-8") as f:
-        return json.load(f)
+    # Replay any uncommitted JSONL delta entries
+    jpath = jsonl_progress_path(domain)
+    if jpath.exists():
+        by_id = {c["cell_id"]: c for c in data.get("cells", []) if "cell_id" in c}
+        replayed = 0
+        with open(jpath, "r", encoding="utf-8") as f:
+            for line in f:
+                if not line.strip():
+                    continue
+                try:
+                    entry = json.loads(line)
+                    cid = entry.get("cell_id")
+                    if cid in by_id and not by_id[cid].get("docstring"):
+                        by_id[cid]["docstring"] = entry.get("docstring")
+                        by_id[cid]["enrichment_source"] = entry.get("enrichment_source", "llm")
+                        by_id[cid]["enriched_at"] = entry.get("enriched_at")
+                        replayed += 1
+                except Exception:
+                    continue
+        if replayed > 0:
+            log(f"[{domain}] Replayed {replayed} incremental updates from {jpath.name}.")
+
+    return data
 
 
-def atomic_save(domain: str, data: Dict[str, Any]) -> None:
+def atomic_save_json(domain: str, data: Dict[str, Any]) -> None:
+    """Atomic write for full JSON snapshot."""
     ckpt = checkpoint_path(domain)
     tmp = ckpt.with_suffix(".json.tmp")
     with open(tmp, "w", encoding="utf-8") as f:
         json.dump(data, f, indent=2, ensure_ascii=False)
-    os.replace(tmp, ckpt)  # atomic on same filesystem
+    os.replace(tmp, ckpt)
 
 
-# --------------------------- prompt construction -----------------------------
+def append_progress_delta(domain: str, entries: List[Dict[str, Any]]) -> None:
+    """Fast, append-only disk write per batch (near-zero latency over Drive FUSE)."""
+    jpath = jsonl_progress_path(domain)
+    with open(jpath, "a", encoding="utf-8") as f:
+        for item in entries:
+            f.write(json.dumps(item, ensure_ascii=False) + "\n")
 
-SYSTEM_PROMPT = """You are documenting a library's functions for a code-synthesis tool.
-For each function given, write ONE short, plain, factual sentence describing what it
-does — like a one-line docstring summary. Base it ONLY on the function name, its code
-template, and its input/output types given to you. Do NOT invent parameter behavior,
-defaults, or edge cases that aren't visible in what you're given. If you are not
-confident what a function does from its name and signature alone, write a generic but
-honest description (e.g. "Performs the <x> operation on <type>.") rather than guessing
-specifics.
 
-Respond with ONLY a JSON array, no prose before or after, with exactly one object per
-input item, in the same order, using this shape:
-[{"cell_id": "...", "docstring": "..."}, ...]
-"""
+# --------------------------- Prompting & Parsing -----------------------------
+
+SYSTEM_PROMPT = (
+    "You are documenting a library's functions for a code-synthesis tool.\n"
+    "For each function given, write ONE short, plain, factual sentence describing what it does "
+    "(a one-line docstring summary).\n"
+    "Base your summary ONLY on the function name, its code template, and its input/output types.\n"
+    "Do NOT invent parameter behavior or edge cases. If unsure, provide a clean generic description.\n"
+    "Respond strictly with a JSON object containing an 'items' array:\n"
+    '{"items": [{"cell_id": "<id>", "docstring": "<one line summary>"}, ...]}'
+)
 
 
 def build_batch_prompt(cells: List[Dict[str, Any]]) -> str:
+    """Builds a minified JSON array omitting empty/null keys to conserve prompt tokens."""
     items = []
     for c in cells:
-        in_types = {k: v.get("type_name") for k, v in c.get("inputs", {}).items()}
-        out_types = {k: v.get("type_name") for k, v in c.get("outputs", {}).items()}
-        items.append({
+        item = {
             "cell_id": c["cell_id"],
             "code_template": c.get("code_template", ""),
-            "inputs": in_types,
-            "outputs": out_types,
-            "existing_tags": c.get("semantic_tags", [])[:8],
-            # Pass along any Tier-2 partial docstring fragment as grounding context,
-            # even if it was judged too thin to count as "enriched" on its own.
-            "partial_docs": c.get("docstring") or None,
-        })
-    return json.dumps(items, indent=2)
+        }
+        inputs = {k: v.get("type_name") for k, v in c.get("inputs", {}).items() if v.get("type_name")}
+        if inputs:
+            item["inputs"] = inputs
+        outputs = {k: v.get("type_name") for k, v in c.get("outputs", {}).items() if v.get("type_name")}
+        if outputs:
+            item["outputs"] = outputs
+        tags = c.get("semantic_tags", [])
+        if tags:
+            item["tags"] = tags[:6]
+        if c.get("docstring"):
+            item["partial_docs"] = c.get("docstring")
+        items.append(item)
+    return json.dumps(items, separators=(",", ":"))
 
 
-def extract_json_array(raw: str) -> Optional[List[Dict[str, str]]]:
-    """Same spirit as src/utils.py::extract_json_from_llm — don't repeat the fence bug."""
+def extract_json_items(raw: str) -> Optional[List[Dict[str, Any]]]:
+    """Tolerant parser handling raw lists, wrapped objects, or fenced markdown."""
+    if not raw:
+        return None
     text = raw.strip()
-    if text.startswith("```"):
-        text = re.sub(r"^```(?:json)?\s*", "", text)
-        text = re.sub(r"\s*```$", "", text)
-        text = text.strip()
-    start = text.find("[")
-    end = text.rfind("]")
-    if start == -1 or end == -1 or end < start:
-        return None
+    if "```" in text:
+        match = re.search(r"```(?:json)?\s*([\s\S]*?)\s*```", text)
+        if match:
+            text = match.group(1).strip()
+
     try:
-        parsed = json.loads(text[start:end + 1])
-    except json.JSONDecodeError:
-        return None
-    if not isinstance(parsed, list):
-        return None
-    return parsed
+        data = json.loads(text)
+        if isinstance(data, list):
+            return data
+        if isinstance(data, dict):
+            for key in ["items", "cells", "results", "data", "functions"]:
+                if key in data and isinstance(data[key], list):
+                    return data[key]
+    except Exception:
+        pass
 
-
-def call_model(llm, cells: List[Dict[str, Any]]) -> Optional[Dict[str, str]]:
-    """Returns {cell_id: docstring} for a validated batch, or None if it never validates."""
-    prompt = build_batch_prompt(cells)
-    expected_ids = [c["cell_id"] for c in cells]
-
-    for attempt in range(1, MAX_RETRIES_PER_BATCH + 1):
-        resp = llm.create_chat_completion(
-            messages=[
-                {"role": "system", "content": SYSTEM_PROMPT},
-                {"role": "user", "content": prompt},
-            ],
-            temperature=0.2,
-            max_tokens=200 * len(cells),
-        )
-        raw = resp["choices"][0]["message"]["content"]
-        parsed = extract_json_array(raw)
-
-        if parsed is None:
-            log(f"  attempt {attempt}: response wasn't valid JSON, retrying...")
-            continue
-
-        result_ids = [item.get("cell_id") for item in parsed if isinstance(item, dict)]
-        if len(parsed) != len(expected_ids) or set(result_ids) != set(expected_ids):
-            log(f"  attempt {attempt}: id/length mismatch "
-                f"(expected {len(expected_ids)}, got {len(parsed)}), retrying...")
-            continue
-
-        return {item["cell_id"]: str(item.get("docstring", "")).strip() for item in parsed}
+    # Regex search for fallback substring JSON
+    start_arr, end_arr = text.find("["), text.rfind("]")
+    if start_arr != -1 and end_arr != -1 and end_arr > start_arr:
+        try:
+            data = json.loads(text[start_arr:end_arr + 1])
+            if isinstance(data, list):
+                return data
+        except Exception:
+            pass
 
     return None
 
 
-# --------------------------------- main --------------------------------------
+def call_model(llm, cells: List[Dict[str, Any]]) -> Optional[Dict[str, str]]:
+    prompt = build_batch_prompt(cells)
+    expected_ids = set(c["cell_id"] for c in cells)
+    # 50 tokens per cell + 150 token margin is ideal for one-sentence outputs
+    max_tokens = min(50 * len(cells) + 150, 2048)
+
+    for attempt in range(1, MAX_RETRIES_PER_BATCH + 1):
+        try:
+            resp = llm.create_chat_completion(
+                messages=[
+                    {"role": "system", "content": SYSTEM_PROMPT},
+                    {"role": "user", "content": prompt},
+                ],
+                temperature=0.2,
+                max_tokens=max_tokens,
+                response_format={"type": "json_object"},
+            )
+            raw = resp["choices"][0]["message"]["content"]
+            parsed = extract_json_items(raw)
+
+            if parsed is None:
+                log(f"  Attempt {attempt}: output not parseable as JSON, retrying...")
+                continue
+
+            result_map = {}
+            for item in parsed:
+                if isinstance(item, dict) and "cell_id" in item and "docstring" in item:
+                    cid = str(item["cell_id"]).strip()
+                    doc = str(item["docstring"]).strip()
+                    if cid in expected_ids and doc:
+                        result_map[cid] = doc
+
+            if len(result_map) == 0:
+                log(f"  Attempt {attempt}: no matching cell IDs returned, retrying...")
+                continue
+
+            return result_map
+        except Exception as e:
+            log(f"  Attempt {attempt}: inference exception: {e}")
+            time.sleep(1)
+
+    return None
+
+
+# --------------------------------- Runner ------------------------------------
+
+_CURRENT_DOMAIN: Optional[str] = None
+_CURRENT_DATA: Optional[Dict[str, Any]] = None
+
+
+def emergency_flush():
+    """Flushes active state if session is abruptly interrupted or terminated."""
+    if _CURRENT_DOMAIN and _CURRENT_DATA:
+        log(f"[{_CURRENT_DOMAIN}] Emergency snapshot save triggered...")
+        atomic_save_json(_CURRENT_DOMAIN, _CURRENT_DATA)
+
+
+atexit.register(emergency_flush)
+
 
 def enrich_domain(llm, domain: str) -> None:
+    global _CURRENT_DOMAIN, _CURRENT_DATA
+    _CURRENT_DOMAIN = domain
     data = load_working_tree(domain)
-    cells = data.get("cells", [])
+    _CURRENT_DATA = data
 
+    cells = data.get("cells", [])
     pending = [c for c in cells if not c.get("docstring") and c.get("enrichment_source") != "llm"]
     already_done = len(cells) - len(pending)
-    log(f"[{domain}] {len(cells)} total cells | {already_done} already enriched/native | "
-        f"{len(pending)} remaining")
+    total_cells = len(cells)
 
+    log(f"[{domain}] Total: {total_cells} | Already Enriched: {already_done} | Remaining: {len(pending)}")
     if not pending:
-        log(f"[{domain}] Nothing to do.")
+        log(f"[{domain}] Domain is completely enriched. Nothing to do.")
         return
 
     by_id = {c["cell_id"]: c for c in cells}
     n_batches = (len(pending) + BATCH_SIZE - 1) // BATCH_SIZE
+    domain_start_time = time.time()
+    enriched_this_run = 0
 
-    for i in range(0, len(pending), BATCH_SIZE):
-        batch = pending[i:i + BATCH_SIZE]
-        batch_num = i // BATCH_SIZE + 1
-        log(f"[{domain}] batch {batch_num}/{n_batches} ({len(batch)} cells)...")
+    for idx in range(0, len(pending), BATCH_SIZE):
+        batch_start = time.time()
+        batch = pending[idx:idx + BATCH_SIZE]
+        batch_num = (idx // BATCH_SIZE) + 1
 
         result = call_model(llm, batch)
-        if result is None:
-            log(f"[{domain}] batch {batch_num} FAILED validation after retries — "
-                f"skipping, will retry on next run. cell_ids: "
-                f"{[c['cell_id'] for c in batch]}")
+        if not result:
+            log(f"[{domain}] Batch {batch_num}/{n_batches} failed after retries. Logging IDs and continuing...")
             with open(DRIVE_LOGS / "failed_batches.log", "a") as f:
-                f.write(f"{datetime.now(timezone.utc).isoformat()} {domain} "
-                        f"{[c['cell_id'] for c in batch]}\n")
+                f.write(f"{datetime.now(timezone.utc).isoformat()} {domain} {[c['cell_id'] for c in batch]}\n")
             continue
 
         now = datetime.now(timezone.utc).isoformat()
+        delta_entries = []
         for cid, doc in result.items():
             cell = by_id.get(cid)
-            if cell is None or not doc:
-                continue
-            cell["docstring"] = doc
-            cell["enrichment_source"] = "llm"
-            cell["enriched_at"] = now
+            if cell is not None:
+                cell["docstring"] = doc
+                cell["enrichment_source"] = "llm"
+                cell["enriched_at"] = now
+                delta_entries.append({
+                    "cell_id": cid,
+                    "docstring": doc,
+                    "enrichment_source": "llm",
+                    "enriched_at": now
+                })
+                enriched_this_run += 1
 
-        # Checkpoint after every batch, not every tree — this is the resumability
-        # guarantee for large trees (cv2 is ~11k cells; don't risk hours of work).
-        atomic_save(domain, data)
-        log(f"[{domain}] batch {batch_num}/{n_batches} done, checkpoint saved.")
+        # Fast append-only write to avoid Colab Drive I/O hangs
+        append_progress_delta(domain, delta_entries)
 
-    log(f"[{domain}] Finished. Checkpoint at {checkpoint_path(domain)}")
+        # Periodic full JSON flush & ETA telemetry
+        elapsed = time.time() - domain_start_time
+        cells_per_sec = enriched_this_run / max(elapsed, 0.001)
+        remaining_cells = len(pending) - (idx + len(batch))
+        eta_sec = int(remaining_cells / max(cells_per_sec, 0.001)) if cells_per_sec > 0 else 0
+        eta_str = time.strftime("%H:%M:%S", time.gmtime(eta_sec))
+
+        if batch_num % SAVE_FULL_JSON_EVERY_N == 0 or idx + BATCH_SIZE >= len(pending):
+            atomic_save_json(domain, data)
+            log(f"[{domain}] Batch {batch_num}/{n_batches} | Speed: {cells_per_sec:.1f} cells/s | ETA: {eta_str} [Checkpoint Synced]")
+        else:
+            log(f"[{domain}] Batch {batch_num}/{n_batches} | Speed: {cells_per_sec:.1f} cells/s | ETA: {eta_str}")
+
+    # Final consolidated flush
+    atomic_save_json(domain, data)
+    _CURRENT_DOMAIN = None
+    _CURRENT_DATA = None
+    log(f"[{domain}] Completed all pending batches. Checkpoint finalized at {checkpoint_path(domain)}")
 
 
 def main() -> None:
     mount_drive()
-    clone_repo()
+    sync_repo()
     llm = load_model()
 
     for domain in DOMAINS:
         try:
             enrich_domain(llm, domain)
+        except KeyboardInterrupt:
+            log(f"Interrupted by user during {domain}. State has been saved to Drive.")
+            emergency_flush()
+            sys.exit(0)
         except Exception as e:
-            log(f"[{domain}] ERROR: {e} — moving to next domain, this one is "
-                f"resumable from its last checkpoint on next run.")
+            log(f"[{domain}] ERROR: {e} — state preserved. Moving to next domain.")
 
-    log("All domains processed for this run. Copy the checkpoints in "
-        f"{DRIVE_CHECKPOINTS} over trees/*.json in your repo and commit.")
+    log(f"\nAll domains processed! Checkpoint files are saved at: {DRIVE_CHECKPOINTS}")
 
 
 if __name__ == "__main__":
