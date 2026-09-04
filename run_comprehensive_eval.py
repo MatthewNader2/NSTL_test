@@ -144,9 +144,10 @@ async def run_single_task(task: Dict[str, Any]) -> Dict[str, Any]:
                 "error": str(e),
             }
 
-        generated_code = result.get("code", "") if isinstance(result, dict) else ""
-        if not generated_code:
-            generated_code = result.get("generated_code", "") if isinstance(result, dict) else ""
+        if isinstance(result, dict):
+            generated_code = result.get("code", "") or result.get("generated_code", "")
+        else:
+            generated_code = getattr(result, "code", "") or getattr(result, "generated_code", "")
 
         if not generated_code:
             print(f"    [DEBUG] Empty code. Full engine response keys: {list(result.keys()) if isinstance(result, dict) else type(result)}")
@@ -264,10 +265,11 @@ async def run_profile(profile: Dict[str, Any], all_results: List[Dict]):
 
 async def main_async():
     profiles = [
-        {"name": "A", "embedder_model": "jina-embeddings-v5-text-small", "llm_model": ""},
-        {"name": "C", "embedder_model": "jina-embeddings-v5-text-small", "llm_model": "qwen2.5-coder-1.5b-instruct"},
-        {"name": "D", "embedder_model": "jina-embeddings-v5-text-small", "llm_model": "qwen2.5-coder-1.5b-instruct"},
-        {"name": "E", "embedder_model": "jina-embeddings-v5-text-small", "llm_model": "qwen2.5-coder-1.5b-instruct"},
+        {"name": "0", "embedder_model": "none", "llm_model": ""},
+        {"name": "A", "embedder_model": "auto", "llm_model": ""},
+        {"name": "C", "embedder_model": "auto", "llm_model": "qwen2.5-coder-0.5b-instruct"},
+        {"name": "D", "embedder_model": "auto", "llm_model": "qwen2.5-coder-0.5b-instruct"},
+        {"name": "E", "embedder_model": "auto", "llm_model": "qwen2.5-coder-0.5b-instruct"},
     ]
 
     all_results: List[Dict] = []

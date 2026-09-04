@@ -89,3 +89,6 @@ def harvest_core_patterns(db_path: str, domain_filter: Optional[List[str]] = Non
 
     conn.commit()
     conn.close()
+
+
+CORE_CODE_PATTERNS = load_seeds()

@@ -54,7 +54,7 @@ class IntelligentHarvester:
 
     STAGE_VERBS = {
         1: ["read", "load", "open", "from", "fetch", "create", "imread", "load_audio", "arange", "linspace", "zeros", "ones", "eye", "empty"],
-        3: ["write", "save", "to", "export", "dump", "imwrite", "savefig", "save_audio", "show", "display"]
+        3: ["write", "save", "export", "dump", "imwrite", "savefig", "save_audio", "show", "display", "to_csv", "to_parquet", "to_json", "to_pickle", "to_excel", "to_hdf", "to_sql", "to_feather", "to_stata"]
     }
 
     STATE_INFERENCES = {
@@ -78,6 +78,19 @@ class IntelligentHarvester:
         "bar": "plotted"
     }
 
+    BEHAVIORAL_FLAGS = {
+        "inplace", "copy", "axis", "how", "errors", "verbose", "engine",
+        "ignore_index", "method", "limit", "downcast", "numeric_only",
+        "level", "sort", "observed", "as_index", "group_keys",
+        "squeeze", "mangle_dupe_cols", "validate", "kind", "na_position", "drop"
+    }
+
+    PRIMARY_OPERAND_NAMES = {
+        "value", "val", "fill_value", "to_replace", "by", "on", "dtype",
+        "values", "lower", "upper", "expr", "query", "columns", "labels", "target",
+        "ascending", "asc"
+    }
+
     def __init__(self, domain: str, package_name: Optional[str] = None):
         self.domain = domain
         self.package_name = package_name or domain
@@ -90,6 +103,59 @@ class IntelligentHarvester:
             self.module = importlib.import_module(self.package_name)
 
         self.enum_constants = self._collect_module_constants()
+
+    def _extract_primary_operands(self, callable_obj: Any) -> Tuple[List[str], Dict[str, PortSchema]]:
+        """
+        Differentiates Behavioral Flags from Primary Operands using reflection.
+        Parameters representing primary operands are never stripped even if default is None.
+        Returns (template_arg_strs, operand_ports).
+        """
+        try:
+            sig = inspect.signature(callable_obj)
+        except (ValueError, TypeError):
+            return [], {}
+
+        template_args = []
+        operand_ports: Dict[str, PortSchema] = {}
+
+        for p_name, p in sig.parameters.items():
+            if p_name in ("self", "cls") or not p_name.isidentifier():
+                continue
+            if p.kind in (inspect.Parameter.VAR_POSITIONAL, inspect.Parameter.VAR_KEYWORD):
+                continue
+            if p_name in self.BEHAVIORAL_FLAGS:
+                continue
+
+            is_required = (p.default == inspect.Parameter.empty)
+            is_operand = (p_name in self.PRIMARY_OPERAND_NAMES) or is_required
+
+            if is_operand:
+                type_name = "any"
+                state = "any"
+                if p_name in ("value", "val", "fill_value", "to_replace", "replacement", "fill"):
+                    state = "scalar_literal"
+                elif p_name in ("by", "on", "subset", "labels", "columns", "key", "column"):
+                    state = "column_name"
+                    type_name = "str"
+                elif p_name in ("ascending", "asc"):
+                    state = "sort_flag"
+                    type_name = "bool"
+                elif p_name in ("dtype",):
+                    state = "dtype_spec"
+                    type_name = "str"
+
+                operand_ports[p_name] = PortSchema(
+                    type_name=type_name,
+                    state=state,
+                    description=f"Operand {p_name}",
+                    required=is_required
+                )
+                if is_required:
+                    template_args.append(f"{{{p_name}}}")
+                else:
+                    template_args.append(f"{p_name}={{{p_name}}}")
+
+        return template_args, operand_ports
 
     def _collect_module_constants(self) -> Dict[str, str]:
         """Collects top-level constants and enum flags (e.g. cv2.COLOR_*, torch.float32)."""
@@ -184,57 +250,42 @@ class IntelligentHarvester:
             template_args.append("{data}")
             outputs["output_data"] = PortSchema(type_name=default_container, state=out_state)
 
-        # Handle Enum/Flag Arguments (e.g. cv2.COLOR_BGR2GRAY)
-        if self.domain == "cv2" and "cvtcolor" in func_name.lower():
-            template_args = ["{data}", "cv2.COLOR_BGR2GRAY"]
-            inputs = {"data": PortSchema(type_name="Mat", state="raw")}
-            outputs = {"output_data": PortSchema(type_name="Mat", state="grayscale")}
 
-        # Handle Method Calls and Common Library Idioms
-        is_df_method = False
-        if self.domain == "pandas":
-            try:
-                import pandas as _pd
-                is_df_method = hasattr(_pd.DataFrame, func_name) or hasattr(_pd.Series, func_name)
-            except Exception:
-                pass
-        
-        if is_df_method:
-            dependencies = ["import pandas as pd"]
+        # Capability-driven template construction via runtime introspection.
+        # No domain-specific if/elif chains — uses hasattr/inspect to detect
+        # method vs function, estimator vs plain class, etc.
+
+        # Detect if func_name is an instance method on the domain's container class
+        container_cls = self._resolve_container_class()
+        is_instance_method = container_cls is not None and hasattr(container_cls, func_name)
+
+        if is_instance_method:
+            # Instance method on the domain's primary container (e.g. DataFrame.dropna, Mat.reshape)
             if stage == 1:
-                code_template = f"{{output_var}} = pd.{func_name}({{filepath}})"
+                code_template = f"{{output_var}} = {call_prefix}({{filepath}})"
             elif stage == 3:
                 code_template = f"{{data}}.{func_name}({{dest_path}})\n{{output_var}} = {{dest_path}}"
             else:
-                code_template = f"{{output_var}} = {{data}}.{func_name}()"
-        elif self.domain == "matplotlib":
-            dependencies = ["import matplotlib.pyplot as plt"]
-            if func_name == "hist":
-                code_template = "plt.figure()\nplt.hist({data})\n{output_var} = plt.gcf()"
-            elif func_name == "plot":
-                code_template = "plt.figure()\nplt.plot({data}, {data})\n{output_var} = plt.gcf()"
-            elif func_name == "scatter":
-                code_template = "plt.figure()\nplt.scatter({data}, {data})\n{output_var} = plt.gcf()"
-            elif func_name == "savefig":
-                code_template = "plt.savefig({dest_path})\n{output_var} = {dest_path}"
-            elif func_name == "show":
-                code_template = "plt.show()\n{output_var} = True"
-            else:
-                code_template = f"{{output_var}} = plt.{func_name}({', '.join(template_args)})"
+                arg_strs, op_ports = self._extract_primary_operands(func_obj)
+                inputs.update(op_ports)
+                args_joined = f"({', '.join(arg_strs)})" if arg_strs else "()"
+                code_template = f"{{output_var}} = {{data}}.{func_name}{args_joined}"
         elif inspect.isclass(func_obj):
+            # Class instantiation — detect capabilities via introspection
             if hasattr(func_obj, "fit_transform"):
                 code_template = f"{{output_var}} = {func_name}().fit_transform({', '.join(template_args)})"
             elif hasattr(func_obj, "fit") or hasattr(func_obj, "predict"):
                 code_template = f"{{output_var}} = {func_name}().fit({', '.join(template_args)})"
-            elif self.domain == "cv2":
-                code_template = f"{{output_var}} = cv2.{func_name}()"
             else:
                 code_template = f"{{output_var}} = {func_name}({', '.join(template_args)})"
-        elif "scipy.stats" in clean_mod and hasattr(func_obj, "rvs"):
+        elif hasattr(func_obj, "rvs"):
+            # Statistical distribution object (scipy.stats etc.)
             code_template = f"{{output_var}} = {call_prefix}.rvs(size=100)"
-        elif stage == 3 and self.domain in ("numpy", "pandas"):
+        elif stage == 3:
+            # Generic Stage 3 (egress/export): call with data + dest
             code_template = f"{{data}}.{func_name}({', '.join(template_args[1:])})\n{{output_var}} = {{dest_path}}"
         else:
+            # Generic function call — fully domain-agnostic
             code_template = f"{{output_var}} = {call_prefix}({', '.join(template_args)})"
 
         # Semantic Tags & Keywords using lossless word-boundary tokenization
@@ -292,29 +343,36 @@ class IntelligentHarvester:
         inputs: Dict[str, PortSchema] = {}
         outputs: Dict[str, PortSchema] = {}
 
-        if self.domain == "pandas" and class_name in ("DataFrame", "Series"):
-            inputs["data"] = PortSchema(type_name="DataFrame", state="any", description="Input DataFrame", required=True)
+        # Capability-driven method template construction — no domain-specific if/elif chains.
+        # Detect container methods vs estimator methods vs generic instance methods via introspection.
+        container_cls = self._resolve_container_class()
+        is_container_method = container_cls is not None and (
+            class_name == container_cls.__name__
+            or (hasattr(container_cls, '__mro__') and class_name in [c.__name__ for c in container_cls.__mro__])
+        )
+
+        if is_container_method:
+            # Method on the domain's primary container (e.g. DataFrame.dropna, Series.map)
+            inputs["data"] = PortSchema(type_name=default_container, state="any", description=f"Input {class_name}", required=True)
             if stage == 3:
                 inputs["dest_path"] = PortSchema(type_name="str", state="dest_identifier", description="Destination file path", required=True)
                 code_template = f"{{data}}.{method_name}({{dest_path}})\n{{output_var}} = {{dest_path}}"
                 outputs["output_data"] = PortSchema(type_name="str", state="filepath_written", required=True)
             else:
-                code_template = f"{{output_var}} = {{data}}.{method_name}()"
-                outputs["output_data"] = PortSchema(type_name="DataFrame", state=out_state, required=True)
-            dependencies = ["import pandas as pd"]
-        elif self.domain == "cv2":
-            inputs["instance"] = PortSchema(type_name=class_name, state="any", description=f"{class_name} instance", required=True)
-            inputs["data"] = PortSchema(type_name="Mat", state="any", description="Input image or descriptors", required=True)
-            code_template = f"{{output_var}} = {{instance}}.{method_name}({{data}})"
-            outputs["output_data"] = PortSchema(type_name="any", state=out_state, required=True)
-            dependencies = ["import cv2"]
-        elif self.domain == "sklearn":
+                arg_strs, op_ports = self._extract_primary_operands(method_obj)
+                inputs.update(op_ports)
+                args_joined = f"({', '.join(arg_strs)})" if arg_strs else "()"
+                code_template = f"{{output_var}} = {{data}}.{method_name}{args_joined}"
+                outputs["output_data"] = PortSchema(type_name=default_container, state=out_state, required=True)
+        elif hasattr(cls, "fit") or hasattr(cls, "predict") or hasattr(cls, "fit_transform"):
+            # Estimator/model-like class (detected via fit/predict/fit_transform capabilities)
             inputs["model"] = PortSchema(type_name=class_name, state="any", description=f"{class_name} estimator", required=True)
             inputs["data"] = PortSchema(type_name=default_container, state="any", description="Input data", required=True)
             code_template = f"{{output_var}} = {{model}}.{method_name}({{data}})"
             outputs["output_data"] = PortSchema(type_name=default_container, state=out_state, required=True)
             dependencies = [f"from {clean_mod} import {class_name}"]
         else:
+            # Generic class instance method
             inputs["instance"] = PortSchema(type_name=class_name, state="any", description=f"{class_name} instance", required=True)
             inputs["data"] = PortSchema(type_name=default_container, state="any", description="Input data", required=True)
             code_template = f"{{output_var}} = {{instance}}.{method_name}({{data}})"

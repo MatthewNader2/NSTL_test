@@ -45,6 +45,7 @@ class TypeRegistry:
         # Register base types first to avoid forward-reference issues
         self.register_type("any")
         self.register_type("object", super_type="any")
+        self.register_type("DataObject", super_type="object")
         self.register_type("numeric", super_type="object")
         self.register_type("None", super_type="any")
 
@@ -56,12 +57,23 @@ class TypeRegistry:
         self.register_type("list", super_type="object")
         self.register_type("dict", super_type="object")
         self.register_type("tuple", super_type="object")
-        self.register_type("ndarray", super_type="object")
+        self.register_type("ndarray", super_type="DataObject")
+        self.register_type("SparseMatrix", super_type="ndarray")
         self.register_type("Mat", super_type="ndarray")
-        self.register_type("DataFrame", super_type="object")
-        self.register_type("Series", super_type="object")
+        self.register_type("DataFrame", super_type="DataObject")
+        self.register_type("Series", super_type="DataObject")
         self.register_type("Figure", super_type="object")
         self.register_type("Graph", super_type="object")
+
+        # Register canonical type aliases
+        self._aliases["mat"] = "ndarray"
+        self._aliases["cv2.mat"] = "ndarray"
+        self._aliases["np.ndarray"] = "ndarray"
+        self._aliases["numpy.ndarray"] = "ndarray"
+        self._aliases["pd.dataframe"] = "DataFrame"
+        self._aliases["pd.series"] = "Series"
+        self._aliases["dataframe"] = "DataFrame"
+        self._aliases["dataobject"] = "DataObject"
 
     def register_type(self, type_name: str, super_type: Optional[str] = None):
         name = type_name.strip()
@@ -90,7 +102,7 @@ class TypeRegistry:
         sub_c = self.canonical_name(sub)
         super_c = self.canonical_name(super_)
 
-        if super_c in ("any", "Any", "object", "DataObject", "*", "top") or sub_c in ("any", "Any") or sub_c == super_c:
+        if super_c in ("any", "Any", "object", "*", "top") or sub_c in ("any", "Any") or sub_c == super_c:
             return True
 
         if sub_c not in self._parents:
@@ -110,11 +122,26 @@ class TypeRegistry:
         return False
 
 
+def canonical_type_name(type_name: str) -> str:
+    return TypeRegistry.get_instance().canonical_name(type_name)
+
+
+def is_subtype(sub: str, parent: str) -> bool:
+    return TypeRegistry.get_instance().is_subtype(sub, parent)
+
+
 @dataclass(frozen=True, slots=True)
 class AlgebraicSignature:
     type_name: str
     state: str = "any"
     qualifiers: FrozenSet[Tuple[str, str]] = field(default_factory=frozenset)
+
+    @classmethod
+    def from_string(cls, type_name: str, state: str = "any") -> "AlgebraicSignature":
+        return cls(type_name=type_name, state=state)
+
+    def matches(self, other: Any) -> bool:
+        return self.unifies_with(other)
 
     def is_top(self) -> bool:
         return self.type_name.lower() in ("any", "*", "top", "anyobject", "object")
@@ -209,7 +236,9 @@ class Cell(ABC):
         "inputs", "outputs", "domain_name", "node_type", "node_role",
         "dependencies", "code_template", "metadata_tags", "_db_path",
         "configuration_schema", "verified", "semantic_tags",
-        "docstring", "enrichment_source", "enriched_at"
+        "docstring", "enrichment_source", "enriched_at",
+        "source_priority", "source_provenance",
+        "_primary_input", "_primary_output"
     ]
 
     def __init__(
@@ -232,8 +261,12 @@ class Cell(ABC):
         semantic_tags: Optional[List[str]] = None,
         docstring: str = "",
         enrichment_source: Optional[str] = None,
-        enriched_at: Optional[str] = None
+        enriched_at: Optional[str] = None,
+        source_priority: int = 100,
+        source_provenance: Optional[str] = "unknown"
     ):
+        self._primary_input = None
+        self._primary_output = None
         self.cell_id = cell_id
         self.stage = stage
         self.keywords = set(k.lower() for k in keywords if len(str(k)) >= 3) if keywords else set()
@@ -246,7 +279,9 @@ class Cell(ABC):
         self.metadata_tags = metadata_tags or {}
         self._db_path = db_path
         self.configuration_schema = configuration_schema or {}
-        self.verified = bool(verified)
+        self.source_priority = int(source_priority) if source_priority is not None else 100
+        self.source_provenance = str(source_provenance) if source_provenance else "unknown"
+        self.verified = bool(verified) or (self.source_priority <= 10)
         self.semantic_tags = list(semantic_tags) if semantic_tags else list(self.keywords)
         self.docstring = docstring or ""
         self.enrichment_source = enrichment_source
@@ -303,28 +338,47 @@ class Cell(ABC):
         Identifies the main data port based on typestate and stage,
         independent of dictionary insertion order.
         """
+        if self._primary_input is not None:
+            return self._primary_input
+
         if not self.inputs:
-            return PortSignature("input_data", AlgebraicSignature("any", "any"))
+            res = PortSignature("input_data", AlgebraicSignature("any", "any"))
+            self._primary_input = res
+            return res
 
         # Stage 1 (Source): expects URI / path identifier
         if self.stage == 1:
             for p in self.inputs.values():
                 if p.state in ("source_identifier", "filepath_read", "input_uri", "source_uri"):
+                    self._primary_input = p
                     return p
-            return next(iter(self.inputs.values()))
+            res = next(iter(self.inputs.values()))
+            self._primary_input = res
+            return res
+
+        # Prioritize receiver instance ('instance', 'self') as primary data port
+        for receiver_name in ("instance", "self"):
+            if receiver_name in self.inputs:
+                res = self.inputs[receiver_name]
+                self._primary_input = res
+                return res
 
         # Stage 2 & 3: prioritize container data types over parameter primitives
         data_types = {"DataFrame", "ndarray", "Mat", "Figure", "Graph", "Tensor", "Series", "Dataset"}
         for p in self.inputs.values():
             if p.type_name in data_types or p.state in ("raw", "cleaned", "sorted", "plotted", "scaled", "data_payload"):
+                self._primary_input = p
                 return p
 
         # Fallback to the first non-primitive port if available
         for p in self.inputs.values():
             if p.type_name not in ("str", "int", "float", "bool"):
+                self._primary_input = p
                 return p
 
-        return next(iter(self.inputs.values()))
+        res = next(iter(self.inputs.values()))
+        self._primary_input = res
+        return res
 
     def can_accept(self, sig: Union[AlgebraicSignature, PortSignature]) -> bool:
         """Returns True if this cell has any input port that unifies with `sig`."""
@@ -336,13 +390,20 @@ class Cell(ABC):
 
     @property
     def primary_output(self) -> PortSignature:
+        if self._primary_output is not None:
+            return self._primary_output
         if not self.outputs:
-            return PortSignature("output_data", AlgebraicSignature("None", "any"))
+            res = PortSignature("output_data", AlgebraicSignature("None", "any"))
+            self._primary_output = res
+            return res
         data_types = {"DataFrame", "ndarray", "Mat", "Figure", "Graph", "Tensor", "Series", "Dataset"}
         for p in self.outputs.values():
             if p.type_name in data_types or p.state in ("raw", "cleaned", "sorted", "plotted", "scaled", "data_payload", "filepath_written"):
+                self._primary_output = p
                 return p
-        return next(iter(self.outputs.values()))
+        res = next(iter(self.outputs.values()))
+        self._primary_output = res
+        return res
 
     def __repr__(self) -> str:
         return (
@@ -417,34 +478,32 @@ class LatticeOrchestrator:
                     cursor.execute("PRAGMA table_info(nodes)")
                     cols = [c[1] for c in cursor.fetchall()]
                     has_enrichment = "docstring" in cols
+                    has_priority = "source_priority" in cols
 
+                    base_query = """
+                        SELECT cell_id, domain_name, node_type, node_role, stage,
+                               keywords, input_type, input_state, output_type, output_state,
+                               code, dependencies, configuration_schema, verified
+                    """
                     if has_enrichment:
-                        cursor.execute("""
-                            SELECT cell_id, domain_name, node_type, node_role, stage,
-                                   keywords, input_type, input_state, output_type, output_state,
-                                   code, dependencies, configuration_schema, verified,
-                                   docstring, enrichment_source, enriched_at
-                            FROM nodes
-                        """)
+                        base_query += ", docstring, enrichment_source, enriched_at"
                     else:
-                        cursor.execute("""
-                            SELECT cell_id, domain_name, node_type, node_role, stage,
-                                   keywords, input_type, input_state, output_type, output_state,
-                                   code, dependencies, configuration_schema, verified
-                            FROM nodes
-                        """)
+                        base_query += ", '' AS docstring, NULL AS enrichment_source, NULL AS enriched_at"
+
+                    if has_priority:
+                        base_query += ", source_priority, source_provenance"
+                    else:
+                        base_query += ", 100 AS source_priority, 'unknown' AS source_provenance"
+
+                    base_query += " FROM nodes"
+                    cursor.execute(base_query)
                     rows = cursor.fetchall()
                     for row in rows:
-                        if has_enrichment:
-                            (cell_id, domain_name, node_type, node_role, stage,
-                             keywords_json, in_type, in_state, out_type, out_state,
-                             code, deps_json, config_json, verified,
-                             doc_str, enrich_src, enrich_at) = row
-                        else:
-                            (cell_id, domain_name, node_type, node_role, stage,
-                             keywords_json, in_type, in_state, out_type, out_state,
-                             code, deps_json, config_json, verified) = row
-                            doc_str, enrich_src, enrich_at = "", None, None
+                        (cell_id, domain_name, node_type, node_role, stage,
+                         keywords_json, in_type, in_state, out_type, out_state,
+                         code, deps_json, config_json, verified,
+                         doc_str, enrich_src, enrich_at,
+                         source_priority, source_provenance) = row
     
                         try:
                             keywords = set(json.loads(keywords_json)) if keywords_json else set()
@@ -540,7 +599,9 @@ class LatticeOrchestrator:
                             verified=bool(verified),
                             docstring=doc_str or "",
                             enrichment_source=enrich_src,
-                            enriched_at=enrich_at
+                            enriched_at=enrich_at,
+                            source_priority=source_priority,
+                            source_provenance=source_provenance
                         )
                         self.loaded_cells[cell.cell_id] = cell
     
@@ -612,7 +673,7 @@ class LatticeOrchestrator:
                             keywords=keywords,
                             inputs=inputs,
                             outputs=outputs,
-                            domain_name="pandas",
+                            domain_name=self.active_domain,
                             node_type="function",
                             node_role="function",
                             dependencies=dependencies,
@@ -727,15 +788,27 @@ class LatticeOrchestrator:
         registry = TypeRegistry.get_instance()
         applicable_types = {sig_val.type_name, "any", "AnyObject", "object", "*"}
         curr_type = sig_val.type_name
+        canon_curr = registry.canonical_name(curr_type)
+        applicable_types.add(canon_curr)
         with registry._lock:
             ancestors = set()
             queue = deque(registry._parents.get(curr_type, []))
+            queue.extend(registry._parents.get(canon_curr, []))
             while queue:
                 p = queue.popleft()
                 if p not in ancestors:
                     ancestors.add(p)
                     queue.extend(registry._parents.get(p, []))
             applicable_types.update(ancestors)
+
+            # Subtypes and aliases compatible with current producer type (e.g. Mat <-> ndarray)
+            for sub_type, parents in registry._parents.items():
+                if curr_type in parents or canon_curr in parents:
+                    applicable_types.add(sub_type)
+            for alias_k, alias_v in registry._aliases.items():
+                if alias_v.lower() == canon_curr.lower():
+                    applicable_types.add(alias_k)
+                    applicable_types.add(alias_k.capitalize())
 
         applicable_states = {sig_val.state, "any"}
         candidates: List[Cell] = []

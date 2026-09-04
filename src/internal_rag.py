@@ -20,6 +20,79 @@ logger = get_logger("internal_rag")
 _CACHE_DIR_NAME = ".rag_cache"
 
 
+def build_cell_embedding_text(cell: Any) -> str:
+    """Builds a rich semantic representation of a cell for dense vector embedding.
+
+    Includes:
+    - Natural language description / docstring
+    - Human-readable operation name from cell ID
+    - Canonical code template / callable API
+    - Combined semantic tags and keywords (synonyms)
+    - Input & output typestate data flow contract
+    - Input parameter names and descriptions
+    - Domain & library context
+    """
+    parts = []
+
+    # 1. Functional description / docstring
+    desc = (getattr(cell, "docstring", "") or "").strip() if not isinstance(cell, dict) else (cell.get("docstring", "") or "").strip()
+    if desc:
+        parts.append(f"Description: {desc}")
+
+    # 2. Human-readable operation name from cell_id
+    cid = getattr(cell, "cell_id", "") if not isinstance(cell, dict) else cell.get("cell_id", "")
+    clean_name = cid.replace("_", " ").lower()
+    if clean_name:
+        parts.append(f"Operation: {clean_name}")
+
+    # 3. Canonical code template (gives exact API call, e.g. .dropna(), pd.read_csv)
+    code = (getattr(cell, "code_template", "") or "").strip() if not isinstance(cell, dict) else (cell.get("code_template", "") or "").strip()
+    if code:
+        parts.append(f"Code: {code}")
+
+    # 4. Semantic tags and keywords (synonym vocabulary: clean, remove, drop, null, filter, etc.)
+    all_terms = set()
+    raw_tags = getattr(cell, "semantic_tags", []) if not isinstance(cell, dict) else cell.get("semantic_tags", [])
+    for t in raw_tags or []:
+        if t:
+            all_terms.add(str(t).lower())
+    raw_kws = getattr(cell, "keywords", []) if not isinstance(cell, dict) else cell.get("keywords", [])
+    for k in raw_kws or []:
+        if k:
+            all_terms.add(str(k).lower())
+    if all_terms:
+        parts.append(f"Keywords: {', '.join(sorted(all_terms))}")
+
+    # 5. Typestate data flow
+    if hasattr(cell, "primary_input") and hasattr(cell, "primary_output"):
+        in_sig = f"{cell.primary_input.type_name}[{cell.primary_input.state}]"
+        out_sig = f"{cell.primary_output.type_name}[{cell.primary_output.state}]"
+        parts.append(f"Flow: {in_sig} -> {out_sig}")
+    elif isinstance(cell, dict):
+        in_t = cell.get("inputs", {}).get("type_name", "any") if isinstance(cell.get("inputs"), dict) else "any"
+        out_t = cell.get("outputs", {}).get("type_name", "any") if isinstance(cell.get("outputs"), dict) else "any"
+        parts.append(f"Flow: {in_t} -> {out_t}")
+
+    # 6. Inputs parameter details
+    inputs = getattr(cell, "inputs", {}) if not isinstance(cell, dict) else cell.get("inputs", {})
+    if isinstance(inputs, dict) and inputs:
+        in_descs = []
+        for p_name, p_sig in inputs.items():
+            if isinstance(p_sig, dict):
+                t_name = p_sig.get("type_name", "any")
+            else:
+                t_name = getattr(p_sig, "type_name", "any")
+            in_descs.append(f"{p_name}: {t_name}")
+        parts.append(f"Inputs: {', '.join(in_descs)}")
+
+    # 7. Domain name
+    domain = getattr(cell, "domain_name", "") if not isinstance(cell, dict) else (cell.get("domain_name") or cell.get("domain", ""))
+    if domain:
+        parts.append(f"Domain: {domain}")
+
+    return " | ".join(parts) if parts else cid
+
+
 class LocalRAG:
     """
     Maintains a dense vector index over all lattice cells for sub-millisecond
@@ -95,12 +168,8 @@ class LocalRAG:
                 cid = cell.cell_id
                 seen_ids.add(cid)
 
-                kws = " ".join(sorted(cell.keywords))
-                in_sig = f"{cell.primary_input.type_name}[{cell.primary_input.state}]"
-                out_sig = f"{cell.primary_output.type_name}[{cell.primary_output.state}]"
                 desc = (getattr(cell, "docstring", "") or "").strip()
-                text_repr = f"{desc} | ID: {cid} | Keywords: {kws} | Flow: {in_sig} -> {out_sig} | Domain: {cell.domain_name}" if desc \
-                    else f"ID: {cid} | Keywords: {kws} | Flow: {in_sig} -> {out_sig} | Domain: {cell.domain_name}"
+                text_repr = build_cell_embedding_text(cell)
                 content_hash = hashlib.sha256(text_repr.encode("utf-8")).hexdigest()
 
                 schema = {
@@ -180,12 +249,7 @@ class LocalRAG:
                 return
 
             cid = cell_dict.get("cell_id", "dynamic_cell")
-            kws = " ".join(cell_dict.get("keywords", []))
-            in_t = cell_dict.get("inputs", {}).get("type_name", "any")
-            out_t = cell_dict.get("outputs", {}).get("type_name", "any")
-            desc = (cell_dict.get("docstring", "") or "").strip()
-            text_repr = f"{desc} | ID: {cid} | Keywords: {kws} | Flow: {in_t} -> {out_t}" if desc \
-                else f"ID: {cid} | Keywords: {kws} | Flow: {in_t} -> {out_t}"
+            text_repr = build_cell_embedding_text(cell_dict)
 
             raw_emb = np.array([ModelManager.get_instance().get_embedding(text_repr)], dtype=np.float32)
             norm = np.linalg.norm(raw_emb)

@@ -62,6 +62,16 @@ class SandboxSecurityError(ExecutionError):
     pass
 
 
+class DataflowExecutionError(ExecutionError):
+    """Pipeline terminal variable is missing, None, or guarded failure occurred."""
+    pass
+
+
+class ArtifactMaterializationError(ExecutionError):
+    """Egress destination artifact was not materialized on disk or has 0 bytes."""
+    pass
+
+
 # === Model Errors ===
 class ModelError(NSTLError):
     """Model loading or inference failed."""

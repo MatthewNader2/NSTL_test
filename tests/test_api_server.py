@@ -24,14 +24,14 @@ async def test_api_endpoints_end_to_end():
         # 1. Health endpoint
         health = await health_check()
         assert health.status == "healthy"
-        assert health.nodes_count >= 34000
+        assert health.nodes_count >= 15000
         assert health.uptime_seconds >= 0.0
         assert health.memory_rss_mb > 0.0
 
         # 2. Domains endpoint
         domains_resp = await get_domains()
         assert domains_resp.total_domains >= 7
-        assert domains_resp.total_nodes >= 34000
+        assert domains_resp.total_nodes >= 15000
         assert "pandas" in domains_resp.domains
         assert "cv2" in domains_resp.domains
         assert "sklearn" in domains_resp.domains

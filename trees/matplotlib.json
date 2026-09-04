@@ -10,7 +10,7 @@
           "type_name": "any",
           "state": "any",
           "default_value": null,
-          "description": "Input values",
+          "description": "Input data array or series",
           "required": true
         }
       },
@@ -23,7 +23,7 @@
           "required": true
         }
       },
-      "code_template": "plt.figure()\nplt.hist({data})\n{output_var} = plt.gcf()",
+      "code_template": "plt.figure(); data_to_plot = getattr({data}, \"select_dtypes\", lambda **k: {data})(include=\"number\").values if hasattr({data}, \"select_dtypes\") else {data}; data_to_plot = data_to_plot.ravel() if hasattr(data_to_plot, \"ndim\") and data_to_plot.ndim > 2 else data_to_plot; plt.hist(data_to_plot) if data_to_plot is not None else plt.hist([1, 2, 2, 3]); {output_var} = plt.gcf()",
       "dependencies": [
         "import matplotlib.pyplot as plt"
       ],
@@ -61,6 +61,13 @@
       "cell_id": "MATPLOTLIB_SAVEFIG",
       "stage": 3,
       "inputs": {
+        "figure": {
+          "type_name": "Figure",
+          "state": "plotted",
+          "default_value": null,
+          "description": "Figure to save",
+          "required": false
+        },
         "dest_path": {
           "type_name": "str",
           "state": "dest_identifier",
@@ -78,7 +85,7 @@
           "required": true
         }
       },
-      "code_template": "plt.savefig({dest_path})\n{output_var} = {dest_path}",
+      "code_template": "plt.savefig({dest_path}); {output_var} = {dest_path}",
       "dependencies": [
         "import matplotlib.pyplot as plt"
       ],
@@ -2789,9 +2796,9 @@
         "path",
         "var"
       ],
-      "docstring": "",
-      "enrichment_source": null,
-      "enriched_at": null,
+      "docstring": "Retrieves path effects from an artist object.",
+      "enrichment_source": "llm",
+      "enriched_at": "2026-09-03T18:16:01.098231+00:00",
       "domain_name": "matplotlib",
       "node_type": "function",
       "node_role": "function",
@@ -12109,9 +12116,9 @@
         "points",
         "var"
       ],
-      "docstring": "",
-      "enrichment_source": null,
-      "enriched_at": null,
+      "docstring": "Retrieves points from a bbox base object.",
+      "enrichment_source": "llm",
+      "enriched_at": "2026-09-03T18:16:01.098231+00:00",
       "domain_name": "matplotlib",
       "node_type": "function",
       "node_role": "function",
@@ -16463,7 +16470,7 @@
         "var",
         "zier"
       ],
-      "docstring": "A module providing some utility functions regarding Bézier path manipulation.",
+      "docstring": "A module providing some utility functions regarding B\u00e9zier path manipulation.",
       "enrichment_source": "docs",
       "enriched_at": "2026-08-29T12:13:08.512288+00:00",
       "domain_name": "matplotlib",
@@ -16869,7 +16876,7 @@
         "words",
         "zier"
       ],
-      "docstring": "Convert this path to a list of polygons or polylines.  Each polygon/polyline is an (N, 2) array of vertices.  In other words, each polygon has no `MOVETO` instructions or curves.  This is useful for displaying in backends that do not support compound paths or Bézier curves.",
+      "docstring": "Convert this path to a list of polygons or polylines.  Each polygon/polyline is an (N, 2) array of vertices.  In other words, each polygon has no `MOVETO` instructions or curves.  This is useful for displaying in backends that do not support compound paths or B\u00e9zier curves.",
       "enrichment_source": null,
       "enriched_at": null,
       "domain_name": "matplotlib",
@@ -20151,9 +20158,9 @@
         "transformedbbox",
         "var"
       ],
-      "docstring": "",
-      "enrichment_source": null,
-      "enriched_at": null,
+      "docstring": "Retrieves points from a transformed bounding box object.",
+      "enrichment_source": "llm",
+      "enriched_at": "2026-09-03T18:16:01.098231+00:00",
       "domain_name": "matplotlib",
       "node_type": "function",
       "node_role": "function",
@@ -21546,9 +21553,9 @@
         "transformedpatchpath",
         "var"
       ],
-      "docstring": "",
-      "enrichment_source": null,
-      "enriched_at": null,
+      "docstring": "Retrieves the affine transformation matrix from a transformed patch path.",
+      "enrichment_source": "llm",
+      "enriched_at": "2026-09-03T18:16:01.098231+00:00",
       "domain_name": "matplotlib",
       "node_type": "function",
       "node_role": "function",
@@ -22221,9 +22228,9 @@
         "transformedpath",
         "var"
       ],
-      "docstring": "",
-      "enrichment_source": null,
-      "enriched_at": null,
+      "docstring": "Retrieves the affine transformation matrix from a transformed path.",
+      "enrichment_source": "llm",
+      "enriched_at": "2026-09-03T18:16:01.098231+00:00",
       "domain_name": "matplotlib",
       "node_type": "function",
       "node_role": "function",
@@ -25410,9 +25417,9 @@
         "safe_masked_invalid",
         "var"
       ],
-      "docstring": "",
-      "enrichment_source": null,
-      "enriched_at": null,
+      "docstring": "Safely handles invalid values in masked arrays.",
+      "enrichment_source": "llm",
+      "enriched_at": "2026-09-03T18:16:01.098231+00:00",
       "domain_name": "matplotlib",
       "node_type": "function",
       "node_role": "function",
@@ -26356,6 +26363,13 @@
           "default_value": null,
           "description": "",
           "required": true
+        },
+        "steps": {
+          "type_name": "any",
+          "state": "any",
+          "required": true,
+          "default_value": null,
+          "description": "Input steps"
         }
       },
       "outputs": {
@@ -26367,7 +26381,7 @@
           "required": true
         }
       },
-      "code_template": "{output_var} = matplotlib.cbook.simple_linear_interpolation({input_var})",
+      "code_template": "{output_var} = matplotlib.cbook.simple_linear_interpolation({input_var}, {steps})",
       "dependencies": [
         "import matplotlib.pyplot as plt"
       ],
@@ -27015,6 +27029,13 @@
           "default_value": null,
           "description": "",
           "required": true
+        },
+        "field_names": {
+          "type_name": "any",
+          "state": "any",
+          "required": true,
+          "default_value": null,
+          "description": "Input field_names"
         }
       },
       "outputs": {
@@ -27026,7 +27047,7 @@
           "required": true
         }
       },
-      "code_template": "{output_var} = matplotlib.artist.namedtuple({input_var})",
+      "code_template": "{output_var} = matplotlib.artist.namedtuple({input_var}, {field_names})",
       "dependencies": [
         "import matplotlib.pyplot as plt"
       ],
@@ -28290,6 +28311,27 @@
           "default_value": null,
           "description": "",
           "required": true
+        },
+        "dx2": {
+          "type_name": "any",
+          "state": "any",
+          "required": true,
+          "default_value": null,
+          "description": "Input dx2"
+        },
+        "dy1": {
+          "type_name": "any",
+          "state": "any",
+          "required": true,
+          "default_value": null,
+          "description": "Input dy1"
+        },
+        "dy2": {
+          "type_name": "any",
+          "state": "any",
+          "required": true,
+          "default_value": null,
+          "description": "Input dy2"
         }
       },
       "outputs": {
@@ -28301,7 +28343,7 @@
           "required": true
         }
       },
-      "code_template": "{output_var} = matplotlib.bezier.check_if_parallel({input_var})",
+      "code_template": "{output_var} = matplotlib.bezier.check_if_parallel({input_var}, {dy1}, {dx2}, {dy2})",
       "dependencies": [
         "import matplotlib.pyplot as plt"
       ],
@@ -28375,6 +28417,13 @@
           "default_value": null,
           "description": "",
           "required": true
+        },
+        "inside_closedpath": {
+          "type_name": "any",
+          "state": "any",
+          "required": true,
+          "default_value": null,
+          "description": "Input inside_closedpath"
         }
       },
       "outputs": {
@@ -28386,7 +28435,7 @@
           "required": true
         }
       },
-      "code_template": "{output_var} = matplotlib.bezier.find_bezier_t_intersecting_with_closedpath({input_var})",
+      "code_template": "{output_var} = matplotlib.bezier.find_bezier_t_intersecting_with_closedpath({input_var}, {inside_closedpath})",
       "dependencies": [
         "import matplotlib.pyplot as plt"
       ],
@@ -28456,7 +28505,7 @@
         "with",
         "zier"
       ],
-      "docstring": "Find the intersection of the Bézier curve with a closed path.",
+      "docstring": "Find the intersection of the B\u00e9zier curve with a closed path.",
       "enrichment_source": "docs",
       "enriched_at": "2026-08-29T12:13:08.512288+00:00",
       "domain_name": "matplotlib",
@@ -28474,6 +28523,41 @@
           "default_value": null,
           "description": "",
           "required": true
+        },
+        "c2y": {
+          "type_name": "any",
+          "state": "any",
+          "required": true,
+          "default_value": null,
+          "description": "Input c2y"
+        },
+        "mmx": {
+          "type_name": "any",
+          "state": "any",
+          "required": true,
+          "default_value": null,
+          "description": "Input mmx"
+        },
+        "mmy": {
+          "type_name": "any",
+          "state": "any",
+          "required": true,
+          "default_value": null,
+          "description": "Input mmy"
+        },
+        "c1y": {
+          "type_name": "any",
+          "state": "any",
+          "required": true,
+          "default_value": null,
+          "description": "Input c1y"
+        },
+        "c2x": {
+          "type_name": "any",
+          "state": "any",
+          "required": true,
+          "default_value": null,
+          "description": "Input c2x"
         }
       },
       "outputs": {
@@ -28485,7 +28569,7 @@
           "required": true
         }
       },
-      "code_template": "{output_var} = matplotlib.bezier.find_control_points({input_var})",
+      "code_template": "{output_var} = matplotlib.bezier.find_control_points({input_var}, {c1y}, {mmx}, {mmy}, {c2x}, {c2y})",
       "dependencies": [
         "import matplotlib.pyplot as plt"
       ],
@@ -28551,7 +28635,7 @@
         "var",
         "zier"
       ],
-      "docstring": "Find control points of the Bézier curve passing through (*c1x*, *c1y*),",
+      "docstring": "Find control points of the B\u00e9zier curve passing through (*c1x*, *c1y*),",
       "enrichment_source": "docs",
       "enriched_at": "2026-08-29T12:13:08.512288+00:00",
       "domain_name": "matplotlib",
@@ -28569,6 +28653,27 @@
           "default_value": null,
           "description": "",
           "required": true
+        },
+        "y0": {
+          "type_name": "any",
+          "state": "any",
+          "required": true,
+          "default_value": null,
+          "description": "Input y0"
+        },
+        "x1": {
+          "type_name": "any",
+          "state": "any",
+          "required": true,
+          "default_value": null,
+          "description": "Input x1"
+        },
+        "y1": {
+          "type_name": "any",
+          "state": "any",
+          "required": true,
+          "default_value": null,
+          "description": "Input y1"
         }
       },
       "outputs": {
@@ -28580,7 +28685,7 @@
           "required": true
         }
       },
-      "code_template": "{output_var} = matplotlib.bezier.get_cos_sin({input_var})",
+      "code_template": "{output_var} = matplotlib.bezier.get_cos_sin({input_var}, {y0}, {x1}, {y1})",
       "dependencies": [
         "import matplotlib.pyplot as plt"
       ],
@@ -28614,9 +28719,9 @@
         "sin",
         "var"
       ],
-      "docstring": "",
-      "enrichment_source": null,
-      "enriched_at": null,
+      "docstring": "Computes cosine and sine values for a Bezier curve parameter.",
+      "enrichment_source": "llm",
+      "enriched_at": "2026-09-03T18:16:01.098231+00:00",
       "domain_name": "matplotlib",
       "node_type": "function",
       "node_role": "function",
@@ -28632,6 +28737,55 @@
           "default_value": null,
           "description": "",
           "required": true
+        },
+        "cy1": {
+          "type_name": "any",
+          "state": "any",
+          "required": true,
+          "default_value": null,
+          "description": "Input cy1"
+        },
+        "sin_t2": {
+          "type_name": "any",
+          "state": "any",
+          "required": true,
+          "default_value": null,
+          "description": "Input sin_t2"
+        },
+        "cx2": {
+          "type_name": "any",
+          "state": "any",
+          "required": true,
+          "default_value": null,
+          "description": "Input cx2"
+        },
+        "cy2": {
+          "type_name": "any",
+          "state": "any",
+          "required": true,
+          "default_value": null,
+          "description": "Input cy2"
+        },
+        "cos_t2": {
+          "type_name": "any",
+          "state": "any",
+          "required": true,
+          "default_value": null,
+          "description": "Input cos_t2"
+        },
+        "cos_t1": {
+          "type_name": "any",
+          "state": "any",
+          "required": true,
+          "default_value": null,
+          "description": "Input cos_t1"
+        },
+        "sin_t1": {
+          "type_name": "any",
+          "state": "any",
+          "required": true,
+          "default_value": null,
+          "description": "Input sin_t1"
         }
       },
       "outputs": {
@@ -28643,7 +28797,7 @@
           "required": true
         }
       },
-      "code_template": "{output_var} = matplotlib.bezier.get_intersection({input_var})",
+      "code_template": "{output_var} = matplotlib.bezier.get_intersection({input_var}, {cy1}, {cos_t1}, {sin_t1}, {cx2}, {cy2}, {cos_t2}, {sin_t2})",
       "dependencies": [
         "import matplotlib.pyplot as plt"
       ],
@@ -28725,6 +28879,34 @@
           "default_value": null,
           "description": "",
           "required": true
+        },
+        "cy": {
+          "type_name": "any",
+          "state": "any",
+          "required": true,
+          "default_value": null,
+          "description": "Input cy"
+        },
+        "length": {
+          "type_name": "any",
+          "state": "any",
+          "required": true,
+          "default_value": null,
+          "description": "Input length"
+        },
+        "sin_t": {
+          "type_name": "any",
+          "state": "any",
+          "required": true,
+          "default_value": null,
+          "description": "Input sin_t"
+        },
+        "cos_t": {
+          "type_name": "any",
+          "state": "any",
+          "required": true,
+          "default_value": null,
+          "description": "Input cos_t"
         }
       },
       "outputs": {
@@ -28736,7 +28918,7 @@
           "required": true
         }
       },
-      "code_template": "{output_var} = matplotlib.bezier.get_normal_points({input_var})",
+      "code_template": "{output_var} = matplotlib.bezier.get_normal_points({input_var}, {cy}, {cos_t}, {sin_t}, {length})",
       "dependencies": [
         "import matplotlib.pyplot as plt"
       ],
@@ -28832,6 +29014,13 @@
           "default_value": null,
           "description": "",
           "required": true
+        },
+        "width": {
+          "type_name": "any",
+          "state": "any",
+          "required": true,
+          "default_value": null,
+          "description": "Input width"
         }
       },
       "outputs": {
@@ -28843,7 +29032,7 @@
           "required": true
         }
       },
-      "code_template": "{output_var} = matplotlib.bezier.get_parallels({input_var})",
+      "code_template": "{output_var} = matplotlib.bezier.get_parallels({input_var}, {width})",
       "dependencies": [
         "import matplotlib.pyplot as plt"
       ],
@@ -28909,7 +29098,7 @@
         "width",
         "zier"
       ],
-      "docstring": "Given the quadratic Bézier control points *bezier2*, returns",
+      "docstring": "Given the quadratic B\u00e9zier control points *bezier2*, returns",
       "enrichment_source": "docs",
       "enriched_at": "2026-08-29T12:13:08.512288+00:00",
       "domain_name": "matplotlib",
@@ -28927,6 +29116,20 @@
           "default_value": null,
           "description": "",
           "required": true
+        },
+        "cy": {
+          "type_name": "any",
+          "state": "any",
+          "required": true,
+          "default_value": null,
+          "description": "Input cy"
+        },
+        "r": {
+          "type_name": "any",
+          "state": "any",
+          "required": true,
+          "default_value": null,
+          "description": "Input r"
         }
       },
       "outputs": {
@@ -28938,7 +29141,7 @@
           "required": true
         }
       },
-      "code_template": "{output_var} = matplotlib.bezier.inside_circle({input_var})",
+      "code_template": "{output_var} = matplotlib.bezier.inside_circle({input_var}, {cy}, {r})",
       "dependencies": [
         "import matplotlib.pyplot as plt"
       ],
@@ -29123,6 +29326,13 @@
           "default_value": null,
           "description": "",
           "required": true
+        },
+        "width": {
+          "type_name": "any",
+          "state": "any",
+          "required": true,
+          "default_value": null,
+          "description": "Input width"
         }
       },
       "outputs": {
@@ -29134,7 +29344,7 @@
           "required": true
         }
       },
-      "code_template": "{output_var} = matplotlib.bezier.make_wedged_bezier2({input_var})",
+      "code_template": "{output_var} = matplotlib.bezier.make_wedged_bezier2({input_var}, {width})",
       "dependencies": [
         "import matplotlib.pyplot as plt"
       ],
@@ -29230,6 +29440,13 @@
           "default_value": null,
           "description": "",
           "required": true
+        },
+        "inside_closedpath": {
+          "type_name": "any",
+          "state": "any",
+          "required": true,
+          "default_value": null,
+          "description": "Input inside_closedpath"
         }
       },
       "outputs": {
@@ -29241,7 +29458,7 @@
           "required": true
         }
       },
-      "code_template": "{output_var} = matplotlib.bezier.split_bezier_intersecting_with_closedpath({input_var})",
+      "code_template": "{output_var} = matplotlib.bezier.split_bezier_intersecting_with_closedpath({input_var}, {inside_closedpath})",
       "dependencies": [
         "import matplotlib.pyplot as plt"
       ],
@@ -29301,7 +29518,7 @@
         "with",
         "zier"
       ],
-      "docstring": "Split a Bézier curve into two at the intersection with a closed path.",
+      "docstring": "Split a B\u00e9zier curve into two at the intersection with a closed path.",
       "enrichment_source": "docs",
       "enriched_at": "2026-08-29T12:13:08.512288+00:00",
       "domain_name": "matplotlib",
@@ -29319,6 +29536,13 @@
           "default_value": null,
           "description": "",
           "required": true
+        },
+        "t": {
+          "type_name": "any",
+          "state": "any",
+          "required": true,
+          "default_value": null,
+          "description": "Input t"
         }
       },
       "outputs": {
@@ -29330,7 +29554,7 @@
           "required": true
         }
       },
-      "code_template": "{output_var} = matplotlib.bezier.split_de_casteljau({input_var})",
+      "code_template": "{output_var} = matplotlib.bezier.split_de_casteljau({input_var}, {t})",
       "dependencies": [
         "import matplotlib.pyplot as plt"
       ],
@@ -29398,7 +29622,7 @@
         "var",
         "zier"
       ],
-      "docstring": "Split a Bézier segment defined by its control points *beta* into two",
+      "docstring": "Split a B\u00e9zier segment defined by its control points *beta* into two",
       "enrichment_source": "docs",
       "enriched_at": "2026-08-29T12:13:08.512288+00:00",
       "domain_name": "matplotlib",
@@ -29416,6 +29640,13 @@
           "default_value": null,
           "description": "",
           "required": true
+        },
+        "inside": {
+          "type_name": "any",
+          "state": "any",
+          "required": true,
+          "default_value": null,
+          "description": "Input inside"
         }
       },
       "outputs": {
@@ -29427,7 +29658,7 @@
           "required": true
         }
       },
-      "code_template": "{output_var} = matplotlib.bezier.split_path_inout({input_var})",
+      "code_template": "{output_var} = matplotlib.bezier.split_path_inout({input_var}, {inside})",
       "dependencies": [
         "import matplotlib.pyplot as plt"
       ],
@@ -30370,9 +30601,9 @@
         "scalarmappable",
         "var"
       ],
-      "docstring": "",
-      "enrichment_source": null,
-      "enriched_at": null,
+      "docstring": "Retrieves the alpha transparency value from a scalar mappable.",
+      "enrichment_source": "llm",
+      "enriched_at": "2026-09-03T18:16:01.098231+00:00",
       "domain_name": "matplotlib",
       "node_type": "function",
       "node_role": "function",
@@ -31208,9 +31439,9 @@
         "output_var",
         "var"
       ],
-      "docstring": "",
-      "enrichment_source": null,
-      "enriched_at": null,
+      "docstring": "Configures autoscale behavior to None for an asinh norm.",
+      "enrichment_source": "llm",
+      "enriched_at": "2026-09-03T18:16:01.098231+00:00",
       "domain_name": "matplotlib",
       "node_type": "function",
       "node_role": "function",
@@ -31267,9 +31498,9 @@
         "output_var",
         "var"
       ],
-      "docstring": "",
-      "enrichment_source": null,
-      "enriched_at": null,
+      "docstring": "Computes the inverse transformation for an asinh norm.",
+      "enrichment_source": "llm",
+      "enriched_at": "2026-09-03T18:16:01.098231+00:00",
       "domain_name": "matplotlib",
       "node_type": "function",
       "node_role": "function",
@@ -35192,9 +35423,9 @@
         "output_var",
         "var"
       ],
-      "docstring": "",
-      "enrichment_source": null,
-      "enriched_at": null,
+      "docstring": "Configures autoscale behavior to None for a function norm.",
+      "enrichment_source": "llm",
+      "enriched_at": "2026-09-03T18:16:01.098231+00:00",
       "domain_name": "matplotlib",
       "node_type": "function",
       "node_role": "function",
@@ -35251,9 +35482,9 @@
         "output_var",
         "var"
       ],
-      "docstring": "",
-      "enrichment_source": null,
-      "enriched_at": null,
+      "docstring": "Computes the inverse transformation for a function norm.",
+      "enrichment_source": "llm",
+      "enriched_at": "2026-09-03T18:16:01.098231+00:00",
       "domain_name": "matplotlib",
       "node_type": "function",
       "node_role": "function",
@@ -38346,9 +38577,9 @@
         "output_var",
         "var"
       ],
-      "docstring": "",
-      "enrichment_source": null,
-      "enriched_at": null,
+      "docstring": "Configures autoscale behavior to None for a log norm.",
+      "enrichment_source": "llm",
+      "enriched_at": "2026-09-03T18:16:01.098231+00:00",
       "domain_name": "matplotlib",
       "node_type": "function",
       "node_role": "function",
@@ -38405,9 +38636,9 @@
         "output_var",
         "var"
       ],
-      "docstring": "",
-      "enrichment_source": null,
-      "enriched_at": null,
+      "docstring": "Computes the inverse transformation for a log norm.",
+      "enrichment_source": "llm",
+      "enriched_at": "2026-09-03T18:16:01.098231+00:00",
       "domain_name": "matplotlib",
       "node_type": "function",
       "node_role": "function",
@@ -40837,9 +41068,9 @@
         "symlognorm",
         "var"
       ],
-      "docstring": "",
-      "enrichment_source": null,
-      "enriched_at": null,
+      "docstring": "Configures autoscale behavior to None for a symlog norm.",
+      "enrichment_source": "llm",
+      "enriched_at": "2026-09-03T18:16:01.098231+00:00",
       "domain_name": "matplotlib",
       "node_type": "function",
       "node_role": "function",
@@ -40896,9 +41127,9 @@
         "symlognorm",
         "var"
       ],
-      "docstring": "",
-      "enrichment_source": null,
-      "enriched_at": null,
+      "docstring": "Computes the inverse transformation for a symlog norm.",
+      "enrichment_source": "llm",
+      "enriched_at": "2026-09-03T18:16:01.098231+00:00",
       "domain_name": "matplotlib",
       "node_type": "function",
       "node_role": "function",
@@ -41501,6 +41732,13 @@
           "default_value": null,
           "description": "",
           "required": true
+        },
+        "colors": {
+          "type_name": "any",
+          "state": "any",
+          "required": true,
+          "default_value": null,
+          "description": "Input colors"
         }
       },
       "outputs": {
@@ -41512,7 +41750,7 @@
           "required": true
         }
       },
-      "code_template": "{output_var} = matplotlib.colors.from_levels_and_colors({input_var})",
+      "code_template": "{output_var} = matplotlib.colors.from_levels_and_colors({input_var}, {colors})",
       "dependencies": [
         "import matplotlib.pyplot as plt"
       ],
@@ -42072,6 +42310,13 @@
           "default_value": null,
           "description": "",
           "required": true
+        },
+        "c2": {
+          "type_name": "any",
+          "state": "any",
+          "required": true,
+          "default_value": null,
+          "description": "Input c2"
         }
       },
       "outputs": {
@@ -42083,7 +42328,7 @@
           "required": true
         }
       },
-      "code_template": "{output_var} = matplotlib.colors.same_color({input_var})",
+      "code_template": "{output_var} = matplotlib.colors.same_color({input_var}, {c2})",
       "dependencies": [
         "import matplotlib.pyplot as plt"
       ],
@@ -53817,9 +54062,9 @@
         "scale",
         "var"
       ],
-      "docstring": "",
-      "enrichment_source": null,
-      "enriched_at": null,
+      "docstring": "Retrieves the offset value from a log formatter with scientific notation.",
+      "enrichment_source": "llm",
+      "enriched_at": "2026-09-03T18:16:01.098231+00:00",
       "domain_name": "matplotlib",
       "node_type": "function",
       "node_role": "function",
@@ -58745,9 +58990,9 @@
         "scale",
         "var"
       ],
-      "docstring": "",
-      "enrichment_source": null,
-      "enriched_at": null,
+      "docstring": "Retrieves the offset value from a logit formatter.",
+      "enrichment_source": "llm",
+      "enriched_at": "2026-09-03T18:16:01.098231+00:00",
       "domain_name": "matplotlib",
       "node_type": "function",
       "node_role": "function",
@@ -62242,9 +62487,9 @@
         "scale",
         "var"
       ],
-      "docstring": "",
-      "enrichment_source": null,
-      "enriched_at": null,
+      "docstring": "Retrieves the offset value from a null formatter.",
+      "enrichment_source": "llm",
+      "enriched_at": "2026-09-03T18:16:01.098231+00:00",
       "domain_name": "matplotlib",
       "node_type": "function",
       "node_role": "function",
@@ -67588,6 +67833,13 @@
           "default_value": null,
           "description": "",
           "required": true
+        },
+        "axis": {
+          "type_name": "any",
+          "state": "any",
+          "required": true,
+          "default_value": null,
+          "description": "Input axis"
         }
       },
       "outputs": {
@@ -67599,7 +67851,7 @@
           "required": true
         }
       },
-      "code_template": "{output_var} = matplotlib.scale.scale_factory({input_var})",
+      "code_template": "{output_var} = matplotlib.scale.scale_factory({input_var}, {axis})",
       "dependencies": [
         "import matplotlib.pyplot as plt"
       ],
@@ -69642,9 +69894,9 @@
         "output_var",
         "var"
       ],
-      "docstring": "",
-      "enrichment_source": null,
-      "enriched_at": null,
+      "docstring": "Retrieves the alpha transparency value from a colorizing artist.",
+      "enrichment_source": "llm",
+      "enriched_at": "2026-09-03T18:16:01.098231+00:00",
       "domain_name": "matplotlib",
       "node_type": "function",
       "node_role": "function",
@@ -70895,9 +71147,9 @@
         "path",
         "var"
       ],
-      "docstring": "",
-      "enrichment_source": null,
-      "enriched_at": null,
+      "docstring": "Retrieves path effects from the given artist object.",
+      "enrichment_source": "llm",
+      "enriched_at": "2026-09-03T18:17:30.688926+00:00",
       "domain_name": "matplotlib",
       "node_type": "function",
       "node_role": "function",
@@ -75117,6 +75369,13 @@
           "default_value": null,
           "description": "",
           "required": true
+        },
+        "field_names": {
+          "type_name": "any",
+          "state": "any",
+          "required": true,
+          "default_value": null,
+          "description": "Input field_names"
         }
       },
       "outputs": {
@@ -75128,7 +75387,7 @@
           "required": true
         }
       },
-      "code_template": "{output_var} = matplotlib.namedtuple({input_var})",
+      "code_template": "{output_var} = matplotlib.namedtuple({input_var}, {field_names})",
       "dependencies": [
         "import matplotlib.pyplot as plt"
       ],
@@ -75267,6 +75526,34 @@
           "default_value": null,
           "description": "",
           "required": true
+        },
+        "offsets": {
+          "type_name": "any",
+          "state": "any",
+          "required": true,
+          "default_value": null,
+          "description": "Input offsets"
+        },
+        "transforms": {
+          "type_name": "any",
+          "state": "any",
+          "required": true,
+          "default_value": null,
+          "description": "Input transforms"
+        },
+        "offset_transform": {
+          "type_name": "any",
+          "state": "any",
+          "required": true,
+          "default_value": null,
+          "description": "Input offset_transform"
+        },
+        "paths": {
+          "type_name": "any",
+          "state": "any",
+          "required": true,
+          "default_value": null,
+          "description": "Input paths"
         }
       },
       "outputs": {
@@ -75278,7 +75565,7 @@
           "required": true
         }
       },
-      "code_template": "{output_var} = matplotlib.path.get_path_collection_extents({input_var})",
+      "code_template": "{output_var} = matplotlib.path.get_path_collection_extents({input_var}, {paths}, {transforms}, {offsets}, {offset_transform})",
       "dependencies": [
         "import matplotlib.pyplot as plt"
       ],
@@ -75471,6 +75758,13 @@
           "default_value": null,
           "description": "",
           "required": true
+        },
+        "steps": {
+          "type_name": "any",
+          "state": "any",
+          "required": true,
+          "default_value": null,
+          "description": "Input steps"
         }
       },
       "outputs": {
@@ -75482,7 +75776,7 @@
           "required": true
         }
       },
-      "code_template": "{output_var} = matplotlib.path.simple_linear_interpolation({input_var})",
+      "code_template": "{output_var} = matplotlib.path.simple_linear_interpolation({input_var}, {steps})",
       "dependencies": [
         "import matplotlib.pyplot as plt"
       ],
@@ -83801,9 +84095,9 @@
         "validate_any",
         "var"
       ],
-      "docstring": "",
-      "enrichment_source": null,
-      "enriched_at": null,
+      "docstring": "Validates any input value using matplotlib rcsetup rules.",
+      "enrichment_source": "llm",
+      "enriched_at": "2026-09-03T18:17:30.688926+00:00",
       "domain_name": "matplotlib",
       "node_type": "function",
       "node_role": "function",
@@ -83862,9 +84156,9 @@
         "validate_anylist",
         "var"
       ],
-      "docstring": "",
-      "enrichment_source": null,
-      "enriched_at": null,
+      "docstring": "Validates a list of any input values using matplotlib rcsetup rules.",
+      "enrichment_source": "llm",
+      "enriched_at": "2026-09-03T18:17:30.688926+00:00",
       "domain_name": "matplotlib",
       "node_type": "function",
       "node_role": "function",
@@ -83923,9 +84217,9 @@
         "validate_aspect",
         "var"
       ],
-      "docstring": "",
-      "enrichment_source": null,
-      "enriched_at": null,
+      "docstring": "Validates an aspect ratio value using matplotlib rcsetup rules.",
+      "enrichment_source": "llm",
+      "enriched_at": "2026-09-03T18:17:30.688926+00:00",
       "domain_name": "matplotlib",
       "node_type": "function",
       "node_role": "function",
@@ -83984,9 +84278,9 @@
         "validate_axisbelow",
         "var"
       ],
-      "docstring": "",
-      "enrichment_source": null,
-      "enriched_at": null,
+      "docstring": "Validates an axis below setting using matplotlib rcsetup rules.",
+      "enrichment_source": "llm",
+      "enriched_at": "2026-09-03T18:17:30.688926+00:00",
       "domain_name": "matplotlib",
       "node_type": "function",
       "node_role": "function",
@@ -84106,9 +84400,9 @@
         "validate_bbox",
         "var"
       ],
-      "docstring": "",
-      "enrichment_source": null,
-      "enriched_at": null,
+      "docstring": "Validates a bounding box value using matplotlib rcsetup rules.",
+      "enrichment_source": "llm",
+      "enriched_at": "2026-09-03T18:17:30.688926+00:00",
       "domain_name": "matplotlib",
       "node_type": "function",
       "node_role": "function",
@@ -84309,9 +84603,9 @@
         "validate_color_for_prop_cycle",
         "var"
       ],
-      "docstring": "",
-      "enrichment_source": null,
-      "enriched_at": null,
+      "docstring": "Validates a color value for property cycles using matplotlib rcsetup rules.",
+      "enrichment_source": "llm",
+      "enriched_at": "2026-09-03T18:17:30.688926+00:00",
       "domain_name": "matplotlib",
       "node_type": "function",
       "node_role": "function",
@@ -84374,9 +84668,9 @@
         "validate_color_or_auto",
         "var"
       ],
-      "docstring": "",
-      "enrichment_source": null,
-      "enriched_at": null,
+      "docstring": "Validates a color or auto setting using matplotlib rcsetup rules.",
+      "enrichment_source": "llm",
+      "enriched_at": "2026-09-03T18:17:30.688926+00:00",
       "domain_name": "matplotlib",
       "node_type": "function",
       "node_role": "function",
@@ -84800,9 +85094,9 @@
         "validate_fillstylelist",
         "var"
       ],
-      "docstring": "",
-      "enrichment_source": null,
-      "enriched_at": null,
+      "docstring": "Validates a list of fill style values using matplotlib rcsetup rules.",
+      "enrichment_source": "llm",
+      "enriched_at": "2026-09-03T18:17:30.688926+00:00",
       "domain_name": "matplotlib",
       "node_type": "function",
       "node_role": "function",
@@ -84861,9 +85155,9 @@
         "validate_float",
         "var"
       ],
-      "docstring": "",
-      "enrichment_source": null,
-      "enriched_at": null,
+      "docstring": "Validates a float value using matplotlib rcsetup rules.",
+      "enrichment_source": "llm",
+      "enriched_at": "2026-09-03T18:17:30.688926+00:00",
       "domain_name": "matplotlib",
       "node_type": "function",
       "node_role": "function",
@@ -84926,9 +85220,9 @@
         "validate_float_or_none",
         "var"
       ],
-      "docstring": "",
-      "enrichment_source": null,
-      "enriched_at": null,
+      "docstring": "Validates a float or None value using matplotlib rcsetup rules.",
+      "enrichment_source": "llm",
+      "enriched_at": "2026-09-03T18:17:30.688926+00:00",
       "domain_name": "matplotlib",
       "node_type": "function",
       "node_role": "function",
@@ -85058,9 +85352,9 @@
         "validate_font_properties",
         "var"
       ],
-      "docstring": "",
-      "enrichment_source": null,
-      "enriched_at": null,
+      "docstring": "Validates font properties using matplotlib rcsetup rules.",
+      "enrichment_source": "llm",
+      "enriched_at": "2026-09-03T18:17:30.688926+00:00",
       "domain_name": "matplotlib",
       "node_type": "function",
       "node_role": "function",
@@ -85119,9 +85413,9 @@
         "validate_fontsize",
         "var"
       ],
-      "docstring": "",
-      "enrichment_source": null,
-      "enriched_at": null,
+      "docstring": "Validates a font size value using matplotlib rcsetup rules.",
+      "enrichment_source": "llm",
+      "enriched_at": "2026-09-03T18:17:30.688926+00:00",
       "domain_name": "matplotlib",
       "node_type": "function",
       "node_role": "function",
@@ -85182,9 +85476,9 @@
         "validate_fontsize_none",
         "var"
       ],
-      "docstring": "",
-      "enrichment_source": null,
-      "enriched_at": null,
+      "docstring": "Validates a font size or None value using matplotlib rcsetup rules.",
+      "enrichment_source": "llm",
+      "enriched_at": "2026-09-03T18:17:30.688926+00:00",
       "domain_name": "matplotlib",
       "node_type": "function",
       "node_role": "function",
@@ -85243,9 +85537,9 @@
         "validate_fontsizelist",
         "var"
       ],
-      "docstring": "",
-      "enrichment_source": null,
-      "enriched_at": null,
+      "docstring": "Validates a list of font size values using matplotlib rcsetup rules.",
+      "enrichment_source": "llm",
+      "enriched_at": "2026-09-03T18:17:30.688926+00:00",
       "domain_name": "matplotlib",
       "node_type": "function",
       "node_role": "function",
@@ -85304,9 +85598,9 @@
         "validate_fontstretch",
         "var"
       ],
-      "docstring": "",
-      "enrichment_source": null,
-      "enriched_at": null,
+      "docstring": "Validates a font stretch value using matplotlib rcsetup rules.",
+      "enrichment_source": "llm",
+      "enriched_at": "2026-09-03T18:17:30.688926+00:00",
       "domain_name": "matplotlib",
       "node_type": "function",
       "node_role": "function",
@@ -85454,9 +85748,9 @@
         "validate_fontweight",
         "var"
       ],
-      "docstring": "",
-      "enrichment_source": null,
-      "enriched_at": null,
+      "docstring": "Validates a font weight value using matplotlib rcsetup rules.",
+      "enrichment_source": "llm",
+      "enriched_at": "2026-09-03T18:17:30.688926+00:00",
       "domain_name": "matplotlib",
       "node_type": "function",
       "node_role": "function",
@@ -85681,9 +85975,9 @@
         "validate_hist_bins",
         "var"
       ],
-      "docstring": "",
-      "enrichment_source": null,
-      "enriched_at": null,
+      "docstring": "Validates histogram bin values using matplotlib rcsetup rules.",
+      "enrichment_source": "llm",
+      "enriched_at": "2026-09-03T18:17:30.688926+00:00",
       "domain_name": "matplotlib",
       "node_type": "function",
       "node_role": "function",
@@ -85742,9 +86036,9 @@
         "validate_int",
         "var"
       ],
-      "docstring": "",
-      "enrichment_source": null,
-      "enriched_at": null,
+      "docstring": "Validates an integer value using matplotlib rcsetup rules.",
+      "enrichment_source": "llm",
+      "enriched_at": "2026-09-03T18:17:30.688926+00:00",
       "domain_name": "matplotlib",
       "node_type": "function",
       "node_role": "function",
@@ -85807,9 +86101,9 @@
         "validate_int_or_none",
         "var"
       ],
-      "docstring": "",
-      "enrichment_source": null,
-      "enriched_at": null,
+      "docstring": "Validates an integer or None value using matplotlib rcsetup rules.",
+      "enrichment_source": "llm",
+      "enriched_at": "2026-09-03T18:17:30.688926+00:00",
       "domain_name": "matplotlib",
       "node_type": "function",
       "node_role": "function",
@@ -86046,9 +86340,9 @@
         "validate_ps_distiller",
         "var"
       ],
-      "docstring": "",
-      "enrichment_source": null,
-      "enriched_at": null,
+      "docstring": "Validates the PostScript distiller setting.",
+      "enrichment_source": "llm",
+      "enriched_at": "2026-09-03T18:18:54.543249+00:00",
       "domain_name": "matplotlib",
       "node_type": "function",
       "node_role": "function",
@@ -86107,9 +86401,9 @@
         "validate_sketch",
         "var"
       ],
-      "docstring": "",
-      "enrichment_source": null,
-      "enriched_at": null,
+      "docstring": "Validates the sketch setting.",
+      "enrichment_source": "llm",
+      "enriched_at": "2026-09-03T18:18:54.543249+00:00",
       "domain_name": "matplotlib",
       "node_type": "function",
       "node_role": "function",
@@ -86168,9 +86462,9 @@
         "validate_string",
         "var"
       ],
-      "docstring": "",
-      "enrichment_source": null,
-      "enriched_at": null,
+      "docstring": "Validates a string setting.",
+      "enrichment_source": "llm",
+      "enriched_at": "2026-09-03T18:18:54.543249+00:00",
       "domain_name": "matplotlib",
       "node_type": "function",
       "node_role": "function",
@@ -86233,9 +86527,9 @@
         "validate_string_or_none",
         "var"
       ],
-      "docstring": "",
-      "enrichment_source": null,
-      "enriched_at": null,
+      "docstring": "Validates a string or None setting.",
+      "enrichment_source": "llm",
+      "enriched_at": "2026-09-03T18:18:54.543249+00:00",
       "domain_name": "matplotlib",
       "node_type": "function",
       "node_role": "function",
@@ -86363,9 +86657,9 @@
         "var",
         "whiskers"
       ],
-      "docstring": "",
-      "enrichment_source": null,
-      "enriched_at": null,
+      "docstring": "Validates the whiskers setting.",
+      "enrichment_source": "llm",
+      "enriched_at": "2026-09-03T18:18:54.543249+00:00",
       "domain_name": "matplotlib",
       "node_type": "function",
       "node_role": "function",
@@ -88678,9 +88972,9 @@
         "ticker",
         "var"
       ],
-      "docstring": "",
-      "enrichment_source": null,
-      "enriched_at": null,
+      "docstring": "Gets the offset from a fixed formatter.",
+      "enrichment_source": "llm",
+      "enriched_at": "2026-09-03T18:18:54.543249+00:00",
       "domain_name": "matplotlib",
       "node_type": "function",
       "node_role": "function",
@@ -88911,9 +89205,9 @@
         "ticker",
         "var"
       ],
-      "docstring": "",
-      "enrichment_source": null,
-      "enriched_at": null,
+      "docstring": "Sets the offset string on a fixed formatter.",
+      "enrichment_source": "llm",
+      "enriched_at": "2026-09-03T18:18:54.543249+00:00",
       "domain_name": "matplotlib",
       "node_type": "function",
       "node_role": "function",
@@ -90052,9 +90346,9 @@
         "ticker",
         "var"
       ],
-      "docstring": "",
-      "enrichment_source": null,
-      "enriched_at": null,
+      "docstring": "Gets the offset from a format string formatter.",
+      "enrichment_source": "llm",
+      "enriched_at": "2026-09-03T18:18:54.543249+00:00",
       "domain_name": "matplotlib",
       "node_type": "function",
       "node_role": "function",
@@ -90720,9 +91014,9 @@
         "ticker",
         "var"
       ],
-      "docstring": "",
-      "enrichment_source": null,
-      "enriched_at": null,
+      "docstring": "Gets the offset from a formatter.",
+      "enrichment_source": "llm",
+      "enriched_at": "2026-09-03T18:18:54.543249+00:00",
       "domain_name": "matplotlib",
       "node_type": "function",
       "node_role": "function",
@@ -91388,9 +91682,9 @@
         "ticker",
         "var"
       ],
-      "docstring": "",
-      "enrichment_source": null,
-      "enriched_at": null,
+      "docstring": "Gets the offset from a function formatter.",
+      "enrichment_source": "llm",
+      "enriched_at": "2026-09-03T18:18:54.543249+00:00",
       "domain_name": "matplotlib",
       "node_type": "function",
       "node_role": "function",
@@ -91621,9 +91915,9 @@
         "ticker",
         "var"
       ],
-      "docstring": "",
-      "enrichment_source": null,
-      "enriched_at": null,
+      "docstring": "Sets the offset string on a function formatter.",
+      "enrichment_source": "llm",
+      "enriched_at": "2026-09-03T18:18:54.543249+00:00",
       "domain_name": "matplotlib",
       "node_type": "function",
       "node_role": "function",
@@ -94066,9 +94360,9 @@
         "ticker",
         "var"
       ],
-      "docstring": "",
-      "enrichment_source": null,
-      "enriched_at": null,
+      "docstring": "Gets the offset from a log formatter.",
+      "enrichment_source": "llm",
+      "enriched_at": "2026-09-03T18:18:54.543249+00:00",
       "domain_name": "matplotlib",
       "node_type": "function",
       "node_role": "function",
@@ -94902,9 +95196,9 @@
         "ticker",
         "var"
       ],
-      "docstring": "",
-      "enrichment_source": null,
-      "enriched_at": null,
+      "docstring": "Gets the offset from a log formatter exponent.",
+      "enrichment_source": "llm",
+      "enriched_at": "2026-09-03T18:18:54.543249+00:00",
       "domain_name": "matplotlib",
       "node_type": "function",
       "node_role": "function",
@@ -95738,9 +96032,9 @@
         "ticker",
         "var"
       ],
-      "docstring": "",
-      "enrichment_source": null,
-      "enriched_at": null,
+      "docstring": "Gets the offset from a log formatter math text.",
+      "enrichment_source": "llm",
+      "enriched_at": "2026-09-03T18:18:54.543249+00:00",
       "domain_name": "matplotlib",
       "node_type": "function",
       "node_role": "function",
@@ -97441,9 +97735,9 @@
         "to",
         "var"
       ],
-      "docstring": "",
-      "enrichment_source": null,
-      "enriched_at": null,
+      "docstring": "Converts a value to a percentage string.",
+      "enrichment_source": "llm",
+      "enriched_at": "2026-09-03T18:18:54.543249+00:00",
       "domain_name": "matplotlib",
       "node_type": "function",
       "node_role": "function",
@@ -98060,9 +98354,9 @@
         "ticker",
         "var"
       ],
-      "docstring": "",
-      "enrichment_source": null,
-      "enriched_at": null,
+      "docstring": "Gets the offset from a percent formatter.",
+      "enrichment_source": "llm",
+      "enriched_at": "2026-09-03T18:18:54.543249+00:00",
       "domain_name": "matplotlib",
       "node_type": "function",
       "node_role": "function",
@@ -98728,9 +99022,9 @@
         "ticker",
         "var"
       ],
-      "docstring": "",
-      "enrichment_source": null,
-      "enriched_at": null,
+      "docstring": "Gets the offset from a string method formatter.",
+      "enrichment_source": "llm",
+      "enriched_at": "2026-09-03T18:18:54.543249+00:00",
       "domain_name": "matplotlib",
       "node_type": "function",
       "node_role": "function",
@@ -113943,9 +114237,9 @@
         "transforms",
         "var"
       ],
-      "docstring": "",
-      "enrichment_source": null,
-      "enriched_at": null,
+      "docstring": "Checks if a blended affine 2D transform contains a branch separately.",
+      "enrichment_source": "llm",
+      "enriched_at": "2026-09-03T18:18:54.543249+00:00",
       "domain_name": "matplotlib",
       "node_type": "function",
       "node_role": "function",
@@ -115621,9 +115915,9 @@
         "transforms",
         "var"
       ],
-      "docstring": "",
-      "enrichment_source": null,
-      "enriched_at": null,
+      "docstring": "Checks if a blended generic transform contains a branch separately.",
+      "enrichment_source": "llm",
+      "enriched_at": "2026-09-03T18:18:54.543249+00:00",
       "domain_name": "matplotlib",
       "node_type": "function",
       "node_role": "function",
@@ -121587,9 +121881,9 @@
         "transforms",
         "var"
       ],
-      "docstring": "",
-      "enrichment_source": null,
-      "enriched_at": null,
+      "docstring": "Gets the points from a lockable bounding box.",
+      "enrichment_source": "llm",
+      "enriched_at": "2026-09-03T18:18:54.543249+00:00",
       "domain_name": "matplotlib",
       "node_type": "function",
       "node_role": "function",
@@ -126549,6 +126843,13 @@
           "default_value": null,
           "description": "",
           "required": true
+        },
+        "y_transform": {
+          "type_name": "any",
+          "state": "any",
+          "required": true,
+          "default_value": null,
+          "description": "Input y_transform"
         }
       },
       "outputs": {
@@ -126560,7 +126861,7 @@
           "required": true
         }
       },
-      "code_template": "{output_var} = matplotlib.transforms.blended_transform_factory({input_var})",
+      "code_template": "{output_var} = matplotlib.transforms.blended_transform_factory({input_var}, {y_transform})",
       "dependencies": [
         "import matplotlib.pyplot as plt"
       ],
@@ -126654,6 +126955,13 @@
           "default_value": null,
           "description": "",
           "required": true
+        },
+        "b": {
+          "type_name": "Figure",
+          "state": "any",
+          "required": true,
+          "default_value": null,
+          "description": "Input b"
         }
       },
       "outputs": {
@@ -126665,7 +126973,7 @@
           "required": true
         }
       },
-      "code_template": "{output_var} = matplotlib.transforms.composite_transform_factory({input_var})",
+      "code_template": "{output_var} = matplotlib.transforms.composite_transform_factory({input_var}, {b})",
       "dependencies": [
         "import matplotlib.pyplot as plt"
       ],
@@ -126763,6 +127071,13 @@
           "default_value": null,
           "description": "",
           "required": true
+        },
+        "val": {
+          "type_name": "any",
+          "state": "any",
+          "required": true,
+          "default_value": null,
+          "description": "Input val"
         }
       },
       "outputs": {
@@ -126774,7 +127089,7 @@
           "required": true
         }
       },
-      "code_template": "{output_var} = matplotlib.transforms.interval_contains({input_var})",
+      "code_template": "{output_var} = matplotlib.transforms.interval_contains({input_var}, {val})",
       "dependencies": [
         "import matplotlib.pyplot as plt"
       ],
@@ -126842,6 +127157,13 @@
           "default_value": null,
           "description": "",
           "required": true
+        },
+        "val": {
+          "type_name": "any",
+          "state": "any",
+          "required": true,
+          "default_value": null,
+          "description": "Input val"
         }
       },
       "outputs": {
@@ -126853,7 +127175,7 @@
           "required": true
         }
       },
-      "code_template": "{output_var} = matplotlib.transforms.interval_contains_open({input_var})",
+      "code_template": "{output_var} = matplotlib.transforms.interval_contains_open({input_var}, {val})",
       "dependencies": [
         "import matplotlib.pyplot as plt"
       ],
@@ -127006,6 +127328,13 @@
           "default_value": null,
           "description": "",
           "required": true
+        },
+        "vmax": {
+          "type_name": "any",
+          "state": "any",
+          "required": true,
+          "default_value": null,
+          "description": "Input vmax"
         }
       },
       "outputs": {
@@ -127017,7 +127346,7 @@
           "required": true
         }
       },
-      "code_template": "{output_var} = matplotlib.transforms.nonsingular({input_var})",
+      "code_template": "{output_var} = matplotlib.transforms.nonsingular({input_var}, {vmax})",
       "dependencies": [
         "import matplotlib.pyplot as plt"
       ],
@@ -127170,6 +127499,13 @@
           "default_value": null,
           "description": "",
           "required": true
+        },
+        "vmax": {
+          "type_name": "any",
+          "state": "any",
+          "required": true,
+          "default_value": null,
+          "description": "Input vmax"
         }
       },
       "outputs": {
@@ -127181,7 +127517,7 @@
           "required": true
         }
       },
-      "code_template": "{output_var} = matplotlib.ticker.scale_range({input_var})",
+      "code_template": "{output_var} = matplotlib.ticker.scale_range({input_var}, {vmax})",
       "dependencies": [
         "import matplotlib.pyplot as plt"
       ],
@@ -127213,9 +127549,9 @@
         "ticker",
         "var"
       ],
-      "docstring": "",
-      "enrichment_source": null,
-      "enriched_at": null,
+      "docstring": "Returns the scale range for a given input variable.",
+      "enrichment_source": "llm",
+      "enriched_at": "2026-09-03T18:20:31.325608+00:00",
       "domain_name": "matplotlib",
       "node_type": "function",
       "node_role": "function",
@@ -127440,9 +127776,9 @@
         "rcparams",
         "var"
       ],
-      "docstring": "",
-      "enrichment_source": null,
-      "enriched_at": null,
+      "docstring": "Retrieves the default class item using the __class_getitem__ method.",
+      "enrichment_source": "llm",
+      "enriched_at": "2026-09-03T18:20:31.325608+00:00",
       "domain_name": "matplotlib",
       "node_type": "dunder",
       "node_role": "function",
@@ -127507,9 +127843,9 @@
         "rcparams",
         "var"
       ],
-      "docstring": "",
-      "enrichment_source": null,
-      "enriched_at": null,
+      "docstring": "Checks if a key is contained within the input variable using __contains__.",
+      "enrichment_source": "llm",
+      "enriched_at": "2026-09-03T18:20:31.325608+00:00",
       "domain_name": "matplotlib",
       "node_type": "dunder",
       "node_role": "function",
@@ -127576,9 +127912,9 @@
         "rcparams",
         "var"
       ],
-      "docstring": "",
-      "enrichment_source": null,
-      "enriched_at": null,
+      "docstring": "Deletes an item from the input variable using the __delitem__ method.",
+      "enrichment_source": "llm",
+      "enriched_at": "2026-09-03T18:20:31.325608+00:00",
       "domain_name": "matplotlib",
       "node_type": "dunder",
       "node_role": "function",
@@ -127639,9 +127975,9 @@
         "rcparams",
         "var"
       ],
-      "docstring": "",
-      "enrichment_source": null,
-      "enriched_at": null,
+      "docstring": "Retrieves an item from the input variable using the __getitem__ method.",
+      "enrichment_source": "llm",
+      "enriched_at": "2026-09-03T18:20:31.325608+00:00",
       "domain_name": "matplotlib",
       "node_type": "dunder",
       "node_role": "function",
@@ -127704,9 +128040,9 @@
         "value",
         "var"
       ],
-      "docstring": "",
-      "enrichment_source": null,
-      "enriched_at": null,
+      "docstring": "Performs an in-place bitwise OR operation on the input variable with a given value.",
+      "enrichment_source": "llm",
+      "enriched_at": "2026-09-03T18:20:31.325608+00:00",
       "domain_name": "matplotlib",
       "node_type": "dunder",
       "node_role": "function",
@@ -127767,9 +128103,9 @@
         "rcparams",
         "var"
       ],
-      "docstring": "",
-      "enrichment_source": null,
-      "enriched_at": null,
+      "docstring": "Returns an iterator over the input variable using the __iter__ method.",
+      "enrichment_source": "llm",
+      "enriched_at": "2026-09-03T18:20:31.325608+00:00",
       "domain_name": "matplotlib",
       "node_type": "dunder",
       "node_role": "function",
@@ -127834,9 +128170,9 @@
         "rcparams",
         "var"
       ],
-      "docstring": "",
-      "enrichment_source": null,
-      "enriched_at": null,
+      "docstring": "Returns the length of the input variable using the __len__ method.",
+      "enrichment_source": "llm",
+      "enriched_at": "2026-09-03T18:20:31.325608+00:00",
       "domain_name": "matplotlib",
       "node_type": "dunder",
       "node_role": "function",
@@ -127895,9 +128231,9 @@
         "rcparams",
         "var"
       ],
-      "docstring": "",
-      "enrichment_source": null,
-      "enriched_at": null,
+      "docstring": "Performs a bitwise OR operation on the input variable using the __or__ method.",
+      "enrichment_source": "llm",
+      "enriched_at": "2026-09-03T18:20:31.325608+00:00",
       "domain_name": "matplotlib",
       "node_type": "dunder",
       "node_role": "function",
@@ -127958,9 +128294,9 @@
         "value",
         "var"
       ],
-      "docstring": "",
-      "enrichment_source": null,
-      "enriched_at": null,
+      "docstring": "Performs a reverse bitwise OR operation on the input variable with a given value.",
+      "enrichment_source": "llm",
+      "enriched_at": "2026-09-03T18:20:31.325608+00:00",
       "domain_name": "matplotlib",
       "node_type": "dunder",
       "node_role": "function",
@@ -128027,9 +128363,9 @@
         "val",
         "var"
       ],
-      "docstring": "",
-      "enrichment_source": null,
-      "enriched_at": null,
+      "docstring": "Sets an item in the input variable using the __setitem__ method.",
+      "enrichment_source": "llm",
+      "enriched_at": "2026-09-03T18:20:31.325608+00:00",
       "domain_name": "matplotlib",
       "node_type": "dunder",
       "node_role": "function",
@@ -128326,9 +128662,9 @@
         "sticky_edges",
         "var"
       ],
-      "docstring": "",
-      "enrichment_source": null,
-      "enriched_at": null,
+      "docstring": "Returns the sticky edges property of the artist.",
+      "enrichment_source": "llm",
+      "enriched_at": "2026-09-03T18:20:31.325608+00:00",
       "domain_name": "matplotlib",
       "node_type": "property",
       "node_role": "function",
@@ -128389,9 +128725,9 @@
         "output_var",
         "var"
       ],
-      "docstring": "",
-      "enrichment_source": null,
-      "enriched_at": null,
+      "docstring": "Converts the artist bounding box to an array using the __array__ method.",
+      "enrichment_source": "llm",
+      "enriched_at": "2026-09-03T18:20:31.325608+00:00",
       "domain_name": "matplotlib",
       "node_type": "dunder",
       "node_role": "function",
@@ -128452,9 +128788,9 @@
         "output_var",
         "var"
       ],
-      "docstring": "",
-      "enrichment_source": null,
-      "enriched_at": null,
+      "docstring": "Creates a shallow copy of the artist bounding box using the __copy__ method.",
+      "enrichment_source": "llm",
+      "enriched_at": "2026-09-03T18:20:31.325608+00:00",
       "domain_name": "matplotlib",
       "node_type": "dunder",
       "node_role": "function",
@@ -129883,9 +130219,9 @@
         "transform",
         "var"
       ],
-      "docstring": "",
-      "enrichment_source": null,
-      "enriched_at": null,
+      "docstring": "Adds another object to the identity transform using the __add__ method.",
+      "enrichment_source": "llm",
+      "enriched_at": "2026-09-03T18:20:31.325608+00:00",
       "domain_name": "matplotlib",
       "node_type": "dunder",
       "node_role": "function",
@@ -129954,9 +130290,9 @@
         "transform",
         "var"
       ],
-      "docstring": "",
-      "enrichment_source": null,
-      "enriched_at": null,
+      "docstring": "Subtracts another object from the identity transform using the __sub__ method.",
+      "enrichment_source": "llm",
+      "enriched_at": "2026-09-03T18:20:31.325608+00:00",
       "domain_name": "matplotlib",
       "node_type": "dunder",
       "node_role": "function",
@@ -130080,9 +130416,9 @@
         "separable",
         "var"
       ],
-      "docstring": "",
-      "enrichment_source": null,
-      "enriched_at": null,
+      "docstring": "Checks if the identity transform is separable.",
+      "enrichment_source": "llm",
+      "enriched_at": "2026-09-03T18:20:31.325608+00:00",
       "domain_name": "matplotlib",
       "node_type": "property",
       "node_role": "function",
@@ -130143,9 +130479,9 @@
         "path",
         "var"
       ],
-      "docstring": "",
-      "enrichment_source": null,
-      "enriched_at": null,
+      "docstring": "Creates a deep copy of the artist path using the __deepcopy__ method.",
+      "enrichment_source": "llm",
+      "enriched_at": "2026-09-03T18:20:31.325608+00:00",
       "domain_name": "matplotlib",
       "node_type": "dunder",
       "node_role": "function",
@@ -130330,9 +130666,9 @@
         "simplify",
         "var"
       ],
-      "docstring": "",
-      "enrichment_source": null,
-      "enriched_at": null,
+      "docstring": "Returns whether the artist path should be simplified.",
+      "enrichment_source": "llm",
+      "enriched_at": "2026-09-03T18:20:31.325608+00:00",
       "domain_name": "matplotlib",
       "node_type": "property",
       "node_role": "function",
@@ -130395,9 +130731,9 @@
         "threshold",
         "var"
       ],
-      "docstring": "",
-      "enrichment_source": null,
-      "enriched_at": null,
+      "docstring": "Returns the simplify threshold for the artist path.",
+      "enrichment_source": "llm",
+      "enriched_at": "2026-09-03T18:20:31.325608+00:00",
       "domain_name": "matplotlib",
       "node_type": "property",
       "node_role": "function",
@@ -130529,9 +130865,9 @@
         "value",
         "var"
       ],
-      "docstring": "",
-      "enrichment_source": null,
-      "enriched_at": null,
+      "docstring": "Adds a value to the input list in-place and returns the result.",
+      "enrichment_source": "llm",
+      "enriched_at": "2026-09-03T18:22:04.546734+00:00",
       "domain_name": "matplotlib",
       "node_type": "dunder",
       "node_role": "function",
@@ -130598,9 +130934,9 @@
         "silent_list",
         "var"
       ],
-      "docstring": "",
-      "enrichment_source": null,
-      "enriched_at": null,
+      "docstring": "Multiplies the input list by 3 in-place and returns the result.",
+      "enrichment_source": "llm",
+      "enriched_at": "2026-09-03T18:22:04.546734+00:00",
       "domain_name": "matplotlib",
       "node_type": "dunder",
       "node_role": "function",
@@ -130671,9 +131007,9 @@
         "silent_list",
         "var"
       ],
-      "docstring": "",
-      "enrichment_source": null,
-      "enriched_at": null,
+      "docstring": "Multiplies the input list by 3 and returns the result.",
+      "enrichment_source": "llm",
+      "enriched_at": "2026-09-03T18:22:04.546734+00:00",
       "domain_name": "matplotlib",
       "node_type": "dunder",
       "node_role": "function",
@@ -130738,9 +131074,9 @@
         "silent_list",
         "var"
       ],
-      "docstring": "",
-      "enrichment_source": null,
-      "enriched_at": null,
+      "docstring": "Returns a reversed view of the input list.",
+      "enrichment_source": "llm",
+      "enriched_at": "2026-09-03T18:22:04.546734+00:00",
       "domain_name": "matplotlib",
       "node_type": "dunder",
       "node_role": "function",
@@ -130807,9 +131143,9 @@
         "silent_list",
         "var"
       ],
-      "docstring": "",
-      "enrichment_source": null,
-      "enriched_at": null,
+      "docstring": "Multiplies the input list by 3 using the right-hand operand and returns the result.",
+      "enrichment_source": "llm",
+      "enriched_at": "2026-09-03T18:22:04.546734+00:00",
       "domain_name": "matplotlib",
       "node_type": "dunder",
       "node_role": "function",
@@ -130937,9 +131273,9 @@
         "value",
         "var"
       ],
-      "docstring": "",
-      "enrichment_source": null,
-      "enriched_at": null,
+      "docstring": "Returns the value attribute of the input backend filter.",
+      "enrichment_source": "llm",
+      "enriched_at": "2026-09-03T18:22:04.546734+00:00",
       "domain_name": "matplotlib",
       "node_type": "property",
       "node_role": "function",
@@ -131002,9 +131338,9 @@
         "parameter",
         "var"
       ],
-      "docstring": "",
-      "enrichment_source": null,
-      "enriched_at": null,
+      "docstring": "Evaluates the Bezier segment at the given parameter t.",
+      "enrichment_source": "llm",
+      "enriched_at": "2026-09-03T18:22:04.546734+00:00",
       "domain_name": "matplotlib",
       "node_type": "dunder",
       "node_role": "function",
@@ -131067,9 +131403,9 @@
         "points",
         "var"
       ],
-      "docstring": "",
-      "enrichment_source": null,
-      "enriched_at": null,
+      "docstring": "Returns the control points of the Bezier segment.",
+      "enrichment_source": "llm",
+      "enriched_at": "2026-09-03T18:22:04.546734+00:00",
       "domain_name": "matplotlib",
       "node_type": "property",
       "node_role": "function",
@@ -131254,9 +131590,9 @@
         "polynomial_coefficients",
         "var"
       ],
-      "docstring": "",
-      "enrichment_source": null,
-      "enriched_at": null,
+      "docstring": "Returns the polynomial coefficients of the Bezier segment.",
+      "enrichment_source": "llm",
+      "enriched_at": "2026-09-03T18:22:04.546734+00:00",
       "domain_name": "matplotlib",
       "node_type": "property",
       "node_role": "function",
@@ -131315,9 +131651,9 @@
         "scalarmappable",
         "var"
       ],
-      "docstring": "",
-      "enrichment_source": null,
-      "enriched_at": null,
+      "docstring": "Returns the colormap associated with the scalar mappable.",
+      "enrichment_source": "llm",
+      "enriched_at": "2026-09-03T18:22:04.546734+00:00",
       "domain_name": "matplotlib",
       "node_type": "property",
       "node_role": "function",
@@ -131437,9 +131773,9 @@
         "scalarmappable",
         "var"
       ],
-      "docstring": "",
-      "enrichment_source": null,
-      "enriched_at": null,
+      "docstring": "Returns the normalization object for the scalar mappable.",
+      "enrichment_source": "llm",
+      "enriched_at": "2026-09-03T18:22:04.546734+00:00",
       "domain_name": "matplotlib",
       "node_type": "property",
       "node_role": "function",
@@ -131563,9 +131899,9 @@
         "var",
         "width"
       ],
-      "docstring": "",
-      "enrichment_source": null,
-      "enriched_at": null,
+      "docstring": "Returns the linear width attribute of the asinh norm.",
+      "enrichment_source": "llm",
+      "enriched_at": "2026-09-03T18:22:04.546734+00:00",
       "domain_name": "matplotlib",
       "node_type": "property",
       "node_role": "function",
@@ -131811,9 +132147,9 @@
         "output_var",
         "var"
       ],
-      "docstring": "",
-      "enrichment_source": null,
-      "enriched_at": null,
+      "docstring": "Returns the origin attribute of the bivariate colormap.",
+      "enrichment_source": "llm",
+      "enriched_at": "2026-09-03T18:22:04.546734+00:00",
       "domain_name": "matplotlib",
       "node_type": "property",
       "node_role": "function",
@@ -131872,9 +132208,9 @@
         "shape",
         "var"
       ],
-      "docstring": "",
-      "enrichment_source": null,
-      "enriched_at": null,
+      "docstring": "Returns the shape attribute of the bivariate colormap.",
+      "enrichment_source": "llm",
+      "enriched_at": "2026-09-03T18:22:04.546734+00:00",
       "domain_name": "matplotlib",
       "node_type": "property",
       "node_role": "function",
@@ -131933,9 +132269,9 @@
         "output_var",
         "var"
       ],
-      "docstring": "",
-      "enrichment_source": null,
-      "enriched_at": null,
+      "docstring": "Returns the half-range attribute of the centered norm.",
+      "enrichment_source": "llm",
+      "enriched_at": "2026-09-03T18:22:04.546734+00:00",
       "domain_name": "matplotlib",
       "node_type": "property",
       "node_role": "function",
@@ -131994,9 +132330,9 @@
         "var",
         "vcenter"
       ],
-      "docstring": "",
-      "enrichment_source": null,
-      "enriched_at": null,
+      "docstring": "Returns the vcenter attribute of the centered norm.",
+      "enrichment_source": "llm",
+      "enriched_at": "2026-09-03T18:22:04.546734+00:00",
       "domain_name": "matplotlib",
       "node_type": "property",
       "node_role": "function",
@@ -132122,9 +132458,9 @@
         "output_var",
         "var"
       ],
-      "docstring": "",
-      "enrichment_source": null,
-      "enriched_at": null,
+      "docstring": "Returns the combination mode of the multivariate colormap.",
+      "enrichment_source": "llm",
+      "enriched_at": "2026-09-03T18:22:04.546734+00:00",
       "domain_name": "matplotlib",
       "node_type": "property",
       "node_role": "function",
@@ -132183,9 +132519,9 @@
         "symlognorm",
         "var"
       ],
-      "docstring": "",
-      "enrichment_source": null,
-      "enriched_at": null,
+      "docstring": "Returns the linear threshold attribute of the symlog norm.",
+      "enrichment_source": "llm",
+      "enriched_at": "2026-09-03T18:22:04.546734+00:00",
       "domain_name": "matplotlib",
       "node_type": "property",
       "node_role": "function",
@@ -132246,9 +132582,9 @@
         "scale",
         "var"
       ],
-      "docstring": "",
-      "enrichment_source": null,
-      "enriched_at": null,
+      "docstring": "Returns the base attribute of the func scale log.",
+      "enrichment_source": "llm",
+      "enriched_at": "2026-09-03T18:22:04.546734+00:00",
       "domain_name": "matplotlib",
       "node_type": "property",
       "node_role": "function",
@@ -132309,9 +132645,9 @@
         "scale",
         "var"
       ],
-      "docstring": "",
-      "enrichment_source": null,
-      "enriched_at": null,
+      "docstring": "Returns the minor locator attribute of the logit locator.",
+      "enrichment_source": "llm",
+      "enriched_at": "2026-09-03T18:22:04.546734+00:00",
       "domain_name": "matplotlib",
       "node_type": "property",
       "node_role": "function",
@@ -132630,9 +132966,9 @@
         "symmetricallogscale",
         "var"
       ],
-      "docstring": "",
-      "enrichment_source": null,
-      "enriched_at": null,
+      "docstring": "Returns the linear scale component of a symmetrical log scale.",
+      "enrichment_source": "llm",
+      "enriched_at": "2026-09-03T18:23:39.557213+00:00",
       "domain_name": "matplotlib",
       "node_type": "property",
       "node_role": "function",
@@ -132756,9 +133092,9 @@
         "output_var",
         "var"
       ],
-      "docstring": "",
-      "enrichment_source": null,
-      "enriched_at": null,
+      "docstring": "Retrieves the buffer data for the font object using specified flags.",
+      "enrichment_source": "llm",
+      "enriched_at": "2026-09-03T18:23:39.557213+00:00",
       "domain_name": "matplotlib",
       "node_type": "dunder",
       "node_role": "function",
@@ -132825,9 +133161,9 @@
         "release_buffer",
         "var"
       ],
-      "docstring": "",
-      "enrichment_source": null,
-      "enriched_at": null,
+      "docstring": "Releases the specified buffer associated with the font object.",
+      "enrichment_source": "llm",
+      "enriched_at": "2026-09-03T18:23:39.557213+00:00",
       "domain_name": "matplotlib",
       "node_type": "dunder",
       "node_role": "function",
@@ -133081,9 +133417,9 @@
         "output_var",
         "var"
       ],
-      "docstring": "",
-      "enrichment_source": null,
-      "enriched_at": null,
+      "docstring": "Returns the face flags attribute of the font object.",
+      "enrichment_source": "llm",
+      "enriched_at": "2026-09-03T18:23:39.557213+00:00",
       "domain_name": "matplotlib",
       "node_type": "property",
       "node_role": "function",
@@ -133280,9 +133616,9 @@
         "output_var",
         "var"
       ],
-      "docstring": "",
-      "enrichment_source": null,
-      "enriched_at": null,
+      "docstring": "Returns the maximum advance height value for the font.",
+      "enrichment_source": "llm",
+      "enriched_at": "2026-09-03T18:23:39.557213+00:00",
       "domain_name": "matplotlib",
       "node_type": "property",
       "node_role": "function",
@@ -133349,9 +133685,9 @@
         "var",
         "width"
       ],
-      "docstring": "",
-      "enrichment_source": null,
-      "enriched_at": null,
+      "docstring": "Returns the maximum advance width value for the font.",
+      "enrichment_source": "llm",
+      "enriched_at": "2026-09-03T18:23:39.557213+00:00",
       "domain_name": "matplotlib",
       "node_type": "property",
       "node_role": "function",
@@ -133416,9 +133752,9 @@
         "output_var",
         "var"
       ],
-      "docstring": "",
-      "enrichment_source": null,
-      "enriched_at": null,
+      "docstring": "Returns the number of charmaps available in the font.",
+      "enrichment_source": "llm",
+      "enriched_at": "2026-09-03T18:23:39.557213+00:00",
       "domain_name": "matplotlib",
       "node_type": "property",
       "node_role": "function",
@@ -133483,9 +133819,9 @@
         "output_var",
         "var"
       ],
-      "docstring": "",
-      "enrichment_source": null,
-      "enriched_at": null,
+      "docstring": "Returns the number of faces available in the font.",
+      "enrichment_source": "llm",
+      "enriched_at": "2026-09-03T18:23:39.557213+00:00",
       "domain_name": "matplotlib",
       "node_type": "property",
       "node_role": "function",
@@ -133552,9 +133888,9 @@
         "sizes",
         "var"
       ],
-      "docstring": "",
-      "enrichment_source": null,
-      "enriched_at": null,
+      "docstring": "Returns the number of fixed sizes available in the font.",
+      "enrichment_source": "llm",
+      "enriched_at": "2026-09-03T18:23:39.557213+00:00",
       "domain_name": "matplotlib",
       "node_type": "property",
       "node_role": "function",
@@ -133619,9 +133955,9 @@
         "output_var",
         "var"
       ],
-      "docstring": "",
-      "enrichment_source": null,
-      "enriched_at": null,
+      "docstring": "Returns the total number of glyphs in the font.",
+      "enrichment_source": "llm",
+      "enriched_at": "2026-09-03T18:23:39.557213+00:00",
       "domain_name": "matplotlib",
       "node_type": "property",
       "node_role": "function",
@@ -133688,9 +134024,9 @@
         "output_var",
         "var"
       ],
-      "docstring": "",
-      "enrichment_source": null,
-      "enriched_at": null,
+      "docstring": "Returns the number of named instances in the font.",
+      "enrichment_source": "llm",
+      "enriched_at": "2026-09-03T18:23:39.557213+00:00",
       "domain_name": "matplotlib",
       "node_type": "property",
       "node_role": "function",
@@ -133887,9 +134223,9 @@
         "style_flags",
         "var"
       ],
-      "docstring": "",
-      "enrichment_source": null,
-      "enriched_at": null,
+      "docstring": "Returns the style flags attribute of the font object.",
+      "enrichment_source": "llm",
+      "enriched_at": "2026-09-03T18:23:39.557213+00:00",
       "domain_name": "matplotlib",
       "node_type": "property",
       "node_role": "function",
@@ -134021,9 +134357,9 @@
         "underline_position",
         "var"
       ],
-      "docstring": "",
-      "enrichment_source": null,
-      "enriched_at": null,
+      "docstring": "Returns the underline position value for the font.",
+      "enrichment_source": "llm",
+      "enriched_at": "2026-09-03T18:23:39.557213+00:00",
       "domain_name": "matplotlib",
       "node_type": "property",
       "node_role": "function",
@@ -134088,9 +134424,9 @@
         "underline_thickness",
         "var"
       ],
-      "docstring": "",
-      "enrichment_source": null,
-      "enriched_at": null,
+      "docstring": "Returns the underline thickness value for the font.",
+      "enrichment_source": "llm",
+      "enriched_at": "2026-09-03T18:23:39.557213+00:00",
       "domain_name": "matplotlib",
       "node_type": "property",
       "node_role": "function",
@@ -134161,9 +134497,9 @@
         "units_per_em",
         "var"
       ],
-      "docstring": "",
-      "enrichment_source": null,
-      "enriched_at": null,
+      "docstring": "Returns the units per EM metric value for the font.",
+      "enrichment_source": "llm",
+      "enriched_at": "2026-09-03T18:23:39.557213+00:00",
       "domain_name": "matplotlib",
       "node_type": "property",
       "node_role": "function",
@@ -134711,9 +135047,9 @@
         "rcsetup",
         "var"
       ],
-      "docstring": "",
-      "enrichment_source": null,
-      "enriched_at": null,
+      "docstring": "Returns the arguments needed to create a new instance of the capstyle object.",
+      "enrichment_source": "llm",
+      "enriched_at": "2026-09-03T18:23:39.557213+00:00",
       "domain_name": "matplotlib",
       "node_type": "dunder",
       "node_role": "function",
@@ -134774,9 +135110,9 @@
         "rcsetup",
         "var"
       ],
-      "docstring": "",
-      "enrichment_source": null,
-      "enriched_at": null,
+      "docstring": "Performs the modulo operation on the capstyle object with the given value.",
+      "enrichment_source": "llm",
+      "enriched_at": "2026-09-03T18:23:39.557213+00:00",
       "domain_name": "matplotlib",
       "node_type": "dunder",
       "node_role": "function",
@@ -134839,9 +135175,9 @@
         "rmod",
         "var"
       ],
-      "docstring": "",
-      "enrichment_source": null,
-      "enriched_at": null,
+      "docstring": "Performs the modulo operation on the given value with the capstyle object.",
+      "enrichment_source": "llm",
+      "enriched_at": "2026-09-03T18:23:39.557213+00:00",
       "domain_name": "matplotlib",
       "node_type": "dunder",
       "node_role": "function",
@@ -134900,9 +135236,9 @@
         "ticker",
         "var"
       ],
-      "docstring": "",
-      "enrichment_source": null,
-      "enriched_at": null,
+      "docstring": "Returns the number of ticks generated by the linear locator.",
+      "enrichment_source": "llm",
+      "enriched_at": "2026-09-03T18:23:39.557213+00:00",
       "domain_name": "matplotlib",
       "node_type": "property",
       "node_role": "function",
@@ -135028,9 +135364,9 @@
         "transforms",
         "var"
       ],
-      "docstring": "",
-      "enrichment_source": null,
-      "enriched_at": null,
+      "docstring": "Checks whether the blended generic transform has an inverse.",
+      "enrichment_source": "llm",
+      "enriched_at": "2026-09-03T18:23:39.557213+00:00",
       "domain_name": "matplotlib",
       "node_type": "property",
       "node_role": "function",
@@ -135095,9 +135431,9 @@
         "transforms",
         "var"
       ],
-      "docstring": "",
-      "enrichment_source": null,
-      "enriched_at": null,
+      "docstring": "Checks if the transform is affine.",
+      "enrichment_source": "llm",
+      "enriched_at": "2026-09-03T18:24:12.175117+00:00",
       "domain_name": "matplotlib",
       "node_type": "property",
       "node_role": "function",
@@ -135106,15 +135442,7 @@
     {
       "cell_id": "MATPLOTLIB_TRANSFORMS_DEBUG_DEFAULT",
       "stage": 1,
-      "inputs": {
-        "input_var": {
-          "type_name": "any",
-          "state": "source_identifier",
-          "default_value": null,
-          "description": "",
-          "required": true
-        }
-      },
+      "inputs": {},
       "outputs": {
         "output_var": {
           "type_name": "any",
@@ -135215,9 +135543,9 @@
         "transforms",
         "var"
       ],
-      "docstring": "",
-      "enrichment_source": null,
-      "enriched_at": null,
+      "docstring": "Gets the locked x0 coordinate of the bounding box.",
+      "enrichment_source": "llm",
+      "enriched_at": "2026-09-03T18:24:12.175117+00:00",
       "domain_name": "matplotlib",
       "node_type": "property",
       "node_role": "function",
@@ -135280,9 +135608,9 @@
         "transforms",
         "var"
       ],
-      "docstring": "",
-      "enrichment_source": null,
-      "enriched_at": null,
+      "docstring": "Gets the locked x1 coordinate of the bounding box.",
+      "enrichment_source": "llm",
+      "enriched_at": "2026-09-03T18:24:12.175117+00:00",
       "domain_name": "matplotlib",
       "node_type": "property",
       "node_role": "function",
@@ -135345,9 +135673,9 @@
         "transforms",
         "var"
       ],
-      "docstring": "",
-      "enrichment_source": null,
-      "enriched_at": null,
+      "docstring": "Gets the locked y0 coordinate of the bounding box.",
+      "enrichment_source": "llm",
+      "enriched_at": "2026-09-03T18:24:12.175117+00:00",
       "domain_name": "matplotlib",
       "node_type": "property",
       "node_role": "function",
@@ -135410,9 +135738,9 @@
         "transforms",
         "var"
       ],
-      "docstring": "",
-      "enrichment_source": null,
-      "enriched_at": null,
+      "docstring": "Gets the locked y1 coordinate of the bounding box.",
+      "enrichment_source": "llm",
+      "enriched_at": "2026-09-03T18:24:12.175117+00:00",
       "domain_name": "matplotlib",
       "node_type": "property",
       "node_role": "function",
@@ -135473,9 +135801,9 @@
         "transformwrapper",
         "var"
       ],
-      "docstring": "",
-      "enrichment_source": null,
-      "enriched_at": null,
+      "docstring": "Gets the number of input dimensions.",
+      "enrichment_source": "llm",
+      "enriched_at": "2026-09-03T18:24:12.175117+00:00",
       "domain_name": "matplotlib",
       "node_type": "property",
       "node_role": "function",
@@ -135536,9 +135864,9 @@
         "transformwrapper",
         "var"
       ],
-      "docstring": "",
-      "enrichment_source": null,
-      "enriched_at": null,
+      "docstring": "Gets the number of output dimensions.",
+      "enrichment_source": "llm",
+      "enriched_at": "2026-09-03T18:24:12.175117+00:00",
       "domain_name": "matplotlib",
       "node_type": "property",
       "node_role": "function",
@@ -135548,18 +135876,11 @@
       "cell_id": "MATPLOTLIB_PLOT",
       "stage": 2,
       "inputs": {
-        "x": {
+        "data": {
           "type_name": "any",
           "state": "any",
           "default_value": null,
-          "description": "X coordinates or data series",
-          "required": true
-        },
-        "y": {
-          "type_name": "any",
-          "state": "any",
-          "default_value": null,
-          "description": "Y coordinates or data series",
+          "description": "Input data array or series",
           "required": true
         }
       },
@@ -135572,7 +135893,7 @@
           "required": true
         }
       },
-      "code_template": "plt.figure()\nplt.plot({x}, {y})\n{output_var} = plt.gcf()",
+      "code_template": "plt.figure(); data_to_plot = getattr({data}, \"select_dtypes\", lambda **k: {data})(include=\"number\") if hasattr({data}, \"select_dtypes\") else {data}; plt.plot(data_to_plot) if data_to_plot is not None else plt.plot([0, 1], [0, 1]); {output_var} = plt.gcf()",
       "dependencies": [
         "import matplotlib.pyplot as plt"
       ],
@@ -135616,18 +135937,11 @@
       "cell_id": "MATPLOTLIB_SCATTER",
       "stage": 2,
       "inputs": {
-        "x": {
+        "data": {
           "type_name": "any",
           "state": "any",
           "default_value": null,
-          "description": "X coordinates or data series",
-          "required": true
-        },
-        "y": {
-          "type_name": "any",
-          "state": "any",
-          "default_value": null,
-          "description": "Y coordinates or data series",
+          "description": "Input data array or series",
           "required": true
         }
       },
@@ -135640,7 +135954,7 @@
           "required": true
         }
       },
-      "code_template": "plt.figure()\nplt.scatter({x}, {y})\n{output_var} = plt.gcf()",
+      "code_template": "plt.figure(); plt.plot({data}, \"o\"); {output_var} = plt.gcf()",
       "dependencies": [
         "import matplotlib.pyplot as plt"
       ],
@@ -135686,18 +136000,11 @@
       "cell_id": "MATPLOTLIB_BAR",
       "stage": 2,
       "inputs": {
-        "x": {
+        "data": {
           "type_name": "any",
           "state": "any",
           "default_value": null,
-          "description": "The x coordinates of the bars",
-          "required": true
-        },
-        "height": {
-          "type_name": "any",
-          "state": "any",
-          "default_value": null,
-          "description": "The height(s) of the bars",
+          "description": "Input data array or series",
           "required": true
         }
       },
@@ -135710,7 +136017,7 @@
           "required": true
         }
       },
-      "code_template": "plt.figure()\nplt.bar({x}, {height})\n{output_var} = plt.gcf()",
+      "code_template": "plt.figure(); plt.bar(range(len({data})), {data}); {output_var} = plt.gcf()",
       "dependencies": [
         "import matplotlib.pyplot as plt"
       ],
@@ -135755,7 +136062,7 @@
           "required": true
         }
       },
-      "code_template": "plt.show()\n{output_var} = True",
+      "code_template": "{output_var} = plt.show()",
       "dependencies": [
         "import matplotlib.pyplot as plt"
       ],
@@ -135793,7 +136100,7 @@
           "type_name": "any",
           "state": "any",
           "default_value": null,
-          "description": "Image array or matrix",
+          "description": "Input image or 2D matrix",
           "required": true
         }
       },
@@ -135806,7 +136113,7 @@
           "required": true
         }
       },
-      "code_template": "plt.figure()\nplt.imshow({data})\n{output_var} = plt.gcf()",
+      "code_template": "plt.figure(); plt.imshow({data}); {output_var} = plt.gcf()",
       "dependencies": [
         "import matplotlib.pyplot as plt"
       ],
@@ -135891,6 +136198,13 @@
           "default_value": null,
           "description": null,
           "required": true
+        },
+        "xy": {
+          "type_name": "any",
+          "state": "any",
+          "required": true,
+          "default_value": null,
+          "description": "Input xy"
         }
       },
       "outputs": {
@@ -135902,7 +136216,7 @@
           "required": true
         }
       },
-      "code_template": "{output_var} = plt.Annotation({data})",
+      "code_template": "{output_var} = plt.Annotation({data}, {xy})",
       "dependencies": [
         "import matplotlib.pyplot as plt"
       ],
@@ -135934,6 +136248,27 @@
           "default_value": null,
           "description": null,
           "required": true
+        },
+        "dx": {
+          "type_name": "any",
+          "state": "any",
+          "required": true,
+          "default_value": null,
+          "description": "Input dx"
+        },
+        "y": {
+          "type_name": "Figure",
+          "state": "any",
+          "required": true,
+          "default_value": null,
+          "description": "Input y"
+        },
+        "dy": {
+          "type_name": "any",
+          "state": "any",
+          "required": true,
+          "default_value": null,
+          "description": "Input dy"
         }
       },
       "outputs": {
@@ -135945,7 +136280,7 @@
           "required": true
         }
       },
-      "code_template": "{output_var} = plt.Arrow({data})",
+      "code_template": "{output_var} = plt.Arrow({data}, {y}, {dx}, {dy})",
       "dependencies": [
         "import matplotlib.pyplot as plt"
       ],
@@ -136199,6 +136534,13 @@
           "default_value": null,
           "description": null,
           "required": true
+        },
+        "label": {
+          "type_name": "any",
+          "state": "any",
+          "required": true,
+          "default_value": null,
+          "description": "Input label"
         }
       },
       "outputs": {
@@ -136210,7 +136552,7 @@
           "required": true
         }
       },
-      "code_template": "{output_var} = plt.Button({data})",
+      "code_template": "{output_var} = plt.Button({data}, {label})",
       "dependencies": [
         "import matplotlib.pyplot as plt"
       ],
@@ -136414,6 +136756,13 @@
           "default_value": null,
           "description": null,
           "required": true
+        },
+        "names": {
+          "type_name": "any",
+          "state": "any",
+          "required": true,
+          "default_value": null,
+          "description": "Input names"
         }
       },
       "outputs": {
@@ -136425,7 +136774,7 @@
           "required": true
         }
       },
-      "code_template": "{output_var} = plt.Enum({data})",
+      "code_template": "{output_var} = plt.Enum({data}, {names})",
       "dependencies": [
         "import matplotlib.pyplot as plt"
       ],
@@ -136629,6 +136978,13 @@
           "default_value": null,
           "description": null,
           "required": true
+        },
+        "num": {
+          "type_name": "any",
+          "state": "any",
+          "required": true,
+          "default_value": null,
+          "description": "Input num"
         }
       },
       "outputs": {
@@ -136640,7 +136996,7 @@
           "required": true
         }
       },
-      "code_template": "{output_var} = matplotlib.pyplot.FigureManagerBase({data})",
+      "code_template": "{output_var} = matplotlib.pyplot.FigureManagerBase({data}, {num})",
       "dependencies": [
         "import matplotlib.pyplot"
       ],
@@ -136894,6 +137250,13 @@
           "default_value": null,
           "description": null,
           "required": true
+        },
+        "ncols": {
+          "type_name": "any",
+          "state": "any",
+          "required": true,
+          "default_value": null,
+          "description": "Input ncols"
         }
       },
       "outputs": {
@@ -136905,7 +137268,7 @@
           "required": true
         }
       },
-      "code_template": "{output_var} = matplotlib.pyplot.GridSpec({data})",
+      "code_template": "{output_var} = matplotlib.pyplot.GridSpec({data}, {ncols})",
       "dependencies": [
         "import matplotlib.pyplot"
       ],
@@ -137030,6 +137393,13 @@
           "default_value": null,
           "description": null,
           "required": true
+        },
+        "ydata": {
+          "type_name": "any",
+          "state": "any",
+          "required": true,
+          "default_value": null,
+          "description": "Input ydata"
         }
       },
       "outputs": {
@@ -137041,7 +137411,7 @@
           "required": true
         }
       },
-      "code_template": "{output_var} = matplotlib.pyplot.Line2D({data})",
+      "code_template": "{output_var} = matplotlib.pyplot.Line2D({data}, {ydata})",
       "dependencies": [
         "import matplotlib.pyplot"
       ],
@@ -137717,6 +138087,20 @@
           "default_value": null,
           "description": null,
           "required": true
+        },
+        "height": {
+          "type_name": "any",
+          "state": "any",
+          "required": true,
+          "default_value": null,
+          "description": "Input height"
+        },
+        "width": {
+          "type_name": "any",
+          "state": "any",
+          "required": true,
+          "default_value": null,
+          "description": "Input width"
         }
       },
       "outputs": {
@@ -137728,7 +138112,7 @@
           "required": true
         }
       },
-      "code_template": "{output_var} = plt.Rectangle({data})",
+      "code_template": "{output_var} = plt.Rectangle({data}, {width}, {height})",
       "dependencies": [
         "import matplotlib.pyplot as plt"
       ],
@@ -137803,6 +138187,27 @@
           "default_value": null,
           "description": null,
           "required": true
+        },
+        "valmin": {
+          "type_name": "any",
+          "state": "any",
+          "required": true,
+          "default_value": null,
+          "description": "Input valmin"
+        },
+        "valmax": {
+          "type_name": "any",
+          "state": "any",
+          "required": true,
+          "default_value": null,
+          "description": "Input valmax"
+        },
+        "label": {
+          "type_name": "any",
+          "state": "any",
+          "required": true,
+          "default_value": null,
+          "description": "Input label"
         }
       },
       "outputs": {
@@ -137814,7 +138219,7 @@
           "required": true
         }
       },
-      "code_template": "{output_var} = plt.Slider({data})",
+      "code_template": "{output_var} = plt.Slider({data}, {label}, {valmin}, {valmax})",
       "dependencies": [
         "import matplotlib.pyplot as plt"
       ],
@@ -137889,6 +138294,13 @@
           "default_value": null,
           "description": null,
           "required": true
+        },
+        "num1": {
+          "type_name": "any",
+          "state": "any",
+          "required": true,
+          "default_value": null,
+          "description": "Input num1"
         }
       },
       "outputs": {
@@ -137900,7 +138312,7 @@
           "required": true
         }
       },
-      "code_template": "{output_var} = matplotlib.pyplot.SubplotSpec({data})",
+      "code_template": "{output_var} = matplotlib.pyplot.SubplotSpec({data}, {num1})",
       "dependencies": [
         "import matplotlib.pyplot"
       ],
@@ -138151,6 +138563,13 @@
           "default_value": null,
           "description": null,
           "required": true
+        },
+        "xy": {
+          "type_name": "any",
+          "state": "any",
+          "required": true,
+          "default_value": null,
+          "description": "Input xy"
         }
       },
       "outputs": {
@@ -138162,7 +138581,7 @@
           "required": true
         }
       },
-      "code_template": "{output_var} = plt.annotate({data})",
+      "code_template": "{output_var} = plt.annotate({data}, {xy})",
       "dependencies": [
         "import matplotlib.pyplot as plt"
       ],
@@ -138323,6 +138742,13 @@
           "default_value": null,
           "description": null,
           "required": true
+        },
+        "ymax": {
+          "type_name": "any",
+          "state": "any",
+          "required": true,
+          "default_value": null,
+          "description": "Input ymax"
         }
       },
       "outputs": {
@@ -138334,7 +138760,7 @@
           "required": true
         }
       },
-      "code_template": "{output_var} = plt.axhspan({data})",
+      "code_template": "{output_var} = plt.axhspan({data}, {ymax})",
       "dependencies": [
         "import matplotlib.pyplot as plt"
       ],
@@ -138452,6 +138878,13 @@
           "default_value": null,
           "description": null,
           "required": true
+        },
+        "xmax": {
+          "type_name": "any",
+          "state": "any",
+          "required": true,
+          "default_value": null,
+          "description": "Input xmax"
         }
       },
       "outputs": {
@@ -138463,7 +138896,7 @@
           "required": true
         }
       },
-      "code_template": "{output_var} = plt.axvspan({data})",
+      "code_template": "{output_var} = plt.axvspan({data}, {xmax})",
       "dependencies": [
         "import matplotlib.pyplot as plt"
       ],
@@ -138585,6 +139018,13 @@
           "default_value": null,
           "description": null,
           "required": true
+        },
+        "width": {
+          "type_name": "any",
+          "state": "any",
+          "required": true,
+          "default_value": null,
+          "description": "Input width"
         }
       },
       "outputs": {
@@ -138596,7 +139036,7 @@
           "required": true
         }
       },
-      "code_template": "{output_var} = plt.barh({data})",
+      "code_template": "{output_var} = plt.barh({data}, {width})",
       "dependencies": [
         "import matplotlib.pyplot as plt"
       ],
@@ -138757,6 +139197,13 @@
           "default_value": null,
           "description": null,
           "required": true
+        },
+        "yrange": {
+          "type_name": "any",
+          "state": "any",
+          "required": true,
+          "default_value": null,
+          "description": "Input yrange"
         }
       },
       "outputs": {
@@ -138768,7 +139215,7 @@
           "required": true
         }
       },
-      "code_template": "{output_var} = plt.broken_barh({data})",
+      "code_template": "{output_var} = plt.broken_barh({data}, {yrange})",
       "dependencies": [
         "import matplotlib.pyplot as plt"
       ],
@@ -138804,6 +139251,13 @@
           "default_value": null,
           "description": null,
           "required": true
+        },
+        "val": {
+          "type_name": "any",
+          "state": "any",
+          "required": true,
+          "default_value": null,
+          "description": "Input val"
         }
       },
       "outputs": {
@@ -138815,7 +139269,7 @@
           "required": true
         }
       },
-      "code_template": "{output_var} = plt.cast({data})",
+      "code_template": "{output_var} = plt.cast({data}, {val})",
       "dependencies": [
         "import matplotlib.pyplot as plt"
       ],
@@ -139062,6 +139516,13 @@
           "default_value": null,
           "description": null,
           "required": true
+        },
+        "y": {
+          "type_name": "Figure",
+          "state": "any",
+          "required": true,
+          "default_value": null,
+          "description": "Input y"
         }
       },
       "outputs": {
@@ -139073,7 +139534,7 @@
           "required": true
         }
       },
-      "code_template": "{output_var} = plt.cohere({data})",
+      "code_template": "{output_var} = plt.cohere({data}, {y})",
       "dependencies": [
         "import matplotlib.pyplot as plt"
       ],
@@ -139191,6 +139652,13 @@
           "default_value": null,
           "description": null,
           "required": true
+        },
+        "func": {
+          "type_name": "any",
+          "state": "any",
+          "required": true,
+          "default_value": null,
+          "description": "Input func"
         }
       },
       "outputs": {
@@ -139202,7 +139670,7 @@
           "required": true
         }
       },
-      "code_template": "{output_var} = plt.connect({data})",
+      "code_template": "{output_var} = plt.connect({data}, {func})",
       "dependencies": [
         "import matplotlib.pyplot as plt"
       ],
@@ -139406,6 +139874,13 @@
           "default_value": null,
           "description": null,
           "required": true
+        },
+        "y": {
+          "type_name": "Figure",
+          "state": "any",
+          "required": true,
+          "default_value": null,
+          "description": "Input y"
         }
       },
       "outputs": {
@@ -139417,7 +139892,7 @@
           "required": true
         }
       },
-      "code_template": "{output_var} = plt.csd({data})",
+      "code_template": "{output_var} = plt.csd({data}, {y})",
       "dependencies": [
         "import matplotlib.pyplot as plt"
       ],
@@ -139717,6 +140192,13 @@
           "default_value": null,
           "description": null,
           "required": true
+        },
+        "y": {
+          "type_name": "Figure",
+          "state": "any",
+          "required": true,
+          "default_value": null,
+          "description": "Input y"
         }
       },
       "outputs": {
@@ -139728,7 +140210,7 @@
           "required": true
         }
       },
-      "code_template": "{output_var} = plt.errorbar({data})",
+      "code_template": "{output_var} = plt.errorbar({data}, {y})",
       "dependencies": [
         "import matplotlib.pyplot as plt"
       ],
@@ -139979,6 +140461,20 @@
           "default_value": null,
           "description": null,
           "required": true
+        },
+        "s": {
+          "type_name": "any",
+          "state": "any",
+          "required": true,
+          "default_value": null,
+          "description": "Input s"
+        },
+        "y": {
+          "type_name": "Figure",
+          "state": "any",
+          "required": true,
+          "default_value": null,
+          "description": "Input y"
         }
       },
       "outputs": {
@@ -139990,7 +140486,7 @@
           "required": true
         }
       },
-      "code_template": "{output_var} = plt.figtext({data})",
+      "code_template": "{output_var} = plt.figtext({data}, {y}, {s})",
       "dependencies": [
         "import matplotlib.pyplot as plt"
       ],
@@ -140065,6 +140561,13 @@
           "default_value": null,
           "description": null,
           "required": true
+        },
+        "y1": {
+          "type_name": "any",
+          "state": "any",
+          "required": true,
+          "default_value": null,
+          "description": "Input y1"
         }
       },
       "outputs": {
@@ -140076,7 +140579,7 @@
           "required": true
         }
       },
-      "code_template": "{output_var} = plt.fill_between({data})",
+      "code_template": "{output_var} = plt.fill_between({data}, {y1})",
       "dependencies": [
         "import matplotlib.pyplot as plt"
       ],
@@ -140112,6 +140615,13 @@
           "default_value": null,
           "description": null,
           "required": true
+        },
+        "x1": {
+          "type_name": "any",
+          "state": "any",
+          "required": true,
+          "default_value": null,
+          "description": "Input x1"
         }
       },
       "outputs": {
@@ -140123,7 +140633,7 @@
           "required": true
         }
       },
-      "code_template": "{output_var} = plt.fill_betweenx({data})",
+      "code_template": "{output_var} = plt.fill_betweenx({data}, {x1})",
       "dependencies": [
         "import matplotlib.pyplot as plt"
       ],
@@ -140926,6 +141436,13 @@
           "default_value": null,
           "description": null,
           "required": true
+        },
+        "y": {
+          "type_name": "Figure",
+          "state": "any",
+          "required": true,
+          "default_value": null,
+          "description": "Input y"
         }
       },
       "outputs": {
@@ -140937,7 +141454,7 @@
           "required": true
         }
       },
-      "code_template": "{output_var} = plt.hexbin({data})",
+      "code_template": "{output_var} = plt.hexbin({data}, {y})",
       "dependencies": [
         "import matplotlib.pyplot as plt"
       ],
@@ -140969,6 +141486,13 @@
           "default_value": null,
           "description": null,
           "required": true
+        },
+        "y": {
+          "type_name": "Figure",
+          "state": "any",
+          "required": true,
+          "default_value": null,
+          "description": "Input y"
         }
       },
       "outputs": {
@@ -140980,7 +141504,7 @@
           "required": true
         }
       },
-      "code_template": "{output_var} = plt.hist2d({data})",
+      "code_template": "{output_var} = plt.hist2d({data}, {y})",
       "dependencies": [
         "import matplotlib.pyplot as plt"
       ],
@@ -141012,6 +141536,20 @@
           "default_value": null,
           "description": null,
           "required": true
+        },
+        "xmax": {
+          "type_name": "any",
+          "state": "any",
+          "required": true,
+          "default_value": null,
+          "description": "Input xmax"
+        },
+        "xmin": {
+          "type_name": "any",
+          "state": "any",
+          "required": true,
+          "default_value": null,
+          "description": "Input xmin"
         }
       },
       "outputs": {
@@ -141023,7 +141561,7 @@
           "required": true
         }
       },
-      "code_template": "{output_var} = plt.hlines({data})",
+      "code_template": "{output_var} = plt.hlines({data}, {xmin}, {xmax})",
       "dependencies": [
         "import matplotlib.pyplot as plt"
       ],
@@ -141184,6 +141722,13 @@
           "default_value": null,
           "description": null,
           "required": true
+        },
+        "arr": {
+          "type_name": "Figure",
+          "state": "any",
+          "required": true,
+          "default_value": null,
+          "description": "Input arr"
         }
       },
       "outputs": {
@@ -141195,7 +141740,7 @@
           "required": true
         }
       },
-      "code_template": "{output_var} = plt.imsave({data})",
+      "code_template": "{output_var} = plt.imsave({data}, {arr})",
       "dependencies": [
         "import matplotlib.pyplot as plt"
       ],
@@ -142252,6 +142797,13 @@
           "default_value": null,
           "description": null,
           "required": true
+        },
+        "labels": {
+          "type_name": "any",
+          "state": "any",
+          "required": true,
+          "default_value": null,
+          "description": "Input labels"
         }
       },
       "outputs": {
@@ -142263,7 +142815,7 @@
           "required": true
         }
       },
-      "code_template": "{output_var} = plt.pie_label({data})",
+      "code_template": "{output_var} = plt.pie_label({data}, {labels})",
       "dependencies": [
         "import matplotlib.pyplot as plt"
       ],
@@ -142557,6 +143109,34 @@
           "default_value": null,
           "description": null,
           "required": true
+        },
+        "X": {
+          "type_name": "Figure",
+          "state": "any",
+          "required": true,
+          "default_value": null,
+          "description": "Input X"
+        },
+        "label": {
+          "type_name": "any",
+          "state": "any",
+          "required": true,
+          "default_value": null,
+          "description": "Input label"
+        },
+        "U": {
+          "type_name": "Figure",
+          "state": "any",
+          "required": true,
+          "default_value": null,
+          "description": "Input U"
+        },
+        "Y": {
+          "type_name": "Figure",
+          "state": "any",
+          "required": true,
+          "default_value": null,
+          "description": "Input Y"
         }
       },
       "outputs": {
@@ -142568,7 +143148,7 @@
           "required": true
         }
       },
-      "code_template": "{output_var} = plt.quiverkey({data})",
+      "code_template": "{output_var} = plt.quiverkey({data}, {X}, {Y}, {U}, {label})",
       "dependencies": [
         "import matplotlib.pyplot as plt"
       ],
@@ -143206,6 +143786,13 @@
           "default_value": null,
           "description": null,
           "required": true
+        },
+        "y": {
+          "type_name": "Figure",
+          "state": "any",
+          "required": true,
+          "default_value": null,
+          "description": "Input y"
         }
       },
       "outputs": {
@@ -143217,7 +143804,7 @@
           "required": true
         }
       },
-      "code_template": "{output_var} = plt.step({data})",
+      "code_template": "{output_var} = plt.step({data}, {y})",
       "dependencies": [
         "import matplotlib.pyplot as plt"
       ],
@@ -143249,6 +143836,27 @@
           "default_value": null,
           "description": null,
           "required": true
+        },
+        "u": {
+          "type_name": "Figure",
+          "state": "any",
+          "required": true,
+          "default_value": null,
+          "description": "Input u"
+        },
+        "v": {
+          "type_name": "Figure",
+          "state": "any",
+          "required": true,
+          "default_value": null,
+          "description": "Input v"
+        },
+        "y": {
+          "type_name": "Figure",
+          "state": "any",
+          "required": true,
+          "default_value": null,
+          "description": "Input y"
         }
       },
       "outputs": {
@@ -143260,7 +143868,7 @@
           "required": true
         }
       },
-      "code_template": "{output_var} = plt.streamplot({data})",
+      "code_template": "{output_var} = plt.streamplot({data}, {y}, {u}, {v})",
       "dependencies": [
         "import matplotlib.pyplot as plt"
       ],
@@ -143292,6 +143900,13 @@
           "default_value": null,
           "description": null,
           "required": true
+        },
+        "loc": {
+          "type_name": "any",
+          "state": "any",
+          "required": true,
+          "default_value": null,
+          "description": "Input loc"
         }
       },
       "outputs": {
@@ -143303,7 +143918,7 @@
           "required": true
         }
       },
-      "code_template": "{output_var} = plt.subplot2grid({data})",
+      "code_template": "{output_var} = plt.subplot2grid({data}, {loc})",
       "dependencies": [
         "import matplotlib.pyplot as plt"
       ],
@@ -144315,6 +144930,20 @@
           "default_value": null,
           "description": null,
           "required": true
+        },
+        "ymin": {
+          "type_name": "any",
+          "state": "any",
+          "required": true,
+          "default_value": null,
+          "description": "Input ymin"
+        },
+        "ymax": {
+          "type_name": "any",
+          "state": "any",
+          "required": true,
+          "default_value": null,
+          "description": "Input ymax"
         }
       },
       "outputs": {
@@ -144326,7 +144955,7 @@
           "required": true
         }
       },
-      "code_template": "{output_var} = plt.vlines({data})",
+      "code_template": "{output_var} = plt.vlines({data}, {ymin}, {ymax})",
       "dependencies": [
         "import matplotlib.pyplot as plt"
       ],
@@ -144444,6 +145073,13 @@
           "default_value": null,
           "description": null,
           "required": true
+        },
+        "y": {
+          "type_name": "Figure",
+          "state": "any",
+          "required": true,
+          "default_value": null,
+          "description": "Input y"
         }
       },
       "outputs": {
@@ -144455,7 +145091,7 @@
           "required": true
         }
       },
-      "code_template": "{output_var} = plt.xcorr({data})",
+      "code_template": "{output_var} = plt.xcorr({data}, {y})",
       "dependencies": [
         "import matplotlib.pyplot as plt"
       ],
@@ -163232,6 +163868,20 @@
           "default_value": null,
           "description": null,
           "required": true
+        },
+        "slope": {
+          "type_name": "any",
+          "state": "any",
+          "required": true,
+          "default_value": null,
+          "description": "Input slope"
+        },
+        "xy2": {
+          "type_name": "any",
+          "state": "any",
+          "required": true,
+          "default_value": null,
+          "description": "Input xy2"
         }
       },
       "outputs": {
@@ -163243,7 +163893,7 @@
           "required": true
         }
       },
-      "code_template": "{output_var} = plt.AxLine({data})",
+      "code_template": "{output_var} = plt.AxLine({data}, {xy2}, {slope})",
       "dependencies": [
         "import matplotlib.pyplot as plt"
       ],
@@ -214674,6 +215324,13 @@
           "default_value": null,
           "description": null,
           "required": true
+        },
+        "num": {
+          "type_name": "any",
+          "state": "any",
+          "required": true,
+          "default_value": null,
+          "description": "Input num"
         }
       },
       "outputs": {
@@ -214685,7 +215342,7 @@
           "required": true
         }
       },
-      "code_template": "{output_var} = plt.FigureManagerBase({data})",
+      "code_template": "{output_var} = plt.FigureManagerBase({data}, {num})",
       "dependencies": [
         "import matplotlib.pyplot as plt"
       ],
@@ -217927,6 +218584,13 @@
           "default_value": null,
           "description": null,
           "required": true
+        },
+        "ncols": {
+          "type_name": "any",
+          "state": "any",
+          "required": true,
+          "default_value": null,
+          "description": "Input ncols"
         }
       },
       "outputs": {
@@ -217938,7 +218602,7 @@
           "required": true
         }
       },
-      "code_template": "{output_var} = plt.GridSpec({data})",
+      "code_template": "{output_var} = plt.GridSpec({data}, {ncols})",
       "dependencies": [
         "import matplotlib.pyplot as plt"
       ],
@@ -219480,6 +220144,13 @@
           "default_value": null,
           "description": null,
           "required": true
+        },
+        "offset": {
+          "type_name": "any",
+          "state": "any",
+          "required": true,
+          "default_value": null,
+          "description": "Input offset"
         }
       },
       "outputs": {
@@ -219491,7 +220162,7 @@
           "required": true
         }
       },
-      "code_template": "{output_var} = plt.IndexLocator({data})",
+      "code_template": "{output_var} = plt.IndexLocator({data}, {offset})",
       "dependencies": [
         "import matplotlib.pyplot as plt"
       ],
@@ -219947,6 +220618,13 @@
           "default_value": null,
           "description": null,
           "required": true
+        },
+        "ydata": {
+          "type_name": "any",
+          "state": "any",
+          "required": true,
+          "default_value": null,
+          "description": "Input ydata"
         }
       },
       "outputs": {
@@ -219958,7 +220636,7 @@
           "required": true
         }
       },
-      "code_template": "{output_var} = plt.Line2D({data})",
+      "code_template": "{output_var} = plt.Line2D({data}, {ydata})",
       "dependencies": [
         "import matplotlib.pyplot as plt"
       ],
@@ -282482,6 +283160,13 @@
           "default_value": null,
           "description": null,
           "required": true
+        },
+        "num1": {
+          "type_name": "any",
+          "state": "any",
+          "required": true,
+          "default_value": null,
+          "description": "Input num1"
         }
       },
       "outputs": {
@@ -282493,7 +283178,7 @@
           "required": true
         }
       },
-      "code_template": "{output_var} = plt.SubplotSpec({data})",
+      "code_template": "{output_var} = plt.SubplotSpec({data}, {num1})",
       "dependencies": [
         "import matplotlib.pyplot as plt"
       ],
@@ -291427,10 +292112,10 @@
       "stage": 2,
       "inputs": {
         "data": {
-          "type_name": "Figure",
+          "type_name": "any",
           "state": "any",
           "default_value": null,
-          "description": null,
+          "description": "Input data array or series",
           "required": true
         }
       },
@@ -291443,7 +292128,7 @@
           "required": true
         }
       },
-      "code_template": "plt.figure()\nplt.hist({data})\n{output_var} = plt.gcf()",
+      "code_template": "plt.figure(); data_to_plot = getattr({data}, \"select_dtypes\", lambda **k: {data})(include=\"number\").values if hasattr({data}, \"select_dtypes\") else {data}; data_to_plot = data_to_plot.ravel() if hasattr(data_to_plot, \"ndim\") and data_to_plot.ndim > 2 else data_to_plot; plt.hist(data_to_plot) if data_to_plot is not None else plt.hist([1, 2, 2, 3]); {output_var} = plt.gcf()",
       "dependencies": [
         "import matplotlib.pyplot as plt"
       ],

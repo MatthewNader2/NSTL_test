@@ -72,3 +72,7 @@ MODELS_DIR = str(settings.models_dir)
 API_HOST = settings.api_host
 API_PORT = settings.api_port
 CORS_ORIGINS = settings.cors_origins
+SIMILARITY_THRESHOLD = 0.25
+
+def find_llama_server():
+    return None

@@ -57,6 +57,97 @@ class InferenceProfile(ABC):
         pass
 
 
+def select_optimal_embedder(requested_name: str = "") -> str:
+    """
+    Selects the optimal local embedding model based on precomputed cache coverage and inference speed.
+    Scoring: S(m) = w_coverage * C(m) + w_efficiency * E(m)
+    where:
+      C(m) = precomputed cache coverage ratio in .rag_cache (0.0 to 1.0)
+      E(m) = parameter/dimension efficiency heuristic (e.g. nano vs small vs 300m)
+    """
+    emb_base_dir = os.path.join(MODELS_DIR, "embeddings")
+    if not os.path.exists(emb_base_dir):
+        return requested_name or "default"
+
+    available = sorted([
+        d for d in os.listdir(emb_base_dir)
+        if os.path.isdir(os.path.join(emb_base_dir, d)) and not d.endswith("-GGUF")
+    ])
+    if not available:
+        return requested_name or "default"
+
+    # Locate .rag_cache directory
+    possible_cache_dirs = [
+        os.path.join(os.path.dirname(MODELS_DIR), ".rag_cache"),
+        os.path.join(MODELS_DIR, ".rag_cache"),
+        os.path.abspath(".rag_cache")
+    ]
+    cache_dir = None
+    for cd in possible_cache_dirs:
+        if os.path.exists(cd):
+            cache_dir = cd
+            break
+
+    def get_model_metrics(m_name: str) -> tuple[float, float]:
+        coverage = 0.0
+        name_lower = m_name.lower()
+        if "nano" in name_lower:
+            efficiency = 1.0
+        elif "small" in name_lower:
+            efficiency = 0.8
+        elif "300m" in name_lower:
+            efficiency = 0.5
+        elif "0.6b" in name_lower or "1b" in name_lower:
+            efficiency = 0.3
+        else:
+            efficiency = 0.5
+
+        if cache_dir and os.path.exists(cache_dir):
+            for f in os.listdir(cache_dir):
+                if f.startswith(f"{m_name}__dim") and f.endswith("_cache.pkl"):
+                    f_path = os.path.join(cache_dir, f)
+                    try:
+                        sz = os.path.getsize(f_path)
+                        coverage = min(1.0, sz / (300 * 1024 * 1024))
+                    except Exception:
+                        pass
+                    break
+        return coverage, efficiency
+
+    req = (requested_name or "").strip()
+    if req and req not in ("auto", "default"):
+        if req in available:
+            cov, _ = get_model_metrics(req)
+            if cov < 0.8:
+                logger.warning(
+                    f"[EMBEDDER] Requested '{req}' has low precomputed cache coverage ({cov*100:.1f}%). "
+                    f"First-run CPU embedding may introduce high latency."
+                )
+            return req
+        for cand in available:
+            if req.lower() in cand.lower():
+                cov, _ = get_model_metrics(cand)
+                if cov < 0.8:
+                    logger.warning(
+                        f"[EMBEDDER] Matched '{cand}' has low precomputed cache coverage ({cov*100:.1f}%)."
+                    )
+                return cand
+
+    best_model = available[0]
+    best_score = -1.0
+
+    for cand in available:
+        cov, eff = get_model_metrics(cand)
+        score = 0.85 * cov + 0.15 * eff
+        logger.debug(f"[EMBEDDER EVAL] Model: {cand} | Coverage: {cov:.2f} | Efficiency: {eff:.2f} | Score: {score:.3f}")
+        if score > best_score:
+            best_score = score
+            best_model = cand
+
+    logger.info(f"[EMBEDDER SELECTION] Selected optimal model '{best_model}' (readiness score: {best_score:.3f})")
+    return best_model
+
+
 class BenchmarkProfile_A(InferenceProfile):
     """Profile A: Embedding Only."""
     def __init__(self):
@@ -69,19 +160,8 @@ class BenchmarkProfile_A(InferenceProfile):
         from sentence_transformers import SentenceTransformer
         from router import HardwareProfiler
 
-        self.embedder_name = embedder_name or "auto"
+        self.embedder_name = select_optimal_embedder(embedder_name)
         emb_path = os.path.join(MODELS_DIR, "embeddings", self.embedder_name)
-        if not os.path.exists(emb_path):
-            emb_base_dir = os.path.join(MODELS_DIR, "embeddings")
-            if os.path.exists(emb_base_dir):
-                available = sorted([
-                    d for d in os.listdir(emb_base_dir)
-                    if os.path.isdir(os.path.join(emb_base_dir, d)) and not d.endswith("-GGUF")
-                ])
-                if available:
-                    self.embedder_name = available[0]
-                    emb_path = os.path.join(emb_base_dir, self.embedder_name)
-
         device = HardwareProfiler.get_optimal_device()
         try:
             self.model = SentenceTransformer(emb_path, device=device, trust_remote_code=True, model_kwargs={"default_task": "retrieval"})
@@ -142,18 +222,8 @@ class BenchmarkProfile_C(InferenceProfile):
         device = HardwareProfiler.get_optimal_device()
 
         # 1. Load Embedder
-        self.embedder_name = embedder_name or "auto"
+        self.embedder_name = select_optimal_embedder(embedder_name)
         emb_path = os.path.join(MODELS_DIR, "embeddings", self.embedder_name)
-        if not os.path.exists(emb_path):
-            emb_base_dir = os.path.join(MODELS_DIR, "embeddings")
-            if os.path.exists(emb_base_dir):
-                available = sorted([
-                    d for d in os.listdir(emb_base_dir)
-                    if os.path.isdir(os.path.join(emb_base_dir, d)) and not d.endswith("-GGUF")
-                ])
-                if available:
-                    self.embedder_name = available[0]
-                    emb_path = os.path.join(emb_base_dir, self.embedder_name)
 
         try:
             self.embedder = SentenceTransformer(emb_path, device=device, trust_remote_code=True, model_kwargs={"default_task": "retrieval"})

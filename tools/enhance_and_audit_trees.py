@@ -12,6 +12,16 @@ if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
 from src.tokenizer import CellTokenizer
+from src.template_wiring import (
+    transform_call_ast_with_flag,
+    clean_malformed_template_braces,
+    repair_wiring_invariant,
+)
+from src.signature_introspector import (
+    get_enum_parameter_map,
+    get_callable_parameters,
+    validate_and_reconstruct_call,
+)
 
 # Dynamic Module Import Registry
 MODULES: Dict[str, Any] = {}
@@ -144,35 +154,6 @@ def discover_class_families(mod: Any) -> Dict[str, List[str]]:
     return {k: sorted(v) for k, v in families.items() if len(v) >= 3}
 
 
-def transform_call_ast_with_flag(code_snippet: str, mod_alias: str, flag_attr: str) -> str:
-    """Uses AST Node Transformation to inject flag attribute into function call snippet dynamically."""
-    if not code_snippet:
-        return f"{{output_var}} = {mod_alias}.{flag_attr}()"
-
-    valid_code = code_snippet.replace('{output_var}', 'output_var').replace('{src}', 'src').replace('{input_var}', 'input_var').replace('{image}', 'image')
-    
-    try:
-        tree = ast.parse(valid_code)
-        
-        class FlagASTReplacer(ast.NodeTransformer):
-            def visit_Call(self, node):
-                self.generic_visit(node)
-                flag_node = ast.Attribute(value=ast.Name(id=mod_alias, ctx=ast.Load()), attr=flag_attr, ctx=ast.Load())
-                if node.args:
-                    node.args[-1] = flag_node
-                elif node.keywords:
-                    node.keywords[-1].value = flag_node
-                else:
-                    node.args.append(flag_node)
-                return node
-
-        transformed = FlagASTReplacer().visit(tree)
-        ast.fix_missing_locations(transformed)
-        unparsed = ast.unparse(transformed)
-        return unparsed.replace('output_var', '{output_var}').replace('src', '{src}').replace('input_var', '{input_var}').replace('image', '{image}')
-    except Exception:
-        return code_snippet
-
 
 def build_dynamic_nested_special_nodes(library_name: str, nodes: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
     """
@@ -204,7 +185,11 @@ def build_dynamic_nested_special_nodes(library_name: str, nodes: List[Dict[str, 
     # Match nodes against discovered constant groups dynamically
     for node in nodes:
         func_name = node.get("function", node.get("name", ""))
-        code_snippet = node.get("domain_implementations", {}).get("Python_Core", {}).get("code", "")
+        code_snippet = (
+            node.get("code_template")
+            or node.get("code")
+            or node.get("domain_implementations", {}).get("Python_Core", {}).get("code", "")
+        )
         
         if not func_name and code_snippet:
             match = re.search(r"([a-zA-Z0-9_]+\.[a-zA-Z0-9_\.]+)\(", code_snippet)
@@ -220,13 +205,15 @@ def build_dynamic_nested_special_nodes(library_name: str, nodes: List[Dict[str, 
             continue
 
         doc = getattr(func_obj, "__doc__", "") or ""
-        func_upper = base_func.upper()
-        doc_upper = doc.upper()
+        enum_param_map = get_enum_parameter_map(doc)
 
         matched_prefix = None
         for prefix in constant_groups:
-            if prefix in func_upper or (len(prefix) >= 4 and prefix in doc_upper):
-                matched_prefix = prefix
+            for p_prefix, p_name in enum_param_map.items():
+                if prefix.startswith(p_prefix) or p_prefix.startswith(prefix):
+                    matched_prefix = prefix
+                    break
+            if matched_prefix:
                 break
 
         if matched_prefix:
@@ -250,6 +237,9 @@ def build_dynamic_nested_special_nodes(library_name: str, nodes: List[Dict[str, 
             in_type = node.get("inputs", [{}])[0].get("type", "AnyObject") if node.get("inputs") else "AnyObject"
             out_type = infer_concrete_output_type(func_obj, node.get("outputs", [{}])[0].get("type", "")) if node.get("outputs") else "AnyObject"
 
+            parent_inputs = node.get("inputs", [{"name": "input_var", "type": in_type}])
+            parent_outputs = node.get("outputs", [{"name": "output_var", "type": out_type}])
+
             special_nodes.append({
                 "cell_id": f"{library_name.upper()}_{base_func.upper()}",
                 "domain": library_name,
@@ -257,8 +247,8 @@ def build_dynamic_nested_special_nodes(library_name: str, nodes: List[Dict[str, 
                 "node_type": "special_nested",
                 "function": f"{library_name}.{base_func}",
                 "description": f"{library_name} {base_func} master node with {len(variants)} dynamically reflected sub-node variants.",
-                "inputs": [{"name": "src", "type": in_type}],
-                "outputs": [{"name": "dst", "type": out_type}],
+                "inputs": parent_inputs,
+                "outputs": parent_outputs,
                 "params": node.get("params", []),
                 "domain_implementations": {
                     "Python_Core": {
@@ -322,9 +312,9 @@ def build_dynamic_nested_special_nodes(library_name: str, nodes: List[Dict[str, 
                 "node_type": "special_nested",
                 "function": f"{library_name}.{family_suffix}",
                 "description": f"{library_name} dynamic class family {family_suffix} with {len(variants)} reflected variants.",
-                "inputs": [{"name": "X", "type": "ndarray"}],
-                "outputs": [{"name": "X_out", "type": "ndarray"}],
-                "params": [{"name": "X", "type": "ndarray"}],
+                "inputs": [{"name": "input_var", "type": "ndarray"}],
+                "outputs": [{"name": "output_var", "type": "ndarray"}],
+                "params": [{"name": "input_var", "type": "ndarray"}],
                 "domain_implementations": {"Python_Core": {"code": f"{{output_var}} = {cls_list[0]}().fit_transform({{input_var}})"}},
                 "variants": variants
             })

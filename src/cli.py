@@ -38,9 +38,9 @@ def cmd_harvest(args):
     print(f"[+] Merged and saved into '{out_file}'.")
 
 
-def init_sqlite_db(db_path: Path) -> sqlite3.Connection:
-    """Initializes standard NSTL SQLite schema."""
-    if db_path.exists():
+def init_sqlite_db(db_path: Path, clean: bool = False) -> sqlite3.Connection:
+    """Initializes standard NSTL SQLite schema without destroying existing data unless clean=True."""
+    if clean and db_path.exists():
         os.remove(db_path)
     db_path.parent.mkdir(parents=True, exist_ok=True)
 
@@ -88,7 +88,7 @@ def cmd_compile(args):
         json_files = [f for f in json_files if f.stem in domain_filter or any(d in f.stem for d in domain_filter)]
 
     print(f"[*] Compiling {len(json_files)} domain JSON files from '{trees_dir}' into '{out_db}'...")
-    conn = init_sqlite_db(out_db)
+    conn = init_sqlite_db(out_db, clean=getattr(args, "clean", False))
     cur = conn.cursor()
 
     total_compiled = 0
@@ -253,7 +253,7 @@ try:
     from router import LatticeRouter, HardwareProfiler
     from unification import UnificationGate, DynamicPlaceholderResolver
     from gevr_sandbox import GEVRSandbox
-    from inference import ModelManager
+    from inference import ModelManager, select_optimal_embedder
     from internal_rag import LocalRAG
     from config import MODELS_DIR
     from utils import extract_code_from_llm_response
@@ -262,7 +262,7 @@ except ImportError:
     from .router import LatticeRouter, HardwareProfiler
     from .unification import UnificationGate, DynamicPlaceholderResolver
     from .gevr_sandbox import GEVRSandbox
-    from .inference import ModelManager
+    from .inference import ModelManager, select_optimal_embedder
     from .internal_rag import LocalRAG
     from .config import MODELS_DIR
     from .utils import extract_code_from_llm_response
@@ -432,11 +432,9 @@ class NSTLInteractiveShell(cmd.Cmd):
             console.print(f"[bold red][!] Unknown profile '{profile}'. Valid options: 0 (Symbolic), A, C, D, E.[/bold red]")
             return False
 
-        # Determine default model names if not provided
-        available_emb = _get_available_embedders()
+        # Determine default model names dynamically based on cache coverage
         available_llm = _get_available_llms()
-
-        emb_choice = embedder or self.embedder_name or (available_emb[0] if available_emb else "jina-embeddings-v5-text-nano")
+        emb_choice = select_optimal_embedder(embedder or self.embedder_name or "auto")
         llm_choice = llm or self.llm_name or (available_llm[0] if available_llm else "qwen2.5-coder-0.5b-instruct")
 
         if verbose:
@@ -695,7 +693,24 @@ class NSTLInteractiveShell(cmd.Cmd):
 
         # Step 4: Sandbox Verification & Optional Self-Repair
         t_exec_start = time.perf_counter()
-        sandbox_res = self.sandbox.execute(final_code, timeout=5.0)
+        has_sink = any(
+            getattr(c, "stage", None) == 3 or
+            any(getattr(p, "state", None) in ("filepath_written", "saved", "exported") or
+                getattr(getattr(p, "signature", None), "state", None) in ("filepath_written", "saved", "exported")
+                for p in getattr(c, "outputs", {}).values())
+            for c in cells
+        )
+        dest_paths = None
+        if has_sink:
+            if hasattr(self.gate, "context") and hasattr(self.gate.context, "dest_files") and self.gate.context.dest_files:
+                dest_paths = [self.gate.context.dest_files[-1]]
+            else:
+                from router import extract_file_paths_and_extensions
+                paths, _ = extract_file_paths_and_extensions(prompt)
+                if paths:
+                    dest_paths = [paths[-1]]
+
+        sandbox_res = self.sandbox.execute(final_code, timeout=5.0, egress_paths=dest_paths)
         sandbox_dt = (time.perf_counter() - t_exec_start) * 1000.0
 
         repaired = False
@@ -712,7 +727,7 @@ class NSTLInteractiveShell(cmd.Cmd):
                     final_code = repaired_code
                     repaired = True
                     # Re-verify repaired code
-                    sandbox_res = self.sandbox.execute(final_code, timeout=5.0)
+                    sandbox_res = self.sandbox.execute(final_code, timeout=5.0, egress_paths=dest_paths)
                     rep_dt = (time.perf_counter() - t_rep_start) * 1000.0
                     console.print(f"  [bold green][✓] Repair cycle completed ({rep_dt:.1f}ms).[/bold green]")
 
@@ -762,7 +777,12 @@ class NSTLInteractiveShell(cmd.Cmd):
             "profile": self.active_profile,
             "path": path_ids,
             "latency_ms": total_dt,
-            "sandbox_status": sb_status
+            "sandbox_status": sb_status,
+            "code": final_code,
+            "route_ms": route_dt,
+            "synth_ms": synth_dt,
+            "sandbox_ms": sandbox_dt,
+            "sandbox_error": sandbox_res.get("error", "")
         })
 
     def do_exit(self, line):
@@ -817,6 +837,7 @@ def main():
     p_compile.add_argument("--trees-dir", type=str, default="trees", help="Directory containing domain JSON files")
     p_compile.add_argument("--output", type=str, default="trees/lattice.db", help="Target SQLite DB path")
     p_compile.add_argument("--domains", nargs="*", default=None, help="Optional domain filter")
+    p_compile.add_argument("--clean", action="store_true", help="Purge target database before compiling (default: non-destructive upsert)")
     p_compile.set_defaults(func=cmd_compile)
 
     # validate

@@ -130,15 +130,15 @@
         "graph": {
           "type_name": "dict",
           "state": "adjacency_dict",
-          "default_value": null,
-          "description": "",
+          "default_value": "{'A': {'B': 1, 'C': 4}, 'B': {'C': 2, 'D': 5}, 'C': {'D': 1}, 'D': {}}",
+          "description": "Adjacency dictionary representing graph with weights",
           "required": false
         },
         "start": {
           "type_name": "str",
           "state": "source_node",
-          "default_value": null,
-          "description": "",
+          "default_value": "'A'",
+          "description": "Start source node identifier",
           "required": false
         }
       },
@@ -4233,6 +4233,20 @@
           "default_value": null,
           "description": "",
           "required": true
+        },
+        "mode": {
+          "type_name": "any",
+          "state": "any",
+          "required": true,
+          "default_value": null,
+          "description": "Input mode"
+        },
+        "filename": {
+          "type_name": "str",
+          "state": "any",
+          "required": true,
+          "default_value": null,
+          "description": "Input filename"
         }
       },
       "outputs": {
@@ -4244,7 +4258,7 @@
           "required": true
         }
       },
-      "code_template": "{output_var} = builtins.compile({input_var})",
+      "code_template": "{output_var} = builtins.compile({input_var}, {filename}, {mode})",
       "dependencies": [],
       "semantic_tags": [
         "builtin",
@@ -4296,6 +4310,13 @@
           "default_value": null,
           "description": "",
           "required": true
+        },
+        "name": {
+          "type_name": "any",
+          "state": "any",
+          "required": true,
+          "default_value": null,
+          "description": "Input name"
         }
       },
       "outputs": {
@@ -4307,7 +4328,7 @@
           "required": true
         }
       },
-      "code_template": "{output_var} = builtins.delattr({input_var})",
+      "code_template": "{output_var} = builtins.delattr({input_var}, {name})",
       "dependencies": [],
       "semantic_tags": [
         "builtins",
@@ -5605,6 +5626,13 @@
           "default_value": null,
           "description": "",
           "required": true
+        },
+        "name": {
+          "type_name": "any",
+          "state": "any",
+          "required": true,
+          "default_value": null,
+          "description": "Input name"
         }
       },
       "outputs": {
@@ -5616,7 +5644,7 @@
           "required": true
         }
       },
-      "code_template": "{output_var} = builtins.getattr({input_var})",
+      "code_template": "{output_var} = builtins.getattr({input_var}, {name})",
       "dependencies": [],
       "semantic_tags": [
         "builtin",
@@ -5723,6 +5751,13 @@
           "default_value": null,
           "description": "",
           "required": true
+        },
+        "name": {
+          "type_name": "any",
+          "state": "any",
+          "required": true,
+          "default_value": null,
+          "description": "Input name"
         }
       },
       "outputs": {
@@ -5734,7 +5769,7 @@
           "required": true
         }
       },
-      "code_template": "{output_var} = builtins.hasattr({input_var})",
+      "code_template": "{output_var} = builtins.hasattr({input_var}, {name})",
       "dependencies": [],
       "semantic_tags": [
         "attribute",
@@ -5959,6 +5994,13 @@
           "default_value": null,
           "description": "",
           "required": true
+        },
+        "class_or_tuple": {
+          "type_name": "any",
+          "state": "any",
+          "required": true,
+          "default_value": null,
+          "description": "Input class_or_tuple"
         }
       },
       "outputs": {
@@ -5970,7 +6012,7 @@
           "required": true
         }
       },
-      "code_template": "{output_var} = builtins.isinstance({input_var})",
+      "code_template": "{output_var} = builtins.isinstance({input_var}, {class_or_tuple})",
       "dependencies": [],
       "semantic_tags": [
         "builtins",
@@ -7722,6 +7764,20 @@
           "default_value": null,
           "description": "",
           "required": true
+        },
+        "value": {
+          "type_name": "any",
+          "state": "any",
+          "required": true,
+          "default_value": null,
+          "description": "Input value"
+        },
+        "name": {
+          "type_name": "any",
+          "state": "any",
+          "required": true,
+          "default_value": null,
+          "description": "Input name"
         }
       },
       "outputs": {
@@ -7733,7 +7789,7 @@
           "required": true
         }
       },
-      "code_template": "{output_var} = builtins.setattr({input_var})",
+      "code_template": "{output_var} = builtins.setattr({input_var}, {name}, {value})",
       "dependencies": [],
       "semantic_tags": [
         "attribute",
@@ -12198,6 +12254,13 @@
           "default_value": null,
           "description": "",
           "required": true
+        },
+        "value": {
+          "type_name": "any",
+          "state": "any",
+          "required": true,
+          "default_value": null,
+          "description": "Input value"
         }
       },
       "outputs": {

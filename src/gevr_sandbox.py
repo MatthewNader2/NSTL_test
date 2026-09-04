@@ -37,11 +37,10 @@ def _init_worker(paths: list[str]):
 
 
 _BLOCKED_MODULES = frozenset({
-    'os', 'subprocess', 'shutil', 'socket', 'sys', 'ctypes',
-    'signal', 'resource', 'importlib', 'pathlib', 'tempfile',
-    'multiprocessing', 'threading', 'http', 'urllib', 'ftplib',
-    'smtplib', 'telnetlib', 'xmlrpc', 'code', 'codeop', 'compile',
-    'compileall', 'py_compile', 'zipimport', 'pkgutil',
+    'subprocess', 'shutil', 'socket', 'ctypes',
+    'signal', 'importlib', 'multiprocessing', 'threading', 'http',
+    'urllib', 'ftplib', 'smtplib', 'telnetlib', 'xmlrpc', 'code',
+    'codeop', 'compileall', 'py_compile', 'zipimport', 'pkgutil',
 })
 
 def _restricted_import(name, *args, **kwargs):
@@ -50,8 +49,16 @@ def _restricted_import(name, *args, **kwargs):
         raise ImportError(f"Import of '{name}' is blocked in NSTL sandbox for security.")
     return __builtins__.__import__(name, *args, **kwargs) if hasattr(__builtins__, '__import__') else __import__(name, *args, **kwargs)
 
-def _sandbox_worker_exec(code: str) -> Dict[str, Any]:
+from errors import DataflowExecutionError, ArtifactMaterializationError
+
+
+def _sandbox_worker_exec(code: str, egress_paths: Optional[list[str]] = None, cwd: Optional[str] = None) -> Dict[str, Any]:
     """Isolated execution unit executed within persistent worker process."""
+    if cwd:
+        try:
+            os.chdir(cwd)
+        except Exception:
+            pass
     stdout_buf = io.StringIO()
     stderr_buf = io.StringIO()
 
@@ -64,18 +71,76 @@ def _sandbox_worker_exec(code: str) -> Dict[str, Any]:
                 "__builtins__": builtins_dict
             }
             exec(code, exec_globals)
+
+            # 1. Dataflow Non-Vacuity Verification: inspect top-level AST for final assigned variable
+            parsed = ast.parse(code)
+            terminal_var = None
+            for node in reversed(parsed.body):
+                if isinstance(node, ast.Assign):
+                    for target in reversed(node.targets):
+                        if isinstance(target, ast.Name):
+                            terminal_var = target.id
+                            break
+                    if terminal_var:
+                        break
+                elif isinstance(node, (ast.AugAssign, ast.AnnAssign)):
+                    if isinstance(node.target, ast.Name):
+                        terminal_var = node.target.id
+                        break
+
+            if terminal_var:
+                if terminal_var not in exec_globals:
+                    raise DataflowExecutionError(
+                        f"Terminal pipeline variable '{terminal_var}' was not created in execution scope."
+                    )
+                val = exec_globals[terminal_var]
+                if val is None:
+                    raise DataflowExecutionError(
+                        f"Terminal pipeline variable '{terminal_var}' evaluated to None."
+                    )
+                if val is False and egress_paths:
+                    raise DataflowExecutionError(
+                        f"Terminal pipeline save operation '{terminal_var}' returned False."
+                    )
+
+            # 2. Guarded Branch Failure Detection in STDERR (not STDOUT, which may contain legitimate metrics like 'Mean Squared Error')
+            stdout_str = stdout_buf.getvalue()
+            stderr_str = stderr_buf.getvalue()
+            stderr_lower = stderr_str.lower()
+            error_markers = [
+                "traceback (most recent call last)", "segmentation fault",
+                "fatal error", "core dumped", "cv2.error:"
+            ]
+            for marker in error_markers:
+                if marker in stderr_lower:
+                    raise DataflowExecutionError(
+                        f"Guarded failure detected in stderr: '{marker}'."
+                    )
+
+            # 3. Physical Artifact Materialization Verification
+            if egress_paths:
+                for p in egress_paths:
+                    if not p:
+                        continue
+                    clean_p = p.strip("\"'")
+                    if not os.path.exists(clean_p) or os.path.getsize(clean_p) == 0:
+                        raise ArtifactMaterializationError(
+                            f"Egress destination artifact '{clean_p}' was not created or has 0 bytes."
+                        )
+
             return {
                 "success": True,
-                "stdout": stdout_buf.getvalue(),
-                "stderr": stderr_buf.getvalue(),
+                "stdout": stdout_str,
+                "stderr": stderr_str,
                 "error": ""
             }
-        except Exception:
+        except Exception as e:
+            err_msg = f"{type(e).__name__}: {e}" if isinstance(e, (DataflowExecutionError, ArtifactMaterializationError)) else traceback.format_exc()
             return {
                 "success": False,
                 "stdout": stdout_buf.getvalue(),
                 "stderr": stderr_buf.getvalue(),
-                "error": traceback.format_exc()
+                "error": err_msg
             }
 
 
@@ -104,7 +169,7 @@ class GEVRSandbox:
                         maxtasksperchild=100
                     )
 
-    def execute(self, code: str, timeout: Optional[float] = None) -> Dict[str, Any]:
+    def execute(self, code: str, timeout: Optional[float] = None, egress_paths: Optional[list[str]] = None) -> Dict[str, Any]:
         """
         Executes Python code in the persistent worker process pool.
         Returns: {'success': bool, 'stdout': str, 'stderr': str, 'error': str}
@@ -119,9 +184,10 @@ class GEVRSandbox:
             return {"success": False, "stdout": "", "stderr": "", "error": f"SyntaxError: {e}"}
 
         tout = timeout if timeout is not None else self.timeout
+        cwd = os.getcwd()
         try:
             self._ensure_pool()
-            async_res = self._pool.apply_async(_sandbox_worker_exec, (code,))
+            async_res = self._pool.apply_async(_sandbox_worker_exec, (code, egress_paths, cwd))
             res = async_res.get(timeout=tout)
             if res.get("error") is None:
                 res["error"] = ""
@@ -131,11 +197,11 @@ class GEVRSandbox:
         except Exception as e:
             return {"success": False, "stdout": "", "stderr": "", "error": f"ExecutionSystemError: {e}"}
 
-    def execute_and_verify(self, code: str) -> Tuple[bool, str, str]:
+    def execute_and_verify(self, code: str, egress_paths: Optional[list[str]] = None) -> Tuple[bool, str, str]:
         """
         Executes Python code and returns (success, stdout, stderr/error).
         """
-        res = self.execute(code)
+        res = self.execute(code, egress_paths=egress_paths)
         err = res.get("error", "") or res.get("stderr", "")
         return res["success"], res["stdout"], err
 
@@ -157,13 +223,21 @@ class GEVRSandbox:
                 return True, current_code, ""
 
             logger.warning(f"[GEVR Sandbox] Attempt {attempt + 1} failed with error:\n{error}")
-            if attempt < max_attempts - 1 and llm_repair_func:
-                logger.info(f"[GEVR Sandbox] Requesting repair heuristic for attempt {attempt + 2}...")
-                repaired = extract_code_from_llm_response(llm_repair_func(current_code, error))
-                if repaired and repaired != current_code:
-                    current_code = repaired
+            if attempt < max_attempts - 1:
+                if llm_repair_func:
+                    logger.info(f"[GEVR Sandbox] Requesting repair heuristic for attempt {attempt + 2}...")
+                    repaired = extract_code_from_llm_response(llm_repair_func(current_code, error))
+                    if repaired and repaired != current_code:
+                        current_code = repaired
+                    else:
+                        break
                 else:
-                    break
+                    from unification import UnificationGate
+                    repaired = UnificationGate.resolve_imports(current_code)
+                    if repaired and repaired != current_code:
+                        current_code = repaired
+                    else:
+                        break
             else:
                 break
 

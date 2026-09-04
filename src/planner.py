@@ -247,31 +247,11 @@ RULES:
     }
 
     def _deterministic_fallback(self, prompt: str, context: List[Any]) -> Dict[str, Any]:
-        from router import SemanticStateAStar
-        from lattice import PortSignature, AlgebraicSignature
+        from router import LatticeRouter
 
-        astar = SemanticStateAStar(self.orchestrator, self.rag)
-
-        candidate_pool = []
-        if context:
-            for entry in context:
-                if isinstance(entry, dict):
-                    cid = entry.get("cell_id", "")
-                    c = self.orchestrator.loaded_cells.get(cid)
-                    if c:
-                        candidate_pool.append(c)
-        for c in self.orchestrator.loaded_cells.values():
-            if getattr(c, "verified", False):
-                candidate_pool.append(c)
-
-        intents = astar.extract_required_intents(prompt)
-
-        start_sig = PortSignature("input_data", AlgebraicSignature("str", "source_identifier"))
-        if any(w in prompt.lower() for w in ["graph", "adjacency", "dijkstra", "shortest_path"]):
-            start_sig = PortSignature("graph", AlgebraicSignature("dict", "adjacency_dict"))
-
-        path = astar.search(start_sig, None, intents, candidate_pool=candidate_pool)
-        sub_cells = [c.cell_id for c in path]
+        router = LatticeRouter(self.orchestrator, self.rag)
+        result = router.plan_path(prompt, return_tuple=False)
+        sub_cells = [c.cell_id for c in result]
 
         return {
             "cells": [{

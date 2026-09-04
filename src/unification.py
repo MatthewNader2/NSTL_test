@@ -33,6 +33,34 @@ class UnificationFailure(Exception):
     pass
 
 
+# Formal Top Type ⊤ in NSTL Type System (unifies with every type tau: unify(⊤, tau) = True)
+TOP_TYPE_SET = frozenset({"any", "Any", "*", "top", "TOP", "ANY", "unknown", "object"})
+
+def types_unify(expected_type: str, actual_type: str) -> bool:
+    """
+    Formal unification operator unify(tau_expected, tau_actual).
+    Returns True iff tau_expected and tau_actual unify.
+    Rules:
+      1. unify(⊤, tau) = True for all tau (Top type wildcard)
+      2. unify(tau, ⊤) = True for all tau
+      3. unify(tau, tau) = True (Exact identity)
+      4. Subtype lattice satisfaction: tau_actual <= tau_expected
+    """
+    if not expected_type or not actual_type:
+        return True
+    exp_clean = str(expected_type).strip()
+    act_clean = str(actual_type).strip()
+    if exp_clean in TOP_TYPE_SET or act_clean in TOP_TYPE_SET:
+        return True
+    if exp_clean.lower() == act_clean.lower():
+        return True
+    try:
+        from lattice import TypeRegistry
+        return TypeRegistry.get_instance().is_subtype(act_clean, exp_clean)
+    except Exception:
+        return False
+
+
 class DynamicPlaceholderResolver:
     """
     Domain-agnostic parameter resolver.
@@ -89,10 +117,15 @@ class DynamicPlaceholderResolver:
         port_sig: Union[PortSignature, AlgebraicSignature, Any],
         stage: int,
         context: Any,
-        output_var: str
+        output_var: str,
+        cell: Any = None
     ) -> str:
         """
-        Dynamically resolves the replacement value for a given port placeholder.
+        Dynamically resolves the replacement value for a given port placeholder
+        following the strict 3-tier resolution order:
+          Tier 1: Explicit Intent (Literals & Prepositional Entities from prompt)
+          Tier 2: Contextual Schema (In-scope typestate variables)
+          Tier 3: Minimal Neutral Default (Signature defaults or neutral fallbacks)
         """
         if port_name == "output_var":
             return output_var
@@ -108,86 +141,218 @@ class DynamicPlaceholderResolver:
             state = port_sig.signature.state
         state = str(state or "any")
 
-        # 1. Check if an active variable in the execution context scope matches this typestate
-        if hasattr(context, "scope_variables") and context.scope_variables:
-            matching_vars = []
-            for var_name, var_sig in context.scope_variables.items():
-                if hasattr(var_sig, "unifies_with") and var_sig.unifies_with(port_sig):
-                    matching_vars.append(var_name)
-                elif hasattr(port_sig, "unifies_with") and port_sig.unifies_with(var_sig):
-                    matching_vars.append(var_name)
-                elif hasattr(var_sig, "signature") and hasattr(port_sig, "signature"):
-                    if var_sig.signature.unifies_with(port_sig.signature):
-                        matching_vars.append(var_name)
-            if matching_vars:
-                return matching_vars[-1]
+        # =====================================================================
+        # TIER 1: Explicit Intent (Literals, Modifiers, and Prepositional Tokens)
+        # =====================================================================
 
-        # 2. File / URI Source & Destination resolution based on state
-        if state in ("source_identifier", "filepath_read", "input_uri") or port_name in ("filepath", "filename", "input_filename", "input_file", "source"):
-            if hasattr(context, "source_files") and context.source_files:
-                f = context.source_files[0]
-                return f'"{f}"' if not (f.startswith('"') or f.startswith("'")) else f
-            if hasattr(context, "get_source_file"):
-                f = context.get_source_file()
-                return f'"{f}"' if not (f.startswith('"') or f.startswith("'")) else f
-            if hasattr(context, "extracted_files") and context.extracted_files:
-                f = context.extracted_files[0]
-                return f'"{f}"' if not (f.startswith('"') or f.startswith("'")) else f
-            if hasattr(port_sig, "default_value") and port_sig.default_value is not None and port_sig.default_value != "...":
-                dv = str(port_sig.default_value)
-                return f'"{dv}"' if not (dv.startswith('"') or dv.startswith("'")) else dv
-            return '"input_data.csv"'
-
-        if state in ("dest_identifier", "filepath_written", "output_uri") or port_name in ("dest_path", "output_filename", "destination", "output_file"):
-            if hasattr(context, "dest_files") and context.dest_files:
-                f = context.dest_files[0]
-                return f'"{f}"' if not (f.startswith('"') or f.startswith("'")) else f
-            if hasattr(context, "get_dest_file"):
-                f = context.get_dest_file()
-                return f'"{f}"' if not (f.startswith('"') or f.startswith("'")) else f
-            if hasattr(context, "extracted_files") and len(context.extracted_files) > 1:
-                f = context.extracted_files[-1]
-                return f'"{f}"' if not (f.startswith('"') or f.startswith("'")) else f
-            if hasattr(port_sig, "default_value") and port_sig.default_value is not None and port_sig.default_value != "...":
-                dv = str(port_sig.default_value)
-                return f'"{dv}"' if not (dv.startswith('"') or dv.startswith("'")) else dv
-            return '"output_data.csv"'
-
-        # 3. Column name resolution
-        if state == "column_name" or port_name in ("by", "column", "columns"):
-            if port_name == "by" and hasattr(context, "by_column") and context.by_column:
-                col = context.by_column
-                return f'"{col}"' if not (col.startswith('"') or col.startswith("'")) else col
-            if hasattr(context, "columns") and context.columns:
-                col = context.columns[0]
-                return f'"{col}"' if not (col.startswith('"') or col.startswith("'")) else col
-            if hasattr(port_sig, "default_value") and port_sig.default_value is not None and port_sig.default_value != "...":
-                dv = str(port_sig.default_value)
-                return f'"{dv}"' if not (dv.startswith('"') or dv.startswith("'")) else dv
-            return '"target"'
-
-        # 4. Boolean flags (e.g. ascending=True/False)
-        if type_name == "bool" or state == "sort_flag":
-            if hasattr(context, "flags") and port_name in context.flags:
-                return str(bool(context.flags[port_name]))
-            if hasattr(context, "prompt_lower"):
-                if "descending" in context.prompt_lower or "reverse" in context.prompt_lower:
-                    return "False" if port_name == "ascending" else "True"
-                if "ascending" in context.prompt_lower:
-                    return "True" if port_name == "ascending" else "False"
-            return "True"
-
-        # 5. Fallback to bound parameter from context dictionary if available
+        # Explicit contextual parameters passed directly
         if hasattr(context, "parameters") and port_name in context.parameters:
             val = context.parameters[port_name]
             if isinstance(val, str) and not self.is_module_attribute(val) and not (val.startswith('"') or val.startswith("'")):
                 return f'"{val}"'
             return str(val)
 
-        # 6. Check default_value on port_sig if defined
+        # 1.1 Value / Replacement / Literal binding (e.g. fillna(0), replace(val))
+        if port_name in ("value", "val", "fill_value", "to_replace", "replacement", "fill"):
+            if hasattr(context, "with_values") and context.with_values:
+                w_val = str(context.with_values[0])
+                if w_val.replace('.', '', 1).isdigit() or (w_val.startswith('-') and w_val[1:].replace('.', '', 1).isdigit()):
+                    return w_val
+                if w_val.lower() in ("none", "null", "nan"):
+                    return "None"
+                if w_val.startswith('"') or w_val.startswith("'"):
+                    return w_val
+                return f'"{w_val}"'
+            if hasattr(context, "numeric_literals") and context.numeric_literals:
+                return str(context.numeric_literals[0])
+            if hasattr(context, "frame") and context.frame and context.frame.literal_constants:
+                c_val = next(iter(context.frame.literal_constants))
+                return c_val if (c_val.replace('.', '', 1).isdigit() or c_val.lower() == "none") else f'"{c_val}"'
+
+        # 1.2 Scoped Role-Based Entity Resolution: Structural vs Ordering vs Computation
+        cell_tags = set(getattr(cell, "semantic_tags", [])) | set(getattr(cell, "keywords", [])) | set(getattr(cell, "inputs", {}).keys())
+        is_sort_node = "ascending" in getattr(cell, "inputs", {}) or any(t in cell_tags for t in ("sort", "sorting", "order", "sorted", "rank"))
+        is_group_node = any(t in cell_tags for t in ("group", "groupby", "grouped", "aggregate", "partition", "split"))
+
+        # Role 1: Structural Partitioner Slot (e.g. groupby by="department")
+        if (port_name in ("by", "keys", "key", "partition_by", "level") and is_group_node) or port_name in ("group_by", "partition_by"):
+            if hasattr(context, "group_by_targets") and context.group_by_targets:
+                col = context.group_by_targets[0]
+                return f'"{col}"' if not (col.startswith('"') or col.startswith("'")) else col
+            if hasattr(context, "frame") and context.frame and context.frame.partitioning_entities:
+                col = next(iter(context.frame.partitioning_entities))
+                return f'"{col}"' if not (col.startswith('"') or col.startswith("'")) else col
+            if hasattr(context, "by_column") and context.by_column:
+                col = context.by_column
+                return f'"{col}"' if not (col.startswith('"') or col.startswith("'")) else col
+
+        # Role 2: Ordering / Ranking Criteria Slot (e.g. sort_values by="sales" or by="age")
+        if (port_name in ("by", "sort_by", "order_by") and is_sort_node) or port_name in ("sort_by", "order_by"):
+            # 1. Explicit ordering keys from user
+            if hasattr(context, "sort_by_targets") and context.sort_by_targets:
+                col = context.sort_by_targets[0]
+                return f'"{col}"' if not (col.startswith('"') or col.startswith("'")) else col
+            if hasattr(context, "frame") and context.frame and context.frame.ordering_keys:
+                col = next(iter(context.frame.ordering_keys))
+                return f'"{col}"' if not (col.startswith('"') or col.startswith("'")) else col
+
+            # 2. Downstream metric/measure resolution: sorting by value/metric defaults to active operand
+            if getattr(context, "sort_by_metric", False) or not (hasattr(context, "sort_by_targets") and context.sort_by_targets):
+                if hasattr(context, "metric_targets") and context.metric_targets:
+                    col = context.metric_targets[0]
+                    return f'"{col}"' if not (col.startswith('"') or col.startswith("'")) else col
+                if hasattr(context, "frame") and context.frame and context.frame.operand_entities:
+                    col = next(iter(context.frame.operand_entities))
+                    return f'"{col}"' if not (col.startswith('"') or col.startswith("'")) else col
+
+            # 3. Fallback to general column/by target
+            if hasattr(context, "by_column") and context.by_column:
+                col = context.by_column
+                return f'"{col}"' if not (col.startswith('"') or col.startswith("'")) else col
+
+        # Role 3: Computation / Measure Operand Slot (e.g. columns="sales", subset="sales")
+        # Explicitly prevents structural partitioners (e.g. "department") from shadowing computation operands
+        if state == "column_name" or port_name in ("by", "column", "columns", "on", "subset", "key", "keys", "subset_cols", "target_col", "features"):
+            if hasattr(context, "metric_targets") and context.metric_targets:
+                col = context.metric_targets[0]
+                return f'"{col}"' if not (col.startswith('"') or col.startswith("'")) else col
+            if hasattr(context, "frame") and context.frame and context.frame.operand_entities:
+                col = next(iter(context.frame.operand_entities))
+                return f'"{col}"' if not (col.startswith('"') or col.startswith("'")) else col
+            if port_name == "on" and hasattr(context, "on_targets") and context.on_targets:
+                col = context.on_targets[0]
+                return f'"{col}"' if not (col.startswith('"') or col.startswith("'")) else col
+            if hasattr(context, "columns") and context.columns:
+                col = context.columns[0]
+                return f'"{col}"' if not (col.startswith('"') or col.startswith("'")) else col
+            if hasattr(context, "by_targets") and context.by_targets:
+                col = context.by_targets[0]
+                return f'"{col}"' if not (col.startswith('"') or col.startswith("'")) else col
+
+        # Role 4: Target Vector / Label Operand Slot (e.g. y="target", y_true="target")
+        if port_name in ("y", "target", "labels", "y_true") or state in ("target_vector", "labels"):
+            if hasattr(context, "scope_variables"):
+                for var_name, var_sig in reversed(context.scope_variables.items()):
+                    v_type = getattr(var_sig, "type_name", None)
+                    if v_type is None and hasattr(var_sig, "signature"):
+                        v_type = var_sig.signature.type_name
+                    if str(v_type) == "DataFrame":
+                        return f"({var_name}['target'] if 'target' in {var_name}.columns else {var_name}.iloc[:, -1])"
+            latest = getattr(context, "get_latest_data_variable", lambda: None)()
+            if latest:
+                return f"({latest}['target'] if hasattr({latest}, 'columns') and 'target' in {latest}.columns else ({latest}[:, -1] if hasattr({latest}, 'shape') and len({latest}.shape) > 1 and {latest}.shape[1] > 1 else np.zeros(len({latest}))))"
+            return "np.zeros(10)"
+
+        # 1.3 Boolean & Directional Modifiers
+        if type_name == "bool" or state == "sort_flag" or port_name in ("ascending", "asc"):
+            if hasattr(context, "flags") and port_name in context.flags:
+                return str(bool(context.flags[port_name]))
+            if port_name in ("ascending", "asc"):
+                if hasattr(context, "flags") and "ascending" in context.flags:
+                    return str(bool(context.flags["ascending"]))
+                if hasattr(context, "prompt_lower"):
+                    if "descending" in context.prompt_lower or "reverse" in context.prompt_lower:
+                        return "False"
+                    if "ascending" in context.prompt_lower:
+                        return "True"
+                return "True"
+
+        # 1.4 Source and Destination File URIs (Topological Pipeline Position)
+        is_sink_cell = (
+            getattr(cell, "stage", None) == 3 or
+            any(getattr(p, "state", None) in ("filepath_written", "saved", "exported") or
+                getattr(getattr(p, "signature", None), "state", None) in ("filepath_written", "saved", "exported")
+                for p in getattr(cell, "outputs", {}).values())
+        )
+        is_source_cell = (
+            getattr(cell, "stage", None) == 1 or
+            any(getattr(p, "state", None) in ("raw", "source_identifier", "filepath_read") or
+                getattr(getattr(p, "signature", None), "state", None) in ("raw", "source_identifier", "filepath_read")
+                for p in getattr(cell, "outputs", {}).values())
+        )
+        is_path_port = (
+            state in ("source_identifier", "filepath_read", "input_uri", "dest_identifier", "filepath_written", "output_uri") or
+            port_name in ("filepath", "filename", "input_filename", "input_file", "source", "dest_path", "output_filename", "destination", "output_file")
+        )
+
+        if is_path_port:
+            files = getattr(context, "extracted_files", []) or getattr(context, "path_literals", [])
+            dest_files = getattr(context, "dest_files", []) or []
+            source_files = getattr(context, "source_files", []) or []
+
+            if is_sink_cell:
+                # Egress Sink cell (Stage 3 or filepath_written output) -> binds terminal egress path P_m
+                if dest_files:
+                    f = dest_files[-1]
+                elif files:
+                    f = files[-1]
+                else:
+                    f = "output_data.csv"
+                return f'"{f}"' if not (f.startswith('"') or f.startswith("'")) else f
+
+            if is_source_cell:
+                # Ingress Source cell (Stage 1 or raw output) -> binds initial ingress path P_0
+                if source_files:
+                    f = source_files[0]
+                elif files and files[0] not in dest_files:
+                    f = files[0]
+                else:
+                    # Non-colliding default source path
+                    f = "data.csv"
+                return f'"{f}"' if not (f.startswith('"') or f.startswith("'")) else f
+
+            # Intermediate or general path port:
+            if state in ("dest_identifier", "filepath_written", "output_uri") or port_name in ("dest_path", "output_filename", "destination", "output_file"):
+                f = dest_files[-1] if dest_files else (files[-1] if files else "output_data.csv")
+                return f'"{f}"' if not (f.startswith('"') or f.startswith("'")) else f
+            else:
+                f = source_files[0] if source_files else (files[0] if (files and files[0] not in dest_files) else "data.csv")
+                return f'"{f}"' if not (f.startswith('"') or f.startswith("'")) else f
+
+        # =====================================================================
+        # TIER 2: Contextual Schema (In-Scope Typestate Variables)
+        # =====================================================================
+        is_data_container = type_name.lower() in ("dataframe", "mat", "ndarray", "image", "tensor", "series", "dataset", "table")
+        is_primary_data_port = port_name.lower() in ("data", "src", "input_data", "x", "df", "img", "image", "array", "input_var") and state in ("any", "raw", "transformed", "processed", "input")
+        is_top_type = type_name.lower() in ("any", "*", "top", "anyobject", "object")
+
+        if hasattr(context, "scope_variables") and context.scope_variables:
+            if not is_top_type or is_primary_data_port:
+                matching_vars = []
+                for var_name, var_sig in context.scope_variables.items():
+                    if hasattr(var_sig, "unifies_with") and var_sig.unifies_with(port_sig):
+                        matching_vars.append(var_name)
+                    elif hasattr(port_sig, "unifies_with") and port_sig.unifies_with(var_sig):
+                        matching_vars.append(var_name)
+                    elif hasattr(var_sig, "signature") and hasattr(port_sig, "signature"):
+                        if var_sig.signature.unifies_with(port_sig.signature):
+                            matching_vars.append(var_name)
+                if matching_vars:
+                    return matching_vars[-1]
+
+                # Typename matching for concrete types
+                if not is_top_type:
+                    for var_name, var_sig in reversed(context.scope_variables.items()):
+                        v_type = getattr(var_sig, "type_name", None)
+                        if v_type is None and hasattr(var_sig, "signature"):
+                            v_type = var_sig.signature.type_name
+                        if str(v_type).lower() == type_name.lower():
+                            return var_name
+
+        if is_data_container or is_primary_data_port:
+            if hasattr(context, "get_latest_data_variable"):
+                latest = context.get_latest_data_variable()
+                if latest:
+                    return latest
+
+        # =====================================================================
+        # TIER 3: Minimal Neutral Default (Signature defaults or neutral values)
+        # =====================================================================
         if hasattr(port_sig, "default_value") and port_sig.default_value is not None and port_sig.default_value != "...":
-            dv = str(port_sig.default_value)
+            dv = str(port_sig.default_value).strip()
             if dv in ("True", "False", "None") or dv.replace('.', '', 1).isdigit() or (dv.startswith('-') and dv[1:].replace('.', '', 1).isdigit()):
+                return dv
+            if (dv.startswith('{') and dv.endswith('}')) or (dv.startswith('[') and dv.endswith(']')) or (dv.startswith('(') and dv.endswith(')')):
                 return dv
             if self.is_module_attribute(dv):
                 return dv
@@ -195,23 +360,38 @@ class DynamicPlaceholderResolver:
                 return f'"{dv}"'
             return dv
 
-        # 7. Generic Data / Scope Variable fallback (by type_name)
-        if hasattr(context, "scope_variables") and context.scope_variables:
-            for var_name, var_sig in reversed(context.scope_variables.items()):
-                v_type = getattr(var_sig, "type_name", None)
-                if v_type is None and hasattr(var_sig, "signature"):
-                    v_type = var_sig.signature.type_name
-                if str(v_type).lower() == type_name.lower():
-                    return var_name
+        if port_name in ("value", "val", "fill_value"):
+            return "0"
+        if state in ("source_identifier", "filepath_read", "input_uri") or port_name in ("filepath", "filename", "input_filename", "input_file", "source"):
+            return '"input_data.csv"'
+        if state in ("dest_identifier", "filepath_written", "output_uri") or port_name in ("dest_path", "output_filename", "destination", "output_file"):
+            return '"output_data.csv"'
+        if state == "column_name" or port_name in ("by", "column", "columns"):
+            return '"target"'
+        p_lower = port_name.lower()
+        t_lower = type_name.lower()
 
-        if type_name.lower() in ("dataframe", "mat", "ndarray", "image", "tensor", "anyobject", "any", "data", "dataset"):
-            if hasattr(context, "get_latest_data_variable"):
-                latest = context.get_latest_data_variable()
-                if latest:
-                    return latest
+        # Type-theoretic neutral elements (monoidal zero / identity elements)
+        if t_lower == "list":
+            return "[]"
+        if t_lower == "dict":
+            return "{}"
+        if t_lower in ("set", "frozenset"):
+            return "set()"
+        if t_lower == "tuple":
+            return "()"
+        if t_lower in ("int", "integer"):
+            return "0"
+        if t_lower in ("float", "double", "number", "numeric"):
+            return "0.0"
+        if t_lower in ("str", "string"):
+            return '""'
+        if t_lower in ("bool", "boolean"):
+            return "False"
 
-        # 8. Dynamic domain-agnostic identifier fallback
-        return port_name
+        # If reaching here, the identifier has no value and is not a defined variable.
+        # Fallback to None rather than emitting an unquoted unbound identifier which causes NameError.
+        return "None"
 
     def assert_placeholders_resolved(self, code: str) -> None:
         """Ensures no raw {placeholder} tokens remain in synthesized code."""
@@ -244,21 +424,27 @@ class ExecutionContext:
     """Manages lexical scopes, declared variables, and prompt literal bindings."""
 
     FILE_EXTENSIONS = (
-        r'csv|json|parquet|xlsx|jpg|jpeg|png|bmp|txt|db|h5|hdf5|'
-        r'pdf|md|py|npz|pkl|pickle|feather|orc|avro|yaml|yml|toml|ini|'
+        r'csv|tsv|json|parquet|xlsx|jpg|jpeg|png|bmp|webp|tif|tiff|txt|db|sqlite|h5|hdf5|mat|'
+        r'pdf|md|py|npy|npz|pkl|pickle|feather|orc|avro|yaml|yml|toml|ini|'
         r'wav|mp3|flac|ogg|m4a|aac|avi|mp4|mov|mkv'
     )
     COLUMN_STOP_WORDS = {
         "descending", "ascending", "the", "a", "an", "column", "columns",
         "data", "file", "csv", "by", "sort", "order", "and", "or", "in", "of",
-        "to", "from", "with", "into", "as"
+        "to", "from", "with", "into", "as",
+        "values", "value", "dataset", "table", "records", "rows", "row",
+        "asc", "desc", "true", "false", "none", "null",
+        "sum", "total", "mean", "average", "avg", "count", "min", "max", "std", "var",
+        "all", "any", "each", "every", "index", "on",
+        "calculate", "compute", "find", "get", "determine", "apply", "output", "input"
     }
 
     def __init__(
         self,
         prompt: str = "",
         scope: Optional[Dict[str, Any]] = None,
-        parameters: Optional[Dict[str, Any]] = None
+        parameters: Optional[Dict[str, Any]] = None,
+        frame: Optional[Any] = None
     ):
         self._scope: Dict[str, VariableBinding] = {}
         self.scope_variables: Dict[str, PortSignature] = {}
@@ -272,8 +458,34 @@ class ExecutionContext:
         self.dest_files: List[str] = []
         self.columns: List[str] = []
         self.by_column: Optional[str] = None
+        self.by_targets: List[str] = []
+        self.group_by_targets: List[str] = []
+        self.sort_by_targets: List[str] = []
+        self.metric_targets: List[str] = []
+        self.sort_by_metric: bool = False
+        self.on_targets: List[str] = []
+        self.with_values: List[str] = []
+        self.numeric_literals: List[str] = []
         self.flags: Dict[str, Any] = {}
         self.parameters: Dict[str, Any] = dict(parameters) if parameters else {}
+        self.frame = frame
+
+        if self.frame is None and prompt:
+            try:
+                from router import SemanticFrame
+                self.frame = SemanticFrame.build(prompt)
+            except Exception:
+                self.frame = None
+
+        if self.frame is not None:
+            self.group_by_targets = list(self.frame.partitioning_entities)
+            self.sort_by_targets = list(self.frame.ordering_keys)
+            self.metric_targets = list(self.frame.operand_entities)
+            self.with_values = list(self.frame.literal_constants)
+            self.numeric_literals = [x for x in self.frame.literal_constants if x.replace('.', '', 1).isdigit()]
+            self.sort_by_metric = self.frame.sort_by_metric
+            if self.frame.ascending is not None:
+                self.flags["ascending"] = self.frame.ascending
 
         if scope:
             for k, v in scope.items():
@@ -287,59 +499,149 @@ class ExecutionContext:
         if prompt:
             self._extract_prompt_literals(prompt)
 
+    def extract_prompt_parameters(self, prompt: str):
+        self.prompt_hint = prompt
+        self.prompt_lower = prompt.lower()
+        self._extract_prompt_literals(prompt)
+
     def _extract_prompt_literals(self, prompt: str):
-        # Match filenames and paths with or without quotes/leading slashes. Captures clean path.
-        ext_pattern = rf'(?:^|[\s"\'`\(])([/~a-zA-Z0-9_\-.]+\.(?:{self.FILE_EXTENSIONS}))'
-        raw_files = re.findall(ext_pattern, prompt, re.IGNORECASE)
-        files = [f.strip(".,;:\"'`()") for f in raw_files if f]
-        files = list(dict.fromkeys(files))
+        # Dynamically extract all path literals in chronological order
+        from router import extract_file_paths_and_extensions
+        files, _ = extract_file_paths_and_extensions(prompt)
         self.extracted_files = files
+        self.path_literals = files
 
-        src_file, dst_file = None, None
+        # Directional preposition markers
+        egress_markers = {"to", "save", "write", "export", "into", "output", "as"}
+        ingress_markers = {"from", "load", "read", "in", "input", "source"}
 
-        dest_pattern = rf'(?:save|write|export|output|dump)?\s*(?:figure\s+|image\s+|data\s+|table\s+|results\s+|dataset\s+)*(?:to|into)\s+[\"\'`]?([/~a-zA-Z0-9_\-.]+\.(?:{self.FILE_EXTENSIONS}))'
-        dest_m = re.search(dest_pattern, prompt, re.IGNORECASE)
-        if dest_m:
-            dst_file = dest_m.group(1).strip('.,;:\"\'`()')
+        src_files = []
+        dst_files = []
+        prompt_lower = prompt.lower()
 
-        src_pattern = rf'(?:read|load|ingest|import|from)\s+(?:image\s+|data\s+|table\s+|file\s+|dataset\s+)*[\"\'`]?([/~a-zA-Z0-9_\-.]+\.(?:{self.FILE_EXTENSIONS}))'
-        src_m = re.search(src_pattern, prompt, re.IGNORECASE)
-        if src_m:
-            src_file = src_m.group(1).strip('.,;:\"\'`()')
+        for f in files:
+            f_clean = f.strip("\"'")
+            idx = prompt_lower.find(f_clean.lower())
+            preceding_context = prompt_lower[:idx] if idx > 0 else ""
+            preceding_tokens = set(re.findall(r"\b[a-z]+\b", preceding_context)[-4:]) if preceding_context else set()
 
-        if not src_file and files:
-            src_file = files[0]
-        if not dst_file and len(files) > 1:
-            candidates = [f for f in files if f != src_file]
-            dst_file = candidates[-1] if candidates else files[-1]
+            is_egress = bool(preceding_tokens & egress_markers)
+            is_ingress = bool(preceding_tokens & ingress_markers)
 
-        if src_file:
-            self.source_files = [src_file]
+            if is_egress and not is_ingress:
+                dst_files.append(f)
+            elif is_ingress and not is_egress:
+                src_files.append(f)
+            else:
+                if os.path.exists(f):
+                    src_files.append(f)
+                elif len(files) > 1 and f == files[0]:
+                    src_files.append(f)
+                elif len(files) > 1 and f == files[-1]:
+                    dst_files.append(f)
+                else:
+                    if any(m in prompt_lower for m in ("save", "write", "export", "output")):
+                        dst_files.append(f)
+                    else:
+                        src_files.append(f)
+
+        self.source_files = list(dict.fromkeys(src_files))
+        self.dest_files = list(dict.fromkeys(dst_files))
+
+        if self.source_files:
             self.declare_variable(
                 "input_file",
                 AlgebraicSignature("str", "source_identifier"),
-                literal_value=json.dumps(src_file)
+                literal_value=json.dumps(self.source_files[0])
             )
-        if dst_file:
-            self.dest_files = [dst_file]
+        if self.dest_files:
             self.declare_variable(
                 "output_file",
                 AlgebraicSignature("str", "dest_identifier"),
-                literal_value=json.dumps(dst_file)
+                literal_value=json.dumps(self.dest_files[-1])
             )
 
-        # Explicit 'by' column extraction (e.g. group by region, sort by salary)
-        by_match = re.search(
-            r"(?:group\s+by|sort\s+by|by)\s+(?:the\s+|a\s+|an\s+)*[\'\"]?([a-zA-Z_][a-zA-Z0-9_]*)[\'\"]?",
+        # 1. Numeric literals: e.g. 0, 50000, 3.14
+        self.numeric_literals = re.findall(r"\b\d+(?:\.\d+)?\b", prompt)
+
+        # 2. Values governed by 'with': e.g. "with 0", "with None", "with 'unknown'", "with mean"
+        with_matches = re.finditer(
+            r"\bwith\s+(?:the\s+|a\s+|an\s+|value\s+of\s+|values?\s+of\s+|values?\s+)*([\"']?[a-zA-Z0-9_.-]+[\"']?)",
             prompt,
             re.IGNORECASE
         )
-        if by_match:
-            by_col = by_match.group(1)
-            if by_col.lower() not in self.COLUMN_STOP_WORDS:
-                self.by_column = by_col
+        for m in with_matches:
+            w_val = m.group(1).strip()
+            if w_val.lower() not in self.COLUMN_STOP_WORDS:
+                self.with_values.append(w_val)
 
-        # Column extraction: sort by 'age', column 'name', group by region, sum revenue, etc.
+        # 3. Targets governed by 'on': e.g. "on id", "on user_id"
+        on_matches = re.finditer(
+            r"\bon\s+(?:the\s+|a\s+|an\s+|column\s+)*([\"']?[a-zA-Z_][a-zA-Z0-9_]*[\"']?)",
+            prompt,
+            re.IGNORECASE
+        )
+        for m in on_matches:
+            on_val = m.group(1).strip("\"'")
+            if on_val.lower() not in self.COLUMN_STOP_WORDS:
+                self.on_targets.append(on_val)
+
+        # 4. GroupBy targets: e.g. "group by department", "grouped by region"
+        for m in re.finditer(
+            r"(?:group\s+by|grouped\s+by|per|for\s+each)\s+(?:the\s+|a\s+|an\s+|column\s+)*[\'\"]?([a-zA-Z_][a-zA-Z0-9_]*)[\'\"]?",
+            prompt,
+            re.IGNORECASE
+        ):
+            val = m.group(1).strip("\"'")
+            if val.lower() not in self.COLUMN_STOP_WORDS:
+                self.group_by_targets.append(val)
+                self.by_targets.append(val)
+                if not self.by_column:
+                    self.by_column = val
+
+        # 5. SortBy targets: e.g. "sort by salary", "sort values by age"
+        for m in re.finditer(
+            r"(?:sort\s+(?:values\s+)?by|sorted\s+(?:values\s+)?by|order\s+by)\s+(?:the\s+|a\s+|an\s+|column\s+)*[\'\"]?([a-zA-Z_][a-zA-Z0-9_]*)[\'\"]?",
+            prompt,
+            re.IGNORECASE
+        ):
+            val = m.group(1).strip("\"'")
+            if val.lower() not in self.COLUMN_STOP_WORDS:
+                self.sort_by_targets.append(val)
+                self.by_targets.append(val)
+                if not self.by_column:
+                    self.by_column = val
+
+        # 6. Aggregated metric / measure targets: e.g. "total sales sum", "calculate total sales", "sum of revenue"
+        for m in re.finditer(
+            r"(?:total|sum|mean|average|avg|median|min|max|count|std|var)\s+(?:of\s+)?(?:the\s+)?[\'\"]?([a-zA-Z_][a-zA-Z0-9_]*)[\'\"]?",
+            prompt,
+            re.IGNORECASE
+        ):
+            val = m.group(1).strip("\"'")
+            if val.lower() not in self.COLUMN_STOP_WORDS:
+                self.metric_targets.append(val)
+
+        for m in re.finditer(
+            r"[\'\"]?([a-zA-Z_][a-zA-Z0-9_]*)[\'\"]?\s+(?:sum|total|mean|average|avg|count)",
+            prompt,
+            re.IGNORECASE
+        ):
+            val = m.group(1).strip("\"'")
+            if val.lower() not in self.COLUMN_STOP_WORDS:
+                self.metric_targets.append(val)
+
+        self.metric_targets = list(dict.fromkeys(self.metric_targets))
+
+        # Check if prompt specifies sorting by value / measure / metric
+        self.sort_by_metric = bool(re.search(
+            r"\b(?:sort\s+values|sort\s+by\s+values?|sort\s+by\s+total|sort\s+by\s+sum|sort\s+by\s+metric|sort\s+descending|sort\s+ascending)\b",
+            self.prompt_lower
+        ))
+        if not self.sort_by_targets and any(k in self.prompt_lower for k in ("sort", "order")):
+            self.sort_by_metric = True
+
+        # 7. General column extraction and registration
         col_pattern = (
             r"(?:column|col|by|sort\s+by|group\s+by|sum|mean|aggregate|average|count|min|max|filter\s+by)\s+"
             r"(?:the\s+|a\s+|an\s+)*[\'\"]?([a-zA-Z_][a-zA-Z0-9_]*)[\'\"]?"
@@ -348,11 +650,17 @@ class ExecutionContext:
             col_name = match.group(1)
             if col_name.lower() not in self.COLUMN_STOP_WORDS:
                 self.columns.append(col_name)
-                self.declare_variable(
-                    f"col_{col_name}",
-                    AlgebraicSignature("str", "column_name"),
-                    literal_value=json.dumps(col_name)
-                )
+
+        for met in self.metric_targets:
+            if met not in self.columns:
+                self.columns.append(met)
+
+        for col_name in list(dict.fromkeys(self.columns)):
+            self.declare_variable(
+                f"col_{col_name}",
+                AlgebraicSignature("str", "column_name"),
+                literal_value=json.dumps(col_name)
+            )
 
         if "ascending" in self.prompt_lower:
             self.flags["ascending"] = True
@@ -440,6 +748,7 @@ class UnificationGate:
         "np": "import numpy as np",
         "numpy": "import numpy as np",
         "cv2": "import cv2",
+        "matplotlib": "import matplotlib\nimport matplotlib.pyplot as plt",
         "plt": "import matplotlib.pyplot as plt",
         "sns": "import seaborn as sns",
         "torch": "import torch",
@@ -466,7 +775,7 @@ class UnificationGate:
     }
 
     def __init__(self):
-        pass
+        self.context: Optional[ExecutionContext] = None
 
     def unify_and_emit(self, cells: List[Cell], prompt: str = "") -> str:
         """
@@ -475,6 +784,7 @@ class UnificationGate:
         if not cells:
             return ""
         context = ExecutionContext(prompt=prompt)
+        self.context = context
         statements = []
         for cell in cells:
             code = self.unify_cell(context, cell)
@@ -529,7 +839,7 @@ class UnificationGate:
             if port_sig is None:
                 port_sig = PortSignature(ph, AlgebraicSignature("any", "any"))
 
-            resolved = resolver.resolve_port(ph, port_sig, cell.stage, context, output_var_name)
+            resolved = resolver.resolve_port(ph, port_sig, cell.stage, context, output_var_name, cell=cell)
             transformed = transformed.replace(f"{{{ph}}}", resolved)
 
         # Dynamic attribute unquoting for module constants (e.g. "cv2.COLOR_BGR2GRAY")
@@ -579,7 +889,7 @@ class UnificationGate:
         return "_".join(parts) if parts else "compute"
 
     @staticmethod
-    def resolve_imports(code_text: str, context: Optional[ExecutionContext] = None) -> str:
+    def resolve_imports(code_text: str, context: Optional[ExecutionContext] = None, chain_nodes: Optional[List[Any]] = None) -> str:
         if not code_text or not code_text.strip():
             return code_text
 
@@ -601,6 +911,16 @@ class UnificationGate:
             for dep in context.declared_dependencies:
                 existing_imports.add(dep)
 
+        if chain_nodes:
+            for c_node in chain_nodes:
+                for dep in getattr(c_node, "dependencies", []):
+                    if dep.startswith("import ") or dep.startswith("from "):
+                        existing_imports.add(dep)
+                    elif dep in UnificationGate.CANONICAL_IMPORTS:
+                        existing_imports.add(UnificationGate.CANONICAL_IMPORTS[dep])
+                    else:
+                        existing_imports.add(f"import {dep}")
+
         module_access_names: Set[str] = set()
         for node in ast.walk(ast.Module(body=body_nodes, type_ignores=[])):
             if isinstance(node, ast.Attribute) and isinstance(node.value, ast.Name):
@@ -621,8 +941,13 @@ class UnificationGate:
         for name in module_access_names:
             if name in UnificationGate.CANONICAL_IMPORTS:
                 required_imports.add(UnificationGate.CANONICAL_IMPORTS[name])
-            elif name in sys.stdlib_module_names and name not in ("str", "int", "float", "list", "dict", "set", "tuple", "bool", "print", "len", "max", "min", "range"):
-                required_imports.add(f"import {name}")
+            elif name not in ("str", "int", "float", "list", "dict", "set", "tuple", "bool", "print", "len", "max", "min", "range", "abs", "round", "sum", "any", "all", "getattr", "hasattr", "setattr", "type", "isinstance", "open", "filter", "map"):
+                try:
+                    import importlib.util
+                    if importlib.util.find_spec(name) is not None:
+                        required_imports.add(f"import {name}")
+                except Exception:
+                    pass
 
         new_tree = ast.Module(body=body_nodes, type_ignores=[])
         ast.fix_missing_locations(new_tree)
@@ -636,14 +961,34 @@ class UnificationGate:
     @staticmethod
     def validate_synthesis(
         synthesized_dict: dict,
-        expected_in_sig: AlgebraicSignature,
-        expected_out_sig: AlgebraicSignature,
-        trees_dir: str = "trees"
+        expected_in_sig: Any = None,
+        expected_out_sig: Any = None,
+        trees_dir: str = "trees",
+        expected_inputs: Any = None,
+        expected_outputs: Any = None,
     ) -> bool:
         try:
             code = synthesized_dict.get("code_template", "")
             if not code:
+                for d_val in synthesized_dict.get("domain_implementations", {}).values():
+                    if isinstance(d_val, dict) and "code" in d_val:
+                        code = d_val["code"]
+                        break
+            if not code:
                 return False
+
+            in_sig = expected_in_sig or expected_inputs
+            out_sig = expected_out_sig or expected_outputs
+
+            if isinstance(in_sig, str):
+                in_sig = AlgebraicSignature(in_sig, "any")
+            elif in_sig is None:
+                in_sig = AlgebraicSignature("any", "any")
+
+            if isinstance(out_sig, str):
+                out_sig = AlgebraicSignature(out_sig, "any")
+            elif out_sig is None:
+                out_sig = AlgebraicSignature("any", "any")
 
             test_code = code.replace("{output_var}", "out_var").replace("{input_var}", "in_var")
             placeholders = set(re.findall(r"\{([a-zA-Z0-9_]+)\}", test_code))
@@ -660,14 +1005,14 @@ class UnificationGate:
                 synthesized_dict.get("outputs", {}).get("state", "any")
             )
 
-            if not expected_in_sig.unifies_with(actual_in):
+            if not in_sig.unifies_with(actual_in):
                 logger.warning(
-                    f"[VALIDATE] Input type mismatch: expected {expected_in_sig}, got {actual_in}"
+                    f"[VALIDATE] Input type mismatch: expected {in_sig}, got {actual_in}"
                 )
                 return False
-            if not actual_out.unifies_with(expected_out_sig):
+            if not actual_out.unifies_with(out_sig):
                 logger.warning(
-                    f"[VALIDATE] Output type mismatch: expected {expected_out_sig}, got {actual_out}"
+                    f"[VALIDATE] Output type mismatch: expected {out_sig}, got {actual_out}"
                 )
                 return False
 
@@ -675,3 +1020,222 @@ class UnificationGate:
         except Exception as e:
             logger.warning(f"[VALIDATE] Synthesis validation failed: {e}")
             return False
+
+
+class DataflowLineageTracker(ast.NodeTransformer):
+    def __init__(self, target_cells=None):
+        self.target_cells = target_cells or []
+        self.lineage_tree: Dict[str, str] = {}
+        self.latest_descendant: Dict[str, str] = {}
+        self.assigned_vars: Set[str] = set()
+        self._imported_names: Set[str] = set()
+
+    def visit_Import(self, node: ast.Import):
+        for alias in node.names:
+            self._imported_names.add(alias.asname or alias.name.split('.')[0])
+        return node
+
+    def visit_ImportFrom(self, node: ast.ImportFrom):
+        for alias in node.names:
+            self._imported_names.add(alias.asname or alias.name)
+        if node.module:
+            self._imported_names.add(node.module.split('.')[0])
+        return node
+
+    def visit_Assign(self, node: ast.Assign):
+        self._rebind_sink_call(node.value)
+        self.generic_visit(node)
+        if len(node.targets) == 1 and isinstance(node.targets[0], ast.Name):
+            target_name = node.targets[0].id
+            self.assigned_vars.add(target_name)
+            parent_var = None
+            if isinstance(node.value, ast.Call):
+                if isinstance(node.value.func, ast.Attribute) and isinstance(node.value.func.value, ast.Name):
+                    candidate = node.value.func.value.id
+                    if candidate not in self._imported_names:
+                        parent_var = candidate
+                elif isinstance(node.value.func, ast.Name):
+                    for arg in node.value.args:
+                        if isinstance(arg, ast.Name) and arg.id in self.assigned_vars:
+                            parent_var = arg.id
+                            break
+            if parent_var:
+                root = self._get_root(parent_var)
+                self.lineage_tree[target_name] = parent_var
+                self.latest_descendant[root] = target_name
+                self.latest_descendant[parent_var] = target_name
+        return node
+
+    def visit_Expr(self, node: ast.Expr):
+        self.generic_visit(node)
+        self._rebind_sink_call(node.value)
+        return node
+
+    def _rebind_sink_call(self, call_node):
+        if not isinstance(call_node, ast.Call):
+            return
+        method_name = ""
+        callee_var = None
+        if isinstance(call_node.func, ast.Attribute):
+            method_name = call_node.func.attr
+            if isinstance(call_node.func.value, ast.Name):
+                callee_var = call_node.func.value.id
+        elif isinstance(call_node.func, ast.Name):
+            method_name = call_node.func.id
+
+        is_sink = any(k in method_name.lower() for k in ["save", "write", "dump", "export", "to_"])
+        for cell in self.target_cells:
+            if getattr(cell.outputs, "type_name", "") == "None" or getattr(cell, "metadata_tags", {}).get("is_sink", False):
+                is_sink = True
+                break
+
+        if is_sink:
+            if callee_var and callee_var in self.latest_descendant and callee_var not in self._imported_names:
+                newest_var = self.latest_descendant[callee_var]
+                if newest_var != callee_var:
+                    call_node.func.value.id = newest_var
+            for arg in call_node.args:
+                if isinstance(arg, ast.Name) and arg.id in self.latest_descendant:
+                    arg.id = self.latest_descendant[arg.id]
+
+    def _get_root(self, var_name: str) -> str:
+        curr = var_name
+        while curr in self.lineage_tree:
+            curr = self.lineage_tree[curr]
+        return curr
+
+
+def enforce_lineage_integrity(code: str, target_cells=None) -> str:
+    try:
+        tree = ast.parse(code)
+        transformer = DataflowLineageTracker(target_cells=target_cells)
+        corrected_tree = transformer.visit(tree)
+        ast.fix_missing_locations(corrected_tree)
+        return ast.unparse(corrected_tree)
+    except Exception:
+        return code
+
+
+@dataclass
+class ExtractedSlots:
+    named_identifiers: List[str] = field(default_factory=list)
+    dest_uris: List[str] = field(default_factory=list)
+    source_uris: List[str] = field(default_factory=list)
+    input_files: List[str] = field(default_factory=list)
+    output_files: List[str] = field(default_factory=list)
+    columns: List[str] = field(default_factory=list)
+    operational_flags: Dict[str, Any] = field(default_factory=dict)
+    by_column: Optional[str] = None
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "named_identifiers": self.named_identifiers,
+            "dest_uris": self.dest_uris,
+            "source_uris": self.source_uris,
+            "input_files": self.input_files,
+            "output_files": self.output_files,
+            "columns": self.columns,
+            "operational_flags": self.operational_flags,
+            "by_column": self.by_column,
+        }
+
+
+class ParameterExtractor:
+    # Extensible declarative table: maps prompt keywords → operational flag entries.
+    # Domain-agnostic: these detect semantic signals (color modes, sort directions)
+    # regardless of which downstream library processes them.
+    SEMANTIC_FLAG_PATTERNS: list = [
+        # (keywords_to_match, flag_key, flag_value, extra_flags)
+        ({"descend", "descending", "reverse"}, "descending", True, {"ascending": False}),
+        ({"ascend", "ascending"},              "ascending",  True, {"descending": False}),
+        ({"hsv"},                              "is_hsv",     True, {}),
+        ({"rgb"},                              "is_rgb",     True, {}),
+        ({"gray", "grayscale", "grey"},        "is_grayscale", True, {}),
+    ]
+
+    @staticmethod
+    def extract_slots(prompt: str) -> ExtractedSlots:
+        ctx = ExecutionContext(prompt=prompt)
+        flags = dict(ctx.flags)
+        if prompt:
+            p_low = prompt.lower()
+            # Apply declarative semantic flag patterns
+            for keywords, flag_key, flag_val, extras in ParameterExtractor.SEMANTIC_FLAG_PATTERNS:
+                if any(kw in p_low for kw in keywords):
+                    flags[flag_key] = flag_val
+                    flags.update(extras)
+
+        return ExtractedSlots(
+            named_identifiers=ctx.columns,
+            dest_uris=ctx.dest_files,
+            source_uris=ctx.source_files,
+            input_files=ctx.source_files,
+            output_files=ctx.dest_files,
+            columns=ctx.columns,
+            operational_flags=flags,
+            by_column=ctx.by_column
+        )
+
+    @staticmethod
+    def extract_parameters(prompt: str) -> Dict[str, Any]:
+        return ParameterExtractor.extract_slots(prompt).to_dict()
+
+
+def resolve_node_slots(template: str, extracted_params: Dict[str, Any]) -> Dict[str, str]:
+    """Deterministically binds extracted prompt parameters to template slot placeholders.
+    Uses structural analysis of the template and declarative flag tables — no domain-specific logic."""
+    slots = {}
+    placeholders = re.findall(r"\{([a-zA-Z0-9_]+)\}", template)
+    src_uris = extracted_params.get("source_uris", [])
+    dst_uris = extracted_params.get("dest_uris", [])
+    by_col = extracted_params.get("by_column")
+    flags = extracted_params.get("operational_flags", {})
+    
+    for ph in placeholders:
+        ph_l = ph.lower()
+        if "filename" in ph_l or "path" in ph_l or "uri" in ph_l:
+            if "output" in ph_l or "dest" in ph_l or "save" in ph_l:
+                if dst_uris:
+                    slots[ph] = f"'{dst_uris[-1]}'"
+            else:
+                if src_uris:
+                    slots[ph] = f"'{src_uris[0]}'"
+        elif ph_l in ("by", "by_column", "column"):
+            if by_col:
+                slots[ph] = f"'{by_col}'"
+        elif ph_l == "ascending":
+            slots[ph] = str(flags.get("ascending", True))
+        elif ph_l in ("code", "color_code", "conversion_code"):
+            # Infer the module name from the template context via structural analysis.
+            # e.g. in "cv2.cvtColor({input}, {code})" we extract "cv2" from the template AST.
+            mod_match = re.search(r"\b([a-zA-Z0-9_]+)\.[a-zA-Z0-9_]+\s*\([^)]*\{" + re.escape(ph) + r"\}", template)
+            if not mod_match:
+                # No module context found — cannot resolve without guessing a specific library.
+                # Leave unresolved (monoidal identity) rather than hardcoding a domain.
+                continue
+            mod_name = mod_match.group(1)
+
+            # Derive target format from semantic flags
+            target_fmt = "GRAY"  # Default conversion target (domain-agnostic)
+            if flags.get("is_hsv"):
+                target_fmt = "HSV"
+            elif flags.get("is_rgb"):
+                target_fmt = "RGB"
+
+            # Resolve via runtime module reflection
+            resolved_code = None
+            try:
+                import importlib
+                mod = importlib.import_module(mod_name)
+                # Search the module's namespace for matching conversion constant
+                cand = next((attr for attr in dir(mod) if attr.startswith("COLOR_BGR2") and attr.endswith(target_fmt)), None)
+                if not cand:
+                    cand = next((attr for attr in dir(mod) if attr.startswith("COLOR_") and attr.endswith(target_fmt)), None)
+                if cand:
+                    resolved_code = f"{mod_name}.{cand}"
+            except Exception:
+                pass
+
+            slots[ph] = resolved_code or f"{mod_name}.COLOR_BGR2{target_fmt}"
+
+    return slots
