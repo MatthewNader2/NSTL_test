@@ -64,6 +64,16 @@ class TypeRegistry:
         self.register_type("Series", super_type="DataObject")
         self.register_type("Figure", super_type="object")
         self.register_type("Graph", super_type="object")
+        self.register_type("Tensor", super_type="DataObject")
+        self.register_type("Dataset", super_type="DataObject")
+        # Figure/Graph are structural results, but the rest of the engine
+        # treats them as "container-like" primary ports alongside DataFrame/
+        # ndarray/etc. Register that relationship in the type poset itself
+        # (multi-parent is supported: register_type adds, not replaces) so
+        # callers can ask the registry instead of each maintaining their own
+        # flat literal set of "the data types".
+        self.register_type("Figure", super_type="DataObject")
+        self.register_type("Graph", super_type="DataObject")
 
         # Register canonical type aliases
         self._aliases["mat"] = "ndarray"
@@ -74,6 +84,8 @@ class TypeRegistry:
         self._aliases["pd.series"] = "Series"
         self._aliases["dataframe"] = "DataFrame"
         self._aliases["dataobject"] = "DataObject"
+        self._aliases["image"] = "Mat"
+        self._aliases["table"] = "DataFrame"
 
     def register_type(self, type_name: str, super_type: Optional[str] = None):
         name = type_name.strip()
@@ -121,6 +133,16 @@ class TypeRegistry:
 
         return False
 
+    def is_container_type(self, type_name: str) -> bool:
+        """
+        True if type_name is (or unifies with) a data-container type -
+        DataFrame, ndarray, Mat, Series, Tensor, Dataset, Figure, Graph, etc.
+        Single source of truth for "is this a data-bearing port", derived
+        from the actual type poset instead of a hand-typed literal set
+        copy-pasted at each call site.
+        """
+        return self.is_subtype(type_name, "DataObject")
+
 
 def canonical_type_name(type_name: str) -> str:
     return TypeRegistry.get_instance().canonical_name(type_name)
@@ -128,6 +150,10 @@ def canonical_type_name(type_name: str) -> str:
 
 def is_subtype(sub: str, parent: str) -> bool:
     return TypeRegistry.get_instance().is_subtype(sub, parent)
+
+
+def is_container_type(type_name: str) -> bool:
+    return TypeRegistry.get_instance().is_container_type(type_name)
 
 
 @dataclass(frozen=True, slots=True)
@@ -364,9 +390,9 @@ class Cell(ABC):
                 return res
 
         # Stage 2 & 3: prioritize container data types over parameter primitives
-        data_types = {"DataFrame", "ndarray", "Mat", "Figure", "Graph", "Tensor", "Series", "Dataset"}
+        registry = TypeRegistry.get_instance()
         for p in self.inputs.values():
-            if p.type_name in data_types or p.state in ("raw", "cleaned", "sorted", "plotted", "scaled", "data_payload"):
+            if registry.is_container_type(p.type_name) or p.state in ("raw", "cleaned", "sorted", "plotted", "scaled", "data_payload"):
                 self._primary_input = p
                 return p
 
@@ -396,9 +422,9 @@ class Cell(ABC):
             res = PortSignature("output_data", AlgebraicSignature("None", "any"))
             self._primary_output = res
             return res
-        data_types = {"DataFrame", "ndarray", "Mat", "Figure", "Graph", "Tensor", "Series", "Dataset"}
+        registry = TypeRegistry.get_instance()
         for p in self.outputs.values():
-            if p.type_name in data_types or p.state in ("raw", "cleaned", "sorted", "plotted", "scaled", "data_payload", "filepath_written"):
+            if registry.is_container_type(p.type_name) or p.state in ("raw", "cleaned", "sorted", "plotted", "scaled", "data_payload", "filepath_written"):
                 self._primary_output = p
                 return p
         res = next(iter(self.outputs.values()))

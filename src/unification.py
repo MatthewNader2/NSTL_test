@@ -231,30 +231,64 @@ class DynamicPlaceholderResolver:
 
         # Role 4: Target Vector / Label Operand Slot (e.g. y="target", y_true="target")
         if port_name in ("y", "target", "labels", "y_true") or state in ("target_vector", "labels"):
+            # Prefer a column name the prompt actually named (e.g. "predict price"),
+            # rather than assuming the label column is literally called "target".
+            named_col = None
+            if hasattr(context, "metric_targets") and context.metric_targets:
+                named_col = context.metric_targets[0]
+            elif hasattr(context, "frame") and context.frame and context.frame.operand_entities:
+                named_col = next(iter(context.frame.operand_entities))
+            elif hasattr(context, "columns") and context.columns:
+                named_col = context.columns[0]
+
             if hasattr(context, "scope_variables"):
                 for var_name, var_sig in reversed(context.scope_variables.items()):
                     v_type = getattr(var_sig, "type_name", None)
                     if v_type is None and hasattr(var_sig, "signature"):
                         v_type = var_sig.signature.type_name
                     if str(v_type) == "DataFrame":
+                        if named_col:
+                            return f"{var_name}['{named_col}']"
+                        # No column name was given anywhere in the prompt: fall back to
+                        # the common tabular-ML convention (last column is the label),
+                        # checked at runtime rather than assumed at synthesis time.
                         return f"({var_name}['target'] if 'target' in {var_name}.columns else {var_name}.iloc[:, -1])"
+
             latest = getattr(context, "get_latest_data_variable", lambda: None)()
             if latest:
-                return f"({latest}['target'] if hasattr({latest}, 'columns') and 'target' in {latest}.columns else ({latest}[:, -1] if hasattr({latest}, 'shape') and len({latest}.shape) > 1 and {latest}.shape[1] > 1 else np.zeros(len({latest}))))"
-            return "np.zeros(10)"
+                if named_col:
+                    return f"({latest}['{named_col}'] if hasattr({latest}, 'columns') else {latest})"
+                return f"({latest}['target'] if hasattr({latest}, 'columns') and 'target' in {latest}.columns else ({latest}[:, -1] if hasattr({latest}, 'shape') and len({latest}.shape) > 1 and {latest}.shape[1] > 1 else {latest}))"
+
+            # No data variable is in scope at all: there is nothing to derive a
+            # target/label vector from. Fabricating an array of an arbitrary
+            # length (e.g. a fixed size of 10) would silently synthesize a
+            # fake label vector instead of surfacing the real gap.
+            raise UnresolvedPlaceholderError(
+                f"Cannot resolve target/label port '{port_name}': no upstream "
+                f"data variable is in scope to derive it from."
+            )
 
         # 1.3 Boolean & Directional Modifiers
-        if type_name == "bool" or state == "sort_flag" or port_name in ("ascending", "asc"):
-            if hasattr(context, "flags") and port_name in context.flags:
-                return str(bool(context.flags[port_name]))
-            if port_name in ("ascending", "asc"):
-                if hasattr(context, "flags") and "ascending" in context.flags:
-                    return str(bool(context.flags["ascending"]))
-                if hasattr(context, "prompt_lower"):
-                    if "descending" in context.prompt_lower or "reverse" in context.prompt_lower:
-                        return "False"
-                    if "ascending" in context.prompt_lower:
-                        return "True"
+        # Single source of truth for "ascending"/direction flags is
+        # context.flags, populated once by SemanticFrame.build() (router.py)
+        # / ExecutionContext._extract_prompt_literals(). If it was never set
+        # there, no explicit direction was stated anywhere in the prompt -
+        # fall through to Tier 3 below (the port's own declared default_value,
+        # or the type's neutral default) instead of guessing "True" here.
+        if hasattr(context, "flags") and port_name in context.flags:
+            return str(bool(context.flags[port_name]))
+        if port_name in ("ascending", "asc"):
+            if hasattr(context, "flags") and "ascending" in context.flags:
+                return str(bool(context.flags["ascending"]))
+            if getattr(port_sig, "default_value", None) not in (None, "..."):
+                pass  # handled by the shared Tier 3 default_value check below
+            else:
+                # No explicit direction was stated anywhere in the prompt, and
+                # the cell declares no default_value of its own. This is an
+                # explicit, static, library-wide convention (ascending sort is
+                # the common default across pandas/numpy/etc.) - not a value
+                # re-derived by re-scanning the prompt text a second time.
                 return "True"
 
         # 1.4 Source and Destination File URIs (Topological Pipeline Position)
@@ -280,14 +314,21 @@ class DynamicPlaceholderResolver:
             dest_files = getattr(context, "dest_files", []) or []
             source_files = getattr(context, "source_files", []) or []
 
+            port_default = getattr(port_sig, "default_value", None)
+
             if is_sink_cell:
                 # Egress Sink cell (Stage 3 or filepath_written output) -> binds terminal egress path P_m
                 if dest_files:
                     f = dest_files[-1]
                 elif files:
                     f = files[-1]
+                elif port_default:
+                    f = str(port_default)
                 else:
-                    f = "output_data.csv"
+                    raise UnresolvedPlaceholderError(
+                        f"No destination file was specified in the prompt for output port "
+                        f"'{port_name}', and the cell declares no default_value for it."
+                    )
                 return f'"{f}"' if not (f.startswith('"') or f.startswith("'")) else f
 
             if is_source_cell:
@@ -296,24 +337,53 @@ class DynamicPlaceholderResolver:
                     f = source_files[0]
                 elif files and files[0] not in dest_files:
                     f = files[0]
+                elif port_default:
+                    f = str(port_default)
                 else:
-                    # Non-colliding default source path
-                    f = "data.csv"
+                    raise UnresolvedPlaceholderError(
+                        f"No source file was specified in the prompt for input port "
+                        f"'{port_name}', and the cell declares no default_value for it."
+                    )
                 return f'"{f}"' if not (f.startswith('"') or f.startswith("'")) else f
 
             # Intermediate or general path port:
             if state in ("dest_identifier", "filepath_written", "output_uri") or port_name in ("dest_path", "output_filename", "destination", "output_file"):
-                f = dest_files[-1] if dest_files else (files[-1] if files else "output_data.csv")
+                if dest_files:
+                    f = dest_files[-1]
+                elif files:
+                    f = files[-1]
+                elif port_default:
+                    f = str(port_default)
+                else:
+                    raise UnresolvedPlaceholderError(
+                        f"No destination file was specified in the prompt for port '{port_name}', "
+                        f"and the cell declares no default_value for it."
+                    )
                 return f'"{f}"' if not (f.startswith('"') or f.startswith("'")) else f
             else:
-                f = source_files[0] if source_files else (files[0] if (files and files[0] not in dest_files) else "data.csv")
+                if source_files:
+                    f = source_files[0]
+                elif files and files[0] not in dest_files:
+                    f = files[0]
+                elif port_default:
+                    f = str(port_default)
+                else:
+                    raise UnresolvedPlaceholderError(
+                        f"No source file was specified in the prompt for port '{port_name}', "
+                        f"and the cell declares no default_value for it."
+                    )
                 return f'"{f}"' if not (f.startswith('"') or f.startswith("'")) else f
 
         # =====================================================================
         # TIER 2: Contextual Schema (In-Scope Typestate Variables)
         # =====================================================================
-        is_data_container = type_name.lower() in ("dataframe", "mat", "ndarray", "image", "tensor", "series", "dataset", "table")
-        is_primary_data_port = port_name.lower() in ("data", "src", "input_data", "x", "df", "img", "image", "array", "input_var") and state in ("any", "raw", "transformed", "processed", "input")
+        is_data_container = TypeRegistry.get_instance().is_container_type(type_name)
+        is_primary_data_port = (
+            cell is not None
+            and getattr(cell, "primary_input", None) is not None
+            and getattr(cell.primary_input, "name", None) == port_name
+            and state in ("any", "raw", "transformed", "processed", "input")
+        )
         is_top_type = type_name.lower() in ("any", "*", "top", "anyobject", "object")
 
         if hasattr(context, "scope_variables") and context.scope_variables:
@@ -662,19 +732,19 @@ class ExecutionContext:
                 literal_value=json.dumps(col_name)
             )
 
-        if "ascending" in self.prompt_lower:
-            self.flags["ascending"] = True
+        # Only derive here if SemanticFrame.build() (the single canonical
+        # detector for sort direction, in router.py) didn't already set it -
+        # avoids two independently-maintained keyword checks disagreeing.
+        if "ascending" not in self.flags:
+            if "ascending" in self.prompt_lower:
+                self.flags["ascending"] = True
+            elif "descending" in self.prompt_lower or "reverse" in self.prompt_lower:
+                self.flags["ascending"] = False
+        if "ascending" in self.flags:
             self.declare_variable(
                 "sort_asc",
                 AlgebraicSignature("bool", "sort_flag"),
-                literal_value="True"
-            )
-        elif "descending" in self.prompt_lower or "reverse" in self.prompt_lower:
-            self.flags["ascending"] = False
-            self.declare_variable(
-                "sort_asc",
-                AlgebraicSignature("bool", "sort_flag"),
-                literal_value="False"
+                literal_value=str(self.flags["ascending"])
             )
 
     def declare_variable(

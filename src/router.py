@@ -18,10 +18,53 @@ import numpy as np
 import torch
 from log_config import get_logger
 import heapq
-from lattice import LatticeOrchestrator, Cell, MicroCell, MacroCell, AlgebraicSignature, PortSignature
+from lattice import LatticeOrchestrator, Cell, MicroCell, MacroCell, AlgebraicSignature, PortSignature, TypeRegistry
 from inference import ModelManager
 
 logger = get_logger('router')
+
+
+def cell_is_unverified(cell: Cell) -> bool:
+    """Reads the cell's own declared `verified` field directly."""
+    return not bool(getattr(cell, "verified", False))
+
+
+def cell_is_internal_helper(cell: Cell) -> bool:
+    """
+    True if this cell should be deprioritized as an internal/helper node.
+    Prefers the harvester's own declared `node_role` field when it has been
+    populated; otherwise falls back to this project's own cell_id naming
+    convention (a leading underscore is how *this* harvester marks a cell as
+    internal - this is reading our own ID contract, not guessing at an
+    unrelated third-party library's naming).
+    """
+    role = str(getattr(cell, "node_role", "function") or "function").lower()
+    if role in ("internal_helper", "internal"):
+        return True
+    return cell.cell_id.startswith("_")
+
+
+def cell_is_reduction(cell: Cell) -> bool:
+    """
+    Structural reduction detector: true when the cell consumes a container
+    type (anything unifying with DataObject - DataFrame/ndarray/Series/Mat/...)
+    and produces a scalar (int/float/bool). This generalizes to any library's
+    mean/sum/std/count/min/max/... primitives automatically, from the cell's
+    declared port types - instead of grepping the cell's own id/source text
+    for a fixed list of pandas method-name fragments.
+    """
+    try:
+        in_type = cell.primary_input.type_name
+        out_type = cell.primary_output.type_name
+    except Exception:
+        return False
+    registry = TypeRegistry.get_instance()
+    return registry.is_container_type(in_type) and out_type.lower() in ("int", "float", "bool", "numeric")
+
+
+def cell_has_literal_operand_slot(cell: Cell) -> bool:
+    """True if the cell declares an input port shaped like a literal-value operand slot."""
+    return any(p in getattr(cell, "inputs", {}) for p in ("value", "val", "fill_value", "to_replace"))
 
 
 def extract_file_paths_and_extensions(text: str) -> Tuple[List[str], List[str]]:
@@ -446,10 +489,10 @@ class SemanticStateAStar:
             elif getattr(cell, "primary_output", None) and cell.primary_output.state in ("filepath_written", "saved", "exported", "displayed"):
                 c_tags.update(self.STAGE_ROLE_TAGS[3])
 
-            has_red = any(r in cell.cell_id.lower() or r in cell.code_template.lower() for r in ("_mean", "_avg", "_median", ".mean(", ".median("))
-            has_lit = any(p in getattr(cell, "inputs", {}) for p in ("value", "val", "fill_value", "to_replace"))
-            is_int = cell.cell_id.startswith("_") or "_internal_" in cell.cell_id.lower()
-            is_unver = "_default" in cell.cell_id.lower() and not getattr(cell, "verified", False)
+            has_red = cell_is_reduction(cell)
+            has_lit = cell_has_literal_operand_slot(cell)
+            is_int = cell_is_internal_helper(cell)
+            is_unver = cell_is_unverified(cell)
             cell_meta[cell.cell_id] = (frozenset(c_tags), has_red, has_lit, is_int, is_unver)
 
         # Dynamic Entry Point Seeding: When start_sig is not fixed or no external file is referenced,
@@ -550,10 +593,10 @@ class SemanticStateAStar:
                         c_tags.update(self.STAGE_ROLE_TAGS[1])
                     elif getattr(cell, "primary_output", None) and cell.primary_output.state in ("filepath_written", "saved", "exported"):
                         c_tags.update(self.STAGE_ROLE_TAGS[3])
-                    has_red = any(r in cell.cell_id.lower() or r in cell.code_template.lower() for r in ("_mean", "_avg", "_median", ".mean(", ".median("))
-                    has_lit = any(p in getattr(cell, "inputs", {}) for p in ("value", "val", "fill_value", "to_replace"))
-                    is_int = cell.cell_id.startswith("_") or "_internal_" in cell.cell_id.lower()
-                    is_unver = "_default" in cell.cell_id.lower() and not getattr(cell, "verified", False)
+                    has_red = cell_is_reduction(cell)
+                    has_lit = cell_has_literal_operand_slot(cell)
+                    is_int = cell_is_internal_helper(cell)
+                    is_unver = cell_is_unverified(cell)
                     meta = (frozenset(c_tags), has_red, has_lit, is_int, is_unver)
                     cell_meta[cell.cell_id] = meta
 
@@ -805,7 +848,7 @@ class MCTSEngine:
 
                 # Priority: prefer fewer hops, higher keyword overlap, avoid internal helper noise
                 step_cost = 1.0 - (0.25 * min(overlap, 3))
-                if any(p in cell.cell_id.lower() for p in ["_group_", "_internal_", "typing_"]):
+                if cell_is_internal_helper(cell):
                     step_cost += 0.5
 
                 counter += 1
