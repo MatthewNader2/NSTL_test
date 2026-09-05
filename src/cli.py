@@ -251,7 +251,7 @@ from rich.columns import Columns
 try:
     from lattice import LatticeOrchestrator
     from router import LatticeRouter, HardwareProfiler
-    from unification import UnificationGate, DynamicPlaceholderResolver
+    from unification import UnificationGate, DynamicPlaceholderResolver, UnresolvedPlaceholderError, UnificationFailure
     from gevr_sandbox import GEVRSandbox
     from inference import ModelManager, select_optimal_embedder
     from internal_rag import LocalRAG
@@ -688,7 +688,12 @@ class NSTLInteractiveShell(cmd.Cmd):
 
         # Step 3: Synthesis & Code Generation
         t_synth_start = time.perf_counter()
-        final_code = self.gate.unify_and_emit(cells, prompt)
+        try:
+            final_code = self.gate.unify_and_emit(cells, prompt)
+        except (UnresolvedPlaceholderError, UnificationFailure) as e:
+            console.print(f"\n[bold red][!] Could not synthesize code for: '{prompt}'[/bold red]")
+            console.print(f"[red]    {e}[/red]\n")
+            return
         synth_dt = (time.perf_counter() - t_synth_start) * 1000.0
 
         # Step 4: Sandbox Verification & Optional Self-Repair
