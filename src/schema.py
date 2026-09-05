@@ -12,6 +12,7 @@ class PortSchema(BaseModel):
     qualifiers: List[List[str]] = Field(default_factory=list)
     default_value: Optional[str] = None
     description: Optional[str] = None
+    domain: Optional[str] = None
     required: bool = True
 
 class CellSchema(BaseModel):
@@ -21,6 +22,7 @@ class CellSchema(BaseModel):
     stage: Literal[1, 2, 3]
     inputs: Dict[str, PortSchema] = Field(default_factory=dict)
     outputs: Dict[str, PortSchema] = Field(default_factory=dict)
+    slots: Dict[str, Any] = Field(default_factory=dict)
     code_template: str
     dependencies: List[str] = Field(default_factory=list)
     semantic_tags: List[str] = Field(default_factory=list)
@@ -31,6 +33,7 @@ class CellSchema(BaseModel):
     domain_name: Optional[str] = None
     node_type: Optional[str] = "function"
     node_role: Optional[str] = "function"
+    verified: bool = True
     source_priority: int = 100  # 1 = curated seed, 100 = auto-harvested
 
     @property

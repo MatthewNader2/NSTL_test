@@ -1,0 +1,697 @@
+"""
+src/universal_harvester.py - Neuro-Symbolic Topological Lattice (NSTL)
+Universal Library Harvester & Morphism Generator.
+
+Domain-agnostic runtime introspection engine that can ingest any Python package
+(e.g., cv2, numpy, pandas, scipy, sklearn, torch) and generate clean, mathematically
+categorized lattice nodes conforming to category-theoretic archetypes:
+  1. Atomic Morphisms (Primitive function A -> B)
+  2. Parameterized Morphisms (A x E -> B, with typed enum/option ports)
+  3. Higher-Order / Scoped Morphisms (A x Hom(A, B) -> B', with execution slots)
+  4. Source / Ingestion Morphisms (0 -> A, Stage 1)
+  5. Sink / Egress Morphisms (A -> 0, Stage 3)
+  6. Constant Morphisms (* -> Enum)
+
+Enriches harvested nodes from previous knowledge bases without inheriting
+corrupt combinatorial duplicate cells.
+"""
+
+from __future__ import annotations
+import ast
+import importlib
+import inspect
+import json
+import os
+import pkgutil
+import re
+import sys
+from pathlib import Path
+from typing import Any, Callable, Dict, List, Optional, Set, Tuple, Union
+
+try:
+    from schema import CellSchema, PortSchema, TreeSchema
+    from log_config import get_logger
+    from signature_introspector import get_callable_parameters, get_enum_parameter_map, extract_doc_signature
+except ImportError:
+    from .schema import CellSchema, PortSchema, TreeSchema
+    from .log_config import get_logger
+    from .signature_introspector import get_callable_parameters, get_enum_parameter_map, extract_doc_signature
+
+logger = get_logger("universal_harvester")
+
+
+def split_identifier_keywords(name: str) -> List[str]:
+    """Splits CamelCase, snake_case, and kebab-case into clean keywords."""
+    words = re.findall(r"[A-Z]?[a-z0-9]+|[A-Z]+(?=[A-Z][a-z0-9]|\b)", name)
+    if not words:
+        words = re.split(r"[_ -]+", name)
+    tokens: List[str] = []
+    for w in words:
+        cleaned = re.sub(r"[^a-zA-Z0-9]", "", w).lower()
+        if len(cleaned) >= 2:
+            tokens.append(cleaned)
+    return list(dict.fromkeys(tokens))
+
+
+def infer_qualifiers_from_constant(name: str) -> List[List[str]]:
+    """Infers semantic qualifiers from constant names (e.g. COLOR_BGR2GRAY -> source:bgr, target:gray)."""
+    parts = name.split("_")
+    qualifiers: List[List[str]] = []
+    for p in parts:
+        p_lower = p.lower()
+        if "2" in p_lower:
+            subparts = p_lower.split("2")
+            if len(subparts) == 2 and subparts[0] and subparts[1]:
+                qualifiers.append(["source", subparts[0]])
+                qualifiers.append(["target", subparts[1]])
+        elif p_lower in ("rgb", "bgr", "gray", "hsv", "lab", "yuv"):
+            qualifiers.append(["color_space", p_lower])
+        elif p_lower in ("binary", "otsu", "triangle", "tozero", "trunc"):
+            qualifiers.append(["threshold_type", p_lower])
+        elif p_lower in ("linear", "nearest", "cubic", "area", "lanczos4"):
+            qualifiers.append(["interpolation", p_lower])
+        elif p_lower in ("min", "max", "l1", "l2", "inf"):
+            qualifiers.append(["norm_type", p_lower])
+    return qualifiers
+
+
+class UniversalHarvester:
+    """
+    Universal, domain-agnostic library introspection engine.
+    Discovers all public modules, callables, classes, and constants in a library,
+    classifies them by morphism archetype, and outputs clean, validated CellSchemas.
+    """
+
+    CARRIER_NAMES = {
+        "src", "img", "image", "data", "df", "frame", "matrix", "arr", "array",
+        "input", "input_data", "x", "y", "a", "b", "series"
+    }
+
+    INGESTION_NAMES = {
+        "read", "load", "from", "zeros", "ones", "empty", "arange", "linspace",
+        "imread", "open", "create", "eye", "identity", "random", "randn", "rand"
+    }
+
+    EGRESS_NAMES = {
+        "to", "save", "write", "dump", "show", "export", "imwrite", "print", "display"
+    }
+
+    CALLABLE_PARAM_NAMES = {
+        "func", "fn", "callback", "predicate", "fun", "callable", "apply_fn", "criterion"
+    }
+
+    def __init__(
+        self,
+        domain_name: str,
+        package_name: Optional[str] = None,
+        max_depth: int = 3,
+        container_type: Optional[str] = None
+    ):
+        self.domain_name = domain_name
+        self.package_name = package_name or domain_name
+        self.max_depth = max_depth
+        self.container_type = container_type
+
+        # Ensure package is imported
+        try:
+            self.root_module = importlib.import_module(self.package_name)
+        except ImportError:
+            # Check local project or fixtures
+            for extra_path in [Path.cwd(), Path.cwd() / "tests" / "fixtures"]:
+                if str(extra_path) not in sys.path:
+                    sys.path.insert(0, str(extra_path))
+            self.root_module = importlib.import_module(self.package_name)
+
+        self.discovered_modules: Dict[str, Any] = {}
+        self.constants_by_prefix: Dict[str, List[Tuple[str, Any, str]]] = {}
+        self.container_classes: Set[type] = set()
+
+    def discover_submodules(self) -> Dict[str, Any]:
+        """Recursively discovers public submodules within the package up to max_depth."""
+        modules = {self.package_name: self.root_module}
+        pkg_path = getattr(self.root_module, "__path__", None)
+        if not pkg_path:
+            self.discovered_modules = modules
+            return modules
+
+        visited = set()
+
+        def _walk(prefix: str, path: Any, depth: int):
+            if depth > self.max_depth or prefix in visited:
+                return
+            visited.add(prefix)
+
+            try:
+                for _, modname, ispkg in pkgutil.iter_modules(path, prefix):
+                    # Skip private submodules, test directories, and legacy deprecated submodules
+                    tail = modname.split(".")[-1]
+                    if (
+                        tail.startswith("_")
+                        or tail in ("tests", "test", "testing", "benchmarks", "compat", "core", "matlib")
+                        or "._" in modname
+                    ):
+                        continue
+
+                    try:
+                        mod = importlib.import_module(modname)
+                        modules[modname] = mod
+                        if ispkg and hasattr(mod, "__path__"):
+                            _walk(modname + ".", mod.__path__, depth + 1)
+                    except Exception:
+                        continue
+            except Exception:
+                pass
+
+        _walk(self.package_name + ".", pkg_path, 1)
+
+        # Also inspect direct module attributes (e.g. cv2.dnn, numpy.linalg)
+        for attr_name in dir(self.root_module):
+            if not attr_name.startswith("_") and attr_name not in ("core", "compat", "matlib"):
+                try:
+                    attr_val = getattr(self.root_module, attr_name, None)
+                    if inspect.ismodule(attr_val):
+                        m_name = getattr(attr_val, "__name__", "")
+                        if m_name.startswith(self.package_name) and m_name not in modules and "._" not in m_name:
+                            modules[m_name] = attr_val
+                except Exception:
+                    continue
+
+        self.discovered_modules = modules
+        return modules
+
+    def collect_constants_and_enums(self) -> Dict[str, List[Tuple[str, Any, str]]]:
+        """
+        Extracts uppercase constants and Enum classes across all discovered modules.
+        Groups them by common prefix (e.g. COLOR_*, THRESH_*, INTER_*, NORM_*).
+        Returns: {prefix: [(constant_name, constant_val, module_path), ...]}
+        """
+        groups: Dict[str, List[Tuple[str, Any, str]]] = {}
+
+        for mod_name, mod in self.discovered_modules.items():
+            for name in dir(mod):
+                if name.startswith("_"):
+                    continue
+                try:
+                    val = getattr(mod, name, None)
+                except Exception:
+                    continue
+
+                if name.isupper() and not callable(val):
+                    parts = name.split("_")
+                    prefix = parts[0] if len(parts) > 1 else "CONST"
+                    if prefix not in groups:
+                        groups[prefix] = []
+                    groups[prefix].append((name, val, mod_name))
+
+        self.constants_by_prefix = groups
+        return groups
+
+    def identify_container_classes(self) -> Set[type]:
+        """Identifies primary data carrier container classes in the library."""
+        containers: Set[type] = set()
+
+        if self.container_type:
+            for mod in self.discovered_modules.values():
+                cls = getattr(mod, self.container_type, None)
+                if inspect.isclass(cls):
+                    containers.add(cls)
+
+        # Heuristic detection based on method density and naming
+        for mod in self.discovered_modules.values():
+            for name in dir(mod):
+                if name.startswith("_"):
+                    continue
+                try:
+                    obj = getattr(mod, name, None)
+                    if inspect.isclass(obj) and getattr(obj, "__module__", "").startswith(self.package_name):
+                        methods = [m for m in dir(obj) if not m.startswith("_") and callable(getattr(obj, m, None))]
+                        if len(methods) >= 15:
+                            name_lower = name.lower()
+                            if any(k in name_lower for k in ("data", "frame", "matrix", "array", "series", "image", "mat", "tensor")):
+                                containers.add(obj)
+                except Exception:
+                    continue
+
+        self.container_classes = containers
+        return containers
+
+    def harvest_constant_nodes(self) -> List[CellSchema]:
+        """
+        Emits typed Constant Morphisms (* -> Enum) for each discovered enum/flag.
+        Converts combinatorial variants into modular leaf nodes.
+        """
+        constant_cells: List[CellSchema] = []
+        seen_cells: Set[str] = set()
+
+        for prefix, items in self.constants_by_prefix.items():
+            state_name = prefix.lower()
+            for const_name, _, mod_path in items:
+                cell_id = f"{self.domain_name.upper()}_{const_name}"
+                if cell_id in seen_cells:
+                    continue
+                seen_cells.add(cell_id)
+
+                qualifiers = infer_qualifiers_from_constant(const_name)
+                code_template = f"{mod_path}.{const_name}"
+
+                out_port = PortSchema(
+                    type_name="Enum",
+                    state=state_name,
+                    qualifiers=qualifiers,
+                    domain=f"{mod_path}.{prefix}_*",
+                    description=f"{self.domain_name} constant {const_name}"
+                )
+
+                keywords = split_identifier_keywords(const_name) + [prefix.lower(), self.domain_name.lower()]
+                cell = CellSchema(
+                    cell_id=cell_id,
+                    stage=2,
+                    inputs={},
+                    outputs={"value": out_port},
+                    code_template=code_template,
+                    dependencies=[f"import {mod_path}"],
+                    semantic_tags=list(dict.fromkeys(keywords)),
+                    keywords=list(dict.fromkeys(keywords)),
+                    docstring=f"Constant {mod_path}.{const_name}",
+                    domain_name=self.domain_name,
+                    node_type="constant",
+                    node_role="constant",
+                    source_priority=10
+                )
+                constant_cells.append(cell)
+
+        return constant_cells
+
+    def _infer_stage(self, func_name: str, has_carrier_input: bool, ret_type: str, doc: str) -> int:
+        """Determines the categorical stage (1: Ingestion, 2: Transform, 3: Egress)."""
+        fn_lower = func_name.lower()
+        doc_lower = doc.lower()[:300] if doc else ""
+
+        # Stage 3: Terminal / Egress
+        if str(ret_type).lower() in ("none", "nonetype", "void", "unit"):
+            return 3
+        if any(fn_lower.startswith(k) or f"_{k}" in fn_lower for k in self.EGRESS_NAMES):
+            return 3
+        if "save" in doc_lower or "write" in doc_lower or "display" in doc_lower or "export" in doc_lower:
+            return 3
+
+        # Stage 1: Initial / Ingestion
+        if not has_carrier_input:
+            if any(fn_lower.startswith(k) or f"_{k}" in fn_lower for k in self.INGESTION_NAMES):
+                return 1
+            if "read" in doc_lower or "load" in doc_lower or "create" in doc_lower:
+                return 1
+
+        return 2
+
+    def _detect_enum_parameter(self, param_name: str, doc: str) -> Optional[str]:
+        """Detects whether a parameter expects an enum flag and identifies the enum prefix."""
+        enum_map = get_enum_parameter_map(doc)
+        for prefix, p_name in enum_map.items():
+            if p_name.lower() == param_name.lower() or param_name.lower() in p_name.lower():
+                return prefix
+
+        p_clean = param_name.lower().replace("_", "")
+        for prefix in self.constants_by_prefix:
+            pref_clean = prefix.lower().replace("_", "")
+            if pref_clean in p_clean or p_clean in pref_clean:
+                return prefix
+
+        # Common OpenCV / Scipy parameter name conventions
+        if p_clean in ("code", "colortype"):
+            return "COLOR"
+        if p_clean in ("interpolation", "interp"):
+            return "INTER"
+        if p_clean in ("thresholdtype", "thresh"):
+            return "THRESH"
+        if p_clean in ("normtype", "norm"):
+            return "NORM"
+
+        return None
+
+    def harvest_callable(
+        self,
+        func_name: str,
+        func_obj: Any,
+        mod_name: str,
+        is_instance_method: bool = False,
+        container_class_name: Optional[str] = None
+    ) -> Optional[CellSchema]:
+        """
+        Introspects a callable and constructs a clean, typed CellSchema.
+        Categorizes it into Atomic, Parameterized, or Higher-Order morphism.
+        """
+        if not callable(func_obj) or func_name.startswith("_"):
+            return None
+
+        # Ignore foreign re-exports (e.g. numpy functions imported into scipy)
+        obj_mod = getattr(func_obj, "__module__", "") or mod_name
+        if obj_mod and not obj_mod.startswith(self.package_name) and not is_instance_method:
+            return None
+
+        doc = inspect.getdoc(func_obj) or getattr(func_obj, "__doc__", "") or ""
+        first_doc = doc.split("\n")[0].strip() if doc else f"{func_name} morphism"
+
+        # Introspect parameter contract
+        param_info = get_callable_parameters(func_obj, func_name)
+        if not param_info:
+            param_info = {"required": [], "optional": [], "all": ["data"], "doc": doc}
+
+        required_params: List[str] = param_info.get("required", [])
+        optional_params: List[str] = param_info.get("optional", [])
+        all_params: List[str] = param_info.get("all", required_params + optional_params)
+
+        # If it's an instance method, drop 'self' or 'cls'
+        if is_instance_method:
+            required_params = [p for p in required_params if p not in ("self", "cls")]
+            optional_params = [p for p in optional_params if p not in ("self", "cls")]
+            all_params = [p for p in all_params if p not in ("self", "cls")]
+
+        # Determine primary carrier type
+        carrier_type = container_class_name or (
+            self.container_type or (next(iter(self.container_classes)).__name__ if self.container_classes else "DataObject")
+        )
+
+        # Detect carrier argument
+        carrier_param = None
+        for p in all_params:
+            if p.lower() in self.CARRIER_NAMES:
+                carrier_param = p
+                break
+        if not carrier_param and all_params and not is_instance_method:
+            # Fall back to first argument if not an ingestion function
+            fn_lower = func_name.lower()
+            if not any(fn_lower.startswith(k) for k in self.INGESTION_NAMES):
+                carrier_param = all_params[0]
+
+        has_carrier = (carrier_param is not None) or is_instance_method
+        stage = self._infer_stage(func_name, has_carrier, carrier_type, doc)
+
+        # Detect Morphism Archetype
+        is_higher_order = any(p.lower() in self.CALLABLE_PARAM_NAMES for p in all_params)
+        node_type = "function"
+        node_role = "function"
+        slots: Dict[str, Any] = {}
+
+        if is_higher_order:
+            node_type = "higher_order"
+            node_role = "macro"
+            slots = {
+                "body": {
+                    "inner_input": {"type_name": "any", "state": "any"},
+                    "inner_output": {"type_name": "any", "state": "any"}
+                }
+            }
+
+        # Build ports and template arguments
+        inputs: Dict[str, PortSchema] = {}
+        outputs: Dict[str, PortSchema] = {}
+        template_args: List[str] = []
+        is_parameterized = False
+
+        if stage == 1:
+            # Source Morphism
+            node_type = "source"
+            node_role = "source"
+            path_param = next((p for p in all_params if "path" in p.lower() or "file" in p.lower() or "url" in p.lower()), None)
+            if path_param:
+                inputs["filepath"] = PortSchema(type_name="str", state="source_identifier", description="Source path")
+                template_args.append("{filepath}")
+            else:
+                for p in required_params:
+                    inputs[p] = PortSchema(type_name="any", state="source_spec", description=f"Source argument {p}")
+                    template_args.append(f"{{{p}}}")
+            outputs["output_data"] = PortSchema(type_name=carrier_type, state="raw", description="Ingested data")
+
+        elif stage == 3:
+            # Sink Morphism
+            node_type = "sink"
+            node_role = "sink"
+            if is_instance_method:
+                dest_param = next((p for p in all_params if "path" in p.lower() or "file" in p.lower() or "dest" in p.lower()), None)
+                if dest_param or any(k in func_name.lower() for k in ("to_", "save", "write")):
+                    inputs["dest_path"] = PortSchema(type_name="str", state="dest_identifier", description="Destination path")
+                    template_args.append("{dest_path}")
+            else:
+                inputs["data"] = PortSchema(type_name=carrier_type, state="any", description="Input data")
+                inputs["dest_path"] = PortSchema(type_name="str", state="dest_identifier", description="Destination path")
+                dest_idx = next((i for i, p in enumerate(all_params) if "path" in p.lower() or "file" in p.lower() or "dest" in p.lower() or "name" in p.lower()), 0)
+                carrier_idx = next((i for i, p in enumerate(all_params) if p.lower() in self.CARRIER_NAMES), 1)
+                if dest_idx < carrier_idx:
+                    template_args.extend(["{dest_path}", "{data}"])
+                else:
+                    template_args.extend(["{data}", "{dest_path}"])
+
+            outputs["output_data"] = PortSchema(type_name="str", state="filepath_written", description="Egress confirmation")
+
+        else:
+            # Stage 2: Transform / Endomorphism
+            if is_instance_method:
+                pass  # self is {data}
+            else:
+                carrier_port_name = carrier_param or "data"
+                inputs[carrier_port_name] = PortSchema(type_name=carrier_type, state="any", description="Input carrier data")
+                template_args.append(f"{{{carrier_port_name}}}")
+
+            # Process remaining parameters
+            for p in all_params:
+                if p == carrier_param:
+                    continue
+
+                enum_prefix = self._detect_enum_parameter(p, doc)
+                is_req = (p in required_params)
+
+                if is_req:
+                    if enum_prefix:
+                        is_parameterized = True
+                        domain_id = f"{mod_name}.{enum_prefix}_*"
+                        inputs[p] = PortSchema(
+                            type_name="Enum",
+                            state=enum_prefix.lower(),
+                            domain=domain_id,
+                            required=True,
+                            description=f"Enum parameter {p} from {domain_id}"
+                        )
+                    else:
+                        inputs[p] = PortSchema(
+                            type_name="any",
+                            state=p.lower(),
+                            required=True,
+                            description=f"Required parameter {p}"
+                        )
+                    template_args.append(f"{{{p}}}")
+
+            if is_parameterized and node_type == "function":
+                node_type = "parameterized"
+                node_role = "parameterized"
+
+            out_state = func_name.lower().strip("_") or "transformed"
+            outputs["output_data"] = PortSchema(type_name=carrier_type, state=out_state, description=f"Output {out_state}")
+
+        # Assemble code_template
+        call_prefix = f"{mod_name}.{func_name}"
+        dependencies = [f"import {mod_name}"]
+
+        if is_instance_method:
+            args_str = ", ".join(template_args)
+            if stage == 3:
+                dest = "{dest_path}" if "dest_path" in inputs else "''"
+                code_template = f"{{data}}.{func_name}({args_str})\n{{output_var}} = {dest}"
+            else:
+                code_template = f"{{output_var}} = {{data}}.{func_name}({args_str})"
+        else:
+            args_str = ", ".join(template_args)
+            if stage == 3:
+                dest = "{dest_path}" if "dest_path" in inputs else "''"
+                code_template = f"{call_prefix}({args_str})\n{{output_var}} = {dest}"
+            else:
+                code_template = f"{{output_var}} = {call_prefix}({args_str})"
+
+        # Lossless semantic keywords
+        kw_tokens = split_identifier_keywords(func_name)
+        if mod_name != self.package_name:
+            kw_tokens.extend(split_identifier_keywords(mod_name.replace(self.package_name, "")))
+        kw_tokens.extend([self.domain_name.lower(), func_name.lower()])
+        semantic_tags = list(dict.fromkeys(kw_tokens))
+
+        # Format cell_id
+        clean_mod = mod_name.replace(self.package_name, "").strip(".").replace(".", "_").upper()
+        clean_fn = func_name.upper()
+        if is_instance_method and container_class_name:
+            cell_id = f"{self.domain_name.upper()}_{container_class_name.upper()}_{clean_fn}"
+        elif clean_mod:
+            cell_id = f"{self.domain_name.upper()}_{clean_mod}_{clean_fn}"
+        else:
+            cell_id = f"{self.domain_name.upper()}_{clean_fn}"
+
+        return CellSchema(
+            cell_id=cell_id,
+            stage=stage,
+            inputs=inputs,
+            outputs=outputs,
+            slots=slots,
+            code_template=code_template,
+            dependencies=dependencies,
+            semantic_tags=semantic_tags,
+            keywords=semantic_tags,
+            docstring=first_doc,
+            domain_name=self.domain_name,
+            node_type=node_type,
+            node_role=node_role,
+            verified=True,
+            source_priority=50
+        )
+
+    def harvest_all(self) -> List[CellSchema]:
+        """
+        Executes complete library harvest:
+          1. Submodule discovery
+          2. Constants and Enums extraction -> Constant Morphisms
+          3. Container classes and instance methods
+          4. Top-level and submodule callables -> Atomic, Parameterized, Scoped
+        """
+        self.discover_submodules()
+        self.collect_constants_and_enums()
+        self.identify_container_classes()
+
+        cells: List[CellSchema] = []
+        seen_ids: Set[str] = set()
+
+        # 1. Harvest Constant Morphisms
+        constant_cells = self.harvest_constant_nodes()
+        for c in constant_cells:
+            if c.cell_id not in seen_ids:
+                cells.append(c)
+                seen_ids.add(c.cell_id)
+
+        logger.info(f"[{self.domain_name}] Harvested {len(constant_cells)} constant morphisms")
+
+        # 2. Harvest Instance Methods on Container Classes
+        method_count = 0
+        for cls in self.container_classes:
+            cls_name = cls.__name__
+            for attr_name in dir(cls):
+                if attr_name.startswith("_"):
+                    continue
+                try:
+                    attr_val = getattr(cls, attr_name, None)
+                    if callable(attr_val):
+                        cell = self.harvest_callable(
+                            func_name=attr_name,
+                            func_obj=attr_val,
+                            mod_name=getattr(cls, "__module__", self.package_name),
+                            is_instance_method=True,
+                            container_class_name=cls_name
+                        )
+                        if cell and cell.cell_id not in seen_ids:
+                            cells.append(cell)
+                            seen_ids.add(cell.cell_id)
+                            method_count += 1
+                except Exception:
+                    continue
+
+        logger.info(f"[{self.domain_name}] Harvested {method_count} instance methods across containers")
+
+        # 3. Harvest Callables Across All Submodules
+        callable_count = 0
+        for mod_name, mod in self.discovered_modules.items():
+            for attr_name in dir(mod):
+                if attr_name.startswith("_"):
+                    continue
+                try:
+                    attr_val = getattr(mod, attr_name, None)
+                    if callable(attr_val) and not inspect.isclass(attr_val):
+                        cell = self.harvest_callable(
+                            func_name=attr_name,
+                            func_obj=attr_val,
+                            mod_name=mod_name,
+                            is_instance_method=False
+                        )
+                        if cell and cell.cell_id not in seen_ids:
+                            cells.append(cell)
+                            seen_ids.add(cell.cell_id)
+                            callable_count += 1
+                except Exception:
+                    continue
+
+        logger.info(f"[{self.domain_name}] Harvested {callable_count} callable morphisms")
+        return cells
+
+    @classmethod
+    def enrich_from_existing_trees(
+        cls,
+        domain_name: str,
+        new_cells: List[CellSchema],
+        existing_tree_paths: List[Union[str, Path]]
+    ) -> List[CellSchema]:
+        """
+        Cross-references newly harvested ground-truth cells against old knowledge bases.
+        Inherits curated docstrings, semantic tags, intent keywords, and priority <= 10.
+        Completely purges ghost duplicate combinations.
+        """
+        # Build lookup table from existing trees by canonical function name
+        old_knowledge: Dict[str, Dict[str, Any]] = {}
+
+        for path in existing_tree_paths:
+            p = Path(path)
+            if not p.exists():
+                continue
+            try:
+                with open(p, "r", encoding="utf-8") as f:
+                    data = json.load(f)
+                old_cells = data if isinstance(data, list) else data.get("cells", [])
+                for oc in old_cells:
+                    if not isinstance(oc, dict) or "cell_id" not in oc:
+                        continue
+                    cid = oc["cell_id"].upper()
+                    # Extract base function name from cell_id
+                    parts = cid.split("_")
+                    # e.g. CV2_CVTCOLOR or PANDAS_SORT_VALUES
+                    for k in range(1, len(parts) + 1):
+                        sub_key = "_".join(parts[1:k])
+                        if sub_key and sub_key not in old_knowledge:
+                            old_knowledge[sub_key] = oc
+                    if cid not in old_knowledge:
+                        old_knowledge[cid] = oc
+            except Exception as e:
+                logger.warning(f"Failed to read existing tree {p}: {e}")
+
+        enriched_count = 0
+        for cell in new_cells:
+            # Try exact cell_id match first
+            cid = cell.cell_id.upper()
+            match = old_knowledge.get(cid)
+            if not match:
+                # Try suffix match (e.g. CVTCOLOR in CV2_CVTCOLOR)
+                parts = cid.split("_")
+                for k in range(1, len(parts)):
+                    sub_key = "_".join(parts[k:])
+                    if sub_key in old_knowledge:
+                        match = old_knowledge[sub_key]
+                        break
+
+            if match:
+                # Inherit high-value curated metadata
+                old_prio = match.get("source_priority", 100)
+                if old_prio <= 10:
+                    cell.source_priority = old_prio
+
+                old_tags = match.get("semantic_tags", [])
+                if old_tags:
+                    cell.semantic_tags = list(dict.fromkeys(cell.semantic_tags + old_tags))
+
+                old_kws = match.get("keywords", [])
+                if old_kws:
+                    cell.keywords = list(dict.fromkeys(cell.keywords + old_kws))
+
+                old_doc = match.get("docstring", "")
+                if old_doc and (not cell.docstring or len(old_doc) > len(cell.docstring)):
+                    cell.docstring = old_doc
+
+                if match.get("verified", False):
+                    cell.verified = True
+
+                enriched_count += 1
+
+        logger.info(f"[{domain_name}] Enriched {enriched_count}/{len(new_cells)} cells from previous knowledge bases")
+        return new_cells

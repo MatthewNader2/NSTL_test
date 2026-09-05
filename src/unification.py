@@ -380,6 +380,54 @@ class ExecutionContext:
         self.consumed_tokens.add(best[1].lower())
         return best[1]
 
+    def _resolve_enum_constant(self, domain_spec: str, port_state: str = "") -> Optional[str]:
+        """
+        Resolves an Enum constant dynamically by matching prompt intent against candidate flags.
+        Domain-agnostic: uses domain_spec (e.g. 'cv2.COLOR_*') and module reflection.
+        """
+        if not domain_spec or "*" not in domain_spec:
+            return None
+
+        clean_spec = domain_spec.replace("_*", "").replace("*", "")
+        parts = clean_spec.rsplit(".", 1)
+        if len(parts) != 2:
+            return None
+        mod_name, prefix = parts
+
+        try:
+            import importlib
+            mod = importlib.import_module(mod_name)
+        except Exception:
+            return None
+
+        candidates = [name for name in dir(mod) if name.startswith(f"{prefix}_")]
+        if not candidates:
+            return None
+
+        prompt_lower = (self.prompt or "").lower()
+        p_tokens = set(re.findall(r"[a-z0-9]+", prompt_lower))
+
+        scored = []
+        for cand in candidates:
+            sub_parts = [p for p in re.split(r'[_0-9]+', cand.lower()) if len(p) >= 2]
+            score = 0.0
+            for part in sub_parts:
+                if part in p_tokens:
+                    score += 2.0
+                elif any(t.startswith(part) or part.startswith(t) for t in p_tokens if len(t) >= 4 and len(part) >= 4):
+                    score += 1.5
+
+            if "bgr2" in cand.lower():
+                score += 0.2
+
+            scored.append((score, cand))
+
+        scored.sort(key=lambda x: x[0], reverse=True)
+        if scored and scored[0][0] > 0.0:
+            return f"{mod_name}.{scored[0][1]}"
+
+        return None
+
     def resolve_literal_for_port(self, port_sig: PortSignature, cell_stage: Optional[int] = None) -> Optional[str]:
         """
         Resolves a value for a port using parameters, declared defaults, or literals.
@@ -408,6 +456,13 @@ class ExecutionContext:
                     return val
                 elif t_name == "bool":
                     return "False" if "false" in val.lower() or "0" in val else "True"
+
+        # 2b. Dynamic Enum / Flag Constant Grounding via Domain Reflection
+        if (t_name == "enum" or getattr(port_sig, "domain", None)) and self.prompt:
+            domain_spec = getattr(port_sig, "domain", "") or ""
+            resolved_enum = self._resolve_enum_constant(domain_spec, port_sig.state)
+            if resolved_enum is not None:
+                return resolved_enum
 
         # 3. Vector Polarity Projection for Boolean / Valuation Ports
         if t_name == "bool" and self.prompt:

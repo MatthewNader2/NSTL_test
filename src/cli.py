@@ -130,7 +130,8 @@ def cmd_compile(args):
 
             cfg_dict = {
                 "inputs": {k: v.model_dump() for k, v in cell.inputs.items()},
-                "outputs": {k: v.model_dump() for k, v in cell.outputs.items()}
+                "outputs": {k: v.model_dump() for k, v in cell.outputs.items()},
+                "slots": getattr(cell, "slots", {})
             }
             cfg_json = json.dumps(cfg_dict)
             deps_json = json.dumps(cell.dependencies)

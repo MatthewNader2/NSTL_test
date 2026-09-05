@@ -208,7 +208,7 @@ class AlgebraicSignature:
 
 class PortSignature:
     """Named port carrying an AlgebraicSignature typestate."""
-    __slots__ = ["name", "signature", "required", "default_value", "doc"]
+    __slots__ = ["name", "signature", "required", "default_value", "doc", "domain"]
 
     def __init__(
         self,
@@ -217,9 +217,11 @@ class PortSignature:
         required: bool = True,
         default_value: Optional[Any] = None,
         doc: str = "",
+        domain: str = "",
         **kwargs
     ):
         self.name = str(name)
+        self.domain = str(domain or kwargs.get("domain", ""))
         if isinstance(signature, AlgebraicSignature):
             self.signature = signature
         elif hasattr(signature, "signature") and isinstance(signature.signature, AlgebraicSignature):
@@ -269,7 +271,7 @@ class Cell(ABC):
     """
     __slots__ = [
         "cell_id", "stage", "keywords", "cell_type",
-        "inputs", "outputs", "domain_name", "node_type", "node_role",
+        "inputs", "outputs", "slots", "domain_name", "node_type", "node_role",
         "dependencies", "code_template", "metadata_tags",
         "configuration_schema", "verified", "semantic_tags",
         "docstring", "enrichment_source", "enriched_at",
@@ -285,6 +287,7 @@ class Cell(ABC):
         cell_type: str = "micro",
         inputs: Optional[Dict[str, Union[PortSignature, AlgebraicSignature, dict]]] = None,
         outputs: Optional[Dict[str, Union[PortSignature, AlgebraicSignature, dict]]] = None,
+        slots: Optional[Dict[str, Any]] = None,
         domain_name: str = "generic",
         node_type: str = "function",
         node_role: str = "function",
@@ -307,6 +310,7 @@ class Cell(ABC):
         self.domain_name = domain_name
         self.node_type = node_type
         self.node_role = str(node_role).lower() if node_role else "function"
+        self.slots = slots or {}
         self.dependencies = dependencies or []
         self.code_template = code_template
         self.metadata_tags = metadata_tags or {}
@@ -340,7 +344,8 @@ class Cell(ABC):
                     signature=sig,
                     required=v.get("required", True),
                     default_value=v.get("default_value"),
-                    doc=v.get("doc", "")
+                    doc=v.get("doc", ""),
+                    domain=v.get("domain", "")
                 )
             else:
                 self.inputs[k] = PortSignature(name=k, signature=AlgebraicSignature("any", "any"))
@@ -363,7 +368,8 @@ class Cell(ABC):
                     signature=sig,
                     required=v.get("required", True),
                     default_value=v.get("default_value"),
-                    doc=v.get("doc", "")
+                    doc=v.get("doc", ""),
+                    domain=v.get("domain", "")
                 )
             else:
                 self.outputs[k] = PortSignature(name=k, signature=AlgebraicSignature("any", "any"))
@@ -538,6 +544,7 @@ class LatticeOrchestrator:
                     domain_name=c_dict.get("domain_name") or domain,
                     node_type=c_dict.get("node_type", "function"),
                     node_role=c_dict.get("node_role", "function"),
+                    slots=c_dict.get("slots", {}),
                     dependencies=c_dict.get("dependencies", []),
                     code_template=c_dict.get("code_template", ""),
                     verified=c_dict.get("verified", True),
@@ -635,7 +642,8 @@ class LatticeOrchestrator:
                                             qualifiers=frozenset(tuple(q) for q in p_val.get("qualifiers", []))
                                         ),
                                         required=p_val.get("required", True),
-                                        default_value=p_val.get("default_value")
+                                        default_value=p_val.get("default_value"),
+                                        domain=p_val.get("domain", "")
                                     )
                             for p_name, p_val in cfg.get("outputs", {}).items():
                                 if isinstance(p_val, dict):
@@ -645,7 +653,10 @@ class LatticeOrchestrator:
                                             type_name=str(p_val.get("type_name", out_type or "any")),
                                             state=str(p_val.get("state", out_state or "any")),
                                             qualifiers=frozenset(tuple(q) for q in p_val.get("qualifiers", []))
-                                        )
+                                        ),
+                                        required=p_val.get("required", True),
+                                        default_value=p_val.get("default_value"),
+                                        domain=p_val.get("domain", "")
                                     )
 
                         if not inputs:
@@ -653,7 +664,7 @@ class LatticeOrchestrator:
                         if not outputs:
                             outputs = {"output_data": PortSignature("output_data", out_sig)}
 
-                        is_macro = str(node_type).lower() == "macro" or str(node_role).lower() == "macro"
+                        is_macro = str(node_type).lower() in ("macro", "higher_order") or str(node_role).lower() in ("macro", "higher_order")
                         cls = MacroCell if is_macro else MicroCell
 
                         cell = cls(
@@ -662,6 +673,7 @@ class LatticeOrchestrator:
                             keywords=keywords,
                             inputs=inputs,
                             outputs=outputs,
+                            slots=cfg.get("slots", {}),
                             domain_name=domain_name or "generic",
                             node_type="macro" if is_macro else (node_type or "function"),
                             node_role=str(node_role).lower() if node_role else "function",
