@@ -40,15 +40,31 @@ class SynthesisEngine:
         logger.info(f"[SYNTHESIS] Fetching live documentation for: '{gap_concept}'")
         live_docs = fetcher.fetch(gap_concept) or "No live documentation available."
 
-        # Infer stage if not explicitly passed
-        gc_lower = gap_concept.lower()
+        # Infer stage algebraically if not explicitly passed
         if stage is None:
-            if any(k in gc_lower for k in ("read", "load", "ingest", "from_")) or expected_input.lower() in ("str", "source_identifier"):
+            from lattice import TypeRegistry
+            registry = TypeRegistry.get_instance()
+            if not registry.is_container_type(expected_input):
                 stage = 1
-            elif any(k in gc_lower for k in ("save", "write", "to_csv", "export", "to_")):
-                stage = 3
             else:
                 stage = 2
+                try:
+                    mm = ModelManager.get_instance()
+                    if mm.profile is not None:
+                        import numpy as np
+                        e_gap = np.array(mm.get_embedding(gap_concept), dtype=np.float32)
+                        e_sink = np.array(mm.get_embedding("sink destination egress export"), dtype=np.float32)
+                        e_trans = np.array(mm.get_embedding("transformation process endomorphism"), dtype=np.float32)
+                        norm_g = np.linalg.norm(e_gap)
+                        norm_s = np.linalg.norm(e_sink)
+                        norm_t = np.linalg.norm(e_trans)
+                        if norm_g > 0 and norm_s > 0 and norm_t > 0:
+                            sim_sink = float(np.dot(e_gap / norm_g, e_sink / norm_s))
+                            sim_trans = float(np.dot(e_gap / norm_g, e_trans / norm_t))
+                            if sim_sink > sim_trans + 0.05:
+                                stage = 3
+                except Exception:
+                    stage = 2
 
         if stage == 1:
             template_rule = "For Stage 1 (file loading/source), `code_template` MUST use `{filepath}` as the input path argument and `{output_var}` for the output assignment (e.g. `{output_var} = pd.read_csv({filepath})`)."

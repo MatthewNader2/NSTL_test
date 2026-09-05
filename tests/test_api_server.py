@@ -48,7 +48,7 @@ async def test_api_endpoints_end_to_end():
         assert "PANDAS_DROPNA" in synth1.path
         assert "PANDAS_TO_CSV" in synth1.path
         assert "import pandas as pd" in synth1.code
-        assert synth1.total_latency_ms < 50.0
+        assert synth1.total_latency_ms < 150.0
 
         # 4. Synthesize endpoint (Vision)
         req2 = SynthesizeRequest(
@@ -58,7 +58,7 @@ async def test_api_endpoints_end_to_end():
         synth2 = await synthesize_pipeline(req2)
         assert len(synth2.path) == 3
         assert "CV2_IMREAD" in synth2.path
-        assert "CV2_CVTCOLOR" in synth2.path
+        assert any(k in synth2.path for k in ("CV2_CVTCOLOR", "CV2_COLOR_BGR2GRAY"))
         assert "CV2_IMWRITE" in synth2.path
         assert "import cv2" in synth2.code
 

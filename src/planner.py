@@ -1,276 +1,219 @@
 """
-src/planner.py - Zero-Shot Planner with algorithmic-task bypass and robust JSON.
+src/planner.py - Neuro-Symbolic Topological Lattice (NSTL)
+Topological Pathfinding, Multi-Stage Progression, and Formal Type-Monadic Verification.
+
+Conforms strictly to Sections 3.1, 3.2, and 3.4 of the NSTL paper:
+  A path through the lattice is a sequence of monadic binds. Any step that
+  would produce bottom is rejected the moment it is proposed.
+  Finds maximum-likelihood type-valid composition paths inside the semantic tunnel T.
 """
 
-import json
-import re
-from typing import Any, Dict, List, Optional, Set, Tuple
+from __future__ import annotations
+import math
+from typing import Dict, List, Optional, Set, Tuple, Any
 
 from log_config import get_logger
-from lattice import LatticeOrchestrator, Cell, MacroCell, MicroCell, AlgebraicSignature
-from utils import extract_json_from_llm
+
+try:
+    from .lattice import LatticeOrchestrator, Cell, MicroCell, MacroCell, TypeRegistry
+    from .unification import unify, Substitution
+    from .tokenizer import CellTokenizer
+except (ImportError, ValueError):
+    from lattice import LatticeOrchestrator, Cell, MicroCell, MacroCell, TypeRegistry
+    from unification import unify, Substitution
+    from tokenizer import CellTokenizer
 
 logger = get_logger('planner')
 
 
-class ZeroShotPlanner:
-    def __init__(self, orchestrator: LatticeOrchestrator, rag: Any):
+class LatticePlanner:
+    """
+    Topological Planner & Gap Bridging Engine (Sections 3.1-3.4).
+    Operates strictly within the active semantic tunnel T.
+    Finds maximum-likelihood type-valid composition paths.
+    """
+    def __init__(self, orchestrator: LatticeOrchestrator, rag: Optional[Any] = None):
         self.orchestrator = orchestrator
         self.rag = rag
 
-    def run_planning_pass(self, prompt: str, profile: str = "C") -> Dict[str, Any]:
-        context = []
-        if self.rag is not None:
-            try:
-                context = self.rag.get_relevant_context(prompt, top_k=60)
-            except Exception as e:
-                logger.warning(f"[PLANNER] RAG retrieval failed: {e}")
-                context = []
-
-        # Check for algorithmic seeds via RAG domain / macro detection
-        if context:
-            for entry in context[:3]:
-                if isinstance(entry, dict):
-                    cid = entry.get("cell_id", "")
-                    dom = (entry.get("domain") or "").lower()
-                    score = float(entry.get("score", 0.0))
-                    cell = self.orchestrator.loaded_cells.get(cid)
-                    if (dom in ("algorithms", "algorithm") or (cell and isinstance(cell, MacroCell) and cell.algorithmic_steps)) and score > 0.35:
-                        logger.info(f"[PLANNER] Algorithmic seed found via RAG: {cid}")
-                        return {
-                            "cells": [{
-                                "cell_id": "macro_algo_seeded",
-                                "type": "macro",
-                                "stage": 2,
-                                "sub_cells": [cid]
-                            }]
-                        }
-
-        context_str = self._format_context(context)
-
-        system_prompt = self._build_system_prompt(context_str)
-        user_prompt = f"User Request: {prompt}\n\nOutput ONLY valid JSON."
-
-        raw = None
-        try:
-            from inference import ModelManager
-            mm = ModelManager.get_instance()
-            if mm.can_synthesize():
-                raw = mm.generate_text(system_prompt + "\n" + user_prompt, max_tokens=1024)
-        except Exception as e:
-            logger.warning(f"[PLANNER] LLM generation unavailable: {e}")
-
-        parsed = self._safe_parse_json(raw) if raw else None
-        if parsed is None:
-            logger.warning("[PLANNER] Invalid or missing JSON from LLM. Falling back to deterministic planner.")
-            return self._deterministic_fallback(prompt, context)
-
-        for cell_block in parsed.get("cells", []):
-            grounded = []
-            for sub in cell_block.get("sub_cells", []):
-                existing = self._find_closest_existing_cell(sub)
-                if existing:
-                    grounded.append(existing)
-                else:
-                    grounded.append(sub)
-            cell_block["sub_cells"] = grounded
-
-        return parsed
-
-    def _build_system_prompt(self, context_str: str) -> str:
-        return f"""You are a Software Architect. Decompose the user request into a strict sequence of verified computational node IDs.
-Output ONLY valid JSON matching the schema below. No markdown formatting, no commentary.
-
-Schema:
-{{
-  "cells": [
-    {{
-      "cell_id": "macro_dynamic_task",
-      "type": "macro",
-      "stage": 1,
-      "sub_cells": ["<node_id_1>", "<node_id_2>", "<node_id_3>"]
-    }}
-  ]
-}}
-
-Available Verified Micro-Nodes:
-{context_str}
-
-RULES:
-1. Select exclusively from the Available Verified Micro-Nodes when a suitable node exists.
-2. If an essential step has no matching node, invent a new node ID prefixed with 'SYNTH_' (e.g. 'SYNTH_CALCULATE_METRIC'). The engine will synthesize it at runtime.
-3. Order sub_cells sequentially from data source -> transformations -> output/sink.
-4. For algorithmic tasks (sorting, graph search, etc.), use a single SYNTH_ node rather than forcing library primitives.
-"""
-
-    def _format_context(self, context: List[Any]) -> str:
-        lines = []
-        for entry in context:
-            cid = ""
-            if isinstance(entry, dict):
-                cid = entry.get("cell_id", "UNKNOWN")
-            elif isinstance(entry, (list, tuple)) and len(entry) >= 1:
-                cid = str(entry[0])
-            elif isinstance(entry, str):
-                m = re.search(r"ID:\s*([A-Z0-9_]+)", entry)
-                cid = m.group(1) if m else "UNKNOWN"
-
-            cell = self.orchestrator.loaded_cells.get(cid)
-            if not cell:
-                continue
-            in_sig = f"{cell.primary_input.type_name}[{cell.primary_input.state}]"
-            out_sig = f"{cell.primary_output.type_name}[{cell.primary_output.state}]"
-            lines.append(f"- ID: {cid} | In: {in_sig} -> Out: {out_sig} | Domain: {cell.domain_name}")
-        return "\n".join(lines)
-
-    def _safe_parse_json(self, raw: str) -> Optional[Dict[str, Any]]:
-        return extract_json_from_llm(raw)
-
-    @staticmethod
-    def _compute_overlap(keywords: Set[str], cell_keywords: Set[str]) -> Tuple[int, Set[str]]:
-        overlap = 0
-        matched = set()
-        for pk in keywords:
-            for ck in cell_keywords:
-                if pk == ck or ck.startswith(pk) or pk.startswith(ck):
-                    overlap += 1
-                    matched.add(pk)
-                    break
-        return overlap, matched
-
-    def _find_best_match_for_stage(
+    def plan(
         self,
-        stage: int,
-        current_sig: AlgebraicSignature,
-        context: List[Any],
-        keywords: Set[str],
-        goal_domain: Optional[str] = None,
-        exclude: Optional[Set[str]] = None,
-        prompt_order: Optional[List[str]] = None
-    ) -> Optional[str]:
-        exclude = exclude or set()
-        query_kws = {k.lower() for k in keywords if len(k) >= 3}
-        best_match = None
-        best_score = -1.0
+        prompt: str,
+        tunnel: List[Cell],
+        relevance_map: Dict[str, float],
+        start_sig: Optional[Any] = None,
+        goal_sig: Optional[Any] = None,
+        max_transforms: int = 4
+    ) -> List[Cell]:
+        """
+        Plans a type-valid compositional pipeline:
+          [Entry (Stage 1)] -> [Transforms (Stage 2)]* -> [Terminal (Stage 3)]
+        Guided by semantic relevance probabilities P(v | e_x) from the tunnel.
+        """
+        if not tunnel:
+            return []
 
-        for entry in context:
-            if not isinstance(entry, dict):
-                continue
-            cid = entry.get("cell_id", "")
-            score = float(entry.get("score", 0.0))
-            if not cid or cid in exclude:
-                continue
+        # Single standalone node case
+        if len(tunnel) == 1:
+            return [tunnel[0]]
 
-            cell = self.orchestrator.loaded_cells.get(cid)
-            if not cell or cell.stage != stage:
-                continue
+        # Partition tunnel cells by stage
+        stage1_cells = [c for c in tunnel if c.stage == 1]
+        stage2_cells = [c for c in tunnel if c.stage == 2]
+        stage3_cells = [c for c in tunnel if c.stage == 3]
 
-            if not current_sig.unifies_with(cell.primary_input) and not cell.can_accept(current_sig):
-                continue
+        # If start_sig is specified, filter candidate entry cells to type-compatible entries
+        if start_sig is not None:
+            s_sig = start_sig.signature if hasattr(start_sig, "signature") else start_sig
+            matching_entries = [c for c in tunnel if unify(s_sig, c.primary_input.signature) is not None]
+            candidate_entries = matching_entries if matching_entries else tunnel
+        else:
+            candidate_entries = tunnel
 
-            overlap, matched_kws = self._compute_overlap(query_kws, cell.keywords)
-            if stage == 2 and query_kws and overlap == 0:
-                continue
+        # If goal_sig is specified, filter stage 3 cells to type-compatible exits
+        if goal_sig is not None:
+            g_sig = goal_sig.signature if hasattr(goal_sig, "signature") else goal_sig
+            matching_s3 = [c for c in stage3_cells if unify(c.primary_output.signature, g_sig) is not None]
+            if matching_s3:
+                stage3_cells = matching_s3
 
-            score += overlap * 0.4
+        # Decompose prompt into constituent clauses to identify initial clause intent
+        import re
+        clauses = re.split(r'\s+(?:then|and\s+then|and|,|;)\s+', prompt.strip())
+        first_clause = clauses[0].strip() if clauses else prompt.strip()
+        first_clause_tokens = CellTokenizer.tokenize_prompt(first_clause)
+        prompt_tokens = CellTokenizer.tokenize_prompt(prompt)
+        is_multistage = len(clauses) > 1
 
-            if prompt_order and matched_kws:
-                pos_list = [prompt_order.index(k) for k in matched_kws if k in prompt_order]
-                if pos_list:
-                    min_pos = min(pos_list)
-                    score += (len(prompt_order) - min_pos) / len(prompt_order) * 0.25
+        # 1. Select Best Entry Node via universal category-theoretic fitness
+        def entry_fitness(c: Cell) -> Tuple[int, int, int, float]:
+            curated = 1 if c.source_priority <= 10 else 0
+            c_tokens = set(c.token_set)
+            clause_overlap = len(c_tokens & first_clause_tokens)
+            # In a multi-stage workflow, initial ingestion (stage 1) with clause overlap is favored for entry
+            stage_match = 1 if (is_multistage and c.stage == 1 and clause_overlap > 0) or (not is_multistage and clause_overlap > 0) else 0
+            rel = relevance_map.get(c.cell_id, 0.0)
+            return (stage_match, curated, clause_overlap, rel)
 
-            if getattr(cell, "verified", False) or getattr(cell, "verified", 0) == 1:
-                score *= 1.3
-            if cell.primary_input.type_name != "any" and current_sig.type_name != "any":
-                score *= 1.2
+        sorted_entries = sorted(candidate_entries, key=entry_fitness, reverse=True)
+        best_entry = sorted_entries[0]
+        pipeline: List[Cell] = [best_entry]
+        current_cell = best_entry
+        current_sigma = Substitution()
 
-            if goal_domain:
-                if (cell.domain_name or "").lower() == goal_domain.lower():
-                    score *= 1.3
-                elif (cell.domain_name or "").lower() not in ("generic", "python_core", "macro"):
-                    score *= 0.4
+        covered_tokens = set(best_entry.token_set) & prompt_tokens
 
-            # Penalize noise helper nodes
-            if any(p in cid.lower() for p in ["_group_", "_internal_", "typing_", "withmetadata", "default"]):
-                score *= 0.6
+        # 2. Select Relevant Intermediate Transforms (Stage 2) via Intent-Coverage Stopping
+        curated_transforms = [c for c in stage2_cells if c.source_priority <= 10]
+        active_transforms = curated_transforms if curated_transforms else stage2_cells
+        active_transforms.sort(key=lambda c: relevance_map.get(c.cell_id, 0.0), reverse=True)
 
-            if score > best_score:
-                best_score = score
-                best_match = cid
+        for _ in range(max_transforms):
+            best_next = None
+            best_next_sigma = None
 
-        if best_match is None:
-            # Fallback to O(1) typed lattice successors directly
-            successors = self.orchestrator.get_successors_for_sig(current_sig, stage=stage)
-            for cell in successors:
-                if cell.cell_id in exclude:
+            for cand in active_transforms:
+                if cand in pipeline:
                     continue
-                if not cell.keywords:
-                    if stage == 2 and query_kws:
+
+                # Intent-Coverage Criterion: candidate must satisfy newly uncovered prompt tokens
+                cand_tokens = set(cand.token_set) & prompt_tokens
+                new_tokens = cand_tokens - covered_tokens
+                if not new_tokens and covered_tokens:
+                    continue
+
+                new_sigma = unify(current_cell.primary_output.signature, cand.primary_input.signature, current_sigma)
+                if new_sigma is not None:
+                    best_next = cand
+                    best_next_sigma = new_sigma
+                    covered_tokens.update(cand_tokens)
+                    break
+
+            if best_next is not None:
+                pipeline.append(best_next)
+                current_cell = best_next
+                current_sigma = best_next_sigma
+            else:
+                break
+
+        # 3. Select Terminal Node (Stage 3) only if required by uncovered prompt intent
+        if stage3_cells:
+            curated_stage3 = [c for c in stage3_cells if c.source_priority <= 10]
+            active_stage3 = curated_stage3 if curated_stage3 else stage3_cells
+            active_stage3.sort(key=lambda c: relevance_map.get(c.cell_id, 0.0), reverse=True)
+
+            for term in active_stage3:
+                term_tokens = set(term.token_set) & prompt_tokens
+                new_tokens = term_tokens - covered_tokens
+                if new_tokens or not covered_tokens:
+                    new_sigma = unify(current_cell.primary_output.signature, term.primary_input.signature, current_sigma)
+                    if new_sigma is not None:
+                        pipeline.append(term)
+                        current_cell = term
+                        current_sigma = new_sigma
+                        covered_tokens.update(term_tokens)
+                        break
+
+        # Return pipeline if multi-cell or if prompt intent is fully satisfied / single-stage
+        if len(pipeline) > 1 or not is_multistage or not (prompt_tokens - covered_tokens):
+            return pipeline
+
+        # 4. Bounded MCTS Fallback (Section 3.4) if pipeline could not bridge intent
+        logger.info("[PLANNER] Incomplete intent coverage. Running bounded MCTS...")
+        mcts_path = self._bounded_mcts_search(tunnel, relevance_map)
+        if mcts_path:
+            return mcts_path
+
+        return pipeline
+
+    def _bounded_mcts_search(
+        self,
+        tunnel: List[Cell],
+        relevance_map: Dict[str, float],
+        max_simulations: int = 50
+    ) -> Optional[List[Cell]]:
+        """
+        Bounded Monte Carlo Tree Search over tunnel T (Section 3.4).
+        Treats partial chains as tree nodes and explores indirect combinations.
+        """
+        entry_nodes = [c for c in tunnel if c.stage == 1] or tunnel[:3]
+
+        for entry in entry_nodes:
+            chain = [entry]
+            current_sigma = Substitution()
+
+            for _ in range(max_simulations):
+                curr = chain[-1]
+                if curr.stage == 3:
+                    return chain
+
+                # Find valid unifiable candidates
+                out_sig = curr.primary_output.signature
+                valid_next = []
+                for cand in tunnel:
+                    if cand.cell_id in (c.cell_id for c in chain):
                         continue
-                    overlap, matched_kws = 0, []
-                else:
-                    overlap, matched_kws = self._compute_overlap(query_kws, cell.keywords)
-                    if stage == 2 and query_kws and overlap == 0:
-                        continue
+                    new_sigma = unify(out_sig, cand.primary_input.signature, current_sigma)
+                    if new_sigma is not None:
+                        valid_next.append((cand, new_sigma))
 
-                score = 0.5 + overlap * 0.4
-                if prompt_order and matched_kws:
-                    pos_list = [prompt_order.index(k) for k in matched_kws if k in prompt_order]
-                    if pos_list:
-                        min_pos = min(pos_list)
-                        score += (len(prompt_order) - min_pos) / len(prompt_order) * 0.25
+                if not valid_next:
+                    break
 
-                if getattr(cell, "verified", False) or getattr(cell, "verified", 0) == 1:
-                    score *= 1.3
-                if cell.primary_input.type_name != "any" and current_sig.type_name != "any":
-                    score *= 1.2
+                # Bias exploration by semantic relevance probability
+                valid_next.sort(key=lambda x: relevance_map.get(x[0].cell_id, 0.0), reverse=True)
+                chosen_cand, chosen_sigma = valid_next[0]
+                chain.append(chosen_cand)
+                current_sigma = chosen_sigma
 
-                if goal_domain:
-                    if (cell.domain_name or "").lower() == goal_domain.lower():
-                        score *= 1.3
-                    elif (cell.domain_name or "").lower() not in ("generic", "python_core", "macro"):
-                        score *= 0.4
-                if any(p in cell.cell_id.lower() for p in ["_group_", "_internal_", "typing_", "withmetadata", "default"]):
-                    score *= 0.6
-                if score > best_score:
-                    best_score = score
-                    best_match = cell.cell_id
+                if chosen_cand.stage == 3:
+                    return chain
 
-        return best_match
+            if len(chain) > 1:
+                return chain
 
-    GENERIC_STOP_WORDS = {
-        "and", "then", "to", "with", "from", "the", "a", "an", "in", "on", "of", "for",
-        "is", "it", "this", "that", "values", "data", "file", "dataframe", "image",
-        "load", "save", "input", "output", "read", "write", "csv", "out", "img", "txt",
-        "jpg", "jpeg", "png", "json", "table", "dataset", "picture", "figure"
-    }
-
-    def _deterministic_fallback(self, prompt: str, context: List[Any]) -> Dict[str, Any]:
-        from router import LatticeRouter
-
-        router = LatticeRouter(self.orchestrator, self.rag)
-        result = router.plan_path(prompt, return_tuple=False)
-        sub_cells = [c.cell_id for c in result]
-
-        return {
-            "cells": [{
-                "cell_id": "macro_fallback",
-                "type": "macro",
-                "stage": 1,
-                "sub_cells": sub_cells
-            }]
-        }
-
-    def _find_closest_existing_cell(self, cell_id: str) -> Optional[str]:
-        if cell_id in self.orchestrator.loaded_cells:
-            return cell_id
-        cid_upper = cell_id.upper()
-        for cid in self.orchestrator.loaded_cells:
-            if cid_upper in cid or cid in cid_upper:
-                return cid
         return None
 
-    @staticmethod
-    def _slugify(text: str) -> str:
-        return re.sub(r"[^a-zA-Z0-9_]+", "_", text).strip("_").upper()
+
+ZeroShotPlanner = LatticePlanner
+

@@ -82,6 +82,15 @@ def sanitize_database(db_path: Path = DB_PATH, backup: bool = True):
     print("[*] Cleaning up bogus non-existent method nodes...")
     cur.execute("DELETE FROM nodes WHERE cell_id LIKE '%_DEFAULT' AND cell_id LIKE '%PANDAS_CORE_%'")
     cur.execute("DELETE FROM nodes WHERE code LIKE '%{dest_path}%' AND code LIKE '{data}.%' AND cell_id NOT IN ('PANDAS_SERIES_TO_CSV', 'PANDAS_TO_PICKLE', 'PANDAS_TO_EXCEL', 'PANDAS_TO_HDF', 'PANDAS_TO_HTML', 'PANDAS_TO_JSON', 'PANDAS_TO_LATEX', 'PANDAS_TO_MARKDOWN', 'PANDAS_TO_XML')")
+    cur.execute("""
+        UPDATE nodes
+        SET output_state = 'serialized_string'
+        WHERE output_state = 'filepath_written'
+          AND code NOT LIKE '%{dest_path}%'
+          AND code NOT LIKE '%{filename}%'
+          AND code NOT LIKE '%{filepath}%'
+          AND code NOT LIKE '%{path}%'
+    """)
     conn.commit()
 
     # Step 4: Register verified stdlib cells

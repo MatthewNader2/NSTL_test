@@ -8,14 +8,6 @@ import re
 import sys
 from typing import Set, FrozenSet
 
-# Universal stopwords stripped from natural language prompts
-STOP_WORDS: FrozenSet[str] = frozenset({
-    'a', 'an', 'the', 'and', 'or', 'to', 'with', 'any', 'it', 'is',
-    'in', 'of', 'for', 'on', 'by', 'function', 'write', 'python', 'code',
-    'script', 'create', 'def', 'that', 'returns', 'result', 'using',
-    'from', 'into', 'this', 'then', 'use', 'make', 'get', 'set',
-})
-
 # Universal camelCase and snake_case boundary splitter
 _IDENTIFIER_SPLIT_REGEX = re.compile(
     r'[_\-\s\.]+|(?<=[a-z])(?=[A-Z])|(?<=[A-Z])(?=[A-Z][a-z])|(?<=[a-zA-Z])(?=[0-9])|(?<=[0-9])(?=[a-zA-Z])'
@@ -29,27 +21,30 @@ class CellTokenizer:
     def tokenize_identifier(cls, identifier: str) -> Set[str]:
         """
         Splits camelCase, snake_case, and dotted identifiers into distinct sub-tokens.
-        Example: 'PANDAS_READ_CSV' -> {'pandas', 'read', 'csv'}
-        Example: 'cvtColor' -> {'cvt', 'color'}
         """
         if not identifier:
             return set()
 
         parts = _IDENTIFIER_SPLIT_REGEX.split(identifier)
-        tokens = {p.lower().strip() for p in parts if len(p.strip()) > 1}
-        tokens.add(identifier.lower().strip())
+        tokens = set()
+
+        for p in parts:
+            p_clean = p.lower().strip()
+            if len(p_clean) > 1:
+                tokens.add(p_clean)
+
+        clean_id = identifier.lower().strip()
+        if clean_id:
+            tokens.add(clean_id)
         return tokens
 
     @classmethod
-    def tokenize_prompt(cls, prompt: str, remove_stopwords: bool = True) -> Set[str]:
-        """Tokenizes user natural language prompts."""
+    def tokenize_prompt(cls, prompt: str, remove_stopwords: bool = False) -> Set[str]:
+        """Tokenizes user natural language prompts using word-boundary segmentation."""
         if not prompt:
             return set()
 
         raw_tokens = set(re.findall(r'[a-zA-Z_][a-zA-Z0-9_]*', prompt.lower()))
-        if remove_stopwords:
-            raw_tokens -= STOP_WORDS
-
         return {t for t in raw_tokens if len(t) > 1}
 
     @classmethod

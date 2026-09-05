@@ -32,17 +32,16 @@ def _validate_template(code: str, cell_id: str, node_role: str = "function") -> 
         return False, "Empty code template"
 
     # Check for bare unquoted filenames (e.g. data.csv, image.jpg)
-    bare_file_match = re.search(r'(?<![\'"])\b([a-zA-Z0-9_\-]+\.(?:csv|parquet|json|xlsx|jpg|jpeg|png|wav))\b(?![\'"])', code)
+    bare_file_match = re.search(r'(?<![\'"])\b([a-zA-Z0-9_\-]+\.[a-zA-Z0-9]{1,8})\b(?![\'"])', code)
     if bare_file_match:
         matched_str = bare_file_match.group(1)
         if f"'{matched_str}'" not in code and f'"{matched_str}"' not in code and f"{{{matched_str}}}" not in code:
             return False, f"Bare unquoted filename argument '{matched_str}'"
 
-    # Check for hardcoded literal filename strings in read/write/loader functions
-    if any(k in cell_id.lower() for k in ("read_", "to_", "imread", "imwrite", "load", "save", "test_cell")):
-        hardcoded_match = re.search(r'[\'"]([a-zA-Z0-9_\-/]+\.(?:csv|parquet|json|xlsx|jpg|jpeg|png|wav))[\'"]', code)
-        if hardcoded_match:
-            return False, f"Hardcoded string filename '{hardcoded_match.group(1)}'"
+    # Check for hardcoded literal filename strings in code templates
+    hardcoded_match = re.search(r'[\'"]([a-zA-Z0-9_\-/]+\.[a-zA-Z0-9]{1,8})[\'"]', code)
+    if hardcoded_match:
+        return False, f"Hardcoded string filename '{hardcoded_match.group(1)}'"
 
     dummy_code = re.sub(r'\{[a-zA-Z_][a-zA-Z0-9_]*\}', 'dummy_var', code)
     try:

@@ -185,6 +185,7 @@ def run_smoke_test():
         "input_graph = {'A': {'B': 1, 'C': 4}, 'B': {'A': 1, 'C': 2, 'D': 5}, 'C': {'A': 4, 'B': 2, 'D': 1}, 'D': {'B': 5, 'C': 1}}\n"
         "start_node = 'A'\n"
         + code_algo + "\n"
+        "algorithm_out = locals().get('var_1', locals().get('algorithm_out'))\n"
         "assert algorithm_out['D'] == 4, f'Expected dist 4 to D, got {algorithm_out.get(\"D\")}'\n"
     )
 

@@ -5,7 +5,15 @@
     {
       "cell_id": "MATPLOTLIB_HISTOGRAM",
       "stage": 2,
-      "inputs": {},
+      "inputs": {
+        "data": {
+          "type_name": "any",
+          "state": "any",
+          "default_value": null,
+          "description": "Input data array",
+          "required": true
+        }
+      },
       "outputs": {
         "output_data": {
           "type_name": "Figure",
@@ -15,7 +23,7 @@
           "required": true
         }
       },
-      "code_template": "{output_var} = plt.figure()",
+      "code_template": "plt.hist({data})\n{output_var} = plt.gcf()",
       "dependencies": [
         "import matplotlib.pyplot as plt"
       ],
@@ -53,6 +61,13 @@
       "cell_id": "MATPLOTLIB_SAVEFIG",
       "stage": 3,
       "inputs": {
+        "fig": {
+          "type_name": "Figure",
+          "state": "plotted",
+          "default_value": null,
+          "description": "Figure to save",
+          "required": false
+        },
         "dest_path": {
           "type_name": "str",
           "state": "dest_identifier",
@@ -28297,19 +28312,19 @@
           "description": "",
           "required": true
         },
-        "dx2": {
-          "type_name": "any",
-          "state": "any",
-          "required": true,
-          "default_value": null,
-          "description": "Input dx2"
-        },
         "dy1": {
           "type_name": "any",
           "state": "any",
           "required": true,
           "default_value": null,
           "description": "Input dy1"
+        },
+        "dx2": {
+          "type_name": "any",
+          "state": "any",
+          "required": true,
+          "default_value": null,
+          "description": "Input dx2"
         },
         "dy2": {
           "type_name": "any",
@@ -28509,12 +28524,12 @@
           "description": "",
           "required": true
         },
-        "c2y": {
+        "c1y": {
           "type_name": "any",
           "state": "any",
           "required": true,
           "default_value": null,
-          "description": "Input c2y"
+          "description": "Input c1y"
         },
         "mmx": {
           "type_name": "any",
@@ -28523,6 +28538,13 @@
           "default_value": null,
           "description": "Input mmx"
         },
+        "c2x": {
+          "type_name": "any",
+          "state": "any",
+          "required": true,
+          "default_value": null,
+          "description": "Input c2x"
+        },
         "mmy": {
           "type_name": "any",
           "state": "any",
@@ -28530,19 +28552,12 @@
           "default_value": null,
           "description": "Input mmy"
         },
-        "c1y": {
+        "c2y": {
           "type_name": "any",
           "state": "any",
           "required": true,
           "default_value": null,
-          "description": "Input c1y"
-        },
-        "c2x": {
-          "type_name": "any",
-          "state": "any",
-          "required": true,
-          "default_value": null,
-          "description": "Input c2x"
+          "description": "Input c2y"
         }
       },
       "outputs": {
@@ -28639,12 +28654,12 @@
           "description": "",
           "required": true
         },
-        "y0": {
+        "y1": {
           "type_name": "any",
           "state": "any",
           "required": true,
           "default_value": null,
-          "description": "Input y0"
+          "description": "Input y1"
         },
         "x1": {
           "type_name": "any",
@@ -28653,12 +28668,12 @@
           "default_value": null,
           "description": "Input x1"
         },
-        "y1": {
+        "y0": {
           "type_name": "any",
           "state": "any",
           "required": true,
           "default_value": null,
-          "description": "Input y1"
+          "description": "Input y0"
         }
       },
       "outputs": {
@@ -28723,26 +28738,12 @@
           "description": "",
           "required": true
         },
-        "cy1": {
+        "cos_t1": {
           "type_name": "any",
           "state": "any",
           "required": true,
           "default_value": null,
-          "description": "Input cy1"
-        },
-        "sin_t2": {
-          "type_name": "any",
-          "state": "any",
-          "required": true,
-          "default_value": null,
-          "description": "Input sin_t2"
-        },
-        "cx2": {
-          "type_name": "any",
-          "state": "any",
-          "required": true,
-          "default_value": null,
-          "description": "Input cx2"
+          "description": "Input cos_t1"
         },
         "cy2": {
           "type_name": "any",
@@ -28758,12 +28759,12 @@
           "default_value": null,
           "description": "Input cos_t2"
         },
-        "cos_t1": {
+        "sin_t2": {
           "type_name": "any",
           "state": "any",
           "required": true,
           "default_value": null,
-          "description": "Input cos_t1"
+          "description": "Input sin_t2"
         },
         "sin_t1": {
           "type_name": "any",
@@ -28771,6 +28772,20 @@
           "required": true,
           "default_value": null,
           "description": "Input sin_t1"
+        },
+        "cx2": {
+          "type_name": "any",
+          "state": "any",
+          "required": true,
+          "default_value": null,
+          "description": "Input cx2"
+        },
+        "cy1": {
+          "type_name": "any",
+          "state": "any",
+          "required": true,
+          "default_value": null,
+          "description": "Input cy1"
         }
       },
       "outputs": {
@@ -28865,6 +28880,20 @@
           "description": "",
           "required": true
         },
+        "cos_t": {
+          "type_name": "any",
+          "state": "any",
+          "required": true,
+          "default_value": null,
+          "description": "Input cos_t"
+        },
+        "sin_t": {
+          "type_name": "any",
+          "state": "any",
+          "required": true,
+          "default_value": null,
+          "description": "Input sin_t"
+        },
         "cy": {
           "type_name": "any",
           "state": "any",
@@ -28878,20 +28907,6 @@
           "required": true,
           "default_value": null,
           "description": "Input length"
-        },
-        "sin_t": {
-          "type_name": "any",
-          "state": "any",
-          "required": true,
-          "default_value": null,
-          "description": "Input sin_t"
-        },
-        "cos_t": {
-          "type_name": "any",
-          "state": "any",
-          "required": true,
-          "default_value": null,
-          "description": "Input cos_t"
         }
       },
       "outputs": {
@@ -29102,19 +29117,19 @@
           "description": "",
           "required": true
         },
-        "cy": {
-          "type_name": "any",
-          "state": "any",
-          "required": true,
-          "default_value": null,
-          "description": "Input cy"
-        },
         "r": {
           "type_name": "any",
           "state": "any",
           "required": true,
           "default_value": null,
           "description": "Input r"
+        },
+        "cy": {
+          "type_name": "any",
+          "state": "any",
+          "required": true,
+          "default_value": null,
+          "description": "Input cy"
         }
       },
       "outputs": {
@@ -75512,13 +75527,6 @@
           "description": "",
           "required": true
         },
-        "offsets": {
-          "type_name": "any",
-          "state": "any",
-          "required": true,
-          "default_value": null,
-          "description": "Input offsets"
-        },
         "transforms": {
           "type_name": "any",
           "state": "any",
@@ -75526,19 +75534,26 @@
           "default_value": null,
           "description": "Input transforms"
         },
-        "offset_transform": {
-          "type_name": "any",
-          "state": "any",
-          "required": true,
-          "default_value": null,
-          "description": "Input offset_transform"
-        },
         "paths": {
           "type_name": "any",
           "state": "any",
           "required": true,
           "default_value": null,
           "description": "Input paths"
+        },
+        "offsets": {
+          "type_name": "any",
+          "state": "any",
+          "required": true,
+          "default_value": null,
+          "description": "Input offsets"
+        },
+        "offset_transform": {
+          "type_name": "any",
+          "state": "any",
+          "required": true,
+          "default_value": null,
+          "description": "Input offset_transform"
         }
       },
       "outputs": {
@@ -126942,7 +126957,7 @@
           "required": true
         },
         "b": {
-          "type_name": "Figure",
+          "type_name": "any",
           "state": "any",
           "required": true,
           "default_value": null,
@@ -136209,19 +136224,19 @@
           "default_value": null,
           "description": "Input dx"
         },
-        "y": {
-          "type_name": "Figure",
-          "state": "any",
-          "required": true,
-          "default_value": null,
-          "description": "Input y"
-        },
         "dy": {
           "type_name": "any",
           "state": "any",
           "required": true,
           "default_value": null,
           "description": "Input dy"
+        },
+        "y": {
+          "type_name": "any",
+          "state": "any",
+          "required": true,
+          "default_value": null,
+          "description": "Input y"
         }
       },
       "outputs": {
@@ -138141,13 +138156,6 @@
           "description": null,
           "required": true
         },
-        "valmin": {
-          "type_name": "any",
-          "state": "any",
-          "required": true,
-          "default_value": null,
-          "description": "Input valmin"
-        },
         "valmax": {
           "type_name": "any",
           "state": "any",
@@ -138161,6 +138169,13 @@
           "required": true,
           "default_value": null,
           "description": "Input label"
+        },
+        "valmin": {
+          "type_name": "any",
+          "state": "any",
+          "required": true,
+          "default_value": null,
+          "description": "Input valmin"
         }
       },
       "outputs": {
@@ -139471,7 +139486,7 @@
           "required": true
         },
         "y": {
-          "type_name": "Figure",
+          "type_name": "any",
           "state": "any",
           "required": true,
           "default_value": null,
@@ -139829,7 +139844,7 @@
           "required": true
         },
         "y": {
-          "type_name": "Figure",
+          "type_name": "any",
           "state": "any",
           "required": true,
           "default_value": null,
@@ -140147,7 +140162,7 @@
           "required": true
         },
         "y": {
-          "type_name": "Figure",
+          "type_name": "any",
           "state": "any",
           "required": true,
           "default_value": null,
@@ -140423,7 +140438,7 @@
           "description": "Input s"
         },
         "y": {
-          "type_name": "Figure",
+          "type_name": "any",
           "state": "any",
           "required": true,
           "default_value": null,
@@ -141391,7 +141406,7 @@
           "required": true
         },
         "y": {
-          "type_name": "Figure",
+          "type_name": "any",
           "state": "any",
           "required": true,
           "default_value": null,
@@ -141441,7 +141456,7 @@
           "required": true
         },
         "y": {
-          "type_name": "Figure",
+          "type_name": "any",
           "state": "any",
           "required": true,
           "default_value": null,
@@ -141490,19 +141505,19 @@
           "description": null,
           "required": true
         },
-        "xmax": {
-          "type_name": "any",
-          "state": "any",
-          "required": true,
-          "default_value": null,
-          "description": "Input xmax"
-        },
         "xmin": {
           "type_name": "any",
           "state": "any",
           "required": true,
           "default_value": null,
           "description": "Input xmin"
+        },
+        "xmax": {
+          "type_name": "any",
+          "state": "any",
+          "required": true,
+          "default_value": null,
+          "description": "Input xmax"
         }
       },
       "outputs": {
@@ -141677,7 +141692,7 @@
           "required": true
         },
         "arr": {
-          "type_name": "Figure",
+          "type_name": "any",
           "state": "any",
           "required": true,
           "default_value": null,
@@ -143063,8 +143078,15 @@
           "description": null,
           "required": true
         },
+        "U": {
+          "type_name": "any",
+          "state": "any",
+          "required": true,
+          "default_value": null,
+          "description": "Input U"
+        },
         "X": {
-          "type_name": "Figure",
+          "type_name": "any",
           "state": "any",
           "required": true,
           "default_value": null,
@@ -143077,15 +143099,8 @@
           "default_value": null,
           "description": "Input label"
         },
-        "U": {
-          "type_name": "Figure",
-          "state": "any",
-          "required": true,
-          "default_value": null,
-          "description": "Input U"
-        },
         "Y": {
-          "type_name": "Figure",
+          "type_name": "any",
           "state": "any",
           "required": true,
           "default_value": null,
@@ -143741,7 +143756,7 @@
           "required": true
         },
         "y": {
-          "type_name": "Figure",
+          "type_name": "any",
           "state": "any",
           "required": true,
           "default_value": null,
@@ -143791,21 +143806,21 @@
           "required": true
         },
         "u": {
-          "type_name": "Figure",
+          "type_name": "any",
           "state": "any",
           "required": true,
           "default_value": null,
           "description": "Input u"
         },
         "v": {
-          "type_name": "Figure",
+          "type_name": "any",
           "state": "any",
           "required": true,
           "default_value": null,
           "description": "Input v"
         },
         "y": {
-          "type_name": "Figure",
+          "type_name": "any",
           "state": "any",
           "required": true,
           "default_value": null,
@@ -145028,7 +145043,7 @@
           "required": true
         },
         "y": {
-          "type_name": "Figure",
+          "type_name": "any",
           "state": "any",
           "required": true,
           "default_value": null,
@@ -163822,19 +163837,19 @@
           "description": null,
           "required": true
         },
-        "slope": {
-          "type_name": "any",
-          "state": "any",
-          "required": true,
-          "default_value": null,
-          "description": "Input slope"
-        },
         "xy2": {
           "type_name": "any",
           "state": "any",
           "required": true,
           "default_value": null,
           "description": "Input xy2"
+        },
+        "slope": {
+          "type_name": "any",
+          "state": "any",
+          "required": true,
+          "default_value": null,
+          "description": "Input slope"
         }
       },
       "outputs": {

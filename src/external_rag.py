@@ -5,6 +5,8 @@ Documentation Fetchers for Live API Grounding at Synthesis Time.
 
 from __future__ import annotations
 import json
+import sys
+import importlib
 import urllib.request
 import urllib.parse
 from abc import ABC, abstractmethod
@@ -82,16 +84,29 @@ class IntrospectionFetcher(LiveDocFetcher):
     Introspects installed Python modules directly using inspect.getdoc() and inspect.signature().
     Zero network latency, 100% grounded and deterministic.
     """
-    KNOWN_MODULES = ["pandas", "numpy", "cv2", "sklearn", "scipy", "matplotlib", "heapq", "math", "json", "os", "sys"]
-
     def fetch(self, query: str) -> str:
         clean_q = query.strip().lower().replace(" ", "_")
         tokens = [t for t in query.strip().lower().split() if len(t) > 2]
 
-        for mod_name in self.KNOWN_MODULES:
+        # Dynamically discover candidate modules from query tokens, sys.modules, and standard libraries
+        candidate_modules: list[str] = []
+        seen = set()
+
+        for t in query.replace(".", " ").replace("/", " ").split():
+            t_clean = t.strip()
+            if t_clean.isidentifier() and t_clean not in seen:
+                seen.add(t_clean)
+                candidate_modules.append(t_clean)
+
+        for m in list(sys.modules.keys()):
+            if "." not in m and not m.startswith("_") and m not in seen:
+                seen.add(m)
+                candidate_modules.append(m)
+
+        for mod_name in candidate_modules:
             try:
-                mod = importlib.import_module(mod_name)
-            except ImportError:
+                mod = sys.modules.get(mod_name) or importlib.import_module(mod_name)
+            except Exception:
                 continue
 
             # Check direct attribute match

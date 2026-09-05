@@ -24,18 +24,96 @@ if str(PROJECT_ROOT) not in sys.path:
 
 from audit_trees import check_template_wiring
 from src.semantic_repair_engine import repair_cell_semantics
-from src.template_wiring import clean_malformed_template_braces, repair_cv2_variant_cell
+from src.template_wiring import clean_malformed_template_braces, transform_call_ast_with_flag
+import re
+
+
+def repair_cv2_variant_cell(
+    cell: Dict[str, Any],
+    cell_map: Dict[str, Dict[str, Any]],
+    base_default_map: Dict[str, Dict[str, Any]],
+) -> bool:
+    """Repairs cv2 enum-variant cells with argument-less fake calls (Bug B)."""
+    cid = cell.get("cell_id", "")
+    tmpl = clean_malformed_template_braces(cell.get("code_template", ""))
+    cell["code_template"] = tmpl
+
+    m = re.match(r"\{output_var\}\s*=\s*cv2\.([A-Za-z0-9_]+)\(\)", tmpl)
+    if not m:
+        return False
+
+    parts = cid.rsplit("_", 1)
+    flag = parts[1] if len(parts) > 1 else ""
+    grp_def_id = parts[0] + "_DEFAULT"
+
+    target_template = None
+    source_cell = None
+
+    if grp_def_id in cell_map and not cell_map[grp_def_id].get("code_template", "").endswith("()"):
+        grp_tmpl = clean_malformed_template_braces(cell_map[grp_def_id].get("code_template", ""))
+        m_flag = re.search(r"cv2\.([A-Za-z0-9_]+_DEFAULT)", grp_tmpl)
+        if m_flag:
+            def_flag = m_flag.group(1)
+            prefix = def_flag.rsplit("_", 1)[0]
+            variant_flag = f"{prefix}_{flag}"
+            target_template = grp_tmpl.replace(f"cv2.{def_flag}", f"cv2.{variant_flag}")
+            source_cell = cell_map[grp_def_id]
+        else:
+            target_template = grp_tmpl
+            source_cell = cell_map[grp_def_id]
+
+    if not target_template:
+        found_base = None
+        for b in sorted(base_default_map.keys(), key=len, reverse=True):
+            if cid.startswith(b + "_") or cid == b:
+                found_base = b
+                break
+        if found_base:
+            base_cell = base_default_map[found_base]
+            base_tmpl = clean_malformed_template_braces(base_cell.get("code_template", ""))
+            flag_attr = cid[len(found_base) + 1 :] if cid != found_base else ""
+            if flag_attr:
+                target_template = transform_call_ast_with_flag(base_tmpl, "cv2", flag_attr)
+            else:
+                target_template = base_tmpl
+            source_cell = base_cell
+
+    if not target_template:
+        if "_GROUP_" in cid:
+            fn_name = cid.split("_GROUP_")[-1]
+            target_template = f"{{output_var}} = cv2.{fn_name}({{input_var}})"
+            source_cell = cell
+        elif cid.endswith("_GROUP"):
+            fn_name = cid.replace("CV2_", "").replace("_GROUP", "")
+            target_template = f"{{output_var}} = cv2.{fn_name}({{input_var}})"
+            source_cell = cell
+
+    if not target_template:
+        return False
+
+    cell["code_template"] = clean_malformed_template_braces(target_template)
+
+    if source_cell and source_cell is not cell:
+        cell["inputs"] = dict(source_cell.get("inputs", {}))
+        cell["outputs"] = dict(source_cell.get("outputs", {}))
+
+    return True
 
 TARGET_FILES = [
-    Path("trees/cv2.json"),
-    Path("trees/pandas.json"),
-    Path("trees/sklearn.json"),
-    Path("trees/numpy.json"),
-    Path("trees/scipy.json"),
-    Path("trees/matplotlib.json"),
-    Path("trees/python_core.json"),
+    Path("nstl_enrichment/checkpoints/cv2.json"),
+    Path("nstl_enrichment/checkpoints/matplotlib.json"),
+    Path("nstl_enrichment/checkpoints/numpy.json"),
     Path("nstl_enrichment/checkpoints/pandas.json"),
+    Path("nstl_enrichment/checkpoints/python_core.json"),
+    Path("nstl_enrichment/checkpoints/scipy.json"),
     Path("nstl_enrichment/checkpoints/sklearn.json"),
+    Path("trees/cv2.json"),
+    Path("trees/matplotlib.json"),
+    Path("trees/numpy.json"),
+    Path("trees/pandas.json"),
+    Path("trees/python_core.json"),
+    Path("trees/scipy.json"),
+    Path("trees/sklearn.json"),
 ]
 
 

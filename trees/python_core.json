@@ -64,11 +64,13 @@
         "sum",
         "var"
       ],
-      "docstring": "",
+      "docstring": "Performs binary addition on two numeric values.",
       "domain_name": "python_core",
       "node_type": "function",
       "node_role": "function",
-      "source_priority": 1
+      "source_priority": 1,
+      "enrichment_source": "llm",
+      "enriched_at": "2026-09-05T17:12:17.008731+00:00"
     },
     {
       "cell_id": "PYTHON_PRINT_STDOUT",
@@ -723,11 +725,13 @@
         "ratio calculation",
         "var"
       ],
-      "docstring": "",
+      "docstring": "Returns the integer ratio representation of a boolean value.",
       "domain_name": "python_core",
       "node_type": "function",
       "node_role": "function",
-      "source_priority": 100
+      "source_priority": 100,
+      "enrichment_source": "llm",
+      "enriched_at": "2026-09-05T17:12:17.008731+00:00"
     },
     {
       "cell_id": "BUILTINS_BOOL_BIT_COUNT_DEFAULT",
@@ -786,11 +790,13 @@
         "set bits",
         "var"
       ],
-      "docstring": "",
+      "docstring": "Counts the number of set bits in a boolean value.",
       "domain_name": "python_core",
       "node_type": "function",
       "node_role": "function",
-      "source_priority": 100
+      "source_priority": 100,
+      "enrichment_source": "llm",
+      "enriched_at": "2026-09-05T17:12:17.008731+00:00"
     },
     {
       "cell_id": "BUILTINS_BOOL_BIT_LENGTH_DEFAULT",
@@ -851,11 +857,13 @@
         "output_var",
         "var"
       ],
-      "docstring": "",
+      "docstring": "Returns the number of bits required to represent a boolean value.",
       "domain_name": "python_core",
       "node_type": "function",
       "node_role": "function",
-      "source_priority": 100
+      "source_priority": 100,
+      "enrichment_source": "llm",
+      "enriched_at": "2026-09-05T17:12:17.008731+00:00"
     },
     {
       "cell_id": "BUILTINS_BOOL_CONJUGATE_DEFAULT",
@@ -1038,11 +1046,13 @@
         "output_var",
         "var"
       ],
-      "docstring": "",
+      "docstring": "Checks if a boolean value is an integer.",
       "domain_name": "python_core",
       "node_type": "function",
       "node_role": "function",
-      "source_priority": 100
+      "source_priority": 100,
+      "enrichment_source": "llm",
+      "enriched_at": "2026-09-05T17:12:17.008731+00:00"
     },
     {
       "cell_id": "BUILTINS_BOOL_TO_BYTES_DEFAULT",
@@ -5547,11 +5557,13 @@
         "symmetric_difference",
         "var"
       ],
-      "docstring": "",
+      "docstring": "Computes the symmetric difference of a frozenset with another set.",
       "domain_name": "python_core",
       "node_type": "function",
       "node_role": "function",
-      "source_priority": 100
+      "source_priority": 100,
+      "enrichment_source": "llm",
+      "enriched_at": "2026-09-05T17:12:17.008731+00:00"
     },
     {
       "cell_id": "BUILTINS_FROZENSET_UNION_DEFAULT",
@@ -7557,11 +7569,13 @@
         "update",
         "var"
       ],
-      "docstring": "",
+      "docstring": "Removes elements from a set that are present in another iterable.",
       "domain_name": "python_core",
       "node_type": "function",
       "node_role": "function",
-      "source_priority": 100
+      "source_priority": 100,
+      "enrichment_source": "llm",
+      "enriched_at": "2026-09-05T17:12:17.008731+00:00"
     },
     {
       "cell_id": "BUILTINS_SET_DISCARD_DEFAULT",
@@ -7681,11 +7695,13 @@
         "update",
         "var"
       ],
-      "docstring": "",
+      "docstring": "Updates a set to contain only elements common to itself and another iterable.",
       "domain_name": "python_core",
       "node_type": "function",
       "node_role": "function",
-      "source_priority": 100
+      "source_priority": 100,
+      "enrichment_source": "llm",
+      "enriched_at": "2026-09-05T17:12:17.008731+00:00"
     },
     {
       "cell_id": "BUILTINS_SET_SYMMETRIC_DIFFERENCE_UPDATE_DEFAULT",
@@ -7748,11 +7764,13 @@
         "update",
         "var"
       ],
-      "docstring": "",
+      "docstring": "Updates a set to contain elements present in either of two sets but not in both.",
       "domain_name": "python_core",
       "node_type": "function",
       "node_role": "function",
-      "source_priority": 100
+      "source_priority": 100,
+      "enrichment_source": "llm",
+      "enriched_at": "2026-09-05T17:12:17.008731+00:00"
     },
     {
       "cell_id": "BUILTINS_SETATTR_DEFAULT",
@@ -8813,11 +8831,13 @@
         "output_var",
         "var"
       ],
-      "docstring": "",
+      "docstring": "Adds a value to a boolean object using the add method.",
       "domain_name": "python_core",
       "node_type": "dunder",
       "node_role": "function",
-      "source_priority": 100
+      "source_priority": 100,
+      "enrichment_source": "llm",
+      "enriched_at": "2026-09-05T17:12:17.008731+00:00"
     },
     {
       "cell_id": "BUILTINS_BOOL___AND___DEFAULT",
@@ -8872,11 +8892,13 @@
         "true",
         "var"
       ],
-      "docstring": "",
+      "docstring": "Performs a bitwise AND operation between a boolean and True.",
       "domain_name": "python_core",
       "node_type": "dunder",
       "node_role": "function",
-      "source_priority": 100
+      "source_priority": 100,
+      "enrichment_source": "llm",
+      "enriched_at": "2026-09-05T17:12:17.008731+00:00"
     },
     {
       "cell_id": "BUILTINS_BOOL___BOOL___DEFAULT",
@@ -9248,11 +9270,13 @@
         "output_var",
         "var"
       ],
-      "docstring": "",
+      "docstring": "Performs floor division of a boolean by a numeric value.",
       "domain_name": "python_core",
       "node_type": "dunder",
       "node_role": "function",
-      "source_priority": 100
+      "source_priority": 100,
+      "enrichment_source": "llm",
+      "enriched_at": "2026-09-05T17:12:17.008731+00:00"
     },
     {
       "cell_id": "BUILTINS_BOOL___GETNEWARGS___DEFAULT",
@@ -9307,11 +9331,13 @@
         "output_var",
         "var"
       ],
-      "docstring": "",
+      "docstring": "Returns arguments for reconstructing a boolean object during unpickling.",
       "domain_name": "python_core",
       "node_type": "dunder",
       "node_role": "function",
-      "source_priority": 100
+      "source_priority": 100,
+      "enrichment_source": "llm",
+      "enriched_at": "2026-09-05T17:12:17.008731+00:00"
     },
     {
       "cell_id": "BUILTINS_BOOL___INDEX___DEFAULT",
@@ -9366,11 +9392,13 @@
         "output_var",
         "var"
       ],
-      "docstring": "",
+      "docstring": "Returns an integer value representing the boolean for indexing purposes.",
       "domain_name": "python_core",
       "node_type": "dunder",
       "node_role": "function",
-      "source_priority": 100
+      "source_priority": 100,
+      "enrichment_source": "llm",
+      "enriched_at": "2026-09-05T17:12:17.008731+00:00"
     },
     {
       "cell_id": "BUILTINS_BOOL___INT___DEFAULT",
@@ -9490,11 +9518,13 @@
         "output_var",
         "var"
       ],
-      "docstring": "",
+      "docstring": "Inverts the bits of a boolean value.",
       "domain_name": "python_core",
       "node_type": "dunder",
       "node_role": "function",
-      "source_priority": 100
+      "source_priority": 100,
+      "enrichment_source": "llm",
+      "enriched_at": "2026-09-05T17:12:17.008731+00:00"
     },
     {
       "cell_id": "BUILTINS_BOOL___LSHIFT___DEFAULT",
@@ -9551,11 +9581,13 @@
         "output_var",
         "var"
       ],
-      "docstring": "",
+      "docstring": "Performs a bitwise left shift on a boolean value.",
       "domain_name": "python_core",
       "node_type": "dunder",
       "node_role": "function",
-      "source_priority": 100
+      "source_priority": 100,
+      "enrichment_source": "llm",
+      "enriched_at": "2026-09-05T17:12:17.008731+00:00"
     },
     {
       "cell_id": "BUILTINS_BOOL___MOD___DEFAULT",
@@ -9612,11 +9644,13 @@
         "value",
         "var"
       ],
-      "docstring": "",
+      "docstring": "Performs a modulo operation between a boolean and a numeric value.",
       "domain_name": "python_core",
       "node_type": "dunder",
       "node_role": "function",
-      "source_priority": 100
+      "source_priority": 100,
+      "enrichment_source": "llm",
+      "enriched_at": "2026-09-05T17:12:17.008731+00:00"
     },
     {
       "cell_id": "BUILTINS_BOOL___MUL___DEFAULT",
@@ -9675,11 +9709,13 @@
         "output_var",
         "var"
       ],
-      "docstring": "",
+      "docstring": "Multiplies a boolean value by another object.",
       "domain_name": "python_core",
       "node_type": "dunder",
       "node_role": "function",
-      "source_priority": 100
+      "source_priority": 100,
+      "enrichment_source": "llm",
+      "enriched_at": "2026-09-05T17:12:17.008731+00:00"
     },
     {
       "cell_id": "BUILTINS_BOOL___NEG___DEFAULT",
@@ -9740,11 +9776,13 @@
         "output_var",
         "var"
       ],
-      "docstring": "",
+      "docstring": "Negates a boolean value.",
       "domain_name": "python_core",
       "node_type": "dunder",
       "node_role": "function",
-      "source_priority": 100
+      "source_priority": 100,
+      "enrichment_source": "llm",
+      "enriched_at": "2026-09-05T17:12:17.008731+00:00"
     },
     {
       "cell_id": "BUILTINS_BOOL___OR___DEFAULT",
@@ -9799,11 +9837,13 @@
         "true",
         "var"
       ],
-      "docstring": "",
+      "docstring": "Performs a bitwise OR operation between a boolean and True.",
       "domain_name": "python_core",
       "node_type": "dunder",
       "node_role": "function",
-      "source_priority": 100
+      "source_priority": 100,
+      "enrichment_source": "llm",
+      "enriched_at": "2026-09-05T17:12:17.008731+00:00"
     },
     {
       "cell_id": "BUILTINS_BOOL___POS___DEFAULT",
@@ -9862,11 +9902,13 @@
         "sign",
         "var"
       ],
-      "docstring": "",
+      "docstring": "Returns the result of calling the __pos__ method on the input object.",
       "domain_name": "python_core",
       "node_type": "dunder",
       "node_role": "function",
-      "source_priority": 100
+      "source_priority": 100,
+      "enrichment_source": "llm",
+      "enriched_at": "2026-09-05T17:14:09.472297+00:00"
     },
     {
       "cell_id": "BUILTINS_BOOL___POW___DEFAULT",
@@ -9990,11 +10032,13 @@
         "true",
         "var"
       ],
-      "docstring": "",
+      "docstring": "Returns the result of calling the __radd__ method on the input object with the argument True.",
       "domain_name": "python_core",
       "node_type": "dunder",
       "node_role": "function",
-      "source_priority": 100
+      "source_priority": 100,
+      "enrichment_source": "llm",
+      "enriched_at": "2026-09-05T17:14:09.472297+00:00"
     },
     {
       "cell_id": "BUILTINS_BOOL___RAND___DEFAULT",
@@ -10049,11 +10093,13 @@
         "true",
         "var"
       ],
-      "docstring": "",
+      "docstring": "Returns the result of calling the __rand__ method on the input object with the argument True.",
       "domain_name": "python_core",
       "node_type": "dunder",
       "node_role": "function",
-      "source_priority": 100
+      "source_priority": 100,
+      "enrichment_source": "llm",
+      "enriched_at": "2026-09-05T17:14:09.472297+00:00"
     },
     {
       "cell_id": "BUILTINS_BOOL___RDIVMOD___DEFAULT",
@@ -10108,11 +10154,13 @@
         "rdivmod",
         "var"
       ],
-      "docstring": "",
+      "docstring": "Returns the result of calling the __rdivmod__ method on the input object with the argument 1.",
       "domain_name": "python_core",
       "node_type": "dunder",
       "node_role": "function",
-      "source_priority": 100
+      "source_priority": 100,
+      "enrichment_source": "llm",
+      "enriched_at": "2026-09-05T17:14:09.472297+00:00"
     },
     {
       "cell_id": "BUILTINS_BOOL___RFLOORDIV___DEFAULT",
@@ -10167,11 +10215,13 @@
         "rfloordiv",
         "var"
       ],
-      "docstring": "",
+      "docstring": "Returns the result of calling the __rfloordiv__ method on the input object with the argument 1.",
       "domain_name": "python_core",
       "node_type": "dunder",
       "node_role": "function",
-      "source_priority": 100
+      "source_priority": 100,
+      "enrichment_source": "llm",
+      "enriched_at": "2026-09-05T17:14:09.472297+00:00"
     },
     {
       "cell_id": "BUILTINS_BOOL___RLSHIFT___DEFAULT",
@@ -10230,11 +10280,13 @@
         "true",
         "var"
       ],
-      "docstring": "",
+      "docstring": "Returns the result of calling the __rlshift__ method on the input object with the argument True.",
       "domain_name": "python_core",
       "node_type": "dunder",
       "node_role": "function",
-      "source_priority": 100
+      "source_priority": 100,
+      "enrichment_source": "llm",
+      "enriched_at": "2026-09-05T17:14:09.472297+00:00"
     },
     {
       "cell_id": "BUILTINS_BOOL___RMOD___DEFAULT",
@@ -10289,11 +10341,13 @@
         "true",
         "var"
       ],
-      "docstring": "",
+      "docstring": "Returns the result of calling the __rmod__ method on the input object with the argument True.",
       "domain_name": "python_core",
       "node_type": "dunder",
       "node_role": "function",
-      "source_priority": 100
+      "source_priority": 100,
+      "enrichment_source": "llm",
+      "enriched_at": "2026-09-05T17:14:09.472297+00:00"
     },
     {
       "cell_id": "BUILTINS_BOOL___RMUL___DEFAULT",
@@ -10354,11 +10408,13 @@
         "true",
         "var"
       ],
-      "docstring": "",
+      "docstring": "Returns the result of calling the __rmul__ method on the input object with the argument True.",
       "domain_name": "python_core",
       "node_type": "dunder",
       "node_role": "function",
-      "source_priority": 100
+      "source_priority": 100,
+      "enrichment_source": "llm",
+      "enriched_at": "2026-09-05T17:14:09.472297+00:00"
     },
     {
       "cell_id": "BUILTINS_BOOL___ROR___DEFAULT",
@@ -10419,11 +10475,13 @@
         "truthy",
         "var"
       ],
-      "docstring": "",
+      "docstring": "Returns the result of calling the __ror__ method on the input object with the argument True.",
       "domain_name": "python_core",
       "node_type": "dunder",
       "node_role": "function",
-      "source_priority": 100
+      "source_priority": 100,
+      "enrichment_source": "llm",
+      "enriched_at": "2026-09-05T17:14:09.472297+00:00"
     },
     {
       "cell_id": "BUILTINS_BOOL___ROUND___DEFAULT",
@@ -10545,11 +10603,13 @@
         "rpow",
         "var"
       ],
-      "docstring": "",
+      "docstring": "Returns the result of calling the __rpow__ method on the input object with the arguments 2 and 3.",
       "domain_name": "python_core",
       "node_type": "dunder",
       "node_role": "function",
-      "source_priority": 100
+      "source_priority": 100,
+      "enrichment_source": "llm",
+      "enriched_at": "2026-09-05T17:14:09.472297+00:00"
     },
     {
       "cell_id": "BUILTINS_BOOL___RRSHIFT___DEFAULT",
@@ -10608,11 +10668,13 @@
         "value",
         "var"
       ],
-      "docstring": "",
+      "docstring": "Returns the result of calling the __rrshift__ method on the input object with the argument value.",
       "domain_name": "python_core",
       "node_type": "dunder",
       "node_role": "function",
-      "source_priority": 100
+      "source_priority": 100,
+      "enrichment_source": "llm",
+      "enriched_at": "2026-09-05T17:14:09.472297+00:00"
     },
     {
       "cell_id": "BUILTINS_BOOL___RSHIFT___DEFAULT",
@@ -10669,11 +10731,13 @@
         "rshift",
         "var"
       ],
-      "docstring": "",
+      "docstring": "Returns the result of calling the __rshift__ method on the input object with the argument 1.",
       "domain_name": "python_core",
       "node_type": "dunder",
       "node_role": "function",
-      "source_priority": 100
+      "source_priority": 100,
+      "enrichment_source": "llm",
+      "enriched_at": "2026-09-05T17:14:09.472297+00:00"
     },
     {
       "cell_id": "BUILTINS_BOOL___RSUB___DEFAULT",
@@ -10734,11 +10798,13 @@
         "subtraction",
         "var"
       ],
-      "docstring": "",
+      "docstring": "Returns the result of calling the __rsub__ method on the input object with the argument False.",
       "domain_name": "python_core",
       "node_type": "dunder",
       "node_role": "function",
-      "source_priority": 100
+      "source_priority": 100,
+      "enrichment_source": "llm",
+      "enriched_at": "2026-09-05T17:14:09.472297+00:00"
     },
     {
       "cell_id": "BUILTINS_BOOL___RTRUEDIV___DEFAULT",
@@ -10793,11 +10859,13 @@
         "rtruediv",
         "var"
       ],
-      "docstring": "",
+      "docstring": "Returns the result of calling the __rtruediv__ method on the input object with the argument 1.",
       "domain_name": "python_core",
       "node_type": "dunder",
       "node_role": "function",
-      "source_priority": 100
+      "source_priority": 100,
+      "enrichment_source": "llm",
+      "enriched_at": "2026-09-05T17:14:09.472297+00:00"
     },
     {
       "cell_id": "BUILTINS_BOOL___RXOR___DEFAULT",
@@ -10858,11 +10926,13 @@
         "rxor",
         "var"
       ],
-      "docstring": "",
+      "docstring": "Returns the result of calling the __rxor__ method on the input object with the argument False.",
       "domain_name": "python_core",
       "node_type": "dunder",
       "node_role": "function",
-      "source_priority": 100
+      "source_priority": 100,
+      "enrichment_source": "llm",
+      "enriched_at": "2026-09-05T17:14:09.472297+00:00"
     },
     {
       "cell_id": "BUILTINS_BOOL___SUB___DEFAULT",
@@ -10925,11 +10995,13 @@
         "subtraction",
         "var"
       ],
-      "docstring": "",
+      "docstring": "Returns the result of calling the __sub__ method on the input object with the argument False.",
       "domain_name": "python_core",
       "node_type": "dunder",
       "node_role": "function",
-      "source_priority": 100
+      "source_priority": 100,
+      "enrichment_source": "llm",
+      "enriched_at": "2026-09-05T17:14:09.472297+00:00"
     },
     {
       "cell_id": "BUILTINS_BOOL___TRUEDIV___DEFAULT",
@@ -10988,11 +11060,13 @@
         "truediv",
         "var"
       ],
-      "docstring": "",
+      "docstring": "Returns the result of calling the __truediv__ method on the input object with the argument 1.",
       "domain_name": "python_core",
       "node_type": "dunder",
       "node_role": "function",
-      "source_priority": 100
+      "source_priority": 100,
+      "enrichment_source": "llm",
+      "enriched_at": "2026-09-05T17:14:09.472297+00:00"
     },
     {
       "cell_id": "BUILTINS_BOOL___TRUNC___DEFAULT",
@@ -11118,11 +11192,13 @@
         "var",
         "xor"
       ],
-      "docstring": "",
+      "docstring": "Returns the result of calling the __xor__ method on the input object with the argument True.",
       "domain_name": "python_core",
       "node_type": "dunder",
       "node_role": "function",
-      "source_priority": 100
+      "source_priority": 100,
+      "enrichment_source": "llm",
+      "enriched_at": "2026-09-05T17:14:09.472297+00:00"
     },
     {
       "cell_id": "BUILTINS_BOOL_DENOMINATOR_DEFAULT",
@@ -11427,11 +11503,13 @@
         "size",
         "var"
       ],
-      "docstring": "",
+      "docstring": "Returns the result of calling the __alloc__ method on the input object with the argument 1024.",
       "domain_name": "python_core",
       "node_type": "dunder",
       "node_role": "function",
-      "source_priority": 100
+      "source_priority": 100,
+      "enrichment_source": "llm",
+      "enriched_at": "2026-09-05T17:14:09.472297+00:00"
     },
     {
       "cell_id": "BUILTINS_BYTEARRAY___BUFFER___DEFAULT",
@@ -11486,11 +11564,13 @@
         "output_var",
         "var"
       ],
-      "docstring": "",
+      "docstring": "Returns the result of calling the __buffer__ method on the input object with the argument 0.",
       "domain_name": "python_core",
       "node_type": "dunder",
       "node_role": "function",
-      "source_priority": 100
+      "source_priority": 100,
+      "enrichment_source": "llm",
+      "enriched_at": "2026-09-05T17:14:09.472297+00:00"
     },
     {
       "cell_id": "BUILTINS_BYTEARRAY___CONTAINS___DEFAULT",
@@ -11549,11 +11629,13 @@
         "search",
         "var"
       ],
-      "docstring": "",
+      "docstring": "Checks if a bytearray contains a specified subsequence.",
       "domain_name": "python_core",
       "node_type": "dunder",
       "node_role": "function",
-      "source_priority": 100
+      "source_priority": 100,
+      "enrichment_source": "llm",
+      "enriched_at": "2026-09-05T17:15:32.997154+00:00"
     },
     {
       "cell_id": "BUILTINS_BYTEARRAY___DELITEM___DEFAULT",
@@ -11610,11 +11692,13 @@
         "output_var",
         "var"
       ],
-      "docstring": "",
+      "docstring": "Deletes an item from the bytearray at the specified index.",
       "domain_name": "python_core",
       "node_type": "dunder",
       "node_role": "function",
-      "source_priority": 100
+      "source_priority": 100,
+      "enrichment_source": "llm",
+      "enriched_at": "2026-09-05T17:15:32.997154+00:00"
     },
     {
       "cell_id": "BUILTINS_BYTEARRAY___GETITEM___DEFAULT",
@@ -11673,11 +11757,13 @@
         "retrieve",
         "var"
       ],
-      "docstring": "",
+      "docstring": "Retrieves a single byte from the bytearray at the specified index.",
       "domain_name": "python_core",
       "node_type": "dunder",
       "node_role": "function",
-      "source_priority": 100
+      "source_priority": 100,
+      "enrichment_source": "llm",
+      "enriched_at": "2026-09-05T17:15:32.997154+00:00"
     },
     {
       "cell_id": "BUILTINS_BYTEARRAY___IADD___DEFAULT",
@@ -11734,11 +11820,13 @@
         "output_var",
         "var"
       ],
-      "docstring": "",
+      "docstring": "In-place concatenation of another bytearray or bytes object to the current bytearray.",
       "domain_name": "python_core",
       "node_type": "dunder",
       "node_role": "function",
-      "source_priority": 100
+      "source_priority": 100,
+      "enrichment_source": "llm",
+      "enriched_at": "2026-09-05T17:15:32.997154+00:00"
     },
     {
       "cell_id": "BUILTINS_BYTEARRAY___IMUL___DEFAULT",
@@ -11797,11 +11885,13 @@
         "output_var",
         "var"
       ],
-      "docstring": "",
+      "docstring": "In-place multiplication of the bytearray by an integer.",
       "domain_name": "python_core",
       "node_type": "dunder",
       "node_role": "function",
-      "source_priority": 100
+      "source_priority": 100,
+      "enrichment_source": "llm",
+      "enriched_at": "2026-09-05T17:15:32.997154+00:00"
     },
     {
       "cell_id": "BUILTINS_BYTEARRAY___ITER___DEFAULT",
@@ -11988,11 +12078,13 @@
         "release_buffer",
         "var"
       ],
-      "docstring": "",
+      "docstring": "Releases the buffer associated with the bytearray object.",
       "domain_name": "python_core",
       "node_type": "dunder",
       "node_role": "function",
-      "source_priority": 100
+      "source_priority": 100,
+      "enrichment_source": "llm",
+      "enriched_at": "2026-09-05T17:15:32.997154+00:00"
     },
     {
       "cell_id": "BUILTINS_BYTEARRAY___SETITEM___DEFAULT",
@@ -12049,11 +12141,13 @@
         "value",
         "var"
       ],
-      "docstring": "",
+      "docstring": "Sets a single byte in the bytearray at the specified index.",
       "domain_name": "python_core",
       "node_type": "dunder",
       "node_role": "function",
-      "source_priority": 100
+      "source_priority": 100,
+      "enrichment_source": "llm",
+      "enriched_at": "2026-09-05T17:15:32.997154+00:00"
     },
     {
       "cell_id": "BUILTINS_BYTES___BYTES___DEFAULT",
@@ -12173,11 +12267,13 @@
         "owner",
         "var"
       ],
-      "docstring": "",
+      "docstring": "Binds a classmethod to an instance or class to return a callable.",
       "domain_name": "python_core",
       "node_type": "dunder",
       "node_role": "function",
-      "source_priority": 100
+      "source_priority": 100,
+      "enrichment_source": "llm",
+      "enriched_at": "2026-09-05T17:15:32.997154+00:00"
     },
     {
       "cell_id": "BUILTINS_COMPLEX___COMPLEX___DEFAULT",
@@ -12310,11 +12406,13 @@
         "value",
         "var"
       ],
-      "docstring": "",
+      "docstring": "In-place update of a dictionary with key-value pairs from another mapping.",
       "domain_name": "python_core",
       "node_type": "dunder",
       "node_role": "function",
-      "source_priority": 100
+      "source_priority": 100,
+      "enrichment_source": "llm",
+      "enriched_at": "2026-09-05T17:15:32.997154+00:00"
     },
     {
       "cell_id": "BUILTINS_DICT___REVERSED___DEFAULT",
@@ -12495,11 +12593,13 @@
         "typestr",
         "var"
       ],
-      "docstring": "",
+      "docstring": "Returns the format string used to represent a float value.",
       "domain_name": "python_core",
       "node_type": "dunder",
       "node_role": "function",
-      "source_priority": 100
+      "source_priority": 100,
+      "enrichment_source": "llm",
+      "enriched_at": "2026-09-05T17:15:32.997154+00:00"
     },
     {
       "cell_id": "BUILTINS_MEMORYVIEW___ENTER___DEFAULT",
@@ -12558,11 +12658,13 @@
         "resource management",
         "var"
       ],
-      "docstring": "",
+      "docstring": "Enters the runtime context for a memoryview object.",
       "domain_name": "python_core",
       "node_type": "dunder",
       "node_role": "function",
-      "source_priority": 100
+      "source_priority": 100,
+      "enrichment_source": "llm",
+      "enriched_at": "2026-09-05T17:15:32.997154+00:00"
     },
     {
       "cell_id": "BUILTINS_MEMORYVIEW___EXIT___DEFAULT",
@@ -12686,11 +12788,13 @@
         "property",
         "var"
       ],
-      "docstring": "",
+      "docstring": "Checks if the memoryview is C-contiguous.",
       "domain_name": "python_core",
       "node_type": "property",
       "node_role": "function",
-      "source_priority": 100
+      "source_priority": 100,
+      "enrichment_source": "llm",
+      "enriched_at": "2026-09-05T17:15:32.997154+00:00"
     },
     {
       "cell_id": "BUILTINS_MEMORYVIEW_CONTIGUOUS_DEFAULT",
@@ -12808,11 +12912,13 @@
         "property",
         "var"
       ],
-      "docstring": "",
+      "docstring": "Checks if the memoryview is Fortran-contiguous.",
       "domain_name": "python_core",
       "node_type": "property",
       "node_role": "function",
-      "source_priority": 100
+      "source_priority": 100,
+      "enrichment_source": "llm",
+      "enriched_at": "2026-09-05T17:15:32.997154+00:00"
     },
     {
       "cell_id": "BUILTINS_MEMORYVIEW_FORMAT_DEFAULT",
@@ -13361,11 +13467,13 @@
         "property",
         "var"
       ],
-      "docstring": "",
+      "docstring": "Deletes the attribute bound to a property object.",
       "domain_name": "python_core",
       "node_type": "dunder",
       "node_role": "function",
-      "source_priority": 100
+      "source_priority": 100,
+      "enrichment_source": "llm",
+      "enriched_at": "2026-09-05T17:15:32.997154+00:00"
     },
     {
       "cell_id": "BUILTINS_PROPERTY___SET___DEFAULT",
@@ -13550,11 +13658,13 @@
         "property",
         "var"
       ],
-      "docstring": "",
+      "docstring": "Returns the deleter function associated with a property object.",
       "domain_name": "python_core",
       "node_type": "property",
       "node_role": "function",
-      "source_priority": 100
+      "source_priority": 100,
+      "enrichment_source": "llm",
+      "enriched_at": "2026-09-05T17:15:32.997154+00:00"
     },
     {
       "cell_id": "BUILTINS_PROPERTY_FGET_DEFAULT",
@@ -13609,11 +13719,13 @@
         "property",
         "var"
       ],
-      "docstring": "",
+      "docstring": "Returns the getter function associated with a property object.",
       "domain_name": "python_core",
       "node_type": "property",
       "node_role": "function",
-      "source_priority": 100
+      "source_priority": 100,
+      "enrichment_source": "llm",
+      "enriched_at": "2026-09-05T17:15:32.997154+00:00"
     },
     {
       "cell_id": "BUILTINS_PROPERTY_FSET_DEFAULT",
@@ -13670,11 +13782,13 @@
         "setter",
         "var"
       ],
-      "docstring": "",
+      "docstring": "Returns the setter function associated with a property object.",
       "domain_name": "python_core",
       "node_type": "property",
       "node_role": "function",
-      "source_priority": 100
+      "source_priority": 100,
+      "enrichment_source": "llm",
+      "enriched_at": "2026-09-05T17:15:32.997154+00:00"
     },
     {
       "cell_id": "BUILTINS_RANGE_STEP_DEFAULT",
@@ -13731,11 +13845,13 @@
         "step",
         "var"
       ],
-      "docstring": "",
+      "docstring": "Returns the step value of a range object.",
       "domain_name": "python_core",
       "node_type": "property",
       "node_role": "function",
-      "source_priority": 100
+      "source_priority": 100,
+      "enrichment_source": "llm",
+      "enriched_at": "2026-09-05T17:15:32.997154+00:00"
     },
     {
       "cell_id": "BUILTINS_RANGE_STOP_DEFAULT",
@@ -13790,11 +13906,13 @@
         "stop",
         "var"
       ],
-      "docstring": "",
+      "docstring": "Returns the stop value of a range object.",
       "domain_name": "python_core",
       "node_type": "property",
       "node_role": "function",
-      "source_priority": 100
+      "source_priority": 100,
+      "enrichment_source": "llm",
+      "enriched_at": "2026-09-05T17:15:32.997154+00:00"
     },
     {
       "cell_id": "BUILTINS_REVERSED___LENGTH_HINT___DEFAULT",
@@ -13849,11 +13967,13 @@
         "reversed",
         "var"
       ],
-      "docstring": "",
+      "docstring": "Returns a hint for the length of a reversed iterator.",
       "domain_name": "python_core",
       "node_type": "dunder",
       "node_role": "function",
-      "source_priority": 100
+      "source_priority": 100,
+      "enrichment_source": "llm",
+      "enriched_at": "2026-09-05T17:15:32.997154+00:00"
     },
     {
       "cell_id": "BUILTINS_SET___IAND___DEFAULT",
@@ -13918,11 +14038,13 @@
         "value",
         "var"
       ],
-      "docstring": "",
+      "docstring": "Performs an in-place intersection operation on a set with another value.",
       "domain_name": "python_core",
       "node_type": "dunder",
       "node_role": "function",
-      "source_priority": 100
+      "source_priority": 100,
+      "enrichment_source": "llm",
+      "enriched_at": "2026-09-05T17:16:08.187097+00:00"
     },
     {
       "cell_id": "BUILTINS_SET___ISUB___DEFAULT",
@@ -13985,11 +14107,13 @@
         "value",
         "var"
       ],
-      "docstring": "",
+      "docstring": "Performs an in-place difference operation on a set with another value.",
       "domain_name": "python_core",
       "node_type": "dunder",
       "node_role": "function",
-      "source_priority": 100
+      "source_priority": 100,
+      "enrichment_source": "llm",
+      "enriched_at": "2026-09-05T17:16:08.187097+00:00"
     },
     {
       "cell_id": "BUILTINS_SET___IXOR___DEFAULT",
@@ -14046,11 +14170,13 @@
         "value",
         "var"
       ],
-      "docstring": "",
+      "docstring": "Performs an in-place symmetric difference operation on a set with another value.",
       "domain_name": "python_core",
       "node_type": "dunder",
       "node_role": "function",
-      "source_priority": 100
+      "source_priority": 100,
+      "enrichment_source": "llm",
+      "enriched_at": "2026-09-05T17:16:08.187097+00:00"
     },
     {
       "cell_id": "BUILTINS_STATICMETHOD___CALL___DEFAULT",
@@ -14109,11 +14235,13 @@
         "staticmethod",
         "var"
       ],
-      "docstring": "",
+      "docstring": "Invokes a static method instance with no arguments.",
       "domain_name": "python_core",
       "node_type": "dunder",
       "node_role": "function",
-      "source_priority": 100
+      "source_priority": 100,
+      "enrichment_source": "llm",
+      "enriched_at": "2026-09-05T17:16:08.187097+00:00"
     },
     {
       "cell_id": "BUILTINS_TYPE___INSTANCECHECK___DEFAULT",
@@ -14174,11 +14302,13 @@
         "type",
         "var"
       ],
-      "docstring": "",
+      "docstring": "Checks whether an instance is an instance of a given type.",
       "domain_name": "python_core",
       "node_type": "dunder",
       "node_role": "function",
-      "source_priority": 100
+      "source_priority": 100,
+      "enrichment_source": "llm",
+      "enriched_at": "2026-09-05T17:16:08.187097+00:00"
     },
     {
       "cell_id": "BUILTINS_TYPE___PREPARE___DEFAULT",
@@ -14243,11 +14373,13 @@
         "type",
         "var"
       ],
-      "docstring": "",
+      "docstring": "Prepares the namespace for a new class being created.",
       "domain_name": "python_core",
       "node_type": "dunder",
       "node_role": "function",
-      "source_priority": 100
+      "source_priority": 100,
+      "enrichment_source": "llm",
+      "enriched_at": "2026-09-05T17:16:08.187097+00:00"
     },
     {
       "cell_id": "BUILTINS_TYPE___SUBCLASSCHECK___DEFAULT",
@@ -14308,11 +14440,13 @@
         "type",
         "var"
       ],
-      "docstring": "",
+      "docstring": "Checks whether a given class is a subclass of a specific type.",
       "domain_name": "python_core",
       "node_type": "dunder",
       "node_role": "function",
-      "source_priority": 100
+      "source_priority": 100,
+      "enrichment_source": "llm",
+      "enriched_at": "2026-09-05T17:16:08.187097+00:00"
     },
     {
       "cell_id": "BUILTINS_TYPE___SUBCLASSES___DEFAULT",
@@ -14371,11 +14505,13 @@
         "type",
         "var"
       ],
-      "docstring": "",
+      "docstring": "Returns a list of all direct subclasses of a given type.",
       "domain_name": "python_core",
       "node_type": "dunder",
       "node_role": "function",
-      "source_priority": 100
+      "source_priority": 100,
+      "enrichment_source": "llm",
+      "enriched_at": "2026-09-05T17:16:08.187097+00:00"
     }
   ]
 }

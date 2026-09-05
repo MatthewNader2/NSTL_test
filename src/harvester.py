@@ -40,60 +40,10 @@ class IntelligentHarvester:
     verified CellSchemas with accurate per-submodule dependencies.
     """
 
-    CONTAINER_TYPES = {
-        "pandas": "DataFrame",
-        "numpy": "ndarray",
-        "cv2": "Mat",
-        "PIL": "Image",
-        "torch": "Tensor",
-        "scipy": "ndarray",
-        "matplotlib": "Figure",
-        "audio": "ndarray",
-        "mock_audio_lib": "ndarray"
-    }
-
-    STAGE_VERBS = {
-        1: ["read", "load", "open", "from", "fetch", "create", "imread", "load_audio", "arange", "linspace", "zeros", "ones", "eye", "empty"],
-        3: ["write", "save", "export", "dump", "imwrite", "savefig", "save_audio", "show", "display", "to_csv", "to_parquet", "to_json", "to_pickle", "to_excel", "to_hdf", "to_sql", "to_feather", "to_stata"]
-    }
-
-    STATE_INFERENCES = {
-        "drop": "cleaned",
-        "clean": "cleaned",
-        "fillna": "imputed",
-        "impute": "imputed",
-        "sort": "sorted",
-        "filter": "filtered",
-        "scale": "scaled",
-        "normalize": "scaled",
-        "transform": "transformed",
-        "cvt": "converted",
-        "convert": "converted",
-        "group": "aggregated",
-        "aggregate": "aggregated",
-        "resample": "resampled",
-        "hist": "plotted",
-        "plot": "plotted",
-        "scatter": "plotted",
-        "bar": "plotted"
-    }
-
-    BEHAVIORAL_FLAGS = {
-        "inplace", "copy", "axis", "how", "errors", "verbose", "engine",
-        "ignore_index", "method", "limit", "downcast", "numeric_only",
-        "level", "sort", "observed", "as_index", "group_keys",
-        "squeeze", "mangle_dupe_cols", "validate", "kind", "na_position", "drop"
-    }
-
-    PRIMARY_OPERAND_NAMES = {
-        "value", "val", "fill_value", "to_replace", "by", "on", "dtype",
-        "values", "lower", "upper", "expr", "query", "columns", "labels", "target",
-        "ascending", "asc"
-    }
-
-    def __init__(self, domain: str, package_name: Optional[str] = None):
+    def __init__(self, domain: str, package_name: Optional[str] = None, container_type: Optional[str] = None):
         self.domain = domain
         self.package_name = package_name or domain
+        self.container_type = container_type
         try:
             self.module = importlib.import_module(self.package_name)
         except ImportError:
@@ -104,11 +54,18 @@ class IntelligentHarvester:
 
         self.enum_constants = self._collect_module_constants()
 
+    @property
+    def default_container(self) -> str:
+        if self.container_type:
+            return self.container_type
+        cls = self._resolve_container_class()
+        if cls is not None:
+            return cls.__name__
+        return "DataObject"
+
     def _extract_primary_operands(self, callable_obj: Any) -> Tuple[List[str], Dict[str, PortSchema]]:
         """
-        Differentiates Behavioral Flags from Primary Operands using reflection.
-        Parameters representing primary operands are never stripped even if default is None.
-        Returns (template_arg_strs, operand_ports).
+        Extracts operands dynamically via reflection without hardcoded linguistic lists.
         """
         try:
             sig = inspect.signature(callable_obj)
@@ -123,64 +80,105 @@ class IntelligentHarvester:
                 continue
             if p.kind in (inspect.Parameter.VAR_POSITIONAL, inspect.Parameter.VAR_KEYWORD):
                 continue
-            if p_name in self.BEHAVIORAL_FLAGS:
-                continue
 
             is_required = (p.default == inspect.Parameter.empty)
-            is_operand = (p_name in self.PRIMARY_OPERAND_NAMES) or is_required
+            type_name = "any"
+            if p.annotation != inspect.Parameter.empty and hasattr(p.annotation, "__name__"):
+                type_name = p.annotation.__name__
+            elif p.default is True or p.default is False:
+                type_name = "bool"
+            elif isinstance(p.default, (int, float)):
+                type_name = "numeric"
+            elif isinstance(p.default, str):
+                type_name = "str"
 
-            if is_operand:
-                type_name = "any"
-                state = "any"
-                if p_name in ("value", "val", "fill_value", "to_replace", "replacement", "fill"):
-                    state = "scalar_literal"
-                elif p_name in ("by", "on", "subset", "labels", "columns", "key", "column"):
-                    state = "column_name"
-                    type_name = "str"
-                elif p_name in ("ascending", "asc"):
-                    state = "sort_flag"
-                    type_name = "bool"
-                elif p_name in ("dtype",):
-                    state = "dtype_spec"
-                    type_name = "str"
-
-                operand_ports[p_name] = PortSchema(
-                    type_name=type_name,
-                    state=state,
-                    description=f"Operand {p_name}",
-                    required=is_required
-                )
-                if is_required:
-                    template_args.append(f"{{{p_name}}}")
-                else:
-                    template_args.append(f"{p_name}={{{p_name}}}")
+            operand_ports[p_name] = PortSchema(
+                type_name=type_name,
+                state=p_name.lower(),
+                description=f"Operand {p_name}",
+                required=is_required
+            )
+            if is_required:
+                template_args.append(f"{{{p_name}}}")
+            else:
+                template_args.append(f"{p_name}={{{p_name}}}")
 
         return template_args, operand_ports
+
+        return template_args, operand_ports
+
+    def _resolve_container_class(self) -> Optional[type]:
+        """Resolves the primary container class if present."""
+        if self.container_type and self.module is not None and hasattr(self.module, self.container_type):
+            obj = getattr(self.module, self.container_type)
+            if inspect.isclass(obj):
+                return obj
+        if self.module is not None:
+            best_candidate = None
+            max_methods = 0
+            for name in dir(self.module):
+                if not name.startswith("_"):
+                    try:
+                        obj = getattr(self.module, name, None)
+                        if inspect.isclass(obj) and getattr(obj, "__module__", "").startswith(self.package_name):
+                            methods = [m for m in dir(obj) if not m.startswith("_") and callable(getattr(obj, m, None))]
+                            if len(methods) > max_methods:
+                                max_methods = len(methods)
+                                best_candidate = obj
+                    except Exception:
+                        continue
+            if best_candidate is not None:
+                return best_candidate
+        return None
 
     def _collect_module_constants(self) -> Dict[str, str]:
         """Collects top-level constants and enum flags (e.g. cv2.COLOR_*, torch.float32)."""
         constants = {}
+        if self.module is None:
+            return constants
         for name in dir(self.module):
             if name.isupper() and not name.startswith("_"):
                 constants[name] = f"{self.package_name}.{name}"
         return constants
 
     def _infer_stage(self, func_name: str, params: List[str], ret_type: str) -> int:
-        name_lower = func_name.lower()
-        for v in self.STAGE_VERBS[1]:
-            if v == name_lower or name_lower.startswith(v) or any(p in ("filepath", "filename", "path", "uri", "src_path") for p in params):
-                return 1
-        for v in self.STAGE_VERBS[3]:
-            if v == name_lower or name_lower.startswith(v) or any(p in ("dest_path", "save_path", "out_path", "output_path", "filename") and "read" not in name_lower and "load" not in name_lower for p in params):
-                return 3
+        """
+        Algebraically classifies a function into its categorical stage:
+          - Stage 3: Terminal / Egress morphism (Unit/Void return, or egress operation)
+          - Stage 1: Initial / Ingestion morphism (Env -> Carrier)
+          - Stage 2: Endomorphism (Carrier -> Carrier)
+        Zero domain hardcodes or keyword lists.
+        """
+        if str(ret_type).lower() in ("nonetype", "none", "void", "unit"):
+            return 3
+        try:
+            from inference import ModelManager
+            import numpy as np
+            mm = ModelManager.get_instance()
+            if mm.profile is not None:
+                e_fn = np.array(mm.get_embedding(func_name), dtype=np.float32)
+                e_s1 = np.array(mm.get_embedding("source ingestion loader reader"), dtype=np.float32)
+                e_s2 = np.array(mm.get_embedding("transformation operation processor endomorphism"), dtype=np.float32)
+                e_s3 = np.array(mm.get_embedding("sink destination exporter writer"), dtype=np.float32)
+                norm_fn = np.linalg.norm(e_fn)
+                if norm_fn > 0:
+                    sim1 = float(np.dot(e_fn / norm_fn, e_s1 / np.linalg.norm(e_s1)))
+                    sim2 = float(np.dot(e_fn / norm_fn, e_s2 / np.linalg.norm(e_s2)))
+                    sim3 = float(np.dot(e_fn / norm_fn, e_s3 / np.linalg.norm(e_s3)))
+                    best_sim = max(sim1, sim2, sim3)
+                    if best_sim == sim1:
+                        return 1
+                    elif best_sim == sim3:
+                        return 3
+                    else:
+                        return 2
+        except Exception:
+            pass
         return 2
 
     def _infer_typestate(self, func_name: str, default_state: str = "transformed") -> str:
-        name_lower = func_name.lower()
-        for verb, state in self.STATE_INFERENCES.items():
-            if verb in name_lower:
-                return state
-        return default_state
+        cleaned = func_name.lower().strip("_")
+        return cleaned if cleaned else default_state
 
     def _resolve_module_and_dep(self, func_name: str, func_obj: Any, parent_mod_name: Optional[str] = None) -> Tuple[str, List[str], str]:
         """
@@ -214,13 +212,38 @@ class IntelligentHarvester:
         doc = inspect.getdoc(func_obj) or getattr(func_obj, "__doc__", "") or ""
         first_doc_line = doc.split("\n")[0].strip() if doc else f"{func_name} operation"
 
+        callable_info = None
+        try:
+            from signature_introspector import get_callable_parameters, get_enum_parameter_map
+            callable_info = get_callable_parameters(func_obj, func_name)
+        except Exception:
+            try:
+                from .signature_introspector import get_callable_parameters, get_enum_parameter_map
+                callable_info = get_callable_parameters(func_obj, func_name)
+            except Exception:
+                pass
+
         try:
             sig = inspect.signature(func_obj)
         except (ValueError, TypeError):
             sig = None
 
-        default_container = self.CONTAINER_TYPES.get(self.domain, self.CONTAINER_TYPES.get(self.package_name, "DataObject"))
-        params = list(sig.parameters.keys()) if sig else ["data"]
+        ret_type = self.default_container
+        if sig and sig.return_annotation != inspect.Signature.empty:
+            ann = sig.return_annotation
+            if hasattr(ann, "__name__"):
+                ret_type = ann.__name__
+            elif isinstance(ann, str):
+                ret_type = ann.split(".")[-1]
+
+        default_container = ret_type if ret_type != "DataObject" else self.default_container
+        if callable_info and callable_info.get("required"):
+            params = callable_info["required"]
+        elif sig:
+            params = list(sig.parameters.keys())
+        else:
+            params = ["data"]
+
         stage = self._infer_stage(func_name, params, default_container)
         out_state = self._infer_typestate(func_name, "raw" if stage == 1 else "processed")
 
@@ -237,18 +260,40 @@ class IntelligentHarvester:
         elif stage == 3:
             inputs["data"] = PortSchema(type_name=default_container, state="any")
             inputs["dest_path"] = PortSchema(type_name="str", state="dest_identifier", description="Destination file path")
-            if any(p in ("filename", "dest_path", "save_path", "output_path", "file") for p in params):
-                if params and params[0] in ("filename", "dest_path", "save_path", "output_path", "file"):
-                    template_args.extend(["{dest_path}", "{data}"])
-                else:
-                    template_args.extend(["{data}", "{dest_path}"])
-            else:
-                template_args.extend(["{dest_path}", "{data}"])
+            template_args.extend(["{data}", "{dest_path}"])
             outputs["output_data"] = PortSchema(type_name="str", state="filepath_written")
         else:
             inputs["data"] = PortSchema(type_name=default_container, state="any")
-            template_args.append("{data}")
             outputs["output_data"] = PortSchema(type_name=default_container, state=out_state)
+
+            enum_param_to_const = {}
+            if self.enum_constants:
+                try:
+                    from signature_introspector import get_enum_parameter_map
+                    enum_map = get_enum_parameter_map(doc)
+                except Exception:
+                    try:
+                        from .signature_introspector import get_enum_parameter_map
+                        enum_map = get_enum_parameter_map(doc)
+                    except Exception:
+                        enum_map = {}
+                for prefix, p_name in enum_map.items():
+                    cands = [k for k in self.enum_constants if k.startswith(f"{prefix}_")]
+                    if cands:
+                        best_cand = next((c for c in cands if "DEFAULT" in c or "STANDARD" in c), cands[0])
+                        enum_param_to_const[p_name] = self.enum_constants[best_cand]
+
+            if params and params != ["data"]:
+                for i, p in enumerate(params):
+                    if i == 0:
+                        template_args.append("{data}")
+                    elif p in enum_param_to_const:
+                        template_args.append(enum_param_to_const[p])
+                    else:
+                        template_args.append(f"{{{p}}}")
+                        inputs[p] = PortSchema(type_name="any", state="any", description=f"Input {p}")
+            else:
+                template_args.append("{data}")
 
 
         # Capability-driven template construction via runtime introspection.
@@ -282,8 +327,8 @@ class IntelligentHarvester:
             # Statistical distribution object (scipy.stats etc.)
             code_template = f"{{output_var}} = {call_prefix}.rvs(size=100)"
         elif stage == 3:
-            # Generic Stage 3 (egress/export): call with data + dest
-            code_template = f"{{data}}.{func_name}({', '.join(template_args[1:])})\n{{output_var}} = {{dest_path}}"
+            # Generic Stage 3 (egress/export) module function: call with data + dest
+            code_template = f"{call_prefix}({', '.join(template_args)})\n{{output_var}} = {{dest_path}}"
         else:
             # Generic function call — fully domain-agnostic
             code_template = f"{{output_var}} = {call_prefix}({', '.join(template_args)})"
@@ -298,8 +343,6 @@ class IntelligentHarvester:
             cell_id_suffix = func_name.upper()
         else:
             cell_id_suffix = "_".join([w.upper() for w in split_words])
-            if cell_id_suffix == "MIN_MAX_SCALER":
-                cell_id_suffix = "MINMAX_SCALER"
 
         cell_id = f"{self.domain.upper()}_{cell_id_suffix}"
         return CellSchema(
@@ -322,7 +365,7 @@ class IntelligentHarvester:
             return None
 
         # Exclude base object methods
-        if method_name in ("mro", "count", "index") and cls is object:
+        if method_name in dir(object):
             return None
 
         doc = inspect.getdoc(method_obj) or getattr(method_obj, "__doc__", "") or ""
@@ -333,7 +376,7 @@ class IntelligentHarvester:
         except (ValueError, TypeError):
             sig = None
 
-        default_container = self.CONTAINER_TYPES.get(self.domain, self.CONTAINER_TYPES.get(self.package_name, "DataObject"))
+        default_container = self.default_container
         params = [p for p in sig.parameters.keys() if p != "self"] if sig else ["data"]
         stage = self._infer_stage(method_name, params, default_container)
         out_state = self._infer_typestate(method_name, "raw" if stage == 1 else "processed")
@@ -415,6 +458,8 @@ class IntelligentHarvester:
                     seen_ids.add(cell.cell_id)
 
                 if inspect.isclass(obj):
+                    if obj.__name__.startswith("_"):
+                        continue
                     for m_name in dir(obj):
                         if m_name.startswith("_"):
                             continue
@@ -438,6 +483,8 @@ class IntelligentHarvester:
         seen_ids = set()
 
         for mod_name in module_names:
+            if any(part.startswith("_") for part in mod_name.split(".")):
+                continue
             try:
                 mod = importlib.import_module(mod_name)
             except ImportError as e:
@@ -457,6 +504,8 @@ class IntelligentHarvester:
                         seen_ids.add(cell.cell_id)
 
                     if inspect.isclass(obj):
+                        if obj.__name__.startswith("_"):
+                            continue
                         for m_name in dir(obj):
                             if m_name.startswith("_"):
                                 continue

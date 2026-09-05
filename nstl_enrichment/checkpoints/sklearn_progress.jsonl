@@ -2017,3 +2017,6 @@
 {"cell_id": "SKLEARN_TREE_EXTRATREEREGRESSOR_SET_FIT_REQUEST_DEFAULT", "docstring": "Configures whether to compute sample weights during fitting.", "enrichment_source": "llm", "enriched_at": "2026-09-03T17:07:10.148137+00:00"}
 {"cell_id": "SKLEARN_TREE_EXTRATREEREGRESSOR_SET_PARAMS_DEFAULT", "docstring": "Sets the parameters of the ExtraTreeRegressor.", "enrichment_source": "llm", "enriched_at": "2026-09-03T17:07:10.148137+00:00"}
 {"cell_id": "SKLEARN_TREE_EXTRATREEREGRESSOR_SET_SCORE_REQUEST_DEFAULT", "docstring": "Configures whether to compute sample weights during scoring.", "enrichment_source": "llm", "enriched_at": "2026-09-03T17:07:10.148137+00:00"}
+{"cell_id": "SKLEARN_LINEAR_MODEL_RIDGECV_SET_FIT_REQUEST_DEFAULT", "docstring": "Configures the fit request for the RidgeCV linear model.", "enrichment_source": "llm", "enriched_at": "2026-09-05T13:26:30.372968+00:00"}
+{"cell_id": "SKLEARN_LINEAR_MODEL_RIDGECV_SET_PARAMS_DEFAULT", "docstring": "Updates the parameters of the RidgeCV linear model.", "enrichment_source": "llm", "enriched_at": "2026-09-05T13:26:30.372968+00:00"}
+{"cell_id": "SKLEARN_LINEAR_MODEL_RIDGECV_SET_SCORE_REQUEST_DEFAULT", "docstring": "Configures the score request for the RidgeCV linear model.", "enrichment_source": "llm", "enriched_at": "2026-09-05T13:26:30.372968+00:00"}

@@ -1,0 +1,202 @@
+[
+    {
+        "profile": "A",
+        "emb": "jina-embeddings-v5-text-nano",
+        "llm": "auto",
+        "syntax_valid": true,
+        "steps_count": 4,
+        "virtual_edges_count": 3,
+        "cell_path": [
+            "PANDAS_READ_CSV",
+            "PANDAS_DATAFRAME_DROPNA",
+            "PANDAS_DATAFRAME_MODE",
+            "PANDAS_DATAFRAME_TO_CSV"
+        ],
+        "code_snippet": "import pandas  input_source = 'raw_data.csv' read_csv = pandas.read_csv(input_source) dataframe_dropna = read_csv.dropna() dataframe_mode = dataframe_dropna.mode() dataframe_to_csv = dataframe_mode.to_csv('raw_data.csv', index=False)"
+    },
+    {
+        "profile": "C",
+        "emb": "jina-embeddings-v5-text-nano",
+        "llm": "qwen2.5-coder-0.5b-instruct",
+        "syntax_valid": true,
+        "steps_count": 4,
+        "virtual_edges_count": 3,
+        "cell_path": [
+            "PANDAS_READ_CSV",
+            "PANDAS_DATAFRAME_DROPNA",
+            "PANDAS_DATAFRAME_MODE",
+            "PANDAS_DATAFRAME_TO_CSV"
+        ],
+        "code_snippet": "import pandas as pd  input_source = 'raw_data.csv' read_csv = pd.read_csv(input_source) dataframe_dropna = read_csv.dropna() dataframe_mode = dataframe_dropna.mode() dataframe_to_csv = dataframe_to_csv.to_csv('raw_data.csv', index=False)"
+    },
+    {
+        "profile": "D",
+        "emb": "jina-embeddings-v5-text-nano",
+        "llm": "qwen2.5-coder-0.5b-instruct",
+        "syntax_valid": true,
+        "steps_count": 4,
+        "virtual_edges_count": 3,
+        "cell_path": [
+            "PANDAS_READ_CSV",
+            "PANDAS_DATAFRAME_DROPNA",
+            "PANDAS_DATAFRAME_MODE",
+            "PANDAS_DATAFRAME_TO_CSV"
+        ],
+        "code_snippet": "import pandas as pd  input_source = 'raw_data.csv' read_csv = pd.read_csv(input_source) dataframe_dropna = read_csv.dropna() dataframe_mode = dataframe_dropna.mode() dataframe_to_csv = dataframe_to_csv.to_csv('raw_data.csv', index=False)"
+    },
+    {
+        "profile": "C",
+        "emb": "jina-embeddings-v5-text-nano",
+        "llm": "qwen2.5-coder-1.5b-instruct",
+        "syntax_valid": true,
+        "steps_count": 4,
+        "virtual_edges_count": 3,
+        "cell_path": [
+            "PANDAS_READ_CSV",
+            "PANDAS_DATAFRAME_DROPNA",
+            "PANDAS_DATAFRAME_MODE",
+            "PANDAS_DATAFRAME_TO_CSV"
+        ],
+        "code_snippet": "import pandas  input_file = 'raw_data.csv' data = pandas.read_csv(input_file) cleaned_data = data.dropna() mode_data = cleaned_data.mode() mode_data.to_csv('raw_data.csv', index=False)"
+    },
+    {
+        "profile": "D",
+        "emb": "jina-embeddings-v5-text-nano",
+        "llm": "qwen2.5-coder-1.5b-instruct",
+        "syntax_valid": true,
+        "steps_count": 4,
+        "virtual_edges_count": 3,
+        "cell_path": [
+            "PANDAS_READ_CSV",
+            "PANDAS_DATAFRAME_DROPNA",
+            "PANDAS_DATAFRAME_MODE",
+            "PANDAS_DATAFRAME_TO_CSV"
+        ],
+        "code_snippet": "import pandas  input_file = 'raw_data.csv' data = pandas.read_csv(input_file) cleaned_data = data.dropna() mode_data = cleaned_data.mode() mode_data.to_csv('raw_data.csv', index=False)"
+    },
+    {
+        "profile": "C",
+        "emb": "jina-embeddings-v5-text-nano",
+        "llm": "Qwen2.5-Coder-7B-Instruct-GGUF",
+        "syntax_valid": true,
+        "steps_count": 4,
+        "virtual_edges_count": 3,
+        "cell_path": [
+            "PANDAS_READ_CSV",
+            "PANDAS_DATAFRAME_DROPNA",
+            "PANDAS_DATAFRAME_MODE",
+            "PANDAS_DATAFRAME_TO_CSV"
+        ],
+        "code_snippet": "import pandas  input_source = 'raw_data.csv' read_csv = pandas.read_csv(input_source) dataframe_dropna = read_csv.dropna() dataframe_mode = dataframe_dropna.mode() dataframe_to_csv = dataframe_mode.to_csv('raw_data.csv', index=False)"
+    },
+    {
+        "profile": "D",
+        "emb": "jina-embeddings-v5-text-nano",
+        "llm": "Qwen2.5-Coder-7B-Instruct-GGUF",
+        "syntax_valid": true,
+        "steps_count": 4,
+        "virtual_edges_count": 3,
+        "cell_path": [
+            "PANDAS_READ_CSV",
+            "PANDAS_DATAFRAME_DROPNA",
+            "PANDAS_DATAFRAME_MODE",
+            "PANDAS_DATAFRAME_TO_CSV"
+        ],
+        "code_snippet": "import pandas  input_source = 'raw_data.csv' read_csv = pandas.read_csv(input_source) dataframe_dropna = read_csv.dropna() dataframe_mode = dataframe_dropna.mode() dataframe_to_csv = dataframe_mode.to_csv('raw_data.csv', index=False)"
+    },
+    {
+        "profile": "A",
+        "emb": "embeddinggemma-300m",
+        "llm": "auto",
+        "syntax_valid": true,
+        "steps_count": 4,
+        "virtual_edges_count": 3,
+        "cell_path": [
+            "PANDAS_READ_CSV",
+            "PANDAS_DATAFRAME_DROPNA",
+            "PANDAS_DATAFRAME_MODE",
+            "PANDAS_DATAFRAME_TO_CSV"
+        ],
+        "code_snippet": "import pandas  input_source = 'raw_data.csv' read_csv = pandas.read_csv(input_source) dataframe_dropna = read_csv.dropna() dataframe_mode = dataframe_dropna.mode() dataframe_to_csv = dataframe_mode.to_csv('raw_data.csv', index=False)"
+    },
+    {
+        "profile": "C",
+        "emb": "embeddinggemma-300m",
+        "llm": "qwen2.5-coder-0.5b-instruct",
+        "syntax_valid": true,
+        "steps_count": 0,
+        "virtual_edges_count": 0,
+        "cell_path": [],
+        "code_snippet": "input_source = 'raw_data.csv'"
+    },
+    {
+        "profile": "D",
+        "emb": "embeddinggemma-300m",
+        "llm": "qwen2.5-coder-0.5b-instruct",
+        "syntax_valid": true,
+        "steps_count": 4,
+        "virtual_edges_count": 3,
+        "cell_path": [
+            "PANDAS_READ_CSV",
+            "PANDAS_DATAFRAME_DROPNA",
+            "PANDAS_DATAFRAME_MODE",
+            "PANDAS_DATAFRAME_TO_CSV"
+        ],
+        "code_snippet": "import pandas as pd  input_source = 'raw_data.csv' read_csv = pd.read_csv(input_source) dataframe_dropna = read_csv.dropna() dataframe_mode = dataframe_dropna.mode() dataframe_to_csv = dataframe_to_csv.to_csv('raw_data.csv', index=False)"
+    },
+    {
+        "profile": "C",
+        "emb": "embeddinggemma-300m",
+        "llm": "qwen2.5-coder-1.5b-instruct",
+        "syntax_valid": true,
+        "steps_count": 0,
+        "virtual_edges_count": 0,
+        "cell_path": [],
+        "code_snippet": "input_data = 'raw_data.csv'"
+    },
+    {
+        "profile": "D",
+        "emb": "embeddinggemma-300m",
+        "llm": "qwen2.5-coder-1.5b-instruct",
+        "syntax_valid": true,
+        "steps_count": 4,
+        "virtual_edges_count": 3,
+        "cell_path": [
+            "PANDAS_READ_CSV",
+            "PANDAS_DATAFRAME_DROPNA",
+            "PANDAS_DATAFRAME_MODE",
+            "PANDAS_DATAFRAME_TO_CSV"
+        ],
+        "code_snippet": "import pandas  input_file = 'raw_data.csv' data = pandas.read_csv(input_file) cleaned_data = data.dropna() mode_data = cleaned_data.mode() mode_data.to_csv('raw_data.csv', index=False)"
+    },
+    {
+        "profile": "C",
+        "emb": "embeddinggemma-300m",
+        "llm": "Qwen2.5-Coder-7B-Instruct-GGUF",
+        "syntax_valid": true,
+        "steps_count": 4,
+        "virtual_edges_count": 3,
+        "cell_path": [
+            "PANDAS_READ_CSV",
+            "PANDAS_DATAFRAME_DROPNA",
+            "PANDAS_DATAFRAME_MODE",
+            "PANDAS_DATAFRAME_TO_CSV"
+        ],
+        "code_snippet": "import pandas as pd  input_file = 'raw_data.csv' dataframe = pd.read_csv(input_file) cleaned_dataframe = dataframe.dropna() mode_dataframe = cleaned_dataframe.mode() mode_dataframe.to_csv('raw_data.csv', index=False)"
+    },
+    {
+        "profile": "D",
+        "emb": "embeddinggemma-300m",
+        "llm": "Qwen2.5-Coder-7B-Instruct-GGUF",
+        "syntax_valid": true,
+        "steps_count": 4,
+        "virtual_edges_count": 3,
+        "cell_path": [
+            "PANDAS_READ_CSV",
+            "PANDAS_DATAFRAME_DROPNA",
+            "PANDAS_DATAFRAME_MODE",
+            "PANDAS_DATAFRAME_TO_CSV"
+        ],
+        "code_snippet": "import pandas  input_source = 'raw_data.csv' read_csv = pandas.read_csv(input_source) dataframe_dropna = read_csv.dropna() dataframe_mode = dataframe_dropna.mode() dataframe_to_csv = dataframe_mode.to_csv('raw_data.csv', index=False)"
+    }
+]

@@ -17,12 +17,6 @@ import inspect
 import re
 from typing import Any, Dict, List, Optional, Set, Tuple
 
-COMMON_ALIASES: Dict[str, str] = {
-    "pd": "pandas",
-    "np": "numpy",
-    "plt": "matplotlib.pyplot",
-    "cv2": "cv2",
-}
 
 
 def extract_doc_signature(func_name: str, doc: str) -> Optional[Dict[str, Any]]:
@@ -140,11 +134,6 @@ def resolve_callable_from_expr(func_expr: str, dependencies: Optional[List[str]]
     obj = None
     if root in ns:
         obj = ns[root]
-    elif root in COMMON_ALIASES:
-        try:
-            obj = importlib.import_module(COMMON_ALIASES[root])
-        except Exception:
-            pass
     else:
         try:
             obj = importlib.import_module(root)

@@ -10,7 +10,7 @@
           "type_name": "any",
           "state": "any",
           "default_value": null,
-          "description": "Input data array or series",
+          "description": "Input data array",
           "required": true
         }
       },
@@ -23,7 +23,7 @@
           "required": true
         }
       },
-      "code_template": "plt.figure(); data_to_plot = getattr({data}, \"select_dtypes\", lambda **k: {data})(include=\"number\").values if hasattr({data}, \"select_dtypes\") else {data}; data_to_plot = data_to_plot.ravel() if hasattr(data_to_plot, \"ndim\") and data_to_plot.ndim > 2 else data_to_plot; plt.hist(data_to_plot) if data_to_plot is not None else plt.hist([1, 2, 2, 3]); {output_var} = plt.gcf()",
+      "code_template": "plt.hist({data})\n{output_var} = plt.gcf()",
       "dependencies": [
         "import matplotlib.pyplot as plt"
       ],
@@ -61,7 +61,7 @@
       "cell_id": "MATPLOTLIB_SAVEFIG",
       "stage": 3,
       "inputs": {
-        "figure": {
+        "fig": {
           "type_name": "Figure",
           "state": "plotted",
           "default_value": null,
@@ -85,7 +85,7 @@
           "required": true
         }
       },
-      "code_template": "plt.savefig({dest_path}); {output_var} = {dest_path}",
+      "code_template": "{output_var} = plt.savefig({dest_path})",
       "dependencies": [
         "import matplotlib.pyplot as plt"
       ],
@@ -28312,19 +28312,19 @@
           "description": "",
           "required": true
         },
-        "dx2": {
-          "type_name": "any",
-          "state": "any",
-          "required": true,
-          "default_value": null,
-          "description": "Input dx2"
-        },
         "dy1": {
           "type_name": "any",
           "state": "any",
           "required": true,
           "default_value": null,
           "description": "Input dy1"
+        },
+        "dx2": {
+          "type_name": "any",
+          "state": "any",
+          "required": true,
+          "default_value": null,
+          "description": "Input dx2"
         },
         "dy2": {
           "type_name": "any",
@@ -28524,12 +28524,12 @@
           "description": "",
           "required": true
         },
-        "c2y": {
+        "c1y": {
           "type_name": "any",
           "state": "any",
           "required": true,
           "default_value": null,
-          "description": "Input c2y"
+          "description": "Input c1y"
         },
         "mmx": {
           "type_name": "any",
@@ -28538,6 +28538,13 @@
           "default_value": null,
           "description": "Input mmx"
         },
+        "c2x": {
+          "type_name": "any",
+          "state": "any",
+          "required": true,
+          "default_value": null,
+          "description": "Input c2x"
+        },
         "mmy": {
           "type_name": "any",
           "state": "any",
@@ -28545,19 +28552,12 @@
           "default_value": null,
           "description": "Input mmy"
         },
-        "c1y": {
+        "c2y": {
           "type_name": "any",
           "state": "any",
           "required": true,
           "default_value": null,
-          "description": "Input c1y"
-        },
-        "c2x": {
-          "type_name": "any",
-          "state": "any",
-          "required": true,
-          "default_value": null,
-          "description": "Input c2x"
+          "description": "Input c2y"
         }
       },
       "outputs": {
@@ -28654,12 +28654,12 @@
           "description": "",
           "required": true
         },
-        "y0": {
+        "y1": {
           "type_name": "any",
           "state": "any",
           "required": true,
           "default_value": null,
-          "description": "Input y0"
+          "description": "Input y1"
         },
         "x1": {
           "type_name": "any",
@@ -28668,12 +28668,12 @@
           "default_value": null,
           "description": "Input x1"
         },
-        "y1": {
+        "y0": {
           "type_name": "any",
           "state": "any",
           "required": true,
           "default_value": null,
-          "description": "Input y1"
+          "description": "Input y0"
         }
       },
       "outputs": {
@@ -28738,26 +28738,12 @@
           "description": "",
           "required": true
         },
-        "cy1": {
+        "cos_t1": {
           "type_name": "any",
           "state": "any",
           "required": true,
           "default_value": null,
-          "description": "Input cy1"
-        },
-        "sin_t2": {
-          "type_name": "any",
-          "state": "any",
-          "required": true,
-          "default_value": null,
-          "description": "Input sin_t2"
-        },
-        "cx2": {
-          "type_name": "any",
-          "state": "any",
-          "required": true,
-          "default_value": null,
-          "description": "Input cx2"
+          "description": "Input cos_t1"
         },
         "cy2": {
           "type_name": "any",
@@ -28773,12 +28759,12 @@
           "default_value": null,
           "description": "Input cos_t2"
         },
-        "cos_t1": {
+        "sin_t2": {
           "type_name": "any",
           "state": "any",
           "required": true,
           "default_value": null,
-          "description": "Input cos_t1"
+          "description": "Input sin_t2"
         },
         "sin_t1": {
           "type_name": "any",
@@ -28786,6 +28772,20 @@
           "required": true,
           "default_value": null,
           "description": "Input sin_t1"
+        },
+        "cx2": {
+          "type_name": "any",
+          "state": "any",
+          "required": true,
+          "default_value": null,
+          "description": "Input cx2"
+        },
+        "cy1": {
+          "type_name": "any",
+          "state": "any",
+          "required": true,
+          "default_value": null,
+          "description": "Input cy1"
         }
       },
       "outputs": {
@@ -28880,6 +28880,20 @@
           "description": "",
           "required": true
         },
+        "cos_t": {
+          "type_name": "any",
+          "state": "any",
+          "required": true,
+          "default_value": null,
+          "description": "Input cos_t"
+        },
+        "sin_t": {
+          "type_name": "any",
+          "state": "any",
+          "required": true,
+          "default_value": null,
+          "description": "Input sin_t"
+        },
         "cy": {
           "type_name": "any",
           "state": "any",
@@ -28893,20 +28907,6 @@
           "required": true,
           "default_value": null,
           "description": "Input length"
-        },
-        "sin_t": {
-          "type_name": "any",
-          "state": "any",
-          "required": true,
-          "default_value": null,
-          "description": "Input sin_t"
-        },
-        "cos_t": {
-          "type_name": "any",
-          "state": "any",
-          "required": true,
-          "default_value": null,
-          "description": "Input cos_t"
         }
       },
       "outputs": {
@@ -29117,19 +29117,19 @@
           "description": "",
           "required": true
         },
-        "cy": {
-          "type_name": "any",
-          "state": "any",
-          "required": true,
-          "default_value": null,
-          "description": "Input cy"
-        },
         "r": {
           "type_name": "any",
           "state": "any",
           "required": true,
           "default_value": null,
           "description": "Input r"
+        },
+        "cy": {
+          "type_name": "any",
+          "state": "any",
+          "required": true,
+          "default_value": null,
+          "description": "Input cy"
         }
       },
       "outputs": {
@@ -75527,13 +75527,6 @@
           "description": "",
           "required": true
         },
-        "offsets": {
-          "type_name": "any",
-          "state": "any",
-          "required": true,
-          "default_value": null,
-          "description": "Input offsets"
-        },
         "transforms": {
           "type_name": "any",
           "state": "any",
@@ -75541,19 +75534,26 @@
           "default_value": null,
           "description": "Input transforms"
         },
-        "offset_transform": {
-          "type_name": "any",
-          "state": "any",
-          "required": true,
-          "default_value": null,
-          "description": "Input offset_transform"
-        },
         "paths": {
           "type_name": "any",
           "state": "any",
           "required": true,
           "default_value": null,
           "description": "Input paths"
+        },
+        "offsets": {
+          "type_name": "any",
+          "state": "any",
+          "required": true,
+          "default_value": null,
+          "description": "Input offsets"
+        },
+        "offset_transform": {
+          "type_name": "any",
+          "state": "any",
+          "required": true,
+          "default_value": null,
+          "description": "Input offset_transform"
         }
       },
       "outputs": {
@@ -126957,7 +126957,7 @@
           "required": true
         },
         "b": {
-          "type_name": "Figure",
+          "type_name": "any",
           "state": "any",
           "required": true,
           "default_value": null,
@@ -135875,15 +135875,7 @@
     {
       "cell_id": "MATPLOTLIB_PLOT",
       "stage": 2,
-      "inputs": {
-        "data": {
-          "type_name": "any",
-          "state": "any",
-          "default_value": null,
-          "description": "Input data array or series",
-          "required": true
-        }
-      },
+      "inputs": {},
       "outputs": {
         "output_data": {
           "type_name": "Figure",
@@ -135893,7 +135885,7 @@
           "required": true
         }
       },
-      "code_template": "plt.figure(); data_to_plot = getattr({data}, \"select_dtypes\", lambda **k: {data})(include=\"number\") if hasattr({data}, \"select_dtypes\") else {data}; plt.plot(data_to_plot) if data_to_plot is not None else plt.plot([0, 1], [0, 1]); {output_var} = plt.gcf()",
+      "code_template": "{output_var} = plt.figure()",
       "dependencies": [
         "import matplotlib.pyplot as plt"
       ],
@@ -135936,15 +135928,7 @@
     {
       "cell_id": "MATPLOTLIB_SCATTER",
       "stage": 2,
-      "inputs": {
-        "data": {
-          "type_name": "any",
-          "state": "any",
-          "default_value": null,
-          "description": "Input data array or series",
-          "required": true
-        }
-      },
+      "inputs": {},
       "outputs": {
         "output_data": {
           "type_name": "Figure",
@@ -135954,7 +135938,7 @@
           "required": true
         }
       },
-      "code_template": "plt.figure(); plt.plot({data}, \"o\"); {output_var} = plt.gcf()",
+      "code_template": "{output_var} = plt.figure()",
       "dependencies": [
         "import matplotlib.pyplot as plt"
       ],
@@ -135999,15 +135983,7 @@
     {
       "cell_id": "MATPLOTLIB_BAR",
       "stage": 2,
-      "inputs": {
-        "data": {
-          "type_name": "any",
-          "state": "any",
-          "default_value": null,
-          "description": "Input data array or series",
-          "required": true
-        }
-      },
+      "inputs": {},
       "outputs": {
         "output_data": {
           "type_name": "Figure",
@@ -136017,7 +135993,7 @@
           "required": true
         }
       },
-      "code_template": "plt.figure(); plt.bar(range(len({data})), {data}); {output_var} = plt.gcf()",
+      "code_template": "{output_var} = plt.figure()",
       "dependencies": [
         "import matplotlib.pyplot as plt"
       ],
@@ -136095,15 +136071,7 @@
     {
       "cell_id": "MATPLOTLIB_IMSHOW",
       "stage": 2,
-      "inputs": {
-        "data": {
-          "type_name": "any",
-          "state": "any",
-          "default_value": null,
-          "description": "Input image or 2D matrix",
-          "required": true
-        }
-      },
+      "inputs": {},
       "outputs": {
         "output_data": {
           "type_name": "Figure",
@@ -136113,7 +136081,7 @@
           "required": true
         }
       },
-      "code_template": "plt.figure(); plt.imshow({data}); {output_var} = plt.gcf()",
+      "code_template": "{output_var} = plt.figure()",
       "dependencies": [
         "import matplotlib.pyplot as plt"
       ],
@@ -136256,19 +136224,19 @@
           "default_value": null,
           "description": "Input dx"
         },
-        "y": {
-          "type_name": "Figure",
-          "state": "any",
-          "required": true,
-          "default_value": null,
-          "description": "Input y"
-        },
         "dy": {
           "type_name": "any",
           "state": "any",
           "required": true,
           "default_value": null,
           "description": "Input dy"
+        },
+        "y": {
+          "type_name": "any",
+          "state": "any",
+          "required": true,
+          "default_value": null,
+          "description": "Input y"
         }
       },
       "outputs": {
@@ -138188,13 +138156,6 @@
           "description": null,
           "required": true
         },
-        "valmin": {
-          "type_name": "any",
-          "state": "any",
-          "required": true,
-          "default_value": null,
-          "description": "Input valmin"
-        },
         "valmax": {
           "type_name": "any",
           "state": "any",
@@ -138208,6 +138169,13 @@
           "required": true,
           "default_value": null,
           "description": "Input label"
+        },
+        "valmin": {
+          "type_name": "any",
+          "state": "any",
+          "required": true,
+          "default_value": null,
+          "description": "Input valmin"
         }
       },
       "outputs": {
@@ -139518,7 +139486,7 @@
           "required": true
         },
         "y": {
-          "type_name": "Figure",
+          "type_name": "any",
           "state": "any",
           "required": true,
           "default_value": null,
@@ -139876,7 +139844,7 @@
           "required": true
         },
         "y": {
-          "type_name": "Figure",
+          "type_name": "any",
           "state": "any",
           "required": true,
           "default_value": null,
@@ -140194,7 +140162,7 @@
           "required": true
         },
         "y": {
-          "type_name": "Figure",
+          "type_name": "any",
           "state": "any",
           "required": true,
           "default_value": null,
@@ -140470,7 +140438,7 @@
           "description": "Input s"
         },
         "y": {
-          "type_name": "Figure",
+          "type_name": "any",
           "state": "any",
           "required": true,
           "default_value": null,
@@ -141438,7 +141406,7 @@
           "required": true
         },
         "y": {
-          "type_name": "Figure",
+          "type_name": "any",
           "state": "any",
           "required": true,
           "default_value": null,
@@ -141488,7 +141456,7 @@
           "required": true
         },
         "y": {
-          "type_name": "Figure",
+          "type_name": "any",
           "state": "any",
           "required": true,
           "default_value": null,
@@ -141537,19 +141505,19 @@
           "description": null,
           "required": true
         },
-        "xmax": {
-          "type_name": "any",
-          "state": "any",
-          "required": true,
-          "default_value": null,
-          "description": "Input xmax"
-        },
         "xmin": {
           "type_name": "any",
           "state": "any",
           "required": true,
           "default_value": null,
           "description": "Input xmin"
+        },
+        "xmax": {
+          "type_name": "any",
+          "state": "any",
+          "required": true,
+          "default_value": null,
+          "description": "Input xmax"
         }
       },
       "outputs": {
@@ -141724,7 +141692,7 @@
           "required": true
         },
         "arr": {
-          "type_name": "Figure",
+          "type_name": "any",
           "state": "any",
           "required": true,
           "default_value": null,
@@ -143110,8 +143078,15 @@
           "description": null,
           "required": true
         },
+        "U": {
+          "type_name": "any",
+          "state": "any",
+          "required": true,
+          "default_value": null,
+          "description": "Input U"
+        },
         "X": {
-          "type_name": "Figure",
+          "type_name": "any",
           "state": "any",
           "required": true,
           "default_value": null,
@@ -143124,15 +143099,8 @@
           "default_value": null,
           "description": "Input label"
         },
-        "U": {
-          "type_name": "Figure",
-          "state": "any",
-          "required": true,
-          "default_value": null,
-          "description": "Input U"
-        },
         "Y": {
-          "type_name": "Figure",
+          "type_name": "any",
           "state": "any",
           "required": true,
           "default_value": null,
@@ -143788,7 +143756,7 @@
           "required": true
         },
         "y": {
-          "type_name": "Figure",
+          "type_name": "any",
           "state": "any",
           "required": true,
           "default_value": null,
@@ -143838,21 +143806,21 @@
           "required": true
         },
         "u": {
-          "type_name": "Figure",
+          "type_name": "any",
           "state": "any",
           "required": true,
           "default_value": null,
           "description": "Input u"
         },
         "v": {
-          "type_name": "Figure",
+          "type_name": "any",
           "state": "any",
           "required": true,
           "default_value": null,
           "description": "Input v"
         },
         "y": {
-          "type_name": "Figure",
+          "type_name": "any",
           "state": "any",
           "required": true,
           "default_value": null,
@@ -145075,7 +145043,7 @@
           "required": true
         },
         "y": {
-          "type_name": "Figure",
+          "type_name": "any",
           "state": "any",
           "required": true,
           "default_value": null,
@@ -163869,19 +163837,19 @@
           "description": null,
           "required": true
         },
-        "slope": {
-          "type_name": "any",
-          "state": "any",
-          "required": true,
-          "default_value": null,
-          "description": "Input slope"
-        },
         "xy2": {
           "type_name": "any",
           "state": "any",
           "required": true,
           "default_value": null,
           "description": "Input xy2"
+        },
+        "slope": {
+          "type_name": "any",
+          "state": "any",
+          "required": true,
+          "default_value": null,
+          "description": "Input slope"
         }
       },
       "outputs": {
@@ -292110,15 +292078,7 @@
     {
       "cell_id": "MATPLOTLIB_HIST",
       "stage": 2,
-      "inputs": {
-        "data": {
-          "type_name": "any",
-          "state": "any",
-          "default_value": null,
-          "description": "Input data array or series",
-          "required": true
-        }
-      },
+      "inputs": {},
       "outputs": {
         "output_data": {
           "type_name": "Figure",
@@ -292128,7 +292088,7 @@
           "required": true
         }
       },
-      "code_template": "plt.figure(); data_to_plot = getattr({data}, \"select_dtypes\", lambda **k: {data})(include=\"number\").values if hasattr({data}, \"select_dtypes\") else {data}; data_to_plot = data_to_plot.ravel() if hasattr(data_to_plot, \"ndim\") and data_to_plot.ndim > 2 else data_to_plot; plt.hist(data_to_plot) if data_to_plot is not None else plt.hist([1, 2, 2, 3]); {output_var} = plt.gcf()",
+      "code_template": "{output_var} = plt.figure()",
       "dependencies": [
         "import matplotlib.pyplot as plt"
       ],

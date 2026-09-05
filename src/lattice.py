@@ -1,7 +1,11 @@
 """
 src/lattice.py - Neuro-Symbolic Topological Lattice (NSTL)
-Defines formal algebraic type signatures, multi-port cell nodes,
-and ultra-lightweight on-demand topology resolution.
+Domain-Agnostic Typed Lattice, Algebraic Signatures, and Modular Graph Topology.
+
+Conforms strictly to Sections 3.1-3.2 of the NSTL paper:
+  Every primitive is represented as a node v = (f, tau_in, tau_out).
+  Nodes are organized into a lattice (directed graph) where an edge from
+  node u to node v exists iff unify(tau_out(u), tau_in(v)) != bottom.
 """
 
 from __future__ import annotations
@@ -11,28 +15,29 @@ import os
 import re
 import sqlite3
 import threading
-from collections import deque
 from abc import ABC
+from collections import deque
 from dataclasses import dataclass, field
 from typing import Dict, List, Optional, Set, Tuple, Any, FrozenSet, Union
+
 from log_config import get_logger
 
 logger = get_logger('lattice')
 
 
 class TypeRegistry:
-    """Dynamic Poset Type Hierarchy with safe incremental registration."""
+    """
+    Dynamic Poset Type Hierarchy (T, <=).
+    Maintains a directed acyclic graph of subtype relationships.
+    Types are registered dynamically from trees without hardcoded domain dependencies.
+    """
     _instance: Optional[TypeRegistry] = None
     _lock = threading.RLock()
 
     def __init__(self):
         self._parents: Dict[str, Set[str]] = {}
         self._aliases: Dict[str, str] = {}
-        self._register_default_types()
-
-    @property
-    def poset(self) -> Dict[str, Set[str]]:
-        return self._parents
+        self._register_primitive_types()
 
     @classmethod
     def get_instance(cls) -> TypeRegistry:
@@ -41,15 +46,21 @@ class TypeRegistry:
                 cls._instance = cls()
             return cls._instance
 
-    def _register_default_types(self):
-        # Register base types first to avoid forward-reference issues
+    @classmethod
+    def reset(cls):
+        with cls._lock:
+            cls._instance = None
+
+    @property
+    def poset(self) -> Dict[str, Set[str]]:
+        return self._parents
+
+    def _register_primitive_types(self):
+        """Universal foundational types common across computing systems."""
         self.register_type("any")
         self.register_type("object", super_type="any")
-        self.register_type("DataObject", super_type="object")
         self.register_type("numeric", super_type="object")
         self.register_type("None", super_type="any")
-
-        # Register leaf types
         self.register_type("str", super_type="object")
         self.register_type("int", super_type="numeric")
         self.register_type("float", super_type="numeric")
@@ -57,51 +68,27 @@ class TypeRegistry:
         self.register_type("list", super_type="object")
         self.register_type("dict", super_type="object")
         self.register_type("tuple", super_type="object")
-        self.register_type("ndarray", super_type="DataObject")
-        self.register_type("SparseMatrix", super_type="ndarray")
-        self.register_type("Mat", super_type="ndarray")
-        self.register_type("DataFrame", super_type="DataObject")
-        self.register_type("Series", super_type="DataObject")
-        self.register_type("Figure", super_type="object")
-        self.register_type("Graph", super_type="object")
-        self.register_type("Tensor", super_type="DataObject")
-        self.register_type("Dataset", super_type="DataObject")
-        # Figure/Graph are structural results, but the rest of the engine
-        # treats them as "container-like" primary ports alongside DataFrame/
-        # ndarray/etc. Register that relationship in the type poset itself
-        # (multi-parent is supported: register_type adds, not replaces) so
-        # callers can ask the registry instead of each maintaining their own
-        # flat literal set of "the data types".
-        self.register_type("Figure", super_type="DataObject")
-        self.register_type("Graph", super_type="DataObject")
-
-        # Register canonical type aliases
-        self._aliases["mat"] = "ndarray"
-        self._aliases["cv2.mat"] = "ndarray"
-        self._aliases["np.ndarray"] = "ndarray"
-        self._aliases["numpy.ndarray"] = "ndarray"
-        self._aliases["pd.dataframe"] = "DataFrame"
-        self._aliases["pd.series"] = "Series"
-        self._aliases["dataframe"] = "DataFrame"
-        self._aliases["dataobject"] = "DataObject"
-        self._aliases["image"] = "Mat"
-        self._aliases["table"] = "DataFrame"
 
     def register_type(self, type_name: str, super_type: Optional[str] = None):
-        name = type_name.strip()
+        """Registers a type and optionally declares its supertype in the poset."""
+        name = str(type_name).strip()
         if not name:
             return
         if name not in self._parents:
             self._parents[name] = set()
         if super_type:
-            super_name = super_type.strip()
-            if super_name and super_name not in self._parents:
-                self._parents[super_name] = set()
-            self._parents[name].add(super_name)
+            super_name = str(super_type).strip()
+            if super_name and super_name != name:
+                if super_name not in self._parents:
+                    self._parents[super_name] = set()
+                self._parents[name].add(super_name)
         try:
             self.is_subtype.cache_clear()
         except AttributeError:
             pass
+
+    def register_alias(self, alias: str, canonical: str):
+        self._aliases[alias.strip().lower()] = canonical.strip()
 
     def canonical_name(self, type_name: str) -> str:
         if not type_name:
@@ -109,12 +96,20 @@ class TypeRegistry:
         clean = str(type_name).strip()
         return self._aliases.get(clean.lower(), clean)
 
-    @functools.lru_cache(maxsize=8192)
+    @functools.lru_cache(maxsize=16384)
     def is_subtype(self, sub: str, super_: str) -> bool:
+        """
+        Computes poset partial order: returns True iff sub <= super_.
+        Wildcards ('any', 'object', '*', 'top') are Top types that subsume all types.
+        """
         sub_c = self.canonical_name(sub)
         super_c = self.canonical_name(super_)
 
-        if super_c in ("any", "Any", "object", "*", "top") or sub_c in ("any", "Any") or sub_c == super_c:
+        if super_c.lower() in ("any", "object", "*", "top", "unknown"):
+            return True
+        if sub_c.lower() in ("any", "top", "*"):
+            return False
+        if sub_c.lower() == super_c.lower():
             return True
 
         if sub_c not in self._parents:
@@ -124,7 +119,7 @@ class TypeRegistry:
         queue = deque([sub_c])
         while queue:
             curr = queue.popleft()
-            if curr == super_c:
+            if curr.lower() == super_c.lower():
                 return True
             visited.add(curr)
             for parent in self._parents.get(curr, []):
@@ -135,30 +130,28 @@ class TypeRegistry:
 
     def is_container_type(self, type_name: str) -> bool:
         """
-        True if type_name is (or unifies with) a data-container type -
-        DataFrame, ndarray, Mat, Series, Tensor, Dataset, Figure, Graph, etc.
-        Single source of truth for "is this a data-bearing port", derived
-        from the actual type poset instead of a hand-typed literal set
-        copy-pasted at each call site.
+        True if type is non-primitive (i.e. not a basic scalar int/float/bool/str/None).
         """
-        return self.is_subtype(type_name, "DataObject")
-
-
-def canonical_type_name(type_name: str) -> str:
-    return TypeRegistry.get_instance().canonical_name(type_name)
+        canonical = self.canonical_name(type_name).lower()
+        primitive_types = {"int", "float", "bool", "str", "none"}
+        return canonical not in primitive_types
 
 
 def is_subtype(sub: str, parent: str) -> bool:
     return TypeRegistry.get_instance().is_subtype(sub, parent)
 
 
-def is_container_type(type_name: str) -> bool:
-    return TypeRegistry.get_instance().is_container_type(type_name)
+def canonical_type_name(type_name: str) -> str:
+    return TypeRegistry.get_instance().canonical_name(type_name)
 
 
 @dataclass(frozen=True, slots=True)
 class AlgebraicSignature:
-    type_name: str
+    """
+    Formal typestate signature: tau = (type_name, state, qualifiers).
+    Conforms to Section 3.1 of the NSTL paper.
+    """
+    type_name: str = "any"
     state: str = "any"
     qualifiers: FrozenSet[Tuple[str, str]] = field(default_factory=frozenset)
 
@@ -166,15 +159,18 @@ class AlgebraicSignature:
     def from_string(cls, type_name: str, state: str = "any") -> "AlgebraicSignature":
         return cls(type_name=type_name, state=state)
 
-    def matches(self, other: Any) -> bool:
-        return self.unifies_with(other)
-
     def is_top(self) -> bool:
-        return self.type_name.lower() in ("any", "*", "top", "anyobject", "object")
+        return self.type_name.lower() in ("any", "*", "top", "object", "unknown")
 
     def unifies_with(self, other: Any) -> bool:
         """
-        Returns True if `self` (producer output) unifies with `other` (consumer input).
+        Evaluates whether producer output `self` can satisfy consumer input `other`.
+        Rules:
+          1. Consumer Top accepts any producer type.
+          2. Non-top consumer rejects top producer.
+          3. If both declare non-'any' state, states must match (case-insensitive).
+          4. Producer type must be a subtype of consumer type in the Type Poset.
+          5. Consumer qualifiers must be a subset of producer qualifiers.
         """
         if hasattr(other, "signature") and isinstance(other.signature, AlgebraicSignature):
             other_sig = other.signature
@@ -183,28 +179,35 @@ class AlgebraicSignature:
         else:
             return False
 
-        # 1. State check: if both specify a concrete state, they must match
+        # State compatibility check
         if self.state != "any" and other_sig.state != "any":
             if self.state.lower() != other_sig.state.lower():
                 return False
 
-        # 2. Type satisfaction check
+        # Consumer accepts anything
         if other_sig.is_top():
-            return True  # Consumer accepts anything
+            return True
+        # Producer is untyped wildcard, cannot guarantee concrete type requirement
         if self.is_top():
-            return False # Producer is untyped, cannot guarantee concrete type
+            return False
 
+        # Poset subtyping
         registry = TypeRegistry.get_instance()
         if not registry.is_subtype(self.type_name, other_sig.type_name):
             return False
 
+        # Qualifier satisfaction
         if other_sig.qualifiers and not other_sig.qualifiers.issubset(self.qualifiers):
             return False
 
         return True
 
+    def matches(self, other: Any) -> bool:
+        return self.unifies_with(other)
+
 
 class PortSignature:
+    """Named port carrying an AlgebraicSignature typestate."""
     __slots__ = ["name", "signature", "required", "default_value", "doc"]
 
     def __init__(
@@ -212,27 +215,30 @@ class PortSignature:
         name: str = "",
         signature: Union[AlgebraicSignature, str, Any] = "any",
         required: bool = True,
-        default_value: Optional[str] = None,
+        default_value: Optional[Any] = None,
         doc: str = "",
         **kwargs
     ):
-        if isinstance(signature, str):
-            t_name = name if (name and (name[0].isupper() or name in ("str", "int", "float", "bool", "dict", "list", "bytes", "DataFrame", "Mat", "ndarray", "Any", "AnyObject"))) else "str"
-            self.name = name
-            self.signature = AlgebraicSignature(type_name=t_name, state=signature)
-        elif isinstance(signature, AlgebraicSignature):
-            self.name = name
+        self.name = str(name)
+        if isinstance(signature, AlgebraicSignature):
             self.signature = signature
         elif hasattr(signature, "signature") and isinstance(signature.signature, AlgebraicSignature):
-            self.name = name or getattr(signature, "name", "")
             self.signature = signature.signature
+        elif isinstance(signature, str):
+            if "name" in kwargs:
+                self.name = kwargs["name"]
+                self.signature = AlgebraicSignature(type_name=signature, state=kwargs.get("state", "any"))
+            elif signature != "any":
+                self.name = kwargs.get("name", f"port_{name}")
+                self.signature = AlgebraicSignature(type_name=name, state=signature)
+            else:
+                self.signature = AlgebraicSignature(type_name=name if name else "any", state="any")
         else:
-            self.name = name
             self.signature = AlgebraicSignature("any", "any")
 
-        self.required = required
+        self.required = bool(required)
         self.default_value = default_value
-        self.doc = doc
+        self.doc = str(doc or "")
 
     @property
     def type_name(self) -> str:
@@ -253,18 +259,22 @@ class PortSignature:
         return False
 
     def __repr__(self) -> str:
-        return f"PortSignature(name={self.name!r}, signature={self.signature!r}, required={self.required})"
+        return f"Port({self.name}: {self.signature.type_name}[{self.signature.state}], req={self.required})"
 
 
 class Cell(ABC):
+    """
+    Mathematical Lattice Node: v = (f, tau_in, tau_out).
+    Independent of domain, language, or execution runtime.
+    """
     __slots__ = [
         "cell_id", "stage", "keywords", "cell_type",
         "inputs", "outputs", "domain_name", "node_type", "node_role",
-        "dependencies", "code_template", "metadata_tags", "_db_path",
+        "dependencies", "code_template", "metadata_tags",
         "configuration_schema", "verified", "semantic_tags",
         "docstring", "enrichment_source", "enriched_at",
         "source_priority", "source_provenance",
-        "_primary_input", "_primary_output"
+        "_primary_input", "_primary_output", "_token_set"
     ]
 
     def __init__(
@@ -275,13 +285,12 @@ class Cell(ABC):
         cell_type: str = "micro",
         inputs: Optional[Dict[str, Union[PortSignature, AlgebraicSignature, dict]]] = None,
         outputs: Optional[Dict[str, Union[PortSignature, AlgebraicSignature, dict]]] = None,
-        domain_name: str = "",
+        domain_name: str = "generic",
         node_type: str = "function",
         node_role: str = "function",
         dependencies: Optional[List[str]] = None,
         code_template: str = "",
         metadata_tags: Optional[Dict[str, Any]] = None,
-        db_path: str = "",
         configuration_schema: Optional[Dict[str, Any]] = None,
         verified: bool = False,
         semantic_tags: Optional[List[str]] = None,
@@ -291,11 +300,9 @@ class Cell(ABC):
         source_priority: int = 100,
         source_provenance: Optional[str] = "unknown"
     ):
-        self._primary_input = None
-        self._primary_output = None
         self.cell_id = cell_id
         self.stage = stage
-        self.keywords = set(k.lower() for k in keywords if len(str(k)) >= 3) if keywords else set()
+        self.keywords = set(str(k).lower() for k in keywords if len(str(k)) >= 3) if keywords else set()
         self.cell_type = cell_type
         self.domain_name = domain_name
         self.node_type = node_type
@@ -303,17 +310,19 @@ class Cell(ABC):
         self.dependencies = dependencies or []
         self.code_template = code_template
         self.metadata_tags = metadata_tags or {}
-        self._db_path = db_path
         self.configuration_schema = configuration_schema or {}
         self.source_priority = int(source_priority) if source_priority is not None else 100
         self.source_provenance = str(source_provenance) if source_provenance else "unknown"
-        self.verified = bool(verified) or (self.source_priority <= 10)
+        self.verified = bool(verified)
         self.semantic_tags = list(semantic_tags) if semantic_tags else list(self.keywords)
         self.docstring = docstring or ""
         self.enrichment_source = enrichment_source
         self.enriched_at = enriched_at
 
-        # Defensive normalization: accept PortSignature, AlgebraicSignature, or raw dicts
+        self._primary_input = None
+        self._primary_output = None
+
+        # Normalize inputs into Dict[str, PortSignature]
         self.inputs: Dict[str, PortSignature] = {}
         for k, v in (inputs or {}).items():
             if isinstance(v, PortSignature):
@@ -336,6 +345,7 @@ class Cell(ABC):
             else:
                 self.inputs[k] = PortSignature(name=k, signature=AlgebraicSignature("any", "any"))
 
+        # Normalize outputs into Dict[str, PortSignature]
         self.outputs: Dict[str, PortSignature] = {}
         for k, v in (outputs or {}).items():
             if isinstance(v, PortSignature):
@@ -358,12 +368,33 @@ class Cell(ABC):
             else:
                 self.outputs[k] = PortSignature(name=k, signature=AlgebraicSignature("any", "any"))
 
+        self._token_set: Optional[Set[str]] = None
+
+        # Register types automatically in TypeRegistry
+        registry = TypeRegistry.get_instance()
+        for p in self.inputs.values():
+            registry.register_type(p.type_name)
+        for p in self.outputs.values():
+            registry.register_type(p.type_name)
+
+    @property
+    def token_set(self) -> Set[str]:
+        if self._token_set is None:
+            try:
+                from .tokenizer import CellTokenizer
+            except (ImportError, ValueError):
+                from tokenizer import CellTokenizer
+            toks = CellTokenizer.tokenize_cell(self.cell_id, self.keywords)
+            for p in self.inputs:
+                toks.update(CellTokenizer.tokenize_identifier(p))
+            for p in self.outputs:
+                toks.update(CellTokenizer.tokenize_identifier(p))
+            self._token_set = toks
+        return self._token_set
+
     @property
     def primary_input(self) -> PortSignature:
-        """
-        Identifies the main data port based on typestate and stage,
-        independent of dictionary insertion order.
-        """
+        """Identifies the primary data-bearing input port."""
         if self._primary_input is not None:
             return self._primary_input
 
@@ -372,74 +403,70 @@ class Cell(ABC):
             self._primary_input = res
             return res
 
-        # Stage 1 (Source): expects URI / path identifier
-        if self.stage == 1:
-            for p in self.inputs.values():
-                if p.state in ("source_identifier", "filepath_read", "input_uri", "source_uri"):
-                    self._primary_input = p
-                    return p
-            res = next(iter(self.inputs.values()))
-            self._primary_input = res
-            return res
-
-        # Prioritize receiver instance ('instance', 'self') as primary data port
-        for receiver_name in ("instance", "self"):
-            if receiver_name in self.inputs:
-                res = self.inputs[receiver_name]
-                self._primary_input = res
-                return res
-
-        # Stage 2 & 3: prioritize container data types over parameter primitives
+        # Prefer non-primitive / container data ports over auxiliary scalar parameters
         registry = TypeRegistry.get_instance()
         for p in self.inputs.values():
-            if registry.is_container_type(p.type_name) or p.state in ("raw", "cleaned", "sorted", "plotted", "scaled", "data_payload"):
+            if registry.is_container_type(p.type_name):
                 self._primary_input = p
                 return p
 
-        # Fallback to the first non-primitive port if available
-        for p in self.inputs.values():
-            if p.type_name not in ("str", "int", "float", "bool"):
-                self._primary_input = p
-                return p
-
+        # Fallback to the first declared input port
         res = next(iter(self.inputs.values()))
         self._primary_input = res
         return res
 
+    @property
+    def primary_output(self) -> PortSignature:
+        """Identifies the primary data-bearing output port."""
+        if self._primary_output is not None:
+            return self._primary_output
+
+        if not self.outputs:
+            res = PortSignature("output_data", AlgebraicSignature("None", "any"))
+            self._primary_output = res
+            return res
+
+        # Prioritize container / non-primitive data types
+        registry = TypeRegistry.get_instance()
+        for p in self.outputs.values():
+            if registry.is_container_type(p.type_name):
+                self._primary_output = p
+                return p
+
+        res = next(iter(self.outputs.values()))
+        self._primary_output = res
+        return res
+
+    @property
+    def is_public_morphism(self) -> bool:
+        """
+        Evaluates whether the cell represents a public morphism in domain category C.
+        Excludes private/internal implementation artifacts (leading underscores, dunder methods).
+        """
+        if "__" in self.cell_id:
+            return False
+        for dep in self.dependencies:
+            if "._" in dep or "import _" in dep:
+                return False
+        return True
+
     def can_accept(self, sig: Union[AlgebraicSignature, PortSignature]) -> bool:
-        """Returns True if this cell has any input port that unifies with `sig`."""
+        """True iff this cell has an input port that unifies with `sig`."""
         target_sig = sig.signature if hasattr(sig, "signature") else sig
         for p in self.inputs.values():
             if target_sig.unifies_with(p.signature):
                 return True
         return False
 
-    @property
-    def primary_output(self) -> PortSignature:
-        if self._primary_output is not None:
-            return self._primary_output
-        if not self.outputs:
-            res = PortSignature("output_data", AlgebraicSignature("None", "any"))
-            self._primary_output = res
-            return res
-        registry = TypeRegistry.get_instance()
-        for p in self.outputs.values():
-            if registry.is_container_type(p.type_name) or p.state in ("raw", "cleaned", "sorted", "plotted", "scaled", "data_payload", "filepath_written"):
-                self._primary_output = p
-                return p
-        res = next(iter(self.outputs.values()))
-        self._primary_output = res
-        return res
-
     def __repr__(self) -> str:
-        return (
-            f"<{self.__class__.__name__} {self.cell_id} "
-            f"({self.domain_name}) {self.primary_input.signature} -> {self.primary_output.signature}>"
-        )
+        in_str = f"{self.primary_input.type_name}[{self.primary_input.state}]"
+        out_str = f"{self.primary_output.type_name}[{self.primary_output.state}]"
+        return f"<{self.__class__.__name__} {self.cell_id} ({self.domain_name}) {in_str} -> {out_str}>"
 
 
 class MicroCell(Cell):
-    __slots__ = ()  # Inherit parent slots exactly; no extra __dict__
+    """Primitive node in the lattice."""
+    __slots__ = ()
 
     def __init__(self, **kwargs):
         kwargs["cell_type"] = "micro"
@@ -447,6 +474,7 @@ class MicroCell(Cell):
 
 
 class MacroCell(Cell):
+    """Higher-level hierarchical composite node in the lattice (Section 3.1)."""
     __slots__ = ("sub_cells", "algorithmic_steps")
 
     def __init__(
@@ -463,426 +491,310 @@ class MacroCell(Cell):
 
 class LatticeOrchestrator:
     """
-    Manages the live typed DAG using lazy on-demand bucket resolution.
+    Mathematical Lattice Topology G = (V, E).
+    Maintains nodes V and allows loading/unloading modular knowledge trees.
+    An edge (u, v) exists iff u.primary_output unifies with v's accepting input port.
     """
-    def __init__(self, trees_directory="trees", active_domain="Python_Core"):
+    def __init__(self, trees_directory: str = "trees", active_domain: str = "all"):
         self.trees_directory = trees_directory
         self.db_path = os.path.join(trees_directory, "lattice.db")
         self.active_domain = active_domain
         self.loaded_cells: Dict[str, Cell] = {}
-        # Indexed bucket lookup tables for O(1) successor and predecessor retrieval
+        self._adjacency: Dict[str, List[str]] = {}
+        self._reverse_adjacency: Dict[str, List[str]] = {}
         self._cells_by_input: Dict[Tuple[str, str], List[Cell]] = {}
-        self._cells_by_stage_input: Dict[Tuple[int, str, str], List[Cell]] = {}
         self._cells_by_output: Dict[Tuple[str, str], List[Cell]] = {}
-        self._cells_by_keyword: Dict[str, List[Cell]] = {}
         self._lock = threading.RLock()
 
-        self.load_from_database()
+        if os.path.exists(self.db_path):
+            self.load_from_database(self.db_path)
+        else:
+            self.load_all_json_trees()
         self.build_topology()
 
     @property
     def cells(self) -> List[Cell]:
         return list(self.loaded_cells.values())
 
+    def load_tree_file(self, json_path: str):
+        """Loads an arbitrary domain tree from JSON without engine hardcodes."""
+        with self._lock:
+            with open(json_path, 'r', encoding='utf-8') as f:
+                data = json.load(f)
+            if isinstance(data, list):
+                raw_cells = data
+                domain = Path(json_path).stem
+            else:
+                domain = data.get("domain", "generic")
+                raw_cells = data.get("cells", [])
+
+            for c_dict in raw_cells:
+                cell = MicroCell(
+                    cell_id=c_dict.get("cell_id"),
+                    stage=c_dict.get("stage", 2),
+                    keywords=c_dict.get("keywords", []),
+                    inputs=c_dict.get("inputs", {}),
+                    outputs=c_dict.get("outputs", {}),
+                    domain_name=c_dict.get("domain_name") or domain,
+                    node_type=c_dict.get("node_type", "function"),
+                    node_role=c_dict.get("node_role", "function"),
+                    dependencies=c_dict.get("dependencies", []),
+                    code_template=c_dict.get("code_template", ""),
+                    verified=c_dict.get("verified", True),
+                    semantic_tags=c_dict.get("semantic_tags", []),
+                    docstring=c_dict.get("docstring", ""),
+                    source_priority=c_dict.get("source_priority", 100),
+                )
+                if cell.is_public_morphism:
+                    self.loaded_cells[cell.cell_id] = cell
+            logger.info(f"[LATTICE] Loaded {len(raw_cells)} nodes from tree: {json_path} (domain: {domain})")
+
+    def unload_tree(self, domain: str):
+        """Removes all nodes belonging to a tree domain."""
+        with self._lock:
+            to_remove = [cid for cid, c in self.loaded_cells.items() if c.domain_name == domain]
+            for cid in to_remove:
+                del self.loaded_cells[cid]
+            logger.info(f"[LATTICE] Unloaded {len(to_remove)} nodes for domain: {domain}")
+
+    def load_all_json_trees(self):
+        """Loads all JSON trees located in trees_directory."""
+        if not os.path.exists(self.trees_directory):
+            return
+        for fname in os.listdir(self.trees_directory):
+            if fname.endswith(".json"):
+                self.load_tree_file(os.path.join(self.trees_directory, fname))
+
     def load_from_database(self, db_path: Optional[str] = None):
+        """Loads nodes from the compiled SQLite database."""
         with self._lock:
             if db_path is not None:
                 self.db_path = db_path
             if not os.path.exists(self.db_path):
-                logger.warning(f"[LATTICE] No SQLite DB found at {self.db_path}")
+                logger.warning(f"[LATTICE] Database not found at {self.db_path}")
                 return
-    
+
             self.loaded_cells.clear()
-    
             try:
                 conn = sqlite3.connect(self.db_path, check_same_thread=False)
                 cursor = conn.cursor()
                 cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name IN ('nodes', 'cells')")
                 tables = [row[0] for row in cursor.fetchall()]
-    
+
                 if "nodes" in tables:
                     cursor.execute("PRAGMA table_info(nodes)")
-                    cols = [c[1] for c in cursor.fetchall()]
-                    has_enrichment = "docstring" in cols
-                    has_priority = "source_priority" in cols
+                    col_names = {row[1] for row in cursor.fetchall()}
 
-                    base_query = """
-                        SELECT cell_id, domain_name, node_type, node_role, stage,
+                    doc_sel = "docstring" if "docstring" in col_names else "'' AS docstring"
+                    prio_sel = "source_priority" if "source_priority" in col_names else "100 AS source_priority"
+                    role_sel = "node_role" if "node_role" in col_names else "'function' AS node_role"
+                    type_sel = "node_type" if "node_type" in col_names else "'function' AS node_type"
+                    ver_sel = "verified" if "verified" in col_names else "1 AS verified"
+                    dom_sel = "domain_name" if "domain_name" in col_names else "'' AS domain_name"
+                    deps_sel = "dependencies" if "dependencies" in col_names else "'' AS dependencies"
+                    cfg_sel = "configuration_schema" if "configuration_schema" in col_names else "'' AS configuration_schema"
+
+                    cursor.execute(f"""
+                        SELECT cell_id, {dom_sel}, {type_sel}, {role_sel}, stage,
                                keywords, input_type, input_state, output_type, output_state,
-                               code, dependencies, configuration_schema, verified
-                    """
-                    if has_enrichment:
-                        base_query += ", docstring, enrichment_source, enriched_at"
-                    else:
-                        base_query += ", '' AS docstring, NULL AS enrichment_source, NULL AS enriched_at"
-
-                    if has_priority:
-                        base_query += ", source_priority, source_provenance"
-                    else:
-                        base_query += ", 100 AS source_priority, 'unknown' AS source_provenance"
-
-                    base_query += " FROM nodes"
-                    cursor.execute(base_query)
-                    rows = cursor.fetchall()
-                    for row in rows:
+                               code, {deps_sel}, {cfg_sel}, {ver_sel}, {doc_sel}, {prio_sel}
+                        FROM nodes
+                    """)
+                    for row in cursor.fetchall():
                         (cell_id, domain_name, node_type, node_role, stage,
                          keywords_json, in_type, in_state, out_type, out_state,
-                         code, deps_json, config_json, verified,
-                         doc_str, enrich_src, enrich_at,
-                         source_priority, source_provenance) = row
-    
+                         code, deps_json, config_json, verified, doc_str, source_priority) = row
+
                         try:
                             keywords = set(json.loads(keywords_json)) if keywords_json else set()
                         except Exception:
                             keywords = set()
-    
                         try:
-                            dependencies = json.loads(deps_json) if deps_json else []
+                            deps = json.loads(deps_json) if deps_json else []
                         except Exception:
-                            dependencies = []
-    
+                            deps = []
                         try:
-                            configuration_schema = json.loads(config_json) if config_json else {}
+                            cfg = json.loads(config_json) if config_json else {}
                         except Exception:
-                            configuration_schema = {}
-    
+                            cfg = {}
+
                         in_sig = AlgebraicSignature(type_name=in_type or "any", state=in_state or "any")
                         out_sig = AlgebraicSignature(type_name=out_type or "None", state=out_state or "any")
-    
+
                         inputs: Dict[str, PortSignature] = {}
                         outputs: Dict[str, PortSignature] = {}
-                        if isinstance(configuration_schema, dict) and configuration_schema:
-                            raw_in = configuration_schema.get("inputs", configuration_schema)
-                            if isinstance(raw_in, dict):
-                                for p_name, p_val in raw_in.items():
-                                    if p_name in ("inputs", "outputs"):
-                                        continue
-                                    if isinstance(p_val, dict):
-                                        p_type = p_val.get("type_name", p_val.get("type", in_type or "any"))
-                                        p_state = p_val.get("state", in_state or "any")
-                                        inputs[p_name] = PortSignature(
-                                            name=p_name,
-                                            signature=AlgebraicSignature(type_name=str(p_type), state=str(p_state)),
-                                            required=p_val.get("required", True),
-                                            default_value=p_val.get("default_value", p_val.get("default")),
-                                            doc=p_val.get("doc", p_val.get("param_doc", ""))
-                                        )
-                                    elif isinstance(p_val, str):
-                                        inputs[p_name] = PortSignature(
-                                            name=p_name,
-                                            signature=AlgebraicSignature(type_name=p_val, state="any")
-                                        )
-                            raw_out = configuration_schema.get("outputs", {})
-                            if isinstance(raw_out, dict):
-                                for p_name, p_val in raw_out.items():
-                                    if isinstance(p_val, dict):
-                                        p_type = p_val.get("type_name", out_type or "any")
-                                        p_state = p_val.get("state", out_state or "any")
-                                        outputs[p_name] = PortSignature(
-                                            name=p_name,
-                                            signature=AlgebraicSignature(type_name=str(p_type), state=str(p_state))
-                                        )
-                                    elif isinstance(p_val, str):
-                                        outputs[p_name] = PortSignature(
-                                            name=p_name,
-                                            signature=AlgebraicSignature(type_name=p_val, state="any")
-                                        )
-                        elif isinstance(configuration_schema, list) and configuration_schema:
-                            for p_val in configuration_schema:
-                                if isinstance(p_val, dict) and "name" in p_val:
-                                    p_name = p_val["name"]
-                                    p_type = p_val.get("type_name", p_val.get("type", in_type or "any"))
-                                    p_state = p_val.get("state", in_state or "any")
+
+                        if isinstance(cfg, dict) and ("inputs" in cfg or "outputs" in cfg):
+                            for p_name, p_val in cfg.get("inputs", {}).items():
+                                if isinstance(p_val, dict):
                                     inputs[p_name] = PortSignature(
                                         name=p_name,
-                                        signature=AlgebraicSignature(type_name=str(p_type), state=str(p_state)),
+                                        signature=AlgebraicSignature(
+                                            type_name=str(p_val.get("type_name", in_type or "any")),
+                                            state=str(p_val.get("state", in_state or "any")),
+                                            qualifiers=frozenset(tuple(q) for q in p_val.get("qualifiers", []))
+                                        ),
                                         required=p_val.get("required", True),
-                                        default_value=p_val.get("default_value", p_val.get("default")),
-                                        doc=p_val.get("doc", p_val.get("param_doc", ""))
+                                        default_value=p_val.get("default_value")
                                     )
-    
+                            for p_name, p_val in cfg.get("outputs", {}).items():
+                                if isinstance(p_val, dict):
+                                    outputs[p_name] = PortSignature(
+                                        name=p_name,
+                                        signature=AlgebraicSignature(
+                                            type_name=str(p_val.get("type_name", out_type or "any")),
+                                            state=str(p_val.get("state", out_state or "any")),
+                                            qualifiers=frozenset(tuple(q) for q in p_val.get("qualifiers", []))
+                                        )
+                                    )
+
                         if not inputs:
-                            inputs = {"input_data": PortSignature(name="input_data", signature=in_sig)}
+                            inputs = {"input_data": PortSignature("input_data", in_sig)}
                         if not outputs:
-                            outputs = {"output_data": PortSignature(name="output_data", signature=out_sig)}
-    
-                        is_macro = node_type == "macro" or str(node_role).lower() == "macro"
-                        cell_cls = MacroCell if is_macro else MicroCell
-    
-                        cell = cell_cls(
+                            outputs = {"output_data": PortSignature("output_data", out_sig)}
+
+                        is_macro = str(node_type).lower() == "macro" or str(node_role).lower() == "macro"
+                        cls = MacroCell if is_macro else MicroCell
+
+                        cell = cls(
                             cell_id=cell_id,
-                            stage=stage or 1,
+                            stage=stage or 2,
                             keywords=keywords,
                             inputs=inputs,
                             outputs=outputs,
-                            domain_name=domain_name or self.active_domain,
+                            domain_name=domain_name or "generic",
                             node_type="macro" if is_macro else (node_type or "function"),
                             node_role=str(node_role).lower() if node_role else "function",
-                            dependencies=dependencies,
+                            dependencies=deps,
                             code_template=code or "",
-                            db_path=self.db_path,
-                            configuration_schema=configuration_schema,
                             verified=bool(verified),
                             docstring=doc_str or "",
-                            enrichment_source=enrich_src,
-                            enriched_at=enrich_at,
-                            source_priority=source_priority,
-                            source_provenance=source_provenance
+                            source_priority=int(source_priority) if source_priority is not None else 100
                         )
-                        self.loaded_cells[cell.cell_id] = cell
-    
+                        if cell.is_public_morphism:
+                            self.loaded_cells[cell.cell_id] = cell
+
                 elif "cells" in tables:
                     cursor.execute("""
                         SELECT cell_id, stage, input_type, input_state, output_type, output_state,
                                code_template, configuration_schema, dependencies
                         FROM cells
                     """)
-                    rows = cursor.fetchall()
-                    for row in rows:
+                    for row in cursor.fetchall():
                         (cell_id, stage, in_type, in_state, out_type, out_state,
                          code, config_json, deps_json) = row
-    
+
                         try:
-                            dependencies = json.loads(deps_json) if deps_json else []
+                            deps = json.loads(deps_json) if deps_json else []
                         except Exception:
-                            dependencies = []
-    
+                            deps = []
                         try:
-                            configuration_schema = json.loads(config_json) if config_json else {}
+                            cfg = json.loads(config_json) if config_json else {}
                         except Exception:
-                            configuration_schema = {}
-    
+                            cfg = {}
+
                         in_sig = AlgebraicSignature(type_name=in_type or "any", state=in_state or "any")
                         out_sig = AlgebraicSignature(type_name=out_type or "None", state=out_state or "any")
-    
+
                         inputs: Dict[str, PortSignature] = {}
                         outputs: Dict[str, PortSignature] = {}
-    
-                        if isinstance(configuration_schema, dict) and ("inputs" in configuration_schema or "outputs" in configuration_schema):
-                            raw_in = configuration_schema.get("inputs", {})
-                            for p_name, p_val in raw_in.items():
-                                p_type = p_val.get("type_name", in_type or "any")
-                                p_state = p_val.get("state", in_state or "any")
-                                inputs[p_name] = PortSignature(
-                                    name=p_name,
-                                    signature=AlgebraicSignature(type_name=str(p_type), state=str(p_state)),
-                                    required=p_val.get("required", True),
-                                    default_value=p_val.get("default_value", p_val.get("default"))
-                                )
-                            raw_out = configuration_schema.get("outputs", {})
-                            for p_name, p_val in raw_out.items():
-                                p_type = p_val.get("type_name", out_type or "any")
-                                p_state = p_val.get("state", out_state or "any")
-                                outputs[p_name] = PortSignature(
-                                    name=p_name,
-                                    signature=AlgebraicSignature(type_name=str(p_type), state=str(p_state))
-                                )
-    
+
+                        if isinstance(cfg, dict) and ("inputs" in cfg or "outputs" in cfg):
+                            for p_name, p_val in cfg.get("inputs", {}).items():
+                                if isinstance(p_val, dict):
+                                    inputs[p_name] = PortSignature(
+                                        name=p_name,
+                                        signature=AlgebraicSignature(
+                                            type_name=str(p_val.get("type_name", in_type or "any")),
+                                            state=str(p_val.get("state", in_state or "any")),
+                                            qualifiers=frozenset(tuple(q) for q in p_val.get("qualifiers", []))
+                                        ),
+                                        required=p_val.get("required", True),
+                                        default_value=p_val.get("default_value")
+                                    )
+                            for p_name, p_val in cfg.get("outputs", {}).items():
+                                if isinstance(p_val, dict):
+                                    outputs[p_name] = PortSignature(
+                                        name=p_name,
+                                        signature=AlgebraicSignature(
+                                            type_name=str(p_val.get("type_name", out_type or "any")),
+                                            state=str(p_val.get("state", out_state or "any")),
+                                            qualifiers=frozenset(tuple(q) for q in p_val.get("qualifiers", []))
+                                        )
+                                    )
+
                         if not inputs:
-                            inputs = {"input_data": PortSignature(name="input_data", signature=in_sig)}
+                            inputs = {"input_data": PortSignature("input_data", in_sig)}
                         if not outputs:
-                            outputs = {"output_data": PortSignature(name="output_data", signature=out_sig)}
-    
-                        keywords = set(re.findall(r'[a-zA-Z0-9]+', cell_id.lower())) - {"cell", "default", "broken", "distractor"}
-                        for p in inputs.values():
-                            if p.state != "any":
-                                keywords.update(re.findall(r'[a-zA-Z0-9]+', p.state.lower()))
-                            if p.name:
-                                keywords.update(re.findall(r'[a-zA-Z0-9]+', p.name.lower()))
-                        for p in outputs.values():
-                            if p.state != "any":
-                                keywords.update(re.findall(r'[a-zA-Z0-9]+', p.state.lower()))
-    
+                            outputs = {"output_data": PortSignature("output_data", out_sig)}
+
+                        keywords = set(re.findall(r'[a-zA-Z0-9]+', cell_id.lower()))
+
                         cell = MicroCell(
                             cell_id=cell_id,
-                            stage=stage or 1,
+                            stage=stage or 2,
                             keywords=keywords,
                             inputs=inputs,
                             outputs=outputs,
-                            domain_name=self.active_domain,
-                            node_type="function",
-                            node_role="function",
-                            dependencies=dependencies,
+                            domain_name="data_processing",
+                            dependencies=deps,
                             code_template=code or "",
-                            db_path=self.db_path,
-                            configuration_schema=configuration_schema
+                            verified=True
                         )
-                        self.loaded_cells[cell.cell_id] = cell
-    
+                        if cell.is_public_morphism:
+                            self.loaded_cells[cell.cell_id] = cell
+
                 conn.close()
-                logger.info(f"[LATTICE] Loaded {len(self.loaded_cells)} cells from database.")
+                logger.info(f"[LATTICE] Loaded {len(self.loaded_cells)} nodes from database.")
             except Exception as e:
-                logger.error(f"[LATTICE] Database load error: {e}")
-
-    def build_reachability_matrix(self) -> None:
-        """
-        Precomputes transitive reachability between typestates as bitsets
-        for instant O(1) dead-end pruning during A* expansion.
-        """
-        with self._lock:
-            reg = TypeRegistry.get_instance()
-            all_types = list(set(list(reg.poset.keys()) + [
-                "DataFrame", "ndarray", "Mat", "Figure", "Graph", "Tensor", "Series", "Dataset",
-                "str", "int", "float", "bool", "dict", "list", "None", "any", "Image", "AudioData"
-            ]))
-            self.type_to_idx = {t: i for i, t in enumerate(all_types)}
-            self.reachability_bitsets: Dict[str, int] = {}
-
-            # Build direct transition adjacency
-            direct_adj: Dict[str, Set[str]] = {t: set() for t in all_types}
-            for cell in self.loaded_cells.values():
-                in_sig = cell.primary_input
-                out_sig = cell.primary_output
-                if in_sig and out_sig:
-                    in_t = in_sig.type_name
-                    out_t = out_sig.type_name
-                    direct_adj.setdefault(in_t, set()).add(out_t)
-                    if in_t == "Mat":
-                        direct_adj.setdefault("ndarray", set()).add(out_t)
-                    if in_t == "Series":
-                        direct_adj.setdefault("DataFrame", set()).add(out_t)
-
-            # Transitive closure (BFS reachability)
-            for t in all_types:
-                reachable = set([t])
-                queue = deque([t])
-                while queue:
-                    curr = queue.popleft()
-                    for nxt in direct_adj.get(curr, []):
-                        if nxt not in reachable:
-                            reachable.add(nxt)
-                            queue.append(nxt)
-
-                bitset = 0
-                for r in reachable:
-                    if r in self.type_to_idx:
-                        bitset |= (1 << self.type_to_idx[r])
-                self.reachability_bitsets[t] = bitset
-            logger.info(f"[LATTICE] Reachability bitset matrix precomputed for {len(all_types)} types.")
-
-    def can_reach_type(self, source_type: str, target_type: str) -> bool:
-        """O(1) Bitwise Reachability Check."""
-        if source_type == target_type or target_type in ("any", "None", "str", "object"):
-            return True
-        if not hasattr(self, "reachability_bitsets") or not self.reachability_bitsets:
-            return True
-        if source_type not in self.reachability_bitsets or target_type not in self.type_to_idx:
-            return True  # Permissive fallback for dynamic types
-        target_bit = 1 << self.type_to_idx[target_type]
-        return bool(self.reachability_bitsets[source_type] & target_bit)
+                logger.error(f"[LATTICE] Failed loading database: {e}")
 
     def build_topology(self):
-        """Builds O(1) indexed lookup tables for both inputs, stages, and outputs."""
+        """
+        Builds the lattice directed edges based strictly on monadic type compatibility:
+          (u, v) in E <=> u.primary_output.unifies_with(v.primary_input)
+        """
         with self._lock:
+            self._adjacency.clear()
+            self._reverse_adjacency.clear()
             self._cells_by_input.clear()
-            self._cells_by_stage_input.clear()
             self._cells_by_output.clear()
-            self._cells_by_keyword.clear()
+
             for cell in self.loaded_cells.values():
-                in_sig = cell.primary_input
-                self._cells_by_input.setdefault((in_sig.type_name, in_sig.state), []).append(cell)
-                self._cells_by_stage_input.setdefault((cell.stage, in_sig.type_name, in_sig.state), []).append(cell)
-                out_sig = cell.primary_output
-                self._cells_by_output.setdefault((out_sig.type_name, out_sig.state), []).append(cell)
-                for kw in cell.keywords:
-                    self._cells_by_keyword.setdefault(kw.lower(), []).append(cell)
-            self.build_reachability_matrix()
-            logger.info(
-                f"[LATTICE] Indexed {len(self.loaded_cells)} cells into "
-                f"{len(self._cells_by_input)} input buckets and {len(self._cells_by_output)} output buckets."
-            )
+                _ = cell.token_set  # Warm up cached token set
+                self._adjacency[cell.cell_id] = []
+                self._reverse_adjacency[cell.cell_id] = []
+                for p in cell.inputs.values():
+                    key = (p.type_name, p.state)
+                    self._cells_by_input.setdefault(key, []).append(cell)
+                for p in cell.outputs.values():
+                    key = (p.type_name, p.state)
+                    self._cells_by_output.setdefault(key, []).append(cell)
 
-    def inject_cell(self, cell: Cell):
-        """Thread-safe incremental addition of a synthesized cell into the orchestrator."""
-        with self._lock:
-            self.loaded_cells[cell.cell_id] = cell
-            in_sig = cell.primary_input
-            self._cells_by_input.setdefault((in_sig.type_name, in_sig.state), []).append(cell)
-            self._cells_by_stage_input.setdefault((cell.stage, in_sig.type_name, in_sig.state), []).append(cell)
-            out_sig = cell.primary_output
-            self._cells_by_output.setdefault((out_sig.type_name, out_sig.state), []).append(cell)
-            for kw in cell.keywords:
-                self._cells_by_keyword.setdefault(kw.lower(), []).append(cell)
+    def get_successors(self, cell: Cell, candidate_pool: Optional[List[Cell]] = None) -> List[Cell]:
+        """
+        Returns all nodes in candidate_pool whose input can be validly chained from cell's output.
+        Computed on-demand via monadic unification check.
+        """
+        pool = candidate_pool if candidate_pool is not None else self.cells
+        out_sig = cell.primary_output
+        successors = []
+        for cand in pool:
+            if cand.cell_id == cell.cell_id:
+                continue
+            if cand.can_accept(out_sig):
+                successors.append(cand)
+        return successors
 
-    def register_cell(self, cell: Cell):
-        """Alias for inject_cell."""
-        self.inject_cell(cell)
-
-    def get_successors_for_sig(self, sig: Union[AlgebraicSignature, PortSignature], stage: Optional[int] = None) -> List[Cell]:
-        """Returns type-compatible downstream successor cells in O(1) dictionary lookups."""
-        sig_val = sig.signature if hasattr(sig, "signature") else sig
-        registry = TypeRegistry.get_instance()
-        applicable_types = {sig_val.type_name, "any", "AnyObject", "object", "*"}
-        curr_type = sig_val.type_name
-        canon_curr = registry.canonical_name(curr_type)
-        applicable_types.add(canon_curr)
-        with registry._lock:
-            ancestors = set()
-            queue = deque(registry._parents.get(curr_type, []))
-            queue.extend(registry._parents.get(canon_curr, []))
-            while queue:
-                p = queue.popleft()
-                if p not in ancestors:
-                    ancestors.add(p)
-                    queue.extend(registry._parents.get(p, []))
-            applicable_types.update(ancestors)
-
-            # Subtypes and aliases compatible with current producer type (e.g. Mat <-> ndarray)
-            for sub_type, parents in registry._parents.items():
-                if curr_type in parents or canon_curr in parents:
-                    applicable_types.add(sub_type)
-            for alias_k, alias_v in registry._aliases.items():
-                if alias_v.lower() == canon_curr.lower():
-                    applicable_types.add(alias_k)
-                    applicable_types.add(alias_k.capitalize())
-
-        applicable_states = {sig_val.state, "any"}
-        candidates: List[Cell] = []
-        seen_ids: Set[str] = set()
-
-        with self._lock:
-            for t in applicable_types:
-                for s in applicable_states:
-                    if stage is not None:
-                        bucket = self._cells_by_stage_input.get((stage, t, s), [])
-                    else:
-                        bucket = self._cells_by_input.get((t, s), [])
-                    for cell in bucket:
-                        if cell.cell_id not in seen_ids:
-                            seen_ids.add(cell.cell_id)
-                            candidates.append(cell)
-
-        return candidates
-
-    def get_predecessors_for_sig(self, sig: AlgebraicSignature) -> List[Cell]:
-        """Returns type-compatible upstream predecessor cells in O(1) dictionary lookups."""
-        applicable_types = {sig.type_name, "any", "AnyObject", "object", "*"}
-        applicable_states = {sig.state, "any"}
-        candidates: List[Cell] = []
-        seen_ids: Set[str] = set()
-
-        with self._lock:
-            for t in applicable_types:
-                for s in applicable_states:
-                    for cell in self._cells_by_output.get((t, s), []):
-                        if cell.cell_id not in seen_ids:
-                            if cell.primary_output.unifies_with(sig):
-                                seen_ids.add(cell.cell_id)
-                                candidates.append(cell)
-
-        return candidates
-
-    def get_neighbors(self, cell_id: str) -> List[Cell]:
-        """Returns type-compatible downstream successor cells on-demand in O(1)."""
-        cell = self.loaded_cells.get(cell_id)
-        if not cell:
-            return []
-        return [c for c in self.get_successors_for_sig(cell.primary_output) if c.cell_id != cell_id]
-
-    def get_all_available_cells(self) -> List[Cell]:
-        """Returns all loaded cells in the active lattice."""
-        return list(self.loaded_cells.values())
-
-    def get_cell(self, cell_id: str) -> Optional[Cell]:
-        """Safe accessor for a single cell by ID."""
-        return self.loaded_cells.get(cell_id)
+    def get_successors_for_sig(self, sig: AlgebraicSignature) -> List[Cell]:
+        """Returns cells whose input unifies with the given output signature."""
+        results = []
+        seen = set()
+        for (in_type, in_state), cells in self._cells_by_input.items():
+            cand_sig = AlgebraicSignature(in_type, in_state)
+            if sig.unifies_with(cand_sig):
+                for c in cells:
+                    if c.cell_id not in seen:
+                        seen.add(c.cell_id)
+                        results.append(c)
+        return results

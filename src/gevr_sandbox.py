@@ -27,13 +27,6 @@ def _init_worker(paths: list[str]):
     for p in paths:
         if p not in sys.path:
             sys.path.insert(0, p)
-    for pkg in ['numpy', 'pandas', 'cv2', 'sklearn', 'matplotlib']:
-        try:
-            mod = __import__(pkg)
-            if pkg == 'matplotlib':
-                mod.use('Agg')
-        except ImportError:
-            pass  # Package not installed, skip pre-warming
 
 
 _BLOCKED_MODULES = frozenset({
@@ -109,7 +102,7 @@ def _sandbox_worker_exec(code: str, egress_paths: Optional[list[str]] = None, cw
             stderr_lower = stderr_str.lower()
             error_markers = [
                 "traceback (most recent call last)", "segmentation fault",
-                "fatal error", "core dumped", "cv2.error:"
+                "fatal error", "core dumped"
             ]
             for marker in error_markers:
                 if marker in stderr_lower:
