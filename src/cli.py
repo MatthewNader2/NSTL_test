@@ -30,10 +30,8 @@ def cmd_harvest(args):
 
     print(f"[*] Initializing Intelligent Harvester for package '{package}' (domain: '{domain}')...")
     harvester = IntelligentHarvester(domain=domain, package_name=package)
-    cells = harvester.harvest_all()
-    print(f"[+] Harvested {len(cells)} function cells from '{package}'.")
-
-    harvester.merge_and_save(cells, out_file)
+    tree = harvester.harvest_and_save(out_file)
+    print(f"[+] Harvested {len(tree.cells)} function cells from '{package}'.")
     print(f"[+] Merged and saved into '{out_file}'.")
 
 
@@ -479,10 +477,13 @@ class NSTLInteractiveShell(cmd.Cmd):
             dt = (time.perf_counter() - t0) * 1000.0
             if verbose:
                 console.print(f"[bold green][✓] {self._format_profile_name(p)} ready ({dt:.1f}ms).[/bold green]\n")
-            return True
         except Exception as e:
             console.print(f"[bold red][!] Failed to load Profile {p}: {e}[/bold red]")
             console.print("[yellow][*] Reverting to Profile 0 (Pure Symbolic)...[/yellow]")
+            try:
+                ModelManager.get_instance().cleanup()
+            except Exception:
+                pass
             self.active_profile = "0"
             self.rag = None
             self.router = LatticeRouter(self.orchestrator, internal_rag=None)
@@ -844,6 +845,39 @@ def cmd_shell(args):
     shell.cmdloop()
 
 
+def cmd_precompute_rag(args):
+    """Precomputes dense vector embeddings for all loaded lattice nodes into .rag_cache/."""
+    try:
+        from lattice import LatticeOrchestrator
+        from internal_rag import LocalRAG
+        from inference import ModelManager
+    except ImportError:
+        from .lattice import LatticeOrchestrator
+        from .internal_rag import LocalRAG
+        from .inference import ModelManager
+
+    db_path = Path(args.db)
+    if not db_path.exists():
+        print(f"[!] Database not found: {db_path}. Please run 'compile' first.")
+        return
+
+    print(f"[*] Loading lattice cells from '{db_path}'...")
+    orch = LatticeOrchestrator(trees_directory=args.trees_dir, db_path=str(db_path))
+    print(f"[+] Loaded {len(orch.cells):,} cells.")
+
+    print(f"[*] Initializing Profile A (embedder: '{args.embedder or 'optimal'}')...")
+    ModelManager.get_instance().initialize_profile("A", embedder_name=args.embedder)
+
+    try:
+        print(f"[*] Starting incremental FAISS precomputation into '.rag_cache/'...")
+        t0 = time.perf_counter()
+        rag = LocalRAG(trees_dir=args.trees_dir, orchestrator=orch)
+        dt = time.perf_counter() - t0
+        print(f"[✓] Precomputation complete in {dt:.2f}s. Cache is 100% synchronized.")
+    finally:
+        ModelManager.get_instance().cleanup()
+
+
 def main():
     # If invoked without arguments (e.g. `python3 nstl_cli.py` or `python3 src/cli.py`), launch TUI Studio directly
     if len(sys.argv) == 1:
@@ -873,6 +907,13 @@ def main():
     p_validate = subparsers.add_parser("validate", help="Validate AST syntax and schema of all nodes in SQLite")
     p_validate.add_argument("--db", type=str, default="trees/lattice.db", help="Path to SQLite database")
     p_validate.set_defaults(func=cmd_validate)
+
+    # precompute-rag
+    p_precompute = subparsers.add_parser("precompute-rag", help="Precompute FAISS dense embeddings into .rag_cache/")
+    p_precompute.add_argument("--db", type=str, default="trees/lattice.db", help="Path to SQLite database")
+    p_precompute.add_argument("--trees-dir", type=str, default="trees", help="Directory for domain tree JSON files")
+    p_precompute.add_argument("--embedder", type=str, default="", help="Embedding model name (e.g. jina-embeddings-v5-text-nano)")
+    p_precompute.set_defaults(func=cmd_precompute_rag)
 
     # shell
     p_shell = subparsers.add_parser("shell", help="Launch real-time interactive synthesis TUI studio")

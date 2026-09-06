@@ -17,7 +17,38 @@ from log_config import get_logger
 from config import MODELS_DIR, settings
 from utils import extract_code_from_llm_response
 
+# Configure PyTorch CUDA memory allocator to prevent memory fragmentation
+if "PYTORCH_CUDA_ALLOC_CONF" not in os.environ:
+    os.environ["PYTORCH_CUDA_ALLOC_CONF"] = "expandable_segments:True"
+
 logger = get_logger("inference")
+
+
+def get_adaptive_batch_size(device: str = "cuda") -> int:
+    """
+    Computes an optimal batch size for embedding inference based on hardware telemetry.
+    Pure hardware introspection: zero hardcoded model or library names.
+    """
+    if "cuda" not in str(device).lower() or not torch.cuda.is_available():
+        return 32
+
+    try:
+        total_mem = torch.cuda.get_device_properties(0).total_memory
+        free_mem, _ = torch.cuda.mem_get_info()
+
+        # Conservative scaling for <= 8GB GPUs (e.g. RTX 3070 / 4060)
+        if total_mem <= 8.5 * (1024 ** 3):
+            if free_mem < 1.5 * (1024 ** 3):
+                return 16
+            return 32
+        elif total_mem <= 16.5 * (1024 ** 3):
+            if free_mem < 2.5 * (1024 ** 3):
+                return 32
+            return 64
+        else:
+            return 64
+    except Exception:
+        return 32
 
 
 class InferenceProfile(ABC):
@@ -154,7 +185,7 @@ class BenchmarkProfile_A(InferenceProfile):
         self.model = None
         self._dim = 384
         self.embedder_name = "default"
-        self._lock = threading.Lock()
+        self._lock = threading.RLock()
 
     def load_models(self, embedder_name: str, llm_name: str):
         from sentence_transformers import SentenceTransformer
@@ -172,7 +203,7 @@ class BenchmarkProfile_A(InferenceProfile):
         logger.info(f"[PROFILE A] Loaded embedder '{self.embedder_name}' (dim={self._dim}) on {device.upper()}")
 
     def get_embedding(self, text: str) -> List[float]:
-        with self._lock:
+        with self._lock, torch.inference_mode():
             try:
                 return self.model.encode([text], convert_to_numpy=True, task="retrieval")[0].tolist()
             except Exception:
@@ -181,11 +212,20 @@ class BenchmarkProfile_A(InferenceProfile):
     def get_embeddings(self, texts: List[str]) -> List[List[float]]:
         if not texts:
             return []
-        with self._lock:
+        device = getattr(self.model, "device", None)
+        dev_str = str(device) if device else "cpu"
+        batch_size = get_adaptive_batch_size(dev_str)
+        with self._lock, torch.inference_mode():
             try:
-                return self.model.encode(texts, convert_to_numpy=True, task="retrieval", batch_size=128).tolist()
+                return self.model.encode(texts, convert_to_numpy=True, task="retrieval", batch_size=batch_size).tolist()
+            except torch.cuda.OutOfMemoryError:
+                logger.warning("[PROFILE A] CUDA OOM during batch encode; flushing VRAM and downscaling...")
+                gc.collect()
+                if torch.cuda.is_available():
+                    torch.cuda.empty_cache()
+                return self.model.encode(texts, convert_to_numpy=True, task="retrieval", batch_size=max(8, batch_size // 4)).tolist()
             except Exception:
-                return self.model.encode(texts, convert_to_numpy=True, batch_size=128).tolist()
+                return self.model.encode(texts, convert_to_numpy=True, batch_size=batch_size).tolist()
 
     def generate_text(self, prompt: str, max_tokens: int = 1024, schema: Optional[dict] = None, system_prompt: Optional[str] = None) -> str:
         raise RuntimeError("Profile A does not support text generation.")
@@ -212,7 +252,7 @@ class BenchmarkProfile_C(InferenceProfile):
         self._dim = 384
         self.embedder_name = "default"
         self.llm_name = "default"
-        self._lock = threading.Lock()
+        self._lock = threading.RLock()
 
     def load_models(self, embedder_name: str, llm_name: str):
         from sentence_transformers import SentenceTransformer
@@ -259,7 +299,7 @@ class BenchmarkProfile_C(InferenceProfile):
         logger.info(f"[PROFILE C] Loaded Embedder '{self.embedder_name}' + LLM '{self.llm_name}' on {device.upper()}")
 
     def get_embedding(self, text: str) -> List[float]:
-        with self._lock:
+        with self._lock, torch.inference_mode():
             try:
                 return self.embedder.encode([text], convert_to_numpy=True, task="retrieval")[0].tolist()
             except Exception:
@@ -268,11 +308,20 @@ class BenchmarkProfile_C(InferenceProfile):
     def get_embeddings(self, texts: List[str]) -> List[List[float]]:
         if not texts:
             return []
-        with self._lock:
+        device = getattr(self.embedder, "device", None)
+        dev_str = str(device) if device else "cpu"
+        batch_size = get_adaptive_batch_size(dev_str)
+        with self._lock, torch.inference_mode():
             try:
-                return self.embedder.encode(texts, convert_to_numpy=True, task="retrieval", batch_size=128).tolist()
+                return self.embedder.encode(texts, convert_to_numpy=True, task="retrieval", batch_size=batch_size).tolist()
+            except torch.cuda.OutOfMemoryError:
+                logger.warning("[PROFILE C] CUDA OOM during batch encode; flushing VRAM and downscaling...")
+                gc.collect()
+                if torch.cuda.is_available():
+                    torch.cuda.empty_cache()
+                return self.embedder.encode(texts, convert_to_numpy=True, task="retrieval", batch_size=max(8, batch_size // 4)).tolist()
             except Exception:
-                return self.embedder.encode(texts, convert_to_numpy=True, batch_size=128).tolist()
+                return self.embedder.encode(texts, convert_to_numpy=True, batch_size=batch_size).tolist()
 
     def generate_text(self, prompt: str, max_tokens: int = 1024, schema: Optional[dict] = None, system_prompt: Optional[str] = None) -> str:
         messages = []
@@ -319,7 +368,7 @@ class BenchmarkProfile_E(BenchmarkProfile_C):
 
 class ModelManager:
     _instance = None
-    _lock = threading.Lock()
+    _lock = threading.RLock()
 
     def __init__(self):
         self.active_profile: Optional[InferenceProfile] = None
@@ -336,9 +385,9 @@ class ModelManager:
     def profile(self) -> Optional[InferenceProfile]:
         return self.active_profile
 
-    def initialize_profile(self, profile_type: str, embedder_name: str = "", llm_name: str = ""):
+    def cleanup(self):
+        """Forces complete teardown of active models, releasing all GPU VRAM and CPU RAM."""
         with self._lock:
-            # 1. Cleanly tear down existing models to free GPU VRAM & CPU RAM
             if self.active_profile is not None:
                 if hasattr(self.active_profile, 'llm') and self.active_profile.llm is not None:
                     try:
@@ -351,11 +400,18 @@ class ModelManager:
                 if hasattr(self.active_profile, 'model') and self.active_profile.model is not None:
                     self.active_profile.model = None
                 self.active_profile = None
+            self.current_profile_name = None
 
             gc.collect()
             if torch.cuda.is_available():
                 torch.cuda.empty_cache()
                 torch.cuda.ipc_collect()
+            logger.info("[MODEL MANAGER] Completed VRAM cleanup and memory reclamation.")
+
+    def initialize_profile(self, profile_type: str, embedder_name: str = "", llm_name: str = ""):
+        with self._lock:
+            # 1. Cleanly tear down existing models to free GPU VRAM & CPU RAM
+            self.cleanup()
 
             # 2. Instantiate new profile
             p_type = profile_type.upper()
@@ -370,9 +426,13 @@ class ModelManager:
             else:
                 raise ValueError(f"Unknown profile type: {profile_type}")
 
-            prof.load_models(embedder_name, llm_name)
-            self.active_profile = prof
-            self.current_profile_name = p_type
+            try:
+                prof.load_models(embedder_name, llm_name)
+                self.active_profile = prof
+                self.current_profile_name = p_type
+            except Exception as e:
+                self.cleanup()
+                raise e
 
     def get_embedding(self, text: str) -> List[float]:
         return self.active_profile.get_embedding(text) if self.active_profile else []

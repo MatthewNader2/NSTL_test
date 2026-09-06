@@ -5,14 +5,19 @@ Local Vector Index (FAISS) and Incremental Embedding Cache.
 
 from __future__ import annotations
 import os
+import gc
 import json
 import hashlib
 import pickle
 import threading
 from typing import Optional, Dict, Any, List, Tuple
 
+if "PYTORCH_CUDA_ALLOC_CONF" not in os.environ:
+    os.environ["PYTORCH_CUDA_ALLOC_CONF"] = "expandable_segments:True"
+
 import faiss
 import numpy as np
+import torch
 from log_config import get_logger
 from inference import ModelManager
 
@@ -144,7 +149,7 @@ class LocalRAG:
         self.index: Optional[faiss.IndexFlatIP] = None
         self.id_to_schema: Dict[int, Dict[str, Any]] = {}
         self.cell_cache: Dict[str, Dict[str, Any]] = {}
-        self._lock = threading.Lock()
+        self._lock = threading.RLock()
 
         self.build_index()
 
@@ -228,12 +233,29 @@ class LocalRAG:
             # Embed new/modified cells incrementally to avoid VRAM exhaustion
             if new_or_changed:
                 logger.info(f"[RAG] Batch-embedding {len(new_or_changed)} new/changed cells in chunks...")
-                chunk_size = 1000
+                chunk_size = 250
                 total_cnt = len(new_or_changed)
                 for i in range(0, total_cnt, chunk_size):
                     chunk = new_or_changed[i:i + chunk_size]
                     texts = [item["text"] for item in chunk]
-                    embeddings = ModelManager.get_instance().get_embeddings(texts)
+                    try:
+                        embeddings = ModelManager.get_instance().get_embeddings(texts)
+                    except torch.cuda.OutOfMemoryError:
+                        logger.warning(f"[RAG] CUDA OOM at chunk {i}; flushing VRAM and falling back to micro-batches...")
+                        gc.collect()
+                        if torch.cuda.is_available():
+                            torch.cuda.empty_cache()
+                        embeddings = []
+                        for sub_idx in range(0, len(texts), 25):
+                            sub_texts = texts[sub_idx:sub_idx + 25]
+                            sub_embs = ModelManager.get_instance().get_embeddings(sub_texts)
+                            embeddings.extend(sub_embs)
+                            del sub_texts
+                            del sub_embs
+                            gc.collect()
+                            if torch.cuda.is_available():
+                                torch.cuda.empty_cache()
+
                     for item, emb in zip(chunk, embeddings):
                         self.cell_cache[item["cell_id"]] = {
                             "hash": item["hash"],
@@ -242,12 +264,14 @@ class LocalRAG:
                         }
                     self._save_cache()
                     print(f"[*] RAG Embedding Progress: {min(i + chunk_size, total_cnt)} / {total_cnt} ({min(i + chunk_size, total_cnt)/total_cnt*100:.1f}%)")
-                    try:
-                        import torch
-                        if torch.cuda.is_available():
-                            torch.cuda.empty_cache()
-                    except Exception:
-                        pass
+
+                    del texts
+                    del embeddings
+                    gc.collect()
+                    if torch.cuda.is_available():
+                        torch.cuda.empty_cache()
+                        if (i // chunk_size) % 10 == 0:
+                            torch.cuda.ipc_collect()
 
             if not self.cell_cache:
                 self.index = None

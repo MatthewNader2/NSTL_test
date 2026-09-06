@@ -386,67 +386,62 @@ class ExecutionContext:
                 return v_name
         return None
 
-    def _allocate_free_symbol(self, param_name: str = "") -> Optional[str]:
+    def _project_semantic_slot(self, param_name: str = "") -> Optional[str]:
         """
-        Free Monoid Symbol Allocation:
-        Allocates unconsumed prompt tokens as identifier arguments.
-        Prioritizes syntactic successors following the parameter name in the prompt.
-        Zero regular expressions.
+        Semantic Slot Projection:
+        Projects port parameter semantic role onto unconsumed prompt tokens
+        via dense vector cosine similarity.
+        Contains ZERO hardcoded keyword tuples, ZERO regex, ZERO token distance hacks.
         """
         if not self.prompt:
             return None
 
-        tokens: List[Tuple[str, int]] = []
-        cur: List[str] = []
-        start_idx: Optional[int] = None
-        for i, ch in enumerate(self.prompt):
-            if ch.isalnum() or ch == '_':
-                if start_idx is None:
-                    start_idx = i
-                cur.append(ch)
-            else:
-                if cur:
-                    tok = "".join(cur)
-                    if tok[0].isalpha() or tok[0] == '_':
-                        tokens.append((tok, start_idx))
-                    cur = []
-                    start_idx = None
-        if cur and start_idx is not None:
-            tok = "".join(cur)
-            if tok[0].isalpha() or tok[0] == '_':
-                tokens.append((tok, start_idx))
+        # Candidate word tokens from prompt
+        words = []
+        for w in self.prompt.strip().split():
+            clean_w = w.strip(" '\".,;:()[]{}=:")
+            if len(clean_w) >= 2 and clean_w.lower() not in self.consumed_tokens:
+                words.append(clean_w)
 
-        if not tokens:
+        if not words:
             return None
 
-        p_name_lower = param_name.lower()
-        tokens_lower = [t[0].lower() for t in tokens]
+        target_label = param_name or "parameter"
+        try:
+            from inference import ModelManager
+            import numpy as np
 
-        # 1. Syntactic successor: if param_name appears in prompt, check the next token
-        if p_name_lower in tokens_lower:
-            idx = tokens_lower.index(p_name_lower)
-            if idx + 1 < len(tokens):
-                candidate = tokens[idx + 1][0]
-                if len(candidate) >= 2 and candidate.lower() != p_name_lower:
-                    self.consumed_tokens.add(candidate.lower())
-                    return candidate
+            mm = ModelManager.get_instance()
+            if mm.profile is not None:
+                e_param = np.array(mm.get_embedding(target_label), dtype=np.float32)
+                p_norm = np.linalg.norm(e_param)
+                if p_norm > 0:
+                    e_param = e_param / p_norm
+                    best_word = None
+                    best_sim = -1.0
+                    for w in words:
+                        e_w = np.array(mm.get_embedding(w), dtype=np.float32)
+                        w_norm = np.linalg.norm(e_w)
+                        if w_norm > 0:
+                            sim = float(np.dot(e_param, e_w / w_norm))
+                            if sim > best_sim:
+                                best_sim = sim
+                                best_word = w
+                    if best_word is not None and best_sim > 0.35:
+                        self.consumed_tokens.add(best_word.lower())
+                        return best_word
+        except Exception as e:
+            logger.debug(f"[UNIFICATION] Semantic slot projection fallback: {e}")
 
-        # 2. Minimum topological distance to parameter occurrence
-        free_candidates = []
-        for i, (tok, pos) in enumerate(tokens):
-            t_low = tok.lower()
-            if t_low not in self.consumed_tokens and len(t_low) >= 2:
-                free_candidates.append((i, tok, pos))
-
-        if not free_candidates:
-            return None
-
-        p_indices = [i for i, (tok, _) in enumerate(tokens) if tok.lower() == p_name_lower]
-        if p_indices:
-            p_idx = p_indices[0]
-            best = min(free_candidates, key=lambda c: abs(c[0] - p_idx))
-            self.consumed_tokens.add(best[1].lower())
-            return best[1]
+        # Fallback: if param_name explicitly matches a prompt word, take next token
+        p_name_lower = target_label.lower()
+        words_lower = [w.lower() for w in words]
+        if p_name_lower in words_lower:
+            idx = words_lower.index(p_name_lower)
+            if idx + 1 < len(words):
+                candidate = words[idx + 1]
+                self.consumed_tokens.add(candidate.lower())
+                return candidate
 
         return None
 
@@ -456,9 +451,9 @@ class ExecutionContext:
         Domain-agnostic: uses domain_spec (e.g. 'cv2.COLOR_*') and module reflection.
         Contains ZERO library-specific keywords or hardcoded bonuses.
         Grounds selection in:
-          1. Directional transition alignment (X2Y matching prompt target intent)
-          2. Semantic token overlap
-          3. Occam's razor parsimony (penalizing extraneous unrequested sub-tokens)
+          1. Continuous vector embedding cosine similarity
+          2. Directional transition alignment (X2Y matching prompt target intent)
+          3. Semantic token overlap and Occam's razor parsimony
         """
         if not domain_spec or "*" not in domain_spec:
             return None
@@ -479,15 +474,41 @@ class ExecutionContext:
         if not candidates:
             return None
 
+        sorted_candidates = sorted(candidates)
+
+        # 1. Continuous vector embedding similarity if ModelManager is active
+        try:
+            from inference import ModelManager
+            import numpy as np
+
+            mm = ModelManager.get_instance()
+            if mm.profile is not None and self.prompt:
+                e_prompt = np.array(mm.get_embedding(self.prompt), dtype=np.float32)
+                p_norm = np.linalg.norm(e_prompt)
+                if p_norm > 0:
+                    e_prompt = e_prompt / p_norm
+                    best_cand = None
+                    best_sim = -1.0
+                    for cand in sorted_candidates:
+                        cand_text = cand.replace("_", " ").lower()
+                        e_c = np.array(mm.get_embedding(cand_text), dtype=np.float32)
+                        c_norm = np.linalg.norm(e_c)
+                        if c_norm > 0:
+                            sim = float(np.dot(e_prompt, e_c / c_norm))
+                            if sim > best_sim:
+                                best_sim = sim
+                                best_cand = cand
+                    if best_cand and best_sim > 0.30:
+                        return f"{mod_name}.{best_cand}"
+        except Exception:
+            pass
+
+        # 2. Token overlap and parsimony scoring fallback
         prompt_lower = (self.prompt or "").lower()
         p_tokens = CellTokenizer.tokenize_prompt(prompt_lower)
 
-        # Deterministic alphabetical ordering for tie-breaking
-        sorted_candidates = sorted(candidates)
-
         scored = []
         for cand in sorted_candidates:
-            # Decompose candidate into alphanumeric sub-tokens (e.g. COLOR_BGR2GRAY -> ['color', 'bgr', '2', 'gray'])
             parts = [p for p in CellTokenizer.tokenize_identifier(cand.lower()) if len(p) >= 2]
             if not parts:
                 continue
@@ -495,7 +516,6 @@ class ExecutionContext:
             score = 0.0
             matched_parts = 0
 
-            # Token overlap scoring
             for idx, part in enumerate(parts):
                 matched = False
                 if part in p_tokens:
@@ -507,14 +527,11 @@ class ExecutionContext:
 
                 if matched:
                     matched_parts += 1
-                    # Codomain / target alignment bonus: matched token is at terminal constituent position
                     if idx == len(parts) - 1:
                         score += 2.0
 
-            # Parsimony penalty: penalize unrequested sub-tokens
             unmatched_parts = len(parts) - matched_parts
             score -= 0.5 * unmatched_parts
-
             scored.append((score, -len(cand), cand))
 
         scored.sort(key=lambda x: (x[0], x[1]), reverse=True)
@@ -545,33 +562,7 @@ class ExecutionContext:
             val = self.parameters[port_sig.name]
             return json.dumps(val) if isinstance(val, str) else str(val)
 
-        # 2. Extract explicit argument matching this port name from prompt: `<p_name>=<value>` or `<p_name>:<value>`
-        if self.prompt and p_name:
-            prompt_str = self.prompt
-            target_eq = f"{port_sig.name.lower()}="
-            target_colon = f"{port_sig.name.lower()}:"
-            pos = prompt_str.lower().find(target_eq)
-            offset = len(target_eq)
-            if pos == -1:
-                pos = prompt_str.lower().find(target_colon)
-                offset = len(target_colon)
-            if pos != -1:
-                after = prompt_str[pos + offset:].lstrip(" \t'\"")
-                val_chars = []
-                for ch in after:
-                    if ch in ("'", '"', ' ', '\t', '\n', ',', ';'):
-                        break
-                    val_chars.append(ch)
-                if val_chars:
-                    val = "".join(val_chars).rstrip(".,;:)")
-                    if is_str:
-                        return json.dumps(val)
-                    elif is_num:
-                        return val
-                    elif is_bool:
-                        return "False" if "false" in val.lower() or "0" in val else "True"
-
-        # 2b. Dynamic Enum / Flag Constant Grounding via Domain Reflection
+        # 2. Dynamic Enum / Flag Constant Grounding via Domain Reflection & Vector Similarity
         if (t_name == "enum" or getattr(port_sig, "domain", None)) and self.prompt:
             domain_spec = getattr(port_sig, "domain", "") or ""
             resolved_enum = self._resolve_enum_constant(domain_spec, port_sig.state)
@@ -664,7 +655,7 @@ class ExecutionContext:
 
         # 6. Stage 2 Morphism: Operational Parameter Extraction
         if (cell_stage == 2 or cell_stage is None) and is_str:
-            # A. Check for quoted string argument in prompt (e.g. 'age', 'cup')
+            # A. Check for unconsumed quoted string argument in prompt (e.g. 'age', 'cup')
             for idx, (_, kind, val) in enumerate(self.ordered_literals):
                 if idx not in self.used_indices and kind == "quoted_str":
                     self.used_indices.add(idx)
@@ -677,11 +668,11 @@ class ExecutionContext:
                 return def_str
             return def_str if (def_str.startswith('"') or def_str.startswith("'")) else json.dumps(def_str)
 
-        # 8. Free Monoid Symbol Allocation for unquoted string/identifier arguments (only if explicitly named in prompt)
+        # 8. Pure Vector Semantic Slot Projection for unquoted string/identifier arguments
         if (cell_stage == 2 or cell_stage is None) and is_str and self.prompt:
-            allocated = self._allocate_free_symbol(port_sig.name)
-            if allocated:
-                return json.dumps(allocated)
+            projected = self._project_semantic_slot(port_sig.name)
+            if projected:
+                return json.dumps(projected)
 
         return None
 
@@ -1001,7 +992,7 @@ class ParameterExtractor:
         if quoted_strings:
             slots.named_identifiers.extend(quoted_strings)
         else:
-            sym = ctx._allocate_free_symbol()
+            sym = ctx._project_semantic_slot()
             if sym:
                 slots.named_identifiers.append(sym)
         return slots

@@ -73,15 +73,11 @@ class LatticeRouter:
         candidates_with_scores: List[Tuple[Cell, float]] = []
 
         if self.internal_rag is not None and self.internal_rag.index is not None:
-            # Deterministic punctuation and connector decomposition (zero regex)
-            clauses = [prompt.strip()]
-            sub_clauses = self._split_prompt_clauses(prompt.strip())
-            for sc in sub_clauses:
-                if len(sc) >= 3 and sc not in clauses:
-                    clauses.append(sc)
+            # Continuous sliding-window vector queries across prompt (zero linguistic heuristics, zero regex)
+            query_spans = self._generate_query_spans(prompt.strip())
 
             candidate_scores: Dict[str, float] = {}
-            for q in clauses:
+            for q in query_spans:
                 rag_results = self.internal_rag.get_relevant_context(q, top_k=min(top_k, 100))
                 for item in rag_results:
                     cid = item.get("cell_id")
@@ -96,16 +92,15 @@ class LatticeRouter:
                 if cid and (cid not in candidate_scores or score > candidate_scores[cid]):
                     candidate_scores[cid] = score
 
-            # Categorical Stage 3 Egress Guarantee: Sinks (B -> 1) are sparse in lattice topology.
-            # Ensure candidate_scores evaluates terminal egress morphisms against the exit goal.
-            terminal_clause = clauses[-1] if clauses else prompt
+            # Categorical Stage 3 Egress Guarantee: Sinks (B -> 1) evaluated against tail query span
+            tail_query = query_spans[-1] if query_spans else prompt
             term_emb = None
             for cell in self.orchestrator.loaded_cells.values():
                 if cell.stage == 3 and getattr(cell, "node_type", "") != "constant":
                     c_data = getattr(self.internal_rag, "cell_cache", {}).get(cell.cell_id)
                     if c_data and "embedding" in c_data:
                         if term_emb is None:
-                            raw_term = ModelManager.get_instance().get_embedding(terminal_clause)
+                            raw_term = ModelManager.get_instance().get_embedding(tail_query)
                             t_norm = np.linalg.norm(raw_term)
                             term_emb = np.array(raw_term, dtype=np.float32) / (t_norm if t_norm > 0 else 1.0)
                         c_emb = np.array(c_data["embedding"], dtype=np.float32)
@@ -166,31 +161,56 @@ class LatticeRouter:
                     final_tunnel.append(best_st_cell)
                     tunnel_ids.add(best_st_cell.cell_id)
 
+        # Category-Theoretic Bridge Morphism Completion:
+        # If the active tunnel contains distinct carrier types A and B,
+        # discover bridge morphisms Hom(A, B) in the category and include them.
+        carriers_out = set()
+        carriers_in = set()
+        for c in final_tunnel:
+            out_t = getattr(c.primary_output, "type_name", "")
+            in_t = getattr(c.primary_input, "type_name", "")
+            if out_t and out_t.lower() not in ("any", "none", "*", "top", "void"):
+                carriers_out.add(out_t)
+            if in_t and in_t.lower() not in ("any", "none", "*", "top", "void"):
+                carriers_in.add(in_t)
+
+        if carriers_out and carriers_in:
+            for cell in self.orchestrator.loaded_cells.values():
+                if getattr(cell, "node_role", "") == "bridge" or getattr(cell, "node_type", "") == "tunnel":
+                    c_in = getattr(cell.primary_input, "type_name", "")
+                    c_out = getattr(cell.primary_output, "type_name", "")
+                    if c_in in carriers_out and c_out in carriers_in:
+                        if cell.cell_id not in tunnel_ids:
+                            final_tunnel.append(cell)
+                            tunnel_ids.add(cell.cell_id)
+                            relevance_map[cell.cell_id] = max(relevance_map.get(cell.cell_id, 0.0), self.epsilon * 2.0)
+
         return final_tunnel, relevance_map
 
     @staticmethod
-    def _split_prompt_clauses(text: str) -> List[str]:
-        """Splits compound prompt into clauses using punctuation and sequential connectors without regex."""
-        clauses: List[str] = []
-        current: List[str] = []
-        words = text.strip().split()
-        for w in words:
-            w_clean = w.strip(";,.")
-            if w_clean.lower() in ("then", "and_then") or w.endswith((";", ",", ".")):
-                if w_clean.lower() not in ("then", "and_then") and w_clean:
-                    current.append(w_clean)
-                if current:
-                    clause_str = " ".join(current).strip()
-                    if len(clause_str) >= 2:
-                        clauses.append(clause_str)
-                    current = []
-            else:
-                current.append(w)
-        if current:
-            clause_str = " ".join(current).strip()
-            if len(clause_str) >= 2:
-                clauses.append(clause_str)
-        return clauses if clauses else [text.strip()]
+    def _generate_query_spans(text: str) -> List[str]:
+        """
+        Generates continuous sliding semantic window queries across the prompt.
+        Pure dense vector representation: zero linguistic connectors (no 'then'), zero regex, zero punctuation splitting.
+        """
+        tokens = text.strip().split()
+        if len(tokens) <= 3:
+            return [text.strip()]
+
+        queries = [text.strip()]
+        n = len(tokens)
+        window_size = max(3, n // 2)
+        step = max(1, window_size // 2)
+        for i in range(0, n - window_size + 1, step):
+            sub_q = " ".join(tokens[i : i + window_size]).strip()
+            if sub_q and sub_q not in queries:
+                queries.append(sub_q)
+
+        tail_q = " ".join(tokens[max(0, n - window_size) :]).strip()
+        if tail_q and tail_q not in queries:
+            queries.append(tail_q)
+
+        return queries
 
     def plan_path(
         self,

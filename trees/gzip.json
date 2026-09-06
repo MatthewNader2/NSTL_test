@@ -1,0 +1,1898 @@
+{
+  "domain": "gzip",
+  "version": "1.0.0",
+  "cells": [
+    {
+      "cell_id": "GZIP_FCOMMENT",
+      "stage": 0,
+      "inputs": {},
+      "outputs": {
+        "value": {
+          "type_name": "int",
+          "state": "constant",
+          "qualifiers": [],
+          "default_value": null,
+          "description": null,
+          "domain": "gzip.FCOMMENT",
+          "required": true
+        }
+      },
+      "slots": {},
+      "code_template": "gzip.FCOMMENT",
+      "dependencies": [
+        "import gzip"
+      ],
+      "semantic_tags": [
+        "fcomment"
+      ],
+      "keywords": [
+        "fcomment"
+      ],
+      "docstring": "Constant gzip.FCOMMENT",
+      "enrichment_source": null,
+      "enriched_at": null,
+      "domain_name": "gzip",
+      "node_type": "constant",
+      "node_role": "constant",
+      "verified": true,
+      "source_priority": 100
+    },
+    {
+      "cell_id": "GZIP_FEXTRA",
+      "stage": 0,
+      "inputs": {},
+      "outputs": {
+        "value": {
+          "type_name": "int",
+          "state": "constant",
+          "qualifiers": [],
+          "default_value": null,
+          "description": null,
+          "domain": "gzip.FEXTRA",
+          "required": true
+        }
+      },
+      "slots": {},
+      "code_template": "gzip.FEXTRA",
+      "dependencies": [
+        "import gzip"
+      ],
+      "semantic_tags": [
+        "fextra"
+      ],
+      "keywords": [
+        "fextra"
+      ],
+      "docstring": "Constant gzip.FEXTRA",
+      "enrichment_source": null,
+      "enriched_at": null,
+      "domain_name": "gzip",
+      "node_type": "constant",
+      "node_role": "constant",
+      "verified": true,
+      "source_priority": 100
+    },
+    {
+      "cell_id": "GZIP_FHCRC",
+      "stage": 0,
+      "inputs": {},
+      "outputs": {
+        "value": {
+          "type_name": "int",
+          "state": "constant",
+          "qualifiers": [],
+          "default_value": null,
+          "description": null,
+          "domain": "gzip.FHCRC",
+          "required": true
+        }
+      },
+      "slots": {},
+      "code_template": "gzip.FHCRC",
+      "dependencies": [
+        "import gzip"
+      ],
+      "semantic_tags": [
+        "fhcrc"
+      ],
+      "keywords": [
+        "fhcrc"
+      ],
+      "docstring": "Constant gzip.FHCRC",
+      "enrichment_source": null,
+      "enriched_at": null,
+      "domain_name": "gzip",
+      "node_type": "constant",
+      "node_role": "constant",
+      "verified": true,
+      "source_priority": 100
+    },
+    {
+      "cell_id": "GZIP_FNAME",
+      "stage": 0,
+      "inputs": {},
+      "outputs": {
+        "value": {
+          "type_name": "int",
+          "state": "constant",
+          "qualifiers": [],
+          "default_value": null,
+          "description": null,
+          "domain": "gzip.FNAME",
+          "required": true
+        }
+      },
+      "slots": {},
+      "code_template": "gzip.FNAME",
+      "dependencies": [
+        "import gzip"
+      ],
+      "semantic_tags": [
+        "fname"
+      ],
+      "keywords": [
+        "fname"
+      ],
+      "docstring": "Constant gzip.FNAME",
+      "enrichment_source": null,
+      "enriched_at": null,
+      "domain_name": "gzip",
+      "node_type": "constant",
+      "node_role": "constant",
+      "verified": true,
+      "source_priority": 100
+    },
+    {
+      "cell_id": "GZIP_FTEXT",
+      "stage": 0,
+      "inputs": {},
+      "outputs": {
+        "value": {
+          "type_name": "int",
+          "state": "constant",
+          "qualifiers": [],
+          "default_value": null,
+          "description": null,
+          "domain": "gzip.FTEXT",
+          "required": true
+        }
+      },
+      "slots": {},
+      "code_template": "gzip.FTEXT",
+      "dependencies": [
+        "import gzip"
+      ],
+      "semantic_tags": [
+        "ftext"
+      ],
+      "keywords": [
+        "ftext"
+      ],
+      "docstring": "Constant gzip.FTEXT",
+      "enrichment_source": null,
+      "enriched_at": null,
+      "domain_name": "gzip",
+      "node_type": "constant",
+      "node_role": "constant",
+      "verified": true,
+      "source_priority": 100
+    },
+    {
+      "cell_id": "GZIP_READ",
+      "stage": 0,
+      "inputs": {},
+      "outputs": {
+        "value": {
+          "type_name": "str",
+          "state": "constant",
+          "qualifiers": [],
+          "default_value": null,
+          "description": null,
+          "domain": "gzip.READ",
+          "required": true
+        }
+      },
+      "slots": {},
+      "code_template": "gzip.READ",
+      "dependencies": [
+        "import gzip"
+      ],
+      "semantic_tags": [
+        "read"
+      ],
+      "keywords": [
+        "read"
+      ],
+      "docstring": "Constant gzip.READ",
+      "enrichment_source": null,
+      "enriched_at": null,
+      "domain_name": "gzip",
+      "node_type": "constant",
+      "node_role": "constant",
+      "verified": true,
+      "source_priority": 100
+    },
+    {
+      "cell_id": "GZIP_READ_BUFFER_SIZE",
+      "stage": 0,
+      "inputs": {},
+      "outputs": {
+        "value": {
+          "type_name": "int",
+          "state": "constant",
+          "qualifiers": [],
+          "default_value": null,
+          "description": null,
+          "domain": "gzip.READ_BUFFER_SIZE",
+          "required": true
+        }
+      },
+      "slots": {},
+      "code_template": "gzip.READ_BUFFER_SIZE",
+      "dependencies": [
+        "import gzip"
+      ],
+      "semantic_tags": [
+        "buffer",
+        "read",
+        "read_buffer_size",
+        "size"
+      ],
+      "keywords": [
+        "buffer",
+        "read",
+        "read_buffer_size",
+        "size"
+      ],
+      "docstring": "Constant gzip.READ_BUFFER_SIZE",
+      "enrichment_source": null,
+      "enriched_at": null,
+      "domain_name": "gzip",
+      "node_type": "constant",
+      "node_role": "constant",
+      "verified": true,
+      "source_priority": 100
+    },
+    {
+      "cell_id": "GZIP_WRITE",
+      "stage": 0,
+      "inputs": {},
+      "outputs": {
+        "value": {
+          "type_name": "str",
+          "state": "constant",
+          "qualifiers": [],
+          "default_value": null,
+          "description": null,
+          "domain": "gzip.WRITE",
+          "required": true
+        }
+      },
+      "slots": {},
+      "code_template": "gzip.WRITE",
+      "dependencies": [
+        "import gzip"
+      ],
+      "semantic_tags": [
+        "write"
+      ],
+      "keywords": [
+        "write"
+      ],
+      "docstring": "Constant gzip.WRITE",
+      "enrichment_source": null,
+      "enriched_at": null,
+      "domain_name": "gzip",
+      "node_type": "constant",
+      "node_role": "constant",
+      "verified": true,
+      "source_priority": 100
+    },
+    {
+      "cell_id": "GZIP_BADGZIPFILE_ADD_NOTE",
+      "stage": 2,
+      "inputs": {
+        "data": {
+          "type_name": "BadGzipFile",
+          "state": "any",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Receiver instance of BadGzipFile",
+          "domain": null,
+          "required": true
+        },
+        "object": {
+          "type_name": "any",
+          "state": "object",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Argument object",
+          "domain": null,
+          "required": true
+        }
+      },
+      "outputs": {
+        "output_data": {
+          "type_name": "BadGzipFile",
+          "state": "transformed",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Output transformed",
+          "domain": null,
+          "required": true
+        }
+      },
+      "slots": {},
+      "code_template": "{output_var} = {data}.add_note({object})",
+      "dependencies": [
+        "import gzip"
+      ],
+      "semantic_tags": [
+        "add",
+        "add_note",
+        "bad",
+        "badgzipfile",
+        "file",
+        "gzip",
+        "note"
+      ],
+      "keywords": [
+        "add",
+        "add_note",
+        "bad",
+        "badgzipfile",
+        "file",
+        "gzip",
+        "note"
+      ],
+      "docstring": "Exception.add_note(note) --",
+      "enrichment_source": null,
+      "enriched_at": null,
+      "domain_name": "gzip",
+      "node_type": "function",
+      "node_role": "transform",
+      "verified": true,
+      "source_priority": 50
+    },
+    {
+      "cell_id": "GZIP_BADGZIPFILE_WITH_TRACEBACK",
+      "stage": 2,
+      "inputs": {
+        "data": {
+          "type_name": "BadGzipFile",
+          "state": "any",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Receiver instance of BadGzipFile",
+          "domain": null,
+          "required": true
+        },
+        "object": {
+          "type_name": "any",
+          "state": "object",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Argument object",
+          "domain": null,
+          "required": true
+        }
+      },
+      "outputs": {
+        "output_data": {
+          "type_name": "BadGzipFile",
+          "state": "transformed",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Output transformed",
+          "domain": null,
+          "required": true
+        }
+      },
+      "slots": {},
+      "code_template": "{output_var} = {data}.with_traceback({object})",
+      "dependencies": [
+        "import gzip"
+      ],
+      "semantic_tags": [
+        "bad",
+        "badgzipfile",
+        "file",
+        "gzip",
+        "traceback",
+        "with",
+        "with_traceback"
+      ],
+      "keywords": [
+        "bad",
+        "badgzipfile",
+        "file",
+        "gzip",
+        "traceback",
+        "with",
+        "with_traceback"
+      ],
+      "docstring": "Exception.with_traceback(tb) --",
+      "enrichment_source": null,
+      "enriched_at": null,
+      "domain_name": "gzip",
+      "node_type": "function",
+      "node_role": "transform",
+      "verified": true,
+      "source_priority": 50
+    },
+    {
+      "cell_id": "GZIP_GZIPFILE_CLOSE",
+      "stage": 2,
+      "inputs": {
+        "data": {
+          "type_name": "GzipFile",
+          "state": "any",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Receiver instance of GzipFile",
+          "domain": null,
+          "required": true
+        }
+      },
+      "outputs": {
+        "output_data": {
+          "type_name": "GzipFile",
+          "state": "transformed",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Output transformed",
+          "domain": null,
+          "required": true
+        }
+      },
+      "slots": {},
+      "code_template": "{output_var} = {data}.close()",
+      "dependencies": [
+        "import gzip"
+      ],
+      "semantic_tags": [
+        "close",
+        "file",
+        "gzip",
+        "gzipfile"
+      ],
+      "keywords": [
+        "close",
+        "file",
+        "gzip",
+        "gzipfile"
+      ],
+      "docstring": "Flush and close the IO object.",
+      "enrichment_source": null,
+      "enriched_at": null,
+      "domain_name": "gzip",
+      "node_type": "function",
+      "node_role": "transform",
+      "verified": true,
+      "source_priority": 50
+    },
+    {
+      "cell_id": "GZIP_GZIPFILE_DETACH",
+      "stage": 2,
+      "inputs": {
+        "data": {
+          "type_name": "GzipFile",
+          "state": "any",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Receiver instance of GzipFile",
+          "domain": null,
+          "required": true
+        }
+      },
+      "outputs": {
+        "output_data": {
+          "type_name": "GzipFile",
+          "state": "transformed",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Output transformed",
+          "domain": null,
+          "required": true
+        }
+      },
+      "slots": {},
+      "code_template": "{output_var} = {data}.detach()",
+      "dependencies": [
+        "import gzip"
+      ],
+      "semantic_tags": [
+        "detach",
+        "file",
+        "gzip",
+        "gzipfile"
+      ],
+      "keywords": [
+        "detach",
+        "file",
+        "gzip",
+        "gzipfile"
+      ],
+      "docstring": "Disconnect this buffer from its underlying raw stream and return it.",
+      "enrichment_source": null,
+      "enriched_at": null,
+      "domain_name": "gzip",
+      "node_type": "function",
+      "node_role": "transform",
+      "verified": true,
+      "source_priority": 50
+    },
+    {
+      "cell_id": "GZIP_GZIPFILE_FILENO",
+      "stage": 2,
+      "inputs": {
+        "data": {
+          "type_name": "GzipFile",
+          "state": "any",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Receiver instance of GzipFile",
+          "domain": null,
+          "required": true
+        }
+      },
+      "outputs": {
+        "output_data": {
+          "type_name": "GzipFile",
+          "state": "transformed",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Output transformed",
+          "domain": null,
+          "required": true
+        }
+      },
+      "slots": {},
+      "code_template": "{output_var} = {data}.fileno()",
+      "dependencies": [
+        "import gzip"
+      ],
+      "semantic_tags": [
+        "file",
+        "fileno",
+        "gzip",
+        "gzipfile"
+      ],
+      "keywords": [
+        "file",
+        "fileno",
+        "gzip",
+        "gzipfile"
+      ],
+      "docstring": "Invoke the underlying file object's fileno() method.",
+      "enrichment_source": null,
+      "enriched_at": null,
+      "domain_name": "gzip",
+      "node_type": "function",
+      "node_role": "transform",
+      "verified": true,
+      "source_priority": 50
+    },
+    {
+      "cell_id": "GZIP_GZIPFILE_FLUSH",
+      "stage": 2,
+      "inputs": {
+        "data": {
+          "type_name": "GzipFile",
+          "state": "any",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Receiver instance of GzipFile",
+          "domain": null,
+          "required": true
+        },
+        "zlib_mode": {
+          "type_name": "int",
+          "state": "zlib_mode",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Argument zlib_mode",
+          "domain": null,
+          "required": false
+        }
+      },
+      "outputs": {
+        "output_data": {
+          "type_name": "GzipFile",
+          "state": "transformed",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Output transformed",
+          "domain": null,
+          "required": true
+        }
+      },
+      "slots": {},
+      "code_template": "{output_var} = {data}.flush({zlib_mode})",
+      "dependencies": [
+        "import gzip"
+      ],
+      "semantic_tags": [
+        "file",
+        "flush",
+        "gzip",
+        "gzipfile"
+      ],
+      "keywords": [
+        "file",
+        "flush",
+        "gzip",
+        "gzipfile"
+      ],
+      "docstring": "Flush write buffers, if applicable.",
+      "enrichment_source": null,
+      "enriched_at": null,
+      "domain_name": "gzip",
+      "node_type": "function",
+      "node_role": "transform",
+      "verified": true,
+      "source_priority": 50
+    },
+    {
+      "cell_id": "GZIP_GZIPFILE_ISATTY",
+      "stage": 2,
+      "inputs": {
+        "data": {
+          "type_name": "GzipFile",
+          "state": "any",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Receiver instance of GzipFile",
+          "domain": null,
+          "required": true
+        }
+      },
+      "outputs": {
+        "output_data": {
+          "type_name": "GzipFile",
+          "state": "transformed",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Output transformed",
+          "domain": null,
+          "required": true
+        }
+      },
+      "slots": {},
+      "code_template": "{output_var} = {data}.isatty()",
+      "dependencies": [
+        "import gzip"
+      ],
+      "semantic_tags": [
+        "file",
+        "gzip",
+        "gzipfile",
+        "isatty"
+      ],
+      "keywords": [
+        "file",
+        "gzip",
+        "gzipfile",
+        "isatty"
+      ],
+      "docstring": "Return whether this is an 'interactive' stream.",
+      "enrichment_source": null,
+      "enriched_at": null,
+      "domain_name": "gzip",
+      "node_type": "function",
+      "node_role": "transform",
+      "verified": true,
+      "source_priority": 50
+    },
+    {
+      "cell_id": "GZIP_GZIPFILE_PEEK",
+      "stage": 2,
+      "inputs": {
+        "data": {
+          "type_name": "GzipFile",
+          "state": "any",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Receiver instance of GzipFile",
+          "domain": null,
+          "required": true
+        },
+        "n": {
+          "type_name": "any",
+          "state": "n",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Argument n",
+          "domain": null,
+          "required": true
+        }
+      },
+      "outputs": {
+        "output_data": {
+          "type_name": "GzipFile",
+          "state": "transformed",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Output transformed",
+          "domain": null,
+          "required": true
+        }
+      },
+      "slots": {},
+      "code_template": "{output_var} = {data}.peek({n})",
+      "dependencies": [
+        "import gzip"
+      ],
+      "semantic_tags": [
+        "file",
+        "gzip",
+        "gzipfile",
+        "peek"
+      ],
+      "keywords": [
+        "file",
+        "gzip",
+        "gzipfile",
+        "peek"
+      ],
+      "docstring": "GzipFile.peek",
+      "enrichment_source": null,
+      "enriched_at": null,
+      "domain_name": "gzip",
+      "node_type": "function",
+      "node_role": "transform",
+      "verified": true,
+      "source_priority": 50
+    },
+    {
+      "cell_id": "GZIP_GZIPFILE_READ",
+      "stage": 2,
+      "inputs": {
+        "data": {
+          "type_name": "GzipFile",
+          "state": "any",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Receiver instance of GzipFile",
+          "domain": null,
+          "required": true
+        },
+        "size": {
+          "type_name": "int",
+          "state": "size",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Argument size",
+          "domain": null,
+          "required": false
+        }
+      },
+      "outputs": {
+        "output_data": {
+          "type_name": "GzipFile",
+          "state": "transformed",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Output transformed",
+          "domain": null,
+          "required": true
+        }
+      },
+      "slots": {},
+      "code_template": "{output_var} = {data}.read({size})",
+      "dependencies": [
+        "import gzip"
+      ],
+      "semantic_tags": [
+        "file",
+        "gzip",
+        "gzipfile",
+        "read"
+      ],
+      "keywords": [
+        "file",
+        "gzip",
+        "gzipfile",
+        "read"
+      ],
+      "docstring": "Read and return up to n bytes.",
+      "enrichment_source": null,
+      "enriched_at": null,
+      "domain_name": "gzip",
+      "node_type": "function",
+      "node_role": "transform",
+      "verified": true,
+      "source_priority": 50
+    },
+    {
+      "cell_id": "GZIP_GZIPFILE_READ1",
+      "stage": 2,
+      "inputs": {
+        "data": {
+          "type_name": "GzipFile",
+          "state": "any",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Receiver instance of GzipFile",
+          "domain": null,
+          "required": true
+        },
+        "size": {
+          "type_name": "int",
+          "state": "size",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Argument size",
+          "domain": null,
+          "required": false
+        }
+      },
+      "outputs": {
+        "output_data": {
+          "type_name": "GzipFile",
+          "state": "transformed",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Output transformed",
+          "domain": null,
+          "required": true
+        }
+      },
+      "slots": {},
+      "code_template": "{output_var} = {data}.read1({size})",
+      "dependencies": [
+        "import gzip"
+      ],
+      "semantic_tags": [
+        "file",
+        "gzip",
+        "gzipfile",
+        "read",
+        "read1"
+      ],
+      "keywords": [
+        "file",
+        "gzip",
+        "gzipfile",
+        "read",
+        "read1"
+      ],
+      "docstring": "Implements BufferedIOBase.read1()",
+      "enrichment_source": null,
+      "enriched_at": null,
+      "domain_name": "gzip",
+      "node_type": "function",
+      "node_role": "transform",
+      "verified": true,
+      "source_priority": 50
+    },
+    {
+      "cell_id": "GZIP_GZIPFILE_READABLE",
+      "stage": 2,
+      "inputs": {
+        "data": {
+          "type_name": "GzipFile",
+          "state": "any",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Receiver instance of GzipFile",
+          "domain": null,
+          "required": true
+        }
+      },
+      "outputs": {
+        "output_data": {
+          "type_name": "GzipFile",
+          "state": "transformed",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Output transformed",
+          "domain": null,
+          "required": true
+        }
+      },
+      "slots": {},
+      "code_template": "{output_var} = {data}.readable()",
+      "dependencies": [
+        "import gzip"
+      ],
+      "semantic_tags": [
+        "file",
+        "gzip",
+        "gzipfile",
+        "readable"
+      ],
+      "keywords": [
+        "file",
+        "gzip",
+        "gzipfile",
+        "readable"
+      ],
+      "docstring": "Return whether object was opened for reading.",
+      "enrichment_source": null,
+      "enriched_at": null,
+      "domain_name": "gzip",
+      "node_type": "function",
+      "node_role": "transform",
+      "verified": true,
+      "source_priority": 50
+    },
+    {
+      "cell_id": "GZIP_GZIPFILE_READINTO",
+      "stage": 2,
+      "inputs": {
+        "data": {
+          "type_name": "GzipFile",
+          "state": "any",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Receiver instance of GzipFile",
+          "domain": null,
+          "required": true
+        },
+        "buffer": {
+          "type_name": "any",
+          "state": "buffer",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Argument buffer",
+          "domain": null,
+          "required": true
+        }
+      },
+      "outputs": {
+        "output_data": {
+          "type_name": "GzipFile",
+          "state": "transformed",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Output transformed",
+          "domain": null,
+          "required": true
+        }
+      },
+      "slots": {},
+      "code_template": "{output_var} = {data}.readinto({buffer})",
+      "dependencies": [
+        "import gzip"
+      ],
+      "semantic_tags": [
+        "file",
+        "gzip",
+        "gzipfile",
+        "readinto"
+      ],
+      "keywords": [
+        "file",
+        "gzip",
+        "gzipfile",
+        "readinto"
+      ],
+      "docstring": "GzipFile.readinto",
+      "enrichment_source": null,
+      "enriched_at": null,
+      "domain_name": "gzip",
+      "node_type": "function",
+      "node_role": "transform",
+      "verified": true,
+      "source_priority": 50
+    },
+    {
+      "cell_id": "GZIP_GZIPFILE_READINTO1",
+      "stage": 2,
+      "inputs": {
+        "data": {
+          "type_name": "GzipFile",
+          "state": "any",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Receiver instance of GzipFile",
+          "domain": null,
+          "required": true
+        },
+        "buffer": {
+          "type_name": "any",
+          "state": "buffer",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Argument buffer",
+          "domain": null,
+          "required": true
+        }
+      },
+      "outputs": {
+        "output_data": {
+          "type_name": "GzipFile",
+          "state": "transformed",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Output transformed",
+          "domain": null,
+          "required": true
+        }
+      },
+      "slots": {},
+      "code_template": "{output_var} = {data}.readinto1({buffer})",
+      "dependencies": [
+        "import gzip"
+      ],
+      "semantic_tags": [
+        "file",
+        "gzip",
+        "gzipfile",
+        "readinto",
+        "readinto1"
+      ],
+      "keywords": [
+        "file",
+        "gzip",
+        "gzipfile",
+        "readinto",
+        "readinto1"
+      ],
+      "docstring": "GzipFile.readinto1",
+      "enrichment_source": null,
+      "enriched_at": null,
+      "domain_name": "gzip",
+      "node_type": "function",
+      "node_role": "transform",
+      "verified": true,
+      "source_priority": 50
+    },
+    {
+      "cell_id": "GZIP_GZIPFILE_READLINE",
+      "stage": 2,
+      "inputs": {
+        "data": {
+          "type_name": "GzipFile",
+          "state": "any",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Receiver instance of GzipFile",
+          "domain": null,
+          "required": true
+        },
+        "size": {
+          "type_name": "int",
+          "state": "size",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Argument size",
+          "domain": null,
+          "required": false
+        }
+      },
+      "outputs": {
+        "output_data": {
+          "type_name": "GzipFile",
+          "state": "transformed",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Output transformed",
+          "domain": null,
+          "required": true
+        }
+      },
+      "slots": {},
+      "code_template": "{output_var} = {data}.readline({size})",
+      "dependencies": [
+        "import gzip"
+      ],
+      "semantic_tags": [
+        "file",
+        "gzip",
+        "gzipfile",
+        "readline"
+      ],
+      "keywords": [
+        "file",
+        "gzip",
+        "gzipfile",
+        "readline"
+      ],
+      "docstring": "Read and return a line from the stream.",
+      "enrichment_source": null,
+      "enriched_at": null,
+      "domain_name": "gzip",
+      "node_type": "function",
+      "node_role": "transform",
+      "verified": true,
+      "source_priority": 50
+    },
+    {
+      "cell_id": "GZIP_GZIPFILE_READLINES",
+      "stage": 2,
+      "inputs": {
+        "data": {
+          "type_name": "GzipFile",
+          "state": "any",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Receiver instance of GzipFile",
+          "domain": null,
+          "required": true
+        },
+        "hint": {
+          "type_name": "int",
+          "state": "hint",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Argument hint",
+          "domain": null,
+          "required": false
+        }
+      },
+      "outputs": {
+        "output_data": {
+          "type_name": "GzipFile",
+          "state": "transformed",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Output transformed",
+          "domain": null,
+          "required": true
+        }
+      },
+      "slots": {},
+      "code_template": "{output_var} = {data}.readlines({hint})",
+      "dependencies": [
+        "import gzip"
+      ],
+      "semantic_tags": [
+        "file",
+        "gzip",
+        "gzipfile",
+        "readlines"
+      ],
+      "keywords": [
+        "file",
+        "gzip",
+        "gzipfile",
+        "readlines"
+      ],
+      "docstring": "Return a list of lines from the stream.",
+      "enrichment_source": null,
+      "enriched_at": null,
+      "domain_name": "gzip",
+      "node_type": "function",
+      "node_role": "transform",
+      "verified": true,
+      "source_priority": 50
+    },
+    {
+      "cell_id": "GZIP_GZIPFILE_REWIND",
+      "stage": 2,
+      "inputs": {
+        "data": {
+          "type_name": "GzipFile",
+          "state": "any",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Receiver instance of GzipFile",
+          "domain": null,
+          "required": true
+        }
+      },
+      "outputs": {
+        "output_data": {
+          "type_name": "GzipFile",
+          "state": "transformed",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Output transformed",
+          "domain": null,
+          "required": true
+        }
+      },
+      "slots": {},
+      "code_template": "{output_var} = {data}.rewind()",
+      "dependencies": [
+        "import gzip"
+      ],
+      "semantic_tags": [
+        "file",
+        "gzip",
+        "gzipfile",
+        "rewind"
+      ],
+      "keywords": [
+        "file",
+        "gzip",
+        "gzipfile",
+        "rewind"
+      ],
+      "docstring": "Return the uncompressed stream file position indicator to the",
+      "enrichment_source": null,
+      "enriched_at": null,
+      "domain_name": "gzip",
+      "node_type": "function",
+      "node_role": "transform",
+      "verified": true,
+      "source_priority": 50
+    },
+    {
+      "cell_id": "GZIP_GZIPFILE_SEEK",
+      "stage": 2,
+      "inputs": {
+        "data": {
+          "type_name": "GzipFile",
+          "state": "any",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Receiver instance of GzipFile",
+          "domain": null,
+          "required": true
+        },
+        "offset": {
+          "type_name": "any",
+          "state": "offset",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Argument offset",
+          "domain": null,
+          "required": true
+        },
+        "whence": {
+          "type_name": "int",
+          "state": "whence",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Argument whence",
+          "domain": null,
+          "required": false
+        }
+      },
+      "outputs": {
+        "output_data": {
+          "type_name": "GzipFile",
+          "state": "transformed",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Output transformed",
+          "domain": null,
+          "required": true
+        }
+      },
+      "slots": {},
+      "code_template": "{output_var} = {data}.seek({offset}, {whence})",
+      "dependencies": [
+        "import gzip"
+      ],
+      "semantic_tags": [
+        "file",
+        "gzip",
+        "gzipfile",
+        "seek"
+      ],
+      "keywords": [
+        "file",
+        "gzip",
+        "gzipfile",
+        "seek"
+      ],
+      "docstring": "Change the stream position to the given byte offset.",
+      "enrichment_source": null,
+      "enriched_at": null,
+      "domain_name": "gzip",
+      "node_type": "function",
+      "node_role": "transform",
+      "verified": true,
+      "source_priority": 50
+    },
+    {
+      "cell_id": "GZIP_GZIPFILE_SEEKABLE",
+      "stage": 2,
+      "inputs": {
+        "data": {
+          "type_name": "GzipFile",
+          "state": "any",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Receiver instance of GzipFile",
+          "domain": null,
+          "required": true
+        }
+      },
+      "outputs": {
+        "output_data": {
+          "type_name": "GzipFile",
+          "state": "transformed",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Output transformed",
+          "domain": null,
+          "required": true
+        }
+      },
+      "slots": {},
+      "code_template": "{output_var} = {data}.seekable()",
+      "dependencies": [
+        "import gzip"
+      ],
+      "semantic_tags": [
+        "file",
+        "gzip",
+        "gzipfile",
+        "seekable"
+      ],
+      "keywords": [
+        "file",
+        "gzip",
+        "gzipfile",
+        "seekable"
+      ],
+      "docstring": "Return whether object supports random access.",
+      "enrichment_source": null,
+      "enriched_at": null,
+      "domain_name": "gzip",
+      "node_type": "function",
+      "node_role": "transform",
+      "verified": true,
+      "source_priority": 50
+    },
+    {
+      "cell_id": "GZIP_GZIPFILE_TELL",
+      "stage": 2,
+      "inputs": {
+        "data": {
+          "type_name": "GzipFile",
+          "state": "any",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Receiver instance of GzipFile",
+          "domain": null,
+          "required": true
+        }
+      },
+      "outputs": {
+        "output_data": {
+          "type_name": "GzipFile",
+          "state": "transformed",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Output transformed",
+          "domain": null,
+          "required": true
+        }
+      },
+      "slots": {},
+      "code_template": "{output_var} = {data}.tell()",
+      "dependencies": [
+        "import gzip"
+      ],
+      "semantic_tags": [
+        "file",
+        "gzip",
+        "gzipfile",
+        "tell"
+      ],
+      "keywords": [
+        "file",
+        "gzip",
+        "gzipfile",
+        "tell"
+      ],
+      "docstring": "Return current stream position.",
+      "enrichment_source": null,
+      "enriched_at": null,
+      "domain_name": "gzip",
+      "node_type": "function",
+      "node_role": "transform",
+      "verified": true,
+      "source_priority": 50
+    },
+    {
+      "cell_id": "GZIP_GZIPFILE_TRUNCATE",
+      "stage": 2,
+      "inputs": {
+        "data": {
+          "type_name": "GzipFile",
+          "state": "any",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Receiver instance of GzipFile",
+          "domain": null,
+          "required": true
+        },
+        "size": {
+          "type_name": "NoneType",
+          "state": "size",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Argument size",
+          "domain": null,
+          "required": false
+        }
+      },
+      "outputs": {
+        "output_data": {
+          "type_name": "GzipFile",
+          "state": "transformed",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Output transformed",
+          "domain": null,
+          "required": true
+        }
+      },
+      "slots": {},
+      "code_template": "{output_var} = {data}.truncate({size})",
+      "dependencies": [
+        "import gzip"
+      ],
+      "semantic_tags": [
+        "file",
+        "gzip",
+        "gzipfile",
+        "truncate"
+      ],
+      "keywords": [
+        "file",
+        "gzip",
+        "gzipfile",
+        "truncate"
+      ],
+      "docstring": "Truncate file to size bytes.",
+      "enrichment_source": null,
+      "enriched_at": null,
+      "domain_name": "gzip",
+      "node_type": "function",
+      "node_role": "transform",
+      "verified": true,
+      "source_priority": 50
+    },
+    {
+      "cell_id": "GZIP_GZIPFILE_WRITABLE",
+      "stage": 2,
+      "inputs": {
+        "data": {
+          "type_name": "GzipFile",
+          "state": "any",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Receiver instance of GzipFile",
+          "domain": null,
+          "required": true
+        }
+      },
+      "outputs": {
+        "output_data": {
+          "type_name": "GzipFile",
+          "state": "transformed",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Output transformed",
+          "domain": null,
+          "required": true
+        }
+      },
+      "slots": {},
+      "code_template": "{output_var} = {data}.writable()",
+      "dependencies": [
+        "import gzip"
+      ],
+      "semantic_tags": [
+        "file",
+        "gzip",
+        "gzipfile",
+        "writable"
+      ],
+      "keywords": [
+        "file",
+        "gzip",
+        "gzipfile",
+        "writable"
+      ],
+      "docstring": "Return whether object was opened for writing.",
+      "enrichment_source": null,
+      "enriched_at": null,
+      "domain_name": "gzip",
+      "node_type": "function",
+      "node_role": "transform",
+      "verified": true,
+      "source_priority": 50
+    },
+    {
+      "cell_id": "GZIP_GZIPFILE_WRITE",
+      "stage": 2,
+      "inputs": {
+        "data": {
+          "type_name": "any",
+          "state": "data",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Argument data",
+          "domain": null,
+          "required": true
+        }
+      },
+      "outputs": {
+        "output_data": {
+          "type_name": "GzipFile",
+          "state": "transformed",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Output transformed",
+          "domain": null,
+          "required": true
+        }
+      },
+      "slots": {},
+      "code_template": "{output_var} = {data}.write({data})",
+      "dependencies": [
+        "import gzip"
+      ],
+      "semantic_tags": [
+        "file",
+        "gzip",
+        "gzipfile",
+        "write"
+      ],
+      "keywords": [
+        "file",
+        "gzip",
+        "gzipfile",
+        "write"
+      ],
+      "docstring": "Write buffer b to the IO stream.",
+      "enrichment_source": null,
+      "enriched_at": null,
+      "domain_name": "gzip",
+      "node_type": "function",
+      "node_role": "transform",
+      "verified": true,
+      "source_priority": 50
+    },
+    {
+      "cell_id": "GZIP_GZIPFILE_WRITELINES",
+      "stage": 2,
+      "inputs": {
+        "data": {
+          "type_name": "GzipFile",
+          "state": "any",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Receiver instance of GzipFile",
+          "domain": null,
+          "required": true
+        },
+        "lines": {
+          "type_name": "any",
+          "state": "lines",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Argument lines",
+          "domain": null,
+          "required": true
+        }
+      },
+      "outputs": {
+        "output_data": {
+          "type_name": "GzipFile",
+          "state": "transformed",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Output transformed",
+          "domain": null,
+          "required": true
+        }
+      },
+      "slots": {},
+      "code_template": "{output_var} = {data}.writelines({lines})",
+      "dependencies": [
+        "import gzip"
+      ],
+      "semantic_tags": [
+        "file",
+        "gzip",
+        "gzipfile",
+        "writelines"
+      ],
+      "keywords": [
+        "file",
+        "gzip",
+        "gzipfile",
+        "writelines"
+      ],
+      "docstring": "Write a list of lines to stream.",
+      "enrichment_source": null,
+      "enriched_at": null,
+      "domain_name": "gzip",
+      "node_type": "function",
+      "node_role": "transform",
+      "verified": true,
+      "source_priority": 50
+    },
+    {
+      "cell_id": "GZIP_COMPRESS",
+      "stage": 2,
+      "inputs": {
+        "data": {
+          "type_name": "any",
+          "state": "data",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Argument data",
+          "domain": null,
+          "required": true
+        },
+        "compresslevel": {
+          "type_name": "int",
+          "state": "compresslevel",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Argument compresslevel",
+          "domain": null,
+          "required": false
+        },
+        "mtime": {
+          "type_name": "NoneType",
+          "state": "mtime",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Argument mtime",
+          "domain": null,
+          "required": false
+        }
+      },
+      "outputs": {
+        "output_data": {
+          "type_name": "any",
+          "state": "transformed",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Output transformed",
+          "domain": null,
+          "required": true
+        }
+      },
+      "slots": {},
+      "code_template": "{output_var} = gzip.compress({data}, {compresslevel}, {mtime})",
+      "dependencies": [
+        "import gzip"
+      ],
+      "semantic_tags": [
+        "compress"
+      ],
+      "keywords": [
+        "compress"
+      ],
+      "docstring": "Compress data in one shot and return the compressed string.",
+      "enrichment_source": null,
+      "enriched_at": null,
+      "domain_name": "gzip",
+      "node_type": "function",
+      "node_role": "transform",
+      "verified": true,
+      "source_priority": 50
+    },
+    {
+      "cell_id": "GZIP_DECOMPRESS",
+      "stage": 2,
+      "inputs": {
+        "data": {
+          "type_name": "any",
+          "state": "data",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Argument data",
+          "domain": null,
+          "required": true
+        }
+      },
+      "outputs": {
+        "output_data": {
+          "type_name": "any",
+          "state": "transformed",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Output transformed",
+          "domain": null,
+          "required": true
+        }
+      },
+      "slots": {},
+      "code_template": "{output_var} = gzip.decompress({data})",
+      "dependencies": [
+        "import gzip"
+      ],
+      "semantic_tags": [
+        "decompress"
+      ],
+      "keywords": [
+        "decompress"
+      ],
+      "docstring": "Decompress a gzip compressed string in one shot.",
+      "enrichment_source": null,
+      "enriched_at": null,
+      "domain_name": "gzip",
+      "node_type": "function",
+      "node_role": "transform",
+      "verified": true,
+      "source_priority": 50
+    },
+    {
+      "cell_id": "GZIP_MAIN",
+      "stage": 1,
+      "inputs": {},
+      "outputs": {
+        "output_data": {
+          "type_name": "any",
+          "state": "raw",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Output raw",
+          "domain": null,
+          "required": true
+        }
+      },
+      "slots": {},
+      "code_template": "{output_var} = gzip.main()",
+      "dependencies": [
+        "import gzip"
+      ],
+      "semantic_tags": [
+        "main"
+      ],
+      "keywords": [
+        "main"
+      ],
+      "docstring": "gzip.main",
+      "enrichment_source": null,
+      "enriched_at": null,
+      "domain_name": "gzip",
+      "node_type": "source",
+      "node_role": "source",
+      "verified": true,
+      "source_priority": 50
+    },
+    {
+      "cell_id": "GZIP_OPEN",
+      "stage": 2,
+      "inputs": {
+        "filename": {
+          "type_name": "any",
+          "state": "filename",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Argument filename",
+          "domain": null,
+          "required": true
+        },
+        "mode": {
+          "type_name": "str",
+          "state": "mode",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Argument mode",
+          "domain": null,
+          "required": false
+        },
+        "compresslevel": {
+          "type_name": "int",
+          "state": "compresslevel",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Argument compresslevel",
+          "domain": null,
+          "required": false
+        },
+        "encoding": {
+          "type_name": "NoneType",
+          "state": "encoding",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Argument encoding",
+          "domain": null,
+          "required": false
+        },
+        "errors": {
+          "type_name": "NoneType",
+          "state": "errors",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Argument errors",
+          "domain": null,
+          "required": false
+        },
+        "newline": {
+          "type_name": "NoneType",
+          "state": "newline",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Argument newline",
+          "domain": null,
+          "required": false
+        }
+      },
+      "outputs": {
+        "output_data": {
+          "type_name": "any",
+          "state": "transformed",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Output transformed",
+          "domain": null,
+          "required": true
+        }
+      },
+      "slots": {},
+      "code_template": "{output_var} = gzip.open({filename}, {mode}, {compresslevel}, {encoding}, {errors}, {newline})",
+      "dependencies": [
+        "import gzip"
+      ],
+      "semantic_tags": [
+        "open"
+      ],
+      "keywords": [
+        "open"
+      ],
+      "docstring": "Open a gzip-compressed file in binary or text mode.",
+      "enrichment_source": null,
+      "enriched_at": null,
+      "domain_name": "gzip",
+      "node_type": "function",
+      "node_role": "transform",
+      "verified": true,
+      "source_priority": 50
+    },
+    {
+      "cell_id": "GZIP_WRITE32U",
+      "stage": 2,
+      "inputs": {
+        "output": {
+          "type_name": "any",
+          "state": "output",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Argument output",
+          "domain": null,
+          "required": true
+        },
+        "value": {
+          "type_name": "any",
+          "state": "value",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Argument value",
+          "domain": null,
+          "required": true
+        }
+      },
+      "outputs": {
+        "output_data": {
+          "type_name": "any",
+          "state": "transformed",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Output transformed",
+          "domain": null,
+          "required": true
+        }
+      },
+      "slots": {},
+      "code_template": "{output_var} = gzip.write32u({output}, {value})",
+      "dependencies": [
+        "import gzip"
+      ],
+      "semantic_tags": [
+        "32",
+        "write",
+        "write32u"
+      ],
+      "keywords": [
+        "32",
+        "write",
+        "write32u"
+      ],
+      "docstring": "gzip.write32u",
+      "enrichment_source": null,
+      "enriched_at": null,
+      "domain_name": "gzip",
+      "node_type": "function",
+      "node_role": "transform",
+      "verified": true,
+      "source_priority": 50
+    }
+  ]
+}

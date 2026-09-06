@@ -514,9 +514,9 @@ class LatticeOrchestrator:
     Maintains nodes V and allows loading/unloading modular knowledge trees.
     An edge (u, v) exists iff u.primary_output unifies with v's accepting input port.
     """
-    def __init__(self, trees_directory: str = "trees", active_domain: str = "all"):
+    def __init__(self, trees_directory: str = "trees", active_domain: str = "all", db_path: Optional[str] = None):
         self.trees_directory = trees_directory
-        self.db_path = os.path.join(trees_directory, "lattice.db")
+        self.db_path = db_path if db_path is not None else os.path.join(trees_directory, "lattice.db")
         self.active_domain = active_domain
         self.loaded_cells: Dict[str, Cell] = {}
         self._adjacency: Dict[str, List[str]] = {}

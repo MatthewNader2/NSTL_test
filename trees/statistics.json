@@ -1,0 +1,1868 @@
+{
+  "domain": "statistics",
+  "version": "1.0.0",
+  "cells": [
+    {
+      "cell_id": "STATISTICS_LINEARREGRESSION_COUNT",
+      "stage": 2,
+      "inputs": {
+        "data": {
+          "type_name": "LinearRegression",
+          "state": "any",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Receiver instance of LinearRegression",
+          "domain": null,
+          "required": true
+        },
+        "value": {
+          "type_name": "any",
+          "state": "value",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Argument value",
+          "domain": null,
+          "required": true
+        }
+      },
+      "outputs": {
+        "output_data": {
+          "type_name": "LinearRegression",
+          "state": "transformed",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Output transformed",
+          "domain": null,
+          "required": true
+        }
+      },
+      "slots": {},
+      "code_template": "{output_var} = {data}.count({value})",
+      "dependencies": [
+        "import statistics"
+      ],
+      "semantic_tags": [
+        "count",
+        "linear",
+        "linearregression",
+        "regression"
+      ],
+      "keywords": [
+        "count",
+        "linear",
+        "linearregression",
+        "regression"
+      ],
+      "docstring": "Return number of occurrences of value.",
+      "enrichment_source": null,
+      "enriched_at": null,
+      "domain_name": "statistics",
+      "node_type": "function",
+      "node_role": "transform",
+      "verified": true,
+      "source_priority": 50
+    },
+    {
+      "cell_id": "STATISTICS_LINEARREGRESSION_INDEX",
+      "stage": 2,
+      "inputs": {
+        "data": {
+          "type_name": "LinearRegression",
+          "state": "any",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Receiver instance of LinearRegression",
+          "domain": null,
+          "required": true
+        },
+        "value": {
+          "type_name": "any",
+          "state": "value",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Argument value",
+          "domain": null,
+          "required": true
+        },
+        "start": {
+          "type_name": "int",
+          "state": "start",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Argument start",
+          "domain": null,
+          "required": false
+        },
+        "stop": {
+          "type_name": "int",
+          "state": "stop",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Argument stop",
+          "domain": null,
+          "required": false
+        }
+      },
+      "outputs": {
+        "output_data": {
+          "type_name": "LinearRegression",
+          "state": "transformed",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Output transformed",
+          "domain": null,
+          "required": true
+        }
+      },
+      "slots": {},
+      "code_template": "{output_var} = {data}.index({value}, {start}, {stop})",
+      "dependencies": [
+        "import statistics"
+      ],
+      "semantic_tags": [
+        "index",
+        "linear",
+        "linearregression",
+        "regression"
+      ],
+      "keywords": [
+        "index",
+        "linear",
+        "linearregression",
+        "regression"
+      ],
+      "docstring": "Return first index of value.",
+      "enrichment_source": null,
+      "enriched_at": null,
+      "domain_name": "statistics",
+      "node_type": "function",
+      "node_role": "transform",
+      "verified": true,
+      "source_priority": 50
+    },
+    {
+      "cell_id": "STATISTICS_NORMALDIST_CDF",
+      "stage": 2,
+      "inputs": {
+        "data": {
+          "type_name": "NormalDist",
+          "state": "any",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Receiver instance of NormalDist",
+          "domain": null,
+          "required": true
+        },
+        "x": {
+          "type_name": "any",
+          "state": "x",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Argument x",
+          "domain": null,
+          "required": true
+        }
+      },
+      "outputs": {
+        "output_data": {
+          "type_name": "NormalDist",
+          "state": "transformed",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Output transformed",
+          "domain": null,
+          "required": true
+        }
+      },
+      "slots": {},
+      "code_template": "{output_var} = {data}.cdf({x})",
+      "dependencies": [
+        "import statistics"
+      ],
+      "semantic_tags": [
+        "cdf",
+        "dist",
+        "normal",
+        "normaldist"
+      ],
+      "keywords": [
+        "cdf",
+        "dist",
+        "normal",
+        "normaldist"
+      ],
+      "docstring": "Cumulative distribution function.  P(X <= x)",
+      "enrichment_source": null,
+      "enriched_at": null,
+      "domain_name": "statistics",
+      "node_type": "function",
+      "node_role": "transform",
+      "verified": true,
+      "source_priority": 50
+    },
+    {
+      "cell_id": "STATISTICS_NORMALDIST_FROM_SAMPLES",
+      "stage": 2,
+      "inputs": {
+        "data": {
+          "type_name": "any",
+          "state": "data",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Argument data",
+          "domain": null,
+          "required": true
+        }
+      },
+      "outputs": {
+        "output_data": {
+          "type_name": "NormalDist",
+          "state": "transformed",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Output transformed",
+          "domain": null,
+          "required": true
+        }
+      },
+      "slots": {},
+      "code_template": "{output_var} = {data}.from_samples({data})",
+      "dependencies": [
+        "import statistics"
+      ],
+      "semantic_tags": [
+        "dist",
+        "from",
+        "from_samples",
+        "normal",
+        "normaldist",
+        "samples"
+      ],
+      "keywords": [
+        "dist",
+        "from",
+        "from_samples",
+        "normal",
+        "normaldist",
+        "samples"
+      ],
+      "docstring": "Make a normal distribution instance from sample data.",
+      "enrichment_source": null,
+      "enriched_at": null,
+      "domain_name": "statistics",
+      "node_type": "function",
+      "node_role": "transform",
+      "verified": true,
+      "source_priority": 50
+    },
+    {
+      "cell_id": "STATISTICS_NORMALDIST_INV_CDF",
+      "stage": 2,
+      "inputs": {
+        "data": {
+          "type_name": "NormalDist",
+          "state": "any",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Receiver instance of NormalDist",
+          "domain": null,
+          "required": true
+        },
+        "p": {
+          "type_name": "any",
+          "state": "p",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Argument p",
+          "domain": null,
+          "required": true
+        }
+      },
+      "outputs": {
+        "output_data": {
+          "type_name": "NormalDist",
+          "state": "transformed",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Output transformed",
+          "domain": null,
+          "required": true
+        }
+      },
+      "slots": {},
+      "code_template": "{output_var} = {data}.inv_cdf({p})",
+      "dependencies": [
+        "import statistics"
+      ],
+      "semantic_tags": [
+        "cdf",
+        "dist",
+        "inv",
+        "inv_cdf",
+        "normal",
+        "normaldist"
+      ],
+      "keywords": [
+        "cdf",
+        "dist",
+        "inv",
+        "inv_cdf",
+        "normal",
+        "normaldist"
+      ],
+      "docstring": "Inverse cumulative distribution function.  x : P(X <= x) = p",
+      "enrichment_source": null,
+      "enriched_at": null,
+      "domain_name": "statistics",
+      "node_type": "function",
+      "node_role": "transform",
+      "verified": true,
+      "source_priority": 50
+    },
+    {
+      "cell_id": "STATISTICS_NORMALDIST_OVERLAP",
+      "stage": 2,
+      "inputs": {
+        "data": {
+          "type_name": "NormalDist",
+          "state": "any",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Receiver instance of NormalDist",
+          "domain": null,
+          "required": true
+        },
+        "other": {
+          "type_name": "any",
+          "state": "other",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Argument other",
+          "domain": null,
+          "required": true
+        }
+      },
+      "outputs": {
+        "output_data": {
+          "type_name": "NormalDist",
+          "state": "transformed",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Output transformed",
+          "domain": null,
+          "required": true
+        }
+      },
+      "slots": {},
+      "code_template": "{output_var} = {data}.overlap({other})",
+      "dependencies": [
+        "import statistics"
+      ],
+      "semantic_tags": [
+        "dist",
+        "normal",
+        "normaldist",
+        "overlap"
+      ],
+      "keywords": [
+        "dist",
+        "normal",
+        "normaldist",
+        "overlap"
+      ],
+      "docstring": "Compute the overlapping coefficient (OVL) between two normal distributions.",
+      "enrichment_source": null,
+      "enriched_at": null,
+      "domain_name": "statistics",
+      "node_type": "function",
+      "node_role": "transform",
+      "verified": true,
+      "source_priority": 50
+    },
+    {
+      "cell_id": "STATISTICS_NORMALDIST_PDF",
+      "stage": 2,
+      "inputs": {
+        "data": {
+          "type_name": "NormalDist",
+          "state": "any",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Receiver instance of NormalDist",
+          "domain": null,
+          "required": true
+        },
+        "x": {
+          "type_name": "any",
+          "state": "x",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Argument x",
+          "domain": null,
+          "required": true
+        }
+      },
+      "outputs": {
+        "output_data": {
+          "type_name": "NormalDist",
+          "state": "transformed",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Output transformed",
+          "domain": null,
+          "required": true
+        }
+      },
+      "slots": {},
+      "code_template": "{output_var} = {data}.pdf({x})",
+      "dependencies": [
+        "import statistics"
+      ],
+      "semantic_tags": [
+        "dist",
+        "normal",
+        "normaldist",
+        "pdf"
+      ],
+      "keywords": [
+        "dist",
+        "normal",
+        "normaldist",
+        "pdf"
+      ],
+      "docstring": "Probability density function.  P(x <= X < x+dx) / dx",
+      "enrichment_source": null,
+      "enriched_at": null,
+      "domain_name": "statistics",
+      "node_type": "function",
+      "node_role": "transform",
+      "verified": true,
+      "source_priority": 50
+    },
+    {
+      "cell_id": "STATISTICS_NORMALDIST_QUANTILES",
+      "stage": 2,
+      "inputs": {
+        "data": {
+          "type_name": "NormalDist",
+          "state": "any",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Receiver instance of NormalDist",
+          "domain": null,
+          "required": true
+        },
+        "n": {
+          "type_name": "int",
+          "state": "n",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Argument n",
+          "domain": null,
+          "required": false
+        }
+      },
+      "outputs": {
+        "output_data": {
+          "type_name": "NormalDist",
+          "state": "transformed",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Output transformed",
+          "domain": null,
+          "required": true
+        }
+      },
+      "slots": {},
+      "code_template": "{output_var} = {data}.quantiles({n})",
+      "dependencies": [
+        "import statistics"
+      ],
+      "semantic_tags": [
+        "dist",
+        "normal",
+        "normaldist",
+        "quantiles"
+      ],
+      "keywords": [
+        "dist",
+        "normal",
+        "normaldist",
+        "quantiles"
+      ],
+      "docstring": "Divide into *n* continuous intervals with equal probability.",
+      "enrichment_source": null,
+      "enriched_at": null,
+      "domain_name": "statistics",
+      "node_type": "function",
+      "node_role": "transform",
+      "verified": true,
+      "source_priority": 50
+    },
+    {
+      "cell_id": "STATISTICS_NORMALDIST_SAMPLES",
+      "stage": 2,
+      "inputs": {
+        "data": {
+          "type_name": "NormalDist",
+          "state": "any",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Receiver instance of NormalDist",
+          "domain": null,
+          "required": true
+        },
+        "n": {
+          "type_name": "any",
+          "state": "n",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Argument n",
+          "domain": null,
+          "required": true
+        },
+        "seed": {
+          "type_name": "NoneType",
+          "state": "seed",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Argument seed",
+          "domain": null,
+          "required": false
+        }
+      },
+      "outputs": {
+        "output_data": {
+          "type_name": "NormalDist",
+          "state": "transformed",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Output transformed",
+          "domain": null,
+          "required": true
+        }
+      },
+      "slots": {},
+      "code_template": "{output_var} = {data}.samples({n}, {seed})",
+      "dependencies": [
+        "import statistics"
+      ],
+      "semantic_tags": [
+        "dist",
+        "normal",
+        "normaldist",
+        "samples"
+      ],
+      "keywords": [
+        "dist",
+        "normal",
+        "normaldist",
+        "samples"
+      ],
+      "docstring": "Generate *n* samples for a given mean and standard deviation.",
+      "enrichment_source": null,
+      "enriched_at": null,
+      "domain_name": "statistics",
+      "node_type": "function",
+      "node_role": "transform",
+      "verified": true,
+      "source_priority": 50
+    },
+    {
+      "cell_id": "STATISTICS_NORMALDIST_ZSCORE",
+      "stage": 2,
+      "inputs": {
+        "data": {
+          "type_name": "NormalDist",
+          "state": "any",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Receiver instance of NormalDist",
+          "domain": null,
+          "required": true
+        },
+        "x": {
+          "type_name": "any",
+          "state": "x",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Argument x",
+          "domain": null,
+          "required": true
+        }
+      },
+      "outputs": {
+        "output_data": {
+          "type_name": "NormalDist",
+          "state": "transformed",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Output transformed",
+          "domain": null,
+          "required": true
+        }
+      },
+      "slots": {},
+      "code_template": "{output_var} = {data}.zscore({x})",
+      "dependencies": [
+        "import statistics"
+      ],
+      "semantic_tags": [
+        "dist",
+        "normal",
+        "normaldist",
+        "zscore"
+      ],
+      "keywords": [
+        "dist",
+        "normal",
+        "normaldist",
+        "zscore"
+      ],
+      "docstring": "Compute the Standard Score.  (x - mean) / stdev",
+      "enrichment_source": null,
+      "enriched_at": null,
+      "domain_name": "statistics",
+      "node_type": "function",
+      "node_role": "transform",
+      "verified": true,
+      "source_priority": 50
+    },
+    {
+      "cell_id": "STATISTICS_STATISTICSERROR_ADD_NOTE",
+      "stage": 2,
+      "inputs": {
+        "data": {
+          "type_name": "StatisticsError",
+          "state": "any",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Receiver instance of StatisticsError",
+          "domain": null,
+          "required": true
+        },
+        "object": {
+          "type_name": "any",
+          "state": "object",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Argument object",
+          "domain": null,
+          "required": true
+        }
+      },
+      "outputs": {
+        "output_data": {
+          "type_name": "StatisticsError",
+          "state": "transformed",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Output transformed",
+          "domain": null,
+          "required": true
+        }
+      },
+      "slots": {},
+      "code_template": "{output_var} = {data}.add_note({object})",
+      "dependencies": [
+        "import statistics"
+      ],
+      "semantic_tags": [
+        "add",
+        "add_note",
+        "error",
+        "note",
+        "statistics",
+        "statisticserror"
+      ],
+      "keywords": [
+        "add",
+        "add_note",
+        "error",
+        "note",
+        "statistics",
+        "statisticserror"
+      ],
+      "docstring": "Exception.add_note(note) --",
+      "enrichment_source": null,
+      "enriched_at": null,
+      "domain_name": "statistics",
+      "node_type": "function",
+      "node_role": "transform",
+      "verified": true,
+      "source_priority": 50
+    },
+    {
+      "cell_id": "STATISTICS_STATISTICSERROR_WITH_TRACEBACK",
+      "stage": 2,
+      "inputs": {
+        "data": {
+          "type_name": "StatisticsError",
+          "state": "any",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Receiver instance of StatisticsError",
+          "domain": null,
+          "required": true
+        },
+        "object": {
+          "type_name": "any",
+          "state": "object",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Argument object",
+          "domain": null,
+          "required": true
+        }
+      },
+      "outputs": {
+        "output_data": {
+          "type_name": "StatisticsError",
+          "state": "transformed",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Output transformed",
+          "domain": null,
+          "required": true
+        }
+      },
+      "slots": {},
+      "code_template": "{output_var} = {data}.with_traceback({object})",
+      "dependencies": [
+        "import statistics"
+      ],
+      "semantic_tags": [
+        "error",
+        "statistics",
+        "statisticserror",
+        "traceback",
+        "with",
+        "with_traceback"
+      ],
+      "keywords": [
+        "error",
+        "statistics",
+        "statisticserror",
+        "traceback",
+        "with",
+        "with_traceback"
+      ],
+      "docstring": "Exception.with_traceback(tb) --",
+      "enrichment_source": null,
+      "enriched_at": null,
+      "domain_name": "statistics",
+      "node_type": "function",
+      "node_role": "transform",
+      "verified": true,
+      "source_priority": 50
+    },
+    {
+      "cell_id": "STATISTICS_CORRELATION",
+      "stage": 2,
+      "inputs": {
+        "x": {
+          "type_name": "any",
+          "state": "x",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Argument x",
+          "domain": null,
+          "required": true
+        },
+        "y": {
+          "type_name": "any",
+          "state": "y",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Argument y",
+          "domain": null,
+          "required": true
+        },
+        "method": {
+          "type_name": "str",
+          "state": "method",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Argument method",
+          "domain": null,
+          "required": false
+        }
+      },
+      "outputs": {
+        "output_data": {
+          "type_name": "any",
+          "state": "transformed",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Output transformed",
+          "domain": null,
+          "required": true
+        }
+      },
+      "slots": {},
+      "code_template": "{output_var} = statistics.correlation({x}, {y}, {method})",
+      "dependencies": [
+        "import statistics"
+      ],
+      "semantic_tags": [
+        "correlation"
+      ],
+      "keywords": [
+        "correlation"
+      ],
+      "docstring": "Pearson's correlation coefficient",
+      "enrichment_source": null,
+      "enriched_at": null,
+      "domain_name": "statistics",
+      "node_type": "function",
+      "node_role": "transform",
+      "verified": true,
+      "source_priority": 50
+    },
+    {
+      "cell_id": "STATISTICS_COVARIANCE",
+      "stage": 2,
+      "inputs": {
+        "x": {
+          "type_name": "any",
+          "state": "x",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Argument x",
+          "domain": null,
+          "required": true
+        },
+        "y": {
+          "type_name": "any",
+          "state": "y",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Argument y",
+          "domain": null,
+          "required": true
+        }
+      },
+      "outputs": {
+        "output_data": {
+          "type_name": "any",
+          "state": "transformed",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Output transformed",
+          "domain": null,
+          "required": true
+        }
+      },
+      "slots": {},
+      "code_template": "{output_var} = statistics.covariance({x}, {y})",
+      "dependencies": [
+        "import statistics"
+      ],
+      "semantic_tags": [
+        "covariance"
+      ],
+      "keywords": [
+        "covariance"
+      ],
+      "docstring": "Covariance",
+      "enrichment_source": null,
+      "enriched_at": null,
+      "domain_name": "statistics",
+      "node_type": "function",
+      "node_role": "transform",
+      "verified": true,
+      "source_priority": 50
+    },
+    {
+      "cell_id": "STATISTICS_FMEAN",
+      "stage": 2,
+      "inputs": {
+        "data": {
+          "type_name": "any",
+          "state": "data",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Argument data",
+          "domain": null,
+          "required": true
+        },
+        "weights": {
+          "type_name": "NoneType",
+          "state": "weights",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Argument weights",
+          "domain": null,
+          "required": false
+        }
+      },
+      "outputs": {
+        "output_data": {
+          "type_name": "any",
+          "state": "transformed",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Output transformed",
+          "domain": null,
+          "required": true
+        }
+      },
+      "slots": {},
+      "code_template": "{output_var} = statistics.fmean({data}, {weights})",
+      "dependencies": [
+        "import statistics"
+      ],
+      "semantic_tags": [
+        "fmean"
+      ],
+      "keywords": [
+        "fmean"
+      ],
+      "docstring": "Convert data to floats and compute the arithmetic mean.",
+      "enrichment_source": null,
+      "enriched_at": null,
+      "domain_name": "statistics",
+      "node_type": "function",
+      "node_role": "transform",
+      "verified": true,
+      "source_priority": 50
+    },
+    {
+      "cell_id": "STATISTICS_GEOMETRIC_MEAN",
+      "stage": 2,
+      "inputs": {
+        "data": {
+          "type_name": "any",
+          "state": "data",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Argument data",
+          "domain": null,
+          "required": true
+        }
+      },
+      "outputs": {
+        "output_data": {
+          "type_name": "any",
+          "state": "transformed",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Output transformed",
+          "domain": null,
+          "required": true
+        }
+      },
+      "slots": {},
+      "code_template": "{output_var} = statistics.geometric_mean({data})",
+      "dependencies": [
+        "import statistics"
+      ],
+      "semantic_tags": [
+        "geometric",
+        "geometric_mean",
+        "mean"
+      ],
+      "keywords": [
+        "geometric",
+        "geometric_mean",
+        "mean"
+      ],
+      "docstring": "Convert data to floats and compute the geometric mean.",
+      "enrichment_source": null,
+      "enriched_at": null,
+      "domain_name": "statistics",
+      "node_type": "function",
+      "node_role": "transform",
+      "verified": true,
+      "source_priority": 50
+    },
+    {
+      "cell_id": "STATISTICS_HARMONIC_MEAN",
+      "stage": 2,
+      "inputs": {
+        "data": {
+          "type_name": "any",
+          "state": "data",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Argument data",
+          "domain": null,
+          "required": true
+        },
+        "weights": {
+          "type_name": "NoneType",
+          "state": "weights",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Argument weights",
+          "domain": null,
+          "required": false
+        }
+      },
+      "outputs": {
+        "output_data": {
+          "type_name": "any",
+          "state": "transformed",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Output transformed",
+          "domain": null,
+          "required": true
+        }
+      },
+      "slots": {},
+      "code_template": "{output_var} = statistics.harmonic_mean({data}, {weights})",
+      "dependencies": [
+        "import statistics"
+      ],
+      "semantic_tags": [
+        "harmonic",
+        "harmonic_mean",
+        "mean"
+      ],
+      "keywords": [
+        "harmonic",
+        "harmonic_mean",
+        "mean"
+      ],
+      "docstring": "Return the harmonic mean of data.",
+      "enrichment_source": null,
+      "enriched_at": null,
+      "domain_name": "statistics",
+      "node_type": "function",
+      "node_role": "transform",
+      "verified": true,
+      "source_priority": 50
+    },
+    {
+      "cell_id": "STATISTICS_KDE",
+      "stage": 2,
+      "inputs": {
+        "data": {
+          "type_name": "any",
+          "state": "data",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Argument data",
+          "domain": null,
+          "required": true
+        },
+        "h": {
+          "type_name": "any",
+          "state": "h",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Argument h",
+          "domain": null,
+          "required": true
+        },
+        "kernel": {
+          "type_name": "str",
+          "state": "kernel",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Argument kernel",
+          "domain": null,
+          "required": false
+        },
+        "cumulative": {
+          "type_name": "bool",
+          "state": "cumulative",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Argument cumulative",
+          "domain": null,
+          "required": false
+        }
+      },
+      "outputs": {
+        "output_data": {
+          "type_name": "any",
+          "state": "transformed",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Output transformed",
+          "domain": null,
+          "required": true
+        }
+      },
+      "slots": {},
+      "code_template": "{output_var} = statistics.kde({data}, {h}, {kernel}, {cumulative})",
+      "dependencies": [
+        "import statistics"
+      ],
+      "semantic_tags": [
+        "kde"
+      ],
+      "keywords": [
+        "kde"
+      ],
+      "docstring": "Kernel Density Estimation:  Create a continuous probability density",
+      "enrichment_source": null,
+      "enriched_at": null,
+      "domain_name": "statistics",
+      "node_type": "function",
+      "node_role": "transform",
+      "verified": true,
+      "source_priority": 50
+    },
+    {
+      "cell_id": "STATISTICS_KDE_RANDOM",
+      "stage": 2,
+      "inputs": {
+        "data": {
+          "type_name": "any",
+          "state": "data",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Argument data",
+          "domain": null,
+          "required": true
+        },
+        "h": {
+          "type_name": "any",
+          "state": "h",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Argument h",
+          "domain": null,
+          "required": true
+        },
+        "kernel": {
+          "type_name": "str",
+          "state": "kernel",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Argument kernel",
+          "domain": null,
+          "required": false
+        },
+        "seed": {
+          "type_name": "NoneType",
+          "state": "seed",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Argument seed",
+          "domain": null,
+          "required": false
+        }
+      },
+      "outputs": {
+        "output_data": {
+          "type_name": "any",
+          "state": "transformed",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Output transformed",
+          "domain": null,
+          "required": true
+        }
+      },
+      "slots": {},
+      "code_template": "{output_var} = statistics.kde_random({data}, {h}, {kernel}, {seed})",
+      "dependencies": [
+        "import statistics"
+      ],
+      "semantic_tags": [
+        "kde",
+        "kde_random",
+        "random"
+      ],
+      "keywords": [
+        "kde",
+        "kde_random",
+        "random"
+      ],
+      "docstring": "Return a function that makes a random selection from the estimated",
+      "enrichment_source": null,
+      "enriched_at": null,
+      "domain_name": "statistics",
+      "node_type": "function",
+      "node_role": "transform",
+      "verified": true,
+      "source_priority": 50
+    },
+    {
+      "cell_id": "STATISTICS_LINEAR_REGRESSION",
+      "stage": 2,
+      "inputs": {
+        "x": {
+          "type_name": "any",
+          "state": "x",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Argument x",
+          "domain": null,
+          "required": true
+        },
+        "y": {
+          "type_name": "any",
+          "state": "y",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Argument y",
+          "domain": null,
+          "required": true
+        },
+        "proportional": {
+          "type_name": "bool",
+          "state": "proportional",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Argument proportional",
+          "domain": null,
+          "required": false
+        }
+      },
+      "outputs": {
+        "output_data": {
+          "type_name": "any",
+          "state": "transformed",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Output transformed",
+          "domain": null,
+          "required": true
+        }
+      },
+      "slots": {},
+      "code_template": "{output_var} = statistics.linear_regression({x}, {y}, {proportional})",
+      "dependencies": [
+        "import statistics"
+      ],
+      "semantic_tags": [
+        "linear",
+        "linear_regression",
+        "regression"
+      ],
+      "keywords": [
+        "linear",
+        "linear_regression",
+        "regression"
+      ],
+      "docstring": "Slope and intercept for simple linear regression.",
+      "enrichment_source": null,
+      "enriched_at": null,
+      "domain_name": "statistics",
+      "node_type": "function",
+      "node_role": "transform",
+      "verified": true,
+      "source_priority": 50
+    },
+    {
+      "cell_id": "STATISTICS_MEAN",
+      "stage": 2,
+      "inputs": {
+        "data": {
+          "type_name": "any",
+          "state": "data",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Argument data",
+          "domain": null,
+          "required": true
+        }
+      },
+      "outputs": {
+        "output_data": {
+          "type_name": "any",
+          "state": "transformed",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Output transformed",
+          "domain": null,
+          "required": true
+        }
+      },
+      "slots": {},
+      "code_template": "{output_var} = statistics.mean({data})",
+      "dependencies": [
+        "import statistics"
+      ],
+      "semantic_tags": [
+        "mean"
+      ],
+      "keywords": [
+        "mean"
+      ],
+      "docstring": "Return the sample arithmetic mean of data.",
+      "enrichment_source": null,
+      "enriched_at": null,
+      "domain_name": "statistics",
+      "node_type": "function",
+      "node_role": "transform",
+      "verified": true,
+      "source_priority": 50
+    },
+    {
+      "cell_id": "STATISTICS_MEDIAN",
+      "stage": 2,
+      "inputs": {
+        "data": {
+          "type_name": "any",
+          "state": "data",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Argument data",
+          "domain": null,
+          "required": true
+        }
+      },
+      "outputs": {
+        "output_data": {
+          "type_name": "any",
+          "state": "transformed",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Output transformed",
+          "domain": null,
+          "required": true
+        }
+      },
+      "slots": {},
+      "code_template": "{output_var} = statistics.median({data})",
+      "dependencies": [
+        "import statistics"
+      ],
+      "semantic_tags": [
+        "median"
+      ],
+      "keywords": [
+        "median"
+      ],
+      "docstring": "Return the median (middle value) of numeric data.",
+      "enrichment_source": null,
+      "enriched_at": null,
+      "domain_name": "statistics",
+      "node_type": "function",
+      "node_role": "transform",
+      "verified": true,
+      "source_priority": 50
+    },
+    {
+      "cell_id": "STATISTICS_MEDIAN_GROUPED",
+      "stage": 2,
+      "inputs": {
+        "data": {
+          "type_name": "any",
+          "state": "data",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Argument data",
+          "domain": null,
+          "required": true
+        },
+        "interval": {
+          "type_name": "float",
+          "state": "interval",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Argument interval",
+          "domain": null,
+          "required": false
+        }
+      },
+      "outputs": {
+        "output_data": {
+          "type_name": "any",
+          "state": "transformed",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Output transformed",
+          "domain": null,
+          "required": true
+        }
+      },
+      "slots": {},
+      "code_template": "{output_var} = statistics.median_grouped({data}, {interval})",
+      "dependencies": [
+        "import statistics"
+      ],
+      "semantic_tags": [
+        "grouped",
+        "median",
+        "median_grouped"
+      ],
+      "keywords": [
+        "grouped",
+        "median",
+        "median_grouped"
+      ],
+      "docstring": "Estimates the median for numeric data binned around the midpoints",
+      "enrichment_source": null,
+      "enriched_at": null,
+      "domain_name": "statistics",
+      "node_type": "function",
+      "node_role": "transform",
+      "verified": true,
+      "source_priority": 50
+    },
+    {
+      "cell_id": "STATISTICS_MEDIAN_HIGH",
+      "stage": 2,
+      "inputs": {
+        "data": {
+          "type_name": "any",
+          "state": "data",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Argument data",
+          "domain": null,
+          "required": true
+        }
+      },
+      "outputs": {
+        "output_data": {
+          "type_name": "any",
+          "state": "transformed",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Output transformed",
+          "domain": null,
+          "required": true
+        }
+      },
+      "slots": {},
+      "code_template": "{output_var} = statistics.median_high({data})",
+      "dependencies": [
+        "import statistics"
+      ],
+      "semantic_tags": [
+        "high",
+        "median",
+        "median_high"
+      ],
+      "keywords": [
+        "high",
+        "median",
+        "median_high"
+      ],
+      "docstring": "Return the high median of data.",
+      "enrichment_source": null,
+      "enriched_at": null,
+      "domain_name": "statistics",
+      "node_type": "function",
+      "node_role": "transform",
+      "verified": true,
+      "source_priority": 50
+    },
+    {
+      "cell_id": "STATISTICS_MEDIAN_LOW",
+      "stage": 2,
+      "inputs": {
+        "data": {
+          "type_name": "any",
+          "state": "data",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Argument data",
+          "domain": null,
+          "required": true
+        }
+      },
+      "outputs": {
+        "output_data": {
+          "type_name": "any",
+          "state": "transformed",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Output transformed",
+          "domain": null,
+          "required": true
+        }
+      },
+      "slots": {},
+      "code_template": "{output_var} = statistics.median_low({data})",
+      "dependencies": [
+        "import statistics"
+      ],
+      "semantic_tags": [
+        "low",
+        "median",
+        "median_low"
+      ],
+      "keywords": [
+        "low",
+        "median",
+        "median_low"
+      ],
+      "docstring": "Return the low median of numeric data.",
+      "enrichment_source": null,
+      "enriched_at": null,
+      "domain_name": "statistics",
+      "node_type": "function",
+      "node_role": "transform",
+      "verified": true,
+      "source_priority": 50
+    },
+    {
+      "cell_id": "STATISTICS_MODE",
+      "stage": 2,
+      "inputs": {
+        "data": {
+          "type_name": "any",
+          "state": "data",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Argument data",
+          "domain": null,
+          "required": true
+        }
+      },
+      "outputs": {
+        "output_data": {
+          "type_name": "any",
+          "state": "transformed",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Output transformed",
+          "domain": null,
+          "required": true
+        }
+      },
+      "slots": {},
+      "code_template": "{output_var} = statistics.mode({data})",
+      "dependencies": [
+        "import statistics"
+      ],
+      "semantic_tags": [
+        "mode"
+      ],
+      "keywords": [
+        "mode"
+      ],
+      "docstring": "Return the most common data point from discrete or nominal data.",
+      "enrichment_source": null,
+      "enriched_at": null,
+      "domain_name": "statistics",
+      "node_type": "function",
+      "node_role": "transform",
+      "verified": true,
+      "source_priority": 50
+    },
+    {
+      "cell_id": "STATISTICS_MULTIMODE",
+      "stage": 2,
+      "inputs": {
+        "data": {
+          "type_name": "any",
+          "state": "data",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Argument data",
+          "domain": null,
+          "required": true
+        }
+      },
+      "outputs": {
+        "output_data": {
+          "type_name": "any",
+          "state": "transformed",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Output transformed",
+          "domain": null,
+          "required": true
+        }
+      },
+      "slots": {},
+      "code_template": "{output_var} = statistics.multimode({data})",
+      "dependencies": [
+        "import statistics"
+      ],
+      "semantic_tags": [
+        "multimode"
+      ],
+      "keywords": [
+        "multimode"
+      ],
+      "docstring": "Return a list of the most frequently occurring values.",
+      "enrichment_source": null,
+      "enriched_at": null,
+      "domain_name": "statistics",
+      "node_type": "function",
+      "node_role": "transform",
+      "verified": true,
+      "source_priority": 50
+    },
+    {
+      "cell_id": "STATISTICS_PSTDEV",
+      "stage": 2,
+      "inputs": {
+        "data": {
+          "type_name": "any",
+          "state": "data",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Argument data",
+          "domain": null,
+          "required": true
+        },
+        "mu": {
+          "type_name": "NoneType",
+          "state": "mu",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Argument mu",
+          "domain": null,
+          "required": false
+        }
+      },
+      "outputs": {
+        "output_data": {
+          "type_name": "any",
+          "state": "transformed",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Output transformed",
+          "domain": null,
+          "required": true
+        }
+      },
+      "slots": {},
+      "code_template": "{output_var} = statistics.pstdev({data}, {mu})",
+      "dependencies": [
+        "import statistics"
+      ],
+      "semantic_tags": [
+        "pstdev"
+      ],
+      "keywords": [
+        "pstdev"
+      ],
+      "docstring": "Return the square root of the population variance.",
+      "enrichment_source": null,
+      "enriched_at": null,
+      "domain_name": "statistics",
+      "node_type": "function",
+      "node_role": "transform",
+      "verified": true,
+      "source_priority": 50
+    },
+    {
+      "cell_id": "STATISTICS_PVARIANCE",
+      "stage": 2,
+      "inputs": {
+        "data": {
+          "type_name": "any",
+          "state": "data",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Argument data",
+          "domain": null,
+          "required": true
+        },
+        "mu": {
+          "type_name": "NoneType",
+          "state": "mu",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Argument mu",
+          "domain": null,
+          "required": false
+        }
+      },
+      "outputs": {
+        "output_data": {
+          "type_name": "any",
+          "state": "transformed",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Output transformed",
+          "domain": null,
+          "required": true
+        }
+      },
+      "slots": {},
+      "code_template": "{output_var} = statistics.pvariance({data}, {mu})",
+      "dependencies": [
+        "import statistics"
+      ],
+      "semantic_tags": [
+        "pvariance"
+      ],
+      "keywords": [
+        "pvariance"
+      ],
+      "docstring": "Return the population variance of ``data``.",
+      "enrichment_source": null,
+      "enriched_at": null,
+      "domain_name": "statistics",
+      "node_type": "function",
+      "node_role": "transform",
+      "verified": true,
+      "source_priority": 50
+    },
+    {
+      "cell_id": "STATISTICS_QUANTILES",
+      "stage": 2,
+      "inputs": {
+        "data": {
+          "type_name": "any",
+          "state": "data",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Argument data",
+          "domain": null,
+          "required": true
+        },
+        "n": {
+          "type_name": "int",
+          "state": "n",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Argument n",
+          "domain": null,
+          "required": false
+        },
+        "method": {
+          "type_name": "str",
+          "state": "method",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Argument method",
+          "domain": null,
+          "required": false
+        }
+      },
+      "outputs": {
+        "output_data": {
+          "type_name": "any",
+          "state": "transformed",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Output transformed",
+          "domain": null,
+          "required": true
+        }
+      },
+      "slots": {},
+      "code_template": "{output_var} = statistics.quantiles({data}, {n}, {method})",
+      "dependencies": [
+        "import statistics"
+      ],
+      "semantic_tags": [
+        "quantiles"
+      ],
+      "keywords": [
+        "quantiles"
+      ],
+      "docstring": "Divide *data* into *n* continuous intervals with equal probability.",
+      "enrichment_source": null,
+      "enriched_at": null,
+      "domain_name": "statistics",
+      "node_type": "function",
+      "node_role": "transform",
+      "verified": true,
+      "source_priority": 50
+    },
+    {
+      "cell_id": "STATISTICS_STDEV",
+      "stage": 2,
+      "inputs": {
+        "data": {
+          "type_name": "any",
+          "state": "data",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Argument data",
+          "domain": null,
+          "required": true
+        },
+        "xbar": {
+          "type_name": "NoneType",
+          "state": "xbar",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Argument xbar",
+          "domain": null,
+          "required": false
+        }
+      },
+      "outputs": {
+        "output_data": {
+          "type_name": "any",
+          "state": "transformed",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Output transformed",
+          "domain": null,
+          "required": true
+        }
+      },
+      "slots": {},
+      "code_template": "{output_var} = statistics.stdev({data}, {xbar})",
+      "dependencies": [
+        "import statistics"
+      ],
+      "semantic_tags": [
+        "stdev"
+      ],
+      "keywords": [
+        "stdev"
+      ],
+      "docstring": "Return the square root of the sample variance.",
+      "enrichment_source": null,
+      "enriched_at": null,
+      "domain_name": "statistics",
+      "node_type": "function",
+      "node_role": "transform",
+      "verified": true,
+      "source_priority": 50
+    },
+    {
+      "cell_id": "STATISTICS_VARIANCE",
+      "stage": 2,
+      "inputs": {
+        "data": {
+          "type_name": "any",
+          "state": "data",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Argument data",
+          "domain": null,
+          "required": true
+        },
+        "xbar": {
+          "type_name": "NoneType",
+          "state": "xbar",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Argument xbar",
+          "domain": null,
+          "required": false
+        }
+      },
+      "outputs": {
+        "output_data": {
+          "type_name": "any",
+          "state": "transformed",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Output transformed",
+          "domain": null,
+          "required": true
+        }
+      },
+      "slots": {},
+      "code_template": "{output_var} = statistics.variance({data}, {xbar})",
+      "dependencies": [
+        "import statistics"
+      ],
+      "semantic_tags": [
+        "variance"
+      ],
+      "keywords": [
+        "variance"
+      ],
+      "docstring": "Return the sample variance of data.",
+      "enrichment_source": null,
+      "enriched_at": null,
+      "domain_name": "statistics",
+      "node_type": "function",
+      "node_role": "transform",
+      "verified": true,
+      "source_priority": 50
+    }
+  ]
+}
