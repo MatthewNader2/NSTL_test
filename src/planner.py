@@ -57,10 +57,10 @@ class LatticePlanner:
         if len(tunnel) == 1:
             return [tunnel[0]]
 
-        # Partition tunnel cells by stage
-        stage1_cells = [c for c in tunnel if c.stage == 1]
-        stage2_cells = [c for c in tunnel if c.stage == 2]
-        stage3_cells = [c for c in tunnel if c.stage == 3]
+        # Partition tunnel cells by stage (excluding leaf constants from data transforms)
+        stage1_cells = [c for c in tunnel if c.stage == 1 and getattr(c, "node_type", "") != "constant"]
+        stage2_cells = [c for c in tunnel if c.stage == 2 and getattr(c, "node_type", "") != "constant" and bool(getattr(c, "inputs", None))]
+        stage3_cells = [c for c in tunnel if c.stage == 3 and getattr(c, "node_type", "") != "constant"]
 
         # If start_sig is specified, filter candidate entry cells to type-compatible entries
         if start_sig is not None:
@@ -87,7 +87,7 @@ class LatticePlanner:
 
         # 1. Select Best Entry Node via universal category-theoretic fitness
         def entry_fitness(c: Cell) -> Tuple[int, int, int, float]:
-            curated = 1 if c.source_priority <= 10 else 0
+            curated = 1 if getattr(c, "source_priority", 100) <= 10 else 0
             c_tokens = set(c.token_set)
             clause_overlap = len(c_tokens & first_clause_tokens)
             # In a multi-stage workflow, initial ingestion (stage 1) with clause overlap is favored for entry
@@ -104,9 +104,8 @@ class LatticePlanner:
         covered_tokens = set(best_entry.token_set) & prompt_tokens
 
         # 2. Select Relevant Intermediate Transforms (Stage 2) via Intent-Coverage Stopping
-        curated_transforms = [c for c in stage2_cells if c.source_priority <= 10]
-        active_transforms = curated_transforms if curated_transforms else stage2_cells
-        active_transforms.sort(key=lambda c: relevance_map.get(c.cell_id, 0.0), reverse=True)
+        active_transforms = list(stage2_cells)
+        active_transforms.sort(key=lambda c: (relevance_map.get(c.cell_id, 0.0), -(getattr(c, "source_priority", 100) or 100)), reverse=True)
 
         for _ in range(max_transforms):
             best_next = None
@@ -138,9 +137,8 @@ class LatticePlanner:
 
         # 3. Select Terminal Node (Stage 3) only if required by uncovered prompt intent
         if stage3_cells:
-            curated_stage3 = [c for c in stage3_cells if c.source_priority <= 10]
-            active_stage3 = curated_stage3 if curated_stage3 else stage3_cells
-            active_stage3.sort(key=lambda c: relevance_map.get(c.cell_id, 0.0), reverse=True)
+            active_stage3 = list(stage3_cells)
+            active_stage3.sort(key=lambda c: (relevance_map.get(c.cell_id, 0.0), -(getattr(c, "source_priority", 100) or 100)), reverse=True)
 
             for term in active_stage3:
                 term_tokens = set(term.token_set) & prompt_tokens

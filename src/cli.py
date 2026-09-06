@@ -833,7 +833,7 @@ def main():
 
     # harvest
     p_harvest = subparsers.add_parser("harvest", help="Harvest API primitives into single-file domain JSON")
-    p_harvest.add_argument("package", type=str, help="Python package name to harvest (e.g. cv2, pandas)")
+    p_harvest.add_argument("package", type=str, help="Python package name to harvest")
     p_harvest.add_argument("--domain", type=str, default=None, help="Target domain name (defaults to package name)")
     p_harvest.add_argument("--trees-dir", type=str, default="trees", help="Directory for domain tree JSON files")
     p_harvest.set_defaults(func=cmd_harvest)

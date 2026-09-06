@@ -25,14 +25,14 @@ from src.universal_harvester import UniversalHarvester
 from src.schema import TreeSchema, CellSchema
 from src.template_wiring import repair_wiring_invariant, clean_malformed_template_braces
 
-DOMAIN_CONFIGS: Dict[str, Dict[str, str]] = {
-    "cv2": {"package": "cv2", "container": "Mat"},
-    "numpy": {"package": "numpy", "container": "ndarray"},
-    "pandas": {"package": "pandas", "container": "DataFrame"},
-    "scipy": {"package": "scipy", "container": "ndarray"},
-    "sklearn": {"package": "sklearn", "container": "ndarray"},
-    "matplotlib": {"package": "matplotlib.pyplot", "container": "Figure"},
-    "python_core": {"package": "builtins", "container": "list"},
+PRIMARY_DOMAINS: Dict[str, str] = {
+    "cv2": "cv2",
+    "numpy": "numpy",
+    "pandas": "pandas",
+    "scipy": "scipy",
+    "sklearn": "sklearn",
+    "matplotlib": "matplotlib.pyplot",
+    "python_core": "builtins",
 }
 
 
@@ -128,22 +128,20 @@ def main():
     out_dir = Path(args.output_dir)
 
     if args.all:
-        for dom, cfg in DOMAIN_CONFIGS.items():
+        for dom, pkg in PRIMARY_DOMAINS.items():
             harvest_single_domain(
                 domain_name=dom,
-                package_name=cfg["package"],
-                container_type=cfg.get("container"),
+                package_name=pkg,
+                container_type=None,
                 output_dir=out_dir,
                 enrich=args.enrich
             )
     elif args.library:
-        cfg = DOMAIN_CONFIGS.get(args.library, {})
-        pkg = args.package or cfg.get("package", args.library)
-        container = args.container or cfg.get("container")
+        pkg = args.package or PRIMARY_DOMAINS.get(args.library, args.library)
         harvest_single_domain(
             domain_name=args.library,
             package_name=pkg,
-            container_type=container,
+            container_type=args.container,
             output_dir=out_dir,
             enrich=args.enrich
         )
@@ -154,11 +152,9 @@ def main():
     if args.compile:
         print("\n[*] Compiling updated domain trees into SQLite database...")
         from tools.compile_trees import compile_database
-        from tools.sanitize_lattice_db import sanitize_database
 
         compile_database(str(out_dir / "lattice.db"))
-        sanitize_database(str(out_dir / "lattice.db"))
-        print("[✓] Compilation and Sanitization Complete!")
+        print("[✓] Direct Schema Compilation Complete!")
 
 
 if __name__ == "__main__":

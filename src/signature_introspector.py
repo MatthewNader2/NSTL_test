@@ -42,15 +42,25 @@ def extract_doc_signature(func_name: str, doc: str) -> Optional[Dict[str, Any]]:
         opt_part = ""
 
     req_params = []
+    opt_params = []
     for p in req_part.split(","):
-        clean_p = p.split("=")[0].split(":")[0].strip()
-        if clean_p.isidentifier():
+        p_str = p.strip()
+        if not p_str or p_str == "*":
+            continue
+        clean_p = p_str.split("=")[0].split(":")[0].strip()
+        if not clean_p.isidentifier():
+            continue
+        if "=" in p_str:
+            opt_params.append(clean_p)
+        else:
             req_params.append(clean_p)
 
-    opt_params = []
     for p in opt_part.split(","):
-        clean_p = p.split("=")[0].split(":")[0].strip()
-        if clean_p.isidentifier():
+        p_str = p.strip()
+        if not p_str or p_str == "*":
+            continue
+        clean_p = p_str.split("=")[0].split(":")[0].strip()
+        if clean_p.isidentifier() and clean_p not in opt_params and clean_p not in req_params:
             opt_params.append(clean_p)
 
     return {"required": req_params, "optional": opt_params}

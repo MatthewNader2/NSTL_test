@@ -15,13 +15,15 @@ import json
 import sqlite3
 import shutil
 from pathlib import Path
+from typing import Union
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 DB_PATH = PROJECT_ROOT / "trees" / "lattice.db"
 BACKUP_PATH = PROJECT_ROOT / "trees" / "lattice.db.backup"
 
 
-def sanitize_database(db_path: Path = DB_PATH, backup: bool = True):
+def sanitize_database(db_path: Union[Path, str] = DB_PATH, backup: bool = True):
+    db_path = Path(db_path)
     if not db_path.exists():
         print(f"[!] Database file '{db_path}' not found!")
         return

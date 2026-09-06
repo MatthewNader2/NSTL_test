@@ -129,10 +129,13 @@ def repair_wiring_invariant(cell: Dict[str, Any], domain: str = "generic") -> bo
     inputs = cell["inputs"]
     placeholders = set(re.findall(r"\{(\w+)\}", cell.get("code_template", ""))) - {"output_var"}
 
-    # Bug A: Single source of truth for input keys vs placeholders
-    if "X" in inputs and "input_var" in placeholders and "input_var" not in inputs:
-        inputs["input_var"] = inputs.pop("X")
-        modified = True
+    # Ensure 1-to-1 input key alignment with template placeholder if single port differs
+    if len(inputs) == 1 and len(placeholders) == 1:
+        inp_key = next(iter(inputs.keys()))
+        ph_key = next(iter(placeholders))
+        if inp_key != ph_key:
+            inputs[ph_key] = inputs.pop(inp_key)
+            modified = True
 
     # Ensure every placeholder has a matching declared input port
     for ph in placeholders:

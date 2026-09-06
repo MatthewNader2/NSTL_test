@@ -139,7 +139,7 @@ class LatticeRouter:
         stage_partition: Dict[int, List[Cell]] = {1: [], 2: [], 3: []}
         for cell, _ in cell_probs:
             st = getattr(cell, "stage", 2)
-            if st in stage_partition:
+            if getattr(cell, "node_type", "") != "constant" and st in stage_partition:
                 stage_partition[st].append(cell)
 
         guaranteed_cells: List[Cell] = []

@@ -19,7 +19,7 @@ class CellSchema(BaseModel):
     model_config = ConfigDict(extra="ignore")
 
     cell_id: str
-    stage: Literal[1, 2, 3]
+    stage: Literal[0, 1, 2, 3]
     inputs: Dict[str, PortSchema] = Field(default_factory=dict)
     outputs: Dict[str, PortSchema] = Field(default_factory=dict)
     slots: Dict[str, Any] = Field(default_factory=dict)

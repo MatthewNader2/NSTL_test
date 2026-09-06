@@ -302,8 +302,9 @@ class ExecutionContext:
         for m in re.finditer(r'["\']([^"\']+)["\']', prompt):
             spans.append((m.start(), "quoted_str", m.group(1)))
 
-        # 2. File / Path tokens with extensions: e.g. data.csv, telemetry.log, etc. -> kind "file_asset"
-        for m in re.finditer(r'\b[\w-]+\.[a-zA-Z0-9]{1,8}\b', prompt):
+        # 2. File / Path tokens with extensions (including absolute and relative paths): kind "file_asset"
+        path_pattern = r'(?:[a-zA-Z]:[\\/](?:[\w.-]+[\\/])*[\w.-]+\.[a-zA-Z0-9]{1,8}|(?:/?[\w.-]+[\\/])*[\w.-]+\.[a-zA-Z0-9]{1,8})\b'
+        for m in re.finditer(path_pattern, prompt):
             val = m.group(0).rstrip(".,;:)")
             # Avoid duplicate if already covered by quotes
             if not any(s <= m.start() and m.end() <= s + len(v) + 2 for s, t, v in spans if t == "quoted_str"):
@@ -384,6 +385,11 @@ class ExecutionContext:
         """
         Resolves an Enum constant dynamically by matching prompt intent against candidate flags.
         Domain-agnostic: uses domain_spec (e.g. 'cv2.COLOR_*') and module reflection.
+        Contains ZERO library-specific keywords or hardcoded bonuses.
+        Grounds selection in:
+          1. Directional transition alignment (X2Y matching prompt target intent)
+          2. Semantic token overlap
+          3. Occam's razor parsimony (penalizing extraneous unrequested sub-tokens)
         """
         if not domain_spec or "*" not in domain_spec:
             return None
@@ -405,26 +411,46 @@ class ExecutionContext:
             return None
 
         prompt_lower = (self.prompt or "").lower()
-        p_tokens = set(re.findall(r"[a-z0-9]+", prompt_lower))
+        p_tokens = set(re.findall(r"[a-z]+|\d+", prompt_lower))
+
+        # Deterministic alphabetical ordering for tie-breaking
+        sorted_candidates = sorted(candidates)
 
         scored = []
-        for cand in candidates:
-            sub_parts = [p for p in re.split(r'[_0-9]+', cand.lower()) if len(p) >= 2]
+        for cand in sorted_candidates:
+            # Decompose candidate into alphanumeric sub-tokens (e.g. COLOR_BGR2GRAY -> ['color', 'bgr', '2', 'gray'])
+            parts = [p for p in re.findall(r"[a-z]+|\d+", cand.lower()) if len(p) >= 2]
+            if not parts:
+                continue
+
             score = 0.0
-            for part in sub_parts:
+            matched_parts = 0
+
+            # Token overlap scoring
+            for idx, part in enumerate(parts):
+                matched = False
                 if part in p_tokens:
                     score += 2.0
+                    matched = True
                 elif any(t.startswith(part) or part.startswith(t) for t in p_tokens if len(t) >= 4 and len(part) >= 4):
                     score += 1.5
+                    matched = True
 
-            if "bgr2" in cand.lower():
-                score += 0.2
+                if matched:
+                    matched_parts += 1
+                    # Codomain / target alignment bonus: matched token is at terminal constituent position
+                    if idx == len(parts) - 1:
+                        score += 2.0
 
-            scored.append((score, cand))
+            # Parsimony penalty: penalize unrequested sub-tokens
+            unmatched_parts = len(parts) - matched_parts
+            score -= 0.5 * unmatched_parts
 
-        scored.sort(key=lambda x: x[0], reverse=True)
+            scored.append((score, -len(cand), cand))
+
+        scored.sort(key=lambda x: (x[0], x[1]), reverse=True)
         if scored and scored[0][0] > 0.0:
-            return f"{mod_name}.{scored[0][1]}"
+            return f"{mod_name}.{scored[0][2]}"
 
         return None
 
@@ -875,7 +901,7 @@ class ParameterExtractor:
         if quoted_strings:
             slots.named_identifiers.extend(quoted_strings)
         else:
-            sym = ctx._allocate_free_symbol("by")
+            sym = ctx._allocate_free_symbol()
             if sym:
                 slots.named_identifiers.append(sym)
         return slots

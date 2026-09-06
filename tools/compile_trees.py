@@ -58,6 +58,7 @@ def compile_database(output_db: str = DB_PATH, domain_filter: Optional[List[str]
         trees_dir = str(PROJECT_ROOT / "trees")
         output = output_db
         domains = domain_filter
+        clean = True
 
     cmd_compile(Args())
 

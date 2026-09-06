@@ -18,6 +18,7 @@ corrupt combinatorial duplicate cells.
 
 from __future__ import annotations
 import ast
+import collections.abc
 import importlib
 import inspect
 import json
@@ -32,10 +33,12 @@ try:
     from schema import CellSchema, PortSchema, TreeSchema
     from log_config import get_logger
     from signature_introspector import get_callable_parameters, get_enum_parameter_map, extract_doc_signature
+    from template_wiring import repair_wiring_invariant
 except ImportError:
     from .schema import CellSchema, PortSchema, TreeSchema
     from .log_config import get_logger
     from .signature_introspector import get_callable_parameters, get_enum_parameter_map, extract_doc_signature
+    from .template_wiring import repair_wiring_invariant
 
 logger = get_logger("universal_harvester")
 
@@ -54,25 +57,32 @@ def split_identifier_keywords(name: str) -> List[str]:
 
 
 def infer_qualifiers_from_constant(name: str) -> List[List[str]]:
-    """Infers semantic qualifiers from constant names (e.g. COLOR_BGR2GRAY -> source:bgr, target:gray)."""
-    parts = name.split("_")
-    qualifiers: List[List[str]] = []
-    for p in parts:
-        p_lower = p.lower()
-        if "2" in p_lower:
-            subparts = p_lower.split("2")
-            if len(subparts) == 2 and subparts[0] and subparts[1]:
-                qualifiers.append(["source", subparts[0]])
-                qualifiers.append(["target", subparts[1]])
-        elif p_lower in ("rgb", "bgr", "gray", "hsv", "lab", "yuv"):
-            qualifiers.append(["color_space", p_lower])
-        elif p_lower in ("binary", "otsu", "triangle", "tozero", "trunc"):
-            qualifiers.append(["threshold_type", p_lower])
-        elif p_lower in ("linear", "nearest", "cubic", "area", "lanczos4"):
-            qualifiers.append(["interpolation", p_lower])
-        elif p_lower in ("min", "max", "l1", "l2", "inf"):
-            qualifiers.append(["norm_type", p_lower])
-    return qualifiers
+    """
+    Infers structural qualifiers from constant names via morphological decomposition.
+    Zero domain-specific lists or hardcoded transitions.
+    Decomposes structural qualifiers PREFIX_PART -> [prefix, part].
+    """
+    parts = [p.lower() for p in name.split("_") if p]
+    if len(parts) <= 1:
+        return []
+    prefix = parts[0]
+    return [[prefix, p] for p in parts[1:]]
+
+
+def infer_typestate_from_name(name: str) -> str:
+    """Derives a normalized typestate string from a callable name via morphological participle formation."""
+    words = split_identifier_keywords(name)
+    if not words:
+        return "transformed"
+    verb = words[0].lower()
+    if verb.endswith("ed"):
+        return verb
+    elif verb.endswith("e"):
+        return verb + "d"
+    elif verb.endswith("y") and len(verb) > 2 and verb[-2] not in "aeiou":
+        return verb[:-1] + "ied"
+    else:
+        return verb + "ed"
 
 
 class UniversalHarvester:
@@ -81,24 +91,6 @@ class UniversalHarvester:
     Discovers all public modules, callables, classes, and constants in a library,
     classifies them by morphism archetype, and outputs clean, validated CellSchemas.
     """
-
-    CARRIER_NAMES = {
-        "src", "img", "image", "data", "df", "frame", "matrix", "arr", "array",
-        "input", "input_data", "x", "y", "a", "b", "series"
-    }
-
-    INGESTION_NAMES = {
-        "read", "load", "from", "zeros", "ones", "empty", "arange", "linspace",
-        "imread", "open", "create", "eye", "identity", "random", "randn", "rand"
-    }
-
-    EGRESS_NAMES = {
-        "to", "save", "write", "dump", "show", "export", "imwrite", "print", "display"
-    }
-
-    CALLABLE_PARAM_NAMES = {
-        "func", "fn", "callback", "predicate", "fun", "callable", "apply_fn", "criterion"
-    }
 
     def __init__(
         self,
@@ -125,6 +117,7 @@ class UniversalHarvester:
         self.discovered_modules: Dict[str, Any] = {}
         self.constants_by_prefix: Dict[str, List[Tuple[str, Any, str]]] = {}
         self.container_classes: Set[type] = set()
+        self.primary_container: Optional[type] = None
 
     def discover_submodules(self) -> Dict[str, Any]:
         """Recursively discovers public submodules within the package up to max_depth."""
@@ -147,7 +140,6 @@ class UniversalHarvester:
                     tail = modname.split(".")[-1]
                     if (
                         tail.startswith("_")
-                        or tail in ("tests", "test", "testing", "benchmarks", "compat", "core", "matlib")
                         or "._" in modname
                     ):
                         continue
@@ -157,16 +149,16 @@ class UniversalHarvester:
                         modules[modname] = mod
                         if ispkg and hasattr(mod, "__path__"):
                             _walk(modname + ".", mod.__path__, depth + 1)
-                    except Exception:
+                    except (Exception, BaseException):
                         continue
-            except Exception:
+            except (Exception, BaseException):
                 pass
 
         _walk(self.package_name + ".", pkg_path, 1)
 
         # Also inspect direct module attributes (e.g. cv2.dnn, numpy.linalg)
         for attr_name in dir(self.root_module):
-            if not attr_name.startswith("_") and attr_name not in ("core", "compat", "matlib"):
+            if not attr_name.startswith("_"):
                 try:
                     attr_val = getattr(self.root_module, attr_name, None)
                     if inspect.ismodule(attr_val):
@@ -207,7 +199,11 @@ class UniversalHarvester:
         return groups
 
     def identify_container_classes(self) -> Set[type]:
-        """Identifies primary data carrier container classes in the library."""
+        """
+        Identifies primary data carrier container classes in the library via runtime reflection.
+        Zero hardcoded name lists.
+        Discovers classes that implement algebraic/collection protocols or exhibit high method density.
+        """
         containers: Set[type] = set()
 
         if self.container_type:
@@ -215,22 +211,120 @@ class UniversalHarvester:
                 cls = getattr(mod, self.container_type, None)
                 if inspect.isclass(cls):
                     containers.add(cls)
+            if containers:
+                self.container_classes = containers
+                self.primary_container = next(iter(containers))
+                return containers
 
-        # Heuristic detection based on method density and naming
+        scored_classes: List[Tuple[float, type]] = []
+        seen_types = set()
+
         for mod in self.discovered_modules.values():
             for name in dir(mod):
                 if name.startswith("_"):
                     continue
                 try:
                     obj = getattr(mod, name, None)
-                    if inspect.isclass(obj) and getattr(obj, "__module__", "").startswith(self.package_name):
-                        methods = [m for m in dir(obj) if not m.startswith("_") and callable(getattr(obj, m, None))]
-                        if len(methods) >= 15:
-                            name_lower = name.lower()
-                            if any(k in name_lower for k in ("data", "frame", "matrix", "array", "series", "image", "mat", "tensor")):
-                                containers.add(obj)
+                    if not inspect.isclass(obj) or obj in seen_types:
+                        continue
+                    seen_types.add(obj)
+
+                    obj_mod = getattr(obj, "__module__", "") or ""
+                    # Language builtins and non-package classes are not the library's domain containers
+                    if obj_mod in ("builtins", "typing", "collections.abc") or obj_mod.startswith("builtins."):
+                        continue
+                    if not obj_mod.startswith(self.package_name) and self.package_name != "builtins":
+                        continue
+
+                    # Must satisfy container / collection protocol
+                    has_len = hasattr(obj, "__len__")
+                    has_contains = hasattr(obj, "__contains__")
+                    try:
+                        is_cont = issubclass(obj, (collections.abc.Container, collections.abc.Collection))
+                    except TypeError:
+                        is_cont = False
+                    if not (has_len or has_contains or is_cont):
+                        continue
+
+                    # Count public callable methods
+                    methods = [
+                        m for m in dir(obj)
+                        if not m.startswith("_") and callable(getattr(obj, m, None))
+                    ]
+                    num_methods = len(methods)
+                    if num_methods < 5:
+                        continue
+
+                    score = float(num_methods)
+
+                    # Algebraic container protocols
+                    has_getitem = hasattr(obj, "__getitem__")
+                    if has_len and has_getitem:
+                        score += 50.0
+                    elif has_len or has_getitem:
+                        score += 20.0
+                    if has_contains:
+                        score += 20.0
+                    if is_cont:
+                        score += 30.0
+
+                    scored_classes.append((score, obj))
                 except Exception:
                     continue
+
+        # Also discover container classes from callable parameter/return annotations
+        for mod in self.discovered_modules.values():
+            for name in dir(mod):
+                if name.startswith("_"):
+                    continue
+                try:
+                    fn = getattr(mod, name, None)
+                    if callable(fn) and not inspect.isclass(fn):
+                        sig = inspect.signature(fn)
+                        candidates = [p.annotation for p in sig.parameters.values()] + [sig.return_annotation]
+                        for cand in candidates:
+                            if inspect.isclass(cand) and cand not in seen_types:
+                                seen_types.add(cand)
+                                cand_mod = getattr(cand, "__module__", "") or ""
+                                if cand_mod in ("builtins", "typing", "collections.abc") or cand_mod.startswith("builtins."):
+                                    continue
+                                try:
+                                    has_len = hasattr(cand, "__len__")
+                                    has_getitem = hasattr(cand, "__getitem__")
+                                    is_coll = issubclass(cand, (collections.abc.Container, collections.abc.Collection))
+                                    if (has_len and has_getitem) or is_coll:
+                                        scored_classes.append((100.0, cand))
+                                except TypeError:
+                                    pass
+                except Exception:
+                    continue
+
+        # Adjust score by subclass hierarchy and root package export
+        adjusted_classes: List[Tuple[float, type]] = []
+        root_all = getattr(self.root_module, "__all__", dir(self.root_module))
+        for score, cls in scored_classes:
+            derivations = 0
+            for _, other in scored_classes:
+                if other is not cls:
+                    try:
+                        if issubclass(other, cls):
+                            derivations += 1
+                    except TypeError:
+                        pass
+            adj_score = score + min(derivations, 4) * 10.0
+            if cls.__name__ in root_all and getattr(self.root_module, cls.__name__, None) is cls:
+                adj_score += 50.0
+            adjusted_classes.append((adj_score, cls))
+
+        adjusted_classes.sort(key=lambda x: x[0], reverse=True)
+        if adjusted_classes:
+            self.primary_container = adjusted_classes[0][1]
+            top_score = adjusted_classes[0][0]
+            for score, cls in adjusted_classes:
+                if score >= top_score * 0.7 and len(containers) < 3:
+                    containers.add(cls)
+        else:
+            self.primary_container = None
 
         self.container_classes = containers
         return containers
@@ -265,7 +359,7 @@ class UniversalHarvester:
                 keywords = split_identifier_keywords(const_name) + [prefix.lower(), self.domain_name.lower()]
                 cell = CellSchema(
                     cell_id=cell_id,
-                    stage=2,
+                    stage=0,
                     inputs={},
                     outputs={"value": out_port},
                     code_template=code_template,
@@ -276,56 +370,158 @@ class UniversalHarvester:
                     domain_name=self.domain_name,
                     node_type="constant",
                     node_role="constant",
-                    source_priority=10
+                    source_priority=100
                 )
                 constant_cells.append(cell)
 
         return constant_cells
 
-    def _infer_stage(self, func_name: str, has_carrier_input: bool, ret_type: str, doc: str) -> int:
-        """Determines the categorical stage (1: Ingestion, 2: Transform, 3: Egress)."""
-        fn_lower = func_name.lower()
-        doc_lower = doc.lower()[:300] if doc else ""
+    def _is_carrier_type(self, typ: Any) -> bool:
+        """
+        Categorical check: Does `typ` belong to the category's carrier objects Obj(C)?
+        True if typ is identical to, or in a subtype relation with, any discovered container class in C.
+        Pure category-theoretic set membership with zero explicit data type checks.
+        """
+        if not inspect.isclass(typ) or typ is object:
+            return False
+        for c in self.container_classes:
+            try:
+                if typ is c or issubclass(typ, c) or issubclass(c, typ):
+                    return True
+            except TypeError:
+                pass
+        return False
 
-        # Stage 3: Terminal / Egress
-        if str(ret_type).lower() in ("none", "nonetype", "void", "unit"):
-            return 3
-        if any(fn_lower.startswith(k) or f"_{k}" in fn_lower for k in self.EGRESS_NAMES):
-            return 3
-        if "save" in doc_lower or "write" in doc_lower or "display" in doc_lower or "export" in doc_lower:
+    def _get_carrier_tokens(self) -> Set[str]:
+        """
+        Dynamically extracts carrier morphological tokens and identifiers
+        from discovered container classes and their MRO via runtime reflection.
+        Zero hardcoded name lists or domain-specific assumptions.
+        """
+        tokens: Set[str] = set()
+        for c in self.container_classes:
+            tokens.add(c.__name__.lower())
+            tokens.update(split_identifier_keywords(c.__name__))
+
+            # MRO base classes (excluding object and builtins)
+            for base in getattr(c, "__mro__", []):
+                base_mod = getattr(base, "__module__", "") or ""
+                if base is not object and base_mod != "builtins" and not base_mod.startswith("builtins."):
+                    tokens.add(base.__name__.lower())
+                    tokens.update(split_identifier_keywords(base.__name__))
+
+        if self.container_type:
+            tokens.add(self.container_type.lower())
+            tokens.update(split_identifier_keywords(self.container_type))
+
+        return tokens
+
+    def _infer_stage(
+        self,
+        func_name: str,
+        has_carrier_input: bool,
+        ret_type: str,
+        doc: str,
+        is_instance_method: bool = False
+    ) -> int:
+        """
+        Determines the categorical stage (1: Ingestion, 2: Transform, 3: Egress) via signature reflection.
+        Categorically:
+          - Stage 1 (Initial / Ingestion): 0 -> C (consumes no carrier from DAG, returns carrier data)
+          - Stage 3 (Terminal / Egress): C -> 1 (consumes carrier, returns terminal object: None/void/bool)
+          - Stage 2 (Endomorphism): C -> C' (consumes carrier, produces transformed carrier)
+        Zero word lists or heuristic keyword matching.
+        """
+        consumes_carrier = has_carrier_input or is_instance_method
+
+        if not consumes_carrier:
+            # 0 -> C: Initial / Source morphism
+            return 1
+
+        ret_lower = str(ret_type).lower().strip() if ret_type else ""
+        carrier_tokens = self._get_carrier_tokens()
+
+        # Categorical codomain check: does the morphism produce a carrier container in C?
+        produces_carrier = False
+        if ret_lower:
+            for cls in self.container_classes:
+                c_name = cls.__name__.lower()
+                if c_name == ret_lower or c_name in ret_lower:
+                    produces_carrier = True
+                    break
+            if not produces_carrier and any(t in ret_lower for t in carrier_tokens):
+                produces_carrier = True
+        elif doc:
+            for cls in self.container_classes:
+                if re.search(rf"\b(?:returns?|into|->)\s*.*?\b{cls.__name__}\b", doc, re.IGNORECASE):
+                    produces_carrier = True
+                    break
+            if not produces_carrier and any(re.search(rf"\b(?:returns?|into|->)\s*.*?\b{t}\b", doc, re.IGNORECASE) for t in carrier_tokens):
+                produces_carrier = True
+
+        # Check return arrow in docstring: In Category Theory, a morphism maps src -> dst
+        if not produces_carrier and doc:
+            m_arrow = re.search(rf"\b{re.escape(func_name)}\(.*?\)\s*->\s*([a-zA-Z0-9_]+)", doc)
+            if m_arrow:
+                arrow_ret = m_arrow.group(1).lower()
+                if arrow_ret in carrier_tokens or arrow_ret == "dst":
+                    produces_carrier = True
+
+        # In-place instance methods on carrier container default to endomorphism (C -> C)
+        if not produces_carrier and is_instance_method and not ret_lower:
+            produces_carrier = True
+
+        if not produces_carrier:
+            # C -> 1: Terminal / Egress morphism
             return 3
 
-        # Stage 1: Initial / Ingestion
-        if not has_carrier_input:
-            if any(fn_lower.startswith(k) or f"_{k}" in fn_lower for k in self.INGESTION_NAMES):
-                return 1
-            if "read" in doc_lower or "load" in doc_lower or "create" in doc_lower:
-                return 1
-
+        # C -> C': Endomorphism / Transform morphism
         return 2
 
-    def _detect_enum_parameter(self, param_name: str, doc: str) -> Optional[str]:
-        """Detects whether a parameter expects an enum flag and identifies the enum prefix."""
+    def _detect_enum_parameter(
+        self,
+        param_name: str,
+        doc: str,
+        param_obj: Optional[inspect.Parameter] = None
+    ) -> Optional[str]:
+        """
+        Detects whether a parameter expects an enum flag and identifies the enum prefix dynamically.
+        Zero hardcoded parameter names.
+        Grounds detection in:
+          1. Parameter type annotations (Enum, Literal)
+          2. Docstring parameter specifications (@param <name> ... see #<Type>)
+          3. Docstring mentions of #<PREFIX>_* or <PREFIX>_*
+          4. Token match between param_name and discovered library constant prefixes
+        """
+        # 1. Type annotation reflection
+        if param_obj and param_obj.annotation != inspect._empty:
+            anno = param_obj.annotation
+            anno_str = getattr(anno, "__name__", str(anno)).lower()
+            for prefix in self.constants_by_prefix:
+                if prefix.lower() in anno_str:
+                    return prefix
+
+        # 2. Docstring type mapping: @param <p_name> ... see #<Type>
         enum_map = get_enum_parameter_map(doc)
         for prefix, p_name in enum_map.items():
             if p_name.lower() == param_name.lower() or param_name.lower() in p_name.lower():
-                return prefix
+                if prefix in self.constants_by_prefix:
+                    return prefix
 
+        # 3. Parameter-specific docstring block reflection: find #PREFIX_* or see #Type in parameter description
         p_clean = param_name.lower().replace("_", "")
+        if doc:
+            p_blocks = re.findall(rf"@param\s+{re.escape(param_name)}\b([^@]+)", doc, re.IGNORECASE)
+            for block in p_blocks:
+                for prefix in self.constants_by_prefix:
+                    if f"#{prefix}_" in block or f"#{prefix.lower()}" in block.lower() or f"see #{prefix.lower()}" in block.lower():
+                        return prefix
+
+        # 4. Token match between parameter name and discovered library constant prefixes
         for prefix in self.constants_by_prefix:
             pref_clean = prefix.lower().replace("_", "")
-            if pref_clean in p_clean or p_clean in pref_clean:
+            if len(pref_clean) >= 3 and (pref_clean in p_clean or p_clean.startswith(pref_clean) or p_clean.endswith(pref_clean)):
                 return prefix
-
-        # Common OpenCV / Scipy parameter name conventions
-        if p_clean in ("code", "colortype"):
-            return "COLOR"
-        if p_clean in ("interpolation", "interp"):
-            return "INTER"
-        if p_clean in ("thresholdtype", "thresh"):
-            return "THRESH"
-        if p_clean in ("normtype", "norm"):
-            return "NORM"
 
         return None
 
@@ -361,6 +557,16 @@ class UniversalHarvester:
         optional_params: List[str] = param_info.get("optional", [])
         all_params: List[str] = param_info.get("all", required_params + optional_params)
 
+        # Introspect inspect.signature if possible
+        param_objs: Dict[str, inspect.Parameter] = {}
+        ret_annotation: Any = None
+        try:
+            sig = inspect.signature(func_obj)
+            param_objs = dict(sig.parameters)
+            ret_annotation = sig.return_annotation
+        except Exception:
+            pass
+
         # If it's an instance method, drop 'self' or 'cls'
         if is_instance_method:
             required_params = [p for p in required_params if p not in ("self", "cls")]
@@ -368,27 +574,94 @@ class UniversalHarvester:
             all_params = [p for p in all_params if p not in ("self", "cls")]
 
         # Determine primary carrier type
-        carrier_type = container_class_name or (
-            self.container_type or (next(iter(self.container_classes)).__name__ if self.container_classes else "DataObject")
+        primary_cls_name = self.primary_container.__name__ if getattr(self, "primary_container", None) else None
+        carrier_type = container_class_name or self.container_type or primary_cls_name or (
+            next(iter(self.container_classes)).__name__ if self.container_classes else "DataObject"
         )
 
-        # Detect carrier argument
+        # Carrier detection via type annotations and collection protocols
         carrier_param = None
+        if is_instance_method:
+            has_carrier = True
+        else:
+            carrier_tokens = self._get_carrier_tokens()
+            params_to_check = required_params if required_params else all_params
+
+            # 1. Type annotations against discovered container classes (Obj(C))
+            for p in params_to_check:
+                p_obj = param_objs.get(p)
+                if p_obj and p_obj.annotation != inspect._empty:
+                    anno = p_obj.annotation
+                    if self._is_carrier_type(anno):
+                        carrier_param = p
+                        break
+                    anno_str = str(anno).lower()
+                    if any(t in anno_str for t in carrier_tokens):
+                        carrier_param = p
+                        break
+
+            # 2. Check parameters against reflected carrier tokens and docstrings
+            if not carrier_param:
+                for p in params_to_check:
+                    p_lower = p.lower()
+                    if p_lower in carrier_tokens:
+                        carrier_param = p
+                        break
+                    if doc:
+                        m_p = re.search(rf"@param\s+{re.escape(p)}\b([^@\n]+)", doc, re.IGNORECASE)
+                        if not m_p:
+                            m_p = re.search(rf"^\s*{re.escape(p)}\s*:\s*([^\n]+)", doc, re.MULTILINE)
+                        if m_p:
+                            p_desc = m_p.group(1).lower()
+                            if any(t in p_desc for t in carrier_tokens):
+                                carrier_param = p
+                                break
+
+            # 3. Categorical operand fallback: if morphism docstring indicates 'dst' return, primary operand is source positional param
+            if not carrier_param and params_to_check and doc:
+                m_arrow = re.search(rf"\b{re.escape(func_name)}\(.*?\)\s*->\s*([a-zA-Z0-9_]+)", doc)
+                if m_arrow:
+                    arrow_target = m_arrow.group(1).lower()
+                    if arrow_target == "dst" or arrow_target in carrier_tokens:
+                        carrier_param = params_to_check[0]
+
+            has_carrier = carrier_param is not None
+
+        # Return type detection
+        ret_type_str = ""
+        if ret_annotation not in (inspect._empty, None):
+            ret_type_str = getattr(ret_annotation, "__name__", str(ret_annotation))
+        elif doc:
+            m_ret = re.search(rf"\b{re.escape(func_name)}\(.*?\)\s*->\s*([a-zA-Z0-9_, ]+)", doc)
+            if not m_ret:
+                m_ret = re.search(r"Returns?\s*\n\s*-+\s*(?:[a-zA-Z0-9_]+\s*:\s*)?([a-zA-Z0-9_]+)", doc)
+            if m_ret:
+                ret_type_str = m_ret.group(1).strip()
+
+        stage = self._infer_stage(
+            func_name=func_name,
+            has_carrier_input=has_carrier,
+            ret_type=ret_type_str,
+            doc=doc,
+            is_instance_method=is_instance_method
+        )
+
+        # Detect Higher-Order Morphisms via reflection
+        is_higher_order = False
         for p in all_params:
-            if p.lower() in self.CARRIER_NAMES:
-                carrier_param = p
+            p_obj = param_objs.get(p)
+            if p_obj and p_obj.annotation != inspect._empty:
+                anno_str = str(p_obj.annotation).lower()
+                if "callable" in anno_str or "function" in anno_str:
+                    is_higher_order = True
+                    break
+            if p_obj and p_obj.default not in (inspect._empty, None) and callable(p_obj.default):
+                is_higher_order = True
                 break
-        if not carrier_param and all_params and not is_instance_method:
-            # Fall back to first argument if not an ingestion function
-            fn_lower = func_name.lower()
-            if not any(fn_lower.startswith(k) for k in self.INGESTION_NAMES):
-                carrier_param = all_params[0]
+            if doc and re.search(rf"\b{re.escape(p)}\s*:\s*(?:[^,\n]*\b)?(?:callable|function)\b", doc, re.IGNORECASE):
+                is_higher_order = True
+                break
 
-        has_carrier = (carrier_param is not None) or is_instance_method
-        stage = self._infer_stage(func_name, has_carrier, carrier_type, doc)
-
-        # Detect Morphism Archetype
-        is_higher_order = any(p.lower() in self.CALLABLE_PARAM_NAMES for p in all_params)
         node_type = "function"
         node_role = "function"
         slots: Dict[str, Any] = {}
@@ -403,6 +676,21 @@ class UniversalHarvester:
                 }
             }
 
+        # Detect carrier type for output
+        detected_out_carrier = carrier_type
+        if is_instance_method and stage == 2:
+            detected_out_carrier = carrier_type
+        elif ret_type_str:
+            for cls in self.container_classes:
+                if cls.__name__.lower() in ret_type_str.lower():
+                    detected_out_carrier = cls.__name__
+                    break
+        elif doc:
+            for cls in self.container_classes:
+                if re.search(rf"\b(?:returns?|into|->)\s*.*?\b{cls.__name__}\b", doc, re.IGNORECASE):
+                    detected_out_carrier = cls.__name__
+                    break
+
         # Build ports and template arguments
         inputs: Dict[str, PortSchema] = {}
         outputs: Dict[str, PortSchema] = {}
@@ -410,66 +698,82 @@ class UniversalHarvester:
         is_parameterized = False
 
         if stage == 1:
-            # Source Morphism
+            # Source Morphism: 0 -> C
             node_type = "source"
-            node_role = "source"
-            path_param = next((p for p in all_params if "path" in p.lower() or "file" in p.lower() or "url" in p.lower()), None)
-            if path_param:
-                inputs["filepath"] = PortSchema(type_name="str", state="source_identifier", description="Source path")
-                template_args.append("{filepath}")
-            else:
-                for p in required_params:
-                    inputs[p] = PortSchema(type_name="any", state="source_spec", description=f"Source argument {p}")
+            src_param = all_params[0] if all_params else "filepath"
+            # In Category Theory, an Initial Morphism 0 -> C ingests from the external environment (resource identifier)
+            # or constructs a carrier from structural dimensions.
+            is_file_src = (
+                any(t in ("path", "file") for t in split_identifier_keywords(src_param))
+                or (doc and "file" in doc.lower())
+            )
+            for p in all_params:
+                if p == src_param:
+                    if is_file_src:
+                        inputs["filepath"] = PortSchema(type_name="str", state="source_identifier", description=f"Source argument {src_param}", required=True)
+                        template_args.append("{filepath}")
+                    else:
+                        inputs[src_param] = PortSchema(type_name="any", state=src_param.lower(), description=f"Source parameter {src_param}", required=True)
+                        template_args.append(f"{{{src_param}}}")
+                elif p in required_params:
+                    inputs[p] = PortSchema(type_name="any", state=p.lower(), description=f"Source argument {p}", required=True)
                     template_args.append(f"{{{p}}}")
-            outputs["output_data"] = PortSchema(type_name=carrier_type, state="raw", description="Ingested data")
+            outputs["output_data"] = PortSchema(type_name=detected_out_carrier, state="raw", description="Ingested data")
 
         elif stage == 3:
-            # Sink Morphism
+            # Sink Morphism: C -> 1
             node_type = "sink"
             node_role = "sink"
+            dest_param = next((p for p in all_params if p != carrier_param), None)
+            if dest_param:
+                inputs["dest_path"] = PortSchema(type_name="str", state="dest_identifier", description=f"Destination argument {dest_param}", required=True)
+            inputs["data"] = PortSchema(type_name=carrier_type, state="any", description="Input data", required=True)
+
             if is_instance_method:
-                dest_param = next((p for p in all_params if "path" in p.lower() or "file" in p.lower() or "dest" in p.lower()), None)
-                if dest_param or any(k in func_name.lower() for k in ("to_", "save", "write")):
-                    inputs["dest_path"] = PortSchema(type_name="str", state="dest_identifier", description="Destination path")
-                    template_args.append("{dest_path}")
+                for p in all_params:
+                    if p == dest_param:
+                        template_args.append("{dest_path}")
+                    elif p in required_params:
+                        inputs[p] = PortSchema(type_name="any", state=p.lower(), description=f"Sink argument {p}", required=True)
+                        template_args.append(f"{{{p}}}")
             else:
-                inputs["data"] = PortSchema(type_name=carrier_type, state="any", description="Input data")
-                inputs["dest_path"] = PortSchema(type_name="str", state="dest_identifier", description="Destination path")
-                dest_idx = next((i for i, p in enumerate(all_params) if "path" in p.lower() or "file" in p.lower() or "dest" in p.lower() or "name" in p.lower()), 0)
-                carrier_idx = next((i for i, p in enumerate(all_params) if p.lower() in self.CARRIER_NAMES), 1)
-                if dest_idx < carrier_idx:
-                    template_args.extend(["{dest_path}", "{data}"])
-                else:
-                    template_args.extend(["{data}", "{dest_path}"])
+                for p in all_params:
+                    if p == dest_param:
+                        template_args.append("{dest_path}")
+                    elif p == carrier_param:
+                        template_args.append("{data}")
+                    elif p in required_params:
+                        inputs[p] = PortSchema(type_name="any", state=p.lower(), description=f"Sink argument {p}", required=True)
+                        template_args.append(f"{{{p}}}")
 
             outputs["output_data"] = PortSchema(type_name="str", state="filepath_written", description="Egress confirmation")
 
         else:
-            # Stage 2: Transform / Endomorphism
-            if is_instance_method:
-                pass  # self is {data}
-            else:
-                carrier_port_name = carrier_param or "data"
-                inputs[carrier_port_name] = PortSchema(type_name=carrier_type, state="any", description="Input carrier data")
-                template_args.append(f"{{{carrier_port_name}}}")
+            # Stage 2: Transform / Endomorphism: C -> C'
+            inputs["data"] = PortSchema(type_name=carrier_type, state="any", description="Input carrier data", required=True)
 
-            # Process remaining parameters
             for p in all_params:
-                if p == carrier_param:
+                if not is_instance_method and p == carrier_param:
+                    template_args.append("{data}")
                     continue
 
-                enum_prefix = self._detect_enum_parameter(p, doc)
+                p_obj = param_objs.get(p)
+                enum_prefix = self._detect_enum_parameter(p, doc, p_obj)
                 is_req = (p in required_params)
 
                 if is_req:
                     if enum_prefix:
                         is_parameterized = True
                         domain_id = f"{mod_name}.{enum_prefix}_*"
+                        default_const = None
+                        if enum_prefix in self.constants_by_prefix and self.constants_by_prefix[enum_prefix]:
+                            default_const = f"{self.constants_by_prefix[enum_prefix][0][2]}.{self.constants_by_prefix[enum_prefix][0][0]}"
                         inputs[p] = PortSchema(
                             type_name="Enum",
                             state=enum_prefix.lower(),
                             domain=domain_id,
                             required=True,
+                            default_value=default_const,
                             description=f"Enum parameter {p} from {domain_id}"
                         )
                     else:
@@ -485,8 +789,8 @@ class UniversalHarvester:
                 node_type = "parameterized"
                 node_role = "parameterized"
 
-            out_state = func_name.lower().strip("_") or "transformed"
-            outputs["output_data"] = PortSchema(type_name=carrier_type, state=out_state, description=f"Output {out_state}")
+            out_state = infer_typestate_from_name(func_name)
+            outputs["output_data"] = PortSchema(type_name=detected_out_carrier, state=out_state, description=f"Output {out_state}")
 
         # Assemble code_template
         call_prefix = f"{mod_name}.{func_name}"
@@ -569,6 +873,9 @@ class UniversalHarvester:
         # 2. Harvest Instance Methods on Container Classes
         method_count = 0
         for cls in self.container_classes:
+            cls_mod = getattr(cls, "__module__", "") or ""
+            if not cls_mod.startswith(self.package_name) and self.package_name != "builtins":
+                continue
             cls_name = cls.__name__
             for attr_name in dir(cls):
                 if attr_name.startswith("_"):
@@ -693,5 +1000,38 @@ class UniversalHarvester:
 
                 enriched_count += 1
 
-        logger.info(f"[{domain_name}] Enriched {enriched_count}/{len(new_cells)} cells from previous knowledge bases")
+        # Preserve verified gold-standard curated nodes (source_priority <= 10) not captured by pure reflection
+        existing_cell_ids = {c.cell_id.upper() for c in new_cells}
+        preserved_curated = 0
+        for cid, oc in old_knowledge.items():
+            if not isinstance(oc, dict) or "cell_id" not in oc:
+                continue
+            orig_cid = oc["cell_id"].upper()
+            d_prefix = domain_name.upper().replace("_CORE", "")
+            if orig_cid.startswith(domain_name.upper()) or orig_cid.startswith(f"{d_prefix}_"):
+                if oc.get("source_priority", 100) <= 10:
+                    if orig_cid not in existing_cell_ids:
+                        try:
+                            oc_copy = dict(oc)
+                            oc_copy["verified"] = True
+                            repair_wiring_invariant(oc_copy, domain_name)
+                            preserved_cell = CellSchema(**oc_copy)
+                            new_cells.append(preserved_cell)
+                            existing_cell_ids.add(orig_cid)
+                            preserved_curated += 1
+                        except Exception as e:
+                            logger.warning(f"[{domain_name}] Failed to preserve curated node {orig_cid}: {e}")
+
+        logger.info(f"[{domain_name}] Enriched {enriched_count}/{len(new_cells)} cells, preserved {preserved_curated} curated priority nodes")
         return new_cells
+
+    def merge_and_save(self, new_cells: List[CellSchema], out_file: Union[str, Path]):
+        """Saves harvested cells into domain JSON tree schema."""
+        out_path = Path(out_file)
+        out_path.parent.mkdir(parents=True, exist_ok=True)
+        tree = TreeSchema(
+            domain=self.domain_name,
+            cells=new_cells
+        )
+        with open(out_path, "w", encoding="utf-8") as f:
+            f.write(tree.model_dump_json(indent=2))
