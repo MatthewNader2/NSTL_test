@@ -57,112 +57,161 @@ class LatticePlanner:
         if len(tunnel) == 1:
             return [tunnel[0]]
 
-        # Partition tunnel cells by stage (excluding leaf constants from data transforms)
-        stage1_cells = [c for c in tunnel if c.stage == 1 and getattr(c, "node_type", "") != "constant"]
-        stage2_cells = [c for c in tunnel if c.stage == 2 and getattr(c, "node_type", "") != "constant" and bool(getattr(c, "inputs", None))]
-        stage3_cells = [c for c in tunnel if c.stage == 3 and getattr(c, "node_type", "") != "constant"]
-
-        # If start_sig is specified, filter candidate entry cells to type-compatible entries
-        if start_sig is not None:
-            s_sig = start_sig.signature if hasattr(start_sig, "signature") else start_sig
-            matching_entries = [c for c in tunnel if unify(s_sig, c.primary_input.signature) is not None]
-            candidate_entries = matching_entries if matching_entries else tunnel
-        else:
-            candidate_entries = tunnel
-
-        # If goal_sig is specified, filter stage 3 cells to type-compatible exits
-        if goal_sig is not None:
-            g_sig = goal_sig.signature if hasattr(goal_sig, "signature") else goal_sig
-            matching_s3 = [c for c in stage3_cells if unify(c.primary_output.signature, g_sig) is not None]
-            if matching_s3:
-                stage3_cells = matching_s3
-
-        # Decompose prompt into constituent clauses to identify initial clause intent
-        import re
-        clauses = re.split(r'\s+(?:then|and\s+then|and|,|;)\s+', prompt.strip())
-        first_clause = clauses[0].strip() if clauses else prompt.strip()
-        first_clause_tokens = CellTokenizer.tokenize_prompt(first_clause)
-        prompt_tokens = CellTokenizer.tokenize_prompt(prompt)
+        # Decompose prompt into constituent clauses using deterministic delimiters (zero regex)
+        clauses = self._split_prompt_clauses(prompt.strip())
         is_multistage = len(clauses) > 1
 
-        # 1. Select Best Entry Node via universal category-theoretic fitness
-        def entry_fitness(c: Cell) -> Tuple[int, int, int, float]:
-            curated = 1 if getattr(c, "source_priority", 100) <= 10 else 0
-            c_tokens = set(c.token_set)
-            clause_overlap = len(c_tokens & first_clause_tokens)
-            # In a multi-stage workflow, initial ingestion (stage 1) with clause overlap is favored for entry
-            stage_match = 1 if (is_multistage and c.stage == 1 and clause_overlap > 0) or (not is_multistage and clause_overlap > 0) else 0
-            rel = relevance_map.get(c.cell_id, 0.0)
-            return (stage_match, curated, clause_overlap, rel)
+        # Compute log-likelihood distributions log P(v | e_{c_k}) for each clause
+        clause_log_probs: List[Dict[str, float]] = []
+        for c_text in clauses:
+            clause_scores: Dict[str, float] = {}
+            for cell in tunnel:
+                # Semantic vector similarity via RAG or token Jaccard fallback
+                rel = relevance_map.get(cell.cell_id, 0.0)
+                clause_tokens = CellTokenizer.tokenize_prompt(c_text)
+                cell_tokens = cell.token_set
+                intersection = len(clause_tokens & cell_tokens)
+                union = len(clause_tokens | cell_tokens)
+                jaccard = (intersection / max(union, 1)) if union > 0 else 0.0
+                # Combined Bayesian evidence: prior tunnel probability and clause similarity
+                clause_scores[cell.cell_id] = math.log(max(rel, 1e-6)) + 2.0 * jaccard
 
-        sorted_entries = sorted(candidate_entries, key=entry_fitness, reverse=True)
-        best_entry = sorted_entries[0]
-        pipeline: List[Cell] = [best_entry]
-        current_cell = best_entry
-        current_sigma = Substitution()
+            # Numerical log-softmax over tunnel candidates
+            max_s = max(clause_scores.values()) if clause_scores else 0.0
+            sum_exp = sum(math.exp(s - max_s) for s in clause_scores.values())
+            log_sum_exp = max_s + math.log(max(sum_exp, 1e-12))
+            clause_log_probs.append({cid: s - log_sum_exp for cid, s in clause_scores.items()})
 
-        covered_tokens = set(best_entry.token_set) & prompt_tokens
+        # Viterbi Dynamic Programming over typed category G|_T
+        # Step 1: Initial state distribution V_1(v)
+        viterbi_scores: Dict[str, float] = {}
+        viterbi_paths: Dict[str, List[Cell]] = {}
+        viterbi_sigmas: Dict[str, Substitution] = {}
 
-        # 2. Select Relevant Intermediate Transforms (Stage 2) via Intent-Coverage Stopping
-        active_transforms = list(stage2_cells)
-        active_transforms.sort(key=lambda c: (relevance_map.get(c.cell_id, 0.0), -(getattr(c, "source_priority", 100) or 100)), reverse=True)
+        candidate_entries = [c for c in tunnel if getattr(c, "node_type", "") != "constant"]
+        if start_sig is not None:
+            s_sig = start_sig.signature if hasattr(start_sig, "signature") else start_sig
+            matching_entries = [c for c in candidate_entries if unify(s_sig, c.primary_input.signature) is not None]
+            if matching_entries:
+                candidate_entries = matching_entries
 
-        for _ in range(max_transforms):
-            best_next = None
-            best_next_sigma = None
+        # In multi-stage, Stage 1 entry morphisms are canonical initial state candidates
+        if is_multistage:
+            s1_entries = [c for c in candidate_entries if c.stage == 1]
+            if s1_entries:
+                candidate_entries = s1_entries
 
-            for cand in active_transforms:
-                if cand in pipeline:
-                    continue
+        for entry in candidate_entries:
+            score = clause_log_probs[0].get(entry.cell_id, -100.0)
+            viterbi_scores[entry.cell_id] = score
+            viterbi_paths[entry.cell_id] = [entry]
+            viterbi_sigmas[entry.cell_id] = Substitution()
 
-                # Intent-Coverage Criterion: candidate must satisfy newly uncovered prompt tokens
-                cand_tokens = set(cand.token_set) & prompt_tokens
-                new_tokens = cand_tokens - covered_tokens
-                if not new_tokens and covered_tokens:
-                    continue
+        # Step 2: Sequential Viterbi Trellis transitions for k = 2 ... K
+        if is_multistage:
+            for k in range(1, len(clauses)):
+                is_terminal_step = (k == len(clauses) - 1)
+                next_scores: Dict[str, float] = {}
+                next_paths: Dict[str, List[Cell]] = {}
+                next_sigmas: Dict[str, Substitution] = {}
 
-                new_sigma = unify(current_cell.primary_output.signature, cand.primary_input.signature, current_sigma)
-                if new_sigma is not None:
-                    best_next = cand
-                    best_next_sigma = new_sigma
-                    covered_tokens.update(cand_tokens)
+                # Candidate pool for this stage
+                search_pool = [
+                    c for c in tunnel
+                    if getattr(c, "node_type", "") != "constant"
+                    and (c.stage in (2, 3) if is_terminal_step else c.stage == 2)
+                ]
+                if not search_pool:
+                    search_pool = [c for c in tunnel if getattr(c, "node_type", "") != "constant"]
+
+                for cand in search_pool:
+                    log_p = clause_log_probs[k].get(cand.cell_id, -100.0)
+                    best_prev_score = -float('inf')
+                    best_prev_cid = None
+                    best_prev_sigma = None
+
+                    for prev_cid, prev_score in viterbi_scores.items():
+                        prev_path = viterbi_paths[prev_cid]
+                        if cand.cell_id in (c.cell_id for c in prev_path):
+                            continue
+                        prev_cell = prev_path[-1]
+                        prev_sigma = viterbi_sigmas[prev_cid]
+
+                        # Monadic Unification Gate: Edge exists iff unify(tau_out, tau_in) != bottom
+                        new_sigma = unify(prev_cell.primary_output.signature, cand.primary_input.signature, prev_sigma)
+                        if new_sigma is not None:
+                            total_score = prev_score + log_p
+                            if total_score > best_prev_score:
+                                best_prev_score = total_score
+                                best_prev_cid = prev_cid
+                                best_prev_sigma = new_sigma
+
+                    if best_prev_cid is not None and best_prev_sigma is not None:
+                        next_scores[cand.cell_id] = best_prev_score
+                        next_paths[cand.cell_id] = viterbi_paths[best_prev_cid] + [cand]
+                        next_sigmas[cand.cell_id] = best_prev_sigma
+
+                if next_scores:
+                    viterbi_scores = next_scores
+                    viterbi_paths = next_paths
+                    viterbi_sigmas = next_sigmas
+                else:
                     break
 
-            if best_next is not None:
-                pipeline.append(best_next)
-                current_cell = best_next
-                current_sigma = best_next_sigma
-            else:
-                break
+        # Step 3: Select global optimal path from Viterbi trellis
+        if viterbi_paths:
+            candidate_endpoints = list(viterbi_scores.keys())
+            if goal_sig is not None:
+                g_sig = goal_sig.signature if hasattr(goal_sig, "signature") else goal_sig
+                valid_goals = [
+                    cid for cid in candidate_endpoints
+                    if unify(viterbi_paths[cid][-1].primary_output.signature, g_sig) is not None
+                ]
+                if valid_goals:
+                    candidate_endpoints = valid_goals
 
-        # 3. Select Terminal Node (Stage 3) only if required by uncovered prompt intent
-        if stage3_cells:
-            active_stage3 = list(stage3_cells)
-            active_stage3.sort(key=lambda c: (relevance_map.get(c.cell_id, 0.0), -(getattr(c, "source_priority", 100) or 100)), reverse=True)
+            # Stage 3 terminal prioritization if egress intent exists
+            if any(viterbi_paths[cid][-1].stage == 3 for cid in candidate_endpoints):
+                s3_goals = [cid for cid in candidate_endpoints if viterbi_paths[cid][-1].stage == 3]
+                if s3_goals:
+                    candidate_endpoints = s3_goals
 
-            for term in active_stage3:
-                term_tokens = set(term.token_set) & prompt_tokens
-                new_tokens = term_tokens - covered_tokens
-                if new_tokens or not covered_tokens:
-                    new_sigma = unify(current_cell.primary_output.signature, term.primary_input.signature, current_sigma)
-                    if new_sigma is not None:
-                        pipeline.append(term)
-                        current_cell = term
-                        current_sigma = new_sigma
-                        covered_tokens.update(term_tokens)
-                        break
+            best_end_cid = max(candidate_endpoints, key=lambda cid: viterbi_scores[cid])
+            optimal_path = viterbi_paths[best_end_cid]
+            if len(optimal_path) > 1 or not is_multistage:
+                return optimal_path
 
-        # Return pipeline if multi-cell or if prompt intent is fully satisfied / single-stage
-        if len(pipeline) > 1 or not is_multistage or not (prompt_tokens - covered_tokens):
-            return pipeline
-
-        # 4. Bounded MCTS Fallback (Section 3.4) if pipeline could not bridge intent
-        logger.info("[PLANNER] Incomplete intent coverage. Running bounded MCTS...")
+        # Step 4: Bounded MCTS Fallback (Section 3.4) if Trellis was disconnected
+        logger.info("[PLANNER] Running bounded MCTS search...")
         mcts_path = self._bounded_mcts_search(tunnel, relevance_map)
         if mcts_path:
             return mcts_path
 
-        return pipeline
+        return [max(tunnel, key=lambda c: relevance_map.get(c.cell_id, 0.0))]
+
+    @staticmethod
+    def _split_prompt_clauses(text: str) -> List[str]:
+        """Splits compound prompt into clauses using punctuation and sequential connectors without regex."""
+        clauses: List[str] = []
+        current: List[str] = []
+        words = text.strip().split()
+        for w in words:
+            w_clean = w.strip(";,.")
+            if w_clean.lower() in ("then", "and_then") or w.endswith((";", ",", ".")):
+                if w_clean.lower() not in ("then", "and_then") and w_clean:
+                    current.append(w_clean)
+                if current:
+                    clause_str = " ".join(current).strip()
+                    if len(clause_str) >= 2:
+                        clauses.append(clause_str)
+                    current = []
+            else:
+                current.append(w)
+        if current:
+            clause_str = " ".join(current).strip()
+            if len(clause_str) >= 2:
+                clauses.append(clause_str)
+        return clauses if clauses else [text.strip()]
 
     def _bounded_mcts_search(
         self,
@@ -174,7 +223,7 @@ class LatticePlanner:
         Bounded Monte Carlo Tree Search over tunnel T (Section 3.4).
         Treats partial chains as tree nodes and explores indirect combinations.
         """
-        entry_nodes = [c for c in tunnel if c.stage == 1] or tunnel[:3]
+        entry_nodes = [c for c in tunnel if c.stage == 1] or list(tunnel)
 
         for entry in entry_nodes:
             chain = [entry]

@@ -24,6 +24,9 @@ def build_cell_embedding_text(cell: Any) -> str:
     """Builds a rich semantic representation of a cell for dense vector embedding.
 
     Includes:
+    - Categorical Stage (Stage 1 Source, Stage 2 Transform, Stage 3 Egress)
+    - Structural Role & Archetype (source, transform, sink, macro, constant)
+    - Primary Carrier container type
     - Natural language description / docstring
     - Human-readable operation name from cell ID
     - Canonical code template / callable API
@@ -33,6 +36,34 @@ def build_cell_embedding_text(cell: Any) -> str:
     - Domain & library context
     """
     parts = []
+
+    # 0. Categorical Stage & Structural Role
+    stage_val = getattr(cell, "stage", None) if not isinstance(cell, dict) else cell.get("stage")
+    stage_names = {
+        1: "Stage 1 (Ingestion / Source / Reader)",
+        2: "Stage 2 (Transformation / Processing / Computation)",
+        3: "Stage 3 (Egress / Writer / Terminal / Visualization / Plot)"
+    }
+    if stage_val in stage_names:
+        parts.append(f"Stage: {stage_names[stage_val]}")
+
+    role_val = getattr(cell, "node_role", "") or getattr(cell, "node_type", "") if not isinstance(cell, dict) else (cell.get("node_role") or cell.get("node_type") or "")
+    if role_val:
+        parts.append(f"Role: {role_val}")
+
+    # Carrier data type
+    carrier = None
+    if hasattr(cell, "primary_output"):
+        carrier = getattr(cell.primary_output, "type_name", None)
+    elif isinstance(cell, dict):
+        outs = cell.get("outputs", {})
+        if isinstance(outs, dict):
+            if "output_data" in outs and isinstance(outs["output_data"], dict):
+                carrier = outs["output_data"].get("type_name")
+            elif "type_name" in outs:
+                carrier = outs.get("type_name")
+    if carrier and str(carrier).lower() not in ("any", "none", "*", "top"):
+        parts.append(f"Carrier: {carrier}")
 
     # 1. Functional description / docstring
     desc = (getattr(cell, "docstring", "") or "").strip() if not isinstance(cell, dict) else (cell.get("docstring", "") or "").strip()

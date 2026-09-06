@@ -42,7 +42,7 @@ class IntelligentHarvester(UniversalHarvester):
             return self.primary_container.__name__
         if self.container_classes:
             return next(iter(self.container_classes)).__name__
-        return "DataObject"
+        return "any"
 
     def harvest_function(self, func_name: str, func_obj: Any, parent_mod_name: Optional[str] = None) -> Optional[CellSchema]:
         """Harvests a single callable using UniversalHarvester categorical reflection."""
@@ -54,7 +54,7 @@ class IntelligentHarvester(UniversalHarvester):
                     prefix = p_sig.domain.split(".")[-1].replace("_*", "")
                     cands = [k for k in self.enum_constants if k.startswith(f"{prefix}_")]
                     if cands:
-                        best = next((c for c in cands if "BGR2GRAY" in c or "DEFAULT" in c or "STANDARD" in c), cands[0])
+                        best = next((c for c in cands if "DEFAULT" in c or "STANDARD" in c), cands[0])
                         target_const = self.enum_constants[best]
                         cell.code_template = cell.code_template.replace(f"{{{p_name}}}", target_const)
                         p_sig.default_value = target_const

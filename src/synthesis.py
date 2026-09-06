@@ -7,7 +7,6 @@ from __future__ import annotations
 import ast
 import json
 import os
-import re
 from typing import Dict, Any, Optional
 from log_config import get_logger
 from external_rag import LiveDocFetcher
@@ -40,31 +39,14 @@ class SynthesisEngine:
         logger.info(f"[SYNTHESIS] Fetching live documentation for: '{gap_concept}'")
         live_docs = fetcher.fetch(gap_concept) or "No live documentation available."
 
-        # Infer stage algebraically if not explicitly passed
+        # Infer stage algebraically from input/output spec if not explicitly passed
         if stage is None:
-            from lattice import TypeRegistry
-            registry = TypeRegistry.get_instance()
-            if not registry.is_container_type(expected_input):
+            if not expected_input or str(expected_input).lower() in ("any", "none"):
                 stage = 1
+            elif not expected_output or str(expected_output).lower() in ("none", "void", "noreturn"):
+                stage = 3
             else:
                 stage = 2
-                try:
-                    mm = ModelManager.get_instance()
-                    if mm.profile is not None:
-                        import numpy as np
-                        e_gap = np.array(mm.get_embedding(gap_concept), dtype=np.float32)
-                        e_sink = np.array(mm.get_embedding("sink destination egress export"), dtype=np.float32)
-                        e_trans = np.array(mm.get_embedding("transformation process endomorphism"), dtype=np.float32)
-                        norm_g = np.linalg.norm(e_gap)
-                        norm_s = np.linalg.norm(e_sink)
-                        norm_t = np.linalg.norm(e_trans)
-                        if norm_g > 0 and norm_s > 0 and norm_t > 0:
-                            sim_sink = float(np.dot(e_gap / norm_g, e_sink / norm_s))
-                            sim_trans = float(np.dot(e_gap / norm_g, e_trans / norm_t))
-                            if sim_sink > sim_trans + 0.05:
-                                stage = 3
-                except Exception:
-                    stage = 2
 
         if stage == 1:
             template_rule = "For Stage 1 (file loading/source), `code_template` MUST use `{filepath}` as the input path argument and `{output_var}` for the output assignment (e.g. `{output_var} = package.load_func({filepath})`)."
@@ -79,12 +61,13 @@ class SynthesisEngine:
             input_spec = f'{{"type_name": "{expected_input}", "state": "any"}}'
             sample_template = "{output_var} = <package>.<func>({input_var})"
 
+        sanitized_concept = "".join(c if c.isalnum() or c == "_" else "_" for c in gap_concept).lower()[:30]
         system_prompt = f"""You are an expert Software Engineer. Synthesize a single verified Python computational node implementing: '{gap_concept}'.
 Output ONLY a valid JSON object matching the schema below. No markdown formatting, no explanations.
 
 Schema:
 {{
-  "cell_id": "micro_synthesized_{re.sub(r'[^a-zA-Z0-9_]', '_', gap_concept).lower()[:30]}",
+  "cell_id": "micro_synthesized_{sanitized_concept}",
   "type": "micro",
   "stage": {stage},
   "keywords": ["{gap_concept}"],

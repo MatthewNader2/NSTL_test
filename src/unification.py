@@ -11,7 +11,6 @@ Conforms strictly to Section 3.2 of the NSTL paper:
 from __future__ import annotations
 import ast
 import json
-import re
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from typing import Dict, List, Optional, Set, Tuple, Any, Union, Callable, Generic, TypeVar
@@ -20,8 +19,10 @@ from log_config import get_logger
 
 try:
     from .lattice import AlgebraicSignature, PortSignature, Cell, TypeRegistry
+    from .tokenizer import CellTokenizer
 except (ImportError, ValueError):
     from lattice import AlgebraicSignature, PortSignature, Cell, TypeRegistry
+    from tokenizer import CellTokenizer
 
 logger = get_logger('unification')
 
@@ -29,7 +30,7 @@ T = TypeVar('T')
 U = TypeVar('U')
 
 
-TOP_TYPE_SET = {"any", "Any", "*", "top", "⊤", "object", "Object", "dataobject", "DataObject"}
+TOP_TYPE_SET = {"any", "Any", "*", "top", "⊤", "object", "Object"}
 
 
 # =====================================================================
@@ -67,7 +68,7 @@ TOP = TopType()
 
 @dataclass(frozen=True, slots=True)
 class AtomicType(TypeTerm):
-    """Ground type constant (e.g. int, str, DataFrame, Mat, Pose)."""
+    """Ground type constant."""
     name: str
 
     def apply_substitution(self, sigma: 'Substitution') -> 'TypeTerm':
@@ -203,18 +204,23 @@ def unify(
 def _to_type_term(item: Any) -> TypeTerm:
     if isinstance(item, TypeTerm):
         return item
+    registry = TypeRegistry.get_instance()
     if isinstance(item, AlgebraicSignature):
         if item.is_top():
             return TOP
-        return TypestateTerm(type_name=item.type_name, state=item.state, qualifiers=item.qualifiers)
+        canonical = registry.canonical_name(item.type_name)
+        if canonical.lower() in ("any", "*", "top", "object", "unknown"):
+            return TOP
+        return TypestateTerm(type_name=canonical, state=item.state, qualifiers=item.qualifiers)
     if isinstance(item, PortSignature):
         return _to_type_term(item.signature)
     if isinstance(item, str):
-        if item.lower() in ("any", "*", "top", "object"):
+        canonical = registry.canonical_name(item)
+        if canonical.lower() in ("any", "*", "top", "object", "unknown"):
             return TOP
         if item.startswith("?"):
             return TypeVariable(item[1:])
-        return AtomicType(item)
+        return AtomicType(canonical)
     return TOP
 
 
@@ -297,22 +303,70 @@ class ExecutionContext:
             return
 
         spans: List[Tuple[int, str, str]] = []
+        n = len(prompt)
 
         # 1. Quoted literals: '...' or "..." -> kind "quoted_str"
-        for m in re.finditer(r'["\']([^"\']+)["\']', prompt):
-            spans.append((m.start(), "quoted_str", m.group(1)))
+        i = 0
+        while i < n:
+            ch = prompt[i]
+            if ch in ("'", '"'):
+                quote_char = ch
+                j = i + 1
+                while j < n and prompt[j] != quote_char:
+                    if prompt[j] == '\\' and j + 1 < n:
+                        j += 1
+                    j += 1
+                if j < n and prompt[j] == quote_char:
+                    val = prompt[i + 1:j]
+                    spans.append((i, "quoted_str", val))
+                    i = j + 1
+                    continue
+            i += 1
 
-        # 2. File / Path tokens with extensions (including absolute and relative paths): kind "file_asset"
-        path_pattern = r'(?:[a-zA-Z]:[\\/](?:[\w.-]+[\\/])*[\w.-]+\.[a-zA-Z0-9]{1,8}|(?:/?[\w.-]+[\\/])*[\w.-]+\.[a-zA-Z0-9]{1,8})\b'
-        for m in re.finditer(path_pattern, prompt):
-            val = m.group(0).rstrip(".,;:)")
-            # Avoid duplicate if already covered by quotes
-            if not any(s <= m.start() and m.end() <= s + len(v) + 2 for s, t, v in spans if t == "quoted_str"):
-                spans.append((m.start(), "file_asset", val))
+        # 2. Word tokens for file assets and numerics
+        words_with_pos: List[Tuple[int, str]] = []
+        cur_word: List[str] = []
+        w_start = None
+        for idx, ch in enumerate(prompt):
+            if not ch.isspace():
+                if w_start is None:
+                    w_start = idx
+                cur_word.append(ch)
+            else:
+                if cur_word:
+                    words_with_pos.append((w_start, "".join(cur_word)))
+                    cur_word = []
+                    w_start = None
+        if cur_word and w_start is not None:
+            words_with_pos.append((w_start, "".join(cur_word)))
 
-        # 3. Numeric literals -> kind "numeric"
-        for m in re.finditer(r'\b\d+(?:\.\d+)?\b', prompt):
-            spans.append((m.start(), "numeric", m.group(0)))
+        for pos, raw_w in words_with_pos:
+            w = raw_w.rstrip(".,;:)")
+            if not w:
+                continue
+
+            already_quoted = any(s <= pos and pos + len(w) <= s + len(v) + 2 for s, t, v in spans if t == "quoted_str")
+            if already_quoted:
+                continue
+
+            # Path or filename token (domain-agnostic, zero hardcoded extensions)
+            if "/" in w or "\\" in w:
+                spans.append((pos, "file_asset", w))
+                continue
+            if "." in w and not w.startswith(".") and not w.endswith("."):
+                parts = w.rsplit(".", 1)
+                ext = parts[1].lower()
+                if ext.isalnum() and not ext.isdigit() and len(ext) <= 8:
+                    spans.append((pos, "file_asset", w))
+                    continue
+
+            # Numeric tokens
+            try:
+                float(w)
+                spans.append((pos, "numeric", w))
+                continue
+            except ValueError:
+                pass
 
         # Order strictly by character position in prompt
         spans.sort(key=lambda x: x[0])
@@ -332,19 +386,35 @@ class ExecutionContext:
                 return v_name
         return None
 
-    def _allocate_free_symbol(self, param_name: str) -> Optional[str]:
+    def _allocate_free_symbol(self, param_name: str = "") -> Optional[str]:
         """
         Free Monoid Symbol Allocation:
         Allocates unconsumed prompt tokens as identifier arguments.
         Prioritizes syntactic successors following the parameter name in the prompt.
-        Zero domain-specific keywords or hardcoded word lists.
+        Zero regular expressions.
         """
         if not self.prompt:
             return None
 
-        tokens = []
-        for m in re.finditer(r"[a-zA-Z_][a-zA-Z0-9_]*", self.prompt):
-            tokens.append((m.group(0), m.start()))
+        tokens: List[Tuple[str, int]] = []
+        cur: List[str] = []
+        start_idx: Optional[int] = None
+        for i, ch in enumerate(self.prompt):
+            if ch.isalnum() or ch == '_':
+                if start_idx is None:
+                    start_idx = i
+                cur.append(ch)
+            else:
+                if cur:
+                    tok = "".join(cur)
+                    if tok[0].isalpha() or tok[0] == '_':
+                        tokens.append((tok, start_idx))
+                    cur = []
+                    start_idx = None
+        if cur and start_idx is not None:
+            tok = "".join(cur)
+            if tok[0].isalpha() or tok[0] == '_':
+                tokens.append((tok, start_idx))
 
         if not tokens:
             return None
@@ -375,11 +445,10 @@ class ExecutionContext:
         if p_indices:
             p_idx = p_indices[0]
             best = min(free_candidates, key=lambda c: abs(c[0] - p_idx))
-        else:
-            best = free_candidates[0]
+            self.consumed_tokens.add(best[1].lower())
+            return best[1]
 
-        self.consumed_tokens.add(best[1].lower())
-        return best[1]
+        return None
 
     def _resolve_enum_constant(self, domain_spec: str, port_state: str = "") -> Optional[str]:
         """
@@ -411,7 +480,7 @@ class ExecutionContext:
             return None
 
         prompt_lower = (self.prompt or "").lower()
-        p_tokens = set(re.findall(r"[a-z]+|\d+", prompt_lower))
+        p_tokens = CellTokenizer.tokenize_prompt(prompt_lower)
 
         # Deterministic alphabetical ordering for tie-breaking
         sorted_candidates = sorted(candidates)
@@ -419,7 +488,7 @@ class ExecutionContext:
         scored = []
         for cand in sorted_candidates:
             # Decompose candidate into alphanumeric sub-tokens (e.g. COLOR_BGR2GRAY -> ['color', 'bgr', '2', 'gray'])
-            parts = [p for p in re.findall(r"[a-z]+|\d+", cand.lower()) if len(p) >= 2]
+            parts = [p for p in CellTokenizer.tokenize_identifier(cand.lower()) if len(p) >= 2]
             if not parts:
                 continue
 
@@ -466,6 +535,11 @@ class ExecutionContext:
         p_name = port_sig.name.lower()
         t_name = port_sig.type_name.lower()
 
+        registry = TypeRegistry.get_instance()
+        is_bool = registry.is_subtype(t_name, "bool")
+        is_num = registry.is_subtype(t_name, "numeric") and not is_bool
+        is_str = registry.is_subtype(t_name, "str") or t_name in ("str", "any")
+
         # 1. Parameter explicitly supplied in context
         if port_sig.name in self.parameters:
             val = self.parameters[port_sig.name]
@@ -473,15 +547,29 @@ class ExecutionContext:
 
         # 2. Extract explicit argument matching this port name from prompt: `<p_name>=<value>` or `<p_name>:<value>`
         if self.prompt and p_name:
-            m = re.search(rf"\b{re.escape(port_sig.name)}\s*[:=]\s*['\"]?([a-zA-Z0-9_./-]+)['\"]?", self.prompt, re.IGNORECASE)
-            if m:
-                val = m.group(1).rstrip(".,;:)")
-                if t_name == "str":
-                    return json.dumps(val)
-                elif t_name in ("int", "float", "numeric"):
-                    return val
-                elif t_name == "bool":
-                    return "False" if "false" in val.lower() or "0" in val else "True"
+            prompt_str = self.prompt
+            target_eq = f"{port_sig.name.lower()}="
+            target_colon = f"{port_sig.name.lower()}:"
+            pos = prompt_str.lower().find(target_eq)
+            offset = len(target_eq)
+            if pos == -1:
+                pos = prompt_str.lower().find(target_colon)
+                offset = len(target_colon)
+            if pos != -1:
+                after = prompt_str[pos + offset:].lstrip(" \t'\"")
+                val_chars = []
+                for ch in after:
+                    if ch in ("'", '"', ' ', '\t', '\n', ',', ';'):
+                        break
+                    val_chars.append(ch)
+                if val_chars:
+                    val = "".join(val_chars).rstrip(".,;:)")
+                    if is_str:
+                        return json.dumps(val)
+                    elif is_num:
+                        return val
+                    elif is_bool:
+                        return "False" if "false" in val.lower() or "0" in val else "True"
 
         # 2b. Dynamic Enum / Flag Constant Grounding via Domain Reflection
         if (t_name == "enum" or getattr(port_sig, "domain", None)) and self.prompt:
@@ -491,7 +579,7 @@ class ExecutionContext:
                 return resolved_enum
 
         # 3. Vector Polarity Projection for Boolean / Valuation Ports
-        if t_name == "bool" and self.prompt:
+        if is_bool and self.prompt:
             try:
                 from inference import ModelManager
                 from tokenizer import CellTokenizer
@@ -530,14 +618,14 @@ class ExecutionContext:
             return "True"
 
         # 4. Numeric literals for numeric ports
-        if t_name in ("int", "float", "numeric"):
+        if is_num:
             for idx, (_, kind, val) in enumerate(self.ordered_literals):
                 if idx not in self.used_indices and kind == "numeric":
                     self.used_indices.add(idx)
                     return val
 
         # 5. Stage 1 and Stage 3 Morphisms: Environmental Asset Grounding
-        if cell_stage in (1, 3) and t_name in ("str", "any"):
+        if cell_stage in (1, 3) and is_str:
             for idx, (_, kind, val) in enumerate(self.ordered_literals):
                 if idx not in self.used_indices and kind in ("file_asset", "quoted_str"):
                     self.used_indices.add(idx)
@@ -575,18 +663,12 @@ class ExecutionContext:
                     logger.debug(f"[UNIFICATION] Environmental asset grounding fallback: {e}")
 
         # 6. Stage 2 Morphism: Operational Parameter Extraction
-        if (cell_stage == 2 or cell_stage is None) and t_name in ("str", "any"):
-            # A. Check for quoted string argument in prompt (e.g. 'age')
+        if (cell_stage == 2 or cell_stage is None) and is_str:
+            # A. Check for quoted string argument in prompt (e.g. 'age', 'cup')
             for idx, (_, kind, val) in enumerate(self.ordered_literals):
                 if idx not in self.used_indices and kind == "quoted_str":
                     self.used_indices.add(idx)
                     return json.dumps(val)
-
-            # B. Free Monoid Symbol Allocation for unquoted string/identifier arguments
-            if self.prompt:
-                allocated = self._allocate_free_symbol(port_sig.name)
-                if allocated:
-                    return json.dumps(allocated)
 
         # 7. Port default value declared in tree schema
         if port_sig.default_value is not None:
@@ -594,6 +676,12 @@ class ExecutionContext:
             if def_str.isdigit() or def_str in ("True", "False", "None"):
                 return def_str
             return def_str if (def_str.startswith('"') or def_str.startswith("'")) else json.dumps(def_str)
+
+        # 8. Free Monoid Symbol Allocation for unquoted string/identifier arguments (only if explicitly named in prompt)
+        if (cell_stage == 2 or cell_stage is None) and is_str and self.prompt:
+            allocated = self._allocate_free_symbol(port_sig.name)
+            if allocated:
+                return json.dumps(allocated)
 
         return None
 
@@ -825,11 +913,23 @@ def types_unify(tau_expected: str, tau_actual: str) -> bool:
 
 
 def assert_placeholders_resolved(template: str, bindings: Optional[Dict[str, Any]] = None) -> None:
-    """Asserts that all {placeholder} slots in a template are bound."""
+    """Asserts that all {placeholder} slots in a template are bound without regex."""
     if bindings:
         for k, v in bindings.items():
             template = template.replace(f"{{{k}}}", str(v))
-    remaining = re.findall(r"\{([a-zA-Z0-9_]+)\}", template)
+    remaining = []
+    i = 0
+    n = len(template)
+    while i < n:
+        if template[i] == '{':
+            j = template.find('}', i + 1)
+            if j != -1:
+                inner = template[i + 1:j]
+                if inner.isidentifier():
+                    remaining.append(inner)
+                i = j + 1
+                continue
+        i += 1
     if remaining:
         raise UnresolvedPlaceholderError(f"Unbound placeholders remaining: {remaining}")
 

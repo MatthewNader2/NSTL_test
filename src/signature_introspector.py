@@ -14,9 +14,35 @@ Grounds all function calls in runtime reflection:
 import ast
 import importlib
 import inspect
-import re
 from typing import Any, Dict, List, Optional, Set, Tuple
 
+
+def _find_call_in_doc(func_name: str, doc: str) -> Optional[str]:
+    """Finds func_name(...) in doc using paren-depth tracking, handling nested parens deterministically."""
+    target = func_name + "("
+    pos = 0
+    doc_len = len(doc)
+    while pos < doc_len:
+        idx = doc.find(target, pos)
+        if idx == -1:
+            return None
+        if idx == 0 or not (doc[idx - 1].isalnum() or doc[idx - 1] == "_"):
+            start_args = idx + len(target)
+            paren_depth = 1
+            cur = start_args
+            while cur < doc_len and paren_depth > 0:
+                ch = doc[cur]
+                if ch == "(":
+                    paren_depth += 1
+                elif ch == ")":
+                    paren_depth -= 1
+                    if paren_depth == 0:
+                        break
+                cur += 1
+            if paren_depth == 0:
+                return doc[start_args:cur].strip()
+        pos = idx + 1
+    return None
 
 
 def extract_doc_signature(func_name: str, doc: str) -> Optional[Dict[str, Any]]:
@@ -24,12 +50,10 @@ def extract_doc_signature(func_name: str, doc: str) -> Optional[Dict[str, Any]]:
     if not doc:
         return None
 
-    pattern = rf"\b{re.escape(func_name)}\((.*?)\)(?:\s*->|\n|\.|$)"
-    m = re.search(pattern, doc)
-    if not m:
+    raw_args = _find_call_in_doc(func_name, doc)
+    if raw_args is None:
         return None
 
-    raw_args = m.group(1).strip()
     if not raw_args:
         return {"required": [], "optional": []}
 
@@ -112,14 +136,52 @@ def get_enum_parameter_map(doc: str) -> Dict[str, str]:
     if not doc:
         return mapping
 
-    param_blocks = re.findall(r"@param\s+([a-zA-Z0-9_]+)\b([^@]+)", doc)
-    for p_name, p_desc in param_blocks:
-        type_matches = re.findall(r"see\s+#?([A-Za-z0-9_]+)", p_desc, re.IGNORECASE)
-        for t in type_matches:
-            upper_words = re.findall(r"[A-Z][a-z0-9]+", t)
-            if upper_words:
-                prefix = upper_words[0].upper()
-                mapping[prefix] = p_name
+    chunks = doc.split("@param")
+    for chunk in chunks[1:]:
+        chunk = chunk.strip()
+        if not chunk:
+            continue
+        words = chunk.split(None, 1)
+        p_name = "".join(c for c in words[0] if c.isalnum() or c == "_")
+        if not p_name:
+            continue
+        p_desc = words[1] if len(words) > 1 else ""
+
+        p_desc_lower = p_desc.lower()
+        pos = 0
+        n_desc = len(p_desc_lower)
+        while pos < n_desc:
+            see_idx = p_desc_lower.find("see", pos)
+            if see_idx == -1:
+                break
+            before_ok = (see_idx == 0 or not p_desc_lower[see_idx - 1].isalnum())
+            after_ok = (see_idx + 3 >= n_desc or not p_desc_lower[see_idx + 3].isalnum())
+            if before_ok and after_ok:
+                sub = p_desc[see_idx + 3 :].lstrip()
+                if sub.startswith("#"):
+                    sub = sub[1:].lstrip()
+                token = ""
+                for c in sub:
+                    if c.isalnum() or c == "_":
+                        token += c
+                    else:
+                        break
+                cur_word = ""
+                for c in token:
+                    if c.isupper():
+                        if cur_word:
+                            break
+                        cur_word += c
+                    elif c.isalnum():
+                        if cur_word:
+                            cur_word += c
+                    else:
+                        if cur_word:
+                            break
+                if cur_word:
+                    mapping[cur_word.upper()] = p_name
+            pos = see_idx + 3
+
     return mapping
 
 
@@ -162,10 +224,47 @@ def resolve_callable_from_expr(func_expr: str, dependencies: Optional[List[str]]
     return None
 
 
+def _mask_placeholders(s: str) -> str:
+    res = []
+    i = 0
+    n = len(s)
+    while i < n:
+        if s[i] == "{" and i + 1 < n:
+            end = s.find("}", i + 1)
+            if end != -1:
+                inner = s[i + 1 : end]
+                if inner.isidentifier():
+                    res.append(f"__ph_{inner}__")
+                    i = end + 1
+                    continue
+        res.append(s[i])
+        i += 1
+    return "".join(res)
+
+
+def _unmask_placeholders(s: str) -> str:
+    res = []
+    i = 0
+    n = len(s)
+    prefix = "__ph_"
+    while i < n:
+        if s.startswith(prefix, i):
+            end = s.find("__", i + len(prefix))
+            if end != -1:
+                inner = s[i + len(prefix) : end]
+                if inner.isidentifier():
+                    res.append(f"{{{inner}}}")
+                    i = end + 2
+                    continue
+        res.append(s[i])
+        i += 1
+    return "".join(res)
+
+
 def parse_call_expression(template: str) -> Optional[Tuple[str, List[str], Dict[str, str]]]:
     """Extracts func_expr, raw_args, and raw_kwargs from a template using AST."""
     code = template.replace("{output_var}", "output_var")
-    code = re.sub(r"\{(\w+)\}", r"__ph_\1__", code)
+    code = _mask_placeholders(code)
 
     try:
         tree = ast.parse(code)
@@ -178,8 +277,8 @@ def parse_call_expression(template: str) -> Optional[Tuple[str, List[str], Dict[
 
     call = calls[0]
     func_expr = ast.unparse(call.func)
-    raw_args = [re.sub(r"__ph_(\w+)__", r"{\1}", ast.unparse(a)) for a in call.args]
-    raw_kwargs = {kw.arg: re.sub(r"__ph_(\w+)__", r"{\1}", ast.unparse(kw.value)) for kw in call.keywords if kw.arg}
+    raw_args = [_unmask_placeholders(ast.unparse(a)) for a in call.args]
+    raw_kwargs = {kw.arg: _unmask_placeholders(ast.unparse(kw.value)) for kw in call.keywords if kw.arg}
 
     return func_expr, raw_args, raw_kwargs
 
@@ -211,10 +310,16 @@ def validate_and_reconstruct_call(
     enum_args: Dict[str, str] = {}
     data_args: List[str] = []
 
+    def _extract_flag(expr: str) -> Optional[str]:
+        if "." in expr and not ("{" in expr or "(" in expr):
+            tail = expr.rsplit(".", 1)[-1]
+            if tail and all(c.isupper() or c.isdigit() or c == "_" for c in tail) and any(c.isupper() for c in tail):
+                return tail
+        return None
+
     for arg in raw_args:
-        m_enum = re.search(r"\.([A-Z0-9_]+)$", arg)
-        if m_enum and "." in arg and not ("{" in arg or "(" in arg):
-            flag = m_enum.group(1)
+        flag = _extract_flag(arg)
+        if flag:
             target_p = None
             for p_prefix, p_name in enum_map.items():
                 if flag.startswith(p_prefix) or p_prefix in flag:
@@ -229,9 +334,8 @@ def validate_and_reconstruct_call(
             data_args.append(arg)
 
     for k, v in raw_kwargs.items():
-        m_enum = re.search(r"\.([A-Z0-9_]+)$", v)
-        if m_enum and "." in v and not ("{" in v or "(" in v):
-            flag = m_enum.group(1)
+        flag = _extract_flag(v)
+        if flag:
             target_p = None
             for p_prefix, p_name in enum_map.items():
                 if flag.startswith(p_prefix) or p_prefix in flag:

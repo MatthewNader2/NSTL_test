@@ -51,7 +51,7 @@
       "stage": 2,
       "inputs": {
         "data": {
-          "type_name": "DataObject",
+          "type_name": "any",
           "state": "any",
           "qualifiers": [],
           "default_value": null,
@@ -62,7 +62,7 @@
       },
       "outputs": {
         "output_data": {
-          "type_name": "DataObject",
+          "type_name": "any",
           "state": "acorred",
           "qualifiers": [],
           "default_value": null,
@@ -100,7 +100,7 @@
       "stage": 2,
       "inputs": {
         "data": {
-          "type_name": "DataObject",
+          "type_name": "any",
           "state": "any",
           "qualifiers": [],
           "default_value": null,
@@ -111,7 +111,7 @@
       },
       "outputs": {
         "output_data": {
-          "type_name": "DataObject",
+          "type_name": "any",
           "state": "angled",
           "qualifiers": [],
           "default_value": null,
@@ -161,14 +161,14 @@
     },
     {
       "cell_id": "MATPLOTLIB_ANNOTATE",
-      "stage": 1,
+      "stage": 2,
       "inputs": {
-        "text": {
+        "data": {
           "type_name": "any",
-          "state": "text",
+          "state": "any",
           "qualifiers": [],
           "default_value": null,
-          "description": "Source parameter text",
+          "description": "Input carrier data",
           "domain": null,
           "required": true
         },
@@ -177,18 +177,18 @@
           "state": "xy",
           "qualifiers": [],
           "default_value": null,
-          "description": "Source argument xy",
+          "description": "Required parameter xy",
           "domain": null,
           "required": true
         }
       },
       "outputs": {
         "output_data": {
-          "type_name": "DataObject",
-          "state": "raw",
+          "type_name": "any",
+          "state": "annotated",
           "qualifiers": [],
           "default_value": null,
-          "description": "Ingested data",
+          "description": "Output annotated",
           "domain": null,
           "required": true
         }
@@ -205,7 +205,7 @@
           }
         }
       },
-      "code_template": "{output_var} = matplotlib.pyplot.annotate({text}, {xy})",
+      "code_template": "{output_var} = matplotlib.pyplot.annotate({data}, {xy})",
       "dependencies": [
         "import matplotlib.pyplot"
       ],
@@ -223,7 +223,7 @@
       "enrichment_source": null,
       "enriched_at": null,
       "domain_name": "matplotlib",
-      "node_type": "source",
+      "node_type": "higher_order",
       "node_role": "macro",
       "verified": true,
       "source_priority": 50
@@ -233,7 +233,7 @@
       "stage": 2,
       "inputs": {
         "data": {
-          "type_name": "DataObject",
+          "type_name": "any",
           "state": "any",
           "qualifiers": [],
           "default_value": null,
@@ -271,7 +271,7 @@
       },
       "outputs": {
         "output_data": {
-          "type_name": "DataObject",
+          "type_name": "any",
           "state": "arrowed",
           "qualifiers": [],
           "default_value": null,
@@ -306,31 +306,31 @@
     },
     {
       "cell_id": "MATPLOTLIB_AUTOSCALE",
-      "stage": 1,
+      "stage": 2,
       "inputs": {
-        "enable": {
+        "data": {
           "type_name": "any",
-          "state": "enable",
+          "state": "any",
           "qualifiers": [],
           "default_value": null,
-          "description": "Source parameter enable",
+          "description": "Input carrier data",
           "domain": null,
           "required": true
         }
       },
       "outputs": {
         "output_data": {
-          "type_name": "DataObject",
-          "state": "raw",
+          "type_name": "any",
+          "state": "autoscaled",
           "qualifiers": [],
           "default_value": null,
-          "description": "Ingested data",
+          "description": "Output autoscaled",
           "domain": null,
           "required": true
         }
       },
       "slots": {},
-      "code_template": "{output_var} = matplotlib.pyplot.autoscale({enable})",
+      "code_template": "{output_var} = matplotlib.pyplot.autoscale({data})",
       "dependencies": [
         "import matplotlib.pyplot"
       ],
@@ -348,7 +348,7 @@
       "enrichment_source": null,
       "enriched_at": null,
       "domain_name": "matplotlib",
-      "node_type": "source",
+      "node_type": "function",
       "node_role": "function",
       "verified": true,
       "source_priority": 50
@@ -359,7 +359,7 @@
       "inputs": {},
       "outputs": {
         "output_data": {
-          "type_name": "DataObject",
+          "type_name": "any",
           "state": "raw",
           "qualifiers": [],
           "default_value": null,
@@ -394,31 +394,31 @@
     },
     {
       "cell_id": "MATPLOTLIB_AXES",
-      "stage": 1,
+      "stage": 2,
       "inputs": {
-        "arg": {
+        "data": {
           "type_name": "any",
-          "state": "arg",
+          "state": "any",
           "qualifiers": [],
           "default_value": null,
-          "description": "Source parameter arg",
+          "description": "Input carrier data",
           "domain": null,
           "required": true
         }
       },
       "outputs": {
         "output_data": {
-          "type_name": "DataObject",
-          "state": "raw",
+          "type_name": "any",
+          "state": "axesed",
           "qualifiers": [],
           "default_value": null,
-          "description": "Ingested data",
+          "description": "Output axesed",
           "domain": null,
           "required": true
         }
       },
       "slots": {},
-      "code_template": "{output_var} = matplotlib.pyplot.axes({arg})",
+      "code_template": "{output_var} = matplotlib.pyplot.axes({data})",
       "dependencies": [
         "import matplotlib.pyplot"
       ],
@@ -436,7 +436,7 @@
       "enrichment_source": null,
       "enriched_at": null,
       "domain_name": "matplotlib",
-      "node_type": "source",
+      "node_type": "function",
       "node_role": "function",
       "verified": true,
       "source_priority": 50
@@ -446,7 +446,7 @@
       "stage": 2,
       "inputs": {
         "data": {
-          "type_name": "DataObject",
+          "type_name": "any",
           "state": "any",
           "qualifiers": [],
           "default_value": null,
@@ -457,7 +457,7 @@
       },
       "outputs": {
         "output_data": {
-          "type_name": "DataObject",
+          "type_name": "any",
           "state": "axhlined",
           "qualifiers": [],
           "default_value": null,
@@ -492,14 +492,14 @@
     },
     {
       "cell_id": "MATPLOTLIB_AXHSPAN",
-      "stage": 1,
+      "stage": 2,
       "inputs": {
-        "ymin": {
+        "data": {
           "type_name": "any",
-          "state": "ymin",
+          "state": "any",
           "qualifiers": [],
           "default_value": null,
-          "description": "Source parameter ymin",
+          "description": "Input carrier data",
           "domain": null,
           "required": true
         },
@@ -508,24 +508,24 @@
           "state": "ymax",
           "qualifiers": [],
           "default_value": null,
-          "description": "Source argument ymax",
+          "description": "Required parameter ymax",
           "domain": null,
           "required": true
         }
       },
       "outputs": {
         "output_data": {
-          "type_name": "DataObject",
-          "state": "raw",
+          "type_name": "any",
+          "state": "axhspaned",
           "qualifiers": [],
           "default_value": null,
-          "description": "Ingested data",
+          "description": "Output axhspaned",
           "domain": null,
           "required": true
         }
       },
       "slots": {},
-      "code_template": "{output_var} = matplotlib.pyplot.axhspan({ymin}, {ymax})",
+      "code_template": "{output_var} = matplotlib.pyplot.axhspan({data}, {ymax})",
       "dependencies": [
         "import matplotlib.pyplot"
       ],
@@ -543,38 +543,38 @@
       "enrichment_source": null,
       "enriched_at": null,
       "domain_name": "matplotlib",
-      "node_type": "source",
+      "node_type": "function",
       "node_role": "function",
       "verified": true,
       "source_priority": 50
     },
     {
       "cell_id": "MATPLOTLIB_AXIS",
-      "stage": 1,
+      "stage": 2,
       "inputs": {
-        "arg": {
+        "data": {
           "type_name": "any",
-          "state": "arg",
+          "state": "any",
           "qualifiers": [],
           "default_value": null,
-          "description": "Source parameter arg",
+          "description": "Input carrier data",
           "domain": null,
           "required": true
         }
       },
       "outputs": {
         "output_data": {
-          "type_name": "DataObject",
-          "state": "raw",
+          "type_name": "any",
+          "state": "axised",
           "qualifiers": [],
           "default_value": null,
-          "description": "Ingested data",
+          "description": "Output axised",
           "domain": null,
           "required": true
         }
       },
       "slots": {},
-      "code_template": "{output_var} = matplotlib.pyplot.axis({arg})",
+      "code_template": "{output_var} = matplotlib.pyplot.axis({data})",
       "dependencies": [
         "import matplotlib.pyplot"
       ],
@@ -592,38 +592,38 @@
       "enrichment_source": null,
       "enriched_at": null,
       "domain_name": "matplotlib",
-      "node_type": "source",
+      "node_type": "function",
       "node_role": "function",
       "verified": true,
       "source_priority": 50
     },
     {
       "cell_id": "MATPLOTLIB_AXLINE",
-      "stage": 1,
+      "stage": 2,
       "inputs": {
-        "xy1": {
+        "data": {
           "type_name": "any",
-          "state": "xy1",
+          "state": "any",
           "qualifiers": [],
           "default_value": null,
-          "description": "Source parameter xy1",
+          "description": "Input carrier data",
           "domain": null,
           "required": true
         }
       },
       "outputs": {
         "output_data": {
-          "type_name": "DataObject",
-          "state": "raw",
+          "type_name": "any",
+          "state": "axlined",
           "qualifiers": [],
           "default_value": null,
-          "description": "Ingested data",
+          "description": "Output axlined",
           "domain": null,
           "required": true
         }
       },
       "slots": {},
-      "code_template": "{output_var} = matplotlib.pyplot.axline({xy1})",
+      "code_template": "{output_var} = matplotlib.pyplot.axline({data})",
       "dependencies": [
         "import matplotlib.pyplot"
       ],
@@ -641,7 +641,7 @@
       "enrichment_source": null,
       "enriched_at": null,
       "domain_name": "matplotlib",
-      "node_type": "source",
+      "node_type": "function",
       "node_role": "function",
       "verified": true,
       "source_priority": 50
@@ -651,7 +651,7 @@
       "stage": 2,
       "inputs": {
         "data": {
-          "type_name": "DataObject",
+          "type_name": "any",
           "state": "any",
           "qualifiers": [],
           "default_value": null,
@@ -662,7 +662,7 @@
       },
       "outputs": {
         "output_data": {
-          "type_name": "DataObject",
+          "type_name": "any",
           "state": "axvlined",
           "qualifiers": [],
           "default_value": null,
@@ -697,14 +697,14 @@
     },
     {
       "cell_id": "MATPLOTLIB_AXVSPAN",
-      "stage": 1,
+      "stage": 2,
       "inputs": {
-        "xmin": {
+        "data": {
           "type_name": "any",
-          "state": "xmin",
+          "state": "any",
           "qualifiers": [],
           "default_value": null,
-          "description": "Source parameter xmin",
+          "description": "Input carrier data",
           "domain": null,
           "required": true
         },
@@ -713,24 +713,24 @@
           "state": "xmax",
           "qualifiers": [],
           "default_value": null,
-          "description": "Source argument xmax",
+          "description": "Required parameter xmax",
           "domain": null,
           "required": true
         }
       },
       "outputs": {
         "output_data": {
-          "type_name": "DataObject",
-          "state": "raw",
+          "type_name": "any",
+          "state": "axvspaned",
           "qualifiers": [],
           "default_value": null,
-          "description": "Ingested data",
+          "description": "Output axvspaned",
           "domain": null,
           "required": true
         }
       },
       "slots": {},
-      "code_template": "{output_var} = matplotlib.pyplot.axvspan({xmin}, {xmax})",
+      "code_template": "{output_var} = matplotlib.pyplot.axvspan({data}, {xmax})",
       "dependencies": [
         "import matplotlib.pyplot"
       ],
@@ -748,7 +748,7 @@
       "enrichment_source": null,
       "enriched_at": null,
       "domain_name": "matplotlib",
-      "node_type": "source",
+      "node_type": "function",
       "node_role": "function",
       "verified": true,
       "source_priority": 50
@@ -758,7 +758,7 @@
       "stage": 2,
       "inputs": {
         "data": {
-          "type_name": "DataObject",
+          "type_name": "any",
           "state": "any",
           "qualifiers": [],
           "default_value": null,
@@ -778,7 +778,7 @@
       },
       "outputs": {
         "output_data": {
-          "type_name": "DataObject",
+          "type_name": "any",
           "state": "bared",
           "qualifiers": [],
           "default_value": null,
@@ -823,25 +823,25 @@
     },
     {
       "cell_id": "MATPLOTLIB_BAR_LABEL",
-      "stage": 1,
+      "stage": 2,
       "inputs": {
-        "container": {
+        "data": {
           "type_name": "any",
-          "state": "container",
+          "state": "any",
           "qualifiers": [],
           "default_value": null,
-          "description": "Source parameter container",
+          "description": "Input carrier data",
           "domain": null,
           "required": true
         }
       },
       "outputs": {
         "output_data": {
-          "type_name": "DataObject",
-          "state": "raw",
+          "type_name": "any",
+          "state": "bared",
           "qualifiers": [],
           "default_value": null,
-          "description": "Ingested data",
+          "description": "Output bared",
           "domain": null,
           "required": true
         }
@@ -858,7 +858,7 @@
           }
         }
       },
-      "code_template": "{output_var} = matplotlib.pyplot.bar_label({container})",
+      "code_template": "{output_var} = matplotlib.pyplot.bar_label({data})",
       "dependencies": [
         "import matplotlib.pyplot"
       ],
@@ -880,7 +880,7 @@
       "enrichment_source": null,
       "enriched_at": null,
       "domain_name": "matplotlib",
-      "node_type": "source",
+      "node_type": "higher_order",
       "node_role": "macro",
       "verified": true,
       "source_priority": 50
@@ -890,7 +890,7 @@
       "stage": 2,
       "inputs": {
         "data": {
-          "type_name": "DataObject",
+          "type_name": "any",
           "state": "any",
           "qualifiers": [],
           "default_value": null,
@@ -901,7 +901,7 @@
       },
       "outputs": {
         "output_data": {
-          "type_name": "DataObject",
+          "type_name": "any",
           "state": "barbsed",
           "qualifiers": [],
           "default_value": null,
@@ -939,7 +939,7 @@
       "stage": 2,
       "inputs": {
         "data": {
-          "type_name": "DataObject",
+          "type_name": "any",
           "state": "any",
           "qualifiers": [],
           "default_value": null,
@@ -959,7 +959,7 @@
       },
       "outputs": {
         "output_data": {
-          "type_name": "DataObject",
+          "type_name": "any",
           "state": "barhed",
           "qualifiers": [],
           "default_value": null,
@@ -998,7 +998,7 @@
       "inputs": {},
       "outputs": {
         "output_data": {
-          "type_name": "DataObject",
+          "type_name": "any",
           "state": "raw",
           "qualifiers": [],
           "default_value": null,
@@ -1033,31 +1033,31 @@
     },
     {
       "cell_id": "MATPLOTLIB_BOX",
-      "stage": 1,
+      "stage": 2,
       "inputs": {
-        "on": {
+        "data": {
           "type_name": "any",
-          "state": "on",
+          "state": "any",
           "qualifiers": [],
           "default_value": null,
-          "description": "Source parameter on",
+          "description": "Input carrier data",
           "domain": null,
           "required": true
         }
       },
       "outputs": {
         "output_data": {
-          "type_name": "DataObject",
-          "state": "raw",
+          "type_name": "any",
+          "state": "boxed",
           "qualifiers": [],
           "default_value": null,
-          "description": "Ingested data",
+          "description": "Output boxed",
           "domain": null,
           "required": true
         }
       },
       "slots": {},
-      "code_template": "{output_var} = matplotlib.pyplot.box({on})",
+      "code_template": "{output_var} = matplotlib.pyplot.box({data})",
       "dependencies": [
         "import matplotlib.pyplot"
       ],
@@ -1075,7 +1075,7 @@
       "enrichment_source": null,
       "enriched_at": null,
       "domain_name": "matplotlib",
-      "node_type": "source",
+      "node_type": "function",
       "node_role": "function",
       "verified": true,
       "source_priority": 50
@@ -1085,7 +1085,7 @@
       "stage": 2,
       "inputs": {
         "data": {
-          "type_name": "DataObject",
+          "type_name": "any",
           "state": "any",
           "qualifiers": [],
           "default_value": null,
@@ -1096,7 +1096,7 @@
       },
       "outputs": {
         "output_data": {
-          "type_name": "DataObject",
+          "type_name": "any",
           "state": "boxploted",
           "qualifiers": [],
           "default_value": null,
@@ -1131,14 +1131,14 @@
     },
     {
       "cell_id": "MATPLOTLIB_BROKEN_BARH",
-      "stage": 1,
+      "stage": 2,
       "inputs": {
-        "xranges": {
+        "data": {
           "type_name": "any",
-          "state": "xranges",
+          "state": "any",
           "qualifiers": [],
           "default_value": null,
-          "description": "Source parameter xranges",
+          "description": "Input carrier data",
           "domain": null,
           "required": true
         },
@@ -1147,24 +1147,24 @@
           "state": "yrange",
           "qualifiers": [],
           "default_value": null,
-          "description": "Source argument yrange",
+          "description": "Required parameter yrange",
           "domain": null,
           "required": true
         }
       },
       "outputs": {
         "output_data": {
-          "type_name": "DataObject",
-          "state": "raw",
+          "type_name": "any",
+          "state": "brokened",
           "qualifiers": [],
           "default_value": null,
-          "description": "Ingested data",
+          "description": "Output brokened",
           "domain": null,
           "required": true
         }
       },
       "slots": {},
-      "code_template": "{output_var} = matplotlib.pyplot.broken_barh({xranges}, {yrange})",
+      "code_template": "{output_var} = matplotlib.pyplot.broken_barh({data}, {yrange})",
       "dependencies": [
         "import matplotlib.pyplot"
       ],
@@ -1186,7 +1186,7 @@
       "enrichment_source": null,
       "enriched_at": null,
       "domain_name": "matplotlib",
-      "node_type": "source",
+      "node_type": "function",
       "node_role": "function",
       "verified": true,
       "source_priority": 50
@@ -1197,7 +1197,7 @@
       "inputs": {},
       "outputs": {
         "output_data": {
-          "type_name": "DataObject",
+          "type_name": "any",
           "state": "raw",
           "qualifiers": [],
           "default_value": null,
@@ -1232,31 +1232,31 @@
     },
     {
       "cell_id": "MATPLOTLIB_CLABEL",
-      "stage": 1,
+      "stage": 2,
       "inputs": {
-        "CS": {
+        "data": {
           "type_name": "any",
-          "state": "cs",
+          "state": "any",
           "qualifiers": [],
           "default_value": null,
-          "description": "Source parameter CS",
+          "description": "Input carrier data",
           "domain": null,
           "required": true
         }
       },
       "outputs": {
         "output_data": {
-          "type_name": "DataObject",
-          "state": "raw",
+          "type_name": "any",
+          "state": "clabeled",
           "qualifiers": [],
           "default_value": null,
-          "description": "Ingested data",
+          "description": "Output clabeled",
           "domain": null,
           "required": true
         }
       },
       "slots": {},
-      "code_template": "{output_var} = matplotlib.pyplot.clabel({CS})",
+      "code_template": "{output_var} = matplotlib.pyplot.clabel({data})",
       "dependencies": [
         "import matplotlib.pyplot"
       ],
@@ -1274,7 +1274,7 @@
       "enrichment_source": null,
       "enriched_at": null,
       "domain_name": "matplotlib",
-      "node_type": "source",
+      "node_type": "function",
       "node_role": "function",
       "verified": true,
       "source_priority": 50
@@ -1285,7 +1285,7 @@
       "inputs": {},
       "outputs": {
         "output_data": {
-          "type_name": "DataObject",
+          "type_name": "any",
           "state": "raw",
           "qualifiers": [],
           "default_value": null,
@@ -1320,31 +1320,31 @@
     },
     {
       "cell_id": "MATPLOTLIB_CLIM",
-      "stage": 1,
+      "stage": 2,
       "inputs": {
-        "vmin": {
+        "data": {
           "type_name": "any",
-          "state": "vmin",
+          "state": "any",
           "qualifiers": [],
           "default_value": null,
-          "description": "Source parameter vmin",
+          "description": "Input carrier data",
           "domain": null,
           "required": true
         }
       },
       "outputs": {
         "output_data": {
-          "type_name": "DataObject",
-          "state": "raw",
+          "type_name": "any",
+          "state": "climed",
           "qualifiers": [],
           "default_value": null,
-          "description": "Ingested data",
+          "description": "Output climed",
           "domain": null,
           "required": true
         }
       },
       "slots": {},
-      "code_template": "{output_var} = matplotlib.pyplot.clim({vmin})",
+      "code_template": "{output_var} = matplotlib.pyplot.clim({data})",
       "dependencies": [
         "import matplotlib.pyplot"
       ],
@@ -1362,38 +1362,38 @@
       "enrichment_source": null,
       "enriched_at": null,
       "domain_name": "matplotlib",
-      "node_type": "source",
+      "node_type": "function",
       "node_role": "function",
       "verified": true,
       "source_priority": 50
     },
     {
       "cell_id": "MATPLOTLIB_CLOSE",
-      "stage": 1,
+      "stage": 2,
       "inputs": {
-        "fig": {
+        "data": {
           "type_name": "any",
-          "state": "fig",
+          "state": "any",
           "qualifiers": [],
           "default_value": null,
-          "description": "Source parameter fig",
+          "description": "Input carrier data",
           "domain": null,
           "required": true
         }
       },
       "outputs": {
         "output_data": {
-          "type_name": "DataObject",
-          "state": "raw",
+          "type_name": "any",
+          "state": "closed",
           "qualifiers": [],
           "default_value": null,
-          "description": "Ingested data",
+          "description": "Output closed",
           "domain": null,
           "required": true
         }
       },
       "slots": {},
-      "code_template": "{output_var} = matplotlib.pyplot.close({fig})",
+      "code_template": "{output_var} = matplotlib.pyplot.close({data})",
       "dependencies": [
         "import matplotlib.pyplot"
       ],
@@ -1411,7 +1411,7 @@
       "enrichment_source": null,
       "enriched_at": null,
       "domain_name": "matplotlib",
-      "node_type": "source",
+      "node_type": "function",
       "node_role": "function",
       "verified": true,
       "source_priority": 50
@@ -1421,7 +1421,7 @@
       "stage": 2,
       "inputs": {
         "data": {
-          "type_name": "DataObject",
+          "type_name": "any",
           "state": "any",
           "qualifiers": [],
           "default_value": null,
@@ -1441,7 +1441,7 @@
       },
       "outputs": {
         "output_data": {
-          "type_name": "DataObject",
+          "type_name": "any",
           "state": "cohered",
           "qualifiers": [],
           "default_value": null,
@@ -1487,31 +1487,31 @@
     },
     {
       "cell_id": "MATPLOTLIB_COLORBAR",
-      "stage": 1,
+      "stage": 2,
       "inputs": {
-        "mappable": {
+        "data": {
           "type_name": "any",
-          "state": "mappable",
+          "state": "any",
           "qualifiers": [],
           "default_value": null,
-          "description": "Source parameter mappable",
+          "description": "Input carrier data",
           "domain": null,
           "required": true
         }
       },
       "outputs": {
         "output_data": {
-          "type_name": "DataObject",
-          "state": "raw",
+          "type_name": "any",
+          "state": "colorbared",
           "qualifiers": [],
           "default_value": null,
-          "description": "Ingested data",
+          "description": "Output colorbared",
           "domain": null,
           "required": true
         }
       },
       "slots": {},
-      "code_template": "{output_var} = matplotlib.pyplot.colorbar({mappable})",
+      "code_template": "{output_var} = matplotlib.pyplot.colorbar({data})",
       "dependencies": [
         "import matplotlib.pyplot"
       ],
@@ -1529,21 +1529,21 @@
       "enrichment_source": null,
       "enriched_at": null,
       "domain_name": "matplotlib",
-      "node_type": "source",
+      "node_type": "function",
       "node_role": "function",
       "verified": true,
       "source_priority": 50
     },
     {
       "cell_id": "MATPLOTLIB_CONNECT",
-      "stage": 1,
+      "stage": 2,
       "inputs": {
-        "s": {
+        "data": {
           "type_name": "any",
-          "state": "s",
+          "state": "any",
           "qualifiers": [],
           "default_value": null,
-          "description": "Source parameter s",
+          "description": "Input carrier data",
           "domain": null,
           "required": true
         },
@@ -1552,18 +1552,18 @@
           "state": "func",
           "qualifiers": [],
           "default_value": null,
-          "description": "Source argument func",
+          "description": "Required parameter func",
           "domain": null,
           "required": true
         }
       },
       "outputs": {
         "output_data": {
-          "type_name": "DataObject",
-          "state": "raw",
+          "type_name": "any",
+          "state": "connected",
           "qualifiers": [],
           "default_value": null,
-          "description": "Ingested data",
+          "description": "Output connected",
           "domain": null,
           "required": true
         }
@@ -1580,7 +1580,7 @@
           }
         }
       },
-      "code_template": "{output_var} = matplotlib.pyplot.connect({s}, {func})",
+      "code_template": "{output_var} = matplotlib.pyplot.connect({data}, {func})",
       "dependencies": [
         "import matplotlib.pyplot"
       ],
@@ -1598,7 +1598,7 @@
       "enrichment_source": null,
       "enriched_at": null,
       "domain_name": "matplotlib",
-      "node_type": "source",
+      "node_type": "higher_order",
       "node_role": "macro",
       "verified": true,
       "source_priority": 50
@@ -1608,7 +1608,7 @@
       "stage": 2,
       "inputs": {
         "data": {
-          "type_name": "DataObject",
+          "type_name": "any",
           "state": "any",
           "qualifiers": [],
           "default_value": null,
@@ -1619,7 +1619,7 @@
       },
       "outputs": {
         "output_data": {
-          "type_name": "DataObject",
+          "type_name": "any",
           "state": "contoured",
           "qualifiers": [],
           "default_value": null,
@@ -1657,7 +1657,7 @@
       "stage": 2,
       "inputs": {
         "data": {
-          "type_name": "DataObject",
+          "type_name": "any",
           "state": "any",
           "qualifiers": [],
           "default_value": null,
@@ -1668,7 +1668,7 @@
       },
       "outputs": {
         "output_data": {
-          "type_name": "DataObject",
+          "type_name": "any",
           "state": "contourfed",
           "qualifiers": [],
           "default_value": null,
@@ -1707,7 +1707,7 @@
       "inputs": {},
       "outputs": {
         "output_data": {
-          "type_name": "DataObject",
+          "type_name": "any",
           "state": "raw",
           "qualifiers": [],
           "default_value": null,
@@ -1746,7 +1746,7 @@
       "inputs": {},
       "outputs": {
         "output_data": {
-          "type_name": "DataObject",
+          "type_name": "any",
           "state": "raw",
           "qualifiers": [],
           "default_value": null,
@@ -1784,7 +1784,7 @@
       "stage": 2,
       "inputs": {
         "data": {
-          "type_name": "DataObject",
+          "type_name": "any",
           "state": "any",
           "qualifiers": [],
           "default_value": null,
@@ -1804,7 +1804,7 @@
       },
       "outputs": {
         "output_data": {
-          "type_name": "DataObject",
+          "type_name": "any",
           "state": "csded",
           "qualifiers": [],
           "default_value": null,
@@ -1850,31 +1850,31 @@
     },
     {
       "cell_id": "MATPLOTLIB_DELAXES",
-      "stage": 1,
+      "stage": 2,
       "inputs": {
-        "ax": {
+        "data": {
           "type_name": "any",
-          "state": "ax",
+          "state": "any",
           "qualifiers": [],
           "default_value": null,
-          "description": "Source parameter ax",
+          "description": "Input carrier data",
           "domain": null,
           "required": true
         }
       },
       "outputs": {
         "output_data": {
-          "type_name": "DataObject",
-          "state": "raw",
+          "type_name": "any",
+          "state": "delaxesed",
           "qualifiers": [],
           "default_value": null,
-          "description": "Ingested data",
+          "description": "Output delaxesed",
           "domain": null,
           "required": true
         }
       },
       "slots": {},
-      "code_template": "{output_var} = matplotlib.pyplot.delaxes({ax})",
+      "code_template": "{output_var} = matplotlib.pyplot.delaxes({data})",
       "dependencies": [
         "import matplotlib.pyplot"
       ],
@@ -1892,38 +1892,38 @@
       "enrichment_source": null,
       "enriched_at": null,
       "domain_name": "matplotlib",
-      "node_type": "source",
+      "node_type": "function",
       "node_role": "function",
       "verified": true,
       "source_priority": 50
     },
     {
       "cell_id": "MATPLOTLIB_DISCONNECT",
-      "stage": 1,
+      "stage": 2,
       "inputs": {
-        "cid": {
+        "data": {
           "type_name": "any",
-          "state": "cid",
+          "state": "any",
           "qualifiers": [],
           "default_value": null,
-          "description": "Source parameter cid",
+          "description": "Input carrier data",
           "domain": null,
           "required": true
         }
       },
       "outputs": {
         "output_data": {
-          "type_name": "DataObject",
-          "state": "raw",
+          "type_name": "any",
+          "state": "disconnected",
           "qualifiers": [],
           "default_value": null,
-          "description": "Ingested data",
+          "description": "Output disconnected",
           "domain": null,
           "required": true
         }
       },
       "slots": {},
-      "code_template": "{output_var} = matplotlib.pyplot.disconnect({cid})",
+      "code_template": "{output_var} = matplotlib.pyplot.disconnect({data})",
       "dependencies": [
         "import matplotlib.pyplot"
       ],
@@ -1941,7 +1941,7 @@
       "enrichment_source": null,
       "enriched_at": null,
       "domain_name": "matplotlib",
-      "node_type": "source",
+      "node_type": "function",
       "node_role": "function",
       "verified": true,
       "source_priority": 50
@@ -1952,7 +1952,7 @@
       "inputs": {},
       "outputs": {
         "output_data": {
-          "type_name": "DataObject",
+          "type_name": "any",
           "state": "raw",
           "qualifiers": [],
           "default_value": null,
@@ -1987,21 +1987,31 @@
     },
     {
       "cell_id": "MATPLOTLIB_DRAW_IF_INTERACTIVE",
-      "stage": 1,
-      "inputs": {},
-      "outputs": {
-        "output_data": {
-          "type_name": "DataObject",
-          "state": "raw",
+      "stage": 2,
+      "inputs": {
+        "data": {
+          "type_name": "any",
+          "state": "any",
           "qualifiers": [],
           "default_value": null,
-          "description": "Ingested data",
+          "description": "Input carrier data",
+          "domain": null,
+          "required": true
+        }
+      },
+      "outputs": {
+        "output_data": {
+          "type_name": "any",
+          "state": "drawed",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Output drawed",
           "domain": null,
           "required": true
         }
       },
       "slots": {},
-      "code_template": "{output_var} = matplotlib.pyplot.draw_if_interactive()",
+      "code_template": "{output_var} = matplotlib.pyplot.draw_if_interactive({data})",
       "dependencies": [
         "import matplotlib.pyplot"
       ],
@@ -2025,7 +2035,7 @@
       "enrichment_source": null,
       "enriched_at": null,
       "domain_name": "matplotlib",
-      "node_type": "source",
+      "node_type": "function",
       "node_role": "function",
       "verified": true,
       "source_priority": 50
@@ -2035,7 +2045,7 @@
       "stage": 2,
       "inputs": {
         "data": {
-          "type_name": "DataObject",
+          "type_name": "any",
           "state": "any",
           "qualifiers": [],
           "default_value": null,
@@ -2046,7 +2056,7 @@
       },
       "outputs": {
         "output_data": {
-          "type_name": "DataObject",
+          "type_name": "any",
           "state": "ecdfed",
           "qualifiers": [],
           "default_value": null,
@@ -2084,7 +2094,7 @@
       "stage": 2,
       "inputs": {
         "data": {
-          "type_name": "DataObject",
+          "type_name": "any",
           "state": "any",
           "qualifiers": [],
           "default_value": null,
@@ -2104,7 +2114,7 @@
       },
       "outputs": {
         "output_data": {
-          "type_name": "DataObject",
+          "type_name": "any",
           "state": "errorbared",
           "qualifiers": [],
           "default_value": null,
@@ -2139,31 +2149,31 @@
     },
     {
       "cell_id": "MATPLOTLIB_EVENTPLOT",
-      "stage": 1,
+      "stage": 2,
       "inputs": {
-        "positions": {
+        "data": {
           "type_name": "any",
-          "state": "positions",
+          "state": "any",
           "qualifiers": [],
           "default_value": null,
-          "description": "Source parameter positions",
+          "description": "Input carrier data",
           "domain": null,
           "required": true
         }
       },
       "outputs": {
         "output_data": {
-          "type_name": "DataObject",
-          "state": "raw",
+          "type_name": "any",
+          "state": "eventploted",
           "qualifiers": [],
           "default_value": null,
-          "description": "Ingested data",
+          "description": "Output eventploted",
           "domain": null,
           "required": true
         }
       },
       "slots": {},
-      "code_template": "{output_var} = matplotlib.pyplot.eventplot({positions})",
+      "code_template": "{output_var} = matplotlib.pyplot.eventplot({data})",
       "dependencies": [
         "import matplotlib.pyplot"
       ],
@@ -2181,7 +2191,7 @@
       "enrichment_source": null,
       "enriched_at": null,
       "domain_name": "matplotlib",
-      "node_type": "source",
+      "node_type": "function",
       "node_role": "function",
       "verified": true,
       "source_priority": 50
@@ -2191,7 +2201,7 @@
       "stage": 2,
       "inputs": {
         "data": {
-          "type_name": "DataObject",
+          "type_name": "any",
           "state": "any",
           "qualifiers": [],
           "default_value": null,
@@ -2202,7 +2212,7 @@
       },
       "outputs": {
         "output_data": {
-          "type_name": "DataObject",
+          "type_name": "any",
           "state": "figimaged",
           "qualifiers": [],
           "default_value": null,
@@ -2237,21 +2247,31 @@
     },
     {
       "cell_id": "MATPLOTLIB_FIGLEGEND",
-      "stage": 1,
-      "inputs": {},
-      "outputs": {
-        "output_data": {
-          "type_name": "DataObject",
-          "state": "raw",
+      "stage": 2,
+      "inputs": {
+        "data": {
+          "type_name": "any",
+          "state": "any",
           "qualifiers": [],
           "default_value": null,
-          "description": "Ingested data",
+          "description": "Input carrier data",
+          "domain": null,
+          "required": true
+        }
+      },
+      "outputs": {
+        "output_data": {
+          "type_name": "any",
+          "state": "figlegended",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Output figlegended",
           "domain": null,
           "required": true
         }
       },
       "slots": {},
-      "code_template": "{output_var} = matplotlib.pyplot.figlegend()",
+      "code_template": "{output_var} = matplotlib.pyplot.figlegend({data})",
       "dependencies": [
         "import matplotlib.pyplot"
       ],
@@ -2269,38 +2289,38 @@
       "enrichment_source": null,
       "enriched_at": null,
       "domain_name": "matplotlib",
-      "node_type": "source",
+      "node_type": "function",
       "node_role": "function",
       "verified": true,
       "source_priority": 50
     },
     {
       "cell_id": "MATPLOTLIB_FIGNUM_EXISTS",
-      "stage": 1,
+      "stage": 2,
       "inputs": {
-        "num": {
+        "data": {
           "type_name": "any",
-          "state": "num",
+          "state": "any",
           "qualifiers": [],
           "default_value": null,
-          "description": "Source parameter num",
+          "description": "Input carrier data",
           "domain": null,
           "required": true
         }
       },
       "outputs": {
         "output_data": {
-          "type_name": "DataObject",
-          "state": "raw",
+          "type_name": "any",
+          "state": "fignumed",
           "qualifiers": [],
           "default_value": null,
-          "description": "Ingested data",
+          "description": "Output fignumed",
           "domain": null,
           "required": true
         }
       },
       "slots": {},
-      "code_template": "{output_var} = matplotlib.pyplot.fignum_exists({num})",
+      "code_template": "{output_var} = matplotlib.pyplot.fignum_exists({data})",
       "dependencies": [
         "import matplotlib.pyplot"
       ],
@@ -2322,7 +2342,7 @@
       "enrichment_source": null,
       "enriched_at": null,
       "domain_name": "matplotlib",
-      "node_type": "source",
+      "node_type": "function",
       "node_role": "function",
       "verified": true,
       "source_priority": 50
@@ -2332,7 +2352,7 @@
       "stage": 2,
       "inputs": {
         "data": {
-          "type_name": "DataObject",
+          "type_name": "any",
           "state": "any",
           "qualifiers": [],
           "default_value": null,
@@ -2361,7 +2381,7 @@
       },
       "outputs": {
         "output_data": {
-          "type_name": "DataObject",
+          "type_name": "any",
           "state": "figtexted",
           "qualifiers": [],
           "default_value": null,
@@ -2396,25 +2416,25 @@
     },
     {
       "cell_id": "MATPLOTLIB_FIGURE",
-      "stage": 1,
+      "stage": 2,
       "inputs": {
-        "filepath": {
-          "type_name": "str",
-          "state": "source_identifier",
+        "data": {
+          "type_name": "any",
+          "state": "any",
           "qualifiers": [],
           "default_value": null,
-          "description": "Source argument num",
+          "description": "Input carrier data",
           "domain": null,
           "required": true
         }
       },
       "outputs": {
         "output_data": {
-          "type_name": "DataObject",
-          "state": "raw",
+          "type_name": "any",
+          "state": "figured",
           "qualifiers": [],
           "default_value": null,
-          "description": "Ingested data",
+          "description": "Output figured",
           "domain": null,
           "required": true
         }
@@ -2431,7 +2451,7 @@
           }
         }
       },
-      "code_template": "{output_var} = matplotlib.pyplot.figure({filepath})",
+      "code_template": "{output_var} = matplotlib.pyplot.figure({data})",
       "dependencies": [
         "import matplotlib.pyplot"
       ],
@@ -2449,7 +2469,7 @@
       "enrichment_source": null,
       "enriched_at": null,
       "domain_name": "matplotlib",
-      "node_type": "source",
+      "node_type": "higher_order",
       "node_role": "macro",
       "verified": true,
       "source_priority": 50
@@ -2459,7 +2479,7 @@
       "stage": 2,
       "inputs": {
         "data": {
-          "type_name": "DataObject",
+          "type_name": "any",
           "state": "any",
           "qualifiers": [],
           "default_value": null,
@@ -2470,7 +2490,7 @@
       },
       "outputs": {
         "output_data": {
-          "type_name": "DataObject",
+          "type_name": "any",
           "state": "filled",
           "qualifiers": [],
           "default_value": null,
@@ -2508,7 +2528,7 @@
       "stage": 2,
       "inputs": {
         "data": {
-          "type_name": "DataObject",
+          "type_name": "any",
           "state": "any",
           "qualifiers": [],
           "default_value": null,
@@ -2528,7 +2548,7 @@
       },
       "outputs": {
         "output_data": {
-          "type_name": "DataObject",
+          "type_name": "any",
           "state": "filled",
           "qualifiers": [],
           "default_value": null,
@@ -2570,7 +2590,7 @@
       "stage": 2,
       "inputs": {
         "data": {
-          "type_name": "DataObject",
+          "type_name": "any",
           "state": "any",
           "qualifiers": [],
           "default_value": null,
@@ -2590,7 +2610,7 @@
       },
       "outputs": {
         "output_data": {
-          "type_name": "DataObject",
+          "type_name": "any",
           "state": "filled",
           "qualifiers": [],
           "default_value": null,
@@ -2629,25 +2649,25 @@
     },
     {
       "cell_id": "MATPLOTLIB_FINDOBJ",
-      "stage": 1,
+      "stage": 2,
       "inputs": {
-        "o": {
+        "data": {
           "type_name": "any",
-          "state": "o",
+          "state": "any",
           "qualifiers": [],
           "default_value": null,
-          "description": "Source parameter o",
+          "description": "Input carrier data",
           "domain": null,
           "required": true
         }
       },
       "outputs": {
         "output_data": {
-          "type_name": "DataObject",
-          "state": "raw",
+          "type_name": "any",
+          "state": "findobjed",
           "qualifiers": [],
           "default_value": null,
-          "description": "Ingested data",
+          "description": "Output findobjed",
           "domain": null,
           "required": true
         }
@@ -2664,7 +2684,7 @@
           }
         }
       },
-      "code_template": "{output_var} = matplotlib.pyplot.findobj({o})",
+      "code_template": "{output_var} = matplotlib.pyplot.findobj({data})",
       "dependencies": [
         "import matplotlib.pyplot"
       ],
@@ -2682,7 +2702,7 @@
       "enrichment_source": null,
       "enriched_at": null,
       "domain_name": "matplotlib",
-      "node_type": "source",
+      "node_type": "higher_order",
       "node_role": "macro",
       "verified": true,
       "source_priority": 50
@@ -2693,7 +2713,7 @@
       "inputs": {},
       "outputs": {
         "output_data": {
-          "type_name": "DataObject",
+          "type_name": "any",
           "state": "raw",
           "qualifiers": [],
           "default_value": null,
@@ -2732,7 +2752,7 @@
       "inputs": {},
       "outputs": {
         "output_data": {
-          "type_name": "DataObject",
+          "type_name": "any",
           "state": "raw",
           "qualifiers": [],
           "default_value": null,
@@ -2771,7 +2791,7 @@
       "inputs": {},
       "outputs": {
         "output_data": {
-          "type_name": "DataObject",
+          "type_name": "any",
           "state": "raw",
           "qualifiers": [],
           "default_value": null,
@@ -2810,7 +2830,7 @@
       "inputs": {},
       "outputs": {
         "output_data": {
-          "type_name": "DataObject",
+          "type_name": "any",
           "state": "raw",
           "qualifiers": [],
           "default_value": null,
@@ -2845,31 +2865,31 @@
     },
     {
       "cell_id": "MATPLOTLIB_GET",
-      "stage": 1,
+      "stage": 2,
       "inputs": {
-        "obj": {
+        "data": {
           "type_name": "any",
-          "state": "obj",
+          "state": "any",
           "qualifiers": [],
           "default_value": null,
-          "description": "Source parameter obj",
+          "description": "Input carrier data",
           "domain": null,
           "required": true
         }
       },
       "outputs": {
         "output_data": {
-          "type_name": "DataObject",
-          "state": "raw",
+          "type_name": "any",
+          "state": "geted",
           "qualifiers": [],
           "default_value": null,
-          "description": "Ingested data",
+          "description": "Output geted",
           "domain": null,
           "required": true
         }
       },
       "slots": {},
-      "code_template": "{output_var} = matplotlib.pyplot.get({obj})",
+      "code_template": "{output_var} = matplotlib.pyplot.get({data})",
       "dependencies": [
         "import matplotlib.pyplot"
       ],
@@ -2887,38 +2907,38 @@
       "enrichment_source": null,
       "enriched_at": null,
       "domain_name": "matplotlib",
-      "node_type": "source",
+      "node_type": "function",
       "node_role": "function",
       "verified": true,
       "source_priority": 50
     },
     {
       "cell_id": "MATPLOTLIB_GET_CMAP",
-      "stage": 1,
+      "stage": 2,
       "inputs": {
-        "name": {
+        "data": {
           "type_name": "any",
-          "state": "name",
+          "state": "any",
           "qualifiers": [],
           "default_value": null,
-          "description": "Source parameter name",
+          "description": "Input carrier data",
           "domain": null,
           "required": true
         }
       },
       "outputs": {
         "output_data": {
-          "type_name": "DataObject",
-          "state": "raw",
+          "type_name": "any",
+          "state": "geted",
           "qualifiers": [],
           "default_value": null,
-          "description": "Ingested data",
+          "description": "Output geted",
           "domain": null,
           "required": true
         }
       },
       "slots": {},
-      "code_template": "{output_var} = matplotlib.pyplot.get_cmap({name})",
+      "code_template": "{output_var} = matplotlib.pyplot.get_cmap({data})",
       "dependencies": [
         "import matplotlib.pyplot"
       ],
@@ -2940,7 +2960,7 @@
       "enrichment_source": null,
       "enriched_at": null,
       "domain_name": "matplotlib",
-      "node_type": "source",
+      "node_type": "function",
       "node_role": "function",
       "verified": true,
       "source_priority": 50
@@ -2951,7 +2971,7 @@
       "inputs": {},
       "outputs": {
         "output_data": {
-          "type_name": "DataObject",
+          "type_name": "any",
           "state": "raw",
           "qualifiers": [],
           "default_value": null,
@@ -2998,7 +3018,7 @@
       "inputs": {},
       "outputs": {
         "output_data": {
-          "type_name": "DataObject",
+          "type_name": "any",
           "state": "raw",
           "qualifiers": [],
           "default_value": null,
@@ -3041,7 +3061,7 @@
       "inputs": {},
       "outputs": {
         "output_data": {
-          "type_name": "DataObject",
+          "type_name": "any",
           "state": "raw",
           "qualifiers": [],
           "default_value": null,
@@ -3084,7 +3104,7 @@
       "inputs": {},
       "outputs": {
         "output_data": {
-          "type_name": "DataObject",
+          "type_name": "any",
           "state": "raw",
           "qualifiers": [],
           "default_value": null,
@@ -3125,31 +3145,31 @@
     },
     {
       "cell_id": "MATPLOTLIB_GETP",
-      "stage": 1,
+      "stage": 2,
       "inputs": {
-        "obj": {
+        "data": {
           "type_name": "any",
-          "state": "obj",
+          "state": "any",
           "qualifiers": [],
           "default_value": null,
-          "description": "Source parameter obj",
+          "description": "Input carrier data",
           "domain": null,
           "required": true
         }
       },
       "outputs": {
         "output_data": {
-          "type_name": "DataObject",
-          "state": "raw",
+          "type_name": "any",
+          "state": "getped",
           "qualifiers": [],
           "default_value": null,
-          "description": "Ingested data",
+          "description": "Output getped",
           "domain": null,
           "required": true
         }
       },
       "slots": {},
-      "code_template": "{output_var} = matplotlib.pyplot.getp({obj})",
+      "code_template": "{output_var} = matplotlib.pyplot.getp({data})",
       "dependencies": [
         "import matplotlib.pyplot"
       ],
@@ -3167,38 +3187,38 @@
       "enrichment_source": null,
       "enriched_at": null,
       "domain_name": "matplotlib",
-      "node_type": "source",
+      "node_type": "function",
       "node_role": "function",
       "verified": true,
       "source_priority": 50
     },
     {
       "cell_id": "MATPLOTLIB_GINPUT",
-      "stage": 1,
+      "stage": 2,
       "inputs": {
-        "n": {
+        "data": {
           "type_name": "any",
-          "state": "n",
+          "state": "any",
           "qualifiers": [],
           "default_value": null,
-          "description": "Source parameter n",
+          "description": "Input carrier data",
           "domain": null,
           "required": true
         }
       },
       "outputs": {
         "output_data": {
-          "type_name": "DataObject",
-          "state": "raw",
+          "type_name": "any",
+          "state": "ginputed",
           "qualifiers": [],
           "default_value": null,
-          "description": "Ingested data",
+          "description": "Output ginputed",
           "domain": null,
           "required": true
         }
       },
       "slots": {},
-      "code_template": "{output_var} = matplotlib.pyplot.ginput({n})",
+      "code_template": "{output_var} = matplotlib.pyplot.ginput({data})",
       "dependencies": [
         "import matplotlib.pyplot"
       ],
@@ -3216,7 +3236,7 @@
       "enrichment_source": null,
       "enriched_at": null,
       "domain_name": "matplotlib",
-      "node_type": "source",
+      "node_type": "function",
       "node_role": "function",
       "verified": true,
       "source_priority": 50
@@ -3227,7 +3247,7 @@
       "inputs": {},
       "outputs": {
         "output_data": {
-          "type_name": "DataObject",
+          "type_name": "any",
           "state": "raw",
           "qualifiers": [],
           "default_value": null,
@@ -3262,31 +3282,31 @@
     },
     {
       "cell_id": "MATPLOTLIB_GRID",
-      "stage": 1,
+      "stage": 2,
       "inputs": {
-        "visible": {
+        "data": {
           "type_name": "any",
-          "state": "visible",
+          "state": "any",
           "qualifiers": [],
           "default_value": null,
-          "description": "Source parameter visible",
+          "description": "Input carrier data",
           "domain": null,
           "required": true
         }
       },
       "outputs": {
         "output_data": {
-          "type_name": "DataObject",
-          "state": "raw",
+          "type_name": "any",
+          "state": "grided",
           "qualifiers": [],
           "default_value": null,
-          "description": "Ingested data",
+          "description": "Output grided",
           "domain": null,
           "required": true
         }
       },
       "slots": {},
-      "code_template": "{output_var} = matplotlib.pyplot.grid({visible})",
+      "code_template": "{output_var} = matplotlib.pyplot.grid({data})",
       "dependencies": [
         "import matplotlib.pyplot"
       ],
@@ -3304,38 +3324,38 @@
       "enrichment_source": null,
       "enriched_at": null,
       "domain_name": "matplotlib",
-      "node_type": "source",
+      "node_type": "function",
       "node_role": "function",
       "verified": true,
       "source_priority": 50
     },
     {
       "cell_id": "MATPLOTLIB_GROUPED_BAR",
-      "stage": 1,
+      "stage": 2,
       "inputs": {
-        "heights": {
+        "data": {
           "type_name": "any",
-          "state": "heights",
+          "state": "any",
           "qualifiers": [],
           "default_value": null,
-          "description": "Source parameter heights",
+          "description": "Input carrier data",
           "domain": null,
           "required": true
         }
       },
       "outputs": {
         "output_data": {
-          "type_name": "DataObject",
-          "state": "raw",
+          "type_name": "any",
+          "state": "grouped",
           "qualifiers": [],
           "default_value": null,
-          "description": "Ingested data",
+          "description": "Output grouped",
           "domain": null,
           "required": true
         }
       },
       "slots": {},
-      "code_template": "{output_var} = matplotlib.pyplot.grouped_bar({heights})",
+      "code_template": "{output_var} = matplotlib.pyplot.grouped_bar({data})",
       "dependencies": [
         "import matplotlib.pyplot"
       ],
@@ -3357,7 +3377,7 @@
       "enrichment_source": null,
       "enriched_at": null,
       "domain_name": "matplotlib",
-      "node_type": "source",
+      "node_type": "function",
       "node_role": "function",
       "verified": true,
       "source_priority": 50
@@ -3367,7 +3387,7 @@
       "stage": 2,
       "inputs": {
         "data": {
-          "type_name": "DataObject",
+          "type_name": "any",
           "state": "any",
           "qualifiers": [],
           "default_value": null,
@@ -3387,7 +3407,7 @@
       },
       "outputs": {
         "output_data": {
-          "type_name": "DataObject",
+          "type_name": "any",
           "state": "hexbined",
           "qualifiers": [],
           "default_value": null,
@@ -3436,7 +3456,7 @@
       "stage": 2,
       "inputs": {
         "data": {
-          "type_name": "DataObject",
+          "type_name": "any",
           "state": "any",
           "qualifiers": [],
           "default_value": null,
@@ -3447,7 +3467,7 @@
       },
       "outputs": {
         "output_data": {
-          "type_name": "DataObject",
+          "type_name": "any",
           "state": "histed",
           "qualifiers": [],
           "default_value": null,
@@ -3485,7 +3505,7 @@
       "stage": 2,
       "inputs": {
         "data": {
-          "type_name": "DataObject",
+          "type_name": "any",
           "state": "any",
           "qualifiers": [],
           "default_value": null,
@@ -3505,7 +3525,7 @@
       },
       "outputs": {
         "output_data": {
-          "type_name": "DataObject",
+          "type_name": "any",
           "state": "hist2ded",
           "qualifiers": [],
           "default_value": null,
@@ -3543,7 +3563,7 @@
       "stage": 2,
       "inputs": {
         "data": {
-          "type_name": "DataObject",
+          "type_name": "any",
           "state": "any",
           "qualifiers": [],
           "default_value": null,
@@ -3572,7 +3592,7 @@
       },
       "outputs": {
         "output_data": {
-          "type_name": "DataObject",
+          "type_name": "any",
           "state": "hlinesed",
           "qualifiers": [],
           "default_value": null,
@@ -3611,7 +3631,7 @@
       "inputs": {},
       "outputs": {
         "output_data": {
-          "type_name": "DataObject",
+          "type_name": "any",
           "state": "raw",
           "qualifiers": [],
           "default_value": null,
@@ -3650,7 +3670,7 @@
       "inputs": {},
       "outputs": {
         "output_data": {
-          "type_name": "DataObject",
+          "type_name": "any",
           "state": "raw",
           "qualifiers": [],
           "default_value": null,
@@ -3699,7 +3719,7 @@
       },
       "outputs": {
         "output_data": {
-          "type_name": "DataObject",
+          "type_name": "any",
           "state": "raw",
           "qualifiers": [],
           "default_value": null,
@@ -3734,14 +3754,23 @@
     },
     {
       "cell_id": "MATPLOTLIB_IMSAVE",
-      "stage": 1,
+      "stage": 3,
       "inputs": {
-        "filepath": {
+        "dest_path": {
           "type_name": "str",
-          "state": "source_identifier",
+          "state": "dest_identifier",
           "qualifiers": [],
           "default_value": null,
-          "description": "Source argument fname",
+          "description": "Destination argument fname",
+          "domain": null,
+          "required": true
+        },
+        "data": {
+          "type_name": "any",
+          "state": "any",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Input data",
           "domain": null,
           "required": true
         },
@@ -3750,24 +3779,24 @@
           "state": "arr",
           "qualifiers": [],
           "default_value": null,
-          "description": "Source argument arr",
+          "description": "Sink argument arr",
           "domain": null,
           "required": true
         }
       },
       "outputs": {
         "output_data": {
-          "type_name": "DataObject",
-          "state": "raw",
+          "type_name": "str",
+          "state": "filepath_written",
           "qualifiers": [],
           "default_value": null,
-          "description": "Ingested data",
+          "description": "Egress confirmation",
           "domain": null,
           "required": true
         }
       },
       "slots": {},
-      "code_template": "{output_var} = matplotlib.pyplot.imsave({filepath}, {arr})",
+      "code_template": "matplotlib.pyplot.imsave({dest_path}, {arr})\n{output_var} = {dest_path}",
       "dependencies": [
         "import matplotlib.pyplot"
       ],
@@ -3785,8 +3814,8 @@
       "enrichment_source": null,
       "enriched_at": null,
       "domain_name": "matplotlib",
-      "node_type": "source",
-      "node_role": "function",
+      "node_type": "sink",
+      "node_role": "sink",
       "verified": true,
       "source_priority": 50
     },
@@ -3795,7 +3824,7 @@
       "stage": 2,
       "inputs": {
         "data": {
-          "type_name": "DataObject",
+          "type_name": "any",
           "state": "any",
           "qualifiers": [],
           "default_value": null,
@@ -3806,7 +3835,7 @@
       },
       "outputs": {
         "output_data": {
-          "type_name": "DataObject",
+          "type_name": "any",
           "state": "imshowed",
           "qualifiers": [],
           "default_value": null,
@@ -3855,7 +3884,7 @@
       "inputs": {},
       "outputs": {
         "output_data": {
-          "type_name": "DataObject",
+          "type_name": "any",
           "state": "raw",
           "qualifiers": [],
           "default_value": null,
@@ -3894,7 +3923,7 @@
       "inputs": {},
       "outputs": {
         "output_data": {
-          "type_name": "DataObject",
+          "type_name": "any",
           "state": "raw",
           "qualifiers": [],
           "default_value": null,
@@ -3939,7 +3968,7 @@
       "inputs": {},
       "outputs": {
         "output_data": {
-          "type_name": "DataObject",
+          "type_name": "any",
           "state": "raw",
           "qualifiers": [],
           "default_value": null,
@@ -3978,7 +4007,7 @@
       "inputs": {},
       "outputs": {
         "output_data": {
-          "type_name": "DataObject",
+          "type_name": "any",
           "state": "raw",
           "qualifiers": [],
           "default_value": null,
@@ -4017,7 +4046,7 @@
       "inputs": {},
       "outputs": {
         "output_data": {
-          "type_name": "DataObject",
+          "type_name": "any",
           "state": "raw",
           "qualifiers": [],
           "default_value": null,
@@ -4056,7 +4085,7 @@
       "inputs": {},
       "outputs": {
         "output_data": {
-          "type_name": "DataObject",
+          "type_name": "any",
           "state": "raw",
           "qualifiers": [],
           "default_value": null,
@@ -4091,21 +4120,31 @@
     },
     {
       "cell_id": "MATPLOTLIB_LEGEND",
-      "stage": 1,
-      "inputs": {},
-      "outputs": {
-        "output_data": {
-          "type_name": "DataObject",
-          "state": "raw",
+      "stage": 2,
+      "inputs": {
+        "data": {
+          "type_name": "any",
+          "state": "any",
           "qualifiers": [],
           "default_value": null,
-          "description": "Ingested data",
+          "description": "Input carrier data",
+          "domain": null,
+          "required": true
+        }
+      },
+      "outputs": {
+        "output_data": {
+          "type_name": "any",
+          "state": "legended",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Output legended",
           "domain": null,
           "required": true
         }
       },
       "slots": {},
-      "code_template": "{output_var} = matplotlib.pyplot.legend()",
+      "code_template": "{output_var} = matplotlib.pyplot.legend({data})",
       "dependencies": [
         "import matplotlib.pyplot"
       ],
@@ -4123,38 +4162,38 @@
       "enrichment_source": null,
       "enriched_at": null,
       "domain_name": "matplotlib",
-      "node_type": "source",
+      "node_type": "function",
       "node_role": "function",
       "verified": true,
       "source_priority": 50
     },
     {
       "cell_id": "MATPLOTLIB_LOCATOR_PARAMS",
-      "stage": 1,
+      "stage": 2,
       "inputs": {
-        "axis": {
+        "data": {
           "type_name": "any",
-          "state": "axis",
+          "state": "any",
           "qualifiers": [],
           "default_value": null,
-          "description": "Source parameter axis",
+          "description": "Input carrier data",
           "domain": null,
           "required": true
         }
       },
       "outputs": {
         "output_data": {
-          "type_name": "DataObject",
-          "state": "raw",
+          "type_name": "any",
+          "state": "locatored",
           "qualifiers": [],
           "default_value": null,
-          "description": "Ingested data",
+          "description": "Output locatored",
           "domain": null,
           "required": true
         }
       },
       "slots": {},
-      "code_template": "{output_var} = matplotlib.pyplot.locator_params({axis})",
+      "code_template": "{output_var} = matplotlib.pyplot.locator_params({data})",
       "dependencies": [
         "import matplotlib.pyplot"
       ],
@@ -4176,28 +4215,38 @@
       "enrichment_source": null,
       "enriched_at": null,
       "domain_name": "matplotlib",
-      "node_type": "source",
+      "node_type": "function",
       "node_role": "function",
       "verified": true,
       "source_priority": 50
     },
     {
       "cell_id": "MATPLOTLIB_LOGLOG",
-      "stage": 1,
-      "inputs": {},
-      "outputs": {
-        "output_data": {
-          "type_name": "DataObject",
-          "state": "raw",
+      "stage": 2,
+      "inputs": {
+        "data": {
+          "type_name": "any",
+          "state": "any",
           "qualifiers": [],
           "default_value": null,
-          "description": "Ingested data",
+          "description": "Input carrier data",
+          "domain": null,
+          "required": true
+        }
+      },
+      "outputs": {
+        "output_data": {
+          "type_name": "any",
+          "state": "logloged",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Output logloged",
           "domain": null,
           "required": true
         }
       },
       "slots": {},
-      "code_template": "{output_var} = matplotlib.pyplot.loglog()",
+      "code_template": "{output_var} = matplotlib.pyplot.loglog({data})",
       "dependencies": [
         "import matplotlib.pyplot"
       ],
@@ -4215,7 +4264,7 @@
       "enrichment_source": null,
       "enriched_at": null,
       "domain_name": "matplotlib",
-      "node_type": "source",
+      "node_type": "function",
       "node_role": "function",
       "verified": true,
       "source_priority": 50
@@ -4226,7 +4275,7 @@
       "inputs": {},
       "outputs": {
         "output_data": {
-          "type_name": "DataObject",
+          "type_name": "any",
           "state": "raw",
           "qualifiers": [],
           "default_value": null,
@@ -4264,7 +4313,7 @@
       "stage": 2,
       "inputs": {
         "data": {
-          "type_name": "DataObject",
+          "type_name": "any",
           "state": "any",
           "qualifiers": [],
           "default_value": null,
@@ -4275,7 +4324,7 @@
       },
       "outputs": {
         "output_data": {
-          "type_name": "DataObject",
+          "type_name": "any",
           "state": "magnituded",
           "qualifiers": [],
           "default_value": null,
@@ -4328,7 +4377,7 @@
       "stage": 2,
       "inputs": {
         "data": {
-          "type_name": "DataObject",
+          "type_name": "any",
           "state": "any",
           "qualifiers": [],
           "default_value": null,
@@ -4339,7 +4388,7 @@
       },
       "outputs": {
         "output_data": {
-          "type_name": "DataObject",
+          "type_name": "any",
           "state": "marginsed",
           "qualifiers": [],
           "default_value": null,
@@ -4377,7 +4426,7 @@
       "stage": 2,
       "inputs": {
         "data": {
-          "type_name": "DataObject",
+          "type_name": "any",
           "state": "any",
           "qualifiers": [],
           "default_value": null,
@@ -4388,7 +4437,7 @@
       },
       "outputs": {
         "output_data": {
-          "type_name": "DataObject",
+          "type_name": "any",
           "state": "matshowed",
           "qualifiers": [],
           "default_value": null,
@@ -4427,7 +4476,7 @@
       "inputs": {},
       "outputs": {
         "output_data": {
-          "type_name": "DataObject",
+          "type_name": "any",
           "state": "raw",
           "qualifiers": [],
           "default_value": null,
@@ -4470,7 +4519,7 @@
       "inputs": {},
       "outputs": {
         "output_data": {
-          "type_name": "DataObject",
+          "type_name": "any",
           "state": "raw",
           "qualifiers": [],
           "default_value": null,
@@ -4509,21 +4558,31 @@
     },
     {
       "cell_id": "MATPLOTLIB_NEW_FIGURE_MANAGER",
-      "stage": 1,
-      "inputs": {},
-      "outputs": {
-        "output_data": {
-          "type_name": "DataObject",
-          "state": "raw",
+      "stage": 2,
+      "inputs": {
+        "data": {
+          "type_name": "any",
+          "state": "any",
           "qualifiers": [],
           "default_value": null,
-          "description": "Ingested data",
+          "description": "Input carrier data",
+          "domain": null,
+          "required": true
+        }
+      },
+      "outputs": {
+        "output_data": {
+          "type_name": "any",
+          "state": "newed",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Output newed",
           "domain": null,
           "required": true
         }
       },
       "slots": {},
-      "code_template": "{output_var} = matplotlib.pyplot.new_figure_manager()",
+      "code_template": "{output_var} = matplotlib.pyplot.new_figure_manager({data})",
       "dependencies": [
         "import matplotlib.pyplot"
       ],
@@ -4547,7 +4606,7 @@
       "enrichment_source": null,
       "enriched_at": null,
       "domain_name": "matplotlib",
-      "node_type": "source",
+      "node_type": "function",
       "node_role": "function",
       "verified": true,
       "source_priority": 50
@@ -4558,7 +4617,7 @@
       "inputs": {},
       "outputs": {
         "output_data": {
-          "type_name": "DataObject",
+          "type_name": "any",
           "state": "raw",
           "qualifiers": [],
           "default_value": null,
@@ -4597,31 +4656,31 @@
     },
     {
       "cell_id": "MATPLOTLIB_PAUSE",
-      "stage": 1,
+      "stage": 2,
       "inputs": {
-        "interval": {
+        "data": {
           "type_name": "any",
-          "state": "interval",
+          "state": "any",
           "qualifiers": [],
           "default_value": null,
-          "description": "Source parameter interval",
+          "description": "Input carrier data",
           "domain": null,
           "required": true
         }
       },
       "outputs": {
         "output_data": {
-          "type_name": "DataObject",
-          "state": "raw",
+          "type_name": "any",
+          "state": "paused",
           "qualifiers": [],
           "default_value": null,
-          "description": "Ingested data",
+          "description": "Output paused",
           "domain": null,
           "required": true
         }
       },
       "slots": {},
-      "code_template": "{output_var} = matplotlib.pyplot.pause({interval})",
+      "code_template": "{output_var} = matplotlib.pyplot.pause({data})",
       "dependencies": [
         "import matplotlib.pyplot"
       ],
@@ -4639,115 +4698,17 @@
       "enrichment_source": null,
       "enriched_at": null,
       "domain_name": "matplotlib",
-      "node_type": "source",
+      "node_type": "function",
       "node_role": "function",
       "verified": true,
       "source_priority": 50
     },
     {
       "cell_id": "MATPLOTLIB_PCOLOR",
-      "stage": 1,
-      "inputs": {
-        "shading": {
-          "type_name": "any",
-          "state": "shading",
-          "qualifiers": [],
-          "default_value": null,
-          "description": "Source parameter shading",
-          "domain": null,
-          "required": true
-        }
-      },
-      "outputs": {
-        "output_data": {
-          "type_name": "DataObject",
-          "state": "raw",
-          "qualifiers": [],
-          "default_value": null,
-          "description": "Ingested data",
-          "domain": null,
-          "required": true
-        }
-      },
-      "slots": {},
-      "code_template": "{output_var} = matplotlib.pyplot.pcolor({shading})",
-      "dependencies": [
-        "import matplotlib.pyplot"
-      ],
-      "semantic_tags": [
-        "pcolor",
-        "matplotlib",
-        "processed"
-      ],
-      "keywords": [
-        "pcolor",
-        "matplotlib",
-        "processed"
-      ],
-      "docstring": "Create a pseudocolor plot with a non-regular rectangular grid.",
-      "enrichment_source": null,
-      "enriched_at": null,
-      "domain_name": "matplotlib",
-      "node_type": "source",
-      "node_role": "function",
-      "verified": true,
-      "source_priority": 50
-    },
-    {
-      "cell_id": "MATPLOTLIB_PCOLORMESH",
-      "stage": 1,
-      "inputs": {
-        "filepath": {
-          "type_name": "str",
-          "state": "source_identifier",
-          "qualifiers": [],
-          "default_value": null,
-          "description": "Source argument alpha",
-          "domain": null,
-          "required": true
-        }
-      },
-      "outputs": {
-        "output_data": {
-          "type_name": "DataObject",
-          "state": "raw",
-          "qualifiers": [],
-          "default_value": null,
-          "description": "Ingested data",
-          "domain": null,
-          "required": true
-        }
-      },
-      "slots": {},
-      "code_template": "{output_var} = matplotlib.pyplot.pcolormesh({filepath})",
-      "dependencies": [
-        "import matplotlib.pyplot"
-      ],
-      "semantic_tags": [
-        "pcolormesh",
-        "matplotlib",
-        "processed"
-      ],
-      "keywords": [
-        "pcolormesh",
-        "matplotlib",
-        "processed"
-      ],
-      "docstring": "Create a pseudocolor plot with a non-regular rectangular grid.",
-      "enrichment_source": null,
-      "enriched_at": null,
-      "domain_name": "matplotlib",
-      "node_type": "source",
-      "node_role": "function",
-      "verified": true,
-      "source_priority": 50
-    },
-    {
-      "cell_id": "MATPLOTLIB_PHASE_SPECTRUM",
       "stage": 2,
       "inputs": {
         "data": {
-          "type_name": "DataObject",
+          "type_name": "any",
           "state": "any",
           "qualifiers": [],
           "default_value": null,
@@ -4758,7 +4719,105 @@
       },
       "outputs": {
         "output_data": {
-          "type_name": "DataObject",
+          "type_name": "any",
+          "state": "pcolored",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Output pcolored",
+          "domain": null,
+          "required": true
+        }
+      },
+      "slots": {},
+      "code_template": "{output_var} = matplotlib.pyplot.pcolor({data})",
+      "dependencies": [
+        "import matplotlib.pyplot"
+      ],
+      "semantic_tags": [
+        "pcolor",
+        "matplotlib",
+        "processed"
+      ],
+      "keywords": [
+        "pcolor",
+        "matplotlib",
+        "processed"
+      ],
+      "docstring": "Create a pseudocolor plot with a non-regular rectangular grid.",
+      "enrichment_source": null,
+      "enriched_at": null,
+      "domain_name": "matplotlib",
+      "node_type": "function",
+      "node_role": "function",
+      "verified": true,
+      "source_priority": 50
+    },
+    {
+      "cell_id": "MATPLOTLIB_PCOLORMESH",
+      "stage": 2,
+      "inputs": {
+        "data": {
+          "type_name": "any",
+          "state": "any",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Input carrier data",
+          "domain": null,
+          "required": true
+        }
+      },
+      "outputs": {
+        "output_data": {
+          "type_name": "any",
+          "state": "pcolormeshed",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Output pcolormeshed",
+          "domain": null,
+          "required": true
+        }
+      },
+      "slots": {},
+      "code_template": "{output_var} = matplotlib.pyplot.pcolormesh({data})",
+      "dependencies": [
+        "import matplotlib.pyplot"
+      ],
+      "semantic_tags": [
+        "pcolormesh",
+        "matplotlib",
+        "processed"
+      ],
+      "keywords": [
+        "pcolormesh",
+        "matplotlib",
+        "processed"
+      ],
+      "docstring": "Create a pseudocolor plot with a non-regular rectangular grid.",
+      "enrichment_source": null,
+      "enriched_at": null,
+      "domain_name": "matplotlib",
+      "node_type": "function",
+      "node_role": "function",
+      "verified": true,
+      "source_priority": 50
+    },
+    {
+      "cell_id": "MATPLOTLIB_PHASE_SPECTRUM",
+      "stage": 2,
+      "inputs": {
+        "data": {
+          "type_name": "any",
+          "state": "any",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Input carrier data",
+          "domain": null,
+          "required": true
+        }
+      },
+      "outputs": {
+        "output_data": {
+          "type_name": "any",
           "state": "phased",
           "qualifiers": [],
           "default_value": null,
@@ -4811,7 +4870,7 @@
       "stage": 2,
       "inputs": {
         "data": {
-          "type_name": "DataObject",
+          "type_name": "any",
           "state": "any",
           "qualifiers": [],
           "default_value": null,
@@ -4822,7 +4881,7 @@
       },
       "outputs": {
         "output_data": {
-          "type_name": "DataObject",
+          "type_name": "any",
           "state": "pied",
           "qualifiers": [],
           "default_value": null,
@@ -4868,14 +4927,14 @@
     },
     {
       "cell_id": "MATPLOTLIB_PIE_LABEL",
-      "stage": 1,
+      "stage": 2,
       "inputs": {
-        "container": {
+        "data": {
           "type_name": "any",
-          "state": "container",
+          "state": "any",
           "qualifiers": [],
           "default_value": null,
-          "description": "Source parameter container",
+          "description": "Input carrier data",
           "domain": null,
           "required": true
         },
@@ -4884,24 +4943,24 @@
           "state": "labels",
           "qualifiers": [],
           "default_value": null,
-          "description": "Source argument labels",
+          "description": "Required parameter labels",
           "domain": null,
           "required": true
         }
       },
       "outputs": {
         "output_data": {
-          "type_name": "DataObject",
-          "state": "raw",
+          "type_name": "any",
+          "state": "pied",
           "qualifiers": [],
           "default_value": null,
-          "description": "Ingested data",
+          "description": "Output pied",
           "domain": null,
           "required": true
         }
       },
       "slots": {},
-      "code_template": "{output_var} = matplotlib.pyplot.pie_label({container}, {labels})",
+      "code_template": "{output_var} = matplotlib.pyplot.pie_label({data}, {labels})",
       "dependencies": [
         "import matplotlib.pyplot"
       ],
@@ -4923,7 +4982,7 @@
       "enrichment_source": null,
       "enriched_at": null,
       "domain_name": "matplotlib",
-      "node_type": "source",
+      "node_type": "function",
       "node_role": "function",
       "verified": true,
       "source_priority": 50
@@ -4934,7 +4993,7 @@
       "inputs": {},
       "outputs": {
         "output_data": {
-          "type_name": "DataObject",
+          "type_name": "any",
           "state": "raw",
           "qualifiers": [],
           "default_value": null,
@@ -4973,7 +5032,7 @@
       "inputs": {},
       "outputs": {
         "output_data": {
-          "type_name": "DataObject",
+          "type_name": "any",
           "state": "raw",
           "qualifiers": [],
           "default_value": null,
@@ -5008,31 +5067,31 @@
     },
     {
       "cell_id": "MATPLOTLIB_PLOT",
-      "stage": 1,
+      "stage": 2,
       "inputs": {
-        "scalex": {
+        "data": {
           "type_name": "any",
-          "state": "scalex",
+          "state": "any",
           "qualifiers": [],
           "default_value": null,
-          "description": "Source parameter scalex",
+          "description": "Input carrier data",
           "domain": null,
           "required": true
         }
       },
       "outputs": {
         "output_data": {
-          "type_name": "DataObject",
-          "state": "raw",
+          "type_name": "any",
+          "state": "ploted",
           "qualifiers": [],
           "default_value": null,
-          "description": "Ingested data",
+          "description": "Output ploted",
           "domain": null,
           "required": true
         }
       },
       "slots": {},
-      "code_template": "{output_var} = matplotlib.pyplot.plot({scalex})",
+      "code_template": "{output_var} = matplotlib.pyplot.plot({data})",
       "dependencies": [
         "import matplotlib.pyplot"
       ],
@@ -5068,28 +5127,38 @@
       "enrichment_source": null,
       "enriched_at": null,
       "domain_name": "matplotlib",
-      "node_type": "source",
+      "node_type": "function",
       "node_role": "function",
       "verified": true,
       "source_priority": 1
     },
     {
       "cell_id": "MATPLOTLIB_POLAR",
-      "stage": 1,
-      "inputs": {},
-      "outputs": {
-        "output_data": {
-          "type_name": "DataObject",
-          "state": "raw",
+      "stage": 2,
+      "inputs": {
+        "data": {
+          "type_name": "any",
+          "state": "any",
           "qualifiers": [],
           "default_value": null,
-          "description": "Ingested data",
+          "description": "Input carrier data",
+          "domain": null,
+          "required": true
+        }
+      },
+      "outputs": {
+        "output_data": {
+          "type_name": "any",
+          "state": "polared",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Output polared",
           "domain": null,
           "required": true
         }
       },
       "slots": {},
-      "code_template": "{output_var} = matplotlib.pyplot.polar()",
+      "code_template": "{output_var} = matplotlib.pyplot.polar({data})",
       "dependencies": [
         "import matplotlib.pyplot"
       ],
@@ -5107,7 +5176,7 @@
       "enrichment_source": null,
       "enriched_at": null,
       "domain_name": "matplotlib",
-      "node_type": "source",
+      "node_type": "function",
       "node_role": "function",
       "verified": true,
       "source_priority": 50
@@ -5118,7 +5187,7 @@
       "inputs": {},
       "outputs": {
         "output_data": {
-          "type_name": "DataObject",
+          "type_name": "any",
           "state": "raw",
           "qualifiers": [],
           "default_value": null,
@@ -5156,7 +5225,7 @@
       "stage": 2,
       "inputs": {
         "data": {
-          "type_name": "DataObject",
+          "type_name": "any",
           "state": "any",
           "qualifiers": [],
           "default_value": null,
@@ -5167,7 +5236,7 @@
       },
       "outputs": {
         "output_data": {
-          "type_name": "DataObject",
+          "type_name": "any",
           "state": "psded",
           "qualifiers": [],
           "default_value": null,
@@ -5216,7 +5285,7 @@
       "stage": 2,
       "inputs": {
         "data": {
-          "type_name": "DataObject",
+          "type_name": "any",
           "state": "any",
           "qualifiers": [],
           "default_value": null,
@@ -5227,7 +5296,7 @@
       },
       "outputs": {
         "output_data": {
-          "type_name": "DataObject",
+          "type_name": "any",
           "state": "quivered",
           "qualifiers": [],
           "default_value": null,
@@ -5262,14 +5331,14 @@
     },
     {
       "cell_id": "MATPLOTLIB_QUIVERKEY",
-      "stage": 1,
+      "stage": 2,
       "inputs": {
-        "Q": {
+        "data": {
           "type_name": "any",
-          "state": "q",
+          "state": "any",
           "qualifiers": [],
           "default_value": null,
-          "description": "Source parameter Q",
+          "description": "Input carrier data",
           "domain": null,
           "required": true
         },
@@ -5278,7 +5347,7 @@
           "state": "x",
           "qualifiers": [],
           "default_value": null,
-          "description": "Source argument X",
+          "description": "Required parameter X",
           "domain": null,
           "required": true
         },
@@ -5287,7 +5356,7 @@
           "state": "y",
           "qualifiers": [],
           "default_value": null,
-          "description": "Source argument Y",
+          "description": "Required parameter Y",
           "domain": null,
           "required": true
         },
@@ -5296,7 +5365,7 @@
           "state": "u",
           "qualifiers": [],
           "default_value": null,
-          "description": "Source argument U",
+          "description": "Required parameter U",
           "domain": null,
           "required": true
         },
@@ -5305,24 +5374,24 @@
           "state": "label",
           "qualifiers": [],
           "default_value": null,
-          "description": "Source argument label",
+          "description": "Required parameter label",
           "domain": null,
           "required": true
         }
       },
       "outputs": {
         "output_data": {
-          "type_name": "DataObject",
-          "state": "raw",
+          "type_name": "any",
+          "state": "quiverkeyed",
           "qualifiers": [],
           "default_value": null,
-          "description": "Ingested data",
+          "description": "Output quiverkeyed",
           "domain": null,
           "required": true
         }
       },
       "slots": {},
-      "code_template": "{output_var} = matplotlib.pyplot.quiverkey({Q}, {X}, {Y}, {U}, {label})",
+      "code_template": "{output_var} = matplotlib.pyplot.quiverkey({data}, {X}, {Y}, {U}, {label})",
       "dependencies": [
         "import matplotlib.pyplot"
       ],
@@ -5340,38 +5409,38 @@
       "enrichment_source": null,
       "enriched_at": null,
       "domain_name": "matplotlib",
-      "node_type": "source",
+      "node_type": "function",
       "node_role": "function",
       "verified": true,
       "source_priority": 50
     },
     {
       "cell_id": "MATPLOTLIB_RC",
-      "stage": 1,
+      "stage": 2,
       "inputs": {
-        "group": {
+        "data": {
           "type_name": "any",
-          "state": "group",
+          "state": "any",
           "qualifiers": [],
           "default_value": null,
-          "description": "Source parameter group",
+          "description": "Input carrier data",
           "domain": null,
           "required": true
         }
       },
       "outputs": {
         "output_data": {
-          "type_name": "DataObject",
-          "state": "raw",
+          "type_name": "any",
+          "state": "rced",
           "qualifiers": [],
           "default_value": null,
-          "description": "Ingested data",
+          "description": "Output rced",
           "domain": null,
           "required": true
         }
       },
       "slots": {},
-      "code_template": "{output_var} = matplotlib.pyplot.rc({group})",
+      "code_template": "{output_var} = matplotlib.pyplot.rc({data})",
       "dependencies": [
         "import matplotlib.pyplot"
       ],
@@ -5389,38 +5458,38 @@
       "enrichment_source": null,
       "enriched_at": null,
       "domain_name": "matplotlib",
-      "node_type": "source",
+      "node_type": "function",
       "node_role": "function",
       "verified": true,
       "source_priority": 50
     },
     {
       "cell_id": "MATPLOTLIB_RC_CONTEXT",
-      "stage": 1,
+      "stage": 2,
       "inputs": {
-        "filepath": {
-          "type_name": "str",
-          "state": "source_identifier",
+        "data": {
+          "type_name": "any",
+          "state": "any",
           "qualifiers": [],
           "default_value": null,
-          "description": "Source argument rc",
+          "description": "Input carrier data",
           "domain": null,
           "required": true
         }
       },
       "outputs": {
         "output_data": {
-          "type_name": "DataObject",
-          "state": "raw",
+          "type_name": "any",
+          "state": "rced",
           "qualifiers": [],
           "default_value": null,
-          "description": "Ingested data",
+          "description": "Output rced",
           "domain": null,
           "required": true
         }
       },
       "slots": {},
-      "code_template": "{output_var} = matplotlib.pyplot.rc_context({filepath})",
+      "code_template": "{output_var} = matplotlib.pyplot.rc_context({data})",
       "dependencies": [
         "import matplotlib.pyplot"
       ],
@@ -5442,7 +5511,7 @@
       "enrichment_source": null,
       "enriched_at": null,
       "domain_name": "matplotlib",
-      "node_type": "source",
+      "node_type": "function",
       "node_role": "function",
       "verified": true,
       "source_priority": 50
@@ -5453,7 +5522,7 @@
       "inputs": {},
       "outputs": {
         "output_data": {
-          "type_name": "DataObject",
+          "type_name": "any",
           "state": "raw",
           "qualifiers": [],
           "default_value": null,
@@ -5488,31 +5557,31 @@
     },
     {
       "cell_id": "MATPLOTLIB_RGRIDS",
-      "stage": 1,
+      "stage": 2,
       "inputs": {
-        "radii": {
+        "data": {
           "type_name": "any",
-          "state": "radii",
+          "state": "any",
           "qualifiers": [],
           "default_value": null,
-          "description": "Source parameter radii",
+          "description": "Input carrier data",
           "domain": null,
           "required": true
         }
       },
       "outputs": {
         "output_data": {
-          "type_name": "DataObject",
-          "state": "raw",
+          "type_name": "any",
+          "state": "rgridsed",
           "qualifiers": [],
           "default_value": null,
-          "description": "Ingested data",
+          "description": "Output rgridsed",
           "domain": null,
           "required": true
         }
       },
       "slots": {},
-      "code_template": "{output_var} = matplotlib.pyplot.rgrids({radii})",
+      "code_template": "{output_var} = matplotlib.pyplot.rgrids({data})",
       "dependencies": [
         "import matplotlib.pyplot"
       ],
@@ -5530,103 +5599,116 @@
       "enrichment_source": null,
       "enriched_at": null,
       "domain_name": "matplotlib",
-      "node_type": "source",
+      "node_type": "function",
       "node_role": "function",
       "verified": true,
       "source_priority": 50
     },
     {
       "cell_id": "MATPLOTLIB_SAVEFIG",
-      "stage": 1,
+      "stage": 3,
       "inputs": {
-        "filepath": {
+        "dest_path": {
           "type_name": "str",
-          "state": "source_identifier",
+          "state": "dest_identifier",
           "qualifiers": [],
           "default_value": null,
-          "description": "Source argument fname",
+          "description": "Destination argument fname",
+          "domain": null,
+          "required": true
+        },
+        "data": {
+          "type_name": "any",
+          "state": "any",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Input data",
           "domain": null,
           "required": true
         }
       },
       "outputs": {
         "output_data": {
-          "type_name": "DataObject",
-          "state": "raw",
+          "type_name": "str",
+          "state": "filepath_written",
           "qualifiers": [],
           "default_value": null,
-          "description": "Ingested data",
+          "description": "Egress confirmation",
           "domain": null,
           "required": true
         }
       },
       "slots": {},
-      "code_template": "{output_var} = matplotlib.pyplot.savefig({filepath})",
+      "code_template": "matplotlib.pyplot.savefig({dest_path})\n{output_var} = {dest_path}",
       "dependencies": [
         "import matplotlib.pyplot"
       ],
       "semantic_tags": [
-        "savefig",
-        "matplotlib",
-        "save",
+        "dest_path",
         "export",
-        "png",
-        "jpg",
-        "image",
         "figure",
         "file",
-        "dest_path",
-        "pyplot"
+        "image",
+        "jpg",
+        "matplotlib",
+        "plot",
+        "plotting",
+        "png",
+        "pyplot",
+        "save",
+        "savefig"
       ],
       "keywords": [
-        "savefig",
-        "matplotlib",
-        "save",
+        "dest_path",
         "export",
-        "png",
-        "jpg",
-        "image",
         "figure",
         "file",
-        "dest_path",
-        "pyplot"
+        "image",
+        "jpg",
+        "matplotlib",
+        "plot",
+        "plotting",
+        "png",
+        "pyplot",
+        "save",
+        "savefig"
       ],
       "docstring": "Save the current figure as an image or vector graphic to a file.",
       "enrichment_source": null,
       "enriched_at": null,
       "domain_name": "matplotlib",
-      "node_type": "source",
-      "node_role": "function",
+      "node_type": "sink",
+      "node_role": "sink",
       "verified": true,
       "source_priority": 1
     },
     {
       "cell_id": "MATPLOTLIB_SCA",
-      "stage": 1,
+      "stage": 2,
       "inputs": {
-        "ax": {
+        "data": {
           "type_name": "any",
-          "state": "ax",
+          "state": "any",
           "qualifiers": [],
           "default_value": null,
-          "description": "Source parameter ax",
+          "description": "Input carrier data",
           "domain": null,
           "required": true
         }
       },
       "outputs": {
         "output_data": {
-          "type_name": "DataObject",
-          "state": "raw",
+          "type_name": "any",
+          "state": "scaed",
           "qualifiers": [],
           "default_value": null,
-          "description": "Ingested data",
+          "description": "Output scaed",
           "domain": null,
           "required": true
         }
       },
       "slots": {},
-      "code_template": "{output_var} = matplotlib.pyplot.sca({ax})",
+      "code_template": "{output_var} = matplotlib.pyplot.sca({data})",
       "dependencies": [
         "import matplotlib.pyplot"
       ],
@@ -5644,7 +5726,7 @@
       "enrichment_source": null,
       "enriched_at": null,
       "domain_name": "matplotlib",
-      "node_type": "source",
+      "node_type": "function",
       "node_role": "function",
       "verified": true,
       "source_priority": 50
@@ -5654,7 +5736,7 @@
       "stage": 2,
       "inputs": {
         "data": {
-          "type_name": "DataObject",
+          "type_name": "any",
           "state": "any",
           "qualifiers": [],
           "default_value": null,
@@ -5674,7 +5756,7 @@
       },
       "outputs": {
         "output_data": {
-          "type_name": "DataObject",
+          "type_name": "any",
           "state": "scattered",
           "qualifiers": [],
           "default_value": null,
@@ -5729,31 +5811,31 @@
     },
     {
       "cell_id": "MATPLOTLIB_SCI",
-      "stage": 1,
+      "stage": 2,
       "inputs": {
-        "im": {
+        "data": {
           "type_name": "any",
-          "state": "im",
+          "state": "any",
           "qualifiers": [],
           "default_value": null,
-          "description": "Source parameter im",
+          "description": "Input carrier data",
           "domain": null,
           "required": true
         }
       },
       "outputs": {
         "output_data": {
-          "type_name": "DataObject",
-          "state": "raw",
+          "type_name": "any",
+          "state": "scied",
           "qualifiers": [],
           "default_value": null,
-          "description": "Ingested data",
+          "description": "Output scied",
           "domain": null,
           "required": true
         }
       },
       "slots": {},
-      "code_template": "{output_var} = matplotlib.pyplot.sci({im})",
+      "code_template": "{output_var} = matplotlib.pyplot.sci({data})",
       "dependencies": [
         "import matplotlib.pyplot"
       ],
@@ -5771,28 +5853,38 @@
       "enrichment_source": null,
       "enriched_at": null,
       "domain_name": "matplotlib",
-      "node_type": "source",
+      "node_type": "function",
       "node_role": "function",
       "verified": true,
       "source_priority": 50
     },
     {
       "cell_id": "MATPLOTLIB_SEMILOGX",
-      "stage": 1,
-      "inputs": {},
-      "outputs": {
-        "output_data": {
-          "type_name": "DataObject",
-          "state": "raw",
+      "stage": 2,
+      "inputs": {
+        "data": {
+          "type_name": "any",
+          "state": "any",
           "qualifiers": [],
           "default_value": null,
-          "description": "Ingested data",
+          "description": "Input carrier data",
+          "domain": null,
+          "required": true
+        }
+      },
+      "outputs": {
+        "output_data": {
+          "type_name": "any",
+          "state": "semilogxed",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Output semilogxed",
           "domain": null,
           "required": true
         }
       },
       "slots": {},
-      "code_template": "{output_var} = matplotlib.pyplot.semilogx()",
+      "code_template": "{output_var} = matplotlib.pyplot.semilogx({data})",
       "dependencies": [
         "import matplotlib.pyplot"
       ],
@@ -5810,28 +5902,38 @@
       "enrichment_source": null,
       "enriched_at": null,
       "domain_name": "matplotlib",
-      "node_type": "source",
+      "node_type": "function",
       "node_role": "function",
       "verified": true,
       "source_priority": 50
     },
     {
       "cell_id": "MATPLOTLIB_SEMILOGY",
-      "stage": 1,
-      "inputs": {},
-      "outputs": {
-        "output_data": {
-          "type_name": "DataObject",
-          "state": "raw",
+      "stage": 2,
+      "inputs": {
+        "data": {
+          "type_name": "any",
+          "state": "any",
           "qualifiers": [],
           "default_value": null,
-          "description": "Ingested data",
+          "description": "Input carrier data",
+          "domain": null,
+          "required": true
+        }
+      },
+      "outputs": {
+        "output_data": {
+          "type_name": "any",
+          "state": "semilogied",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Output semilogied",
           "domain": null,
           "required": true
         }
       },
       "slots": {},
-      "code_template": "{output_var} = matplotlib.pyplot.semilogy()",
+      "code_template": "{output_var} = matplotlib.pyplot.semilogy({data})",
       "dependencies": [
         "import matplotlib.pyplot"
       ],
@@ -5849,38 +5951,38 @@
       "enrichment_source": null,
       "enriched_at": null,
       "domain_name": "matplotlib",
-      "node_type": "source",
+      "node_type": "function",
       "node_role": "function",
       "verified": true,
       "source_priority": 50
     },
     {
       "cell_id": "MATPLOTLIB_SET_CMAP",
-      "stage": 1,
+      "stage": 2,
       "inputs": {
-        "cmap": {
+        "data": {
           "type_name": "any",
-          "state": "cmap",
+          "state": "any",
           "qualifiers": [],
           "default_value": null,
-          "description": "Source parameter cmap",
+          "description": "Input carrier data",
           "domain": null,
           "required": true
         }
       },
       "outputs": {
         "output_data": {
-          "type_name": "DataObject",
-          "state": "raw",
+          "type_name": "any",
+          "state": "seted",
           "qualifiers": [],
           "default_value": null,
-          "description": "Ingested data",
+          "description": "Output seted",
           "domain": null,
           "required": true
         }
       },
       "slots": {},
-      "code_template": "{output_var} = matplotlib.pyplot.set_cmap({cmap})",
+      "code_template": "{output_var} = matplotlib.pyplot.set_cmap({data})",
       "dependencies": [
         "import matplotlib.pyplot"
       ],
@@ -5902,38 +6004,38 @@
       "enrichment_source": null,
       "enriched_at": null,
       "domain_name": "matplotlib",
-      "node_type": "source",
+      "node_type": "function",
       "node_role": "function",
       "verified": true,
       "source_priority": 50
     },
     {
       "cell_id": "MATPLOTLIB_SET_LOGLEVEL",
-      "stage": 1,
+      "stage": 2,
       "inputs": {
-        "level": {
+        "data": {
           "type_name": "any",
-          "state": "level",
+          "state": "any",
           "qualifiers": [],
           "default_value": null,
-          "description": "Source parameter level",
+          "description": "Input carrier data",
           "domain": null,
           "required": true
         }
       },
       "outputs": {
         "output_data": {
-          "type_name": "DataObject",
-          "state": "raw",
+          "type_name": "any",
+          "state": "seted",
           "qualifiers": [],
           "default_value": null,
-          "description": "Ingested data",
+          "description": "Output seted",
           "domain": null,
           "required": true
         }
       },
       "slots": {},
-      "code_template": "{output_var} = matplotlib.pyplot.set_loglevel({level})",
+      "code_template": "{output_var} = matplotlib.pyplot.set_loglevel({data})",
       "dependencies": [
         "import matplotlib.pyplot"
       ],
@@ -5955,38 +6057,38 @@
       "enrichment_source": null,
       "enriched_at": null,
       "domain_name": "matplotlib",
-      "node_type": "source",
+      "node_type": "function",
       "node_role": "function",
       "verified": true,
       "source_priority": 50
     },
     {
       "cell_id": "MATPLOTLIB_SETP",
-      "stage": 1,
+      "stage": 2,
       "inputs": {
-        "filepath": {
-          "type_name": "str",
-          "state": "source_identifier",
+        "data": {
+          "type_name": "any",
+          "state": "any",
           "qualifiers": [],
           "default_value": null,
-          "description": "Source argument obj",
+          "description": "Input carrier data",
           "domain": null,
           "required": true
         }
       },
       "outputs": {
         "output_data": {
-          "type_name": "DataObject",
-          "state": "raw",
+          "type_name": "any",
+          "state": "setped",
           "qualifiers": [],
           "default_value": null,
-          "description": "Ingested data",
+          "description": "Output setped",
           "domain": null,
           "required": true
         }
       },
       "slots": {},
-      "code_template": "{output_var} = matplotlib.pyplot.setp({filepath})",
+      "code_template": "{output_var} = matplotlib.pyplot.setp({data})",
       "dependencies": [
         "import matplotlib.pyplot"
       ],
@@ -6004,28 +6106,38 @@
       "enrichment_source": null,
       "enriched_at": null,
       "domain_name": "matplotlib",
-      "node_type": "source",
+      "node_type": "function",
       "node_role": "function",
       "verified": true,
       "source_priority": 50
     },
     {
       "cell_id": "MATPLOTLIB_SHOW",
-      "stage": 1,
-      "inputs": {},
-      "outputs": {
-        "output_data": {
-          "type_name": "DataObject",
-          "state": "raw",
+      "stage": 3,
+      "inputs": {
+        "data": {
+          "type_name": "any",
+          "state": "any",
           "qualifiers": [],
           "default_value": null,
-          "description": "Ingested data",
+          "description": "Input data",
+          "domain": null,
+          "required": true
+        }
+      },
+      "outputs": {
+        "output_data": {
+          "type_name": "str",
+          "state": "filepath_written",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Egress confirmation",
           "domain": null,
           "required": true
         }
       },
       "slots": {},
-      "code_template": "{output_var} = matplotlib.pyplot.show()",
+      "code_template": "matplotlib.pyplot.show()\n{output_var} = ''",
       "dependencies": [
         "import matplotlib.pyplot"
       ],
@@ -6051,8 +6163,8 @@
       "enrichment_source": null,
       "enriched_at": null,
       "domain_name": "matplotlib",
-      "node_type": "source",
-      "node_role": "function",
+      "node_type": "sink",
+      "node_role": "sink",
       "verified": true,
       "source_priority": 1
     },
@@ -6061,7 +6173,7 @@
       "stage": 2,
       "inputs": {
         "data": {
-          "type_name": "DataObject",
+          "type_name": "any",
           "state": "any",
           "qualifiers": [],
           "default_value": null,
@@ -6072,7 +6184,7 @@
       },
       "outputs": {
         "output_data": {
-          "type_name": "DataObject",
+          "type_name": "any",
           "state": "specgramed",
           "qualifiers": [],
           "default_value": null,
@@ -6122,7 +6234,7 @@
       "inputs": {},
       "outputs": {
         "output_data": {
-          "type_name": "DataObject",
+          "type_name": "any",
           "state": "raw",
           "qualifiers": [],
           "default_value": null,
@@ -6157,31 +6269,31 @@
     },
     {
       "cell_id": "MATPLOTLIB_SPY",
-      "stage": 1,
+      "stage": 2,
       "inputs": {
-        "Z": {
+        "data": {
           "type_name": "any",
-          "state": "z",
+          "state": "any",
           "qualifiers": [],
           "default_value": null,
-          "description": "Source parameter Z",
+          "description": "Input carrier data",
           "domain": null,
           "required": true
         }
       },
       "outputs": {
         "output_data": {
-          "type_name": "DataObject",
-          "state": "raw",
+          "type_name": "any",
+          "state": "spied",
           "qualifiers": [],
           "default_value": null,
-          "description": "Ingested data",
+          "description": "Output spied",
           "domain": null,
           "required": true
         }
       },
       "slots": {},
-      "code_template": "{output_var} = matplotlib.pyplot.spy({Z})",
+      "code_template": "{output_var} = matplotlib.pyplot.spy({data})",
       "dependencies": [
         "import matplotlib.pyplot"
       ],
@@ -6199,7 +6311,7 @@
       "enrichment_source": null,
       "enriched_at": null,
       "domain_name": "matplotlib",
-      "node_type": "source",
+      "node_type": "function",
       "node_role": "function",
       "verified": true,
       "source_priority": 50
@@ -6209,7 +6321,7 @@
       "stage": 2,
       "inputs": {
         "data": {
-          "type_name": "DataObject",
+          "type_name": "any",
           "state": "any",
           "qualifiers": [],
           "default_value": null,
@@ -6220,7 +6332,7 @@
       },
       "outputs": {
         "output_data": {
-          "type_name": "DataObject",
+          "type_name": "any",
           "state": "stackploted",
           "qualifiers": [],
           "default_value": null,
@@ -6255,31 +6367,31 @@
     },
     {
       "cell_id": "MATPLOTLIB_STAIRS",
-      "stage": 1,
+      "stage": 2,
       "inputs": {
-        "values": {
+        "data": {
           "type_name": "any",
-          "state": "values",
+          "state": "any",
           "qualifiers": [],
           "default_value": null,
-          "description": "Source parameter values",
+          "description": "Input carrier data",
           "domain": null,
           "required": true
         }
       },
       "outputs": {
         "output_data": {
-          "type_name": "DataObject",
-          "state": "raw",
+          "type_name": "any",
+          "state": "stairsed",
           "qualifiers": [],
           "default_value": null,
-          "description": "Ingested data",
+          "description": "Output stairsed",
           "domain": null,
           "required": true
         }
       },
       "slots": {},
-      "code_template": "{output_var} = matplotlib.pyplot.stairs({values})",
+      "code_template": "{output_var} = matplotlib.pyplot.stairs({data})",
       "dependencies": [
         "import matplotlib.pyplot"
       ],
@@ -6297,38 +6409,38 @@
       "enrichment_source": null,
       "enriched_at": null,
       "domain_name": "matplotlib",
-      "node_type": "source",
+      "node_type": "function",
       "node_role": "function",
       "verified": true,
       "source_priority": 50
     },
     {
       "cell_id": "MATPLOTLIB_STEM",
-      "stage": 1,
+      "stage": 2,
       "inputs": {
-        "linefmt": {
+        "data": {
           "type_name": "any",
-          "state": "linefmt",
+          "state": "any",
           "qualifiers": [],
           "default_value": null,
-          "description": "Source parameter linefmt",
+          "description": "Input carrier data",
           "domain": null,
           "required": true
         }
       },
       "outputs": {
         "output_data": {
-          "type_name": "DataObject",
-          "state": "raw",
+          "type_name": "any",
+          "state": "stemed",
           "qualifiers": [],
           "default_value": null,
-          "description": "Ingested data",
+          "description": "Output stemed",
           "domain": null,
           "required": true
         }
       },
       "slots": {},
-      "code_template": "{output_var} = matplotlib.pyplot.stem({linefmt})",
+      "code_template": "{output_var} = matplotlib.pyplot.stem({data})",
       "dependencies": [
         "import matplotlib.pyplot"
       ],
@@ -6346,7 +6458,7 @@
       "enrichment_source": null,
       "enriched_at": null,
       "domain_name": "matplotlib",
-      "node_type": "source",
+      "node_type": "function",
       "node_role": "function",
       "verified": true,
       "source_priority": 50
@@ -6356,7 +6468,7 @@
       "stage": 2,
       "inputs": {
         "data": {
-          "type_name": "DataObject",
+          "type_name": "any",
           "state": "any",
           "qualifiers": [],
           "default_value": null,
@@ -6376,7 +6488,7 @@
       },
       "outputs": {
         "output_data": {
-          "type_name": "DataObject",
+          "type_name": "any",
           "state": "steped",
           "qualifiers": [],
           "default_value": null,
@@ -6414,7 +6526,7 @@
       "stage": 2,
       "inputs": {
         "data": {
-          "type_name": "DataObject",
+          "type_name": "any",
           "state": "any",
           "qualifiers": [],
           "default_value": null,
@@ -6452,7 +6564,7 @@
       },
       "outputs": {
         "output_data": {
-          "type_name": "DataObject",
+          "type_name": "any",
           "state": "streamploted",
           "qualifiers": [],
           "default_value": null,
@@ -6487,21 +6599,31 @@
     },
     {
       "cell_id": "MATPLOTLIB_SUBPLOT",
-      "stage": 1,
-      "inputs": {},
-      "outputs": {
-        "output_data": {
-          "type_name": "DataObject",
-          "state": "raw",
+      "stage": 2,
+      "inputs": {
+        "data": {
+          "type_name": "any",
+          "state": "any",
           "qualifiers": [],
           "default_value": null,
-          "description": "Ingested data",
+          "description": "Input carrier data",
+          "domain": null,
+          "required": true
+        }
+      },
+      "outputs": {
+        "output_data": {
+          "type_name": "any",
+          "state": "subploted",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Output subploted",
           "domain": null,
           "required": true
         }
       },
       "slots": {},
-      "code_template": "{output_var} = matplotlib.pyplot.subplot()",
+      "code_template": "{output_var} = matplotlib.pyplot.subplot({data})",
       "dependencies": [
         "import matplotlib.pyplot"
       ],
@@ -6519,7 +6641,7 @@
       "enrichment_source": null,
       "enriched_at": null,
       "domain_name": "matplotlib",
-      "node_type": "source",
+      "node_type": "function",
       "node_role": "function",
       "verified": true,
       "source_priority": 50
@@ -6549,7 +6671,7 @@
       },
       "outputs": {
         "output_data": {
-          "type_name": "DataObject",
+          "type_name": "any",
           "state": "raw",
           "qualifiers": [],
           "default_value": null,
@@ -6584,31 +6706,31 @@
     },
     {
       "cell_id": "MATPLOTLIB_SUBPLOT_MOSAIC",
-      "stage": 1,
+      "stage": 2,
       "inputs": {
-        "mosaic": {
+        "data": {
           "type_name": "any",
-          "state": "mosaic",
+          "state": "any",
           "qualifiers": [],
           "default_value": null,
-          "description": "Source parameter mosaic",
+          "description": "Input carrier data",
           "domain": null,
           "required": true
         }
       },
       "outputs": {
         "output_data": {
-          "type_name": "DataObject",
-          "state": "raw",
+          "type_name": "any",
+          "state": "subploted",
           "qualifiers": [],
           "default_value": null,
-          "description": "Ingested data",
+          "description": "Output subploted",
           "domain": null,
           "required": true
         }
       },
       "slots": {},
-      "code_template": "{output_var} = matplotlib.pyplot.subplot_mosaic({mosaic})",
+      "code_template": "{output_var} = matplotlib.pyplot.subplot_mosaic({data})",
       "dependencies": [
         "import matplotlib.pyplot"
       ],
@@ -6630,38 +6752,38 @@
       "enrichment_source": null,
       "enriched_at": null,
       "domain_name": "matplotlib",
-      "node_type": "source",
+      "node_type": "function",
       "node_role": "function",
       "verified": true,
       "source_priority": 50
     },
     {
       "cell_id": "MATPLOTLIB_SUBPLOT_TOOL",
-      "stage": 1,
+      "stage": 2,
       "inputs": {
-        "targetfig": {
+        "data": {
           "type_name": "any",
-          "state": "targetfig",
+          "state": "any",
           "qualifiers": [],
           "default_value": null,
-          "description": "Source parameter targetfig",
+          "description": "Input carrier data",
           "domain": null,
           "required": true
         }
       },
       "outputs": {
         "output_data": {
-          "type_name": "DataObject",
-          "state": "raw",
+          "type_name": "any",
+          "state": "subploted",
           "qualifiers": [],
           "default_value": null,
-          "description": "Ingested data",
+          "description": "Output subploted",
           "domain": null,
           "required": true
         }
       },
       "slots": {},
-      "code_template": "{output_var} = matplotlib.pyplot.subplot_tool({targetfig})",
+      "code_template": "{output_var} = matplotlib.pyplot.subplot_tool({data})",
       "dependencies": [
         "import matplotlib.pyplot"
       ],
@@ -6683,38 +6805,38 @@
       "enrichment_source": null,
       "enriched_at": null,
       "domain_name": "matplotlib",
-      "node_type": "source",
+      "node_type": "function",
       "node_role": "function",
       "verified": true,
       "source_priority": 50
     },
     {
       "cell_id": "MATPLOTLIB_SUBPLOTS",
-      "stage": 1,
+      "stage": 2,
       "inputs": {
-        "nrows": {
+        "data": {
           "type_name": "any",
-          "state": "nrows",
+          "state": "any",
           "qualifiers": [],
           "default_value": null,
-          "description": "Source parameter nrows",
+          "description": "Input carrier data",
           "domain": null,
           "required": true
         }
       },
       "outputs": {
         "output_data": {
-          "type_name": "DataObject",
-          "state": "raw",
+          "type_name": "any",
+          "state": "subplotsed",
           "qualifiers": [],
           "default_value": null,
-          "description": "Ingested data",
+          "description": "Output subplotsed",
           "domain": null,
           "required": true
         }
       },
       "slots": {},
-      "code_template": "{output_var} = matplotlib.pyplot.subplots({nrows})",
+      "code_template": "{output_var} = matplotlib.pyplot.subplots({data})",
       "dependencies": [
         "import matplotlib.pyplot"
       ],
@@ -6732,38 +6854,38 @@
       "enrichment_source": null,
       "enriched_at": null,
       "domain_name": "matplotlib",
-      "node_type": "source",
+      "node_type": "function",
       "node_role": "function",
       "verified": true,
       "source_priority": 50
     },
     {
       "cell_id": "MATPLOTLIB_SUBPLOTS_ADJUST",
-      "stage": 1,
+      "stage": 2,
       "inputs": {
-        "left": {
+        "data": {
           "type_name": "any",
-          "state": "left",
+          "state": "any",
           "qualifiers": [],
           "default_value": null,
-          "description": "Source parameter left",
+          "description": "Input carrier data",
           "domain": null,
           "required": true
         }
       },
       "outputs": {
         "output_data": {
-          "type_name": "DataObject",
-          "state": "raw",
+          "type_name": "any",
+          "state": "subplotsed",
           "qualifiers": [],
           "default_value": null,
-          "description": "Ingested data",
+          "description": "Output subplotsed",
           "domain": null,
           "required": true
         }
       },
       "slots": {},
-      "code_template": "{output_var} = matplotlib.pyplot.subplots_adjust({left})",
+      "code_template": "{output_var} = matplotlib.pyplot.subplots_adjust({data})",
       "dependencies": [
         "import matplotlib.pyplot"
       ],
@@ -6785,7 +6907,7 @@
       "enrichment_source": null,
       "enriched_at": null,
       "domain_name": "matplotlib",
-      "node_type": "source",
+      "node_type": "function",
       "node_role": "function",
       "verified": true,
       "source_priority": 50
@@ -6796,7 +6918,7 @@
       "inputs": {},
       "outputs": {
         "output_data": {
-          "type_name": "DataObject",
+          "type_name": "any",
           "state": "raw",
           "qualifiers": [],
           "default_value": null,
@@ -6831,31 +6953,31 @@
     },
     {
       "cell_id": "MATPLOTLIB_SUPTITLE",
-      "stage": 1,
+      "stage": 2,
       "inputs": {
-        "t": {
+        "data": {
           "type_name": "any",
-          "state": "t",
+          "state": "any",
           "qualifiers": [],
           "default_value": null,
-          "description": "Source parameter t",
+          "description": "Input carrier data",
           "domain": null,
           "required": true
         }
       },
       "outputs": {
         "output_data": {
-          "type_name": "DataObject",
-          "state": "raw",
+          "type_name": "any",
+          "state": "suptitled",
           "qualifiers": [],
           "default_value": null,
-          "description": "Ingested data",
+          "description": "Output suptitled",
           "domain": null,
           "required": true
         }
       },
       "slots": {},
-      "code_template": "{output_var} = matplotlib.pyplot.suptitle({t})",
+      "code_template": "{output_var} = matplotlib.pyplot.suptitle({data})",
       "dependencies": [
         "import matplotlib.pyplot"
       ],
@@ -6873,38 +6995,38 @@
       "enrichment_source": null,
       "enriched_at": null,
       "domain_name": "matplotlib",
-      "node_type": "source",
+      "node_type": "function",
       "node_role": "function",
       "verified": true,
       "source_priority": 50
     },
     {
       "cell_id": "MATPLOTLIB_SWITCH_BACKEND",
-      "stage": 1,
+      "stage": 2,
       "inputs": {
-        "newbackend": {
+        "data": {
           "type_name": "any",
-          "state": "newbackend",
+          "state": "any",
           "qualifiers": [],
           "default_value": null,
-          "description": "Source parameter newbackend",
+          "description": "Input carrier data",
           "domain": null,
           "required": true
         }
       },
       "outputs": {
         "output_data": {
-          "type_name": "DataObject",
-          "state": "raw",
+          "type_name": "any",
+          "state": "switched",
           "qualifiers": [],
           "default_value": null,
-          "description": "Ingested data",
+          "description": "Output switched",
           "domain": null,
           "required": true
         }
       },
       "slots": {},
-      "code_template": "{output_var} = matplotlib.pyplot.switch_backend({newbackend})",
+      "code_template": "{output_var} = matplotlib.pyplot.switch_backend({data})",
       "dependencies": [
         "import matplotlib.pyplot"
       ],
@@ -6926,38 +7048,38 @@
       "enrichment_source": null,
       "enriched_at": null,
       "domain_name": "matplotlib",
-      "node_type": "source",
+      "node_type": "function",
       "node_role": "function",
       "verified": true,
       "source_priority": 50
     },
     {
       "cell_id": "MATPLOTLIB_TABLE",
-      "stage": 1,
+      "stage": 2,
       "inputs": {
-        "cellText": {
+        "data": {
           "type_name": "any",
-          "state": "celltext",
+          "state": "any",
           "qualifiers": [],
           "default_value": null,
-          "description": "Source parameter cellText",
+          "description": "Input carrier data",
           "domain": null,
           "required": true
         }
       },
       "outputs": {
         "output_data": {
-          "type_name": "DataObject",
-          "state": "raw",
+          "type_name": "any",
+          "state": "tabled",
           "qualifiers": [],
           "default_value": null,
-          "description": "Ingested data",
+          "description": "Output tabled",
           "domain": null,
           "required": true
         }
       },
       "slots": {},
-      "code_template": "{output_var} = matplotlib.pyplot.table({cellText})",
+      "code_template": "{output_var} = matplotlib.pyplot.table({data})",
       "dependencies": [
         "import matplotlib.pyplot"
       ],
@@ -6975,7 +7097,7 @@
       "enrichment_source": null,
       "enriched_at": null,
       "domain_name": "matplotlib",
-      "node_type": "source",
+      "node_type": "function",
       "node_role": "function",
       "verified": true,
       "source_priority": 50
@@ -6985,7 +7107,7 @@
       "stage": 2,
       "inputs": {
         "data": {
-          "type_name": "DataObject",
+          "type_name": "any",
           "state": "any",
           "qualifiers": [],
           "default_value": null,
@@ -7014,7 +7136,7 @@
       },
       "outputs": {
         "output_data": {
-          "type_name": "DataObject",
+          "type_name": "any",
           "state": "texted",
           "qualifiers": [],
           "default_value": null,
@@ -7049,31 +7171,31 @@
     },
     {
       "cell_id": "MATPLOTLIB_THETAGRIDS",
-      "stage": 1,
+      "stage": 2,
       "inputs": {
-        "angles": {
+        "data": {
           "type_name": "any",
-          "state": "angles",
+          "state": "any",
           "qualifiers": [],
           "default_value": null,
-          "description": "Source parameter angles",
+          "description": "Input carrier data",
           "domain": null,
           "required": true
         }
       },
       "outputs": {
         "output_data": {
-          "type_name": "DataObject",
-          "state": "raw",
+          "type_name": "any",
+          "state": "thetagridsed",
           "qualifiers": [],
           "default_value": null,
-          "description": "Ingested data",
+          "description": "Output thetagridsed",
           "domain": null,
           "required": true
         }
       },
       "slots": {},
-      "code_template": "{output_var} = matplotlib.pyplot.thetagrids({angles})",
+      "code_template": "{output_var} = matplotlib.pyplot.thetagrids({data})",
       "dependencies": [
         "import matplotlib.pyplot"
       ],
@@ -7091,38 +7213,38 @@
       "enrichment_source": null,
       "enriched_at": null,
       "domain_name": "matplotlib",
-      "node_type": "source",
+      "node_type": "function",
       "node_role": "function",
       "verified": true,
       "source_priority": 50
     },
     {
       "cell_id": "MATPLOTLIB_TICK_PARAMS",
-      "stage": 1,
+      "stage": 2,
       "inputs": {
-        "axis": {
+        "data": {
           "type_name": "any",
-          "state": "axis",
+          "state": "any",
           "qualifiers": [],
           "default_value": null,
-          "description": "Source parameter axis",
+          "description": "Input carrier data",
           "domain": null,
           "required": true
         }
       },
       "outputs": {
         "output_data": {
-          "type_name": "DataObject",
-          "state": "raw",
+          "type_name": "any",
+          "state": "ticked",
           "qualifiers": [],
           "default_value": null,
-          "description": "Ingested data",
+          "description": "Output ticked",
           "domain": null,
           "required": true
         }
       },
       "slots": {},
-      "code_template": "{output_var} = matplotlib.pyplot.tick_params({axis})",
+      "code_template": "{output_var} = matplotlib.pyplot.tick_params({data})",
       "dependencies": [
         "import matplotlib.pyplot"
       ],
@@ -7144,38 +7266,38 @@
       "enrichment_source": null,
       "enriched_at": null,
       "domain_name": "matplotlib",
-      "node_type": "source",
+      "node_type": "function",
       "node_role": "function",
       "verified": true,
       "source_priority": 50
     },
     {
       "cell_id": "MATPLOTLIB_TICKLABEL_FORMAT",
-      "stage": 1,
+      "stage": 2,
       "inputs": {
-        "axis": {
+        "data": {
           "type_name": "any",
-          "state": "axis",
+          "state": "any",
           "qualifiers": [],
           "default_value": null,
-          "description": "Source parameter axis",
+          "description": "Input carrier data",
           "domain": null,
           "required": true
         }
       },
       "outputs": {
         "output_data": {
-          "type_name": "DataObject",
-          "state": "raw",
+          "type_name": "any",
+          "state": "ticklabeled",
           "qualifiers": [],
           "default_value": null,
-          "description": "Ingested data",
+          "description": "Output ticklabeled",
           "domain": null,
           "required": true
         }
       },
       "slots": {},
-      "code_template": "{output_var} = matplotlib.pyplot.ticklabel_format({axis})",
+      "code_template": "{output_var} = matplotlib.pyplot.ticklabel_format({data})",
       "dependencies": [
         "import matplotlib.pyplot"
       ],
@@ -7197,38 +7319,38 @@
       "enrichment_source": null,
       "enriched_at": null,
       "domain_name": "matplotlib",
-      "node_type": "source",
+      "node_type": "function",
       "node_role": "function",
       "verified": true,
       "source_priority": 50
     },
     {
       "cell_id": "MATPLOTLIB_TIGHT_LAYOUT",
-      "stage": 1,
+      "stage": 2,
       "inputs": {
-        "pad": {
+        "data": {
           "type_name": "any",
-          "state": "pad",
+          "state": "any",
           "qualifiers": [],
           "default_value": null,
-          "description": "Source parameter pad",
+          "description": "Input carrier data",
           "domain": null,
           "required": true
         }
       },
       "outputs": {
         "output_data": {
-          "type_name": "DataObject",
-          "state": "raw",
+          "type_name": "any",
+          "state": "tighted",
           "qualifiers": [],
           "default_value": null,
-          "description": "Ingested data",
+          "description": "Output tighted",
           "domain": null,
           "required": true
         }
       },
       "slots": {},
-      "code_template": "{output_var} = matplotlib.pyplot.tight_layout({pad})",
+      "code_template": "{output_var} = matplotlib.pyplot.tight_layout({data})",
       "dependencies": [
         "import matplotlib.pyplot"
       ],
@@ -7250,38 +7372,38 @@
       "enrichment_source": null,
       "enriched_at": null,
       "domain_name": "matplotlib",
-      "node_type": "source",
+      "node_type": "function",
       "node_role": "function",
       "verified": true,
       "source_priority": 50
     },
     {
       "cell_id": "MATPLOTLIB_TITLE",
-      "stage": 1,
+      "stage": 2,
       "inputs": {
-        "label": {
+        "data": {
           "type_name": "any",
-          "state": "label",
+          "state": "any",
           "qualifiers": [],
           "default_value": null,
-          "description": "Source parameter label",
+          "description": "Input carrier data",
           "domain": null,
           "required": true
         }
       },
       "outputs": {
         "output_data": {
-          "type_name": "DataObject",
-          "state": "raw",
+          "type_name": "any",
+          "state": "titled",
           "qualifiers": [],
           "default_value": null,
-          "description": "Ingested data",
+          "description": "Output titled",
           "domain": null,
           "required": true
         }
       },
       "slots": {},
-      "code_template": "{output_var} = matplotlib.pyplot.title({label})",
+      "code_template": "{output_var} = matplotlib.pyplot.title({data})",
       "dependencies": [
         "import matplotlib.pyplot"
       ],
@@ -7299,28 +7421,38 @@
       "enrichment_source": null,
       "enriched_at": null,
       "domain_name": "matplotlib",
-      "node_type": "source",
+      "node_type": "function",
       "node_role": "function",
       "verified": true,
       "source_priority": 50
     },
     {
       "cell_id": "MATPLOTLIB_TRICONTOUR",
-      "stage": 1,
-      "inputs": {},
-      "outputs": {
-        "output_data": {
-          "type_name": "DataObject",
-          "state": "raw",
+      "stage": 2,
+      "inputs": {
+        "data": {
+          "type_name": "any",
+          "state": "any",
           "qualifiers": [],
           "default_value": null,
-          "description": "Ingested data",
+          "description": "Input carrier data",
+          "domain": null,
+          "required": true
+        }
+      },
+      "outputs": {
+        "output_data": {
+          "type_name": "any",
+          "state": "tricontoured",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Output tricontoured",
           "domain": null,
           "required": true
         }
       },
       "slots": {},
-      "code_template": "{output_var} = matplotlib.pyplot.tricontour()",
+      "code_template": "{output_var} = matplotlib.pyplot.tricontour({data})",
       "dependencies": [
         "import matplotlib.pyplot"
       ],
@@ -7338,28 +7470,38 @@
       "enrichment_source": null,
       "enriched_at": null,
       "domain_name": "matplotlib",
-      "node_type": "source",
+      "node_type": "function",
       "node_role": "function",
       "verified": true,
       "source_priority": 50
     },
     {
       "cell_id": "MATPLOTLIB_TRICONTOURF",
-      "stage": 1,
-      "inputs": {},
-      "outputs": {
-        "output_data": {
-          "type_name": "DataObject",
-          "state": "raw",
+      "stage": 2,
+      "inputs": {
+        "data": {
+          "type_name": "any",
+          "state": "any",
           "qualifiers": [],
           "default_value": null,
-          "description": "Ingested data",
+          "description": "Input carrier data",
+          "domain": null,
+          "required": true
+        }
+      },
+      "outputs": {
+        "output_data": {
+          "type_name": "any",
+          "state": "tricontourfed",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Output tricontourfed",
           "domain": null,
           "required": true
         }
       },
       "slots": {},
-      "code_template": "{output_var} = matplotlib.pyplot.tricontourf()",
+      "code_template": "{output_var} = matplotlib.pyplot.tricontourf({data})",
       "dependencies": [
         "import matplotlib.pyplot"
       ],
@@ -7377,38 +7519,38 @@
       "enrichment_source": null,
       "enriched_at": null,
       "domain_name": "matplotlib",
-      "node_type": "source",
+      "node_type": "function",
       "node_role": "function",
       "verified": true,
       "source_priority": 50
     },
     {
       "cell_id": "MATPLOTLIB_TRIPCOLOR",
-      "stage": 1,
+      "stage": 2,
       "inputs": {
-        "alpha": {
+        "data": {
           "type_name": "any",
-          "state": "alpha",
+          "state": "any",
           "qualifiers": [],
           "default_value": null,
-          "description": "Source parameter alpha",
+          "description": "Input carrier data",
           "domain": null,
           "required": true
         }
       },
       "outputs": {
         "output_data": {
-          "type_name": "DataObject",
-          "state": "raw",
+          "type_name": "any",
+          "state": "tripcolored",
           "qualifiers": [],
           "default_value": null,
-          "description": "Ingested data",
+          "description": "Output tripcolored",
           "domain": null,
           "required": true
         }
       },
       "slots": {},
-      "code_template": "{output_var} = matplotlib.pyplot.tripcolor({alpha})",
+      "code_template": "{output_var} = matplotlib.pyplot.tripcolor({data})",
       "dependencies": [
         "import matplotlib.pyplot"
       ],
@@ -7426,28 +7568,38 @@
       "enrichment_source": null,
       "enriched_at": null,
       "domain_name": "matplotlib",
-      "node_type": "source",
+      "node_type": "function",
       "node_role": "function",
       "verified": true,
       "source_priority": 50
     },
     {
       "cell_id": "MATPLOTLIB_TRIPLOT",
-      "stage": 1,
-      "inputs": {},
-      "outputs": {
-        "output_data": {
-          "type_name": "DataObject",
-          "state": "raw",
+      "stage": 2,
+      "inputs": {
+        "data": {
+          "type_name": "any",
+          "state": "any",
           "qualifiers": [],
           "default_value": null,
-          "description": "Ingested data",
+          "description": "Input carrier data",
+          "domain": null,
+          "required": true
+        }
+      },
+      "outputs": {
+        "output_data": {
+          "type_name": "any",
+          "state": "triploted",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Output triploted",
           "domain": null,
           "required": true
         }
       },
       "slots": {},
-      "code_template": "{output_var} = matplotlib.pyplot.triplot()",
+      "code_template": "{output_var} = matplotlib.pyplot.triplot({data})",
       "dependencies": [
         "import matplotlib.pyplot"
       ],
@@ -7465,38 +7617,38 @@
       "enrichment_source": null,
       "enriched_at": null,
       "domain_name": "matplotlib",
-      "node_type": "source",
+      "node_type": "function",
       "node_role": "function",
       "verified": true,
       "source_priority": 50
     },
     {
       "cell_id": "MATPLOTLIB_TWINX",
-      "stage": 1,
+      "stage": 2,
       "inputs": {
-        "ax": {
+        "data": {
           "type_name": "any",
-          "state": "ax",
+          "state": "any",
           "qualifiers": [],
           "default_value": null,
-          "description": "Source parameter ax",
+          "description": "Input carrier data",
           "domain": null,
           "required": true
         }
       },
       "outputs": {
         "output_data": {
-          "type_name": "DataObject",
-          "state": "raw",
+          "type_name": "any",
+          "state": "twinxed",
           "qualifiers": [],
           "default_value": null,
-          "description": "Ingested data",
+          "description": "Output twinxed",
           "domain": null,
           "required": true
         }
       },
       "slots": {},
-      "code_template": "{output_var} = matplotlib.pyplot.twinx({ax})",
+      "code_template": "{output_var} = matplotlib.pyplot.twinx({data})",
       "dependencies": [
         "import matplotlib.pyplot"
       ],
@@ -7514,38 +7666,38 @@
       "enrichment_source": null,
       "enriched_at": null,
       "domain_name": "matplotlib",
-      "node_type": "source",
+      "node_type": "function",
       "node_role": "function",
       "verified": true,
       "source_priority": 50
     },
     {
       "cell_id": "MATPLOTLIB_TWINY",
-      "stage": 1,
+      "stage": 2,
       "inputs": {
-        "ax": {
+        "data": {
           "type_name": "any",
-          "state": "ax",
+          "state": "any",
           "qualifiers": [],
           "default_value": null,
-          "description": "Source parameter ax",
+          "description": "Input carrier data",
           "domain": null,
           "required": true
         }
       },
       "outputs": {
         "output_data": {
-          "type_name": "DataObject",
-          "state": "raw",
+          "type_name": "any",
+          "state": "twinied",
           "qualifiers": [],
           "default_value": null,
-          "description": "Ingested data",
+          "description": "Output twinied",
           "domain": null,
           "required": true
         }
       },
       "slots": {},
-      "code_template": "{output_var} = matplotlib.pyplot.twiny({ax})",
+      "code_template": "{output_var} = matplotlib.pyplot.twiny({data})",
       "dependencies": [
         "import matplotlib.pyplot"
       ],
@@ -7563,7 +7715,7 @@
       "enrichment_source": null,
       "enriched_at": null,
       "domain_name": "matplotlib",
-      "node_type": "source",
+      "node_type": "function",
       "node_role": "function",
       "verified": true,
       "source_priority": 50
@@ -7574,7 +7726,7 @@
       "inputs": {},
       "outputs": {
         "output_data": {
-          "type_name": "DataObject",
+          "type_name": "any",
           "state": "raw",
           "qualifiers": [],
           "default_value": null,
@@ -7615,25 +7767,25 @@
     },
     {
       "cell_id": "MATPLOTLIB_VIOLINPLOT",
-      "stage": 1,
+      "stage": 2,
       "inputs": {
-        "dataset": {
+        "data": {
           "type_name": "any",
-          "state": "dataset",
+          "state": "any",
           "qualifiers": [],
           "default_value": null,
-          "description": "Source parameter dataset",
+          "description": "Input carrier data",
           "domain": null,
           "required": true
         }
       },
       "outputs": {
         "output_data": {
-          "type_name": "DataObject",
-          "state": "raw",
+          "type_name": "any",
+          "state": "violinploted",
           "qualifiers": [],
           "default_value": null,
-          "description": "Ingested data",
+          "description": "Output violinploted",
           "domain": null,
           "required": true
         }
@@ -7650,7 +7802,7 @@
           }
         }
       },
-      "code_template": "{output_var} = matplotlib.pyplot.violinplot({dataset})",
+      "code_template": "{output_var} = matplotlib.pyplot.violinplot({data})",
       "dependencies": [
         "import matplotlib.pyplot"
       ],
@@ -7668,7 +7820,7 @@
       "enrichment_source": null,
       "enriched_at": null,
       "domain_name": "matplotlib",
-      "node_type": "source",
+      "node_type": "higher_order",
       "node_role": "macro",
       "verified": true,
       "source_priority": 50
@@ -7679,7 +7831,7 @@
       "inputs": {},
       "outputs": {
         "output_data": {
-          "type_name": "DataObject",
+          "type_name": "any",
           "state": "raw",
           "qualifiers": [],
           "default_value": null,
@@ -7717,7 +7869,7 @@
       "stage": 2,
       "inputs": {
         "data": {
-          "type_name": "DataObject",
+          "type_name": "any",
           "state": "any",
           "qualifiers": [],
           "default_value": null,
@@ -7746,7 +7898,7 @@
       },
       "outputs": {
         "output_data": {
-          "type_name": "DataObject",
+          "type_name": "any",
           "state": "vlinesed",
           "qualifiers": [],
           "default_value": null,
@@ -7781,31 +7933,31 @@
     },
     {
       "cell_id": "MATPLOTLIB_WAITFORBUTTONPRESS",
-      "stage": 1,
+      "stage": 2,
       "inputs": {
-        "timeout": {
+        "data": {
           "type_name": "any",
-          "state": "timeout",
+          "state": "any",
           "qualifiers": [],
           "default_value": null,
-          "description": "Source parameter timeout",
+          "description": "Input carrier data",
           "domain": null,
           "required": true
         }
       },
       "outputs": {
         "output_data": {
-          "type_name": "DataObject",
-          "state": "raw",
+          "type_name": "any",
+          "state": "waitforbuttonpressed",
           "qualifiers": [],
           "default_value": null,
-          "description": "Ingested data",
+          "description": "Output waitforbuttonpressed",
           "domain": null,
           "required": true
         }
       },
       "slots": {},
-      "code_template": "{output_var} = matplotlib.pyplot.waitforbuttonpress({timeout})",
+      "code_template": "{output_var} = matplotlib.pyplot.waitforbuttonpress({data})",
       "dependencies": [
         "import matplotlib.pyplot"
       ],
@@ -7823,7 +7975,7 @@
       "enrichment_source": null,
       "enriched_at": null,
       "domain_name": "matplotlib",
-      "node_type": "source",
+      "node_type": "function",
       "node_role": "function",
       "verified": true,
       "source_priority": 50
@@ -7834,7 +7986,7 @@
       "inputs": {},
       "outputs": {
         "output_data": {
-          "type_name": "DataObject",
+          "type_name": "any",
           "state": "raw",
           "qualifiers": [],
           "default_value": null,
@@ -7872,7 +8024,7 @@
       "stage": 2,
       "inputs": {
         "data": {
-          "type_name": "DataObject",
+          "type_name": "any",
           "state": "any",
           "qualifiers": [],
           "default_value": null,
@@ -7892,7 +8044,7 @@
       },
       "outputs": {
         "output_data": {
-          "type_name": "DataObject",
+          "type_name": "any",
           "state": "xcorred",
           "qualifiers": [],
           "default_value": null,
@@ -7938,31 +8090,31 @@
     },
     {
       "cell_id": "MATPLOTLIB_XKCD",
-      "stage": 1,
+      "stage": 2,
       "inputs": {
-        "scale": {
+        "data": {
           "type_name": "any",
-          "state": "scale",
+          "state": "any",
           "qualifiers": [],
           "default_value": null,
-          "description": "Source parameter scale",
+          "description": "Input carrier data",
           "domain": null,
           "required": true
         }
       },
       "outputs": {
         "output_data": {
-          "type_name": "DataObject",
-          "state": "raw",
+          "type_name": "any",
+          "state": "xkcded",
           "qualifiers": [],
           "default_value": null,
-          "description": "Ingested data",
+          "description": "Output xkcded",
           "domain": null,
           "required": true
         }
       },
       "slots": {},
-      "code_template": "{output_var} = matplotlib.pyplot.xkcd({scale})",
+      "code_template": "{output_var} = matplotlib.pyplot.xkcd({data})",
       "dependencies": [
         "import matplotlib.pyplot"
       ],
@@ -7980,38 +8132,38 @@
       "enrichment_source": null,
       "enriched_at": null,
       "domain_name": "matplotlib",
-      "node_type": "source",
+      "node_type": "function",
       "node_role": "function",
       "verified": true,
       "source_priority": 50
     },
     {
       "cell_id": "MATPLOTLIB_XLABEL",
-      "stage": 1,
+      "stage": 2,
       "inputs": {
-        "xlabel": {
+        "data": {
           "type_name": "any",
-          "state": "xlabel",
+          "state": "any",
           "qualifiers": [],
           "default_value": null,
-          "description": "Source parameter xlabel",
+          "description": "Input carrier data",
           "domain": null,
           "required": true
         }
       },
       "outputs": {
         "output_data": {
-          "type_name": "DataObject",
-          "state": "raw",
+          "type_name": "any",
+          "state": "xlabeled",
           "qualifiers": [],
           "default_value": null,
-          "description": "Ingested data",
+          "description": "Output xlabeled",
           "domain": null,
           "required": true
         }
       },
       "slots": {},
-      "code_template": "{output_var} = matplotlib.pyplot.xlabel({xlabel})",
+      "code_template": "{output_var} = matplotlib.pyplot.xlabel({data})",
       "dependencies": [
         "import matplotlib.pyplot"
       ],
@@ -8029,28 +8181,38 @@
       "enrichment_source": null,
       "enriched_at": null,
       "domain_name": "matplotlib",
-      "node_type": "source",
+      "node_type": "function",
       "node_role": "function",
       "verified": true,
       "source_priority": 50
     },
     {
       "cell_id": "MATPLOTLIB_XLIM",
-      "stage": 1,
-      "inputs": {},
-      "outputs": {
-        "output_data": {
-          "type_name": "DataObject",
-          "state": "raw",
+      "stage": 2,
+      "inputs": {
+        "data": {
+          "type_name": "any",
+          "state": "any",
           "qualifiers": [],
           "default_value": null,
-          "description": "Ingested data",
+          "description": "Input carrier data",
+          "domain": null,
+          "required": true
+        }
+      },
+      "outputs": {
+        "output_data": {
+          "type_name": "any",
+          "state": "xlimed",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Output xlimed",
           "domain": null,
           "required": true
         }
       },
       "slots": {},
-      "code_template": "{output_var} = matplotlib.pyplot.xlim()",
+      "code_template": "{output_var} = matplotlib.pyplot.xlim({data})",
       "dependencies": [
         "import matplotlib.pyplot"
       ],
@@ -8068,38 +8230,38 @@
       "enrichment_source": null,
       "enriched_at": null,
       "domain_name": "matplotlib",
-      "node_type": "source",
+      "node_type": "function",
       "node_role": "function",
       "verified": true,
       "source_priority": 50
     },
     {
       "cell_id": "MATPLOTLIB_XSCALE",
-      "stage": 1,
+      "stage": 2,
       "inputs": {
-        "value": {
+        "data": {
           "type_name": "any",
-          "state": "value",
+          "state": "any",
           "qualifiers": [],
           "default_value": null,
-          "description": "Source parameter value",
+          "description": "Input carrier data",
           "domain": null,
           "required": true
         }
       },
       "outputs": {
         "output_data": {
-          "type_name": "DataObject",
-          "state": "raw",
+          "type_name": "any",
+          "state": "xscaled",
           "qualifiers": [],
           "default_value": null,
-          "description": "Ingested data",
+          "description": "Output xscaled",
           "domain": null,
           "required": true
         }
       },
       "slots": {},
-      "code_template": "{output_var} = matplotlib.pyplot.xscale({value})",
+      "code_template": "{output_var} = matplotlib.pyplot.xscale({data})",
       "dependencies": [
         "import matplotlib.pyplot"
       ],
@@ -8117,38 +8279,38 @@
       "enrichment_source": null,
       "enriched_at": null,
       "domain_name": "matplotlib",
-      "node_type": "source",
+      "node_type": "function",
       "node_role": "function",
       "verified": true,
       "source_priority": 50
     },
     {
       "cell_id": "MATPLOTLIB_XTICKS",
-      "stage": 1,
+      "stage": 2,
       "inputs": {
-        "ticks": {
+        "data": {
           "type_name": "any",
-          "state": "ticks",
+          "state": "any",
           "qualifiers": [],
           "default_value": null,
-          "description": "Source parameter ticks",
+          "description": "Input carrier data",
           "domain": null,
           "required": true
         }
       },
       "outputs": {
         "output_data": {
-          "type_name": "DataObject",
-          "state": "raw",
+          "type_name": "any",
+          "state": "xticksed",
           "qualifiers": [],
           "default_value": null,
-          "description": "Ingested data",
+          "description": "Output xticksed",
           "domain": null,
           "required": true
         }
       },
       "slots": {},
-      "code_template": "{output_var} = matplotlib.pyplot.xticks({ticks})",
+      "code_template": "{output_var} = matplotlib.pyplot.xticks({data})",
       "dependencies": [
         "import matplotlib.pyplot"
       ],
@@ -8166,38 +8328,38 @@
       "enrichment_source": null,
       "enriched_at": null,
       "domain_name": "matplotlib",
-      "node_type": "source",
+      "node_type": "function",
       "node_role": "function",
       "verified": true,
       "source_priority": 50
     },
     {
       "cell_id": "MATPLOTLIB_YLABEL",
-      "stage": 1,
+      "stage": 2,
       "inputs": {
-        "ylabel": {
+        "data": {
           "type_name": "any",
-          "state": "ylabel",
+          "state": "any",
           "qualifiers": [],
           "default_value": null,
-          "description": "Source parameter ylabel",
+          "description": "Input carrier data",
           "domain": null,
           "required": true
         }
       },
       "outputs": {
         "output_data": {
-          "type_name": "DataObject",
-          "state": "raw",
+          "type_name": "any",
+          "state": "ylabeled",
           "qualifiers": [],
           "default_value": null,
-          "description": "Ingested data",
+          "description": "Output ylabeled",
           "domain": null,
           "required": true
         }
       },
       "slots": {},
-      "code_template": "{output_var} = matplotlib.pyplot.ylabel({ylabel})",
+      "code_template": "{output_var} = matplotlib.pyplot.ylabel({data})",
       "dependencies": [
         "import matplotlib.pyplot"
       ],
@@ -8215,28 +8377,38 @@
       "enrichment_source": null,
       "enriched_at": null,
       "domain_name": "matplotlib",
-      "node_type": "source",
+      "node_type": "function",
       "node_role": "function",
       "verified": true,
       "source_priority": 50
     },
     {
       "cell_id": "MATPLOTLIB_YLIM",
-      "stage": 1,
-      "inputs": {},
-      "outputs": {
-        "output_data": {
-          "type_name": "DataObject",
-          "state": "raw",
+      "stage": 2,
+      "inputs": {
+        "data": {
+          "type_name": "any",
+          "state": "any",
           "qualifiers": [],
           "default_value": null,
-          "description": "Ingested data",
+          "description": "Input carrier data",
+          "domain": null,
+          "required": true
+        }
+      },
+      "outputs": {
+        "output_data": {
+          "type_name": "any",
+          "state": "ylimed",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Output ylimed",
           "domain": null,
           "required": true
         }
       },
       "slots": {},
-      "code_template": "{output_var} = matplotlib.pyplot.ylim()",
+      "code_template": "{output_var} = matplotlib.pyplot.ylim({data})",
       "dependencies": [
         "import matplotlib.pyplot"
       ],
@@ -8254,38 +8426,38 @@
       "enrichment_source": null,
       "enriched_at": null,
       "domain_name": "matplotlib",
-      "node_type": "source",
+      "node_type": "function",
       "node_role": "function",
       "verified": true,
       "source_priority": 50
     },
     {
       "cell_id": "MATPLOTLIB_YSCALE",
-      "stage": 1,
+      "stage": 2,
       "inputs": {
-        "value": {
+        "data": {
           "type_name": "any",
-          "state": "value",
+          "state": "any",
           "qualifiers": [],
           "default_value": null,
-          "description": "Source parameter value",
+          "description": "Input carrier data",
           "domain": null,
           "required": true
         }
       },
       "outputs": {
         "output_data": {
-          "type_name": "DataObject",
-          "state": "raw",
+          "type_name": "any",
+          "state": "yscaled",
           "qualifiers": [],
           "default_value": null,
-          "description": "Ingested data",
+          "description": "Output yscaled",
           "domain": null,
           "required": true
         }
       },
       "slots": {},
-      "code_template": "{output_var} = matplotlib.pyplot.yscale({value})",
+      "code_template": "{output_var} = matplotlib.pyplot.yscale({data})",
       "dependencies": [
         "import matplotlib.pyplot"
       ],
@@ -8303,38 +8475,38 @@
       "enrichment_source": null,
       "enriched_at": null,
       "domain_name": "matplotlib",
-      "node_type": "source",
+      "node_type": "function",
       "node_role": "function",
       "verified": true,
       "source_priority": 50
     },
     {
       "cell_id": "MATPLOTLIB_YTICKS",
-      "stage": 1,
+      "stage": 2,
       "inputs": {
-        "ticks": {
+        "data": {
           "type_name": "any",
-          "state": "ticks",
+          "state": "any",
           "qualifiers": [],
           "default_value": null,
-          "description": "Source parameter ticks",
+          "description": "Input carrier data",
           "domain": null,
           "required": true
         }
       },
       "outputs": {
         "output_data": {
-          "type_name": "DataObject",
-          "state": "raw",
+          "type_name": "any",
+          "state": "yticksed",
           "qualifiers": [],
           "default_value": null,
-          "description": "Ingested data",
+          "description": "Output yticksed",
           "domain": null,
           "required": true
         }
       },
       "slots": {},
-      "code_template": "{output_var} = matplotlib.pyplot.yticks({ticks})",
+      "code_template": "{output_var} = matplotlib.pyplot.yticks({data})",
       "dependencies": [
         "import matplotlib.pyplot"
       ],
@@ -8352,7 +8524,7 @@
       "enrichment_source": null,
       "enriched_at": null,
       "domain_name": "matplotlib",
-      "node_type": "source",
+      "node_type": "function",
       "node_role": "function",
       "verified": true,
       "source_priority": 50

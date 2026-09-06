@@ -5,29 +5,43 @@ Core shared functions for maintaining and repairing the NSTL template wiring inv
 1. Every {placeholder} in `code_template` must have a matching key in `inputs`
    (except `output_var`).
 2. Every declared input in `inputs` must be referenced in `code_template`.
+
+Zero regular expressions.
 """
 
+from __future__ import annotations
 import ast
-import re
 from typing import Any, Dict, List, Optional, Set
 
+
 def clean_malformed_template_braces(template: str) -> str:
-    """Cleans malformed double braces, regex patterns, or trailing commas in templates."""
+    """Cleans malformed double braces or trailing artifacts in templates without regex."""
     if not template or "{" not in template:
         return template
-    cleaned = re.sub(r"\{\{(\w+)\}(\w+)\}", r"{\1\2}", template)
-    cleaned = re.sub(r"\{(\w+)\{(\w+)\}\}", r"{\1\2}", cleaned)
-    cleaned = re.sub(r"\{\{(\w+)\}\}", r"{\1}", cleaned)
-    cleaned = re.sub(r",\s*\{[/\\*]\}", "", cleaned)
-    cleaned = re.sub(r"\{[/\\*]\},\s*", "", cleaned)
-    cleaned = re.sub(r"\{[/\\*]\}", "", cleaned)
-    cleaned = re.sub(r"\{([a-zA-Z_]\w*)=[^}]*\}", r"{\1}", cleaned)
-    cleaned = re.sub(r"\{(\w+)\)\}", r"{\1}", cleaned)
-    while re.search(r"\{\{\w+\}\w*\}", cleaned) or re.search(r"\{\w*\{\w+\}\}", cleaned):
-        cleaned = re.sub(r"\{\{(\w+)\}(\w+)\}", r"{\1\2}", cleaned)
-        cleaned = re.sub(r"\{(\w+)\{(\w+)\}\}", r"{\1\2}", cleaned)
-        cleaned = re.sub(r"\{\{(\w+)\}\}", r"{\1}", cleaned)
+    cleaned = template
+    while "{{" in cleaned or "}}" in cleaned:
+        cleaned = cleaned.replace("{{", "{").replace("}}", "}")
+    for artifact in (", {/*}", "{/*},", "{/*}", ", {\\*}", "{\\*},", "{\\*}"):
+        cleaned = cleaned.replace(artifact, "")
     return cleaned
+
+
+def extract_placeholders(template: str) -> List[str]:
+    """Extracts all {var} placeholder names from a template string without regex."""
+    placeholders: List[str] = []
+    i = 0
+    n = len(template)
+    while i < n:
+        if template[i] == '{':
+            j = template.find('}', i + 1)
+            if j != -1:
+                inner = template[i + 1:j]
+                if inner.isidentifier():
+                    placeholders.append(inner)
+                i = j + 1
+                continue
+        i += 1
+    return placeholders
 
 
 def infer_port_type(param_name: str, domain: str = "generic") -> str:
@@ -35,19 +49,15 @@ def infer_port_type(param_name: str, domain: str = "generic") -> str:
     return "any"
 
 
-
 def transform_call_ast_with_flag(code_snippet: str, mod_alias: str, flag_attr: str) -> str:
-    """Uses AST Node Transformation to inject a flag attribute into a function call snippet dynamically.
-
-    Avoids global string replacements that corrupt identifiers like imagePoints -> {{image}Points}.
-    """
+    """Uses AST Node Transformation to inject a flag attribute into a function call snippet dynamically."""
     if not code_snippet:
         return f"{{output_var}} = {mod_alias}.{flag_attr}()"
 
     cleaned_snippet = clean_malformed_template_braces(code_snippet)
 
     # Map placeholders to valid Python identifiers for AST parsing
-    placeholders = list(set(re.findall(r"\{(\w+)\}", cleaned_snippet)))
+    placeholders = list(dict.fromkeys(extract_placeholders(cleaned_snippet)))
     safe_code = cleaned_snippet
     ph_map = {}
     for i, ph in enumerate(placeholders):
@@ -86,19 +96,18 @@ def transform_call_ast_with_flag(code_snippet: str, mod_alias: str, flag_attr: s
     except Exception:
         # Fallback: simple token replacement if AST fails
         if f"{mod_alias}." in cleaned_snippet and "_DEFAULT" in cleaned_snippet:
-            return re.sub(rf"{mod_alias}\.\w+_DEFAULT", f"{mod_alias}.{flag_attr}", cleaned_snippet)
+            prefix = f"{mod_alias}."
+            idx1 = cleaned_snippet.find(prefix)
+            if idx1 != -1:
+                idx2 = cleaned_snippet.find("_DEFAULT", idx1 + len(prefix))
+                if idx2 != -1:
+                    target = cleaned_snippet[idx1 : idx2 + len("_DEFAULT")]
+                    return cleaned_snippet.replace(target, f"{mod_alias}.{flag_attr}")
         return cleaned_snippet
 
 
 def repair_wiring_invariant(cell: Dict[str, Any], domain: str = "generic") -> bool:
-    """Enforces the template wiring invariant on a cell:
-
-    1. Fixes Bug A: renames input 'X' to 'input_var' when '{input_var}' is in template.
-    2. Ensures every placeholder in `code_template` (except output_var) is declared in `inputs`.
-    3. Prunes unused declared inputs not referenced in `code_template`.
-
-    Returns True if the cell was modified.
-    """
+    """Enforces the template wiring invariant on a cell without regex."""
     modified = False
 
     tmpl = clean_malformed_template_braces(cell.get("code_template", ""))
@@ -127,7 +136,7 @@ def repair_wiring_invariant(cell: Dict[str, Any], domain: str = "generic") -> bo
         modified = True
 
     inputs = cell["inputs"]
-    placeholders = set(re.findall(r"\{(\w+)\}", cell.get("code_template", ""))) - {"output_var"}
+    placeholders = set(extract_placeholders(cell.get("code_template", ""))) - {"output_var"}
 
     # Ensure 1-to-1 input key alignment with template placeholder if single port differs
     if len(inputs) == 1 and len(placeholders) == 1:

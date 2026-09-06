@@ -12,8 +12,8 @@ from __future__ import annotations
 import functools
 import json
 import os
-import re
 import sqlite3
+import sys
 import threading
 from abc import ABC
 from collections import deque
@@ -21,6 +21,10 @@ from dataclasses import dataclass, field
 from typing import Dict, List, Optional, Set, Tuple, Any, FrozenSet, Union
 
 from log_config import get_logger
+try:
+    from .tokenizer import CellTokenizer
+except (ImportError, ValueError):
+    from tokenizer import CellTokenizer
 
 logger = get_logger('lattice')
 
@@ -30,6 +34,7 @@ class TypeRegistry:
     Dynamic Poset Type Hierarchy (T, <=).
     Maintains a directed acyclic graph of subtype relationships.
     Types are registered dynamically from trees without hardcoded domain dependencies.
+    Subtyping is verified dynamically using Python's MRO, standard protocols, and poset reachability.
     """
     _instance: Optional[TypeRegistry] = None
     _lock = threading.RLock()
@@ -37,7 +42,6 @@ class TypeRegistry:
     def __init__(self):
         self._parents: Dict[str, Set[str]] = {}
         self._aliases: Dict[str, str] = {}
-        self._register_primitive_types()
 
     @classmethod
     def get_instance(cls) -> TypeRegistry:
@@ -54,20 +58,6 @@ class TypeRegistry:
     @property
     def poset(self) -> Dict[str, Set[str]]:
         return self._parents
-
-    def _register_primitive_types(self):
-        """Universal foundational types common across computing systems."""
-        self.register_type("any")
-        self.register_type("object", super_type="any")
-        self.register_type("numeric", super_type="object")
-        self.register_type("None", super_type="any")
-        self.register_type("str", super_type="object")
-        self.register_type("int", super_type="numeric")
-        self.register_type("float", super_type="numeric")
-        self.register_type("bool", super_type="int")
-        self.register_type("list", super_type="object")
-        self.register_type("dict", super_type="object")
-        self.register_type("tuple", super_type="object")
 
     def register_type(self, type_name: str, super_type: Optional[str] = None):
         """Registers a type and optionally declares its supertype in the poset."""
@@ -96,11 +86,48 @@ class TypeRegistry:
         clean = str(type_name).strip()
         return self._aliases.get(clean.lower(), clean)
 
+    def _resolve_runtime_class(self, type_name: str) -> Optional[type]:
+        """Dynamically locates a runtime class via Python introspection without hardcoding."""
+        if not type_name or not isinstance(type_name, str):
+            return None
+        import builtins
+        import numbers
+        clean = type_name.strip()
+        clean_lower = clean.lower()
+        if clean_lower in ("numeric", "number"):
+            return numbers.Number
+        if hasattr(builtins, clean):
+            obj = getattr(builtins, clean)
+            if isinstance(obj, type):
+                return obj
+        if hasattr(builtins, clean_lower):
+            obj = getattr(builtins, clean_lower)
+            if isinstance(obj, type):
+                return obj
+        if "." in clean:
+            parts = clean.rsplit(".", 1)
+            mod_name, cls_name = parts[0], parts[1]
+            mod = sys.modules.get(mod_name)
+            if mod and hasattr(mod, cls_name):
+                obj = getattr(mod, cls_name)
+                if isinstance(obj, type):
+                    return obj
+        for mod_name, mod in list(sys.modules.items()):
+            if mod and hasattr(mod, clean):
+                try:
+                    obj = getattr(mod, clean)
+                    if isinstance(obj, type):
+                        return obj
+                except Exception:
+                    continue
+        return None
+
     @functools.lru_cache(maxsize=16384)
     def is_subtype(self, sub: str, super_: str) -> bool:
         """
         Computes poset partial order: returns True iff sub <= super_.
         Wildcards ('any', 'object', '*', 'top') are Top types that subsume all types.
+        Uses formal MRO and poset reachability dynamically.
         """
         sub_c = self.canonical_name(sub)
         super_c = self.canonical_name(super_)
@@ -112,29 +139,29 @@ class TypeRegistry:
         if sub_c.lower() == super_c.lower():
             return True
 
-        if sub_c not in self._parents:
-            return False
+        if sub_c in self._parents:
+            visited = set()
+            queue = deque([sub_c])
+            while queue:
+                curr = queue.popleft()
+                if curr.lower() == super_c.lower():
+                    return True
+                visited.add(curr)
+                for parent in self._parents.get(curr, []):
+                    if parent not in visited:
+                        queue.append(parent)
 
-        visited = set()
-        queue = deque([sub_c])
-        while queue:
-            curr = queue.popleft()
-            if curr.lower() == super_c.lower():
-                return True
-            visited.add(curr)
-            for parent in self._parents.get(curr, []):
-                if parent not in visited:
-                    queue.append(parent)
+        # Dynamic runtime reflection via sys.modules and MRO
+        sub_cls = self._resolve_runtime_class(sub_c)
+        super_cls = self._resolve_runtime_class(super_c)
+        if sub_cls is not None and super_cls is not None:
+            try:
+                if issubclass(sub_cls, super_cls):
+                    return True
+            except TypeError:
+                pass
 
         return False
-
-    def is_container_type(self, type_name: str) -> bool:
-        """
-        True if type is non-primitive (i.e. not a basic scalar int/float/bool/str/None).
-        """
-        canonical = self.canonical_name(type_name).lower()
-        primitive_types = {"int", "float", "bool", "str", "none"}
-        return canonical not in primitive_types
 
 
 def is_subtype(sub: str, parent: str) -> bool:
@@ -160,7 +187,8 @@ class AlgebraicSignature:
         return cls(type_name=type_name, state=state)
 
     def is_top(self) -> bool:
-        return self.type_name.lower() in ("any", "*", "top", "object", "unknown")
+        canonical = TypeRegistry.get_instance().canonical_name(self.type_name)
+        return canonical.lower() in ("any", "*", "top", "object", "unknown")
 
     def unifies_with(self, other: Any) -> bool:
         """
@@ -409,14 +437,6 @@ class Cell(ABC):
             self._primary_input = res
             return res
 
-        # Prefer non-primitive / container data ports over auxiliary scalar parameters
-        registry = TypeRegistry.get_instance()
-        for p in self.inputs.values():
-            if registry.is_container_type(p.type_name):
-                self._primary_input = p
-                return p
-
-        # Fallback to the first declared input port
         res = next(iter(self.inputs.values()))
         self._primary_input = res
         return res
@@ -428,16 +448,9 @@ class Cell(ABC):
             return self._primary_output
 
         if not self.outputs:
-            res = PortSignature("output_data", AlgebraicSignature("None", "any"))
+            res = PortSignature("output_data", AlgebraicSignature("any", "any"))
             self._primary_output = res
             return res
-
-        # Prioritize container / non-primitive data types
-        registry = TypeRegistry.get_instance()
-        for p in self.outputs.values():
-            if registry.is_container_type(p.type_name):
-                self._primary_output = p
-                return p
 
         res = next(iter(self.outputs.values()))
         self._primary_output = res
@@ -740,7 +753,7 @@ class LatticeOrchestrator:
                         if not outputs:
                             outputs = {"output_data": PortSignature("output_data", out_sig)}
 
-                        keywords = set(re.findall(r'[a-zA-Z0-9]+', cell_id.lower()))
+                        keywords = CellTokenizer.tokenize_identifier(cell_id)
 
                         cell = MicroCell(
                             cell_id=cell_id,

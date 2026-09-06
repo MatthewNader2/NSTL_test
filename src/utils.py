@@ -6,7 +6,6 @@ Extracts common patterns to eliminate code duplication.
 from __future__ import annotations
 import ast
 import json
-import re
 from typing import Any, Dict, Optional, Set
 try:
     from log_config import get_logger
@@ -28,8 +27,13 @@ def extract_json_from_llm(raw: str) -> Optional[Dict[str, Any]]:
     
     # Strip markdown code fences
     if text.startswith("```"):
-        text = re.sub(r"^```(?:json|python)?\s*", "", text)
-        text = re.sub(r"\s*```$", "", text)
+        first_line_end = text.find("\n")
+        if first_line_end != -1:
+            text = text[first_line_end + 1 :]
+        else:
+            text = text[3:]
+        if text.endswith("```"):
+            text = text[:-3]
         text = text.strip()
     
     # Attempt 1: Direct parse (best case — clean JSON)
@@ -66,8 +70,23 @@ def validate_code_template(template: str) -> bool:
     """
     if not template or not template.strip():
         return False
+    
+    placeholders: Set[str] = set()
+    i = 0
+    n = len(template)
+    while i < n:
+        if template[i] == "{" and i + 1 < n:
+            end = template.find("}", i + 1)
+            if end != -1:
+                inner = template[i + 1 : end]
+                if inner.isidentifier():
+                    placeholders.add(inner)
+                i = end + 1
+                continue
+        i += 1
+
     test_code = template
-    for ph in set(re.findall(r"\{([a-zA-Z0-9_]+)\}", test_code)):
+    for ph in placeholders:
         test_code = test_code.replace(f"{{{ph}}}", f"_ph_{ph}")
     try:
         ast.parse(test_code)
@@ -89,9 +108,18 @@ def extract_code_from_llm_response(text: str) -> str:
     if not text:
         return ""
 
-    match = re.search(r"```(?:[a-zA-Z0-9_\+\-]+)?\s*\n?(.*?)\s*```", text, re.DOTALL)
-    if match:
-        return match.group(1).strip()
+    start_idx = text.find("```")
+    if start_idx != -1:
+        newline_idx = text.find("\n", start_idx + 3)
+        if newline_idx != -1:
+            code_start = newline_idx + 1
+        else:
+            code_start = start_idx + 3
+        end_idx = text.find("```", code_start)
+        if end_idx != -1:
+            return text[code_start:end_idx].strip()
+        else:
+            return text[code_start:].strip()
 
     return text.strip()
 

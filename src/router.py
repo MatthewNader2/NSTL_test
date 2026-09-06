@@ -22,11 +22,13 @@ try:
     from .internal_rag import LocalRAG
     from .planner import LatticePlanner
     from .tokenizer import CellTokenizer
+    from .inference import ModelManager
 except (ImportError, ValueError):
     from lattice import LatticeOrchestrator, Cell
     from internal_rag import LocalRAG
     from planner import LatticePlanner
     from tokenizer import CellTokenizer
+    from inference import ModelManager
 
 logger = get_logger('router')
 
@@ -71,17 +73,16 @@ class LatticeRouter:
         candidates_with_scores: List[Tuple[Cell, float]] = []
 
         if self.internal_rag is not None and self.internal_rag.index is not None:
-            import re
+            # Deterministic punctuation and connector decomposition (zero regex)
             clauses = [prompt.strip()]
-            sub_clauses = re.split(r'\s+(?:then|and\s+then|and|,|;)\s+', prompt.strip())
+            sub_clauses = self._split_prompt_clauses(prompt.strip())
             for sc in sub_clauses:
-                sc_clean = sc.strip()
-                if len(sc_clean) >= 3 and sc_clean not in clauses:
-                    clauses.append(sc_clean)
+                if len(sc) >= 3 and sc not in clauses:
+                    clauses.append(sc)
 
             candidate_scores: Dict[str, float] = {}
             for q in clauses:
-                rag_results = self.internal_rag.get_relevant_context(q, top_k=min(top_k, 50))
+                rag_results = self.internal_rag.get_relevant_context(q, top_k=min(top_k, 100))
                 for item in rag_results:
                     cid = item.get("cell_id")
                     score = float(item.get("score", 0.0))
@@ -95,11 +96,29 @@ class LatticeRouter:
                 if cid and (cid not in candidate_scores or score > candidate_scores[cid]):
                     candidate_scores[cid] = score
 
+            # Categorical Stage 3 Egress Guarantee: Sinks (B -> 1) are sparse in lattice topology.
+            # Ensure candidate_scores evaluates terminal egress morphisms against the exit goal.
+            terminal_clause = clauses[-1] if clauses else prompt
+            term_emb = None
+            for cell in self.orchestrator.loaded_cells.values():
+                if cell.stage == 3 and getattr(cell, "node_type", "") != "constant":
+                    c_data = getattr(self.internal_rag, "cell_cache", {}).get(cell.cell_id)
+                    if c_data and "embedding" in c_data:
+                        if term_emb is None:
+                            raw_term = ModelManager.get_instance().get_embedding(terminal_clause)
+                            t_norm = np.linalg.norm(raw_term)
+                            term_emb = np.array(raw_term, dtype=np.float32) / (t_norm if t_norm > 0 else 1.0)
+                        c_emb = np.array(c_data["embedding"], dtype=np.float32)
+                        c_norm = np.linalg.norm(c_emb)
+                        if c_norm > 0:
+                            sim = float(np.dot(term_emb, c_emb) / c_norm)
+                            if cell.cell_id not in candidate_scores or sim > candidate_scores[cell.cell_id]:
+                                candidate_scores[cell.cell_id] = sim
+
             for cid, score in candidate_scores.items():
                 cell = self.orchestrator.loaded_cells.get(cid)
                 if cell is not None:
-                    prio_weight = 1.2 if getattr(cell, "source_priority", 100) <= 10 else 1.0
-                    candidates_with_scores.append((cell, score * prio_weight))
+                    candidates_with_scores.append((cell, score))
 
         # Fallback if RAG index has not yet indexed cells: use token Jaccard similarity
         if not candidates_with_scores:
@@ -109,8 +128,6 @@ class LatticeRouter:
                 intersection = len(prompt_tokens & cell_tokens)
                 union = len(prompt_tokens | cell_tokens)
                 score = (intersection / max(union, 1)) if union > 0 else 0.001
-                if getattr(cell, "source_priority", 100) <= 10 and intersection > 0:
-                    score *= 1.5
                 candidates_with_scores.append((cell, float(score)))
 
         if not candidates_with_scores:
@@ -120,7 +137,6 @@ class LatticeRouter:
         #    P(v_i | e_x) = exp(s_i / gamma) / sum_j exp(s_j / gamma)
         scores = np.array([s for _, s in candidates_with_scores], dtype=np.float64)
         scaled_scores = scores / max(self.gamma, 1e-5)
-        # Shift for numerical stability
         shifted_scores = scaled_scores - np.max(scaled_scores)
         exp_scores = np.exp(shifted_scores)
         probabilities = exp_scores / np.sum(exp_scores)
@@ -134,32 +150,47 @@ class LatticeRouter:
         # Mathematical tunnel cutoff: P(v | e_x) >= epsilon
         tunnel_cells = [cell for cell, prob in cell_probs if prob >= self.epsilon]
 
-        # Stage Stratification: Ensure representation across algebraic stages (Stage 1, Stage 2, Stage 3)
-        # to guarantee existence of entry, transform, and egress morphisms in the search region.
+        # Stage Stratification: Ensure stage representation in tunnel without arbitrary hardcoded slices
         stage_partition: Dict[int, List[Cell]] = {1: [], 2: [], 3: []}
         for cell, _ in cell_probs:
             st = getattr(cell, "stage", 2)
             if getattr(cell, "node_type", "") != "constant" and st in stage_partition:
                 stage_partition[st].append(cell)
 
-        guaranteed_cells: List[Cell] = []
+        final_tunnel: List[Cell] = list(tunnel_cells)
+        tunnel_ids = set(c.cell_id for c in final_tunnel)
         for st in (1, 2, 3):
-            guaranteed_cells.extend(stage_partition[st][:15])
-
-        combined_ids = set()
-        final_tunnel: List[Cell] = []
-        for cell, _ in cell_probs:
-            if cell in tunnel_cells or cell in guaranteed_cells:
-                if cell.cell_id not in combined_ids:
-                    combined_ids.add(cell.cell_id)
-                    final_tunnel.append(cell)
-
-        if len(final_tunnel) < 15:
-            final_tunnel = [cell for cell, _ in cell_probs[:min(len(cell_probs), 30)]]
-        elif len(final_tunnel) > 150:
-            final_tunnel = final_tunnel[:150]
+            if stage_partition[st] and not any(getattr(c, "stage", 2) == st for c in final_tunnel):
+                best_st_cell = stage_partition[st][0]
+                if best_st_cell.cell_id not in tunnel_ids:
+                    final_tunnel.append(best_st_cell)
+                    tunnel_ids.add(best_st_cell.cell_id)
 
         return final_tunnel, relevance_map
+
+    @staticmethod
+    def _split_prompt_clauses(text: str) -> List[str]:
+        """Splits compound prompt into clauses using punctuation and sequential connectors without regex."""
+        clauses: List[str] = []
+        current: List[str] = []
+        words = text.strip().split()
+        for w in words:
+            w_clean = w.strip(";,.")
+            if w_clean.lower() in ("then", "and_then") or w.endswith((";", ",", ".")):
+                if w_clean.lower() not in ("then", "and_then") and w_clean:
+                    current.append(w_clean)
+                if current:
+                    clause_str = " ".join(current).strip()
+                    if len(clause_str) >= 2:
+                        clauses.append(clause_str)
+                    current = []
+            else:
+                current.append(w)
+        if current:
+            clause_str = " ".join(current).strip()
+            if len(clause_str) >= 2:
+                clauses.append(clause_str)
+        return clauses if clauses else [text.strip()]
 
     def plan_path(
         self,

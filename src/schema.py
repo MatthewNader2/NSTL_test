@@ -2,7 +2,6 @@
 from typing import Dict, List, Optional, Literal, Any
 from pydantic import BaseModel, Field, field_validator, ConfigDict
 import ast
-import re
 
 class PortSchema(BaseModel):
     model_config = ConfigDict(extra="ignore")
@@ -40,35 +39,12 @@ class CellSchema(BaseModel):
     def primary_input(self) -> PortSchema:
         if not self.inputs:
             return PortSchema(type_name="any", state="any")
-        try:
-            from .lattice import TypeRegistry
-        except (ImportError, ValueError):
-            from lattice import TypeRegistry
-        registry = TypeRegistry.get_instance()
-        if self.stage == 1:
-            # Ingestion takes primitive / environment input
-            for p in self.inputs.values():
-                if not registry.is_container_type(p.type_name):
-                    return p
-            return next(iter(self.inputs.values()))
-        # Stage 2 and 3: prioritize carrier / container types
-        for p in self.inputs.values():
-            if registry.is_container_type(p.type_name):
-                return p
         return next(iter(self.inputs.values()))
 
     @property
     def primary_output(self) -> PortSchema:
         if not self.outputs:
-            return PortSchema(type_name="None", state="default")
-        try:
-            from .lattice import TypeRegistry
-        except (ImportError, ValueError):
-            from lattice import TypeRegistry
-        registry = TypeRegistry.get_instance()
-        for p in self.outputs.values():
-            if registry.is_container_type(p.type_name):
-                return p
+            return PortSchema(type_name="any", state="default")
         return next(iter(self.outputs.values()))
 
     @field_validator("code_template")
@@ -76,13 +52,25 @@ class CellSchema(BaseModel):
     def validate_template_syntax(cls, v: str) -> str:
         # Dry-run AST parse with dummy variables to ensure syntactically valid Python
         # Use unique placeholder names to avoid false positive validation
-        seen = {}
-        def _replace_ph(m):
-            name = m.group(0)
-            if name not in seen:
-                seen[name] = f"_ph_{len(seen)}"
-            return seen[name]
-        dummy_code = re.sub(r"\{[a-zA-Z_][a-zA-Z0-9_]*\}", _replace_ph, v)
+        seen: Dict[str, str] = {}
+        res = []
+        i = 0
+        n = len(v)
+        while i < n:
+            if v[i] == "{" and i + 1 < n:
+                end = v.find("}", i + 1)
+                if end != -1:
+                    inner = v[i + 1 : end]
+                    if inner.isidentifier():
+                        key = f"{{{inner}}}"
+                        if key not in seen:
+                            seen[key] = f"_ph_{len(seen)}"
+                        res.append(seen[key])
+                        i = end + 1
+                        continue
+            res.append(v[i])
+            i += 1
+        dummy_code = "".join(res)
         try:
             ast.parse(dummy_code)
         except SyntaxError as e:

@@ -3,7 +3,6 @@ import argparse
 import ast
 import json
 import os
-import re
 import sqlite3
 import sys
 import time
@@ -209,7 +208,25 @@ def cmd_validate(args):
             continue
 
         # Replace all {placeholders} with dummy variables for AST dry-run
-        dummy_code = re.sub(r"\{[a-zA-Z_][a-zA-Z0-9_]*\}", "dummy_var", code)
+        seen: Dict[str, str] = {}
+        res = []
+        i = 0
+        n = len(code)
+        while i < n:
+            if code[i] == "{" and i + 1 < n:
+                end = code.find("}", i + 1)
+                if end != -1:
+                    inner = code[i + 1 : end]
+                    if inner.isidentifier():
+                        key = f"{{{inner}}}"
+                        if key not in seen:
+                            seen[key] = f"_ph_{len(seen)}"
+                        res.append(seen[key])
+                        i = end + 1
+                        continue
+            res.append(code[i])
+            i += 1
+        dummy_code = "".join(res)
         try:
             ast.parse(dummy_code)
             valid_count += 1
@@ -713,10 +730,14 @@ class NSTLInteractiveShell(cmd.Cmd):
                 if file_lits:
                     dest_paths = [file_lits[-1]]
             if not dest_paths:
-                path_pattern = r'(?:[a-zA-Z]:[\\/](?:[\w.-]+[\\/])*[\w.-]+\.[a-zA-Z0-9]{1,8}|(?:/?[\w.-]+[\\/])*[\w.-]+\.[a-zA-Z0-9]{1,8})\b'
-                found_paths = re.findall(path_pattern, prompt)
-                if found_paths:
-                    dest_paths = [found_paths[-1]]
+                try:
+                    from unification import ExecutionContext
+                except ImportError:
+                    from .unification import ExecutionContext
+                extracted = ExecutionContext._extract_universal_literals(prompt)
+                file_lits = [v for _, k, v in extracted if k in ("file_asset", "quoted_str")]
+                if file_lits:
+                    dest_paths = [file_lits[-1]]
 
         sandbox_res = self.sandbox.execute(final_code, timeout=5.0, egress_paths=dest_paths)
         sandbox_dt = (time.perf_counter() - t_exec_start) * 1000.0
