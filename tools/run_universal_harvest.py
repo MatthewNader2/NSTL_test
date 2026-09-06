@@ -80,6 +80,10 @@ def harvest_single_domain(
     ast_issues = 0
 
     for c in cells:
+        c_parts = c.cell_id.upper().split("_")
+        if any(p in ("TESTS", "TEST", "TESTING", "CONFTEST") for p in c_parts):
+            continue
+
         c_dict = c.model_dump()
         if not is_cell_wiring_valid(c_dict):
             repair_wiring_invariant(c_dict, domain_name)

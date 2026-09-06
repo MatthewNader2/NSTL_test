@@ -137,10 +137,13 @@ class UniversalHarvester:
             try:
                 for _, modname, ispkg in pkgutil.iter_modules(path, prefix):
                     # Skip private submodules, test directories, and legacy deprecated submodules
-                    tail = modname.split(".")[-1]
-                    if (
-                        tail.startswith("_")
-                        or "._" in modname
+                    parts = modname.split(".")
+                    if any(
+                        p.startswith("_")
+                        or p.lower() in ("tests", "test", "testing", "conftest")
+                        or p.lower().endswith("_test")
+                        or p.lower().startswith("test_")
+                        for p in parts
                     ):
                         continue
 
@@ -158,12 +161,23 @@ class UniversalHarvester:
 
         # Also inspect direct module attributes (e.g. cv2.dnn, numpy.linalg)
         for attr_name in dir(self.root_module):
-            if not attr_name.startswith("_"):
+            if not attr_name.startswith("_") and attr_name.lower() not in ("tests", "test", "testing", "conftest"):
                 try:
                     attr_val = getattr(self.root_module, attr_name, None)
                     if inspect.ismodule(attr_val):
                         m_name = getattr(attr_val, "__name__", "")
-                        if m_name.startswith(self.package_name) and m_name not in modules and "._" not in m_name:
+                        m_parts = m_name.split(".")
+                        if (
+                            m_name.startswith(self.package_name)
+                            and m_name not in modules
+                            and not any(
+                                p.startswith("_")
+                                or p.lower() in ("tests", "test", "testing", "conftest")
+                                or p.lower().endswith("_test")
+                                or p.lower().startswith("test_")
+                                for p in m_parts
+                            )
+                        ):
                             modules[m_name] = attr_val
                 except Exception:
                     continue
@@ -235,6 +249,14 @@ class UniversalHarvester:
                         continue
                     if not obj_mod.startswith(self.package_name) and self.package_name != "builtins":
                         continue
+
+                    # Enums are morphological qualifiers/constants, not data carrier containers
+                    try:
+                        import enum
+                        if issubclass(obj, (enum.Enum, enum.Flag)):
+                            continue
+                    except TypeError:
+                        pass
 
                     # Must satisfy container / collection protocol
                     has_len = hasattr(obj, "__len__")
@@ -414,6 +436,15 @@ class UniversalHarvester:
             tokens.add(self.container_type.lower())
             tokens.update(split_identifier_keywords(self.container_type))
 
+        # Filter out primitive types and structural keyword noise
+        primitive_tokens = {
+            "int", "float", "str", "bool", "bytes", "none", "nonetype",
+            "object", "type", "dict", "list", "set", "tuple", "any",
+            "self", "cls", "enum", "collection", "container", "iterable",
+            "mapping", "sized", "mutable"
+        }
+        tokens = {t for t in tokens if t not in primitive_tokens and len(t) > 2}
+
         return tokens
 
     def _infer_stage(
@@ -422,15 +453,17 @@ class UniversalHarvester:
         has_carrier_input: bool,
         ret_type: str,
         doc: str,
-        is_instance_method: bool = False
+        is_instance_method: bool = False,
+        carrier_param: Optional[str] = None,
+        all_params: Optional[List[str]] = None
     ) -> int:
         """
         Determines the categorical stage (1: Ingestion, 2: Transform, 3: Egress) via signature reflection.
         Categorically:
           - Stage 1 (Initial / Ingestion): 0 -> C (consumes no carrier from DAG, returns carrier data)
-          - Stage 3 (Terminal / Egress): C -> 1 (consumes carrier, returns terminal object: None/void/bool)
-          - Stage 2 (Endomorphism): C -> C' (consumes carrier, produces transformed carrier)
-        Zero word lists or heuristic keyword matching.
+          - Stage 3 (Terminal / Egress): C -> 1 (consumes carrier, egresses to external file/stream/display)
+          - Stage 2 (Endomorphism / Computation): C -> C' or C -> Y (consumes carrier, produces transformed carrier/result)
+        Zero domain-specific hardcoded lists.
         """
         consumes_carrier = has_carrier_input or is_instance_method
 
@@ -439,43 +472,27 @@ class UniversalHarvester:
             return 1
 
         ret_lower = str(ret_type).lower().strip() if ret_type else ""
-        carrier_tokens = self._get_carrier_tokens()
+        func_tokens = split_identifier_keywords(func_name)
+        params = all_params or []
 
-        # Categorical codomain check: does the morphism produce a carrier container in C?
-        produces_carrier = False
-        if ret_lower:
-            for cls in self.container_classes:
-                c_name = cls.__name__.lower()
-                if c_name == ret_lower or c_name in ret_lower:
-                    produces_carrier = True
-                    break
-            if not produces_carrier and any(t in ret_lower for t in carrier_tokens):
-                produces_carrier = True
-        elif doc:
-            for cls in self.container_classes:
-                if re.search(rf"\b(?:returns?|into|->)\s*.*?\b{cls.__name__}\b", doc, re.IGNORECASE):
-                    produces_carrier = True
-                    break
-            if not produces_carrier and any(re.search(rf"\b(?:returns?|into|->)\s*.*?\b{t}\b", doc, re.IGNORECASE) for t in carrier_tokens):
-                produces_carrier = True
-
-        # Check return arrow in docstring: In Category Theory, a morphism maps src -> dst
-        if not produces_carrier and doc:
-            m_arrow = re.search(rf"\b{re.escape(func_name)}\(.*?\)\s*->\s*([a-zA-Z0-9_]+)", doc)
-            if m_arrow:
-                arrow_ret = m_arrow.group(1).lower()
-                if arrow_ret in carrier_tokens or arrow_ret == "dst":
-                    produces_carrier = True
-
-        # In-place instance methods on carrier container default to endomorphism (C -> C)
-        if not produces_carrier and is_instance_method and not ret_lower:
-            produces_carrier = True
-
-        if not produces_carrier:
-            # C -> 1: Terminal / Egress morphism
+        # Check if this operation is an Egress / Terminal Sink (C -> 1)
+        # An egress sink either:
+        # 1. Takes a destination path / filename parameter (e.g. imwrite, to_csv, savefig, dump)
+        # 2. OR performs terminal rendering/display (e.g. show, display) with None/void return
+        dest_param = next(
+            (p for p in params if p != carrier_param and any(t in ("path", "file", "filename", "fname", "dest", "out", "outfile", "save") for t in split_identifier_keywords(p))),
+            None
+        )
+        if dest_param and (
+            any(t in ("save", "write", "dump", "export", "to", "out") for t in func_tokens)
+            or (doc and any(w in doc.lower() for w in ("save to", "write to", "export to", "dump to", "save the", "write the")))
+        ):
             return 3
 
-        # C -> C': Endomorphism / Transform morphism
+        if any(t in ("show", "display") for t in func_tokens) and ret_lower in ("none", "nonetype", "void", ""):
+            return 3
+
+        # Otherwise, the morphism consumes carrier and performs transformation/computation (C -> C' or C -> Y)
         return 2
 
     def _detect_enum_parameter(
@@ -540,10 +557,29 @@ class UniversalHarvester:
         if not callable(func_obj) or func_name.startswith("_"):
             return None
 
+        # Exclude unit tests, test suites, and test assertions
+        fname_lower = func_name.lower()
+        if (
+            fname_lower.startswith("test_")
+            or fname_lower.endswith("_test")
+            or fname_lower in ("test", "testing", "conftest")
+            or fname_lower.startswith("check_")
+            or fname_lower.startswith("assert_")
+        ):
+            return None
+
+        mod_parts = mod_name.lower().split(".")
+        if any(p in ("tests", "test", "testing", "conftest") or p.startswith("test_") or p.endswith("_test") for p in mod_parts):
+            return None
+
         # Ignore foreign re-exports (e.g. numpy functions imported into scipy)
         obj_mod = getattr(func_obj, "__module__", "") or mod_name
-        if obj_mod and not obj_mod.startswith(self.package_name) and not is_instance_method:
-            return None
+        if obj_mod:
+            obj_parts = obj_mod.lower().split(".")
+            if any(p in ("tests", "test", "testing", "conftest") or p.startswith("test_") or p.endswith("_test") for p in obj_parts):
+                return None
+            if not obj_mod.startswith(self.package_name) and not is_instance_method:
+                return None
 
         doc = inspect.getdoc(func_obj) or getattr(func_obj, "__doc__", "") or ""
         first_doc = doc.split("\n")[0].strip() if doc else f"{func_name} morphism"
@@ -625,6 +661,15 @@ class UniversalHarvester:
                     if arrow_target == "dst" or arrow_target in carrier_tokens:
                         carrier_param = params_to_check[0]
 
+            # 4. Universal Positional Invariant:
+            # In Category Theory, an endomorphism or transformation morphism f: A -> B takes its primary operand
+            # as its first positional parameter (e.g. X, data, src, arr, a, df, input, img).
+            if not carrier_param and params_to_check:
+                first_p = params_to_check[0]
+                first_clean = first_p.lower().strip()
+                if first_clean in ("x", "data", "src", "arr", "array", "df", "a", "input", "img", "image", "matrix", "mat", "y"):
+                    carrier_param = first_p
+
             has_carrier = carrier_param is not None
 
         # Return type detection
@@ -643,7 +688,9 @@ class UniversalHarvester:
             has_carrier_input=has_carrier,
             ret_type=ret_type_str,
             doc=doc,
-            is_instance_method=is_instance_method
+            is_instance_method=is_instance_method,
+            carrier_param=carrier_param,
+            all_params=all_params
         )
 
         # Detect Higher-Order Morphisms via reflection
@@ -724,7 +771,10 @@ class UniversalHarvester:
             # Sink Morphism: C -> 1
             node_type = "sink"
             node_role = "sink"
-            dest_param = next((p for p in all_params if p != carrier_param), None)
+            dest_param = next(
+                (p for p in all_params if p != carrier_param and any(t in ("path", "file", "filename", "fname", "dest", "out", "outfile", "save", "uri") for t in split_identifier_keywords(p))),
+                None
+            )
             if dest_param:
                 inputs["dest_path"] = PortSchema(type_name="str", state="dest_identifier", description=f"Destination argument {dest_param}", required=True)
             inputs["data"] = PortSchema(type_name=carrier_type, state="any", description="Input data", required=True)
@@ -951,9 +1001,12 @@ class UniversalHarvester:
                     if not isinstance(oc, dict) or "cell_id" not in oc:
                         continue
                     cid = oc["cell_id"].upper()
-                    # Extract base function name from cell_id
+                    # Exclude unit tests, test suites, and test cases
                     parts = cid.split("_")
-                    # e.g. CV2_CVTCOLOR or PANDAS_SORT_VALUES
+                    if any(p in ("TESTS", "TEST", "TESTING", "CONFTEST") for p in parts):
+                        continue
+
+                    # Extract base function name from cell_id
                     for k in range(1, len(parts) + 1):
                         sub_key = "_".join(parts[1:k])
                         if sub_key and sub_key not in old_knowledge:
@@ -1007,6 +1060,9 @@ class UniversalHarvester:
             if not isinstance(oc, dict) or "cell_id" not in oc:
                 continue
             orig_cid = oc["cell_id"].upper()
+            orig_parts = orig_cid.split("_")
+            if any(p in ("TESTS", "TEST", "TESTING", "CONFTEST") for p in orig_parts):
+                continue
             d_prefix = domain_name.upper().replace("_CORE", "")
             if orig_cid.startswith(domain_name.upper()) or orig_cid.startswith(f"{d_prefix}_"):
                 if oc.get("source_priority", 100) <= 10:

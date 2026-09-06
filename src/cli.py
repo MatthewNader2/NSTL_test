@@ -708,13 +708,15 @@ class NSTLInteractiveShell(cmd.Cmd):
         )
         dest_paths = None
         if has_sink:
-            if hasattr(self.gate, "context") and hasattr(self.gate.context, "dest_files") and self.gate.context.dest_files:
-                dest_paths = [self.gate.context.dest_files[-1]]
-            else:
-                from router import extract_file_paths_and_extensions
-                paths, _ = extract_file_paths_and_extensions(prompt)
-                if paths:
-                    dest_paths = [paths[-1]]
+            if hasattr(self.gate, "context") and hasattr(self.gate.context, "ordered_literals"):
+                file_lits = [v for _, k, v in self.gate.context.ordered_literals if k in ("file_asset", "quoted_str")]
+                if file_lits:
+                    dest_paths = [file_lits[-1]]
+            if not dest_paths:
+                path_pattern = r'(?:[a-zA-Z]:[\\/](?:[\w.-]+[\\/])*[\w.-]+\.[a-zA-Z0-9]{1,8}|(?:/?[\w.-]+[\\/])*[\w.-]+\.[a-zA-Z0-9]{1,8})\b'
+                found_paths = re.findall(path_pattern, prompt)
+                if found_paths:
+                    dest_paths = [found_paths[-1]]
 
         sandbox_res = self.sandbox.execute(final_code, timeout=5.0, egress_paths=dest_paths)
         sandbox_dt = (time.perf_counter() - t_exec_start) * 1000.0

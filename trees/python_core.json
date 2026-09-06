@@ -4,14 +4,14 @@
   "cells": [
     {
       "cell_id": "PYTHON_CORE_ABS",
-      "stage": 1,
+      "stage": 2,
       "inputs": {
-        "x": {
-          "type_name": "any",
-          "state": "x",
+        "data": {
+          "type_name": "DataObject",
+          "state": "any",
           "qualifiers": [],
           "default_value": null,
-          "description": "Source parameter x",
+          "description": "Input carrier data",
           "domain": null,
           "required": true
         }
@@ -19,16 +19,16 @@
       "outputs": {
         "output_data": {
           "type_name": "DataObject",
-          "state": "raw",
+          "state": "absed",
           "qualifiers": [],
           "default_value": null,
-          "description": "Ingested data",
+          "description": "Output absed",
           "domain": null,
           "required": true
         }
       },
       "slots": {},
-      "code_template": "{output_var} = builtins.abs({x})",
+      "code_template": "{output_var} = builtins.abs({data})",
       "dependencies": [
         "import builtins"
       ],
@@ -72,7 +72,7 @@
       "enrichment_source": null,
       "enriched_at": null,
       "domain_name": "python_core",
-      "node_type": "source",
+      "node_type": "function",
       "node_role": "function",
       "verified": true,
       "source_priority": 50
@@ -217,14 +217,14 @@
     },
     {
       "cell_id": "PYTHON_CORE_ANEXT",
-      "stage": 1,
+      "stage": 2,
       "inputs": {
         "data": {
-          "type_name": "any",
-          "state": "data",
+          "type_name": "DataObject",
+          "state": "any",
           "qualifiers": [],
           "default_value": null,
-          "description": "Source parameter data",
+          "description": "Input carrier data",
           "domain": null,
           "required": true
         }
@@ -232,10 +232,10 @@
       "outputs": {
         "output_data": {
           "type_name": "DataObject",
-          "state": "raw",
+          "state": "anexted",
           "qualifiers": [],
           "default_value": null,
-          "description": "Ingested data",
+          "description": "Output anexted",
           "domain": null,
           "required": true
         }
@@ -277,7 +277,7 @@
       "enrichment_source": null,
       "enriched_at": null,
       "domain_name": "python_core",
-      "node_type": "source",
+      "node_type": "function",
       "node_role": "function",
       "verified": true,
       "source_priority": 50
@@ -940,14 +940,14 @@
     },
     {
       "cell_id": "PYTHON_CORE_DIVMOD",
-      "stage": 1,
+      "stage": 2,
       "inputs": {
-        "x": {
-          "type_name": "any",
-          "state": "x",
+        "data": {
+          "type_name": "DataObject",
+          "state": "any",
           "qualifiers": [],
           "default_value": null,
-          "description": "Source parameter x",
+          "description": "Input carrier data",
           "domain": null,
           "required": true
         },
@@ -956,7 +956,7 @@
           "state": "y",
           "qualifiers": [],
           "default_value": null,
-          "description": "Source argument y",
+          "description": "Required parameter y",
           "domain": null,
           "required": true
         }
@@ -964,16 +964,16 @@
       "outputs": {
         "output_data": {
           "type_name": "DataObject",
-          "state": "raw",
+          "state": "divmoded",
           "qualifiers": [],
           "default_value": null,
-          "description": "Ingested data",
+          "description": "Output divmoded",
           "domain": null,
           "required": true
         }
       },
       "slots": {},
-      "code_template": "{output_var} = builtins.divmod({x}, {y})",
+      "code_template": "{output_var} = builtins.divmod({data}, {y})",
       "dependencies": [
         "import builtins"
       ],
@@ -1013,7 +1013,7 @@
       "enrichment_source": null,
       "enriched_at": null,
       "domain_name": "python_core",
-      "node_type": "source",
+      "node_type": "function",
       "node_role": "function",
       "verified": true,
       "source_priority": 50
