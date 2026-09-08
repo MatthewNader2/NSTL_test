@@ -42,6 +42,35 @@ class TypeRegistry:
     def __init__(self):
         self._parents: Dict[str, Set[str]] = {}
         self._aliases: Dict[str, str] = {}
+        self._bootstrap_carrier_hierarchy()
+
+    def _bootstrap_carrier_hierarchy(self):
+        """Initializes universal, language-agnostic computational carrier types."""
+        # Textual / path carriers
+        for t in ("filepath", "path", "uri", "url", "filename", "pathname", "text"):
+            self.register_type(t, "str")
+        # Numeric carriers
+        for t in ("int", "float", "complex"):
+            self.register_type(t, "numeric")
+        self.register_type("numeric", "scalar")
+        self.register_type("bool", "logical")
+        # Collection carriers
+        for t in ("list", "tuple", "set", "frozenset"):
+            self.register_type(t, "collection")
+        for t in ("dict", "mapping", "map"):
+            self.register_type(t, "collection")
+        # Tensor / Array carriers
+        for t in ("matrix", "array", "ndarray"):
+            self.register_type(t, "tensor")
+        # Aliases
+        for alias, can in (
+            ("string", "str"),
+            ("boolean", "bool"),
+            ("integer", "int"),
+            ("dictionary", "dict"),
+            ("number", "numeric"),
+        ):
+            self.register_alias(alias, can)
 
     @classmethod
     def get_instance(cls) -> TypeRegistry:
@@ -61,13 +90,13 @@ class TypeRegistry:
 
     def register_type(self, type_name: str, super_type: Optional[str] = None):
         """Registers a type and optionally declares its supertype in the poset."""
-        name = str(type_name).strip()
+        name = str(type_name).strip().lower()
         if not name:
             return
         if name not in self._parents:
             self._parents[name] = set()
         if super_type:
-            super_name = str(super_type).strip()
+            super_name = str(super_type).strip().lower()
             if super_name and super_name != name:
                 if super_name not in self._parents:
                     self._parents[super_name] = set()
@@ -86,12 +115,15 @@ class TypeRegistry:
         clean = str(type_name).strip()
         return self._aliases.get(clean.lower(), clean)
 
-    def _resolve_runtime_class(self, type_name: str) -> Optional[type]:
+    @staticmethod
+    @functools.lru_cache(maxsize=4096)
+    def _resolve_runtime_class(type_name: str) -> Optional[type]:
         """Dynamically locates a runtime class via Python introspection without hardcoding."""
         if not type_name or not isinstance(type_name, str):
             return None
         import builtins
         import numbers
+        import warnings
         clean = type_name.strip()
         clean_lower = clean.lower()
         if clean_lower in ("numeric", "number"):
@@ -112,12 +144,16 @@ class TypeRegistry:
                 obj = getattr(mod, cls_name)
                 if isinstance(obj, type):
                     return obj
-        for mod_name, mod in list(sys.modules.items()):
-            if mod and hasattr(mod, clean):
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            for mod_name, mod in list(sys.modules.items()):
+                if not mod or mod_name.startswith("_") or "._" in mod_name:
+                    continue
                 try:
-                    obj = getattr(mod, clean)
-                    if isinstance(obj, type):
-                        return obj
+                    if hasattr(mod, clean):
+                        obj = getattr(mod, clean)
+                        if isinstance(obj, type):
+                            return obj
                 except Exception:
                     continue
         return None
@@ -132,24 +168,34 @@ class TypeRegistry:
         sub_c = self.canonical_name(sub)
         super_c = self.canonical_name(super_)
 
-        if super_c.lower() in ("any", "object", "*", "top", "unknown"):
+        sub_l = sub_c.lower()
+        super_l = super_c.lower()
+
+        if super_l in ("any", "object", "*", "top", "unknown"):
             return True
-        if sub_c.lower() in ("any", "top", "*"):
+        if sub_l in ("any", "top", "*"):
             return False
-        if sub_c.lower() == super_c.lower():
+        if sub_l == super_l:
             return True
 
-        if sub_c in self._parents:
+        # Union type decomposition (e.g. A_or_B is a subtype of C if any branch satisfies C)
+        if "_or_" in sub_l:
+            if any(self.is_subtype(part, super_c) for part in sub_l.split("_or_")):
+                return True
+
+        # Graph poset reachability (case-insensitive)
+        if sub_l in self._parents:
             visited = set()
-            queue = deque([sub_c])
+            queue = deque([sub_l])
             while queue:
                 curr = queue.popleft()
-                if curr.lower() == super_c.lower():
+                if curr == super_l:
                     return True
                 visited.add(curr)
                 for parent in self._parents.get(curr, []):
-                    if parent not in visited:
-                        queue.append(parent)
+                    p_l = parent.lower()
+                    if p_l not in visited:
+                        queue.append(p_l)
 
         # Dynamic runtime reflection via sys.modules and MRO
         sub_cls = self._resolve_runtime_class(sub_c)
@@ -304,7 +350,7 @@ class Cell(ABC):
         "configuration_schema", "verified", "semantic_tags",
         "docstring", "enrichment_source", "enriched_at",
         "source_priority", "source_provenance",
-        "_primary_input", "_primary_output", "_token_set"
+        "_primary_input", "_primary_output", "_token_set", "_token_count"
     ]
 
     def __init__(
@@ -403,6 +449,7 @@ class Cell(ABC):
                 self.outputs[k] = PortSignature(name=k, signature=AlgebraicSignature("any", "any"))
 
         self._token_set: Optional[Set[str]] = None
+        self._token_count: int = 0
 
         # Register types automatically in TypeRegistry
         registry = TypeRegistry.get_instance()
@@ -419,12 +466,21 @@ class Cell(ABC):
             except (ImportError, ValueError):
                 from tokenizer import CellTokenizer
             toks = CellTokenizer.tokenize_cell(self.cell_id, self.keywords)
+            if self.docstring:
+                toks.update(CellTokenizer.tokenize_prompt(self.docstring))
             for p in self.inputs:
                 toks.update(CellTokenizer.tokenize_identifier(p))
             for p in self.outputs:
                 toks.update(CellTokenizer.tokenize_identifier(p))
             self._token_set = toks
+            self._token_count = len(toks)
         return self._token_set
+
+    @property
+    def token_count(self) -> int:
+        if self._token_set is None:
+            _ = self.token_set
+        return self._token_count
 
     @property
     def primary_input(self) -> PortSignature:
@@ -437,7 +493,12 @@ class Cell(ABC):
             self._primary_input = res
             return res
 
-        res = next(iter(self.inputs.values()))
+        registry = TypeRegistry.get_instance()
+        data_ports = [
+            p for p in self.inputs.values()
+            if not registry.is_subtype(p.type_name, "scalar") and not registry.is_subtype(p.type_name, "str")
+        ]
+        res = data_ports[0] if data_ports else next(iter(self.inputs.values()))
         self._primary_input = res
         return res
 
@@ -523,6 +584,8 @@ class LatticeOrchestrator:
         self._reverse_adjacency: Dict[str, List[str]] = {}
         self._cells_by_input: Dict[Tuple[str, str], List[Cell]] = {}
         self._cells_by_output: Dict[Tuple[str, str], List[Cell]] = {}
+        self._token_index: Dict[str, List[Cell]] = {}
+        self._bridge_cells: List[Cell] = []
         self._lock = threading.RLock()
 
         if os.path.exists(self.db_path):
@@ -784,9 +847,15 @@ class LatticeOrchestrator:
             self._reverse_adjacency.clear()
             self._cells_by_input.clear()
             self._cells_by_output.clear()
+            self._token_index.clear()
+            self._bridge_cells.clear()
 
             for cell in self.loaded_cells.values():
                 _ = cell.token_set  # Warm up cached token set
+                for tok in cell.token_set:
+                    self._token_index.setdefault(tok, []).append(cell)
+                if getattr(cell, "node_role", "") == "bridge" or getattr(cell, "node_type", "") == "tunnel":
+                    self._bridge_cells.append(cell)
                 self._adjacency[cell.cell_id] = []
                 self._reverse_adjacency[cell.cell_id] = []
                 for p in cell.inputs.values():
@@ -795,6 +864,14 @@ class LatticeOrchestrator:
                 for p in cell.outputs.values():
                     key = (p.type_name, p.state)
                     self._cells_by_output.setdefault(key, []).append(cell)
+
+    @property
+    def token_index(self) -> Dict[str, List[Cell]]:
+        return self._token_index
+
+    @property
+    def bridge_cells(self) -> List[Cell]:
+        return self._bridge_cells
 
     def get_successors(self, cell: Cell, candidate_pool: Optional[List[Cell]] = None) -> List[Cell]:
         """

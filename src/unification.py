@@ -10,6 +10,7 @@ Conforms strictly to Section 3.2 of the NSTL paper:
 
 from __future__ import annotations
 import ast
+import re
 import json
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
@@ -143,6 +144,8 @@ class Substitution:
 # 2. Robinson's First-Order Unification Algorithm
 # =====================================================================
 
+_UNIFY_BASE_CACHE: Dict[Tuple[TypeTerm, TypeTerm], Optional[Substitution]] = {}
+
 def unify(
     term1: Union[TypeTerm, AlgebraicSignature, str],
     term2: Union[TypeTerm, AlgebraicSignature, str],
@@ -152,25 +155,38 @@ def unify(
     Computes Most General Unifier (mgu) of term1 and term2.
     Returns updated Substitution sigma if unification succeeds, or None (bottom) on failure.
     """
-    sub = Substitution(sigma.mappings if sigma else {})
-
     # Normalize AlgebraicSignature to TypestateTerm
     t1 = _to_type_term(term1)
     t2 = _to_type_term(term2)
+
+    is_ground_query = (sigma is None or not sigma.mappings)
+    if is_ground_query:
+        cache_key = (t1, t2)
+        if cache_key in _UNIFY_BASE_CACHE:
+            cached = _UNIFY_BASE_CACHE[cache_key]
+            return Substitution(cached.mappings) if cached is not None else None
+
+    sub = Substitution(sigma.mappings if sigma else {})
 
     t1 = t1.apply_substitution(sub)
     t2 = t2.apply_substitution(sub)
 
     # 1. Identity or Top
     if t1 == t2 or isinstance(t1, TopType) or isinstance(t2, TopType):
+        if is_ground_query:
+            _UNIFY_BASE_CACHE[cache_key] = sub
         return sub
 
     # 2. Variable binding
     if isinstance(t1, TypeVariable):
         sub.bind(t1.var_name, t2)
+        if is_ground_query:
+            _UNIFY_BASE_CACHE[cache_key] = sub
         return sub
     if isinstance(t2, TypeVariable):
         sub.bind(t2.var_name, t1)
+        if is_ground_query:
+            _UNIFY_BASE_CACHE[cache_key] = sub
         return sub
 
     # 3. Typestate term unification
@@ -178,42 +194,67 @@ def unify(
         # State unification: if both specify a concrete state, they must match
         if t1.state != "any" and t2.state != "any":
             if t1.state.lower() != t2.state.lower():
+                if is_ground_query:
+                    _UNIFY_BASE_CACHE[cache_key] = None
                 return None  # State mismatch -> bottom
 
         # Type poset subtyping check: t1.type_name <= t2.type_name
         registry = TypeRegistry.get_instance()
         if not registry.is_subtype(t1.type_name, t2.type_name):
+            if is_ground_query:
+                _UNIFY_BASE_CACHE[cache_key] = None
             return None  # Type mismatch -> bottom
 
         # Qualifier subset check
         if t2.qualifiers and not t2.qualifiers.issubset(t1.qualifiers):
+            if is_ground_query:
+                _UNIFY_BASE_CACHE[cache_key] = None
             return None
 
+        if is_ground_query:
+            _UNIFY_BASE_CACHE[cache_key] = sub
         return sub
 
     # 4. Atomic type unification
     if isinstance(t1, AtomicType) and isinstance(t2, AtomicType):
         registry = TypeRegistry.get_instance()
         if registry.is_subtype(t1.name, t2.name):
+            if is_ground_query:
+                _UNIFY_BASE_CACHE[cache_key] = sub
             return sub
+        if is_ground_query:
+            _UNIFY_BASE_CACHE[cache_key] = None
         return None
 
+    if is_ground_query:
+        _UNIFY_BASE_CACHE[cache_key] = None
     return None
 
 
 def _to_type_term(item: Any) -> TypeTerm:
     if isinstance(item, TypeTerm):
         return item
-    registry = TypeRegistry.get_instance()
     if isinstance(item, AlgebraicSignature):
+        cached = getattr(item, "_cached_term", None)
+        if cached is not None:
+            return cached
         if item.is_top():
-            return TOP
-        canonical = registry.canonical_name(item.type_name)
-        if canonical.lower() in ("any", "*", "top", "object", "unknown"):
-            return TOP
-        return TypestateTerm(type_name=canonical, state=item.state, qualifiers=item.qualifiers)
+            res = TOP
+        else:
+            registry = TypeRegistry.get_instance()
+            canonical = registry.canonical_name(item.type_name)
+            if canonical.lower() in ("any", "*", "top", "object", "unknown"):
+                res = TOP
+            else:
+                res = TypestateTerm(type_name=canonical, state=item.state, qualifiers=item.qualifiers)
+        try:
+            item._cached_term = res
+        except (AttributeError, TypeError):
+            pass
+        return res
     if isinstance(item, PortSignature):
         return _to_type_term(item.signature)
+    registry = TypeRegistry.get_instance()
     if isinstance(item, str):
         canonical = registry.canonical_name(item)
         if canonical.lower() in ("any", "*", "top", "object", "unknown"):
@@ -599,14 +640,17 @@ class ExecutionContext:
                             if t_embs:
                                 pos_score = max(float(np.dot(t, e_pos)) for t in t_embs)
                                 neg_score = max(float(np.dot(t, e_neg)) for t in t_embs)
-                                if abs(pos_score - neg_score) > 0.05:
+                                token_match = any(w in self.prompt.lower() for w in (port_sig.name.lower(), pos_label.lower(), neg_label.lower()))
+                                if (token_match or max(pos_score, neg_score) > 0.65) and abs(pos_score - neg_score) > 0.05:
                                     return "True" if pos_score > neg_score else "False"
             except Exception as e:
                 logger.debug(f"[UNIFICATION] Vector polarity projection fallback: {e}")
 
-            if port_sig.default_value is not None:
-                return str(port_sig.default_value)
-            return "True"
+            if port_sig.required:
+                if port_sig.default_value is not None:
+                    return str(port_sig.default_value)
+                return "True"
+            return None
 
         # 4. Numeric literals for numeric ports
         if is_num:
@@ -616,42 +660,12 @@ class ExecutionContext:
                     return val
 
         # 5. Stage 1 and Stage 3 Morphisms: Environmental Asset Grounding
-        if cell_stage in (1, 3) and is_str:
+        is_path_port = registry.is_subtype(t_name, "filepath") or registry.is_subtype(t_name, "path") or registry.is_subtype(t_name, "uri")
+        if (cell_stage in (1, 3) and (is_str or is_path_port)) or is_path_port:
             for idx, (_, kind, val) in enumerate(self.ordered_literals):
                 if idx not in self.used_indices and kind in ("file_asset", "quoted_str"):
                     self.used_indices.add(idx)
                     return json.dumps(val)
-
-            # If Stage 1 and no literal was in prompt and no default declared, project prompt onto workspace files
-            if cell_stage == 1 and port_sig.default_value is None:
-                try:
-                    from pathlib import Path
-                    from inference import ModelManager
-                    import numpy as np
-
-                    workspace_files = [f for f in Path.cwd().iterdir() if f.is_file() and not f.name.startswith(".")]
-                    if workspace_files and self.prompt:
-                        mm = ModelManager.get_instance()
-                        if mm.profile is not None:
-                            e_prompt = np.array(mm.get_embedding(self.prompt), dtype=np.float32)
-                            p_norm = np.linalg.norm(e_prompt)
-                            if p_norm > 0:
-                                e_prompt = e_prompt / p_norm
-                                best_file = None
-                                best_sim = -1.0
-                                for f in workspace_files:
-                                    e_f = np.array(mm.get_embedding(f.name), dtype=np.float32)
-                                    f_norm = np.linalg.norm(e_f)
-                                    if f_norm > 0:
-                                        e_f = e_f / f_norm
-                                        sim = float(np.dot(e_prompt, e_f))
-                                        if sim > best_sim:
-                                            best_sim = sim
-                                            best_file = f.name
-                                if best_file is not None and best_sim > 0.15:
-                                    return json.dumps(best_file)
-                except Exception as e:
-                    logger.debug(f"[UNIFICATION] Environmental asset grounding fallback: {e}")
 
         # 6. Stage 2 Morphism: Operational Parameter Extraction
         if (cell_stage == 2 or cell_stage is None) and is_str:
@@ -781,11 +795,16 @@ class UnificationGate:
                     accumulated_sigma.bind(p_name, str(p_sig.default_value))
                     continue
 
-                # D. If required and unresolved, bind port name or empty fallback
+                # D. If required and unresolved, preserve variable identifier rather than synthesizing string literal
+                registry = TypeRegistry.get_instance()
+                is_str_like = registry.is_subtype(p_sig.type_name, "str")
                 if p_sig.required:
-                    cell_bindings[p_name] = f'"{p_name}"'
+                    if is_str_like:
+                        cell_bindings[p_name] = f'"{p_name}"'
+                    else:
+                        cell_bindings[p_name] = p_name
                 else:
-                    cell_bindings[p_name] = "None"
+                    cell_bindings[p_name] = None
 
             # Register output port in context for future steps
             ctx.declare_variable(current_out_var, cell.primary_output, current_out_var)
@@ -793,6 +812,88 @@ class UnificationGate:
             pipeline_bindings.append((cell, cell_bindings))
 
         return Success(pipeline_bindings, accumulated_sigma)
+
+    @staticmethod
+    def _instantiate_ast_template(template: str, bindings: Dict[str, Any], inputs: Dict[str, Any]) -> str:
+        """
+        Synthesizes executable Python code from an AST template, adhering to identity omission semantics:
+        - Required positional parameters are instantiated with their bound values.
+        - Actively bound optional configurations are emitted as keyword arguments (key=val).
+        - Unbound optional parameters with defaults are omitted, letting runtime defaults apply.
+        """
+        if not template or not template.strip():
+            return ""
+
+        ph_map: Dict[str, str] = {}
+        def to_ph(m):
+            name = m.group(1)
+            ph_id = f"_nstl_ph_{name}"
+            ph_map[ph_id] = name
+            return ph_id
+
+        ast_ready = re.sub(r"\{([a-zA-Z_][a-zA-Z0-9_]*)\}", to_ph, template)
+        try:
+            parsed = ast.parse(ast_ready)
+        except SyntaxError:
+            res = template
+            for k, v in bindings.items():
+                if v is not None:
+                    res = res.replace(f"{{{k}}}", str(v))
+            return res
+
+        class CallOptimizer(ast.NodeTransformer):
+            def visit_Call(self, node):
+                self.generic_visit(node)
+                new_args = []
+                new_keywords = list(node.keywords)
+                for arg in node.args:
+                    if isinstance(arg, ast.Name) and arg.id in ph_map:
+                        orig_name = ph_map[arg.id]
+                        p_sig = inputs.get(orig_name)
+                        is_req = getattr(p_sig, "required", True) if p_sig else True
+                        val = bindings.get(orig_name)
+
+                        if val is not None:
+                            val_str = str(val)
+                            try:
+                                val_node = ast.parse(val_str, mode="eval").body
+                            except Exception:
+                                val_node = ast.Constant(value=val_str)
+                            if is_req:
+                                new_args.append(val_node)
+                            else:
+                                new_keywords.append(ast.keyword(arg=orig_name, value=val_node))
+                        elif is_req:
+                            registry = TypeRegistry.get_instance()
+                            t_name = getattr(getattr(p_sig, "signature", None), "type_name", "") or getattr(p_sig, "type_name", "")
+                            is_str_like = registry.is_subtype(t_name, "str")
+                            if is_str_like:
+                                val_node = ast.Constant(value=orig_name)
+                            else:
+                                val_node = ast.Name(id=orig_name, ctx=ast.Load())
+                            new_args.append(val_node)
+                        # If optional and val is None: omit from call
+                    else:
+                        new_args.append(arg)
+                node.args = new_args
+                node.keywords = new_keywords
+                return node
+
+        optimized = CallOptimizer().visit(parsed)
+        for node in ast.walk(optimized):
+            if isinstance(node, ast.Name) and node.id in ph_map:
+                orig = ph_map[node.id]
+                if orig in bindings and bindings[orig] is not None:
+                    node.id = str(bindings[orig])
+
+        try:
+            return ast.unparse(optimized)
+        except Exception:
+            res = template
+            for k, v in bindings.items():
+                if v is not None:
+                    res = res.replace(f"{{{k}}}", str(v))
+            return res
 
     def emit_code(
         self,
@@ -830,11 +931,7 @@ class UnificationGate:
             if not template:
                 continue
 
-            # Pure placeholder substitution
-            instantiated = template
-            for ph, val in bindings.items():
-                instantiated = instantiated.replace(f"{{{ph}}}", str(val))
-
+            instantiated = self._instantiate_ast_template(template, bindings, cell.inputs)
             code_lines.append(instantiated)
 
         final_code = "\n".join(code_lines).strip()

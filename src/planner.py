@@ -95,6 +95,9 @@ class LatticePlanner:
             current_trellis[entry.cell_id] = p_tuple
             all_valid_paths.append(p_tuple)
 
+        # Edge compatibility cache for candidate pairs in tunnel
+        edge_compat_cache: Dict[Tuple[str, str], Optional[Substitution]] = {}
+
         # Sequential Trellis extensions for t = 2 ... max_steps
         max_steps = max(2, min(6, max_transforms + 2))
         for step in range(2, max_steps + 1):
@@ -117,7 +120,13 @@ class LatticePlanner:
                         continue
 
                     # Monadic Unification Gate: edge exists iff unify(tau_out, tau_in, sigma) != bottom
-                    new_sigma = unify(prev_cell.primary_output.signature, cand.primary_input.signature, prev_sigma)
+                    pair_key = (prev_cell.cell_id, cand.cell_id)
+                    if pair_key in edge_compat_cache:
+                        new_sigma = edge_compat_cache[pair_key]
+                    else:
+                        new_sigma = unify(prev_cell.primary_output.signature, cand.primary_input.signature, prev_sigma)
+                        edge_compat_cache[pair_key] = new_sigma
+
                     if new_sigma is not None:
                         cand_sc = log_probs.get(cand.cell_id, -10.0)
                         total_sc = prev_score + cand_sc
@@ -129,7 +138,11 @@ class LatticePlanner:
 
             if not next_trellis:
                 break
-            current_trellis = next_trellis
+            if len(next_trellis) > 40:
+                sorted_entries = sorted(next_trellis.items(), key=lambda x: x[1][2], reverse=True)[:40]
+                current_trellis = dict(sorted_entries)
+            else:
+                current_trellis = next_trellis
 
         # Filter and rank valid composition paths
         if all_valid_paths:
@@ -145,25 +158,21 @@ class LatticePlanner:
                 if matching_goals:
                     valid_candidates = matching_goals
 
-            # 2. Stage 3 closure: If tunnel contains Stage 3 egress sinks, prioritize paths ending in Stage 3
-            has_s3_in_tunnel = any(getattr(c, "stage", None) == 3 for c in candidates)
-            if has_s3_in_tunnel:
-                s3_paths = [(p, s, sc) for p, s, sc in valid_candidates if getattr(p[-1], "stage", None) == 3]
-                if s3_paths:
-                    valid_candidates = s3_paths
+            # Normalized path score: balance concept coverage and mean log-likelihood
+            prompt_tokens = CellTokenizer.tokenize_prompt(prompt)
+            p_len = max(len(prompt_tokens), 1)
 
-            # 3. Normalized path score: balance joint likelihood and coverage
-            # Score(P) = (1 / |P|^0.2) * sum log P(v | e_x)
-            def path_rank_key(item: Tuple[List[Cell], Substitution, float]) -> float:
+            def compute_path_score(item: Tuple[List[Cell], Substitution, float]) -> float:
                 path, _, sc = item
                 k = len(path)
-                norm_score = sc / (k ** 0.2)
-                # Categorical completeness bonus for closed Initial -> Terminal chains
-                if getattr(path[0], "stage", None) == 1 and getattr(path[-1], "stage", None) == 3:
-                    norm_score += 1.0
-                return norm_score
+                path_tokens = set().union(*(c.token_set for c in path))
+                coverage = len(prompt_tokens & path_tokens) / p_len
+                mean_log_prob = sc / k
+                return coverage * 10.0 + mean_log_prob
 
-            best_path, _, _ = max(valid_candidates, key=path_rank_key)
+            scored_candidates = [(item, compute_path_score(item)) for item in valid_candidates]
+            best_candidate, _ = max(scored_candidates, key=lambda x: x[1])
+            best_path = best_candidate[0]
             return best_path
 
         # Step 4: Bounded MCTS Fallback (Section 3.4) if Trellis was disconnected

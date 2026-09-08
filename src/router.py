@@ -33,6 +33,9 @@ except (ImportError, ValueError):
 logger = get_logger('router')
 
 
+LEN_NORM_TABLE = [1.0 / (math.log2(2 + i) ** 0.1) for i in range(500)]
+
+
 class LatticeRouter:
     """
     Semantic Tunneling Router (Section 3.3).
@@ -92,41 +95,50 @@ class LatticeRouter:
                 if cid and (cid not in candidate_scores or score > candidate_scores[cid]):
                     candidate_scores[cid] = score
 
-            # Categorical Stage 3 Egress Guarantee: Sinks (B -> 1) evaluated against tail query span
-            tail_query = query_spans[-1] if query_spans else prompt
-            term_emb = None
-            for cell in self.orchestrator.loaded_cells.values():
-                if cell.stage == 3 and getattr(cell, "node_type", "") != "constant":
-                    c_data = getattr(self.internal_rag, "cell_cache", {}).get(cell.cell_id)
-                    if c_data and "embedding" in c_data:
-                        if term_emb is None:
-                            raw_term = ModelManager.get_instance().get_embedding(tail_query)
-                            t_norm = np.linalg.norm(raw_term)
-                            term_emb = np.array(raw_term, dtype=np.float32) / (t_norm if t_norm > 0 else 1.0)
-                        c_emb = np.array(c_data["embedding"], dtype=np.float32)
-                        c_norm = np.linalg.norm(c_emb)
-                        if c_norm > 0:
-                            sim = float(np.dot(term_emb, c_emb) / c_norm)
-                            if cell.cell_id not in candidate_scores or sim > candidate_scores[cell.cell_id]:
-                                candidate_scores[cell.cell_id] = sim
-
             for cid, score in candidate_scores.items():
                 cell = self.orchestrator.loaded_cells.get(cid)
                 if cell is not None:
                     candidates_with_scores.append((cell, score))
 
-        # Fallback if RAG index has not yet indexed cells: use token Jaccard similarity
+        # Fallback if RAG index has not yet indexed cells: use length-normalized prompt coverage
         if not candidates_with_scores:
             prompt_tokens = CellTokenizer.tokenize_prompt(prompt)
-            for cell in self.orchestrator.loaded_cells.values():
-                cell_tokens = cell.token_set
-                intersection = len(prompt_tokens & cell_tokens)
-                union = len(prompt_tokens | cell_tokens)
-                score = (intersection / max(union, 1)) if union > 0 else 0.001
-                candidates_with_scores.append((cell, float(score)))
+            p_len = max(len(prompt_tokens), 1)
+            inv_p_len = 1.0 / p_len
+            token_index = getattr(self.orchestrator, "token_index", None)
+            N = len(self.orchestrator.loaded_cells)
+            if token_index and N > 0:
+                overlap_counts: Dict[Cell, int] = {}
+                for tok in prompt_tokens:
+                    cells = token_index.get(tok, [])
+                    if len(cells) < 0.3 * N:
+                        for cell in cells:
+                            overlap_counts[cell] = overlap_counts.get(cell, 0) + 1
+                if not overlap_counts:
+                    overlap_counts = {c: 1 for c in self.orchestrator.loaded_cells.values()}
+
+                candidates_with_scores = [
+                    (cell, (count * inv_p_len) * LEN_NORM_TABLE[min(getattr(cell, "token_count", len(cell.token_set)), 499)])
+                    for cell, count in overlap_counts.items()
+                ]
+            else:
+                for cell in self.orchestrator.loaded_cells.values():
+                    cell_tokens = cell.token_set
+                    intersection_len = len(prompt_tokens & cell_tokens)
+                    if intersection_len > 0:
+                        c_len = max(len(cell_tokens), 1)
+                        score = (intersection_len * inv_p_len) * LEN_NORM_TABLE[min(c_len, 499)]
+                        candidates_with_scores.append((cell, float(score)))
 
         if not candidates_with_scores:
             return [], {}
+
+        # Prune low-scoring tail before computing exponential softmax distribution:
+        # Softmax is strictly monotonic; preserving top 150 candidates guarantees
+        # active tunnel integrity while eliminating overhead on broad queries.
+        if len(candidates_with_scores) > 150:
+            candidates_with_scores.sort(key=lambda x: x[1], reverse=True)
+            candidates_with_scores = candidates_with_scores[:150]
 
         # 2. Compute Softmax Distribution with temperature gamma:
         #    P(v_i | e_x) = exp(s_i / gamma) / sum_j exp(s_j / gamma)
@@ -136,30 +148,21 @@ class LatticeRouter:
         exp_scores = np.exp(shifted_scores)
         probabilities = exp_scores / np.sum(exp_scores)
 
-        # 3. Filter into Active Tunnel T: { v in V | P(v | e_x) >= epsilon }
+        # 3. Filter into Active Tunnel T via Scale-Invariant Relative Likelihood:
+        #    P(v | e_x) / max_u P(u | e_x) >= tau
         cell_probs = [(cell, float(prob)) for (cell, _), prob in zip(candidates_with_scores, probabilities)]
         cell_probs.sort(key=lambda x: x[1], reverse=True)
 
         relevance_map: Dict[str, float] = {cell.cell_id: prob for cell, prob in cell_probs}
 
-        # Mathematical tunnel cutoff: P(v | e_x) >= epsilon
-        tunnel_cells = [cell for cell, prob in cell_probs if prob >= self.epsilon]
-
-        # Stage Stratification: Ensure stage representation in tunnel without arbitrary hardcoded slices
-        stage_partition: Dict[int, List[Cell]] = {1: [], 2: [], 3: []}
-        for cell, _ in cell_probs:
-            st = getattr(cell, "stage", 2)
-            if getattr(cell, "node_type", "") != "constant" and st in stage_partition:
-                stage_partition[st].append(cell)
+        tau = max(self.epsilon, 0.01)
+        tunnel_cells = [cell for (cell, _), rel_lik in zip(candidates_with_scores, exp_scores) if rel_lik >= tau]
+        if top_k and len(tunnel_cells) > top_k:
+            tunnel_cells.sort(key=lambda c: relevance_map.get(c.cell_id, 0.0), reverse=True)
+            tunnel_cells = tunnel_cells[:top_k]
 
         final_tunnel: List[Cell] = list(tunnel_cells)
         tunnel_ids = set(c.cell_id for c in final_tunnel)
-        for st in (1, 2, 3):
-            if stage_partition[st] and not any(getattr(c, "stage", 2) == st for c in final_tunnel):
-                best_st_cell = stage_partition[st][0]
-                if best_st_cell.cell_id not in tunnel_ids:
-                    final_tunnel.append(best_st_cell)
-                    tunnel_ids.add(best_st_cell.cell_id)
 
         # Category-Theoretic Bridge Morphism Completion:
         # If the active tunnel contains distinct carrier types A and B,
@@ -175,15 +178,20 @@ class LatticeRouter:
                 carriers_in.add(in_t)
 
         if carriers_out and carriers_in:
-            for cell in self.orchestrator.loaded_cells.values():
-                if getattr(cell, "node_role", "") == "bridge" or getattr(cell, "node_type", "") == "tunnel":
-                    c_in = getattr(cell.primary_input, "type_name", "")
-                    c_out = getattr(cell.primary_output, "type_name", "")
-                    if c_in in carriers_out and c_out in carriers_in:
-                        if cell.cell_id not in tunnel_ids:
-                            final_tunnel.append(cell)
-                            tunnel_ids.add(cell.cell_id)
-                            relevance_map[cell.cell_id] = max(relevance_map.get(cell.cell_id, 0.0), self.epsilon * 2.0)
+            bridge_cells = getattr(self.orchestrator, "bridge_cells", None)
+            if bridge_cells is None:
+                bridge_cells = [
+                    c for c in self.orchestrator.loaded_cells.values()
+                    if getattr(c, "node_role", "") == "bridge" or getattr(c, "node_type", "") == "tunnel"
+                ]
+            for cell in bridge_cells:
+                c_in = getattr(cell.primary_input, "type_name", "")
+                c_out = getattr(cell.primary_output, "type_name", "")
+                if c_in in carriers_out and c_out in carriers_in:
+                    if cell.cell_id not in tunnel_ids:
+                        final_tunnel.append(cell)
+                        tunnel_ids.add(cell.cell_id)
+                        relevance_map[cell.cell_id] = max(relevance_map.get(cell.cell_id, 0.0), self.epsilon * 2.0)
 
         return final_tunnel, relevance_map
 
@@ -218,7 +226,7 @@ class LatticeRouter:
         start_sig: Optional[Any] = None,
         goal_sig: Optional[Any] = None,
         return_tuple: bool = True,
-        top_k: int = 150
+        top_k: int = 20
     ) -> Union[List[Cell], Tuple[List[Cell], Set[str]]]:
         """
         End-to-end routing & topological pathfinding:

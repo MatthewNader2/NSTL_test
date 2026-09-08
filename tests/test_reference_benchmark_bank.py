@@ -92,9 +92,11 @@ BENCHMARK_TASKS: List[Tuple[str, str, str, List[str]]] = [
 
 @pytest.fixture(scope="module")
 def benchmark_environment():
+    import gc
     orchestrator = LatticeOrchestrator()
     orchestrator.load_from_database(DB_PATH)
     orchestrator.build_topology()
+    gc.freeze()
     router = LatticeRouter(orchestrator=orchestrator, internal_rag=None)
     gate = UnificationGate()
     return orchestrator, router, gate

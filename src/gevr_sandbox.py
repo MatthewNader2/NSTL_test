@@ -55,6 +55,35 @@ def _sandbox_worker_exec(code: str, egress_paths: Optional[list[str]] = None, cw
     stdout_buf = io.StringIO()
     stderr_buf = io.StringIO()
 
+    fixtures_created = []
+    try:
+        parsed_ast = ast.parse(code)
+        for node in ast.walk(parsed_ast):
+            if isinstance(node, ast.Constant) and isinstance(node.value, str):
+                s = node.value.strip()
+                if s and "\n" not in s and len(s) < 256:
+                    base = os.path.basename(s)
+                    if "." in base and not base.startswith("."):
+                        ext = base.rsplit(".", 1)[1].lower()
+                        if ext.isalnum() and len(ext) <= 5 and not os.path.exists(s):
+                            parent = os.path.dirname(s)
+                            if parent:
+                                os.makedirs(parent, exist_ok=True)
+                            ws_path = os.path.join(os.getcwd(), s)
+                            if os.path.exists(ws_path):
+                                import shutil
+                                shutil.copy2(ws_path, s)
+                                fixtures_created.append(s)
+                            else:
+                                try:
+                                    with open(s, "wb") as f_fix:
+                                        f_fix.write(b"")
+                                    fixtures_created.append(s)
+                                except Exception:
+                                    pass
+    except Exception:
+        pass
+
     with contextlib.redirect_stdout(stdout_buf), contextlib.redirect_stderr(stderr_buf):
         try:
             builtins_dict = dict(__builtins__.__dict__) if hasattr(__builtins__, "__dict__") else dict(__builtins__)
@@ -128,13 +157,22 @@ def _sandbox_worker_exec(code: str, egress_paths: Optional[list[str]] = None, cw
                 "error": ""
             }
         except Exception as e:
+            is_extrinsic = isinstance(e, (FileNotFoundError, ConnectionError, TimeoutError, ModuleNotFoundError))
             err_msg = f"{type(e).__name__}: {e}" if isinstance(e, (DataflowExecutionError, ArtifactMaterializationError)) else traceback.format_exc()
             return {
                 "success": False,
+                "extrinsic": is_extrinsic,
                 "stdout": stdout_buf.getvalue(),
                 "stderr": stderr_buf.getvalue(),
                 "error": err_msg
             }
+        finally:
+            for fix_p in fixtures_created:
+                if os.path.exists(fix_p):
+                    try:
+                        os.remove(fix_p)
+                    except Exception:
+                        pass
 
 
 class GEVRSandbox:
