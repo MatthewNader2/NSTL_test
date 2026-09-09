@@ -1,0 +1,2216 @@
+{
+  "domain": "python_core",
+  "cells": [
+    {
+      "cell_id": "PYTHON_FOR_REDUCE_ACCUMULATOR",
+      "stage": 2,
+      "inputs": {
+        "collection": {
+          "type_name": "Sequence[T]",
+          "state": "any",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Collection of items to iterate over",
+          "domain": null,
+          "required": true
+        },
+        "init_value": {
+          "type_name": "T",
+          "state": "any",
+          "qualifiers": [],
+          "default_value": "None",
+          "description": "Initial state for the accumulator",
+          "domain": null,
+          "required": false
+        }
+      },
+      "outputs": {
+        "output_data": {
+          "type_name": "T",
+          "state": "any",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Accumulated reduction result across all items",
+          "domain": null,
+          "required": true
+        }
+      },
+      "slots": {
+        "loop_body": "Expression or statement block updating accumulator: {output_var} = update_rule({output_var}, _item)"
+      },
+      "code_template": "{output_var} = {init_value}\nfor _item in {collection}:\n    {loop_body}",
+      "dependencies": [],
+      "semantic_tags": [
+        "for",
+        "loop",
+        "reduce",
+        "accumulate",
+        "aggregate",
+        "iterate",
+        "minimum",
+        "maximum",
+        "search",
+        "best",
+        "find",
+        "traverse",
+        "fold",
+        "running",
+        "total",
+        "sum"
+      ],
+      "keywords": [
+        "for",
+        "loop",
+        "reduce",
+        "accumulate",
+        "aggregate",
+        "iterate",
+        "minimum",
+        "maximum",
+        "search",
+        "best",
+        "find",
+        "traverse",
+        "fold",
+        "running",
+        "total",
+        "sum"
+      ],
+      "docstring": "Iterates over a sequence and updates an accumulator variable across cycles.",
+      "enrichment_source": null,
+      "enriched_at": null,
+      "domain_name": "python_core",
+      "node_type": "macro_loop",
+      "node_role": "control_flow",
+      "verified": true,
+      "source_priority": 10,
+      "topology_type": "traced_loop",
+      "feedback_state_type": "T"
+    },
+    {
+      "cell_id": "PYTHON_FOR_MAP_COLLECT",
+      "stage": 2,
+      "inputs": {
+        "collection": {
+          "type_name": "Sequence[T]",
+          "state": "iterable",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Source collection to map over",
+          "domain": null,
+          "required": true
+        }
+      },
+      "outputs": {
+        "output_data": {
+          "type_name": "List[S]",
+          "state": "collected",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "New list containing mapped results",
+          "domain": null,
+          "required": true
+        }
+      },
+      "slots": {
+        "loop_body": "Expression or statement to compute and append result: {output_var}.append(transform(_item))"
+      },
+      "code_template": "{output_var} = []\nfor _item in {collection}:\n    {loop_body}",
+      "dependencies": [],
+      "semantic_tags": [
+        "for",
+        "loop",
+        "map",
+        "collect",
+        "gather",
+        "append",
+        "list",
+        "build",
+        "transform",
+        "apply",
+        "project",
+        "select",
+        "enumerate",
+        "accumulate"
+      ],
+      "keywords": [
+        "for",
+        "loop",
+        "map",
+        "collect",
+        "gather",
+        "append",
+        "list",
+        "build",
+        "transform",
+        "apply",
+        "project",
+        "select",
+        "enumerate",
+        "accumulate"
+      ],
+      "docstring": "Iterates over a sequence, applies a transformation block to each item, and collects results into a list.",
+      "enrichment_source": null,
+      "enriched_at": null,
+      "domain_name": "python_core",
+      "node_type": "macro_loop",
+      "node_role": "control_flow",
+      "verified": true,
+      "source_priority": 10,
+      "topology_type": "traced_loop"
+    },
+    {
+      "cell_id": "PYTHON_FOR_FILTER_COLLECT",
+      "stage": 2,
+      "inputs": {
+        "collection": {
+          "type_name": "Sequence[T]",
+          "state": "iterable",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Source collection to filter",
+          "domain": null,
+          "required": true
+        },
+        "filter_condition": {
+          "type_name": "bool",
+          "state": "condition",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Boolean predicate evaluated for each item",
+          "domain": null,
+          "required": true
+        }
+      },
+      "outputs": {
+        "output_data": {
+          "type_name": "List[T]",
+          "state": "filtered",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "List of items satisfying the predicate",
+          "domain": null,
+          "required": true
+        }
+      },
+      "slots": {
+        "loop_body": "Statement block for matching items, typically appending to {output_var}"
+      },
+      "code_template": "{output_var} = []\nfor _item in {collection}:\n    if {filter_condition}:\n        {loop_body}",
+      "dependencies": [],
+      "semantic_tags": [
+        "for",
+        "loop",
+        "filter",
+        "select",
+        "keep",
+        "match",
+        "predicate",
+        "where",
+        "grep",
+        "search",
+        "find",
+        "subset",
+        "prune",
+        "extract",
+        "refine"
+      ],
+      "keywords": [
+        "for",
+        "loop",
+        "filter",
+        "select",
+        "keep",
+        "match",
+        "predicate",
+        "where",
+        "grep",
+        "search",
+        "find",
+        "subset",
+        "prune",
+        "extract",
+        "refine"
+      ],
+      "docstring": "Iterates over a sequence, tests a condition for each item, and collects matching items into a list.",
+      "enrichment_source": null,
+      "enriched_at": null,
+      "domain_name": "python_core",
+      "node_type": "macro_loop",
+      "node_role": "control_flow",
+      "verified": true,
+      "source_priority": 10,
+      "topology_type": "traced_loop"
+    },
+    {
+      "cell_id": "PYTHON_FOR_RANGE",
+      "stage": 2,
+      "inputs": {
+        "start": {
+          "type_name": "int",
+          "state": "raw",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Start index (inclusive)",
+          "domain": null,
+          "required": true
+        },
+        "stop": {
+          "type_name": "int",
+          "state": "raw",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Stop index (exclusive)",
+          "domain": null,
+          "required": true
+        },
+        "step": {
+          "type_name": "int",
+          "state": "raw",
+          "qualifiers": [],
+          "default_value": 1,
+          "description": "Step increment between indices",
+          "domain": null,
+          "required": false
+        }
+      },
+      "outputs": {
+        "output_data": {
+          "type_name": "Any",
+          "state": "transformed",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Final state after counted loop execution",
+          "domain": null,
+          "required": true
+        }
+      },
+      "slots": {
+        "loop_body": "Block executed on each iteration with index variable {idx}",
+        "idx": "Bound index variable name used inside the loop"
+      },
+      "code_template": "{output_var} = None\nfor {idx} in range({start}, {stop}, {step}):\n    {loop_body}",
+      "dependencies": [],
+      "semantic_tags": [
+        "for",
+        "loop",
+        "range",
+        "count",
+        "index",
+        "iterate",
+        "numeric",
+        "sequence",
+        "counter",
+        "enumerate",
+        "step",
+        "stride",
+        "interval",
+        "repeat"
+      ],
+      "keywords": [
+        "for",
+        "loop",
+        "range",
+        "count",
+        "index",
+        "iterate",
+        "numeric",
+        "sequence",
+        "counter",
+        "enumerate",
+        "step",
+        "stride",
+        "interval",
+        "repeat"
+      ],
+      "docstring": "Standard counted for-loop over a numeric range with configurable start, stop, and step.",
+      "enrichment_source": null,
+      "enriched_at": null,
+      "domain_name": "python_core",
+      "node_type": "macro_loop",
+      "node_role": "control_flow",
+      "verified": true,
+      "source_priority": 10,
+      "topology_type": "traced_loop"
+    },
+    {
+      "cell_id": "PYTHON_WHILE_LOOP",
+      "stage": 2,
+      "inputs": {
+        "condition": {
+          "type_name": "bool",
+          "state": "condition",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Boolean guard expression evaluated before each iteration",
+          "domain": null,
+          "required": true
+        }
+      },
+      "outputs": {
+        "output_data": {
+          "type_name": "Any",
+          "state": "transformed",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Final state after while loop terminates",
+          "domain": null,
+          "required": true
+        }
+      },
+      "slots": {
+        "loop_body": "Block executed repeatedly while condition remains true"
+      },
+      "code_template": "{output_var} = None\nwhile {condition}:\n    {loop_body}",
+      "dependencies": [],
+      "semantic_tags": [
+        "while",
+        "loop",
+        "repeat",
+        "until",
+        "guard",
+        "condition",
+        "iterate",
+        "polling",
+        "spin",
+        "retry",
+        "continuous",
+        "indefinite",
+        "cycle",
+        "persistent"
+      ],
+      "keywords": [
+        "while",
+        "loop",
+        "repeat",
+        "until",
+        "guard",
+        "condition",
+        "iterate",
+        "polling",
+        "spin",
+        "retry",
+        "continuous",
+        "indefinite",
+        "cycle",
+        "persistent"
+      ],
+      "docstring": "Condition-driven while loop that executes a body block until the guard becomes false.",
+      "enrichment_source": null,
+      "enriched_at": null,
+      "domain_name": "python_core",
+      "node_type": "macro_loop",
+      "node_role": "control_flow",
+      "verified": true,
+      "source_priority": 10,
+      "topology_type": "traced_loop"
+    },
+    {
+      "cell_id": "PYTHON_LIST_COMPREHENSION",
+      "stage": 2,
+      "inputs": {
+        "collection": {
+          "type_name": "Sequence[T]",
+          "state": "iterable",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Source collection",
+          "domain": null,
+          "required": true
+        },
+        "expr": {
+          "type_name": "str",
+          "state": "expression",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Expression applied to each item to produce list elements",
+          "domain": null,
+          "required": true
+        }
+      },
+      "outputs": {
+        "output_data": {
+          "type_name": "List[S]",
+          "state": "transformed",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "New list of transformed elements",
+          "domain": null,
+          "required": true
+        }
+      },
+      "slots": {},
+      "code_template": "{output_var} = [{expr} for _item in {collection}]",
+      "dependencies": [],
+      "semantic_tags": [
+        "comprehension",
+        "list",
+        "map",
+        "transform",
+        "collect",
+        "build",
+        "derive",
+        "project",
+        "generate",
+        "construct",
+        "populate",
+        "array",
+        "vector"
+      ],
+      "keywords": [
+        "comprehension",
+        "list",
+        "map",
+        "transform",
+        "collect",
+        "build",
+        "derive",
+        "project",
+        "generate",
+        "construct",
+        "populate",
+        "array",
+        "vector"
+      ],
+      "docstring": "Constructs a new list by applying an expression to every item in a source collection.",
+      "enrichment_source": null,
+      "enriched_at": null,
+      "domain_name": "python_core",
+      "node_type": "macro_comprehension",
+      "node_role": "transform",
+      "verified": true,
+      "source_priority": 10,
+      "topology_type": "monoidal_product"
+    },
+    {
+      "cell_id": "PYTHON_LIST_COMPREHENSION_FILTERED",
+      "stage": 2,
+      "inputs": {
+        "collection": {
+          "type_name": "Sequence[T]",
+          "state": "iterable",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Source collection",
+          "domain": null,
+          "required": true
+        },
+        "transform_expr": {
+          "type_name": "str",
+          "state": "expression",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Expression applied to each item",
+          "domain": null,
+          "required": true
+        },
+        "filter_condition": {
+          "type_name": "str",
+          "state": "condition",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Predicate boolean expression filtering items",
+          "domain": null,
+          "required": true
+        }
+      },
+      "outputs": {
+        "output_data": {
+          "type_name": "List[S]",
+          "state": "filtered",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "New list of transformed elements matching condition",
+          "domain": null,
+          "required": true
+        }
+      },
+      "slots": {},
+      "code_template": "{output_var} = [{transform_expr} for _item in {collection} if {filter_condition}]",
+      "dependencies": [],
+      "semantic_tags": [
+        "comprehension",
+        "list",
+        "filter",
+        "select",
+        "transform",
+        "collect",
+        "where",
+        "predicate",
+        "clean",
+        "extract",
+        "refine",
+        "subset",
+        "prune"
+      ],
+      "keywords": [
+        "comprehension",
+        "list",
+        "filter",
+        "select",
+        "transform",
+        "collect",
+        "where",
+        "predicate",
+        "clean",
+        "extract",
+        "refine",
+        "subset",
+        "prune"
+      ],
+      "docstring": "Constructs a new list by transforming items that satisfy a boolean predicate.",
+      "enrichment_source": null,
+      "enriched_at": null,
+      "domain_name": "python_core",
+      "node_type": "macro_comprehension",
+      "node_role": "transform",
+      "verified": true,
+      "source_priority": 10,
+      "topology_type": "monoidal_product"
+    },
+    {
+      "cell_id": "PYTHON_DICT_COMPREHENSION",
+      "stage": 2,
+      "inputs": {
+        "collection": {
+          "type_name": "Sequence[T]",
+          "state": "iterable",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Source collection to derive dictionary from",
+          "domain": null,
+          "required": true
+        },
+        "key_expr": {
+          "type_name": "str",
+          "state": "expression",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Expression evaluating to the key for each item",
+          "domain": null,
+          "required": true
+        },
+        "val_expr": {
+          "type_name": "str",
+          "state": "expression",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Expression evaluating to the value for each item",
+          "domain": null,
+          "required": true
+        }
+      },
+      "outputs": {
+        "output_data": {
+          "type_name": "Dict[K, V]",
+          "state": "transformed",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "New dictionary mapping computed keys to computed values",
+          "domain": null,
+          "required": true
+        }
+      },
+      "slots": {},
+      "code_template": "{output_var} = {{{key_expr}: {val_expr} for _item in {collection}}}",
+      "dependencies": [],
+      "semantic_tags": [
+        "comprehension",
+        "dict",
+        "dictionary",
+        "map",
+        "key-value",
+        "build",
+        "construct",
+        "generate",
+        "hashmap",
+        "associate",
+        "pair",
+        "index",
+        "lookup"
+      ],
+      "keywords": [
+        "comprehension",
+        "dict",
+        "dictionary",
+        "map",
+        "key-value",
+        "build",
+        "construct",
+        "generate",
+        "hashmap",
+        "associate",
+        "pair",
+        "index",
+        "lookup"
+      ],
+      "docstring": "Constructs a new dictionary by evaluating key and value expressions for each item in a collection.",
+      "enrichment_source": null,
+      "enriched_at": null,
+      "domain_name": "python_core",
+      "node_type": "macro_comprehension",
+      "node_role": "transform",
+      "verified": true,
+      "source_priority": 10,
+      "topology_type": "monoidal_product"
+    },
+    {
+      "cell_id": "PYTHON_SET_COMPREHENSION",
+      "stage": 2,
+      "inputs": {
+        "collection": {
+          "type_name": "Sequence[T]",
+          "state": "iterable",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Source collection to derive set from",
+          "domain": null,
+          "required": true
+        },
+        "expr": {
+          "type_name": "str",
+          "state": "expression",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Expression evaluating to a set element for each item",
+          "domain": null,
+          "required": true
+        }
+      },
+      "outputs": {
+        "output_data": {
+          "type_name": "Set[S]",
+          "state": "transformed",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "New set of unique transformed elements",
+          "domain": null,
+          "required": true
+        }
+      },
+      "slots": {},
+      "code_template": "{output_var} = {{{expr} for _item in {collection}}}",
+      "dependencies": [],
+      "semantic_tags": [
+        "comprehension",
+        "set",
+        "unique",
+        "distinct",
+        "deduplicate",
+        "build",
+        "construct",
+        "generate",
+        "collect",
+        "union",
+        "membership",
+        "hash",
+        "group"
+      ],
+      "keywords": [
+        "comprehension",
+        "set",
+        "unique",
+        "distinct",
+        "deduplicate",
+        "build",
+        "construct",
+        "generate",
+        "collect",
+        "union",
+        "membership",
+        "hash",
+        "group"
+      ],
+      "docstring": "Constructs a new set by evaluating an expression for each item, automatically deduplicating results.",
+      "enrichment_source": null,
+      "enriched_at": null,
+      "domain_name": "python_core",
+      "node_type": "macro_comprehension",
+      "node_role": "transform",
+      "verified": true,
+      "source_priority": 10,
+      "topology_type": "monoidal_product"
+    },
+    {
+      "cell_id": "PYTHON_IF_ELSE",
+      "stage": 2,
+      "inputs": {
+        "condition": {
+          "type_name": "bool",
+          "state": "condition",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Boolean predicate selecting the branch",
+          "domain": null,
+          "required": true
+        }
+      },
+      "outputs": {
+        "output_data": {
+          "type_name": "Any",
+          "state": "transformed",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Resulting state after executing one of the branches",
+          "domain": null,
+          "required": true
+        }
+      },
+      "slots": {
+        "then_branch": "Block executed when condition is true",
+        "else_branch": "Block executed when condition is false"
+      },
+      "code_template": "{output_var} = None\nif {condition}:\n    {then_branch}\nelse:\n    {else_branch}",
+      "dependencies": [],
+      "semantic_tags": [
+        "if",
+        "else",
+        "branch",
+        "conditional",
+        "choose",
+        "decide",
+        "binary",
+        "alternate",
+        "path",
+        "route",
+        "switch",
+        "diverge",
+        "fork",
+        "select"
+      ],
+      "keywords": [
+        "if",
+        "else",
+        "branch",
+        "conditional",
+        "choose",
+        "decide",
+        "binary",
+        "alternate",
+        "path",
+        "route",
+        "switch",
+        "diverge",
+        "fork",
+        "select"
+      ],
+      "docstring": "Standard binary conditional branch executing one of two statement blocks based on a boolean predicate.",
+      "enrichment_source": null,
+      "enriched_at": null,
+      "domain_name": "python_core",
+      "node_type": "macro_conditional",
+      "node_role": "control_flow",
+      "verified": true,
+      "source_priority": 10,
+      "topology_type": "coproduct_branch"
+    },
+    {
+      "cell_id": "PYTHON_IF_NO_ELSE",
+      "stage": 2,
+      "inputs": {
+        "condition": {
+          "type_name": "bool",
+          "state": "condition",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Boolean guard predicate",
+          "domain": null,
+          "required": true
+        }
+      },
+      "outputs": {
+        "output_data": {
+          "type_name": "Any",
+          "state": "transformed",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "State after optional guarded execution",
+          "domain": null,
+          "required": true
+        }
+      },
+      "slots": {
+        "then_branch": "Guarded block executed only when condition is true"
+      },
+      "code_template": "{output_var} = None\nif {condition}:\n    {then_branch}",
+      "dependencies": [],
+      "semantic_tags": [
+        "if",
+        "guard",
+        "conditional",
+        "protect",
+        "gate",
+        "check",
+        "validate",
+        "ensure",
+        "only",
+        "skip",
+        "filter",
+        "gatekeeper",
+        "assert",
+        "block"
+      ],
+      "keywords": [
+        "if",
+        "guard",
+        "conditional",
+        "protect",
+        "gate",
+        "check",
+        "validate",
+        "ensure",
+        "only",
+        "skip",
+        "filter",
+        "gatekeeper",
+        "assert",
+        "block"
+      ],
+      "docstring": "Guard statement that executes a block only if the boolean condition evaluates to true.",
+      "enrichment_source": null,
+      "enriched_at": null,
+      "domain_name": "python_core",
+      "node_type": "macro_conditional",
+      "node_role": "control_flow",
+      "verified": true,
+      "source_priority": 10,
+      "topology_type": "coproduct_branch"
+    },
+    {
+      "cell_id": "PYTHON_TERNARY_EXPRESSION",
+      "stage": 2,
+      "inputs": {
+        "condition": {
+          "type_name": "bool",
+          "state": "condition",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Boolean predicate selecting the value",
+          "domain": null,
+          "required": true
+        },
+        "true_val": {
+          "type_name": "T",
+          "state": "raw",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Value returned when condition is true",
+          "domain": null,
+          "required": true
+        },
+        "false_val": {
+          "type_name": "T",
+          "state": "raw",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Value returned when condition is false",
+          "domain": null,
+          "required": true
+        }
+      },
+      "outputs": {
+        "output_data": {
+          "type_name": "T",
+          "state": "transformed",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Result of the conditional expression",
+          "domain": null,
+          "required": true
+        }
+      },
+      "slots": {},
+      "code_template": "{output_var} = {true_val} if {condition} else {false_val}",
+      "dependencies": [],
+      "semantic_tags": [
+        "ternary",
+        "conditional",
+        "expression",
+        "inline",
+        "choose",
+        "pick",
+        "select",
+        "branch",
+        "value",
+        "compact",
+        "one-liner",
+        "elvis",
+        "coalesce"
+      ],
+      "keywords": [
+        "ternary",
+        "conditional",
+        "expression",
+        "inline",
+        "choose",
+        "pick",
+        "select",
+        "branch",
+        "value",
+        "compact",
+        "one-liner",
+        "elvis",
+        "coalesce"
+      ],
+      "docstring": "Inline conditional expression that evaluates to one of two values based on a boolean predicate.",
+      "enrichment_source": null,
+      "enriched_at": null,
+      "domain_name": "python_core",
+      "node_type": "macro_conditional",
+      "node_role": "transform",
+      "verified": true,
+      "source_priority": 10,
+      "topology_type": "coproduct_branch"
+    },
+    {
+      "cell_id": "PYTHON_ITEM_GET",
+      "stage": 2,
+      "inputs": {
+        "collection": {
+          "type_name": "Sequence[T]",
+          "state": "iterable",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Indexable collection or mapping",
+          "domain": null,
+          "required": true
+        },
+        "key_or_index": {
+          "type_name": "Any",
+          "state": "raw",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Index or key used to retrieve the item",
+          "domain": null,
+          "required": true
+        }
+      },
+      "outputs": {
+        "output_data": {
+          "type_name": "T",
+          "state": "transformed",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Retrieved element or value",
+          "domain": null,
+          "required": true
+        }
+      },
+      "slots": {},
+      "code_template": "{output_var} = {collection}[{key_or_index}]",
+      "dependencies": [],
+      "semantic_tags": [
+        "index",
+        "get",
+        "access",
+        "lookup",
+        "fetch",
+        "retrieve",
+        "subscript",
+        "bracket",
+        "key",
+        "position",
+        "element",
+        "item",
+        "read",
+        "extract"
+      ],
+      "keywords": [
+        "index",
+        "get",
+        "access",
+        "lookup",
+        "fetch",
+        "retrieve",
+        "subscript",
+        "bracket",
+        "key",
+        "position",
+        "element",
+        "item",
+        "read",
+        "extract"
+      ],
+      "docstring": "Retrieves a single item from a sequence or mapping using an index or key.",
+      "enrichment_source": null,
+      "enriched_at": null,
+      "domain_name": "python_core",
+      "node_type": "macro_subscript",
+      "node_role": "transform",
+      "verified": true,
+      "source_priority": 10,
+      "topology_type": "sequential"
+    },
+    {
+      "cell_id": "PYTHON_SLICE_2D",
+      "stage": 2,
+      "inputs": {
+        "sequence": {
+          "type_name": "Sequence[T]",
+          "state": "iterable",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Source sequence to slice",
+          "domain": null,
+          "required": true
+        },
+        "start": {
+          "type_name": "Optional[int]",
+          "state": "raw",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Start index (inclusive, None for beginning)",
+          "domain": null,
+          "required": false
+        },
+        "stop": {
+          "type_name": "Optional[int]",
+          "state": "raw",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Stop index (exclusive, None for end)",
+          "domain": null,
+          "required": false
+        }
+      },
+      "outputs": {
+        "output_data": {
+          "type_name": "Sequence[T]",
+          "state": "transformed",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Sub-sequence extracted by start and stop bounds",
+          "domain": null,
+          "required": true
+        }
+      },
+      "slots": {},
+      "code_template": "{output_var} = {sequence}[{start}:{stop}]",
+      "dependencies": [],
+      "semantic_tags": [
+        "slice",
+        "subsequence",
+        "window",
+        "clip",
+        "trim",
+        "crop",
+        "extract",
+        "range",
+        "portion",
+        "segment",
+        "cut",
+        "partition",
+        "bounds",
+        "interval"
+      ],
+      "keywords": [
+        "slice",
+        "subsequence",
+        "window",
+        "clip",
+        "trim",
+        "crop",
+        "extract",
+        "range",
+        "portion",
+        "segment",
+        "cut",
+        "partition",
+        "bounds",
+        "interval"
+      ],
+      "docstring": "Extracts a contiguous sub-sequence using start and stop slice bounds.",
+      "enrichment_source": null,
+      "enriched_at": null,
+      "domain_name": "python_core",
+      "node_type": "macro_subscript",
+      "node_role": "transform",
+      "verified": true,
+      "source_priority": 10,
+      "topology_type": "sequential"
+    },
+    {
+      "cell_id": "PYTHON_SLICE_STEP",
+      "stage": 2,
+      "inputs": {
+        "sequence": {
+          "type_name": "Sequence[T]",
+          "state": "iterable",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Source sequence to slice",
+          "domain": null,
+          "required": true
+        },
+        "start": {
+          "type_name": "Optional[int]",
+          "state": "raw",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Start index (inclusive, None for beginning)",
+          "domain": null,
+          "required": false
+        },
+        "stop": {
+          "type_name": "Optional[int]",
+          "state": "raw",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Stop index (exclusive, None for end)",
+          "domain": null,
+          "required": false
+        },
+        "step": {
+          "type_name": "int",
+          "state": "raw",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Stride step between elements",
+          "domain": null,
+          "required": true
+        }
+      },
+      "outputs": {
+        "output_data": {
+          "type_name": "Sequence[T]",
+          "state": "transformed",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Sub-sequence with configurable stride",
+          "domain": null,
+          "required": true
+        }
+      },
+      "slots": {},
+      "code_template": "{output_var} = {sequence}[{start}:{stop}:{step}]",
+      "dependencies": [],
+      "semantic_tags": [
+        "slice",
+        "step",
+        "stride",
+        "skip",
+        "sample",
+        "decimate",
+        "every",
+        "nth",
+        "interval",
+        "periodic",
+        "subsequence",
+        "window",
+        "extract",
+        "sparse"
+      ],
+      "keywords": [
+        "slice",
+        "step",
+        "stride",
+        "skip",
+        "sample",
+        "decimate",
+        "every",
+        "nth",
+        "interval",
+        "periodic",
+        "subsequence",
+        "window",
+        "extract",
+        "sparse"
+      ],
+      "docstring": "Extracts a sub-sequence with a configurable step stride between elements.",
+      "enrichment_source": null,
+      "enriched_at": null,
+      "domain_name": "python_core",
+      "node_type": "macro_subscript",
+      "node_role": "transform",
+      "verified": true,
+      "source_priority": 10,
+      "topology_type": "sequential"
+    },
+    {
+      "cell_id": "PYTHON_TUPLE_UNPACK_2",
+      "stage": 2,
+      "inputs": {
+        "tuple_obj": {
+          "type_name": "Tuple[T, S]",
+          "state": "raw",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "2-tuple to destructure",
+          "domain": null,
+          "required": true
+        }
+      },
+      "outputs": {
+        "output_data": {
+          "type_name": "Tuple[T, S]",
+          "state": "transformed",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "The original tuple before unpacking",
+          "domain": null,
+          "required": true
+        }
+      },
+      "slots": {
+        "var1": "Name bound to the first tuple element",
+        "var2": "Name bound to the second tuple element"
+      },
+      "code_template": "{output_var} = {tuple_obj}\n{var1}, {var2} = {output_var}",
+      "dependencies": [],
+      "semantic_tags": [
+        "unpack",
+        "destructure",
+        "tuple",
+        "pair",
+        "bind",
+        "assign",
+        "split",
+        "extract",
+        "unzip",
+        "components",
+        "elements",
+        "decompose",
+        "unbundle",
+        "variables"
+      ],
+      "keywords": [
+        "unpack",
+        "destructure",
+        "tuple",
+        "pair",
+        "bind",
+        "assign",
+        "split",
+        "extract",
+        "unzip",
+        "components",
+        "elements",
+        "decompose",
+        "unbundle",
+        "variables"
+      ],
+      "docstring": "Destructures a 2-tuple into two named variables.",
+      "enrichment_source": null,
+      "enriched_at": null,
+      "domain_name": "python_core",
+      "node_type": "macro_subscript",
+      "node_role": "transform",
+      "verified": true,
+      "source_priority": 10,
+      "topology_type": "monoidal_product"
+    },
+    {
+      "cell_id": "PYTHON_TUPLE_UNPACK_3",
+      "stage": 2,
+      "inputs": {
+        "tuple_obj": {
+          "type_name": "Tuple[T, S, U]",
+          "state": "raw",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "3-tuple to destructure",
+          "domain": null,
+          "required": true
+        }
+      },
+      "outputs": {
+        "output_data": {
+          "type_name": "Tuple[T, S, U]",
+          "state": "transformed",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "The original tuple before unpacking",
+          "domain": null,
+          "required": true
+        }
+      },
+      "slots": {
+        "var1": "Name bound to the first tuple element",
+        "var2": "Name bound to the second tuple element",
+        "var3": "Name bound to the third tuple element"
+      },
+      "code_template": "{output_var} = {tuple_obj}\n{var1}, {var2}, {var3} = {output_var}",
+      "dependencies": [],
+      "semantic_tags": [
+        "unpack",
+        "destructure",
+        "tuple",
+        "triple",
+        "bind",
+        "assign",
+        "split",
+        "extract",
+        "components",
+        "elements",
+        "decompose",
+        "unbundle",
+        "trio",
+        "triplet"
+      ],
+      "keywords": [
+        "unpack",
+        "destructure",
+        "tuple",
+        "triple",
+        "bind",
+        "assign",
+        "split",
+        "extract",
+        "components",
+        "elements",
+        "decompose",
+        "unbundle",
+        "trio",
+        "triplet"
+      ],
+      "docstring": "Destructures a 3-tuple into three named variables.",
+      "enrichment_source": null,
+      "enriched_at": null,
+      "domain_name": "python_core",
+      "node_type": "macro_subscript",
+      "node_role": "transform",
+      "verified": true,
+      "source_priority": 10,
+      "topology_type": "monoidal_product"
+    },
+    {
+      "cell_id": "PYTHON_OP_COMPARE_LT",
+      "stage": 2,
+      "inputs": {
+        "left": {
+          "type_name": "T",
+          "state": "raw",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Left-hand operand",
+          "domain": null,
+          "required": true
+        },
+        "right": {
+          "type_name": "T",
+          "state": "raw",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Right-hand operand",
+          "domain": null,
+          "required": true
+        }
+      },
+      "outputs": {
+        "output_data": {
+          "type_name": "bool",
+          "state": "condition",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "True if left is strictly less than right",
+          "domain": null,
+          "required": true
+        }
+      },
+      "slots": {},
+      "code_template": "{output_var} = {left} < {right}",
+      "dependencies": [],
+      "semantic_tags": [
+        "compare",
+        "less",
+        "than",
+        "smaller",
+        "below",
+        "under",
+        "lt",
+        "predicate",
+        "order",
+        "ascending",
+        "rank",
+        "precede",
+        "inferior",
+        "minimum"
+      ],
+      "keywords": [
+        "compare",
+        "less",
+        "than",
+        "smaller",
+        "below",
+        "under",
+        "lt",
+        "predicate",
+        "order",
+        "ascending",
+        "rank",
+        "precede",
+        "inferior",
+        "minimum"
+      ],
+      "docstring": "Evaluates whether the left operand is strictly less than the right operand.",
+      "enrichment_source": null,
+      "enriched_at": null,
+      "domain_name": "python_core",
+      "node_type": "macro_operator",
+      "node_role": "transform",
+      "verified": true,
+      "source_priority": 10,
+      "topology_type": "sequential"
+    },
+    {
+      "cell_id": "PYTHON_OP_COMPARE_GT",
+      "stage": 2,
+      "inputs": {
+        "left": {
+          "type_name": "T",
+          "state": "raw",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Left-hand operand",
+          "domain": null,
+          "required": true
+        },
+        "right": {
+          "type_name": "T",
+          "state": "raw",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Right-hand operand",
+          "domain": null,
+          "required": true
+        }
+      },
+      "outputs": {
+        "output_data": {
+          "type_name": "bool",
+          "state": "condition",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "True if left is strictly greater than right",
+          "domain": null,
+          "required": true
+        }
+      },
+      "slots": {},
+      "code_template": "{output_var} = {left} > {right}",
+      "dependencies": [],
+      "semantic_tags": [
+        "compare",
+        "greater",
+        "than",
+        "larger",
+        "above",
+        "over",
+        "gt",
+        "predicate",
+        "order",
+        "descending",
+        "rank",
+        "follow",
+        "superior",
+        "maximum"
+      ],
+      "keywords": [
+        "compare",
+        "greater",
+        "than",
+        "larger",
+        "above",
+        "over",
+        "gt",
+        "predicate",
+        "order",
+        "descending",
+        "rank",
+        "follow",
+        "superior",
+        "maximum"
+      ],
+      "docstring": "Evaluates whether the left operand is strictly greater than the right operand.",
+      "enrichment_source": null,
+      "enriched_at": null,
+      "domain_name": "python_core",
+      "node_type": "macro_operator",
+      "node_role": "transform",
+      "verified": true,
+      "source_priority": 10,
+      "topology_type": "sequential"
+    },
+    {
+      "cell_id": "PYTHON_OP_COMPARE_EQ",
+      "stage": 2,
+      "inputs": {
+        "left": {
+          "type_name": "T",
+          "state": "raw",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Left-hand operand",
+          "domain": null,
+          "required": true
+        },
+        "right": {
+          "type_name": "T",
+          "state": "raw",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Right-hand operand",
+          "domain": null,
+          "required": true
+        }
+      },
+      "outputs": {
+        "output_data": {
+          "type_name": "bool",
+          "state": "condition",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "True if operands are equal",
+          "domain": null,
+          "required": true
+        }
+      },
+      "slots": {},
+      "code_template": "{output_var} = {left} == {right}",
+      "dependencies": [],
+      "semantic_tags": [
+        "compare",
+        "equal",
+        "equality",
+        "same",
+        "identical",
+        "match",
+        "eq",
+        "predicate",
+        "equivalent",
+        "congruent",
+        "parity",
+        "balance",
+        "symmetry",
+        "align"
+      ],
+      "keywords": [
+        "compare",
+        "equal",
+        "equality",
+        "same",
+        "identical",
+        "match",
+        "eq",
+        "predicate",
+        "equivalent",
+        "congruent",
+        "parity",
+        "balance",
+        "symmetry",
+        "align"
+      ],
+      "docstring": "Evaluates whether two operands are equal.",
+      "enrichment_source": null,
+      "enriched_at": null,
+      "domain_name": "python_core",
+      "node_type": "macro_operator",
+      "node_role": "transform",
+      "verified": true,
+      "source_priority": 10,
+      "topology_type": "sequential"
+    },
+    {
+      "cell_id": "PYTHON_OP_COMPARE_NEQ",
+      "stage": 2,
+      "inputs": {
+        "left": {
+          "type_name": "T",
+          "state": "raw",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Left-hand operand",
+          "domain": null,
+          "required": true
+        },
+        "right": {
+          "type_name": "T",
+          "state": "raw",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Right-hand operand",
+          "domain": null,
+          "required": true
+        }
+      },
+      "outputs": {
+        "output_data": {
+          "type_name": "bool",
+          "state": "condition",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "True if operands are not equal",
+          "domain": null,
+          "required": true
+        }
+      },
+      "slots": {},
+      "code_template": "{output_var} = {left} != {right}",
+      "dependencies": [],
+      "semantic_tags": [
+        "compare",
+        "not",
+        "equal",
+        "inequality",
+        "different",
+        "distinct",
+        "ne",
+        "predicate",
+        "diverge",
+        "mismatch",
+        "unequal",
+        "contrast",
+        "vary",
+        "diff"
+      ],
+      "keywords": [
+        "compare",
+        "not",
+        "equal",
+        "inequality",
+        "different",
+        "distinct",
+        "ne",
+        "predicate",
+        "diverge",
+        "mismatch",
+        "unequal",
+        "contrast",
+        "vary",
+        "diff"
+      ],
+      "docstring": "Evaluates whether two operands are not equal.",
+      "enrichment_source": null,
+      "enriched_at": null,
+      "domain_name": "python_core",
+      "node_type": "macro_operator",
+      "node_role": "transform",
+      "verified": true,
+      "source_priority": 10,
+      "topology_type": "sequential"
+    },
+    {
+      "cell_id": "PYTHON_OP_MEMBERSHIP_IN",
+      "stage": 2,
+      "inputs": {
+        "item": {
+          "type_name": "T",
+          "state": "raw",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Item whose membership is tested",
+          "domain": null,
+          "required": true
+        },
+        "collection": {
+          "type_name": "Container[T]",
+          "state": "iterable",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Collection tested for containment",
+          "domain": null,
+          "required": true
+        }
+      },
+      "outputs": {
+        "output_data": {
+          "type_name": "bool",
+          "state": "condition",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "True if item is present in collection",
+          "domain": null,
+          "required": true
+        }
+      },
+      "slots": {},
+      "code_template": "{output_var} = {item} in {collection}",
+      "dependencies": [],
+      "semantic_tags": [
+        "membership",
+        "contains",
+        "include",
+        "belong",
+        "present",
+        "inside",
+        "in",
+        "has",
+        "among",
+        "within",
+        "part",
+        "element",
+        "constituent",
+        "enclose"
+      ],
+      "keywords": [
+        "membership",
+        "contains",
+        "include",
+        "belong",
+        "present",
+        "inside",
+        "in",
+        "has",
+        "among",
+        "within",
+        "part",
+        "element",
+        "constituent",
+        "enclose"
+      ],
+      "docstring": "Tests whether an item is present within a collection.",
+      "enrichment_source": null,
+      "enriched_at": null,
+      "domain_name": "python_core",
+      "node_type": "macro_operator",
+      "node_role": "transform",
+      "verified": true,
+      "source_priority": 10,
+      "topology_type": "sequential"
+    },
+    {
+      "cell_id": "PYTHON_OP_LOGICAL_AND",
+      "stage": 2,
+      "inputs": {
+        "left": {
+          "type_name": "bool",
+          "state": "condition",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Left boolean operand",
+          "domain": null,
+          "required": true
+        },
+        "right": {
+          "type_name": "bool",
+          "state": "condition",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Right boolean operand",
+          "domain": null,
+          "required": true
+        }
+      },
+      "outputs": {
+        "output_data": {
+          "type_name": "bool",
+          "state": "condition",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "True if both operands are true",
+          "domain": null,
+          "required": true
+        }
+      },
+      "slots": {},
+      "code_template": "{output_var} = {left} and {right}",
+      "dependencies": [],
+      "semantic_tags": [
+        "logical",
+        "and",
+        "conjunction",
+        "both",
+        "all",
+        "combine",
+        "intersection",
+        "joint",
+        "together",
+        "simultaneous",
+        "coexist",
+        "meet",
+        "satisfy",
+        "dual"
+      ],
+      "keywords": [
+        "logical",
+        "and",
+        "conjunction",
+        "both",
+        "all",
+        "combine",
+        "intersection",
+        "joint",
+        "together",
+        "simultaneous",
+        "coexist",
+        "meet",
+        "satisfy",
+        "dual"
+      ],
+      "docstring": "Logical conjunction returning true only if both boolean operands are true.",
+      "enrichment_source": null,
+      "enriched_at": null,
+      "domain_name": "python_core",
+      "node_type": "macro_operator",
+      "node_role": "transform",
+      "verified": true,
+      "source_priority": 10,
+      "topology_type": "sequential"
+    },
+    {
+      "cell_id": "PYTHON_OP_LOGICAL_OR",
+      "stage": 2,
+      "inputs": {
+        "left": {
+          "type_name": "bool",
+          "state": "condition",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Left boolean operand",
+          "domain": null,
+          "required": true
+        },
+        "right": {
+          "type_name": "bool",
+          "state": "condition",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Right boolean operand",
+          "domain": null,
+          "required": true
+        }
+      },
+      "outputs": {
+        "output_data": {
+          "type_name": "bool",
+          "state": "condition",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "True if at least one operand is true",
+          "domain": null,
+          "required": true
+        }
+      },
+      "slots": {},
+      "code_template": "{output_var} = {left} or {right}",
+      "dependencies": [],
+      "semantic_tags": [
+        "logical",
+        "or",
+        "disjunction",
+        "either",
+        "any",
+        "union",
+        "alternative",
+        "choice",
+        "option",
+        "fallback",
+        "backup",
+        "substitute",
+        "else",
+        "combine"
+      ],
+      "keywords": [
+        "logical",
+        "or",
+        "disjunction",
+        "either",
+        "any",
+        "union",
+        "alternative",
+        "choice",
+        "option",
+        "fallback",
+        "backup",
+        "substitute",
+        "else",
+        "combine"
+      ],
+      "docstring": "Logical disjunction returning true if at least one boolean operand is true.",
+      "enrichment_source": null,
+      "enriched_at": null,
+      "domain_name": "python_core",
+      "node_type": "macro_operator",
+      "node_role": "transform",
+      "verified": true,
+      "source_priority": 10,
+      "topology_type": "sequential"
+    },
+    {
+      "cell_id": "PYTHON_OP_LOGICAL_NOT",
+      "stage": 2,
+      "inputs": {
+        "operand": {
+          "type_name": "bool",
+          "state": "condition",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Boolean operand to negate",
+          "domain": null,
+          "required": true
+        }
+      },
+      "outputs": {
+        "output_data": {
+          "type_name": "bool",
+          "state": "condition",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Logical negation of the operand",
+          "domain": null,
+          "required": true
+        }
+      },
+      "slots": {},
+      "code_template": "{output_var} = not {operand}",
+      "dependencies": [],
+      "semantic_tags": [
+        "logical",
+        "not",
+        "negation",
+        "invert",
+        "flip",
+        "complement",
+        "opposite",
+        "reverse",
+        "toggle",
+        "deny",
+        "refute",
+        "contradict",
+        "unary",
+        "boolean"
+      ],
+      "keywords": [
+        "logical",
+        "not",
+        "negation",
+        "invert",
+        "flip",
+        "complement",
+        "opposite",
+        "reverse",
+        "toggle",
+        "deny",
+        "refute",
+        "contradict",
+        "unary",
+        "boolean"
+      ],
+      "docstring": "Logical negation inverting the truth value of a boolean operand.",
+      "enrichment_source": null,
+      "enriched_at": null,
+      "domain_name": "python_core",
+      "node_type": "macro_operator",
+      "node_role": "transform",
+      "verified": true,
+      "source_priority": 10,
+      "topology_type": "sequential"
+    },
+    {
+      "cell_id": "PYTHON_WITH_CONTEXT",
+      "stage": 2,
+      "inputs": {
+        "context_manager": {
+          "type_name": "Any",
+          "state": "raw",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Context manager expression yielding a managed resource",
+          "domain": null,
+          "required": true
+        }
+      },
+      "outputs": {
+        "output_data": {
+          "type_name": "Any",
+          "state": "transformed",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "State after context manager block completes",
+          "domain": null,
+          "required": true
+        }
+      },
+      "slots": {
+        "as_var": "Variable name bound to the managed resource",
+        "with_body": "Block executed within the managed context"
+      },
+      "code_template": "{output_var} = None\nwith {context_manager} as {as_var}:\n    {with_body}",
+      "dependencies": [],
+      "semantic_tags": [
+        "with",
+        "context",
+        "manager",
+        "resource",
+        "scope",
+        "enter",
+        "exit",
+        "cleanup",
+        "handle",
+        "managed",
+        "transaction",
+        "session",
+        "guard",
+        "protect"
+      ],
+      "keywords": [
+        "with",
+        "context",
+        "manager",
+        "resource",
+        "scope",
+        "enter",
+        "exit",
+        "cleanup",
+        "handle",
+        "managed",
+        "transaction",
+        "session",
+        "guard",
+        "protect"
+      ],
+      "docstring": "Enters a context manager, binds the managed resource to a variable, and executes a body block with guaranteed cleanup.",
+      "enrichment_source": null,
+      "enriched_at": null,
+      "domain_name": "python_core",
+      "node_type": "macro_context",
+      "node_role": "tunnel",
+      "verified": true,
+      "source_priority": 10,
+      "topology_type": "sequential"
+    },
+    {
+      "cell_id": "PYTHON_TRY_EXCEPT",
+      "stage": 2,
+      "inputs": {},
+      "outputs": {
+        "output_data": {
+          "type_name": "Any",
+          "state": "transformed",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "State after try/except block completes",
+          "domain": null,
+          "required": true
+        }
+      },
+      "slots": {
+        "try_body": "Block executed under exception protection",
+        "err": "Variable name bound to the caught exception",
+        "except_body": "Block executed when an exception is caught"
+      },
+      "code_template": "{output_var} = None\ntry:\n    {try_body}\nexcept Exception as {err}:\n    {except_body}",
+      "dependencies": [],
+      "semantic_tags": [
+        "try",
+        "except",
+        "catch",
+        "error",
+        "handle",
+        "recover",
+        "fault",
+        "exception",
+        "rescue",
+        "defense",
+        "guard",
+        "safe",
+        "fallback",
+        "protect"
+      ],
+      "keywords": [
+        "try",
+        "except",
+        "catch",
+        "error",
+        "handle",
+        "recover",
+        "fault",
+        "exception",
+        "rescue",
+        "defense",
+        "guard",
+        "safe",
+        "fallback",
+        "protect"
+      ],
+      "docstring": "Executes a block under exception protection and runs a recovery block if an error occurs.",
+      "enrichment_source": null,
+      "enriched_at": null,
+      "domain_name": "python_core",
+      "node_type": "macro_context",
+      "node_role": "control_flow",
+      "verified": true,
+      "source_priority": 10,
+      "topology_type": "sequential"
+    },
+    {
+      "cell_id": "PYTHON_ASSERT",
+      "stage": 3,
+      "inputs": {
+        "condition": {
+          "type_name": "bool",
+          "state": "condition",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Invariant predicate that must hold true",
+          "domain": null,
+          "required": true
+        },
+        "message": {
+          "type_name": "str",
+          "state": "raw",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Optional assertion failure message",
+          "domain": null,
+          "required": true
+        }
+      },
+      "outputs": {
+        "output_data": {
+          "type_name": "bool",
+          "state": "transformed",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "True if assertion passes",
+          "domain": null,
+          "required": true
+        }
+      },
+      "slots": {},
+      "code_template": "assert {condition}, {message}\n{output_var} = True",
+      "dependencies": [],
+      "semantic_tags": [
+        "assert",
+        "validate",
+        "guard",
+        "check",
+        "invariant",
+        "ensure",
+        "verify",
+        "confirm",
+        "guarantee",
+        "require",
+        "predicate",
+        "truth",
+        "enforce",
+        "sink"
+      ],
+      "keywords": [
+        "assert",
+        "validate",
+        "guard",
+        "check",
+        "invariant",
+        "ensure",
+        "verify",
+        "confirm",
+        "guarantee",
+        "require",
+        "predicate",
+        "truth",
+        "enforce",
+        "sink"
+      ],
+      "docstring": "Validates an invariant condition and raises AssertionError with a message if the predicate is false.",
+      "enrichment_source": null,
+      "enriched_at": null,
+      "domain_name": "python_core",
+      "node_type": "macro_context",
+      "node_role": "sink",
+      "verified": true,
+      "source_priority": 10,
+      "topology_type": "sequential"
+    }
+  ]
+}

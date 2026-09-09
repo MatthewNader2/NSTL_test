@@ -14,7 +14,7 @@ import re
 import json
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
-from typing import Dict, List, Optional, Set, Tuple, Any, Union, Callable, Generic, TypeVar
+from typing import Dict, List, Optional, Set, Tuple, Any, Union, Callable, Generic, TypeVar, FrozenSet
 
 from log_config import get_logger
 
@@ -41,7 +41,7 @@ TOP_TYPE_SET = {"any", "Any", "*", "top", "⊤", "object", "Object"}
 class TypeTerm(ABC):
     """Abstract base class for formal type terms."""
     @abstractmethod
-    def apply_substitution(self, sigma: 'Substitution') -> 'TypeTerm':
+    def apply_substitution(self, sigma: 'Substitution', visited: Optional[FrozenSet[str]] = None) -> 'TypeTerm':
         pass
 
     @classmethod
@@ -51,13 +51,49 @@ class TypeTerm(ABC):
             return TOP
         if s_clean.startswith("?"):
             return TypeVariable(s_clean[1:])
+        # Coproduct / Sum / Union types (e.g. A | B or Union[A, B])
+        if " | " in s_clean:
+            parts = [p.strip() for p in s_clean.split(" | ")]
+            return UnionTypeTerm(tuple(TypeTerm.from_string(p) for p in parts if p))
+        if s_clean.startswith("Union[") and s_clean.endswith("]"):
+            inner = s_clean[6:-1].strip()
+            args = [a.strip() for a in inner.split(",") if a.strip()]
+            return UnionTypeTerm(tuple(TypeTerm.from_string(a) for a in args))
+        # Single-letter generic identifiers (T, S, K, V, U, etc.)
+        if len(s_clean) == 1 and s_clean.isupper():
+            return TypeVariable(s_clean)
+        # Check for container/generic expressions like Sequence[T], List[MatLike], Dict[K, V]
+        if "[" in s_clean and s_clean.endswith("]"):
+            bracket_idx = s_clean.index("[")
+            constructor = s_clean[:bracket_idx].strip()
+            inner = s_clean[bracket_idx + 1 : -1].strip()
+            args = []
+            depth = 0
+            curr = []
+            for ch in inner:
+                if ch == "[":
+                    depth += 1
+                    curr.append(ch)
+                elif ch == "]":
+                    depth -= 1
+                    curr.append(ch)
+                elif ch == "," and depth == 0:
+                    args.append("".join(curr).strip())
+                    curr = []
+                else:
+                    curr.append(ch)
+            if curr:
+                args.append("".join(curr).strip())
+            parsed_args = tuple(TypeTerm.from_string(a) for a in args if a)
+            if parsed_args:
+                return GenericTypeTerm(constructor, parsed_args)
         return AtomicType(s_clean)
 
 
 @dataclass(frozen=True, slots=True)
 class TopType(TypeTerm):
     """Universal Top type (wildcard) unifying with any type term."""
-    def apply_substitution(self, sigma: 'Substitution') -> 'TypeTerm':
+    def apply_substitution(self, sigma: 'Substitution', visited: Optional[FrozenSet[str]] = None) -> 'TypeTerm':
         return self
 
     def __repr__(self) -> str:
@@ -72,7 +108,7 @@ class AtomicType(TypeTerm):
     """Ground type constant."""
     name: str
 
-    def apply_substitution(self, sigma: 'Substitution') -> 'TypeTerm':
+    def apply_substitution(self, sigma: 'Substitution', visited: Optional[FrozenSet[str]] = None) -> 'TypeTerm':
         return self
 
     def __repr__(self) -> str:
@@ -80,16 +116,59 @@ class AtomicType(TypeTerm):
 
 
 @dataclass(frozen=True, slots=True)
+class GenericTypeTerm(TypeTerm):
+    """
+    Parametric / Generic type constructor: C[T_1, ..., T_n].
+    Conforms to Category of Generic Monads and Functors.
+    """
+    constructor: str
+    args: Tuple[TypeTerm, ...]
+
+    def apply_substitution(self, sigma: 'Substitution', visited: Optional[FrozenSet[str]] = None) -> 'TypeTerm':
+        resolved_args = tuple(a.apply_substitution(sigma, visited) for a in self.args)
+        return GenericTypeTerm(self.constructor, resolved_args)
+
+    def __repr__(self) -> str:
+        args_str = ", ".join(str(a) for a in self.args)
+        return f"{self.constructor}[{args_str}]"
+
+
+@dataclass(frozen=True, slots=True)
+class UnionTypeTerm(TypeTerm):
+    """
+    Coproduct / Sum / Union type term: T_1 | ... | T_n.
+    Conforms to Category of Coproducts with canonical injection morphisms.
+    """
+    terms: Tuple[TypeTerm, ...]
+
+    def apply_substitution(self, sigma: 'Substitution', visited: Optional[FrozenSet[str]] = None) -> 'TypeTerm':
+        resolved_terms = tuple(t.apply_substitution(sigma, visited) for t in self.terms)
+        return UnionTypeTerm(resolved_terms)
+
+    def __repr__(self) -> str:
+        return " | ".join(str(t) for t in self.terms)
+
+
+@dataclass(frozen=True, slots=True)
 class TypeVariable(TypeTerm):
     """Type variable alpha, beta... subject to substitution."""
     var_name: str
 
-    def apply_substitution(self, sigma: 'Substitution') -> 'TypeTerm':
+    def apply_substitution(self, sigma: 'Substitution', visited: Optional[FrozenSet[str]] = None) -> 'TypeTerm':
+        if visited and self.var_name in visited:
+            return self
         if self.var_name in sigma.mappings:
             target = sigma.mappings[self.var_name]
+            new_visited = (visited or frozenset()) | {self.var_name}
             if isinstance(target, TypeTerm):
-                return target.apply_substitution(sigma)
-            return AtomicType(str(target))
+                return target.apply_substitution(sigma, new_visited)
+            target_str = str(target).strip()
+            if target_str == self.var_name or target_str == f"?{self.var_name}":
+                return self
+            parsed = TypeTerm.from_string(target_str)
+            if isinstance(parsed, TypeVariable) and parsed.var_name == self.var_name:
+                return self
+            return parsed.apply_substitution(sigma, new_visited)
         return self
 
     def __repr__(self) -> str:
@@ -103,11 +182,19 @@ class TypestateTerm(TypeTerm):
     state: str = "any"
     qualifiers: FrozenSet[Tuple[str, str]] = field(default_factory=frozenset)
 
-    def apply_substitution(self, sigma: 'Substitution') -> 'TypeTerm':
+    def apply_substitution(self, sigma: 'Substitution', visited: Optional[FrozenSet[str]] = None) -> 'TypeTerm':
         t_resolved = self.type_name
         if self.type_name in sigma.mappings:
+            if visited and self.type_name in visited:
+                return self
             val = sigma.mappings[self.type_name]
-            t_resolved = val.name if isinstance(val, AtomicType) else str(val)
+            if isinstance(val, AtomicType):
+                t_resolved = val.name
+            elif isinstance(val, TypeTerm):
+                new_visited = (visited or frozenset()) | {self.type_name}
+                t_resolved = str(val.apply_substitution(sigma, new_visited))
+            else:
+                t_resolved = str(val)
         return TypestateTerm(type_name=t_resolved, state=self.state, qualifiers=self.qualifiers)
 
     def __repr__(self) -> str:
@@ -144,6 +231,58 @@ class Substitution:
 # 2. Robinson's First-Order Unification Algorithm
 # =====================================================================
 
+def occurs_check(
+    var_name: str,
+    term: Any,
+    sigma: Optional['Substitution'] = None,
+    visited: Optional[FrozenSet[str]] = None
+) -> bool:
+    """
+    Returns True if type variable `var_name` occurs within `term`.
+    Occurs check is fundamental to Robinson's first-order unification to prevent
+    infinite / cyclic terms (e.g. T = Sequence[T]).
+    """
+    if visited and var_name in visited:
+        return False
+
+    if isinstance(term, TypeVariable):
+        if term.var_name == var_name:
+            return True
+        if sigma and term.var_name in sigma.mappings:
+            new_visited = (visited or frozenset()) | {term.var_name}
+            return occurs_check(var_name, sigma.mappings[term.var_name], sigma, new_visited)
+        return False
+    elif isinstance(term, GenericTypeTerm):
+        return any(occurs_check(var_name, a, sigma, visited) for a in term.args)
+    elif isinstance(term, UnionTypeTerm):
+        return any(occurs_check(var_name, t, sigma, visited) for t in term.terms)
+    elif isinstance(term, TypestateTerm):
+        if term.type_name == var_name:
+            return True
+        if sigma and term.type_name in sigma.mappings:
+            new_visited = (visited or frozenset()) | {term.type_name}
+            return occurs_check(var_name, sigma.mappings[term.type_name], sigma, new_visited)
+        return False
+    elif isinstance(term, AtomicType):
+        return term.name == var_name
+    elif isinstance(term, AlgebraicSignature):
+        return occurs_check(var_name, term.type_name, sigma, visited)
+    elif isinstance(term, str):
+        if var_name == term:
+            return True
+        tokens = re.findall(r"\b[A-Za-z_]\w*\b", term)
+        if var_name in tokens:
+            return True
+        if sigma:
+            for tok in tokens:
+                if tok in sigma.mappings and (not visited or tok not in visited):
+                    new_visited = (visited or frozenset()) | {tok}
+                    if occurs_check(var_name, sigma.mappings[tok], sigma, new_visited):
+                        return True
+        return False
+    return False
+
+
 _UNIFY_BASE_CACHE: Dict[Tuple[TypeTerm, TypeTerm], Optional[Substitution]] = {}
 
 def unify(
@@ -177,17 +316,92 @@ def unify(
             _UNIFY_BASE_CACHE[cache_key] = sub
         return sub
 
-    # 2. Variable binding
+    # 2. Variable binding (Robinson first-order unification with occurs check)
     if isinstance(t1, TypeVariable):
+        if isinstance(t2, TypeVariable) and t1.var_name == t2.var_name:
+            if is_ground_query:
+                _UNIFY_BASE_CACHE[cache_key] = sub
+            return sub
+        if occurs_check(t1.var_name, t2, sub):
+            if is_ground_query:
+                _UNIFY_BASE_CACHE[cache_key] = None
+            return None  # Occurs check failure -> bottom
         sub.bind(t1.var_name, t2)
         if is_ground_query:
             _UNIFY_BASE_CACHE[cache_key] = sub
         return sub
+
     if isinstance(t2, TypeVariable):
+        if occurs_check(t2.var_name, t1, sub):
+            if is_ground_query:
+                _UNIFY_BASE_CACHE[cache_key] = None
+            return None  # Occurs check failure -> bottom
         sub.bind(t2.var_name, t1)
         if is_ground_query:
             _UNIFY_BASE_CACHE[cache_key] = sub
         return sub
+
+    # 2.3. Coproduct / Union unification (canonical injection)
+    if isinstance(t1, UnionTypeTerm):
+        for alt in t1.terms:
+            sub_alt = unify(alt, t2, sub)
+            if sub_alt is not None:
+                if is_ground_query:
+                    _UNIFY_BASE_CACHE[cache_key] = sub_alt
+                return sub_alt
+        if is_ground_query:
+            _UNIFY_BASE_CACHE[cache_key] = None
+        return None
+
+    if isinstance(t2, UnionTypeTerm):
+        for alt in t2.terms:
+            sub_alt = unify(t1, alt, sub)
+            if sub_alt is not None:
+                if is_ground_query:
+                    _UNIFY_BASE_CACHE[cache_key] = sub_alt
+                return sub_alt
+        if is_ground_query:
+            _UNIFY_BASE_CACHE[cache_key] = None
+        return None
+
+    # 2.5. Generic container unification
+    if isinstance(t1, GenericTypeTerm) and isinstance(t2, GenericTypeTerm):
+        registry = TypeRegistry.get_instance()
+        c1 = t1.constructor.lower()
+        c2 = t2.constructor.lower()
+        compat = (c1 == c2) or registry.is_subtype(c1, c2) or registry.is_subtype(c2, c1)
+        if compat and len(t1.args) == len(t2.args):
+            for a1, a2 in zip(t1.args, t2.args):
+                sub = unify(a1, a2, sub)
+                if sub is None:
+                    if is_ground_query:
+                        _UNIFY_BASE_CACHE[cache_key] = None
+                    return None
+            if is_ground_query:
+                _UNIFY_BASE_CACHE[cache_key] = sub
+            return sub
+        if is_ground_query:
+            _UNIFY_BASE_CACHE[cache_key] = None
+        return None
+
+    if isinstance(t1, GenericTypeTerm) and (isinstance(t2, AtomicType) or isinstance(t2, TypestateTerm)):
+        registry = TypeRegistry.get_instance()
+        target_name = t2.type_name if isinstance(t2, TypestateTerm) else t2.name
+        if registry.is_subtype(t1.constructor, target_name):
+            if is_ground_query:
+                _UNIFY_BASE_CACHE[cache_key] = sub
+            return sub
+
+    if isinstance(t2, GenericTypeTerm) and (isinstance(t1, AtomicType) or isinstance(t1, TypestateTerm)):
+        registry = TypeRegistry.get_instance()
+        source_name = t1.type_name if isinstance(t1, TypestateTerm) else t1.name
+        if registry.is_subtype(source_name, t2.constructor):
+            for arg in t2.args:
+                if isinstance(arg, TypeVariable) and arg.var_name not in sub.mappings:
+                    sub.bind(arg.var_name, TOP)
+            if is_ground_query:
+                _UNIFY_BASE_CACHE[cache_key] = sub
+            return sub
 
     # 3. Typestate term unification
     if isinstance(t1, TypestateTerm) and isinstance(t2, TypestateTerm):
@@ -198,18 +412,24 @@ def unify(
                     _UNIFY_BASE_CACHE[cache_key] = None
                 return None  # State mismatch -> bottom
 
+        # Qualifier subset check
+        if t2.qualifiers and not t2.qualifiers.issubset(t1.qualifiers):
+            if is_ground_query:
+                _UNIFY_BASE_CACHE[cache_key] = None
+            return None
+
+        # Check if type_names contain generic definitions
+        if ("[" in t1.type_name) or ("[" in t2.type_name) or (len(t1.type_name) == 1 and t1.type_name.isupper()) or (len(t2.type_name) == 1 and t2.type_name.isupper()):
+            inner1 = TypeTerm.from_string(t1.type_name)
+            inner2 = TypeTerm.from_string(t2.type_name)
+            return unify(inner1, inner2, sub)
+
         # Type poset subtyping check: t1.type_name <= t2.type_name
         registry = TypeRegistry.get_instance()
         if not registry.is_subtype(t1.type_name, t2.type_name):
             if is_ground_query:
                 _UNIFY_BASE_CACHE[cache_key] = None
             return None  # Type mismatch -> bottom
-
-        # Qualifier subset check
-        if t2.qualifiers and not t2.qualifiers.issubset(t1.qualifiers):
-            if is_ground_query:
-                _UNIFY_BASE_CACHE[cache_key] = None
-            return None
 
         if is_ground_query:
             _UNIFY_BASE_CACHE[cache_key] = sub
@@ -219,6 +439,27 @@ def unify(
     if isinstance(t1, AtomicType) and isinstance(t2, AtomicType):
         registry = TypeRegistry.get_instance()
         if registry.is_subtype(t1.name, t2.name):
+            if is_ground_query:
+                _UNIFY_BASE_CACHE[cache_key] = sub
+            return sub
+        if is_ground_query:
+            _UNIFY_BASE_CACHE[cache_key] = None
+        return None
+
+    # 5. Mixed Atomic and Typestate unification
+    if isinstance(t1, AtomicType) and isinstance(t2, TypestateTerm):
+        registry = TypeRegistry.get_instance()
+        if registry.is_subtype(t1.name, t2.type_name):
+            if is_ground_query:
+                _UNIFY_BASE_CACHE[cache_key] = sub
+            return sub
+        if is_ground_query:
+            _UNIFY_BASE_CACHE[cache_key] = None
+        return None
+
+    if isinstance(t1, TypestateTerm) and isinstance(t2, AtomicType):
+        registry = TypeRegistry.get_instance()
+        if registry.is_subtype(t1.type_name, t2.name):
             if is_ground_query:
                 _UNIFY_BASE_CACHE[cache_key] = sub
             return sub
@@ -241,12 +482,16 @@ def _to_type_term(item: Any) -> TypeTerm:
         if item.is_top():
             res = TOP
         else:
-            registry = TypeRegistry.get_instance()
-            canonical = registry.canonical_name(item.type_name)
-            if canonical.lower() in ("any", "*", "top", "object", "unknown"):
-                res = TOP
+            t_clean = item.type_name.strip()
+            if t_clean.startswith("?") or "|" in t_clean or ("[" in t_clean and t_clean.endswith("]")) or (len(t_clean) == 1 and t_clean.isupper()):
+                res = TypeTerm.from_string(t_clean)
             else:
-                res = TypestateTerm(type_name=canonical, state=item.state, qualifiers=item.qualifiers)
+                registry = TypeRegistry.get_instance()
+                canonical = registry.canonical_name(t_clean)
+                if canonical.lower() in ("any", "*", "top", "object", "unknown"):
+                    res = TOP
+                else:
+                    res = TypestateTerm(type_name=canonical, state=item.state, qualifiers=item.qualifiers)
         try:
             item._cached_term = res
         except (AttributeError, TypeError):
@@ -259,10 +504,131 @@ def _to_type_term(item: Any) -> TypeTerm:
         canonical = registry.canonical_name(item)
         if canonical.lower() in ("any", "*", "top", "object", "unknown"):
             return TOP
-        if item.startswith("?"):
-            return TypeVariable(item[1:])
-        return AtomicType(canonical)
+        return TypeTerm.from_string(item)
     return TOP
+
+
+# =====================================================================
+# 2.6. Generic Substitution and Topology Verification Gates
+# =====================================================================
+
+def substitute_generics(
+    target: Any,
+    sigma: Union[Substitution, Dict[str, Any]]
+) -> Any:
+    """
+    Substitutes generic type variables in schemas, signatures, or type strings using substitution sigma.
+    e.g. substitute_generics('Sequence[T]', {'T': 'MatLike'}) -> 'Sequence[MatLike]'
+    e.g. substitute_generics('T', {'T': 'MatLike'}) -> 'MatLike'
+    e.g. substitute_generics(PortSchema(type_name='T'), {'T': 'MatLike'}) -> PortSchema(type_name='MatLike')
+    """
+    if sigma is None:
+        return target
+    mappings = sigma.mappings if isinstance(sigma, Substitution) else dict(sigma)
+    if not mappings:
+        return target
+
+    sub = Substitution({k: v for k, v in mappings.items()})
+
+    if isinstance(target, str):
+        term = TypeTerm.from_string(target)
+        res_term = term.apply_substitution(sub)
+        if isinstance(res_term, TypeVariable):
+            return res_term.var_name
+        return str(res_term)
+
+    if isinstance(target, TypeTerm):
+        return target.apply_substitution(sub)
+
+    if isinstance(target, PortSignature):
+        new_sig = substitute_generics(target.signature, sub)
+        return PortSignature(
+            name=target.name,
+            signature=new_sig,
+            required=target.required,
+            default_value=target.default_value,
+            doc=target.doc,
+            domain=target.domain
+        )
+
+    if isinstance(target, AlgebraicSignature):
+        new_type = substitute_generics(target.type_name, sub)
+        return AlgebraicSignature(
+            type_name=str(new_type),
+            state=target.state,
+            qualifiers=target.qualifiers
+        )
+
+    if hasattr(target, "type_name") and hasattr(target, "model_copy"):
+        new_type = substitute_generics(target.type_name, sub)
+        return target.model_copy(update={"type_name": str(new_type)})
+
+    if isinstance(target, TypeTerm):
+        return target.apply_substitution(sub)
+
+    return target
+
+
+def verify_coproduct_branch(
+    then_term: Union[TypeTerm, AlgebraicSignature, str],
+    else_term: Union[TypeTerm, AlgebraicSignature, str],
+    join_type: Optional[Union[TypeTerm, AlgebraicSignature, str]] = None,
+    sigma: Optional[Substitution] = None
+) -> Tuple[bool, Optional[TypeTerm], Optional[Substitution]]:
+    """
+    Verifies that coproduct True-path and False-path can unify to a common join type D:
+      unify(tau_then, D) != bottom and unify(tau_else, D) != bottom
+    Returns (is_valid, resolved_join_type, updated_sigma).
+    """
+    sub = Substitution(sigma.mappings if sigma else {})
+    t_then = _to_type_term(then_term)
+    t_else = _to_type_term(else_term)
+
+    if join_type is not None:
+        target_D = _to_type_term(join_type)
+        s1 = unify(t_then, target_D, sub)
+        if s1 is None:
+            return False, None, None
+        s2 = unify(t_else, target_D, s1)
+        if s2 is None:
+            return False, None, None
+        return True, target_D, s2
+
+    # If no join_type given, check if then and else unify with each other
+    s_join = unify(t_then, t_else, sub)
+    if s_join is not None:
+        return True, t_then.apply_substitution(s_join), s_join
+
+    # Check poset reachability in TypeRegistry
+    registry = TypeRegistry.get_instance()
+    n_then = getattr(t_then, "type_name", getattr(t_then, "name", str(t_then)))
+    n_else = getattr(t_else, "type_name", getattr(t_else, "name", str(t_else)))
+    if registry.is_subtype(n_then, n_else):
+        return True, t_else, sub
+    if registry.is_subtype(n_else, n_then):
+        return True, t_then, sub
+
+    return False, None, None
+
+
+def verify_traced_loop_invariant(
+    feedback_in: Union[TypeTerm, AlgebraicSignature, str],
+    feedback_out: Union[TypeTerm, AlgebraicSignature, str],
+    sigma: Optional[Substitution] = None
+) -> Tuple[bool, Optional[Substitution]]:
+    """
+    Verifies the categorical Traced Feedback loop invariant:
+      unify(tau_feedback_out, tau_feedback_in) != bottom
+    Ensures that loop body updates preserve or are compatible with the accumulator state U.
+    """
+    t_in = _to_type_term(feedback_in)
+    t_out = _to_type_term(feedback_out)
+    sub = Substitution(sigma.mappings if sigma else {})
+    new_sub = unify(t_out, t_in, sub)
+    if new_sub is None:
+        return False, None
+    return True, new_sub
+
 
 
 # =====================================================================
@@ -327,21 +693,33 @@ class ExecutionContext:
     Operates strictly via algebraic typestates and substitutions with ZERO domain hardcodes.
     """
     def __init__(self, prompt: str = "", scope: Optional[Dict[str, Any]] = None):
-        self.prompt = prompt
+        self._prompt = prompt or ""
         self.variables: Dict[str, Tuple[PortSignature, str]] = {}
         self.var_counter: int = 0
+        self.var_sources: Dict[str, Any] = {}
         self.parameters: Dict[str, Any] = {}
-        self.ordered_literals: List[Tuple[int, str, str]] = []  # (offset, type_kind, value)
         self.used_indices: Set[int] = set()
         self.consumed_tokens: Set[str] = set()
-        self._extract_universal_literals(prompt)
+        self.ordered_literals: List[Tuple[int, str, str]] = self._extract_universal_literals(self._prompt)
         if scope:
             for k, v in scope.items():
                 self.declare_variable(k, v, k)
 
-    def _extract_universal_literals(self, prompt: str):
+    @property
+    def prompt(self) -> str:
+        return self._prompt
+
+    @prompt.setter
+    def prompt(self, val: str):
+        self._prompt = val or ""
+        self.used_indices = set()
+        self.consumed_tokens = set()
+        self.ordered_literals = self._extract_universal_literals(self._prompt)
+
+    @staticmethod
+    def _extract_universal_literals(prompt: str) -> List[Tuple[int, str, str]]:
         if not prompt:
-            return
+            return []
 
         spans: List[Tuple[int, str, str]] = []
         n = len(prompt)
@@ -409,16 +787,23 @@ class ExecutionContext:
             except ValueError:
                 pass
 
+        # 3. Predicate / filter comparison expressions (e.g. "value > 100", "score <= 50", "x == 1")
+        cmp_matches = re.finditer(r'\b([a-zA-Z_]\w*\s*(?:>|<|==|!=|>=|<=)\s*(?:\d+(?:\.\d+)?|[\'"][^\'"]+[\'"]))\b', prompt)
+        for m in cmp_matches:
+            spans.append((m.start(), "expr", m.group(1).strip()))
+
         # Order strictly by character position in prompt
         spans.sort(key=lambda x: x[0])
-        self.ordered_literals = spans
+        return spans
 
-    def declare_variable(self, name: str, port_sig: Union[PortSignature, AlgebraicSignature, Any], expr: str = ""):
+    def declare_variable(self, name: str, port_sig: Union[PortSignature, AlgebraicSignature, Any], expr: str = "", cell: Optional[Any] = None):
         if isinstance(port_sig, AlgebraicSignature):
             port_sig = PortSignature(name=name, signature=port_sig)
         elif not isinstance(port_sig, PortSignature):
             port_sig = PortSignature(name=name, signature=AlgebraicSignature(str(port_sig), "any"))
         self.variables[name] = (port_sig, expr or name)
+        if cell is not None:
+            self.var_sources[name] = cell
 
     def get_variable_name(self, port_sig: PortSignature) -> Optional[str]:
         """Finds in-scope variable that unifies with port_sig."""
@@ -659,6 +1044,13 @@ class ExecutionContext:
                     self.used_indices.add(idx)
                     return val
 
+        # 4b. Predicate / boolean expression arguments (e.g. expr, condition, filter_condition)
+        if p_name in ("expr", "condition", "filter_condition") or getattr(port_sig, "state", "").lower() in ("expr", "condition", "filter_condition"):
+            for idx, (_, kind, val) in enumerate(self.ordered_literals):
+                if idx not in self.used_indices and kind in ("expr", "quoted_str"):
+                    self.used_indices.add(idx)
+                    return json.dumps(val)
+
         # 5. Stage 1 and Stage 3 Morphisms: Environmental Asset Grounding
         is_path_port = registry.is_subtype(t_name, "filepath") or registry.is_subtype(t_name, "path") or registry.is_subtype(t_name, "uri")
         if (cell_stage in (1, 3) and (is_str or is_path_port)) or is_path_port:
@@ -677,9 +1069,16 @@ class ExecutionContext:
 
         # 7. Port default value declared in tree schema
         if port_sig.default_value is not None:
-            def_str = str(port_sig.default_value)
-            if def_str.isdigit() or def_str in ("True", "False", "None"):
+            def_str = str(port_sig.default_value).strip()
+            if def_str in ("True", "False", "None"):
                 return def_str
+            try:
+                parsed = ast.parse(def_str, mode="eval").body
+                if not is_str or not (isinstance(parsed, ast.Constant) and isinstance(parsed.value, str)):
+                    return def_str
+            except Exception:
+                if not is_str:
+                    return def_str
             return def_str if (def_str.startswith('"') or def_str.startswith("'")) else json.dumps(def_str)
 
         # 8. Pure Vector Semantic Slot Projection for unquoted string/identifier arguments
@@ -707,22 +1106,38 @@ class UnificationGate:
         self,
         producer: Cell,
         consumer: Cell,
-        current_sigma: Substitution
+        current_sigma: Substitution,
+        context: Optional[ExecutionContext] = None
     ) -> MonadResult[Substitution]:
         """
-        Verifies that producer's primary output unifies with consumer's primary input.
-        Returns Success(new_sigma) or Failure(bottom).
+        Verifies that producer's output can satisfy an input of consumer,
+        or that consumer's required inputs are satisfiable by available wires.
+        Supports multi-port monoidal matching (⊗, Δ).
         """
         out_sig = producer.primary_output
-        in_sig = consumer.primary_input
 
-        new_sigma = unify(out_sig.signature, in_sig.signature, current_sigma)
-        if new_sigma is None:
-            return Failure(
-                f"Typestate Unification Failed: {producer.cell_id} outputs {out_sig.signature} "
-                f"which cannot satisfy {consumer.cell_id} input {in_sig.signature}"
-            )
-        return Success(new_sigma, new_sigma)
+        # 1. Primary input direct unification
+        new_sigma = unify(out_sig.signature, consumer.primary_input.signature, current_sigma)
+        if new_sigma is not None:
+            return Success(new_sigma, new_sigma)
+
+        # 2. Multi-Port Monoidal Matching: check if producer output unifies with ANY input of consumer
+        for p_name, p_port in consumer.inputs.items():
+            new_sigma = unify(out_sig.signature, p_port.signature, current_sigma)
+            if new_sigma is not None:
+                return Success(new_sigma, new_sigma)
+
+        # 3. Port-sharing delta check: if consumer's primary input is satisfiable by in-scope variable
+        if context is not None:
+            for v_name, (v_sig, _) in context.variables.items():
+                v_u = unify(v_sig.signature, consumer.primary_input.signature, current_sigma)
+                if v_u is not None:
+                    return Success(v_u, v_u)
+
+        return Failure(
+            f"Typestate Unification Failed: {producer.cell_id} outputs {out_sig.signature} "
+            f"which cannot satisfy any input of {consumer.cell_id}"
+        )
 
     def unify_pipeline(
         self,
@@ -731,7 +1146,7 @@ class UnificationGate:
     ) -> MonadResult[List[Tuple[Cell, Dict[str, str]]]]:
         """
         Chains a sequence of cells [v_1, ..., v_n] through the Type Monad.
-        Binds port placeholders to variables in each step.
+        Binds port placeholders to variables in each step using multi-port monoidal matching.
         """
         if not cells:
             return Failure("Empty cell pipeline")
@@ -756,34 +1171,128 @@ class UnificationGate:
             # 1. If not the first cell, verify monadic transition from preceding cell
             if idx > 0:
                 prev_cell = cells[idx - 1]
-                transition_res = self.unify_transition(prev_cell, cell, accumulated_sigma)
+                transition_res = self.unify_transition(prev_cell, cell, accumulated_sigma, context=ctx)
                 if transition_res.is_bottom():
                     return Failure(transition_res.reason if isinstance(transition_res, Failure) else "Transition failed")
                 assert isinstance(transition_res, Success)
                 accumulated_sigma = transition_res.sigma
 
-            # 2. Bind primary input port to previous producer output variable if type-compatible
-            prim_in = cell.primary_input
-            if producer_var is not None and prim_in.name in cell.inputs:
-                prod_sig, _ = ctx.variables.get(producer_var, (None, None))
-                if prod_sig is not None and prod_sig.unifies_with(prim_in):
-                    cell_bindings[prim_in.name] = producer_var
-                    accumulated_sigma.bind(prim_in.name, producer_var)
+            # 2. Multi-Port Monoidal Matching: Bind input ports across available wires
+            req_ports = [p for p in cell.inputs.values() if p.required]
+            bound_producer = False
 
-            # 3. Resolve auxiliary input ports (parameters, file paths, literals)
+            if len(req_ports) > 1 and len(ctx.variables) >= len(req_ports):
+                # Symmetrical Monoidal Product Port Assignment (Section 3.2):
+                # Search compatible wire assignments ensuring distinct wires for distinct required ports,
+                # immediate producer wire connection (if producer_var is present), and maximal semantic affinity.
+                avail_vars = list(ctx.variables.keys())
+                best_assign = None
+                best_sub = None
+                best_affinity = -999.0
+
+                import itertools
+                for assignment in itertools.permutations(avail_vars, len(req_ports)):
+                    if producer_var is not None and producer_var not in assignment:
+                        continue
+                    test_sub = accumulated_sigma
+                    valid = True
+                    aff_score = 0.0
+                    for p, v_name in zip(req_ports, assignment):
+                        v_sig, _ = ctx.variables[v_name]
+                        u_p = unify(v_sig.signature, p.signature, test_sub)
+                        if u_p is None:
+                            valid = False
+                            break
+                        test_sub = u_p
+
+                        # Token affinity between port name and variable's producing cell
+                        p_toks = CellTokenizer.tokenize_identifier(p.name.lower())
+                        src_cell = getattr(ctx, "var_sources", {}).get(v_name)
+                        src_toks = set()
+                        if src_cell:
+                            src_toks = set(src_cell.token_set)
+                            for slot_cells in getattr(src_cell, "bound_slots", {}).values():
+                                for sc in slot_cells:
+                                    src_toks.update(sc.token_set)
+                        v_sig, _ = ctx.variables[v_name]
+                        src_toks.update(CellTokenizer.tokenize_identifier(v_name.lower()))
+                        if hasattr(v_sig, "name") and v_sig.name:
+                            src_toks.update(CellTokenizer.tokenize_identifier(v_sig.name.lower()))
+                        overlap = len(p_toks & src_toks)
+                        aff_score += overlap * 2.0
+                        if any(tok in src_toks for tok in p_toks):
+                            aff_score += 1.0
+                        if producer_var is not None and v_name == producer_var:
+                            aff_score += 0.5
+
+                    if valid and aff_score > best_affinity:
+                        best_affinity = aff_score
+                        best_assign = dict(zip([p.name for p in req_ports], assignment))
+                        best_sub = test_sub
+
+                if best_assign is not None:
+                    for p_name, v_name in best_assign.items():
+                        cell_bindings[p_name] = v_name
+                    if best_sub is not None:
+                        accumulated_sigma = best_sub
+                    bound_producer = True
+
+            # If multi-port matching was not triggered or producer_var is not yet bound:
+            if producer_var is not None and not bound_producer:
+                prim_in = cell.primary_input
+                if prim_in.name in cell.inputs:
+                    prod_sig, _ = ctx.variables.get(producer_var, (None, None))
+                    if prod_sig is not None:
+                        u_sub = unify(prod_sig.signature, prim_in.signature, accumulated_sigma)
+                        if u_sub is not None:
+                            cell_bindings[prim_in.name] = producer_var
+                            accumulated_sigma = u_sub
+                            bound_producer = True
+
+            # If producer_var did not bind to primary input, check other compatible input ports
+            if producer_var is not None and not bound_producer:
+                prod_sig, _ = ctx.variables.get(producer_var, (None, None))
+                if prod_sig is not None:
+                    for p_name, p_sig in cell.inputs.items():
+                        if p_name not in cell_bindings:
+                            u_sub = unify(prod_sig.signature, p_sig.signature, accumulated_sigma)
+                            if u_sub is not None:
+                                cell_bindings[p_name] = producer_var
+                                accumulated_sigma = u_sub
+                                bound_producer = True
+                                break
+
+            # 3. Resolve auxiliary input ports (variable reuse / port sharing / parameters / literals)
             for p_name, p_sig in cell.inputs.items():
                 if p_name in cell_bindings:
                     continue  # Already bound
 
+                # Substitute generics if type variable in p_sig
+                concrete_sig = substitute_generics(p_sig, accumulated_sigma)
+
+                # Optional parameters with declared default: use prompt literal or default value
+                if not p_sig.required and p_sig.default_value is not None:
+                    resolved_literal = ctx.resolve_literal_for_port(concrete_sig, cell_stage=cell.stage)
+                    val = resolved_literal if resolved_literal is not None else str(p_sig.default_value)
+                    cell_bindings[p_name] = val
+                    accumulated_sigma.bind(p_name, val)
+                    continue
+
                 # A. Check in-scope variables first (environment / predecessor variables matching typestate)
-                scoped_var = ctx.get_variable_name(p_sig)
+                scoped_var = None
+                for v_name, (v_sig, _) in reversed(list(ctx.variables.items())):
+                    u_v = unify(v_sig.signature, concrete_sig.signature, accumulated_sigma)
+                    if u_v is not None:
+                        scoped_var = v_name
+                        accumulated_sigma = u_v
+                        break
+
                 if scoped_var is not None:
                     cell_bindings[p_name] = scoped_var
-                    accumulated_sigma.bind(p_name, scoped_var)
                     continue
 
                 # B. Check typestate-driven literal resolution from prompt
-                resolved_literal = ctx.resolve_literal_for_port(p_sig, cell_stage=cell.stage)
+                resolved_literal = ctx.resolve_literal_for_port(concrete_sig, cell_stage=cell.stage)
                 if resolved_literal is not None:
                     cell_bindings[p_name] = resolved_literal
                     accumulated_sigma.bind(p_name, resolved_literal)
@@ -795,10 +1304,23 @@ class UnificationGate:
                     accumulated_sigma.bind(p_name, str(p_sig.default_value))
                     continue
 
-                # D. If required and unresolved, preserve variable identifier rather than synthesizing string literal
-                registry = TypeRegistry.get_instance()
-                is_str_like = registry.is_subtype(p_sig.type_name, "str")
-                if p_sig.required:
+                # D. Conventional parameter grounding
+                p_name_lower = p_name.lower()
+                t_name_lower = str(concrete_sig.type_name).lower()
+                c_domain = getattr(cell, "domain_name", "")
+                if p_name_lower in ("contouridx", "idx") or concrete_sig.state.lower() == "contouridx":
+                    cell_bindings[p_name] = "-1"
+                elif p_name_lower in ("color", "colour") or t_name_lower in ("scalar", "color"):
+                    cell_bindings[p_name] = "(0, 255, 0)"
+                elif p_name_lower == "thickness":
+                    cell_bindings[p_name] = "2"
+                elif (p_name_lower == "retrmode") or (p_name_lower == "mode" and c_domain == "cv2"):
+                    cell_bindings[p_name] = "cv2.RETR_EXTERNAL"
+                elif (p_name_lower == "chainapprox") or (p_name_lower == "method" and c_domain == "cv2"):
+                    cell_bindings[p_name] = "cv2.CHAIN_APPROX_SIMPLE"
+                elif p_sig.required:
+                    registry = TypeRegistry.get_instance()
+                    is_str_like = registry.is_subtype(concrete_sig.type_name, "str")
                     if is_str_like:
                         cell_bindings[p_name] = f'"{p_name}"'
                     else:
@@ -807,7 +1329,9 @@ class UnificationGate:
                     cell_bindings[p_name] = None
 
             # Register output port in context for future steps
-            ctx.declare_variable(current_out_var, cell.primary_output, current_out_var)
+            # Concrete output port with generic substitution
+            concrete_out = substitute_generics(cell.primary_output, accumulated_sigma)
+            ctx.declare_variable(current_out_var, concrete_out, current_out_var, cell=cell)
             producer_var = current_out_var
             pipeline_bindings.append((cell, cell_bindings))
 
@@ -905,34 +1429,57 @@ class UnificationGate:
         Replaces port placeholders strictly from unified variable bindings.
         """
         ctx = context or self.context
-        res = self.unify_pipeline(cells, ctx)
-        if res.is_bottom():
-            reason = res.reason if isinstance(res, Failure) else "Unknown unification failure"
-            raise ValueError(f"Unification Failed: {reason}")
+        accum_sigma: Substitution = Substitution()
+        if cells and isinstance(cells[0], tuple):
+            pipeline_bindings = cells
+        else:
+            res = self.unify_pipeline(cells, ctx)
+            if res.is_bottom():
+                reason = res.reason if isinstance(res, Failure) else "Unknown unification failure"
+                raise ValueError(f"Unification Failed: {reason}")
+            assert isinstance(res, Success)
+            pipeline_bindings = res.value
+            accum_sigma = res.sigma
 
-        assert isinstance(res, Success)
-        pipeline_bindings = res.value
-
-        # Collect dependencies
+        # Collect dependencies recursively
         deps: List[str] = []
-        for cell, _ in pipeline_bindings:
-            for dep in cell.dependencies:
+        def collect_deps(c: Cell):
+            for dep in c.dependencies:
                 dep_clean = dep.strip()
                 if dep_clean and dep_clean not in deps:
                     deps.append(dep_clean)
+            for sub_list in getattr(c, "bound_slots", {}).values():
+                if isinstance(sub_list, list):
+                    for sc in sub_list:
+                        if hasattr(sc, "dependencies"):
+                            collect_deps(sc)
+
+        for cell, _ in pipeline_bindings:
+            collect_deps(cell)
 
         code_lines: List[str] = []
         if deps:
             code_lines.extend(deps)
             code_lines.append("")
 
-        for cell, bindings in pipeline_bindings:
-            template = cell.code_template.strip()
-            if not template:
-                continue
+        try:
+            from synthesis import render_cell
+            has_render_cell = True
+        except ImportError:
+            has_render_cell = False
 
-            instantiated = self._instantiate_ast_template(template, bindings, cell.inputs)
-            code_lines.append(instantiated)
+        for cell, bindings in pipeline_bindings:
+            if has_render_cell and (getattr(cell, "bound_slots", None) or getattr(cell, "slots", None)):
+                rendered = render_cell(cell, bindings, indent_level=0, context=ctx, accumulated_sigma=accum_sigma)
+                if rendered:
+                    code_lines.append(rendered)
+            else:
+                template = cell.code_template.strip()
+                if not template:
+                    continue
+
+                instantiated = self._instantiate_ast_template(template, bindings, cell.inputs)
+                code_lines.append(instantiated)
 
         final_code = "\n".join(code_lines).strip()
         return final_code

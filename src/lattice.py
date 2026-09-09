@@ -350,6 +350,7 @@ class Cell(ABC):
         "configuration_schema", "verified", "semantic_tags",
         "docstring", "enrichment_source", "enriched_at",
         "source_priority", "source_provenance",
+        "topology_type", "feedback_state_type", "bound_slots",
         "_primary_input", "_primary_output", "_token_set", "_token_count"
     ]
 
@@ -375,7 +376,10 @@ class Cell(ABC):
         enrichment_source: Optional[str] = None,
         enriched_at: Optional[str] = None,
         source_priority: int = 100,
-        source_provenance: Optional[str] = "unknown"
+        source_provenance: Optional[str] = "unknown",
+        topology_type: str = "sequential",
+        feedback_state_type: Optional[str] = None,
+        bound_slots: Optional[Dict[str, Any]] = None
     ):
         self.cell_id = cell_id
         self.stage = stage
@@ -396,6 +400,17 @@ class Cell(ABC):
         self.docstring = docstring or ""
         self.enrichment_source = enrichment_source
         self.enriched_at = enriched_at
+
+        # Infer topology type if default sequential but node specifies control flow
+        nt = str(self.node_type).lower()
+        if topology_type == "sequential":
+            if nt.startswith("macro_loop") or "loop" in nt or feedback_state_type:
+                topology_type = "traced_loop"
+            elif nt.startswith("macro_conditional") or "conditional" in nt or "branch" in nt:
+                topology_type = "coproduct_branch"
+        self.topology_type = topology_type
+        self.feedback_state_type = feedback_state_type
+        self.bound_slots = dict(bound_slots) if bound_slots else {}
 
         self._primary_input = None
         self._primary_output = None
@@ -676,17 +691,18 @@ class LatticeOrchestrator:
                     dom_sel = "domain_name" if "domain_name" in col_names else "'' AS domain_name"
                     deps_sel = "dependencies" if "dependencies" in col_names else "'' AS dependencies"
                     cfg_sel = "configuration_schema" if "configuration_schema" in col_names else "'' AS configuration_schema"
+                    slots_sel = "slots" if "slots" in col_names else "'' AS slots"
 
                     cursor.execute(f"""
                         SELECT cell_id, {dom_sel}, {type_sel}, {role_sel}, stage,
                                keywords, input_type, input_state, output_type, output_state,
-                               code, {deps_sel}, {cfg_sel}, {ver_sel}, {doc_sel}, {prio_sel}
+                               code, {deps_sel}, {cfg_sel}, {slots_sel}, {ver_sel}, {doc_sel}, {prio_sel}
                         FROM nodes
                     """)
                     for row in cursor.fetchall():
                         (cell_id, domain_name, node_type, node_role, stage,
                          keywords_json, in_type, in_state, out_type, out_state,
-                         code, deps_json, config_json, verified, doc_str, source_priority) = row
+                         code, deps_json, config_json, slots_json, verified, doc_str, source_priority) = row
 
                         try:
                             keywords = set(json.loads(keywords_json)) if keywords_json else set()
@@ -700,6 +716,13 @@ class LatticeOrchestrator:
                             cfg = json.loads(config_json) if config_json else {}
                         except Exception:
                             cfg = {}
+
+                        slots_val = cfg.get("slots", {})
+                        if not slots_val and slots_json:
+                            try:
+                                slots_val = json.loads(slots_json)
+                            except Exception:
+                                slots_val = {}
 
                         in_sig = AlgebraicSignature(type_name=in_type or "any", state=in_state or "any")
                         out_sig = AlgebraicSignature(type_name=out_type or "None", state=out_state or "any")
@@ -740,8 +763,16 @@ class LatticeOrchestrator:
                         if not outputs:
                             outputs = {"output_data": PortSignature("output_data", out_sig)}
 
-                        is_macro = str(node_type).lower() in ("macro", "higher_order") or str(node_role).lower() in ("macro", "higher_order")
+                        is_macro = (
+                            str(node_type).lower() in ("macro", "higher_order")
+                            or str(node_role).lower() in ("macro", "higher_order")
+                            or str(node_type).lower().startswith("macro_")
+                            or str(node_role).lower().startswith("macro_")
+                        )
                         cls = MacroCell if is_macro else MicroCell
+
+                        topology_type = cfg.get("topology_type", "sequential")
+                        feedback_state_type = cfg.get("feedback_state_type", None)
 
                         cell = cls(
                             cell_id=cell_id,
@@ -749,15 +780,17 @@ class LatticeOrchestrator:
                             keywords=keywords,
                             inputs=inputs,
                             outputs=outputs,
-                            slots=cfg.get("slots", {}),
+                            slots=slots_val,
                             domain_name=domain_name or "generic",
-                            node_type="macro" if is_macro else (node_type or "function"),
+                            node_type=node_type or ("macro" if is_macro else "function"),
                             node_role=str(node_role).lower() if node_role else "function",
                             dependencies=deps,
                             code_template=code or "",
                             verified=bool(verified),
                             docstring=doc_str or "",
-                            source_priority=int(source_priority) if source_priority is not None else 100
+                            source_priority=int(source_priority) if source_priority is not None else 100,
+                            topology_type=topology_type,
+                            feedback_state_type=feedback_state_type
                         )
                         if cell.is_public_morphism:
                             self.loaded_cells[cell.cell_id] = cell

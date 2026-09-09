@@ -1,0 +1,1065 @@
+{
+  "domain": "itertools",
+  "version": "1.0.0",
+  "cells": [
+    {
+      "cell_id": "ITERTOOLS_ACCUMULATE_INIT",
+      "stage": 1,
+      "inputs": {
+        "iterable": {
+          "type_name": "any",
+          "state": "iterable",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Constructor argument iterable",
+          "domain": null,
+          "required": true
+        },
+        "func": {
+          "type_name": "any",
+          "state": "func",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Constructor argument func",
+          "domain": null,
+          "required": false
+        },
+        "initial": {
+          "type_name": "any",
+          "state": "initial",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Constructor argument initial",
+          "domain": null,
+          "required": false
+        }
+      },
+      "outputs": {
+        "output_data": {
+          "type_name": "accumulate",
+          "state": "constructed",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Newly constructed accumulate",
+          "domain": null,
+          "required": true
+        }
+      },
+      "slots": {},
+      "code_template": "{output_var} = itertools.accumulate({iterable})",
+      "dependencies": [
+        "import itertools"
+      ],
+      "semantic_tags": [
+        "accumulate"
+      ],
+      "keywords": [
+        "accumulate"
+      ],
+      "docstring": "Return series of accumulated sums (or other binary function results).",
+      "enrichment_source": null,
+      "enriched_at": null,
+      "domain_name": "itertools",
+      "node_type": "constructor",
+      "node_role": "source",
+      "verified": true,
+      "source_priority": 50
+    },
+    {
+      "cell_id": "ITERTOOLS_BATCHED_INIT",
+      "stage": 1,
+      "inputs": {
+        "iterable": {
+          "type_name": "any",
+          "state": "iterable",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Constructor argument iterable",
+          "domain": null,
+          "required": true
+        },
+        "n": {
+          "type_name": "any",
+          "state": "n",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Constructor argument n",
+          "domain": null,
+          "required": true
+        },
+        "strict": {
+          "type_name": "any",
+          "state": "strict",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Constructor argument strict",
+          "domain": null,
+          "required": false
+        }
+      },
+      "outputs": {
+        "output_data": {
+          "type_name": "batched",
+          "state": "constructed",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Newly constructed batched",
+          "domain": null,
+          "required": true
+        }
+      },
+      "slots": {},
+      "code_template": "{output_var} = itertools.batched({iterable}, {n})",
+      "dependencies": [
+        "import itertools"
+      ],
+      "semantic_tags": [
+        "batched"
+      ],
+      "keywords": [
+        "batched"
+      ],
+      "docstring": "Batch data into tuples of length n. The last batch may be shorter than n.",
+      "enrichment_source": null,
+      "enriched_at": null,
+      "domain_name": "itertools",
+      "node_type": "constructor",
+      "node_role": "source",
+      "verified": true,
+      "source_priority": 50
+    },
+    {
+      "cell_id": "ITERTOOLS_CHAIN_INIT",
+      "stage": 1,
+      "inputs": {},
+      "outputs": {
+        "output_data": {
+          "type_name": "chain",
+          "state": "constructed",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Newly constructed chain",
+          "domain": null,
+          "required": true
+        }
+      },
+      "slots": {},
+      "code_template": "{output_var} = itertools.chain()",
+      "dependencies": [
+        "import itertools"
+      ],
+      "semantic_tags": [
+        "chain"
+      ],
+      "keywords": [
+        "chain"
+      ],
+      "docstring": "Return a chain object whose .__next__() method returns elements from the",
+      "enrichment_source": null,
+      "enriched_at": null,
+      "domain_name": "itertools",
+      "node_type": "constructor",
+      "node_role": "source",
+      "verified": true,
+      "source_priority": 50
+    },
+    {
+      "cell_id": "ITERTOOLS_CHAIN_FROM_ITERABLE",
+      "stage": 3,
+      "inputs": {
+        "data": {
+          "type_name": "chain",
+          "state": "any",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Receiver instance of chain",
+          "domain": null,
+          "required": true
+        },
+        "iterable": {
+          "type_name": "any",
+          "state": "iterable",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Argument iterable",
+          "domain": null,
+          "required": true
+        }
+      },
+      "outputs": {
+        "output_data": {
+          "type_name": "str",
+          "state": "destination_written",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Output destination_written",
+          "domain": null,
+          "required": true
+        }
+      },
+      "slots": {},
+      "code_template": "{data}.from_iterable({iterable})\n{output_var} = 'done'",
+      "dependencies": [
+        "import itertools"
+      ],
+      "semantic_tags": [
+        "chain",
+        "from",
+        "from_iterable",
+        "iterable"
+      ],
+      "keywords": [
+        "chain",
+        "from",
+        "from_iterable",
+        "iterable"
+      ],
+      "docstring": "Alternative chain() constructor taking a single iterable argument that evaluates lazily.",
+      "enrichment_source": null,
+      "enriched_at": null,
+      "domain_name": "itertools",
+      "node_type": "sink",
+      "node_role": "sink",
+      "verified": true,
+      "source_priority": 50
+    },
+    {
+      "cell_id": "ITERTOOLS_COMBINATIONS_INIT",
+      "stage": 1,
+      "inputs": {
+        "iterable": {
+          "type_name": "any",
+          "state": "iterable",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Constructor argument iterable",
+          "domain": null,
+          "required": true
+        },
+        "r": {
+          "type_name": "any",
+          "state": "r",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Constructor argument r",
+          "domain": null,
+          "required": true
+        }
+      },
+      "outputs": {
+        "output_data": {
+          "type_name": "combinations",
+          "state": "constructed",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Newly constructed combinations",
+          "domain": null,
+          "required": true
+        }
+      },
+      "slots": {},
+      "code_template": "{output_var} = itertools.combinations({iterable}, {r})",
+      "dependencies": [
+        "import itertools"
+      ],
+      "semantic_tags": [
+        "combinations"
+      ],
+      "keywords": [
+        "combinations"
+      ],
+      "docstring": "Return successive r-length combinations of elements in the iterable.",
+      "enrichment_source": null,
+      "enriched_at": null,
+      "domain_name": "itertools",
+      "node_type": "constructor",
+      "node_role": "source",
+      "verified": true,
+      "source_priority": 50
+    },
+    {
+      "cell_id": "ITERTOOLS_COMBINATIONS_WITH_REPLACEMENT_INIT",
+      "stage": 1,
+      "inputs": {
+        "iterable": {
+          "type_name": "any",
+          "state": "iterable",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Constructor argument iterable",
+          "domain": null,
+          "required": true
+        },
+        "r": {
+          "type_name": "any",
+          "state": "r",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Constructor argument r",
+          "domain": null,
+          "required": true
+        }
+      },
+      "outputs": {
+        "output_data": {
+          "type_name": "combinations_with_replacement",
+          "state": "constructed",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Newly constructed combinations_with_replacement",
+          "domain": null,
+          "required": true
+        }
+      },
+      "slots": {},
+      "code_template": "{output_var} = itertools.combinations_with_replacement({iterable}, {r})",
+      "dependencies": [
+        "import itertools"
+      ],
+      "semantic_tags": [
+        "combinations",
+        "combinations_with_replacement",
+        "replacement",
+        "with"
+      ],
+      "keywords": [
+        "combinations",
+        "combinations_with_replacement",
+        "replacement",
+        "with"
+      ],
+      "docstring": "Return successive r-length combinations of elements in the iterable allowing individual elements to have successive repeats.",
+      "enrichment_source": null,
+      "enriched_at": null,
+      "domain_name": "itertools",
+      "node_type": "constructor",
+      "node_role": "source",
+      "verified": true,
+      "source_priority": 50
+    },
+    {
+      "cell_id": "ITERTOOLS_COMPRESS_INIT",
+      "stage": 1,
+      "inputs": {
+        "data": {
+          "type_name": "any",
+          "state": "data",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Constructor argument data",
+          "domain": null,
+          "required": true
+        },
+        "selectors": {
+          "type_name": "any",
+          "state": "selectors",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Constructor argument selectors",
+          "domain": null,
+          "required": true
+        }
+      },
+      "outputs": {
+        "output_data": {
+          "type_name": "compress",
+          "state": "constructed",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Newly constructed compress",
+          "domain": null,
+          "required": true
+        }
+      },
+      "slots": {},
+      "code_template": "{output_var} = itertools.compress({data}, {selectors})",
+      "dependencies": [
+        "import itertools"
+      ],
+      "semantic_tags": [
+        "compress"
+      ],
+      "keywords": [
+        "compress"
+      ],
+      "docstring": "Return data elements corresponding to true selector elements.",
+      "enrichment_source": null,
+      "enriched_at": null,
+      "domain_name": "itertools",
+      "node_type": "constructor",
+      "node_role": "source",
+      "verified": true,
+      "source_priority": 50
+    },
+    {
+      "cell_id": "ITERTOOLS_COUNT_INIT",
+      "stage": 1,
+      "inputs": {
+        "start": {
+          "type_name": "any",
+          "state": "start",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Constructor argument start",
+          "domain": null,
+          "required": false
+        },
+        "step": {
+          "type_name": "any",
+          "state": "step",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Constructor argument step",
+          "domain": null,
+          "required": false
+        }
+      },
+      "outputs": {
+        "output_data": {
+          "type_name": "count",
+          "state": "constructed",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Newly constructed count",
+          "domain": null,
+          "required": true
+        }
+      },
+      "slots": {},
+      "code_template": "{output_var} = itertools.count()",
+      "dependencies": [
+        "import itertools"
+      ],
+      "semantic_tags": [
+        "count"
+      ],
+      "keywords": [
+        "count"
+      ],
+      "docstring": "Return a count object whose .__next__() method returns consecutive values.",
+      "enrichment_source": null,
+      "enriched_at": null,
+      "domain_name": "itertools",
+      "node_type": "constructor",
+      "node_role": "source",
+      "verified": true,
+      "source_priority": 50
+    },
+    {
+      "cell_id": "ITERTOOLS_CYCLE_INIT",
+      "stage": 1,
+      "inputs": {
+        "iterable": {
+          "type_name": "any",
+          "state": "iterable",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Constructor argument iterable",
+          "domain": null,
+          "required": true
+        }
+      },
+      "outputs": {
+        "output_data": {
+          "type_name": "cycle",
+          "state": "constructed",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Newly constructed cycle",
+          "domain": null,
+          "required": true
+        }
+      },
+      "slots": {},
+      "code_template": "{output_var} = itertools.cycle({iterable})",
+      "dependencies": [
+        "import itertools"
+      ],
+      "semantic_tags": [
+        "cycle"
+      ],
+      "keywords": [
+        "cycle"
+      ],
+      "docstring": "Return elements from the iterable until it is exhausted. Then repeat the sequence indefinitely.",
+      "enrichment_source": null,
+      "enriched_at": null,
+      "domain_name": "itertools",
+      "node_type": "constructor",
+      "node_role": "source",
+      "verified": true,
+      "source_priority": 50
+    },
+    {
+      "cell_id": "ITERTOOLS_DROPWHILE_INIT",
+      "stage": 1,
+      "inputs": {
+        "predicate": {
+          "type_name": "any",
+          "state": "predicate",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Constructor argument predicate",
+          "domain": null,
+          "required": true
+        },
+        "iterable": {
+          "type_name": "any",
+          "state": "iterable",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Constructor argument iterable",
+          "domain": null,
+          "required": true
+        }
+      },
+      "outputs": {
+        "output_data": {
+          "type_name": "dropwhile",
+          "state": "constructed",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Newly constructed dropwhile",
+          "domain": null,
+          "required": true
+        }
+      },
+      "slots": {},
+      "code_template": "{output_var} = itertools.dropwhile({predicate}, {iterable})",
+      "dependencies": [
+        "import itertools"
+      ],
+      "semantic_tags": [
+        "dropwhile"
+      ],
+      "keywords": [
+        "dropwhile"
+      ],
+      "docstring": "Drop items from the iterable while predicate(item) is true.",
+      "enrichment_source": null,
+      "enriched_at": null,
+      "domain_name": "itertools",
+      "node_type": "constructor",
+      "node_role": "source",
+      "verified": true,
+      "source_priority": 50
+    },
+    {
+      "cell_id": "ITERTOOLS_FILTERFALSE_INIT",
+      "stage": 1,
+      "inputs": {
+        "function": {
+          "type_name": "any",
+          "state": "function",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Constructor argument function",
+          "domain": null,
+          "required": true
+        },
+        "iterable": {
+          "type_name": "any",
+          "state": "iterable",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Constructor argument iterable",
+          "domain": null,
+          "required": true
+        }
+      },
+      "outputs": {
+        "output_data": {
+          "type_name": "filterfalse",
+          "state": "constructed",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Newly constructed filterfalse",
+          "domain": null,
+          "required": true
+        }
+      },
+      "slots": {},
+      "code_template": "{output_var} = itertools.filterfalse({function}, {iterable})",
+      "dependencies": [
+        "import itertools"
+      ],
+      "semantic_tags": [
+        "filterfalse"
+      ],
+      "keywords": [
+        "filterfalse"
+      ],
+      "docstring": "Return those items of iterable for which function(item) is false.",
+      "enrichment_source": null,
+      "enriched_at": null,
+      "domain_name": "itertools",
+      "node_type": "constructor",
+      "node_role": "source",
+      "verified": true,
+      "source_priority": 50
+    },
+    {
+      "cell_id": "ITERTOOLS_GROUPBY_INIT",
+      "stage": 1,
+      "inputs": {
+        "iterable": {
+          "type_name": "any",
+          "state": "iterable",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Constructor argument iterable",
+          "domain": null,
+          "required": true
+        },
+        "key": {
+          "type_name": "any",
+          "state": "key",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Constructor argument key",
+          "domain": null,
+          "required": false
+        }
+      },
+      "outputs": {
+        "output_data": {
+          "type_name": "groupby",
+          "state": "constructed",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Newly constructed groupby",
+          "domain": null,
+          "required": true
+        }
+      },
+      "slots": {},
+      "code_template": "{output_var} = itertools.groupby({iterable})",
+      "dependencies": [
+        "import itertools"
+      ],
+      "semantic_tags": [
+        "groupby"
+      ],
+      "keywords": [
+        "groupby"
+      ],
+      "docstring": "make an iterator that returns consecutive keys and groups from the iterable",
+      "enrichment_source": null,
+      "enriched_at": null,
+      "domain_name": "itertools",
+      "node_type": "constructor",
+      "node_role": "source",
+      "verified": true,
+      "source_priority": 50
+    },
+    {
+      "cell_id": "ITERTOOLS_ISLICE_INIT",
+      "stage": 1,
+      "inputs": {
+        "iterable": {
+          "type_name": "any",
+          "state": "iterable",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Constructor argument iterable",
+          "domain": null,
+          "required": true
+        },
+        "stop": {
+          "type_name": "any",
+          "state": "stop",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Constructor argument stop",
+          "domain": null,
+          "required": true
+        }
+      },
+      "outputs": {
+        "output_data": {
+          "type_name": "islice",
+          "state": "constructed",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Newly constructed islice",
+          "domain": null,
+          "required": true
+        }
+      },
+      "slots": {},
+      "code_template": "{output_var} = itertools.islice({iterable}, {stop})",
+      "dependencies": [
+        "import itertools"
+      ],
+      "semantic_tags": [
+        "islice"
+      ],
+      "keywords": [
+        "islice"
+      ],
+      "docstring": "islice(iterable, stop) --> islice object",
+      "enrichment_source": null,
+      "enriched_at": null,
+      "domain_name": "itertools",
+      "node_type": "constructor",
+      "node_role": "source",
+      "verified": true,
+      "source_priority": 50
+    },
+    {
+      "cell_id": "ITERTOOLS_PAIRWISE_INIT",
+      "stage": 1,
+      "inputs": {
+        "iterable": {
+          "type_name": "any",
+          "state": "iterable",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Constructor argument iterable",
+          "domain": null,
+          "required": true
+        }
+      },
+      "outputs": {
+        "output_data": {
+          "type_name": "pairwise",
+          "state": "constructed",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Newly constructed pairwise",
+          "domain": null,
+          "required": true
+        }
+      },
+      "slots": {},
+      "code_template": "{output_var} = itertools.pairwise({iterable})",
+      "dependencies": [
+        "import itertools"
+      ],
+      "semantic_tags": [
+        "pairwise"
+      ],
+      "keywords": [
+        "pairwise"
+      ],
+      "docstring": "Return an iterator of overlapping pairs taken from the input iterator.",
+      "enrichment_source": null,
+      "enriched_at": null,
+      "domain_name": "itertools",
+      "node_type": "constructor",
+      "node_role": "source",
+      "verified": true,
+      "source_priority": 50
+    },
+    {
+      "cell_id": "ITERTOOLS_PERMUTATIONS_INIT",
+      "stage": 1,
+      "inputs": {
+        "iterable": {
+          "type_name": "any",
+          "state": "iterable",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Constructor argument iterable",
+          "domain": null,
+          "required": true
+        },
+        "r": {
+          "type_name": "any",
+          "state": "r",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Constructor argument r",
+          "domain": null,
+          "required": false
+        }
+      },
+      "outputs": {
+        "output_data": {
+          "type_name": "permutations",
+          "state": "constructed",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Newly constructed permutations",
+          "domain": null,
+          "required": true
+        }
+      },
+      "slots": {},
+      "code_template": "{output_var} = itertools.permutations({iterable})",
+      "dependencies": [
+        "import itertools"
+      ],
+      "semantic_tags": [
+        "permutations"
+      ],
+      "keywords": [
+        "permutations"
+      ],
+      "docstring": "Return successive r-length permutations of elements in the iterable.",
+      "enrichment_source": null,
+      "enriched_at": null,
+      "domain_name": "itertools",
+      "node_type": "constructor",
+      "node_role": "source",
+      "verified": true,
+      "source_priority": 50
+    },
+    {
+      "cell_id": "ITERTOOLS_PRODUCT_INIT",
+      "stage": 1,
+      "inputs": {
+        "repeat": {
+          "type_name": "any",
+          "state": "repeat",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Constructor argument repeat",
+          "domain": null,
+          "required": false
+        }
+      },
+      "outputs": {
+        "output_data": {
+          "type_name": "product",
+          "state": "constructed",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Newly constructed product",
+          "domain": null,
+          "required": true
+        }
+      },
+      "slots": {},
+      "code_template": "{output_var} = itertools.product()",
+      "dependencies": [
+        "import itertools"
+      ],
+      "semantic_tags": [
+        "product"
+      ],
+      "keywords": [
+        "product"
+      ],
+      "docstring": "Cartesian product of input iterables.  Equivalent to nested for-loops.",
+      "enrichment_source": null,
+      "enriched_at": null,
+      "domain_name": "itertools",
+      "node_type": "constructor",
+      "node_role": "source",
+      "verified": true,
+      "source_priority": 50
+    },
+    {
+      "cell_id": "ITERTOOLS_STARMAP_INIT",
+      "stage": 1,
+      "inputs": {
+        "function": {
+          "type_name": "any",
+          "state": "function",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Constructor argument function",
+          "domain": null,
+          "required": true
+        },
+        "iterable": {
+          "type_name": "any",
+          "state": "iterable",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Constructor argument iterable",
+          "domain": null,
+          "required": true
+        }
+      },
+      "outputs": {
+        "output_data": {
+          "type_name": "starmap",
+          "state": "constructed",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Newly constructed starmap",
+          "domain": null,
+          "required": true
+        }
+      },
+      "slots": {},
+      "code_template": "{output_var} = itertools.starmap({function}, {iterable})",
+      "dependencies": [
+        "import itertools"
+      ],
+      "semantic_tags": [
+        "starmap"
+      ],
+      "keywords": [
+        "starmap"
+      ],
+      "docstring": "Return an iterator whose values are returned from the function evaluated with an argument tuple taken from the given sequence.",
+      "enrichment_source": null,
+      "enriched_at": null,
+      "domain_name": "itertools",
+      "node_type": "constructor",
+      "node_role": "source",
+      "verified": true,
+      "source_priority": 50
+    },
+    {
+      "cell_id": "ITERTOOLS_TAKEWHILE_INIT",
+      "stage": 1,
+      "inputs": {
+        "predicate": {
+          "type_name": "any",
+          "state": "predicate",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Constructor argument predicate",
+          "domain": null,
+          "required": true
+        },
+        "iterable": {
+          "type_name": "any",
+          "state": "iterable",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Constructor argument iterable",
+          "domain": null,
+          "required": true
+        }
+      },
+      "outputs": {
+        "output_data": {
+          "type_name": "takewhile",
+          "state": "constructed",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Newly constructed takewhile",
+          "domain": null,
+          "required": true
+        }
+      },
+      "slots": {},
+      "code_template": "{output_var} = itertools.takewhile({predicate}, {iterable})",
+      "dependencies": [
+        "import itertools"
+      ],
+      "semantic_tags": [
+        "takewhile"
+      ],
+      "keywords": [
+        "takewhile"
+      ],
+      "docstring": "Return successive entries from an iterable as long as the predicate evaluates to true for each entry.",
+      "enrichment_source": null,
+      "enriched_at": null,
+      "domain_name": "itertools",
+      "node_type": "constructor",
+      "node_role": "source",
+      "verified": true,
+      "source_priority": 50
+    },
+    {
+      "cell_id": "ITERTOOLS_ZIP_LONGEST_INIT",
+      "stage": 1,
+      "inputs": {
+        "fillvalue": {
+          "type_name": "any",
+          "state": "fillvalue",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Constructor argument fillvalue",
+          "domain": null,
+          "required": false
+        }
+      },
+      "outputs": {
+        "output_data": {
+          "type_name": "zip_longest",
+          "state": "constructed",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Newly constructed zip_longest",
+          "domain": null,
+          "required": true
+        }
+      },
+      "slots": {},
+      "code_template": "{output_var} = itertools.zip_longest()",
+      "dependencies": [
+        "import itertools"
+      ],
+      "semantic_tags": [
+        "longest",
+        "zip",
+        "zip_longest"
+      ],
+      "keywords": [
+        "longest",
+        "zip",
+        "zip_longest"
+      ],
+      "docstring": "Return a zip_longest object whose .__next__() method returns a tuple where",
+      "enrichment_source": null,
+      "enriched_at": null,
+      "domain_name": "itertools",
+      "node_type": "constructor",
+      "node_role": "source",
+      "verified": true,
+      "source_priority": 50
+    },
+    {
+      "cell_id": "ITERTOOLS_TEE",
+      "stage": 2,
+      "inputs": {
+        "iterable": {
+          "type_name": "any",
+          "state": "iterable",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Argument iterable",
+          "domain": null,
+          "required": true
+        },
+        "n": {
+          "type_name": "any",
+          "state": "n",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Argument n",
+          "domain": null,
+          "required": false
+        }
+      },
+      "outputs": {
+        "output_data": {
+          "type_name": "any",
+          "state": "transformed",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Output transformed",
+          "domain": null,
+          "required": true
+        }
+      },
+      "slots": {},
+      "code_template": "{output_var} = itertools.tee({iterable})",
+      "dependencies": [
+        "import itertools"
+      ],
+      "semantic_tags": [
+        "tee"
+      ],
+      "keywords": [
+        "tee"
+      ],
+      "docstring": "Returns a tuple of n independent iterators.",
+      "enrichment_source": null,
+      "enriched_at": null,
+      "domain_name": "itertools",
+      "node_type": "function",
+      "node_role": "transform",
+      "verified": true,
+      "source_priority": 50
+    }
+  ]
+}

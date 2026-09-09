@@ -1,0 +1,2901 @@
+{
+  "domain": "operator",
+  "version": "1.0.0",
+  "cells": [
+    {
+      "cell_id": "OPERATOR_ATTRGETTER_INIT",
+      "stage": 1,
+      "inputs": {
+        "attr": {
+          "type_name": "any",
+          "state": "attr",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Constructor argument attr",
+          "domain": null,
+          "required": true
+        }
+      },
+      "outputs": {
+        "output_data": {
+          "type_name": "attrgetter",
+          "state": "constructed",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Newly constructed attrgetter",
+          "domain": null,
+          "required": true
+        }
+      },
+      "slots": {},
+      "code_template": "{output_var} = operator.attrgetter({attr})",
+      "dependencies": [
+        "import operator"
+      ],
+      "semantic_tags": [
+        "attrgetter"
+      ],
+      "keywords": [
+        "attrgetter"
+      ],
+      "docstring": "Return a callable object that fetches the given attribute(s) from its operand.",
+      "enrichment_source": null,
+      "enriched_at": null,
+      "domain_name": "operator",
+      "node_type": "constructor",
+      "node_role": "source",
+      "verified": true,
+      "source_priority": 50
+    },
+    {
+      "cell_id": "OPERATOR_ITEMGETTER_INIT",
+      "stage": 1,
+      "inputs": {
+        "item": {
+          "type_name": "any",
+          "state": "item",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Constructor argument item",
+          "domain": null,
+          "required": true
+        }
+      },
+      "outputs": {
+        "output_data": {
+          "type_name": "itemgetter",
+          "state": "constructed",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Newly constructed itemgetter",
+          "domain": null,
+          "required": true
+        }
+      },
+      "slots": {},
+      "code_template": "{output_var} = operator.itemgetter({item})",
+      "dependencies": [
+        "import operator"
+      ],
+      "semantic_tags": [
+        "itemgetter"
+      ],
+      "keywords": [
+        "itemgetter"
+      ],
+      "docstring": "Return a callable object that fetches the given item(s) from its operand.",
+      "enrichment_source": null,
+      "enriched_at": null,
+      "domain_name": "operator",
+      "node_type": "constructor",
+      "node_role": "source",
+      "verified": true,
+      "source_priority": 50
+    },
+    {
+      "cell_id": "OPERATOR_METHODCALLER_INIT",
+      "stage": 1,
+      "inputs": {
+        "name": {
+          "type_name": "any",
+          "state": "name",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Constructor argument name",
+          "domain": null,
+          "required": true
+        }
+      },
+      "outputs": {
+        "output_data": {
+          "type_name": "methodcaller",
+          "state": "constructed",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Newly constructed methodcaller",
+          "domain": null,
+          "required": true
+        }
+      },
+      "slots": {},
+      "code_template": "{output_var} = operator.methodcaller({name})",
+      "dependencies": [
+        "import operator"
+      ],
+      "semantic_tags": [
+        "methodcaller"
+      ],
+      "keywords": [
+        "methodcaller"
+      ],
+      "docstring": "Return a callable object that calls the given method on its operand.",
+      "enrichment_source": null,
+      "enriched_at": null,
+      "domain_name": "operator",
+      "node_type": "constructor",
+      "node_role": "source",
+      "verified": true,
+      "source_priority": 50
+    },
+    {
+      "cell_id": "OPERATOR_ABS",
+      "stage": 2,
+      "inputs": {
+        "a": {
+          "type_name": "any",
+          "state": "a",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Argument a",
+          "domain": null,
+          "required": true
+        }
+      },
+      "outputs": {
+        "output_data": {
+          "type_name": "any",
+          "state": "transformed",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Output transformed",
+          "domain": null,
+          "required": true
+        }
+      },
+      "slots": {},
+      "code_template": "{output_var} = operator.abs({a})",
+      "dependencies": [
+        "import operator"
+      ],
+      "semantic_tags": [
+        "abs"
+      ],
+      "keywords": [
+        "abs"
+      ],
+      "docstring": "Same as abs(a).",
+      "enrichment_source": null,
+      "enriched_at": null,
+      "domain_name": "operator",
+      "node_type": "function",
+      "node_role": "transform",
+      "verified": true,
+      "source_priority": 50
+    },
+    {
+      "cell_id": "OPERATOR_ADD",
+      "stage": 2,
+      "inputs": {
+        "a": {
+          "type_name": "any",
+          "state": "a",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Argument a",
+          "domain": null,
+          "required": true
+        },
+        "b": {
+          "type_name": "any",
+          "state": "b",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Argument b",
+          "domain": null,
+          "required": true
+        }
+      },
+      "outputs": {
+        "output_data": {
+          "type_name": "any",
+          "state": "transformed",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Output transformed",
+          "domain": null,
+          "required": true
+        }
+      },
+      "slots": {},
+      "code_template": "{output_var} = operator.add({a}, {b})",
+      "dependencies": [
+        "import operator"
+      ],
+      "semantic_tags": [
+        "add"
+      ],
+      "keywords": [
+        "add"
+      ],
+      "docstring": "Same as a + b.",
+      "enrichment_source": null,
+      "enriched_at": null,
+      "domain_name": "operator",
+      "node_type": "function",
+      "node_role": "transform",
+      "verified": true,
+      "source_priority": 50
+    },
+    {
+      "cell_id": "OPERATOR_AND_",
+      "stage": 2,
+      "inputs": {
+        "a": {
+          "type_name": "any",
+          "state": "a",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Argument a",
+          "domain": null,
+          "required": true
+        },
+        "b": {
+          "type_name": "any",
+          "state": "b",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Argument b",
+          "domain": null,
+          "required": true
+        }
+      },
+      "outputs": {
+        "output_data": {
+          "type_name": "any",
+          "state": "transformed",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Output transformed",
+          "domain": null,
+          "required": true
+        }
+      },
+      "slots": {},
+      "code_template": "{output_var} = operator.and_({a}, {b})",
+      "dependencies": [
+        "import operator"
+      ],
+      "semantic_tags": [
+        "and",
+        "and_"
+      ],
+      "keywords": [
+        "and",
+        "and_"
+      ],
+      "docstring": "Same as a & b.",
+      "enrichment_source": null,
+      "enriched_at": null,
+      "domain_name": "operator",
+      "node_type": "function",
+      "node_role": "transform",
+      "verified": true,
+      "source_priority": 50
+    },
+    {
+      "cell_id": "OPERATOR_CALL",
+      "stage": 2,
+      "inputs": {
+        "obj": {
+          "type_name": "any",
+          "state": "obj",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Argument obj",
+          "domain": null,
+          "required": true
+        }
+      },
+      "outputs": {
+        "output_data": {
+          "type_name": "any",
+          "state": "transformed",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Output transformed",
+          "domain": null,
+          "required": true
+        }
+      },
+      "slots": {},
+      "code_template": "{output_var} = operator.call({obj})",
+      "dependencies": [
+        "import operator"
+      ],
+      "semantic_tags": [
+        "call"
+      ],
+      "keywords": [
+        "call"
+      ],
+      "docstring": "Same as obj(*args, **kwargs).",
+      "enrichment_source": null,
+      "enriched_at": null,
+      "domain_name": "operator",
+      "node_type": "function",
+      "node_role": "transform",
+      "verified": true,
+      "source_priority": 50
+    },
+    {
+      "cell_id": "OPERATOR_CONCAT",
+      "stage": 2,
+      "inputs": {
+        "a": {
+          "type_name": "any",
+          "state": "a",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Argument a",
+          "domain": null,
+          "required": true
+        },
+        "b": {
+          "type_name": "any",
+          "state": "b",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Argument b",
+          "domain": null,
+          "required": true
+        }
+      },
+      "outputs": {
+        "output_data": {
+          "type_name": "any",
+          "state": "transformed",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Output transformed",
+          "domain": null,
+          "required": true
+        }
+      },
+      "slots": {},
+      "code_template": "{output_var} = operator.concat({a}, {b})",
+      "dependencies": [
+        "import operator"
+      ],
+      "semantic_tags": [
+        "concat"
+      ],
+      "keywords": [
+        "concat"
+      ],
+      "docstring": "Same as a + b, for a and b sequences.",
+      "enrichment_source": null,
+      "enriched_at": null,
+      "domain_name": "operator",
+      "node_type": "function",
+      "node_role": "transform",
+      "verified": true,
+      "source_priority": 50
+    },
+    {
+      "cell_id": "OPERATOR_CONTAINS",
+      "stage": 2,
+      "inputs": {
+        "a": {
+          "type_name": "any",
+          "state": "a",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Argument a",
+          "domain": null,
+          "required": true
+        },
+        "b": {
+          "type_name": "any",
+          "state": "b",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Argument b",
+          "domain": null,
+          "required": true
+        }
+      },
+      "outputs": {
+        "output_data": {
+          "type_name": "any",
+          "state": "transformed",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Output transformed",
+          "domain": null,
+          "required": true
+        }
+      },
+      "slots": {},
+      "code_template": "{output_var} = operator.contains({a}, {b})",
+      "dependencies": [
+        "import operator"
+      ],
+      "semantic_tags": [
+        "contains"
+      ],
+      "keywords": [
+        "contains"
+      ],
+      "docstring": "Same as b in a (note reversed operands).",
+      "enrichment_source": null,
+      "enriched_at": null,
+      "domain_name": "operator",
+      "node_type": "function",
+      "node_role": "transform",
+      "verified": true,
+      "source_priority": 50
+    },
+    {
+      "cell_id": "OPERATOR_COUNTOF",
+      "stage": 2,
+      "inputs": {
+        "a": {
+          "type_name": "any",
+          "state": "a",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Argument a",
+          "domain": null,
+          "required": true
+        },
+        "b": {
+          "type_name": "any",
+          "state": "b",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Argument b",
+          "domain": null,
+          "required": true
+        }
+      },
+      "outputs": {
+        "output_data": {
+          "type_name": "any",
+          "state": "transformed",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Output transformed",
+          "domain": null,
+          "required": true
+        }
+      },
+      "slots": {},
+      "code_template": "{output_var} = operator.countOf({a}, {b})",
+      "dependencies": [
+        "import operator"
+      ],
+      "semantic_tags": [
+        "count",
+        "countof",
+        "of"
+      ],
+      "keywords": [
+        "count",
+        "countof",
+        "of"
+      ],
+      "docstring": "Return the number of items in a which are, or which equal, b.",
+      "enrichment_source": null,
+      "enriched_at": null,
+      "domain_name": "operator",
+      "node_type": "function",
+      "node_role": "transform",
+      "verified": true,
+      "source_priority": 50
+    },
+    {
+      "cell_id": "OPERATOR_DELITEM",
+      "stage": 2,
+      "inputs": {
+        "a": {
+          "type_name": "any",
+          "state": "a",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Argument a",
+          "domain": null,
+          "required": true
+        },
+        "b": {
+          "type_name": "any",
+          "state": "b",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Argument b",
+          "domain": null,
+          "required": true
+        }
+      },
+      "outputs": {
+        "output_data": {
+          "type_name": "any",
+          "state": "transformed",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Output transformed",
+          "domain": null,
+          "required": true
+        }
+      },
+      "slots": {},
+      "code_template": "{output_var} = operator.delitem({a}, {b})",
+      "dependencies": [
+        "import operator"
+      ],
+      "semantic_tags": [
+        "delitem"
+      ],
+      "keywords": [
+        "delitem"
+      ],
+      "docstring": "Same as del a[b].",
+      "enrichment_source": null,
+      "enriched_at": null,
+      "domain_name": "operator",
+      "node_type": "function",
+      "node_role": "transform",
+      "verified": true,
+      "source_priority": 50
+    },
+    {
+      "cell_id": "OPERATOR_EQ",
+      "stage": 2,
+      "inputs": {
+        "a": {
+          "type_name": "any",
+          "state": "a",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Argument a",
+          "domain": null,
+          "required": true
+        },
+        "b": {
+          "type_name": "any",
+          "state": "b",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Argument b",
+          "domain": null,
+          "required": true
+        }
+      },
+      "outputs": {
+        "output_data": {
+          "type_name": "any",
+          "state": "transformed",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Output transformed",
+          "domain": null,
+          "required": true
+        }
+      },
+      "slots": {},
+      "code_template": "{output_var} = operator.eq({a}, {b})",
+      "dependencies": [
+        "import operator"
+      ],
+      "semantic_tags": [
+        "eq"
+      ],
+      "keywords": [
+        "eq"
+      ],
+      "docstring": "Same as a == b.",
+      "enrichment_source": null,
+      "enriched_at": null,
+      "domain_name": "operator",
+      "node_type": "function",
+      "node_role": "transform",
+      "verified": true,
+      "source_priority": 50
+    },
+    {
+      "cell_id": "OPERATOR_FLOORDIV",
+      "stage": 2,
+      "inputs": {
+        "a": {
+          "type_name": "any",
+          "state": "a",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Argument a",
+          "domain": null,
+          "required": true
+        },
+        "b": {
+          "type_name": "any",
+          "state": "b",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Argument b",
+          "domain": null,
+          "required": true
+        }
+      },
+      "outputs": {
+        "output_data": {
+          "type_name": "any",
+          "state": "transformed",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Output transformed",
+          "domain": null,
+          "required": true
+        }
+      },
+      "slots": {},
+      "code_template": "{output_var} = operator.floordiv({a}, {b})",
+      "dependencies": [
+        "import operator"
+      ],
+      "semantic_tags": [
+        "floordiv"
+      ],
+      "keywords": [
+        "floordiv"
+      ],
+      "docstring": "Same as a // b.",
+      "enrichment_source": null,
+      "enriched_at": null,
+      "domain_name": "operator",
+      "node_type": "function",
+      "node_role": "transform",
+      "verified": true,
+      "source_priority": 50
+    },
+    {
+      "cell_id": "OPERATOR_GE",
+      "stage": 2,
+      "inputs": {
+        "a": {
+          "type_name": "any",
+          "state": "a",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Argument a",
+          "domain": null,
+          "required": true
+        },
+        "b": {
+          "type_name": "any",
+          "state": "b",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Argument b",
+          "domain": null,
+          "required": true
+        }
+      },
+      "outputs": {
+        "output_data": {
+          "type_name": "any",
+          "state": "transformed",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Output transformed",
+          "domain": null,
+          "required": true
+        }
+      },
+      "slots": {},
+      "code_template": "{output_var} = operator.ge({a}, {b})",
+      "dependencies": [
+        "import operator"
+      ],
+      "semantic_tags": [
+        "ge"
+      ],
+      "keywords": [
+        "ge"
+      ],
+      "docstring": "Same as a >= b.",
+      "enrichment_source": null,
+      "enriched_at": null,
+      "domain_name": "operator",
+      "node_type": "function",
+      "node_role": "transform",
+      "verified": true,
+      "source_priority": 50
+    },
+    {
+      "cell_id": "OPERATOR_GETITEM",
+      "stage": 2,
+      "inputs": {
+        "a": {
+          "type_name": "any",
+          "state": "a",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Argument a",
+          "domain": null,
+          "required": true
+        },
+        "b": {
+          "type_name": "any",
+          "state": "b",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Argument b",
+          "domain": null,
+          "required": true
+        }
+      },
+      "outputs": {
+        "output_data": {
+          "type_name": "any",
+          "state": "transformed",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Output transformed",
+          "domain": null,
+          "required": true
+        }
+      },
+      "slots": {},
+      "code_template": "{output_var} = operator.getitem({a}, {b})",
+      "dependencies": [
+        "import operator"
+      ],
+      "semantic_tags": [
+        "getitem"
+      ],
+      "keywords": [
+        "getitem"
+      ],
+      "docstring": "Same as a[b].",
+      "enrichment_source": null,
+      "enriched_at": null,
+      "domain_name": "operator",
+      "node_type": "function",
+      "node_role": "transform",
+      "verified": true,
+      "source_priority": 50
+    },
+    {
+      "cell_id": "OPERATOR_GT",
+      "stage": 2,
+      "inputs": {
+        "a": {
+          "type_name": "any",
+          "state": "a",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Argument a",
+          "domain": null,
+          "required": true
+        },
+        "b": {
+          "type_name": "any",
+          "state": "b",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Argument b",
+          "domain": null,
+          "required": true
+        }
+      },
+      "outputs": {
+        "output_data": {
+          "type_name": "any",
+          "state": "transformed",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Output transformed",
+          "domain": null,
+          "required": true
+        }
+      },
+      "slots": {},
+      "code_template": "{output_var} = operator.gt({a}, {b})",
+      "dependencies": [
+        "import operator"
+      ],
+      "semantic_tags": [
+        "gt"
+      ],
+      "keywords": [
+        "gt"
+      ],
+      "docstring": "Same as a > b.",
+      "enrichment_source": null,
+      "enriched_at": null,
+      "domain_name": "operator",
+      "node_type": "function",
+      "node_role": "transform",
+      "verified": true,
+      "source_priority": 50
+    },
+    {
+      "cell_id": "OPERATOR_IADD",
+      "stage": 2,
+      "inputs": {
+        "a": {
+          "type_name": "any",
+          "state": "a",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Argument a",
+          "domain": null,
+          "required": true
+        },
+        "b": {
+          "type_name": "any",
+          "state": "b",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Argument b",
+          "domain": null,
+          "required": true
+        }
+      },
+      "outputs": {
+        "output_data": {
+          "type_name": "any",
+          "state": "transformed",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Output transformed",
+          "domain": null,
+          "required": true
+        }
+      },
+      "slots": {},
+      "code_template": "{output_var} = operator.iadd({a}, {b})",
+      "dependencies": [
+        "import operator"
+      ],
+      "semantic_tags": [
+        "iadd"
+      ],
+      "keywords": [
+        "iadd"
+      ],
+      "docstring": "Same as a += b.",
+      "enrichment_source": null,
+      "enriched_at": null,
+      "domain_name": "operator",
+      "node_type": "function",
+      "node_role": "transform",
+      "verified": true,
+      "source_priority": 50
+    },
+    {
+      "cell_id": "OPERATOR_IAND",
+      "stage": 2,
+      "inputs": {
+        "a": {
+          "type_name": "any",
+          "state": "a",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Argument a",
+          "domain": null,
+          "required": true
+        },
+        "b": {
+          "type_name": "any",
+          "state": "b",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Argument b",
+          "domain": null,
+          "required": true
+        }
+      },
+      "outputs": {
+        "output_data": {
+          "type_name": "any",
+          "state": "transformed",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Output transformed",
+          "domain": null,
+          "required": true
+        }
+      },
+      "slots": {},
+      "code_template": "{output_var} = operator.iand({a}, {b})",
+      "dependencies": [
+        "import operator"
+      ],
+      "semantic_tags": [
+        "iand"
+      ],
+      "keywords": [
+        "iand"
+      ],
+      "docstring": "Same as a &= b.",
+      "enrichment_source": null,
+      "enriched_at": null,
+      "domain_name": "operator",
+      "node_type": "function",
+      "node_role": "transform",
+      "verified": true,
+      "source_priority": 50
+    },
+    {
+      "cell_id": "OPERATOR_ICONCAT",
+      "stage": 2,
+      "inputs": {
+        "a": {
+          "type_name": "any",
+          "state": "a",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Argument a",
+          "domain": null,
+          "required": true
+        },
+        "b": {
+          "type_name": "any",
+          "state": "b",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Argument b",
+          "domain": null,
+          "required": true
+        }
+      },
+      "outputs": {
+        "output_data": {
+          "type_name": "any",
+          "state": "transformed",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Output transformed",
+          "domain": null,
+          "required": true
+        }
+      },
+      "slots": {},
+      "code_template": "{output_var} = operator.iconcat({a}, {b})",
+      "dependencies": [
+        "import operator"
+      ],
+      "semantic_tags": [
+        "iconcat"
+      ],
+      "keywords": [
+        "iconcat"
+      ],
+      "docstring": "Same as a += b, for a and b sequences.",
+      "enrichment_source": null,
+      "enriched_at": null,
+      "domain_name": "operator",
+      "node_type": "function",
+      "node_role": "transform",
+      "verified": true,
+      "source_priority": 50
+    },
+    {
+      "cell_id": "OPERATOR_IFLOORDIV",
+      "stage": 2,
+      "inputs": {
+        "a": {
+          "type_name": "any",
+          "state": "a",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Argument a",
+          "domain": null,
+          "required": true
+        },
+        "b": {
+          "type_name": "any",
+          "state": "b",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Argument b",
+          "domain": null,
+          "required": true
+        }
+      },
+      "outputs": {
+        "output_data": {
+          "type_name": "any",
+          "state": "transformed",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Output transformed",
+          "domain": null,
+          "required": true
+        }
+      },
+      "slots": {},
+      "code_template": "{output_var} = operator.ifloordiv({a}, {b})",
+      "dependencies": [
+        "import operator"
+      ],
+      "semantic_tags": [
+        "ifloordiv"
+      ],
+      "keywords": [
+        "ifloordiv"
+      ],
+      "docstring": "Same as a //= b.",
+      "enrichment_source": null,
+      "enriched_at": null,
+      "domain_name": "operator",
+      "node_type": "function",
+      "node_role": "transform",
+      "verified": true,
+      "source_priority": 50
+    },
+    {
+      "cell_id": "OPERATOR_ILSHIFT",
+      "stage": 2,
+      "inputs": {
+        "a": {
+          "type_name": "any",
+          "state": "a",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Argument a",
+          "domain": null,
+          "required": true
+        },
+        "b": {
+          "type_name": "any",
+          "state": "b",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Argument b",
+          "domain": null,
+          "required": true
+        }
+      },
+      "outputs": {
+        "output_data": {
+          "type_name": "any",
+          "state": "transformed",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Output transformed",
+          "domain": null,
+          "required": true
+        }
+      },
+      "slots": {},
+      "code_template": "{output_var} = operator.ilshift({a}, {b})",
+      "dependencies": [
+        "import operator"
+      ],
+      "semantic_tags": [
+        "ilshift"
+      ],
+      "keywords": [
+        "ilshift"
+      ],
+      "docstring": "Same as a <<= b.",
+      "enrichment_source": null,
+      "enriched_at": null,
+      "domain_name": "operator",
+      "node_type": "function",
+      "node_role": "transform",
+      "verified": true,
+      "source_priority": 50
+    },
+    {
+      "cell_id": "OPERATOR_IMATMUL",
+      "stage": 2,
+      "inputs": {
+        "a": {
+          "type_name": "any",
+          "state": "a",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Argument a",
+          "domain": null,
+          "required": true
+        },
+        "b": {
+          "type_name": "any",
+          "state": "b",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Argument b",
+          "domain": null,
+          "required": true
+        }
+      },
+      "outputs": {
+        "output_data": {
+          "type_name": "any",
+          "state": "transformed",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Output transformed",
+          "domain": null,
+          "required": true
+        }
+      },
+      "slots": {},
+      "code_template": "{output_var} = operator.imatmul({a}, {b})",
+      "dependencies": [
+        "import operator"
+      ],
+      "semantic_tags": [
+        "imatmul"
+      ],
+      "keywords": [
+        "imatmul"
+      ],
+      "docstring": "Same as a @= b.",
+      "enrichment_source": null,
+      "enriched_at": null,
+      "domain_name": "operator",
+      "node_type": "function",
+      "node_role": "transform",
+      "verified": true,
+      "source_priority": 50
+    },
+    {
+      "cell_id": "OPERATOR_IMOD",
+      "stage": 2,
+      "inputs": {
+        "a": {
+          "type_name": "any",
+          "state": "a",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Argument a",
+          "domain": null,
+          "required": true
+        },
+        "b": {
+          "type_name": "any",
+          "state": "b",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Argument b",
+          "domain": null,
+          "required": true
+        }
+      },
+      "outputs": {
+        "output_data": {
+          "type_name": "any",
+          "state": "transformed",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Output transformed",
+          "domain": null,
+          "required": true
+        }
+      },
+      "slots": {},
+      "code_template": "{output_var} = operator.imod({a}, {b})",
+      "dependencies": [
+        "import operator"
+      ],
+      "semantic_tags": [
+        "imod"
+      ],
+      "keywords": [
+        "imod"
+      ],
+      "docstring": "Same as a %= b.",
+      "enrichment_source": null,
+      "enriched_at": null,
+      "domain_name": "operator",
+      "node_type": "function",
+      "node_role": "transform",
+      "verified": true,
+      "source_priority": 50
+    },
+    {
+      "cell_id": "OPERATOR_IMUL",
+      "stage": 2,
+      "inputs": {
+        "a": {
+          "type_name": "any",
+          "state": "a",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Argument a",
+          "domain": null,
+          "required": true
+        },
+        "b": {
+          "type_name": "any",
+          "state": "b",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Argument b",
+          "domain": null,
+          "required": true
+        }
+      },
+      "outputs": {
+        "output_data": {
+          "type_name": "any",
+          "state": "transformed",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Output transformed",
+          "domain": null,
+          "required": true
+        }
+      },
+      "slots": {},
+      "code_template": "{output_var} = operator.imul({a}, {b})",
+      "dependencies": [
+        "import operator"
+      ],
+      "semantic_tags": [
+        "imul"
+      ],
+      "keywords": [
+        "imul"
+      ],
+      "docstring": "Same as a *= b.",
+      "enrichment_source": null,
+      "enriched_at": null,
+      "domain_name": "operator",
+      "node_type": "function",
+      "node_role": "transform",
+      "verified": true,
+      "source_priority": 50
+    },
+    {
+      "cell_id": "OPERATOR_INDEX",
+      "stage": 2,
+      "inputs": {
+        "a": {
+          "type_name": "any",
+          "state": "a",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Argument a",
+          "domain": null,
+          "required": true
+        }
+      },
+      "outputs": {
+        "output_data": {
+          "type_name": "any",
+          "state": "transformed",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Output transformed",
+          "domain": null,
+          "required": true
+        }
+      },
+      "slots": {},
+      "code_template": "{output_var} = operator.index({a})",
+      "dependencies": [
+        "import operator"
+      ],
+      "semantic_tags": [
+        "index"
+      ],
+      "keywords": [
+        "index"
+      ],
+      "docstring": "Same as a.__index__()",
+      "enrichment_source": null,
+      "enriched_at": null,
+      "domain_name": "operator",
+      "node_type": "function",
+      "node_role": "transform",
+      "verified": true,
+      "source_priority": 50
+    },
+    {
+      "cell_id": "OPERATOR_INDEXOF",
+      "stage": 2,
+      "inputs": {
+        "a": {
+          "type_name": "any",
+          "state": "a",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Argument a",
+          "domain": null,
+          "required": true
+        },
+        "b": {
+          "type_name": "any",
+          "state": "b",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Argument b",
+          "domain": null,
+          "required": true
+        }
+      },
+      "outputs": {
+        "output_data": {
+          "type_name": "any",
+          "state": "transformed",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Output transformed",
+          "domain": null,
+          "required": true
+        }
+      },
+      "slots": {},
+      "code_template": "{output_var} = operator.indexOf({a}, {b})",
+      "dependencies": [
+        "import operator"
+      ],
+      "semantic_tags": [
+        "index",
+        "indexof",
+        "of"
+      ],
+      "keywords": [
+        "index",
+        "indexof",
+        "of"
+      ],
+      "docstring": "Return the first index of b in a.",
+      "enrichment_source": null,
+      "enriched_at": null,
+      "domain_name": "operator",
+      "node_type": "function",
+      "node_role": "transform",
+      "verified": true,
+      "source_priority": 50
+    },
+    {
+      "cell_id": "OPERATOR_INV",
+      "stage": 2,
+      "inputs": {
+        "a": {
+          "type_name": "any",
+          "state": "a",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Argument a",
+          "domain": null,
+          "required": true
+        }
+      },
+      "outputs": {
+        "output_data": {
+          "type_name": "any",
+          "state": "transformed",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Output transformed",
+          "domain": null,
+          "required": true
+        }
+      },
+      "slots": {},
+      "code_template": "{output_var} = operator.inv({a})",
+      "dependencies": [
+        "import operator"
+      ],
+      "semantic_tags": [
+        "inv"
+      ],
+      "keywords": [
+        "inv"
+      ],
+      "docstring": "Same as ~a.",
+      "enrichment_source": null,
+      "enriched_at": null,
+      "domain_name": "operator",
+      "node_type": "function",
+      "node_role": "transform",
+      "verified": true,
+      "source_priority": 50
+    },
+    {
+      "cell_id": "OPERATOR_INVERT",
+      "stage": 2,
+      "inputs": {
+        "a": {
+          "type_name": "any",
+          "state": "a",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Argument a",
+          "domain": null,
+          "required": true
+        }
+      },
+      "outputs": {
+        "output_data": {
+          "type_name": "any",
+          "state": "transformed",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Output transformed",
+          "domain": null,
+          "required": true
+        }
+      },
+      "slots": {},
+      "code_template": "{output_var} = operator.invert({a})",
+      "dependencies": [
+        "import operator"
+      ],
+      "semantic_tags": [
+        "invert"
+      ],
+      "keywords": [
+        "invert"
+      ],
+      "docstring": "Same as ~a.",
+      "enrichment_source": null,
+      "enriched_at": null,
+      "domain_name": "operator",
+      "node_type": "function",
+      "node_role": "transform",
+      "verified": true,
+      "source_priority": 50
+    },
+    {
+      "cell_id": "OPERATOR_IOR",
+      "stage": 2,
+      "inputs": {
+        "a": {
+          "type_name": "any",
+          "state": "a",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Argument a",
+          "domain": null,
+          "required": true
+        },
+        "b": {
+          "type_name": "any",
+          "state": "b",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Argument b",
+          "domain": null,
+          "required": true
+        }
+      },
+      "outputs": {
+        "output_data": {
+          "type_name": "any",
+          "state": "transformed",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Output transformed",
+          "domain": null,
+          "required": true
+        }
+      },
+      "slots": {},
+      "code_template": "{output_var} = operator.ior({a}, {b})",
+      "dependencies": [
+        "import operator"
+      ],
+      "semantic_tags": [
+        "ior"
+      ],
+      "keywords": [
+        "ior"
+      ],
+      "docstring": "Same as a |= b.",
+      "enrichment_source": null,
+      "enriched_at": null,
+      "domain_name": "operator",
+      "node_type": "function",
+      "node_role": "transform",
+      "verified": true,
+      "source_priority": 50
+    },
+    {
+      "cell_id": "OPERATOR_IPOW",
+      "stage": 2,
+      "inputs": {
+        "a": {
+          "type_name": "any",
+          "state": "a",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Argument a",
+          "domain": null,
+          "required": true
+        },
+        "b": {
+          "type_name": "any",
+          "state": "b",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Argument b",
+          "domain": null,
+          "required": true
+        }
+      },
+      "outputs": {
+        "output_data": {
+          "type_name": "any",
+          "state": "transformed",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Output transformed",
+          "domain": null,
+          "required": true
+        }
+      },
+      "slots": {},
+      "code_template": "{output_var} = operator.ipow({a}, {b})",
+      "dependencies": [
+        "import operator"
+      ],
+      "semantic_tags": [
+        "ipow"
+      ],
+      "keywords": [
+        "ipow"
+      ],
+      "docstring": "Same as a **= b.",
+      "enrichment_source": null,
+      "enriched_at": null,
+      "domain_name": "operator",
+      "node_type": "function",
+      "node_role": "transform",
+      "verified": true,
+      "source_priority": 50
+    },
+    {
+      "cell_id": "OPERATOR_IRSHIFT",
+      "stage": 2,
+      "inputs": {
+        "a": {
+          "type_name": "any",
+          "state": "a",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Argument a",
+          "domain": null,
+          "required": true
+        },
+        "b": {
+          "type_name": "any",
+          "state": "b",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Argument b",
+          "domain": null,
+          "required": true
+        }
+      },
+      "outputs": {
+        "output_data": {
+          "type_name": "any",
+          "state": "transformed",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Output transformed",
+          "domain": null,
+          "required": true
+        }
+      },
+      "slots": {},
+      "code_template": "{output_var} = operator.irshift({a}, {b})",
+      "dependencies": [
+        "import operator"
+      ],
+      "semantic_tags": [
+        "irshift"
+      ],
+      "keywords": [
+        "irshift"
+      ],
+      "docstring": "Same as a >>= b.",
+      "enrichment_source": null,
+      "enriched_at": null,
+      "domain_name": "operator",
+      "node_type": "function",
+      "node_role": "transform",
+      "verified": true,
+      "source_priority": 50
+    },
+    {
+      "cell_id": "OPERATOR_IS_",
+      "stage": 2,
+      "inputs": {
+        "a": {
+          "type_name": "any",
+          "state": "a",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Argument a",
+          "domain": null,
+          "required": true
+        },
+        "b": {
+          "type_name": "any",
+          "state": "b",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Argument b",
+          "domain": null,
+          "required": true
+        }
+      },
+      "outputs": {
+        "output_data": {
+          "type_name": "any",
+          "state": "transformed",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Output transformed",
+          "domain": null,
+          "required": true
+        }
+      },
+      "slots": {},
+      "code_template": "{output_var} = operator.is_({a}, {b})",
+      "dependencies": [
+        "import operator"
+      ],
+      "semantic_tags": [
+        "is",
+        "is_"
+      ],
+      "keywords": [
+        "is",
+        "is_"
+      ],
+      "docstring": "Same as a is b.",
+      "enrichment_source": null,
+      "enriched_at": null,
+      "domain_name": "operator",
+      "node_type": "function",
+      "node_role": "transform",
+      "verified": true,
+      "source_priority": 50
+    },
+    {
+      "cell_id": "OPERATOR_IS_NOT",
+      "stage": 2,
+      "inputs": {
+        "a": {
+          "type_name": "any",
+          "state": "a",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Argument a",
+          "domain": null,
+          "required": true
+        },
+        "b": {
+          "type_name": "any",
+          "state": "b",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Argument b",
+          "domain": null,
+          "required": true
+        }
+      },
+      "outputs": {
+        "output_data": {
+          "type_name": "any",
+          "state": "transformed",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Output transformed",
+          "domain": null,
+          "required": true
+        }
+      },
+      "slots": {},
+      "code_template": "{output_var} = operator.is_not({a}, {b})",
+      "dependencies": [
+        "import operator"
+      ],
+      "semantic_tags": [
+        "is",
+        "is_not",
+        "not"
+      ],
+      "keywords": [
+        "is",
+        "is_not",
+        "not"
+      ],
+      "docstring": "Same as a is not b.",
+      "enrichment_source": null,
+      "enriched_at": null,
+      "domain_name": "operator",
+      "node_type": "function",
+      "node_role": "transform",
+      "verified": true,
+      "source_priority": 50
+    },
+    {
+      "cell_id": "OPERATOR_ISUB",
+      "stage": 2,
+      "inputs": {
+        "a": {
+          "type_name": "any",
+          "state": "a",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Argument a",
+          "domain": null,
+          "required": true
+        },
+        "b": {
+          "type_name": "any",
+          "state": "b",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Argument b",
+          "domain": null,
+          "required": true
+        }
+      },
+      "outputs": {
+        "output_data": {
+          "type_name": "any",
+          "state": "transformed",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Output transformed",
+          "domain": null,
+          "required": true
+        }
+      },
+      "slots": {},
+      "code_template": "{output_var} = operator.isub({a}, {b})",
+      "dependencies": [
+        "import operator"
+      ],
+      "semantic_tags": [
+        "isub"
+      ],
+      "keywords": [
+        "isub"
+      ],
+      "docstring": "Same as a -= b.",
+      "enrichment_source": null,
+      "enriched_at": null,
+      "domain_name": "operator",
+      "node_type": "function",
+      "node_role": "transform",
+      "verified": true,
+      "source_priority": 50
+    },
+    {
+      "cell_id": "OPERATOR_ITRUEDIV",
+      "stage": 2,
+      "inputs": {
+        "a": {
+          "type_name": "any",
+          "state": "a",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Argument a",
+          "domain": null,
+          "required": true
+        },
+        "b": {
+          "type_name": "any",
+          "state": "b",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Argument b",
+          "domain": null,
+          "required": true
+        }
+      },
+      "outputs": {
+        "output_data": {
+          "type_name": "any",
+          "state": "transformed",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Output transformed",
+          "domain": null,
+          "required": true
+        }
+      },
+      "slots": {},
+      "code_template": "{output_var} = operator.itruediv({a}, {b})",
+      "dependencies": [
+        "import operator"
+      ],
+      "semantic_tags": [
+        "itruediv"
+      ],
+      "keywords": [
+        "itruediv"
+      ],
+      "docstring": "Same as a /= b.",
+      "enrichment_source": null,
+      "enriched_at": null,
+      "domain_name": "operator",
+      "node_type": "function",
+      "node_role": "transform",
+      "verified": true,
+      "source_priority": 50
+    },
+    {
+      "cell_id": "OPERATOR_IXOR",
+      "stage": 2,
+      "inputs": {
+        "a": {
+          "type_name": "any",
+          "state": "a",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Argument a",
+          "domain": null,
+          "required": true
+        },
+        "b": {
+          "type_name": "any",
+          "state": "b",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Argument b",
+          "domain": null,
+          "required": true
+        }
+      },
+      "outputs": {
+        "output_data": {
+          "type_name": "any",
+          "state": "transformed",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Output transformed",
+          "domain": null,
+          "required": true
+        }
+      },
+      "slots": {},
+      "code_template": "{output_var} = operator.ixor({a}, {b})",
+      "dependencies": [
+        "import operator"
+      ],
+      "semantic_tags": [
+        "ixor"
+      ],
+      "keywords": [
+        "ixor"
+      ],
+      "docstring": "Same as a ^= b.",
+      "enrichment_source": null,
+      "enriched_at": null,
+      "domain_name": "operator",
+      "node_type": "function",
+      "node_role": "transform",
+      "verified": true,
+      "source_priority": 50
+    },
+    {
+      "cell_id": "OPERATOR_LE",
+      "stage": 2,
+      "inputs": {
+        "a": {
+          "type_name": "any",
+          "state": "a",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Argument a",
+          "domain": null,
+          "required": true
+        },
+        "b": {
+          "type_name": "any",
+          "state": "b",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Argument b",
+          "domain": null,
+          "required": true
+        }
+      },
+      "outputs": {
+        "output_data": {
+          "type_name": "any",
+          "state": "transformed",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Output transformed",
+          "domain": null,
+          "required": true
+        }
+      },
+      "slots": {},
+      "code_template": "{output_var} = operator.le({a}, {b})",
+      "dependencies": [
+        "import operator"
+      ],
+      "semantic_tags": [
+        "le"
+      ],
+      "keywords": [
+        "le"
+      ],
+      "docstring": "Same as a <= b.",
+      "enrichment_source": null,
+      "enriched_at": null,
+      "domain_name": "operator",
+      "node_type": "function",
+      "node_role": "transform",
+      "verified": true,
+      "source_priority": 50
+    },
+    {
+      "cell_id": "OPERATOR_LENGTH_HINT",
+      "stage": 2,
+      "inputs": {
+        "obj": {
+          "type_name": "any",
+          "state": "obj",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Argument obj",
+          "domain": null,
+          "required": true
+        },
+        "default": {
+          "type_name": "any",
+          "state": "default",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Argument default",
+          "domain": null,
+          "required": false
+        }
+      },
+      "outputs": {
+        "output_data": {
+          "type_name": "any",
+          "state": "transformed",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Output transformed",
+          "domain": null,
+          "required": true
+        }
+      },
+      "slots": {},
+      "code_template": "{output_var} = operator.length_hint({obj})",
+      "dependencies": [
+        "import operator"
+      ],
+      "semantic_tags": [
+        "hint",
+        "length",
+        "length_hint"
+      ],
+      "keywords": [
+        "hint",
+        "length",
+        "length_hint"
+      ],
+      "docstring": "Return an estimate of the number of items in obj.",
+      "enrichment_source": null,
+      "enriched_at": null,
+      "domain_name": "operator",
+      "node_type": "function",
+      "node_role": "transform",
+      "verified": true,
+      "source_priority": 50
+    },
+    {
+      "cell_id": "OPERATOR_LSHIFT",
+      "stage": 2,
+      "inputs": {
+        "a": {
+          "type_name": "any",
+          "state": "a",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Argument a",
+          "domain": null,
+          "required": true
+        },
+        "b": {
+          "type_name": "any",
+          "state": "b",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Argument b",
+          "domain": null,
+          "required": true
+        }
+      },
+      "outputs": {
+        "output_data": {
+          "type_name": "any",
+          "state": "transformed",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Output transformed",
+          "domain": null,
+          "required": true
+        }
+      },
+      "slots": {},
+      "code_template": "{output_var} = operator.lshift({a}, {b})",
+      "dependencies": [
+        "import operator"
+      ],
+      "semantic_tags": [
+        "lshift"
+      ],
+      "keywords": [
+        "lshift"
+      ],
+      "docstring": "Same as a << b.",
+      "enrichment_source": null,
+      "enriched_at": null,
+      "domain_name": "operator",
+      "node_type": "function",
+      "node_role": "transform",
+      "verified": true,
+      "source_priority": 50
+    },
+    {
+      "cell_id": "OPERATOR_LT",
+      "stage": 2,
+      "inputs": {
+        "a": {
+          "type_name": "any",
+          "state": "a",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Argument a",
+          "domain": null,
+          "required": true
+        },
+        "b": {
+          "type_name": "any",
+          "state": "b",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Argument b",
+          "domain": null,
+          "required": true
+        }
+      },
+      "outputs": {
+        "output_data": {
+          "type_name": "any",
+          "state": "transformed",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Output transformed",
+          "domain": null,
+          "required": true
+        }
+      },
+      "slots": {},
+      "code_template": "{output_var} = operator.lt({a}, {b})",
+      "dependencies": [
+        "import operator"
+      ],
+      "semantic_tags": [
+        "lt"
+      ],
+      "keywords": [
+        "lt"
+      ],
+      "docstring": "Same as a < b.",
+      "enrichment_source": null,
+      "enriched_at": null,
+      "domain_name": "operator",
+      "node_type": "function",
+      "node_role": "transform",
+      "verified": true,
+      "source_priority": 50
+    },
+    {
+      "cell_id": "OPERATOR_MATMUL",
+      "stage": 2,
+      "inputs": {
+        "a": {
+          "type_name": "any",
+          "state": "a",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Argument a",
+          "domain": null,
+          "required": true
+        },
+        "b": {
+          "type_name": "any",
+          "state": "b",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Argument b",
+          "domain": null,
+          "required": true
+        }
+      },
+      "outputs": {
+        "output_data": {
+          "type_name": "any",
+          "state": "transformed",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Output transformed",
+          "domain": null,
+          "required": true
+        }
+      },
+      "slots": {},
+      "code_template": "{output_var} = operator.matmul({a}, {b})",
+      "dependencies": [
+        "import operator"
+      ],
+      "semantic_tags": [
+        "matmul"
+      ],
+      "keywords": [
+        "matmul"
+      ],
+      "docstring": "Same as a @ b.",
+      "enrichment_source": null,
+      "enriched_at": null,
+      "domain_name": "operator",
+      "node_type": "function",
+      "node_role": "transform",
+      "verified": true,
+      "source_priority": 50
+    },
+    {
+      "cell_id": "OPERATOR_MOD",
+      "stage": 2,
+      "inputs": {
+        "a": {
+          "type_name": "any",
+          "state": "a",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Argument a",
+          "domain": null,
+          "required": true
+        },
+        "b": {
+          "type_name": "any",
+          "state": "b",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Argument b",
+          "domain": null,
+          "required": true
+        }
+      },
+      "outputs": {
+        "output_data": {
+          "type_name": "any",
+          "state": "transformed",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Output transformed",
+          "domain": null,
+          "required": true
+        }
+      },
+      "slots": {},
+      "code_template": "{output_var} = operator.mod({a}, {b})",
+      "dependencies": [
+        "import operator"
+      ],
+      "semantic_tags": [
+        "mod"
+      ],
+      "keywords": [
+        "mod"
+      ],
+      "docstring": "Same as a % b.",
+      "enrichment_source": null,
+      "enriched_at": null,
+      "domain_name": "operator",
+      "node_type": "function",
+      "node_role": "transform",
+      "verified": true,
+      "source_priority": 50
+    },
+    {
+      "cell_id": "OPERATOR_MUL",
+      "stage": 2,
+      "inputs": {
+        "a": {
+          "type_name": "any",
+          "state": "a",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Argument a",
+          "domain": null,
+          "required": true
+        },
+        "b": {
+          "type_name": "any",
+          "state": "b",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Argument b",
+          "domain": null,
+          "required": true
+        }
+      },
+      "outputs": {
+        "output_data": {
+          "type_name": "any",
+          "state": "transformed",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Output transformed",
+          "domain": null,
+          "required": true
+        }
+      },
+      "slots": {},
+      "code_template": "{output_var} = operator.mul({a}, {b})",
+      "dependencies": [
+        "import operator"
+      ],
+      "semantic_tags": [
+        "mul"
+      ],
+      "keywords": [
+        "mul"
+      ],
+      "docstring": "Same as a * b.",
+      "enrichment_source": null,
+      "enriched_at": null,
+      "domain_name": "operator",
+      "node_type": "function",
+      "node_role": "transform",
+      "verified": true,
+      "source_priority": 50
+    },
+    {
+      "cell_id": "OPERATOR_NE",
+      "stage": 2,
+      "inputs": {
+        "a": {
+          "type_name": "any",
+          "state": "a",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Argument a",
+          "domain": null,
+          "required": true
+        },
+        "b": {
+          "type_name": "any",
+          "state": "b",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Argument b",
+          "domain": null,
+          "required": true
+        }
+      },
+      "outputs": {
+        "output_data": {
+          "type_name": "any",
+          "state": "transformed",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Output transformed",
+          "domain": null,
+          "required": true
+        }
+      },
+      "slots": {},
+      "code_template": "{output_var} = operator.ne({a}, {b})",
+      "dependencies": [
+        "import operator"
+      ],
+      "semantic_tags": [
+        "ne"
+      ],
+      "keywords": [
+        "ne"
+      ],
+      "docstring": "Same as a != b.",
+      "enrichment_source": null,
+      "enriched_at": null,
+      "domain_name": "operator",
+      "node_type": "function",
+      "node_role": "transform",
+      "verified": true,
+      "source_priority": 50
+    },
+    {
+      "cell_id": "OPERATOR_NEG",
+      "stage": 2,
+      "inputs": {
+        "a": {
+          "type_name": "any",
+          "state": "a",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Argument a",
+          "domain": null,
+          "required": true
+        }
+      },
+      "outputs": {
+        "output_data": {
+          "type_name": "any",
+          "state": "transformed",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Output transformed",
+          "domain": null,
+          "required": true
+        }
+      },
+      "slots": {},
+      "code_template": "{output_var} = operator.neg({a})",
+      "dependencies": [
+        "import operator"
+      ],
+      "semantic_tags": [
+        "neg"
+      ],
+      "keywords": [
+        "neg"
+      ],
+      "docstring": "Same as -a.",
+      "enrichment_source": null,
+      "enriched_at": null,
+      "domain_name": "operator",
+      "node_type": "function",
+      "node_role": "transform",
+      "verified": true,
+      "source_priority": 50
+    },
+    {
+      "cell_id": "OPERATOR_NOT_",
+      "stage": 2,
+      "inputs": {
+        "a": {
+          "type_name": "any",
+          "state": "a",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Argument a",
+          "domain": null,
+          "required": true
+        }
+      },
+      "outputs": {
+        "output_data": {
+          "type_name": "any",
+          "state": "transformed",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Output transformed",
+          "domain": null,
+          "required": true
+        }
+      },
+      "slots": {},
+      "code_template": "{output_var} = operator.not_({a})",
+      "dependencies": [
+        "import operator"
+      ],
+      "semantic_tags": [
+        "not",
+        "not_"
+      ],
+      "keywords": [
+        "not",
+        "not_"
+      ],
+      "docstring": "Same as not a.",
+      "enrichment_source": null,
+      "enriched_at": null,
+      "domain_name": "operator",
+      "node_type": "function",
+      "node_role": "transform",
+      "verified": true,
+      "source_priority": 50
+    },
+    {
+      "cell_id": "OPERATOR_OR_",
+      "stage": 2,
+      "inputs": {
+        "a": {
+          "type_name": "any",
+          "state": "a",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Argument a",
+          "domain": null,
+          "required": true
+        },
+        "b": {
+          "type_name": "any",
+          "state": "b",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Argument b",
+          "domain": null,
+          "required": true
+        }
+      },
+      "outputs": {
+        "output_data": {
+          "type_name": "any",
+          "state": "transformed",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Output transformed",
+          "domain": null,
+          "required": true
+        }
+      },
+      "slots": {},
+      "code_template": "{output_var} = operator.or_({a}, {b})",
+      "dependencies": [
+        "import operator"
+      ],
+      "semantic_tags": [
+        "or",
+        "or_"
+      ],
+      "keywords": [
+        "or",
+        "or_"
+      ],
+      "docstring": "Same as a | b.",
+      "enrichment_source": null,
+      "enriched_at": null,
+      "domain_name": "operator",
+      "node_type": "function",
+      "node_role": "transform",
+      "verified": true,
+      "source_priority": 50
+    },
+    {
+      "cell_id": "OPERATOR_POS",
+      "stage": 2,
+      "inputs": {
+        "a": {
+          "type_name": "any",
+          "state": "a",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Argument a",
+          "domain": null,
+          "required": true
+        }
+      },
+      "outputs": {
+        "output_data": {
+          "type_name": "any",
+          "state": "transformed",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Output transformed",
+          "domain": null,
+          "required": true
+        }
+      },
+      "slots": {},
+      "code_template": "{output_var} = operator.pos({a})",
+      "dependencies": [
+        "import operator"
+      ],
+      "semantic_tags": [
+        "pos"
+      ],
+      "keywords": [
+        "pos"
+      ],
+      "docstring": "Same as +a.",
+      "enrichment_source": null,
+      "enriched_at": null,
+      "domain_name": "operator",
+      "node_type": "function",
+      "node_role": "transform",
+      "verified": true,
+      "source_priority": 50
+    },
+    {
+      "cell_id": "OPERATOR_POW",
+      "stage": 2,
+      "inputs": {
+        "a": {
+          "type_name": "any",
+          "state": "a",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Argument a",
+          "domain": null,
+          "required": true
+        },
+        "b": {
+          "type_name": "any",
+          "state": "b",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Argument b",
+          "domain": null,
+          "required": true
+        }
+      },
+      "outputs": {
+        "output_data": {
+          "type_name": "any",
+          "state": "transformed",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Output transformed",
+          "domain": null,
+          "required": true
+        }
+      },
+      "slots": {},
+      "code_template": "{output_var} = operator.pow({a}, {b})",
+      "dependencies": [
+        "import operator"
+      ],
+      "semantic_tags": [
+        "pow"
+      ],
+      "keywords": [
+        "pow"
+      ],
+      "docstring": "Same as a ** b.",
+      "enrichment_source": null,
+      "enriched_at": null,
+      "domain_name": "operator",
+      "node_type": "function",
+      "node_role": "transform",
+      "verified": true,
+      "source_priority": 50
+    },
+    {
+      "cell_id": "OPERATOR_RSHIFT",
+      "stage": 2,
+      "inputs": {
+        "a": {
+          "type_name": "any",
+          "state": "a",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Argument a",
+          "domain": null,
+          "required": true
+        },
+        "b": {
+          "type_name": "any",
+          "state": "b",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Argument b",
+          "domain": null,
+          "required": true
+        }
+      },
+      "outputs": {
+        "output_data": {
+          "type_name": "any",
+          "state": "transformed",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Output transformed",
+          "domain": null,
+          "required": true
+        }
+      },
+      "slots": {},
+      "code_template": "{output_var} = operator.rshift({a}, {b})",
+      "dependencies": [
+        "import operator"
+      ],
+      "semantic_tags": [
+        "rshift"
+      ],
+      "keywords": [
+        "rshift"
+      ],
+      "docstring": "Same as a >> b.",
+      "enrichment_source": null,
+      "enriched_at": null,
+      "domain_name": "operator",
+      "node_type": "function",
+      "node_role": "transform",
+      "verified": true,
+      "source_priority": 50
+    },
+    {
+      "cell_id": "OPERATOR_SETITEM",
+      "stage": 2,
+      "inputs": {
+        "a": {
+          "type_name": "any",
+          "state": "a",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Argument a",
+          "domain": null,
+          "required": true
+        },
+        "b": {
+          "type_name": "any",
+          "state": "b",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Argument b",
+          "domain": null,
+          "required": true
+        },
+        "c": {
+          "type_name": "any",
+          "state": "c",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Argument c",
+          "domain": null,
+          "required": true
+        }
+      },
+      "outputs": {
+        "output_data": {
+          "type_name": "any",
+          "state": "transformed",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Output transformed",
+          "domain": null,
+          "required": true
+        }
+      },
+      "slots": {},
+      "code_template": "{output_var} = operator.setitem({a}, {b}, {c})",
+      "dependencies": [
+        "import operator"
+      ],
+      "semantic_tags": [
+        "setitem"
+      ],
+      "keywords": [
+        "setitem"
+      ],
+      "docstring": "Same as a[b] = c.",
+      "enrichment_source": null,
+      "enriched_at": null,
+      "domain_name": "operator",
+      "node_type": "function",
+      "node_role": "transform",
+      "verified": true,
+      "source_priority": 50
+    },
+    {
+      "cell_id": "OPERATOR_SUB",
+      "stage": 2,
+      "inputs": {
+        "a": {
+          "type_name": "any",
+          "state": "a",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Argument a",
+          "domain": null,
+          "required": true
+        },
+        "b": {
+          "type_name": "any",
+          "state": "b",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Argument b",
+          "domain": null,
+          "required": true
+        }
+      },
+      "outputs": {
+        "output_data": {
+          "type_name": "any",
+          "state": "transformed",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Output transformed",
+          "domain": null,
+          "required": true
+        }
+      },
+      "slots": {},
+      "code_template": "{output_var} = operator.sub({a}, {b})",
+      "dependencies": [
+        "import operator"
+      ],
+      "semantic_tags": [
+        "sub"
+      ],
+      "keywords": [
+        "sub"
+      ],
+      "docstring": "Same as a - b.",
+      "enrichment_source": null,
+      "enriched_at": null,
+      "domain_name": "operator",
+      "node_type": "function",
+      "node_role": "transform",
+      "verified": true,
+      "source_priority": 50
+    },
+    {
+      "cell_id": "OPERATOR_TRUEDIV",
+      "stage": 2,
+      "inputs": {
+        "a": {
+          "type_name": "any",
+          "state": "a",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Argument a",
+          "domain": null,
+          "required": true
+        },
+        "b": {
+          "type_name": "any",
+          "state": "b",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Argument b",
+          "domain": null,
+          "required": true
+        }
+      },
+      "outputs": {
+        "output_data": {
+          "type_name": "any",
+          "state": "transformed",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Output transformed",
+          "domain": null,
+          "required": true
+        }
+      },
+      "slots": {},
+      "code_template": "{output_var} = operator.truediv({a}, {b})",
+      "dependencies": [
+        "import operator"
+      ],
+      "semantic_tags": [
+        "truediv"
+      ],
+      "keywords": [
+        "truediv"
+      ],
+      "docstring": "Same as a / b.",
+      "enrichment_source": null,
+      "enriched_at": null,
+      "domain_name": "operator",
+      "node_type": "function",
+      "node_role": "transform",
+      "verified": true,
+      "source_priority": 50
+    },
+    {
+      "cell_id": "OPERATOR_TRUTH",
+      "stage": 2,
+      "inputs": {
+        "a": {
+          "type_name": "any",
+          "state": "a",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Argument a",
+          "domain": null,
+          "required": true
+        }
+      },
+      "outputs": {
+        "output_data": {
+          "type_name": "any",
+          "state": "transformed",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Output transformed",
+          "domain": null,
+          "required": true
+        }
+      },
+      "slots": {},
+      "code_template": "{output_var} = operator.truth({a})",
+      "dependencies": [
+        "import operator"
+      ],
+      "semantic_tags": [
+        "truth"
+      ],
+      "keywords": [
+        "truth"
+      ],
+      "docstring": "Return True if a is true, False otherwise.",
+      "enrichment_source": null,
+      "enriched_at": null,
+      "domain_name": "operator",
+      "node_type": "function",
+      "node_role": "transform",
+      "verified": true,
+      "source_priority": 50
+    },
+    {
+      "cell_id": "OPERATOR_XOR",
+      "stage": 2,
+      "inputs": {
+        "a": {
+          "type_name": "any",
+          "state": "a",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Argument a",
+          "domain": null,
+          "required": true
+        },
+        "b": {
+          "type_name": "any",
+          "state": "b",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Argument b",
+          "domain": null,
+          "required": true
+        }
+      },
+      "outputs": {
+        "output_data": {
+          "type_name": "any",
+          "state": "transformed",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Output transformed",
+          "domain": null,
+          "required": true
+        }
+      },
+      "slots": {},
+      "code_template": "{output_var} = operator.xor({a}, {b})",
+      "dependencies": [
+        "import operator"
+      ],
+      "semantic_tags": [
+        "xor"
+      ],
+      "keywords": [
+        "xor"
+      ],
+      "docstring": "Same as a ^ b.",
+      "enrichment_source": null,
+      "enriched_at": null,
+      "domain_name": "operator",
+      "node_type": "function",
+      "node_role": "transform",
+      "verified": true,
+      "source_priority": 50
+    }
+  ]
+}

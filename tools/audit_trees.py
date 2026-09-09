@@ -110,11 +110,12 @@ def check_template_wiring(cells: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
     for c in cells:
         template = c.get("code_template", "")
         placeholders = set(re.findall(r"\{(\w+)\}", template))
-        declared = set(c.get("inputs", {}).keys()) | RESERVED_PLACEHOLDERS
+        slots_declared = set(c.get("slots", {}).keys()) if isinstance(c.get("slots"), dict) else set()
+        declared = set(c.get("inputs", {}).keys()) | slots_declared | RESERVED_PLACEHOLDERS
         # dest_path/filepath show up as their own input keys already if declared —
         # only flag as "unmatched" if truly absent from inputs and not reserved.
         unmatched = placeholders - declared
-        unused = declared - placeholders - RESERVED_PLACEHOLDERS
+        unused = declared - placeholders - RESERVED_PLACEHOLDERS - slots_declared
         if unmatched or unused:
             problems.append({
                 "cell_id": c["cell_id"],

@@ -1,0 +1,720 @@
+{
+  "domain": "functools",
+  "version": "1.0.0",
+  "cells": [
+    {
+      "cell_id": "FUNCTOOLS_WRAPPER_ASSIGNMENTS",
+      "stage": 1,
+      "inputs": {},
+      "outputs": {
+        "value": {
+          "type_name": "tuple",
+          "state": "constant",
+          "qualifiers": [],
+          "default_value": null,
+          "description": null,
+          "domain": null,
+          "required": true
+        }
+      },
+      "slots": {},
+      "code_template": "functools.WRAPPER_ASSIGNMENTS",
+      "dependencies": [
+        "import functools"
+      ],
+      "semantic_tags": [
+        "assignments",
+        "wrapper",
+        "wrapper_assignments"
+      ],
+      "keywords": [
+        "assignments",
+        "wrapper",
+        "wrapper_assignments"
+      ],
+      "docstring": "Constant functools.WRAPPER_ASSIGNMENTS",
+      "enrichment_source": null,
+      "enriched_at": null,
+      "domain_name": "functools",
+      "node_type": "constant",
+      "node_role": "constant",
+      "verified": true,
+      "source_priority": 100
+    },
+    {
+      "cell_id": "FUNCTOOLS_WRAPPER_UPDATES",
+      "stage": 1,
+      "inputs": {},
+      "outputs": {
+        "value": {
+          "type_name": "tuple",
+          "state": "constant",
+          "qualifiers": [],
+          "default_value": null,
+          "description": null,
+          "domain": null,
+          "required": true
+        }
+      },
+      "slots": {},
+      "code_template": "functools.WRAPPER_UPDATES",
+      "dependencies": [
+        "import functools"
+      ],
+      "semantic_tags": [
+        "updates",
+        "wrapper",
+        "wrapper_updates"
+      ],
+      "keywords": [
+        "updates",
+        "wrapper",
+        "wrapper_updates"
+      ],
+      "docstring": "Constant functools.WRAPPER_UPDATES",
+      "enrichment_source": null,
+      "enriched_at": null,
+      "domain_name": "functools",
+      "node_type": "constant",
+      "node_role": "constant",
+      "verified": true,
+      "source_priority": 100
+    },
+    {
+      "cell_id": "FUNCTOOLS_CACHED_PROPERTY_INIT",
+      "stage": 1,
+      "inputs": {
+        "func": {
+          "type_name": "any",
+          "state": "func",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Constructor argument func",
+          "domain": null,
+          "required": true
+        }
+      },
+      "outputs": {
+        "output_data": {
+          "type_name": "cached_property",
+          "state": "constructed",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Newly constructed cached_property",
+          "domain": null,
+          "required": true
+        }
+      },
+      "slots": {},
+      "code_template": "{output_var} = functools.cached_property({func})",
+      "dependencies": [
+        "import functools"
+      ],
+      "semantic_tags": [
+        "cached",
+        "cached_property",
+        "property"
+      ],
+      "keywords": [
+        "cached",
+        "cached_property",
+        "property"
+      ],
+      "docstring": "Construct a new cached_property",
+      "enrichment_source": null,
+      "enriched_at": null,
+      "domain_name": "functools",
+      "node_type": "constructor",
+      "node_role": "source",
+      "verified": true,
+      "source_priority": 50
+    },
+    {
+      "cell_id": "FUNCTOOLS_PARTIAL_INIT",
+      "stage": 1,
+      "inputs": {
+        "func": {
+          "type_name": "any",
+          "state": "func",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Constructor argument func",
+          "domain": null,
+          "required": true
+        }
+      },
+      "outputs": {
+        "output_data": {
+          "type_name": "partial",
+          "state": "constructed",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Newly constructed partial",
+          "domain": null,
+          "required": true
+        }
+      },
+      "slots": {},
+      "code_template": "{output_var} = functools.partial({func})",
+      "dependencies": [
+        "import functools"
+      ],
+      "semantic_tags": [
+        "partial"
+      ],
+      "keywords": [
+        "partial"
+      ],
+      "docstring": "Create a new function with partial application of the given arguments",
+      "enrichment_source": null,
+      "enriched_at": null,
+      "domain_name": "functools",
+      "node_type": "constructor",
+      "node_role": "source",
+      "verified": true,
+      "source_priority": 50
+    },
+    {
+      "cell_id": "FUNCTOOLS_PARTIALMETHOD_INIT",
+      "stage": 1,
+      "inputs": {
+        "func": {
+          "type_name": "any",
+          "state": "func",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Constructor argument func",
+          "domain": null,
+          "required": true
+        }
+      },
+      "outputs": {
+        "output_data": {
+          "type_name": "partialmethod",
+          "state": "constructed",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Newly constructed partialmethod",
+          "domain": null,
+          "required": true
+        }
+      },
+      "slots": {},
+      "code_template": "{output_var} = functools.partialmethod({func})",
+      "dependencies": [
+        "import functools"
+      ],
+      "semantic_tags": [
+        "partialmethod"
+      ],
+      "keywords": [
+        "partialmethod"
+      ],
+      "docstring": "Method descriptor with partial application of the given arguments",
+      "enrichment_source": null,
+      "enriched_at": null,
+      "domain_name": "functools",
+      "node_type": "constructor",
+      "node_role": "source",
+      "verified": true,
+      "source_priority": 50
+    },
+    {
+      "cell_id": "FUNCTOOLS_SINGLEDISPATCHMETHOD_INIT",
+      "stage": 1,
+      "inputs": {
+        "func": {
+          "type_name": "any",
+          "state": "func",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Constructor argument func",
+          "domain": null,
+          "required": true
+        }
+      },
+      "outputs": {
+        "output_data": {
+          "type_name": "singledispatchmethod",
+          "state": "constructed",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Newly constructed singledispatchmethod",
+          "domain": null,
+          "required": true
+        }
+      },
+      "slots": {},
+      "code_template": "{output_var} = functools.singledispatchmethod({func})",
+      "dependencies": [
+        "import functools"
+      ],
+      "semantic_tags": [
+        "singledispatchmethod"
+      ],
+      "keywords": [
+        "singledispatchmethod"
+      ],
+      "docstring": "Single-dispatch generic method descriptor.",
+      "enrichment_source": null,
+      "enriched_at": null,
+      "domain_name": "functools",
+      "node_type": "constructor",
+      "node_role": "source",
+      "verified": true,
+      "source_priority": 50
+    },
+    {
+      "cell_id": "FUNCTOOLS_SINGLEDISPATCHMETHOD_REGISTER",
+      "stage": 3,
+      "inputs": {
+        "data": {
+          "type_name": "singledispatchmethod",
+          "state": "any",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Receiver instance of singledispatchmethod",
+          "domain": null,
+          "required": true
+        },
+        "cls": {
+          "type_name": "any",
+          "state": "cls",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Argument cls",
+          "domain": null,
+          "required": true
+        },
+        "method": {
+          "type_name": "any",
+          "state": "method",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Argument method",
+          "domain": null,
+          "required": false
+        }
+      },
+      "outputs": {
+        "output_data": {
+          "type_name": "str",
+          "state": "destination_written",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Output destination_written",
+          "domain": null,
+          "required": true
+        }
+      },
+      "slots": {},
+      "code_template": "{data}.register({cls})\n{output_var} = 'done'",
+      "dependencies": [
+        "import functools"
+      ],
+      "semantic_tags": [
+        "register",
+        "singledispatchmethod"
+      ],
+      "keywords": [
+        "register",
+        "singledispatchmethod"
+      ],
+      "docstring": "generic_method.register(cls, func) -> func",
+      "enrichment_source": null,
+      "enriched_at": null,
+      "domain_name": "functools",
+      "node_type": "sink",
+      "node_role": "sink",
+      "verified": true,
+      "source_priority": 50
+    },
+    {
+      "cell_id": "FUNCTOOLS_CACHE",
+      "stage": 2,
+      "inputs": {
+        "user_function": {
+          "type_name": "any",
+          "state": "user_function",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Argument user_function",
+          "domain": null,
+          "required": true
+        }
+      },
+      "outputs": {
+        "output_data": {
+          "type_name": "any",
+          "state": "transformed",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Output transformed",
+          "domain": null,
+          "required": true
+        }
+      },
+      "slots": {},
+      "code_template": "{output_var} = functools.cache({user_function})",
+      "dependencies": [
+        "import functools"
+      ],
+      "semantic_tags": [
+        "cache"
+      ],
+      "keywords": [
+        "cache"
+      ],
+      "docstring": "Simple lightweight unbounded cache.  Sometimes called \"memoize\".",
+      "enrichment_source": null,
+      "enriched_at": null,
+      "domain_name": "functools",
+      "node_type": "function",
+      "node_role": "transform",
+      "verified": true,
+      "source_priority": 50
+    },
+    {
+      "cell_id": "FUNCTOOLS_CMP_TO_KEY",
+      "stage": 2,
+      "inputs": {
+        "mycmp": {
+          "type_name": "any",
+          "state": "mycmp",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Argument mycmp",
+          "domain": null,
+          "required": true
+        }
+      },
+      "outputs": {
+        "output_data": {
+          "type_name": "any",
+          "state": "transformed",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Output transformed",
+          "domain": null,
+          "required": true
+        }
+      },
+      "slots": {},
+      "code_template": "{output_var} = functools.cmp_to_key({mycmp})",
+      "dependencies": [
+        "import functools"
+      ],
+      "semantic_tags": [
+        "cmp",
+        "cmp_to_key",
+        "key",
+        "to"
+      ],
+      "keywords": [
+        "cmp",
+        "cmp_to_key",
+        "key",
+        "to"
+      ],
+      "docstring": "Convert a cmp= function into a key= function.",
+      "enrichment_source": null,
+      "enriched_at": null,
+      "domain_name": "functools",
+      "node_type": "function",
+      "node_role": "transform",
+      "verified": true,
+      "source_priority": 50
+    },
+    {
+      "cell_id": "FUNCTOOLS_LRU_CACHE",
+      "stage": 2,
+      "inputs": {
+        "maxsize": {
+          "type_name": "any",
+          "state": "maxsize",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Argument maxsize",
+          "domain": null,
+          "required": false
+        },
+        "typed": {
+          "type_name": "any",
+          "state": "typed",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Argument typed",
+          "domain": null,
+          "required": false
+        }
+      },
+      "outputs": {
+        "output_data": {
+          "type_name": "any",
+          "state": "transformed",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Output transformed",
+          "domain": null,
+          "required": true
+        }
+      },
+      "slots": {},
+      "code_template": "{output_var} = functools.lru_cache()",
+      "dependencies": [
+        "import functools"
+      ],
+      "semantic_tags": [
+        "cache",
+        "lru",
+        "lru_cache"
+      ],
+      "keywords": [
+        "cache",
+        "lru",
+        "lru_cache"
+      ],
+      "docstring": "Least-recently-used cache decorator.",
+      "enrichment_source": null,
+      "enriched_at": null,
+      "domain_name": "functools",
+      "node_type": "function",
+      "node_role": "transform",
+      "verified": true,
+      "source_priority": 50
+    },
+    {
+      "cell_id": "FUNCTOOLS_SINGLEDISPATCH",
+      "stage": 2,
+      "inputs": {
+        "func": {
+          "type_name": "any",
+          "state": "func",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Argument func",
+          "domain": null,
+          "required": true
+        }
+      },
+      "outputs": {
+        "output_data": {
+          "type_name": "any",
+          "state": "transformed",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Output transformed",
+          "domain": null,
+          "required": true
+        }
+      },
+      "slots": {},
+      "code_template": "{output_var} = functools.singledispatch({func})",
+      "dependencies": [
+        "import functools"
+      ],
+      "semantic_tags": [
+        "singledispatch"
+      ],
+      "keywords": [
+        "singledispatch"
+      ],
+      "docstring": "Single-dispatch generic function decorator.",
+      "enrichment_source": null,
+      "enriched_at": null,
+      "domain_name": "functools",
+      "node_type": "function",
+      "node_role": "transform",
+      "verified": true,
+      "source_priority": 50
+    },
+    {
+      "cell_id": "FUNCTOOLS_TOTAL_ORDERING",
+      "stage": 2,
+      "inputs": {
+        "cls": {
+          "type_name": "any",
+          "state": "cls",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Argument cls",
+          "domain": null,
+          "required": true
+        }
+      },
+      "outputs": {
+        "output_data": {
+          "type_name": "any",
+          "state": "transformed",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Output transformed",
+          "domain": null,
+          "required": true
+        }
+      },
+      "slots": {},
+      "code_template": "{output_var} = functools.total_ordering({cls})",
+      "dependencies": [
+        "import functools"
+      ],
+      "semantic_tags": [
+        "ordering",
+        "total",
+        "total_ordering"
+      ],
+      "keywords": [
+        "ordering",
+        "total",
+        "total_ordering"
+      ],
+      "docstring": "Class decorator that fills in missing ordering methods",
+      "enrichment_source": null,
+      "enriched_at": null,
+      "domain_name": "functools",
+      "node_type": "function",
+      "node_role": "transform",
+      "verified": true,
+      "source_priority": 50
+    },
+    {
+      "cell_id": "FUNCTOOLS_UPDATE_WRAPPER",
+      "stage": 2,
+      "inputs": {
+        "wrapper": {
+          "type_name": "any",
+          "state": "wrapper",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Argument wrapper",
+          "domain": null,
+          "required": true
+        },
+        "wrapped": {
+          "type_name": "any",
+          "state": "wrapped",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Argument wrapped",
+          "domain": null,
+          "required": true
+        },
+        "assigned": {
+          "type_name": "any",
+          "state": "assigned",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Argument assigned",
+          "domain": null,
+          "required": false
+        },
+        "updated": {
+          "type_name": "any",
+          "state": "updated",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Argument updated",
+          "domain": null,
+          "required": false
+        }
+      },
+      "outputs": {
+        "output_data": {
+          "type_name": "any",
+          "state": "transformed",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Output transformed",
+          "domain": null,
+          "required": true
+        }
+      },
+      "slots": {},
+      "code_template": "{output_var} = functools.update_wrapper({wrapper}, {wrapped})",
+      "dependencies": [
+        "import functools"
+      ],
+      "semantic_tags": [
+        "update",
+        "update_wrapper",
+        "wrapper"
+      ],
+      "keywords": [
+        "update",
+        "update_wrapper",
+        "wrapper"
+      ],
+      "docstring": "Update a wrapper function to look like the wrapped function",
+      "enrichment_source": null,
+      "enriched_at": null,
+      "domain_name": "functools",
+      "node_type": "function",
+      "node_role": "transform",
+      "verified": true,
+      "source_priority": 50
+    },
+    {
+      "cell_id": "FUNCTOOLS_WRAPS",
+      "stage": 2,
+      "inputs": {
+        "wrapped": {
+          "type_name": "any",
+          "state": "wrapped",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Argument wrapped",
+          "domain": null,
+          "required": true
+        },
+        "assigned": {
+          "type_name": "any",
+          "state": "assigned",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Argument assigned",
+          "domain": null,
+          "required": false
+        },
+        "updated": {
+          "type_name": "any",
+          "state": "updated",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Argument updated",
+          "domain": null,
+          "required": false
+        }
+      },
+      "outputs": {
+        "output_data": {
+          "type_name": "any",
+          "state": "transformed",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Output transformed",
+          "domain": null,
+          "required": true
+        }
+      },
+      "slots": {},
+      "code_template": "{output_var} = functools.wraps({wrapped})",
+      "dependencies": [
+        "import functools"
+      ],
+      "semantic_tags": [
+        "wraps"
+      ],
+      "keywords": [
+        "wraps"
+      ],
+      "docstring": "Decorator factory to apply update_wrapper() to a wrapper function",
+      "enrichment_source": null,
+      "enriched_at": null,
+      "domain_name": "functools",
+      "node_type": "function",
+      "node_role": "transform",
+      "verified": true,
+      "source_priority": 50
+    }
+  ]
+}

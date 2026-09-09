@@ -16,7 +16,8 @@ if SRC_DIR not in sys.path:
 
 from unification import (
     unify, unit, bind, Success, Failure, Substitution,
-    UnificationGate, ExecutionContext, AtomicType, TypeVariable, TypestateTerm, TOP
+    UnificationGate, ExecutionContext, AtomicType, TypeVariable, TypestateTerm, TOP,
+    TypeTerm, GenericTypeTerm
 )
 from lattice import (
     TypeRegistry, AlgebraicSignature, PortSignature,
@@ -117,6 +118,52 @@ class TestTypeMonadAndUnification(unittest.TestCase):
         # Wildcard state -> unifies
         self.assertIsNotNone(unify(t1, t_wildcard))
         self.assertIsNotNone(unify(t2, t_wildcard))
+
+    def test_robinson_unification_occurs_check(self):
+        """
+        Occurs check: unifying a type variable with a compound term containing
+        that same variable (e.g. T = Sequence[T]) must fail (return None / bottom).
+        """
+        t_var = TypeTerm.from_string("T")
+        t_compound = TypeTerm.from_string("Sequence[T]")
+
+        # T = Sequence[T] -> None (occurs check failure)
+        s1 = unify(t_var, t_compound)
+        self.assertIsNone(s1)
+
+        # Reverse: Sequence[T] = T -> None
+        s2 = unify(t_compound, t_var)
+        self.assertIsNone(s2)
+
+        # Nested occurs check: T = List[Dict[str, T]] -> None
+        t_nested = TypeTerm.from_string("List[Dict[str, T]]")
+        s3 = unify(t_var, t_nested)
+        self.assertIsNone(s3)
+
+        # Transitive occurs check through existing substitution:
+        # sigma = {A: T}, unify(T, Sequence[A]) -> None
+        sig = Substitution({"A": TypeVariable("T")})
+        s4 = unify(TypeVariable("T"), TypeTerm.from_string("Sequence[A]"), sig)
+        self.assertIsNone(s4)
+
+    def test_cycle_safe_substitution_application(self):
+        """
+        Verifies that cycle-safe apply_substitution prevents RecursionError
+        even if a cyclical substitution is manually constructed or encountered.
+        """
+        # Direct self-cycle: T -> Sequence[T]
+        t_var = TypeVariable("T")
+        t_seq = GenericTypeTerm("Sequence", (t_var,))
+        sub_direct = Substitution({"T": t_seq})
+        res_direct = t_var.apply_substitution(sub_direct)
+        self.assertEqual(str(res_direct), "Sequence[?T]")
+
+        # Mutual cycle: A -> B, B -> A
+        var_a = TypeVariable("A")
+        var_b = TypeVariable("B")
+        sub_mutual = Substitution({"A": var_b, "B": var_a})
+        res_a = var_a.apply_substitution(sub_mutual)
+        self.assertEqual(str(res_a), "?A")
 
 
 class TestDomainAgnosticTreeModularity(unittest.TestCase):

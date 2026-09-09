@@ -103,3 +103,179 @@ RULES:
             raise ValueError(f"Synthesized template for {gap_concept} failed AST parse check.")
 
         return cell_dict
+
+
+def render_cell(
+    cell: Any,
+    bindings: Dict[str, Any],
+    indent_level: int = 0,
+    context: Optional[Any] = None,
+    accumulated_sigma: Optional[Any] = None
+) -> str:
+    """
+    Renders an executable block of Python code for a cell at the specified indentation level.
+    Recursively renders child sub-pipelines in bound_slots at indent_level + 1.
+    Handles invariant accumulator wiring for traced loops and coproduct branch joins.
+    """
+    from unification import UnificationGate
+
+    indent_prefix = "    " * indent_level
+    template = cell.code_template.strip()
+    if not template:
+        return ""
+
+    slots = getattr(cell, "slots", {}) or {}
+    bound_slots = getattr(cell, "bound_slots", {}) or {}
+
+    out_var = bindings.get("output_var", f"_{getattr(cell.primary_output, 'state', None) or 'out'}")
+
+    # Process each declared slot
+    slot_rendered: Dict[str, str] = {}
+    for slot_name in slots.keys():
+        child_nodes = bound_slots.get(slot_name, [])
+        if not child_nodes:
+            slot_rendered[slot_name] = "pass"
+            continue
+
+        if isinstance(child_nodes, str):
+            slot_rendered[slot_name] = child_nodes
+            continue
+
+        if not isinstance(child_nodes, list):
+            child_nodes = [child_nodes]
+
+        child_lines: List[str] = []
+        last_metric = "_res"
+        for child in child_nodes:
+            child_bindings: Dict[str, Any] = {}
+            for p_name, p_sig in child.inputs.items():
+                p_name_lower = p_name.lower()
+                t_name = getattr(getattr(p_sig, "signature", None), "type_name", "") or getattr(p_sig, "type_name", "")
+                if p_name_lower in ("contour", "item", "x", "elem", "element", "row", "val", "data") or t_name == "MatLike":
+                    child_bindings[p_name] = "_item"
+                elif p_name in bindings:
+                    child_bindings[p_name] = bindings[p_name]
+                elif getattr(p_sig, "default_value", None) is not None:
+                    child_bindings[p_name] = str(p_sig.default_value)
+                else:
+                    child_bindings[p_name] = p_name
+
+            child_out_var = f"_{getattr(child.primary_output, 'state', None) or 'res'}"
+            child_bindings["output_var"] = child_out_var
+            last_metric = child_out_var
+
+            child_text = UnificationGate._instantiate_ast_template(child.code_template, child_bindings, child.inputs)
+            if child_text:
+                child_lines.append(child_text)
+
+        # Traced loop reduction logic: if parent is reduction loop, update accumulator
+        topology = getattr(cell, "topology_type", "sequential")
+        cell_id = getattr(cell, "cell_id", "")
+        if topology == "traced_loop" and "REDUCE" in cell_id:
+            prompt_str = getattr(context, "prompt", "").lower() if context else ""
+            is_max = "max" in prompt_str or "greatest" in prompt_str or "largest" in prompt_str
+            op = ">" if is_max else "<"
+            metric_var = "_max_metric" if is_max else "_min_metric"
+
+            update_block = (
+                f"if {metric_var} is None or {last_metric} {op} {metric_var}:\n"
+                f"    {metric_var} = {last_metric}\n"
+                f"    {out_var} = _item"
+            )
+            child_lines.append(update_block)
+
+        elif topology == "traced_loop" and "MAP" in cell_id:
+            child_lines.append(f"{out_var}.append({last_metric})")
+
+        slot_code = "\n".join(child_lines)
+        slot_rendered[slot_name] = slot_code
+
+    rendered = template
+    topology = getattr(cell, "topology_type", "sequential")
+    cell_id = getattr(cell, "cell_id", "")
+    if topology == "traced_loop" and "REDUCE" in cell_id:
+        prompt_str = getattr(context, "prompt", "").lower() if context else ""
+        is_max = "max" in prompt_str or "greatest" in prompt_str or "largest" in prompt_str
+        metric_var = "_max_metric" if is_max else "_min_metric"
+        if f"{metric_var} = None" not in rendered:
+            rendered = f"{metric_var} = None\n" + rendered
+
+    for slot_name, slot_code in slot_rendered.items():
+        placeholder = f"{{{slot_name}}}"
+        import re
+        match = re.search(rf"^([ \t]*)\{{{slot_name}\}}", rendered, flags=re.MULTILINE)
+        if match:
+            base_indent = match.group(1) or "    "
+            indented_slot = "\n".join(
+                (base_indent + line if line.strip() else line)
+                for line in slot_code.splitlines()
+            )
+            rendered = rendered.replace(match.group(0), indented_slot)
+        elif placeholder in rendered:
+            indented_slot = "\n".join(
+                ("    " + line if line.strip() else line)
+                for line in slot_code.splitlines()
+            )
+            rendered = rendered.replace(placeholder, indented_slot)
+
+    # Instantiate remaining placeholders using bindings
+    for k, v in bindings.items():
+        if v is not None:
+            rendered = rendered.replace(f"{{{k}}}", str(v))
+
+    # Apply base indent_level
+    if indent_level > 0:
+        rendered = "\n".join(
+            (indent_prefix + line if line.strip() else line)
+            for line in rendered.splitlines()
+        )
+
+    return rendered
+
+
+def build_script(
+    cells: List[Any],
+    context: Optional[Any] = None
+) -> str:
+    """
+    Emits a fully verified, block-structured Python script from a cell pipeline.
+    """
+    from unification import UnificationGate, ExecutionContext, Success, Failure
+
+    gate = UnificationGate()
+    ctx = context or ExecutionContext()
+    res = gate.unify_pipeline(cells, ctx)
+    if res.is_bottom():
+        reason = res.reason if isinstance(res, Failure) else "Unification bottom"
+        raise ValueError(f"Unification Failed: {reason}")
+
+    assert isinstance(res, Success)
+    pipeline_bindings = res.value
+
+    # Collect dependencies recursively
+    deps: List[str] = []
+    def collect_deps(c: Any):
+        for dep in getattr(c, "dependencies", []):
+            dep_clean = dep.strip()
+            if dep_clean and dep_clean not in deps:
+                deps.append(dep_clean)
+        for sub_list in getattr(c, "bound_slots", {}).values():
+            if isinstance(sub_list, list):
+                for sc in sub_list:
+                    collect_deps(sc)
+
+    for cell, _ in pipeline_bindings:
+        collect_deps(cell)
+
+    code_lines: List[str] = []
+    if deps:
+        code_lines.extend(deps)
+        code_lines.append("")
+
+    for cell, bindings in pipeline_bindings:
+        rendered = render_cell(cell, bindings, indent_level=0, context=ctx, accumulated_sigma=res.sigma)
+        if rendered:
+            code_lines.append(rendered)
+
+    final_code = "\n".join(code_lines).strip()
+    return final_code

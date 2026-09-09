@@ -1,372 +1,468 @@
 """
-src/signature_introspector.py
+src/signature_introspector.py - Neuro-Symbolic Topological Lattice (NSTL)
+Multi-Tiered Universal Signature & Parameter Introspector.
 
-Pure dynamic runtime introspection and call reconstruction engine.
-Contains ZERO hardcoded library branches or cell-id checks.
-
-Grounds all function calls in runtime reflection:
-- inspect.signature for standard Python callables
-- Docstring signature parser for C-extensions / builtins
-- Parameter contract validation: ensures all required parameters are provided,
-  spurious enums are rejected, and valid enums target their declared parameter slots.
+Architecture:
+  Tier 1: Native Reflection (inspect.signature with automatic unwrapping)
+  Tier 2: Argument Clinic (__text_signature__ parsed via Python AST)
+  Tier 3: PEP 561 Type Stubs (.pyi AST extraction for cv2, numpy, torch, etc.)
+  Tier 4: Enhanced Docstring Parsing (handles ->, -->, C-style nested brackets [, ])
+  Tier 5: Fail-Closed / Strictly Safe (skip when unknown; never guess 0 args)
 """
 
+from __future__ import annotations
 import ast
-import importlib
 import inspect
-from typing import Any, Dict, List, Optional, Set, Tuple
+import re
+import sys
+from pathlib import Path
+from typing import Any, Dict, List, Optional, Set, Tuple, Union
+
+# Cache for parsed .pyi AST trees to ensure zero performance overhead
+_STUB_CACHE: Dict[str, Optional[ast.Module]] = {}
+
+# Clean regex for return arrows: supports '->', '-->', '--->'
+_ARROW_RE = re.compile(r"\s*-+>\s*")
+
+# Regex for callable signature header in docstrings
+_DOC_SIG_RE = re.compile(
+    r"^\s*(?:[a-zA-Z0-9_]+\.)*([a-zA-Z0-9_]+)\s*\((.*?)\)(?:\s*-+>\s*(.*))?",
+    re.MULTILINE
+)
 
 
-def _find_call_in_doc(func_name: str, doc: str) -> Optional[str]:
-    """Finds func_name(...) in doc using paren-depth tracking, handling nested parens deterministically."""
-    target = func_name + "("
-    pos = 0
-    doc_len = len(doc)
-    while pos < doc_len:
-        idx = doc.find(target, pos)
-        if idx == -1:
-            return None
-        if idx == 0 or not (doc[idx - 1].isalnum() or doc[idx - 1] == "_"):
-            start_args = idx + len(target)
-            paren_depth = 1
-            cur = start_args
-            while cur < doc_len and paren_depth > 0:
-                ch = doc[cur]
-                if ch == "(":
-                    paren_depth += 1
-                elif ch == ")":
-                    paren_depth -= 1
-                    if paren_depth == 0:
-                        break
-                cur += 1
-            if paren_depth == 0:
-                return doc[start_args:cur].strip()
-        pos = idx + 1
-    return None
+def extract_clean_type_name(anno: Any) -> str:
+    """Universal type name simplifier for AST nodes, type objects, and strings."""
+    if anno is None or anno is inspect.Signature.empty or anno is inspect.Parameter.empty:
+        return "any"
+    if inspect.isclass(anno):
+        return anno.__name__
+    s = str(anno).strip()
+    if not s or s == "...":
+        return "any"
+    if s.startswith("typing."):
+        s = s[7:]
+    if "|" in s:
+        parts = [p.strip() for p in s.split("|") if p.strip().lower() not in ("none", "nonetype")]
+        s = parts[0] if parts else "None"
+    if s.startswith(("Optional[", "Union[")) and "]" in s:
+        inner = s[s.find("[") + 1: s.rfind("]")].strip()
+        parts = [p.strip() for p in inner.split(",") if p.strip().lower() not in ("none", "nonetype")]
+        if parts:
+            s = parts[0]
+    elif "[" in s and "]" in s:
+        s = s[: s.find("[")].strip()
+    if "." in s:
+        s = s.split(".")[-1].strip()
+    words = s.split()
+    if words:
+        s = words[0].rstrip(".,;:)>]`\"'")
+    if s.lower() in ("retval", "result", "res", "return", "value", ""):
+        return "any"
+    return s
 
 
-def extract_doc_signature(func_name: str, doc: str) -> Optional[Dict[str, Any]]:
-    """Extracts formal parameter lists from docstrings of C-extensions (e.g. OpenCV, builtins)."""
-    if not doc:
-        return None
+# =====================================================================
+# TIER 1: Native Reflection & Unwrapping
+# =====================================================================
 
-    raw_args = _find_call_in_doc(func_name, doc)
-    if raw_args is None:
-        return None
-
-    if not raw_args:
-        return {"required": [], "optional": []}
-
-    # Bracket notation denotes optional parameters: 'arg1, arg2[, opt1[, opt2]]'
-    if "[" in raw_args:
-        req_part = raw_args.split("[")[0].strip().rstrip(",")
-        opt_part = raw_args[len(req_part) :].replace("[", "").replace("]", "").strip().lstrip(",")
-    else:
-        req_part = raw_args.strip()
-        opt_part = ""
-
-    req_params = []
-    opt_params = []
-    for p in req_part.split(","):
-        p_str = p.strip()
-        if not p_str or p_str == "*":
-            continue
-        clean_p = p_str.split("=")[0].split(":")[0].strip()
-        if not clean_p.isidentifier():
-            continue
-        if "=" in p_str:
-            opt_params.append(clean_p)
-        else:
-            req_params.append(clean_p)
-
-    for p in opt_part.split(","):
-        p_str = p.strip()
-        if not p_str or p_str == "*":
-            continue
-        clean_p = p_str.split("=")[0].split(":")[0].strip()
-        if clean_p.isidentifier() and clean_p not in opt_params and clean_p not in req_params:
-            opt_params.append(clean_p)
-
-    return {"required": req_params, "optional": opt_params}
-
-
-def get_callable_parameters(obj: Any, func_name: str) -> Optional[Dict[str, Any]]:
-    """Introspects the ground truth parameter contract of any callable object."""
-    # 1. Standard inspect.signature
+def _tier1_inspect_signature(target: Any) -> Optional[inspect.Signature]:
+    """Inspects native callable signatures, unwrapping decorators if present."""
     try:
-        sig = inspect.signature(obj)
-        required = []
-        optional = []
-        for p_name, p in sig.parameters.items():
-            if p_name in ("self", "cls") or not p_name.isidentifier():
-                continue
-            if p.kind in (inspect.Parameter.VAR_POSITIONAL, inspect.Parameter.VAR_KEYWORD):
-                continue
-            if p.default == inspect._empty:
-                required.append(p_name)
-            else:
-                optional.append(p_name)
-        return {
-            "required": required,
-            "optional": optional,
-            "all": required + optional,
-            "doc": inspect.getdoc(obj) or "",
-        }
+        unwrapped = inspect.unwrap(target)
+        return inspect.signature(unwrapped)
+    except (ValueError, TypeError):
+        return None
     except Exception:
-        pass
+        return None
 
-    # 2. Docstring signature parsing for C-extensions / builtins
-    doc = getattr(obj, "__doc__", "") or ""
-    parsed = extract_doc_signature(func_name, doc)
-    if parsed:
-        parsed["all"] = parsed["required"] + parsed["optional"]
-        parsed["doc"] = doc
-        return parsed
 
+# =====================================================================
+# TIER 2: Argument Clinic (__text_signature__) via Python AST
+# =====================================================================
+
+def _tier2_text_signature(target: Any) -> Optional[inspect.Signature]:
+    """
+    Parses CPython Argument Clinic `__text_signature__` using Python's built-in AST.
+    Eliminates regex guesswork for C builtins.
+    """
+    text_sig = getattr(target, "__text_signature__", None)
+    if not text_sig or not isinstance(text_sig, str):
+        return None
+
+    cleaned = text_sig.strip()
+    if not (cleaned.startswith("(") and cleaned.endswith(")")):
+        return None
+
+    # Sanitize Argument Clinic internal markers: ($module, $self, $type, etc.)
+    params_body = cleaned[1:-1].strip()
+    parts = [p.strip() for p in params_body.split(",") if p.strip()]
+    sanitized_parts = []
+    for p in parts:
+        if p in ("$module", "$self", "$type"):
+            continue
+        if p.startswith(("$module", "$self", "$type")):
+            continue
+        sanitized_parts.append(p)
+
+    dummy_code = f"def _dummy({', '.join(sanitized_parts)}): pass"
+    try:
+        tree = ast.parse(dummy_code)
+    except SyntaxError:
+        return None
+
+    fn_def: ast.FunctionDef = tree.body[0]  # type: ignore
+    args_node = fn_def.args
+
+    # Determine default assignments
+    num_defaults = len(args_node.defaults)
+    pos_args = args_node.posonlyargs + args_node.args
+    num_pos = len(pos_args)
+    default_start_idx = num_pos - num_defaults
+
+    parameters: List[inspect.Parameter] = []
+
+    for idx, arg in enumerate(pos_args):
+        p_name = arg.arg
+        if idx >= default_start_idx:
+            default_val: Any = "default"
+        else:
+            default_val = inspect.Parameter.empty
+
+        kind = (
+            inspect.Parameter.POSITIONAL_ONLY
+            if idx < len(args_node.posonlyargs)
+            else inspect.Parameter.POSITIONAL_OR_KEYWORD
+        )
+        parameters.append(
+            inspect.Parameter(p_name, kind=kind, default=default_val)
+        )
+
+    for idx, arg in enumerate(args_node.kwonlyargs):
+        p_name = arg.arg
+        kw_default_node = args_node.kw_defaults[idx]
+        default_val = "default" if kw_default_node is not None else inspect.Parameter.empty
+        parameters.append(
+            inspect.Parameter(p_name, kind=inspect.Parameter.KEYWORD_ONLY, default=default_val)
+        )
+
+    return inspect.Signature(parameters=parameters)
+
+
+# =====================================================================
+# TIER 3: PEP 561 Type Stubs (.pyi) via AST Parsing
+# =====================================================================
+
+def _find_stub_file_for_module(mod: Any) -> Optional[Path]:
+    """Locates the .pyi stub file corresponding to a loaded module or C-extension."""
+    mod_file = getattr(mod, "__file__", None)
+    if not mod_file:
+        return None
+
+    p = Path(mod_file)
+    # Check directly matching stem (e.g., cv2.cpython-310-x86_64-linux-gnu.so -> cv2.pyi)
+    base_stem = p.name.split(".")[0]
+
+    candidates = [
+        p.with_suffix(".pyi"),
+        p.parent / f"{base_stem}.pyi",
+        p.parent / "__init__.pyi",
+    ]
+    for cand in candidates:
+        if cand.exists() and cand.is_file():
+            return cand
     return None
 
 
-def get_enum_parameter_map(doc: str) -> Dict[str, str]:
-    """Dynamically parses docstring parameter descriptions to find parameter-to-enum bindings.
+def _get_stub_ast(stub_path: Path) -> Optional[ast.Module]:
+    """Parses and caches the AST of a .pyi stub file."""
+    path_str = str(stub_path)
+    if path_str in _STUB_CACHE:
+        return _STUB_CACHE[path_str]
+    try:
+        with open(stub_path, "r", encoding="utf-8", errors="replace") as f:
+            code = f.read()
+        tree = ast.parse(code, filename=path_str)
+        _STUB_CACHE[path_str] = tree
+        return tree
+    except Exception:
+        _STUB_CACHE[path_str] = None
+        return None
 
-    Detects patterns like `@param <name> ... (see #<Type>)` or `see #<Type>`.
-    Returns {enum_prefix: param_name}.
+
+def _tier3_stub_signature(
+    target: Any,
+    callable_name: str,
+    parent_cls_name: Optional[str] = None,
+    mod: Optional[Any] = None
+) -> Optional[inspect.Signature]:
     """
-    mapping = {}
-    if not doc:
-        return mapping
+    Extracts 100% typed signatures from PEP 561 .pyi stub files.
+    Eliminates heuristics for libraries like OpenCV (cv2), SciPy, NumPy, and PyTorch.
+    """
+    if mod is None:
+        mod_name = getattr(target, "__module__", None)
+        if mod_name and mod_name in sys.modules:
+            mod = sys.modules[mod_name]
+    if mod is None:
+        return None
 
-    chunks = doc.split("@param")
-    for chunk in chunks[1:]:
-        chunk = chunk.strip()
-        if not chunk:
-            continue
-        words = chunk.split(None, 1)
-        p_name = "".join(c for c in words[0] if c.isalnum() or c == "_")
-        if not p_name:
-            continue
-        p_desc = words[1] if len(words) > 1 else ""
+    stub_path = _find_stub_file_for_module(mod)
+    if not stub_path:
+        return None
 
-        p_desc_lower = p_desc.lower()
-        pos = 0
-        n_desc = len(p_desc_lower)
-        while pos < n_desc:
-            see_idx = p_desc_lower.find("see", pos)
-            if see_idx == -1:
+    tree = _get_stub_ast(stub_path)
+    if not tree:
+        return None
+
+    search_body: List[ast.AST] = tree.body
+    if parent_cls_name:
+        for node in tree.body:
+            if isinstance(node, ast.ClassDef) and node.name == parent_cls_name:
+                search_body = node.body
                 break
-            before_ok = (see_idx == 0 or not p_desc_lower[see_idx - 1].isalnum())
-            after_ok = (see_idx + 3 >= n_desc or not p_desc_lower[see_idx + 3].isalnum())
-            if before_ok and after_ok:
-                sub = p_desc[see_idx + 3 :].lstrip()
-                if sub.startswith("#"):
-                    sub = sub[1:].lstrip()
-                token = ""
-                for c in sub:
-                    if c.isalnum() or c == "_":
-                        token += c
-                    else:
-                        break
-                cur_word = ""
-                for c in token:
-                    if c.isupper():
-                        if cur_word:
-                            break
-                        cur_word += c
-                    elif c.isalnum():
-                        if cur_word:
-                            cur_word += c
-                    else:
-                        if cur_word:
-                            break
-                if cur_word:
-                    mapping[cur_word.upper()] = p_name
-            pos = see_idx + 3
+        else:
+            return None
 
-    return mapping
+    # Search for matching function definitions (including overloaded signatures)
+    candidates: List[ast.FunctionDef] = []
+    target_names = [callable_name]
+    if parent_cls_name and callable_name.upper() == "INIT":
+        target_names = ["__init__", "__new__"]
+
+    for node in search_body:
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+            if node.name in target_names:
+                candidates.append(node)  # type: ignore
+
+    if not candidates:
+        return None
+
+    # In case of overloads, select the definition with the highest parameter coverage
+    best_fn = max(candidates, key=lambda f: len(f.args.args) + len(f.args.kwonlyargs))
+
+    parameters: List[inspect.Parameter] = []
+    args_node = best_fn.args
+    num_defaults = len(args_node.defaults)
+    pos_args = args_node.posonlyargs + args_node.args
+    num_pos = len(pos_args)
+    default_start_idx = num_pos - num_defaults
+
+    for idx, arg in enumerate(pos_args):
+        p_name = arg.arg
+        if p_name in ("self", "cls") and (parent_cls_name or idx == 0):
+            continue
+
+        p_anno = ast.unparse(arg.annotation) if arg.annotation else inspect.Parameter.empty
+        if idx >= default_start_idx:
+            default_val = "default"
+        else:
+            default_val = inspect.Parameter.empty
+
+        parameters.append(
+            inspect.Parameter(
+                p_name,
+                kind=inspect.Parameter.POSITIONAL_OR_KEYWORD,
+                default=default_val,
+                annotation=p_anno
+            )
+        )
+
+    for idx, arg in enumerate(args_node.kwonlyargs):
+        p_name = arg.arg
+        p_anno = ast.unparse(arg.annotation) if arg.annotation else inspect.Parameter.empty
+        kw_default_node = args_node.kw_defaults[idx]
+        default_val = "default" if kw_default_node is not None else inspect.Parameter.empty
+        parameters.append(
+            inspect.Parameter(
+                p_name,
+                kind=inspect.Parameter.KEYWORD_ONLY,
+                default=default_val,
+                annotation=p_anno
+            )
+        )
+
+    ret_anno = ast.unparse(best_fn.returns) if best_fn.returns else inspect.Signature.empty
+    return inspect.Signature(parameters=parameters, return_annotation=ret_anno)
 
 
-def resolve_callable_from_expr(func_expr: str, dependencies: Optional[List[str]] = None) -> Optional[Any]:
-    """Dynamically resolves a callable object from its expression string and declared dependencies."""
-    ns: Dict[str, Any] = {}
-    if dependencies:
-        for dep in dependencies:
-            dep_clean = str(dep).strip()
-            if dep_clean.startswith("import ") or dep_clean.startswith("from "):
-                try:
-                    exec(dep_clean, ns)
-                except Exception:
-                    pass
+# =====================================================================
+# TIER 4: Enhanced Docstring Parsing (Arrow `-+>` & Bracket Unrolling)
+# =====================================================================
 
-    if func_expr in ns:
-        return ns[func_expr]
+def _unroll_bracketed_parameters(raw_params_str: str) -> List[Tuple[str, bool, str]]:
+    """
+    Parses C-style bracket-nested parameters with 100% precision:
+      "src, ksize[, dst[, borderType]]" ->
+      [('src', True, 'any'), ('ksize', True, 'any'), ('dst', False, 'any'), ('borderType', False, 'any')]
+    """
+    tokens: List[Tuple[str, bool, str]] = []
+    curr: List[str] = []
+    depth = 0
 
-    parts = func_expr.split(".")
-    root = parts[0].split("(")[0]
+    for ch in raw_params_str:
+        if ch == "[":
+            depth += 1
+            continue
+        elif ch == "]":
+            if depth > 0:
+                depth -= 1
+            continue
+        elif ch == ",":
+            token = "".join(curr).strip()
+            if token:
+                is_req = (depth == 0 and "=" not in token)
+                tokens.append((token, is_req))
+            curr = []
+        else:
+            curr.append(ch)
 
-    obj = None
-    if root in ns:
-        obj = ns[root]
-    else:
-        try:
-            obj = importlib.import_module(root)
-        except Exception:
-            pass
+    tail = "".join(curr).strip()
+    if tail:
+        is_req = (depth == 0 and "=" not in tail)
+        tokens.append((tail, is_req))
 
-    if obj is not None:
-        for part in parts[1:]:
-            clean_part = part.split("(")[0]
-            if hasattr(obj, clean_part):
-                obj = getattr(obj, clean_part)
-            else:
-                return None
-        return obj
+    results: List[Tuple[str, bool, str]] = []
+    for raw_tok, is_req in tokens:
+        tok = raw_tok.strip()
+        if not tok or tok in ("/", "*"):
+            continue
+        if tok.startswith(("*", "**")):
+            continue
+
+        p_type = "any"
+        p_name = tok
+        if ":" in p_name:
+            p_name, p_type_raw = p_name.split(":", 1)
+            p_type = extract_clean_type_name(p_type_raw)
+        if "=" in p_name:
+            p_name = p_name.split("=")[0]
+            is_req = False
+
+        p_name = p_name.strip()
+        if p_name.isidentifier():
+            results.append((p_name, is_req, p_type))
+
+    return results
+
+
+def _tier4_docstring_signature(
+    target: Any,
+    callable_name: str,
+    parent_cls_name: Optional[str] = None
+) -> Optional[inspect.Signature]:
+    """
+    Enhanced fallback docstring parser that supports `-+>` (single, double, triple dashes)
+    and unrolls nested C-extension optional brackets `[...]`.
+    """
+    doc = inspect.getdoc(target) or getattr(target, "__doc__", "") or ""
+    if not doc:
+        return None
+
+    # Search for function signature pattern
+    target_names = {callable_name.lower()}
+    if parent_cls_name and callable_name.upper() == "INIT":
+        target_names.add(parent_cls_name.lower())
+
+    for match in _DOC_SIG_RE.finditer(doc):
+        fn_name = match.group(1).lower()
+        if fn_name not in target_names:
+            continue
+
+        raw_params = match.group(2).strip()
+        raw_return = match.group(3)
+
+        parsed_params = _unroll_bracketed_parameters(raw_params)
+        parameters: List[inspect.Parameter] = []
+
+        for p_name, is_req, p_type in parsed_params:
+            if p_name in ("self", "cls") and (parent_cls_name or len(parameters) == 0):
+                continue
+            parameters.append(
+                inspect.Parameter(
+                    p_name,
+                    kind=inspect.Parameter.POSITIONAL_OR_KEYWORD,
+                    default=inspect.Parameter.empty if is_req else "default",
+                    annotation=p_type if p_type != "any" else inspect.Parameter.empty
+                )
+            )
+
+        ret_anno = inspect.Signature.empty
+        if raw_return:
+            clean_ret = extract_clean_type_name(raw_return.strip().split()[0])
+            if clean_ret != "any":
+                ret_anno = clean_ret
+
+        return inspect.Signature(parameters=parameters, return_annotation=ret_anno)
 
     return None
 
 
-def _mask_placeholders(s: str) -> str:
-    res = []
-    i = 0
-    n = len(s)
-    while i < n:
-        if s[i] == "{" and i + 1 < n:
-            end = s.find("}", i + 1)
-            if end != -1:
-                inner = s[i + 1 : end]
-                if inner.isidentifier():
-                    res.append(f"__ph_{inner}__")
-                    i = end + 1
-                    continue
-        res.append(s[i])
-        i += 1
-    return "".join(res)
+# =====================================================================
+# UNIFIED 5-TIER RESOLVER (Universal Entry Point)
+# =====================================================================
 
-
-def _unmask_placeholders(s: str) -> str:
-    res = []
-    i = 0
-    n = len(s)
-    prefix = "__ph_"
-    while i < n:
-        if s.startswith(prefix, i):
-            end = s.find("__", i + len(prefix))
-            if end != -1:
-                inner = s[i + len(prefix) : end]
-                if inner.isidentifier():
-                    res.append(f"{{{inner}}}")
-                    i = end + 2
-                    continue
-        res.append(s[i])
-        i += 1
-    return "".join(res)
-
-
-def parse_call_expression(template: str) -> Optional[Tuple[str, List[str], Dict[str, str]]]:
-    """Extracts func_expr, raw_args, and raw_kwargs from a template using AST."""
-    code = template.replace("{output_var}", "output_var")
-    code = _mask_placeholders(code)
-
-    try:
-        tree = ast.parse(code)
-    except Exception:
-        return None
-
-    calls = [n for n in ast.walk(tree) if isinstance(n, ast.Call)]
-    if not calls:
-        return None
-
-    call = calls[0]
-    func_expr = ast.unparse(call.func)
-    raw_args = [_unmask_placeholders(ast.unparse(a)) for a in call.args]
-    raw_kwargs = {kw.arg: _unmask_placeholders(ast.unparse(kw.value)) for kw in call.keywords if kw.arg}
-
-    return func_expr, raw_args, raw_kwargs
-
-
-def validate_and_reconstruct_call(
-    func_obj: Any,
-    func_expr: str,
-    raw_args: List[str],
-    raw_kwargs: Dict[str, str],
-) -> str:
-    """Validates and reconstructs a function call against its real ground-truth signature.
-
-    - Supplies any missing required parameters.
-    - Discards spurious enums that do not belong to the callable.
-    - Positions valid enums at their exact parameter slot (positional or keyword).
+def resolve_signature(
+    target: Any,
+    callable_name: str = "",
+    parent_cls_name: Optional[str] = None,
+    mod: Optional[Any] = None
+) -> Optional[inspect.Signature]:
     """
-    func_name = func_expr.split(".")[-1]
-    params = get_callable_parameters(func_obj, func_name)
-    if not params:
-        arg_strs = raw_args + [f"{k}={v}" for k, v in raw_kwargs.items()]
-        return f"{func_expr}({', '.join(arg_strs)})"
+    Resolves the signature through the full 5-tier architecture.
+    Guarantees zero false assumptions: returns None if completely unknown.
+    """
+    # Tier 1: inspect.signature
+    sig = _tier1_inspect_signature(target)
+    if sig is not None:
+        return sig
 
-    required = params["required"]
-    optional = params["optional"]
-    all_params = params["all"]
-    enum_map = get_enum_parameter_map(params.get("doc", ""))
+    # Tier 2: __text_signature__
+    sig = _tier2_text_signature(target)
+    if sig is not None:
+        return sig
 
-    # Classify arguments into valid enums, spurious enums, and data placeholders
-    enum_args: Dict[str, str] = {}
-    data_args: List[str] = []
+    # Tier 3: PEP 561 .pyi Stubs
+    sig = _tier3_stub_signature(target, callable_name, parent_cls_name, mod)
+    if sig is not None:
+        return sig
 
-    def _extract_flag(expr: str) -> Optional[str]:
-        if "." in expr and not ("{" in expr or "(" in expr):
-            tail = expr.rsplit(".", 1)[-1]
-            if tail and all(c.isupper() or c.isdigit() or c == "_" for c in tail) and any(c.isupper() for c in tail):
-                return tail
+    # Tier 4: Enhanced Docstring Parser
+    sig = _tier4_docstring_signature(target, callable_name, parent_cls_name)
+    if sig is not None:
+        return sig
+
+    # Tier 5: Fail-Closed (Unknown arity -> do not invent arguments)
+    return None
+
+
+def get_callable_parameters(callable_obj: Any, callable_name: str = "") -> Optional[Dict[str, Any]]:
+    """
+    Maintains 100% backward compatibility with universal_harvester callers,
+    upgraded to be powered by the complete 5-tier introspection engine.
+    """
+    sig = resolve_signature(callable_obj, callable_name)
+    if sig is None:
         return None
 
-    for arg in raw_args:
-        flag = _extract_flag(arg)
-        if flag:
-            target_p = None
-            for p_prefix, p_name in enum_map.items():
-                if flag.startswith(p_prefix) or p_prefix in flag:
-                    target_p = p_name
-                    break
-            if target_p:
-                enum_args[target_p] = arg
-            else:
-                # Spurious enum: does not belong to this callable. Drop it.
-                pass
-        else:
-            data_args.append(arg)
+    all_params: List[str] = []
+    required_params: List[str] = []
+    param_types: Dict[str, str] = {}
 
-    for k, v in raw_kwargs.items():
-        flag = _extract_flag(v)
-        if flag:
-            target_p = None
-            for p_prefix, p_name in enum_map.items():
-                if flag.startswith(p_prefix) or p_prefix in flag:
-                    target_p = p_name
-                    break
-            if target_p:
-                enum_args[target_p] = v
-        else:
-            data_args.append(v)
+    for p in sig.parameters.values():
+        if p.kind in (inspect.Parameter.VAR_POSITIONAL, inspect.Parameter.VAR_KEYWORD):
+            continue
+        all_params.append(p.name)
+        if p.default is inspect.Parameter.empty:
+            required_params.append(p.name)
+        param_types[p.name] = extract_clean_type_name(p.annotation)
 
-    final_args: List[str] = []
-    final_kwargs: Dict[str, str] = {}
+    ret_type = extract_clean_type_name(sig.return_annotation)
 
-    # Fill required positional parameters
-    for i, req_p in enumerate(required):
-        if req_p in enum_args:
-            final_args.append(enum_args.pop(req_p))
-        elif i < len(data_args):
-            final_args.append(data_args[i])
-        else:
-            # Missing required parameter: supply canonical placeholder
-            final_args.append(f"{{{req_p}}}")
-
-    # Pass remaining data arguments
-    for d_arg in data_args[len(required) :]:
-        final_args.append(d_arg)
-
-    # Valid enum arguments targeting optional parameters go to keyword arguments
-    for p_name, enum_val in enum_args.items():
-        if p_name in optional:
-            final_kwargs[p_name] = enum_val
-
-    arg_strs = final_args + [f"{k}={v}" for k, v in final_kwargs.items()]
-    return f"{func_expr}({', '.join(arg_strs)})"
+    return {
+        "all": all_params,
+        "required": required_params,
+        "types": param_types,
+        "return_type": ret_type,
+        "signature": sig
+    }

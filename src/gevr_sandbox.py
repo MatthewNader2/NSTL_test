@@ -56,12 +56,15 @@ def _sandbox_worker_exec(code: str, egress_paths: Optional[list[str]] = None, cw
     stderr_buf = io.StringIO()
 
     fixtures_created = []
+    clean_egress = set(os.path.abspath(ep.strip("\"'")) for ep in (egress_paths or []))
     try:
         parsed_ast = ast.parse(code)
         for node in ast.walk(parsed_ast):
             if isinstance(node, ast.Constant) and isinstance(node.value, str):
                 s = node.value.strip()
                 if s and "\n" not in s and len(s) < 256:
+                    if os.path.abspath(s) in clean_egress:
+                        continue
                     base = os.path.basename(s)
                     if "." in base and not base.startswith("."):
                         ext = base.rsplit(".", 1)[1].lower()
@@ -168,6 +171,8 @@ def _sandbox_worker_exec(code: str, egress_paths: Optional[list[str]] = None, cw
             }
         finally:
             for fix_p in fixtures_created:
+                if os.path.abspath(fix_p) in clean_egress:
+                    continue
                 if os.path.exists(fix_p):
                     try:
                         os.remove(fix_p)
@@ -200,7 +205,13 @@ class GEVRSandbox:
                         maxtasksperchild=100
                     )
 
-    def execute(self, code: str, timeout: Optional[float] = None, egress_paths: Optional[list[str]] = None) -> Dict[str, Any]:
+    def execute(
+        self,
+        code: str,
+        timeout: Optional[float] = None,
+        egress_paths: Optional[list[str]] = None,
+        cwd: Optional[str] = None
+    ) -> Dict[str, Any]:
         """
         Executes Python code in the persistent worker process pool.
         Returns: {'success': bool, 'stdout': str, 'stderr': str, 'error': str}
@@ -215,10 +226,10 @@ class GEVRSandbox:
             return {"success": False, "stdout": "", "stderr": "", "error": f"SyntaxError: {e}"}
 
         tout = timeout if timeout is not None else self.timeout
-        cwd = os.getcwd()
+        exec_cwd = cwd or os.getcwd()
         try:
             self._ensure_pool()
-            async_res = self._pool.apply_async(_sandbox_worker_exec, (code, egress_paths, cwd))
+            async_res = self._pool.apply_async(_sandbox_worker_exec, (code, egress_paths, exec_cwd))
             res = async_res.get(timeout=tout)
             if res.get("error") is None:
                 res["error"] = ""
@@ -228,11 +239,16 @@ class GEVRSandbox:
         except Exception as e:
             return {"success": False, "stdout": "", "stderr": "", "error": f"ExecutionSystemError: {e}"}
 
-    def execute_and_verify(self, code: str, egress_paths: Optional[list[str]] = None) -> Tuple[bool, str, str]:
+    def execute_and_verify(
+        self,
+        code: str,
+        egress_paths: Optional[list[str]] = None,
+        cwd: Optional[str] = None
+    ) -> Tuple[bool, str, str]:
         """
         Executes Python code and returns (success, stdout, stderr/error).
         """
-        res = self.execute(code, egress_paths=egress_paths)
+        res = self.execute(code, egress_paths=egress_paths, cwd=cwd)
         err = res.get("error", "") or res.get("stderr", "")
         return res["success"], res["stdout"], err
 

@@ -58,6 +58,7 @@ def init_sqlite_db(db_path: Path, clean: bool = False) -> sqlite3.Connection:
             code                 TEXT,
             dependencies         TEXT,
             configuration_schema TEXT,
+            slots                TEXT DEFAULT '{}',
             verified             INTEGER DEFAULT 0,
             docstring            TEXT DEFAULT '',
             enrichment_source    TEXT DEFAULT NULL,
@@ -66,10 +67,21 @@ def init_sqlite_db(db_path: Path, clean: bool = False) -> sqlite3.Connection:
             source_priority      INTEGER DEFAULT 100
         )
     """)
+    # Check if slots column exists for existing databases
+    cur.execute("PRAGMA table_info(nodes)")
+    existing_cols = {row[1] for row in cur.fetchall()}
+    if "slots" not in existing_cols:
+        try:
+            cur.execute("ALTER TABLE nodes ADD COLUMN slots TEXT DEFAULT '{}'")
+        except Exception:
+            pass
+
     cur.execute("CREATE INDEX IF NOT EXISTS idx_input ON nodes(input_type, input_state)")
     cur.execute("CREATE INDEX IF NOT EXISTS idx_output ON nodes(output_type, output_state)")
     cur.execute("CREATE INDEX IF NOT EXISTS idx_domain ON nodes(domain_name)")
     cur.execute("CREATE INDEX IF NOT EXISTS idx_role ON nodes(node_role)")
+    cur.execute("CREATE INDEX IF NOT EXISTS idx_type ON nodes(node_type)")
+    cur.execute("CREATE INDEX IF NOT EXISTS idx_slots ON nodes(slots)")
     conn.commit()
     return conn
 
@@ -128,7 +140,9 @@ def cmd_compile(args):
             cfg_dict = {
                 "inputs": {k: v.model_dump() for k, v in cell.inputs.items()},
                 "outputs": {k: v.model_dump() for k, v in cell.outputs.items()},
-                "slots": getattr(cell, "slots", {})
+                "slots": getattr(cell, "slots", {}),
+                "topology_type": getattr(cell, "topology_type", "sequential"),
+                "feedback_state_type": getattr(cell, "feedback_state_type", None)
             }
             cfg_json = json.dumps(cfg_dict)
             deps_json = json.dumps(cell.dependencies)
@@ -141,13 +155,16 @@ def cmd_compile(args):
             if row and row[0] < cell.source_priority:
                 continue
 
+            slots_dict = getattr(cell, "slots", {}) or {}
+            slots_json = json.dumps(slots_dict)
+
             cur.execute("""
                 INSERT OR REPLACE INTO nodes
                 (cell_id, domain_name, node_type, node_role, stage, keywords,
                  input_type, input_state, output_type, output_state, code,
-                 dependencies, configuration_schema, verified, docstring,
+                 dependencies, configuration_schema, slots, verified, docstring,
                  enrichment_source, enriched_at, source_provenance, source_priority)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """, (
                 cid,
                 cell.domain_name or domain,
@@ -162,6 +179,7 @@ def cmd_compile(args):
                 cell.code_template,
                 deps_json,
                 cfg_json,
+                slots_json,
                 verified_val,
                 cell.docstring or "",
                 getattr(cell, "enrichment_source", None),

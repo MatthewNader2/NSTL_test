@@ -9,7 +9,7 @@ class PortSchema(BaseModel):
     type_name: str
     state: str = "default"
     qualifiers: List[List[str]] = Field(default_factory=list)
-    default_value: Optional[str] = None
+    default_value: Optional[Any] = None
     description: Optional[str] = None
     domain: Optional[str] = None
     required: bool = True
@@ -21,7 +21,10 @@ class CellSchema(BaseModel):
     stage: Literal[0, 1, 2, 3]
     inputs: Dict[str, PortSchema] = Field(default_factory=dict)
     outputs: Dict[str, PortSchema] = Field(default_factory=dict)
+    topology_type: str = "sequential"  # "sequential", "monoidal_product", "coproduct_branch", "traced_loop"
     slots: Dict[str, Any] = Field(default_factory=dict)
+    feedback_state_type: Optional[str] = None
+    bound_slots: Dict[str, Any] = Field(default_factory=dict)
     code_template: str
     dependencies: List[str] = Field(default_factory=list)
     semantic_tags: List[str] = Field(default_factory=list)
@@ -34,6 +37,14 @@ class CellSchema(BaseModel):
     node_role: Optional[str] = "function"
     verified: bool = True
     source_priority: int = 100  # 1 = curated seed, 100 = auto-harvested
+
+    @field_validator("topology_type")
+    @classmethod
+    def validate_topology(cls, v: str) -> str:
+        allowed = {"sequential", "monoidal_product", "coproduct_branch", "traced_loop"}
+        if v not in allowed:
+            raise ValueError(f"Invalid topology_type: '{v}'. Must be one of {allowed}")
+        return v
 
     @property
     def primary_input(self) -> PortSchema:

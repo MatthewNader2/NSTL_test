@@ -12,6 +12,7 @@ Contains ZERO keyword-sniffing regexes, ZERO manual score boosts, and ZERO domai
 
 from __future__ import annotations
 import math
+import re
 from typing import Optional, List, Dict, Set, Tuple, Any
 
 import numpy as np
@@ -100,45 +101,64 @@ class LatticeRouter:
                 if cell is not None:
                     candidates_with_scores.append((cell, score))
 
-        # Fallback if RAG index has not yet indexed cells: use length-normalized prompt coverage
+        # Fallback if RAG index has not yet indexed cells: use length-normalized prompt coverage across query spans
         if not candidates_with_scores:
-            prompt_tokens = CellTokenizer.tokenize_prompt(prompt)
-            p_len = max(len(prompt_tokens), 1)
-            inv_p_len = 1.0 / p_len
             token_index = getattr(self.orchestrator, "token_index", None)
             N = len(self.orchestrator.loaded_cells)
-            if token_index and N > 0:
-                overlap_counts: Dict[Cell, int] = {}
-                for tok in prompt_tokens:
-                    cells = token_index.get(tok, [])
-                    if len(cells) < 0.3 * N:
-                        for cell in cells:
-                            overlap_counts[cell] = overlap_counts.get(cell, 0) + 1
-                if not overlap_counts:
-                    overlap_counts = {c: 1 for c in self.orchestrator.loaded_cells.values()}
 
-                candidates_with_scores = [
-                    (cell, (count * inv_p_len) * LEN_NORM_TABLE[min(getattr(cell, "token_count", len(cell.token_set)), 499)])
-                    for cell, count in overlap_counts.items()
-                ]
-            else:
-                for cell in self.orchestrator.loaded_cells.values():
-                    cell_tokens = cell.token_set
-                    intersection_len = len(prompt_tokens & cell_tokens)
-                    if intersection_len > 0:
-                        c_len = max(len(cell_tokens), 1)
-                        score = (intersection_len * inv_p_len) * LEN_NORM_TABLE[min(c_len, 499)]
-                        candidates_with_scores.append((cell, float(score)))
+            # Decompose compound prompt into constituent sub-goals across grammatical clauses
+            # to guarantee representation across all sequential intents without drowning under high-volume libraries.
+            clauses = [c.strip() for c in re.split(r'[,;]|\b(?:and|then)\b', prompt.strip()) if c.strip()]
+            search_texts = [prompt.strip()] + [c for c in clauses if c != prompt.strip()]
+
+            pooled_candidates: Dict[Cell, float] = {}
+
+            for text in search_texts:
+                query_spans = self._generate_query_spans(text)
+                clause_scores: Dict[Cell, float] = {}
+                for q in query_spans:
+                    q_tokens = CellTokenizer.tokenize_prompt(q)
+                    q_len = max(len(q_tokens), 1)
+                    inv_q_len = 1.0 / q_len
+                    if token_index and N > 0:
+                        overlap_counts: Dict[Cell, int] = {}
+                        for tok in q_tokens:
+                            cells = token_index.get(tok, [])
+                            if N < 20 or len(cells) < 0.3 * N:
+                                for cell in cells:
+                                    overlap_counts[cell] = overlap_counts.get(cell, 0) + 1
+                        for cell, count in overlap_counts.items():
+                            c_len = max(getattr(cell, "token_count", len(cell.token_set)), 1)
+                            sc = (count * inv_q_len) * LEN_NORM_TABLE[min(c_len, 499)]
+                            if cell not in clause_scores or sc > clause_scores[cell]:
+                                clause_scores[cell] = sc
+                    else:
+                        for cell in self.orchestrator.loaded_cells.values():
+                            cell_tokens = cell.token_set
+                            intersection_len = len(q_tokens & cell_tokens)
+                            if intersection_len > 0:
+                                c_len = max(len(cell_tokens), 1)
+                                sc = (intersection_len * inv_q_len) * LEN_NORM_TABLE[min(c_len, 499)]
+                                if cell not in clause_scores or sc > clause_scores[cell]:
+                                    clause_scores[cell] = float(sc)
+
+                # Preserve top 100 candidates per clause to guarantee sub-goal coverage
+                sorted_clause = sorted(clause_scores.items(), key=lambda x: x[1], reverse=True)[:100]
+                for cell, sc in sorted_clause:
+                    if cell not in pooled_candidates or sc > pooled_candidates[cell]:
+                        pooled_candidates[cell] = sc
+
+            candidates_with_scores = list(pooled_candidates.items())
 
         if not candidates_with_scores:
             return [], {}
 
         # Prune low-scoring tail before computing exponential softmax distribution:
-        # Softmax is strictly monotonic; preserving top 150 candidates guarantees
+        # Softmax is strictly monotonic; preserving top 400 candidates guarantees
         # active tunnel integrity while eliminating overhead on broad queries.
-        if len(candidates_with_scores) > 150:
+        if len(candidates_with_scores) > 400:
             candidates_with_scores.sort(key=lambda x: x[1], reverse=True)
-            candidates_with_scores = candidates_with_scores[:150]
+            candidates_with_scores = candidates_with_scores[:400]
 
         # 2. Compute Softmax Distribution with temperature gamma:
         #    P(v_i | e_x) = exp(s_i / gamma) / sum_j exp(s_j / gamma)
@@ -164,9 +184,9 @@ class LatticeRouter:
         final_tunnel: List[Cell] = list(tunnel_cells)
         tunnel_ids = set(c.cell_id for c in final_tunnel)
 
-        # Category-Theoretic Bridge Morphism Completion:
+        # Category-Theoretic Bridge & Active Subcategory Morphism Completion:
         # If the active tunnel contains distinct carrier types A and B,
-        # discover bridge morphisms Hom(A, B) in the category and include them.
+        # discover bridge morphisms Hom(A, B) and domain morphisms on those carriers.
         carriers_out = set()
         carriers_in = set()
         for c in final_tunnel:
@@ -193,13 +213,25 @@ class LatticeRouter:
                         tunnel_ids.add(cell.cell_id)
                         relevance_map[cell.cell_id] = max(relevance_map.get(cell.cell_id, 0.0), self.epsilon * 2.0)
 
+        if carriers_out or carriers_in:
+            prompt_toks = CellTokenizer.tokenize_prompt(prompt)
+            active_domains = set(c.domain_name for c in final_tunnel if c.domain_name)
+            for cell in self.orchestrator.loaded_cells.values():
+                if cell.domain_name in active_domains and cell.cell_id not in tunnel_ids:
+                    c_in = getattr(cell.primary_input, "type_name", "")
+                    c_out = getattr(cell.primary_output, "type_name", "")
+                    if (c_in in carriers_out or c_out in carriers_in) and (cell.token_set & prompt_toks):
+                        final_tunnel.append(cell)
+                        tunnel_ids.add(cell.cell_id)
+                        relevance_map[cell.cell_id] = max(relevance_map.get(cell.cell_id, 0.0), self.epsilon * 2.0)
+
         return final_tunnel, relevance_map
 
     @staticmethod
     def _generate_query_spans(text: str) -> List[str]:
         """
         Generates continuous sliding semantic window queries across the prompt.
-        Pure dense vector representation: zero linguistic connectors (no 'then'), zero regex, zero punctuation splitting.
+        Multi-scale representation: zero linguistic connectors (no 'then'), zero regex.
         """
         tokens = text.strip().split()
         if len(tokens) <= 3:
@@ -207,14 +239,16 @@ class LatticeRouter:
 
         queries = [text.strip()]
         n = len(tokens)
-        window_size = max(3, n // 2)
-        step = max(1, window_size // 2)
-        for i in range(0, n - window_size + 1, step):
-            sub_q = " ".join(tokens[i : i + window_size]).strip()
-            if sub_q and sub_q not in queries:
-                queries.append(sub_q)
+        for window_size in (2, 3, max(3, n // 2)):
+            if window_size >= n:
+                continue
+            step = max(1, window_size // 2)
+            for i in range(0, n - window_size + 1, step):
+                sub_q = " ".join(tokens[i : i + window_size]).strip()
+                if sub_q and sub_q not in queries:
+                    queries.append(sub_q)
 
-        tail_q = " ".join(tokens[max(0, n - window_size) :]).strip()
+        tail_q = " ".join(tokens[max(0, n - 3) :]).strip()
         if tail_q and tail_q not in queries:
             queries.append(tail_q)
 
@@ -226,7 +260,7 @@ class LatticeRouter:
         start_sig: Optional[Any] = None,
         goal_sig: Optional[Any] = None,
         return_tuple: bool = True,
-        top_k: int = 20
+        top_k: int = 200
     ) -> Union[List[Cell], Tuple[List[Cell], Set[str]]]:
         """
         End-to-end routing & topological pathfinding:
