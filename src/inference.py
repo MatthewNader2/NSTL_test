@@ -14,8 +14,13 @@ from typing import List, Optional, Dict, Any
 import numpy as np
 import torch
 from log_config import get_logger
-from config import MODELS_DIR, settings
-from utils import extract_code_from_llm_response
+
+try:
+    from .config import MODELS_DIR, settings
+    from .utils import extract_code_from_llm_response
+except (ImportError, ValueError):
+    from config import MODELS_DIR, settings
+    from utils import extract_code_from_llm_response
 
 # Configure PyTorch CUDA memory allocator to prevent memory fragmentation
 if "PYTORCH_CUDA_ALLOC_CONF" not in os.environ:
@@ -189,7 +194,10 @@ class BenchmarkProfile_A(InferenceProfile):
 
     def load_models(self, embedder_name: str, llm_name: str):
         from sentence_transformers import SentenceTransformer
-        from router import HardwareProfiler
+        try:
+            from .router import HardwareProfiler
+        except (ImportError, ValueError):
+            from router import HardwareProfiler
 
         self.embedder_name = select_optimal_embedder(embedder_name)
         emb_path = os.path.join(MODELS_DIR, "embeddings", self.embedder_name)
@@ -257,7 +265,10 @@ class BenchmarkProfile_C(InferenceProfile):
     def load_models(self, embedder_name: str, llm_name: str):
         from sentence_transformers import SentenceTransformer
         from llama_cpp import Llama
-        from router import HardwareProfiler
+        try:
+            from .router import HardwareProfiler
+        except (ImportError, ValueError):
+            from router import HardwareProfiler
 
         device = HardwareProfiler.get_optimal_device()
 

@@ -18,8 +18,14 @@ def test():
     read_cell = orchestrator.loaded_cells["PANDAS_READ_CSV"]
     print("Read cell primary input:", read_cell.primary_input)
     print("Read cell primary output:", read_cell.primary_output)
-    
-    assert read_cell.primary_input.type_name == "str"
+
+    # Stage-1 ingestion morphisms consume environmental assets: the primary input
+    # must be the textual/path asset carrier (FilePath is a str-subtype in the
+    # TypeRegistry poset), never an auxiliary structural parameter like `names`.
+    from lattice import TypeRegistry
+    assert TypeRegistry.get_instance().is_subtype(
+        read_cell.primary_input.type_name, "str"
+    ), f"Primary input of a stage-1 reader must be an asset carrier, got {read_cell.primary_input.type_name}"
     assert read_cell.primary_output.type_name == "DataFrame"
     print("All lattice tests passed!")
 

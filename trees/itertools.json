@@ -8,7 +8,7 @@
       "inputs": {
         "iterable": {
           "type_name": "any",
-          "state": "iterable",
+          "state": "any",
           "qualifiers": [],
           "default_value": null,
           "description": "Constructor argument iterable",
@@ -17,7 +17,7 @@
         },
         "func": {
           "type_name": "any",
-          "state": "func",
+          "state": "any",
           "qualifiers": [],
           "default_value": null,
           "description": "Constructor argument func",
@@ -26,7 +26,7 @@
         },
         "initial": {
           "type_name": "any",
-          "state": "initial",
+          "state": "any",
           "qualifiers": [],
           "default_value": null,
           "description": "Constructor argument initial",
@@ -71,7 +71,7 @@
       "inputs": {
         "iterable": {
           "type_name": "any",
-          "state": "iterable",
+          "state": "any",
           "qualifiers": [],
           "default_value": null,
           "description": "Constructor argument iterable",
@@ -80,7 +80,7 @@
         },
         "n": {
           "type_name": "any",
-          "state": "n",
+          "state": "any",
           "qualifiers": [],
           "default_value": null,
           "description": "Constructor argument n",
@@ -89,7 +89,7 @@
         },
         "strict": {
           "type_name": "any",
-          "state": "strict",
+          "state": "any",
           "qualifiers": [],
           "default_value": null,
           "description": "Constructor argument strict",
@@ -178,7 +178,7 @@
         },
         "iterable": {
           "type_name": "any",
-          "state": "iterable",
+          "state": "any",
           "qualifiers": [],
           "default_value": null,
           "description": "Argument iterable",
@@ -229,7 +229,7 @@
       "inputs": {
         "iterable": {
           "type_name": "any",
-          "state": "iterable",
+          "state": "any",
           "qualifiers": [],
           "default_value": null,
           "description": "Constructor argument iterable",
@@ -238,7 +238,7 @@
         },
         "r": {
           "type_name": "any",
-          "state": "r",
+          "state": "any",
           "qualifiers": [],
           "default_value": null,
           "description": "Constructor argument r",
@@ -283,7 +283,7 @@
       "inputs": {
         "iterable": {
           "type_name": "any",
-          "state": "iterable",
+          "state": "any",
           "qualifiers": [],
           "default_value": null,
           "description": "Constructor argument iterable",
@@ -292,7 +292,7 @@
         },
         "r": {
           "type_name": "any",
-          "state": "r",
+          "state": "any",
           "qualifiers": [],
           "default_value": null,
           "description": "Constructor argument r",
@@ -343,7 +343,7 @@
       "inputs": {
         "data": {
           "type_name": "any",
-          "state": "data",
+          "state": "any",
           "qualifiers": [],
           "default_value": null,
           "description": "Constructor argument data",
@@ -352,7 +352,7 @@
         },
         "selectors": {
           "type_name": "any",
-          "state": "selectors",
+          "state": "any",
           "qualifiers": [],
           "default_value": null,
           "description": "Constructor argument selectors",
@@ -397,7 +397,7 @@
       "inputs": {
         "start": {
           "type_name": "any",
-          "state": "start",
+          "state": "any",
           "qualifiers": [],
           "default_value": null,
           "description": "Constructor argument start",
@@ -406,7 +406,7 @@
         },
         "step": {
           "type_name": "any",
-          "state": "step",
+          "state": "any",
           "qualifiers": [],
           "default_value": null,
           "description": "Constructor argument step",
@@ -451,7 +451,7 @@
       "inputs": {
         "iterable": {
           "type_name": "any",
-          "state": "iterable",
+          "state": "any",
           "qualifiers": [],
           "default_value": null,
           "description": "Constructor argument iterable",
@@ -496,7 +496,7 @@
       "inputs": {
         "predicate": {
           "type_name": "any",
-          "state": "predicate",
+          "state": "any",
           "qualifiers": [],
           "default_value": null,
           "description": "Constructor argument predicate",
@@ -505,7 +505,7 @@
         },
         "iterable": {
           "type_name": "any",
-          "state": "iterable",
+          "state": "any",
           "qualifiers": [],
           "default_value": null,
           "description": "Constructor argument iterable",
@@ -550,7 +550,7 @@
       "inputs": {
         "function": {
           "type_name": "any",
-          "state": "function",
+          "state": "any",
           "qualifiers": [],
           "default_value": null,
           "description": "Constructor argument function",
@@ -559,7 +559,7 @@
         },
         "iterable": {
           "type_name": "any",
-          "state": "iterable",
+          "state": "any",
           "qualifiers": [],
           "default_value": null,
           "description": "Constructor argument iterable",
@@ -604,7 +604,7 @@
       "inputs": {
         "iterable": {
           "type_name": "any",
-          "state": "iterable",
+          "state": "any",
           "qualifiers": [],
           "default_value": null,
           "description": "Constructor argument iterable",
@@ -613,7 +613,7 @@
         },
         "key": {
           "type_name": "any",
-          "state": "key",
+          "state": "any",
           "qualifiers": [],
           "default_value": null,
           "description": "Constructor argument key",
@@ -658,7 +658,7 @@
       "inputs": {
         "iterable": {
           "type_name": "any",
-          "state": "iterable",
+          "state": "any",
           "qualifiers": [],
           "default_value": null,
           "description": "Constructor argument iterable",
@@ -667,7 +667,7 @@
         },
         "stop": {
           "type_name": "any",
-          "state": "stop",
+          "state": "any",
           "qualifiers": [],
           "default_value": null,
           "description": "Constructor argument stop",
@@ -712,7 +712,7 @@
       "inputs": {
         "iterable": {
           "type_name": "any",
-          "state": "iterable",
+          "state": "any",
           "qualifiers": [],
           "default_value": null,
           "description": "Constructor argument iterable",
@@ -757,7 +757,7 @@
       "inputs": {
         "iterable": {
           "type_name": "any",
-          "state": "iterable",
+          "state": "any",
           "qualifiers": [],
           "default_value": null,
           "description": "Constructor argument iterable",
@@ -766,7 +766,7 @@
         },
         "r": {
           "type_name": "any",
-          "state": "r",
+          "state": "any",
           "qualifiers": [],
           "default_value": null,
           "description": "Constructor argument r",
@@ -811,7 +811,7 @@
       "inputs": {
         "repeat": {
           "type_name": "any",
-          "state": "repeat",
+          "state": "any",
           "qualifiers": [],
           "default_value": null,
           "description": "Constructor argument repeat",
@@ -856,7 +856,7 @@
       "inputs": {
         "function": {
           "type_name": "any",
-          "state": "function",
+          "state": "any",
           "qualifiers": [],
           "default_value": null,
           "description": "Constructor argument function",
@@ -865,7 +865,7 @@
         },
         "iterable": {
           "type_name": "any",
-          "state": "iterable",
+          "state": "any",
           "qualifiers": [],
           "default_value": null,
           "description": "Constructor argument iterable",
@@ -910,7 +910,7 @@
       "inputs": {
         "predicate": {
           "type_name": "any",
-          "state": "predicate",
+          "state": "any",
           "qualifiers": [],
           "default_value": null,
           "description": "Constructor argument predicate",
@@ -919,7 +919,7 @@
         },
         "iterable": {
           "type_name": "any",
-          "state": "iterable",
+          "state": "any",
           "qualifiers": [],
           "default_value": null,
           "description": "Constructor argument iterable",
@@ -964,7 +964,7 @@
       "inputs": {
         "fillvalue": {
           "type_name": "any",
-          "state": "fillvalue",
+          "state": "any",
           "qualifiers": [],
           "default_value": null,
           "description": "Constructor argument fillvalue",
@@ -1013,7 +1013,7 @@
       "inputs": {
         "iterable": {
           "type_name": "any",
-          "state": "iterable",
+          "state": "any",
           "qualifiers": [],
           "default_value": null,
           "description": "Argument iterable",
@@ -1022,7 +1022,7 @@
         },
         "n": {
           "type_name": "any",
-          "state": "n",
+          "state": "any",
           "qualifiers": [],
           "default_value": null,
           "description": "Argument n",

@@ -306,15 +306,20 @@ class LatticePlanner:
 
             if not satisfied:
                 registry = TypeRegistry.get_instance()
-                p_lower = p_name.lower()
                 t_name = str(getattr(p_sig.signature, "type_name", "")).lower()
+                # Type-driven literal groundability: a required port is satisfiable at
+                # synthesis time iff its DECLARED carrier is literal-groundable (scalar
+                # family, textual/path family, logical, or an explicitly untyped carrier)
+                # or the port declares an enum domain for reflection-based grounding.
+                # Zero port-name heuristics: naming is data, typing is semantics.
                 is_literal_groundable = (
                     registry.is_subtype(t_name, "str")
                     or registry.is_subtype(t_name, "numeric")
                     or registry.is_subtype(t_name, "bool")
                     or registry.is_subtype(t_name, "filepath")
-                    or t_name in ("str", "int", "float", "bool", "filepath", "path", "any", "scalar", "color")
-                    or p_lower in ("contouridx", "idx", "color", "colour", "mode", "method", "thickness", "expr", "inplace")
+                    or registry.is_subtype(t_name, "uri")
+                    or t_name in ("any", "*", "top", "scalar", "color", "enum")
+                    or bool(getattr(p_sig, "domain", ""))
                 )
                 if is_literal_groundable:
                     satisfied = True
@@ -339,11 +344,17 @@ class LatticePlanner:
         Categorically verifies traced loop invariants (Tr^U) and coproduct branch joins (⊕).
         """
         topology = getattr(parent_cell, "topology_type", "sequential")
-        cid_lower = parent_cell.cell_id.lower()
 
-        # 1. Traced Loop Slot Planning (Tr^U)
-        if topology == "traced_loop" or "loop" in cid_lower or "reduce" in cid_lower or "map" in cid_lower or "filter" in cid_lower:
-            coll_sig = parent_cell.inputs.get("collection")
+        # 1. Traced Loop Slot Planning (Tr^U) — dispatched by the DECLARED topology
+        # of the macro cell, never by cell identifier substrings.
+        if topology == "traced_loop":
+            # Recover the container-typed input port structurally (generic carrier
+            # C[T]); the item carrier T is extracted from its generic argument.
+            coll_sig = None
+            for p_sig in parent_cell.inputs.values():
+                if "[" in str(getattr(p_sig.signature, "type_name", "")):
+                    coll_sig = p_sig
+                    break
             item_type: Any = "any"
             if coll_sig is not None:
                 c_type_str = str(coll_sig.signature.type_name)
@@ -361,11 +372,19 @@ class LatticePlanner:
             if not pool:
                 pool = [c for c in self.orchestrator.loaded_cells.values() if c.cell_id != parent_cell.cell_id and getattr(c, "node_type", "") != "constant"]
 
-            slot_clause = ""
-            for cl in re.split(r'[,;]|\b(?:and|then)\b', prompt.strip()):
-                cl_lower = cl.lower()
-                if any(k in cl_lower for k in ("loop", "each", "every", "all", "for", "reduce", "minimum", "maximum", "min", "max", "filter")):
-                    slot_clause += " " + cl
+            # Dynamic clause targeting: the clause(s) that describe the loop are the
+            # ones sharing vocabulary with the loop morphism's DECLARED token set.
+            # Zero hardcoded connector/loop keyword lists.
+            parent_toks = getattr(parent_cell, "token_set", set()) - STOPWORDS
+            clauses = [cl.strip() for cl in re.split(r'[,;]|\b(?:and|then)\b', prompt.strip()) if cl.strip()]
+            if clauses and parent_toks:
+                related = [
+                    cl for cl in clauses
+                    if (CellTokenizer.tokenize_prompt(cl) - STOPWORDS) & parent_toks
+                ]
+                slot_clause = " ".join(related)
+            else:
+                slot_clause = ""
             target_text = slot_clause.strip() or prompt
             target_tokens = (CellTokenizer.tokenize_prompt(target_text) if target_text else set()) - STOPWORDS
             if not target_tokens:
@@ -394,8 +413,8 @@ class LatticePlanner:
                 if valid:
                     return [best_child]
 
-        # 2. Coproduct Branch Slot Planning (⊕)
-        elif topology == "coproduct_branch" or "if" in cid_lower:
+        # 2. Coproduct Branch Slot Planning (⊕) — declared topology dispatch.
+        elif topology == "coproduct_branch":
             pool = [c for c in tunnel if c.cell_id != parent_cell.cell_id and getattr(c, "node_type", "") != "constant"]
             if pool:
                 pool.sort(key=lambda c: relevance_map.get(c.cell_id, 0.0), reverse=True)

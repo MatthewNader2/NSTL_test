@@ -735,28 +735,10 @@ class NSTLInteractiveShell(cmd.Cmd):
 
         # Step 4: Sandbox Verification & Optional Self-Repair
         t_exec_start = time.perf_counter()
-        has_sink = any(
-            getattr(c, "stage", None) == 3 or
-            any(getattr(p, "state", None) in ("filepath_written", "saved", "exported") or
-                getattr(getattr(p, "signature", None), "state", None) in ("filepath_written", "saved", "exported")
-                for p in getattr(c, "outputs", {}).values())
-            for c in cells
-        )
-        dest_paths = None
-        if has_sink:
-            if hasattr(self.gate, "context") and hasattr(self.gate.context, "ordered_literals"):
-                file_lits = [v for _, k, v in self.gate.context.ordered_literals if k in ("file_asset", "quoted_str")]
-                if file_lits:
-                    dest_paths = [file_lits[-1]]
-            if not dest_paths:
-                try:
-                    from unification import ExecutionContext
-                except ImportError:
-                    from .unification import ExecutionContext
-                extracted = ExecutionContext._extract_universal_literals(prompt)
-                file_lits = [v for _, k, v in extracted if k in ("file_asset", "quoted_str")]
-                if file_lits:
-                    dest_paths = [file_lits[-1]]
+        # Egress destinations come from the unification gate itself (values bound to
+        # path-typed ports of terminal morphisms) — a single source of truth derived
+        # from the verified dataflow, never re-parsed from the raw prompt.
+        dest_paths = self.gate.get_egress_paths() or None
 
         sandbox_res = self.sandbox.execute(final_code, timeout=5.0, egress_paths=dest_paths)
         sandbox_dt = (time.perf_counter() - t_exec_start) * 1000.0

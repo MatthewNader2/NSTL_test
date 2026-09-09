@@ -86,7 +86,7 @@
       "inputs": {
         "func": {
           "type_name": "any",
-          "state": "func",
+          "state": "any",
           "qualifiers": [],
           "default_value": null,
           "description": "Constructor argument func",
@@ -135,7 +135,7 @@
       "inputs": {
         "func": {
           "type_name": "any",
-          "state": "func",
+          "state": "any",
           "qualifiers": [],
           "default_value": null,
           "description": "Constructor argument func",
@@ -180,7 +180,7 @@
       "inputs": {
         "func": {
           "type_name": "any",
-          "state": "func",
+          "state": "any",
           "qualifiers": [],
           "default_value": null,
           "description": "Constructor argument func",
@@ -225,7 +225,7 @@
       "inputs": {
         "func": {
           "type_name": "any",
-          "state": "func",
+          "state": "any",
           "qualifiers": [],
           "default_value": null,
           "description": "Constructor argument func",
@@ -279,7 +279,7 @@
         },
         "cls": {
           "type_name": "any",
-          "state": "cls",
+          "state": "any",
           "qualifiers": [],
           "default_value": null,
           "description": "Argument cls",
@@ -288,7 +288,7 @@
         },
         "method": {
           "type_name": "any",
-          "state": "method",
+          "state": "any",
           "qualifiers": [],
           "default_value": null,
           "description": "Argument method",
@@ -335,7 +335,7 @@
       "inputs": {
         "user_function": {
           "type_name": "any",
-          "state": "user_function",
+          "state": "any",
           "qualifiers": [],
           "default_value": null,
           "description": "Argument user_function",
@@ -380,7 +380,7 @@
       "inputs": {
         "mycmp": {
           "type_name": "any",
-          "state": "mycmp",
+          "state": "any",
           "qualifiers": [],
           "default_value": null,
           "description": "Argument mycmp",
@@ -431,7 +431,7 @@
       "inputs": {
         "maxsize": {
           "type_name": "any",
-          "state": "maxsize",
+          "state": "any",
           "qualifiers": [],
           "default_value": null,
           "description": "Argument maxsize",
@@ -440,7 +440,7 @@
         },
         "typed": {
           "type_name": "any",
-          "state": "typed",
+          "state": "any",
           "qualifiers": [],
           "default_value": null,
           "description": "Argument typed",
@@ -489,7 +489,7 @@
       "inputs": {
         "func": {
           "type_name": "any",
-          "state": "func",
+          "state": "any",
           "qualifiers": [],
           "default_value": null,
           "description": "Argument func",
@@ -534,7 +534,7 @@
       "inputs": {
         "cls": {
           "type_name": "any",
-          "state": "cls",
+          "state": "any",
           "qualifiers": [],
           "default_value": null,
           "description": "Argument cls",
@@ -583,7 +583,7 @@
       "inputs": {
         "wrapper": {
           "type_name": "any",
-          "state": "wrapper",
+          "state": "any",
           "qualifiers": [],
           "default_value": null,
           "description": "Argument wrapper",
@@ -592,7 +592,7 @@
         },
         "wrapped": {
           "type_name": "any",
-          "state": "wrapped",
+          "state": "any",
           "qualifiers": [],
           "default_value": null,
           "description": "Argument wrapped",
@@ -601,7 +601,7 @@
         },
         "assigned": {
           "type_name": "any",
-          "state": "assigned",
+          "state": "any",
           "qualifiers": [],
           "default_value": null,
           "description": "Argument assigned",
@@ -610,7 +610,7 @@
         },
         "updated": {
           "type_name": "any",
-          "state": "updated",
+          "state": "any",
           "qualifiers": [],
           "default_value": null,
           "description": "Argument updated",
@@ -659,7 +659,7 @@
       "inputs": {
         "wrapped": {
           "type_name": "any",
-          "state": "wrapped",
+          "state": "any",
           "qualifiers": [],
           "default_value": null,
           "description": "Argument wrapped",
@@ -668,7 +668,7 @@
         },
         "assigned": {
           "type_name": "any",
-          "state": "assigned",
+          "state": "any",
           "qualifiers": [],
           "default_value": null,
           "description": "Argument assigned",
@@ -677,7 +677,7 @@
         },
         "updated": {
           "type_name": "any",
-          "state": "updated",
+          "state": "any",
           "qualifiers": [],
           "default_value": null,
           "description": "Argument updated",

@@ -303,7 +303,7 @@
         },
         "object": {
           "type_name": "any",
-          "state": "object",
+          "state": "any",
           "qualifiers": [],
           "default_value": null,
           "description": "Argument object",
@@ -369,7 +369,7 @@
         },
         "object": {
           "type_name": "any",
-          "state": "object",
+          "state": "any",
           "qualifiers": [],
           "default_value": null,
           "description": "Argument object",
@@ -588,7 +588,7 @@
         },
         "zlib_mode": {
           "type_name": "int",
-          "state": "zlib_mode",
+          "state": "any",
           "qualifiers": [],
           "default_value": null,
           "description": "Argument zlib_mode",
@@ -699,7 +699,7 @@
         },
         "n": {
           "type_name": "any",
-          "state": "n",
+          "state": "any",
           "qualifiers": [],
           "default_value": null,
           "description": "Argument n",
@@ -759,7 +759,7 @@
         },
         "size": {
           "type_name": "int",
-          "state": "size",
+          "state": "any",
           "qualifiers": [],
           "default_value": null,
           "description": "Argument size",
@@ -819,7 +819,7 @@
         },
         "size": {
           "type_name": "int",
-          "state": "size",
+          "state": "any",
           "qualifiers": [],
           "default_value": null,
           "description": "Argument size",
@@ -932,7 +932,7 @@
         },
         "buffer": {
           "type_name": "any",
-          "state": "buffer",
+          "state": "any",
           "qualifiers": [],
           "default_value": null,
           "description": "Argument buffer",
@@ -992,7 +992,7 @@
         },
         "buffer": {
           "type_name": "any",
-          "state": "buffer",
+          "state": "any",
           "qualifiers": [],
           "default_value": null,
           "description": "Argument buffer",
@@ -1054,7 +1054,7 @@
         },
         "size": {
           "type_name": "int",
-          "state": "size",
+          "state": "any",
           "qualifiers": [],
           "default_value": null,
           "description": "Argument size",
@@ -1114,7 +1114,7 @@
         },
         "hint": {
           "type_name": "int",
-          "state": "hint",
+          "state": "any",
           "qualifiers": [],
           "default_value": null,
           "description": "Argument hint",
@@ -1225,7 +1225,7 @@
         },
         "offset": {
           "type_name": "any",
-          "state": "offset",
+          "state": "any",
           "qualifiers": [],
           "default_value": null,
           "description": "Argument offset",
@@ -1234,7 +1234,7 @@
         },
         "whence": {
           "type_name": "int",
-          "state": "whence",
+          "state": "any",
           "qualifiers": [],
           "default_value": null,
           "description": "Argument whence",
@@ -1396,7 +1396,7 @@
         },
         "size": {
           "type_name": "NoneType",
-          "state": "size",
+          "state": "any",
           "qualifiers": [],
           "default_value": null,
           "description": "Argument size",
@@ -1498,7 +1498,7 @@
       "inputs": {
         "data": {
           "type_name": "any",
-          "state": "data",
+          "state": "any",
           "qualifiers": [],
           "default_value": null,
           "description": "Argument data",
@@ -1558,7 +1558,7 @@
         },
         "lines": {
           "type_name": "any",
-          "state": "lines",
+          "state": "any",
           "qualifiers": [],
           "default_value": null,
           "description": "Argument lines",
@@ -1609,7 +1609,7 @@
       "inputs": {
         "data": {
           "type_name": "any",
-          "state": "data",
+          "state": "any",
           "qualifiers": [],
           "default_value": null,
           "description": "Argument data",
@@ -1618,7 +1618,7 @@
         },
         "compresslevel": {
           "type_name": "int",
-          "state": "compresslevel",
+          "state": "any",
           "qualifiers": [],
           "default_value": null,
           "description": "Argument compresslevel",
@@ -1627,7 +1627,7 @@
         },
         "mtime": {
           "type_name": "NoneType",
-          "state": "mtime",
+          "state": "any",
           "qualifiers": [],
           "default_value": null,
           "description": "Argument mtime",
@@ -1672,7 +1672,7 @@
       "inputs": {
         "data": {
           "type_name": "any",
-          "state": "data",
+          "state": "any",
           "qualifiers": [],
           "default_value": null,
           "description": "Argument data",
@@ -1752,7 +1752,7 @@
       "inputs": {
         "filename": {
           "type_name": "any",
-          "state": "filename",
+          "state": "any",
           "qualifiers": [],
           "default_value": null,
           "description": "Argument filename",
@@ -1761,7 +1761,7 @@
         },
         "mode": {
           "type_name": "str",
-          "state": "mode",
+          "state": "any",
           "qualifiers": [],
           "default_value": null,
           "description": "Argument mode",
@@ -1770,7 +1770,7 @@
         },
         "compresslevel": {
           "type_name": "int",
-          "state": "compresslevel",
+          "state": "any",
           "qualifiers": [],
           "default_value": null,
           "description": "Argument compresslevel",
@@ -1779,7 +1779,7 @@
         },
         "encoding": {
           "type_name": "NoneType",
-          "state": "encoding",
+          "state": "any",
           "qualifiers": [],
           "default_value": null,
           "description": "Argument encoding",
@@ -1788,7 +1788,7 @@
         },
         "errors": {
           "type_name": "NoneType",
-          "state": "errors",
+          "state": "any",
           "qualifiers": [],
           "default_value": null,
           "description": "Argument errors",
@@ -1797,7 +1797,7 @@
         },
         "newline": {
           "type_name": "NoneType",
-          "state": "newline",
+          "state": "any",
           "qualifiers": [],
           "default_value": null,
           "description": "Argument newline",
@@ -1842,7 +1842,7 @@
       "inputs": {
         "output": {
           "type_name": "any",
-          "state": "output",
+          "state": "any",
           "qualifiers": [],
           "default_value": null,
           "description": "Argument output",
@@ -1851,7 +1851,7 @@
         },
         "value": {
           "type_name": "any",
-          "state": "value",
+          "state": "any",
           "qualifiers": [],
           "default_value": null,
           "description": "Argument value",

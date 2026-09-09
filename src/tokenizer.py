@@ -7,13 +7,7 @@ Zero regular expressions.
 """
 
 from __future__ import annotations
-import sys
-import re
 from typing import Set, FrozenSet, List
-
-_IDENTIFIER_SPLIT_REGEX = re.compile(
-    r'[_\-\s\.]+|(?<=[a-z])(?=[A-Z])|(?<=[A-Z])(?=[A-Z][a-z])|(?<=[a-zA-Z])(?=[0-9])|(?<=[0-9])(?=[a-zA-Z])'
-)
 
 
 class CellTokenizer:

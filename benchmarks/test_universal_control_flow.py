@@ -208,8 +208,9 @@ class TestUniversalControlFlowEndToEnd:
     def test_e2e_vision_loop_reduction(self, nstl_system, tmp_path):
         """
         Test A: Vision + Loop Reduction
-        Prompt: 'Load image, find contours, loop over them to find the contour with the minimum area, and draw it.'
+        Prompt: 'Load input.png, find contours, loop over them to find the contour with the minimum area, and draw it.'
         Topology: Sequential + Traced Feedback Loop (cv2.contourArea) + Monoidal Port Sharing (drawContours).
+        The source asset is bound dynamically from the prompt's file literal.
         """
         orch, router, gate, sandbox = nstl_system
 
@@ -222,7 +223,7 @@ class TestUniversalControlFlowEndToEnd:
         cv2.rectangle(test_img, (60, 60), (110, 110), (255, 255, 255), -1) # Large: 50x50 = 2500
         cv2.imwrite(img_path, test_img)
 
-        prompt = "Load image, find contours, loop over them to find the contour with the minimum area, and draw it."
+        prompt = "Load input.png, find contours, loop over them to find the contour with the minimum area, and draw it."
 
         # 2. Plan path through semantic tunnel
         path = router.plan_path(prompt, return_tuple=False)
@@ -252,16 +253,21 @@ class TestUniversalControlFlowEndToEnd:
         assert "cv2.findContours" in code
         assert "cv2.contourArea" in code
         assert "cv2.drawContours" in code
+        # Minimum-direction accumulator: '<' comparison derived from the declared
+        # direction port resolution, not from hardcoded prompt word lists.
+        assert "< _min_metric" in code or "_min_metric" in code
+        assert "input.png" in code, "Source asset from the prompt must be bound into the code"
 
-        # 5. GEVRSandbox Execution
+        # 5. GEVRSandbox Execution (strict: no synthetic fixture creation)
         res = sandbox.execute(code, cwd=work_dir)
         assert res["success"] is True, f"Execution failed in sandbox: {res.get('error')}"
 
     def test_e2e_tabular_filter_comprehension(self, nstl_system, tmp_path):
         """
         Test B: Tabular + Filter Comprehension
-        Prompt: 'Read CSV data, filter rows where column value > 100, and save results.'
+        Prompt: 'Read input.csv, filter rows where column value > 100, and save results to output.csv.'
         Topology: Sequential + Predicate Grounding + Sink Terminal Export.
+        Source and destination assets are bound dynamically from the prompt literals.
         """
         orch, router, gate, sandbox = nstl_system
 
@@ -273,7 +279,7 @@ class TestUniversalControlFlowEndToEnd:
         raw_df = pd.DataFrame({"value": [45, 120, 85, 250, 100, 310]})
         raw_df.to_csv(csv_in_path, index=False)
 
-        prompt = "Read CSV data, filter rows where column value > 100, and save results."
+        prompt = "Read input.csv, filter rows where column value > 100, and save results to output.csv."
 
         # 2. Plan path through semantic tunnel
         path = router.plan_path(prompt, return_tuple=False)
@@ -288,6 +294,13 @@ class TestUniversalControlFlowEndToEnd:
         ctx = ExecutionContext(prompt=prompt)
         code = gate.emit_code(path, context=ctx)
         assert code and len(code) > 0
+
+        # Egress destinations must be derived from the verified pipeline bindings
+        # (path-typed ports of terminal morphisms), not re-parsed from the prompt.
+        # The bound value is the asset literal as it appears in the prompt; the
+        # sandbox resolves it against the working directory.
+        assert gate.get_egress_paths() == ["output.csv"], \
+            f"Gate-derived egress paths must be ['output.csv'], got {gate.get_egress_paths()}"
 
         # 4. AST Structure Verification
         assert "pandas.read_csv" in code

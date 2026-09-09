@@ -17,8 +17,13 @@ import signal
 import resource
 from typing import Tuple, Optional, Callable, Dict, Any
 from log_config import get_logger
-from config import settings
-from utils import extract_code_from_llm_response
+
+try:
+    from .config import settings
+    from .utils import extract_code_from_llm_response
+except (ImportError, ValueError):
+    from config import settings
+    from utils import extract_code_from_llm_response
 
 logger = get_logger('gevr_sandbox')
 
@@ -42,11 +47,20 @@ def _restricted_import(name, *args, **kwargs):
         raise ImportError(f"Import of '{name}' is blocked in NSTL sandbox for security.")
     return __builtins__.__import__(name, *args, **kwargs) if hasattr(__builtins__, '__import__') else __import__(name, *args, **kwargs)
 
-from errors import DataflowExecutionError, ArtifactMaterializationError
+try:
+    from .errors import DataflowExecutionError, ArtifactMaterializationError
+except (ImportError, ValueError):
+    from errors import DataflowExecutionError, ArtifactMaterializationError
 
 
 def _sandbox_worker_exec(code: str, egress_paths: Optional[list[str]] = None, cwd: Optional[str] = None) -> Dict[str, Any]:
-    """Isolated execution unit executed within persistent worker process."""
+    """
+    Isolated execution unit executed within persistent worker process.
+    Executes the candidate strictly as-is: no synthetic fixtures are ever created.
+    Missing input artifacts surface as honest FileNotFoundError failures, and only
+    artifacts the code itself materializes at declared egress destinations count
+    towards the physical verification pass.
+    """
     if cwd:
         try:
             os.chdir(cwd)
@@ -54,38 +68,6 @@ def _sandbox_worker_exec(code: str, egress_paths: Optional[list[str]] = None, cw
             pass
     stdout_buf = io.StringIO()
     stderr_buf = io.StringIO()
-
-    fixtures_created = []
-    clean_egress = set(os.path.abspath(ep.strip("\"'")) for ep in (egress_paths or []))
-    try:
-        parsed_ast = ast.parse(code)
-        for node in ast.walk(parsed_ast):
-            if isinstance(node, ast.Constant) and isinstance(node.value, str):
-                s = node.value.strip()
-                if s and "\n" not in s and len(s) < 256:
-                    if os.path.abspath(s) in clean_egress:
-                        continue
-                    base = os.path.basename(s)
-                    if "." in base and not base.startswith("."):
-                        ext = base.rsplit(".", 1)[1].lower()
-                        if ext.isalnum() and len(ext) <= 5 and not os.path.exists(s):
-                            parent = os.path.dirname(s)
-                            if parent:
-                                os.makedirs(parent, exist_ok=True)
-                            ws_path = os.path.join(os.getcwd(), s)
-                            if os.path.exists(ws_path):
-                                import shutil
-                                shutil.copy2(ws_path, s)
-                                fixtures_created.append(s)
-                            else:
-                                try:
-                                    with open(s, "wb") as f_fix:
-                                        f_fix.write(b"")
-                                    fixtures_created.append(s)
-                                except Exception:
-                                    pass
-    except Exception:
-        pass
 
     with contextlib.redirect_stdout(stdout_buf), contextlib.redirect_stderr(stderr_buf):
         try:
@@ -170,14 +152,8 @@ def _sandbox_worker_exec(code: str, egress_paths: Optional[list[str]] = None, cw
                 "error": err_msg
             }
         finally:
-            for fix_p in fixtures_created:
-                if os.path.abspath(fix_p) in clean_egress:
-                    continue
-                if os.path.exists(fix_p):
-                    try:
-                        os.remove(fix_p)
-                    except Exception:
-                        pass
+            # No synthetic fixtures are created by the sandbox; nothing to clean up.
+            pass
 
 
 class GEVRSandbox:
@@ -279,7 +255,10 @@ class GEVRSandbox:
                     else:
                         break
                 else:
-                    from unification import UnificationGate
+                    try:
+                        from .unification import UnificationGate
+                    except (ImportError, ValueError):
+                        from unification import UnificationGate
                     repaired = UnificationGate.resolve_imports(current_code)
                     if repaired and repaired != current_code:
                         current_code = repaired

@@ -22,6 +22,24 @@
           "description": "Initial state for the accumulator",
           "domain": null,
           "required": false
+        },
+        "direction": {
+          "type_name": "bool",
+          "state": "reduction_direction",
+          "qualifiers": [
+            [
+              "positive",
+              "maximum greatest largest highest biggest"
+            ],
+            [
+              "negative",
+              "minimum smallest least lowest"
+            ]
+          ],
+          "default_value": null,
+          "description": "Polarity of the extremum accumulation: True keeps the item with the maximum metric, False the one with the minimum metric.",
+          "domain": null,
+          "required": true
         }
       },
       "outputs": {

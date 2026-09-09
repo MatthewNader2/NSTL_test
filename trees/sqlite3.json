@@ -7077,7 +7077,7 @@
         },
         "length": {
           "type_name": "int",
-          "state": "length",
+          "state": "any",
           "qualifiers": [],
           "default_value": null,
           "description": "Argument length",
@@ -7133,7 +7133,7 @@
         },
         "offset": {
           "type_name": "any",
-          "state": "offset",
+          "state": "any",
           "qualifiers": [],
           "default_value": null,
           "description": "Argument offset",
@@ -7142,7 +7142,7 @@
         },
         "origin": {
           "type_name": "int",
-          "state": "origin",
+          "state": "any",
           "qualifiers": [],
           "default_value": null,
           "description": "Argument origin",
@@ -7236,7 +7236,7 @@
       "inputs": {
         "data": {
           "type_name": "any",
-          "state": "data",
+          "state": "any",
           "qualifiers": [],
           "default_value": null,
           "description": "Argument data",
@@ -7292,7 +7292,7 @@
         },
         "target": {
           "type_name": "any",
-          "state": "target",
+          "state": "any",
           "qualifiers": [],
           "default_value": null,
           "description": "Argument target",
@@ -7301,7 +7301,7 @@
         },
         "pages": {
           "type_name": "int",
-          "state": "pages",
+          "state": "any",
           "qualifiers": [],
           "default_value": null,
           "description": "Argument pages",
@@ -7310,7 +7310,7 @@
         },
         "progress": {
           "type_name": "NoneType",
-          "state": "progress",
+          "state": "any",
           "qualifiers": [],
           "default_value": null,
           "description": "Argument progress",
@@ -7319,7 +7319,7 @@
         },
         "name": {
           "type_name": "str",
-          "state": "name",
+          "state": "any",
           "qualifiers": [],
           "default_value": null,
           "description": "Argument name",
@@ -7328,7 +7328,7 @@
         },
         "sleep": {
           "type_name": "float",
-          "state": "sleep",
+          "state": "any",
           "qualifiers": [],
           "default_value": null,
           "description": "Argument sleep",
@@ -7384,7 +7384,7 @@
         },
         "table": {
           "type_name": "any",
-          "state": "table",
+          "state": "any",
           "qualifiers": [],
           "default_value": null,
           "description": "Argument table",
@@ -7393,7 +7393,7 @@
         },
         "column": {
           "type_name": "any",
-          "state": "column",
+          "state": "any",
           "qualifiers": [],
           "default_value": null,
           "description": "Argument column",
@@ -7402,7 +7402,7 @@
         },
         "row": {
           "type_name": "any",
-          "state": "row",
+          "state": "any",
           "qualifiers": [],
           "default_value": null,
           "description": "Argument row",
@@ -7411,7 +7411,7 @@
         },
         "readonly": {
           "type_name": "bool",
-          "state": "readonly",
+          "state": "any",
           "qualifiers": [],
           "default_value": null,
           "description": "Argument readonly",
@@ -7420,7 +7420,7 @@
         },
         "name": {
           "type_name": "str",
-          "state": "name",
+          "state": "any",
           "qualifiers": [],
           "default_value": null,
           "description": "Argument name",
@@ -7570,7 +7570,7 @@
         },
         "name": {
           "type_name": "any",
-          "state": "name",
+          "state": "any",
           "qualifiers": [],
           "default_value": null,
           "description": "Argument name",
@@ -7579,7 +7579,7 @@
         },
         "n_arg": {
           "type_name": "any",
-          "state": "n_arg",
+          "state": "any",
           "qualifiers": [],
           "default_value": null,
           "description": "Argument n_arg",
@@ -7588,7 +7588,7 @@
         },
         "aggregate_class": {
           "type_name": "any",
-          "state": "aggregate_class",
+          "state": "any",
           "qualifiers": [],
           "default_value": null,
           "description": "Argument aggregate_class",
@@ -7648,7 +7648,7 @@
         },
         "name": {
           "type_name": "any",
-          "state": "name",
+          "state": "any",
           "qualifiers": [],
           "default_value": null,
           "description": "Argument name",
@@ -7657,7 +7657,7 @@
         },
         "callback": {
           "type_name": "any",
-          "state": "callback",
+          "state": "any",
           "qualifiers": [],
           "default_value": null,
           "description": "Argument callback",
@@ -7717,7 +7717,7 @@
         },
         "name": {
           "type_name": "any",
-          "state": "name",
+          "state": "any",
           "qualifiers": [],
           "default_value": null,
           "description": "Argument name",
@@ -7726,7 +7726,7 @@
         },
         "narg": {
           "type_name": "any",
-          "state": "narg",
+          "state": "any",
           "qualifiers": [],
           "default_value": null,
           "description": "Argument narg",
@@ -7735,7 +7735,7 @@
         },
         "func": {
           "type_name": "any",
-          "state": "func",
+          "state": "any",
           "qualifiers": [],
           "default_value": null,
           "description": "Argument func",
@@ -7744,7 +7744,7 @@
         },
         "deterministic": {
           "type_name": "bool",
-          "state": "deterministic",
+          "state": "any",
           "qualifiers": [],
           "default_value": null,
           "description": "Argument deterministic",
@@ -7804,7 +7804,7 @@
         },
         "name": {
           "type_name": "any",
-          "state": "name",
+          "state": "any",
           "qualifiers": [],
           "default_value": null,
           "description": "Argument name",
@@ -7813,7 +7813,7 @@
         },
         "num_params": {
           "type_name": "any",
-          "state": "num_params",
+          "state": "any",
           "qualifiers": [],
           "default_value": null,
           "description": "Argument num_params",
@@ -7822,7 +7822,7 @@
         },
         "aggregate_class": {
           "type_name": "any",
-          "state": "aggregate_class",
+          "state": "any",
           "qualifiers": [],
           "default_value": null,
           "description": "Argument aggregate_class",
@@ -7922,7 +7922,7 @@
       "inputs": {
         "data": {
           "type_name": "any",
-          "state": "data",
+          "state": "any",
           "qualifiers": [],
           "default_value": null,
           "description": "Argument data",
@@ -7931,7 +7931,7 @@
         },
         "name": {
           "type_name": "str",
-          "state": "name",
+          "state": "any",
           "qualifiers": [],
           "default_value": null,
           "description": "Argument name",
@@ -8034,7 +8034,7 @@
         },
         "sql": {
           "type_name": "any",
-          "state": "sql",
+          "state": "any",
           "qualifiers": [],
           "default_value": null,
           "description": "Argument sql",
@@ -8043,7 +8043,7 @@
         },
         "parameters": {
           "type_name": "any",
-          "state": "parameters",
+          "state": "any",
           "qualifiers": [],
           "default_value": null,
           "description": "Argument parameters",
@@ -8099,7 +8099,7 @@
         },
         "sql_script": {
           "type_name": "any",
-          "state": "sql_script",
+          "state": "any",
           "qualifiers": [],
           "default_value": null,
           "description": "Argument sql_script",
@@ -8155,7 +8155,7 @@
         },
         "op": {
           "type_name": "any",
-          "state": "op",
+          "state": "any",
           "qualifiers": [],
           "default_value": null,
           "description": "Argument op",
@@ -8211,7 +8211,7 @@
         },
         "category": {
           "type_name": "any",
-          "state": "category",
+          "state": "any",
           "qualifiers": [],
           "default_value": null,
           "description": "Argument category",
@@ -8314,7 +8314,7 @@
         },
         "filter": {
           "type_name": "NoneType",
-          "state": "filter",
+          "state": "any",
           "qualifiers": [],
           "default_value": null,
           "description": "Argument filter",
@@ -8417,7 +8417,7 @@
         },
         "name": {
           "type_name": "str",
-          "state": "name",
+          "state": "any",
           "qualifiers": [],
           "default_value": null,
           "description": "Argument name",
@@ -8473,7 +8473,7 @@
         },
         "authorizer_callback": {
           "type_name": "any",
-          "state": "authorizer_callback",
+          "state": "any",
           "qualifiers": [],
           "default_value": null,
           "description": "Argument authorizer_callback",
@@ -8533,7 +8533,7 @@
         },
         "progress_handler": {
           "type_name": "any",
-          "state": "progress_handler",
+          "state": "any",
           "qualifiers": [],
           "default_value": null,
           "description": "Argument progress_handler",
@@ -8542,7 +8542,7 @@
         },
         "n": {
           "type_name": "any",
-          "state": "n",
+          "state": "any",
           "qualifiers": [],
           "default_value": null,
           "description": "Argument n",
@@ -8604,7 +8604,7 @@
         },
         "trace_callback": {
           "type_name": "any",
-          "state": "trace_callback",
+          "state": "any",
           "qualifiers": [],
           "default_value": null,
           "description": "Argument trace_callback",
@@ -8666,7 +8666,7 @@
         },
         "op": {
           "type_name": "any",
-          "state": "op",
+          "state": "any",
           "qualifiers": [],
           "default_value": null,
           "description": "Argument op",
@@ -8675,7 +8675,7 @@
         },
         "enable": {
           "type_name": "bool",
-          "state": "enable",
+          "state": "any",
           "qualifiers": [],
           "default_value": null,
           "description": "Argument enable",
@@ -8731,7 +8731,7 @@
         },
         "category": {
           "type_name": "any",
-          "state": "category",
+          "state": "any",
           "qualifiers": [],
           "default_value": null,
           "description": "Argument category",
@@ -8740,7 +8740,7 @@
         },
         "limit": {
           "type_name": "any",
-          "state": "limit",
+          "state": "any",
           "qualifiers": [],
           "default_value": null,
           "description": "Argument limit",
@@ -8843,7 +8843,7 @@
         },
         "sql": {
           "type_name": "any",
-          "state": "sql",
+          "state": "any",
           "qualifiers": [],
           "default_value": null,
           "description": "Argument sql",
@@ -8852,7 +8852,7 @@
         },
         "parameters": {
           "type_name": "tuple",
-          "state": "parameters",
+          "state": "any",
           "qualifiers": [],
           "default_value": null,
           "description": "Argument parameters",
@@ -8908,7 +8908,7 @@
         },
         "sql": {
           "type_name": "any",
-          "state": "sql",
+          "state": "any",
           "qualifiers": [],
           "default_value": null,
           "description": "Argument sql",
@@ -8917,7 +8917,7 @@
         },
         "seq_of_parameters": {
           "type_name": "any",
-          "state": "seq_of_parameters",
+          "state": "any",
           "qualifiers": [],
           "default_value": null,
           "description": "Argument seq_of_parameters",
@@ -8973,7 +8973,7 @@
         },
         "sql_script": {
           "type_name": "any",
-          "state": "sql_script",
+          "state": "any",
           "qualifiers": [],
           "default_value": null,
           "description": "Argument sql_script",
@@ -9076,7 +9076,7 @@
         },
         "size": {
           "type_name": "int",
-          "state": "size",
+          "state": "any",
           "qualifiers": [],
           "default_value": null,
           "description": "Argument size",
@@ -9179,7 +9179,7 @@
         },
         "sizes": {
           "type_name": "any",
-          "state": "sizes",
+          "state": "any",
           "qualifiers": [],
           "default_value": null,
           "description": "Argument sizes",
@@ -9235,7 +9235,7 @@
         },
         "size": {
           "type_name": "any",
-          "state": "size",
+          "state": "any",
           "qualifiers": [],
           "default_value": null,
           "description": "Argument size",
@@ -9244,7 +9244,7 @@
         },
         "column": {
           "type_name": "NoneType",
-          "state": "column",
+          "state": "any",
           "qualifiers": [],
           "default_value": null,
           "description": "Argument column",
@@ -9300,7 +9300,7 @@
         },
         "object": {
           "type_name": "any",
-          "state": "object",
+          "state": "any",
           "qualifiers": [],
           "default_value": null,
           "description": "Argument object",
@@ -9364,7 +9364,7 @@
         },
         "object": {
           "type_name": "any",
-          "state": "object",
+          "state": "any",
           "qualifiers": [],
           "default_value": null,
           "description": "Argument object",
@@ -9428,7 +9428,7 @@
         },
         "object": {
           "type_name": "any",
-          "state": "object",
+          "state": "any",
           "qualifiers": [],
           "default_value": null,
           "description": "Argument object",
@@ -9492,7 +9492,7 @@
         },
         "object": {
           "type_name": "any",
-          "state": "object",
+          "state": "any",
           "qualifiers": [],
           "default_value": null,
           "description": "Argument object",
@@ -9556,7 +9556,7 @@
         },
         "object": {
           "type_name": "any",
-          "state": "object",
+          "state": "any",
           "qualifiers": [],
           "default_value": null,
           "description": "Argument object",
@@ -9616,7 +9616,7 @@
         },
         "object": {
           "type_name": "any",
-          "state": "object",
+          "state": "any",
           "qualifiers": [],
           "default_value": null,
           "description": "Argument object",
@@ -9676,7 +9676,7 @@
         },
         "object": {
           "type_name": "any",
-          "state": "object",
+          "state": "any",
           "qualifiers": [],
           "default_value": null,
           "description": "Argument object",
@@ -9740,7 +9740,7 @@
         },
         "object": {
           "type_name": "any",
-          "state": "object",
+          "state": "any",
           "qualifiers": [],
           "default_value": null,
           "description": "Argument object",
@@ -9804,7 +9804,7 @@
         },
         "object": {
           "type_name": "any",
-          "state": "object",
+          "state": "any",
           "qualifiers": [],
           "default_value": null,
           "description": "Argument object",
@@ -9868,7 +9868,7 @@
         },
         "object": {
           "type_name": "any",
-          "state": "object",
+          "state": "any",
           "qualifiers": [],
           "default_value": null,
           "description": "Argument object",
@@ -9932,7 +9932,7 @@
         },
         "object": {
           "type_name": "any",
-          "state": "object",
+          "state": "any",
           "qualifiers": [],
           "default_value": null,
           "description": "Argument object",
@@ -9996,7 +9996,7 @@
         },
         "object": {
           "type_name": "any",
-          "state": "object",
+          "state": "any",
           "qualifiers": [],
           "default_value": null,
           "description": "Argument object",
@@ -10060,7 +10060,7 @@
         },
         "object": {
           "type_name": "any",
-          "state": "object",
+          "state": "any",
           "qualifiers": [],
           "default_value": null,
           "description": "Argument object",
@@ -10126,7 +10126,7 @@
         },
         "object": {
           "type_name": "any",
-          "state": "object",
+          "state": "any",
           "qualifiers": [],
           "default_value": null,
           "description": "Argument object",
@@ -10192,7 +10192,7 @@
         },
         "object": {
           "type_name": "any",
-          "state": "object",
+          "state": "any",
           "qualifiers": [],
           "default_value": null,
           "description": "Argument object",
@@ -10256,7 +10256,7 @@
         },
         "object": {
           "type_name": "any",
-          "state": "object",
+          "state": "any",
           "qualifiers": [],
           "default_value": null,
           "description": "Argument object",
@@ -10320,7 +10320,7 @@
         },
         "object": {
           "type_name": "any",
-          "state": "object",
+          "state": "any",
           "qualifiers": [],
           "default_value": null,
           "description": "Argument object",
@@ -10384,7 +10384,7 @@
         },
         "object": {
           "type_name": "any",
-          "state": "object",
+          "state": "any",
           "qualifiers": [],
           "default_value": null,
           "description": "Argument object",
@@ -10495,7 +10495,7 @@
         },
         "object": {
           "type_name": "any",
-          "state": "object",
+          "state": "any",
           "qualifiers": [],
           "default_value": null,
           "description": "Argument object",
@@ -10555,7 +10555,7 @@
         },
         "object": {
           "type_name": "any",
-          "state": "object",
+          "state": "any",
           "qualifiers": [],
           "default_value": null,
           "description": "Argument object",
@@ -10606,7 +10606,7 @@
       "inputs": {
         "ticks": {
           "type_name": "any",
-          "state": "ticks",
+          "state": "any",
           "qualifiers": [],
           "default_value": null,
           "description": "Argument ticks",
@@ -10657,7 +10657,7 @@
       "inputs": {
         "ticks": {
           "type_name": "any",
-          "state": "ticks",
+          "state": "any",
           "qualifiers": [],
           "default_value": null,
           "description": "Argument ticks",
@@ -10708,7 +10708,7 @@
       "inputs": {
         "ticks": {
           "type_name": "any",
-          "state": "ticks",
+          "state": "any",
           "qualifiers": [],
           "default_value": null,
           "description": "Argument ticks",
@@ -10794,7 +10794,7 @@
       "inputs": {
         "statement": {
           "type_name": "any",
-          "state": "statement",
+          "state": "any",
           "qualifiers": [],
           "default_value": null,
           "description": "Argument statement",
@@ -10878,7 +10878,7 @@
       "inputs": {
         "enable": {
           "type_name": "any",
-          "state": "enable",
+          "state": "any",
           "qualifiers": [],
           "default_value": null,
           "description": "Argument enable",
@@ -10929,7 +10929,7 @@
       "inputs": {
         "type": {
           "type_name": "any",
-          "state": "type",
+          "state": "any",
           "qualifiers": [],
           "default_value": null,
           "description": "Argument type",
@@ -10938,7 +10938,7 @@
         },
         "adapter": {
           "type_name": "any",
-          "state": "adapter",
+          "state": "any",
           "qualifiers": [],
           "default_value": null,
           "description": "Argument adapter",
@@ -10987,7 +10987,7 @@
       "inputs": {
         "typename": {
           "type_name": "any",
-          "state": "typename",
+          "state": "any",
           "qualifiers": [],
           "default_value": null,
           "description": "Argument typename",
@@ -10996,7 +10996,7 @@
         },
         "converter": {
           "type_name": "any",
-          "state": "converter",
+          "state": "any",
           "qualifiers": [],
           "default_value": null,
           "description": "Argument converter",

@@ -19,7 +19,11 @@ import faiss
 import numpy as np
 import torch
 from log_config import get_logger
-from inference import ModelManager
+
+try:
+    from .inference import ModelManager
+except (ImportError, ValueError):
+    from inference import ModelManager
 
 logger = get_logger("internal_rag")
 _CACHE_DIR_NAME = ".rag_cache"

@@ -524,7 +524,9 @@ def substitute_generics(
     """
     if sigma is None:
         return target
-    mappings = sigma.mappings if isinstance(sigma, Substitution) else dict(sigma)
+    # Accept any substitution-like object (duck-typed) so that alternate module
+    # instances can never corrupt the substitution application step.
+    mappings = sigma.mappings if hasattr(sigma, "mappings") else dict(sigma)
     if not mappings:
         return target
 
@@ -834,7 +836,10 @@ class ExecutionContext:
 
         target_label = param_name or "parameter"
         try:
-            from inference import ModelManager
+            try:
+                from .inference import ModelManager
+            except (ImportError, ValueError):
+                from inference import ModelManager
             import numpy as np
 
             mm = ModelManager.get_instance()
@@ -904,7 +909,10 @@ class ExecutionContext:
 
         # 1. Continuous vector embedding similarity if ModelManager is active
         try:
-            from inference import ModelManager
+            try:
+                from .inference import ModelManager
+            except (ImportError, ValueError):
+                from inference import ModelManager
             import numpy as np
 
             mm = ModelManager.get_instance()
@@ -966,7 +974,12 @@ class ExecutionContext:
 
         return None
 
-    def resolve_literal_for_port(self, port_sig: PortSignature, cell_stage: Optional[int] = None) -> Optional[str]:
+    def resolve_literal_for_port(
+        self,
+        port_sig: PortSignature,
+        cell_stage: Optional[int] = None,
+        cell_inputs: Optional[Dict[str, PortSignature]] = None
+    ) -> Optional[str]:
         """
         Resolves a value for a port using parameters, declared defaults, or literals.
         Zero domain-specific keywords or hardcoded values.
@@ -974,9 +987,24 @@ class ExecutionContext:
           - Stage 1 (Initial / Ingestion morphism Env -> C): resolves environment assets
           - Stage 2 (Endomorphism C x P -> C): resolves operational parameters P
           - Stage 3 (Terminal / Egress morphism C -> Env): resolves output destination
+
+        Literal-to-port assignment follows a strict type-channel discipline:
+          file_asset literals bind ONLY to path-typed ports (or to plain str ports on
+          cells that declare no path-typed port), quoted_str to str ports, numeric to
+          numeric ports. `cell_inputs` enables the cross-port guard that prevents
+          auxiliary str ports from stealing file assets on cells that own a path port.
         """
         p_name = port_sig.name.lower()
         t_name = port_sig.type_name.lower()
+
+        def _cell_has_path_port() -> bool:
+            if not cell_inputs:
+                return False
+            for p in cell_inputs.values():
+                tn = str(getattr(p, "type_name", "")).lower()
+                if registry.is_subtype(tn, "filepath") or registry.is_subtype(tn, "path") or registry.is_subtype(tn, "uri"):
+                    return True
+            return False
 
         registry = TypeRegistry.get_instance()
         is_bool = registry.is_subtype(t_name, "bool")
@@ -997,17 +1025,23 @@ class ExecutionContext:
 
         # 3. Vector Polarity Projection for Boolean / Valuation Ports
         if is_bool and self.prompt:
+            qualifier_map = dict(getattr(port_sig.signature, "qualifiers", []))
+            pos_label = qualifier_map.get("positive", port_sig.name)
+            neg_label = qualifier_map.get("negative", f"not {port_sig.name}")
+
             try:
-                from inference import ModelManager
-                from tokenizer import CellTokenizer
+                try:
+                    from .inference import ModelManager
+                except (ImportError, ValueError):
+                    from inference import ModelManager
+                try:
+                    from .tokenizer import CellTokenizer
+                except (ImportError, ValueError):
+                    from tokenizer import CellTokenizer
                 import numpy as np
 
                 mm = ModelManager.get_instance()
                 if mm.profile is not None:
-                    qualifier_map = dict(getattr(port_sig.signature, "qualifiers", []))
-                    pos_label = qualifier_map.get("positive", port_sig.name)
-                    neg_label = qualifier_map.get("negative", f"not {port_sig.name}")
-
                     prompt_tokens = CellTokenizer.tokenize_prompt(self.prompt)
                     if prompt_tokens:
                         e_pos = np.array(mm.get_embedding(pos_label), dtype=np.float32)
@@ -1031,10 +1065,22 @@ class ExecutionContext:
             except Exception as e:
                 logger.debug(f"[UNIFICATION] Vector polarity projection fallback: {e}")
 
+            # Declared-vocabulary polarity grounding (symbolic / embedding-free mode).
+            # The positive/negative labels are DECLARED in the cell schema (qualifiers);
+            # the engine only performs generic word membership against the prompt.
+            # Zero hardcoded operation words: vocabulary is data, not code.
+            prompt_lower = self.prompt.lower()
+            pos_words = [w for w in str(pos_label).lower().split() if len(w) >= 2]
+            neg_words = [w for w in str(neg_label).lower().split() if len(w) >= 2]
+            pos_hit = any(w in prompt_lower for w in pos_words)
+            neg_hit = any(w in prompt_lower for w in neg_words)
+            if pos_hit != neg_hit:
+                return "True" if pos_hit else "False"
+
             if port_sig.required:
                 if port_sig.default_value is not None:
                     return str(port_sig.default_value)
-                return "True"
+                return None
             return None
 
         # 4. Numeric literals for numeric ports
@@ -1044,16 +1090,20 @@ class ExecutionContext:
                     self.used_indices.add(idx)
                     return val
 
-        # 4b. Predicate / boolean expression arguments (e.g. expr, condition, filter_condition)
-        if p_name in ("expr", "condition", "filter_condition") or getattr(port_sig, "state", "").lower() in ("expr", "condition", "filter_condition"):
+        # 4b. Predicate / boolean expression arguments, grounded by the DECLARED
+        # typestate role (state) of the port — never by the port's identifier string.
+        if str(getattr(port_sig, "state", "")).lower() in ("expr", "condition", "filter_condition"):
             for idx, (_, kind, val) in enumerate(self.ordered_literals):
                 if idx not in self.used_indices and kind in ("expr", "quoted_str"):
                     self.used_indices.add(idx)
                     return json.dumps(val)
 
         # 5. Stage 1 and Stage 3 Morphisms: Environmental Asset Grounding
+        # file_asset literals flow only into path-typed ports. Plain str ports may
+        # receive assets only when the cell declares NO dedicated path port, so that
+        # auxiliary string parameters can never steal file assets from the sink/source.
         is_path_port = registry.is_subtype(t_name, "filepath") or registry.is_subtype(t_name, "path") or registry.is_subtype(t_name, "uri")
-        if (cell_stage in (1, 3) and (is_str or is_path_port)) or is_path_port:
+        if is_path_port or (cell_stage in (1, 3) and is_str and not _cell_has_path_port()):
             for idx, (_, kind, val) in enumerate(self.ordered_literals):
                 if idx not in self.used_indices and kind in ("file_asset", "quoted_str"):
                     self.used_indices.add(idx)
@@ -1101,6 +1151,61 @@ class UnificationGate:
     """
     def __init__(self):
         self.context = ExecutionContext()
+        self.last_egress_paths: List[str] = []
+
+    def get_egress_paths(self) -> List[str]:
+        """
+        Returns destination artifact paths derived from the most recent synthesis.
+        Single source of truth for sandbox egress verification: paths are the values
+        bound to path-typed ports of terminal (Stage 3 / sink) morphisms during the
+        last unify_pipeline run — never re-parsed from the raw prompt.
+        """
+        return list(self.last_egress_paths)
+
+    @staticmethod
+    def _derive_egress_paths(pipeline_bindings: List[Tuple[Cell, Dict[str, str]]]) -> List[str]:
+        """
+        Extracts egress destinations from verified pipeline bindings.
+        A path qualifies as an egress artifact iff it is bound to a path-typed port
+        of a Stage 3 (terminal/egress) morphism, or of a sink-role cell whose output
+        typestate declares materialization. Type- and stage-driven, domain-agnostic.
+        """
+        registry = TypeRegistry.get_instance()
+        egress: List[str] = []
+
+        def _unquote(v: Any) -> Optional[str]:
+            if not isinstance(v, str):
+                return None
+            s = v.strip()
+            if len(s) >= 2 and s[0] == s[-1] and s[0] in ("'", '"'):
+                s = s[1:-1]
+            return s or None
+
+        for cell, bindings in pipeline_bindings:
+            is_terminal = getattr(cell, "stage", None) == 3
+            if not is_terminal:
+                for out_p in getattr(cell, "outputs", {}).values():
+                    if str(getattr(out_p, "state", "")).lower() in ("destination_written", "filepath_written", "saved", "exported"):
+                        is_terminal = True
+                        break
+            if not is_terminal:
+                continue
+
+            for p_name, p_sig in getattr(cell, "inputs", {}).items():
+                t_name = str(getattr(p_sig, "type_name", ""))
+                is_path_port = (
+                    registry.is_subtype(t_name, "filepath")
+                    or registry.is_subtype(t_name, "path")
+                    or registry.is_subtype(t_name, "uri")
+                )
+                if not is_path_port:
+                    continue
+                bound_val = bindings.get(p_name)
+                unquoted = _unquote(bound_val)
+                if unquoted:
+                    egress.append(unquoted)
+
+        return egress
 
     def unify_transition(
         self,
@@ -1272,7 +1377,7 @@ class UnificationGate:
 
                 # Optional parameters with declared default: use prompt literal or default value
                 if not p_sig.required and p_sig.default_value is not None:
-                    resolved_literal = ctx.resolve_literal_for_port(concrete_sig, cell_stage=cell.stage)
+                    resolved_literal = ctx.resolve_literal_for_port(concrete_sig, cell_stage=cell.stage, cell_inputs=cell.inputs)
                     val = resolved_literal if resolved_literal is not None else str(p_sig.default_value)
                     cell_bindings[p_name] = val
                     accumulated_sigma.bind(p_name, val)
@@ -1292,7 +1397,7 @@ class UnificationGate:
                     continue
 
                 # B. Check typestate-driven literal resolution from prompt
-                resolved_literal = ctx.resolve_literal_for_port(concrete_sig, cell_stage=cell.stage)
+                resolved_literal = ctx.resolve_literal_for_port(concrete_sig, cell_stage=cell.stage, cell_inputs=cell.inputs)
                 if resolved_literal is not None:
                     cell_bindings[p_name] = resolved_literal
                     accumulated_sigma.bind(p_name, resolved_literal)
@@ -1304,27 +1409,25 @@ class UnificationGate:
                     accumulated_sigma.bind(p_name, str(p_sig.default_value))
                     continue
 
-                # D. Conventional parameter grounding
-                p_name_lower = p_name.lower()
-                t_name_lower = str(concrete_sig.type_name).lower()
-                c_domain = getattr(cell, "domain_name", "")
-                if p_name_lower in ("contouridx", "idx") or concrete_sig.state.lower() == "contouridx":
-                    cell_bindings[p_name] = "-1"
-                elif p_name_lower in ("color", "colour") or t_name_lower in ("scalar", "color"):
-                    cell_bindings[p_name] = "(0, 255, 0)"
-                elif p_name_lower == "thickness":
-                    cell_bindings[p_name] = "2"
-                elif (p_name_lower == "retrmode") or (p_name_lower == "mode" and c_domain == "cv2"):
-                    cell_bindings[p_name] = "cv2.RETR_EXTERNAL"
-                elif (p_name_lower == "chainapprox") or (p_name_lower == "method" and c_domain == "cv2"):
-                    cell_bindings[p_name] = "cv2.CHAIN_APPROX_SIMPLE"
-                elif p_sig.required:
-                    registry = TypeRegistry.get_instance()
-                    is_str_like = registry.is_subtype(concrete_sig.type_name, "str")
-                    if is_str_like:
-                        cell_bindings[p_name] = f'"{p_name}"'
-                    else:
-                        cell_bindings[p_name] = p_name
+                # D. Declared-domain enum grounding (reflection-driven, zero domain hardcodes)
+                p_domain = getattr(concrete_sig, "domain", "") or ""
+                if p_domain and getattr(ctx, "prompt", ""):
+                    enum_val = ctx._resolve_enum_constant(p_domain, concrete_sig.state)
+                    if enum_val is not None:
+                        cell_bindings[p_name] = enum_val
+                        accumulated_sigma.bind(p_name, enum_val)
+                        continue
+
+                # E. Unresolved REQUIRED port: fail loudly. A pipeline with an
+                # unsatisfiable required port must not emit garbage code (e.g. a bare
+                # identifier that NameErrors at runtime); it is reported as a synthesis
+                # failure so the caller (or the LLM repair cycle) can react honestly.
+                if p_sig.required:
+                    raise UnresolvedPlaceholderError(
+                        f"Required port '{p_name}' of cell '{cell.cell_id}' "
+                        f"(type '{concrete_sig.type_name}', state '{concrete_sig.state}') "
+                        f"could not be resolved from the prompt, context, or declared defaults."
+                    )
                 else:
                     cell_bindings[p_name] = None
 
@@ -1440,6 +1543,7 @@ class UnificationGate:
             assert isinstance(res, Success)
             pipeline_bindings = res.value
             accum_sigma = res.sigma
+            self.last_egress_paths = self._derive_egress_paths(pipeline_bindings)
 
         # Collect dependencies recursively
         deps: List[str] = []
@@ -1463,10 +1567,14 @@ class UnificationGate:
             code_lines.append("")
 
         try:
-            from synthesis import render_cell
+            from .synthesis import render_cell
             has_render_cell = True
-        except ImportError:
-            has_render_cell = False
+        except (ImportError, ValueError):
+            try:
+                from synthesis import render_cell
+                has_render_cell = True
+            except ImportError:
+                has_render_cell = False
 
         for cell, bindings in pipeline_bindings:
             if has_render_cell and (getattr(cell, "bound_slots", None) or getattr(cell, "slots", None)):

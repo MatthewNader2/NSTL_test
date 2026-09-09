@@ -499,7 +499,13 @@ class Cell(ABC):
 
     @property
     def primary_input(self) -> PortSignature:
-        """Identifies the primary data-bearing input port."""
+        """
+        Identifies the primary data-bearing input port.
+        Categorically stage-aware: a Stage 1 ingestion morphism consumes an
+        environmental asset, so its textual/path-typed carrier port is primary;
+        otherwise the first required non-scalar data port wins, falling back to
+        the first declared non-scalar port.
+        """
         if self._primary_input is not None:
             return self._primary_input
 
@@ -509,11 +515,39 @@ class Cell(ABC):
             return res
 
         registry = TypeRegistry.get_instance()
-        data_ports = [
-            p for p in self.inputs.values()
-            if not registry.is_subtype(p.type_name, "scalar") and not registry.is_subtype(p.type_name, "str")
-        ]
-        res = data_ports[0] if data_ports else next(iter(self.inputs.values()))
+
+        def _is_data_carrier(p: PortSignature) -> bool:
+            return (
+                not registry.is_subtype(p.type_name, "scalar")
+                and not registry.is_subtype(p.type_name, "str")
+            )
+
+        def _is_asset_carrier(p: PortSignature) -> bool:
+            tn = p.type_name.lower()
+            return (
+                registry.is_subtype(tn, "str")
+                or registry.is_subtype(tn, "filepath")
+                or registry.is_subtype(tn, "path")
+                or registry.is_subtype(tn, "uri")
+            )
+
+        stage = getattr(self, "stage", None)
+        res = None
+        if stage == 1:
+            # Stage 1 (Env -> C): the asset carrier is the categorical input.
+            asset_ports = [p for p in self.inputs.values() if _is_asset_carrier(p)]
+            if asset_ports:
+                res = asset_ports[0]
+        if res is None:
+            required_data = [
+                p for p in self.inputs.values()
+                if p.required and _is_data_carrier(p)
+            ]
+            if required_data:
+                res = required_data[0]
+            else:
+                data_ports = [p for p in self.inputs.values() if _is_data_carrier(p)]
+                res = data_ports[0] if data_ports else next(iter(self.inputs.values()))
         self._primary_input = res
         return res
 

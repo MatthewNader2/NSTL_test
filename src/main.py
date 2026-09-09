@@ -26,14 +26,24 @@ from fastapi import FastAPI, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
-from config import settings, MODELS_DIR
-from lattice import LatticeOrchestrator
-from router import LatticeRouter
-from unification import UnificationGate
-from gevr_sandbox import GEVRSandbox
-from inference import ModelManager, select_optimal_embedder
-from internal_rag import LocalRAG
 from log_config import get_logger
+
+try:
+    from .config import settings, MODELS_DIR
+    from .lattice import LatticeOrchestrator
+    from .router import LatticeRouter
+    from .unification import UnificationGate
+    from .gevr_sandbox import GEVRSandbox
+    from .inference import ModelManager, select_optimal_embedder
+    from .internal_rag import LocalRAG
+except (ImportError, ValueError):
+    from config import settings, MODELS_DIR
+    from lattice import LatticeOrchestrator
+    from router import LatticeRouter
+    from unification import UnificationGate
+    from gevr_sandbox import GEVRSandbox
+    from inference import ModelManager, select_optimal_embedder
+    from internal_rag import LocalRAG
 
 logger = get_logger("main")
 
@@ -186,7 +196,10 @@ def initialize_engine(
             }
 
         # Neural profiles: A, C, D, E
-        from router import HardwareProfiler
+        try:
+            from .router import HardwareProfiler
+        except (ImportError, ValueError):
+            from router import HardwareProfiler
         HardwareProfiler.set_config(embedder_device=emb_dev, llm_device=llm_dev)
         actual_device = HardwareProfiler.get_optimal_device()
 
@@ -269,10 +282,11 @@ def run_prompt(request: Union[RunRequest, Dict[str, Any], str]) -> RunResponse:
     synth_dt = (time.perf_counter() - t_synth_0) * 1000.0
     total_dt = (time.perf_counter() - t_start) * 1000.0
 
-    # 3. Optional Sandbox Verification
+    # 3. Optional Sandbox Verification — egress destinations are derived by the
+    # unification gate from the verified pipeline bindings (single source of truth).
     sandbox_result = None
     if exec_sandbox:
-        dest_paths = getattr(_gate.context, "dest_files", None) if hasattr(_gate, "context") else None
+        dest_paths = _gate.get_egress_paths() or None
         sandbox_result = _sandbox.execute(code, timeout=timeout, egress_paths=dest_paths)
 
     path_ids = [c.cell_id for c in cells]
