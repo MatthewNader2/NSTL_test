@@ -12,6 +12,7 @@ from __future__ import annotations
 import ast
 import re
 import json
+import functools
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from typing import Dict, List, Optional, Set, Tuple, Any, Union, Callable, Generic, TypeVar, FrozenSet
@@ -20,15 +21,53 @@ from log_config import get_logger
 
 try:
     from .lattice import AlgebraicSignature, PortSignature, Cell, TypeRegistry
-    from .tokenizer import CellTokenizer
+    from .tokenizer import CellTokenizer, normalize_token
 except (ImportError, ValueError):
     from lattice import AlgebraicSignature, PortSignature, Cell, TypeRegistry
-    from tokenizer import CellTokenizer
+    from tokenizer import CellTokenizer, normalize_token
 
 logger = get_logger('unification')
 
+# Module-level tokenizer alias: resolve_literal_for_port contains local
+# `from .tokenizer import CellTokenizer` shadowing inside optional branches,
+# which would make the global name unavailable to unconditional code paths.
+_TOKENIZER = CellTokenizer
+
 T = TypeVar('T')
 U = TypeVar('U')
+
+# English sentence-connective function words (LANGUAGE-level primitives, not
+# domain vocabulary): a capitalized occurrence of one of these mid-prompt is a
+# sentence connective, never a referential identifier.
+_SENTENCE_CONNECTIVES = frozenset({
+    "a", "an", "the", "in", "on", "at", "of", "to", "for", "from", "by", "with",
+    "and", "or", "as", "is", "are", "was", "were", "be", "been", "it", "its",
+    "them", "they", "their", "this", "that", "these", "those",
+    "but", "if", "then", "when", "while", "into", "also", "plus", "using", "use",
+    "not", "no", "do", "does", "did", "can", "could", "should", "would", "will",
+    "sure", "some", "each", "all", "both", "make",
+})
+
+
+class IdentifierGroup:
+    """
+    An enumerable set of bare referential identifiers sharing one syntactic
+    role context (e.g. ``normalize X column, Y column and Z column`` groups
+    X, Y, Z under the role noun ``column``).
+
+    members:     [(char_pos, token), ...] in prompt order
+    role_tokens: stemmed context tokens naming the shared role ({"column"});
+                 empty when an identifier stands alone with no content context.
+    """
+
+    __slots__ = ("members", "role_tokens")
+
+    def __init__(self, members: List[Tuple[int, str]], role_tokens: FrozenSet[str]):
+        self.members = members
+        self.role_tokens = role_tokens
+
+    def __repr__(self) -> str:
+        return f"IdentifierGroup(members={[m[1] for m in self.members]}, role={set(self.role_tokens)})"
 
 
 TOP_TYPE_SET = {"any", "Any", "*", "top", "⊤", "object", "Object"}
@@ -708,6 +747,10 @@ class ExecutionContext:
         # (train/verify/test partitions) emerge from consumption order.
         self.consumed_members: Set[Tuple[str, int]] = set()
         self.ordered_literals: List[Tuple[int, str, str]] = self._extract_universal_literals(self._prompt)
+        # Bare-identifier role map: char position -> stemmed role context tokens
+        # (e.g. pos(X) -> {"column"}). Drives role-conditioned identifier binding
+        # and for-each multiplicity detection.
+        self.identifier_roles: Dict[int, FrozenSet[str]] = self._build_identifier_role_map(self._prompt)
         if scope:
             for k, v in scope.items():
                 self.declare_variable(k, v, k)
@@ -723,6 +766,7 @@ class ExecutionContext:
         self.consumed_tokens = set()
         self.consumed_members = set()
         self.ordered_literals = self._extract_universal_literals(self._prompt)
+        self.identifier_roles = self._build_identifier_role_map(self._prompt)
 
     @staticmethod
     def _extract_universal_literals(prompt: str) -> List[Tuple[int, str, str]]:
@@ -750,7 +794,7 @@ class ExecutionContext:
                     continue
             i += 1
 
-        # 2. Word tokens for file assets and numerics
+        # 2. Word tokens for file assets, numerics, and bare referential identifiers
         words_with_pos: List[Tuple[int, str]] = []
         cur_word: List[str] = []
         w_start = None
@@ -767,13 +811,25 @@ class ExecutionContext:
         if cur_word and w_start is not None:
             words_with_pos.append((w_start, "".join(cur_word)))
 
+        def _quoted_range(pos: int, length: int) -> bool:
+            return any(s - 1 <= pos and pos + length <= s + len(v) + 2 for s, t, v in spans if t == "quoted_str")
+
+        # Sentence-initial positions: the first word of the prompt, and any word
+        # that directly follows a sentence-terminating period. Capitalization
+        # at those positions is grammatical, never naming.
+        sentence_initial: Set[int] = set()
+        prev_terminates = True
+        for _w_idx, (_pos, _raw) in enumerate(words_with_pos):
+            if prev_terminates:
+                sentence_initial.add(_pos)
+            prev_terminates = _raw.endswith(".")
+
         for pos, raw_w in words_with_pos:
             w = raw_w.rstrip(".,;:)")
             if not w:
                 continue
 
-            already_quoted = any(s <= pos and pos + len(w) <= s + len(v) + 2 for s, t, v in spans if t == "quoted_str")
-            if already_quoted:
+            if _quoted_range(pos, len(w)):
                 continue
 
             # Path or filename token (domain-agnostic, zero hardcoded extensions)
@@ -795,6 +851,20 @@ class ExecutionContext:
             except ValueError:
                 pass
 
+            # Bare referential identifiers: the way humans name columns, fields
+            # and variables in prose WITHOUT quoting them ("normalize X column").
+            # Structural orthography only: a short, capitalized, alphanumeric
+            # token that no other literal kind claims. Sentence-initial words
+            # and sentence connectives are excluded (a capitalized "The" mid-
+            # prompt is a connective, not a name); this is language-level
+            # orthography, not domain vocabulary.
+            if (
+                pos not in sentence_initial
+                and ExecutionContext._is_bare_identifier_token(w)
+            ):
+                spans.append((pos, "identifier", w))
+                continue
+
         # 3. Predicate / filter comparison expressions (e.g. "value > 100", "score <= 50", "x == 1")
         cmp_matches = re.finditer(r'\b([a-zA-Z_]\w*\s*(?:>|<|==|!=|>=|<=)\s*(?:\d+(?:\.\d+)?|[\'"][^\'"]+[\'"]))\b', prompt)
         for m in cmp_matches:
@@ -803,6 +873,147 @@ class ExecutionContext:
         # Order strictly by character position in prompt
         spans.sort(key=lambda x: x[0])
         return spans
+
+    @staticmethod
+    def _is_bare_identifier_token(w: str) -> bool:
+        """
+        Structural orthography of a bare referential identifier: short, begins
+        uppercase, alphanumeric/underscore body. Covers the conventions humans
+        use for columns/fields/variables in prose (X, Y, Z, X1, Col, ID) without
+        any domain vocabulary. Sentence-initial position is handled by the
+        caller (context), not here.
+        """
+        if not w or len(w) > 4:
+            return False
+        if not w[0].isupper():
+            return False
+        if not all(ch.isalnum() or ch == "_" for ch in w):
+            return False
+        if not any(ch.isalpha() for ch in w):
+            return False
+        if w.lower() in _SENTENCE_CONNECTIVES:
+            return False
+        return True
+
+    @staticmethod
+    def extract_identifier_groups(prompt: str) -> List[IdentifierGroup]:
+        """
+        Groups bare referential identifiers by their shared syntactic role
+        context. Two structural signals, both language-level:
+          1. repeated adjacent context: ``X column ... Y column ... Z column``
+             (each identifier followed by the same role noun, possibly in
+             separate clauses);
+          2. coordination runs: ``columns X, Y and Z`` (identifiers in a comma/
+             conjunction run share one head noun).
+        The role tokens are STEMMED (normalize_token) so they match cell
+        identity tokens symmetrically ("columns" ~ "column").
+        """
+        if not prompt:
+            return []
+
+        # Word scan with positions
+        words: List[Tuple[int, str]] = []
+        cur: List[str] = []
+        start: Optional[int] = None
+        for idx, ch in enumerate(prompt):
+            if ch.isspace():
+                if cur:
+                    words.append((start, "".join(cur)))
+                    cur = []
+                    start = None
+            else:
+                if start is None:
+                    start = idx
+                cur.append(ch)
+        if cur and start is not None:
+            words.append((start, "".join(cur)))
+        if len(words) < 2:
+            return []
+
+        # Quoted ranges are excluded (quoted strings are already first-class literals)
+        quoted_ranges: List[Tuple[int, int]] = []
+        i = 0
+        n = len(prompt)
+        while i < n:
+            if prompt[i] in ("'", '"'):
+                j = i + 1
+                while j < n and prompt[j] != prompt[i]:
+                    j += 1
+                if j < n:
+                    quoted_ranges.append((i, j))
+                    i = j + 1
+                    continue
+            i += 1
+
+        # Cleaned word sequence for context computation
+        cleaned: List[Tuple[int, str]] = []
+        for w_idx, (pos, raw) in enumerate(words):
+            w = raw.rstrip(".,;:)")
+            if w:
+                cleaned.append((pos, w))
+
+        # Identifier candidates: interior words (never the first word of the
+        # prompt — sentence-initial capitalization is grammatical, not naming)
+        idents: List[Tuple[int, int, str]] = []  # (clean_idx, pos, token)
+        for c_idx, (pos, w) in enumerate(cleaned):
+            if c_idx == 0:
+                continue
+            if any(s <= pos <= e for s, e in quoted_ranges):
+                continue
+            if "." in w or "/" in w:
+                continue
+            try:
+                float(w)
+                continue
+            except ValueError:
+                pass
+            if ExecutionContext._is_bare_identifier_token(w):
+                idents.append((c_idx, pos, w))
+
+        if not idents:
+            return []
+
+        def _stem_ctx(word: str) -> str:
+            wl = word.lower()
+            if wl in _SENTENCE_CONNECTIVES or len(wl) < 2:
+                return ""
+            st = normalize_token(wl)
+            return st if len(st) >= 2 else ""
+
+        # Role assignment: prefer the FOLLOWING context word ("X column"),
+        # else the PRECEDING one ("columns X"). Identifiers sharing the same
+        # role stem join one group; roleless identifiers form singleton groups
+        # (they can still bind, but never drive multiplicity).
+        groups: Dict[str, List[Tuple[int, str]]] = {}
+        order: List[str] = []
+        for c_idx, pos, w in idents:
+            role = ""
+            if c_idx + 1 < len(cleaned):
+                role = _stem_ctx(cleaned[c_idx + 1][1])
+            if not role and c_idx > 0:
+                role = _stem_ctx(cleaned[c_idx - 1][1])
+            key = role
+            if key not in groups:
+                groups[key] = []
+                order.append(key)
+            groups[key].append((pos, w))
+
+        return [
+            IdentifierGroup(members=members, role_tokens=frozenset({k}) if k else frozenset())
+            for k in order
+            for members in [groups[k]]
+        ]
+
+    @staticmethod
+    def _build_identifier_role_map(prompt: str) -> Dict[int, FrozenSet[str]]:
+        """char position of each extracted identifier -> its group's role tokens."""
+        role_map: Dict[int, FrozenSet[str]] = {}
+        if not prompt:
+            return role_map
+        for group in ExecutionContext.extract_identifier_groups(prompt):
+            for pos, _tok in group.members:
+                role_map[pos] = group.role_tokens
+        return role_map
 
     def declare_variable(self, name: str, port_sig: Union[PortSignature, AlgebraicSignature, Any], expr: str = "", cell: Optional[Any] = None):
         if isinstance(port_sig, AlgebraicSignature):
@@ -820,27 +1031,42 @@ class ExecutionContext:
                 return v_name
         return None
 
-    def _project_semantic_slot(self, param_name: str = "") -> Optional[str]:
+    def _project_semantic_slot(self, param_name: str = "", role_label: str = "") -> Optional[str]:
         """
         Semantic Slot Projection:
-        Projects port parameter semantic role onto unconsumed prompt tokens
-        via dense vector cosine similarity.
-        Contains ZERO hardcoded keyword tuples, ZERO regex, ZERO token distance hacks.
+        Projects the port's DECLARED semantic role (or, absent a declared role,
+        the port's parameter name) onto unconsumed prompt tokens via dense
+        vector cosine similarity.
+        Guard: candidate words morphologically related to the port's own name
+        are EXCLUDED — a slot's label is not a proxy for its value's meaning
+        (measured: the word "named" winning a `name` slot over the semantically
+        correct X/Y/Z because of near-identical spelling).
+        Contains ZERO hardcoded keyword tuples, ZERO token distance hacks.
         """
         if not self.prompt:
             return None
 
-        # Candidate word tokens from prompt
+        # Candidate word tokens from prompt, excluding self-referential collisions
+        p_stem = normalize_token((param_name or "").lower()) if param_name else ""
         words = []
         for w in self.prompt.strip().split():
             clean_w = w.strip(" '\".,;:()[]{}=:")
-            if len(clean_w) >= 2 and clean_w.lower() not in self.consumed_tokens:
-                words.append(clean_w)
+            if len(clean_w) < 2 or clean_w.lower() in self.consumed_tokens:
+                continue
+            if p_stem:
+                w_stem = normalize_token(clean_w.lower())
+                if (
+                    w_stem == p_stem
+                    or clean_w.lower().startswith(p_stem)
+                    or p_stem.startswith(w_stem)
+                ):
+                    continue
+            words.append(clean_w)
 
         if not words:
             return None
 
-        target_label = param_name or "parameter"
+        target_label = role_label or param_name or "parameter"
         try:
             try:
                 from .inference import ModelManager
@@ -984,7 +1210,8 @@ class ExecutionContext:
         self,
         port_sig: PortSignature,
         cell_stage: Optional[int] = None,
-        cell_inputs: Optional[Dict[str, PortSignature]] = None
+        cell_inputs: Optional[Dict[str, PortSignature]] = None,
+        cell_tokens: Optional[Set[str]] = None
     ) -> Optional[str]:
         """
         Resolves a value for a port using parameters, declared defaults, or literals.
@@ -1132,6 +1359,31 @@ class ExecutionContext:
                     self.used_indices.add(idx)
                     return json.dumps(val)
 
+        # 6b. Referential identifier grounding (role-conditioned).
+        # Bare identifiers (X, Y, Z — the way humans name columns/fields in
+        # prose) are a VALUE CLASS, bound under evidence, never by the port's
+        # own name: the identifier's shared role context (e.g. "column") must
+        # intersect the consuming cell's DECLARED identity vocabulary or the
+        # port's DECLARED typestate role. This separates "what the slot is
+        # called" from "what kind of thing goes in it".
+        if (cell_stage == 2 or cell_stage is None) and port_sig.required and port_sig.default_value is None:
+            _tn = t_name
+            _is_strict_str = registry.is_subtype(_tn, "str") and _tn not in ("any", "*", "top", "")
+            _state_tokens: Set[str] = set()
+            _raw_state = str(getattr(port_sig, "state", "") or "")
+            if _raw_state.lower() not in ("any", "default", ""):
+                _state_tokens = _TOKENIZER.tokenize_identifier(_raw_state)
+            if _is_strict_str or _state_tokens:
+                _identity_scope: Set[str] = set(cell_tokens or set()) | _state_tokens
+                for idx, (_, kind, val) in enumerate(self.ordered_literals):
+                    if idx in self.used_indices or kind != "identifier":
+                        continue
+                    role_tokens = self.identifier_roles.get(self.ordered_literals[idx][0], frozenset())
+                    if not role_tokens or not (role_tokens & _identity_scope):
+                        continue
+                    self.used_indices.add(idx)
+                    return json.dumps(val)
+
         # 7. Port default value declared in tree schema
         if port_sig.default_value is not None:
             def_str = str(port_sig.default_value).strip()
@@ -1146,9 +1398,18 @@ class ExecutionContext:
                     return def_str
             return def_str if (def_str.startswith('"') or def_str.startswith("'")) else json.dumps(def_str)
 
-        # 8. Pure Vector Semantic Slot Projection for unquoted string/identifier arguments
+        # 8. Pure Vector Semantic Slot Projection for unquoted string/identifier arguments.
+        # The projection is ROLE-FIRST: when the port declares a semantic role
+        # (typestate state), the projected value is the prompt word closest to
+        # that ROLE — never to the port's own identifier (asking "which word
+        # looks like the word 'name'?" confuses the slot's label with the
+        # value's meaning). Words morphologically related to the port's own
+        # name are excluded outright ("a file NAMED data.csv" must not feed a
+        # port called `name` because they are near-identical strings).
         if (cell_stage == 2 or cell_stage is None) and is_str and self.prompt:
-            projected = self._project_semantic_slot(port_sig.name)
+            _raw_state = str(getattr(port_sig, "state", "") or "")
+            role_label = _raw_state if _raw_state.lower() not in ("any", "default", "") else ""
+            projected = self._project_semantic_slot(port_sig.name, role_label=role_label)
             if projected:
                 return json.dumps(projected)
 
@@ -1371,6 +1632,12 @@ class UnificationGate:
 
         # Process each cell in sequence
         for idx, cell in enumerate(cells):
+            # For-each replicas (multiplicity expansion): a replica RE-CONSUMES
+            # its receiver from the environment's in-scope variables (e.g. the
+            # source DataFrame) instead of the previous wire, and its reference
+            # port binds the NEXT member of the identifier role group. It
+            # consumes no incoming wire, exactly like a zero-ary constructor.
+            is_replica = bool(getattr(cell, "replica_of", None))
             cell_bindings: Dict[str, str] = {}
             var_counter += 1
             ctx.var_counter = var_counter
@@ -1384,8 +1651,8 @@ class UnificationGate:
             )
 
             # 1. If not the first cell, verify monadic transition from preceding cell.
-            # Zero-ary constructors consume no incoming wire and skip the gate.
-            if idx > 0 and not is_zero_ary:
+            # Zero-ary constructors and replicas consume no incoming wire and skip the gate.
+            if idx > 0 and not is_zero_ary and not is_replica:
                 prev_cell = cells[idx - 1]
                 transition_res = self.unify_transition(prev_cell, cell, accumulated_sigma, context=ctx)
                 if transition_res.is_bottom():
@@ -1458,7 +1725,9 @@ class UnificationGate:
                     bound_producer = True
 
             # If multi-port matching was not triggered or producer_var is not yet bound:
-            if producer_var is not None and not bound_producer and not is_zero_ary:
+            # Replicas NEVER auto-bind the previous wire — their inputs come
+            # from in-scope variables (the environment) or literals.
+            if producer_var is not None and not bound_producer and not is_zero_ary and not is_replica:
                 prim_in = cell.primary_input
                 if prim_in is not None and prim_in.name in cell.inputs:
                     prod_sig, _ = ctx.variables.get(producer_var, (None, None))
@@ -1470,7 +1739,7 @@ class UnificationGate:
                             bound_producer = True
 
             # If producer_var did not bind to primary input, check other compatible input ports
-            if producer_var is not None and not bound_producer and not is_zero_ary:
+            if producer_var is not None and not bound_producer and not is_zero_ary and not is_replica:
                 prod_sig, _ = ctx.variables.get(producer_var, (None, None))
                 if prod_sig is not None and not _is_product(prod_sig):
                     for p_name, p_sig in cell.inputs.items():
@@ -1496,7 +1765,7 @@ class UnificationGate:
 
                 # Optional parameters with declared default: use prompt literal or default value
                 if not p_sig.required and p_sig.default_value is not None:
-                    resolved_literal = ctx.resolve_literal_for_port(concrete_sig, cell_stage=cell.stage, cell_inputs=cell.inputs)
+                    resolved_literal = ctx.resolve_literal_for_port(concrete_sig, cell_stage=cell.stage, cell_inputs=cell.inputs, cell_tokens=getattr(cell, "token_set", set()))
                     val = resolved_literal if resolved_literal is not None else str(p_sig.default_value)
                     cell_bindings[p_name] = val
                     accumulated_sigma.bind(p_name, val)
@@ -1510,7 +1779,7 @@ class UnificationGate:
                 # continuations, and the shared expression channel belongs to the
                 # cell's required data ports.
                 if not p_sig.required:
-                    _lit = ctx.resolve_literal_for_port(concrete_sig, cell_stage=cell.stage, cell_inputs=cell.inputs)
+                    _lit = ctx.resolve_literal_for_port(concrete_sig, cell_stage=cell.stage, cell_inputs=cell.inputs, cell_tokens=getattr(cell, "token_set", set()))
                     if _lit is not None:
                         cell_bindings[p_name] = _lit
                         accumulated_sigma.bind(p_name, _lit)
@@ -1559,7 +1828,7 @@ class UnificationGate:
                     continue
 
                 # B. Check typestate-driven literal resolution from prompt
-                resolved_literal = ctx.resolve_literal_for_port(concrete_sig, cell_stage=cell.stage, cell_inputs=cell.inputs)
+                resolved_literal = ctx.resolve_literal_for_port(concrete_sig, cell_stage=cell.stage, cell_inputs=cell.inputs, cell_tokens=getattr(cell, "token_set", set()))
                 if resolved_literal is not None:
                     cell_bindings[p_name] = resolved_literal
                     accumulated_sigma.bind(p_name, resolved_literal)

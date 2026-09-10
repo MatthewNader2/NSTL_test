@@ -224,9 +224,23 @@ SYSTEM_PROMPT = (
     "(a one-line docstring summary).\n"
     "Base your summary ONLY on the function name, its code template, and its input/output types.\n"
     "Do NOT invent parameter behavior or edge cases. If unsure, provide a clean generic description.\n"
+    "Additionally, for each function declare a semantic ROLE for any input port whose value is "
+    "a textual REFERENCE chosen by the caller — the kind of thing a user names in prose "
+    "(a column/field name, a file path, a label, a key, an option name). Use exactly one of "
+    "these role strings per port, or omit the port: 'column_reference' (a column or field "
+    "name), 'file_path' (a filesystem path), 'label' (a display/title label), 'key_reference' "
+    "(a dict/key lookup), 'option_reference' (an option/setting name). Omit ports that take "
+    "data objects, numerics, booleans, or free-form content values.\n"
     "Respond strictly with a JSON object containing an 'items' array:\n"
-    '{"items": [{"cell_id": "<id>", "docstring": "<one line summary>"}, ...]}'
+    '{"items": [{"cell_id": "<id>", "docstring": "<one line summary>", '
+    '"roles": {"<port_name>": "<role>"}}, ...]}'
 )
+
+#: roles the enrichment LLM may declare (data-side vocabulary; the engine is
+#: vocabulary-free — it only stem-matches a DECLARED role against the prompt)
+VALID_ROLES = {
+    "column_reference", "file_path", "label", "key_reference", "option_reference",
+}
 
 
 def build_batch_prompt(cells: List[Dict[str, Any]]) -> str:
@@ -316,7 +330,16 @@ def call_model(llm, cells: List[Dict[str, Any]]) -> Optional[Dict[str, str]]:
                     cid = str(item["cell_id"]).strip()
                     doc = str(item["docstring"]).strip()
                     if cid in expected_ids and doc:
-                        result_map[cid] = doc
+                        clean_roles: Dict[str, str] = {}
+                        roles = item.get("roles")
+                        if isinstance(roles, dict):
+                            for p_name, role in roles.items():
+                                if (
+                                    isinstance(p_name, str) and isinstance(role, str)
+                                    and role.strip().lower() in VALID_ROLES
+                                ):
+                                    clean_roles[p_name.strip()] = role.strip().lower()
+                        result_map[cid] = {"docstring": doc, "roles": clean_roles}
 
             if len(result_map) == 0:
                 log(f"  Attempt {attempt}: no matching cell IDs returned, retrying...")
@@ -381,15 +404,28 @@ def enrich_domain(llm, domain: str) -> None:
 
         now = datetime.now(timezone.utc).isoformat()
         delta_entries = []
-        for cid, doc in result.items():
+        for cid, payload in result.items():
+            doc = payload["docstring"] if isinstance(payload, dict) else payload
+            roles = payload.get("roles", {}) if isinstance(payload, dict) else {}
             cell = by_id.get(cid)
             if cell is not None:
                 cell["docstring"] = doc
                 cell["enrichment_source"] = "llm"
                 cell["enriched_at"] = now
+                # Declared semantic roles: DATA, not engine logic. Only applied
+                # to wildcard-state input ports — harvester-declared constraints
+                # (mutator receivers, typestates) are never regressed.
+                declared_roles = {}
+                if roles:
+                    for p_name, role in roles.items():
+                        port = (cell.get("inputs") or {}).get(p_name)
+                        if isinstance(port, dict) and str(port.get("state", "")).lower() in ("any", "", "default"):
+                            port["state"] = role
+                            declared_roles[p_name] = role
                 delta_entries.append({
                     "cell_id": cid,
                     "docstring": doc,
+                    "roles": declared_roles,
                     "enrichment_source": "llm",
                     "enriched_at": now
                 })

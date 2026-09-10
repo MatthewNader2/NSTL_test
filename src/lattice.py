@@ -351,6 +351,7 @@ class Cell(ABC):
         "docstring", "enrichment_source", "enriched_at",
         "source_priority", "source_provenance",
         "topology_type", "feedback_state_type", "bound_slots",
+        "replica_of", "replica_role",
         "_primary_input", "_primary_output", "_token_set", "_token_count",
         "_identity_tokens"
     ]
@@ -412,6 +413,13 @@ class Cell(ABC):
         self.topology_type = topology_type
         self.feedback_state_type = feedback_state_type
         self.bound_slots = dict(bound_slots) if bound_slots else {}
+
+        # For-each multiplicity expansion: a replica is a runtime copy of a
+        # planned cell that re-consumes its receiver from the environment and
+        # binds the NEXT member of an identifier role group (X, Y, Z). None on
+        # original cells.
+        self.replica_of: Optional[str] = None
+        self.replica_role: Optional[str] = None
 
         self._primary_input = None
         self._primary_output = None

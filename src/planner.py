@@ -9,10 +9,11 @@ Conforms strictly to Sections 3.1, 3.2, and 3.4 of the NSTL paper:
 """
 
 from __future__ import annotations
+import copy
 import math
 import os
 import re
-from typing import Dict, List, Optional, Set, Tuple, Any
+from typing import Dict, FrozenSet, List, Optional, Set, Tuple, Any
 
 from log_config import get_logger
 
@@ -716,6 +717,17 @@ class LatticePlanner:
             best_candidate = scored_candidates[0][0]
             best_path, best_sigma, _, _, _ = best_candidate
 
+            # For-each multiplicity expansion (Section 3.4 goal decomposition):
+            # a clause that names an enumerable set of referential identifiers
+            # sharing one role ("normalize X column, Y column and Z column")
+            # demands one application of the witnessing transform PER MEMBER,
+            # not a single best-effort witness. The witnessing cell is the path
+            # cell whose DECLARED identity vocabulary intersects the group's
+            # role context and which declares a defaultless reference port;
+            # replicas re-consume the receiver from the environment and bind
+            # the remaining members in prompt order at unification time.
+            best_path = self._expand_identifier_multiplicity(best_path, prompt)
+
             # Sub-Lattice recursive planning for macro/control-flow cells with slots
             for cell in best_path:
                 if getattr(cell, "slots", None):
@@ -736,6 +748,73 @@ class LatticePlanner:
             return mcts_path
 
         return [max(tunnel, key=lambda c: relevance_map.get(c.cell_id, 0.0))]
+
+    def _expand_identifier_multiplicity(
+        self,
+        path: List[Cell],
+        prompt: str
+    ) -> List[Cell]:
+        """
+        Expands for-each sub-goals: for every identifier role group in the
+        prompt (>= 2 members sharing a role noun) and every witnessing cell on
+        the path, inserts N-1 replicas of the witness directly after it.
+        Gating is DECLARED-structure only: role tokens must intersect the
+        cell's own token vocabulary, and the cell must own a defaultless
+        required port of the reference value class (strict str, or any-typed
+        with a declared semantic role state). Mirrors the binding gate in
+        ExecutionContext.resolve_literal_for_port exactly.
+        """
+        if not prompt or len(path) < 1:
+            return path
+        try:
+            groups = ExecutionContext.extract_identifier_groups(prompt)
+        except Exception:
+            return path
+        if not groups:
+            return path
+
+        registry = TypeRegistry.get_instance()
+
+        def _is_witness(cell: Cell, role_tokens: FrozenSet[str]) -> bool:
+            cell_toks = getattr(cell, "token_set", set())
+            if not role_tokens or not (role_tokens & cell_toks):
+                return False
+            if getattr(cell, "node_type", "") == "constructor":
+                return False
+            for p_sig in cell.inputs.values():
+                if not p_sig.required or p_sig.default_value is not None:
+                    continue
+                t_name = str(p_sig.signature.type_name).lower()
+                strict_str = registry.is_subtype(t_name, "str") and t_name not in ("any", "*", "top", "")
+                state = str(getattr(p_sig.signature, "state", "") or "").lower()
+                role_state = state not in ("any", "default", "") and bool(
+                    role_tokens & CellTokenizer.tokenize_identifier(state)
+                )
+                if strict_str or role_state:
+                    return True
+            return False
+
+        expanded: List[Cell] = []
+        replicas_added = 0
+        MAX_REPLICAS = 8
+        for cell in path:
+            expanded.append(cell)
+            if replicas_added >= MAX_REPLICAS:
+                continue
+            for group in groups:
+                if len(group.members) < 2 or not group.role_tokens:
+                    continue
+                if not _is_witness(cell, group.role_tokens):
+                    continue
+                for _pos, _tok in group.members[1:]:
+                    if replicas_added >= MAX_REPLICAS:
+                        break
+                    replica = copy.copy(cell)
+                    replica.replica_of = cell.cell_id
+                    replica.replica_role = ",".join(sorted(group.role_tokens))
+                    expanded.append(replica)
+                    replicas_added += 1
+        return expanded
 
     def _verify_transition(
         self,

@@ -1,17 +1,25 @@
 """
 tools/run_universal_harvest.py - Neuro-Symbolic Topological Lattice (NSTL)
-Universal Harvester CLI for any Python library.
+Universal Harvest CLI over the adapter-based unified pipeline.
 
 Usage:
-  python -m tools.run_universal_harvest --library cv2 --enrich --compile
-  python -m tools.run_universal_harvest --all --enrich --compile
+  python -m tools.run_universal_harvest --library sklearn
+  python -m tools.run_universal_harvest --all
   python -m tools.run_universal_harvest --library <any_package> --output-dir trees/
+  python -m tools.run_universal_harvest --library sklearn --compile
+
+Pipeline per domain:
+  1. Adapter selection by implementation kind (source / stubs / runtime)
+  2. Unified harvest: constants, constructors, methods (with stateful
+     lifecycle modeling), module functions
+  3. Knowledge merge from existing tree + LLM checkpoint (tags/docstrings)
+  4. Wiring-invariant repair + AST validation
+  5. Save clean tree JSON (optionally compile to lattice.db)
 """
 
 import argparse
 import ast
 import json
-import os
 import re
 import sys
 from pathlib import Path
@@ -23,7 +31,7 @@ sys.path.insert(0, str(PROJECT_ROOT / "src"))
 
 from src.universal_harvester import UniversalHarvester
 from src.schema import TreeSchema, CellSchema
-from src.template_wiring import repair_wiring_invariant, clean_malformed_template_braces
+from src.template_wiring import repair_wiring_invariant
 
 PRIMARY_DOMAINS: Dict[str, str] = {
     "cv2": "cv2",
@@ -46,9 +54,9 @@ def is_cell_wiring_valid(cell_dict: Dict[str, Any]) -> bool:
 def harvest_single_domain(
         domain_name: str,
         package_name: str,
-        container_type: Optional[str],
         output_dir: Path,
-        enrich: bool = True
+        enrich: bool = True,
+        compile_db: bool = False
 ) -> Path:
     print(f"\n========================================================")
     print(f"[*] Universally Harvesting Domain: {domain_name} (pkg: {package_name})")
@@ -57,8 +65,8 @@ def harvest_single_domain(
     harvester = UniversalHarvester(
         domain_name=domain_name,
         package_name=package_name,
-        container_type=container_type
     )
+    print(f"[i] Adapter chain: {harvester.adapter.describe()}")
 
     cells = harvester.harvest_all()
     print(f"[+] Harvested {len(cells)} raw morphism nodes for {domain_name}")
@@ -73,6 +81,7 @@ def harvest_single_domain(
             new_cells=cells,
             existing_tree_paths=enrichment_sources
         )
+        print(f"[+] Merged knowledge from {len(enrichment_sources)} prior sources")
 
     # Validate wiring and syntax
     valid_cells: List[CellSchema] = []
@@ -102,6 +111,20 @@ def harvest_single_domain(
 
     print(f"[+] Validated {len(valid_cells)} / {len(cells)} cells (wiring dropped: {wiring_issues}, AST dropped: {ast_issues})")
 
+    # Lifecycle summary (stateful modeling report)
+    endomorphisms = sum(
+        1 for c in valid_cells
+        if c.outputs.get("output_data", c.outputs and next(iter(c.outputs.values()), None))
+        and (c.outputs.get("output_data") or next(iter(c.outputs.values()))).state == "mutated"
+        and (c.inputs.get("data") or next(iter(c.inputs.values()), None)) is not None
+        and c.inputs.get("data") is not None
+    )
+    constrained_receivers = sum(
+        1 for c in valid_cells
+        if c.inputs.get("data") is not None and c.inputs["data"].state == "mutated"
+    )
+    print(f"[i] Stateful lifecycle: {endomorphisms} endomorphisms, {constrained_receivers} state-dependent receivers")
+
     # Output clean tree JSON
     tree_dict = {
         "domain": domain_name,
@@ -115,6 +138,19 @@ def harvest_single_domain(
         json.dump(tree_dict, f, indent=2)
 
     print(f"[✓] Saved clean categorized domain tree to: {out_file} ({len(valid_cells)} nodes)")
+
+    if compile_db:
+        import subprocess
+        db_target = output_dir / "lattice.db"
+        print(f"[*] Compiling lattice DB at {db_target} (--clean)...")
+        result = subprocess.run(
+            [sys.executable, str(PROJECT_ROOT / "tools" / "compile_trees.py"),
+             "--output", str(db_target), "--domains", domain_name],
+            cwd=str(PROJECT_ROOT)
+        )
+        if result.returncode != 0:
+            print(f"[!] Compile step returned {result.returncode}")
+
     return out_file
 
 
@@ -123,9 +159,11 @@ def main():
     parser.add_argument("--library", type=str, help="Name of the library to harvest (e.g. cv2, numpy, pandas)")
     parser.add_argument("--all", action="store_true", help="Harvest all 7 primary NSTL domain libraries")
     parser.add_argument("--package", type=str, help="Underlying Python package name if different from library name")
-    parser.add_argument("--container", type=str, help="Carrier container class name override (e.g. Mat, DataFrame)")
     parser.add_argument("--output-dir", type=str, default=str(PROJECT_ROOT / "trees"), help="Target output directory")
-    parser.add_argument("--enrich", action="store_true", default=True, help="Enrich from existing trees/checkpoints")
+    parser.add_argument("--enrich", dest="enrich", action="store_true", default=True,
+                        help="Merge knowledge from existing trees/checkpoints (default on)")
+    parser.add_argument("--no-enrich", dest="enrich", action="store_false",
+                        help="Skip knowledge merge (fully fresh harvest)")
     parser.add_argument("--compile", action="store_true", help="Automatically compile into trees/lattice.db")
     args = parser.parse_args()
 
@@ -136,29 +174,22 @@ def main():
             harvest_single_domain(
                 domain_name=dom,
                 package_name=pkg,
-                container_type=None,
                 output_dir=out_dir,
-                enrich=args.enrich
+                enrich=args.enrich,
+                compile_db=args.compile
             )
     elif args.library:
-        pkg = args.package or PRIMARY_DOMAINS.get(args.library, args.library)
+        pkg = args.package or args.library
         harvest_single_domain(
             domain_name=args.library,
             package_name=pkg,
-            container_type=args.container,
             output_dir=out_dir,
-            enrich=args.enrich
+            enrich=args.enrich,
+            compile_db=args.compile
         )
     else:
         parser.print_help()
         sys.exit(1)
-
-    if args.compile:
-        print("\n[*] Compiling updated domain trees into SQLite database...")
-        from tools.compile_trees import compile_database
-
-        compile_database(str(out_dir / "lattice.db"))
-        print("[✓] Direct Schema Compilation Complete!")
 
 
 if __name__ == "__main__":
