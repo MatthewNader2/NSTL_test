@@ -305,6 +305,78 @@ except ImportError:
 console = Console()
 
 
+_ENVIRONMENTAL_ERROR_MARKERS = (
+    "FileNotFoundError", "PermissionError", "IsADirectoryError",
+    "ModuleNotFoundError", "ConnectionError", "TimeoutError",
+    "No such file or directory",
+)
+
+
+def _is_environmental_error(error_msg: str) -> bool:
+    """
+    Classifies a sandbox failure as environmental (missing input asset, missing
+    module, OS/IO conditions) rather than a defect in the synthesized code.
+    Repairing code cannot create the user's data file, so these failures are
+    reported honestly instead of triggering the LLM repair cycle.
+    """
+    if not error_msg:
+        return False
+    return any(marker in error_msg for marker in _ENVIRONMENTAL_ERROR_MARKERS)
+
+
+def _collect_template_api_names(templates) -> Set[str]:
+    """Collects attribute/method names referenced by verified cell templates via AST."""
+    names: Set[str] = set()
+    for tmpl in templates:
+        if not tmpl:
+            continue
+        # Substitute placeholders with plain identifiers for a parseable AST
+        safe = tmpl
+        out = []
+        i = 0
+        while i < len(safe):
+            ch = safe[i]
+            if ch == "{":
+                j = safe.find("}", i + 1)
+                if j == -1:
+                    break
+                inner = safe[i + 1: j]
+                out.append("_" + ("".join(c if c.isalnum() else "_" for c in inner) or "ph"))
+                i = j + 1
+                continue
+            out.append(ch)
+            i += 1
+        code = "".join(out)
+        try:
+            tree = ast.parse(code)
+        except SyntaxError:
+            continue
+        for node in ast.walk(tree):
+            if isinstance(node, ast.Attribute):
+                names.add(node.attr)
+    return names
+
+
+def _unknown_api_references(repaired_code: str, original_code: str, cells) -> Set[str]:
+    """
+    Returns attribute names referenced by the repaired code that (a) were not in
+    the original code and (b) appear in no verified lattice cell template.
+    Guards the GEVR repair cycle against hallucinated API calls (e.g. calling
+    .get_metrics() on a tuple).
+    """
+    def _attrs(code: str) -> Set[str]:
+        try:
+            tree = ast.parse(code)
+        except SyntaxError:
+            return set()
+        return {n.attr for n in ast.walk(tree) if isinstance(n, ast.Attribute)}
+
+    repaired_attrs = _attrs(repaired_code)
+    original_attrs = _attrs(original_code)
+    known = _collect_template_api_names(getattr(c, "code_template", "") for c in cells)
+    return repaired_attrs - original_attrs - known
+
+
 def _get_available_embedders() -> List[str]:
     """Scans MODELS_DIR/embeddings for available embedding models."""
     emb_dir = os.path.join(MODELS_DIR, "embeddings")
@@ -434,7 +506,7 @@ class NSTLInteractiveShell(cmd.Cmd):
     def _get_profile_description(self, prof: str) -> str:
         prof_u = prof.upper()
         if prof_u in ("0", "SYMBOLIC", "ZERO", "PURE"):
-            return "Sub-15ms deterministic A* search across 34K nodes. Baseline layer."
+            return "Deterministic type-safe lattice search across all loaded nodes. Baseline layer (zero neural models)."
         elif prof_u == "A":
             return "FAISS vector retrieval with dense embedding model."
         elif prof_u in ("C", "B"):
@@ -705,8 +777,16 @@ class NSTLInteractiveShell(cmd.Cmd):
             mm = ModelManager.get_instance()
             if mm.profile and mm.has_translator_pass():
                 t0_trans = time.perf_counter()
-                trans_system = "You are a precise technical translator. Convert the following user request into a concise canonical pipeline specification stating input source, exact transforms, and destination sink. Output ONLY the canonical query."
+                trans_system = (
+                    "You are a precise technical translator. Rewrite the user request as ONE "
+                    "comma-separated pipeline sentence: first the input source with its asset "
+                    "name, then each transform verb with its arguments in order, then the "
+                    "destination. Use only words from the request. Output ONLY the sentence, "
+                    "no headers, no lists, no formatting."
+                )
                 effective_prompt = mm.generate_text(prompt, max_tokens=128, system_prompt=trans_system)
+                # The translator output is free text: strip wrapper fences if present.
+                effective_prompt = effective_prompt.strip().strip('`').strip()
                 t_trans = (time.perf_counter() - t0_trans) * 1000.0
                 console.print(f"[bold magenta][Translator Pass ({t_trans:.1f}ms)][/bold magenta] [italic]{effective_prompt}[/italic]")
 
@@ -744,20 +824,41 @@ class NSTLInteractiveShell(cmd.Cmd):
         sandbox_dt = (time.perf_counter() - t_exec_start) * 1000.0
 
         repaired = False
-        # If execution failed and LLM feedback is available (Profile C/E), trigger self-repair
+        # If execution failed and LLM feedback is available (Profile C/E), trigger self-repair.
+        # Guardrails:
+        # 1. Environmental failures (missing input asset, missing module, connectivity)
+        #    are NOT code defects — repairing code cannot create the user's data file,
+        #    so the failure is reported honestly and the repair cycle is skipped.
+        # 2. Accepted repairs must stay on the lattice's API surface: every attribute
+        #    referenced by the repaired code must already appear in a verified cell
+        #    template or in the original code — hallucinated methods are rejected.
         if not sandbox_res.get("success", False) and prof in ("C", "E"):
             mm = ModelManager.get_instance()
             if mm.profile and mm.can_feedback_check():
-                console.print("  [bold yellow][*] GEVR Sandbox triggered LLM Self-Repair Cycle...[/bold yellow]")
-                t_rep_start = time.perf_counter()
-                failing_code = final_code
                 error_msg = sandbox_res.get("error", "")
-                repaired_code = extract_code_from_llm_response(mm.feedback_check(failing_code, error_msg))
-                if repaired_code and repaired_code.strip() != failing_code.strip():
-                    final_code = repaired_code
-                    repaired = True
-                    # Re-verify repaired code
-                    sandbox_res = self.sandbox.execute(final_code, timeout=5.0, egress_paths=dest_paths)
+                if sandbox_res.get("extrinsic", False) or _is_environmental_error(error_msg):
+                    console.print(
+                        "  [yellow][!] Environmental failure detected (missing input asset or "
+                        "unavailable module). LLM self-repair skipped — the synthesized "
+                        "pipeline is not the defect.[/yellow]"
+                    )
+                else:
+                    console.print("  [bold yellow][*] GEVR Sandbox triggered LLM Self-Repair Cycle...[/bold yellow]")
+                    t_rep_start = time.perf_counter()
+                    failing_code = final_code
+                    repaired_code = extract_code_from_llm_response(mm.feedback_check(failing_code, error_msg))
+                    if repaired_code and repaired_code.strip() != failing_code.strip():
+                        unknown = _unknown_api_references(repaired_code, failing_code, self.orchestrator.loaded_cells.values())
+                        if unknown:
+                            console.print(
+                                f"  [bold red][x] Repair rejected: references APIs absent from the "
+                                f"lattice: {', '.join(sorted(unknown)[:5])}[/bold red]"
+                            )
+                        else:
+                            final_code = repaired_code
+                            repaired = True
+                            # Re-verify repaired code
+                            sandbox_res = self.sandbox.execute(final_code, timeout=5.0, egress_paths=dest_paths)
                     rep_dt = (time.perf_counter() - t_rep_start) * 1000.0
                     console.print(f"  [bold green][✓] Repair cycle completed ({rep_dt:.1f}ms).[/bold green]")
 

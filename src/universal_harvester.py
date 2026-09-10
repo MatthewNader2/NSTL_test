@@ -57,6 +57,96 @@ def _is_constant_like(attr_name: str, val: Any) -> bool:
     return attr_name.isupper() or isinstance(val, enum.Enum)
 
 
+def _is_boilerplate_config_method(params: List[inspect.Parameter]) -> bool:
+    """
+    Structural boilerplate filter: a method whose ONLY parameters are keyword-only
+    with defaults (or **kwargs) and which declares no positional data ports is a
+    configuration/metadata mutator (e.g. the framework-generated
+    ``set_<step>_request``/``set_output`` families), never a dataflow intent.
+    Zero name patterns: the decision is purely signature-structural.
+    """
+    if not params:
+        return False
+    for p in params:
+        if p.kind is inspect.Parameter.VAR_KEYWORD:
+            continue
+        if p.kind is inspect.Parameter.KEYWORD_ONLY and p.default is not inspect.Parameter.empty:
+            continue
+        return False
+    return True
+
+
+def _returns_self(fn: Any) -> bool:
+    """
+    Structural self-return detection: scans the function SOURCE for a bare
+    `return self` statement (fluent/mutator lifecycle methods, e.g. estimator
+    .fit). Pure AST-level text scan: zero regex, zero name patterns. Returns
+    False when source is unavailable (dynamic wrappers, builtins).
+    """
+    try:
+        source = inspect.getsource(fn)
+    except Exception:
+        return False
+    for line in source.splitlines():
+        s = line.strip()
+        if s.startswith("return "):
+            expr = s[len("return "):].strip().rstrip(";").strip()
+            if expr == "self":
+                return True
+    return False
+
+
+def _public_alias(module_path: str, attr_name: str) -> str:
+    """
+    Resolves the most public importable path for a callable/class.
+    If the defining module path contains a private segment (``._x``), walks up
+    to the first parent package that re-exports the attribute and returns that
+    shallow path; returns the original path when no shallower alias exists.
+    Keeps emitted code templates on the library's public import surface.
+    """
+    path = module_path
+    while "._" in path:
+        path = path.split("._", 1)[0]
+        try:
+            mod = importlib.import_module(path)
+            if hasattr(mod, attr_name):
+                return f"{path}.{attr_name}"
+        except Exception:
+            continue
+    return f"{module_path}.{attr_name}"
+
+
+def _module_priority(module_name: str) -> int:
+    """
+    Module-visibility tiering (source_priority): the shallower a defining module
+    sits in the package namespace, the more public and documented its surface.
+    Depth 1 (top-level) = 10, depth 2 = 40, depth >= 3 = 90. Deep/internal
+    utilities therefore lose lexical ties against canonical public API cells,
+    while remaining available as last-resort fallbacks.
+    """
+    depth = module_name.count(".")
+    if depth <= 0:
+        return 10
+    if depth == 1:
+        return 40
+    return 90
+
+
+def _is_fully_untyped(inputs: Dict[str, Any], out_type: str) -> bool:
+    """
+    True iff every input port and the output port carry the wildcard carrier.
+    Fully-untyped morphisms carry no verifiable dataflow semantics and are
+    demoted so typed alternatives always win routing ties.
+    """
+    if str(out_type).lower() not in ("any", "", "none", "*"):
+        return False
+    for p in inputs.values():
+        t = getattr(p, "type_name", None) if not isinstance(p, dict) else p.get("type_name")
+        if str(t).lower() not in ("any", "", "none", "*"):
+            return False
+    return True
+
+
 def _harvest_constant_cell(
     domain_name: str,
     cid: str,
@@ -232,7 +322,10 @@ class UniversalHarvester:
                     if not (cls_mod.startswith(self.package_name) or cls_mod.startswith(f"_{self.package_name}")):
                         continue
 
-                    # 2a. Constructor Introspection (Stage 1: 1 -> T_domain)
+                    # 2a. Constructor Introspection (Stage 2 zero-ary: () -> T_domain).
+                    # Constructors are NOT ingestion sources: they are composable
+                    # intermediate morphisms (estimator lifecycle: construct -> fit
+                    # -> predict/score), so they must be insertable mid-chain.
                     ctor_sig = resolve_signature(
                         cls,
                         callable_name="INIT",
@@ -256,7 +349,7 @@ class UniversalHarvester:
                                 is_req = (p.default is inspect.Parameter.empty)
                                 ctor_inputs[p.name] = PortSchema(
                                     type_name=p_type,
-                                    state=p.name.lower(),
+                                    state="any",
                                     required=is_req,
                                     description=f"Constructor argument {p.name}"
                                 )
@@ -264,9 +357,12 @@ class UniversalHarvester:
                                     required_template_args.append(f"{{{p.name}}}")
 
                             ctor_tokens = sorted(list(CellTokenizer.tokenize_identifier(c_name)))
+                            ctor_expr = _public_alias(cls_mod, c_name)
+                            ctor_dep_mod = ctor_expr.rsplit(".", 1)[0]
+                            ctor_prio = _module_priority(ctor_dep_mod)
                             ctor_cell = CellSchema(
                                 cell_id=ctor_cid,
-                                stage=1,
+                                stage=2,
                                 inputs=ctor_inputs,
                                 outputs={
                                     "output_data": PortSchema(
@@ -275,15 +371,15 @@ class UniversalHarvester:
                                         description=f"Newly constructed {c_name}"
                                     )
                                 },
-                                code_template=f"{{output_var}} = {cls_mod}.{c_name}({', '.join(required_template_args)})",
-                                dependencies=[f"import {cls_mod}"],
+                                code_template=f"{{output_var}} = {ctor_expr}({', '.join(required_template_args)})",
+                                dependencies=[f"import {ctor_dep_mod}"],
                                 semantic_tags=ctor_tokens,
                                 keywords=ctor_tokens,
                                 docstring=(ctor_doc.splitlines()[0] if ctor_doc else f"Construct {c_name}"),
                                 domain_name=self.domain_name,
                                 node_type="constructor",
-                                node_role="source",
-                                source_priority=50
+                                node_role="constructor",
+                                source_priority=ctor_prio
                             )
                             cells.append(ctor_cell)
 
@@ -337,13 +433,20 @@ class UniversalHarvester:
                             if sig is None:
                                 continue
 
-                            seen_ids.add(cid)
                             doc = inspect.getdoc(fn) or ""
                             first_doc = doc.splitlines()[0] if doc else f"{c_name}.{m_name_attr}"
 
                             params = list(sig.parameters.values())
                             if params and params[0].name in ("self", "cls"):
                                 params = params[1:]
+
+                            # Structural boilerplate filter: configuration/metadata
+                            # mutators declare no positional data ports and are
+                            # never the intent of a dataflow specification.
+                            if _is_boilerplate_config_method(params):
+                                continue
+
+                            seen_ids.add(cid)
 
                             inputs: Dict[str, PortSchema] = {
                                 "data": PortSchema(
@@ -356,13 +459,24 @@ class UniversalHarvester:
                             required_template_args: List[str] = []
 
                             for p in params:
-                                if p.kind in (inspect.Parameter.VAR_POSITIONAL, inspect.Parameter.VAR_KEYWORD):
+                                if p.kind is inspect.Parameter.VAR_POSITIONAL:
+                                    # Variadic data port: a required generic carrier
+                                    # (e.g. *arrays) so the cell can receive data.
+                                    inputs[p.name] = PortSchema(
+                                        type_name="any",
+                                        state="any",
+                                        required=True,
+                                        description=f"Variadic argument {p.name}"
+                                    )
+                                    required_template_args.append(f"{{{p.name}}}")
+                                    continue
+                                if p.kind is inspect.Parameter.VAR_KEYWORD:
                                     continue
                                 p_type = extract_clean_type_name(p.annotation)
                                 is_req = (p.default is inspect.Parameter.empty)
                                 inputs[p.name] = PortSchema(
                                     type_name=p_type,
-                                    state=p.name.lower(),
+                                    state="any",
                                     required=is_req,
                                     description=f"Argument {p.name}"
                                 )
@@ -370,30 +484,53 @@ class UniversalHarvester:
                                     required_template_args.append(f"{{{p.name}}}")
 
                             ret_type = extract_clean_type_name(sig.return_annotation)
-                            produces_domain = (ret_type in self.domain_types) or (ret_type == c_name)
+                            ret_clean = ret_type if ret_type else "any"
+                            ret_is_none = ret_clean.lower() in ("none", "nonetype", "void", "noreturn")
+                            ret_is_self = (not ret_is_none) and (
+                                ret_clean == c_name or _returns_self(fn)
+                            )
+                            produces_domain = (ret_clean in self.domain_types) or (ret_clean == c_name)
+
+                            prio = _module_priority(cls_mod.split("._", 1)[0])
 
                             # Structural Morphism Classification (Instance methods always consume c_name)
-                            if not produces_domain or ret_type.lower() in ("none", "nonetype", "void", "noreturn"):
-                                stage = 3
-                                node_type = "sink"
-                                node_role = "sink"
-                                state = "destination_written"
-                                out_type = "str"
-                                code_template = f"{{data}}.{m_name_attr}({', '.join(required_template_args)})\n{{output_var}} = 'done'"
-                            elif ret_type != c_name:
+                            if ret_is_none or (ret_clean == "any" and ret_is_self):
+                                # In-place mutator / fluent lifecycle method (e.g. estimator
+                                # .fit): the meaningful output is the RECEIVER itself —
+                                # a monadic endomorphism C -> C — so the trained/mutated
+                                # instance remains composable (fit -> predict -> score).
+                                stage = 2
+                                node_type = "function"
+                                node_role = "transform"
+                                state = "mutated"
+                                out_type = c_name
+                                code_template = f"{{data}}.{m_name_attr}({', '.join(required_template_args)})\n{{output_var}} = {{data}}"
+                            elif produces_domain:
+                                stage = 2
+                                if ret_clean != c_name:
+                                    node_type = "bridge"
+                                    node_role = "tunnel"
+                                    state = "raw"
+                                    out_type = ret_clean
+                                else:
+                                    node_type = "function"
+                                    node_role = "transform"
+                                    state = "transformed"
+                                    out_type = c_name
+                                code_template = f"{{output_var}} = {{data}}.{m_name_attr}({', '.join(required_template_args)})"
+                            else:
+                                # Unknown / primitive return: a composable stage-2
+                                # producer (e.g. score -> float). Methods are never
+                                # terminal egress; egress is a written-artifact port.
                                 stage = 2
                                 node_type = "bridge"
                                 node_role = "tunnel"
                                 state = "raw"
-                                out_type = ret_type
+                                out_type = ret_clean
                                 code_template = f"{{output_var}} = {{data}}.{m_name_attr}({', '.join(required_template_args)})"
-                            else:
-                                stage = 2
-                                node_type = "function"
-                                node_role = "transform"
-                                state = "transformed"
-                                out_type = c_name
-                                code_template = f"{{output_var}} = {{data}}.{m_name_attr}({', '.join(required_template_args)})"
+
+                            if _is_fully_untyped(inputs, out_type):
+                                prio = min(prio + 50, 100)
 
                             outputs = {
                                 "output_data": PortSchema(
@@ -406,6 +543,7 @@ class UniversalHarvester:
                                 CellTokenizer.tokenize_identifier(m_name_attr)
                                 | CellTokenizer.tokenize_identifier(c_name)
                             ))
+                            method_dep_mod = cls_mod.split("._", 1)[0] if "._" in cls_mod else cls_mod
 
                             cell = CellSchema(
                                 cell_id=cid,
@@ -413,14 +551,14 @@ class UniversalHarvester:
                                 inputs=inputs,
                                 outputs=outputs,
                                 code_template=code_template,
-                                dependencies=[f"import {cls_mod}"],
+                                dependencies=[f"import {method_dep_mod}"],
                                 semantic_tags=tokens,
                                 keywords=tokens,
                                 docstring=first_doc,
                                 domain_name=self.domain_name,
                                 node_type=node_type,
                                 node_role=node_role,
-                                source_priority=50
+                                source_priority=prio
                             )
                             cells.append(cell)
                         except Exception:
@@ -458,13 +596,25 @@ class UniversalHarvester:
                     required_input_types: List[str] = []
 
                     for p in sig.parameters.values():
-                        if p.kind in (inspect.Parameter.VAR_POSITIONAL, inspect.Parameter.VAR_KEYWORD):
+                        if p.kind is inspect.Parameter.VAR_POSITIONAL:
+                            # Variadic data port: required generic carrier so the
+                            # cell can actually receive data (e.g. *arrays).
+                            inputs[p.name] = PortSchema(
+                                type_name="any",
+                                state="any",
+                                required=True,
+                                description=f"Variadic argument {p.name}"
+                            )
+                            required_template_args.append(f"{{{p.name}}}")
+                            required_input_types.append("any")
+                            continue
+                        if p.kind is inspect.Parameter.VAR_KEYWORD:
                             continue
                         p_type = extract_clean_type_name(p.annotation)
                         is_req = (p.default is inspect.Parameter.empty)
                         inputs[p.name] = PortSchema(
                             type_name=p_type,
-                            state=p.name.lower(),
+                            state="any",
                             required=is_req,
                             description=f"Argument {p.name}"
                         )
@@ -473,13 +623,33 @@ class UniversalHarvester:
                             required_input_types.append(p_type)
 
                     ret_type = extract_clean_type_name(sig.return_annotation)
+                    ret_clean = ret_type if ret_type else "any"
+                    ret_is_none = ret_clean.lower() in ("none", "nonetype", "void", "noreturn")
 
                     # Pure Structural Monadic Profiling
                     consumes_domain = any(t in self.domain_types for t in required_input_types)
-                    produces_domain = (ret_type in self.domain_types)
+                    produces_domain = (ret_clean in self.domain_types)
                     primary_in_type = required_input_types[0] if required_input_types else "any"
+                    prio = _module_priority(m_name)
 
-                    if consumes_domain and not produces_domain:
+                    if ret_is_none:
+                        # In-place mutator (e.g. in-place scaling): the categorical
+                        # output IS the mutated primary input — a monadic
+                        # endomorphism D -> D — never a fabricated value.
+                        stage = 2
+                        node_type = "function"
+                        node_role = "transform"
+                        state = "mutated"
+                        out_type = primary_in_type if primary_in_type not in ("", "any") else "any"
+                        if required_template_args:
+                            first_port = required_template_args[0][1:-1]
+                            code_template = (
+                                f"{m_name}.{attr_name}({', '.join(required_template_args)})\n"
+                                f"{{output_var}} = {{{first_port}}}"
+                            )
+                        else:
+                            code_template = f"{m_name}.{attr_name}()\n{{output_var}} = None"
+                    elif consumes_domain and not produces_domain:
                         # D -> 1 (or D -> Base Primitives): SINK
                         stage = 3
                         node_type = "sink"
@@ -494,13 +664,13 @@ class UniversalHarvester:
                         node_type = "source"
                         node_role = "source"
                         state = "raw"
-                        out_type = ret_type
+                        out_type = ret_clean
                         code_template = f"{{output_var}} = {m_name}.{attr_name}({', '.join(required_template_args)})"
 
                     elif consumes_domain and produces_domain:
                         # D1 -> D2: TRANSFORM / BRIDGE
                         stage = 2
-                        if primary_in_type != "any" and primary_in_type != ret_type:
+                        if primary_in_type != "any" and primary_in_type != ret_clean:
                             node_type = "bridge"
                             node_role = "tunnel"
                             state = "raw"
@@ -508,7 +678,7 @@ class UniversalHarvester:
                             node_type = "function"
                             node_role = "transform"
                             state = "transformed"
-                        out_type = ret_type
+                        out_type = ret_clean
                         code_template = f"{{output_var}} = {m_name}.{attr_name}({', '.join(required_template_args)})"
 
                     else:
@@ -517,8 +687,11 @@ class UniversalHarvester:
                         node_type = "function"
                         node_role = "transform"
                         state = "transformed"
-                        out_type = ret_type if ret_type != "any" else "any"
+                        out_type = ret_clean if ret_clean != "any" else "any"
                         code_template = f"{{output_var}} = {m_name}.{attr_name}({', '.join(required_template_args)})"
+
+                    if _is_fully_untyped(inputs, out_type):
+                        prio = min(prio + 50, 100)
 
                     outputs = {
                         "output_data": PortSchema(
@@ -542,7 +715,7 @@ class UniversalHarvester:
                         domain_name=self.domain_name,
                         node_type=node_type,
                         node_role=node_role,
-                        source_priority=50
+                        source_priority=prio
                     )
                     cells.append(cell)
                 except Exception:

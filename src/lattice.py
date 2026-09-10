@@ -351,7 +351,8 @@ class Cell(ABC):
         "docstring", "enrichment_source", "enriched_at",
         "source_priority", "source_provenance",
         "topology_type", "feedback_state_type", "bound_slots",
-        "_primary_input", "_primary_output", "_token_set", "_token_count"
+        "_primary_input", "_primary_output", "_token_set", "_token_count",
+        "_identity_tokens"
     ]
 
     def __init__(
@@ -465,6 +466,7 @@ class Cell(ABC):
 
         self._token_set: Optional[Set[str]] = None
         self._token_count: int = 0
+        self._identity_tokens: Optional[Set[str]] = None
 
         # Register types automatically in TypeRegistry
         registry = TypeRegistry.get_instance()
@@ -490,6 +492,27 @@ class Cell(ABC):
             self._token_set = toks
             self._token_count = len(toks)
         return self._token_set
+
+    @property
+    def identity_tokens(self) -> Set[str]:
+        """
+        The cell's IDENTITY vocabulary: tokens derived from its identifier and
+        declared keywords only (never from docstring prose). Identity matches
+        carry full retrieval mass; prose matches are damped by the router and
+        planner so descriptive vocabulary cannot outrank another cell's name.
+        """
+        if self._identity_tokens is None:
+            try:
+                from .tokenizer import CellTokenizer
+            except (ImportError, ValueError):
+                from tokenizer import CellTokenizer
+            toks = CellTokenizer.tokenize_cell(self.cell_id, self.keywords)
+            for p in self.inputs:
+                toks.update(CellTokenizer.tokenize_identifier(p))
+            for p in self.outputs:
+                toks.update(CellTokenizer.tokenize_identifier(p))
+            self._identity_tokens = toks
+        return self._identity_tokens
 
     @property
     def token_count(self) -> int:

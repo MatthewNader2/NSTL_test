@@ -12,7 +12,16 @@ from abc import ABC, abstractmethod
 from typing import List, Optional, Dict, Any
 
 import numpy as np
-import torch
+
+# Torch is required only by neural inference profiles; the symbolic toolchain
+# (CLI compile/validate/harvest) runs without it.
+try:
+    import torch
+    TORCH_AVAILABLE = True
+except ImportError:  # pragma: no cover
+    torch = None  # type: ignore[assignment]
+    TORCH_AVAILABLE = False
+
 from log_config import get_logger
 
 try:
@@ -34,7 +43,7 @@ def get_adaptive_batch_size(device: str = "cuda") -> int:
     Computes an optimal batch size for embedding inference based on hardware telemetry.
     Pure hardware introspection: zero hardcoded model or library names.
     """
-    if "cuda" not in str(device).lower() or not torch.cuda.is_available():
+    if torch is None or "cuda" not in str(device).lower() or not torch.cuda.is_available():
         return 32
 
     try:

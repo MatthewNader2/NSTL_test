@@ -15,9 +15,19 @@ from typing import Optional, Dict, Any, List, Tuple
 if "PYTORCH_CUDA_ALLOC_CONF" not in os.environ:
     os.environ["PYTORCH_CUDA_ALLOC_CONF"] = "expandable_segments:True"
 
-import faiss
+# The neural stack (faiss/torch) is required ONLY by dense-retrieval profiles.
+# Pure-symbolic profiles (Profile 0) must not pay the dependency: imports are
+# lazy and guarded, so routing/planning/synthesis run without torch installed.
+try:
+    import faiss
+    import torch
+    NEURAL_STACK_AVAILABLE = True
+except ImportError:  # pragma: no cover - exercised in CPU-only environments
+    faiss = None  # type: ignore[assignment]
+    torch = None  # type: ignore[assignment]
+    NEURAL_STACK_AVAILABLE = False
+
 import numpy as np
-import torch
 from log_config import get_logger
 
 try:
@@ -27,6 +37,9 @@ except (ImportError, ValueError):
 
 logger = get_logger("internal_rag")
 _CACHE_DIR_NAME = ".rag_cache"
+# Persisted-index format version: bump to invalidate on-disk FAISS indexes when
+# the embedding-text construction changes.
+_INDEX_FORMAT_VERSION = 2
 
 
 def build_cell_embedding_text(cell: Any) -> str:
@@ -143,6 +156,11 @@ class LocalRAG:
         self.orchestrator = orchestrator
         self._cache_dir = os.path.join(os.path.dirname(trees_dir), _CACHE_DIR_NAME)
 
+        if not NEURAL_STACK_AVAILABLE:
+            raise RuntimeError(
+                "LocalRAG requires the neural stack (faiss, torch). Install them or use Profile 0 (pure symbolic)."
+            )
+
         model_mgr = ModelManager.get_instance()
         if model_mgr.profile is None:
             raise RuntimeError(
@@ -163,6 +181,32 @@ class LocalRAG:
         dim = getattr(profile, "_dim", self.dimension)
         safe_name = "".join(c for c in f"{emb_name}__dim{dim}" if c.isalnum() or c in "._-")
         return os.path.join(self._cache_dir, f"{safe_name}_cache.pkl")
+
+    def _get_index_paths(self) -> Tuple[str, str]:
+        """Persisted FAISS index + schema map paths, keyed by embedder identity and corpus fingerprint."""
+        profile = ModelManager.get_instance().active_profile
+        emb_name = getattr(profile, "embedder_name", "default")
+        dim = getattr(profile, "_dim", self.dimension)
+        safe_name = "".join(c for c in f"{emb_name}__dim{dim}" if c.isalnum() or c in "._-")
+        corpus_fp = self._corpus_fingerprint()
+        base = os.path.join(self._cache_dir, f"{safe_name}__{corpus_fp}__v{_INDEX_FORMAT_VERSION}")
+        return base + ".faiss", base + ".schema.pkl"
+
+    def _corpus_fingerprint(self) -> str:
+        """Stable fingerprint of the indexed corpus (tree files or loaded cell count + names)."""
+        try:
+            tree_files = sorted(
+                f for f in os.listdir(self.trees_dir) if f.endswith(".json")
+            ) if os.path.isdir(self.trees_dir) else []
+            h = hashlib.sha256()
+            for f in tree_files:
+                st = os.stat(os.path.join(self.trees_dir, f))
+                h.update(f"{f}:{st.st_size}:{int(st.st_mtime)}".encode("utf-8"))
+            if tree_files:
+                return h.hexdigest()[:16]
+        except Exception:
+            pass
+        return f"n{len(self.orchestrator.loaded_cells) if self.orchestrator else 0}"
 
     def _load_cache(self):
         path = self._get_cache_path()
@@ -196,6 +240,12 @@ class LocalRAG:
     def build_index(self):
         """Constructs or updates the FAISS index incrementally from loaded cells."""
         with self._lock:
+            # Fast path: a persisted FAISS index that is synchronized with the
+            # embedding cache and the corpus fingerprint restores in milliseconds,
+            # skipping both re-embedding and index re-assembly.
+            if self._try_restore_persisted_index():
+                return
+
             self._load_cache()
             if self.orchestrator is None:
                 return
@@ -300,6 +350,60 @@ class LocalRAG:
             self.index = faiss.IndexFlatIP(self.dimension)
             self.index.add(matrix)
             logger.info(f"[RAG] FAISS Index ready with {self.index.ntotal} vectors.")
+            self._persist_index()
+
+    def _try_restore_persisted_index(self) -> bool:
+        """Restores a persisted FAISS index iff it is consistent with the current corpus and embedder."""
+        if self.orchestrator is None:
+            return False
+        try:
+            faiss_path, schema_path = self._get_index_paths()
+            cache_path = self._get_cache_path()
+            if not (os.path.exists(faiss_path) and os.path.exists(schema_path)):
+                return False
+            # The index is valid only if the embedding cache it was built from is
+            # unchanged (same mtime) — otherwise incremental updates would be lost.
+            if os.path.exists(cache_path) and os.path.getmtime(cache_path) > os.path.getmtime(faiss_path):
+                return False
+            with open(schema_path, "rb") as f:
+                id_to_schema = pickle.load(f)
+            index = faiss.read_index(faiss_path)
+            if index.ntotal != len(id_to_schema):
+                return False
+            self.index = index
+            self.id_to_schema = id_to_schema
+            self.dimension = index.d
+            logger.info(f"[RAG] Restored persisted FAISS index ({index.ntotal} vectors) from {faiss_path}.")
+            return True
+        except Exception as e:
+            logger.warning(f"[RAG] Persisted-index restore failed: {e}")
+            return False
+
+    def _persist_index(self) -> None:
+        """Persists the assembled FAISS index + schema map keyed by corpus fingerprint."""
+        try:
+            if self.index is None or not self.id_to_schema:
+                return
+            os.makedirs(self._cache_dir, exist_ok=True)
+            faiss_path, schema_path = self._get_index_paths()
+            tmp_faiss, tmp_schema = faiss_path + ".tmp", schema_path + ".tmp"
+            faiss.write_index(self.index, tmp_faiss)
+            with open(tmp_schema, "wb") as f:
+                pickle.dump(self.id_to_schema, f, protocol=pickle.HIGHEST_PROTOCOL)
+            os.replace(tmp_faiss, faiss_path)
+            os.replace(tmp_schema, schema_path)
+            # Invalidate stale fingerprint variants of the persisted index
+            safe_prefix = os.path.basename(faiss_path).split("__")[0]
+            for old in os.listdir(self._cache_dir):
+                if old.startswith(safe_prefix + "__") and old.endswith(".faiss") and old != os.path.basename(faiss_path):
+                    try:
+                        os.remove(os.path.join(self._cache_dir, old))
+                        os.remove(os.path.join(self._cache_dir, old[:-6] + ".schema.pkl"))
+                    except Exception:
+                        pass
+            logger.info(f"[RAG] Persisted FAISS index to {faiss_path}.")
+        except Exception as e:
+            logger.warning(f"[RAG] Failed to persist FAISS index: {e}")
 
     def add_dynamic_cell(self, cell_dict: Dict[str, Any]):
         """Appends a newly synthesized cell dynamically to the active FAISS index."""
@@ -351,6 +455,47 @@ class LocalRAG:
                     "text": f"ID: {cid} | In: {schema.get('primary_input', 'any')} -> Out: {schema.get('primary_output', 'any')} | Domain: {schema.get('domain', 'generic')}"
                 })
             return results
+
+    def get_relevant_context_batch(self, prompts: List[str], top_k: int = 25) -> List[List[Dict[str, Any]]]:
+        """
+        Batched retrieval: embeds ALL query spans in a single model call, then
+        performs one FAISS search per vector. Cuts per-query model overhead from
+        O(spans) model invocations to O(1).
+        """
+        with self._lock:
+            if self.index is None or self.index.ntotal == 0 or not prompts:
+                return [[] for _ in prompts]
+
+            embeddings = ModelManager.get_instance().get_embeddings(list(prompts))
+            matrix = np.array(embeddings, dtype=np.float32)
+            if matrix.ndim != 2 or matrix.shape[0] != len(prompts):
+                return [[] for _ in prompts]
+            norms = np.linalg.norm(matrix, axis=1, keepdims=True)
+            norms = np.where(norms == 0, 1.0, norms)
+            matrix = matrix / norms
+
+            search_k = min(top_k, self.index.ntotal)
+            distances, indices = self.index.search(matrix, search_k)
+
+            batch_results: List[List[Dict[str, Any]]] = []
+            for row_d, row_i in zip(distances, indices):
+                results: List[Dict[str, Any]] = []
+                for dist, idx in zip(row_d, row_i):
+                    if idx == -1 or idx not in self.id_to_schema:
+                        continue
+                    schema = self.id_to_schema[idx]
+                    cid = schema.get("cell_id", "")
+                    results.append({
+                        "cell_id": cid,
+                        "score": float(dist),
+                        "schema": schema,
+                        "domain": schema.get("domain", "generic"),
+                        "primary_input": schema.get("primary_input", "any"),
+                        "primary_output": schema.get("primary_output", "any"),
+                        "text": f"ID: {cid} | In: {schema.get('primary_input', 'any')} -> Out: {schema.get('primary_output', 'any')} | Domain: {schema.get('domain', 'generic')}"
+                    })
+                batch_results.append(results)
+            return batch_results
 
     def format_context_for_prompt(self, context_items: List[Dict[str, Any]]) -> str:
         """Formats structured context list into a prompt-friendly string for LLMs."""

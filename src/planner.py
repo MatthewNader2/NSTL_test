@@ -10,6 +10,7 @@ Conforms strictly to Sections 3.1, 3.2, and 3.4 of the NSTL paper:
 
 from __future__ import annotations
 import math
+import os
 import re
 from typing import Dict, List, Optional, Set, Tuple, Any
 
@@ -17,11 +18,11 @@ from log_config import get_logger
 
 try:
     from .lattice import LatticeOrchestrator, Cell, MicroCell, MacroCell, TypeRegistry
-    from .unification import unify, Substitution, verify_traced_loop_invariant, verify_coproduct_branch, substitute_generics
+    from .unification import unify, Substitution, verify_traced_loop_invariant, verify_coproduct_branch, substitute_generics, ExecutionContext
     from .tokenizer import CellTokenizer
 except (ImportError, ValueError):
     from lattice import LatticeOrchestrator, Cell, MicroCell, MacroCell, TypeRegistry
-    from unification import unify, Substitution, verify_traced_loop_invariant, verify_coproduct_branch, substitute_generics
+    from unification import unify, Substitution, verify_traced_loop_invariant, verify_coproduct_branch, substitute_generics, ExecutionContext
     from tokenizer import CellTokenizer
 
 logger = get_logger('planner')
@@ -31,6 +32,8 @@ STOPWORDS = frozenset({
     "and", "or", "as", "is", "are", "was", "were", "be", "been", "it", "its",
     "them", "they", "their", "this", "that", "these", "those"
 })
+
+_WILDCARD_CARRIERS = frozenset(("any", "", "none", "*", "top", "unknown"))
 
 
 class LatticePlanner:
@@ -50,7 +53,7 @@ class LatticePlanner:
         relevance_map: Dict[str, float],
         start_sig: Optional[Any] = None,
         goal_sig: Optional[Any] = None,
-        max_transforms: int = 4
+        max_transforms: int = 6
     ) -> List[Cell]:
         """
         Plans a type-valid compositional pipeline:
@@ -58,7 +61,17 @@ class LatticePlanner:
         Conforms strictly to Sections 3.1, 3.2, and 3.4 of the NSTL paper:
         Viterbi Trellis Dynamic Programming over the typed category G|_T.
         Monadic Unification Gate rejects any invalid edge proposals.
-        ZERO linguistic connector heuristics (no 'then'), ZERO punctuation splitting, ZERO regex.
+
+        Goal-directed extensions (Section 3.4 objective):
+        - Terminal bias: paths terminating at a Stage-3 egress morphism are
+          preferred whenever the tunnel declares sinks (dataflow must land).
+        - Asset absorption: file-asset literals extracted from the prompt must be
+          consumed by a path-typed input port somewhere on the path.
+        - Wildcarrier penalty: transitions whose producer output carrier is the
+          untyped wildcard are weak evidence and are penalized, so fully-untyped
+          utility morphisms never beat typed equivalents.
+        - Zero-ary constructor morphisms (node_type 'constructor') are insertable
+          mid-chain to complete instance lifecycles (construct -> fit -> score).
         """
         if not tunnel:
             return []
@@ -78,6 +91,25 @@ class LatticePlanner:
             p = max(relevance_map.get(c.cell_id, 0.0), 1e-6)
             log_probs[c.cell_id] = math.log(p)
 
+        # ---- Goal-directed objective data (all derived from DECLARED structure) ----
+        registry = TypeRegistry.get_instance()
+        file_literals = [
+            v for _, t, v in ExecutionContext._extract_universal_literals(prompt or "")
+            if t == "file_asset"
+        ]
+
+        def _has_path_port(cell: Cell) -> bool:
+            for p_sig in cell.inputs.values():
+                t_name = str(getattr(p_sig, "type_name", "")).lower()
+                if registry.is_subtype(t_name, "filepath") or registry.is_subtype(t_name, "path") or registry.is_subtype(t_name, "uri"):
+                    return True
+            return False
+
+        tunnel_has_sinks = any(getattr(c, "stage", None) == 3 for c in candidates)
+        tunnel_absorbs_assets = any(
+            getattr(c, "stage", None) == 1 and _has_path_port(c) for c in candidates
+        ) if file_literals else False
+
         # Candidate starting cells (Stage 1 sources or cells matching start_sig)
         candidate_entries = list(candidates)
         if start_sig is not None:
@@ -96,7 +128,13 @@ class LatticePlanner:
                     max_overlap = max(overlaps) if overlaps else 0
                     if max_overlap > 0:
                         s1_entries = [c for c, ov in zip(s1_entries, overlaps) if ov == max_overlap]
-                s1_entries.sort(key=lambda c: relevance_map.get(c.cell_id, 0.0), reverse=True)
+                # Asset absorption at the entry: sources declaring path-typed ports
+                # are the categorical ingestion points for file-asset literals.
+                if file_literals:
+                    absorbing = [c for c in s1_entries if _has_path_port(c)]
+                    if absorbing:
+                        s1_entries = absorbing
+                s1_entries.sort(key=lambda c: (getattr(c, "source_priority", 100), -relevance_map.get(c.cell_id, 0.0)))
                 candidate_entries = s1_entries[:30]
 
         # Clauses and tokens for sequential alignment and concept coverage
@@ -107,20 +145,186 @@ class LatticePlanner:
         p_len = max(len(content_prompt_tokens), 1)
         num_clauses = max(len(clause_tokens_list), 1)
 
-        def compute_path_score(item: Tuple[List[Cell], Substitution, float]) -> float:
-            path, _, sc = item
-            k = len(path)
-            path_tokens = set().union(*((c.token_set - STOPWORDS) for c in path))
-            coverage = len(content_prompt_tokens & path_tokens) / p_len
+        # Corpus-derived IDF over prompt tokens (df from the lattice token index).
+        # Used to weight coverage and clause alignment: generic tokens ('data',
+        # 'column') carry near-zero objective mass, while discriminative tokens
+        # ('csv', 'train', 'split') dominate. Trivial duplicate clauses ("Y
+        # column") can then neither inflate the clause count nor be farmed by
+        # cells that merely share generic vocabulary.
+        token_index_for_idf = getattr(self.orchestrator, "token_index", None) or {}
+        corpus_size_for_idf = max(len(self.orchestrator.loaded_cells), 1)
 
+        def _idf(tok: str) -> float:
+            df = len(token_index_for_idf.get(tok, ()))
+            return math.log(1.0 + (corpus_size_for_idf + 1) / (df + 1.0))
+
+        idf_of_prompt = {tok: _idf(tok) for tok in content_prompt_tokens}
+        total_prompt_idf = sum(idf_of_prompt.values()) or 1.0
+        clause_weights = [sum(_idf(t) for t in cl_toks) for cl_toks in clause_tokens_list]
+        total_clause_weight = sum(clause_weights) or 1.0
+
+        # Token provenance weighting: a cell's IDENTITY tokens (cell_id + declared
+        # keywords) describe what it IS; its docstring prose merely describes what
+        # it says. Identity matches carry full idf mass, docstring matches are
+        # down-weighted — descriptive vocabulary (e.g. a splitter's docstring
+        # mentioning "train/test") must not outrank another cell's identifier.
+        def _identity_tokens(cell: Cell) -> Set[str]:
+            toks = CellTokenizer.tokenize_identifier(cell.cell_id)
+            for kw in getattr(cell, "keywords", ()) or ():
+                toks.update(CellTokenizer.tokenize_identifier(kw))
+            return toks
+
+        identity_cache: Dict[str, Set[str]] = {}
+        for c in candidates:
+            identity_cache[c.cell_id] = _identity_tokens(c)
+
+        def _match_mass(cl_toks: Set[str], c_toks: Set[str], id_toks: Set[str]) -> float:
+            strong = sum(idf_of_prompt.get(t, _idf(t)) for t in (cl_toks & (c_toks & id_toks)))
+            weak = sum(idf_of_prompt.get(t, _idf(t)) for t in (cl_toks & (c_toks - id_toks)))
+            return strong + 0.3 * weak
+
+        def _is_wildcarrier(cell: Cell) -> bool:
+            t = str(getattr(getattr(cell, "primary_output", None), "type_name", "") or "").lower()
+            return t in _WILDCARD_CARRIERS
+
+        # ---- Precomputed per-cell scoring tables (make path scoring O(k)) ----
+        # clause_mass[cell]: per-clause match masses, plus the covered-clause set.
+        # coverage is computed on the UNION of path token matches (see below).
+        cell_cov_strong: Dict[str, Set[str]] = {}
+        cell_cov_weak: Dict[str, Set[str]] = {}
+        cell_cov_mass_bonus: Dict[str, float] = {}
+        cell_clause_mass: Dict[str, List[float]] = {}
+        cell_covered: Dict[str, Set[int]] = {}
+        for c in candidates:
+            c_toks = c.token_set - STOPWORDS
+            id_toks = identity_cache.get(c.cell_id, c_toks)
+            cell_cov_strong[c.cell_id] = content_prompt_tokens & (c_toks & id_toks)
+            cell_cov_weak[c.cell_id] = content_prompt_tokens & (c_toks - id_toks)
+            cell_cov_mass_bonus[c.cell_id] = 10.0 * (
+                sum(idf_of_prompt.get(t, _idf(t)) for t in cell_cov_strong[c.cell_id])
+                + 0.3 * sum(idf_of_prompt.get(t, _idf(t)) for t in cell_cov_weak[c.cell_id])
+            ) / total_prompt_idf
+            masses: List[float] = []
+            covered: Set[int] = set()
+            for cl_toks in clause_tokens_list:
+                m = _match_mass(cl_toks, c_toks, id_toks)
+                masses.append(m)
+                # A clause is CLAIMED only by identity matches (cell_id/keywords/
+                # port names). Docstring prose may rank a cell but never claims
+                # intent coverage — measured junk exploit: a triangle estimator's
+                # docstring mentioning "area" claimed the loop clause.
+                id_mass = sum(idf_of_prompt.get(t, _idf(t)) for t in (cl_toks & (c_toks & id_toks)))
+                if id_mass > 0:
+                    covered.add(len(masses) - 1)
+            cell_clause_mass[c.cell_id] = masses
+            cell_covered[c.cell_id] = covered
+
+        # Concrete (non-wildcard) input port signatures per cell — used to judge
+        # whether a zero-ary constructor is actually CONSUMED downstream.
+        cell_concrete_in_sigs: Dict[str, List[Any]] = {}
+        for c in candidates:
+            sigs = [
+                p.signature for p in c.inputs.values()
+                if str(p.signature.type_name).lower() not in _WILDCARD_CARRIERS
+            ]
+            cell_concrete_in_sigs[c.cell_id] = sigs
+
+        def _ctor_justified(ctor: Cell, nxt: Cell) -> bool:
+            """A zero-ary constructor is justified iff the following cell declares a
+            concrete port that unifies with the constructed type (real lifecycle)."""
+            out_sig = ctor.primary_output.signature
+            for p_sig in cell_concrete_in_sigs.get(nxt.cell_id, ()):
+                if unify(out_sig, p_sig) is not None:
+                    return True
+            return False
+
+        # Receiver-bindability: a required concrete port whose carrier is a domain
+        # class must be produced somewhere earlier in the path (typically by the
+        # class's constructor morphism) or by the environment's start signature.
+        # Ports whose declared carrier is literal-groundable are exempt.
+        def _port_literal_groundable(type_name: str) -> bool:
+            t = type_name.lower()
+            return (
+                registry.is_subtype(t, "str")
+                or registry.is_subtype(t, "numeric")
+                or registry.is_subtype(t, "bool")
+                or registry.is_subtype(t, "filepath")
+                or registry.is_subtype(t, "uri")
+                or t in ("any", "*", "top", "scalar", "color", "enum")
+            )
+
+        # Per-cell: required concrete non-groundable receiver signatures (the ports
+        # that need an in-path producer such as a constructor morphism).
+        cell_receiver_sigs: Dict[str, List[Any]] = {}
+        for c in candidates:
+            if getattr(c, "node_type", "") == "constructor":
+                cell_receiver_sigs[c.cell_id] = []
+                continue
+            sigs = []
+            for p_sig in c.inputs.values():
+                if not p_sig.required:
+                    continue
+                t = str(p_sig.signature.type_name)
+                if t.lower() in _WILDCARD_CARRIERS or _port_literal_groundable(t):
+                    continue
+                sigs.append(p_sig.signature)
+            cell_receiver_sigs[c.cell_id] = sigs
+
+        def _new_unbindable(cand: Cell, prev_path: List[Cell]) -> int:
+            produced = [prev.primary_output.signature for prev in prev_path]
+            count = 0
+            for p_sig in cell_receiver_sigs.get(cand.cell_id, ()):
+                if not any(unify(prod, p_sig) is not None for prod in produced):
+                    count += 1
+            return count
+
+        def _edge_is_weak(prev: Cell, cand: Cell) -> bool:
+            out_sig = prev.primary_output.signature
+            has_strong = False
+            has_any = False
+            for p in cand.inputs.values():
+                if unify(out_sig, p.signature) is None:
+                    continue
+                t = str(p.signature.type_name).lower()
+                if t in _WILDCARD_CARRIERS:
+                    has_any = True
+                else:
+                    has_strong = True
+                    break
+            return (not has_strong) and has_any
+
+        def compute_path_score(item: Tuple[List[Cell], Substitution, float, int, int]) -> float:
+            path, _, sc, weak_edges, unbindable = item
+            k = len(path)
+
+            # Identity-weighted UNION coverage: each prompt token counts at most
+            # once, at its strongest provenance across the path (identity match by
+            # any cell > prose match). Per-cell summation lets overlapping cells
+            # multi-count their dominant tokens and inflate coverage above the
+            # total prompt mass — a measured junk-path exploit.
+            strong_tokens: Set[str] = set()
+            weak_tokens: Set[str] = set()
+            for c in path:
+                strong_tokens |= cell_cov_strong.get(c.cell_id, set())
+                weak_tokens |= cell_cov_weak.get(c.cell_id, set())
+            coverage = (
+                sum(idf_of_prompt.get(t, _idf(t)) for t in strong_tokens)
+                + 0.3 * sum(idf_of_prompt.get(t, _idf(t)) for t in (weak_tokens - strong_tokens))
+            ) / total_prompt_idf
+
+            # Clause coverage is a SET relation: a cell whose declared vocabulary
+            # intersects several clauses covers all of them (a partitioning cell
+            # covers both the 'train' and the 'test/allocate' clause), while the
+            # monotonic best-match chain preserves sequential ordering.
             clause_match_indices = []
             curr_max_idx = 0
+            covered_clauses: Set[int] = set()
             for c in path:
-                c_toks = c.token_set - STOPWORDS
+                covered_clauses |= cell_covered.get(c.cell_id, set())
+                masses = cell_clause_mass.get(c.cell_id, [])
                 best_match_idx = -1
-                best_match_cnt = 0
-                for idx, cl_toks in enumerate(clause_tokens_list):
-                    cnt = len(cl_toks & c_toks)
+                best_match_cnt = 0.0
+                for idx, cnt in enumerate(masses):
                     if cnt > best_match_cnt or (cnt == best_match_cnt and cnt > 0 and idx >= curr_max_idx):
                         best_match_cnt = cnt
                         best_match_idx = idx
@@ -128,77 +332,275 @@ class LatticePlanner:
                     clause_match_indices.append(best_match_idx)
                     curr_max_idx = max(curr_max_idx, best_match_idx)
 
-            distinct_matched_clauses = len(set(clause_match_indices))
-            clause_cov = distinct_matched_clauses / num_clauses
+            distinct_matched_clauses = len(covered_clauses)
+            matched_clause_weight = sum(clause_weights[i] for i in covered_clauses)
+            clause_cov = matched_clause_weight / total_clause_weight
             is_monotonic = (
                 all(clause_match_indices[i] <= clause_match_indices[i+1] for i in range(len(clause_match_indices)-1))
                 if len(clause_match_indices) >= 2 else True
             )
+            # Structural hole: an UNCOVERED clause sandwiched between covered ones
+            # means the path skipped an intermediate intent stage — the connector
+            # between two satisfied sub-goals is missing.
+            gap_penalty = 0.0
+            if covered_clauses:
+                ordered = sorted(covered_clauses)
+                lo, hi = ordered[0], ordered[-1]
+                holes = sum(1 for g in range(lo, hi + 1) if g not in covered_clauses)
+                gap_penalty = holes * 0.5
+
             alignment = clause_cov * (1.0 if is_monotonic else 0.5)
 
-            # Parsimony penalty: penalize unnecessary steps beyond matched clauses
+            # Parsimony: every step must pay for itself. A per-step cost makes
+            # chains of same-domain endomorphisms (DataFrame -> DataFrame utility
+            # hops, which all type-check) unattractive unless each hop covers a
+            # new clause; the excess penalty handles structural padding on top.
             excess_steps = max(0, k - max(distinct_matched_clauses, 1))
-            parsimony_penalty = excess_steps * 1.5
+            parsimony_penalty = excess_steps * 1.2 + k * 0.3
 
-            mean_log_prob = sc / max(k, 1)
-            return coverage * 10.0 + alignment * 10.0 - parsimony_penalty + mean_log_prob
+            # Tunnel likelihood is a WEAK tiebreaker: the group-relative softmax
+            # already guarantees every surviving cell is within the same likelihood
+            # window of its clause's maximum, so the raw log-prob gap between
+            # clause-rank-1 cells and correct-but-rank-2 cells is distribution
+            # noise, not semantic evidence. Full-weight log-probs structurally
+            # prefer whichever garbage cell happened to rank #1 in a weak clause.
+            mean_log_prob = 0.3 * (sc / max(k, 1))
+
+            # Goal-directed terms
+            goal_bonus = 0.0
+            # Terminal-sink preference (Section 3.4 objective) fires ONLY when the
+            # prompt implies materialization: file-asset literals exist and the
+            # terminal declares a path-typed port to receive one. Without an
+            # egress intent, a Stage-2 ending (trained model, drawn image, final
+            # value) is an equally complete dataflow, and a blanket sink bonus
+            # merely rewards whatever compute function old data mislabeled as a
+            # sink.
+            terminal = path[-1]
+            egress_intent = bool(file_literals) and any(
+                _has_path_port(c) for c in path
+            )
+            terminal_is_materializing = (
+                terminal.stage == 3
+                and (
+                    not file_literals
+                    or any(
+                        registry.is_subtype(str(p.signature.type_name).lower(), "filepath")
+                        or registry.is_subtype(str(p.signature.type_name).lower(), "path")
+                        or registry.is_subtype(str(p.signature.type_name).lower(), "uri")
+                        for p in terminal.inputs.values()
+                    )
+                )
+            )
+            if tunnel_has_sinks and terminal_is_materializing:
+                goal_bonus += 2.5
+            # Domain coherence: the terminal morphism should belong to the
+            # pipeline's own declared domains. A terminal imported from a foreign
+            # domain (e.g. a plotting library bolted onto a vision pipeline)
+            # exists to harvest bonuses — it pays a coherence tax, while a
+            # home-domain terminal earns one.
+            terminal_domain = getattr(terminal, "domain_name", "")
+            if terminal_domain:
+                other_domains = {getattr(c, "domain_name", "") for c in path[:-1]}
+                if terminal_domain not in other_domains:
+                    goal_bonus -= 1.5
+                else:
+                    goal_bonus += 1.5
+
+            if file_literals:
+                if any(_has_path_port(c) for c in path):
+                    goal_bonus += 2.0
+                elif not tunnel_absorbs_assets:
+                    goal_bonus -= 3.0
+            weak_total = sum(1 for c in path if _is_wildcarrier(c)) * 1.0 + weak_edges * 0.75
+
+            # Dead-constructor penalty: a zero-ary constructor whose output is not
+            # consumed by the immediately following cell is dead code inserted
+            # purely to harvest coverage tokens — it must pay for itself.
+            dead_ctors = sum(
+                1 for i, c in enumerate(path)
+                if getattr(c, "node_type", "") == "constructor"
+                and (i + 1 >= k or not _ctor_justified(c, path[i + 1]))
+            )
+
+            # Receiver-bindability (threaded incrementally): chains containing
+            # fit-like morphisms whose instance receiver cannot be produced by any
+            # earlier cell would fail at synthesis with an unresolved placeholder.
+            return (coverage * 10.0 + alignment * 10.0 - parsimony_penalty
+                    + mean_log_prob + goal_bonus - weak_total
+                    - dead_ctors * 1.5 - unbindable * 1.5 - gap_penalty)
+
+        # Type-gated adjacency: index candidates by the DECLARED input carrier they
+        # expose. Expansion enumerates distinct port carriers and gates them through
+        # the registered poset (mirroring unify's subtyping direction: producer's
+        # output carrier must be a subtype of the consumer's port carrier), so each
+        # trellis expansion iterates only type-compatible successors.
+        cells_by_in_type: Dict[str, List[Cell]] = {}
+        distinct_in_states: Dict[str, Set[str]] = {}
+        for cand in candidates:
+            for p_name, p_sig in cand.inputs.items():
+                t_key = str(getattr(p_sig.signature, "type_name", ""))
+                cells_by_in_type.setdefault(t_key, []).append(cand)
+                distinct_in_states.setdefault(t_key, set()).add(str(getattr(p_sig.signature, "state", "")))
+
+        def _successors(prev_cell: Cell) -> List[Cell]:
+            out_t = str(getattr(prev_cell.primary_output, "type_name", ""))
+            out_s = str(getattr(prev_cell.primary_output, "state", ""))
+
+            acc: Dict[str, Cell] = {}
+
+            # Generic carriers ("Sequence[T]", products) and TYPE VARIABLES ("T",
+            # "S") unify by binding, not by poset subtyping: enumerate all
+            # candidates and let exact unification gate them.
+            is_type_var = out_t.isalpha() and len(out_t) == 1 and out_t.isupper()
+            if "[" in out_t or is_type_var:
+                for cand in candidates:
+                    if any(unify(prev_cell.primary_output.signature, p_sig.signature) is not None
+                           for p_sig in cand.inputs.values()):
+                        acc.setdefault(cand.cell_id, cand)
+                return list(acc.values())
+
+            for in_t, cell_list in cells_by_in_type.items():
+                if not registry.is_subtype(out_t, in_t):
+                    continue
+                states = distinct_in_states.get(in_t, set())
+                state_ok = (out_s == "any") or any(s == "any" or s == out_s for s in states)
+                if not state_ok:
+                    continue
+                for c in cell_list:
+                    acc.setdefault(c.cell_id, c)
+            return list(acc.values())
 
         # Viterbi Trellis: paths of length t = 1 ... T_max
-        all_valid_paths: List[Tuple[List[Cell], Substitution, float]] = []
+        # Item layout: (path, sigma, cumulative log-prob, weak_edge_count, unbindable_count)
+        all_valid_paths: List[Tuple[List[Cell], Substitution, float, int, int]] = []
 
         # Step t = 1: Initialize beam
-        current_beam: List[Tuple[List[Cell], Substitution, float]] = []
+        current_beam: List[Tuple[List[Cell], Substitution, float, int, int]] = []
         for entry in candidate_entries:
             sc = log_probs.get(entry.cell_id, -10.0)
-            p_tuple = ([entry], Substitution(), sc)
+            p_tuple = ([entry], Substitution(), sc, 0, _new_unbindable(entry, []))
             current_beam.append(p_tuple)
             all_valid_paths.append(p_tuple)
 
-        # Edge compatibility cache for candidate pairs in tunnel
-        edge_compat_cache: Dict[Tuple[str, str, int], Optional[Substitution]] = {}
+        # Edge compatibility cache: signature-level gate results are sigma-invariant
+        # for ground signatures; cell-pair results are cached per (pair, sigma fingerprint).
+        edge_compat_cache: Dict[Tuple[str, str, str], Optional[Substitution]] = {}
+
+        def _sigma_fingerprint(sigma: Substitution) -> str:
+            try:
+                return tuple(sorted((k, str(v)) for k, v in sigma.mappings.items()))
+            except Exception:
+                return ()
+
+        def _required_ports_bindable(cand: Cell, prev_path: List[Cell], sigma: Substitution) -> Optional[Substitution]:
+            """All required ports must be wire-satisfiable from the path or literal-groundable."""
+            sub = sigma
+            for p_name, p_sig in cand.inputs.items():
+                if not p_sig.required or p_sig.default_value is not None:
+                    continue
+                satisfied = False
+                for earlier_cell in reversed(prev_path):
+                    for out_name, out_sig in earlier_cell.outputs.items():
+                        s_wire = unify(out_sig.signature, p_sig.signature, sub)
+                        if s_wire is not None:
+                            sub = s_wire
+                            satisfied = True
+                            break
+                    if satisfied:
+                        break
+                if not satisfied:
+                    t_name = str(getattr(p_sig.signature, "type_name", "")).lower()
+                    if (
+                        registry.is_subtype(t_name, "str")
+                        or registry.is_subtype(t_name, "numeric")
+                        or registry.is_subtype(t_name, "bool")
+                        or registry.is_subtype(t_name, "filepath")
+                        or registry.is_subtype(t_name, "uri")
+                        or t_name in ("any", "*", "top", "scalar", "color", "enum")
+                        or bool(getattr(p_sig, "domain", ""))
+                    ):
+                        satisfied = True
+                if not satisfied:
+                    return None
+            return sub
+
+        # Zero-ary constructor morphisms: insertable after ANY cell (they consume
+        # no incoming wire), completing instance lifecycles (construct -> fit).
+        zero_ary_ctors = [
+            c for c in candidates
+            if getattr(c, "node_type", "") == "constructor"
+            and not any(p.required for p in c.inputs.values())
+        ]
 
         # Sequential Trellis extensions for t = 2 ... max_steps
-        max_steps = max(2, min(6, max_transforms + 2))
+        max_steps = max(2, min(8, max_transforms + 2))
         for step in range(2, max_steps + 1):
-            candidates_for_next: List[Tuple[List[Cell], Substitution, float]] = []
+            candidates_for_next: List[Tuple[List[Cell], Substitution, float, int, int]] = []
 
-            for prev_path, prev_sigma, prev_score in current_beam:
+            for prev_path, prev_sigma, prev_score, prev_weak, prev_unbind in current_beam:
                 prev_cell = prev_path[-1]
 
                 # Terminal morphisms (Stage 3) cannot have outgoing arrows unless they have slots
                 if getattr(prev_cell, "stage", None) == 3 and not getattr(prev_cell, "slots", None):
                     continue
 
-                for cand in candidates:
+                prev_path_ids = {c.cell_id for c in prev_path}
+
+                successor_cells = _successors(prev_cell)
+                seen_ids = {c.cell_id for c in successor_cells}
+                for ctor in zero_ary_ctors:
+                    if ctor.cell_id not in seen_ids:
+                        successor_cells.append(ctor)
+                        seen_ids.add(ctor.cell_id)
+
+                _dbg = os.environ.get("NSTL_DEBUG_PLAN")
+                for cand in successor_cells:
                     # Acyclic: cell cannot repeat in pipeline
-                    if cand.cell_id in (c.cell_id for c in prev_path):
+                    if cand.cell_id in prev_path_ids:
                         continue
 
-                    # Stage 1 cells cannot be appended as intermediate transitions
-                    if getattr(cand, "stage", None) == 1:
-                        continue
+                    cand_node_type = getattr(cand, "node_type", "")
+                    cand_stage = getattr(cand, "stage", None)
 
-                    # Stage ordering: cannot move backwards to Stage 1 from Stage 2 or 3
-                    if getattr(cand, "stage", None) == 1 and getattr(prev_cell, "stage", None) in (2, 3):
-                        continue
-
-                    # Monadic Unification Gate: edge exists iff unify(tau_out, tau_in, sigma) != bottom
-                    pair_key = (prev_cell.cell_id, cand.cell_id, len(prev_path))
-                    if pair_key in edge_compat_cache:
-                        new_sigma = edge_compat_cache[pair_key]
+                    # Zero-ary constructor morphisms: insertable mid-chain, consume
+                    # no incoming wire; every required port must still be bindable.
+                    if cand_node_type == "constructor":
+                        new_sigma = _required_ports_bindable(cand, prev_path, prev_sigma)
+                        if new_sigma is None:
+                            continue
                     else:
-                        new_sigma = self._verify_transition(prev_path, cand, prev_sigma)
-                        edge_compat_cache[pair_key] = new_sigma
+                        # Stage 1 cells cannot be appended as intermediate transitions
+                        if cand_stage == 1:
+                            continue
 
-                    if new_sigma is not None:
-                        cand_sc = log_probs.get(cand.cell_id, -10.0)
-                        total_sc = prev_score + cand_sc
-                        new_tuple = (prev_path + [cand], new_sigma, total_sc)
-                        candidates_for_next.append(new_tuple)
-                        all_valid_paths.append(new_tuple)
+                        # Monadic Unification Gate: edge exists iff unify(tau_out, tau_in, sigma) != bottom
+                        pair_key = (prev_cell.cell_id, cand.cell_id, _sigma_fingerprint(prev_sigma))
+                        if pair_key in edge_compat_cache:
+                            new_sigma = edge_compat_cache[pair_key]
+                        else:
+                            new_sigma = self._verify_transition(prev_path, cand, prev_sigma)
+                            edge_compat_cache[pair_key] = new_sigma
+
+                        if new_sigma is None:
+                            continue
+
+                    cand_sc = log_probs.get(cand.cell_id, -10.0)
+                    total_sc = prev_score + cand_sc
+                    step_weak = prev_weak + (
+                        1 if (cand_node_type != "constructor" and _edge_is_weak(prev_cell, cand)) else 0
+                    )
+                    step_unbind = prev_unbind + _new_unbindable(cand, prev_path)
+                    new_tuple = (prev_path + [cand], new_sigma, total_sc, step_weak, step_unbind)
+                    candidates_for_next.append(new_tuple)
+                    all_valid_paths.append(new_tuple)
 
             if not candidates_for_next:
                 break
+
+            # Bound the trellis memory: keep the strongest half of discovered paths
+            if len(all_valid_paths) > 6000:
+                all_valid_paths.sort(key=compute_path_score, reverse=True)
+                all_valid_paths = all_valid_paths[:3000]
 
             # Beam pruning with endpoint diversity (max 5 per endpoint, beam width 100)
             candidates_for_next.sort(key=compute_path_score, reverse=True)
@@ -228,8 +630,91 @@ class LatticePlanner:
                     valid_candidates = matching_goals
 
             scored_candidates = [(item, compute_path_score(item)) for item in valid_candidates]
-            best_candidate, _ = max(scored_candidates, key=lambda x: x[1])
-            best_path, best_sigma, _ = best_candidate
+            scored_candidates.sort(key=lambda x: x[1], reverse=True)
+
+            # Slot-aware re-ranking: a macro's planned sub-lattice is part of the
+            # pipeline's semantics (a loop body calling contourArea covers the
+            # "minimum area" clause). Plan the slots of the strongest candidates
+            # and re-rank with the slot coverage included, so macro-based
+            # pipelines are compared against flat pipelines with their bodies
+            # filled in — not as bare skeletons.
+            slot_augmented: List[Tuple[Tuple, float]] = []
+            seen_prefixes: Set[Tuple[str, ...]] = set()
+            trials = 0
+            for it, base_score in scored_candidates:
+                if trials >= 6:
+                    break
+                cand_path = it[0]
+                prefix = tuple(c.cell_id for c in cand_path)
+                if prefix in seen_prefixes:
+                    continue
+                seen_prefixes.add(prefix)
+                trials += 1
+                slot_cells: List[Cell] = []
+                has_slots = False
+                for c in cand_path:
+                    for slot_cells_list in (getattr(c, "bound_slots", {}) or {}).values():
+                        slot_cells.extend(slot_cells_list)
+                    if getattr(c, "slots", None):
+                        has_slots = True
+                if not has_slots:
+                    slot_augmented.append((it, base_score))
+                    continue
+                # Plan slots for this candidate (mutates bound_slots for trial)
+                trial_sigma = it[1]
+                for c in cand_path:
+                    for slot_name, slot_contract in (getattr(c, "slots", {}) or {}).items():
+                        if slot_name not in getattr(c, "bound_slots", {}):
+                            sub = self.plan_sublattice(
+                                c, slot_name, slot_contract, tunnel, relevance_map, trial_sigma, prompt
+                            )
+                            if sub:
+                                c.bound_slots[slot_name] = sub
+                                slot_cells.extend(sub)
+                aug_score = base_score
+                for sc_cell in slot_cells:
+                    aug_score += cell_cov_mass_bonus.get(sc_cell.cell_id, 0.0)
+                    aug_score += 10.0 * sum(
+                        clause_weights[g] for g in cell_covered.get(sc_cell.cell_id, set())
+                        if g not in set().union(*(cell_covered.get(pc.cell_id, set()) for pc in cand_path))
+                    ) / total_clause_weight
+                slot_augmented.append((it, aug_score))
+
+            if slot_augmented:
+                slot_augmented.sort(key=lambda x: x[1], reverse=True)
+                scored_candidates = [(it, aug) for it, aug in slot_augmented]
+
+            if os.environ.get("NSTL_DEBUG_PLAN"):
+                import sys as _sys
+                print("[PLAN-DEBUG] top scored paths:", file=_sys.stderr)
+                for it, s in scored_candidates[:30]:
+                    ids = [c.cell_id for c in it[0]]
+                    dbg_path, _, dbg_sc, dbg_weak, dbg_unbind = it
+                    dbg_k = len(dbg_path)
+                    dbg_s: Set[str] = set()
+                    dbg_w: Set[str] = set()
+                    for c in dbg_path:
+                        dbg_s |= cell_cov_strong.get(c.cell_id, set())
+                        dbg_w |= cell_cov_weak.get(c.cell_id, set())
+                    dbg_cov = (sum(idf_of_prompt.get(t, _idf(t)) for t in dbg_s)
+                               + 0.3 * sum(idf_of_prompt.get(t, _idf(t)) for t in (dbg_w - dbg_s))) / total_prompt_idf
+                    dbg_covd: Set[int] = set()
+                    dbg_idx = []
+                    dbg_cur = 0
+                    for c in dbg_path:
+                        dbg_m = cell_clause_mass.get(c.cell_id, [])
+                        b, bc = -1, 0.0
+                        for di, dm in enumerate(dbg_m):
+                            if dm > bc or (dm == bc and dm > 0 and di >= dbg_cur):
+                                bc, b = dm, di
+                        if b >= 0:
+                            dbg_idx.append(b); dbg_cur = max(dbg_cur, b)
+                        dbg_covd |= cell_covered.get(c.cell_id, set())
+                    dbg_align_w = sum(clause_weights[i] for i in dbg_covd) / total_clause_weight
+                    dbg_mlb = 0.3 * (dbg_sc / max(dbg_k, 1))
+                    print(f"  {s:.3f} cov={dbg_cov:.2f} alignW={dbg_align_w:.2f} k={dbg_k} weak={dbg_weak} unbind={dbg_unbind} mlb={dbg_mlb:.2f}  {' -> '.join(ids)}", file=_sys.stderr)
+            best_candidate = scored_candidates[0][0]
+            best_path, best_sigma, _, _, _ = best_candidate
 
             # Sub-Lattice recursive planning for macro/control-flow cells with slots
             for cell in best_path:

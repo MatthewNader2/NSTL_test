@@ -702,6 +702,11 @@ class ExecutionContext:
         self.parameters: Dict[str, Any] = {}
         self.used_indices: Set[int] = set()
         self.consumed_tokens: Set[str] = set()
+        # Tuple-member consumption tracking: (var_name, member_index) pairs already
+        # bound by earlier cells. Later cells consuming the same heterogeneous
+        # product prefer the remaining members — this is how allocation semantics
+        # (train/verify/test partitions) emerge from consumption order.
+        self.consumed_members: Set[Tuple[str, int]] = set()
         self.ordered_literals: List[Tuple[int, str, str]] = self._extract_universal_literals(self._prompt)
         if scope:
             for k, v in scope.items():
@@ -716,6 +721,7 @@ class ExecutionContext:
         self._prompt = val or ""
         self.used_indices = set()
         self.consumed_tokens = set()
+        self.consumed_members = set()
         self.ordered_literals = self._extract_universal_literals(self._prompt)
 
     @staticmethod
@@ -1092,7 +1098,16 @@ class ExecutionContext:
 
         # 4b. Predicate / boolean expression arguments, grounded by the DECLARED
         # typestate role (state) of the port — never by the port's identifier string.
-        if str(getattr(port_sig, "state", "")).lower() in ("expr", "condition", "filter_condition"):
+        # Fallback: an expression literal (comparison syntax) can only ever ground
+        # a string carrier, so a REQUIRED str port of a transform consumes it by
+        # type affinity alone — no identifier knowledge, no state declaration
+        # needed in the tree.
+        _port_state = str(getattr(port_sig, "state", "")).lower()
+        _registry = TypeRegistry.get_instance()
+        _is_str_port = _registry.is_subtype(str(getattr(port_sig, "type_name", "")).lower(), "str")
+        if _port_state in ("expr", "condition", "filter_condition") or (
+            _is_str_port and cell_stage == 2
+        ):
             for idx, (_, kind, val) in enumerate(self.ordered_literals):
                 if idx not in self.used_indices and kind in ("expr", "quoted_str"):
                     self.used_indices.add(idx)
@@ -1166,29 +1181,37 @@ class UnificationGate:
     def _derive_egress_paths(pipeline_bindings: List[Tuple[Cell, Dict[str, str]]]) -> List[str]:
         """
         Extracts egress destinations from verified pipeline bindings.
-        A path qualifies as an egress artifact iff it is bound to a path-typed port
-        of a Stage 3 (terminal/egress) morphism, or of a sink-role cell whose output
-        typestate declares materialization. Type- and stage-driven, domain-agnostic.
+        A path qualifies as an egress artifact iff it is bound as a quoted literal
+        to a path-typed port of:
+          - a Stage 3 (terminal/egress) morphism, or
+          - a cell whose output typestate declares materialization, or
+          - any non-source (Stage 2+) morphism — in-place endomorphisms such as
+            writers with a destination port (e.g. DataFrame writers) are Stage 2
+            composable morphisms whose path port is still a materialization site.
+        Type- and stage-driven, domain-agnostic.
         """
         registry = TypeRegistry.get_instance()
         egress: List[str] = []
 
-        def _unquote(v: Any) -> Optional[str]:
+        def _quoted_literal(v: Any) -> Optional[str]:
             if not isinstance(v, str):
                 return None
             s = v.strip()
             if len(s) >= 2 and s[0] == s[-1] and s[0] in ("'", '"'):
-                s = s[1:-1]
-            return s or None
+                inner = s[1:-1].strip()
+                return inner or None
+            return None
 
         for cell, bindings in pipeline_bindings:
-            is_terminal = getattr(cell, "stage", None) == 3
+            stage = getattr(cell, "stage", None)
+            is_terminal = stage == 3
             if not is_terminal:
                 for out_p in getattr(cell, "outputs", {}).values():
                     if str(getattr(out_p, "state", "")).lower() in ("destination_written", "filepath_written", "saved", "exported"):
                         is_terminal = True
                         break
-            if not is_terminal:
+            is_source = stage == 1
+            if not is_terminal and is_source:
                 continue
 
             for p_name, p_sig in getattr(cell, "inputs", {}).items():
@@ -1201,8 +1224,8 @@ class UnificationGate:
                 if not is_path_port:
                     continue
                 bound_val = bindings.get(p_name)
-                unquoted = _unquote(bound_val)
-                if unquoted:
+                unquoted = _quoted_literal(bound_val)
+                if unquoted and (is_terminal or stage == 2):
                     egress.append(unquoted)
 
         return egress
@@ -1252,6 +1275,15 @@ class UnificationGate:
         """
         Chains a sequence of cells [v_1, ..., v_n] through the Type Monad.
         Binds port placeholders to variables in each step using multi-port monoidal matching.
+
+        Structural extensions:
+        - Zero-ary constructor morphisms (node_type 'constructor' with no required
+          data port) are insertable at any position: they consume no incoming wire.
+        - Heterogeneous product outputs (tuple[A, B, ...]) are projected member-wise:
+          a downstream port binds to ``var[i]`` (product elimination). Members already
+          consumed by earlier cells are deprioritized, so partitions (train/verify/test)
+          allocate distinct members to distinct consumers by consumption order and
+          declared member-state affinity with the consuming clause.
         """
         if not cells:
             return Failure("Empty cell pipeline")
@@ -1260,9 +1292,82 @@ class UnificationGate:
         accumulated_sigma = Substitution()
         pipeline_bindings: List[Tuple[Cell, Dict[str, str]]] = []
         var_counter = getattr(ctx, "var_counter", 0)
-
-        # Step 1: Initial Source Setup
         producer_var: Optional[str] = None
+
+        # Clause decomposition of the prompt (connector-based fast path; shared with
+        # the planner) — used solely for member-state affinity when projecting
+        # heterogeneous products. Zero domain vocabulary.
+        prompt_text = getattr(ctx, "prompt", "") or ""
+        clause_token_sets: List[Set[str]] = []
+        if prompt_text:
+            for cl in re.split(r'[,;]|\b(?:and|then)\b', prompt_text.strip()):
+                cl = cl.strip()
+                if cl:
+                    clause_token_sets.append(CellTokenizer.tokenize_prompt(cl))
+
+        def _cell_clause_tokens(cell: Any) -> Set[str]:
+            if not clause_token_sets:
+                return set()
+            c_toks = getattr(cell, "token_set", set())
+            best_idx, best_ov = 0, -1
+            for idx, cl_toks in enumerate(clause_token_sets):
+                ov = len(cl_toks & c_toks)
+                if ov > best_ov:
+                    best_ov, best_idx = ov, idx
+            return clause_token_sets[best_idx] if best_ov > 0 else set()
+
+        def _is_product(v_sig: Any) -> bool:
+            raw = str(getattr(getattr(v_sig, "signature", None), "type_name", "") or "")
+            return "[" in raw and raw.strip().lower().split("[", 1)[0] in ("tuple", "product", "pair")
+
+        def _member_candidates(v_sig: Any, v_name: str, port_sig: Any, cell_toks: Set[str]) -> List[Tuple[float, int, Substitution]]:
+            """Product-elimination candidates: (score, member_index, substitution)."""
+            raw = str(getattr(getattr(v_sig, "signature", None), "type_name", "") or "")
+            if "[" not in raw or not raw.endswith("]"):
+                return []
+            constructor = raw.split("[", 1)[0].strip().lower()
+            if constructor not in ("tuple", "product", "pair"):
+                return []
+            inner = raw[raw.index("[") + 1 : -1]
+            members: List[str] = []
+            depth = 0
+            curr: List[str] = []
+            for ch in inner:
+                if ch == "[":
+                    depth += 1
+                    curr.append(ch)
+                elif ch == "]":
+                    depth -= 1
+                    curr.append(ch)
+                elif ch == "," and depth == 0:
+                    members.append("".join(curr).strip())
+                    curr = []
+                else:
+                    curr.append(ch)
+            if curr:
+                members.append("".join(curr).strip())
+            if len(members) < 2:
+                return []
+
+            consumed = getattr(ctx, "consumed_members", set())
+            candidates: List[Tuple[float, int, Substitution]] = []
+            for i, m_str in enumerate(members):
+                try:
+                    member_term = TypeTerm.from_string(m_str)
+                except Exception:
+                    continue
+                u = unify(member_term, port_sig.signature, accumulated_sigma)
+                if u is None:
+                    continue
+                sc = 0.0
+                if (v_name, i) in consumed:
+                    sc -= 5.0
+                state_part = m_str[m_str.index("[") + 1 : -1] if "[" in m_str and m_str.endswith("]") else ""
+                if state_part and state_part.lower() != "any" and cell_toks:
+                    st_toks = CellTokenizer.tokenize_identifier(state_part)
+                    sc += 2.0 * len(st_toks & cell_toks)
+                candidates.append((sc, i, u))
+            return candidates
 
         # Process each cell in sequence
         for idx, cell in enumerate(cells):
@@ -1273,8 +1378,14 @@ class UnificationGate:
             cell_bindings["output_var"] = current_out_var
             ctx.consumed_tokens.update(t.lower() for t in cell.token_set)
 
-            # 1. If not the first cell, verify monadic transition from preceding cell
-            if idx > 0:
+            is_zero_ary = (
+                getattr(cell, "node_type", "") == "constructor"
+                and not any(p.required for p in cell.inputs.values())
+            )
+
+            # 1. If not the first cell, verify monadic transition from preceding cell.
+            # Zero-ary constructors consume no incoming wire and skip the gate.
+            if idx > 0 and not is_zero_ary:
                 prev_cell = cells[idx - 1]
                 transition_res = self.unify_transition(prev_cell, cell, accumulated_sigma, context=ctx)
                 if transition_res.is_bottom():
@@ -1298,6 +1409,10 @@ class UnificationGate:
                 import itertools
                 for assignment in itertools.permutations(avail_vars, len(req_ports)):
                     if producer_var is not None and producer_var not in assignment:
+                        continue
+                    # A heterogeneous product (tuple[A,B,...]) is never assigned whole
+                    # to a data port: its members must be projected individually.
+                    if any(_is_product(ctx.variables[v_name][0]) for v_name in assignment):
                         continue
                     test_sub = accumulated_sigma
                     valid = True
@@ -1343,11 +1458,11 @@ class UnificationGate:
                     bound_producer = True
 
             # If multi-port matching was not triggered or producer_var is not yet bound:
-            if producer_var is not None and not bound_producer:
+            if producer_var is not None and not bound_producer and not is_zero_ary:
                 prim_in = cell.primary_input
-                if prim_in.name in cell.inputs:
+                if prim_in is not None and prim_in.name in cell.inputs:
                     prod_sig, _ = ctx.variables.get(producer_var, (None, None))
-                    if prod_sig is not None:
+                    if prod_sig is not None and not _is_product(prod_sig):
                         u_sub = unify(prod_sig.signature, prim_in.signature, accumulated_sigma)
                         if u_sub is not None:
                             cell_bindings[prim_in.name] = producer_var
@@ -1355,9 +1470,9 @@ class UnificationGate:
                             bound_producer = True
 
             # If producer_var did not bind to primary input, check other compatible input ports
-            if producer_var is not None and not bound_producer:
+            if producer_var is not None and not bound_producer and not is_zero_ary:
                 prod_sig, _ = ctx.variables.get(producer_var, (None, None))
-                if prod_sig is not None:
+                if prod_sig is not None and not _is_product(prod_sig):
                     for p_name, p_sig in cell.inputs.items():
                         if p_name not in cell_bindings:
                             u_sub = unify(prod_sig.signature, p_sig.signature, accumulated_sigma)
@@ -1367,8 +1482,12 @@ class UnificationGate:
                                 bound_producer = True
                                 break
 
-            # 3. Resolve auxiliary input ports (variable reuse / port sharing / parameters / literals)
-            for p_name, p_sig in cell.inputs.items():
+            # 3. Resolve auxiliary input ports (variable reuse / port sharing / parameters / literals).
+            # REQUIRED ports are processed before optional ones so data ports claim
+            # the prompt's shared literal channels (expressions, paths) first;
+            # optional configuration knobs never steal them.
+            cell_toks_for_projection = _cell_clause_tokens(cell)
+            for p_name, p_sig in sorted(cell.inputs.items(), key=lambda kv: not kv[1].required):
                 if p_name in cell_bindings:
                     continue  # Already bound
 
@@ -1383,9 +1502,29 @@ class UnificationGate:
                     accumulated_sigma.bind(p_name, val)
                     continue
 
+                # Optional parameters WITHOUT a default are omitted from the
+                # emitted call unless the prompt itself supplies a literal through
+                # the type-affinity channels (a destination path, a numeric or
+                # boolean qualifier). They capture neither in-scope data wires nor
+                # the expression channel: configuration slots are not dataflow
+                # continuations, and the shared expression channel belongs to the
+                # cell's required data ports.
+                if not p_sig.required:
+                    _lit = ctx.resolve_literal_for_port(concrete_sig, cell_stage=cell.stage, cell_inputs=cell.inputs)
+                    if _lit is not None:
+                        cell_bindings[p_name] = _lit
+                        accumulated_sigma.bind(p_name, _lit)
+                    else:
+                        cell_bindings[p_name] = None
+                    continue
+
                 # A. Check in-scope variables first (environment / predecessor variables matching typestate)
                 scoped_var = None
                 for v_name, (v_sig, _) in reversed(list(ctx.variables.items())):
+                    # Heterogeneous products project member-wise; the whole container
+                    # is never wired into a single data port.
+                    if _is_product(v_sig):
+                        continue
                     u_v = unify(v_sig.signature, concrete_sig.signature, accumulated_sigma)
                     if u_v is not None:
                         scoped_var = v_name
@@ -1394,6 +1533,29 @@ class UnificationGate:
 
                 if scoped_var is not None:
                     cell_bindings[p_name] = scoped_var
+                    continue
+
+                # A2. Product-member projection: bind {port} to var[i] when the port's
+                # declared signature unifies with a declared member carrier. Preference:
+                # unconsumed members, then member-state affinity with the consuming clause.
+                member_bound = False
+                for v_name, (v_sig, _) in reversed(list(ctx.variables.items())):
+                    if not _is_product(v_sig):
+                        continue
+                    cands = _member_candidates(v_sig, v_name, concrete_sig, cell_toks_for_projection)
+                    if not cands:
+                        continue
+                    cands.sort(key=lambda x: (x[0], x[1]), reverse=True)
+                    _, best_i, best_u = cands[0]
+                    cell_bindings[p_name] = f"{v_name}[{best_i}]"
+                    accumulated_sigma = best_u
+                    consumed_members = getattr(ctx, "consumed_members", None)
+                    if consumed_members is not None:
+                        consumed_members.add((v_name, best_i))
+                    member_bound = True
+                    break
+
+                if member_bound:
                     continue
 
                 # B. Check typestate-driven literal resolution from prompt
