@@ -40,12 +40,20 @@ try:
     from signature_introspector import (
         resolve_signature,
         _find_stub_file_for_module,
+        extract_clean_type_name,
+        infer_abstract_carrier,
+        extract_enum_domain,
+        extract_return_specs,
     )
 except ImportError:
     from .log_config import get_logger
     from .signature_introspector import (
         resolve_signature,
         _find_stub_file_for_module,
+        extract_clean_type_name,
+        infer_abstract_carrier,
+        extract_enum_domain,
+        extract_return_specs,
     )
 
 logger = get_logger("library_adapters")
@@ -155,6 +163,27 @@ class LibraryAdapter(abc.ABC):
         layered signature_introspector (runtime → text_signature → stubs → docs)."""
         return resolve_signature(obj, callable_name=callable_name,
                                  parent_cls_name=parent_cls_name, mod=mod)
+
+    def get_abstract_type(self, anno: Any) -> Optional[str]:
+        return infer_abstract_carrier(anno)
+
+    def get_parameter_domains(self, anno: Any, doc: str = "", param_name: str = "") -> Optional[List[Any]]:
+        return extract_enum_domain(anno, doc, param_name)
+
+    def get_return_ports(self, ret_anno: Any, doc: str = "") -> List[Tuple[str, str, Optional[str]]]:
+        return extract_return_specs(ret_anno, doc)
+
+    def is_public_symbol(self, obj: Any, name: str, module_name: str, root_module: Any = None) -> bool:
+        if name.startswith("_"):
+            return False
+        parts = module_name.split(".")
+        if any(p.startswith("_") for p in parts if p != f"_{parts[0]}"):
+            if root_module is not None and hasattr(root_module, name) and getattr(root_module, name) is obj:
+                return True
+            return False
+        if root_module is not None and hasattr(root_module, name) and getattr(root_module, name) is obj:
+            return True
+        return True
 
     def describe(self) -> Dict[str, Any]:
         return {"adapter": self.name}
@@ -291,6 +320,33 @@ class CompositeLibraryAdapter(LibraryAdapter):
             if sig is not None:
                 return sig
         return None
+
+    def get_abstract_type(self, anno: Any) -> Optional[str]:
+        for adapter in self.chain:
+            val = adapter.get_abstract_type(anno)
+            if val is not None:
+                return val
+        return None
+
+    def get_parameter_domains(self, anno: Any, doc: str = "", param_name: str = "") -> Optional[List[Any]]:
+        for adapter in self.chain:
+            val = adapter.get_parameter_domains(anno, doc, param_name)
+            if val is not None:
+                return val
+        return None
+
+    def get_return_ports(self, ret_anno: Any, doc: str = "") -> List[Tuple[str, str, Optional[str]]]:
+        for adapter in self.chain:
+            val = adapter.get_return_ports(ret_anno, doc)
+            if val:
+                return val
+        return [("output_data", "any", None)]
+
+    def is_public_symbol(self, obj: Any, name: str, module_name: str, root_module: Any = None) -> bool:
+        rm = root_module or self.root_module
+        for adapter in self.chain:
+            return adapter.is_public_symbol(obj, name, module_name, rm)
+        return True
 
     def describe(self) -> Dict[str, Any]:
         return {

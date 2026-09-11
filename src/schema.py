@@ -13,6 +13,8 @@ class PortSchema(BaseModel):
     description: Optional[str] = None
     domain: Optional[str] = None
     required: bool = True
+    abstract_type: Optional[str] = None
+    enum_values: Optional[List[Any]] = None
 
 class CellSchema(BaseModel):
     model_config = ConfigDict(extra="ignore")
@@ -37,6 +39,7 @@ class CellSchema(BaseModel):
     node_role: Optional[str] = "function"
     verified: bool = True
     source_priority: int = 100  # 1 = curated seed, 100 = auto-harvested
+    is_public: bool = True
 
     @field_validator("topology_type")
     @classmethod

@@ -2,7 +2,9 @@
 import argparse
 import ast
 import json
+import math
 import os
+import re
 import sqlite3
 import sys
 import time
@@ -283,23 +285,39 @@ from rich import box
 from rich.columns import Columns
 
 try:
-    from lattice import LatticeOrchestrator
+    from lattice import LatticeOrchestrator, Cell, PortSignature, AlgebraicSignature
     from router import LatticeRouter, HardwareProfiler
-    from unification import UnificationGate, DynamicPlaceholderResolver, UnresolvedPlaceholderError, UnificationFailure
+    from unification import (
+        UnificationGate, DynamicPlaceholderResolver, UnresolvedPlaceholderError,
+        UnificationFailure, ExecutionContext, Substitution, TypeRegistry, unify,
+        Success, Failure
+    )
     from gevr_sandbox import GEVRSandbox
     from inference import ModelManager, select_optimal_embedder
     from internal_rag import LocalRAG
     from config import MODELS_DIR
     from utils import extract_code_from_llm_response
+    from tokenizer import CellTokenizer
 except ImportError:
-    from .lattice import LatticeOrchestrator
+    from .lattice import LatticeOrchestrator, Cell, PortSignature, AlgebraicSignature
     from .router import LatticeRouter, HardwareProfiler
-    from .unification import UnificationGate, DynamicPlaceholderResolver
+    from .unification import (
+        UnificationGate, DynamicPlaceholderResolver, UnresolvedPlaceholderError,
+        UnificationFailure, ExecutionContext, Substitution, TypeRegistry, unify,
+        Success, Failure
+    )
     from .gevr_sandbox import GEVRSandbox
     from .inference import ModelManager, select_optimal_embedder
     from .internal_rag import LocalRAG
     from .config import MODELS_DIR
     from .utils import extract_code_from_llm_response
+    from .tokenizer import CellTokenizer
+
+STOPWORDS = frozenset({
+    "a", "an", "the", "in", "on", "at", "of", "to", "for", "from", "by", "with",
+    "and", "or", "as", "is", "are", "was", "were", "be", "been", "it", "its",
+    "them", "they", "their", "this", "that", "these", "those"
+})
 
 
 console = Console()
@@ -398,6 +416,599 @@ def _get_available_llms() -> List[str]:
         ])
     return []
 
+class PipelineDebugger:
+    """
+    Diagnostic tracer and rich visualizer for NSTL pipeline layers.
+    Inspects and displays:
+      - Header: Engine & hardware environment
+      - Layer 0: Query Translator / Intent Decomposition
+      - Layer 1: Semantic Tunneling & Top-Scoring Candidates (Router)
+      - Layer 2: Topological Planning & Trellis Viterbi (Planner)
+      - Layer 3: Type-Monadic Unification & AST Code Synthesis (Gate)
+      - Layer 4: GEVR Sandbox Execution & Egress Verification
+      - Layer 5: Self-Repair Cycle (if triggered in Profile C/E)
+      - Layer 6: End-to-End Latency & Diagnostic Root Cause Analysis
+    """
+
+    def __init__(
+        self,
+        orchestrator: LatticeOrchestrator,
+        router: LatticeRouter,
+        gate: UnificationGate,
+        sandbox: GEVRSandbox,
+        active_profile: str = "0",
+        device: str = "auto",
+        embedder_name: str = "",
+        llm_name: str = "",
+        console: Optional[Console] = None
+    ):
+        self.orchestrator = orchestrator
+        self.router = router
+        self.gate = gate
+        self.sandbox = sandbox
+        self.active_profile = active_profile
+        self.device = device
+        self.embedder_name = embedder_name
+        self.llm_name = llm_name
+        self.console = console or Console()
+
+    def run(
+        self,
+        prompt: str,
+        execute_sandbox: bool = True,
+        timeout: float = 5.0
+    ) -> Dict[str, Any]:
+        c = self.console
+        t_total_start = time.perf_counter()
+        prof = self.active_profile.upper()
+        prompt_clean = prompt.strip()
+
+        # =================================================================
+        # HEADER: Debug Session Banner
+        # =================================================================
+        header_table = Table(box=box.SIMPLE_HEAD, expand=True, border_style="cyan")
+        header_table.add_column("Profile", style="bold yellow")
+        header_table.add_column("Embedder", style="magenta")
+        header_table.add_column("LLM (GGUF)", style="magenta")
+        header_table.add_column("Device", style="green")
+        header_table.add_column("Total Nodes", style="white")
+
+        emb_disp = self.embedder_name or "None (Bypassed)"
+        llm_disp = self.llm_name or "None (Bypassed)"
+        domains = set(cl.domain_name for cl in self.orchestrator.loaded_cells.values() if cl.domain_name)
+        header_table.add_row(
+            f"Profile {prof}",
+            emb_disp,
+            llm_disp,
+            self.device.upper(),
+            f"{len(self.orchestrator.loaded_cells):,} in {len(domains)} domains"
+        )
+
+        c.print(Panel(
+            header_table,
+            title="[bold white on blue] 🔬 NSTL FULL-PIPELINE DEBUG TRACE [/bold white on blue]",
+            subtitle=f"[dim cyan]Prompt: \"{prompt_clean}\"[/dim cyan]",
+            border_style="blue",
+            padding=(0, 1)
+        ))
+
+        # =================================================================
+        # LAYER 0: Query Intent & Pre-Processing
+        # =================================================================
+        t0_trans = time.perf_counter()
+        effective_prompt = prompt_clean
+        t_trans = 0.0
+
+        if prof == "E":
+            mm = ModelManager.get_instance()
+            if mm.profile and mm.has_translator_pass():
+                t0_t = time.perf_counter()
+                trans_system = (
+                    "You are a precise technical translator. Rewrite the user request as ONE "
+                    "comma-separated pipeline sentence: first the input source with its asset "
+                    "name, then each transform verb with its arguments in order, then the "
+                    "destination. Use only words from the request. Output ONLY the sentence, "
+                    "no headers, no lists, no formatting."
+                )
+                effective_prompt = mm.generate_text(prompt_clean, max_tokens=128, system_prompt=trans_system)
+                effective_prompt = effective_prompt.strip().strip('`').strip()
+                t_trans = (time.perf_counter() - t0_t) * 1000.0
+
+        clauses = [cl.strip() for cl in re.split(r'[,;]|\b(?:and|then)\b', effective_prompt) if cl.strip()]
+        prompt_tokens = CellTokenizer.tokenize_prompt(effective_prompt)
+        content_tokens = prompt_tokens - STOPWORDS
+        literals = ExecutionContext._extract_universal_literals(effective_prompt)
+
+        l0_table = Table(box=box.ROUNDED, expand=True, border_style="dim cyan")
+        l0_table.add_column("Property", style="bold cyan", width=24)
+        l0_table.add_column("Extracted Information", style="white")
+
+        l0_table.add_row("Raw User Prompt", prompt_clean)
+        if prof == "E":
+            l0_table.add_row(f"Translator Output ({t_trans:.1f}ms)", f"[italic magenta]{effective_prompt}[/italic magenta]")
+        else:
+            l0_table.add_row("Translator Pass", "[dim]Bypassed (Active in Profile E only)[/dim]")
+
+        clauses_formatted = "  ➔  ".join(f"[bold yellow]Clause {idx+1}:[/bold yellow] '{cl}'" for idx, cl in enumerate(clauses)) if clauses else "[dim]None[/dim]"
+        l0_table.add_row(f"Decomposed Clauses ({len(clauses)})", clauses_formatted)
+        l0_table.add_row(f"Content Tokens ({len(content_tokens)})", ", ".join(sorted(content_tokens)) if content_tokens else "[dim]None[/dim]")
+
+        if literals:
+            lit_strs = [f"[bold green]{val}[/bold green] ([dim]{kind}[/dim])" for _, kind, val in literals]
+            l0_table.add_row(f"Universal Literals ({len(literals)})", ", ".join(lit_strs))
+        else:
+            l0_table.add_row("Universal Literals", "[dim]None detected[/dim]")
+
+        c.print(Panel(l0_table, title="[bold cyan]⚡ LAYER 0: Query Intent & Pre-Processing[/bold cyan]", border_style="cyan"))
+
+        # =================================================================
+        # LAYER 1: Semantic Tunneling & Scoring (Router)
+        # =================================================================
+        t_route_0 = time.perf_counter()
+        is_rag = (self.router.internal_rag is not None and getattr(self.router.internal_rag, "index", None) is not None)
+        engine_desc = "Dense Vector Embeddings via LocalRAG (FAISS)" if is_rag else "Lexical Token Coverage with IDF Poset Index"
+        query_spans = self.router._generate_query_spans(effective_prompt)
+        gamma = getattr(self.router, "gamma", 0.15)
+        epsilon = getattr(self.router, "epsilon", 0.001)
+
+        tunnel_cells, relevance_map = self.router.route(effective_prompt, top_k=400)
+        route_dt = (time.perf_counter() - t_route_0) * 1000.0
+
+        ranked_candidates = sorted(tunnel_cells, key=lambda cl: float(relevance_map.get(cl.cell_id, 0.0)), reverse=True)
+
+        stage_counts = {1: 0, 2: 0, 3: 0, "other": 0}
+        domain_counts: Dict[str, int] = {}
+        carriers_out = set()
+        carriers_in = set()
+        for cl in ranked_candidates:
+            st = getattr(cl, "stage", "other")
+            if st in (1, 2, 3):
+                stage_counts[st] += 1
+            else:
+                stage_counts["other"] += 1
+            dom = getattr(cl, "domain_name", "generic")
+            domain_counts[dom] = domain_counts.get(dom, 0) + 1
+            out_t = getattr(cl.primary_output, "type_name", "")
+            in_t = getattr(cl.primary_input, "type_name", "")
+            if out_t and out_t.lower() not in ("any", "none", "*", "top", "void"):
+                carriers_out.add(out_t)
+            if in_t and in_t.lower() not in ("any", "none", "*", "top", "void"):
+                carriers_in.add(in_t)
+
+        top_domains_str = ", ".join(f"{d} ({cnt})" for d, cnt in sorted(domain_counts.items(), key=lambda x: x[1], reverse=True)[:6])
+        summary_text = (
+            f"[cyan]Retrieval Engine:[/cyan] {engine_desc}\n"
+            f"[cyan]Hyperparameters:[/cyan] Temperature γ={gamma}, Cutoff ε={epsilon}, Multi-Scale Spans={len(query_spans)}\n"
+            f"[cyan]Tunnel Distribution:[/cyan] {len(ranked_candidates):,} nodes | "
+            f"Stage 1 (Ingress): [bold green]{stage_counts[1]}[/bold green] | "
+            f"Stage 2 (Transforms): [bold yellow]{stage_counts[2]}[/bold yellow] | "
+            f"Stage 3 (Egress/Sinks): [bold blue]{stage_counts[3]}[/bold blue]\n"
+            f"[cyan]Carrier Types Detected:[/cyan] Outputs: {sorted(list(carriers_out))[:8]} | Inputs: {sorted(list(carriers_in))[:8]}\n"
+            f"[cyan]Active Domains in Tunnel:[/cyan] {top_domains_str}"
+        )
+
+        c.print(Panel(summary_text, title=f"[bold yellow]⚡ LAYER 1: Semantic Tunneling & Scoring ({route_dt:.2f}ms)[/bold yellow]", border_style="yellow"))
+
+        if ranked_candidates:
+            cand_table = Table(title=f"🎯 Top Scoring Nodes in Semantic Tunnel (Displaying top {min(15, len(ranked_candidates))} of {len(ranked_candidates):,})", box=box.ROUNDED, expand=True, border_style="yellow")
+            cand_table.add_column("#", style="dim", width=4)
+            cand_table.add_column("Score / P(v|x)", style="bold yellow", width=14)
+            cand_table.add_column("Cell ID", style="bold cyan", ratio=3)
+            cand_table.add_column("Domain", style="magenta", width=12)
+            cand_table.add_column("Stage", style="white", width=11)
+            cand_table.add_column("Role", style="dim", width=10)
+            cand_table.add_column("Primary Input (τ_in)", style="green", ratio=2)
+            cand_table.add_column("Primary Output (τ_out)", style="blue", ratio=2)
+
+            display_limit = 15
+            for idx, cl in enumerate(ranked_candidates[:display_limit], 1):
+                sc = float(relevance_map.get(cl.cell_id, 0.0))
+                sc_color = "bold green" if sc >= 0.5 else ("bold yellow" if sc >= 0.1 else "white")
+                sc_str = f"[{sc_color}]{sc:.4f} ({sc*100:.1f}%)[/{sc_color}]"
+
+                stage_name = {1: "1: Ingress", 2: "2: Transform", 3: "3: Egress"}.get(cl.stage, str(cl.stage))
+                in_sig = f"{getattr(cl.primary_input, 'type_name', 'any')} [{getattr(cl.primary_input, 'state', 'any')}]"
+                out_sig = f"{getattr(cl.primary_output, 'type_name', 'any')} [{getattr(cl.primary_output, 'state', 'any')}]"
+
+                cand_table.add_row(
+                    str(idx),
+                    sc_str,
+                    cl.cell_id,
+                    cl.domain_name,
+                    stage_name,
+                    cl.node_role or cl.node_type,
+                    in_sig,
+                    out_sig
+                )
+            c.print(cand_table)
+            if len(ranked_candidates) > display_limit:
+                c.print(f"  [dim]... and {len(ranked_candidates) - display_limit:,} more candidate nodes in semantic tunnel.[/dim]\n")
+        else:
+            c.print("[bold red][!] Empty tunnel: No nodes cleared the relevance cutoff threshold.[/bold red]\n")
+
+        # =================================================================
+        # LAYER 2: Topological Planning & Trellis Viterbi (Planner)
+        # =================================================================
+        t_plan_0 = time.perf_counter()
+        os.environ["NSTL_DEBUG_PLAN"] = "1"
+        try:
+            cells = self.router.planner.plan(
+                prompt=effective_prompt,
+                tunnel=tunnel_cells,
+                relevance_map=relevance_map
+            )
+        finally:
+            os.environ.pop("NSTL_DEBUG_PLAN", None)
+        plan_dt = (time.perf_counter() - t_plan_0) * 1000.0
+
+        if cells:
+            path_table = Table(title=f"🛣️ Planned Monadic Pipeline Composition ({len(cells)} Steps)", box=box.ROUNDED, expand=True, border_style="green")
+            path_table.add_column("Step", style="bold yellow", width=6)
+            path_table.add_column("Cell ID", style="bold cyan", ratio=3)
+            path_table.add_column("Domain & Stage", style="magenta", width=18)
+            path_table.add_column("Input (τ_in)", style="green", ratio=2)
+            path_table.add_column("Output (τ_out)", style="blue", ratio=2)
+            path_table.add_column("Type-Monadic Transition", style="bold", ratio=3)
+
+            reg = TypeRegistry.get_instance()
+            for idx, cl in enumerate(cells, 1):
+                stage_label = f"{cl.domain_name} (S{cl.stage})"
+                in_sig_str = f"{getattr(cl.primary_input, 'type_name', 'any')} [{getattr(cl.primary_input, 'state', 'any')}]"
+                out_sig_str = f"{getattr(cl.primary_output, 'type_name', 'any')} [{getattr(cl.primary_output, 'state', 'any')}]"
+
+                if idx == 1:
+                    trans_status = "[bold green]✓ Ingress Entry Point[/bold green]"
+                else:
+                    prev_cl = cells[idx - 2]
+                    prev_out = prev_cl.primary_output.signature
+                    curr_in = cl.primary_input.signature
+                    u = unify(prev_out, curr_in)
+                    is_sub = reg.is_subtype(str(prev_out.type_name), str(curr_in.type_name))
+
+                    if u is not None:
+                        trans_status = f"[bold green]✓ Unifies ({prev_out.type_name} ➔ {curr_in.type_name})[/bold green]"
+                    elif is_sub:
+                        trans_status = f"[green]✓ Subtype ({prev_out.type_name} ⊆ {curr_in.type_name})[/green]"
+                    else:
+                        alt_port = next((p_name for p_name, p in cl.inputs.items() if unify(prev_out, p.signature) is not None), None)
+                        if alt_port:
+                            trans_status = f"[cyan]✓ Wire via port '{alt_port}'[/cyan]"
+                        else:
+                            trans_status = "[yellow]~ Weak / Wildcard bind[/yellow]"
+
+                path_table.add_row(
+                    str(idx),
+                    cl.cell_id,
+                    stage_label,
+                    in_sig_str,
+                    out_sig_str,
+                    trans_status
+                )
+
+            path_chain = " ➔ ".join(f"[bold cyan]{c.cell_id}[/bold cyan]" for c in cells)
+            c.print(Panel(
+                f"[bold green]✓ Synthesized Type-Valid Path ({len(cells)} steps):[/bold green] {path_chain}",
+                title=f"[bold green]⚡ LAYER 2: Topological Planning & Trellis Viterbi ({plan_dt:.2f}ms)[/bold green]",
+                border_style="green"
+            ))
+            c.print(path_table)
+            c.print("")
+        else:
+            c.print(Panel(
+                "[bold red]❌ PLANNING FAILURE: No valid compositional path found through the lattice.[/bold red]",
+                title=f"[bold red]⚡ LAYER 2: Topological Planning Failure ({plan_dt:.2f}ms)[/bold red]",
+                border_style="red"
+            ))
+
+            diag_table = Table(title="🔍 Planning Failure Root Cause Analysis", box=box.ROUNDED, expand=True, border_style="red")
+            diag_table.add_column("Diagnostic Check", style="bold yellow", width=28)
+            diag_table.add_column("Result", style="bold", width=14)
+            diag_table.add_column("Underlying Issue & Resolution Advice", style="white")
+
+            if not tunnel_cells:
+                diag_table.add_row(
+                    "Semantic Tunnel Population",
+                    "[red]EMPTY (0)[/red]",
+                    f"No candidate nodes met the relevance threshold (epsilon={epsilon}). Rephrase or provide package hints."
+                )
+            else:
+                diag_table.add_row(
+                    "Semantic Tunnel Population",
+                    f"[green]OK ({len(tunnel_cells):,})[/green]",
+                    f"{len(tunnel_cells):,} nodes in active tunnel."
+                )
+
+            entries = [cl for cl in tunnel_cells if getattr(cl, "stage", None) == 1]
+            if not entries:
+                diag_table.add_row(
+                    "Stage 1 Ingress/Source Nodes",
+                    "[red]MISSING (0)[/red]",
+                    "No data ingestion nodes (e.g. read_csv, imread, load) found in tunnel. Pipelines must begin with Stage 1."
+                )
+            else:
+                entry_ids = ", ".join(cl.cell_id for cl in entries[:4])
+                diag_table.add_row(
+                    "Stage 1 Ingress/Source Nodes",
+                    f"[green]FOUND ({len(entries)})[/green]",
+                    f"Candidate entries: {entry_ids}"
+                )
+
+            sinks = [cl for cl in tunnel_cells if getattr(cl, "stage", None) == 3]
+            if not sinks and literals:
+                diag_table.add_row(
+                    "Stage 3 Egress/Sink Nodes",
+                    "[yellow]NONE[/yellow]",
+                    "Prompt contains literals/destinations, but no terminal sinks (e.g. to_csv, imwrite) were retrieved."
+                )
+            elif sinks:
+                sink_ids = ", ".join(cl.cell_id for cl in sinks[:4])
+                diag_table.add_row(
+                    "Stage 3 Egress/Sink Nodes",
+                    f"[green]FOUND ({len(sinks)})[/green]",
+                    f"Candidate sinks: {sink_ids}"
+                )
+
+            if entries:
+                entry_out_types = {getattr(cl.primary_output, 'type_name', '') for cl in entries}
+                transform_cells = [cl for cl in tunnel_cells if getattr(cl, "stage", None) == 2]
+                transform_in_types = {getattr(cl.primary_input, 'type_name', '') for cl in transform_cells}
+                diag_table.add_row(
+                    "Carrier Compatibility",
+                    "[yellow]INSPECT[/yellow]",
+                    f"Entry outputs: {entry_out_types} vs Transform inputs: {transform_in_types}. If carriers are disjoint and no bridge morphism exists, composition cannot proceed."
+                )
+
+            c.print(diag_table)
+            c.print("")
+
+        # =================================================================
+        # LAYER 3: Type-Monadic Unification & AST Synthesis
+        # =================================================================
+        final_code = ""
+        dest_paths = None
+        pipeline_bindings = None
+        accum_sigma = None
+        synth_dt = 0.0
+
+        if cells:
+            t_synth_0 = time.perf_counter()
+            ctx = ExecutionContext(prompt=prompt_clean)
+            try:
+                unify_res = self.gate.unify_pipeline(cells, ctx)
+            except Exception as exc:
+                unify_res = Failure(reason=str(exc))
+            synth_dt = (time.perf_counter() - t_synth_0) * 1000.0
+
+            if unify_res.is_bottom():
+                fail_reason = getattr(unify_res, "reason", "Unknown unification failure")
+                c.print(Panel(
+                    f"[bold red]❌ UNIFICATION FAILED: {fail_reason}[/bold red]\n"
+                    f"[yellow]A type constraint or required port could not be satisfied in the Type Monad.[/yellow]",
+                    title=f"[bold red]⚡ LAYER 3: Type-Monadic Unification Failure ({synth_dt:.2f}ms)[/bold red]",
+                    border_style="red"
+                ))
+            else:
+                pipeline_bindings = unify_res.value
+                accum_sigma = unify_res.sigma
+                dest_paths = self.gate._derive_egress_paths(pipeline_bindings)
+                self.gate.last_egress_paths = dest_paths
+                try:
+                    final_code = self.gate.emit_code(pipeline_bindings, ctx)
+                except Exception as e:
+                    c.print(f"[bold red][!] Code emission error: {e}[/bold red]")
+
+                bind_table = Table(title="🔌 Port Placeholders & Variable Wiring Bindings", box=box.ROUNDED, expand=True, border_style="cyan")
+                bind_table.add_column("Step", style="dim", width=4)
+                bind_table.add_column("Cell ID", style="bold cyan", ratio=3)
+                bind_table.add_column("Port Name", style="bold yellow", ratio=2)
+                bind_table.add_column("Dir", style="white", width=5)
+                bind_table.add_column("Type & State", style="green", ratio=2)
+                bind_table.add_column("Req", style="dim", width=5)
+                bind_table.add_column("Bound Expression", style="bold magenta", ratio=2)
+                bind_table.add_column("Provenance / Source", style="dim", ratio=2)
+
+                prompt_lits = {v for _, _, v in literals}
+                for step_idx, (cl, bindings) in enumerate(pipeline_bindings, 1):
+                    for p_name, p_sig in cl.inputs.items():
+                        b_val = str(bindings.get(p_name, "<unbound>"))
+                        t_str = f"{p_sig.signature.type_name} [{p_sig.signature.state}]"
+                        if any(b_val.strip("'\"") == lit for lit in prompt_lits):
+                            source_desc = "Prompt Literal"
+                        elif b_val.startswith("var_") or b_val.startswith("v"):
+                            source_desc = "Wired Variable"
+                        elif p_sig.default_value is not None:
+                            source_desc = "Declared Default"
+                        else:
+                            source_desc = "Dynamic Resolver"
+
+                        bind_table.add_row(
+                            str(step_idx),
+                            cl.cell_id,
+                            p_name,
+                            "IN",
+                            t_str,
+                            "Yes" if p_sig.required else "No",
+                            b_val,
+                            source_desc
+                        )
+                    for p_name, p_sig in cl.outputs.items():
+                        b_val = str(bindings.get(p_name, "<unbound>"))
+                        t_str = f"{p_sig.signature.type_name} [{p_sig.signature.state}]"
+                        bind_table.add_row(
+                            str(step_idx),
+                            cl.cell_id,
+                            p_name,
+                            "OUT",
+                            t_str,
+                            "-",
+                            b_val,
+                            "Produced Value"
+                        )
+
+                egress_str = ", ".join(f"'{p}'" for p in dest_paths) if dest_paths else "[dim]None (In-memory pipeline)[/dim]"
+                sigma_str = str(accum_sigma) if accum_sigma and getattr(accum_sigma, "mappings", None) else "[dim]None (Ground types)[/dim]"
+                unify_summary = (
+                    f"[cyan]Egress Target Files:[/cyan] {egress_str}\n"
+                    f"[cyan]Type Substitutions (σ):[/cyan] {sigma_str}"
+                )
+
+                c.print(Panel(unify_summary, title=f"[bold cyan]⚡ LAYER 3: Monadic Variable Binding & AST Synthesis ({synth_dt:.2f}ms)[/bold cyan]", border_style="cyan"))
+                c.print(bind_table)
+                c.print("")
+
+                if final_code:
+                    syntax_code = Syntax(final_code, "python", theme="monokai", line_numbers=True)
+                    c.print(Panel(syntax_code, title="[bold green]✨ Synthesized Python Code[/bold green]", border_style="green", padding=(0, 1)))
+                    c.print("")
+
+        # =================================================================
+        # LAYER 4: GEVR Sandbox Execution & Egress Verification
+        # =================================================================
+        sandbox_res = {"success": False, "error": "Execution skipped"}
+        sandbox_dt = 0.0
+
+        if final_code and execute_sandbox:
+            t_exec_start = time.perf_counter()
+            sandbox_res = self.sandbox.execute(final_code, timeout=timeout, egress_paths=dest_paths)
+            sandbox_dt = (time.perf_counter() - t_exec_start) * 1000.0
+
+            sb_success = sandbox_res.get("success", False)
+            sb_ret = sandbox_res.get("returncode", 0)
+            sb_stdout = sandbox_res.get("stdout", "").strip()
+            sb_stderr = sandbox_res.get("stderr", "").strip()
+            sb_err = sandbox_res.get("error", "").strip()
+
+            if sb_success:
+                sb_badge = "[bold green]✓ PASSED[/bold green]"
+                border_col = "green"
+            else:
+                sb_badge = f"[bold red]✗ FAILED (Exit Code: {sb_ret})[/bold red]"
+                border_col = "red"
+
+            sb_summary = [
+                f"[cyan]Status:[/cyan] {sb_badge}",
+                f"[cyan]Execution Time:[/cyan] {sandbox_dt:.2f}ms",
+                f"[cyan]Timeout Bound:[/cyan] {timeout:.1f}s"
+            ]
+
+            if dest_paths:
+                egress_checks = []
+                for dp in dest_paths:
+                    p = Path(dp)
+                    if p.exists():
+                        sz = p.stat().st_size
+                        egress_checks.append(f"'{dp}': [bold green]EXISTS ({sz} bytes)[/bold green]")
+                    else:
+                        egress_checks.append(f"'{dp}': [bold red]MISSING ON DISK[/bold red]")
+                sb_summary.append(f"[cyan]Egress Artifacts:[/cyan] {' | '.join(egress_checks)}")
+
+            c.print(Panel("\n".join(sb_summary), title=f"[bold {border_col}]⚡ LAYER 4: GEVR Sandbox Execution & Verification[/bold {border_col}]", border_style=border_col))
+
+            if sb_stdout:
+                c.print(Panel(sb_stdout, title="[green]Standard Output (stdout)[/green]", border_style="dim green"))
+
+            if sb_stderr or sb_err:
+                err_text = sb_err or sb_stderr
+                c.print(Panel(err_text, title="[red]Standard Error / Traceback (stderr)[/red]", border_style="red"))
+
+                if sandbox_res.get("extrinsic", False) or _is_environmental_error(err_text):
+                    c.print(Panel(
+                        "[yellow][ENVIRONMENTAL FAILURE DETECTED][/yellow]\n"
+                        "The synthesized Python program failed due to an external environmental dependency "
+                        "(e.g. input file not found on disk, missing system package, or IO permission).\n"
+                        "[bold green]The synthesized pipeline logic and type composition are structurally sound.[/bold green]",
+                        border_style="yellow"
+                    ))
+                else:
+                    c.print(Panel(
+                        "[bold red][CODE DEFECT DETECTED][/bold red]\n"
+                        "An exception occurred inside the synthesized code during runtime execution.",
+                        border_style="red"
+                    ))
+            c.print("")
+
+        # =================================================================
+        # LAYER 5: Self-Repair Cycle (Profile C/E)
+        # =================================================================
+        rep_dt = 0.0
+        repaired = False
+        if final_code and not sandbox_res.get("success", False) and prof in ("C", "E"):
+            mm = ModelManager.get_instance()
+            if mm.profile and mm.can_feedback_check():
+                err_msg = sandbox_res.get("error", "")
+                if sandbox_res.get("extrinsic", False) or _is_environmental_error(err_msg):
+                    c.print(
+                        "  [yellow][!] Environmental failure detected. LLM self-repair skipped — "
+                        "the synthesized pipeline is not the defect.[/yellow]\n"
+                    )
+                else:
+                    c.print(Panel("[bold yellow]⚡ LAYER 5: GEVR Sandbox LLM Self-Repair Cycle[/bold yellow]", border_style="yellow"))
+                    t_rep_0 = time.perf_counter()
+                    failing_code = final_code
+                    repaired_code = extract_code_from_llm_response(mm.feedback_check(failing_code, err_msg))
+                    rep_dt = (time.perf_counter() - t_rep_0) * 1000.0
+
+                    if repaired_code and repaired_code.strip() != failing_code.strip():
+                        unknown = _unknown_api_references(repaired_code, failing_code, self.orchestrator.loaded_cells.values())
+                        if unknown:
+                            c.print(f"  [bold red][x] Repair rejected: references APIs absent from the lattice: {', '.join(sorted(unknown)[:5])}[/bold red]\n")
+                        else:
+                            c.print(f"  [bold green][✓] Repair accepted. Re-executing in sandbox... ({rep_dt:.1f}ms)[/bold green]")
+                            final_code = repaired_code
+                            repaired = True
+                            sandbox_res = self.sandbox.execute(final_code, timeout=timeout, egress_paths=dest_paths)
+                            c.print(f"  [bold]Post-Repair Result:[/bold] {'[green]PASSED[/green]' if sandbox_res.get('success') else '[red]FAILED[/red]'}\n")
+                    else:
+                        c.print(f"  [yellow][!] LLM could not produce an alternative repair ({rep_dt:.1f}ms).[/yellow]\n")
+
+        # =================================================================
+        # LAYER 6: Performance & Latency Breakdown
+        # =================================================================
+        total_dt = (time.perf_counter() - t_total_start) * 1000.0
+
+        perf_table = Table(title="⏱️ End-to-End Pipeline Latency Breakdown", box=box.ROUNDED, expand=True, border_style="cyan")
+        perf_table.add_column("Pipeline Layer", style="bold cyan")
+        perf_table.add_column("Latency (ms)", style="bold yellow", justify="right")
+        perf_table.add_column("% of Total", style="dim", justify="right")
+
+        timings = [
+            ("Layer 0: Translator Pass", t_trans),
+            ("Layer 1: Semantic Routing & Tunneling", route_dt),
+            ("Layer 2: Topological Planning (Viterbi)", plan_dt),
+            ("Layer 3: Monadic Unification & Code Gen", synth_dt),
+            ("Layer 4: GEVR Sandbox Execution", sandbox_dt),
+            ("Layer 5: LLM Self-Repair Cycle", rep_dt),
+        ]
+        for name, lat in timings:
+            pct = (lat / total_dt * 100) if total_dt > 0 else 0.0
+            lat_str = f"{lat:.2f} ms" if lat > 0 else "[dim]-[/dim]"
+            pct_str = f"{pct:.1f}%" if lat > 0 else "[dim]-[/dim]"
+            perf_table.add_row(name, lat_str, pct_str)
+
+        perf_table.add_section()
+        perf_table.add_row("[bold white]Total End-to-End Latency[/bold white]", f"[bold green]{total_dt:.2f} ms[/bold green]", "[bold green]100.0%[/bold green]")
+        c.print(perf_table)
+        c.print("")
+
+        path_ids = [cl.cell_id for cl in cells] if cells else []
+        sb_status = "PASSED" if sandbox_res.get("success", False) else ("FAILED: " + sandbox_res.get("error", "").splitlines()[-1] if sandbox_res.get("error") else "FAILED")
+        return {
+            "prompt": prompt_clean,
+            "profile": self.active_profile,
+            "path": path_ids,
+            "latency_ms": total_dt,
+            "sandbox_status": sb_status,
+            "code": final_code,
+            "route_ms": route_dt,
+            "plan_ms": plan_dt,
+            "synth_ms": synth_dt,
+            "sandbox_ms": sandbox_dt,
+            "sandbox_result": sandbox_res,
+            "cells": cells,
+            "tunnel_size": len(tunnel_cells),
+            "relevance_map": relevance_map
+        }
+
 
 class NSTLInteractiveShell(cmd.Cmd):
     """
@@ -414,7 +1025,9 @@ class NSTLInteractiveShell(cmd.Cmd):
         initial_profile: str = "0",
         embedder: str = "",
         llm: str = "",
-        device: str = "auto"
+        device: str = "auto",
+        debug: bool = False,
+        interactive: bool = True
     ):
         super().__init__()
         self.db_path = db_path
@@ -424,8 +1037,11 @@ class NSTLInteractiveShell(cmd.Cmd):
         self.active_profile = "0"
         self.rag: Optional[LocalRAG] = None
         self.history: List[Dict[str, Any]] = []
+        self.debug: bool = debug
+        self.interactive: bool = interactive
 
-        console.print("\n[bold cyan][*] Initializing NSTL Neuro-Symbolic Engine...[/bold cyan]")
+        if interactive:
+            console.print("\n[bold cyan][*] Initializing NSTL Neuro-Symbolic Engine...[/bold cyan]")
         t0 = time.perf_counter()
 
         self.orchestrator = LatticeOrchestrator()
@@ -437,11 +1053,13 @@ class NSTLInteractiveShell(cmd.Cmd):
 
         node_count = len(self.orchestrator.cells)
         load_time = (time.perf_counter() - t0) * 1000.0
-        console.print(f"[bold green][✓] Lattice Graph Loaded: {node_count:,} verified nodes ({load_time:.1f}ms)[/bold green]\n")
+        if interactive:
+            console.print(f"[bold green][✓] Lattice Graph Loaded: {node_count:,} verified nodes ({load_time:.1f}ms)[/bold green]\n")
 
         # Initialize requested profile
         self._switch_profile(initial_profile, embedder=embedder, llm=llm, device=device, verbose=False)
-        self._render_dashboard()
+        if interactive:
+            self._render_dashboard()
 
     def _render_dashboard(self):
         """Renders the top visual status dashboard."""
@@ -465,7 +1083,8 @@ class NSTLInteractiveShell(cmd.Cmd):
 
         # Hardware & DB info
         db_nodes = f"[cyan]Nodes:[/cyan] {len(self.orchestrator.cells):,} in {len(domains)} domains"
-        dev_info = f"[cyan]Device:[/cyan] {self.device.upper()} | [cyan]Queries:[/cyan] {len(self.history)}"
+        dbg_text = "[bold green]ON (Verbose)[/bold green]" if self.debug else "[dim]OFF[/dim]"
+        dev_info = f"[cyan]Device:[/cyan] {self.device.upper()} | [cyan]Debug:[/cyan] {dbg_text} | [cyan]Queries:[/cyan] {len(self.history)}"
         hardware_text = f"{db_nodes}\n{dev_info}"
 
         header_table.add_row(prof_text, models_text, hardware_text)
@@ -474,7 +1093,7 @@ class NSTLInteractiveShell(cmd.Cmd):
         title_text = Text("🧬 NSTL NEURO-SYMBOLIC TOPOLOGICAL LATTICE STUDIO", justify="center", style="bold white on blue")
         quick_shortcuts = Text(
             "Quick Layers: [1] 0:Symbolic  [2] A:Embedder  [3] C:Neuro-Symbolic  [4] D:Routing  [5] E:Translator\n"
-            "Commands: /profile <0|A|C|D|E> | /models | /set <key> <val> | /status | /new | /history | /clear | /exit",
+            "Commands: /profile <0|A|C|D|E> | /debug [on|off] | /models | /set <key> <val> | /status | /new | /clear | /exit",
             justify="center",
             style="dim cyan"
         )
@@ -521,7 +1140,27 @@ class NSTLInteractiveShell(cmd.Cmd):
         prof_label = self.active_profile.upper()
         if prof_label in ("0", "SYMBOLIC", "ZERO", "PURE"):
             prof_label = "0: Symbolic"
-        self.prompt = f"\033[1;36mNSTL [Profile {prof_label}]\033[0m > "
+        dbg_label = " \033[1;33m[DEBUG]\033[0m" if self.debug else ""
+        self.prompt = f"\033[1;36mNSTL [Profile {prof_label}]\033[0m{dbg_label} > "
+
+    def do_debug(self, arg: str):
+        """Toggle or configure debug mode across all pipeline layers. Usage: debug [on|off] or /debug [on|off]"""
+        arg = arg.strip().lower().lstrip("/")
+        if arg.startswith("debug"):
+            arg = arg[5:].strip()
+        if not arg:
+            self.debug = not self.debug
+        elif arg in ("1", "true", "on", "yes", "enable", "enabled"):
+            self.debug = True
+        elif arg in ("0", "false", "off", "no", "disable", "disabled"):
+            self.debug = False
+        else:
+            console.print(f"[yellow]Usage: /debug [on|off] (currently {'ON' if self.debug else 'OFF'})[/yellow]")
+            return
+
+        status_str = "[bold green]ENABLED (full layer-by-layer diagnostics)[/bold green]" if self.debug else "[dim]DISABLED[/dim]"
+        console.print(f"\n[*] Debug Mode: {status_str}\n")
+        self._update_prompt()
 
     def _switch_profile(self, profile: str, embedder: str = "", llm: str = "", device: str = "auto", verbose: bool = True) -> bool:
         p = profile.strip().upper()
@@ -658,8 +1297,17 @@ class NSTLInteractiveShell(cmd.Cmd):
             console.print(f"[green][*] Compute device set to '{val}'.[/green]")
             if self.active_profile != "0":
                 self._switch_profile(self.active_profile, device=val)
+        elif key in ("debug", "dbg"):
+            if val.lower() in ("1", "true", "on", "yes", "enable", "enabled"):
+                self.debug = True
+            elif val.lower() in ("0", "false", "off", "no", "disable", "disabled"):
+                self.debug = False
+            else:
+                self.debug = not self.debug
+            console.print(f"[green][*] Debug mode set to {'ON' if self.debug else 'OFF'}.[/green]")
+            self._update_prompt()
         else:
-            console.print(f"[bold red][!] Unknown parameter '{key}'. Supported: embedder, llm, device.[/bold red]")
+            console.print(f"[bold red][!] Unknown parameter '{key}'. Supported: embedder, llm, device, debug.[/bold red]")
 
     def do_status(self, arg: str):
         """Display real-time system status and active configuration."""
@@ -761,11 +1409,47 @@ class NSTLInteractiveShell(cmd.Cmd):
             elif cmd_name in ("history", "hist"):
                 self.do_history(cmd_arg)
                 return
+            elif cmd_name in ("debug", "dbg"):
+                self.do_debug(cmd_arg)
+                return
             elif cmd_name in ("help", "h", "?"):
                 self.do_help(cmd_arg)
                 return
             elif cmd_name in ("exit", "quit", "q"):
                 return self.do_exit(cmd_arg)
+
+        # Check for query-level or shell-level debug flag
+        query_debug = self.debug
+        if "--debug" in prompt:
+            prompt = prompt.replace("--debug", "").strip()
+            query_debug = True
+
+        if query_debug:
+            debugger = PipelineDebugger(
+                orchestrator=self.orchestrator,
+                router=self.router,
+                gate=self.gate,
+                sandbox=self.sandbox,
+                active_profile=self.active_profile,
+                device=self.device,
+                embedder_name=self.embedder_name,
+                llm_name=self.llm_name,
+                console=console
+            )
+            res = debugger.run(prompt, execute_sandbox=True, timeout=5.0)
+            self.history.append({
+                "prompt": prompt,
+                "profile": self.active_profile,
+                "path": res["path"],
+                "latency_ms": res["latency_ms"],
+                "sandbox_status": res["sandbox_status"],
+                "code": res["code"],
+                "route_ms": res["route_ms"],
+                "synth_ms": res["synth_ms"],
+                "sandbox_ms": res["sandbox_ms"],
+                "sandbox_error": res.get("sandbox_result", {}).get("error", "")
+            })
+            return
 
         t_total_start = time.perf_counter()
         prof = self.active_profile.upper()
@@ -941,9 +1625,37 @@ def cmd_shell(args):
         initial_profile=args.profile,
         embedder=args.embedder,
         llm=args.llm,
-        device=args.device
+        device=args.device,
+        debug=getattr(args, "debug", False),
+        interactive=True
     )
     shell.cmdloop()
+
+
+def cmd_run(args):
+    """Executes a single prompt synthesis directly from CLI, optionally with --debug."""
+    db_path = getattr(args, "db", "trees/lattice.db")
+    profile = getattr(args, "profile", "0")
+    embedder = getattr(args, "embedder", "")
+    llm = getattr(args, "llm", "")
+    device = getattr(args, "device", "auto")
+    debug_mode = getattr(args, "debug", False)
+    prompt = getattr(args, "prompt", "").strip()
+
+    if not prompt:
+        console.print("[bold red][!] Prompt must not be empty.[/bold red]")
+        sys.exit(1)
+
+    shell = NSTLInteractiveShell(
+        db_path=db_path,
+        initial_profile=profile,
+        embedder=embedder,
+        llm=llm,
+        device=device,
+        debug=debug_mode,
+        interactive=False
+    )
+    shell.default(f"{prompt} --debug" if debug_mode else prompt)
 
 
 def cmd_precompute_rag(args):
@@ -979,14 +1691,10 @@ def cmd_precompute_rag(args):
         ModelManager.get_instance().cleanup()
 
 
-def main():
-    # If invoked without arguments (e.g. `python3 nstl_cli.py` or `python3 src/cli.py`), launch TUI Studio directly
-    if len(sys.argv) == 1:
-        shell = NSTLInteractiveShell()
-        shell.cmdloop()
-        return
-
+def build_parser() -> argparse.ArgumentParser:
+    """Constructs the CLI argument parser with all subcommands and global debug flags."""
     parser = argparse.ArgumentParser(prog="python -m src.cli", description="NSTL Toolchain CLI & Interactive Studio")
+    parser.add_argument("--debug", "-d", action="store_true", help="Enable verbose debug mode across all pipeline layers")
     subparsers = parser.add_subparsers(dest="command", required=False)
 
     # harvest
@@ -1016,6 +1724,18 @@ def main():
     p_precompute.add_argument("--embedder", type=str, default="", help="Embedding model name (e.g. jina-embeddings-v5-text-nano)")
     p_precompute.set_defaults(func=cmd_precompute_rag)
 
+    # run
+    p_run = subparsers.add_parser("run", help="Synthesize code for a natural language prompt directly from CLI")
+    p_run.add_argument("prompt", type=str, help="Natural language pipeline specification")
+    p_run.add_argument("--debug", "-d", action="store_true", help="Enable verbose debug output across all pipeline layers")
+    p_run.add_argument("--db", type=str, default="trees/lattice.db", help="Path to SQLite database")
+    p_run.add_argument("--profile", type=str, default="0", help="Inference profile (0=Symbolic, A=Embedder, C=Neuro-Symbolic, D, E)")
+    p_run.add_argument("--embedder", type=str, default="", help="Embedding model name (e.g. jina-embeddings-v5-text-nano)")
+    p_run.add_argument("--llm", type=str, default="", help="LLM model name (e.g. qwen2.5-coder-0.5b-instruct)")
+    p_run.add_argument("--device", type=str, default="auto", choices=["auto", "cpu", "cuda"], help="Compute device")
+    p_run.add_argument("--no-exec", action="store_true", help="Skip GEVR sandbox execution")
+    p_run.set_defaults(func=cmd_run)
+
     # shell
     p_shell = subparsers.add_parser("shell", help="Launch real-time interactive synthesis TUI studio")
     p_shell.add_argument("--db", type=str, default="trees/lattice.db", help="Path to SQLite database")
@@ -1023,14 +1743,52 @@ def main():
     p_shell.add_argument("--embedder", type=str, default="", help="Embedding model name (e.g. jina-embeddings-v5-text-nano)")
     p_shell.add_argument("--llm", type=str, default="", help="LLM model name (e.g. qwen2.5-coder-0.5b-instruct)")
     p_shell.add_argument("--device", type=str, default="auto", choices=["auto", "cpu", "cuda"], help="Compute device")
+    p_shell.add_argument("--debug", "-d", action="store_true", help="Launch studio with debug mode enabled")
     p_shell.set_defaults(func=cmd_shell)
+
+    return parser
+
+
+def main():
+    # If invoked without arguments (e.g. `python3 nstl_cli.py` or `python3 src/cli.py`), launch TUI Studio directly
+    if len(sys.argv) == 1:
+        shell = NSTLInteractiveShell()
+        shell.cmdloop()
+        return
+
+    # If invoked with only --debug, launch TUI studio directly with debug=True
+    if len(sys.argv) == 2 and sys.argv[1] in ("--debug", "-d"):
+        shell = NSTLInteractiveShell(debug=True)
+        shell.cmdloop()
+        return
+
+    # Pre-process arguments to support direct prompt or top-level --debug
+    known_cmds = {"harvest", "compile", "validate", "precompute-rag", "shell", "run", "-h", "--help"}
+    if len(sys.argv) > 1 and sys.argv[1] not in known_cmds:
+        if sys.argv[1] in ("--debug", "-d") and len(sys.argv) > 2 and sys.argv[2] not in known_cmds:
+            prompt_arg = sys.argv[2]
+            remaining = sys.argv[3:]
+            sys.argv = [sys.argv[0], "run", prompt_arg, "--debug"] + remaining
+        elif sys.argv[1] not in ("-h", "--help"):
+            sys.argv.insert(1, "run")
+
+    parser = build_parser()
 
     args = parser.parse_args()
     if hasattr(args, "func"):
+        if getattr(args, "debug", False):
+            setattr(args, "debug", True)
         args.func(args)
     else:
         # Default to interactive shell
-        cmd_shell(argparse.Namespace(db="trees/lattice.db", profile="0", embedder="", llm="", device="auto"))
+        cmd_shell(argparse.Namespace(
+            db="trees/lattice.db",
+            profile="0",
+            embedder="",
+            llm="",
+            device="auto",
+            debug=getattr(args, "debug", False)
+        ))
 
 
 if __name__ == "__main__":

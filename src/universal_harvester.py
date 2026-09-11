@@ -55,7 +55,8 @@ try:
     from signature_introspector import (
         resolve_signature,
         get_callable_parameters,
-        extract_clean_type_name
+        extract_clean_type_name,
+        infer_abstract_carrier,
     )
     from library_adapters import get_adapter_for_package
 except ImportError:
@@ -65,20 +66,32 @@ except ImportError:
     from .signature_introspector import (
         resolve_signature,
         get_callable_parameters,
-        extract_clean_type_name
+        extract_clean_type_name,
+        infer_abstract_carrier,
     )
     from .library_adapters import get_adapter_for_package
 
 logger = get_logger("universal_harvester")
 
-# Universal language-level base primitives (universal across Python, not specific to any library)
-UNIVERSAL_BASE_PRIMITIVES: Set[str] = {
-    "int", "float", "str", "bool", "bytes", "bytearray",
-    "none", "nonetype", "void", "noreturn", "any", "object",
-    "tuple", "list", "dict", "set", "frozenset",
-    "iterable", "iterator", "generator", "sequence", "mapping",
-    "callable", "type", "ellipsis"
-}
+def _is_language_primitive(type_name: str) -> bool:
+    """Universal structural check for language-level primitives (zero domain hardcoding)."""
+    if not type_name:
+        return True
+    clean = str(type_name).strip().lower()
+    if clean in ("none", "nonetype", "void", "noreturn", "any", "object", "ellipsis", "callable", "type"):
+        return True
+    import builtins
+    if hasattr(builtins, clean):
+        obj = getattr(builtins, clean)
+        if isinstance(obj, type):
+            return True
+    try:
+        import typing
+        if hasattr(typing, clean) or hasattr(typing, str(type_name).strip()):
+            return True
+    except Exception:
+        pass
+    return False
 
 # Declared typestate vocabulary (language-universal lifecycle states)
 CONSTRUCTED_STATE = "constructed"
@@ -181,6 +194,58 @@ def _is_fully_untyped(inputs: Dict[str, Any], out_type: str) -> bool:
     return True
 
 
+_EGRESS_VERBS = {
+    "write", "save", "dump", "export", "show", "display",
+    "print", "render", "plot", "send", "post", "upload",
+    "imwrite", "imshow", "savefig", "to_csv", "to_parquet", "to_json",
+    "to_excel", "to_sql", "to_feather", "to_stata", "to_pickle",
+}
+
+_DESTINATION_PARAM_NAMES = {
+    "filename", "file_name", "filepath", "file_path", "path",
+    "file", "uri", "url", "dest", "destination", "output_path",
+    "out_file", "outfile", "path_or_buf", "filepath_or_buffer", "f", "fp",
+}
+
+def _is_egress_sink(callable_name: str, input_names: List[str], produces_domain: bool) -> bool:
+    """
+    Structural egress detection: a cell that consumes domain data is a SINK (Stage 3)
+    if and only if it does NOT produce domain data (or destructured outputs) AND
+    either writes to an external destination parameter or performs an external egress action.
+    """
+    if produces_domain:
+        return False
+    has_dest_param = any(p.lower() in _DESTINATION_PARAM_NAMES for p in input_names)
+    tokens = set(CellTokenizer.tokenize_identifier(callable_name))
+    has_egress_verb = any(tok in _EGRESS_VERBS for tok in tokens) or any(verb in callable_name.lower() for verb in ("write", "save", "dump", "show", "imshow", "to_"))
+    return has_dest_param or has_egress_verb
+
+
+def _clean_default_value(val: Any) -> Any:
+    """Universal structural sanitization for default parameter values into JSON primitives."""
+    if val is inspect.Parameter.empty or val == "default" or repr(val) == "<class 'inspect._empty'>":
+        return None
+    if isinstance(val, (int, float, str, bool)) or val is None:
+        return val
+    if isinstance(val, type):
+        return val.__name__
+    if isinstance(val, enum.Enum):
+        return val.value if isinstance(val.value, (int, float, str, bool)) else val.name
+    if isinstance(val, (list, tuple)):
+        return [_clean_default_value(v) for v in val]
+    if isinstance(val, dict):
+        return {str(k): _clean_default_value(v) for k, v in val.items()}
+    return repr(val)
+
+
+def _clean_enum_values(values: Optional[List[Any]]) -> Optional[List[Any]]:
+    """Sanitizes enum domain choices into JSON-serializable primitives."""
+    if not values:
+        return None
+    return [_clean_default_value(v) for v in values]
+
+
+
 def _harvest_constant_cell(
     domain_name: str,
     cid: str,
@@ -189,13 +254,15 @@ def _harvest_constant_cell(
     val: Any,
     tokens: List[str],
     dependencies: List[str],
+    is_public: bool = True,
 ) -> CellSchema:
     val_type = type(val).__name__
+    abs_type = infer_abstract_carrier(val_type)
     return CellSchema(
         cell_id=cid,
         stage=1,
         inputs={},
-        outputs={"value": PortSchema(type_name=val_type, state="constant")},
+        outputs={"value": PortSchema(type_name=val_type, state="constant", abstract_type=abs_type)},
         code_template=code_expr,
         dependencies=dependencies,
         semantic_tags=tokens,
@@ -204,7 +271,8 @@ def _harvest_constant_cell(
         domain_name=domain_name,
         node_type="constant",
         node_role="constant",
-        source_priority=100
+        source_priority=10 if is_public else 90,
+        is_public=is_public,
     )
 
 
@@ -378,13 +446,13 @@ class UniversalHarvester:
                         sig = self.adapter.resolve_callable_signature(obj, callable_name=attr_name, mod=m)
                         if sig and sig.return_annotation is not inspect.Signature.empty:
                             ret_t = extract_clean_type_name(sig.return_annotation)
-                            if ret_t and ret_t.lower() not in UNIVERSAL_BASE_PRIMITIVES:
+                            if ret_t and not _is_language_primitive(ret_t):
                                 types.add(ret_t)
                 except Exception:
                     continue
 
-        # Filter out universal primitives
-        self.domain_types = {t for t in types if t.lower() not in UNIVERSAL_BASE_PRIMITIVES}
+        # Filter out universal primitives dynamically
+        self.domain_types = {t for t in types if not _is_language_primitive(t)}
         return self.domain_types
 
     # ------------------------------------------------------------------
@@ -494,6 +562,15 @@ class UniversalHarvester:
             return True, "annotation:None"
         return False, ""
 
+    def _is_domain_carrier(self, type_name: Optional[str], abstract_type: Optional[str] = None) -> bool:
+        if not type_name or type_name.lower() in ("any", "none", "nonetype", "void", "noreturn"):
+            return False
+        if type_name in self.domain_types:
+            return True
+        if abstract_type and abstract_type in ("tensor", "tabular", "series", "model"):
+            return True
+        return False
+
     # ------------------------------------------------------------------
     # Main harvest pipeline
     # ------------------------------------------------------------------
@@ -595,10 +672,18 @@ class UniversalHarvester:
                             continue
                         p_type = extract_clean_type_name(p.annotation)
                         is_req = (p.default is inspect.Parameter.empty)
+                        p_abs = self.adapter.get_abstract_type(p.annotation)
+                        p_enum = _clean_enum_values(self.adapter.get_parameter_domains(p.annotation, doc, p.name))
+                        if p_enum and p_type in ("int", "str", "any"):
+                            p_type = "Enum"
+                        p_default = None if is_req else _clean_default_value(p.default)
                         inputs[p.name] = PortSchema(
                             type_name=p_type,
                             state="any",
                             required=is_req,
+                            default_value=p_default,
+                            abstract_type=p_abs,
+                            enum_values=p_enum,
                             description=f"Argument {p.name}"
                         )
                         if is_req:
@@ -609,11 +694,33 @@ class UniversalHarvester:
                     ret_clean = ret_type if ret_type else "any"
                     ret_is_none = ret_clean.lower() in _NONE_RETURNS
 
-                    # Pure Structural Monadic Profiling
-                    consumes_domain = any(t in self.domain_types for t in required_input_types)
-                    produces_domain = (ret_clean in self.domain_types)
+                    return_specs = self.adapter.get_return_ports(sig.return_annotation, doc)
+                    if ret_clean == "any" and return_specs and return_specs[0][1] != "any":
+                        ret_clean = return_specs[0][1]
+
+                    consumes_domain = any(
+                        self._is_domain_carrier(inp.type_name, inp.abstract_type)
+                        for inp in inputs.values() if inp.required
+                    )
+                    ret_abs = return_specs[0][2] if return_specs and return_specs[0][2] else self.adapter.get_abstract_type(sig.return_annotation)
+                    produces_domain = self._is_domain_carrier(ret_clean, ret_abs) or any(
+                        self._is_domain_carrier(r_type, r_abs) for _, r_type, r_abs in return_specs
+                    )
                     primary_in_type = required_input_types[0] if required_input_types else "any"
-                    prio = _module_priority(m_name)
+
+                    is_pub = self.adapter.is_public_symbol(fn, attr_name, m_name, self.root_module)
+                    if not is_pub:
+                        prio = 90
+                    else:
+                        depth = m_name.count(".")
+                        prio = 10 if depth <= 1 else 30
+
+                    is_sink = (
+                        consumes_domain
+                        and not produces_domain
+                        and len(return_specs) <= 1
+                        and _is_egress_sink(attr_name, list(inputs.keys()), produces_domain)
+                    )
 
                     if ret_is_none:
                         # In-place mutator (e.g. in-place scaling): the categorical
@@ -624,6 +731,15 @@ class UniversalHarvester:
                         node_role = "transform"
                         state = MUTATED_STATE
                         out_type = primary_in_type if primary_in_type not in ("", "any") else "any"
+                        p_abs = self.adapter.get_abstract_type(out_type)
+                        outputs = {
+                            "output_data": PortSchema(
+                                type_name=out_type,
+                                state=state,
+                                abstract_type=p_abs,
+                                description=f"Output {state}"
+                            )
+                        }
                         if required_template_args:
                             first_port = required_template_args[0][1:-1]
                             code_template = (
@@ -632,13 +748,22 @@ class UniversalHarvester:
                             )
                         else:
                             code_template = f"{m_name}.{attr_name}()\n{{output_var}} = None"
-                    elif consumes_domain and not produces_domain:
-                        # D -> 1 (or D -> Base Primitives): SINK
+
+                    elif is_sink:
+                        # Terminal egress: D -> External destination
                         stage = 3
                         node_type = "sink"
                         node_role = "sink"
                         state = "destination_written"
                         out_type = "str"
+                        outputs = {
+                            "output_data": PortSchema(
+                                type_name=out_type,
+                                state=state,
+                                abstract_type="text",
+                                description=f"Output {state}"
+                            )
+                        }
                         code_template = f"{m_name}.{attr_name}({', '.join(required_template_args)})\n{{output_var}} = 'done'"
 
                     elif not consumes_domain and produces_domain:
@@ -648,12 +773,42 @@ class UniversalHarvester:
                         node_role = "source"
                         state = "raw"
                         out_type = ret_clean
-                        code_template = f"{{output_var}} = {m_name}.{attr_name}({', '.join(required_template_args)})"
+                        if len(return_specs) > 1:
+                            outputs = {}
+                            destruct_vars = []
+                            for r_name, r_type, r_abs in return_specs:
+                                outputs[r_name] = PortSchema(
+                                    type_name=r_type,
+                                    state=state,
+                                    abstract_type=r_abs,
+                                    description=f"Output {r_name}"
+                                )
+                                destruct_vars.append(f"{{{r_name}}}")
+                            code_template = f"{', '.join(destruct_vars)} = {m_name}.{attr_name}({', '.join(required_template_args)})"
+                        else:
+                            p_abs = return_specs[0][2] if return_specs else self.adapter.get_abstract_type(out_type)
+                            outputs = {
+                                "output_data": PortSchema(
+                                    type_name=out_type,
+                                    state=state,
+                                    abstract_type=p_abs,
+                                    description=f"Output {state}"
+                                )
+                            }
+                            code_template = f"{{output_var}} = {m_name}.{attr_name}({', '.join(required_template_args)})"
 
                     elif consumes_domain and produces_domain:
-                        # D1 -> D2: TRANSFORM / BRIDGE
+                        # D1 -> D2: TRANSFORM / BRIDGE / PARAMETERIZED
                         stage = 2
-                        if primary_in_type != "any" and primary_in_type != ret_clean:
+                        is_param = any(
+                            (inp.type_name == "Enum" or inp.enum_values is not None)
+                            for inp in inputs.values() if inp.required
+                        )
+                        if is_param:
+                            node_type = "parameterized"
+                            node_role = "parameterized"
+                            state = "transformed"
+                        elif primary_in_type != "any" and primary_in_type != ret_clean:
                             node_type = "bridge"
                             node_role = "tunnel"
                             state = "raw"
@@ -662,27 +817,64 @@ class UniversalHarvester:
                             node_role = "transform"
                             state = "transformed"
                         out_type = ret_clean
-                        code_template = f"{{output_var}} = {m_name}.{attr_name}({', '.join(required_template_args)})"
+                        if len(return_specs) > 1:
+                            outputs = {}
+                            destruct_vars = []
+                            for r_name, r_type, r_abs in return_specs:
+                                outputs[r_name] = PortSchema(
+                                    type_name=r_type,
+                                    state=state,
+                                    abstract_type=r_abs,
+                                    description=f"Output {r_name}"
+                                )
+                                destruct_vars.append(f"{{{r_name}}}")
+                            code_template = f"{', '.join(destruct_vars)} = {m_name}.{attr_name}({', '.join(required_template_args)})"
+                        else:
+                            p_abs = return_specs[0][2] if return_specs else self.adapter.get_abstract_type(out_type)
+                            outputs = {
+                                "output_data": PortSchema(
+                                    type_name=out_type,
+                                    state=state,
+                                    abstract_type=p_abs,
+                                    description=f"Output {state}"
+                                )
+                            }
+                            code_template = f"{{output_var}} = {m_name}.{attr_name}({', '.join(required_template_args)})"
 
                     else:
-                        # Primitives -> Primitives (or fallback utility)
+                        # D -> Primitive (e.g. contourArea -> float, mean -> float) or Primitive -> Primitive
                         stage = 2
                         node_type = "function"
                         node_role = "transform"
-                        state = "transformed"
+                        state = "transformed" if produces_domain else "raw"
                         out_type = ret_clean if ret_clean != "any" else "any"
-                        code_template = f"{{output_var}} = {m_name}.{attr_name}({', '.join(required_template_args)})"
+                        if len(return_specs) > 1:
+                            outputs = {}
+                            destruct_vars = []
+                            for r_name, r_type, r_abs in return_specs:
+                                outputs[r_name] = PortSchema(
+                                    type_name=r_type,
+                                    state=state,
+                                    abstract_type=r_abs,
+                                    description=f"Output {r_name}"
+                                )
+                                destruct_vars.append(f"{{{r_name}}}")
+                            code_template = f"{', '.join(destruct_vars)} = {m_name}.{attr_name}({', '.join(required_template_args)})"
+                        else:
+                            p_abs = return_specs[0][2] if return_specs else self.adapter.get_abstract_type(out_type)
+                            outputs = {
+                                "output_data": PortSchema(
+                                    type_name=out_type,
+                                    state=state,
+                                    abstract_type=p_abs,
+                                    description=f"Output {state}"
+                                )
+                            }
+                            code_template = f"{{output_var}} = {m_name}.{attr_name}({', '.join(required_template_args)})"
 
                     if _is_fully_untyped(inputs, out_type):
                         prio = min(prio + 50, 100)
 
-                    outputs = {
-                        "output_data": PortSchema(
-                            type_name=out_type,
-                            state=state,
-                            description=f"Output {state}"
-                        )
-                    }
                     tokens = sorted(list(CellTokenizer.tokenize_identifier(attr_name)))
 
                     cell = CellSchema(
@@ -698,7 +890,8 @@ class UniversalHarvester:
                         domain_name=self.domain_name,
                         node_type=node_type,
                         node_role=node_role,
-                        source_priority=prio
+                        source_priority=prio,
+                        is_public=is_pub
                     )
                     cells.append(cell)
                 except Exception:
@@ -721,6 +914,15 @@ class UniversalHarvester:
         cells: List[CellSchema] = []
         domain_prefix = self.domain_name.upper()
 
+        # Prevent duplicate/shadowed internal implementations from overriding canonical public root classes
+        if hasattr(self.root_module, c_name):
+            canonical_cls = getattr(self.root_module, c_name, None)
+            if inspect.isclass(canonical_cls) and cls is not canonical_cls:
+                return []
+
+        is_pub_class = self.adapter.is_public_symbol(cls, c_name, cls_mod, self.root_module)
+        c_abs = self.adapter.get_abstract_type(c_name)
+
         # --- 2a. Constructor Introspection (Stage 2 zero-ary: () -> T_domain).
         # Constructors are NOT ingestion sources: they are composable
         # intermediate morphisms (estimator lifecycle: construct -> fit
@@ -740,10 +942,16 @@ class UniversalHarvester:
                         continue
                     p_type = extract_clean_type_name(p.annotation)
                     is_req = (p.default is inspect.Parameter.empty)
+                    p_abs = self.adapter.get_abstract_type(p.annotation)
+                    p_enum = _clean_enum_values(self.adapter.get_parameter_domains(p.annotation, ctor_doc, p.name))
+                    p_default = None if is_req else _clean_default_value(p.default)
                     ctor_inputs[p.name] = PortSchema(
                         type_name=p_type,
                         state="any",
                         required=is_req,
+                        default_value=p_default,
+                        abstract_type=p_abs,
+                        enum_values=p_enum,
                         description=f"Constructor argument {p.name}"
                     )
                     if is_req:
@@ -752,7 +960,7 @@ class UniversalHarvester:
                 ctor_tokens = sorted(list(CellTokenizer.tokenize_identifier(c_name)))
                 ctor_expr = _public_alias(cls_mod, c_name)
                 ctor_dep_mod = ctor_expr.rsplit(".", 1)[0]
-                ctor_prio = _module_priority(ctor_dep_mod)
+                ctor_prio = 10 if (is_pub_class and cls_mod.count(".") <= 1) else (30 if is_pub_class else 90)
                 ctor_cell = CellSchema(
                     cell_id=ctor_cid,
                     stage=2,
@@ -761,6 +969,7 @@ class UniversalHarvester:
                         "output_data": PortSchema(
                             type_name=c_name,
                             state=CONSTRUCTED_STATE,
+                            abstract_type=c_abs,
                             description=f"Newly constructed {c_name}"
                         )
                     },
@@ -772,15 +981,83 @@ class UniversalHarvester:
                     domain_name=self.domain_name,
                     node_type="constructor",
                     node_role="constructor",
-                    source_priority=ctor_prio
+                    source_priority=ctor_prio,
+                    is_public=is_pub_class
                 )
                 cells.append(ctor_cell)
 
-        # --- 2b. Class-Scoped Constants and Enum Members
+        # --- 2b. Class Properties (Stage 2: data: T_domain -> output_data: T_prop)
         for attr_name in dir(cls):
             if attr_name.startswith("_"):
                 continue
             try:
+                static_attr = inspect.getattr_static(cls, attr_name)
+                if not isinstance(static_attr, property):
+                    continue
+                prop_cid = f"{domain_prefix}_{c_name.upper()}_{attr_name.upper()}"
+                if prop_cid in seen_ids:
+                    continue
+                seen_ids.add(prop_cid)
+                fget = getattr(static_attr, "fget", None)
+                prop_doc = self._doc_of(fget) if fget else f"Property {c_name}.{attr_name}"
+                first_prop_doc = prop_doc.splitlines()[0] if prop_doc else f"{c_name}.{attr_name}"
+                ret_annot = getattr(fget, "__annotations__", {}).get("return", None) if fget else None
+                ret_type = extract_clean_type_name(ret_annot) if ret_annot is not None else "any"
+                ret_abs = self.adapter.get_abstract_type(ret_annot) if ret_annot is not None else infer_abstract_carrier(ret_type)
+                enum_vals = _clean_enum_values(self.adapter.get_parameter_domains(ret_annot, prop_doc, attr_name)) if ret_annot is not None else None
+
+                prop_tokens = sorted(list(
+                    CellTokenizer.tokenize_identifier(attr_name)
+                    | CellTokenizer.tokenize_identifier(c_name)
+                ))
+                is_pub_prop = is_pub_class and not attr_name.startswith("_")
+                prop_prio = 10 if (is_pub_prop and cls_mod.count(".") <= 1) else (30 if is_pub_prop else 90)
+                method_dep_mod = cls_mod.split("._", 1)[0] if "._" in cls_mod else cls_mod
+
+                prop_cell = CellSchema(
+                    cell_id=prop_cid,
+                    stage=2,
+                    inputs={
+                        "data": PortSchema(
+                            type_name=c_name,
+                            state="any",
+                            required=True,
+                            abstract_type=c_abs,
+                            description=f"Receiver instance of {c_name}"
+                        )
+                    },
+                    outputs={
+                        "output_data": PortSchema(
+                            type_name=ret_type,
+                            state="raw",
+                            abstract_type=ret_abs,
+                            enum_values=enum_vals,
+                            description=f"Property {attr_name}"
+                        )
+                    },
+                    code_template=f"{{output_var}} = {{data}}.{attr_name}",
+                    dependencies=[f"import {method_dep_mod}"],
+                    semantic_tags=prop_tokens,
+                    keywords=prop_tokens,
+                    docstring=first_prop_doc,
+                    domain_name=self.domain_name,
+                    node_type="property",
+                    node_role="bridge",
+                    source_priority=prop_prio,
+                    is_public=is_pub_prop
+                )
+                cells.append(prop_cell)
+            except Exception:
+                continue
+
+        # --- 2c. Class-Scoped Constants and Enum Members
+        for attr_name in dir(cls):
+            if attr_name.startswith("_"):
+                continue
+            try:
+                static_attr = inspect.getattr_static(cls, attr_name)
+                if isinstance(static_attr, property):
+                    continue
                 val = getattr(cls, attr_name, None)
                 if val is None or callable(val) or inspect.isclass(val):
                     continue
@@ -799,6 +1076,7 @@ class UniversalHarvester:
                     code_expr=f"{cls_mod}.{c_name}.{attr_name}",
                     val=val, tokens=cattr_tokens,
                     dependencies=[f"import {cls_mod}"],
+                    is_public=is_pub_class
                 )
                 cells.append(cattr_cell)
             except Exception:
@@ -861,6 +1139,7 @@ class UniversalHarvester:
                     "sig": sig,
                     "params": params,
                     "doc": first_doc,
+                    "full_doc": doc,
                     "ret_clean": ret_clean,
                     "ret_is_none": ret_is_none,
                     "is_static": is_staticmethod,
@@ -982,6 +1261,8 @@ class UniversalHarvester:
         is_static: bool = rec["is_static"]
         is_class: bool = rec["is_class"]
         cid: str = rec["cid"]
+        doc = rec.get("full_doc") or rec["doc"]
+        fn = rec["fn"]
 
         required_template_args: List[str] = []
         inputs: Dict[str, PortSchema] = {}
@@ -989,12 +1270,14 @@ class UniversalHarvester:
         receiver_state = "any"
         is_mutator = (not is_static and not is_class and attr in mutator_names)
 
+        is_pub_method = self.adapter.is_public_symbol(fn, attr, cls_mod, self.root_module)
+        depth = cls_mod.count(".")
+        prio = 10 if (is_pub_method and depth <= 1) else (30 if is_pub_method else 90)
+
+        c_abs = self.adapter.get_abstract_type(c_name)
+        return_specs = self.adapter.get_return_ports(sig.return_annotation, doc)
+
         if is_class:
-            # Classmethod: an ALTERNATIVE CONSTRUCTOR only when its declared
-            # return is the class itself (or unannotated) — e.g. pd.Timestamp
-            # .fromisoformat. A classmethod returning anything else (a
-            # predicate like is_dtype -> bool, a lookup returning str) is a
-            # plain producer, never a fabricated constructor.
             for p in params:
                 if p.kind is inspect.Parameter.VAR_POSITIONAL:
                     inputs[p.name] = PortSchema(type_name="any", state="any", required=True,
@@ -1005,8 +1288,18 @@ class UniversalHarvester:
                     continue
                 p_type = extract_clean_type_name(p.annotation)
                 is_req = (p.default is inspect.Parameter.empty)
-                inputs[p.name] = PortSchema(type_name=p_type, state="any", required=is_req,
-                                            description=f"Argument {p.name}")
+                p_abs = self.adapter.get_abstract_type(p.annotation)
+                p_enum = _clean_enum_values(self.adapter.get_parameter_domains(p.annotation, doc, p.name))
+                p_default = None if is_req else _clean_default_value(p.default)
+                inputs[p.name] = PortSchema(
+                    type_name=p_type,
+                    state="any",
+                    required=is_req,
+                    default_value=p_default,
+                    abstract_type=p_abs,
+                    enum_values=p_enum,
+                    description=f"Argument {p.name}"
+                )
                 if is_req:
                     required_template_args.append(f"{{{p.name}}}")
 
@@ -1019,19 +1312,46 @@ class UniversalHarvester:
                 stage = 2
                 node_type = "constructor"
                 node_role = "constructor"
+                outputs = {
+                    "output_data": PortSchema(
+                        type_name=out_type,
+                        state=out_state,
+                        abstract_type=c_abs,
+                        description=f"Output {out_state}"
+                    )
+                }
+                code_template = f"{{output_var}} = {cls_expr}.{attr}({', '.join(required_template_args)})"
             else:
                 stage = 2
                 node_type = "bridge"
                 node_role = "tunnel"
                 out_state = "raw"
                 out_type = ret_clean
-            code_template = f"{{output_var}} = {cls_expr}.{attr}({', '.join(required_template_args)})"
-            prio = _module_priority(cls_mod.split("._", 1)[0])
+                if len(return_specs) > 1:
+                    outputs = {}
+                    destruct_vars = []
+                    for r_name, r_type, r_abs in return_specs:
+                        outputs[r_name] = PortSchema(
+                            type_name=r_type,
+                            state=out_state,
+                            abstract_type=r_abs,
+                            description=f"Output {r_name}"
+                        )
+                        destruct_vars.append(f"{{{r_name}}}")
+                    code_template = f"{', '.join(destruct_vars)} = {cls_expr}.{attr}({', '.join(required_template_args)})"
+                else:
+                    p_abs = return_specs[0][2] if return_specs else self.adapter.get_abstract_type(out_type)
+                    outputs = {
+                        "output_data": PortSchema(
+                            type_name=out_type,
+                            state=out_state,
+                            abstract_type=p_abs,
+                            description=f"Output {out_state}"
+                        )
+                    }
+                    code_template = f"{{output_var}} = {cls_expr}.{attr}({', '.join(required_template_args)})"
 
         elif is_static:
-            # Staticmethod: a plain function that happens to live on the class —
-            # NO receiver port (fabricating one would demand an instance that
-            # the semantics never needed).
             for p in params:
                 if p.kind is inspect.Parameter.VAR_POSITIONAL:
                     inputs[p.name] = PortSchema(type_name="any", state="any", required=True,
@@ -1042,46 +1362,118 @@ class UniversalHarvester:
                     continue
                 p_type = extract_clean_type_name(p.annotation)
                 is_req = (p.default is inspect.Parameter.empty)
-                inputs[p.name] = PortSchema(type_name=p_type, state="any", required=is_req,
-                                            description=f"Argument {p.name}")
+                p_abs = self.adapter.get_abstract_type(p.annotation)
+                p_enum = _clean_enum_values(self.adapter.get_parameter_domains(p.annotation, doc, p.name))
+                p_default = None if is_req else _clean_default_value(p.default)
+                inputs[p.name] = PortSchema(
+                    type_name=p_type,
+                    state="any",
+                    required=is_req,
+                    default_value=p_default,
+                    abstract_type=p_abs,
+                    enum_values=p_enum,
+                    description=f"Argument {p.name}"
+                )
                 if is_req:
                     required_template_args.append(f"{{{p.name}}}")
 
             cls_expr = _public_alias(cls_mod, c_name)
             consumes_domain = any(
-                extract_clean_type_name(p.annotation) in self.domain_types
-                for p in params if p.kind is inspect.Parameter.POSITIONAL_OR_KEYWORD
+                self._is_domain_carrier(inp.type_name, inp.abstract_type)
+                for inp in inputs.values() if inp.required
             )
-            produces_domain = ret_clean in self.domain_types
+            ret_abs = self.adapter.get_abstract_type(sig.return_annotation)
+            produces_domain = self._is_domain_carrier(ret_clean, ret_abs) or any(
+                self._is_domain_carrier(r_type, r_abs) for _, r_type, r_abs in return_specs
+            )
+            is_sink = (
+                consumes_domain
+                and not produces_domain
+                and len(return_specs) <= 1
+                and _is_egress_sink(attr, list(inputs.keys()), produces_domain)
+            )
             if ret_clean.lower() in _NONE_RETURNS:
                 stage, node_type, node_role = 2, "function", "transform"
                 out_state = MUTATED_STATE
                 out_type = "any"
+                outputs = {
+                    "output_data": PortSchema(
+                        type_name=out_type,
+                        state=out_state,
+                        abstract_type=self.adapter.get_abstract_type(out_type),
+                        description=f"Output {out_state}"
+                    )
+                }
                 code_template = f"{cls_expr}.{attr}({', '.join(required_template_args)})\n{{output_var}} = None"
+            elif is_sink:
+                stage, node_type, node_role = 3, "sink", "sink"
+                out_state = "destination_written"
+                out_type = "str"
+                outputs = {
+                    "output_data": PortSchema(
+                        type_name=out_type,
+                        state=out_state,
+                        abstract_type="text",
+                        description=f"Output {out_state}"
+                    )
+                }
+                code_template = f"{cls_expr}.{attr}({', '.join(required_template_args)})\n{{output_var}} = 'done'"
             elif produces_domain:
                 stage, node_type, node_role = 2, "function", "transform"
                 out_state = "raw"
                 out_type = ret_clean
-                code_template = f"{{output_var}} = {cls_expr}.{attr}({', '.join(required_template_args)})"
-            elif consumes_domain:
-                stage, node_type, node_role = 3, "sink", "sink"
-                out_state = "destination_written"
-                out_type = "str"
-                code_template = f"{cls_expr}.{attr}({', '.join(required_template_args)})\n{{output_var}} = 'done'"
+                if len(return_specs) > 1:
+                    outputs = {}
+                    destruct_vars = []
+                    for r_name, r_type, r_abs in return_specs:
+                        outputs[r_name] = PortSchema(
+                            type_name=r_type,
+                            state=out_state,
+                            abstract_type=r_abs,
+                            description=f"Output {r_name}"
+                        )
+                        destruct_vars.append(f"{{{r_name}}}")
+                    code_template = f"{', '.join(destruct_vars)} = {cls_expr}.{attr}({', '.join(required_template_args)})"
+                else:
+                    p_abs = return_specs[0][2] if return_specs else self.adapter.get_abstract_type(out_type)
+                    outputs = {
+                        "output_data": PortSchema(
+                            type_name=out_type,
+                            state=out_state,
+                            abstract_type=p_abs,
+                            description=f"Output {out_state}"
+                        )
+                    }
+                    code_template = f"{{output_var}} = {cls_expr}.{attr}({', '.join(required_template_args)})"
             else:
                 stage, node_type, node_role = 2, "bridge", "tunnel"
                 out_state = "raw"
                 out_type = ret_clean if ret_clean != "any" else "any"
-                code_template = f"{{output_var}} = {cls_expr}.{attr}({', '.join(required_template_args)})"
-            prio = _module_priority(cls_mod.split("._", 1)[0])
+                if len(return_specs) > 1:
+                    outputs = {}
+                    destruct_vars = []
+                    for r_name, r_type, r_abs in return_specs:
+                        outputs[r_name] = PortSchema(
+                            type_name=r_type,
+                            state=out_state,
+                            abstract_type=r_abs,
+                            description=f"Output {r_name}"
+                        )
+                        destruct_vars.append(f"{{{r_name}}}")
+                    code_template = f"{', '.join(destruct_vars)} = {cls_expr}.{attr}({', '.join(required_template_args)})"
+                else:
+                    p_abs = return_specs[0][2] if return_specs else self.adapter.get_abstract_type(out_type)
+                    outputs = {
+                        "output_data": PortSchema(
+                            type_name=out_type,
+                            state=out_state,
+                            abstract_type=p_abs,
+                            description=f"Output {out_state}"
+                        )
+                    }
+                    code_template = f"{{output_var}} = {cls_expr}.{attr}({', '.join(required_template_args)})"
 
         else:
-            # Bound instance method: receiver port + arguments. The receiver's
-            # declared state is EVIDENCE-BASED: mutators accept any lifecycle
-            # stage and transition it to "mutated"; methods that read
-            # mutator-written state (or call such methods) REQUIRE C[mutated];
-            # everything else keeps the permissive "any" (no evidence -> no
-            # fabricated constraint).
             if is_mutator:
                 receiver_state = "any"
             else:
@@ -1091,6 +1483,7 @@ class UniversalHarvester:
                 type_name=c_name,
                 state=receiver_state,
                 required=True,
+                abstract_type=c_abs,
                 description=f"Receiver instance of {c_name}"
                 + (f" (requires mutated state via {attr})" if receiver_state == MUTATED_STATE else "")
             )
@@ -1105,25 +1498,63 @@ class UniversalHarvester:
                     continue
                 p_type = extract_clean_type_name(p.annotation)
                 is_req = (p.default is inspect.Parameter.empty)
-                inputs[p.name] = PortSchema(type_name=p_type, state="any", required=is_req,
-                                            description=f"Argument {p.name}")
+                p_abs = self.adapter.get_abstract_type(p.annotation)
+                p_enum = _clean_enum_values(self.adapter.get_parameter_domains(p.annotation, doc, p.name))
+                p_default = None if is_req else _clean_default_value(p.default)
+                inputs[p.name] = PortSchema(
+                    type_name=p_type,
+                    state="any",
+                    required=is_req,
+                    default_value=p_default,
+                    abstract_type=p_abs,
+                    enum_values=p_enum,
+                    description=f"Argument {p.name}"
+                )
                 if is_req:
                     required_template_args.append(f"{{{p.name}}}")
 
-            prio = _module_priority(cls_mod.split("._", 1)[0])
-            produces_domain = (ret_clean in self.domain_types) or (ret_clean.lower() == c_name.lower())
+            ret_abs = self.adapter.get_abstract_type(sig.return_annotation)
+            produces_domain = (
+                (ret_clean in self.domain_types)
+                or (ret_clean.lower() == c_name.lower())
+                or self._is_domain_carrier(ret_clean, ret_abs)
+                or any(self._is_domain_carrier(r_type, r_abs) for _, r_type, r_abs in return_specs)
+            )
+            is_sink = (
+                not is_mutator
+                and not produces_domain
+                and len(return_specs) <= 1
+                and _is_egress_sink(attr, list(inputs.keys()), produces_domain)
+            )
 
             if is_mutator:
-                # Monadic endomorphism on the receiver's own type:
-                # C[any] -> C[mutated]. The mutated instance stays composable
-                # (construct -> fit -> predict -> score) and the typestate
-                # algebra now CONNECTS fit to its state-dependent consumers.
                 stage = 2
                 node_type = "function"
                 node_role = "transform"
                 out_state = MUTATED_STATE
                 out_type = c_name
+                outputs = {
+                    "output_data": PortSchema(
+                        type_name=out_type,
+                        state=out_state,
+                        abstract_type=c_abs,
+                        description=f"Output {out_state}"
+                    )
+                }
                 code_template = f"{{data}}.{attr}({', '.join(required_template_args)})\n{{output_var}} = {{data}}"
+            elif is_sink:
+                stage, node_type, node_role = 3, "sink", "sink"
+                out_state = "destination_written"
+                out_type = "str"
+                outputs = {
+                    "output_data": PortSchema(
+                        type_name=out_type,
+                        state=out_state,
+                        abstract_type="text",
+                        description=f"Output {out_state}"
+                    )
+                }
+                code_template = f"{{data}}.{attr}({', '.join(required_template_args)})\n{{output_var}} = 'done'"
             elif produces_domain:
                 stage = 2
                 if ret_clean.lower() != c_name.lower():
@@ -1136,28 +1567,63 @@ class UniversalHarvester:
                     node_role = "transform"
                     out_state = "transformed"
                     out_type = c_name
-                code_template = f"{{output_var}} = {{data}}.{attr}({', '.join(required_template_args)})"
+                if len(return_specs) > 1:
+                    outputs = {}
+                    destruct_vars = []
+                    for r_name, r_type, r_abs in return_specs:
+                        outputs[r_name] = PortSchema(
+                            type_name=r_type,
+                            state=out_state,
+                            abstract_type=r_abs,
+                            description=f"Output {r_name}"
+                        )
+                        destruct_vars.append(f"{{{r_name}}}")
+                    code_template = f"{', '.join(destruct_vars)} = {{data}}.{attr}({', '.join(required_template_args)})"
+                else:
+                    p_abs = return_specs[0][2] if return_specs else self.adapter.get_abstract_type(out_type)
+                    outputs = {
+                        "output_data": PortSchema(
+                            type_name=out_type,
+                            state=out_state,
+                            abstract_type=p_abs,
+                            description=f"Output {out_state}"
+                        )
+                    }
+                    code_template = f"{{output_var}} = {{data}}.{attr}({', '.join(required_template_args)})"
             else:
-                # Unknown / primitive return: a composable stage-2
-                # producer (e.g. score -> float). Methods are never
-                # terminal egress; egress is a written-artifact port.
                 stage = 2
                 node_type = "bridge"
                 node_role = "tunnel"
                 out_state = "raw"
                 out_type = ret_clean if ret_clean != "any" else "any"
-                code_template = f"{{output_var}} = {{data}}.{attr}({', '.join(required_template_args)})"
+                if len(return_specs) > 1:
+                    outputs = {}
+                    destruct_vars = []
+                    for r_name, r_type, r_abs in return_specs:
+                        outputs[r_name] = PortSchema(
+                            type_name=r_type,
+                            state=out_state,
+                            abstract_type=r_abs,
+                            description=f"Output {r_name}"
+                        )
+                        destruct_vars.append(f"{{{r_name}}}")
+                    code_template = f"{', '.join(destruct_vars)} = {{data}}.{attr}({', '.join(required_template_args)})"
+                else:
+                    p_abs = return_specs[0][2] if return_specs else self.adapter.get_abstract_type(out_type)
+                    outputs = {
+                        "output_data": PortSchema(
+                            type_name=out_type,
+                            state=out_state,
+                            abstract_type=p_abs,
+                            description=f"Output {out_state}"
+                        )
+                    }
+                    code_template = f"{{output_var}} = {{data}}.{attr}({', '.join(required_template_args)})"
 
-        if _is_fully_untyped(inputs, out_type):
+        first_out_type = next(iter(outputs.values())).type_name if outputs else "any"
+        if _is_fully_untyped(inputs, first_out_type):
             prio = min(prio + 50, 100)
 
-        outputs = {
-            "output_data": PortSchema(
-                type_name=out_type,
-                state=out_state,
-                description=f"Output {out_state}"
-            )
-        }
         tokens = sorted(list(
             CellTokenizer.tokenize_identifier(attr)
             | CellTokenizer.tokenize_identifier(c_name)
@@ -1177,7 +1643,8 @@ class UniversalHarvester:
             domain_name=self.domain_name,
             node_type=node_type,
             node_role=node_role,
-            source_priority=prio
+            source_priority=prio,
+            is_public=is_pub_method
         )
         return [cell]
 

@@ -131,7 +131,15 @@
     {
       "cell_id": "ITERTOOLS_CHAIN_INIT",
       "stage": 1,
-      "inputs": {},
+      "inputs": {
+        "iterables": {
+          "type_name": "any",
+          "state": "any",
+          "required": true,
+          "default_value": null,
+          "description": "Argument iterables"
+        }
+      },
       "outputs": {
         "output_data": {
           "type_name": "chain",
@@ -144,7 +152,7 @@
         }
       },
       "slots": {},
-      "code_template": "{output_var} = itertools.chain()",
+      "code_template": "{output_var} = itertools.chain({iterables})",
       "dependencies": [
         "import itertools"
       ],
@@ -812,11 +820,16 @@
         "repeat": {
           "type_name": "any",
           "state": "any",
-          "qualifiers": [],
+          "required": false,
+          "default_value": "1",
+          "description": "Argument repeat"
+        },
+        "iterables": {
+          "type_name": "any",
+          "state": "any",
+          "required": true,
           "default_value": null,
-          "description": "Constructor argument repeat",
-          "domain": null,
-          "required": false
+          "description": "Argument iterables"
         }
       },
       "outputs": {
@@ -831,7 +844,7 @@
         }
       },
       "slots": {},
-      "code_template": "{output_var} = itertools.product()",
+      "code_template": "{output_var} = itertools.product({iterables})",
       "dependencies": [
         "import itertools"
       ],
@@ -965,11 +978,16 @@
         "fillvalue": {
           "type_name": "any",
           "state": "any",
-          "qualifiers": [],
+          "required": false,
+          "default_value": "None",
+          "description": "Argument fillvalue"
+        },
+        "iterables": {
+          "type_name": "any",
+          "state": "any",
+          "required": true,
           "default_value": null,
-          "description": "Constructor argument fillvalue",
-          "domain": null,
-          "required": false
+          "description": "Argument iterables"
         }
       },
       "outputs": {
@@ -984,7 +1002,7 @@
         }
       },
       "slots": {},
-      "code_template": "{output_var} = itertools.zip_longest()",
+      "code_template": "{output_var} = itertools.zip_longest({iterables})",
       "dependencies": [
         "import itertools"
       ],

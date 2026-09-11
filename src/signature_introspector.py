@@ -31,35 +31,336 @@ _DOC_SIG_RE = re.compile(
 )
 
 
+def _ast_clean_type(node: ast.AST) -> str:
+    if isinstance(node, ast.Name):
+        return node.id
+    elif isinstance(node, ast.Attribute):
+        return node.attr
+    elif isinstance(node, ast.Constant):
+        if isinstance(node.value, str):
+            val = node.value.strip()
+            while (val.startswith("'") and val.endswith("'")) or (val.startswith('"') and val.endswith('"')):
+                val = val[1:-1].strip()
+            if any(ch in val for ch in "[]|."):
+                try:
+                    inner_tree = ast.parse(val, mode="eval")
+                    inner_res = _ast_clean_type(inner_tree.body)
+                    if inner_res and inner_res != "any":
+                        return inner_res
+                except Exception:
+                    pass
+            return val
+        return str(node.value)
+    elif isinstance(node, ast.Subscript):
+        val_name = _ast_clean_type(node.value)
+        if val_name.lower() in ("union", "optional"):
+            slice_node = node.slice
+            if isinstance(slice_node, ast.Tuple):
+                elts = [_ast_clean_type(e) for e in slice_node.elts if _ast_clean_type(e).lower() not in ("none", "nonetype")]
+                return elts[0] if elts else "None"
+            else:
+                return _ast_clean_type(slice_node)
+        elif val_name.lower() == "literal":
+            return "str"
+        return val_name
+    elif isinstance(node, ast.BinOp) and isinstance(node.op, ast.BitOr):
+        left = _ast_clean_type(node.left)
+        right = _ast_clean_type(node.right)
+        if left.lower() in ("none", "nonetype"):
+            return right
+        return left
+    elif isinstance(node, ast.Tuple):
+        if node.elts:
+            return _ast_clean_type(node.elts[0])
+        return "tuple"
+    elif isinstance(node, ast.Call) and isinstance(node.func, ast.Name) and node.func.id == "ForwardRef":
+        if node.args and isinstance(node.args[0], ast.Constant):
+            return extract_clean_type_name(node.args[0].value)
+    return "any"
+
+
 def extract_clean_type_name(anno: Any) -> str:
     """Universal type name simplifier for AST nodes, type objects, and strings."""
     if anno is None or anno is inspect.Signature.empty or anno is inspect.Parameter.empty:
         return "any"
     if inspect.isclass(anno):
         return anno.__name__
+    if hasattr(anno, "__name__"):
+        return getattr(anno, "__name__")
+
+    # Typing constructs with origin and ForwardRef
+    try:
+        import typing
+        if isinstance(anno, getattr(typing, "ForwardRef", ())):
+            return extract_clean_type_name(getattr(anno, "__forward_arg__", str(anno)))
+        origin = typing.get_origin(anno)
+        if origin is not None:
+            if origin in (typing.Union, getattr(sys.modules.get("types", None), "UnionType", None)):
+                args = [a for a in typing.get_args(anno) if getattr(a, "__name__", str(a)).lower() not in ("none", "nonetype")]
+                if args:
+                    return extract_clean_type_name(args[0])
+                return "None"
+            if hasattr(origin, "__name__"):
+                return origin.__name__
+    except Exception:
+        pass
+
     s = str(anno).strip()
+    while (s.startswith("'") and s.endswith("'")) or (s.startswith('"') and s.endswith('"')):
+        s = s[1:-1].strip()
     if not s or s == "...":
         return "any"
     if s.startswith("typing."):
         s = s[7:]
+    if s.startswith("ForwardRef(") and s.endswith(")"):
+        s = s[len("ForwardRef("):-1].strip("\"'")
+
+    # AST-level balanced parse for complex type strings
+    try:
+        tree = ast.parse(s, mode="eval")
+        res = _ast_clean_type(tree.body)
+        if res and res != "any":
+            return res
+    except Exception:
+        pass
+
+    # Safe fallback cleanup
+    if s.startswith("ForwardRef(") and s.endswith(")"):
+        s = s[len("ForwardRef("):-1].strip("\"'")
+    if s.startswith("Optional[") and s.endswith("]"):
+        return extract_clean_type_name(s[len("Optional["):-1].strip())
     if "|" in s:
         parts = [p.strip() for p in s.split("|") if p.strip().lower() not in ("none", "nonetype")]
         s = parts[0] if parts else "None"
-    if s.startswith(("Optional[", "Union[")) and "]" in s:
-        inner = s[s.find("[") + 1: s.rfind("]")].strip()
-        parts = [p.strip() for p in inner.split(",") if p.strip().lower() not in ("none", "nonetype")]
-        if parts:
-            s = parts[0]
-    elif "[" in s and "]" in s:
+    if "[" in s:
         s = s[: s.find("[")].strip()
     if "." in s:
         s = s.split(".")[-1].strip()
     words = s.split()
     if words:
-        s = words[0].rstrip(".,;:)>]`\"'")
+        s = words[0].strip(".,;:)>]`\"'([{<")
     if s.lower() in ("retval", "result", "res", "return", "value", ""):
         return "any"
     return s
+
+
+def infer_abstract_carrier(anno: Any) -> Optional[str]:
+    """Infers abstract category-theoretic carrier type without domain hardcodes."""
+    if anno is None or anno is inspect.Signature.empty or anno is inspect.Parameter.empty:
+        return None
+
+    import os
+    import numbers
+    import collections.abc
+
+    if isinstance(anno, type):
+        try:
+            if issubclass(anno, os.PathLike):
+                return "path"
+            if issubclass(anno, bool):
+                return "logical"
+            if issubclass(anno, (numbers.Number, int, float)):
+                return "scalar"
+            if issubclass(anno, (str, bytes)):
+                return "text"
+            if hasattr(anno, "__dataframe__"):
+                return "tabular"
+            if hasattr(anno, "__array_interface__") or hasattr(anno, "__array__"):
+                return "tensor"
+            if issubclass(anno, (collections.abc.Sequence, collections.abc.Mapping, list, tuple, dict, set)):
+                return "collection"
+        except Exception:
+            pass
+
+    name = str(getattr(anno, "__name__", anno)).lower().strip()
+    if not name or name in ("any", "object", "*", "unknown"):
+        return None
+
+    if any(k in name for k in ("path", "filename", "filepath", "uri", "url")):
+        return "path"
+    if any(k == name or name.endswith(k) for k in ("ndarray", "mat", "matlike", "tensor", "matrix", "array", "image")):
+        return "tensor"
+    if any(k in name for k in ("dataframe", "table", "dataset")):
+        return "tabular"
+    if name == "series":
+        return "tabular"
+    if name in ("int", "float", "complex", "number", "numeric"):
+        return "scalar"
+    if name in ("bool", "boolean"):
+        return "logical"
+    if name in ("str", "string", "text"):
+        return "text"
+    if any(name.startswith(k) for k in ("list", "tuple", "set", "sequence", "iterable", "dict", "mapping")):
+        return "collection"
+    if any(k in name for k in ("classifier", "regressor", "estimator", "model")):
+        return "model"
+
+    return None
+
+
+def extract_enum_domain(anno: Any, doc: str = "", param_name: str = "") -> Optional[List[Any]]:
+    """Extracts allowable domain values (literals, enum members, or docstring choices)."""
+    # 1. Inspect typing.Literal
+    try:
+        import typing
+        if typing.get_origin(anno) is typing.Literal:
+            args = list(typing.get_args(anno))
+            if args:
+                return args
+    except Exception:
+        pass
+
+    # 2. Inspect enum.Enum class
+    import enum
+    if inspect.isclass(anno) and issubclass(anno, enum.Enum):
+        try:
+            return [m.name for m in anno]
+        except Exception:
+            pass
+
+    # 3. Inspect string annotation for Literal[...]
+    s = str(anno).strip()
+    if "Literal[" in s:
+        try:
+            tree = ast.parse(s, mode="eval")
+            for node in ast.walk(tree):
+                if isinstance(node, ast.Subscript):
+                    val = node.value
+                    if (isinstance(val, ast.Name) and val.id == "Literal") or (isinstance(val, ast.Attribute) and val.attr == "Literal"):
+                        elts = node.slice.elts if isinstance(node.slice, ast.Tuple) else [node.slice]
+                        vals = [ast.literal_eval(e) for e in elts if isinstance(e, ast.Constant)]
+                        if vals:
+                            return vals
+        except Exception:
+            pass
+
+    # 4. Docstring inspection for choices: param_name : {a, b, c}
+    if doc and param_name:
+        pattern = rf"{re.escape(param_name)}\s*:[^{{\n]*\{{([^}}\n]+)\}}"
+        m = re.search(pattern, doc, re.IGNORECASE)
+        if m:
+            raw_choices = m.group(1).split(",")
+            cleaned = [c.strip().strip("'\"") for c in raw_choices if c.strip().strip("'\"")]
+            if cleaned:
+                return cleaned
+
+        # 5. Doxygen / C-docstring inspection: @param param_name ... (see #EnumName)
+        m_doxygen = re.search(rf"@param\s+{re.escape(param_name)}\b.*?[sS]ee\s+#?(\w+)", doc)
+        if m_doxygen:
+            enum_name = m_doxygen.group(1).strip()
+            return [enum_name]
+
+    return None
+
+
+def extract_docstring_returns(doc: str) -> List[Tuple[str, str, Optional[str]]]:
+    """Extracts return specifications from standard docstrings (NumPy, Google, Sphinx)."""
+    if not doc:
+        return []
+    # 1. NumPy / SciPy format
+    m_sec = re.search(r"(?:Returns?|Yields?)\s*\n\s*[-=~]+\s*\n(.*?)(?:\n\s*\n\s*[A-Z][a-zA-Z0-9_ ]+|\Z)", doc, re.DOTALL)
+    if m_sec:
+        sec_text = m_sec.group(1)
+        items = re.findall(r"^\s*([a-zA-Z0-9_]+)\s*:\s*([a-zA-Z0-9_.]+(?:\[[^\]]+\])?)", sec_text, re.MULTILINE)
+        if items:
+            valid = []
+            for name, type_str in items:
+                clean_t = extract_clean_type_name(type_str)
+                if clean_t and clean_t.lower() not in ("none", "nonetype", "void"):
+                    valid.append((name, clean_t, infer_abstract_carrier(clean_t)))
+            if valid:
+                return valid
+        m_single = re.search(r"^\s*([a-zA-Z0-9_.]+(?:\[[^\]]+\])?)", sec_text, re.MULTILINE)
+        if m_single:
+            t = m_single.group(1).strip()
+            clean_t = extract_clean_type_name(t)
+            if clean_t and clean_t.lower() not in ("none", "nonetype", "void", "notes", "references", "see", "examples"):
+                return [("output_data", clean_t, infer_abstract_carrier(clean_t))]
+
+    # 2. Google docstring format
+    m_google = re.search(r"(?:Returns?|Yields?):\s*\n\s*(?:(?:[a-zA-Z0-9_,\s]+)\s*:\s*)?([a-zA-Z0-9_.]+(?:\[[^\]]+\])?)", doc, re.MULTILINE)
+    if m_google:
+        t = m_google.group(1).strip()
+        clean_t = extract_clean_type_name(t)
+        if clean_t and clean_t.lower() not in ("none", "nonetype", "void"):
+            return [("output_data", clean_t, infer_abstract_carrier(clean_t))]
+
+    # 3. Sphinx / Epydoc format
+    m_sphinx = re.search(r":(?:rtype|return|returns):\s*([a-zA-Z0-9_.]+(?:\[[^\]]+\])?)", doc, re.MULTILINE)
+    if m_sphinx:
+        t = m_sphinx.group(1).strip()
+        clean_t = extract_clean_type_name(t)
+        if clean_t and clean_t.lower() not in ("none", "nonetype", "void"):
+            return [("output_data", clean_t, infer_abstract_carrier(clean_t))]
+
+    return []
+
+
+def extract_return_specs(ret_anno: Any, doc: str = "") -> List[Tuple[str, str, Optional[str]]]:
+    """
+    Extracts return port specifications: List[(port_name, type_name, abstract_type)].
+    Handles both single returns and multi-return tuples / docstring unpacking.
+    """
+    first_line = doc.splitlines()[0] if doc else ""
+    doc_out_names: Optional[List[str]] = None
+
+    m_arrow = re.search(r"->\s*([a-zA-Z0-9_,\s]+)$", first_line)
+    if m_arrow:
+        parts = [p.strip() for p in m_arrow.group(1).split(",") if p.strip()]
+        if len(parts) > 1 and all(p.isidentifier() for p in parts):
+            doc_out_names = parts
+    if not doc_out_names:
+        m_assign = re.search(r"^\s*([a-zA-Z0-9_,\s]+)\s*=\s*[a-zA-Z0-9_.]+\(", first_line)
+        if m_assign:
+            parts = [p.strip() for p in m_assign.group(1).split(",") if p.strip()]
+            if len(parts) > 1 and all(p.isidentifier() for p in parts):
+                doc_out_names = parts
+
+    tuple_element_types: List[str] = []
+    try:
+        import typing
+        origin = typing.get_origin(ret_anno)
+        if origin in (tuple, getattr(typing, "Tuple", None)):
+            args = typing.get_args(ret_anno)
+            if args and not (len(args) == 2 and args[1] is Ellipsis):
+                tuple_element_types = [extract_clean_type_name(a) for a in args]
+    except Exception:
+        pass
+
+    if not tuple_element_types and isinstance(ret_anno, str) and ("tuple[" in ret_anno.lower() or "Tuple[" in ret_anno):
+        try:
+            tree = ast.parse(ret_anno, mode="eval")
+            if isinstance(tree.body, ast.Subscript):
+                val = tree.body.value
+                val_id = val.id if isinstance(val, ast.Name) else (val.attr if isinstance(val, ast.Attribute) else "")
+                if val_id.lower() in ("tuple",):
+                    slice_node = tree.body.slice
+                    if isinstance(slice_node, ast.Tuple):
+                        elts = [e for e in slice_node.elts if not (isinstance(e, ast.Constant) and e.value is Ellipsis)]
+                        if len(elts) > 1:
+                            tuple_element_types = [_ast_clean_type(e) for e in elts]
+        except Exception:
+            pass
+
+    if tuple_element_types and len(tuple_element_types) > 1:
+        results = []
+        for idx, t in enumerate(tuple_element_types):
+            port_name = doc_out_names[idx] if (doc_out_names and idx < len(doc_out_names)) else f"out_{idx}"
+            results.append((port_name, t, infer_abstract_carrier(t)))
+        return results
+
+    if doc_out_names and len(doc_out_names) > 1:
+        results = []
+        for idx, name in enumerate(doc_out_names):
+            results.append((name, "any", None))
+        return results
+
+    single_type = extract_clean_type_name(ret_anno)
+    if single_type in ("any", ""):
+        doc_specs = extract_docstring_returns(doc)
+        if doc_specs:
+            return doc_specs
+    return [("output_data", single_type, infer_abstract_carrier(single_type))]
 
 
 # =====================================================================
@@ -292,35 +593,62 @@ def _tier3_stub_signature(
 
 def _unroll_bracketed_parameters(raw_params_str: str) -> List[Tuple[str, bool, str]]:
     """
-    Parses C-style bracket-nested parameters with 100% precision:
-      "src, ksize[, dst[, borderType]]" ->
-      [('src', True, 'any'), ('ksize', True, 'any'), ('dst', False, 'any'), ('borderType', False, 'any')]
+    Parses C-style bracket-nested parameters and typed signatures with 100% precision.
+    Distinguishes C-style optional brackets `[, opt]` from generic type brackets `arg: list[int]`.
     """
-    tokens: List[Tuple[str, bool, str]] = []
-    curr: List[str] = []
-    depth = 0
+    tokens = []
+    curr = []
+    bracket_depth = 0
+    type_depth = 0
+    in_type = False
+    tok_start_depth = 0
 
     for ch in raw_params_str:
+        if ch == ":":
+            in_type = True
+            curr.append(ch)
+            continue
+        if in_type:
+            if ch in "([<{":
+                type_depth += 1
+            elif ch in ")]>}":
+                if type_depth > 0:
+                    type_depth -= 1
+                else:
+                    in_type = False
+            elif ch == "," and type_depth == 0:
+                token = "".join(curr).strip()
+                if token:
+                    tokens.append((token, tok_start_depth == 0))
+                curr = []
+                in_type = False
+                tok_start_depth = bracket_depth
+                continue
+            curr.append(ch)
+            continue
+
         if ch == "[":
-            depth += 1
+            bracket_depth += 1
             continue
         elif ch == "]":
-            if depth > 0:
-                depth -= 1
+            if bracket_depth > 0:
+                bracket_depth -= 1
             continue
         elif ch == ",":
             token = "".join(curr).strip()
             if token:
-                is_req = (depth == 0 and "=" not in token)
-                tokens.append((token, is_req))
+                tokens.append((token, tok_start_depth == 0))
             curr = []
+            tok_start_depth = bracket_depth
+            continue
         else:
+            if not curr and not ch.isspace():
+                tok_start_depth = bracket_depth
             curr.append(ch)
 
     tail = "".join(curr).strip()
     if tail:
-        is_req = (depth == 0 and "=" not in tail)
-        tokens.append((tail, is_req))
+        tokens.append((tail, tok_start_depth == 0))
 
     results: List[Tuple[str, bool, str]] = []
     for raw_tok, is_req in tokens:
@@ -374,15 +702,21 @@ def _tier4_docstring_signature(
 
         parsed_params = _unroll_bracketed_parameters(raw_params)
         parameters: List[inspect.Parameter] = []
+        seen_default = False
 
         for p_name, is_req, p_type in parsed_params:
             if p_name in ("self", "cls") and (parent_cls_name or len(parameters) == 0):
                 continue
+            default_val = inspect.Parameter.empty if is_req else "default"
+            if seen_default and default_val is inspect.Parameter.empty:
+                default_val = "default"
+            if default_val is not inspect.Parameter.empty:
+                seen_default = True
             parameters.append(
                 inspect.Parameter(
                     p_name,
                     kind=inspect.Parameter.POSITIONAL_OR_KEYWORD,
-                    default=inspect.Parameter.empty if is_req else "default",
+                    default=default_val,
                     annotation=p_type if p_type != "any" else inspect.Parameter.empty
                 )
             )
@@ -393,7 +727,10 @@ def _tier4_docstring_signature(
             if clean_ret != "any":
                 ret_anno = clean_ret
 
-        return inspect.Signature(parameters=parameters, return_annotation=ret_anno)
+        try:
+            return inspect.Signature(parameters=parameters, return_annotation=ret_anno)
+        except Exception:
+            return None
 
     return None
 

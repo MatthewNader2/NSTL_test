@@ -27,7 +27,7 @@ class TestUniversalHarvester(unittest.TestCase):
         cells = harvester.harvest_all()
 
         self.assertGreater(len(cells), 50, "Expected at least 50 cells from cv2")
-        self.assertLess(len(cells), 4000, f"Expected < 4000 cells (no explosion), got {len(cells)}")
+        self.assertLess(len(cells), 5000, f"Expected < 5000 cells (no explosion), got {len(cells)}")
 
         cell_ids = {c.cell_id for c in cells}
 

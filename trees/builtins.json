@@ -21142,11 +21142,16 @@
         "strict": {
           "type_name": "any",
           "state": "any",
-          "qualifiers": [],
+          "required": false,
+          "default_value": "False",
+          "description": "Argument strict"
+        },
+        "iterables": {
+          "type_name": "any",
+          "state": "any",
+          "required": true,
           "default_value": null,
-          "description": "Constructor argument strict",
-          "domain": null,
-          "required": false
+          "description": "Argument iterables"
         }
       },
       "outputs": {
@@ -21161,7 +21166,7 @@
         }
       },
       "slots": {},
-      "code_template": "{output_var} = builtins.zip()",
+      "code_template": "{output_var} = builtins.zip({iterables})",
       "dependencies": [
         "import builtins"
       ],
@@ -21453,7 +21458,15 @@
     {
       "cell_id": "BUILTINS_BREAKPOINT",
       "stage": 2,
-      "inputs": {},
+      "inputs": {
+        "args": {
+          "type_name": "any",
+          "state": "any",
+          "required": true,
+          "default_value": null,
+          "description": "Argument args"
+        }
+      },
       "outputs": {
         "output_data": {
           "type_name": "any",
@@ -21466,7 +21479,7 @@
         }
       },
       "slots": {},
-      "code_template": "{output_var} = builtins.breakpoint()",
+      "code_template": "{output_var} = builtins.breakpoint({args})",
       "dependencies": [
         "import builtins"
       ],
@@ -22804,38 +22817,37 @@
         "sep": {
           "type_name": "any",
           "state": "any",
-          "qualifiers": [],
-          "default_value": null,
-          "description": "Argument sep",
-          "domain": null,
-          "required": false
+          "required": false,
+          "default_value": " ",
+          "description": "Argument sep"
         },
         "end": {
           "type_name": "any",
           "state": "any",
-          "qualifiers": [],
-          "default_value": null,
-          "description": "Argument end",
-          "domain": null,
-          "required": false
+          "required": false,
+          "default_value": "\n",
+          "description": "Argument end"
         },
         "file": {
           "type_name": "any",
           "state": "any",
-          "qualifiers": [],
-          "default_value": null,
-          "description": "Argument file",
-          "domain": null,
-          "required": false
+          "required": false,
+          "default_value": "None",
+          "description": "Argument file"
         },
         "flush": {
           "type_name": "any",
           "state": "any",
-          "qualifiers": [],
+          "required": false,
+          "default_value": "False",
+          "description": "Argument flush"
+        },
+        "args": {
+          "type_name": "any",
+          "state": "any",
+          "required": true,
           "default_value": null,
-          "description": "Argument flush",
-          "domain": null,
-          "required": false
+          "description": "Argument args"
         }
       },
       "outputs": {
@@ -22850,7 +22862,7 @@
         }
       },
       "slots": {},
-      "code_template": "{output_var} = builtins.print()",
+      "code_template": "{output_var} = builtins.print({args})",
       "dependencies": [
         "import builtins"
       ],
