@@ -1,10 +1,10 @@
 {
   "domain": "itertools",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "cells": [
     {
       "cell_id": "ITERTOOLS_ACCUMULATE_INIT",
-      "stage": 1,
+      "stage": 2,
       "inputs": {
         "iterable": {
           "type_name": "any",
@@ -13,7 +13,12 @@
           "default_value": null,
           "description": "Constructor argument iterable",
           "domain": null,
-          "required": true
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "standard",
+          "value_constraints": null,
+          "shape_contract": null
         },
         "func": {
           "type_name": "any",
@@ -22,7 +27,12 @@
           "default_value": null,
           "description": "Constructor argument func",
           "domain": null,
-          "required": false
+          "required": false,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "standard",
+          "value_constraints": null,
+          "shape_contract": null
         },
         "initial": {
           "type_name": "any",
@@ -31,7 +41,12 @@
           "default_value": null,
           "description": "Constructor argument initial",
           "domain": null,
-          "required": false
+          "required": false,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "keyword_only",
+          "value_constraints": null,
+          "shape_contract": null
         }
       },
       "outputs": {
@@ -42,18 +57,28 @@
           "default_value": null,
           "description": "Newly constructed accumulate",
           "domain": null,
-          "required": true
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "standard",
+          "value_constraints": null,
+          "shape_contract": null
         }
       },
+      "topology_type": "sequential",
       "slots": {},
+      "feedback_state_type": null,
+      "bound_slots": {},
       "code_template": "{output_var} = itertools.accumulate({iterable})",
       "dependencies": [
         "import itertools"
       ],
       "semantic_tags": [
+        "accumul",
         "accumulate"
       ],
       "keywords": [
+        "accumul",
         "accumulate"
       ],
       "docstring": "Return series of accumulated sums (or other binary function results).",
@@ -61,13 +86,18 @@
       "enriched_at": null,
       "domain_name": "itertools",
       "node_type": "constructor",
-      "node_role": "source",
+      "node_role": "constructor",
       "verified": true,
-      "source_priority": 50
+      "source_priority": 10,
+      "is_public": true,
+      "mutation_type": "pure",
+      "is_context_manager": false,
+      "raises": [],
+      "type_vars": []
     },
     {
       "cell_id": "ITERTOOLS_BATCHED_INIT",
-      "stage": 1,
+      "stage": 2,
       "inputs": {
         "iterable": {
           "type_name": "any",
@@ -76,7 +106,12 @@
           "default_value": null,
           "description": "Constructor argument iterable",
           "domain": null,
-          "required": true
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "standard",
+          "value_constraints": null,
+          "shape_contract": null
         },
         "n": {
           "type_name": "any",
@@ -85,16 +120,26 @@
           "default_value": null,
           "description": "Constructor argument n",
           "domain": null,
-          "required": true
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "standard",
+          "value_constraints": null,
+          "shape_contract": null
         },
         "strict": {
           "type_name": "any",
           "state": "any",
           "qualifiers": [],
-          "default_value": null,
+          "default_value": false,
           "description": "Constructor argument strict",
           "domain": null,
-          "required": false
+          "required": false,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "keyword_only",
+          "value_constraints": null,
+          "shape_contract": null
         }
       },
       "outputs": {
@@ -105,18 +150,28 @@
           "default_value": null,
           "description": "Newly constructed batched",
           "domain": null,
-          "required": true
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "standard",
+          "value_constraints": null,
+          "shape_contract": null
         }
       },
+      "topology_type": "sequential",
       "slots": {},
+      "feedback_state_type": null,
+      "bound_slots": {},
       "code_template": "{output_var} = itertools.batched({iterable}, {n})",
       "dependencies": [
         "import itertools"
       ],
       "semantic_tags": [
+        "batch",
         "batched"
       ],
       "keywords": [
+        "batch",
         "batched"
       ],
       "docstring": "Batch data into tuples of length n. The last batch may be shorter than n.",
@@ -124,20 +179,32 @@
       "enriched_at": null,
       "domain_name": "itertools",
       "node_type": "constructor",
-      "node_role": "source",
+      "node_role": "constructor",
       "verified": true,
-      "source_priority": 50
+      "source_priority": 10,
+      "is_public": true,
+      "mutation_type": "pure",
+      "is_context_manager": false,
+      "raises": [],
+      "type_vars": []
     },
     {
       "cell_id": "ITERTOOLS_CHAIN_INIT",
-      "stage": 1,
+      "stage": 2,
       "inputs": {
         "iterables": {
           "type_name": "any",
           "state": "any",
-          "required": true,
+          "qualifiers": [],
           "default_value": null,
-          "description": "Argument iterables"
+          "description": "Variadic argument *iterables",
+          "domain": null,
+          "required": false,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "var_positional",
+          "value_constraints": null,
+          "shape_contract": null
         }
       },
       "outputs": {
@@ -148,11 +215,19 @@
           "default_value": null,
           "description": "Newly constructed chain",
           "domain": null,
-          "required": true
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "standard",
+          "value_constraints": null,
+          "shape_contract": null
         }
       },
+      "topology_type": "sequential",
       "slots": {},
-      "code_template": "{output_var} = itertools.chain({iterables})",
+      "feedback_state_type": null,
+      "bound_slots": {},
+      "code_template": "{output_var} = itertools.chain()",
       "dependencies": [
         "import itertools"
       ],
@@ -167,13 +242,18 @@
       "enriched_at": null,
       "domain_name": "itertools",
       "node_type": "constructor",
-      "node_role": "source",
+      "node_role": "constructor",
       "verified": true,
-      "source_priority": 50
+      "source_priority": 10,
+      "is_public": true,
+      "mutation_type": "pure",
+      "is_context_manager": false,
+      "raises": [],
+      "type_vars": []
     },
     {
       "cell_id": "ITERTOOLS_CHAIN_FROM_ITERABLE",
-      "stage": 3,
+      "stage": 2,
       "inputs": {
         "data": {
           "type_name": "chain",
@@ -182,7 +262,12 @@
           "default_value": null,
           "description": "Receiver instance of chain",
           "domain": null,
-          "required": true
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "standard",
+          "value_constraints": null,
+          "shape_contract": null
         },
         "iterable": {
           "type_name": "any",
@@ -191,22 +276,35 @@
           "default_value": null,
           "description": "Argument iterable",
           "domain": null,
-          "required": true
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "positional_only",
+          "value_constraints": null,
+          "shape_contract": null
         }
       },
       "outputs": {
         "output_data": {
-          "type_name": "str",
-          "state": "destination_written",
+          "type_name": "any",
+          "state": "raw",
           "qualifiers": [],
           "default_value": null,
-          "description": "Output destination_written",
+          "description": "Output raw",
           "domain": null,
-          "required": true
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "standard",
+          "value_constraints": null,
+          "shape_contract": null
         }
       },
+      "topology_type": "sequential",
       "slots": {},
-      "code_template": "{data}.from_iterable({iterable})\n{output_var} = 'done'",
+      "feedback_state_type": null,
+      "bound_slots": {},
+      "code_template": "{output_var} = {data}.from_iterable({iterable})",
       "dependencies": [
         "import itertools"
       ],
@@ -214,26 +312,33 @@
         "chain",
         "from",
         "from_iterable",
+        "iter",
         "iterable"
       ],
       "keywords": [
         "chain",
         "from",
         "from_iterable",
+        "iter",
         "iterable"
       ],
       "docstring": "Alternative chain() constructor taking a single iterable argument that evaluates lazily.",
       "enrichment_source": null,
       "enriched_at": null,
       "domain_name": "itertools",
-      "node_type": "sink",
-      "node_role": "sink",
+      "node_type": "bridge",
+      "node_role": "tunnel",
       "verified": true,
-      "source_priority": 50
+      "source_priority": 10,
+      "is_public": true,
+      "mutation_type": "pure",
+      "is_context_manager": false,
+      "raises": [],
+      "type_vars": []
     },
     {
       "cell_id": "ITERTOOLS_COMBINATIONS_INIT",
-      "stage": 1,
+      "stage": 2,
       "inputs": {
         "iterable": {
           "type_name": "any",
@@ -242,7 +347,12 @@
           "default_value": null,
           "description": "Constructor argument iterable",
           "domain": null,
-          "required": true
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "standard",
+          "value_constraints": null,
+          "shape_contract": null
         },
         "r": {
           "type_name": "any",
@@ -251,7 +361,12 @@
           "default_value": null,
           "description": "Constructor argument r",
           "domain": null,
-          "required": true
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "standard",
+          "value_constraints": null,
+          "shape_contract": null
         }
       },
       "outputs": {
@@ -262,18 +377,28 @@
           "default_value": null,
           "description": "Newly constructed combinations",
           "domain": null,
-          "required": true
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "standard",
+          "value_constraints": null,
+          "shape_contract": null
         }
       },
+      "topology_type": "sequential",
       "slots": {},
+      "feedback_state_type": null,
+      "bound_slots": {},
       "code_template": "{output_var} = itertools.combinations({iterable}, {r})",
       "dependencies": [
         "import itertools"
       ],
       "semantic_tags": [
+        "combin",
         "combinations"
       ],
       "keywords": [
+        "combin",
         "combinations"
       ],
       "docstring": "Return successive r-length combinations of elements in the iterable.",
@@ -281,13 +406,18 @@
       "enriched_at": null,
       "domain_name": "itertools",
       "node_type": "constructor",
-      "node_role": "source",
+      "node_role": "constructor",
       "verified": true,
-      "source_priority": 50
+      "source_priority": 10,
+      "is_public": true,
+      "mutation_type": "pure",
+      "is_context_manager": false,
+      "raises": [],
+      "type_vars": []
     },
     {
       "cell_id": "ITERTOOLS_COMBINATIONS_WITH_REPLACEMENT_INIT",
-      "stage": 1,
+      "stage": 2,
       "inputs": {
         "iterable": {
           "type_name": "any",
@@ -296,7 +426,12 @@
           "default_value": null,
           "description": "Constructor argument iterable",
           "domain": null,
-          "required": true
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "standard",
+          "value_constraints": null,
+          "shape_contract": null
         },
         "r": {
           "type_name": "any",
@@ -305,7 +440,12 @@
           "default_value": null,
           "description": "Constructor argument r",
           "domain": null,
-          "required": true
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "standard",
+          "value_constraints": null,
+          "shape_contract": null
         }
       },
       "outputs": {
@@ -316,23 +456,35 @@
           "default_value": null,
           "description": "Newly constructed combinations_with_replacement",
           "domain": null,
-          "required": true
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "standard",
+          "value_constraints": null,
+          "shape_contract": null
         }
       },
+      "topology_type": "sequential",
       "slots": {},
+      "feedback_state_type": null,
+      "bound_slots": {},
       "code_template": "{output_var} = itertools.combinations_with_replacement({iterable}, {r})",
       "dependencies": [
         "import itertools"
       ],
       "semantic_tags": [
+        "combin",
         "combinations",
         "combinations_with_replacement",
+        "replac",
         "replacement",
         "with"
       ],
       "keywords": [
+        "combin",
         "combinations",
         "combinations_with_replacement",
+        "replac",
         "replacement",
         "with"
       ],
@@ -341,13 +493,18 @@
       "enriched_at": null,
       "domain_name": "itertools",
       "node_type": "constructor",
-      "node_role": "source",
+      "node_role": "constructor",
       "verified": true,
-      "source_priority": 50
+      "source_priority": 10,
+      "is_public": true,
+      "mutation_type": "pure",
+      "is_context_manager": false,
+      "raises": [],
+      "type_vars": []
     },
     {
       "cell_id": "ITERTOOLS_COMPRESS_INIT",
-      "stage": 1,
+      "stage": 2,
       "inputs": {
         "data": {
           "type_name": "any",
@@ -356,7 +513,12 @@
           "default_value": null,
           "description": "Constructor argument data",
           "domain": null,
-          "required": true
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "standard",
+          "value_constraints": null,
+          "shape_contract": null
         },
         "selectors": {
           "type_name": "any",
@@ -365,7 +527,12 @@
           "default_value": null,
           "description": "Constructor argument selectors",
           "domain": null,
-          "required": true
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "standard",
+          "value_constraints": null,
+          "shape_contract": null
         }
       },
       "outputs": {
@@ -376,10 +543,18 @@
           "default_value": null,
           "description": "Newly constructed compress",
           "domain": null,
-          "required": true
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "standard",
+          "value_constraints": null,
+          "shape_contract": null
         }
       },
+      "topology_type": "sequential",
       "slots": {},
+      "feedback_state_type": null,
+      "bound_slots": {},
       "code_template": "{output_var} = itertools.compress({data}, {selectors})",
       "dependencies": [
         "import itertools"
@@ -395,31 +570,46 @@
       "enriched_at": null,
       "domain_name": "itertools",
       "node_type": "constructor",
-      "node_role": "source",
+      "node_role": "constructor",
       "verified": true,
-      "source_priority": 50
+      "source_priority": 10,
+      "is_public": true,
+      "mutation_type": "pure",
+      "is_context_manager": false,
+      "raises": [],
+      "type_vars": []
     },
     {
       "cell_id": "ITERTOOLS_COUNT_INIT",
-      "stage": 1,
+      "stage": 2,
       "inputs": {
         "start": {
           "type_name": "any",
           "state": "any",
           "qualifiers": [],
-          "default_value": null,
+          "default_value": 0,
           "description": "Constructor argument start",
           "domain": null,
-          "required": false
+          "required": false,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "standard",
+          "value_constraints": null,
+          "shape_contract": null
         },
         "step": {
           "type_name": "any",
           "state": "any",
           "qualifiers": [],
-          "default_value": null,
+          "default_value": 1,
           "description": "Constructor argument step",
           "domain": null,
-          "required": false
+          "required": false,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "standard",
+          "value_constraints": null,
+          "shape_contract": null
         }
       },
       "outputs": {
@@ -430,10 +620,18 @@
           "default_value": null,
           "description": "Newly constructed count",
           "domain": null,
-          "required": true
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "standard",
+          "value_constraints": null,
+          "shape_contract": null
         }
       },
+      "topology_type": "sequential",
       "slots": {},
+      "feedback_state_type": null,
+      "bound_slots": {},
       "code_template": "{output_var} = itertools.count()",
       "dependencies": [
         "import itertools"
@@ -449,13 +647,18 @@
       "enriched_at": null,
       "domain_name": "itertools",
       "node_type": "constructor",
-      "node_role": "source",
+      "node_role": "constructor",
       "verified": true,
-      "source_priority": 50
+      "source_priority": 10,
+      "is_public": true,
+      "mutation_type": "pure",
+      "is_context_manager": false,
+      "raises": [],
+      "type_vars": []
     },
     {
       "cell_id": "ITERTOOLS_CYCLE_INIT",
-      "stage": 1,
+      "stage": 2,
       "inputs": {
         "iterable": {
           "type_name": "any",
@@ -464,7 +667,12 @@
           "default_value": null,
           "description": "Constructor argument iterable",
           "domain": null,
-          "required": true
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "positional_only",
+          "value_constraints": null,
+          "shape_contract": null
         }
       },
       "outputs": {
@@ -475,10 +683,18 @@
           "default_value": null,
           "description": "Newly constructed cycle",
           "domain": null,
-          "required": true
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "standard",
+          "value_constraints": null,
+          "shape_contract": null
         }
       },
+      "topology_type": "sequential",
       "slots": {},
+      "feedback_state_type": null,
+      "bound_slots": {},
       "code_template": "{output_var} = itertools.cycle({iterable})",
       "dependencies": [
         "import itertools"
@@ -494,13 +710,18 @@
       "enriched_at": null,
       "domain_name": "itertools",
       "node_type": "constructor",
-      "node_role": "source",
+      "node_role": "constructor",
       "verified": true,
-      "source_priority": 50
+      "source_priority": 10,
+      "is_public": true,
+      "mutation_type": "pure",
+      "is_context_manager": false,
+      "raises": [],
+      "type_vars": []
     },
     {
       "cell_id": "ITERTOOLS_DROPWHILE_INIT",
-      "stage": 1,
+      "stage": 2,
       "inputs": {
         "predicate": {
           "type_name": "any",
@@ -509,7 +730,12 @@
           "default_value": null,
           "description": "Constructor argument predicate",
           "domain": null,
-          "required": true
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "positional_only",
+          "value_constraints": null,
+          "shape_contract": null
         },
         "iterable": {
           "type_name": "any",
@@ -518,7 +744,12 @@
           "default_value": null,
           "description": "Constructor argument iterable",
           "domain": null,
-          "required": true
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "positional_only",
+          "value_constraints": null,
+          "shape_contract": null
         }
       },
       "outputs": {
@@ -529,18 +760,28 @@
           "default_value": null,
           "description": "Newly constructed dropwhile",
           "domain": null,
-          "required": true
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "standard",
+          "value_constraints": null,
+          "shape_contract": null
         }
       },
+      "topology_type": "sequential",
       "slots": {},
+      "feedback_state_type": null,
+      "bound_slots": {},
       "code_template": "{output_var} = itertools.dropwhile({predicate}, {iterable})",
       "dependencies": [
         "import itertools"
       ],
       "semantic_tags": [
+        "dropwhil",
         "dropwhile"
       ],
       "keywords": [
+        "dropwhil",
         "dropwhile"
       ],
       "docstring": "Drop items from the iterable while predicate(item) is true.",
@@ -548,13 +789,18 @@
       "enriched_at": null,
       "domain_name": "itertools",
       "node_type": "constructor",
-      "node_role": "source",
+      "node_role": "constructor",
       "verified": true,
-      "source_priority": 50
+      "source_priority": 10,
+      "is_public": true,
+      "mutation_type": "pure",
+      "is_context_manager": false,
+      "raises": [],
+      "type_vars": []
     },
     {
       "cell_id": "ITERTOOLS_FILTERFALSE_INIT",
-      "stage": 1,
+      "stage": 2,
       "inputs": {
         "function": {
           "type_name": "any",
@@ -563,7 +809,12 @@
           "default_value": null,
           "description": "Constructor argument function",
           "domain": null,
-          "required": true
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "positional_only",
+          "value_constraints": null,
+          "shape_contract": null
         },
         "iterable": {
           "type_name": "any",
@@ -572,7 +823,12 @@
           "default_value": null,
           "description": "Constructor argument iterable",
           "domain": null,
-          "required": true
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "positional_only",
+          "value_constraints": null,
+          "shape_contract": null
         }
       },
       "outputs": {
@@ -583,18 +839,28 @@
           "default_value": null,
           "description": "Newly constructed filterfalse",
           "domain": null,
-          "required": true
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "standard",
+          "value_constraints": null,
+          "shape_contract": null
         }
       },
+      "topology_type": "sequential",
       "slots": {},
+      "feedback_state_type": null,
+      "bound_slots": {},
       "code_template": "{output_var} = itertools.filterfalse({function}, {iterable})",
       "dependencies": [
         "import itertools"
       ],
       "semantic_tags": [
+        "filterfals",
         "filterfalse"
       ],
       "keywords": [
+        "filterfals",
         "filterfalse"
       ],
       "docstring": "Return those items of iterable for which function(item) is false.",
@@ -602,13 +868,18 @@
       "enriched_at": null,
       "domain_name": "itertools",
       "node_type": "constructor",
-      "node_role": "source",
+      "node_role": "constructor",
       "verified": true,
-      "source_priority": 50
+      "source_priority": 10,
+      "is_public": true,
+      "mutation_type": "pure",
+      "is_context_manager": false,
+      "raises": [],
+      "type_vars": []
     },
     {
       "cell_id": "ITERTOOLS_GROUPBY_INIT",
-      "stage": 1,
+      "stage": 2,
       "inputs": {
         "iterable": {
           "type_name": "any",
@@ -617,7 +888,12 @@
           "default_value": null,
           "description": "Constructor argument iterable",
           "domain": null,
-          "required": true
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "standard",
+          "value_constraints": null,
+          "shape_contract": null
         },
         "key": {
           "type_name": "any",
@@ -626,7 +902,12 @@
           "default_value": null,
           "description": "Constructor argument key",
           "domain": null,
-          "required": false
+          "required": false,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "standard",
+          "value_constraints": null,
+          "shape_contract": null
         }
       },
       "outputs": {
@@ -637,18 +918,28 @@
           "default_value": null,
           "description": "Newly constructed groupby",
           "domain": null,
-          "required": true
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "standard",
+          "value_constraints": null,
+          "shape_contract": null
         }
       },
+      "topology_type": "sequential",
       "slots": {},
+      "feedback_state_type": null,
+      "bound_slots": {},
       "code_template": "{output_var} = itertools.groupby({iterable})",
       "dependencies": [
         "import itertools"
       ],
       "semantic_tags": [
+        "groupbi",
         "groupby"
       ],
       "keywords": [
+        "groupbi",
         "groupby"
       ],
       "docstring": "make an iterator that returns consecutive keys and groups from the iterable",
@@ -656,13 +947,18 @@
       "enriched_at": null,
       "domain_name": "itertools",
       "node_type": "constructor",
-      "node_role": "source",
+      "node_role": "constructor",
       "verified": true,
-      "source_priority": 50
+      "source_priority": 10,
+      "is_public": true,
+      "mutation_type": "pure",
+      "is_context_manager": false,
+      "raises": [],
+      "type_vars": []
     },
     {
       "cell_id": "ITERTOOLS_ISLICE_INIT",
-      "stage": 1,
+      "stage": 2,
       "inputs": {
         "iterable": {
           "type_name": "any",
@@ -671,7 +967,12 @@
           "default_value": null,
           "description": "Constructor argument iterable",
           "domain": null,
-          "required": true
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "standard",
+          "value_constraints": null,
+          "shape_contract": null
         },
         "stop": {
           "type_name": "any",
@@ -680,7 +981,12 @@
           "default_value": null,
           "description": "Constructor argument stop",
           "domain": null,
-          "required": true
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "standard",
+          "value_constraints": null,
+          "shape_contract": null
         }
       },
       "outputs": {
@@ -691,18 +997,28 @@
           "default_value": null,
           "description": "Newly constructed islice",
           "domain": null,
-          "required": true
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "standard",
+          "value_constraints": null,
+          "shape_contract": null
         }
       },
+      "topology_type": "sequential",
       "slots": {},
+      "feedback_state_type": null,
+      "bound_slots": {},
       "code_template": "{output_var} = itertools.islice({iterable}, {stop})",
       "dependencies": [
         "import itertools"
       ],
       "semantic_tags": [
+        "islic",
         "islice"
       ],
       "keywords": [
+        "islic",
         "islice"
       ],
       "docstring": "islice(iterable, stop) --> islice object",
@@ -710,13 +1026,18 @@
       "enriched_at": null,
       "domain_name": "itertools",
       "node_type": "constructor",
-      "node_role": "source",
+      "node_role": "constructor",
       "verified": true,
-      "source_priority": 50
+      "source_priority": 10,
+      "is_public": true,
+      "mutation_type": "pure",
+      "is_context_manager": false,
+      "raises": [],
+      "type_vars": []
     },
     {
       "cell_id": "ITERTOOLS_PAIRWISE_INIT",
-      "stage": 1,
+      "stage": 2,
       "inputs": {
         "iterable": {
           "type_name": "any",
@@ -725,7 +1046,12 @@
           "default_value": null,
           "description": "Constructor argument iterable",
           "domain": null,
-          "required": true
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "positional_only",
+          "value_constraints": null,
+          "shape_contract": null
         }
       },
       "outputs": {
@@ -736,18 +1062,28 @@
           "default_value": null,
           "description": "Newly constructed pairwise",
           "domain": null,
-          "required": true
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "standard",
+          "value_constraints": null,
+          "shape_contract": null
         }
       },
+      "topology_type": "sequential",
       "slots": {},
+      "feedback_state_type": null,
+      "bound_slots": {},
       "code_template": "{output_var} = itertools.pairwise({iterable})",
       "dependencies": [
         "import itertools"
       ],
       "semantic_tags": [
+        "pairwis",
         "pairwise"
       ],
       "keywords": [
+        "pairwis",
         "pairwise"
       ],
       "docstring": "Return an iterator of overlapping pairs taken from the input iterator.",
@@ -755,13 +1091,18 @@
       "enriched_at": null,
       "domain_name": "itertools",
       "node_type": "constructor",
-      "node_role": "source",
+      "node_role": "constructor",
       "verified": true,
-      "source_priority": 50
+      "source_priority": 10,
+      "is_public": true,
+      "mutation_type": "pure",
+      "is_context_manager": false,
+      "raises": [],
+      "type_vars": []
     },
     {
       "cell_id": "ITERTOOLS_PERMUTATIONS_INIT",
-      "stage": 1,
+      "stage": 2,
       "inputs": {
         "iterable": {
           "type_name": "any",
@@ -770,7 +1111,16 @@
           "default_value": null,
           "description": "Constructor argument iterable",
           "domain": null,
-          "required": true
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "standard",
+          "value_constraints": {
+            "min": 0,
+            "max": 1,
+            "interval": "open"
+          },
+          "shape_contract": null
         },
         "r": {
           "type_name": "any",
@@ -779,7 +1129,16 @@
           "default_value": null,
           "description": "Constructor argument r",
           "domain": null,
-          "required": false
+          "required": false,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "standard",
+          "value_constraints": {
+            "min": 0,
+            "max": 1,
+            "interval": "open"
+          },
+          "shape_contract": null
         }
       },
       "outputs": {
@@ -790,18 +1149,28 @@
           "default_value": null,
           "description": "Newly constructed permutations",
           "domain": null,
-          "required": true
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "standard",
+          "value_constraints": null,
+          "shape_contract": null
         }
       },
+      "topology_type": "sequential",
       "slots": {},
+      "feedback_state_type": null,
+      "bound_slots": {},
       "code_template": "{output_var} = itertools.permutations({iterable})",
       "dependencies": [
         "import itertools"
       ],
       "semantic_tags": [
+        "permut",
         "permutations"
       ],
       "keywords": [
+        "permut",
         "permutations"
       ],
       "docstring": "Return successive r-length permutations of elements in the iterable.",
@@ -809,27 +1178,50 @@
       "enriched_at": null,
       "domain_name": "itertools",
       "node_type": "constructor",
-      "node_role": "source",
+      "node_role": "constructor",
       "verified": true,
-      "source_priority": 50
+      "source_priority": 10,
+      "is_public": true,
+      "mutation_type": "pure",
+      "is_context_manager": false,
+      "raises": [],
+      "type_vars": []
     },
     {
       "cell_id": "ITERTOOLS_PRODUCT_INIT",
-      "stage": 1,
+      "stage": 2,
       "inputs": {
-        "repeat": {
-          "type_name": "any",
-          "state": "any",
-          "required": false,
-          "default_value": "1",
-          "description": "Argument repeat"
-        },
         "iterables": {
           "type_name": "any",
           "state": "any",
-          "required": true,
+          "qualifiers": [],
           "default_value": null,
-          "description": "Argument iterables"
+          "description": "Variadic argument *iterables",
+          "domain": null,
+          "required": false,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "var_positional",
+          "value_constraints": null,
+          "shape_contract": null
+        },
+        "repeat": {
+          "type_name": "any",
+          "state": "any",
+          "qualifiers": [],
+          "default_value": 1,
+          "description": "Constructor argument repeat",
+          "domain": null,
+          "required": false,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "keyword_only",
+          "value_constraints": {
+            "min": 0,
+            "max": 1,
+            "interval": "open"
+          },
+          "shape_contract": null
         }
       },
       "outputs": {
@@ -840,11 +1232,19 @@
           "default_value": null,
           "description": "Newly constructed product",
           "domain": null,
-          "required": true
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "standard",
+          "value_constraints": null,
+          "shape_contract": null
         }
       },
+      "topology_type": "sequential",
       "slots": {},
-      "code_template": "{output_var} = itertools.product({iterables})",
+      "feedback_state_type": null,
+      "bound_slots": {},
+      "code_template": "{output_var} = itertools.product()",
       "dependencies": [
         "import itertools"
       ],
@@ -859,13 +1259,95 @@
       "enriched_at": null,
       "domain_name": "itertools",
       "node_type": "constructor",
-      "node_role": "source",
+      "node_role": "constructor",
       "verified": true,
-      "source_priority": 50
+      "source_priority": 10,
+      "is_public": true,
+      "mutation_type": "pure",
+      "is_context_manager": false,
+      "raises": [],
+      "type_vars": []
+    },
+    {
+      "cell_id": "ITERTOOLS_REPEAT_INIT",
+      "stage": 2,
+      "inputs": {
+        "object": {
+          "type_name": "any",
+          "state": "any",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Constructor argument object",
+          "domain": null,
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "standard",
+          "value_constraints": null,
+          "shape_contract": null
+        },
+        "times": {
+          "type_name": "any",
+          "state": "any",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Constructor argument times",
+          "domain": null,
+          "required": false,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "standard",
+          "value_constraints": null,
+          "shape_contract": null
+        }
+      },
+      "outputs": {
+        "output_data": {
+          "type_name": "repeat",
+          "state": "constructed",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Newly constructed repeat",
+          "domain": null,
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "standard",
+          "value_constraints": null,
+          "shape_contract": null
+        }
+      },
+      "topology_type": "sequential",
+      "slots": {},
+      "feedback_state_type": null,
+      "bound_slots": {},
+      "code_template": "{output_var} = itertools.repeat({object})",
+      "dependencies": [
+        "import itertools"
+      ],
+      "semantic_tags": [
+        "repeat"
+      ],
+      "keywords": [
+        "repeat"
+      ],
+      "docstring": "repeat(object [,times]) -> create an iterator which returns the object",
+      "enrichment_source": null,
+      "enriched_at": null,
+      "domain_name": "itertools",
+      "node_type": "constructor",
+      "node_role": "constructor",
+      "verified": true,
+      "source_priority": 10,
+      "is_public": true,
+      "mutation_type": "pure",
+      "is_context_manager": false,
+      "raises": [],
+      "type_vars": []
     },
     {
       "cell_id": "ITERTOOLS_STARMAP_INIT",
-      "stage": 1,
+      "stage": 2,
       "inputs": {
         "function": {
           "type_name": "any",
@@ -874,7 +1356,12 @@
           "default_value": null,
           "description": "Constructor argument function",
           "domain": null,
-          "required": true
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "positional_only",
+          "value_constraints": null,
+          "shape_contract": null
         },
         "iterable": {
           "type_name": "any",
@@ -883,7 +1370,12 @@
           "default_value": null,
           "description": "Constructor argument iterable",
           "domain": null,
-          "required": true
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "positional_only",
+          "value_constraints": null,
+          "shape_contract": null
         }
       },
       "outputs": {
@@ -894,10 +1386,18 @@
           "default_value": null,
           "description": "Newly constructed starmap",
           "domain": null,
-          "required": true
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "standard",
+          "value_constraints": null,
+          "shape_contract": null
         }
       },
+      "topology_type": "sequential",
       "slots": {},
+      "feedback_state_type": null,
+      "bound_slots": {},
       "code_template": "{output_var} = itertools.starmap({function}, {iterable})",
       "dependencies": [
         "import itertools"
@@ -913,13 +1413,18 @@
       "enriched_at": null,
       "domain_name": "itertools",
       "node_type": "constructor",
-      "node_role": "source",
+      "node_role": "constructor",
       "verified": true,
-      "source_priority": 50
+      "source_priority": 10,
+      "is_public": true,
+      "mutation_type": "pure",
+      "is_context_manager": false,
+      "raises": [],
+      "type_vars": []
     },
     {
       "cell_id": "ITERTOOLS_TAKEWHILE_INIT",
-      "stage": 1,
+      "stage": 2,
       "inputs": {
         "predicate": {
           "type_name": "any",
@@ -928,7 +1433,12 @@
           "default_value": null,
           "description": "Constructor argument predicate",
           "domain": null,
-          "required": true
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "positional_only",
+          "value_constraints": null,
+          "shape_contract": null
         },
         "iterable": {
           "type_name": "any",
@@ -937,7 +1447,12 @@
           "default_value": null,
           "description": "Constructor argument iterable",
           "domain": null,
-          "required": true
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "positional_only",
+          "value_constraints": null,
+          "shape_contract": null
         }
       },
       "outputs": {
@@ -948,18 +1463,28 @@
           "default_value": null,
           "description": "Newly constructed takewhile",
           "domain": null,
-          "required": true
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "standard",
+          "value_constraints": null,
+          "shape_contract": null
         }
       },
+      "topology_type": "sequential",
       "slots": {},
+      "feedback_state_type": null,
+      "bound_slots": {},
       "code_template": "{output_var} = itertools.takewhile({predicate}, {iterable})",
       "dependencies": [
         "import itertools"
       ],
       "semantic_tags": [
+        "takewhil",
         "takewhile"
       ],
       "keywords": [
+        "takewhil",
         "takewhile"
       ],
       "docstring": "Return successive entries from an iterable as long as the predicate evaluates to true for each entry.",
@@ -967,27 +1492,46 @@
       "enriched_at": null,
       "domain_name": "itertools",
       "node_type": "constructor",
-      "node_role": "source",
+      "node_role": "constructor",
       "verified": true,
-      "source_priority": 50
+      "source_priority": 10,
+      "is_public": true,
+      "mutation_type": "pure",
+      "is_context_manager": false,
+      "raises": [],
+      "type_vars": []
     },
     {
       "cell_id": "ITERTOOLS_ZIP_LONGEST_INIT",
-      "stage": 1,
+      "stage": 2,
       "inputs": {
-        "fillvalue": {
-          "type_name": "any",
-          "state": "any",
-          "required": false,
-          "default_value": "None",
-          "description": "Argument fillvalue"
-        },
         "iterables": {
           "type_name": "any",
           "state": "any",
-          "required": true,
+          "qualifiers": [],
           "default_value": null,
-          "description": "Argument iterables"
+          "description": "Variadic argument *iterables",
+          "domain": null,
+          "required": false,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "var_positional",
+          "value_constraints": null,
+          "shape_contract": null
+        },
+        "fillvalue": {
+          "type_name": "any",
+          "state": "any",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Constructor argument fillvalue",
+          "domain": null,
+          "required": false,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "keyword_only",
+          "value_constraints": null,
+          "shape_contract": null
         }
       },
       "outputs": {
@@ -998,11 +1542,19 @@
           "default_value": null,
           "description": "Newly constructed zip_longest",
           "domain": null,
-          "required": true
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "standard",
+          "value_constraints": null,
+          "shape_contract": null
         }
       },
+      "topology_type": "sequential",
       "slots": {},
-      "code_template": "{output_var} = itertools.zip_longest({iterables})",
+      "feedback_state_type": null,
+      "bound_slots": {},
+      "code_template": "{output_var} = itertools.zip_longest()",
       "dependencies": [
         "import itertools"
       ],
@@ -1021,9 +1573,14 @@
       "enriched_at": null,
       "domain_name": "itertools",
       "node_type": "constructor",
-      "node_role": "source",
+      "node_role": "constructor",
       "verified": true,
-      "source_priority": 50
+      "source_priority": 10,
+      "is_public": true,
+      "mutation_type": "pure",
+      "is_context_manager": false,
+      "raises": [],
+      "type_vars": []
     },
     {
       "cell_id": "ITERTOOLS_TEE",
@@ -1036,30 +1593,48 @@
           "default_value": null,
           "description": "Argument iterable",
           "domain": null,
-          "required": true
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "positional_only",
+          "value_constraints": null,
+          "shape_contract": null
         },
         "n": {
           "type_name": "any",
           "state": "any",
           "qualifiers": [],
-          "default_value": null,
+          "default_value": 2,
           "description": "Argument n",
           "domain": null,
-          "required": false
+          "required": false,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "positional_only",
+          "value_constraints": null,
+          "shape_contract": null
         }
       },
       "outputs": {
         "output_data": {
           "type_name": "any",
-          "state": "transformed",
+          "state": "raw",
           "qualifiers": [],
           "default_value": null,
-          "description": "Output transformed",
+          "description": "Output raw",
           "domain": null,
-          "required": true
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "standard",
+          "value_constraints": null,
+          "shape_contract": null
         }
       },
+      "topology_type": "sequential",
       "slots": {},
+      "feedback_state_type": null,
+      "bound_slots": {},
       "code_template": "{output_var} = itertools.tee({iterable})",
       "dependencies": [
         "import itertools"
@@ -1077,7 +1652,12 @@
       "node_type": "function",
       "node_role": "transform",
       "verified": true,
-      "source_priority": 50
+      "source_priority": 60,
+      "is_public": true,
+      "mutation_type": "pure",
+      "is_context_manager": false,
+      "raises": [],
+      "type_vars": []
     }
   ]
 }

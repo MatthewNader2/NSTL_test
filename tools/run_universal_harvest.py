@@ -89,8 +89,23 @@ def harvest_single_domain(
     ast_issues = 0
 
     for c in cells:
-        c_parts = c.cell_id.upper().split("_")
-        if any(p in ("TESTS", "TEST", "TESTING", "CONFTEST") for p in c_parts):
+        cid_upper = c.cell_id.upper()
+        dom_prefix = f"{domain_name.upper()}_"
+        sub_name = cid_upper[len(dom_prefix):] if cid_upper.startswith(dom_prefix) else cid_upper
+        if (
+            sub_name.startswith("TEST_")
+            or sub_name.endswith("_TEST")
+            or sub_name in ("TEST", "TESTS", "CONFTEST", "TYPE_CHECKING")
+            or "ESTIMATOR_CHECKS" in cid_upper
+            or "MODULETESTER" in cid_upper
+            or "SKIPTEST" in cid_upper
+            or "ESTIMATORCHECKFAILED" in cid_upper
+            or "estimator_checks" in c.code_template
+            or "testutils" in c.code_template
+            or (sub_name.startswith("SET_") and sub_name.endswith("_REQUEST"))
+            or ("_SET_" in cid_upper and cid_upper.endswith("_REQUEST"))
+            or cid_upper.endswith("_GET_METADATA_ROUTING")
+        ):
             continue
 
         c_dict = c.model_dump()

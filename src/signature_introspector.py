@@ -81,8 +81,10 @@ def _ast_clean_type(node: ast.AST) -> str:
 
 def extract_clean_type_name(anno: Any) -> str:
     """Universal type name simplifier for AST nodes, type objects, and strings."""
-    if anno is None or anno is inspect.Signature.empty or anno is inspect.Parameter.empty:
+    if anno is inspect.Signature.empty or anno is inspect.Parameter.empty:
         return "any"
+    if anno is None or anno is type(None):
+        return "None"
     if inspect.isclass(anno):
         return anno.__name__
     if hasattr(anno, "__name__"):
@@ -144,8 +146,41 @@ def extract_clean_type_name(anno: Any) -> str:
     return s
 
 
-def infer_abstract_carrier(anno: Any) -> Optional[str]:
-    """Infers abstract category-theoretic carrier type without domain hardcodes."""
+def _split_top_level(s: str, sep: str = ",") -> List[str]:
+    parts = []
+    depth = 0
+    curr = []
+    for ch in s:
+        if ch in "([{<":
+            depth += 1
+            curr.append(ch)
+        elif ch in ")]}>":
+            depth = max(0, depth - 1)
+            curr.append(ch)
+        elif ch == sep and depth == 0:
+            part = "".join(curr).strip()
+            if part:
+                parts.append(part)
+            curr = []
+        else:
+            curr.append(ch)
+    if curr:
+        part = "".join(curr).strip()
+        if part:
+            parts.append(part)
+    return parts
+
+
+def infer_abstract_carrier(anno: Any, param_name: str = "") -> Optional[str]:
+    """Infers abstract Python language-level carrier type without domain hardcodes."""
+    if param_name:
+        pl = param_name.lower()
+        if pl in ("filepath", "filename", "file_path", "path", "file", "savepath", "pathname", "fname"):
+            base_res = infer_abstract_carrier(anno) if (anno is not None and anno is not inspect.Signature.empty and anno is not inspect.Parameter.empty) else None
+            if base_res in (None, "text", "any"):
+                return "path"
+            return base_res
+
     if anno is None or anno is inspect.Signature.empty or anno is inspect.Parameter.empty:
         return None
 
@@ -153,49 +188,465 @@ def infer_abstract_carrier(anno: Any) -> Optional[str]:
     import numbers
     import collections.abc
 
-    if isinstance(anno, type):
+    # 1. Recursive typing unwrap (Optional, Union, Annotated, Literal, NewType)
+    try:
+        import typing
+        origin = typing.get_origin(anno)
+        if origin is not None:
+            if origin in (typing.Union, getattr(sys.modules.get("types", None), "UnionType", None)):
+                args = [a for a in typing.get_args(anno) if getattr(a, "__name__", str(a)).lower() not in ("none", "nonetype")]
+                if len(args) == 1:
+                    return infer_abstract_carrier(args[0])
+                elif len(args) > 1:
+                    resolved = [infer_abstract_carrier(a) for a in args]
+                    valid = [r for r in resolved if r is not None]
+                    if valid and len(set(valid)) == 1:
+                        return valid[0]
+                    if set(valid) == {"path", "text"} or ("path" in valid and all(v in ("path", "text") for v in valid)):
+                        return "path"
+            if origin in (list, dict, set, tuple, frozenset, collections.abc.Sequence, collections.abc.Mapping, collections.abc.Iterable):
+                return "collection"
+            if origin is getattr(typing, "Annotated", None):
+                args = typing.get_args(anno)
+                if args:
+                    return infer_abstract_carrier(args[0])
+            if origin is getattr(typing, "Literal", None):
+                args = typing.get_args(anno)
+                if args:
+                    resolved = [infer_abstract_carrier(type(a)) for a in args]
+                    valid = [r for r in resolved if r is not None]
+                    if valid and len(set(valid)) == 1:
+                        return valid[0]
+        if hasattr(anno, "__supertype__"):
+            return infer_abstract_carrier(anno.__supertype__)
+    except Exception:
+        pass
+
+    # 2. Type-level protocol checks on classes
+    if isinstance(anno, type) or inspect.isclass(anno):
         try:
-            if issubclass(anno, os.PathLike):
+            if issubclass(anno, os.PathLike) and (
+                getattr(anno, "__module__", "") in ("os", "pathlib", "posixpath", "ntpath")
+                or getattr(anno, "__name__", "").lower() in ("path", "filepath", "pathlike", "purepath", "posixpath", "windowspath")
+            ):
                 return "path"
             if issubclass(anno, bool):
                 return "logical"
-            if issubclass(anno, (numbers.Number, int, float)):
+            if issubclass(anno, (numbers.Number, int, float, complex)):
                 return "scalar"
-            if issubclass(anno, (str, bytes)):
+            if issubclass(anno, (str, bytes, bytearray)):
                 return "text"
+            # Tabular / DataFrame protocol (__dataframe__)
             if hasattr(anno, "__dataframe__"):
-                return "tabular"
-            if hasattr(anno, "__array_interface__") or hasattr(anno, "__array__"):
+                return "table"
+            # Buffer / array protocol (PEP 688 collections.abc.Buffer, __array_interface__, __array__, __buffer__)
+            if (
+                hasattr(anno, "__array__")
+                or hasattr(anno, "__array_interface__")
+                or hasattr(anno, "__cuda_array_interface__")
+                or hasattr(anno, "__buffer__")
+            ):
                 return "tensor"
-            if issubclass(anno, (collections.abc.Sequence, collections.abc.Mapping, list, tuple, dict, set)):
+            if hasattr(anno, "shape") and hasattr(anno, "dtype"):
+                return "tensor"
+            if hasattr(collections.abc, "Buffer") and issubclass(anno, getattr(collections.abc, "Buffer")):
+                return "tensor"
+            if issubclass(anno, (collections.abc.Sequence, collections.abc.Mapping, list, tuple, dict, set, frozenset)):
                 return "collection"
         except Exception:
             pass
 
-    name = str(getattr(anno, "__name__", anno)).lower().strip()
-    if not name or name in ("any", "object", "*", "unknown"):
+    # 3. String-based protocol and category classification
+    name = str(getattr(anno, "__name__", anno)).strip()
+    if not name or name.lower() in ("any", "object", "*", "unknown"):
         return None
 
-    if any(k in name for k in ("path", "filename", "filepath", "uri", "url")):
+    # Strip typing or collections.abc prefixes if present
+    for prefix in ("typing.", "collections.abc.", "types.", "builtins."):
+        if name.startswith(prefix):
+            name = name[len(prefix):]
+
+    # Unwrap string pipe syntax (PEP 604)
+    pipe_parts = _split_top_level(name, sep="|")
+    if len(pipe_parts) > 1:
+        parts = [p for p in pipe_parts if p.lower() not in ("none", "nonetype")]
+        if len(parts) == 1:
+            return infer_abstract_carrier(parts[0])
+        elif len(parts) > 1:
+            resolved = [infer_abstract_carrier(p) for p in parts]
+            valid = [r for r in resolved if r is not None]
+            if valid and len(set(valid)) == 1:
+                return valid[0]
+            if set(valid) == {"path", "text"} or ("path" in valid and all(v in ("path", "text") for v in valid)):
+                return "path"
+
+    # Unwrap string brackets Outer[Inner]
+    if "[" in name and name.endswith("]"):
+        bracket_idx = name.index("[")
+        base = name[:bracket_idx].strip()
+        inner = name[bracket_idx + 1 : -1].strip()
+        base_lower = base.lower()
+        if base_lower in ("optional",):
+            return infer_abstract_carrier(inner)
+        elif base_lower in ("annotated",):
+            first_arg = _split_top_level(inner, sep=",")[0]
+            return infer_abstract_carrier(first_arg)
+        elif base_lower in ("literal",):
+            args = _split_top_level(inner, sep=",")
+            resolved = []
+            for a in args:
+                a_clean = a.strip()
+                if (a_clean.startswith("'") and a_clean.endswith("'")) or (a_clean.startswith('"') and a_clean.endswith('"')):
+                    resolved.append("text")
+                elif a_clean in ("true", "false", "True", "False"):
+                    resolved.append("logical")
+                else:
+                    try:
+                        float(a_clean)
+                        resolved.append("scalar")
+                    except ValueError:
+                        pass
+            if resolved and len(set(resolved)) == 1:
+                return resolved[0]
+        elif base_lower in ("union",):
+            union_parts = [p for p in _split_top_level(inner, sep=",") if p.lower() not in ("none", "nonetype")]
+            if len(union_parts) == 1:
+                return infer_abstract_carrier(union_parts[0])
+            elif len(union_parts) > 1:
+                resolved = [infer_abstract_carrier(p) for p in union_parts]
+                valid = [r for r in resolved if r is not None]
+                if valid and len(set(valid)) == 1:
+                    return valid[0]
+                if set(valid) == {"path", "text"} or ("path" in valid and all(v in ("path", "text") for v in valid)):
+                    return "path"
+        elif base_lower in (
+            "sequence", "list", "tuple", "set", "frozenset", "dict",
+            "mapping", "map", "iterable", "iterator", "generator",
+            "collection", "queue", "deque"
+        ):
+            return "collection"
+        else:
+            res = infer_abstract_carrier(base)
+            if res is not None:
+                return res
+
+    # Dynamically resolve string class name from sys.modules / builtins to query protocols
+    if not isinstance(anno, type) and not inspect.isclass(anno):
+        import builtins
+        resolved_cls = getattr(builtins, name, None)
+        if resolved_cls is None and "." in name:
+            mod_part, cls_part = name.rsplit(".", 1)
+            try:
+                import importlib
+                m_obj = importlib.import_module(mod_part)
+                resolved_cls = getattr(m_obj, cls_part, None)
+            except Exception:
+                pass
+            if resolved_cls is None:
+                mod = sys.modules.get(mod_part)
+                if mod:
+                    resolved_cls = getattr(mod, cls_part, None)
+        if resolved_cls is None:
+            for mod in list(sys.modules.values()):
+                if mod and hasattr(mod, name):
+                    candidate = getattr(mod, name, None)
+                    if inspect.isclass(candidate) or hasattr(candidate, "__origin__"):
+                        resolved_cls = candidate
+                        break
+        if resolved_cls is not None and resolved_cls != anno:
+            res = infer_abstract_carrier(resolved_cls)
+            if res is not None:
+                return res
+
+    # Standard Python language primitives and ABC type names
+    canonical = name.lower()
+    if canonical in ("pathlike", "path", "filepath"):
         return "path"
-    if any(k == name or name.endswith(k) for k in ("ndarray", "mat", "matlike", "tensor", "matrix", "array", "image")):
-        return "tensor"
-    if any(k in name for k in ("dataframe", "table", "dataset")):
-        return "tabular"
-    if name == "series":
-        return "tabular"
-    if name in ("int", "float", "complex", "number", "numeric"):
+    if canonical in ("int", "float", "complex", "number", "numeric"):
         return "scalar"
-    if name in ("bool", "boolean"):
+    if canonical in ("bool", "boolean", "logical"):
         return "logical"
-    if name in ("str", "string", "text"):
+    if canonical in ("str", "bytes", "bytearray", "text"):
         return "text"
-    if any(name.startswith(k) for k in ("list", "tuple", "set", "sequence", "iterable", "dict", "mapping")):
+    if (
+        canonical in ("list", "tuple", "set", "frozenset", "dict", "mapping", "sequence", "iterable", "collection")
+        or canonical.startswith(("sequence of", "list of", "tuple of", "dict of", "iterable of", "collection of"))
+    ):
         return "collection"
-    if any(k in name for k in ("classifier", "regressor", "estimator", "model")):
-        return "model"
+    if canonical in ("buffer",) or canonical.startswith(("array-like", "array_like", "ndarray", "matrix", "tensor")):
+        return "tensor"
+    if canonical.startswith(("dataframe", "table")):
+        return "table"
 
     return None
+
+
+def extract_param_kind(param: inspect.Parameter) -> str:
+    """Maps inspect.Parameter.kind to NSTL calling convention literal."""
+    if param.kind is inspect.Parameter.POSITIONAL_ONLY:
+        return "positional_only"
+    elif param.kind is inspect.Parameter.KEYWORD_ONLY:
+        return "keyword_only"
+    elif param.kind is inspect.Parameter.VAR_POSITIONAL:
+        return "var_positional"
+    elif param.kind is inspect.Parameter.VAR_KEYWORD:
+        return "var_keyword"
+    return "standard"
+
+
+def extract_docstring_params(doc: str) -> Dict[str, Dict[str, Any]]:
+    """
+    Parses standard NumPy, Google, and Sphinx docstrings to extract documented parameter
+    types and descriptions when runtime annotations are empty or generic.
+    """
+    params: Dict[str, Dict[str, Any]] = {}
+    if not doc:
+        return params
+
+    # 1. NumPy style: Parameters\n----------\nx : int, optional\n    desc
+    np_match = re.search(
+        r"Parameters\s*\n\s*-+\s*\n(.*?)(?:\n\s*\n\s*[A-Z]|\n\s*Returns|\n\s*Raises|\n\s*Yields|\n\s*See Also|\Z)",
+        doc,
+        re.DOTALL,
+    )
+    if np_match:
+        content = np_match.group(1)
+        cur_name = None
+        cur_type = ""
+        cur_desc: List[str] = []
+        base_indent = None
+        for line in content.splitlines():
+            stripped = line.strip()
+            if not stripped:
+                continue
+            m = re.match(r"^(\s*)(\*{0,2}[a-zA-Z_]\w*)\s*:\s*(.*?)$", line)
+            indent_len = len(m.group(1)) if m else 0
+            if m and (base_indent is None or indent_len <= base_indent):
+                if cur_name:
+                    params[cur_name] = {"type": cur_type, "desc": " ".join(cur_desc)}
+                cur_name = m.group(2).strip().lstrip("*")
+                raw_type = m.group(3).strip()
+                cur_type = re.sub(r",?\s*default\s*=.*$", "", raw_type, flags=re.IGNORECASE)
+                cur_type = re.sub(r",?\s*optional\b.*$", "", cur_type, flags=re.IGNORECASE).strip()
+                cur_desc = []
+                base_indent = indent_len
+            elif cur_name:
+                cur_desc.append(stripped)
+        if cur_name:
+            params[cur_name] = {"type": cur_type, "desc": " ".join(cur_desc)}
+
+    # 2. Google style: Args:\n    x (int): desc
+    g_match = re.search(
+        r"Args:\s*\n(.*?)(?:\n\s*\n\s*[A-Z]|\n\s*Returns|\n\s*Raises|\n\s*Yields|\Z)",
+        doc,
+        re.DOTALL,
+    )
+    if g_match:
+        content = g_match.group(1)
+        cur_name = None
+        cur_type = ""
+        cur_desc = []
+        base_indent = None
+        for line in content.splitlines():
+            stripped = line.strip()
+            if not stripped:
+                continue
+            m = re.match(r"^(\s*)([a-zA-Z_]\w*)\s*(?:\(([^)]+)\))?\s*:\s*(.*)$", line)
+            indent_len = len(m.group(1)) if m else 0
+            if m and (base_indent is None or indent_len <= base_indent):
+                if cur_name and cur_name not in params:
+                    params[cur_name] = {"type": cur_type, "desc": " ".join(cur_desc)}
+                cur_name = m.group(2).strip()
+                cur_type = m.group(3).strip() if m.group(3) else ""
+                first_desc = m.group(4).strip()
+                cur_desc = [first_desc] if first_desc else []
+                base_indent = indent_len
+            elif cur_name:
+                cur_desc.append(stripped)
+        if cur_name and cur_name not in params:
+            params[cur_name] = {"type": cur_type, "desc": " ".join(cur_desc)}
+
+    # 3. Sphinx style: :param type name: desc  OR  :type name: type
+    for m in re.finditer(r":param\s+(?:([a-zA-Z_]\w*)\s+)?([a-zA-Z_]\w*)\s*:\s*([^\n]+)", doc):
+        t = m.group(1) or ""
+        name = m.group(2)
+        desc = m.group(3).strip()
+        if name not in params:
+            params[name] = {"type": t, "desc": desc}
+        elif t and not params[name]["type"]:
+            params[name]["type"] = t
+
+    for m in re.finditer(r":type\s+([a-zA-Z_]\w*)\s*:\s*([^\n]+)", doc):
+        name = m.group(1)
+        t = m.group(2).strip()
+        if name in params and not params[name]["type"]:
+            params[name]["type"] = t
+        elif name not in params:
+            params[name] = {"type": t, "desc": ""}
+
+    # 4. Doxygen / Javadoc style: @param name (optional type) desc
+    for m in re.finditer(r"@param\s+([a-zA-Z_]\w*)\s*(?:\(([^)]+)\)\s*)?([^\n]+)", doc):
+        name = m.group(1)
+        t = m.group(2) or ""
+        desc = m.group(3).strip()
+        if name not in params:
+            params[name] = {"type": t, "desc": desc}
+        elif t and not params[name]["type"]:
+            params[name]["type"] = t
+
+    return params
+
+
+def extract_param_constraints(text: str) -> Optional[Dict[str, Any]]:
+    """Extracts numerical intervals, inequalities, and invariants from parameter docstrings."""
+    if not text:
+        return None
+    constraints: Dict[str, Any] = {}
+
+    # Intervals: [a, b], (a, b], [a, b), (a, b)
+    m_int = re.search(r"([\[\(])\s*(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)\s*([\]\)])", text)
+    if m_int:
+        left_bracket, min_val, max_val, right_bracket = m_int.groups()
+        constraints["min"] = float(min_val) if "." in min_val else int(min_val)
+        constraints["max"] = float(max_val) if "." in max_val else int(max_val)
+        if left_bracket == "[" and right_bracket == "]":
+            constraints["interval"] = "closed"
+        elif left_bracket == "(" and right_bracket == "]":
+            constraints["interval"] = "left_open"
+        elif left_bracket == "[" and right_bracket == ")":
+            constraints["interval"] = "right_open"
+        else:
+            constraints["interval"] = "open"
+
+    # Inequalities
+    if "min" not in constraints and "min_exclusive" not in constraints:
+        m_gte = re.search(r">=\s*(-?\d+(?:\.\d+)?)", text)
+        if m_gte:
+            v = m_gte.group(1)
+            constraints["min"] = float(v) if "." in v else int(v)
+        elif re.search(r">\s*(-?\d+(?:\.\d+)?)", text):
+            m_gt = re.search(r">\s*(-?\d+(?:\.\d+)?)", text)
+            v = m_gt.group(1)
+            constraints["min_exclusive"] = float(v) if "." in v else int(v)
+
+    if "max" not in constraints and "max_exclusive" not in constraints:
+        m_lte = re.search(r"<=\s*(-?\d+(?:\.\d+)?)", text)
+        if m_lte:
+            v = m_lte.group(1)
+            constraints["max"] = float(v) if "." in v else int(v)
+        elif re.search(r"<\s*(-?\d+(?:\.\d+)?)", text):
+            m_lt = re.search(r"<\s*(-?\d+(?:\.\d+)?)", text)
+            v = m_lt.group(1)
+            constraints["max_exclusive"] = float(v) if "." in v else int(v)
+
+    # Parity
+    if re.search(r"\bodd\b", text, re.IGNORECASE):
+        constraints["parity"] = "odd"
+    elif re.search(r"\beven\b", text, re.IGNORECASE):
+        constraints["parity"] = "even"
+
+    # Positive / non-negative keywords
+    if "positive" in text.lower() and "min" not in constraints and "min_exclusive" not in constraints:
+        constraints["min_exclusive"] = 0
+    if ("non-negative" in text.lower() or "nonnegative" in text.lower()) and "min" not in constraints:
+        constraints["min"] = 0
+
+    return constraints or None
+
+
+def extract_shape_contract(text: str) -> Optional[Dict[str, Any]]:
+    """Extracts expected rank / ndim tensor contracts from types or docstrings."""
+    if not text:
+        return None
+    shape: Dict[str, Any] = {}
+    m_ndim = re.search(r"\b([1-9]\d*)\s*-?\s*d(?:imensional)?\b", text, re.IGNORECASE)
+    if m_ndim:
+        shape["ndim"] = int(m_ndim.group(1))
+    return shape or None
+
+
+def extract_docstring_raises(doc: str) -> List[str]:
+    """Extracts declared exception types from standard docstrings."""
+    if not doc:
+        return []
+    raises: List[str] = []
+
+    # 1. NumPy style: Raises\n------\nExceptionName\n    desc
+    np_match = re.search(
+        r"Raises\s*\n\s*-+\s*\n(.*?)(?:\n\s*\n\s*[A-Z]|\n\s*Returns|\n\s*Yields|\n\s*See Also|\Z)",
+        doc,
+        re.DOTALL,
+    )
+    if np_match:
+        content = np_match.group(1)
+        base_indent = None
+        for line in content.splitlines():
+            stripped = line.strip()
+            if not stripped:
+                continue
+            indent_len = len(line) - len(line.lstrip(" "))
+            if base_indent is None:
+                base_indent = indent_len
+            if indent_len <= base_indent:
+                exc = stripped.split()[0].rstrip(":,")
+                if exc.isidentifier() and exc[0].isupper():
+                    raises.append(exc)
+
+    # 2. Google style: Raises:\n    ExceptionName: desc
+    g_match = re.search(
+        r"Raises:\s*\n((?:\s+[A-Za-z_]\w*:[^\n]*\n*)+)",
+        doc,
+    )
+    if g_match:
+        for exc in re.findall(r"^\s+([A-Za-z_]\w*):", g_match.group(1), re.MULTILINE):
+            if exc.isidentifier() and exc not in ("Args", "Raises", "Returns"):
+                raises.append(exc)
+
+    # 3. Sphinx style: :raises ExceptionName: desc
+    for exc in re.findall(r":raises?\s+([A-Za-z_]\w*):", doc):
+        if exc.isidentifier():
+            raises.append(exc)
+
+    return list(dict.fromkeys(raises))
+
+
+def extract_ast_raises(source: Optional[str]) -> List[str]:
+    """Extracts exception classes explicitly raised in callable AST source."""
+    if not source:
+        return []
+    try:
+        tree = ast.parse(source)
+        raises: List[str] = []
+        for node in ast.walk(tree):
+            if isinstance(node, ast.Raise) and node.exc:
+                if isinstance(node.exc, ast.Name):
+                    raises.append(node.exc.id)
+                elif isinstance(node.exc, ast.Call):
+                    if isinstance(node.exc.func, ast.Name):
+                        raises.append(node.exc.func.id)
+                    elif isinstance(node.exc.func, ast.Attribute):
+                        raises.append(node.exc.func.attr)
+        return sorted(list(dict.fromkeys(raises)))
+    except Exception:
+        return []
+
+
+def extract_type_vars(sig: inspect.Signature) -> List[str]:
+    """Extracts generic type variables (T, K, V) declared across parameter and return annotations."""
+    type_vars: Set[str] = set()
+    import typing
+    for p in sig.parameters.values():
+        if isinstance(p.annotation, typing.TypeVar):
+            type_vars.add(p.annotation.__name__)
+        for arg in typing.get_args(p.annotation):
+            if isinstance(arg, typing.TypeVar):
+                type_vars.add(arg.__name__)
+    if isinstance(sig.return_annotation, typing.TypeVar):
+        type_vars.add(sig.return_annotation.__name__)
+    for arg in typing.get_args(sig.return_annotation):
+        if isinstance(arg, typing.TypeVar):
+            type_vars.add(arg.__name__)
+    return sorted(list(type_vars))
 
 
 def extract_enum_domain(anno: Any, doc: str = "", param_name: str = "") -> Optional[List[Any]]:
@@ -243,12 +694,6 @@ def extract_enum_domain(anno: Any, doc: str = "", param_name: str = "") -> Optio
             cleaned = [c.strip().strip("'\"") for c in raw_choices if c.strip().strip("'\"")]
             if cleaned:
                 return cleaned
-
-        # 5. Doxygen / C-docstring inspection: @param param_name ... (see #EnumName)
-        m_doxygen = re.search(rf"@param\s+{re.escape(param_name)}\b.*?[sS]ee\s+#?(\w+)", doc)
-        if m_doxygen:
-            enum_name = m_doxygen.group(1).strip()
-            return [enum_name]
 
     return None
 

@@ -665005,7 +665005,6 @@
         "categoricalindex",
         "drop",
         "pandas",
-        "cleaned",
         "categorical",
         "index"
       ],
@@ -665013,7 +665012,6 @@
         "categoricalindex",
         "drop",
         "pandas",
-        "cleaned",
         "categorical",
         "index"
       ],
@@ -665121,7 +665119,6 @@
         "categoricalindex",
         "droplevel",
         "pandas",
-        "cleaned",
         "categorical",
         "index"
       ],
@@ -665129,7 +665126,6 @@
         "categoricalindex",
         "droplevel",
         "pandas",
-        "cleaned",
         "categorical",
         "index"
       ],
@@ -671373,7 +671369,6 @@
         "dataframe",
         "drop",
         "pandas",
-        "cleaned",
         "data",
         "frame"
       ],
@@ -671381,7 +671376,6 @@
         "dataframe",
         "drop",
         "pandas",
-        "cleaned",
         "data",
         "frame"
       ],
@@ -671475,7 +671469,6 @@
         "dataframe",
         "droplevel",
         "pandas",
-        "cleaned",
         "data",
         "frame"
       ],
@@ -671483,7 +671476,6 @@
         "dataframe",
         "droplevel",
         "pandas",
-        "cleaned",
         "data",
         "frame"
       ],
@@ -680800,7 +680792,6 @@
         "datetimeindex",
         "drop",
         "pandas",
-        "cleaned",
         "datetime",
         "index"
       ],
@@ -680808,7 +680799,6 @@
         "datetimeindex",
         "drop",
         "pandas",
-        "cleaned",
         "datetime",
         "index"
       ],
@@ -680916,7 +680906,6 @@
         "datetimeindex",
         "droplevel",
         "pandas",
-        "cleaned",
         "datetime",
         "index"
       ],
@@ -680924,7 +680913,6 @@
         "datetimeindex",
         "droplevel",
         "pandas",
-        "cleaned",
         "datetime",
         "index"
       ],
@@ -689635,14 +689623,12 @@
       "semantic_tags": [
         "index",
         "drop",
-        "pandas",
-        "cleaned"
+        "pandas"
       ],
       "keywords": [
         "index",
         "drop",
-        "pandas",
-        "cleaned"
+        "pandas"
       ],
       "docstring": "Immutable sequence used for indexing and alignment.",
       "enrichment_source": "docs",
@@ -689743,14 +689729,12 @@
       "semantic_tags": [
         "index",
         "droplevel",
-        "pandas",
-        "cleaned"
+        "pandas"
       ],
       "keywords": [
         "index",
         "droplevel",
-        "pandas",
-        "cleaned"
+        "pandas"
       ],
       "docstring": "Immutable sequence used for indexing and alignment.",
       "enrichment_source": "docs",
@@ -696279,7 +696263,6 @@
         "intervalindex",
         "drop",
         "pandas",
-        "cleaned",
         "interval",
         "index"
       ],
@@ -696287,7 +696270,6 @@
         "intervalindex",
         "drop",
         "pandas",
-        "cleaned",
         "interval",
         "index"
       ],
@@ -696395,7 +696377,6 @@
         "intervalindex",
         "droplevel",
         "pandas",
-        "cleaned",
         "interval",
         "index"
       ],
@@ -696403,7 +696384,6 @@
         "intervalindex",
         "droplevel",
         "pandas",
-        "cleaned",
         "interval",
         "index"
       ],
@@ -701456,7 +701436,6 @@
         "multiindex",
         "drop",
         "pandas",
-        "cleaned",
         "multi",
         "index"
       ],
@@ -701464,7 +701443,6 @@
         "multiindex",
         "drop",
         "pandas",
-        "cleaned",
         "multi",
         "index"
       ],
@@ -701572,7 +701550,6 @@
         "multiindex",
         "droplevel",
         "pandas",
-        "cleaned",
         "multi",
         "index"
       ],
@@ -701580,7 +701557,6 @@
         "multiindex",
         "droplevel",
         "pandas",
-        "cleaned",
         "multi",
         "index"
       ],
@@ -707933,7 +707909,6 @@
         "periodindex",
         "drop",
         "pandas",
-        "cleaned",
         "period",
         "index"
       ],
@@ -707941,7 +707916,6 @@
         "periodindex",
         "drop",
         "pandas",
-        "cleaned",
         "period",
         "index"
       ],
@@ -708049,7 +708023,6 @@
         "periodindex",
         "droplevel",
         "pandas",
-        "cleaned",
         "period",
         "index"
       ],
@@ -708057,7 +708030,6 @@
         "periodindex",
         "droplevel",
         "pandas",
-        "cleaned",
         "period",
         "index"
       ],
@@ -713048,7 +713020,6 @@
         "rangeindex",
         "drop",
         "pandas",
-        "cleaned",
         "range",
         "index"
       ],
@@ -713056,7 +713027,6 @@
         "rangeindex",
         "drop",
         "pandas",
-        "cleaned",
         "range",
         "index"
       ],
@@ -713164,7 +713134,6 @@
         "rangeindex",
         "droplevel",
         "pandas",
-        "cleaned",
         "range",
         "index"
       ],
@@ -713172,7 +713141,6 @@
         "rangeindex",
         "droplevel",
         "pandas",
-        "cleaned",
         "range",
         "index"
       ],
@@ -719193,14 +719161,12 @@
       "semantic_tags": [
         "series",
         "drop",
-        "pandas",
-        "cleaned"
+        "pandas"
       ],
       "keywords": [
         "series",
         "drop",
-        "pandas",
-        "cleaned"
+        "pandas"
       ],
       "docstring": "Return Series with specified index labels removed.",
       "enrichment_source": "docs",
@@ -719287,14 +719253,12 @@
       "semantic_tags": [
         "series",
         "droplevel",
-        "pandas",
-        "cleaned"
+        "pandas"
       ],
       "keywords": [
         "series",
         "droplevel",
-        "pandas",
-        "cleaned"
+        "pandas"
       ],
       "docstring": "Return Series/DataFrame with requested index / column level(s) removed.",
       "enrichment_source": "docs",
@@ -727999,7 +727963,6 @@
         "timedeltaindex",
         "drop",
         "pandas",
-        "cleaned",
         "timedelta",
         "index"
       ],
@@ -728007,7 +727970,6 @@
         "timedeltaindex",
         "drop",
         "pandas",
-        "cleaned",
         "timedelta",
         "index"
       ],
@@ -728115,7 +728077,6 @@
         "timedeltaindex",
         "droplevel",
         "pandas",
-        "cleaned",
         "timedelta",
         "index"
       ],
@@ -728123,7 +728084,6 @@
         "timedeltaindex",
         "droplevel",
         "pandas",
-        "cleaned",
         "timedelta",
         "index"
       ],
@@ -740746,13 +740706,11 @@
       ],
       "semantic_tags": [
         "drop",
-        "pandas",
-        "cleaned"
+        "pandas"
       ],
       "keywords": [
         "drop",
-        "pandas",
-        "cleaned"
+        "pandas"
       ],
       "docstring": "Drop specified labels from rows or columns.",
       "enrichment_source": null,
@@ -740836,13 +740794,11 @@
       ],
       "semantic_tags": [
         "droplevel",
-        "pandas",
-        "cleaned"
+        "pandas"
       ],
       "keywords": [
         "droplevel",
-        "pandas",
-        "cleaned"
+        "pandas"
       ],
       "docstring": "Return Series/DataFrame with requested index / column level(s) removed.",
       "enrichment_source": null,

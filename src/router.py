@@ -177,12 +177,8 @@ class LatticeRouter:
                 # rank cap amputates correct stages when the tau window holds
                 # hundreds of near-tied candidates (measured: correct ingestion at
                 # rank 1287/1569 under a global cap).
-                tau = max(self.epsilon, 0.01)
-                window = max(self.gamma, 1e-5) * math.log(1.0 / tau)
-                group_max = max(clause_scores.values())
-                kept = [(c, s) for c, s in clause_scores.items() if s >= group_max - window]
-                kept.sort(key=lambda x: x[1], reverse=True)
-                grouped_candidates.append(dict(kept[:100]))
+                kept = sorted(clause_scores.items(), key=lambda x: x[1], reverse=True)[:100]
+                grouped_candidates.append(dict(kept))
 
             candidates_with_scores = self._tunnel_from_groups(grouped_candidates)
 
@@ -270,8 +266,10 @@ class LatticeRouter:
             if not group:
                 continue
             items = list(group.items())
-            scores = np.array([s for _, s in items], dtype=np.float64)
-            scaled = scores / max(self.gamma, 1e-5)
+            raw_scores = np.array([s for _, s in items], dtype=np.float64)
+            max_s = np.max(raw_scores)
+            norm_scores = raw_scores / max(max_s, 1e-6)
+            scaled = norm_scores / max(self.gamma, 1e-5)
             shifted = scaled - np.max(scaled)
             exp_scores = np.exp(shifted)
             probs = exp_scores / np.sum(exp_scores)

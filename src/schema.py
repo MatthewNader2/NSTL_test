@@ -15,6 +15,19 @@ class PortSchema(BaseModel):
     required: bool = True
     abstract_type: Optional[str] = None
     enum_values: Optional[List[Any]] = None
+    param_kind: Optional[str] = "standard"  # "positional_only", "keyword_only", "var_positional", "var_keyword", "standard"
+    value_constraints: Optional[Dict[str, Any]] = None  # e.g. {"min": 0, "max": 1, "interval": "[0, 1]"}
+    shape_contract: Optional[Dict[str, Any]] = None  # e.g. {"ndim": 2}
+
+    @field_validator("abstract_type", mode="before")
+    @classmethod
+    def clean_abstract_type(cls, v: Any) -> Optional[str]:
+        if v is None:
+            return None
+        v_str = str(v).strip()
+        if v_str.lower() in ("", "none", "null"):
+            return None
+        return v_str
 
 class CellSchema(BaseModel):
     model_config = ConfigDict(extra="ignore")
@@ -40,6 +53,10 @@ class CellSchema(BaseModel):
     verified: bool = True
     source_priority: int = 100  # 1 = curated seed, 100 = auto-harvested
     is_public: bool = True
+    mutation_type: str = "pure"  # "pure" | "in_place"
+    is_context_manager: bool = False
+    raises: List[str] = Field(default_factory=list)
+    type_vars: List[str] = Field(default_factory=list)
 
     @field_validator("topology_type")
     @classmethod
@@ -53,6 +70,10 @@ class CellSchema(BaseModel):
     def primary_input(self) -> PortSchema:
         if not self.inputs:
             return PortSchema(type_name="any", state="any")
+        required = [p for p in self.inputs.values() if p.required]
+        if required:
+            non_scalar = [p for p in required if (p.abstract_type or "").lower() not in ("scalar", "text", "path", "logical")]
+            return non_scalar[0] if non_scalar else required[0]
         return next(iter(self.inputs.values()))
 
     @property

@@ -1,6 +1,6 @@
 {
   "domain": "functools",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "cells": [
     {
       "cell_id": "FUNCTOOLS_WRAPPER_ASSIGNMENTS",
@@ -14,20 +14,30 @@
           "default_value": null,
           "description": null,
           "domain": null,
-          "required": true
+          "required": true,
+          "abstract_type": "collection",
+          "enum_values": null,
+          "param_kind": "standard",
+          "value_constraints": null,
+          "shape_contract": null
         }
       },
+      "topology_type": "sequential",
       "slots": {},
+      "feedback_state_type": null,
+      "bound_slots": {},
       "code_template": "functools.WRAPPER_ASSIGNMENTS",
       "dependencies": [
         "import functools"
       ],
       "semantic_tags": [
+        "assign",
         "assignments",
         "wrapper",
         "wrapper_assignments"
       ],
       "keywords": [
+        "assign",
         "assignments",
         "wrapper",
         "wrapper_assignments"
@@ -39,7 +49,12 @@
       "node_type": "constant",
       "node_role": "constant",
       "verified": true,
-      "source_priority": 100
+      "source_priority": 10,
+      "is_public": true,
+      "mutation_type": "pure",
+      "is_context_manager": false,
+      "raises": [],
+      "type_vars": []
     },
     {
       "cell_id": "FUNCTOOLS_WRAPPER_UPDATES",
@@ -53,20 +68,30 @@
           "default_value": null,
           "description": null,
           "domain": null,
-          "required": true
+          "required": true,
+          "abstract_type": "collection",
+          "enum_values": null,
+          "param_kind": "standard",
+          "value_constraints": null,
+          "shape_contract": null
         }
       },
+      "topology_type": "sequential",
       "slots": {},
+      "feedback_state_type": null,
+      "bound_slots": {},
       "code_template": "functools.WRAPPER_UPDATES",
       "dependencies": [
         "import functools"
       ],
       "semantic_tags": [
+        "updat",
         "updates",
         "wrapper",
         "wrapper_updates"
       ],
       "keywords": [
+        "updat",
         "updates",
         "wrapper",
         "wrapper_updates"
@@ -78,11 +103,16 @@
       "node_type": "constant",
       "node_role": "constant",
       "verified": true,
-      "source_priority": 100
+      "source_priority": 10,
+      "is_public": true,
+      "mutation_type": "pure",
+      "is_context_manager": false,
+      "raises": [],
+      "type_vars": []
     },
     {
       "cell_id": "FUNCTOOLS_CACHED_PROPERTY_INIT",
-      "stage": 1,
+      "stage": 2,
       "inputs": {
         "func": {
           "type_name": "any",
@@ -91,7 +121,12 @@
           "default_value": null,
           "description": "Constructor argument func",
           "domain": null,
-          "required": true
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "standard",
+          "value_constraints": null,
+          "shape_contract": null
         }
       },
       "outputs": {
@@ -102,22 +137,34 @@
           "default_value": null,
           "description": "Newly constructed cached_property",
           "domain": null,
-          "required": true
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "standard",
+          "value_constraints": null,
+          "shape_contract": null
         }
       },
+      "topology_type": "sequential",
       "slots": {},
+      "feedback_state_type": null,
+      "bound_slots": {},
       "code_template": "{output_var} = functools.cached_property({func})",
       "dependencies": [
         "import functools"
       ],
       "semantic_tags": [
+        "cach",
         "cached",
         "cached_property",
+        "properti",
         "property"
       ],
       "keywords": [
+        "cach",
         "cached",
         "cached_property",
+        "properti",
         "property"
       ],
       "docstring": "Construct a new cached_property",
@@ -125,13 +172,18 @@
       "enriched_at": null,
       "domain_name": "functools",
       "node_type": "constructor",
-      "node_role": "source",
+      "node_role": "constructor",
       "verified": true,
-      "source_priority": 50
+      "source_priority": 10,
+      "is_public": true,
+      "mutation_type": "pure",
+      "is_context_manager": false,
+      "raises": [],
+      "type_vars": []
     },
     {
       "cell_id": "FUNCTOOLS_PARTIAL_INIT",
-      "stage": 1,
+      "stage": 2,
       "inputs": {
         "func": {
           "type_name": "any",
@@ -140,7 +192,40 @@
           "default_value": null,
           "description": "Constructor argument func",
           "domain": null,
-          "required": true
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "positional_only",
+          "value_constraints": null,
+          "shape_contract": null
+        },
+        "args": {
+          "type_name": "any",
+          "state": "any",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Variadic argument *args",
+          "domain": null,
+          "required": false,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "var_positional",
+          "value_constraints": null,
+          "shape_contract": null
+        },
+        "keywords": {
+          "type_name": "any",
+          "state": "any",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Keyword arguments **keywords",
+          "domain": null,
+          "required": false,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "var_keyword",
+          "value_constraints": null,
+          "shape_contract": null
         }
       },
       "outputs": {
@@ -151,10 +236,18 @@
           "default_value": null,
           "description": "Newly constructed partial",
           "domain": null,
-          "required": true
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "standard",
+          "value_constraints": null,
+          "shape_contract": null
         }
       },
+      "topology_type": "sequential",
       "slots": {},
+      "feedback_state_type": null,
+      "bound_slots": {},
       "code_template": "{output_var} = functools.partial({func})",
       "dependencies": [
         "import functools"
@@ -170,13 +263,18 @@
       "enriched_at": null,
       "domain_name": "functools",
       "node_type": "constructor",
-      "node_role": "source",
+      "node_role": "constructor",
       "verified": true,
-      "source_priority": 50
+      "source_priority": 10,
+      "is_public": true,
+      "mutation_type": "pure",
+      "is_context_manager": false,
+      "raises": [],
+      "type_vars": []
     },
     {
       "cell_id": "FUNCTOOLS_PARTIALMETHOD_INIT",
-      "stage": 1,
+      "stage": 2,
       "inputs": {
         "func": {
           "type_name": "any",
@@ -185,7 +283,40 @@
           "default_value": null,
           "description": "Constructor argument func",
           "domain": null,
-          "required": true
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "positional_only",
+          "value_constraints": null,
+          "shape_contract": null
+        },
+        "args": {
+          "type_name": "any",
+          "state": "any",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Variadic argument *args",
+          "domain": null,
+          "required": false,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "var_positional",
+          "value_constraints": null,
+          "shape_contract": null
+        },
+        "keywords": {
+          "type_name": "any",
+          "state": "any",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Keyword arguments **keywords",
+          "domain": null,
+          "required": false,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "var_keyword",
+          "value_constraints": null,
+          "shape_contract": null
         }
       },
       "outputs": {
@@ -196,10 +327,18 @@
           "default_value": null,
           "description": "Newly constructed partialmethod",
           "domain": null,
-          "required": true
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "standard",
+          "value_constraints": null,
+          "shape_contract": null
         }
       },
+      "topology_type": "sequential",
       "slots": {},
+      "feedback_state_type": null,
+      "bound_slots": {},
       "code_template": "{output_var} = functools.partialmethod({func})",
       "dependencies": [
         "import functools"
@@ -215,13 +354,18 @@
       "enriched_at": null,
       "domain_name": "functools",
       "node_type": "constructor",
-      "node_role": "source",
+      "node_role": "constructor",
       "verified": true,
-      "source_priority": 50
+      "source_priority": 10,
+      "is_public": true,
+      "mutation_type": "pure",
+      "is_context_manager": false,
+      "raises": [],
+      "type_vars": []
     },
     {
       "cell_id": "FUNCTOOLS_SINGLEDISPATCHMETHOD_INIT",
-      "stage": 1,
+      "stage": 2,
       "inputs": {
         "func": {
           "type_name": "any",
@@ -230,7 +374,12 @@
           "default_value": null,
           "description": "Constructor argument func",
           "domain": null,
-          "required": true
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "standard",
+          "value_constraints": null,
+          "shape_contract": null
         }
       },
       "outputs": {
@@ -241,10 +390,18 @@
           "default_value": null,
           "description": "Newly constructed singledispatchmethod",
           "domain": null,
-          "required": true
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "standard",
+          "value_constraints": null,
+          "shape_contract": null
         }
       },
+      "topology_type": "sequential",
       "slots": {},
+      "feedback_state_type": null,
+      "bound_slots": {},
       "code_template": "{output_var} = functools.singledispatchmethod({func})",
       "dependencies": [
         "import functools"
@@ -260,13 +417,18 @@
       "enriched_at": null,
       "domain_name": "functools",
       "node_type": "constructor",
-      "node_role": "source",
+      "node_role": "constructor",
       "verified": true,
-      "source_priority": 50
+      "source_priority": 10,
+      "is_public": true,
+      "mutation_type": "pure",
+      "is_context_manager": false,
+      "raises": [],
+      "type_vars": []
     },
     {
       "cell_id": "FUNCTOOLS_SINGLEDISPATCHMETHOD_REGISTER",
-      "stage": 3,
+      "stage": 2,
       "inputs": {
         "data": {
           "type_name": "singledispatchmethod",
@@ -275,7 +437,12 @@
           "default_value": null,
           "description": "Receiver instance of singledispatchmethod",
           "domain": null,
-          "required": true
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "standard",
+          "value_constraints": null,
+          "shape_contract": null
         },
         "cls": {
           "type_name": "any",
@@ -284,7 +451,12 @@
           "default_value": null,
           "description": "Argument cls",
           "domain": null,
-          "required": true
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "standard",
+          "value_constraints": null,
+          "shape_contract": null
         },
         "method": {
           "type_name": "any",
@@ -293,30 +465,45 @@
           "default_value": null,
           "description": "Argument method",
           "domain": null,
-          "required": false
+          "required": false,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "standard",
+          "value_constraints": null,
+          "shape_contract": null
         }
       },
       "outputs": {
         "output_data": {
-          "type_name": "str",
-          "state": "destination_written",
+          "type_name": "any",
+          "state": "raw",
           "qualifiers": [],
           "default_value": null,
-          "description": "Output destination_written",
+          "description": "Output raw",
           "domain": null,
-          "required": true
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "standard",
+          "value_constraints": null,
+          "shape_contract": null
         }
       },
+      "topology_type": "sequential",
       "slots": {},
-      "code_template": "{data}.register({cls})\n{output_var} = 'done'",
+      "feedback_state_type": null,
+      "bound_slots": {},
+      "code_template": "{output_var} = {data}.register({cls})",
       "dependencies": [
         "import functools"
       ],
       "semantic_tags": [
+        "regist",
         "register",
         "singledispatchmethod"
       ],
       "keywords": [
+        "regist",
         "register",
         "singledispatchmethod"
       ],
@@ -324,10 +511,15 @@
       "enrichment_source": null,
       "enriched_at": null,
       "domain_name": "functools",
-      "node_type": "sink",
-      "node_role": "sink",
+      "node_type": "bridge",
+      "node_role": "tunnel",
       "verified": true,
-      "source_priority": 50
+      "source_priority": 90,
+      "is_public": false,
+      "mutation_type": "pure",
+      "is_context_manager": false,
+      "raises": [],
+      "type_vars": []
     },
     {
       "cell_id": "FUNCTOOLS_CACHE",
@@ -340,29 +532,44 @@
           "default_value": null,
           "description": "Argument user_function",
           "domain": null,
-          "required": true
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "positional_only",
+          "value_constraints": null,
+          "shape_contract": null
         }
       },
       "outputs": {
         "output_data": {
           "type_name": "any",
-          "state": "transformed",
+          "state": "raw",
           "qualifiers": [],
           "default_value": null,
-          "description": "Output transformed",
+          "description": "Output raw",
           "domain": null,
-          "required": true
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "standard",
+          "value_constraints": null,
+          "shape_contract": null
         }
       },
+      "topology_type": "sequential",
       "slots": {},
+      "feedback_state_type": null,
+      "bound_slots": {},
       "code_template": "{output_var} = functools.cache({user_function})",
       "dependencies": [
         "import functools"
       ],
       "semantic_tags": [
+        "cach",
         "cache"
       ],
       "keywords": [
+        "cach",
         "cache"
       ],
       "docstring": "Simple lightweight unbounded cache.  Sometimes called \"memoize\".",
@@ -372,7 +579,12 @@
       "node_type": "function",
       "node_role": "transform",
       "verified": true,
-      "source_priority": 50
+      "source_priority": 60,
+      "is_public": true,
+      "mutation_type": "pure",
+      "is_context_manager": false,
+      "raises": [],
+      "type_vars": []
     },
     {
       "cell_id": "FUNCTOOLS_CMP_TO_KEY",
@@ -385,21 +597,34 @@
           "default_value": null,
           "description": "Argument mycmp",
           "domain": null,
-          "required": true
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "standard",
+          "value_constraints": null,
+          "shape_contract": null
         }
       },
       "outputs": {
         "output_data": {
           "type_name": "any",
-          "state": "transformed",
+          "state": "raw",
           "qualifiers": [],
           "default_value": null,
-          "description": "Output transformed",
+          "description": "Output raw",
           "domain": null,
-          "required": true
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "standard",
+          "value_constraints": null,
+          "shape_contract": null
         }
       },
+      "topology_type": "sequential",
       "slots": {},
+      "feedback_state_type": null,
+      "bound_slots": {},
       "code_template": "{output_var} = functools.cmp_to_key({mycmp})",
       "dependencies": [
         "import functools"
@@ -407,12 +632,14 @@
       "semantic_tags": [
         "cmp",
         "cmp_to_key",
+        "kei",
         "key",
         "to"
       ],
       "keywords": [
         "cmp",
         "cmp_to_key",
+        "kei",
         "key",
         "to"
       ],
@@ -423,7 +650,12 @@
       "node_type": "function",
       "node_role": "transform",
       "verified": true,
-      "source_priority": 50
+      "source_priority": 60,
+      "is_public": true,
+      "mutation_type": "pure",
+      "is_context_manager": false,
+      "raises": [],
+      "type_vars": []
     },
     {
       "cell_id": "FUNCTOOLS_LRU_CACHE",
@@ -433,43 +665,67 @@
           "type_name": "any",
           "state": "any",
           "qualifiers": [],
-          "default_value": null,
+          "default_value": 128,
           "description": "Argument maxsize",
           "domain": null,
-          "required": false
+          "required": false,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "standard",
+          "value_constraints": {
+            "parity": "even"
+          },
+          "shape_contract": null
         },
         "typed": {
           "type_name": "any",
           "state": "any",
           "qualifiers": [],
-          "default_value": null,
+          "default_value": false,
           "description": "Argument typed",
           "domain": null,
-          "required": false
+          "required": false,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "standard",
+          "value_constraints": {
+            "parity": "even"
+          },
+          "shape_contract": null
         }
       },
       "outputs": {
         "output_data": {
           "type_name": "any",
-          "state": "transformed",
+          "state": "raw",
           "qualifiers": [],
           "default_value": null,
-          "description": "Output transformed",
+          "description": "Output raw",
           "domain": null,
-          "required": true
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "standard",
+          "value_constraints": null,
+          "shape_contract": null
         }
       },
+      "topology_type": "sequential",
       "slots": {},
+      "feedback_state_type": null,
+      "bound_slots": {},
       "code_template": "{output_var} = functools.lru_cache()",
       "dependencies": [
         "import functools"
       ],
       "semantic_tags": [
+        "cach",
         "cache",
         "lru",
         "lru_cache"
       ],
       "keywords": [
+        "cach",
         "cache",
         "lru",
         "lru_cache"
@@ -481,7 +737,107 @@
       "node_type": "function",
       "node_role": "transform",
       "verified": true,
-      "source_priority": 50
+      "source_priority": 60,
+      "is_public": true,
+      "mutation_type": "pure",
+      "is_context_manager": false,
+      "raises": [
+        "TypeError"
+      ],
+      "type_vars": []
+    },
+    {
+      "cell_id": "FUNCTOOLS_REDUCE",
+      "stage": 1,
+      "inputs": {
+        "function": {
+          "type_name": "any",
+          "state": "any",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Argument function",
+          "domain": null,
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "standard",
+          "value_constraints": null,
+          "shape_contract": null
+        },
+        "iterable": {
+          "type_name": "any",
+          "state": "any",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Argument iterable",
+          "domain": null,
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "standard",
+          "value_constraints": null,
+          "shape_contract": null
+        },
+        "initial": {
+          "type_name": "any",
+          "state": "any",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Argument initial",
+          "domain": null,
+          "required": false,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "standard",
+          "value_constraints": null,
+          "shape_contract": null
+        }
+      },
+      "outputs": {
+        "output_data": {
+          "type_name": "value",
+          "state": "raw",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Output raw",
+          "domain": null,
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "standard",
+          "value_constraints": null,
+          "shape_contract": null
+        }
+      },
+      "topology_type": "sequential",
+      "slots": {},
+      "feedback_state_type": null,
+      "bound_slots": {},
+      "code_template": "{output_var} = functools.reduce({function}, {iterable})",
+      "dependencies": [
+        "import functools"
+      ],
+      "semantic_tags": [
+        "reduc",
+        "reduce"
+      ],
+      "keywords": [
+        "reduc",
+        "reduce"
+      ],
+      "docstring": "reduce(function, iterable[, initial], /) -> value",
+      "enrichment_source": null,
+      "enriched_at": null,
+      "domain_name": "functools",
+      "node_type": "source",
+      "node_role": "source",
+      "verified": true,
+      "source_priority": 10,
+      "is_public": true,
+      "mutation_type": "pure",
+      "is_context_manager": false,
+      "raises": [],
+      "type_vars": []
     },
     {
       "cell_id": "FUNCTOOLS_SINGLEDISPATCH",
@@ -494,21 +850,34 @@
           "default_value": null,
           "description": "Argument func",
           "domain": null,
-          "required": true
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "standard",
+          "value_constraints": null,
+          "shape_contract": null
         }
       },
       "outputs": {
         "output_data": {
           "type_name": "any",
-          "state": "transformed",
+          "state": "raw",
           "qualifiers": [],
           "default_value": null,
-          "description": "Output transformed",
+          "description": "Output raw",
           "domain": null,
-          "required": true
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "standard",
+          "value_constraints": null,
+          "shape_contract": null
         }
       },
+      "topology_type": "sequential",
       "slots": {},
+      "feedback_state_type": null,
+      "bound_slots": {},
       "code_template": "{output_var} = functools.singledispatch({func})",
       "dependencies": [
         "import functools"
@@ -526,7 +895,14 @@
       "node_type": "function",
       "node_role": "transform",
       "verified": true,
-      "source_priority": 50
+      "source_priority": 60,
+      "is_public": true,
+      "mutation_type": "pure",
+      "is_context_manager": false,
+      "raises": [
+        "TypeError"
+      ],
+      "type_vars": []
     },
     {
       "cell_id": "FUNCTOOLS_TOTAL_ORDERING",
@@ -539,31 +915,46 @@
           "default_value": null,
           "description": "Argument cls",
           "domain": null,
-          "required": true
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "standard",
+          "value_constraints": null,
+          "shape_contract": null
         }
       },
       "outputs": {
         "output_data": {
           "type_name": "any",
-          "state": "transformed",
+          "state": "raw",
           "qualifiers": [],
           "default_value": null,
-          "description": "Output transformed",
+          "description": "Output raw",
           "domain": null,
-          "required": true
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "standard",
+          "value_constraints": null,
+          "shape_contract": null
         }
       },
+      "topology_type": "sequential",
       "slots": {},
+      "feedback_state_type": null,
+      "bound_slots": {},
       "code_template": "{output_var} = functools.total_ordering({cls})",
       "dependencies": [
         "import functools"
       ],
       "semantic_tags": [
+        "order",
         "ordering",
         "total",
         "total_ordering"
       ],
       "keywords": [
+        "order",
         "ordering",
         "total",
         "total_ordering"
@@ -575,7 +966,14 @@
       "node_type": "function",
       "node_role": "transform",
       "verified": true,
-      "source_priority": 50
+      "source_priority": 60,
+      "is_public": true,
+      "mutation_type": "pure",
+      "is_context_manager": false,
+      "raises": [
+        "ValueError"
+      ],
+      "type_vars": []
     },
     {
       "cell_id": "FUNCTOOLS_UPDATE_WRAPPER",
@@ -588,7 +986,12 @@
           "default_value": null,
           "description": "Argument wrapper",
           "domain": null,
-          "required": true
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "standard",
+          "value_constraints": null,
+          "shape_contract": null
         },
         "wrapped": {
           "type_name": "any",
@@ -597,49 +1000,83 @@
           "default_value": null,
           "description": "Argument wrapped",
           "domain": null,
-          "required": true
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "standard",
+          "value_constraints": null,
+          "shape_contract": null
         },
         "assigned": {
           "type_name": "any",
           "state": "any",
           "qualifiers": [],
-          "default_value": null,
+          "default_value": [
+            "__module__",
+            "__name__",
+            "__qualname__",
+            "__doc__",
+            "__annotations__",
+            "__type_params__"
+          ],
           "description": "Argument assigned",
           "domain": null,
-          "required": false
+          "required": false,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "standard",
+          "value_constraints": null,
+          "shape_contract": null
         },
         "updated": {
           "type_name": "any",
           "state": "any",
           "qualifiers": [],
-          "default_value": null,
+          "default_value": [
+            "__dict__"
+          ],
           "description": "Argument updated",
           "domain": null,
-          "required": false
+          "required": false,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "standard",
+          "value_constraints": null,
+          "shape_contract": null
         }
       },
       "outputs": {
         "output_data": {
           "type_name": "any",
-          "state": "transformed",
+          "state": "raw",
           "qualifiers": [],
           "default_value": null,
-          "description": "Output transformed",
+          "description": "Output raw",
           "domain": null,
-          "required": true
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "standard",
+          "value_constraints": null,
+          "shape_contract": null
         }
       },
+      "topology_type": "sequential",
       "slots": {},
+      "feedback_state_type": null,
+      "bound_slots": {},
       "code_template": "{output_var} = functools.update_wrapper({wrapper}, {wrapped})",
       "dependencies": [
         "import functools"
       ],
       "semantic_tags": [
+        "updat",
         "update",
         "update_wrapper",
         "wrapper"
       ],
       "keywords": [
+        "updat",
         "update",
         "update_wrapper",
         "wrapper"
@@ -651,7 +1088,12 @@
       "node_type": "function",
       "node_role": "transform",
       "verified": true,
-      "source_priority": 50
+      "source_priority": 60,
+      "is_public": true,
+      "mutation_type": "pure",
+      "is_context_manager": false,
+      "raises": [],
+      "type_vars": []
     },
     {
       "cell_id": "FUNCTOOLS_WRAPS",
@@ -664,47 +1106,81 @@
           "default_value": null,
           "description": "Argument wrapped",
           "domain": null,
-          "required": true
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "standard",
+          "value_constraints": null,
+          "shape_contract": null
         },
         "assigned": {
           "type_name": "any",
           "state": "any",
           "qualifiers": [],
-          "default_value": null,
+          "default_value": [
+            "__module__",
+            "__name__",
+            "__qualname__",
+            "__doc__",
+            "__annotations__",
+            "__type_params__"
+          ],
           "description": "Argument assigned",
           "domain": null,
-          "required": false
+          "required": false,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "standard",
+          "value_constraints": null,
+          "shape_contract": null
         },
         "updated": {
           "type_name": "any",
           "state": "any",
           "qualifiers": [],
-          "default_value": null,
+          "default_value": [
+            "__dict__"
+          ],
           "description": "Argument updated",
           "domain": null,
-          "required": false
+          "required": false,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "standard",
+          "value_constraints": null,
+          "shape_contract": null
         }
       },
       "outputs": {
         "output_data": {
           "type_name": "any",
-          "state": "transformed",
+          "state": "raw",
           "qualifiers": [],
           "default_value": null,
-          "description": "Output transformed",
+          "description": "Output raw",
           "domain": null,
-          "required": true
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "standard",
+          "value_constraints": null,
+          "shape_contract": null
         }
       },
+      "topology_type": "sequential",
       "slots": {},
+      "feedback_state_type": null,
+      "bound_slots": {},
       "code_template": "{output_var} = functools.wraps({wrapped})",
       "dependencies": [
         "import functools"
       ],
       "semantic_tags": [
+        "wrap",
         "wraps"
       ],
       "keywords": [
+        "wrap",
         "wraps"
       ],
       "docstring": "Decorator factory to apply update_wrapper() to a wrapper function",
@@ -714,7 +1190,12 @@
       "node_type": "function",
       "node_role": "transform",
       "verified": true,
-      "source_priority": 50
+      "source_priority": 60,
+      "is_public": true,
+      "mutation_type": "pure",
+      "is_context_manager": false,
+      "raises": [],
+      "type_vars": []
     }
   ]
 }

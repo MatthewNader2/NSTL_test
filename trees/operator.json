@@ -1,10 +1,10 @@
 {
   "domain": "operator",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "cells": [
     {
       "cell_id": "OPERATOR_ATTRGETTER_INIT",
-      "stage": 1,
+      "stage": 2,
       "inputs": {
         "attr": {
           "type_name": "any",
@@ -13,7 +13,26 @@
           "default_value": null,
           "description": "Constructor argument attr",
           "domain": null,
-          "required": true
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "positional_only",
+          "value_constraints": null,
+          "shape_contract": null
+        },
+        "attrs": {
+          "type_name": "any",
+          "state": "any",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Variadic argument *attrs",
+          "domain": null,
+          "required": false,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "var_positional",
+          "value_constraints": null,
+          "shape_contract": null
         }
       },
       "outputs": {
@@ -24,18 +43,28 @@
           "default_value": null,
           "description": "Newly constructed attrgetter",
           "domain": null,
-          "required": true
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "standard",
+          "value_constraints": null,
+          "shape_contract": null
         }
       },
+      "topology_type": "sequential",
       "slots": {},
+      "feedback_state_type": null,
+      "bound_slots": {},
       "code_template": "{output_var} = operator.attrgetter({attr})",
       "dependencies": [
         "import operator"
       ],
       "semantic_tags": [
+        "attrgett",
         "attrgetter"
       ],
       "keywords": [
+        "attrgett",
         "attrgetter"
       ],
       "docstring": "Return a callable object that fetches the given attribute(s) from its operand.",
@@ -43,13 +72,18 @@
       "enriched_at": null,
       "domain_name": "operator",
       "node_type": "constructor",
-      "node_role": "source",
+      "node_role": "constructor",
       "verified": true,
-      "source_priority": 50
+      "source_priority": 10,
+      "is_public": true,
+      "mutation_type": "pure",
+      "is_context_manager": false,
+      "raises": [],
+      "type_vars": []
     },
     {
       "cell_id": "OPERATOR_ITEMGETTER_INIT",
-      "stage": 1,
+      "stage": 2,
       "inputs": {
         "item": {
           "type_name": "any",
@@ -58,7 +92,26 @@
           "default_value": null,
           "description": "Constructor argument item",
           "domain": null,
-          "required": true
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "positional_only",
+          "value_constraints": null,
+          "shape_contract": null
+        },
+        "items": {
+          "type_name": "any",
+          "state": "any",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Variadic argument *items",
+          "domain": null,
+          "required": false,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "var_positional",
+          "value_constraints": null,
+          "shape_contract": null
         }
       },
       "outputs": {
@@ -69,18 +122,28 @@
           "default_value": null,
           "description": "Newly constructed itemgetter",
           "domain": null,
-          "required": true
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "standard",
+          "value_constraints": null,
+          "shape_contract": null
         }
       },
+      "topology_type": "sequential",
       "slots": {},
+      "feedback_state_type": null,
+      "bound_slots": {},
       "code_template": "{output_var} = operator.itemgetter({item})",
       "dependencies": [
         "import operator"
       ],
       "semantic_tags": [
+        "itemgett",
         "itemgetter"
       ],
       "keywords": [
+        "itemgett",
         "itemgetter"
       ],
       "docstring": "Return a callable object that fetches the given item(s) from its operand.",
@@ -88,13 +151,18 @@
       "enriched_at": null,
       "domain_name": "operator",
       "node_type": "constructor",
-      "node_role": "source",
+      "node_role": "constructor",
       "verified": true,
-      "source_priority": 50
+      "source_priority": 10,
+      "is_public": true,
+      "mutation_type": "pure",
+      "is_context_manager": false,
+      "raises": [],
+      "type_vars": []
     },
     {
       "cell_id": "OPERATOR_METHODCALLER_INIT",
-      "stage": 1,
+      "stage": 2,
       "inputs": {
         "name": {
           "type_name": "any",
@@ -103,7 +171,40 @@
           "default_value": null,
           "description": "Constructor argument name",
           "domain": null,
-          "required": true
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "positional_only",
+          "value_constraints": null,
+          "shape_contract": null
+        },
+        "args": {
+          "type_name": "any",
+          "state": "any",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Variadic argument *args",
+          "domain": null,
+          "required": false,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "var_positional",
+          "value_constraints": null,
+          "shape_contract": null
+        },
+        "kwargs": {
+          "type_name": "any",
+          "state": "any",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Keyword arguments **kwargs",
+          "domain": null,
+          "required": false,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "var_keyword",
+          "value_constraints": null,
+          "shape_contract": null
         }
       },
       "outputs": {
@@ -114,18 +215,28 @@
           "default_value": null,
           "description": "Newly constructed methodcaller",
           "domain": null,
-          "required": true
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "standard",
+          "value_constraints": null,
+          "shape_contract": null
         }
       },
+      "topology_type": "sequential",
       "slots": {},
+      "feedback_state_type": null,
+      "bound_slots": {},
       "code_template": "{output_var} = operator.methodcaller({name})",
       "dependencies": [
         "import operator"
       ],
       "semantic_tags": [
+        "methodcal",
         "methodcaller"
       ],
       "keywords": [
+        "methodcal",
         "methodcaller"
       ],
       "docstring": "Return a callable object that calls the given method on its operand.",
@@ -133,9 +244,14 @@
       "enriched_at": null,
       "domain_name": "operator",
       "node_type": "constructor",
-      "node_role": "source",
+      "node_role": "constructor",
       "verified": true,
-      "source_priority": 50
+      "source_priority": 10,
+      "is_public": true,
+      "mutation_type": "pure",
+      "is_context_manager": false,
+      "raises": [],
+      "type_vars": []
     },
     {
       "cell_id": "OPERATOR_ABS",
@@ -148,21 +264,34 @@
           "default_value": null,
           "description": "Argument a",
           "domain": null,
-          "required": true
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "positional_only",
+          "value_constraints": null,
+          "shape_contract": null
         }
       },
       "outputs": {
         "output_data": {
           "type_name": "any",
-          "state": "transformed",
+          "state": "raw",
           "qualifiers": [],
           "default_value": null,
-          "description": "Output transformed",
+          "description": "Output raw",
           "domain": null,
-          "required": true
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "standard",
+          "value_constraints": null,
+          "shape_contract": null
         }
       },
+      "topology_type": "sequential",
       "slots": {},
+      "feedback_state_type": null,
+      "bound_slots": {},
       "code_template": "{output_var} = operator.abs({a})",
       "dependencies": [
         "import operator"
@@ -180,7 +309,12 @@
       "node_type": "function",
       "node_role": "transform",
       "verified": true,
-      "source_priority": 50
+      "source_priority": 60,
+      "is_public": true,
+      "mutation_type": "pure",
+      "is_context_manager": false,
+      "raises": [],
+      "type_vars": []
     },
     {
       "cell_id": "OPERATOR_ADD",
@@ -193,7 +327,12 @@
           "default_value": null,
           "description": "Argument a",
           "domain": null,
-          "required": true
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "positional_only",
+          "value_constraints": null,
+          "shape_contract": null
         },
         "b": {
           "type_name": "any",
@@ -202,21 +341,34 @@
           "default_value": null,
           "description": "Argument b",
           "domain": null,
-          "required": true
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "positional_only",
+          "value_constraints": null,
+          "shape_contract": null
         }
       },
       "outputs": {
         "output_data": {
           "type_name": "any",
-          "state": "transformed",
+          "state": "raw",
           "qualifiers": [],
           "default_value": null,
-          "description": "Output transformed",
+          "description": "Output raw",
           "domain": null,
-          "required": true
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "standard",
+          "value_constraints": null,
+          "shape_contract": null
         }
       },
+      "topology_type": "sequential",
       "slots": {},
+      "feedback_state_type": null,
+      "bound_slots": {},
       "code_template": "{output_var} = operator.add({a}, {b})",
       "dependencies": [
         "import operator"
@@ -234,7 +386,12 @@
       "node_type": "function",
       "node_role": "transform",
       "verified": true,
-      "source_priority": 50
+      "source_priority": 60,
+      "is_public": true,
+      "mutation_type": "pure",
+      "is_context_manager": false,
+      "raises": [],
+      "type_vars": []
     },
     {
       "cell_id": "OPERATOR_AND_",
@@ -247,7 +404,12 @@
           "default_value": null,
           "description": "Argument a",
           "domain": null,
-          "required": true
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "positional_only",
+          "value_constraints": null,
+          "shape_contract": null
         },
         "b": {
           "type_name": "any",
@@ -256,21 +418,34 @@
           "default_value": null,
           "description": "Argument b",
           "domain": null,
-          "required": true
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "positional_only",
+          "value_constraints": null,
+          "shape_contract": null
         }
       },
       "outputs": {
         "output_data": {
           "type_name": "any",
-          "state": "transformed",
+          "state": "raw",
           "qualifiers": [],
           "default_value": null,
-          "description": "Output transformed",
+          "description": "Output raw",
           "domain": null,
-          "required": true
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "standard",
+          "value_constraints": null,
+          "shape_contract": null
         }
       },
+      "topology_type": "sequential",
       "slots": {},
+      "feedback_state_type": null,
+      "bound_slots": {},
       "code_template": "{output_var} = operator.and_({a}, {b})",
       "dependencies": [
         "import operator"
@@ -290,7 +465,12 @@
       "node_type": "function",
       "node_role": "transform",
       "verified": true,
-      "source_priority": 50
+      "source_priority": 60,
+      "is_public": true,
+      "mutation_type": "pure",
+      "is_context_manager": false,
+      "raises": [],
+      "type_vars": []
     },
     {
       "cell_id": "OPERATOR_CALL",
@@ -303,21 +483,62 @@
           "default_value": null,
           "description": "Argument obj",
           "domain": null,
-          "required": true
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "positional_only",
+          "value_constraints": null,
+          "shape_contract": null
+        },
+        "args": {
+          "type_name": "any",
+          "state": "any",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Variadic argument *args",
+          "domain": null,
+          "required": false,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "var_positional",
+          "value_constraints": null,
+          "shape_contract": null
+        },
+        "kwargs": {
+          "type_name": "any",
+          "state": "any",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Keyword arguments **kwargs",
+          "domain": null,
+          "required": false,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "var_keyword",
+          "value_constraints": null,
+          "shape_contract": null
         }
       },
       "outputs": {
         "output_data": {
           "type_name": "any",
-          "state": "transformed",
+          "state": "raw",
           "qualifiers": [],
           "default_value": null,
-          "description": "Output transformed",
+          "description": "Output raw",
           "domain": null,
-          "required": true
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "standard",
+          "value_constraints": null,
+          "shape_contract": null
         }
       },
+      "topology_type": "sequential",
       "slots": {},
+      "feedback_state_type": null,
+      "bound_slots": {},
       "code_template": "{output_var} = operator.call({obj})",
       "dependencies": [
         "import operator"
@@ -335,7 +556,12 @@
       "node_type": "function",
       "node_role": "transform",
       "verified": true,
-      "source_priority": 50
+      "source_priority": 60,
+      "is_public": true,
+      "mutation_type": "pure",
+      "is_context_manager": false,
+      "raises": [],
+      "type_vars": []
     },
     {
       "cell_id": "OPERATOR_CONCAT",
@@ -348,7 +574,12 @@
           "default_value": null,
           "description": "Argument a",
           "domain": null,
-          "required": true
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "positional_only",
+          "value_constraints": null,
+          "shape_contract": null
         },
         "b": {
           "type_name": "any",
@@ -357,21 +588,34 @@
           "default_value": null,
           "description": "Argument b",
           "domain": null,
-          "required": true
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "positional_only",
+          "value_constraints": null,
+          "shape_contract": null
         }
       },
       "outputs": {
         "output_data": {
           "type_name": "any",
-          "state": "transformed",
+          "state": "raw",
           "qualifiers": [],
           "default_value": null,
-          "description": "Output transformed",
+          "description": "Output raw",
           "domain": null,
-          "required": true
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "standard",
+          "value_constraints": null,
+          "shape_contract": null
         }
       },
+      "topology_type": "sequential",
       "slots": {},
+      "feedback_state_type": null,
+      "bound_slots": {},
       "code_template": "{output_var} = operator.concat({a}, {b})",
       "dependencies": [
         "import operator"
@@ -389,7 +633,12 @@
       "node_type": "function",
       "node_role": "transform",
       "verified": true,
-      "source_priority": 50
+      "source_priority": 60,
+      "is_public": true,
+      "mutation_type": "pure",
+      "is_context_manager": false,
+      "raises": [],
+      "type_vars": []
     },
     {
       "cell_id": "OPERATOR_CONTAINS",
@@ -402,7 +651,12 @@
           "default_value": null,
           "description": "Argument a",
           "domain": null,
-          "required": true
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "positional_only",
+          "value_constraints": null,
+          "shape_contract": null
         },
         "b": {
           "type_name": "any",
@@ -411,29 +665,44 @@
           "default_value": null,
           "description": "Argument b",
           "domain": null,
-          "required": true
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "positional_only",
+          "value_constraints": null,
+          "shape_contract": null
         }
       },
       "outputs": {
         "output_data": {
           "type_name": "any",
-          "state": "transformed",
+          "state": "raw",
           "qualifiers": [],
           "default_value": null,
-          "description": "Output transformed",
+          "description": "Output raw",
           "domain": null,
-          "required": true
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "standard",
+          "value_constraints": null,
+          "shape_contract": null
         }
       },
+      "topology_type": "sequential",
       "slots": {},
+      "feedback_state_type": null,
+      "bound_slots": {},
       "code_template": "{output_var} = operator.contains({a}, {b})",
       "dependencies": [
         "import operator"
       ],
       "semantic_tags": [
+        "contain",
         "contains"
       ],
       "keywords": [
+        "contain",
         "contains"
       ],
       "docstring": "Same as b in a (note reversed operands).",
@@ -443,7 +712,12 @@
       "node_type": "function",
       "node_role": "transform",
       "verified": true,
-      "source_priority": 50
+      "source_priority": 60,
+      "is_public": true,
+      "mutation_type": "pure",
+      "is_context_manager": false,
+      "raises": [],
+      "type_vars": []
     },
     {
       "cell_id": "OPERATOR_COUNTOF",
@@ -456,7 +730,12 @@
           "default_value": null,
           "description": "Argument a",
           "domain": null,
-          "required": true
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "positional_only",
+          "value_constraints": null,
+          "shape_contract": null
         },
         "b": {
           "type_name": "any",
@@ -465,21 +744,34 @@
           "default_value": null,
           "description": "Argument b",
           "domain": null,
-          "required": true
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "positional_only",
+          "value_constraints": null,
+          "shape_contract": null
         }
       },
       "outputs": {
         "output_data": {
           "type_name": "any",
-          "state": "transformed",
+          "state": "raw",
           "qualifiers": [],
           "default_value": null,
-          "description": "Output transformed",
+          "description": "Output raw",
           "domain": null,
-          "required": true
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "standard",
+          "value_constraints": null,
+          "shape_contract": null
         }
       },
+      "topology_type": "sequential",
       "slots": {},
+      "feedback_state_type": null,
+      "bound_slots": {},
       "code_template": "{output_var} = operator.countOf({a}, {b})",
       "dependencies": [
         "import operator"
@@ -501,7 +793,12 @@
       "node_type": "function",
       "node_role": "transform",
       "verified": true,
-      "source_priority": 50
+      "source_priority": 60,
+      "is_public": true,
+      "mutation_type": "pure",
+      "is_context_manager": false,
+      "raises": [],
+      "type_vars": []
     },
     {
       "cell_id": "OPERATOR_DELITEM",
@@ -514,7 +811,12 @@
           "default_value": null,
           "description": "Argument a",
           "domain": null,
-          "required": true
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "positional_only",
+          "value_constraints": null,
+          "shape_contract": null
         },
         "b": {
           "type_name": "any",
@@ -523,21 +825,34 @@
           "default_value": null,
           "description": "Argument b",
           "domain": null,
-          "required": true
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "positional_only",
+          "value_constraints": null,
+          "shape_contract": null
         }
       },
       "outputs": {
         "output_data": {
           "type_name": "any",
-          "state": "transformed",
+          "state": "raw",
           "qualifiers": [],
           "default_value": null,
-          "description": "Output transformed",
+          "description": "Output raw",
           "domain": null,
-          "required": true
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "standard",
+          "value_constraints": null,
+          "shape_contract": null
         }
       },
+      "topology_type": "sequential",
       "slots": {},
+      "feedback_state_type": null,
+      "bound_slots": {},
       "code_template": "{output_var} = operator.delitem({a}, {b})",
       "dependencies": [
         "import operator"
@@ -555,7 +870,12 @@
       "node_type": "function",
       "node_role": "transform",
       "verified": true,
-      "source_priority": 50
+      "source_priority": 60,
+      "is_public": true,
+      "mutation_type": "pure",
+      "is_context_manager": false,
+      "raises": [],
+      "type_vars": []
     },
     {
       "cell_id": "OPERATOR_EQ",
@@ -568,7 +888,12 @@
           "default_value": null,
           "description": "Argument a",
           "domain": null,
-          "required": true
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "positional_only",
+          "value_constraints": null,
+          "shape_contract": null
         },
         "b": {
           "type_name": "any",
@@ -577,21 +902,34 @@
           "default_value": null,
           "description": "Argument b",
           "domain": null,
-          "required": true
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "positional_only",
+          "value_constraints": null,
+          "shape_contract": null
         }
       },
       "outputs": {
         "output_data": {
           "type_name": "any",
-          "state": "transformed",
+          "state": "raw",
           "qualifiers": [],
           "default_value": null,
-          "description": "Output transformed",
+          "description": "Output raw",
           "domain": null,
-          "required": true
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "standard",
+          "value_constraints": null,
+          "shape_contract": null
         }
       },
+      "topology_type": "sequential",
       "slots": {},
+      "feedback_state_type": null,
+      "bound_slots": {},
       "code_template": "{output_var} = operator.eq({a}, {b})",
       "dependencies": [
         "import operator"
@@ -609,7 +947,12 @@
       "node_type": "function",
       "node_role": "transform",
       "verified": true,
-      "source_priority": 50
+      "source_priority": 60,
+      "is_public": true,
+      "mutation_type": "pure",
+      "is_context_manager": false,
+      "raises": [],
+      "type_vars": []
     },
     {
       "cell_id": "OPERATOR_FLOORDIV",
@@ -622,7 +965,12 @@
           "default_value": null,
           "description": "Argument a",
           "domain": null,
-          "required": true
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "positional_only",
+          "value_constraints": null,
+          "shape_contract": null
         },
         "b": {
           "type_name": "any",
@@ -631,21 +979,34 @@
           "default_value": null,
           "description": "Argument b",
           "domain": null,
-          "required": true
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "positional_only",
+          "value_constraints": null,
+          "shape_contract": null
         }
       },
       "outputs": {
         "output_data": {
           "type_name": "any",
-          "state": "transformed",
+          "state": "raw",
           "qualifiers": [],
           "default_value": null,
-          "description": "Output transformed",
+          "description": "Output raw",
           "domain": null,
-          "required": true
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "standard",
+          "value_constraints": null,
+          "shape_contract": null
         }
       },
+      "topology_type": "sequential",
       "slots": {},
+      "feedback_state_type": null,
+      "bound_slots": {},
       "code_template": "{output_var} = operator.floordiv({a}, {b})",
       "dependencies": [
         "import operator"
@@ -663,7 +1024,12 @@
       "node_type": "function",
       "node_role": "transform",
       "verified": true,
-      "source_priority": 50
+      "source_priority": 60,
+      "is_public": true,
+      "mutation_type": "pure",
+      "is_context_manager": false,
+      "raises": [],
+      "type_vars": []
     },
     {
       "cell_id": "OPERATOR_GE",
@@ -676,7 +1042,12 @@
           "default_value": null,
           "description": "Argument a",
           "domain": null,
-          "required": true
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "positional_only",
+          "value_constraints": null,
+          "shape_contract": null
         },
         "b": {
           "type_name": "any",
@@ -685,21 +1056,34 @@
           "default_value": null,
           "description": "Argument b",
           "domain": null,
-          "required": true
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "positional_only",
+          "value_constraints": null,
+          "shape_contract": null
         }
       },
       "outputs": {
         "output_data": {
           "type_name": "any",
-          "state": "transformed",
+          "state": "raw",
           "qualifiers": [],
           "default_value": null,
-          "description": "Output transformed",
+          "description": "Output raw",
           "domain": null,
-          "required": true
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "standard",
+          "value_constraints": null,
+          "shape_contract": null
         }
       },
+      "topology_type": "sequential",
       "slots": {},
+      "feedback_state_type": null,
+      "bound_slots": {},
       "code_template": "{output_var} = operator.ge({a}, {b})",
       "dependencies": [
         "import operator"
@@ -717,7 +1101,12 @@
       "node_type": "function",
       "node_role": "transform",
       "verified": true,
-      "source_priority": 50
+      "source_priority": 60,
+      "is_public": true,
+      "mutation_type": "pure",
+      "is_context_manager": false,
+      "raises": [],
+      "type_vars": []
     },
     {
       "cell_id": "OPERATOR_GETITEM",
@@ -730,7 +1119,12 @@
           "default_value": null,
           "description": "Argument a",
           "domain": null,
-          "required": true
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "positional_only",
+          "value_constraints": null,
+          "shape_contract": null
         },
         "b": {
           "type_name": "any",
@@ -739,21 +1133,34 @@
           "default_value": null,
           "description": "Argument b",
           "domain": null,
-          "required": true
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "positional_only",
+          "value_constraints": null,
+          "shape_contract": null
         }
       },
       "outputs": {
         "output_data": {
           "type_name": "any",
-          "state": "transformed",
+          "state": "raw",
           "qualifiers": [],
           "default_value": null,
-          "description": "Output transformed",
+          "description": "Output raw",
           "domain": null,
-          "required": true
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "standard",
+          "value_constraints": null,
+          "shape_contract": null
         }
       },
+      "topology_type": "sequential",
       "slots": {},
+      "feedback_state_type": null,
+      "bound_slots": {},
       "code_template": "{output_var} = operator.getitem({a}, {b})",
       "dependencies": [
         "import operator"
@@ -771,7 +1178,12 @@
       "node_type": "function",
       "node_role": "transform",
       "verified": true,
-      "source_priority": 50
+      "source_priority": 60,
+      "is_public": true,
+      "mutation_type": "pure",
+      "is_context_manager": false,
+      "raises": [],
+      "type_vars": []
     },
     {
       "cell_id": "OPERATOR_GT",
@@ -784,7 +1196,12 @@
           "default_value": null,
           "description": "Argument a",
           "domain": null,
-          "required": true
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "positional_only",
+          "value_constraints": null,
+          "shape_contract": null
         },
         "b": {
           "type_name": "any",
@@ -793,21 +1210,34 @@
           "default_value": null,
           "description": "Argument b",
           "domain": null,
-          "required": true
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "positional_only",
+          "value_constraints": null,
+          "shape_contract": null
         }
       },
       "outputs": {
         "output_data": {
           "type_name": "any",
-          "state": "transformed",
+          "state": "raw",
           "qualifiers": [],
           "default_value": null,
-          "description": "Output transformed",
+          "description": "Output raw",
           "domain": null,
-          "required": true
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "standard",
+          "value_constraints": null,
+          "shape_contract": null
         }
       },
+      "topology_type": "sequential",
       "slots": {},
+      "feedback_state_type": null,
+      "bound_slots": {},
       "code_template": "{output_var} = operator.gt({a}, {b})",
       "dependencies": [
         "import operator"
@@ -825,7 +1255,12 @@
       "node_type": "function",
       "node_role": "transform",
       "verified": true,
-      "source_priority": 50
+      "source_priority": 60,
+      "is_public": true,
+      "mutation_type": "pure",
+      "is_context_manager": false,
+      "raises": [],
+      "type_vars": []
     },
     {
       "cell_id": "OPERATOR_IADD",
@@ -838,7 +1273,12 @@
           "default_value": null,
           "description": "Argument a",
           "domain": null,
-          "required": true
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "positional_only",
+          "value_constraints": null,
+          "shape_contract": null
         },
         "b": {
           "type_name": "any",
@@ -847,21 +1287,34 @@
           "default_value": null,
           "description": "Argument b",
           "domain": null,
-          "required": true
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "positional_only",
+          "value_constraints": null,
+          "shape_contract": null
         }
       },
       "outputs": {
         "output_data": {
           "type_name": "any",
-          "state": "transformed",
+          "state": "raw",
           "qualifiers": [],
           "default_value": null,
-          "description": "Output transformed",
+          "description": "Output raw",
           "domain": null,
-          "required": true
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "standard",
+          "value_constraints": null,
+          "shape_contract": null
         }
       },
+      "topology_type": "sequential",
       "slots": {},
+      "feedback_state_type": null,
+      "bound_slots": {},
       "code_template": "{output_var} = operator.iadd({a}, {b})",
       "dependencies": [
         "import operator"
@@ -879,7 +1332,12 @@
       "node_type": "function",
       "node_role": "transform",
       "verified": true,
-      "source_priority": 50
+      "source_priority": 60,
+      "is_public": true,
+      "mutation_type": "pure",
+      "is_context_manager": false,
+      "raises": [],
+      "type_vars": []
     },
     {
       "cell_id": "OPERATOR_IAND",
@@ -892,7 +1350,12 @@
           "default_value": null,
           "description": "Argument a",
           "domain": null,
-          "required": true
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "positional_only",
+          "value_constraints": null,
+          "shape_contract": null
         },
         "b": {
           "type_name": "any",
@@ -901,21 +1364,34 @@
           "default_value": null,
           "description": "Argument b",
           "domain": null,
-          "required": true
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "positional_only",
+          "value_constraints": null,
+          "shape_contract": null
         }
       },
       "outputs": {
         "output_data": {
           "type_name": "any",
-          "state": "transformed",
+          "state": "raw",
           "qualifiers": [],
           "default_value": null,
-          "description": "Output transformed",
+          "description": "Output raw",
           "domain": null,
-          "required": true
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "standard",
+          "value_constraints": null,
+          "shape_contract": null
         }
       },
+      "topology_type": "sequential",
       "slots": {},
+      "feedback_state_type": null,
+      "bound_slots": {},
       "code_template": "{output_var} = operator.iand({a}, {b})",
       "dependencies": [
         "import operator"
@@ -933,7 +1409,12 @@
       "node_type": "function",
       "node_role": "transform",
       "verified": true,
-      "source_priority": 50
+      "source_priority": 60,
+      "is_public": true,
+      "mutation_type": "pure",
+      "is_context_manager": false,
+      "raises": [],
+      "type_vars": []
     },
     {
       "cell_id": "OPERATOR_ICONCAT",
@@ -946,7 +1427,12 @@
           "default_value": null,
           "description": "Argument a",
           "domain": null,
-          "required": true
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "positional_only",
+          "value_constraints": null,
+          "shape_contract": null
         },
         "b": {
           "type_name": "any",
@@ -955,21 +1441,34 @@
           "default_value": null,
           "description": "Argument b",
           "domain": null,
-          "required": true
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "positional_only",
+          "value_constraints": null,
+          "shape_contract": null
         }
       },
       "outputs": {
         "output_data": {
           "type_name": "any",
-          "state": "transformed",
+          "state": "raw",
           "qualifiers": [],
           "default_value": null,
-          "description": "Output transformed",
+          "description": "Output raw",
           "domain": null,
-          "required": true
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "standard",
+          "value_constraints": null,
+          "shape_contract": null
         }
       },
+      "topology_type": "sequential",
       "slots": {},
+      "feedback_state_type": null,
+      "bound_slots": {},
       "code_template": "{output_var} = operator.iconcat({a}, {b})",
       "dependencies": [
         "import operator"
@@ -987,7 +1486,12 @@
       "node_type": "function",
       "node_role": "transform",
       "verified": true,
-      "source_priority": 50
+      "source_priority": 60,
+      "is_public": true,
+      "mutation_type": "pure",
+      "is_context_manager": false,
+      "raises": [],
+      "type_vars": []
     },
     {
       "cell_id": "OPERATOR_IFLOORDIV",
@@ -1000,7 +1504,12 @@
           "default_value": null,
           "description": "Argument a",
           "domain": null,
-          "required": true
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "positional_only",
+          "value_constraints": null,
+          "shape_contract": null
         },
         "b": {
           "type_name": "any",
@@ -1009,21 +1518,34 @@
           "default_value": null,
           "description": "Argument b",
           "domain": null,
-          "required": true
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "positional_only",
+          "value_constraints": null,
+          "shape_contract": null
         }
       },
       "outputs": {
         "output_data": {
           "type_name": "any",
-          "state": "transformed",
+          "state": "raw",
           "qualifiers": [],
           "default_value": null,
-          "description": "Output transformed",
+          "description": "Output raw",
           "domain": null,
-          "required": true
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "standard",
+          "value_constraints": null,
+          "shape_contract": null
         }
       },
+      "topology_type": "sequential",
       "slots": {},
+      "feedback_state_type": null,
+      "bound_slots": {},
       "code_template": "{output_var} = operator.ifloordiv({a}, {b})",
       "dependencies": [
         "import operator"
@@ -1041,7 +1563,12 @@
       "node_type": "function",
       "node_role": "transform",
       "verified": true,
-      "source_priority": 50
+      "source_priority": 60,
+      "is_public": true,
+      "mutation_type": "pure",
+      "is_context_manager": false,
+      "raises": [],
+      "type_vars": []
     },
     {
       "cell_id": "OPERATOR_ILSHIFT",
@@ -1054,7 +1581,12 @@
           "default_value": null,
           "description": "Argument a",
           "domain": null,
-          "required": true
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "positional_only",
+          "value_constraints": null,
+          "shape_contract": null
         },
         "b": {
           "type_name": "any",
@@ -1063,21 +1595,34 @@
           "default_value": null,
           "description": "Argument b",
           "domain": null,
-          "required": true
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "positional_only",
+          "value_constraints": null,
+          "shape_contract": null
         }
       },
       "outputs": {
         "output_data": {
           "type_name": "any",
-          "state": "transformed",
+          "state": "raw",
           "qualifiers": [],
           "default_value": null,
-          "description": "Output transformed",
+          "description": "Output raw",
           "domain": null,
-          "required": true
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "standard",
+          "value_constraints": null,
+          "shape_contract": null
         }
       },
+      "topology_type": "sequential",
       "slots": {},
+      "feedback_state_type": null,
+      "bound_slots": {},
       "code_template": "{output_var} = operator.ilshift({a}, {b})",
       "dependencies": [
         "import operator"
@@ -1095,7 +1640,12 @@
       "node_type": "function",
       "node_role": "transform",
       "verified": true,
-      "source_priority": 50
+      "source_priority": 60,
+      "is_public": true,
+      "mutation_type": "pure",
+      "is_context_manager": false,
+      "raises": [],
+      "type_vars": []
     },
     {
       "cell_id": "OPERATOR_IMATMUL",
@@ -1108,7 +1658,12 @@
           "default_value": null,
           "description": "Argument a",
           "domain": null,
-          "required": true
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "positional_only",
+          "value_constraints": null,
+          "shape_contract": null
         },
         "b": {
           "type_name": "any",
@@ -1117,21 +1672,34 @@
           "default_value": null,
           "description": "Argument b",
           "domain": null,
-          "required": true
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "positional_only",
+          "value_constraints": null,
+          "shape_contract": null
         }
       },
       "outputs": {
         "output_data": {
           "type_name": "any",
-          "state": "transformed",
+          "state": "raw",
           "qualifiers": [],
           "default_value": null,
-          "description": "Output transformed",
+          "description": "Output raw",
           "domain": null,
-          "required": true
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "standard",
+          "value_constraints": null,
+          "shape_contract": null
         }
       },
+      "topology_type": "sequential",
       "slots": {},
+      "feedback_state_type": null,
+      "bound_slots": {},
       "code_template": "{output_var} = operator.imatmul({a}, {b})",
       "dependencies": [
         "import operator"
@@ -1149,7 +1717,12 @@
       "node_type": "function",
       "node_role": "transform",
       "verified": true,
-      "source_priority": 50
+      "source_priority": 60,
+      "is_public": true,
+      "mutation_type": "pure",
+      "is_context_manager": false,
+      "raises": [],
+      "type_vars": []
     },
     {
       "cell_id": "OPERATOR_IMOD",
@@ -1162,7 +1735,12 @@
           "default_value": null,
           "description": "Argument a",
           "domain": null,
-          "required": true
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "positional_only",
+          "value_constraints": null,
+          "shape_contract": null
         },
         "b": {
           "type_name": "any",
@@ -1171,21 +1749,34 @@
           "default_value": null,
           "description": "Argument b",
           "domain": null,
-          "required": true
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "positional_only",
+          "value_constraints": null,
+          "shape_contract": null
         }
       },
       "outputs": {
         "output_data": {
           "type_name": "any",
-          "state": "transformed",
+          "state": "raw",
           "qualifiers": [],
           "default_value": null,
-          "description": "Output transformed",
+          "description": "Output raw",
           "domain": null,
-          "required": true
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "standard",
+          "value_constraints": null,
+          "shape_contract": null
         }
       },
+      "topology_type": "sequential",
       "slots": {},
+      "feedback_state_type": null,
+      "bound_slots": {},
       "code_template": "{output_var} = operator.imod({a}, {b})",
       "dependencies": [
         "import operator"
@@ -1203,7 +1794,12 @@
       "node_type": "function",
       "node_role": "transform",
       "verified": true,
-      "source_priority": 50
+      "source_priority": 60,
+      "is_public": true,
+      "mutation_type": "pure",
+      "is_context_manager": false,
+      "raises": [],
+      "type_vars": []
     },
     {
       "cell_id": "OPERATOR_IMUL",
@@ -1216,7 +1812,12 @@
           "default_value": null,
           "description": "Argument a",
           "domain": null,
-          "required": true
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "positional_only",
+          "value_constraints": null,
+          "shape_contract": null
         },
         "b": {
           "type_name": "any",
@@ -1225,21 +1826,34 @@
           "default_value": null,
           "description": "Argument b",
           "domain": null,
-          "required": true
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "positional_only",
+          "value_constraints": null,
+          "shape_contract": null
         }
       },
       "outputs": {
         "output_data": {
           "type_name": "any",
-          "state": "transformed",
+          "state": "raw",
           "qualifiers": [],
           "default_value": null,
-          "description": "Output transformed",
+          "description": "Output raw",
           "domain": null,
-          "required": true
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "standard",
+          "value_constraints": null,
+          "shape_contract": null
         }
       },
+      "topology_type": "sequential",
       "slots": {},
+      "feedback_state_type": null,
+      "bound_slots": {},
       "code_template": "{output_var} = operator.imul({a}, {b})",
       "dependencies": [
         "import operator"
@@ -1257,7 +1871,12 @@
       "node_type": "function",
       "node_role": "transform",
       "verified": true,
-      "source_priority": 50
+      "source_priority": 60,
+      "is_public": true,
+      "mutation_type": "pure",
+      "is_context_manager": false,
+      "raises": [],
+      "type_vars": []
     },
     {
       "cell_id": "OPERATOR_INDEX",
@@ -1270,21 +1889,34 @@
           "default_value": null,
           "description": "Argument a",
           "domain": null,
-          "required": true
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "positional_only",
+          "value_constraints": null,
+          "shape_contract": null
         }
       },
       "outputs": {
         "output_data": {
           "type_name": "any",
-          "state": "transformed",
+          "state": "raw",
           "qualifiers": [],
           "default_value": null,
-          "description": "Output transformed",
+          "description": "Output raw",
           "domain": null,
-          "required": true
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "standard",
+          "value_constraints": null,
+          "shape_contract": null
         }
       },
+      "topology_type": "sequential",
       "slots": {},
+      "feedback_state_type": null,
+      "bound_slots": {},
       "code_template": "{output_var} = operator.index({a})",
       "dependencies": [
         "import operator"
@@ -1302,7 +1934,12 @@
       "node_type": "function",
       "node_role": "transform",
       "verified": true,
-      "source_priority": 50
+      "source_priority": 60,
+      "is_public": true,
+      "mutation_type": "pure",
+      "is_context_manager": false,
+      "raises": [],
+      "type_vars": []
     },
     {
       "cell_id": "OPERATOR_INDEXOF",
@@ -1315,7 +1952,12 @@
           "default_value": null,
           "description": "Argument a",
           "domain": null,
-          "required": true
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "positional_only",
+          "value_constraints": null,
+          "shape_contract": null
         },
         "b": {
           "type_name": "any",
@@ -1324,21 +1966,34 @@
           "default_value": null,
           "description": "Argument b",
           "domain": null,
-          "required": true
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "positional_only",
+          "value_constraints": null,
+          "shape_contract": null
         }
       },
       "outputs": {
         "output_data": {
           "type_name": "any",
-          "state": "transformed",
+          "state": "raw",
           "qualifiers": [],
           "default_value": null,
-          "description": "Output transformed",
+          "description": "Output raw",
           "domain": null,
-          "required": true
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "standard",
+          "value_constraints": null,
+          "shape_contract": null
         }
       },
+      "topology_type": "sequential",
       "slots": {},
+      "feedback_state_type": null,
+      "bound_slots": {},
       "code_template": "{output_var} = operator.indexOf({a}, {b})",
       "dependencies": [
         "import operator"
@@ -1360,7 +2015,12 @@
       "node_type": "function",
       "node_role": "transform",
       "verified": true,
-      "source_priority": 50
+      "source_priority": 60,
+      "is_public": true,
+      "mutation_type": "pure",
+      "is_context_manager": false,
+      "raises": [],
+      "type_vars": []
     },
     {
       "cell_id": "OPERATOR_INV",
@@ -1373,21 +2033,34 @@
           "default_value": null,
           "description": "Argument a",
           "domain": null,
-          "required": true
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "positional_only",
+          "value_constraints": null,
+          "shape_contract": null
         }
       },
       "outputs": {
         "output_data": {
           "type_name": "any",
-          "state": "transformed",
+          "state": "raw",
           "qualifiers": [],
           "default_value": null,
-          "description": "Output transformed",
+          "description": "Output raw",
           "domain": null,
-          "required": true
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "standard",
+          "value_constraints": null,
+          "shape_contract": null
         }
       },
+      "topology_type": "sequential",
       "slots": {},
+      "feedback_state_type": null,
+      "bound_slots": {},
       "code_template": "{output_var} = operator.inv({a})",
       "dependencies": [
         "import operator"
@@ -1405,7 +2078,12 @@
       "node_type": "function",
       "node_role": "transform",
       "verified": true,
-      "source_priority": 50
+      "source_priority": 60,
+      "is_public": true,
+      "mutation_type": "pure",
+      "is_context_manager": false,
+      "raises": [],
+      "type_vars": []
     },
     {
       "cell_id": "OPERATOR_INVERT",
@@ -1418,21 +2096,34 @@
           "default_value": null,
           "description": "Argument a",
           "domain": null,
-          "required": true
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "positional_only",
+          "value_constraints": null,
+          "shape_contract": null
         }
       },
       "outputs": {
         "output_data": {
           "type_name": "any",
-          "state": "transformed",
+          "state": "raw",
           "qualifiers": [],
           "default_value": null,
-          "description": "Output transformed",
+          "description": "Output raw",
           "domain": null,
-          "required": true
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "standard",
+          "value_constraints": null,
+          "shape_contract": null
         }
       },
+      "topology_type": "sequential",
       "slots": {},
+      "feedback_state_type": null,
+      "bound_slots": {},
       "code_template": "{output_var} = operator.invert({a})",
       "dependencies": [
         "import operator"
@@ -1450,7 +2141,12 @@
       "node_type": "function",
       "node_role": "transform",
       "verified": true,
-      "source_priority": 50
+      "source_priority": 60,
+      "is_public": true,
+      "mutation_type": "pure",
+      "is_context_manager": false,
+      "raises": [],
+      "type_vars": []
     },
     {
       "cell_id": "OPERATOR_IOR",
@@ -1463,7 +2159,12 @@
           "default_value": null,
           "description": "Argument a",
           "domain": null,
-          "required": true
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "positional_only",
+          "value_constraints": null,
+          "shape_contract": null
         },
         "b": {
           "type_name": "any",
@@ -1472,21 +2173,34 @@
           "default_value": null,
           "description": "Argument b",
           "domain": null,
-          "required": true
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "positional_only",
+          "value_constraints": null,
+          "shape_contract": null
         }
       },
       "outputs": {
         "output_data": {
           "type_name": "any",
-          "state": "transformed",
+          "state": "raw",
           "qualifiers": [],
           "default_value": null,
-          "description": "Output transformed",
+          "description": "Output raw",
           "domain": null,
-          "required": true
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "standard",
+          "value_constraints": null,
+          "shape_contract": null
         }
       },
+      "topology_type": "sequential",
       "slots": {},
+      "feedback_state_type": null,
+      "bound_slots": {},
       "code_template": "{output_var} = operator.ior({a}, {b})",
       "dependencies": [
         "import operator"
@@ -1504,7 +2218,12 @@
       "node_type": "function",
       "node_role": "transform",
       "verified": true,
-      "source_priority": 50
+      "source_priority": 60,
+      "is_public": true,
+      "mutation_type": "pure",
+      "is_context_manager": false,
+      "raises": [],
+      "type_vars": []
     },
     {
       "cell_id": "OPERATOR_IPOW",
@@ -1517,7 +2236,12 @@
           "default_value": null,
           "description": "Argument a",
           "domain": null,
-          "required": true
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "positional_only",
+          "value_constraints": null,
+          "shape_contract": null
         },
         "b": {
           "type_name": "any",
@@ -1526,21 +2250,34 @@
           "default_value": null,
           "description": "Argument b",
           "domain": null,
-          "required": true
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "positional_only",
+          "value_constraints": null,
+          "shape_contract": null
         }
       },
       "outputs": {
         "output_data": {
           "type_name": "any",
-          "state": "transformed",
+          "state": "raw",
           "qualifiers": [],
           "default_value": null,
-          "description": "Output transformed",
+          "description": "Output raw",
           "domain": null,
-          "required": true
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "standard",
+          "value_constraints": null,
+          "shape_contract": null
         }
       },
+      "topology_type": "sequential",
       "slots": {},
+      "feedback_state_type": null,
+      "bound_slots": {},
       "code_template": "{output_var} = operator.ipow({a}, {b})",
       "dependencies": [
         "import operator"
@@ -1558,7 +2295,12 @@
       "node_type": "function",
       "node_role": "transform",
       "verified": true,
-      "source_priority": 50
+      "source_priority": 60,
+      "is_public": true,
+      "mutation_type": "pure",
+      "is_context_manager": false,
+      "raises": [],
+      "type_vars": []
     },
     {
       "cell_id": "OPERATOR_IRSHIFT",
@@ -1571,7 +2313,12 @@
           "default_value": null,
           "description": "Argument a",
           "domain": null,
-          "required": true
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "positional_only",
+          "value_constraints": null,
+          "shape_contract": null
         },
         "b": {
           "type_name": "any",
@@ -1580,21 +2327,34 @@
           "default_value": null,
           "description": "Argument b",
           "domain": null,
-          "required": true
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "positional_only",
+          "value_constraints": null,
+          "shape_contract": null
         }
       },
       "outputs": {
         "output_data": {
           "type_name": "any",
-          "state": "transformed",
+          "state": "raw",
           "qualifiers": [],
           "default_value": null,
-          "description": "Output transformed",
+          "description": "Output raw",
           "domain": null,
-          "required": true
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "standard",
+          "value_constraints": null,
+          "shape_contract": null
         }
       },
+      "topology_type": "sequential",
       "slots": {},
+      "feedback_state_type": null,
+      "bound_slots": {},
       "code_template": "{output_var} = operator.irshift({a}, {b})",
       "dependencies": [
         "import operator"
@@ -1612,7 +2372,12 @@
       "node_type": "function",
       "node_role": "transform",
       "verified": true,
-      "source_priority": 50
+      "source_priority": 60,
+      "is_public": true,
+      "mutation_type": "pure",
+      "is_context_manager": false,
+      "raises": [],
+      "type_vars": []
     },
     {
       "cell_id": "OPERATOR_IS_",
@@ -1625,7 +2390,12 @@
           "default_value": null,
           "description": "Argument a",
           "domain": null,
-          "required": true
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "positional_only",
+          "value_constraints": null,
+          "shape_contract": null
         },
         "b": {
           "type_name": "any",
@@ -1634,21 +2404,34 @@
           "default_value": null,
           "description": "Argument b",
           "domain": null,
-          "required": true
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "positional_only",
+          "value_constraints": null,
+          "shape_contract": null
         }
       },
       "outputs": {
         "output_data": {
           "type_name": "any",
-          "state": "transformed",
+          "state": "raw",
           "qualifiers": [],
           "default_value": null,
-          "description": "Output transformed",
+          "description": "Output raw",
           "domain": null,
-          "required": true
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "standard",
+          "value_constraints": null,
+          "shape_contract": null
         }
       },
+      "topology_type": "sequential",
       "slots": {},
+      "feedback_state_type": null,
+      "bound_slots": {},
       "code_template": "{output_var} = operator.is_({a}, {b})",
       "dependencies": [
         "import operator"
@@ -1668,7 +2451,12 @@
       "node_type": "function",
       "node_role": "transform",
       "verified": true,
-      "source_priority": 50
+      "source_priority": 60,
+      "is_public": true,
+      "mutation_type": "pure",
+      "is_context_manager": false,
+      "raises": [],
+      "type_vars": []
     },
     {
       "cell_id": "OPERATOR_IS_NOT",
@@ -1681,7 +2469,12 @@
           "default_value": null,
           "description": "Argument a",
           "domain": null,
-          "required": true
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "positional_only",
+          "value_constraints": null,
+          "shape_contract": null
         },
         "b": {
           "type_name": "any",
@@ -1690,21 +2483,34 @@
           "default_value": null,
           "description": "Argument b",
           "domain": null,
-          "required": true
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "positional_only",
+          "value_constraints": null,
+          "shape_contract": null
         }
       },
       "outputs": {
         "output_data": {
           "type_name": "any",
-          "state": "transformed",
+          "state": "raw",
           "qualifiers": [],
           "default_value": null,
-          "description": "Output transformed",
+          "description": "Output raw",
           "domain": null,
-          "required": true
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "standard",
+          "value_constraints": null,
+          "shape_contract": null
         }
       },
+      "topology_type": "sequential",
       "slots": {},
+      "feedback_state_type": null,
+      "bound_slots": {},
       "code_template": "{output_var} = operator.is_not({a}, {b})",
       "dependencies": [
         "import operator"
@@ -1726,7 +2532,12 @@
       "node_type": "function",
       "node_role": "transform",
       "verified": true,
-      "source_priority": 50
+      "source_priority": 60,
+      "is_public": true,
+      "mutation_type": "pure",
+      "is_context_manager": false,
+      "raises": [],
+      "type_vars": []
     },
     {
       "cell_id": "OPERATOR_ISUB",
@@ -1739,7 +2550,12 @@
           "default_value": null,
           "description": "Argument a",
           "domain": null,
-          "required": true
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "positional_only",
+          "value_constraints": null,
+          "shape_contract": null
         },
         "b": {
           "type_name": "any",
@@ -1748,21 +2564,34 @@
           "default_value": null,
           "description": "Argument b",
           "domain": null,
-          "required": true
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "positional_only",
+          "value_constraints": null,
+          "shape_contract": null
         }
       },
       "outputs": {
         "output_data": {
           "type_name": "any",
-          "state": "transformed",
+          "state": "raw",
           "qualifiers": [],
           "default_value": null,
-          "description": "Output transformed",
+          "description": "Output raw",
           "domain": null,
-          "required": true
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "standard",
+          "value_constraints": null,
+          "shape_contract": null
         }
       },
+      "topology_type": "sequential",
       "slots": {},
+      "feedback_state_type": null,
+      "bound_slots": {},
       "code_template": "{output_var} = operator.isub({a}, {b})",
       "dependencies": [
         "import operator"
@@ -1780,7 +2609,12 @@
       "node_type": "function",
       "node_role": "transform",
       "verified": true,
-      "source_priority": 50
+      "source_priority": 60,
+      "is_public": true,
+      "mutation_type": "pure",
+      "is_context_manager": false,
+      "raises": [],
+      "type_vars": []
     },
     {
       "cell_id": "OPERATOR_ITRUEDIV",
@@ -1793,7 +2627,12 @@
           "default_value": null,
           "description": "Argument a",
           "domain": null,
-          "required": true
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "positional_only",
+          "value_constraints": null,
+          "shape_contract": null
         },
         "b": {
           "type_name": "any",
@@ -1802,21 +2641,34 @@
           "default_value": null,
           "description": "Argument b",
           "domain": null,
-          "required": true
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "positional_only",
+          "value_constraints": null,
+          "shape_contract": null
         }
       },
       "outputs": {
         "output_data": {
           "type_name": "any",
-          "state": "transformed",
+          "state": "raw",
           "qualifiers": [],
           "default_value": null,
-          "description": "Output transformed",
+          "description": "Output raw",
           "domain": null,
-          "required": true
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "standard",
+          "value_constraints": null,
+          "shape_contract": null
         }
       },
+      "topology_type": "sequential",
       "slots": {},
+      "feedback_state_type": null,
+      "bound_slots": {},
       "code_template": "{output_var} = operator.itruediv({a}, {b})",
       "dependencies": [
         "import operator"
@@ -1834,7 +2686,12 @@
       "node_type": "function",
       "node_role": "transform",
       "verified": true,
-      "source_priority": 50
+      "source_priority": 60,
+      "is_public": true,
+      "mutation_type": "pure",
+      "is_context_manager": false,
+      "raises": [],
+      "type_vars": []
     },
     {
       "cell_id": "OPERATOR_IXOR",
@@ -1847,7 +2704,12 @@
           "default_value": null,
           "description": "Argument a",
           "domain": null,
-          "required": true
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "positional_only",
+          "value_constraints": null,
+          "shape_contract": null
         },
         "b": {
           "type_name": "any",
@@ -1856,21 +2718,34 @@
           "default_value": null,
           "description": "Argument b",
           "domain": null,
-          "required": true
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "positional_only",
+          "value_constraints": null,
+          "shape_contract": null
         }
       },
       "outputs": {
         "output_data": {
           "type_name": "any",
-          "state": "transformed",
+          "state": "raw",
           "qualifiers": [],
           "default_value": null,
-          "description": "Output transformed",
+          "description": "Output raw",
           "domain": null,
-          "required": true
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "standard",
+          "value_constraints": null,
+          "shape_contract": null
         }
       },
+      "topology_type": "sequential",
       "slots": {},
+      "feedback_state_type": null,
+      "bound_slots": {},
       "code_template": "{output_var} = operator.ixor({a}, {b})",
       "dependencies": [
         "import operator"
@@ -1888,7 +2763,12 @@
       "node_type": "function",
       "node_role": "transform",
       "verified": true,
-      "source_priority": 50
+      "source_priority": 60,
+      "is_public": true,
+      "mutation_type": "pure",
+      "is_context_manager": false,
+      "raises": [],
+      "type_vars": []
     },
     {
       "cell_id": "OPERATOR_LE",
@@ -1901,7 +2781,12 @@
           "default_value": null,
           "description": "Argument a",
           "domain": null,
-          "required": true
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "positional_only",
+          "value_constraints": null,
+          "shape_contract": null
         },
         "b": {
           "type_name": "any",
@@ -1910,21 +2795,34 @@
           "default_value": null,
           "description": "Argument b",
           "domain": null,
-          "required": true
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "positional_only",
+          "value_constraints": null,
+          "shape_contract": null
         }
       },
       "outputs": {
         "output_data": {
           "type_name": "any",
-          "state": "transformed",
+          "state": "raw",
           "qualifiers": [],
           "default_value": null,
-          "description": "Output transformed",
+          "description": "Output raw",
           "domain": null,
-          "required": true
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "standard",
+          "value_constraints": null,
+          "shape_contract": null
         }
       },
+      "topology_type": "sequential",
       "slots": {},
+      "feedback_state_type": null,
+      "bound_slots": {},
       "code_template": "{output_var} = operator.le({a}, {b})",
       "dependencies": [
         "import operator"
@@ -1942,7 +2840,12 @@
       "node_type": "function",
       "node_role": "transform",
       "verified": true,
-      "source_priority": 50
+      "source_priority": 60,
+      "is_public": true,
+      "mutation_type": "pure",
+      "is_context_manager": false,
+      "raises": [],
+      "type_vars": []
     },
     {
       "cell_id": "OPERATOR_LENGTH_HINT",
@@ -1955,30 +2858,52 @@
           "default_value": null,
           "description": "Argument obj",
           "domain": null,
-          "required": true
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "positional_only",
+          "value_constraints": {
+            "min": 0
+          },
+          "shape_contract": null
         },
         "default": {
           "type_name": "any",
           "state": "any",
           "qualifiers": [],
-          "default_value": null,
+          "default_value": 0,
           "description": "Argument default",
           "domain": null,
-          "required": false
+          "required": false,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "positional_only",
+          "value_constraints": {
+            "min": 0
+          },
+          "shape_contract": null
         }
       },
       "outputs": {
         "output_data": {
           "type_name": "any",
-          "state": "transformed",
+          "state": "raw",
           "qualifiers": [],
           "default_value": null,
-          "description": "Output transformed",
+          "description": "Output raw",
           "domain": null,
-          "required": true
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "standard",
+          "value_constraints": null,
+          "shape_contract": null
         }
       },
+      "topology_type": "sequential",
       "slots": {},
+      "feedback_state_type": null,
+      "bound_slots": {},
       "code_template": "{output_var} = operator.length_hint({obj})",
       "dependencies": [
         "import operator"
@@ -2000,7 +2925,12 @@
       "node_type": "function",
       "node_role": "transform",
       "verified": true,
-      "source_priority": 50
+      "source_priority": 60,
+      "is_public": true,
+      "mutation_type": "pure",
+      "is_context_manager": false,
+      "raises": [],
+      "type_vars": []
     },
     {
       "cell_id": "OPERATOR_LSHIFT",
@@ -2013,7 +2943,12 @@
           "default_value": null,
           "description": "Argument a",
           "domain": null,
-          "required": true
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "positional_only",
+          "value_constraints": null,
+          "shape_contract": null
         },
         "b": {
           "type_name": "any",
@@ -2022,21 +2957,34 @@
           "default_value": null,
           "description": "Argument b",
           "domain": null,
-          "required": true
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "positional_only",
+          "value_constraints": null,
+          "shape_contract": null
         }
       },
       "outputs": {
         "output_data": {
           "type_name": "any",
-          "state": "transformed",
+          "state": "raw",
           "qualifiers": [],
           "default_value": null,
-          "description": "Output transformed",
+          "description": "Output raw",
           "domain": null,
-          "required": true
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "standard",
+          "value_constraints": null,
+          "shape_contract": null
         }
       },
+      "topology_type": "sequential",
       "slots": {},
+      "feedback_state_type": null,
+      "bound_slots": {},
       "code_template": "{output_var} = operator.lshift({a}, {b})",
       "dependencies": [
         "import operator"
@@ -2054,7 +3002,12 @@
       "node_type": "function",
       "node_role": "transform",
       "verified": true,
-      "source_priority": 50
+      "source_priority": 60,
+      "is_public": true,
+      "mutation_type": "pure",
+      "is_context_manager": false,
+      "raises": [],
+      "type_vars": []
     },
     {
       "cell_id": "OPERATOR_LT",
@@ -2067,7 +3020,12 @@
           "default_value": null,
           "description": "Argument a",
           "domain": null,
-          "required": true
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "positional_only",
+          "value_constraints": null,
+          "shape_contract": null
         },
         "b": {
           "type_name": "any",
@@ -2076,21 +3034,34 @@
           "default_value": null,
           "description": "Argument b",
           "domain": null,
-          "required": true
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "positional_only",
+          "value_constraints": null,
+          "shape_contract": null
         }
       },
       "outputs": {
         "output_data": {
           "type_name": "any",
-          "state": "transformed",
+          "state": "raw",
           "qualifiers": [],
           "default_value": null,
-          "description": "Output transformed",
+          "description": "Output raw",
           "domain": null,
-          "required": true
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "standard",
+          "value_constraints": null,
+          "shape_contract": null
         }
       },
+      "topology_type": "sequential",
       "slots": {},
+      "feedback_state_type": null,
+      "bound_slots": {},
       "code_template": "{output_var} = operator.lt({a}, {b})",
       "dependencies": [
         "import operator"
@@ -2108,7 +3079,12 @@
       "node_type": "function",
       "node_role": "transform",
       "verified": true,
-      "source_priority": 50
+      "source_priority": 60,
+      "is_public": true,
+      "mutation_type": "pure",
+      "is_context_manager": false,
+      "raises": [],
+      "type_vars": []
     },
     {
       "cell_id": "OPERATOR_MATMUL",
@@ -2121,7 +3097,12 @@
           "default_value": null,
           "description": "Argument a",
           "domain": null,
-          "required": true
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "positional_only",
+          "value_constraints": null,
+          "shape_contract": null
         },
         "b": {
           "type_name": "any",
@@ -2130,21 +3111,34 @@
           "default_value": null,
           "description": "Argument b",
           "domain": null,
-          "required": true
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "positional_only",
+          "value_constraints": null,
+          "shape_contract": null
         }
       },
       "outputs": {
         "output_data": {
           "type_name": "any",
-          "state": "transformed",
+          "state": "raw",
           "qualifiers": [],
           "default_value": null,
-          "description": "Output transformed",
+          "description": "Output raw",
           "domain": null,
-          "required": true
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "standard",
+          "value_constraints": null,
+          "shape_contract": null
         }
       },
+      "topology_type": "sequential",
       "slots": {},
+      "feedback_state_type": null,
+      "bound_slots": {},
       "code_template": "{output_var} = operator.matmul({a}, {b})",
       "dependencies": [
         "import operator"
@@ -2162,7 +3156,12 @@
       "node_type": "function",
       "node_role": "transform",
       "verified": true,
-      "source_priority": 50
+      "source_priority": 60,
+      "is_public": true,
+      "mutation_type": "pure",
+      "is_context_manager": false,
+      "raises": [],
+      "type_vars": []
     },
     {
       "cell_id": "OPERATOR_MOD",
@@ -2175,7 +3174,12 @@
           "default_value": null,
           "description": "Argument a",
           "domain": null,
-          "required": true
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "positional_only",
+          "value_constraints": null,
+          "shape_contract": null
         },
         "b": {
           "type_name": "any",
@@ -2184,21 +3188,34 @@
           "default_value": null,
           "description": "Argument b",
           "domain": null,
-          "required": true
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "positional_only",
+          "value_constraints": null,
+          "shape_contract": null
         }
       },
       "outputs": {
         "output_data": {
           "type_name": "any",
-          "state": "transformed",
+          "state": "raw",
           "qualifiers": [],
           "default_value": null,
-          "description": "Output transformed",
+          "description": "Output raw",
           "domain": null,
-          "required": true
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "standard",
+          "value_constraints": null,
+          "shape_contract": null
         }
       },
+      "topology_type": "sequential",
       "slots": {},
+      "feedback_state_type": null,
+      "bound_slots": {},
       "code_template": "{output_var} = operator.mod({a}, {b})",
       "dependencies": [
         "import operator"
@@ -2216,7 +3233,12 @@
       "node_type": "function",
       "node_role": "transform",
       "verified": true,
-      "source_priority": 50
+      "source_priority": 60,
+      "is_public": true,
+      "mutation_type": "pure",
+      "is_context_manager": false,
+      "raises": [],
+      "type_vars": []
     },
     {
       "cell_id": "OPERATOR_MUL",
@@ -2229,7 +3251,12 @@
           "default_value": null,
           "description": "Argument a",
           "domain": null,
-          "required": true
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "positional_only",
+          "value_constraints": null,
+          "shape_contract": null
         },
         "b": {
           "type_name": "any",
@@ -2238,21 +3265,34 @@
           "default_value": null,
           "description": "Argument b",
           "domain": null,
-          "required": true
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "positional_only",
+          "value_constraints": null,
+          "shape_contract": null
         }
       },
       "outputs": {
         "output_data": {
           "type_name": "any",
-          "state": "transformed",
+          "state": "raw",
           "qualifiers": [],
           "default_value": null,
-          "description": "Output transformed",
+          "description": "Output raw",
           "domain": null,
-          "required": true
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "standard",
+          "value_constraints": null,
+          "shape_contract": null
         }
       },
+      "topology_type": "sequential",
       "slots": {},
+      "feedback_state_type": null,
+      "bound_slots": {},
       "code_template": "{output_var} = operator.mul({a}, {b})",
       "dependencies": [
         "import operator"
@@ -2270,7 +3310,12 @@
       "node_type": "function",
       "node_role": "transform",
       "verified": true,
-      "source_priority": 50
+      "source_priority": 60,
+      "is_public": true,
+      "mutation_type": "pure",
+      "is_context_manager": false,
+      "raises": [],
+      "type_vars": []
     },
     {
       "cell_id": "OPERATOR_NE",
@@ -2283,7 +3328,12 @@
           "default_value": null,
           "description": "Argument a",
           "domain": null,
-          "required": true
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "positional_only",
+          "value_constraints": null,
+          "shape_contract": null
         },
         "b": {
           "type_name": "any",
@@ -2292,21 +3342,34 @@
           "default_value": null,
           "description": "Argument b",
           "domain": null,
-          "required": true
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "positional_only",
+          "value_constraints": null,
+          "shape_contract": null
         }
       },
       "outputs": {
         "output_data": {
           "type_name": "any",
-          "state": "transformed",
+          "state": "raw",
           "qualifiers": [],
           "default_value": null,
-          "description": "Output transformed",
+          "description": "Output raw",
           "domain": null,
-          "required": true
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "standard",
+          "value_constraints": null,
+          "shape_contract": null
         }
       },
+      "topology_type": "sequential",
       "slots": {},
+      "feedback_state_type": null,
+      "bound_slots": {},
       "code_template": "{output_var} = operator.ne({a}, {b})",
       "dependencies": [
         "import operator"
@@ -2324,7 +3387,12 @@
       "node_type": "function",
       "node_role": "transform",
       "verified": true,
-      "source_priority": 50
+      "source_priority": 60,
+      "is_public": true,
+      "mutation_type": "pure",
+      "is_context_manager": false,
+      "raises": [],
+      "type_vars": []
     },
     {
       "cell_id": "OPERATOR_NEG",
@@ -2337,21 +3405,34 @@
           "default_value": null,
           "description": "Argument a",
           "domain": null,
-          "required": true
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "positional_only",
+          "value_constraints": null,
+          "shape_contract": null
         }
       },
       "outputs": {
         "output_data": {
           "type_name": "any",
-          "state": "transformed",
+          "state": "raw",
           "qualifiers": [],
           "default_value": null,
-          "description": "Output transformed",
+          "description": "Output raw",
           "domain": null,
-          "required": true
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "standard",
+          "value_constraints": null,
+          "shape_contract": null
         }
       },
+      "topology_type": "sequential",
       "slots": {},
+      "feedback_state_type": null,
+      "bound_slots": {},
       "code_template": "{output_var} = operator.neg({a})",
       "dependencies": [
         "import operator"
@@ -2369,7 +3450,12 @@
       "node_type": "function",
       "node_role": "transform",
       "verified": true,
-      "source_priority": 50
+      "source_priority": 60,
+      "is_public": true,
+      "mutation_type": "pure",
+      "is_context_manager": false,
+      "raises": [],
+      "type_vars": []
     },
     {
       "cell_id": "OPERATOR_NOT_",
@@ -2382,21 +3468,34 @@
           "default_value": null,
           "description": "Argument a",
           "domain": null,
-          "required": true
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "positional_only",
+          "value_constraints": null,
+          "shape_contract": null
         }
       },
       "outputs": {
         "output_data": {
           "type_name": "any",
-          "state": "transformed",
+          "state": "raw",
           "qualifiers": [],
           "default_value": null,
-          "description": "Output transformed",
+          "description": "Output raw",
           "domain": null,
-          "required": true
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "standard",
+          "value_constraints": null,
+          "shape_contract": null
         }
       },
+      "topology_type": "sequential",
       "slots": {},
+      "feedback_state_type": null,
+      "bound_slots": {},
       "code_template": "{output_var} = operator.not_({a})",
       "dependencies": [
         "import operator"
@@ -2416,7 +3515,12 @@
       "node_type": "function",
       "node_role": "transform",
       "verified": true,
-      "source_priority": 50
+      "source_priority": 60,
+      "is_public": true,
+      "mutation_type": "pure",
+      "is_context_manager": false,
+      "raises": [],
+      "type_vars": []
     },
     {
       "cell_id": "OPERATOR_OR_",
@@ -2429,7 +3533,12 @@
           "default_value": null,
           "description": "Argument a",
           "domain": null,
-          "required": true
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "positional_only",
+          "value_constraints": null,
+          "shape_contract": null
         },
         "b": {
           "type_name": "any",
@@ -2438,21 +3547,34 @@
           "default_value": null,
           "description": "Argument b",
           "domain": null,
-          "required": true
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "positional_only",
+          "value_constraints": null,
+          "shape_contract": null
         }
       },
       "outputs": {
         "output_data": {
           "type_name": "any",
-          "state": "transformed",
+          "state": "raw",
           "qualifiers": [],
           "default_value": null,
-          "description": "Output transformed",
+          "description": "Output raw",
           "domain": null,
-          "required": true
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "standard",
+          "value_constraints": null,
+          "shape_contract": null
         }
       },
+      "topology_type": "sequential",
       "slots": {},
+      "feedback_state_type": null,
+      "bound_slots": {},
       "code_template": "{output_var} = operator.or_({a}, {b})",
       "dependencies": [
         "import operator"
@@ -2472,7 +3594,12 @@
       "node_type": "function",
       "node_role": "transform",
       "verified": true,
-      "source_priority": 50
+      "source_priority": 60,
+      "is_public": true,
+      "mutation_type": "pure",
+      "is_context_manager": false,
+      "raises": [],
+      "type_vars": []
     },
     {
       "cell_id": "OPERATOR_POS",
@@ -2485,21 +3612,34 @@
           "default_value": null,
           "description": "Argument a",
           "domain": null,
-          "required": true
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "positional_only",
+          "value_constraints": null,
+          "shape_contract": null
         }
       },
       "outputs": {
         "output_data": {
           "type_name": "any",
-          "state": "transformed",
+          "state": "raw",
           "qualifiers": [],
           "default_value": null,
-          "description": "Output transformed",
+          "description": "Output raw",
           "domain": null,
-          "required": true
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "standard",
+          "value_constraints": null,
+          "shape_contract": null
         }
       },
+      "topology_type": "sequential",
       "slots": {},
+      "feedback_state_type": null,
+      "bound_slots": {},
       "code_template": "{output_var} = operator.pos({a})",
       "dependencies": [
         "import operator"
@@ -2517,7 +3657,12 @@
       "node_type": "function",
       "node_role": "transform",
       "verified": true,
-      "source_priority": 50
+      "source_priority": 60,
+      "is_public": true,
+      "mutation_type": "pure",
+      "is_context_manager": false,
+      "raises": [],
+      "type_vars": []
     },
     {
       "cell_id": "OPERATOR_POW",
@@ -2530,7 +3675,12 @@
           "default_value": null,
           "description": "Argument a",
           "domain": null,
-          "required": true
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "positional_only",
+          "value_constraints": null,
+          "shape_contract": null
         },
         "b": {
           "type_name": "any",
@@ -2539,21 +3689,34 @@
           "default_value": null,
           "description": "Argument b",
           "domain": null,
-          "required": true
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "positional_only",
+          "value_constraints": null,
+          "shape_contract": null
         }
       },
       "outputs": {
         "output_data": {
           "type_name": "any",
-          "state": "transformed",
+          "state": "raw",
           "qualifiers": [],
           "default_value": null,
-          "description": "Output transformed",
+          "description": "Output raw",
           "domain": null,
-          "required": true
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "standard",
+          "value_constraints": null,
+          "shape_contract": null
         }
       },
+      "topology_type": "sequential",
       "slots": {},
+      "feedback_state_type": null,
+      "bound_slots": {},
       "code_template": "{output_var} = operator.pow({a}, {b})",
       "dependencies": [
         "import operator"
@@ -2571,7 +3734,12 @@
       "node_type": "function",
       "node_role": "transform",
       "verified": true,
-      "source_priority": 50
+      "source_priority": 60,
+      "is_public": true,
+      "mutation_type": "pure",
+      "is_context_manager": false,
+      "raises": [],
+      "type_vars": []
     },
     {
       "cell_id": "OPERATOR_RSHIFT",
@@ -2584,7 +3752,12 @@
           "default_value": null,
           "description": "Argument a",
           "domain": null,
-          "required": true
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "positional_only",
+          "value_constraints": null,
+          "shape_contract": null
         },
         "b": {
           "type_name": "any",
@@ -2593,21 +3766,34 @@
           "default_value": null,
           "description": "Argument b",
           "domain": null,
-          "required": true
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "positional_only",
+          "value_constraints": null,
+          "shape_contract": null
         }
       },
       "outputs": {
         "output_data": {
           "type_name": "any",
-          "state": "transformed",
+          "state": "raw",
           "qualifiers": [],
           "default_value": null,
-          "description": "Output transformed",
+          "description": "Output raw",
           "domain": null,
-          "required": true
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "standard",
+          "value_constraints": null,
+          "shape_contract": null
         }
       },
+      "topology_type": "sequential",
       "slots": {},
+      "feedback_state_type": null,
+      "bound_slots": {},
       "code_template": "{output_var} = operator.rshift({a}, {b})",
       "dependencies": [
         "import operator"
@@ -2625,7 +3811,12 @@
       "node_type": "function",
       "node_role": "transform",
       "verified": true,
-      "source_priority": 50
+      "source_priority": 60,
+      "is_public": true,
+      "mutation_type": "pure",
+      "is_context_manager": false,
+      "raises": [],
+      "type_vars": []
     },
     {
       "cell_id": "OPERATOR_SETITEM",
@@ -2638,7 +3829,12 @@
           "default_value": null,
           "description": "Argument a",
           "domain": null,
-          "required": true
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "positional_only",
+          "value_constraints": null,
+          "shape_contract": null
         },
         "b": {
           "type_name": "any",
@@ -2647,7 +3843,12 @@
           "default_value": null,
           "description": "Argument b",
           "domain": null,
-          "required": true
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "positional_only",
+          "value_constraints": null,
+          "shape_contract": null
         },
         "c": {
           "type_name": "any",
@@ -2656,21 +3857,34 @@
           "default_value": null,
           "description": "Argument c",
           "domain": null,
-          "required": true
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "positional_only",
+          "value_constraints": null,
+          "shape_contract": null
         }
       },
       "outputs": {
         "output_data": {
           "type_name": "any",
-          "state": "transformed",
+          "state": "raw",
           "qualifiers": [],
           "default_value": null,
-          "description": "Output transformed",
+          "description": "Output raw",
           "domain": null,
-          "required": true
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "standard",
+          "value_constraints": null,
+          "shape_contract": null
         }
       },
+      "topology_type": "sequential",
       "slots": {},
+      "feedback_state_type": null,
+      "bound_slots": {},
       "code_template": "{output_var} = operator.setitem({a}, {b}, {c})",
       "dependencies": [
         "import operator"
@@ -2688,7 +3902,12 @@
       "node_type": "function",
       "node_role": "transform",
       "verified": true,
-      "source_priority": 50
+      "source_priority": 60,
+      "is_public": true,
+      "mutation_type": "pure",
+      "is_context_manager": false,
+      "raises": [],
+      "type_vars": []
     },
     {
       "cell_id": "OPERATOR_SUB",
@@ -2701,7 +3920,12 @@
           "default_value": null,
           "description": "Argument a",
           "domain": null,
-          "required": true
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "positional_only",
+          "value_constraints": null,
+          "shape_contract": null
         },
         "b": {
           "type_name": "any",
@@ -2710,21 +3934,34 @@
           "default_value": null,
           "description": "Argument b",
           "domain": null,
-          "required": true
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "positional_only",
+          "value_constraints": null,
+          "shape_contract": null
         }
       },
       "outputs": {
         "output_data": {
           "type_name": "any",
-          "state": "transformed",
+          "state": "raw",
           "qualifiers": [],
           "default_value": null,
-          "description": "Output transformed",
+          "description": "Output raw",
           "domain": null,
-          "required": true
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "standard",
+          "value_constraints": null,
+          "shape_contract": null
         }
       },
+      "topology_type": "sequential",
       "slots": {},
+      "feedback_state_type": null,
+      "bound_slots": {},
       "code_template": "{output_var} = operator.sub({a}, {b})",
       "dependencies": [
         "import operator"
@@ -2742,7 +3979,12 @@
       "node_type": "function",
       "node_role": "transform",
       "verified": true,
-      "source_priority": 50
+      "source_priority": 60,
+      "is_public": true,
+      "mutation_type": "pure",
+      "is_context_manager": false,
+      "raises": [],
+      "type_vars": []
     },
     {
       "cell_id": "OPERATOR_TRUEDIV",
@@ -2755,7 +3997,12 @@
           "default_value": null,
           "description": "Argument a",
           "domain": null,
-          "required": true
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "positional_only",
+          "value_constraints": null,
+          "shape_contract": null
         },
         "b": {
           "type_name": "any",
@@ -2764,21 +4011,34 @@
           "default_value": null,
           "description": "Argument b",
           "domain": null,
-          "required": true
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "positional_only",
+          "value_constraints": null,
+          "shape_contract": null
         }
       },
       "outputs": {
         "output_data": {
           "type_name": "any",
-          "state": "transformed",
+          "state": "raw",
           "qualifiers": [],
           "default_value": null,
-          "description": "Output transformed",
+          "description": "Output raw",
           "domain": null,
-          "required": true
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "standard",
+          "value_constraints": null,
+          "shape_contract": null
         }
       },
+      "topology_type": "sequential",
       "slots": {},
+      "feedback_state_type": null,
+      "bound_slots": {},
       "code_template": "{output_var} = operator.truediv({a}, {b})",
       "dependencies": [
         "import operator"
@@ -2796,7 +4056,12 @@
       "node_type": "function",
       "node_role": "transform",
       "verified": true,
-      "source_priority": 50
+      "source_priority": 60,
+      "is_public": true,
+      "mutation_type": "pure",
+      "is_context_manager": false,
+      "raises": [],
+      "type_vars": []
     },
     {
       "cell_id": "OPERATOR_TRUTH",
@@ -2809,21 +4074,34 @@
           "default_value": null,
           "description": "Argument a",
           "domain": null,
-          "required": true
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "positional_only",
+          "value_constraints": null,
+          "shape_contract": null
         }
       },
       "outputs": {
         "output_data": {
           "type_name": "any",
-          "state": "transformed",
+          "state": "raw",
           "qualifiers": [],
           "default_value": null,
-          "description": "Output transformed",
+          "description": "Output raw",
           "domain": null,
-          "required": true
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "standard",
+          "value_constraints": null,
+          "shape_contract": null
         }
       },
+      "topology_type": "sequential",
       "slots": {},
+      "feedback_state_type": null,
+      "bound_slots": {},
       "code_template": "{output_var} = operator.truth({a})",
       "dependencies": [
         "import operator"
@@ -2841,7 +4119,12 @@
       "node_type": "function",
       "node_role": "transform",
       "verified": true,
-      "source_priority": 50
+      "source_priority": 60,
+      "is_public": true,
+      "mutation_type": "pure",
+      "is_context_manager": false,
+      "raises": [],
+      "type_vars": []
     },
     {
       "cell_id": "OPERATOR_XOR",
@@ -2854,7 +4137,12 @@
           "default_value": null,
           "description": "Argument a",
           "domain": null,
-          "required": true
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "positional_only",
+          "value_constraints": null,
+          "shape_contract": null
         },
         "b": {
           "type_name": "any",
@@ -2863,21 +4151,34 @@
           "default_value": null,
           "description": "Argument b",
           "domain": null,
-          "required": true
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "positional_only",
+          "value_constraints": null,
+          "shape_contract": null
         }
       },
       "outputs": {
         "output_data": {
           "type_name": "any",
-          "state": "transformed",
+          "state": "raw",
           "qualifiers": [],
           "default_value": null,
-          "description": "Output transformed",
+          "description": "Output raw",
           "domain": null,
-          "required": true
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "standard",
+          "value_constraints": null,
+          "shape_contract": null
         }
       },
+      "topology_type": "sequential",
       "slots": {},
+      "feedback_state_type": null,
+      "bound_slots": {},
       "code_template": "{output_var} = operator.xor({a}, {b})",
       "dependencies": [
         "import operator"
@@ -2895,7 +4196,12 @@
       "node_type": "function",
       "node_role": "transform",
       "verified": true,
-      "source_priority": 50
+      "source_priority": 60,
+      "is_public": true,
+      "mutation_type": "pure",
+      "is_context_manager": false,
+      "raises": [],
+      "type_vars": []
     }
   ]
 }

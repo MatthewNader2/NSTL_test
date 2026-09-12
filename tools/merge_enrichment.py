@@ -57,14 +57,15 @@ def merge_domain(domain: str, dry_run: bool = False) -> Dict[str, int]:
         print(f"[merge:{domain}] checkpoint unreadable: {e}")
         return stats
 
-    tree = json.loads(tree_path.read_text(encoding="utf-8"))
-    cells = tree.get("cells", [])
-    stats["checkpoint_cells"] = len(cells)
+    ck_cells = checkpoint.get("cells", [])
+    stats["checkpoint_cells"] = len(ck_cells)
 
     ck_map: Dict[str, Dict[str, Any]] = {}
-    for c in cells:
+    for c in ck_cells:
         if isinstance(c, dict) and c.get("cell_id"):
             ck_map[str(c["cell_id"]).upper()] = c
+
+    tree = json.loads(tree_path.read_text(encoding="utf-8"))
 
     now_iso = datetime.now(timezone.utc).isoformat(timespec="seconds")
     matched = 0

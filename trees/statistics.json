@@ -1,144 +1,434 @@
 {
   "domain": "statistics",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "cells": [
     {
-      "cell_id": "STATISTICS_LINEARREGRESSION_COUNT",
+      "cell_id": "STATISTICS_NORMALDIST_INIT",
       "stage": 2,
       "inputs": {
-        "data": {
-          "type_name": "LinearRegression",
-          "state": "any",
-          "qualifiers": [],
-          "default_value": null,
-          "description": "Receiver instance of LinearRegression",
-          "domain": null,
-          "required": true
-        },
-        "value": {
+        "mu": {
           "type_name": "any",
           "state": "any",
           "qualifiers": [],
-          "default_value": null,
-          "description": "Argument value",
+          "default_value": 0.0,
+          "description": "Constructor argument mu",
           "domain": null,
-          "required": true
+          "required": false,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "standard",
+          "value_constraints": null,
+          "shape_contract": null
+        },
+        "sigma": {
+          "type_name": "any",
+          "state": "any",
+          "qualifiers": [],
+          "default_value": 1.0,
+          "description": "Constructor argument sigma",
+          "domain": null,
+          "required": false,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "standard",
+          "value_constraints": null,
+          "shape_contract": null
         }
       },
       "outputs": {
         "output_data": {
-          "type_name": "LinearRegression",
-          "state": "transformed",
+          "type_name": "NormalDist",
+          "state": "constructed",
           "qualifiers": [],
           "default_value": null,
-          "description": "Output transformed",
+          "description": "Newly constructed NormalDist",
           "domain": null,
-          "required": true
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "standard",
+          "value_constraints": null,
+          "shape_contract": null
         }
       },
+      "topology_type": "sequential",
       "slots": {},
-      "code_template": "{output_var} = {data}.count({value})",
+      "feedback_state_type": null,
+      "bound_slots": {},
+      "code_template": "{output_var} = statistics.NormalDist()",
       "dependencies": [
         "import statistics"
       ],
       "semantic_tags": [
-        "count",
-        "linear",
-        "linearregression",
-        "regression"
+        "dist",
+        "normal",
+        "normaldist"
       ],
       "keywords": [
-        "count",
-        "linear",
-        "linearregression",
-        "regression"
+        "dist",
+        "normal",
+        "normaldist"
       ],
-      "docstring": "Return number of occurrences of value.",
+      "docstring": "Normal distribution of a random variable",
       "enrichment_source": null,
       "enriched_at": null,
       "domain_name": "statistics",
-      "node_type": "function",
-      "node_role": "transform",
+      "node_type": "constructor",
+      "node_role": "constructor",
       "verified": true,
-      "source_priority": 50
+      "source_priority": 10,
+      "is_public": true,
+      "mutation_type": "pure",
+      "is_context_manager": false,
+      "raises": [],
+      "type_vars": []
     },
     {
-      "cell_id": "STATISTICS_LINEARREGRESSION_INDEX",
+      "cell_id": "STATISTICS_NORMALDIST_MEAN",
       "stage": 2,
       "inputs": {
         "data": {
-          "type_name": "LinearRegression",
+          "type_name": "NormalDist",
           "state": "any",
           "qualifiers": [],
           "default_value": null,
-          "description": "Receiver instance of LinearRegression",
+          "description": "Receiver instance of NormalDist",
           "domain": null,
-          "required": true
-        },
-        "value": {
-          "type_name": "any",
-          "state": "any",
-          "qualifiers": [],
-          "default_value": null,
-          "description": "Argument value",
-          "domain": null,
-          "required": true
-        },
-        "start": {
-          "type_name": "int",
-          "state": "any",
-          "qualifiers": [],
-          "default_value": null,
-          "description": "Argument start",
-          "domain": null,
-          "required": false
-        },
-        "stop": {
-          "type_name": "int",
-          "state": "any",
-          "qualifiers": [],
-          "default_value": null,
-          "description": "Argument stop",
-          "domain": null,
-          "required": false
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "standard",
+          "value_constraints": null,
+          "shape_contract": null
         }
       },
       "outputs": {
         "output_data": {
-          "type_name": "LinearRegression",
-          "state": "transformed",
+          "type_name": "any",
+          "state": "raw",
           "qualifiers": [],
           "default_value": null,
-          "description": "Output transformed",
+          "description": "Property mean",
           "domain": null,
-          "required": true
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "standard",
+          "value_constraints": null,
+          "shape_contract": null
         }
       },
+      "topology_type": "sequential",
       "slots": {},
-      "code_template": "{output_var} = {data}.index({value}, {start}, {stop})",
+      "feedback_state_type": null,
+      "bound_slots": {},
+      "code_template": "{output_var} = {data}.mean",
       "dependencies": [
         "import statistics"
       ],
       "semantic_tags": [
-        "index",
-        "linear",
-        "linearregression",
-        "regression"
+        "dist",
+        "mean",
+        "normal",
+        "normaldist"
       ],
       "keywords": [
-        "index",
-        "linear",
-        "linearregression",
-        "regression"
+        "dist",
+        "mean",
+        "normal",
+        "normaldist"
       ],
-      "docstring": "Return first index of value.",
+      "docstring": "Arithmetic mean of the normal distribution.",
       "enrichment_source": null,
       "enriched_at": null,
       "domain_name": "statistics",
-      "node_type": "function",
-      "node_role": "transform",
+      "node_type": "property",
+      "node_role": "bridge",
       "verified": true,
-      "source_priority": 50
+      "source_priority": 10,
+      "is_public": true,
+      "mutation_type": "pure",
+      "is_context_manager": false,
+      "raises": [],
+      "type_vars": []
+    },
+    {
+      "cell_id": "STATISTICS_NORMALDIST_MEDIAN",
+      "stage": 2,
+      "inputs": {
+        "data": {
+          "type_name": "NormalDist",
+          "state": "any",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Receiver instance of NormalDist",
+          "domain": null,
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "standard",
+          "value_constraints": null,
+          "shape_contract": null
+        }
+      },
+      "outputs": {
+        "output_data": {
+          "type_name": "any",
+          "state": "raw",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Property median",
+          "domain": null,
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "standard",
+          "value_constraints": null,
+          "shape_contract": null
+        }
+      },
+      "topology_type": "sequential",
+      "slots": {},
+      "feedback_state_type": null,
+      "bound_slots": {},
+      "code_template": "{output_var} = {data}.median",
+      "dependencies": [
+        "import statistics"
+      ],
+      "semantic_tags": [
+        "dist",
+        "median",
+        "normal",
+        "normaldist"
+      ],
+      "keywords": [
+        "dist",
+        "median",
+        "normal",
+        "normaldist"
+      ],
+      "docstring": "Return the median of the normal distribution",
+      "enrichment_source": null,
+      "enriched_at": null,
+      "domain_name": "statistics",
+      "node_type": "property",
+      "node_role": "bridge",
+      "verified": true,
+      "source_priority": 10,
+      "is_public": true,
+      "mutation_type": "pure",
+      "is_context_manager": false,
+      "raises": [],
+      "type_vars": []
+    },
+    {
+      "cell_id": "STATISTICS_NORMALDIST_MODE",
+      "stage": 2,
+      "inputs": {
+        "data": {
+          "type_name": "NormalDist",
+          "state": "any",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Receiver instance of NormalDist",
+          "domain": null,
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "standard",
+          "value_constraints": null,
+          "shape_contract": null
+        }
+      },
+      "outputs": {
+        "output_data": {
+          "type_name": "any",
+          "state": "raw",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Property mode",
+          "domain": null,
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "standard",
+          "value_constraints": null,
+          "shape_contract": null
+        }
+      },
+      "topology_type": "sequential",
+      "slots": {},
+      "feedback_state_type": null,
+      "bound_slots": {},
+      "code_template": "{output_var} = {data}.mode",
+      "dependencies": [
+        "import statistics"
+      ],
+      "semantic_tags": [
+        "dist",
+        "mode",
+        "normal",
+        "normaldist"
+      ],
+      "keywords": [
+        "dist",
+        "mode",
+        "normal",
+        "normaldist"
+      ],
+      "docstring": "Return the mode of the normal distribution",
+      "enrichment_source": null,
+      "enriched_at": null,
+      "domain_name": "statistics",
+      "node_type": "property",
+      "node_role": "bridge",
+      "verified": true,
+      "source_priority": 10,
+      "is_public": true,
+      "mutation_type": "pure",
+      "is_context_manager": false,
+      "raises": [],
+      "type_vars": []
+    },
+    {
+      "cell_id": "STATISTICS_NORMALDIST_STDEV",
+      "stage": 2,
+      "inputs": {
+        "data": {
+          "type_name": "NormalDist",
+          "state": "any",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Receiver instance of NormalDist",
+          "domain": null,
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "standard",
+          "value_constraints": null,
+          "shape_contract": null
+        }
+      },
+      "outputs": {
+        "output_data": {
+          "type_name": "any",
+          "state": "raw",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Property stdev",
+          "domain": null,
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "standard",
+          "value_constraints": null,
+          "shape_contract": null
+        }
+      },
+      "topology_type": "sequential",
+      "slots": {},
+      "feedback_state_type": null,
+      "bound_slots": {},
+      "code_template": "{output_var} = {data}.stdev",
+      "dependencies": [
+        "import statistics"
+      ],
+      "semantic_tags": [
+        "dist",
+        "normal",
+        "normaldist",
+        "stdev"
+      ],
+      "keywords": [
+        "dist",
+        "normal",
+        "normaldist",
+        "stdev"
+      ],
+      "docstring": "Standard deviation of the normal distribution.",
+      "enrichment_source": null,
+      "enriched_at": null,
+      "domain_name": "statistics",
+      "node_type": "property",
+      "node_role": "bridge",
+      "verified": true,
+      "source_priority": 10,
+      "is_public": true,
+      "mutation_type": "pure",
+      "is_context_manager": false,
+      "raises": [],
+      "type_vars": []
+    },
+    {
+      "cell_id": "STATISTICS_NORMALDIST_VARIANCE",
+      "stage": 2,
+      "inputs": {
+        "data": {
+          "type_name": "NormalDist",
+          "state": "any",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Receiver instance of NormalDist",
+          "domain": null,
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "standard",
+          "value_constraints": null,
+          "shape_contract": null
+        }
+      },
+      "outputs": {
+        "output_data": {
+          "type_name": "any",
+          "state": "raw",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Property variance",
+          "domain": null,
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "standard",
+          "value_constraints": null,
+          "shape_contract": null
+        }
+      },
+      "topology_type": "sequential",
+      "slots": {},
+      "feedback_state_type": null,
+      "bound_slots": {},
+      "code_template": "{output_var} = {data}.variance",
+      "dependencies": [
+        "import statistics"
+      ],
+      "semantic_tags": [
+        "dist",
+        "normal",
+        "normaldist",
+        "varianc",
+        "variance"
+      ],
+      "keywords": [
+        "dist",
+        "normal",
+        "normaldist",
+        "varianc",
+        "variance"
+      ],
+      "docstring": "Square of the standard deviation.",
+      "enrichment_source": null,
+      "enriched_at": null,
+      "domain_name": "statistics",
+      "node_type": "property",
+      "node_role": "bridge",
+      "verified": true,
+      "source_priority": 10,
+      "is_public": true,
+      "mutation_type": "pure",
+      "is_context_manager": false,
+      "raises": [],
+      "type_vars": []
     },
     {
       "cell_id": "STATISTICS_NORMALDIST_CDF",
@@ -151,7 +441,12 @@
           "default_value": null,
           "description": "Receiver instance of NormalDist",
           "domain": null,
-          "required": true
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "standard",
+          "value_constraints": null,
+          "shape_contract": null
         },
         "x": {
           "type_name": "any",
@@ -160,21 +455,34 @@
           "default_value": null,
           "description": "Argument x",
           "domain": null,
-          "required": true
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "standard",
+          "value_constraints": null,
+          "shape_contract": null
         }
       },
       "outputs": {
         "output_data": {
-          "type_name": "NormalDist",
-          "state": "transformed",
+          "type_name": "any",
+          "state": "raw",
           "qualifiers": [],
           "default_value": null,
-          "description": "Output transformed",
+          "description": "Output raw",
           "domain": null,
-          "required": true
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "standard",
+          "value_constraints": null,
+          "shape_contract": null
         }
       },
+      "topology_type": "sequential",
       "slots": {},
+      "feedback_state_type": null,
+      "bound_slots": {},
       "code_template": "{output_var} = {data}.cdf({x})",
       "dependencies": [
         "import statistics"
@@ -195,38 +503,41 @@
       "enrichment_source": null,
       "enriched_at": null,
       "domain_name": "statistics",
-      "node_type": "function",
-      "node_role": "transform",
+      "node_type": "bridge",
+      "node_role": "tunnel",
       "verified": true,
-      "source_priority": 50
+      "source_priority": 90,
+      "is_public": false,
+      "mutation_type": "pure",
+      "is_context_manager": false,
+      "raises": [],
+      "type_vars": []
     },
     {
       "cell_id": "STATISTICS_NORMALDIST_FROM_SAMPLES",
       "stage": 2,
-      "inputs": {
-        "data": {
-          "type_name": "any",
-          "state": "any",
-          "qualifiers": [],
-          "default_value": null,
-          "description": "Argument data",
-          "domain": null,
-          "required": true
-        }
-      },
+      "inputs": {},
       "outputs": {
         "output_data": {
           "type_name": "NormalDist",
-          "state": "transformed",
+          "state": "constructed",
           "qualifiers": [],
           "default_value": null,
-          "description": "Output transformed",
+          "description": "Output constructed",
           "domain": null,
-          "required": true
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "standard",
+          "value_constraints": null,
+          "shape_contract": null
         }
       },
+      "topology_type": "sequential",
       "slots": {},
-      "code_template": "{output_var} = {data}.from_samples({data})",
+      "feedback_state_type": null,
+      "bound_slots": {},
+      "code_template": "{output_var} = statistics.NormalDist.from_samples()",
       "dependencies": [
         "import statistics"
       ],
@@ -236,6 +547,7 @@
         "from_samples",
         "normal",
         "normaldist",
+        "sampl",
         "samples"
       ],
       "keywords": [
@@ -244,16 +556,22 @@
         "from_samples",
         "normal",
         "normaldist",
+        "sampl",
         "samples"
       ],
       "docstring": "Make a normal distribution instance from sample data.",
       "enrichment_source": null,
       "enriched_at": null,
       "domain_name": "statistics",
-      "node_type": "function",
-      "node_role": "transform",
+      "node_type": "constructor",
+      "node_role": "constructor",
       "verified": true,
-      "source_priority": 50
+      "source_priority": 90,
+      "is_public": false,
+      "mutation_type": "pure",
+      "is_context_manager": false,
+      "raises": [],
+      "type_vars": []
     },
     {
       "cell_id": "STATISTICS_NORMALDIST_INV_CDF",
@@ -266,7 +584,12 @@
           "default_value": null,
           "description": "Receiver instance of NormalDist",
           "domain": null,
-          "required": true
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "standard",
+          "value_constraints": null,
+          "shape_contract": null
         },
         "p": {
           "type_name": "any",
@@ -275,21 +598,34 @@
           "default_value": null,
           "description": "Argument p",
           "domain": null,
-          "required": true
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "standard",
+          "value_constraints": null,
+          "shape_contract": null
         }
       },
       "outputs": {
         "output_data": {
-          "type_name": "NormalDist",
-          "state": "transformed",
+          "type_name": "any",
+          "state": "raw",
           "qualifiers": [],
           "default_value": null,
-          "description": "Output transformed",
+          "description": "Output raw",
           "domain": null,
-          "required": true
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "standard",
+          "value_constraints": null,
+          "shape_contract": null
         }
       },
+      "topology_type": "sequential",
       "slots": {},
+      "feedback_state_type": null,
+      "bound_slots": {},
       "code_template": "{output_var} = {data}.inv_cdf({p})",
       "dependencies": [
         "import statistics"
@@ -314,10 +650,15 @@
       "enrichment_source": null,
       "enriched_at": null,
       "domain_name": "statistics",
-      "node_type": "function",
-      "node_role": "transform",
+      "node_type": "bridge",
+      "node_role": "tunnel",
       "verified": true,
-      "source_priority": 50
+      "source_priority": 90,
+      "is_public": false,
+      "mutation_type": "pure",
+      "is_context_manager": false,
+      "raises": [],
+      "type_vars": []
     },
     {
       "cell_id": "STATISTICS_NORMALDIST_OVERLAP",
@@ -330,7 +671,12 @@
           "default_value": null,
           "description": "Receiver instance of NormalDist",
           "domain": null,
-          "required": true
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "standard",
+          "value_constraints": null,
+          "shape_contract": null
         },
         "other": {
           "type_name": "any",
@@ -339,21 +685,38 @@
           "default_value": null,
           "description": "Argument other",
           "domain": null,
-          "required": true
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "standard",
+          "value_constraints": {
+            "min": 2.4,
+            "max": 1.6,
+            "interval": "open"
+          },
+          "shape_contract": null
         }
       },
       "outputs": {
         "output_data": {
-          "type_name": "NormalDist",
-          "state": "transformed",
+          "type_name": "any",
+          "state": "raw",
           "qualifiers": [],
           "default_value": null,
-          "description": "Output transformed",
+          "description": "Output raw",
           "domain": null,
-          "required": true
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "standard",
+          "value_constraints": null,
+          "shape_contract": null
         }
       },
+      "topology_type": "sequential",
       "slots": {},
+      "feedback_state_type": null,
+      "bound_slots": {},
       "code_template": "{output_var} = {data}.overlap({other})",
       "dependencies": [
         "import statistics"
@@ -374,10 +737,15 @@
       "enrichment_source": null,
       "enriched_at": null,
       "domain_name": "statistics",
-      "node_type": "function",
-      "node_role": "transform",
+      "node_type": "bridge",
+      "node_role": "tunnel",
       "verified": true,
-      "source_priority": 50
+      "source_priority": 90,
+      "is_public": false,
+      "mutation_type": "pure",
+      "is_context_manager": false,
+      "raises": [],
+      "type_vars": []
     },
     {
       "cell_id": "STATISTICS_NORMALDIST_PDF",
@@ -390,7 +758,12 @@
           "default_value": null,
           "description": "Receiver instance of NormalDist",
           "domain": null,
-          "required": true
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "standard",
+          "value_constraints": null,
+          "shape_contract": null
         },
         "x": {
           "type_name": "any",
@@ -399,21 +772,34 @@
           "default_value": null,
           "description": "Argument x",
           "domain": null,
-          "required": true
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "standard",
+          "value_constraints": null,
+          "shape_contract": null
         }
       },
       "outputs": {
         "output_data": {
-          "type_name": "NormalDist",
-          "state": "transformed",
+          "type_name": "any",
+          "state": "raw",
           "qualifiers": [],
           "default_value": null,
-          "description": "Output transformed",
+          "description": "Output raw",
           "domain": null,
-          "required": true
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "standard",
+          "value_constraints": null,
+          "shape_contract": null
         }
       },
+      "topology_type": "sequential",
       "slots": {},
+      "feedback_state_type": null,
+      "bound_slots": {},
       "code_template": "{output_var} = {data}.pdf({x})",
       "dependencies": [
         "import statistics"
@@ -434,10 +820,15 @@
       "enrichment_source": null,
       "enriched_at": null,
       "domain_name": "statistics",
-      "node_type": "function",
-      "node_role": "transform",
+      "node_type": "bridge",
+      "node_role": "tunnel",
       "verified": true,
-      "source_priority": 50
+      "source_priority": 90,
+      "is_public": false,
+      "mutation_type": "pure",
+      "is_context_manager": false,
+      "raises": [],
+      "type_vars": []
     },
     {
       "cell_id": "STATISTICS_NORMALDIST_QUANTILES",
@@ -450,31 +841,49 @@
           "default_value": null,
           "description": "Receiver instance of NormalDist",
           "domain": null,
-          "required": true
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "standard",
+          "value_constraints": null,
+          "shape_contract": null
         },
         "n": {
-          "type_name": "int",
+          "type_name": "any",
           "state": "any",
           "qualifiers": [],
-          "default_value": null,
+          "default_value": 4,
           "description": "Argument n",
           "domain": null,
-          "required": false
+          "required": false,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "standard",
+          "value_constraints": null,
+          "shape_contract": null
         }
       },
       "outputs": {
         "output_data": {
-          "type_name": "NormalDist",
-          "state": "transformed",
+          "type_name": "any",
+          "state": "raw",
           "qualifiers": [],
           "default_value": null,
-          "description": "Output transformed",
+          "description": "Output raw",
           "domain": null,
-          "required": true
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "standard",
+          "value_constraints": null,
+          "shape_contract": null
         }
       },
+      "topology_type": "sequential",
       "slots": {},
-      "code_template": "{output_var} = {data}.quantiles({n})",
+      "feedback_state_type": null,
+      "bound_slots": {},
+      "code_template": "{output_var} = {data}.quantiles()",
       "dependencies": [
         "import statistics"
       ],
@@ -482,22 +891,29 @@
         "dist",
         "normal",
         "normaldist",
+        "quantil",
         "quantiles"
       ],
       "keywords": [
         "dist",
         "normal",
         "normaldist",
+        "quantil",
         "quantiles"
       ],
       "docstring": "Divide into *n* continuous intervals with equal probability.",
       "enrichment_source": null,
       "enriched_at": null,
       "domain_name": "statistics",
-      "node_type": "function",
-      "node_role": "transform",
+      "node_type": "bridge",
+      "node_role": "tunnel",
       "verified": true,
-      "source_priority": 50
+      "source_priority": 10,
+      "is_public": true,
+      "mutation_type": "pure",
+      "is_context_manager": false,
+      "raises": [],
+      "type_vars": []
     },
     {
       "cell_id": "STATISTICS_NORMALDIST_SAMPLES",
@@ -510,7 +926,12 @@
           "default_value": null,
           "description": "Receiver instance of NormalDist",
           "domain": null,
-          "required": true
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "standard",
+          "value_constraints": null,
+          "shape_contract": null
         },
         "n": {
           "type_name": "any",
@@ -519,31 +940,49 @@
           "default_value": null,
           "description": "Argument n",
           "domain": null,
-          "required": true
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "standard",
+          "value_constraints": null,
+          "shape_contract": null
         },
         "seed": {
-          "type_name": "NoneType",
+          "type_name": "any",
           "state": "any",
           "qualifiers": [],
           "default_value": null,
           "description": "Argument seed",
           "domain": null,
-          "required": false
+          "required": false,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "keyword_only",
+          "value_constraints": null,
+          "shape_contract": null
         }
       },
       "outputs": {
         "output_data": {
-          "type_name": "NormalDist",
-          "state": "transformed",
+          "type_name": "any",
+          "state": "raw",
           "qualifiers": [],
           "default_value": null,
-          "description": "Output transformed",
+          "description": "Output raw",
           "domain": null,
-          "required": true
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "standard",
+          "value_constraints": null,
+          "shape_contract": null
         }
       },
+      "topology_type": "sequential",
       "slots": {},
-      "code_template": "{output_var} = {data}.samples({n}, {seed})",
+      "feedback_state_type": null,
+      "bound_slots": {},
+      "code_template": "{output_var} = {data}.samples({n})",
       "dependencies": [
         "import statistics"
       ],
@@ -551,22 +990,29 @@
         "dist",
         "normal",
         "normaldist",
+        "sampl",
         "samples"
       ],
       "keywords": [
         "dist",
         "normal",
         "normaldist",
+        "sampl",
         "samples"
       ],
       "docstring": "Generate *n* samples for a given mean and standard deviation.",
       "enrichment_source": null,
       "enriched_at": null,
       "domain_name": "statistics",
-      "node_type": "function",
-      "node_role": "transform",
+      "node_type": "bridge",
+      "node_role": "tunnel",
       "verified": true,
-      "source_priority": 50
+      "source_priority": 90,
+      "is_public": false,
+      "mutation_type": "pure",
+      "is_context_manager": false,
+      "raises": [],
+      "type_vars": []
     },
     {
       "cell_id": "STATISTICS_NORMALDIST_ZSCORE",
@@ -579,7 +1025,12 @@
           "default_value": null,
           "description": "Receiver instance of NormalDist",
           "domain": null,
-          "required": true
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "standard",
+          "value_constraints": null,
+          "shape_contract": null
         },
         "x": {
           "type_name": "any",
@@ -588,21 +1039,34 @@
           "default_value": null,
           "description": "Argument x",
           "domain": null,
-          "required": true
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "standard",
+          "value_constraints": null,
+          "shape_contract": null
         }
       },
       "outputs": {
         "output_data": {
-          "type_name": "NormalDist",
-          "state": "transformed",
+          "type_name": "any",
+          "state": "raw",
           "qualifiers": [],
           "default_value": null,
-          "description": "Output transformed",
+          "description": "Output raw",
           "domain": null,
-          "required": true
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "standard",
+          "value_constraints": null,
+          "shape_contract": null
         }
       },
+      "topology_type": "sequential",
       "slots": {},
+      "feedback_state_type": null,
+      "bound_slots": {},
       "code_template": "{output_var} = {data}.zscore({x})",
       "dependencies": [
         "import statistics"
@@ -623,10 +1087,15 @@
       "enrichment_source": null,
       "enriched_at": null,
       "domain_name": "statistics",
-      "node_type": "function",
-      "node_role": "transform",
+      "node_type": "bridge",
+      "node_role": "tunnel",
       "verified": true,
-      "source_priority": 50
+      "source_priority": 90,
+      "is_public": false,
+      "mutation_type": "pure",
+      "is_context_manager": false,
+      "raises": [],
+      "type_vars": []
     },
     {
       "cell_id": "STATISTICS_STATISTICSERROR_ADD_NOTE",
@@ -639,7 +1108,12 @@
           "default_value": null,
           "description": "Receiver instance of StatisticsError",
           "domain": null,
-          "required": true
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "standard",
+          "value_constraints": null,
+          "shape_contract": null
         },
         "object": {
           "type_name": "any",
@@ -648,21 +1122,34 @@
           "default_value": null,
           "description": "Argument object",
           "domain": null,
-          "required": true
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "positional_only",
+          "value_constraints": null,
+          "shape_contract": null
         }
       },
       "outputs": {
         "output_data": {
-          "type_name": "StatisticsError",
-          "state": "transformed",
+          "type_name": "any",
+          "state": "raw",
           "qualifiers": [],
           "default_value": null,
-          "description": "Output transformed",
+          "description": "Output raw",
           "domain": null,
-          "required": true
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "standard",
+          "value_constraints": null,
+          "shape_contract": null
         }
       },
+      "topology_type": "sequential",
       "slots": {},
+      "feedback_state_type": null,
+      "bound_slots": {},
       "code_template": "{output_var} = {data}.add_note({object})",
       "dependencies": [
         "import statistics"
@@ -672,6 +1159,7 @@
         "add_note",
         "error",
         "note",
+        "statist",
         "statistics",
         "statisticserror"
       ],
@@ -680,6 +1168,7 @@
         "add_note",
         "error",
         "note",
+        "statist",
         "statistics",
         "statisticserror"
       ],
@@ -687,10 +1176,15 @@
       "enrichment_source": null,
       "enriched_at": null,
       "domain_name": "statistics",
-      "node_type": "function",
-      "node_role": "transform",
+      "node_type": "bridge",
+      "node_role": "tunnel",
       "verified": true,
-      "source_priority": 50
+      "source_priority": 90,
+      "is_public": false,
+      "mutation_type": "pure",
+      "is_context_manager": false,
+      "raises": [],
+      "type_vars": []
     },
     {
       "cell_id": "STATISTICS_STATISTICSERROR_WITH_TRACEBACK",
@@ -703,7 +1197,12 @@
           "default_value": null,
           "description": "Receiver instance of StatisticsError",
           "domain": null,
-          "required": true
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "standard",
+          "value_constraints": null,
+          "shape_contract": null
         },
         "object": {
           "type_name": "any",
@@ -712,27 +1211,41 @@
           "default_value": null,
           "description": "Argument object",
           "domain": null,
-          "required": true
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "positional_only",
+          "value_constraints": null,
+          "shape_contract": null
         }
       },
       "outputs": {
         "output_data": {
-          "type_name": "StatisticsError",
-          "state": "transformed",
+          "type_name": "any",
+          "state": "raw",
           "qualifiers": [],
           "default_value": null,
-          "description": "Output transformed",
+          "description": "Output raw",
           "domain": null,
-          "required": true
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "standard",
+          "value_constraints": null,
+          "shape_contract": null
         }
       },
+      "topology_type": "sequential",
       "slots": {},
+      "feedback_state_type": null,
+      "bound_slots": {},
       "code_template": "{output_var} = {data}.with_traceback({object})",
       "dependencies": [
         "import statistics"
       ],
       "semantic_tags": [
         "error",
+        "statist",
         "statistics",
         "statisticserror",
         "traceback",
@@ -741,6 +1254,7 @@
       ],
       "keywords": [
         "error",
+        "statist",
         "statistics",
         "statisticserror",
         "traceback",
@@ -751,10 +1265,15 @@
       "enrichment_source": null,
       "enriched_at": null,
       "domain_name": "statistics",
-      "node_type": "function",
-      "node_role": "transform",
+      "node_type": "bridge",
+      "node_role": "tunnel",
       "verified": true,
-      "source_priority": 50
+      "source_priority": 90,
+      "is_public": false,
+      "mutation_type": "pure",
+      "is_context_manager": false,
+      "raises": [],
+      "type_vars": []
     },
     {
       "cell_id": "STATISTICS_CORRELATION",
@@ -767,7 +1286,12 @@
           "default_value": null,
           "description": "Argument x",
           "domain": null,
-          "required": true
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "positional_only",
+          "value_constraints": null,
+          "shape_contract": null
         },
         "y": {
           "type_name": "any",
@@ -776,38 +1300,58 @@
           "default_value": null,
           "description": "Argument y",
           "domain": null,
-          "required": true
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "positional_only",
+          "value_constraints": null,
+          "shape_contract": null
         },
         "method": {
-          "type_name": "str",
+          "type_name": "any",
           "state": "any",
           "qualifiers": [],
-          "default_value": null,
+          "default_value": "linear",
           "description": "Argument method",
           "domain": null,
-          "required": false
+          "required": false,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "keyword_only",
+          "value_constraints": null,
+          "shape_contract": null
         }
       },
       "outputs": {
         "output_data": {
           "type_name": "any",
-          "state": "transformed",
+          "state": "raw",
           "qualifiers": [],
           "default_value": null,
-          "description": "Output transformed",
+          "description": "Output raw",
           "domain": null,
-          "required": true
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "standard",
+          "value_constraints": null,
+          "shape_contract": null
         }
       },
+      "topology_type": "sequential",
       "slots": {},
-      "code_template": "{output_var} = statistics.correlation({x}, {y}, {method})",
+      "feedback_state_type": null,
+      "bound_slots": {},
+      "code_template": "{output_var} = statistics.correlation({x}, {y})",
       "dependencies": [
         "import statistics"
       ],
       "semantic_tags": [
+        "correl",
         "correlation"
       ],
       "keywords": [
+        "correl",
         "correlation"
       ],
       "docstring": "Pearson's correlation coefficient",
@@ -817,7 +1361,15 @@
       "node_type": "function",
       "node_role": "transform",
       "verified": true,
-      "source_priority": 50
+      "source_priority": 60,
+      "is_public": true,
+      "mutation_type": "pure",
+      "is_context_manager": false,
+      "raises": [
+        "StatisticsError",
+        "ValueError"
+      ],
+      "type_vars": []
     },
     {
       "cell_id": "STATISTICS_COVARIANCE",
@@ -830,7 +1382,12 @@
           "default_value": null,
           "description": "Argument x",
           "domain": null,
-          "required": true
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "positional_only",
+          "value_constraints": null,
+          "shape_contract": null
         },
         "y": {
           "type_name": "any",
@@ -839,29 +1396,44 @@
           "default_value": null,
           "description": "Argument y",
           "domain": null,
-          "required": true
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "positional_only",
+          "value_constraints": null,
+          "shape_contract": null
         }
       },
       "outputs": {
         "output_data": {
           "type_name": "any",
-          "state": "transformed",
+          "state": "raw",
           "qualifiers": [],
           "default_value": null,
-          "description": "Output transformed",
+          "description": "Output raw",
           "domain": null,
-          "required": true
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "standard",
+          "value_constraints": null,
+          "shape_contract": null
         }
       },
+      "topology_type": "sequential",
       "slots": {},
+      "feedback_state_type": null,
+      "bound_slots": {},
       "code_template": "{output_var} = statistics.covariance({x}, {y})",
       "dependencies": [
         "import statistics"
       ],
       "semantic_tags": [
+        "covari",
         "covariance"
       ],
       "keywords": [
+        "covari",
         "covariance"
       ],
       "docstring": "Covariance",
@@ -871,7 +1443,14 @@
       "node_type": "function",
       "node_role": "transform",
       "verified": true,
-      "source_priority": 50
+      "source_priority": 60,
+      "is_public": true,
+      "mutation_type": "pure",
+      "is_context_manager": false,
+      "raises": [
+        "StatisticsError"
+      ],
+      "type_vars": []
     },
     {
       "cell_id": "STATISTICS_FMEAN",
@@ -884,31 +1463,49 @@
           "default_value": null,
           "description": "Argument data",
           "domain": null,
-          "required": true
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "standard",
+          "value_constraints": null,
+          "shape_contract": null
         },
         "weights": {
-          "type_name": "NoneType",
+          "type_name": "any",
           "state": "any",
           "qualifiers": [],
           "default_value": null,
           "description": "Argument weights",
           "domain": null,
-          "required": false
+          "required": false,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "standard",
+          "value_constraints": null,
+          "shape_contract": null
         }
       },
       "outputs": {
         "output_data": {
           "type_name": "any",
-          "state": "transformed",
+          "state": "raw",
           "qualifiers": [],
           "default_value": null,
-          "description": "Output transformed",
+          "description": "Output raw",
           "domain": null,
-          "required": true
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "standard",
+          "value_constraints": null,
+          "shape_contract": null
         }
       },
+      "topology_type": "sequential",
       "slots": {},
-      "code_template": "{output_var} = statistics.fmean({data}, {weights})",
+      "feedback_state_type": null,
+      "bound_slots": {},
+      "code_template": "{output_var} = statistics.fmean({data})",
       "dependencies": [
         "import statistics"
       ],
@@ -925,7 +1522,14 @@
       "node_type": "function",
       "node_role": "transform",
       "verified": true,
-      "source_priority": 50
+      "source_priority": 60,
+      "is_public": true,
+      "mutation_type": "pure",
+      "is_context_manager": false,
+      "raises": [
+        "StatisticsError"
+      ],
+      "type_vars": []
     },
     {
       "cell_id": "STATISTICS_GEOMETRIC_MEAN",
@@ -938,31 +1542,46 @@
           "default_value": null,
           "description": "Argument data",
           "domain": null,
-          "required": true
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "standard",
+          "value_constraints": null,
+          "shape_contract": null
         }
       },
       "outputs": {
         "output_data": {
           "type_name": "any",
-          "state": "transformed",
+          "state": "raw",
           "qualifiers": [],
           "default_value": null,
-          "description": "Output transformed",
+          "description": "Output raw",
           "domain": null,
-          "required": true
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "standard",
+          "value_constraints": null,
+          "shape_contract": null
         }
       },
+      "topology_type": "sequential",
       "slots": {},
+      "feedback_state_type": null,
+      "bound_slots": {},
       "code_template": "{output_var} = statistics.geometric_mean({data})",
       "dependencies": [
         "import statistics"
       ],
       "semantic_tags": [
+        "geometr",
         "geometric",
         "geometric_mean",
         "mean"
       ],
       "keywords": [
+        "geometr",
         "geometric",
         "geometric_mean",
         "mean"
@@ -974,7 +1593,14 @@
       "node_type": "function",
       "node_role": "transform",
       "verified": true,
-      "source_priority": 50
+      "source_priority": 60,
+      "is_public": true,
+      "mutation_type": "pure",
+      "is_context_manager": false,
+      "raises": [
+        "StatisticsError"
+      ],
+      "type_vars": []
     },
     {
       "cell_id": "STATISTICS_HARMONIC_MEAN",
@@ -987,40 +1613,68 @@
           "default_value": null,
           "description": "Argument data",
           "domain": null,
-          "required": true
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "standard",
+          "value_constraints": {
+            "min": 40,
+            "max": 60,
+            "interval": "closed"
+          },
+          "shape_contract": null
         },
         "weights": {
-          "type_name": "NoneType",
+          "type_name": "any",
           "state": "any",
           "qualifiers": [],
           "default_value": null,
           "description": "Argument weights",
           "domain": null,
-          "required": false
+          "required": false,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "standard",
+          "value_constraints": {
+            "min": 40,
+            "max": 60,
+            "interval": "closed"
+          },
+          "shape_contract": null
         }
       },
       "outputs": {
         "output_data": {
           "type_name": "any",
-          "state": "transformed",
+          "state": "raw",
           "qualifiers": [],
           "default_value": null,
-          "description": "Output transformed",
+          "description": "Output raw",
           "domain": null,
-          "required": true
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "standard",
+          "value_constraints": null,
+          "shape_contract": null
         }
       },
+      "topology_type": "sequential",
       "slots": {},
-      "code_template": "{output_var} = statistics.harmonic_mean({data}, {weights})",
+      "feedback_state_type": null,
+      "bound_slots": {},
+      "code_template": "{output_var} = statistics.harmonic_mean({data})",
       "dependencies": [
         "import statistics"
       ],
       "semantic_tags": [
+        "harmon",
         "harmonic",
         "harmonic_mean",
         "mean"
       ],
       "keywords": [
+        "harmon",
         "harmonic",
         "harmonic_mean",
         "mean"
@@ -1032,7 +1686,15 @@
       "node_type": "function",
       "node_role": "transform",
       "verified": true,
-      "source_priority": 50
+      "source_priority": 60,
+      "is_public": true,
+      "mutation_type": "pure",
+      "is_context_manager": false,
+      "raises": [
+        "StatisticsError",
+        "TypeError"
+      ],
+      "type_vars": []
     },
     {
       "cell_id": "STATISTICS_KDE",
@@ -1045,7 +1707,16 @@
           "default_value": null,
           "description": "Argument data",
           "domain": null,
-          "required": true
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "standard",
+          "value_constraints": {
+            "min": -20,
+            "max": 20,
+            "interval": "open"
+          },
+          "shape_contract": null
         },
         "h": {
           "type_name": "any",
@@ -1054,40 +1725,75 @@
           "default_value": null,
           "description": "Argument h",
           "domain": null,
-          "required": true
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "standard",
+          "value_constraints": {
+            "min": -20,
+            "max": 20,
+            "interval": "open"
+          },
+          "shape_contract": null
         },
         "kernel": {
-          "type_name": "str",
+          "type_name": "any",
           "state": "any",
           "qualifiers": [],
-          "default_value": null,
+          "default_value": "normal",
           "description": "Argument kernel",
           "domain": null,
-          "required": false
+          "required": false,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "standard",
+          "value_constraints": {
+            "min": -20,
+            "max": 20,
+            "interval": "open"
+          },
+          "shape_contract": null
         },
         "cumulative": {
-          "type_name": "bool",
+          "type_name": "any",
           "state": "any",
           "qualifiers": [],
-          "default_value": null,
+          "default_value": false,
           "description": "Argument cumulative",
           "domain": null,
-          "required": false
+          "required": false,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "keyword_only",
+          "value_constraints": {
+            "min": -20,
+            "max": 20,
+            "interval": "open"
+          },
+          "shape_contract": null
         }
       },
       "outputs": {
         "output_data": {
           "type_name": "any",
-          "state": "transformed",
+          "state": "raw",
           "qualifiers": [],
           "default_value": null,
-          "description": "Output transformed",
+          "description": "Output raw",
           "domain": null,
-          "required": true
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "standard",
+          "value_constraints": null,
+          "shape_contract": null
         }
       },
+      "topology_type": "sequential",
       "slots": {},
-      "code_template": "{output_var} = statistics.kde({data}, {h}, {kernel}, {cumulative})",
+      "feedback_state_type": null,
+      "bound_slots": {},
+      "code_template": "{output_var} = statistics.kde({data}, {h})",
       "dependencies": [
         "import statistics"
       ],
@@ -1104,7 +1810,15 @@
       "node_type": "function",
       "node_role": "transform",
       "verified": true,
-      "source_priority": 50
+      "source_priority": 60,
+      "is_public": true,
+      "mutation_type": "pure",
+      "is_context_manager": false,
+      "raises": [
+        "StatisticsError",
+        "TypeError"
+      ],
+      "type_vars": []
     },
     {
       "cell_id": "STATISTICS_KDE_RANDOM",
@@ -1117,7 +1831,12 @@
           "default_value": null,
           "description": "Argument data",
           "domain": null,
-          "required": true
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "standard",
+          "value_constraints": null,
+          "shape_contract": null
         },
         "h": {
           "type_name": "any",
@@ -1126,40 +1845,63 @@
           "default_value": null,
           "description": "Argument h",
           "domain": null,
-          "required": true
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "standard",
+          "value_constraints": null,
+          "shape_contract": null
         },
         "kernel": {
-          "type_name": "str",
+          "type_name": "any",
           "state": "any",
           "qualifiers": [],
-          "default_value": null,
+          "default_value": "normal",
           "description": "Argument kernel",
           "domain": null,
-          "required": false
+          "required": false,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "standard",
+          "value_constraints": null,
+          "shape_contract": null
         },
         "seed": {
-          "type_name": "NoneType",
+          "type_name": "any",
           "state": "any",
           "qualifiers": [],
           "default_value": null,
           "description": "Argument seed",
           "domain": null,
-          "required": false
+          "required": false,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "keyword_only",
+          "value_constraints": null,
+          "shape_contract": null
         }
       },
       "outputs": {
         "output_data": {
           "type_name": "any",
-          "state": "transformed",
+          "state": "raw",
           "qualifiers": [],
           "default_value": null,
-          "description": "Output transformed",
+          "description": "Output raw",
           "domain": null,
-          "required": true
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "standard",
+          "value_constraints": null,
+          "shape_contract": null
         }
       },
+      "topology_type": "sequential",
       "slots": {},
-      "code_template": "{output_var} = statistics.kde_random({data}, {h}, {kernel}, {seed})",
+      "feedback_state_type": null,
+      "bound_slots": {},
+      "code_template": "{output_var} = statistics.kde_random({data}, {h})",
       "dependencies": [
         "import statistics"
       ],
@@ -1180,7 +1922,15 @@
       "node_type": "function",
       "node_role": "transform",
       "verified": true,
-      "source_priority": 50
+      "source_priority": 60,
+      "is_public": true,
+      "mutation_type": "pure",
+      "is_context_manager": false,
+      "raises": [
+        "StatisticsError",
+        "TypeError"
+      ],
+      "type_vars": []
     },
     {
       "cell_id": "STATISTICS_LINEAR_REGRESSION",
@@ -1193,7 +1943,12 @@
           "default_value": null,
           "description": "Argument x",
           "domain": null,
-          "required": true
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "positional_only",
+          "value_constraints": null,
+          "shape_contract": null
         },
         "y": {
           "type_name": "any",
@@ -1202,42 +1957,62 @@
           "default_value": null,
           "description": "Argument y",
           "domain": null,
-          "required": true
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "positional_only",
+          "value_constraints": null,
+          "shape_contract": null
         },
         "proportional": {
-          "type_name": "bool",
+          "type_name": "any",
           "state": "any",
           "qualifiers": [],
-          "default_value": null,
+          "default_value": false,
           "description": "Argument proportional",
           "domain": null,
-          "required": false
+          "required": false,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "keyword_only",
+          "value_constraints": null,
+          "shape_contract": null
         }
       },
       "outputs": {
         "output_data": {
           "type_name": "any",
-          "state": "transformed",
+          "state": "raw",
           "qualifiers": [],
           "default_value": null,
-          "description": "Output transformed",
+          "description": "Output raw",
           "domain": null,
-          "required": true
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "standard",
+          "value_constraints": null,
+          "shape_contract": null
         }
       },
+      "topology_type": "sequential",
       "slots": {},
-      "code_template": "{output_var} = statistics.linear_regression({x}, {y}, {proportional})",
+      "feedback_state_type": null,
+      "bound_slots": {},
+      "code_template": "{output_var} = statistics.linear_regression({x}, {y})",
       "dependencies": [
         "import statistics"
       ],
       "semantic_tags": [
         "linear",
         "linear_regression",
+        "regress",
         "regression"
       ],
       "keywords": [
         "linear",
         "linear_regression",
+        "regress",
         "regression"
       ],
       "docstring": "Slope and intercept for simple linear regression.",
@@ -1247,7 +2022,14 @@
       "node_type": "function",
       "node_role": "transform",
       "verified": true,
-      "source_priority": 50
+      "source_priority": 60,
+      "is_public": true,
+      "mutation_type": "pure",
+      "is_context_manager": false,
+      "raises": [
+        "StatisticsError"
+      ],
+      "type_vars": []
     },
     {
       "cell_id": "STATISTICS_MEAN",
@@ -1260,21 +2042,38 @@
           "default_value": null,
           "description": "Argument data",
           "domain": null,
-          "required": true
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "standard",
+          "value_constraints": {
+            "min": 3,
+            "max": 7,
+            "interval": "open"
+          },
+          "shape_contract": null
         }
       },
       "outputs": {
         "output_data": {
           "type_name": "any",
-          "state": "transformed",
+          "state": "raw",
           "qualifiers": [],
           "default_value": null,
-          "description": "Output transformed",
+          "description": "Output raw",
           "domain": null,
-          "required": true
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "standard",
+          "value_constraints": null,
+          "shape_contract": null
         }
       },
+      "topology_type": "sequential",
       "slots": {},
+      "feedback_state_type": null,
+      "bound_slots": {},
       "code_template": "{output_var} = statistics.mean({data})",
       "dependencies": [
         "import statistics"
@@ -1292,7 +2091,14 @@
       "node_type": "function",
       "node_role": "transform",
       "verified": true,
-      "source_priority": 50
+      "source_priority": 60,
+      "is_public": true,
+      "mutation_type": "pure",
+      "is_context_manager": false,
+      "raises": [
+        "StatisticsError"
+      ],
+      "type_vars": []
     },
     {
       "cell_id": "STATISTICS_MEDIAN",
@@ -1305,21 +2111,36 @@
           "default_value": null,
           "description": "Argument data",
           "domain": null,
-          "required": true
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "standard",
+          "value_constraints": {
+            "parity": "odd"
+          },
+          "shape_contract": null
         }
       },
       "outputs": {
         "output_data": {
           "type_name": "any",
-          "state": "transformed",
+          "state": "raw",
           "qualifiers": [],
           "default_value": null,
-          "description": "Output transformed",
+          "description": "Output raw",
           "domain": null,
-          "required": true
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "standard",
+          "value_constraints": null,
+          "shape_contract": null
         }
       },
+      "topology_type": "sequential",
       "slots": {},
+      "feedback_state_type": null,
+      "bound_slots": {},
       "code_template": "{output_var} = statistics.median({data})",
       "dependencies": [
         "import statistics"
@@ -1337,7 +2158,14 @@
       "node_type": "function",
       "node_role": "transform",
       "verified": true,
-      "source_priority": 50
+      "source_priority": 60,
+      "is_public": true,
+      "mutation_type": "pure",
+      "is_context_manager": false,
+      "raises": [
+        "StatisticsError"
+      ],
+      "type_vars": []
     },
     {
       "cell_id": "STATISTICS_MEDIAN_GROUPED",
@@ -1350,40 +2178,60 @@
           "default_value": null,
           "description": "Argument data",
           "domain": null,
-          "required": true
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "standard",
+          "value_constraints": null,
+          "shape_contract": null
         },
         "interval": {
-          "type_name": "float",
+          "type_name": "any",
           "state": "any",
           "qualifiers": [],
-          "default_value": null,
+          "default_value": 1.0,
           "description": "Argument interval",
           "domain": null,
-          "required": false
+          "required": false,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "standard",
+          "value_constraints": null,
+          "shape_contract": null
         }
       },
       "outputs": {
         "output_data": {
           "type_name": "any",
-          "state": "transformed",
+          "state": "raw",
           "qualifiers": [],
           "default_value": null,
-          "description": "Output transformed",
+          "description": "Output raw",
           "domain": null,
-          "required": true
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "standard",
+          "value_constraints": null,
+          "shape_contract": null
         }
       },
+      "topology_type": "sequential",
       "slots": {},
-      "code_template": "{output_var} = statistics.median_grouped({data}, {interval})",
+      "feedback_state_type": null,
+      "bound_slots": {},
+      "code_template": "{output_var} = statistics.median_grouped({data})",
       "dependencies": [
         "import statistics"
       ],
       "semantic_tags": [
+        "group",
         "grouped",
         "median",
         "median_grouped"
       ],
       "keywords": [
+        "group",
         "grouped",
         "median",
         "median_grouped"
@@ -1395,7 +2243,15 @@
       "node_type": "function",
       "node_role": "transform",
       "verified": true,
-      "source_priority": 50
+      "source_priority": 60,
+      "is_public": true,
+      "mutation_type": "pure",
+      "is_context_manager": false,
+      "raises": [
+        "StatisticsError",
+        "TypeError"
+      ],
+      "type_vars": []
     },
     {
       "cell_id": "STATISTICS_MEDIAN_HIGH",
@@ -1408,21 +2264,36 @@
           "default_value": null,
           "description": "Argument data",
           "domain": null,
-          "required": true
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "standard",
+          "value_constraints": {
+            "parity": "odd"
+          },
+          "shape_contract": null
         }
       },
       "outputs": {
         "output_data": {
           "type_name": "any",
-          "state": "transformed",
+          "state": "raw",
           "qualifiers": [],
           "default_value": null,
-          "description": "Output transformed",
+          "description": "Output raw",
           "domain": null,
-          "required": true
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "standard",
+          "value_constraints": null,
+          "shape_contract": null
         }
       },
+      "topology_type": "sequential",
       "slots": {},
+      "feedback_state_type": null,
+      "bound_slots": {},
       "code_template": "{output_var} = statistics.median_high({data})",
       "dependencies": [
         "import statistics"
@@ -1444,7 +2315,14 @@
       "node_type": "function",
       "node_role": "transform",
       "verified": true,
-      "source_priority": 50
+      "source_priority": 60,
+      "is_public": true,
+      "mutation_type": "pure",
+      "is_context_manager": false,
+      "raises": [
+        "StatisticsError"
+      ],
+      "type_vars": []
     },
     {
       "cell_id": "STATISTICS_MEDIAN_LOW",
@@ -1457,21 +2335,36 @@
           "default_value": null,
           "description": "Argument data",
           "domain": null,
-          "required": true
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "standard",
+          "value_constraints": {
+            "parity": "odd"
+          },
+          "shape_contract": null
         }
       },
       "outputs": {
         "output_data": {
           "type_name": "any",
-          "state": "transformed",
+          "state": "raw",
           "qualifiers": [],
           "default_value": null,
-          "description": "Output transformed",
+          "description": "Output raw",
           "domain": null,
-          "required": true
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "standard",
+          "value_constraints": null,
+          "shape_contract": null
         }
       },
+      "topology_type": "sequential",
       "slots": {},
+      "feedback_state_type": null,
+      "bound_slots": {},
       "code_template": "{output_var} = statistics.median_low({data})",
       "dependencies": [
         "import statistics"
@@ -1493,7 +2386,14 @@
       "node_type": "function",
       "node_role": "transform",
       "verified": true,
-      "source_priority": 50
+      "source_priority": 60,
+      "is_public": true,
+      "mutation_type": "pure",
+      "is_context_manager": false,
+      "raises": [
+        "StatisticsError"
+      ],
+      "type_vars": []
     },
     {
       "cell_id": "STATISTICS_MODE",
@@ -1506,21 +2406,34 @@
           "default_value": null,
           "description": "Argument data",
           "domain": null,
-          "required": true
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "standard",
+          "value_constraints": null,
+          "shape_contract": null
         }
       },
       "outputs": {
         "output_data": {
           "type_name": "any",
-          "state": "transformed",
+          "state": "raw",
           "qualifiers": [],
           "default_value": null,
-          "description": "Output transformed",
+          "description": "Output raw",
           "domain": null,
-          "required": true
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "standard",
+          "value_constraints": null,
+          "shape_contract": null
         }
       },
+      "topology_type": "sequential",
       "slots": {},
+      "feedback_state_type": null,
+      "bound_slots": {},
       "code_template": "{output_var} = statistics.mode({data})",
       "dependencies": [
         "import statistics"
@@ -1538,7 +2451,14 @@
       "node_type": "function",
       "node_role": "transform",
       "verified": true,
-      "source_priority": 50
+      "source_priority": 60,
+      "is_public": true,
+      "mutation_type": "pure",
+      "is_context_manager": false,
+      "raises": [
+        "StatisticsError"
+      ],
+      "type_vars": []
     },
     {
       "cell_id": "STATISTICS_MULTIMODE",
@@ -1551,29 +2471,44 @@
           "default_value": null,
           "description": "Argument data",
           "domain": null,
-          "required": true
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "standard",
+          "value_constraints": null,
+          "shape_contract": null
         }
       },
       "outputs": {
         "output_data": {
           "type_name": "any",
-          "state": "transformed",
+          "state": "raw",
           "qualifiers": [],
           "default_value": null,
-          "description": "Output transformed",
+          "description": "Output raw",
           "domain": null,
-          "required": true
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "standard",
+          "value_constraints": null,
+          "shape_contract": null
         }
       },
+      "topology_type": "sequential",
       "slots": {},
+      "feedback_state_type": null,
+      "bound_slots": {},
       "code_template": "{output_var} = statistics.multimode({data})",
       "dependencies": [
         "import statistics"
       ],
       "semantic_tags": [
+        "multimod",
         "multimode"
       ],
       "keywords": [
+        "multimod",
         "multimode"
       ],
       "docstring": "Return a list of the most frequently occurring values.",
@@ -1583,7 +2518,12 @@
       "node_type": "function",
       "node_role": "transform",
       "verified": true,
-      "source_priority": 50
+      "source_priority": 60,
+      "is_public": true,
+      "mutation_type": "pure",
+      "is_context_manager": false,
+      "raises": [],
+      "type_vars": []
     },
     {
       "cell_id": "STATISTICS_PSTDEV",
@@ -1596,31 +2536,49 @@
           "default_value": null,
           "description": "Argument data",
           "domain": null,
-          "required": true
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "standard",
+          "value_constraints": null,
+          "shape_contract": null
         },
         "mu": {
-          "type_name": "NoneType",
+          "type_name": "any",
           "state": "any",
           "qualifiers": [],
           "default_value": null,
           "description": "Argument mu",
           "domain": null,
-          "required": false
+          "required": false,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "standard",
+          "value_constraints": null,
+          "shape_contract": null
         }
       },
       "outputs": {
         "output_data": {
           "type_name": "any",
-          "state": "transformed",
+          "state": "raw",
           "qualifiers": [],
           "default_value": null,
-          "description": "Output transformed",
+          "description": "Output raw",
           "domain": null,
-          "required": true
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "standard",
+          "value_constraints": null,
+          "shape_contract": null
         }
       },
+      "topology_type": "sequential",
       "slots": {},
-      "code_template": "{output_var} = statistics.pstdev({data}, {mu})",
+      "feedback_state_type": null,
+      "bound_slots": {},
+      "code_template": "{output_var} = statistics.pstdev({data})",
       "dependencies": [
         "import statistics"
       ],
@@ -1637,7 +2595,14 @@
       "node_type": "function",
       "node_role": "transform",
       "verified": true,
-      "source_priority": 50
+      "source_priority": 60,
+      "is_public": true,
+      "mutation_type": "pure",
+      "is_context_manager": false,
+      "raises": [
+        "StatisticsError"
+      ],
+      "type_vars": []
     },
     {
       "cell_id": "STATISTICS_PVARIANCE",
@@ -1650,38 +2615,66 @@
           "default_value": null,
           "description": "Argument data",
           "domain": null,
-          "required": true
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "standard",
+          "value_constraints": {
+            "min": 1,
+            "max": 4,
+            "interval": "open"
+          },
+          "shape_contract": null
         },
         "mu": {
-          "type_name": "NoneType",
+          "type_name": "any",
           "state": "any",
           "qualifiers": [],
           "default_value": null,
           "description": "Argument mu",
           "domain": null,
-          "required": false
+          "required": false,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "standard",
+          "value_constraints": {
+            "min": 1,
+            "max": 4,
+            "interval": "open"
+          },
+          "shape_contract": null
         }
       },
       "outputs": {
         "output_data": {
           "type_name": "any",
-          "state": "transformed",
+          "state": "raw",
           "qualifiers": [],
           "default_value": null,
-          "description": "Output transformed",
+          "description": "Output raw",
           "domain": null,
-          "required": true
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "standard",
+          "value_constraints": null,
+          "shape_contract": null
         }
       },
+      "topology_type": "sequential",
       "slots": {},
-      "code_template": "{output_var} = statistics.pvariance({data}, {mu})",
+      "feedback_state_type": null,
+      "bound_slots": {},
+      "code_template": "{output_var} = statistics.pvariance({data})",
       "dependencies": [
         "import statistics"
       ],
       "semantic_tags": [
+        "pvarianc",
         "pvariance"
       ],
       "keywords": [
+        "pvarianc",
         "pvariance"
       ],
       "docstring": "Return the population variance of ``data``.",
@@ -1691,7 +2684,14 @@
       "node_type": "function",
       "node_role": "transform",
       "verified": true,
-      "source_priority": 50
+      "source_priority": 60,
+      "is_public": true,
+      "mutation_type": "pure",
+      "is_context_manager": false,
+      "raises": [
+        "StatisticsError"
+      ],
+      "type_vars": []
     },
     {
       "cell_id": "STATISTICS_QUANTILES",
@@ -1704,47 +2704,72 @@
           "default_value": null,
           "description": "Argument data",
           "domain": null,
-          "required": true
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "standard",
+          "value_constraints": null,
+          "shape_contract": null
         },
         "n": {
-          "type_name": "int",
+          "type_name": "any",
           "state": "any",
           "qualifiers": [],
-          "default_value": null,
+          "default_value": 4,
           "description": "Argument n",
           "domain": null,
-          "required": false
+          "required": false,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "keyword_only",
+          "value_constraints": null,
+          "shape_contract": null
         },
         "method": {
-          "type_name": "str",
+          "type_name": "any",
           "state": "any",
           "qualifiers": [],
-          "default_value": null,
+          "default_value": "exclusive",
           "description": "Argument method",
           "domain": null,
-          "required": false
+          "required": false,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "keyword_only",
+          "value_constraints": null,
+          "shape_contract": null
         }
       },
       "outputs": {
         "output_data": {
           "type_name": "any",
-          "state": "transformed",
+          "state": "raw",
           "qualifiers": [],
           "default_value": null,
-          "description": "Output transformed",
+          "description": "Output raw",
           "domain": null,
-          "required": true
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "standard",
+          "value_constraints": null,
+          "shape_contract": null
         }
       },
+      "topology_type": "sequential",
       "slots": {},
-      "code_template": "{output_var} = statistics.quantiles({data}, {n}, {method})",
+      "feedback_state_type": null,
+      "bound_slots": {},
+      "code_template": "{output_var} = statistics.quantiles({data})",
       "dependencies": [
         "import statistics"
       ],
       "semantic_tags": [
+        "quantil",
         "quantiles"
       ],
       "keywords": [
+        "quantil",
         "quantiles"
       ],
       "docstring": "Divide *data* into *n* continuous intervals with equal probability.",
@@ -1754,7 +2779,15 @@
       "node_type": "function",
       "node_role": "transform",
       "verified": true,
-      "source_priority": 50
+      "source_priority": 60,
+      "is_public": true,
+      "mutation_type": "pure",
+      "is_context_manager": false,
+      "raises": [
+        "StatisticsError",
+        "ValueError"
+      ],
+      "type_vars": []
     },
     {
       "cell_id": "STATISTICS_STDEV",
@@ -1767,31 +2800,49 @@
           "default_value": null,
           "description": "Argument data",
           "domain": null,
-          "required": true
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "standard",
+          "value_constraints": null,
+          "shape_contract": null
         },
         "xbar": {
-          "type_name": "NoneType",
+          "type_name": "any",
           "state": "any",
           "qualifiers": [],
           "default_value": null,
           "description": "Argument xbar",
           "domain": null,
-          "required": false
+          "required": false,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "standard",
+          "value_constraints": null,
+          "shape_contract": null
         }
       },
       "outputs": {
         "output_data": {
           "type_name": "any",
-          "state": "transformed",
+          "state": "raw",
           "qualifiers": [],
           "default_value": null,
-          "description": "Output transformed",
+          "description": "Output raw",
           "domain": null,
-          "required": true
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "standard",
+          "value_constraints": null,
+          "shape_contract": null
         }
       },
+      "topology_type": "sequential",
       "slots": {},
-      "code_template": "{output_var} = statistics.stdev({data}, {xbar})",
+      "feedback_state_type": null,
+      "bound_slots": {},
+      "code_template": "{output_var} = statistics.stdev({data})",
       "dependencies": [
         "import statistics"
       ],
@@ -1808,7 +2859,14 @@
       "node_type": "function",
       "node_role": "transform",
       "verified": true,
-      "source_priority": 50
+      "source_priority": 60,
+      "is_public": true,
+      "mutation_type": "pure",
+      "is_context_manager": false,
+      "raises": [
+        "StatisticsError"
+      ],
+      "type_vars": []
     },
     {
       "cell_id": "STATISTICS_VARIANCE",
@@ -1821,38 +2879,66 @@
           "default_value": null,
           "description": "Argument data",
           "domain": null,
-          "required": true
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "standard",
+          "value_constraints": {
+            "min": 1,
+            "max": 6,
+            "interval": "open"
+          },
+          "shape_contract": null
         },
         "xbar": {
-          "type_name": "NoneType",
+          "type_name": "any",
           "state": "any",
           "qualifiers": [],
           "default_value": null,
           "description": "Argument xbar",
           "domain": null,
-          "required": false
+          "required": false,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "standard",
+          "value_constraints": {
+            "min": 1,
+            "max": 6,
+            "interval": "open"
+          },
+          "shape_contract": null
         }
       },
       "outputs": {
         "output_data": {
           "type_name": "any",
-          "state": "transformed",
+          "state": "raw",
           "qualifiers": [],
           "default_value": null,
-          "description": "Output transformed",
+          "description": "Output raw",
           "domain": null,
-          "required": true
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "standard",
+          "value_constraints": null,
+          "shape_contract": null
         }
       },
+      "topology_type": "sequential",
       "slots": {},
-      "code_template": "{output_var} = statistics.variance({data}, {xbar})",
+      "feedback_state_type": null,
+      "bound_slots": {},
+      "code_template": "{output_var} = statistics.variance({data})",
       "dependencies": [
         "import statistics"
       ],
       "semantic_tags": [
+        "varianc",
         "variance"
       ],
       "keywords": [
+        "varianc",
         "variance"
       ],
       "docstring": "Return the sample variance of data.",
@@ -1862,7 +2948,14 @@
       "node_type": "function",
       "node_role": "transform",
       "verified": true,
-      "source_priority": 50
+      "source_priority": 60,
+      "is_public": true,
+      "mutation_type": "pure",
+      "is_context_manager": false,
+      "raises": [
+        "StatisticsError"
+      ],
+      "type_vars": []
     }
   ]
 }

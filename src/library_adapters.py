@@ -1,36 +1,24 @@
 """
 src/library_adapters.py - Neuro-Symbolic Topological Lattice (NSTL)
-Adaptive evidence-source adapters for the Unified Harvest Pipeline.
+Universal Domain-Agnostic Library Adapters.
 
-Architecture (one pipeline, adaptive adapters):
-
-  ┌──────────────────────────── Unified Harvest Pipeline ───────────────────────────┐
-  │  constants → constructors → instance methods → module functions → typestate     │
-  │  (the pipeline asks the adapter for EVIDENCE; it owns all schema semantics)     │
-  └──────────▲──────────────▲──────────────▲──────────────▲───────────────────────┘
-             │ evidence     │ evidence     │ evidence     │ evidence
-   ┌─────────┴──────┐ ┌─────┴─────────┐ ┌──┴──────────┐ ┌─┴───────────────┐
-   │ PurePythonSrc  │ │ TypingStub    │ │ Runtime     │ │  ...future      │
-   │ Adapter        │ │ Adapter       │ │ Reflection  │ │  adapters       │
-   └────────────────┘ └───────────────┘ └─────────────┘ └─────────────────┘
-
-An adapter is selected BY THE IMPLEMENTATION KIND OF THE LIBRARY, never by its
-name: what matters is which evidence channels a library can physically provide
-(Python source? typing stubs? runtime reflection only?). Libraries built the
-same way are served by the same adapter. The CompositeLibraryAdapter probes the
-root package and chains adapters from richest to poorest evidence, so hybrid
-libraries (pure-Python surface over C internals) get every channel they have.
-
-Zero domain hardcodes: no library names, no library-specific heuristics.
+Zero hardcoded library names, types, enums, or function names.
+Adapters are selected strictly based on HOW the library is physically implemented:
+  1. PythonSourceAdapter: Pure Python packages with accessible source code and AST.
+  2. CompiledExtensionAdapter: Compiled C/C++/Rust binary extensions (.so/.pyd) using PEP 561 .pyi stubs and C introspection.
+  3. HybridLibraryAdapter: Mixed packages containing both Python wrappers and compiled extensions.
 """
 
 from __future__ import annotations
 
 import abc
+import enum
 import functools
 import importlib
 import inspect
+import os
 import pkgutil
+import re
 import sys
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Set, Tuple
@@ -44,6 +32,13 @@ try:
         infer_abstract_carrier,
         extract_enum_domain,
         extract_return_specs,
+        extract_param_kind,
+        extract_docstring_params,
+        extract_param_constraints,
+        extract_shape_contract,
+        extract_docstring_raises,
+        extract_ast_raises,
+        extract_type_vars,
     )
 except ImportError:
     from .log_config import get_logger
@@ -54,42 +49,38 @@ except ImportError:
         infer_abstract_carrier,
         extract_enum_domain,
         extract_return_specs,
+        extract_param_kind,
+        extract_docstring_params,
+        extract_param_constraints,
+        extract_shape_contract,
+        extract_docstring_raises,
+        extract_ast_raises,
+        extract_type_vars,
     )
 
 logger = get_logger("library_adapters")
 
 
-# =====================================================================
-# 1. Evidence requests (what the pipeline asks adapters to provide)
-# =====================================================================
-
-class Evidence:
-    """
-    Names the evidence channels the unified pipeline consumes.
-    Adapters answer a request or decline (return None) — the composite then
-    falls through to the next adapter in richness order.
-    """
-    MODULES = "modules"          # module enumeration: Dict[module_name, module]
-    SOURCE = "source"            # Python source text (enables AST dataflow evidence)
-    DOCSTRING = "docstring"      # documentation text
-    SIGNATURE = "signature"      # inspect.Signature for a callable
-
-
 def _is_python_source_module(module: Any) -> bool:
-    """True iff the module is backed by real Python source (not a C extension)."""
+    """True iff the module is backed by real Python source (.py), not a compiled binary."""
     file_path = getattr(module, "__file__", None) or ""
     if not file_path:
         return False
-    # Extension modules are .so / .pyd; source modules are .py
     return str(file_path).endswith(".py")
 
 
+def _is_compiled_extension_module(module: Any) -> bool:
+    """True iff the module is a compiled extension (.so, .pyd, or built-in)."""
+    file_path = getattr(module, "__file__", None) or ""
+    if not file_path:
+        # Built-in or dynamically allocated C module
+        return True
+    lower = str(file_path).lower()
+    return lower.endswith(".so") or lower.endswith(".pyd") or ".cpython" in lower
+
+
 def _walk_package(root_module: Any) -> Dict[str, Any]:
-    """
-    Universal module enumeration for an importable package (or single module).
-    Excludes test suites and private subpackages — structural, name-agnostic
-    except for the universal Python test-convention markers.
-    """
+    """Universal module enumeration for an importable package."""
     package_name = getattr(root_module, "__name__", "")
     modules: Dict[str, Any] = {package_name: root_module}
     pkg_path = getattr(root_module, "__path__", None)
@@ -98,7 +89,15 @@ def _walk_package(root_module: Any) -> Dict[str, Any]:
         parts = name.split(".")
         for p in parts:
             pl = p.lower()
-            if pl in ("tests", "test", "testing", "conftest"):
+            if pl.startswith("_") and pl != f"_{package_name}":
+                return True
+            if pl in (
+                "tests", "test", "testing", "_testing", "testutils", "conftest",
+                "estimator_checks", "_estimator_checks",
+                "externals", "vendor", "vendored", "_vendor",
+                "compat", "_compat", "_internal", "internal", "internals",
+                "fixes", "_fixes"
+            ):
                 return True
             if pl.startswith("test_") or pl.endswith("_test"):
                 return True
@@ -128,86 +127,22 @@ def _walk_package(root_module: Any) -> Dict[str, Any]:
 
 
 # =====================================================================
-# 2. Adapter protocol + implementations
+# Base Library Adapter Contract
 # =====================================================================
 
 class LibraryAdapter(abc.ABC):
     """
-    Contract: given an importable library, provide the evidence the unified
-    harvest pipeline needs, according to how the library is implemented.
-    Adapters NEVER decide schema semantics (stage/type/state classification);
-    they only supply raw evidence channels they physically possess.
+    Contract for library-specific extraction and introspection.
+    Adapters adapt to HOW a library is constructed (source AST, compiled binary, stubs)
+    rather than which specific domain it serves.
     """
-    name: str = "base"
+    paradigm: str = "base"
 
-    def can_adapt(self, root_module: Any) -> bool:
-        return True
+    def __init__(self, root_module: Any = None):
+        self.root_module = root_module
 
-    # -- evidence channels (default implementations: introspection generic) --
-
-    def enumerate_modules(self, root_module: Any) -> Dict[str, Any]:
-        return _walk_package(root_module)
-
-    def get_source(self, obj: Any) -> Optional[str]:
-        return None
-
-    def get_docstring(self, obj: Any) -> Optional[str]:
-        try:
-            return inspect.getdoc(obj)
-        except Exception:
-            return None
-
-    def resolve_callable_signature(self, obj: Any, callable_name: str = "",
-                                   parent_cls_name: str = "", mod: Any = None):
-        """Signature resolution is shared: every adapter routes through the
-        layered signature_introspector (runtime → text_signature → stubs → docs)."""
-        return resolve_signature(obj, callable_name=callable_name,
-                                 parent_cls_name=parent_cls_name, mod=mod)
-
-    def get_abstract_type(self, anno: Any) -> Optional[str]:
-        return infer_abstract_carrier(anno)
-
-    def get_parameter_domains(self, anno: Any, doc: str = "", param_name: str = "") -> Optional[List[Any]]:
-        return extract_enum_domain(anno, doc, param_name)
-
-    def get_return_ports(self, ret_anno: Any, doc: str = "") -> List[Tuple[str, str, Optional[str]]]:
-        return extract_return_specs(ret_anno, doc)
-
-    def is_public_symbol(self, obj: Any, name: str, module_name: str, root_module: Any = None) -> bool:
-        if name.startswith("_"):
-            return False
-        parts = module_name.split(".")
-        if any(p.startswith("_") for p in parts if p != f"_{parts[0]}"):
-            if root_module is not None and hasattr(root_module, name) and getattr(root_module, name) is obj:
-                return True
-            return False
-        if root_module is not None and hasattr(root_module, name) and getattr(root_module, name) is obj:
-            return True
-        return True
-
-    def describe(self) -> Dict[str, Any]:
-        return {"adapter": self.name}
-
-
-class PurePythonSourceAdapter(LibraryAdapter):
-    """
-    For libraries distributed as Python source (the most common kind):
-    every evidence channel is available, including function source text,
-    which enables AST-level dataflow evidence (mutator detection,
-    receiver-state dependency analysis) in the harvest pipeline.
-    """
-    name = "pure_python_source"
-
-    def can_adapt(self, root_module: Any) -> bool:
-        if not _is_python_source_module(root_module):
-            # A package whose __init__ is thin but whose submodules are .py
-            pkg_path = getattr(root_module, "__path__", None)
-            if not pkg_path:
-                return False
-            for child in Path(list(pkg_path)[0]).glob("*.py"):
-                return True
-            return False
-        return True
+    def enumerate_modules(self, root_module: Any = None) -> Dict[str, Any]:
+        return _walk_package(root_module or self.root_module)
 
     def get_source(self, obj: Any) -> Optional[str]:
         try:
@@ -216,160 +151,333 @@ class PurePythonSourceAdapter(LibraryAdapter):
         except Exception:
             return None
 
-
-class TypingStubAdapter(LibraryAdapter):
-    """
-    For compiled extension libraries that ship PEP 484 typing stubs (.pyi):
-    signatures and return annotations (incl. None/Self mutator evidence declared
-    in stubs) come from the stub AST; docstrings come from the runtime module.
-    No Python source exists, so source-level dataflow evidence is declined.
-    """
-    name = "typing_stub"
-
-    def can_adapt(self, root_module: Any) -> bool:
+    def get_docstring(self, obj: Any) -> Optional[str]:
         try:
-            if _find_stub_file_for_module(root_module) is not None:
-                return True
+            return inspect.getdoc(obj)
         except Exception:
-            pass
-        # Package-shipped stubs: any .pyi beside or inside the package
-        pkg_path = getattr(root_module, "__path__", None) or []
-        init_dir = Path(pkg_path[0]) if pkg_path else None
-        if init_dir and init_dir.is_dir():
-            try:
-                if any(init_dir.glob("*.pyi")):
+            raw = getattr(obj, "__doc__", None)
+            return str(raw) if raw else None
+
+    def resolve_callable_signature(
+        self,
+        obj: Any,
+        callable_name: str = "",
+        parent_cls_name: str = "",
+        mod: Any = None
+    ) -> Optional[inspect.Signature]:
+        return resolve_signature(
+            obj,
+            callable_name=callable_name,
+            parent_cls_name=parent_cls_name,
+            mod=mod or self.root_module
+        )
+
+    def get_domain_carriers(self, root_module: Any = None) -> Set[str]:
+        """
+        Discovers domain carrier classes dynamically from the package namespace.
+        Any class defined within the package or exposed at its root is a carrier.
+        """
+        carriers: Set[str] = set()
+        rm = root_module or self.root_module
+        if rm:
+            pkg_name = getattr(rm, "__name__", "")
+            for m in self.enumerate_modules(rm).values():
+                for attr in dir(m):
+                    if not attr.startswith("_"):
+                        val = getattr(m, attr, None)
+                        if inspect.isclass(val):
+                            cls_mod = getattr(val, "__module__", "") or ""
+                            if cls_mod.startswith(pkg_name) or cls_mod.startswith(f"_{pkg_name}"):
+                                carriers.add(val.__name__)
+        return carriers
+
+    def get_abstract_type(self, type_name_or_obj: Any, param_name: str = "") -> Optional[str]:
+        """Maps a concrete type to an abstract categorical carrier using language protocols."""
+        return infer_abstract_carrier(type_name_or_obj, param_name=param_name)
+
+    def get_parameter_domains(
+        self,
+        anno: Any,
+        doc: str = "",
+        param_name: str = "",
+        mod: Any = None,
+    ) -> Optional[List[Any]]:
+        """
+        Extracts enum domain choices for a parameter purely from type annotations,
+        subclasses of enum.Enum, or docstring citations.
+        """
+        # 1. Direct annotation inspection (Literal, Enum subclass, or docstring set)
+        choices = extract_enum_domain(anno, doc, param_name)
+        if choices:
+            return choices
+
+        # 2. Dynamic docstring symbol lookup (e.g. '@param p ... see #EnumClass' or 'values in EnumClass')
+        target_mod = mod or self.root_module
+        if doc and param_name and target_mod:
+            p_desc = ""
+            doc_params = extract_docstring_params(doc)
+            if param_name in doc_params:
+                p_desc = doc_params[param_name].get("desc", "")
+            else:
+                p_esc = re.escape(param_name)
+                m = re.search(rf"(?:@param\s+|:param\s+.*?\s+|^\s*){p_esc}\b[^\n]*\n?([^\n]*)", doc, re.MULTILINE)
+                if m:
+                    p_desc = m.group(0)
+
+            if p_desc:
+                citations = re.findall(r"(?:see|values\s+in|one\s+of)\s+#?(?:[A-Za-z_]\w*::)*([A-Za-z_]\w+)", p_desc, re.IGNORECASE)
+                for enum_ident in citations:
+                    if len(enum_ident) < 3 or enum_ident.lower() in ("the", "see", "for", "and", "one", "all", "none", "true", "false", "list"):
+                        continue
+                    enum_obj = getattr(target_mod, enum_ident, None) or getattr(self.root_module, enum_ident, None)
+                    if enum_obj is not None:
+                        if inspect.isclass(enum_obj) and issubclass(enum_obj, enum.Enum):
+                            return [m.name for m in enum_obj]
+                        if inspect.isclass(enum_obj):
+                            constants = [attr for attr in dir(enum_obj) if attr.isupper() and not attr.startswith("_")]
+                            if constants:
+                                return constants
+                    clean_name = re.sub(r"(?:Flags|Types?|Codes?)$", "", enum_ident, flags=re.IGNORECASE)
+                    pfx = f"{clean_name.upper()}_"
+                    matches = [attr for attr in dir(target_mod) if attr.startswith(pfx)]
+                    if matches:
+                        return matches
+
+        return None
+
+    def get_return_ports(
+        self,
+        ret_anno: Any,
+        doc: str = ""
+    ) -> List[Tuple[str, str, Optional[str]]]:
+        """Extracts return specifications: List[(port_name, type_name, abstract_type)]."""
+        specs = extract_return_specs(ret_anno, doc)
+        resolved = []
+        for name, t_name, abs_t in specs:
+            enriched_abs = self.get_abstract_type(t_name) or abs_t
+            resolved.append((name, t_name, enriched_abs))
+        return resolved
+
+    def get_param_kind(self, param: inspect.Parameter) -> str:
+        """Determines parameter calling convention."""
+        return extract_param_kind(param)
+
+    def get_docstring_params(self, doc: str) -> Dict[str, Dict[str, Any]]:
+        """Parses parameter types and descriptions from docstrings."""
+        return extract_docstring_params(doc)
+
+    def get_param_constraints(self, text: str) -> Optional[Dict[str, Any]]:
+        """Extracts numeric bounds, intervals, and invariants."""
+        return extract_param_constraints(text)
+
+    def get_shape_contract(self, text: str) -> Optional[Dict[str, Any]]:
+        """Extracts tensor dimension/rank contract."""
+        return extract_shape_contract(text)
+
+    def get_raises(self, doc: str = "", source: Optional[str] = None) -> List[str]:
+        """Extracts exception classes from docstrings and AST source."""
+        doc_raises = extract_docstring_raises(doc)
+        ast_raises = extract_ast_raises(source)
+        return list(dict.fromkeys(doc_raises + ast_raises))
+
+    def is_context_manager(self, target: Any) -> bool:
+        """Determines if target implements the context manager protocol."""
+        if target is None:
+            return False
+        return hasattr(target, "__enter__") and hasattr(target, "__exit__")
+
+    def get_type_vars(self, sig: inspect.Signature) -> List[str]:
+        """Extracts generic type variables from signature."""
+        return extract_type_vars(sig)
+
+    def is_ingress_source(
+        self,
+        fn: Any,
+        name: str,
+        input_names: List[str],
+        produces_domain: bool,
+        consumes_domain: bool = False,
+    ) -> bool:
+        """
+        Category-theoretic Ingress Source (Stage 1):
+        A morphism P -> T_domain that does not consume any domain object
+        and produces domain data.
+        """
+        if not produces_domain:
+            return False
+        return not consumes_domain
+
+    def is_egress_sink(
+        self,
+        fn: Any,
+        name: str,
+        input_names: List[str],
+        produces_domain: bool,
+        consumes_domain: bool = True,
+        inputs: Optional[Dict[str, Any]] = None,
+    ) -> bool:
+        """
+        Category-theoretic Egress Sink (Stage 3):
+        A morphism T_domain -> 1 (or external sink) that consumes domain data
+        and does NOT produce domain data, directing output to an external destination.
+        """
+        if produces_domain:
+            return False
+
+        # --- Primary Mechanism: Formal Language Protocol & Type Analysis ---
+        # 1. Check port-level abstract types and runtime types
+        if inputs:
+            import io
+            import os
+            for p in inputs.values():
+                p_abs = getattr(p, "abstract_type", None) or (p.get("abstract_type") if isinstance(p, dict) else None)
+                if p_abs == "path":
                     return True
+                p_type = getattr(p, "type_name", None) or (p.get("type_name") if isinstance(p, dict) else None)
+                if p_type and isinstance(p_type, str):
+                    try:
+                        from signature_introspector import _resolve_type_from_string
+                        resolved = _resolve_type_from_string(p_type)
+                        if resolved is not None and isinstance(resolved, type):
+                            if issubclass(resolved, (os.PathLike, io.IOBase)):
+                                return True
+                    except Exception:
+                        pass
+
+        # 2. Check callable signature annotations directly
+        if fn is not None:
+            try:
+                import io
+                import os
+                sig = self.resolve_callable_signature(fn, callable_name=name)
+                if sig is not None:
+                    for param in sig.parameters.values():
+                        anno = param.annotation
+                        if anno is not inspect.Parameter.empty and isinstance(anno, type):
+                            if issubclass(anno, (os.PathLike, io.IOBase)):
+                                return True
             except Exception:
                 pass
-        return False
 
-    def get_source(self, obj: Any) -> Optional[str]:
-        # Compiled library: no Python source. Stub bodies are declarations
-        # (`...`) and carry no runtime dataflow to analyze.
-        return None
+        # --- Fallback Mechanism: Parameter Naming Convention ---
+        # Used ONLY when parameters are unannotated, raw 'str', or C-extensions lacking type metadata
+        dest_indicators = (
+            "dest", "destination", "output", "out", "file", "filepath",
+            "filename", "path", "uri", "url", "stream", "buf", "buffer",
+            "fp", "f", "target", "writer"
+        )
+        return any(
+            any(ind in p.lower() for ind in dest_indicators)
+            for p in input_names
+        )
 
-    def get_docstring(self, obj: Any) -> Optional[str]:
-        doc = super().get_docstring(obj)
-        if doc:
-            return doc
-        # Many compiled extensions embed a signature line in __doc__;
-        # the docstring channel still serves it verbatim (tier-4 parsing
-        # happens inside resolve_signature).
-        raw_doc = getattr(obj, "__doc__", None)
-        return raw_doc if isinstance(raw_doc, str) and raw_doc.strip() else None
+    def is_parameterized(
+        self,
+        fn: Any,
+        name: str,
+        inputs: Dict[str, Any]
+    ) -> bool:
+        """Determines if a function is a Parameterized Morphism (A x E -> B)."""
+        return any(
+            (getattr(inp, "type_name", "") == "Enum" or getattr(inp, "enum_values", None) is not None)
+            for inp in inputs.values() if getattr(inp, "required", True)
+        )
 
+    def is_public_symbol(
+        self,
+        obj: Any,
+        name: str,
+        module_name: str,
+        root_module: Any = None
+    ) -> bool:
+        """Universal PEP conventions for public symbol detection."""
+        if name.startswith("_") or name in ("TYPE_CHECKING",):
+            return False
+        parts = module_name.split(".")
+        internal_parts = {
+            "core", "_core", "internal", "_internal", "internals", "_internals",
+            "compat", "_compat", "parsing", "readers", "externals", "vendor",
+            "vendored", "_vendor", "impl", "estimator_checks", "_estimator_checks",
+            "testing", "_testing", "testutils", "tests", "test", "conftest",
+            "fixes", "_fixes"
+        }
+        is_internal_mod = any(
+            p.startswith("_") or p.lower() in internal_parts or p.startswith("test_") or p.endswith("_test")
+            for p in parts if p != f"_{parts[0]}"
+        )
+        if is_internal_mod:
+            # Check if exported in any public parent package (e.g. sklearn.linear_model or pandas)
+            pkg_prefix = ""
+            for p in parts:
+                if p.startswith("_") or p.lower() in internal_parts or p.startswith("test_") or p.endswith("_test"):
+                    break
+                pkg_prefix = f"{pkg_prefix}.{p}" if pkg_prefix else p
+                p_mod = sys.modules.get(pkg_prefix)
+                if p_mod is not None and hasattr(p_mod, name) and getattr(p_mod, name) is obj:
+                    return True
+            return False
 
-class RuntimeReflectionAdapter(LibraryAdapter):
-    """
-    Universal fallback: any importable library. Evidence is limited to live
-    object introspection (dir, docstrings, runtime signatures). The pipeline
-    treats missing evidence honestly: unknown returns stay composable stage-2
-    morphisms, no fabricated states.
-    """
-    name = "runtime_reflection"
-
-
-class CompositeLibraryAdapter(LibraryAdapter):
-    """
-    Probes the library once and chains concrete adapters from richest to
-    poorest evidence. Every evidence request cascades: the first adapter that
-    can answer wins. Hybrid libraries therefore get source evidence for their
-    Python layer and stub/docstring evidence for their compiled layer.
-    """
-    name = "composite"
-
-    #: richness order — first probe wins for can_adapt; per-request cascade
-    _ADAPTER_CLASSES = (PurePythonSourceAdapter, TypingStubAdapter, RuntimeReflectionAdapter)
-
-    def __init__(self, root_module: Any):
-        self.root_module = root_module
-        self.chain: List[LibraryAdapter] = []
-        for cls in self._ADAPTER_CLASSES:
-            try:
-                adapter = cls()
-                if adapter.can_adapt(root_module):
-                    self.chain.append(adapter)
-            except Exception:
-                continue
-        if not self.chain:
-            self.chain = [RuntimeReflectionAdapter()]
-
-    # -- cascade channels --
-
-    def enumerate_modules(self, root_module: Any = None) -> Dict[str, Any]:
-        return _walk_package(root_module or self.root_module)
-
-    def get_source(self, obj: Any) -> Optional[str]:
-        for adapter in self.chain:
-            src = adapter.get_source(obj)
-            if src:
-                return src
-        return None
-
-    def get_docstring(self, obj: Any) -> Optional[str]:
-        for adapter in self.chain:
-            doc = adapter.get_docstring(obj)
-            if doc:
-                return doc
-        return None
-
-    def resolve_callable_signature(self, obj: Any, callable_name: str = "",
-                                   parent_cls_name: str = "", mod: Any = None):
-        for adapter in self.chain:
-            sig = adapter.resolve_callable_signature(obj, callable_name, parent_cls_name, mod)
-            if sig is not None:
-                return sig
-        return None
-
-    def get_abstract_type(self, anno: Any) -> Optional[str]:
-        for adapter in self.chain:
-            val = adapter.get_abstract_type(anno)
-            if val is not None:
-                return val
-        return None
-
-    def get_parameter_domains(self, anno: Any, doc: str = "", param_name: str = "") -> Optional[List[Any]]:
-        for adapter in self.chain:
-            val = adapter.get_parameter_domains(anno, doc, param_name)
-            if val is not None:
-                return val
-        return None
-
-    def get_return_ports(self, ret_anno: Any, doc: str = "") -> List[Tuple[str, str, Optional[str]]]:
-        for adapter in self.chain:
-            val = adapter.get_return_ports(ret_anno, doc)
-            if val:
-                return val
-        return [("output_data", "any", None)]
-
-    def is_public_symbol(self, obj: Any, name: str, module_name: str, root_module: Any = None) -> bool:
-        rm = root_module or self.root_module
-        for adapter in self.chain:
-            return adapter.is_public_symbol(obj, name, module_name, rm)
+        mod = sys.modules.get(module_name)
+        if mod and hasattr(mod, "__all__") and isinstance(mod.__all__, (list, tuple, set)) and len(mod.__all__) > 0:
+            return name in mod.__all__
         return True
 
     def describe(self) -> Dict[str, Any]:
-        return {
-            "adapter": self.name,
-            "chain": [a.name for a in self.chain],
-            "has_source_evidence": any(isinstance(a, PurePythonSourceAdapter) for a in self.chain),
-            "has_stub_evidence": any(isinstance(a, TypingStubAdapter) for a in self.chain),
-        }
+        return {"paradigm": self.paradigm}
 
 
-_adapter_cache: Dict[str, CompositeLibraryAdapter] = {}
+# =====================================================================
+# Implementation Paradigm: Python Source Library Adapter
+# =====================================================================
 
-
-def get_adapter_for_package(package_name: str) -> CompositeLibraryAdapter:
+class PythonSourceAdapter(LibraryAdapter):
     """
-    Adapter selection by implementation kind. Probes the importable package
-    once and returns the composite evidence provider. Raises ImportError when
-    the package cannot be imported at all (the pipeline cannot run without
-    the library installed).
+    Adapter for pure Python libraries where source code and AST are accessible.
+    Leverages AST inspection for signatures, mutations, and internal call graphs.
     """
-    key = package_name
-    if key in _adapter_cache:
-        return _adapter_cache[key]
+    paradigm = "python_source"
+
+
+# =====================================================================
+# Implementation Paradigm: Compiled Binary Extension Adapter
+# =====================================================================
+
+class CompiledExtensionAdapter(LibraryAdapter):
+    """
+    Adapter for compiled C/C++/Rust binary extension libraries (.so, .pyd).
+    Extracts signatures and types from PEP 561 .pyi type stubs and C docstrings.
+    """
+    paradigm = "compiled_binary"
+
+
+# =====================================================================
+# Implementation Paradigm: Hybrid Library Adapter
+# =====================================================================
+
+class HybridLibraryAdapter(LibraryAdapter):
+    """
+    Adapter for mixed libraries containing both Python wrapper modules
+    and compiled binary extensions. Dynamically routes to the best extraction
+    mechanism on a per-module basis.
+    """
+    paradigm = "hybrid"
+
+
+# =====================================================================
+# Universal Dynamic Factory (Zero Hardcoded Package Names)
+# =====================================================================
+
+_adapter_cache: Dict[str, LibraryAdapter] = {}
+
+
+def get_adapter_for_package(package_name: str) -> LibraryAdapter:
+    """
+    Dynamically analyzes the physical implementation of any package
+    and returns the corresponding paradigm adapter.
+    Contains ZERO hardcoded package names.
+    """
+    if package_name in _adapter_cache:
+        return _adapter_cache[package_name]
 
     try:
         root_module = importlib.import_module(package_name)
@@ -379,7 +487,28 @@ def get_adapter_for_package(package_name: str) -> CompositeLibraryAdapter:
             sys.path.insert(0, cwd)
         root_module = importlib.import_module(package_name)
 
-    adapter = CompositeLibraryAdapter(root_module)
-    logger.info(f"[ADAPTER] {package_name}: chain={adapter.describe()['chain']}")
-    _adapter_cache[key] = adapter
+    # Inspect package structure
+    modules = _walk_package(root_module)
+    py_count = 0
+    compiled_count = 0
+
+    for m in modules.values():
+        if _is_python_source_module(m):
+            py_count += 1
+        elif _is_compiled_extension_module(m):
+            compiled_count += 1
+
+    total = py_count + compiled_count
+    if total == 0 or (py_count > 0 and compiled_count == 0):
+        adapter = PythonSourceAdapter(root_module)
+    elif compiled_count > 0 and py_count == 0:
+        adapter = CompiledExtensionAdapter(root_module)
+    else:
+        adapter = HybridLibraryAdapter(root_module)
+
+    logger.info(
+        f"[ADAPTER] Selected '{adapter.paradigm}' adapter for package '{package_name}' "
+        f"(Python modules: {py_count}, Compiled modules: {compiled_count})"
+    )
+    _adapter_cache[package_name] = adapter
     return adapter

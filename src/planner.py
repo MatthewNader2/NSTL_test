@@ -31,10 +31,37 @@ logger = get_logger('planner')
 STOPWORDS = frozenset({
     "a", "an", "the", "in", "on", "at", "of", "to", "for", "from", "by", "with",
     "and", "or", "as", "is", "are", "was", "were", "be", "been", "it", "its",
-    "them", "they", "their", "this", "that", "these", "those"
+    "them", "they", "their", "this", "that", "these", "those",
+    "make", "sure", "some", "get", "do", "using", "use", "into", "onto",
+    "all", "each", "also", "just", "named", "have", "has", "having"
 })
 
 _WILDCARD_CARRIERS = frozenset(("any", "", "none", "*", "top", "unknown"))
+
+
+def _segment_prompt_clauses(prompt: str) -> List[str]:
+    """
+    Language-level clause segmentation:
+    Partitions user prompt on major punctuation (;), sequencing ('then'), and clause boundaries (,).
+    Merges operand fragments that are list continuations (where non-stopword tokens are a subset
+    of the preceding clause) so parameter coordinate lists like 'X column, Y column and Z column'
+    or coordinated noun phrases 'on X and Y' do not artificially fragment into spurious clauses.
+    """
+    if not prompt:
+        return []
+    raw_parts = [p.strip() for p in re.split(r'[;]|\b(?:then)\b|,', prompt.strip()) if p.strip()]
+    clauses: List[str] = []
+    for p in raw_parts:
+        p_toks = CellTokenizer.tokenize_prompt(p) - STOPWORDS
+        if not p_toks:
+            continue
+        if clauses:
+            prev_toks = CellTokenizer.tokenize_prompt(clauses[-1]) - STOPWORDS
+            if p_toks.issubset(prev_toks):
+                clauses[-1] = clauses[-1] + ", " + p
+                continue
+        clauses.append(p)
+    return clauses or [prompt.strip()]
 
 
 class LatticePlanner:
@@ -100,7 +127,9 @@ class LatticePlanner:
         ]
 
         def _has_path_port(cell: Cell) -> bool:
-            for p_sig in cell.inputs.values():
+            for p_name, p_sig in cell.inputs.items():
+                if p_name.lower() in ("filepath", "filename", "file_path", "path", "file", "savepath", "pathname", "fname"):
+                    return True
                 t_name = str(getattr(p_sig, "type_name", "")).lower()
                 if registry.is_subtype(t_name, "filepath") or registry.is_subtype(t_name, "path") or registry.is_subtype(t_name, "uri"):
                     return True
@@ -139,7 +168,7 @@ class LatticePlanner:
                 candidate_entries = s1_entries[:30]
 
         # Clauses and tokens for sequential alignment and concept coverage
-        clauses = [cl.strip() for cl in re.split(r'[,;]|\b(?:and|then)\b', prompt.strip()) if cl.strip()]
+        clauses = _segment_prompt_clauses(prompt)
         clause_tokens_list = [(CellTokenizer.tokenize_prompt(cl) - STOPWORDS) for cl in clauses]
         clause_tokens_list = [t for t in clause_tokens_list if t]
         content_prompt_tokens = set().union(*clause_tokens_list) if clause_tokens_list else ((CellTokenizer.tokenize_prompt(prompt) if prompt else set()) - STOPWORDS)
@@ -215,7 +244,7 @@ class LatticePlanner:
                 # intent coverage — measured junk exploit: a triangle estimator's
                 # docstring mentioning "area" claimed the loop clause.
                 id_mass = sum(idf_of_prompt.get(t, _idf(t)) for t in (cl_toks & (c_toks & id_toks)))
-                if id_mass > 0:
+                if id_mass >= 0.4 * clause_weights[len(masses) - 1]:
                     covered.add(len(masses) - 1)
             cell_clause_mass[c.cell_id] = masses
             cell_covered[c.cell_id] = covered
@@ -262,21 +291,45 @@ class LatticePlanner:
                 cell_receiver_sigs[c.cell_id] = []
                 continue
             sigs = []
-            for p_sig in c.inputs.values():
-                if not p_sig.required:
+            for p_name, p_sig in c.inputs.items():
+                if not p_sig.required or p_sig.default_value is not None:
                     continue
+                desc = getattr(p_sig, "description", None) or getattr(p_sig, "doc", "") or ""
+                is_instance_receiver = p_name in ("data", "self") or ("receiver" in str(desc).lower())
                 t = str(p_sig.signature.type_name)
-                if t.lower() in _WILDCARD_CARRIERS or _port_literal_groundable(t):
-                    continue
+                if not is_instance_receiver:
+                    if t.lower() in _WILDCARD_CARRIERS or _port_literal_groundable(t):
+                        continue
                 sigs.append(p_sig.signature)
             cell_receiver_sigs[c.cell_id] = sigs
 
         def _new_unbindable(cand: Cell, prev_path: List[Cell]) -> int:
-            produced = [prev.primary_output.signature for prev in prev_path]
+            produced = [out_sig.signature for prev in prev_path for out_sig in prev.outputs.values()]
             count = 0
             for p_sig in cell_receiver_sigs.get(cand.cell_id, ()):
                 if not any(unify(prod, p_sig) is not None for prod in produced):
                     count += 1
+
+            # Path port capacity check: required path inputs across the entire pipeline
+            # must not exceed the available file literals from the prompt (unless produced in-pipeline).
+            full_path = prev_path + [cand]
+            required_path_ports = 0
+            for c in full_path:
+                for p_name, p_sig in c.inputs.items():
+                    if not p_sig.required or p_sig.default_value is not None:
+                        continue
+                    t_name = str(getattr(p_sig.signature, "type_name", "")).lower()
+                    if (
+                        p_name.lower() in ("filepath", "filename", "file_path", "path", "file", "savepath", "pathname", "fname", "path_or_buf")
+                        or registry.is_subtype(t_name, "filepath")
+                        or registry.is_subtype(t_name, "path")
+                        or registry.is_subtype(t_name, "uri")
+                    ):
+                        required_path_ports += 1
+                        break
+            if required_path_ports > len(file_literals):
+                count += (required_path_ports - len(file_literals))
+
             return count
 
         def _edge_is_weak(prev: Cell, cand: Cell) -> bool:
@@ -294,7 +347,7 @@ class LatticePlanner:
                     break
             return (not has_strong) and has_any
 
-        def compute_path_score(item: Tuple[List[Cell], Substitution, float, int, int]) -> float:
+        def compute_path_score(item: Tuple[List[Cell], Substitution, float, int, int], is_final: bool = False) -> float:
             path, _, sc, weak_edges, unbindable = item
             k = len(path)
 
@@ -317,29 +370,38 @@ class LatticePlanner:
             # intersects several clauses covers all of them (a partitioning cell
             # covers both the 'train' and the 'test/allocate' clause), while the
             # monotonic best-match chain preserves sequential ordering.
-            clause_match_indices = []
-            curr_max_idx = 0
+            # Clause coverage and monotonic alignment:
+            # A cell covering multiple clauses (e.g. train_test_split covering both
+            # data partitioning and training preparation) can validly align with any
+            # clause where it holds significant mass. Monotonic alignment DP finds the
+            # assignment of cells to candidate clauses that minimizes sequence inversions.
             covered_clauses: Set[int] = set()
+            steps_candidate_clauses: List[Set[int]] = []
             for c in path:
                 covered_clauses |= cell_covered.get(c.cell_id, set())
                 masses = cell_clause_mass.get(c.cell_id, [])
-                best_match_idx = -1
-                best_match_cnt = 0.0
-                for idx, cnt in enumerate(masses):
-                    if cnt > best_match_cnt or (cnt == best_match_cnt and cnt > 0 and idx >= curr_max_idx):
-                        best_match_cnt = cnt
-                        best_match_idx = idx
-                if best_match_idx >= 0:
-                    clause_match_indices.append(best_match_idx)
-                    curr_max_idx = max(curr_max_idx, best_match_idx)
+                if not masses:
+                    continue
+                max_m = max(masses)
+                if max_m <= 0:
+                    continue
+                cands = {g for g, m in enumerate(masses) if m >= 0.10 * max_m and m > 0}
+                if cands:
+                    steps_candidate_clauses.append(cands)
 
             distinct_matched_clauses = len(covered_clauses)
             matched_clause_weight = sum(clause_weights[i] for i in covered_clauses)
             clause_cov = matched_clause_weight / total_clause_weight
-            is_monotonic = (
-                all(clause_match_indices[i] <= clause_match_indices[i+1] for i in range(len(clause_match_indices)-1))
-                if len(clause_match_indices) >= 2 else True
-            )
+
+            inversions = 0
+            if len(steps_candidate_clauses) >= 2:
+                dp = {g: 0 for g in steps_candidate_clauses[0]}
+                for step_cands in steps_candidate_clauses[1:]:
+                    next_dp = {}
+                    for g in step_cands:
+                        next_dp[g] = min(dp[prev_g] + (1 if prev_g > g else 0) for prev_g in dp)
+                    dp = next_dp
+                inversions = min(dp.values())
             # Structural hole: an UNCOVERED clause sandwiched between covered ones
             # means the path skipped an intermediate intent stage — the connector
             # between two satisfied sub-goals is missing.
@@ -348,16 +410,27 @@ class LatticePlanner:
                 ordered = sorted(covered_clauses)
                 lo, hi = ordered[0], ordered[-1]
                 holes = sum(1 for g in range(lo, hi + 1) if g not in covered_clauses)
-                gap_penalty = holes * 0.5
+                gap_penalty = holes * 1.5
 
-            alignment = clause_cov * (1.0 if is_monotonic else 0.5)
+            align_factor = max(0.85, 1.0 - 0.05 * inversions)
+            alignment = clause_cov * align_factor
 
             # Parsimony: every step must pay for itself. A per-step cost makes
             # chains of same-domain endomorphisms (DataFrame -> DataFrame utility
             # hops, which all type-check) unattractive unless each hop covers a
             # new clause; the excess penalty handles structural padding on top.
-            excess_steps = max(0, k - max(distinct_matched_clauses, 1))
-            parsimony_penalty = excess_steps * 1.2 + k * 0.3
+            consumed_ctors = sum(
+                1 for i, c in enumerate(path)
+                if getattr(c, "node_type", "") == "constructor"
+                and any(
+                    unify(c.primary_output.signature, p.signature) is not None
+                    for downstream_cell in path[i + 1:]
+                    for p in downstream_cell.inputs.values()
+                )
+            )
+            effective_k = k - consumed_ctors
+            excess_steps = max(0, effective_k - max(distinct_matched_clauses, 1))
+            parsimony_penalty = excess_steps * 1.2 + effective_k * 0.2
 
             # Tunnel likelihood is a WEAK tiebreaker: the group-relative softmax
             # already guarantees every surviving cell is within the same likelihood
@@ -377,11 +450,14 @@ class LatticePlanner:
             # merely rewards whatever compute function old data mislabeled as a
             # sink.
             terminal = path[-1]
-            egress_intent = bool(file_literals) and any(
-                _has_path_port(c) for c in path
-            )
+            egress_tokens = frozenset({"save", "export", "write", "dump", "persist", "store", "plot", "show", "display"})
+            has_egress_intent = bool(content_prompt_tokens & egress_tokens) or (
+                len(file_literals) > 1 and any(getattr(c, "stage", None) == 1 for c in path)
+            ) or (goal_sig is not None)
             terminal_is_materializing = (
                 terminal.stage == 3
+                and has_egress_intent
+                and unbindable == 0
                 and (
                     not file_literals
                     or any(
@@ -414,21 +490,40 @@ class LatticePlanner:
                     goal_bonus -= 3.0
             weak_total = sum(1 for c in path if _is_wildcarrier(c)) * 1.0 + weak_edges * 0.75
 
-            # Dead-constructor penalty: a zero-ary constructor whose output is not
-            # consumed by the immediately following cell is dead code inserted
-            # purely to harvest coverage tokens — it must pay for itself.
-            dead_ctors = sum(
-                1 for i, c in enumerate(path)
-                if getattr(c, "node_type", "") == "constructor"
-                and (i + 1 >= k or not _ctor_justified(c, path[i + 1]))
-            )
+            # Dead-constructor penalty: a constructor whose output is not
+            # consumed by ANY downstream cell is dead code inserted purely
+            # to harvest coverage tokens — it must pay heavily.
+            dead_ctors = 0
+            for i, c in enumerate(path):
+                if getattr(c, "node_type", "") == "constructor":
+                    if not is_final and i == len(path) - 1:
+                        continue  # newly instantiated constructor at beam tip awaiting downstream receiver
+                    out_sig = c.primary_output.signature
+                    consumed = any(
+                        unify(out_sig, p.signature) is not None
+                        for downstream_cell in path[i + 1:]
+                        for p in downstream_cell.inputs.values()
+                    )
+                    if not consumed:
+                        dead_ctors += 1
+
+            # Domain dispersion: pipelines should be domain-coherent. While 1 or 2
+            # cooperating domains (e.g. pandas + sklearn) are common, gratuitous domain
+            # hopping (e.g. inserting cv2 or nltk into tabular data pipelines) pays
+            # a dispersion penalty per foreign domain.
+            pipeline_domains = {
+                getattr(c, "domain_name", "")
+                for c in path
+                if getattr(c, "domain_name", "") and getattr(c, "domain_name", "") not in ("generic", "python_core", "builtins")
+            }
+            domain_dispersion = max(0, len(pipeline_domains) - 2) * 5.0
 
             # Receiver-bindability (threaded incrementally): chains containing
             # fit-like morphisms whose instance receiver cannot be produced by any
             # earlier cell would fail at synthesis with an unresolved placeholder.
             return (coverage * 10.0 + alignment * 10.0 - parsimony_penalty
                     + mean_log_prob + goal_bonus - weak_total
-                    - dead_ctors * 1.5 - unbindable * 1.5 - gap_penalty)
+                    - dead_ctors * 25.0 - unbindable * 50.0 - domain_dispersion - gap_penalty)
 
         # Type-gated adjacency: index candidates by the DECLARED input carrier they
         # expose. Expansion enumerates distinct port carriers and gates them through
@@ -510,17 +605,20 @@ class LatticePlanner:
                     if satisfied:
                         break
                 if not satisfied:
-                    t_name = str(getattr(p_sig.signature, "type_name", "")).lower()
-                    if (
-                        registry.is_subtype(t_name, "str")
-                        or registry.is_subtype(t_name, "numeric")
-                        or registry.is_subtype(t_name, "bool")
-                        or registry.is_subtype(t_name, "filepath")
-                        or registry.is_subtype(t_name, "uri")
-                        or t_name in ("any", "*", "top", "scalar", "color", "enum")
-                        or bool(getattr(p_sig, "domain", ""))
-                    ):
-                        satisfied = True
+                    desc = getattr(p_sig, "description", None) or getattr(p_sig, "doc", "") or ""
+                    is_instance_receiver = p_name in ("data", "self") or ("receiver" in str(desc).lower())
+                    if not is_instance_receiver:
+                        t_name = str(getattr(p_sig.signature, "type_name", "")).lower()
+                        if (
+                            registry.is_subtype(t_name, "str")
+                            or registry.is_subtype(t_name, "numeric")
+                            or registry.is_subtype(t_name, "bool")
+                            or registry.is_subtype(t_name, "filepath")
+                            or registry.is_subtype(t_name, "uri")
+                            or t_name in ("any", "*", "top", "scalar", "color", "enum")
+                            or bool(getattr(p_sig, "domain", ""))
+                        ):
+                            satisfied = True
                 if not satisfied:
                     return None
             return sub
@@ -575,7 +673,8 @@ class LatticePlanner:
                             continue
 
                         # Monadic Unification Gate: edge exists iff unify(tau_out, tau_in, sigma) != bottom
-                        pair_key = (prev_cell.cell_id, cand.cell_id, _sigma_fingerprint(prev_sigma))
+                        prev_out_types = tuple(sorted(out_sig.signature.type_name for c in prev_path[:-1] for out_sig in c.outputs.values()))
+                        pair_key = (prev_cell.cell_id, cand.cell_id, _sigma_fingerprint(prev_sigma), prev_out_types)
                         if pair_key in edge_compat_cache:
                             new_sigma = edge_compat_cache[pair_key]
                         else:
@@ -585,12 +684,16 @@ class LatticePlanner:
                         if new_sigma is None:
                             continue
 
+                    cand_unbind = _new_unbindable(cand, prev_path)
+                    if cand_unbind > 0:
+                        continue
+
                     cand_sc = log_probs.get(cand.cell_id, -10.0)
                     total_sc = prev_score + cand_sc
                     step_weak = prev_weak + (
                         1 if (cand_node_type != "constructor" and _edge_is_weak(prev_cell, cand)) else 0
                     )
-                    step_unbind = prev_unbind + _new_unbindable(cand, prev_path)
+                    step_unbind = prev_unbind + cand_unbind
                     new_tuple = (prev_path + [cand], new_sigma, total_sc, step_weak, step_unbind)
                     candidates_for_next.append(new_tuple)
                     all_valid_paths.append(new_tuple)
@@ -600,11 +703,11 @@ class LatticePlanner:
 
             # Bound the trellis memory: keep the strongest half of discovered paths
             if len(all_valid_paths) > 6000:
-                all_valid_paths.sort(key=compute_path_score, reverse=True)
+                all_valid_paths.sort(key=lambda x: compute_path_score(x, is_final=False), reverse=True)
                 all_valid_paths = all_valid_paths[:3000]
 
-            # Beam pruning with endpoint diversity (max 5 per endpoint, beam width 100)
-            candidates_for_next.sort(key=compute_path_score, reverse=True)
+            # Beam pruning with endpoint diversity (max 5 per endpoint, beam width 250)
+            candidates_for_next.sort(key=lambda x: compute_path_score(x, is_final=False), reverse=True)
             endpoint_counts: Dict[str, int] = {}
             next_beam = []
             for item in candidates_for_next:
@@ -612,13 +715,16 @@ class LatticePlanner:
                 if endpoint_counts.get(endpoint, 0) < 5:
                     next_beam.append(item)
                     endpoint_counts[endpoint] = endpoint_counts.get(endpoint, 0) + 1
-                    if len(next_beam) >= 100:
+                    if len(next_beam) >= 250:
                         break
             current_beam = next_beam
 
         # Filter and rank valid composition paths
         if all_valid_paths:
             valid_candidates = list(all_valid_paths)
+            zero_unbind = [item for item in valid_candidates if item[4] == 0]
+            if zero_unbind:
+                valid_candidates = zero_unbind
 
             # 1. Filter by goal_sig if provided
             if goal_sig is not None:
@@ -630,7 +736,7 @@ class LatticePlanner:
                 if matching_goals:
                     valid_candidates = matching_goals
 
-            scored_candidates = [(item, compute_path_score(item)) for item in valid_candidates]
+            scored_candidates = [(item, compute_path_score(item, is_final=True)) for item in valid_candidates]
             scored_candidates.sort(key=lambda x: x[1], reverse=True)
 
             # Slot-aware re-ranking: a macro's planned sub-lattice is part of the
@@ -776,8 +882,8 @@ class LatticePlanner:
         registry = TypeRegistry.get_instance()
 
         def _is_witness(cell: Cell, role_tokens: FrozenSet[str]) -> bool:
-            cell_toks = getattr(cell, "token_set", set())
-            if not role_tokens or not (role_tokens & cell_toks):
+            # Only Stage 2 transform cells can be identifier multiplicity witnesses (never sinks or constructors)
+            if getattr(cell, "stage", None) != 2:
                 return False
             if getattr(cell, "node_type", "") == "constructor":
                 return False
@@ -833,13 +939,29 @@ class LatticePlanner:
         prev_cell = prev_path[-1]
         prev_out = prev_cell.primary_output.signature
 
+        def _shape_compatible(p_out: Any, p_in: Any) -> bool:
+            out_sc = getattr(p_out, "shape_contract", None)
+            in_sc = getattr(p_in, "shape_contract", None)
+            if out_sc and in_sc:
+                o_ndim = out_sc.get("ndim")
+                i_ndim = in_sc.get("ndim")
+                if o_ndim is not None and i_ndim is not None and o_ndim != i_ndim:
+                    return False
+            return True
+
         # 1. Check primary input first
-        sub = unify(prev_out, cand.primary_input.signature, prev_sigma)
+        sub = None
+        if _shape_compatible(prev_cell.primary_output, cand.primary_input):
+            sub = unify(prev_out, cand.primary_input.signature, prev_sigma)
         bound_in: Optional[str] = cand.primary_input.name if sub is not None else None
 
-        # 2. If primary input did not match, check other input ports
+        # 2. If primary input did not match, check other input ports (required ports take precedence)
         if sub is None:
-            for p_name, p_sig in cand.inputs.items():
+            req_ports = [(k, v) for k, v in cand.inputs.items() if v.required]
+            candidate_ports = req_ports if req_ports else list(cand.inputs.items())
+            for p_name, p_sig in candidate_ports:
+                if not _shape_compatible(prev_cell.primary_output, p_sig):
+                    continue
                 s_try = unify(prev_out, p_sig.signature, prev_sigma)
                 if s_try is not None:
                     sub = s_try
@@ -860,6 +982,8 @@ class LatticePlanner:
             satisfied = False
             for earlier_cell in reversed(prev_path[:-1]):
                 for out_name, out_sig in earlier_cell.outputs.items():
+                    if not _shape_compatible(out_sig, p_sig):
+                        continue
                     s_wire = unify(out_sig.signature, p_sig.signature, sub)
                     if s_wire is not None:
                         sub = s_wire
@@ -869,24 +993,27 @@ class LatticePlanner:
                     break
 
             if not satisfied:
-                registry = TypeRegistry.get_instance()
-                t_name = str(getattr(p_sig.signature, "type_name", "")).lower()
-                # Type-driven literal groundability: a required port is satisfiable at
-                # synthesis time iff its DECLARED carrier is literal-groundable (scalar
-                # family, textual/path family, logical, or an explicitly untyped carrier)
-                # or the port declares an enum domain for reflection-based grounding.
-                # Zero port-name heuristics: naming is data, typing is semantics.
-                is_literal_groundable = (
-                    registry.is_subtype(t_name, "str")
-                    or registry.is_subtype(t_name, "numeric")
-                    or registry.is_subtype(t_name, "bool")
-                    or registry.is_subtype(t_name, "filepath")
-                    or registry.is_subtype(t_name, "uri")
-                    or t_name in ("any", "*", "top", "scalar", "color", "enum")
-                    or bool(getattr(p_sig, "domain", ""))
-                )
-                if is_literal_groundable:
-                    satisfied = True
+                desc = getattr(p_sig, "description", None) or getattr(p_sig, "doc", "") or ""
+                is_instance_receiver = p_name in ("data", "self") or ("receiver" in str(desc).lower())
+                if not is_instance_receiver:
+                    registry = TypeRegistry.get_instance()
+                    t_name = str(getattr(p_sig.signature, "type_name", "")).lower()
+                    # Type-driven literal groundability: a required port is satisfiable at
+                    # synthesis time iff its DECLARED carrier is literal-groundable (scalar
+                    # family, textual/path family, logical, or an explicitly untyped carrier)
+                    # or the port declares an enum domain for reflection-based grounding.
+                    # Zero port-name heuristics: naming is data, typing is semantics.
+                    is_literal_groundable = (
+                        registry.is_subtype(t_name, "str")
+                        or registry.is_subtype(t_name, "numeric")
+                        or registry.is_subtype(t_name, "bool")
+                        or registry.is_subtype(t_name, "filepath")
+                        or registry.is_subtype(t_name, "uri")
+                        or t_name in ("any", "*", "top", "scalar", "color", "enum")
+                        or bool(getattr(p_sig, "domain", ""))
+                    )
+                    if is_literal_groundable:
+                        satisfied = True
 
             if not satisfied:
                 return None
@@ -940,7 +1067,7 @@ class LatticePlanner:
             # ones sharing vocabulary with the loop morphism's DECLARED token set.
             # Zero hardcoded connector/loop keyword lists.
             parent_toks = getattr(parent_cell, "token_set", set()) - STOPWORDS
-            clauses = [cl.strip() for cl in re.split(r'[,;]|\b(?:and|then)\b', prompt.strip()) if cl.strip()]
+            clauses = _segment_prompt_clauses(prompt)
             if clauses and parent_toks:
                 related = [
                     cl for cl in clauses

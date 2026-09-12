@@ -29,6 +29,27 @@ except (ImportError, ValueError):
 
 logger = get_logger('lattice')
 
+ABSTRACT_CARRIERS: FrozenSet[str] = frozenset((
+    "array-like",
+    "array_like",
+    "tensor",
+    "table",
+    "collection",
+    "sequence",
+    "matrix",
+    "scalar",
+    "logical",
+    "text",
+    "path",
+    "any",
+    "object",
+    "*",
+    "unknown",
+    "top",
+    "dataset",
+    "numeric",
+))
+
 
 class TypeRegistry:
     """
@@ -48,7 +69,9 @@ class TypeRegistry:
     def _bootstrap_carrier_hierarchy(self):
         """Initializes universal, language-agnostic computational carrier types."""
         # Textual / path carriers
-        for t in ("filepath", "path", "uri", "url", "filename", "pathname", "text"):
+        for t in ("filepath", "filename", "pathname", "pathlike"):
+            self.register_type(t, "path")
+        for t in ("path", "uri", "url", "text"):
             self.register_type(t, "str")
         # Numeric carriers
         for t in ("int", "float", "complex"):
@@ -56,18 +79,25 @@ class TypeRegistry:
         self.register_type("numeric", "scalar")
         self.register_type("bool", "logical")
         # Collection carriers
-        for t in ("list", "tuple", "set", "frozenset"):
+        for t in ("list", "tuple", "set", "frozenset", "dict", "mapping", "map"):
             self.register_type(t, "collection")
-        for t in ("dict", "mapping", "map"):
-            self.register_type(t, "collection")
-        # Tensor / Array carriers
-        for t in ("matrix", "array", "ndarray", "mat", "matlike"):
-            self.register_type(t, "tensor")
+        self.register_type("sequence", "collection")
+        self.register_type("list", "sequence")
+        self.register_type("tuple", "sequence")
+        # Tensor / array carriers
+        self.register_type("ndarray", "array-like")
+        self.register_type("matrix", "array-like")
+        self.register_type("dataframe", "array-like")
+        self.register_type("series", "array-like")
+        self.register_type("list", "array-like")
+        self.register_type("tuple", "array-like")
+        self.register_type("array-like", "tensor")
+        self.register_type("array-like", "sequence")
+        self.register_type("buffer", "tensor")
         # Tabular carriers
-        for t in ("dataframe", "table", "dataset"):
-            self.register_type(t, "tabular")
-        self.register_type("series", "tabular")
-        self.register_type("series", "tensor")
+        for t in ("dataframe", "series", "dataset"):
+            self.register_type(t, "table")
+            self.register_type(t, "array-like")
         # Aliases
         for alias, can in (
             ("string", "str"),
@@ -75,6 +105,8 @@ class TypeRegistry:
             ("integer", "int"),
             ("dictionary", "dict"),
             ("number", "numeric"),
+            ("array_like", "array-like"),
+            ("matlike", "tensor"),
         ):
             self.register_alias(alias, can)
 
@@ -97,13 +129,20 @@ class TypeRegistry:
     def register_type(self, type_name: str, super_type: Optional[str] = None):
         """Registers a type and optionally declares its supertype in the poset."""
         name = str(type_name).strip().lower()
-        if not name:
+        if not name or name in ("none", "null"):
             return
         if name not in self._parents:
             self._parents[name] = set()
         if super_type:
             super_name = str(super_type).strip().lower()
-            if super_name and super_name != name:
+            if super_name and super_name != name and super_name not in ("none", "null"):
+                # Poset invariant: Distinct top-level carriers never subsume each other
+                top_level_carriers = {"scalar", "collection", "tensor", "table", "logical", "str"}
+                if name in top_level_carriers and super_name in top_level_carriers:
+                    return
+                # Prevent cycles in the poset
+                if self.is_subtype(super_name, name):
+                    return
                 if super_name not in self._parents:
                     self._parents[super_name] = set()
                 self._parents[name].add(super_name)
@@ -171,11 +210,16 @@ class TypeRegistry:
         Wildcards ('any', 'object', '*', 'top') are Top types that subsume all types.
         Uses formal MRO and poset reachability dynamically.
         """
+        if not sub or not super_:
+            return False
         sub_c = self.canonical_name(sub)
         super_c = self.canonical_name(super_)
 
         sub_l = sub_c.lower()
         super_l = super_c.lower()
+
+        if sub_l in ("none", "null", "") or super_l in ("none", "null", ""):
+            return False
 
         if super_l in ("any", "object", "*", "top", "unknown"):
             return True
@@ -190,12 +234,14 @@ class TypeRegistry:
                 return True
 
         # Graph poset reachability (case-insensitive)
-        if sub_l in self._parents:
+        sub_key = sub_l.rsplit(".", 1)[-1] if sub_l not in self._parents and "." in sub_l else sub_l
+        super_key = super_l.rsplit(".", 1)[-1] if super_l not in self._parents and "." in super_l else super_l
+        if sub_key in self._parents:
             visited = set()
-            queue = deque([sub_l])
+            queue = deque([sub_key])
             while queue:
                 curr = queue.popleft()
-                if curr == super_l:
+                if curr == super_key or curr == super_l:
                     return True
                 visited.add(curr)
                 for parent in self._parents.get(curr, []):
@@ -224,6 +270,15 @@ def canonical_type_name(type_name: str) -> str:
     return TypeRegistry.get_instance().canonical_name(type_name)
 
 
+def _clean_abs_carrier(val: Any) -> str:
+    if not val:
+        return ""
+    s = str(val).strip()
+    if s.lower() in ("none", "null", ""):
+        return ""
+    return s
+
+
 @dataclass(frozen=True, slots=True)
 class AlgebraicSignature:
     """
@@ -235,9 +290,14 @@ class AlgebraicSignature:
     qualifiers: FrozenSet[Tuple[str, str]] = field(default_factory=frozenset)
     abstract_type: str = ""
 
+    def __post_init__(self):
+        cleaned = _clean_abs_carrier(self.abstract_type)
+        if cleaned != self.abstract_type:
+            object.__setattr__(self, "abstract_type", cleaned)
+
     @classmethod
     def from_string(cls, type_name: str, state: str = "any", abstract_type: str = "") -> "AlgebraicSignature":
-        return cls(type_name=type_name, state=state, abstract_type=abstract_type)
+        return cls(type_name=type_name, state=state, abstract_type=_clean_abs_carrier(abstract_type))
 
     def is_top(self) -> bool:
         canonical = TypeRegistry.get_instance().canonical_name(self.type_name)
@@ -276,9 +336,15 @@ class AlgebraicSignature:
         # Poset subtyping
         registry = TypeRegistry.get_instance()
         if not registry.is_subtype(self.type_name, other_sig.type_name):
-            # Poset abstract carrier compatibility fallback
+            # Poset abstract carrier compatibility fallback:
+            # Fallback ONLY applies when consumer target is expecting an abstract carrier/interface,
+            # NOT when consumer target is a concrete class receiver (e.g. MultiIndex, LinearRegression).
+            other_tn = (other_sig.type_name or "").strip().lower()
+            other_abs = (other_sig.abstract_type or "").strip().lower()
+            is_consumer_abstract = (other_tn in ABSTRACT_CARRIERS or other_tn == other_abs)
             if (
-                self.abstract_type
+                is_consumer_abstract
+                and self.abstract_type
                 and other_sig.abstract_type
                 and registry.is_subtype(self.abstract_type, other_sig.abstract_type)
             ):
@@ -298,7 +364,10 @@ class AlgebraicSignature:
 
 class PortSignature:
     """Named port carrying an AlgebraicSignature typestate."""
-    __slots__ = ["name", "signature", "required", "default_value", "doc", "domain", "abstract_type", "enum_values"]
+    __slots__ = [
+        "name", "signature", "required", "default_value", "doc", "domain",
+        "abstract_type", "enum_values", "param_kind", "value_constraints", "shape_contract"
+    ]
 
     def __init__(
         self,
@@ -310,12 +379,18 @@ class PortSignature:
         domain: str = "",
         abstract_type: str = "",
         enum_values: Optional[List[Any]] = None,
+        param_kind: str = "standard",
+        value_constraints: Optional[Dict[str, Any]] = None,
+        shape_contract: Optional[Dict[str, Any]] = None,
         **kwargs
     ):
         self.name = str(name)
         self.domain = str(domain or kwargs.get("domain", ""))
-        self.abstract_type = str(abstract_type or kwargs.get("abstract_type", ""))
+        self.abstract_type = _clean_abs_carrier(abstract_type or kwargs.get("abstract_type", ""))
         self.enum_values = enum_values if enum_values is not None else kwargs.get("enum_values")
+        self.param_kind = str(param_kind or kwargs.get("param_kind", "standard"))
+        self.value_constraints = value_constraints if value_constraints is not None else kwargs.get("value_constraints")
+        self.shape_contract = shape_contract if shape_contract is not None else kwargs.get("shape_contract")
 
         if isinstance(signature, AlgebraicSignature):
             if self.abstract_type and not signature.abstract_type:
@@ -369,6 +444,10 @@ class PortSignature:
     def state(self) -> str:
         return self.signature.state
 
+    @property
+    def description(self) -> str:
+        return self.doc or ""
+
     def is_top(self) -> bool:
         return self.signature.is_top()
 
@@ -398,6 +477,7 @@ class Cell(ABC):
         "source_priority", "source_provenance", "is_public",
         "topology_type", "feedback_state_type", "bound_slots",
         "replica_of", "replica_role",
+        "mutation_type", "is_context_manager", "raises", "type_vars",
         "_primary_input", "_primary_output", "_token_set", "_token_count",
         "_identity_tokens"
     ]
@@ -428,7 +508,12 @@ class Cell(ABC):
         topology_type: str = "sequential",
         feedback_state_type: Optional[str] = None,
         bound_slots: Optional[Dict[str, Any]] = None,
-        is_public: bool = True
+        is_public: bool = True,
+        mutation_type: str = "pure",
+        is_context_manager: bool = False,
+        raises: Optional[List[str]] = None,
+        type_vars: Optional[List[str]] = None,
+        **kwargs
     ):
         self.cell_id = cell_id
         self.stage = stage
@@ -450,14 +535,21 @@ class Cell(ABC):
         self.enrichment_source = enrichment_source
         self.enriched_at = enriched_at
         self.is_public = bool(is_public)
+        self.mutation_type = str(mutation_type or kwargs.get("mutation_type", "pure"))
+        self.is_context_manager = bool(is_context_manager or kwargs.get("is_context_manager", False))
+        self.raises = list(raises or kwargs.get("raises", []))
+        self.type_vars = list(type_vars or kwargs.get("type_vars", []))
 
         # Infer topology type if default sequential but node specifies control flow
         nt = str(self.node_type).lower()
         if topology_type == "sequential":
             if nt.startswith("macro_loop") or "loop" in nt or feedback_state_type:
                 topology_type = "traced_loop"
-            elif nt.startswith("macro_conditional") or "conditional" in nt or "branch" in nt:
+            elif nt.startswith("macro_conditional") or "conditional" in nt:
                 topology_type = "coproduct_branch"
+            elif nt.startswith("macro_operator") or "monoidal" in nt:
+                topology_type = "monoidal_product"
+
         self.topology_type = topology_type
         self.feedback_state_type = feedback_state_type
         self.bound_slots = dict(bound_slots) if bound_slots else {}
@@ -480,11 +572,12 @@ class Cell(ABC):
             elif isinstance(v, AlgebraicSignature):
                 self.inputs[k] = PortSignature(name=k, signature=v)
             elif isinstance(v, dict):
+                abs_t = _clean_abs_carrier(v.get("abstract_type"))
                 sig = AlgebraicSignature(
                     type_name=v.get("type_name", "any"),
                     state=v.get("state", "any"),
                     qualifiers=frozenset(tuple(q) for q in v.get("qualifiers", [])),
-                    abstract_type=v.get("abstract_type", "")
+                    abstract_type=abs_t
                 )
                 self.inputs[k] = PortSignature(
                     name=k,
@@ -493,8 +586,11 @@ class Cell(ABC):
                     default_value=v.get("default_value"),
                     doc=v.get("doc", ""),
                     domain=v.get("domain", ""),
-                    abstract_type=v.get("abstract_type", ""),
-                    enum_values=v.get("enum_values")
+                    abstract_type=abs_t,
+                    enum_values=v.get("enum_values"),
+                    param_kind=v.get("param_kind", "standard"),
+                    value_constraints=v.get("value_constraints"),
+                    shape_contract=v.get("shape_contract")
                 )
             else:
                 self.inputs[k] = PortSignature(name=k, signature=AlgebraicSignature("any", "any"))
@@ -507,11 +603,12 @@ class Cell(ABC):
             elif isinstance(v, AlgebraicSignature):
                 self.outputs[k] = PortSignature(name=k, signature=v)
             elif isinstance(v, dict):
+                abs_t = _clean_abs_carrier(v.get("abstract_type"))
                 sig = AlgebraicSignature(
                     type_name=v.get("type_name", "any"),
                     state=v.get("state", "any"),
                     qualifiers=frozenset(tuple(q) for q in v.get("qualifiers", [])),
-                    abstract_type=v.get("abstract_type", "")
+                    abstract_type=abs_t
                 )
                 self.outputs[k] = PortSignature(
                     name=k,
@@ -520,8 +617,11 @@ class Cell(ABC):
                     default_value=v.get("default_value"),
                     doc=v.get("doc", ""),
                     domain=v.get("domain", ""),
-                    abstract_type=v.get("abstract_type", ""),
-                    enum_values=v.get("enum_values")
+                    abstract_type=abs_t,
+                    enum_values=v.get("enum_values"),
+                    param_kind=v.get("param_kind", "standard"),
+                    value_constraints=v.get("value_constraints"),
+                    shape_contract=v.get("shape_contract")
                 )
             else:
                 self.outputs[k] = PortSignature(name=k, signature=AlgebraicSignature("any", "any"))
@@ -624,12 +724,10 @@ class Cell(ABC):
             if asset_ports:
                 res = asset_ports[0]
         if res is None:
-            required_data = [
-                p for p in self.inputs.values()
-                if p.required and _is_data_carrier(p)
-            ]
-            if required_data:
-                res = required_data[0]
+            required_ports = [p for p in self.inputs.values() if p.required]
+            if required_ports:
+                required_data = [p for p in required_ports if _is_data_carrier(p)]
+                res = required_data[0] if required_data else required_ports[0]
             else:
                 data_ports = [p for p in self.inputs.values() if _is_data_carrier(p)]
                 res = data_ports[0] if data_ports else next(iter(self.inputs.values()))
@@ -762,6 +860,10 @@ class LatticeOrchestrator:
                     docstring=c_dict.get("docstring", ""),
                     source_priority=c_dict.get("source_priority", 100),
                     is_public=bool(c_dict.get("is_public", True)),
+                    mutation_type=c_dict.get("mutation_type", "pure"),
+                    is_context_manager=bool(c_dict.get("is_context_manager", False)),
+                    raises=c_dict.get("raises", []),
+                    type_vars=c_dict.get("type_vars", []),
                 )
                 self.loaded_cells[cell.cell_id] = cell
             logger.info(f"[LATTICE] Loaded {len(raw_cells)} nodes from tree: {json_path} (domain: {domain})")
@@ -852,35 +954,43 @@ class LatticeOrchestrator:
                         if isinstance(cfg, dict) and ("inputs" in cfg or "outputs" in cfg):
                             for p_name, p_val in cfg.get("inputs", {}).items():
                                 if isinstance(p_val, dict):
+                                    abs_t = _clean_abs_carrier(p_val.get("abstract_type"))
                                     inputs[p_name] = PortSignature(
                                         name=p_name,
                                         signature=AlgebraicSignature(
                                             type_name=str(p_val.get("type_name", in_type or "any")),
                                             state=str(p_val.get("state", in_state or "any")),
                                             qualifiers=frozenset(tuple(q) for q in p_val.get("qualifiers", [])),
-                                            abstract_type=str(p_val.get("abstract_type", ""))
+                                            abstract_type=abs_t
                                         ),
                                         required=p_val.get("required", True),
                                         default_value=p_val.get("default_value"),
                                         domain=p_val.get("domain", ""),
-                                        abstract_type=str(p_val.get("abstract_type", "")),
-                                        enum_values=p_val.get("enum_values")
+                                        abstract_type=abs_t,
+                                        enum_values=p_val.get("enum_values"),
+                                        param_kind=p_val.get("param_kind", "standard"),
+                                        value_constraints=p_val.get("value_constraints"),
+                                        shape_contract=p_val.get("shape_contract")
                                     )
                             for p_name, p_val in cfg.get("outputs", {}).items():
                                 if isinstance(p_val, dict):
+                                    abs_t = _clean_abs_carrier(p_val.get("abstract_type"))
                                     outputs[p_name] = PortSignature(
                                         name=p_name,
                                         signature=AlgebraicSignature(
                                             type_name=str(p_val.get("type_name", out_type or "any")),
                                             state=str(p_val.get("state", out_state or "any")),
                                             qualifiers=frozenset(tuple(q) for q in p_val.get("qualifiers", [])),
-                                            abstract_type=str(p_val.get("abstract_type", ""))
+                                            abstract_type=abs_t
                                         ),
                                         required=p_val.get("required", True),
                                         default_value=p_val.get("default_value"),
                                         domain=p_val.get("domain", ""),
-                                        abstract_type=str(p_val.get("abstract_type", "")),
-                                        enum_values=p_val.get("enum_values")
+                                        abstract_type=abs_t,
+                                        enum_values=p_val.get("enum_values"),
+                                        param_kind=p_val.get("param_kind", "standard"),
+                                        value_constraints=p_val.get("value_constraints"),
+                                        shape_contract=p_val.get("shape_contract")
                                     )
 
                         if not inputs:
@@ -916,7 +1026,11 @@ class LatticeOrchestrator:
                             topology_type=cfg.get("topology_type", "sequential"),
                             feedback_state_type=cfg.get("feedback_state_type"),
                             bound_slots=cfg.get("bound_slots", {}),
-                            is_public=bool(cfg.get("is_public", True))
+                            is_public=bool(cfg.get("is_public", True)),
+                            mutation_type=cfg.get("mutation_type", "pure"),
+                            is_context_manager=cfg.get("is_context_manager", False),
+                            raises=cfg.get("raises", []),
+                            type_vars=cfg.get("type_vars", [])
                         )
                         self.loaded_cells[cell.cell_id] = cell
 

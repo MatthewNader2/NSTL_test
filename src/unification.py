@@ -20,10 +20,10 @@ from typing import Dict, List, Optional, Set, Tuple, Any, Union, Callable, Gener
 from log_config import get_logger
 
 try:
-    from .lattice import AlgebraicSignature, PortSignature, Cell, TypeRegistry
+    from .lattice import AlgebraicSignature, PortSignature, Cell, TypeRegistry, ABSTRACT_CARRIERS
     from .tokenizer import CellTokenizer, normalize_token
 except (ImportError, ValueError):
-    from lattice import AlgebraicSignature, PortSignature, Cell, TypeRegistry
+    from lattice import AlgebraicSignature, PortSignature, Cell, TypeRegistry, ABSTRACT_CARRIERS
     from tokenizer import CellTokenizer, normalize_token
 
 logger = get_logger('unification')
@@ -220,6 +220,14 @@ class TypestateTerm(TypeTerm):
     type_name: str
     state: str = "any"
     qualifiers: FrozenSet[Tuple[str, str]] = field(default_factory=frozenset)
+    abstract_type: Optional[str] = None
+
+    def __post_init__(self):
+        raw = self.abstract_type
+        if raw and str(raw).strip().lower() not in ("none", "null", ""):
+            object.__setattr__(self, "abstract_type", str(raw).strip())
+        else:
+            object.__setattr__(self, "abstract_type", None)
 
     def apply_substitution(self, sigma: 'Substitution', visited: Optional[FrozenSet[str]] = None) -> 'TypeTerm':
         t_resolved = self.type_name
@@ -234,10 +242,16 @@ class TypestateTerm(TypeTerm):
                 t_resolved = str(val.apply_substitution(sigma, new_visited))
             else:
                 t_resolved = str(val)
-        return TypestateTerm(type_name=t_resolved, state=self.state, qualifiers=self.qualifiers)
+        return TypestateTerm(
+            type_name=t_resolved,
+            state=self.state,
+            qualifiers=self.qualifiers,
+            abstract_type=self.abstract_type,
+        )
 
     def __repr__(self) -> str:
-        return f"{self.type_name}[{self.state}]"
+        abs_str = f", abs={self.abstract_type}" if self.abstract_type else ""
+        return f"{self.type_name}[{self.state}{abs_str}]"
 
 
 class Substitution:
@@ -349,8 +363,8 @@ def unify(
     t1 = t1.apply_substitution(sub)
     t2 = t2.apply_substitution(sub)
 
-    # 1. Identity or Top
-    if t1 == t2 or isinstance(t1, TopType) or isinstance(t2, TopType):
+    # 1. Identity or Consumer Top (consumer accepts any producer)
+    if t1 == t2 or isinstance(t2, TopType):
         if is_ground_query:
             _UNIFY_BASE_CACHE[cache_key] = sub
         return sub
@@ -379,6 +393,13 @@ def unify(
         if is_ground_query:
             _UNIFY_BASE_CACHE[cache_key] = sub
         return sub
+
+    # 2.1. Producer is Top, but consumer is a concrete, non-Top requirement -> Fail (bottom)
+    # Sound categorical subtyping: untyped producer Top does not satisfy concrete consumer type
+    if isinstance(t1, TopType):
+        if is_ground_query:
+            _UNIFY_BASE_CACHE[cache_key] = None
+        return None
 
     # 2.3. Coproduct / Union unification (canonical injection)
     if isinstance(t1, UnionTypeTerm):
@@ -466,9 +487,20 @@ def unify(
         # Type poset subtyping check: t1.type_name <= t2.type_name
         registry = TypeRegistry.get_instance()
         if not registry.is_subtype(t1.type_name, t2.type_name):
-            if is_ground_query:
-                _UNIFY_BASE_CACHE[cache_key] = None
-            return None  # Type mismatch -> bottom
+            t2_tn = (t2.type_name or "").strip().lower()
+            t2_abs = (t2.abstract_type or "").strip().lower()
+            is_consumer_abstract = (t2_tn in ABSTRACT_CARRIERS or t2_tn == t2_abs)
+            if (
+                is_consumer_abstract
+                and t1.abstract_type
+                and t2.abstract_type
+                and registry.is_subtype(t1.abstract_type, t2.abstract_type)
+            ):
+                pass
+            else:
+                if is_ground_query:
+                    _UNIFY_BASE_CACHE[cache_key] = None
+                return None  # Type mismatch -> bottom
 
         if is_ground_query:
             _UNIFY_BASE_CACHE[cache_key] = sub
@@ -530,7 +562,12 @@ def _to_type_term(item: Any) -> TypeTerm:
                 if canonical.lower() in ("any", "*", "top", "object", "unknown"):
                     res = TOP
                 else:
-                    res = TypestateTerm(type_name=canonical, state=item.state, qualifiers=item.qualifiers)
+                    res = TypestateTerm(
+                        type_name=canonical,
+                        state=item.state,
+                        qualifiers=item.qualifiers,
+                        abstract_type=getattr(item, "abstract_type", None)
+                    )
         try:
             item._cached_term = res
         except (AttributeError, TypeError):
@@ -589,7 +626,12 @@ def substitute_generics(
             required=target.required,
             default_value=target.default_value,
             doc=target.doc,
-            domain=target.domain
+            domain=target.domain,
+            abstract_type=target.abstract_type,
+            enum_values=target.enum_values,
+            param_kind=target.param_kind,
+            value_constraints=target.value_constraints,
+            shape_contract=target.shape_contract
         )
 
     if isinstance(target, AlgebraicSignature):
@@ -597,7 +639,8 @@ def substitute_generics(
         return AlgebraicSignature(
             type_name=str(new_type),
             state=target.state,
-            qualifiers=target.qualifiers
+            qualifiers=target.qualifiers,
+            abstract_type=target.abstract_type
         )
 
     if hasattr(target, "type_name") and hasattr(target, "model_copy"):
@@ -735,6 +778,7 @@ class ExecutionContext:
     """
     def __init__(self, prompt: str = "", scope: Optional[Dict[str, Any]] = None):
         self._prompt = prompt or ""
+        self.scope: Dict[str, Any] = dict(scope or {})
         self.variables: Dict[str, Tuple[PortSignature, str]] = {}
         self.var_counter: int = 0
         self.var_sources: Dict[str, Any] = {}
@@ -751,9 +795,32 @@ class ExecutionContext:
         # (e.g. pos(X) -> {"column"}). Drives role-conditioned identifier binding
         # and for-each multiplicity detection.
         self.identifier_roles: Dict[int, FrozenSet[str]] = self._build_identifier_role_map(self._prompt)
-        if scope:
-            for k, v in scope.items():
+        if self.scope:
+            for k, v in self.scope.items():
                 self.declare_variable(k, v, k)
+
+    def reset(self):
+        """Resets transient pipeline variables and consumed literal indices, preserving prompt, parameters, and initial scope."""
+        self.variables = {}
+        self.var_sources = {}
+        self.used_indices = set()
+        self.consumed_tokens = set()
+        self.consumed_members = set()
+        self.var_counter = 0
+        if hasattr(self, "scope") and self.scope:
+            for k, v in self.scope.items():
+                self.declare_variable(k, v, k)
+
+    def clone(self) -> "ExecutionContext":
+        new_ctx = ExecutionContext(prompt=self._prompt, scope=self.scope)
+        new_ctx.variables = dict(self.variables)
+        new_ctx.var_sources = dict(self.var_sources)
+        new_ctx.parameters = dict(self.parameters)
+        new_ctx.used_indices = set(self.used_indices)
+        new_ctx.consumed_tokens = set(self.consumed_tokens)
+        new_ctx.consumed_members = set(self.consumed_members)
+        new_ctx.var_counter = self.var_counter
+        return new_ctx
 
     @property
     def prompt(self) -> str:
@@ -1046,18 +1113,34 @@ class ExecutionContext:
         if not self.prompt:
             return None
 
-        # Candidate word tokens from prompt, excluding self-referential collisions
+        # Universal grammatical function words in English (pronouns, prepositions, conjunctions, auxiliaries)
+        _FUNCTION_WORDS = {
+            "a", "an", "the", "and", "or", "but", "if", "then", "else", "when",
+            "at", "by", "for", "with", "about", "against", "between", "into",
+            "through", "during", "before", "after", "above", "below", "to", "from",
+            "up", "down", "in", "out", "on", "off", "over", "under", "again",
+            "further", "once", "here", "there", "all", "any", "both",
+            "each", "few", "more", "most", "other", "some", "such", "no", "nor",
+            "not", "only", "own", "same", "so", "than", "too", "very", "can",
+            "will", "just", "should", "now", "it", "its", "this", "that", "these",
+            "those", "i", "me", "my", "we", "us", "our", "you", "your", "he",
+            "him", "his", "she", "her", "they", "them", "their", "what", "which",
+            "who", "whom", "whose"
+        }
+
+        # Candidate word tokens from prompt, excluding self-referential collisions and function words
         p_stem = normalize_token((param_name or "").lower()) if param_name else ""
         words = []
         for w in self.prompt.strip().split():
             clean_w = w.strip(" '\".,;:()[]{}=:")
-            if len(clean_w) < 2 or clean_w.lower() in self.consumed_tokens:
+            w_lower = clean_w.lower()
+            if len(clean_w) < 2 or w_lower in self.consumed_tokens or w_lower in _FUNCTION_WORDS:
                 continue
             if p_stem:
-                w_stem = normalize_token(clean_w.lower())
+                w_stem = normalize_token(w_lower)
                 if (
                     w_stem == p_stem
-                    or clean_w.lower().startswith(p_stem)
+                    or w_lower.startswith(p_stem)
                     or p_stem.startswith(w_stem)
                 ):
                     continue
@@ -1235,7 +1318,12 @@ class ExecutionContext:
                 return False
             for p in cell_inputs.values():
                 tn = str(getattr(p, "type_name", "")).lower()
-                if registry.is_subtype(tn, "filepath") or registry.is_subtype(tn, "path") or registry.is_subtype(tn, "uri"):
+                if (
+                    registry.is_subtype(tn, "filepath")
+                    or registry.is_subtype(tn, "path")
+                    or registry.is_subtype(tn, "uri")
+                    or getattr(p, "abstract_type", None) == "path"
+                ):
                     return True
             return False
 
@@ -1344,8 +1432,19 @@ class ExecutionContext:
         # file_asset literals flow only into path-typed ports. Plain str ports may
         # receive assets only when the cell declares NO dedicated path port, so that
         # auxiliary string parameters can never steal file assets from the sink/source.
-        is_path_port = registry.is_subtype(t_name, "filepath") or registry.is_subtype(t_name, "path") or registry.is_subtype(t_name, "uri")
-        if is_path_port or (cell_stage in (1, 3) and is_str and not _cell_has_path_port()):
+        is_path_port = (
+            registry.is_subtype(t_name, "filepath")
+            or registry.is_subtype(t_name, "path")
+            or registry.is_subtype(t_name, "uri")
+            or getattr(port_sig, "abstract_type", None) == "path"
+        )
+        allow_str_asset = (
+            cell_stage in (1, 3)
+            and is_str
+            and not _cell_has_path_port()
+            and (port_sig.required or cell_stage == 3)
+        )
+        if is_path_port or allow_str_asset:
             for idx, (_, kind, val) in enumerate(self.ordered_literals):
                 if idx not in self.used_indices and kind in ("file_asset", "quoted_str"):
                     self.used_indices.add(idx)
@@ -1353,9 +1452,9 @@ class ExecutionContext:
 
         # 6. Stage 2 Morphism: Operational Parameter Extraction
         if (cell_stage == 2 or cell_stage is None) and is_str:
-            # A. Check for unconsumed quoted string argument in prompt (e.g. 'age', 'cup')
+            # A. Check for unconsumed quoted string argument or file asset in prompt
             for idx, (_, kind, val) in enumerate(self.ordered_literals):
-                if idx not in self.used_indices and kind == "quoted_str":
+                if idx not in self.used_indices and kind in ("quoted_str", "file_asset"):
                     self.used_indices.add(idx)
                     return json.dumps(val)
 
@@ -1505,13 +1604,26 @@ class UnificationGate:
         """
         out_sig = producer.primary_output
 
+        def _shape_compatible(p_out: Any, p_in: Any) -> bool:
+            out_sc = getattr(p_out, "shape_contract", None)
+            in_sc = getattr(p_in, "shape_contract", None)
+            if out_sc and in_sc:
+                o_ndim = out_sc.get("ndim")
+                i_ndim = in_sc.get("ndim")
+                if o_ndim is not None and i_ndim is not None and o_ndim != i_ndim:
+                    return False
+            return True
+
         # 1. Primary input direct unification
-        new_sigma = unify(out_sig.signature, consumer.primary_input.signature, current_sigma)
-        if new_sigma is not None:
-            return Success(new_sigma, new_sigma)
+        if _shape_compatible(out_sig, consumer.primary_input):
+            new_sigma = unify(out_sig.signature, consumer.primary_input.signature, current_sigma)
+            if new_sigma is not None:
+                return Success(new_sigma, new_sigma)
 
         # 2. Multi-Port Monoidal Matching: check if producer output unifies with ANY input of consumer
         for p_name, p_port in consumer.inputs.items():
+            if not _shape_compatible(out_sig, p_port):
+                continue
             new_sigma = unify(out_sig.signature, p_port.signature, current_sigma)
             if new_sigma is not None:
                 return Success(new_sigma, new_sigma)
@@ -1738,18 +1850,19 @@ class UnificationGate:
                             accumulated_sigma = u_sub
                             bound_producer = True
 
-            # If producer_var did not bind to primary input, check other compatible input ports
+            # If producer_var did not bind to primary input, check other compatible input ports (required ports take precedence)
             if producer_var is not None and not bound_producer and not is_zero_ary and not is_replica:
                 prod_sig, _ = ctx.variables.get(producer_var, (None, None))
                 if prod_sig is not None and not _is_product(prod_sig):
-                    for p_name, p_sig in cell.inputs.items():
-                        if p_name not in cell_bindings:
-                            u_sub = unify(prod_sig.signature, p_sig.signature, accumulated_sigma)
-                            if u_sub is not None:
-                                cell_bindings[p_name] = producer_var
-                                accumulated_sigma = u_sub
-                                bound_producer = True
-                                break
+                    req_unbound = [(k, v) for k, v in cell.inputs.items() if v.required and k not in cell_bindings]
+                    cand_ports = req_unbound if req_unbound else [(k, v) for k, v in cell.inputs.items() if k not in cell_bindings]
+                    for p_name, p_sig in cand_ports:
+                        u_sub = unify(prod_sig.signature, p_sig.signature, accumulated_sigma)
+                        if u_sub is not None:
+                            cell_bindings[p_name] = producer_var
+                            accumulated_sigma = u_sub
+                            bound_producer = True
+                            break
 
             # 3. Resolve auxiliary input ports (variable reuse / port sharing / parameters / literals).
             # REQUIRED ports are processed before optional ones so data ports claim
@@ -1865,6 +1978,13 @@ class UnificationGate:
             # Register output port in context for future steps
             # Concrete output port with generic substitution
             concrete_out = substitute_generics(cell.primary_output, accumulated_sigma)
+            # If the cell performs in-place mutation on a receiver, alias the output to the receiver
+            if getattr(cell, "mutation_type", "pure") == "in_place":
+                receiver_var = cell_bindings.get("data") or cell_bindings.get("self")
+                if receiver_var and receiver_var in ctx.variables:
+                    current_out_var = receiver_var
+                    cell_bindings["output_var"] = current_out_var
+
             ctx.declare_variable(current_out_var, concrete_out, current_out_var, cell=cell)
             producer_var = current_out_var
             pipeline_bindings.append((cell, cell_bindings))
@@ -1878,6 +1998,7 @@ class UnificationGate:
         - Required positional parameters are instantiated with their bound values.
         - Actively bound optional configurations are emitted as keyword arguments (key=val).
         - Unbound optional parameters with defaults are omitted, letting runtime defaults apply.
+        - Enforces param_kind calling conventions (positional_only, keyword_only, var_positional, var_keyword).
         """
         if not template or not template.strip():
             return ""
@@ -1909,6 +2030,7 @@ class UnificationGate:
                         orig_name = ph_map[arg.id]
                         p_sig = inputs.get(orig_name)
                         is_req = getattr(p_sig, "required", True) if p_sig else True
+                        p_kind = getattr(p_sig, "param_kind", "standard")
                         val = bindings.get(orig_name)
 
                         if val is not None:
@@ -1917,7 +2039,13 @@ class UnificationGate:
                                 val_node = ast.parse(val_str, mode="eval").body
                             except Exception:
                                 val_node = ast.Constant(value=val_str)
-                            if is_req:
+                            if p_kind == "keyword_only":
+                                new_keywords.append(ast.keyword(arg=orig_name, value=val_node))
+                            elif p_kind in ("positional_only", "var_positional"):
+                                new_args.append(val_node)
+                            elif p_kind == "var_keyword":
+                                new_keywords.append(ast.keyword(arg=None, value=val_node))
+                            elif is_req:
                                 new_args.append(val_node)
                             else:
                                 new_keywords.append(ast.keyword(arg=orig_name, value=val_node))
@@ -1967,7 +2095,10 @@ class UnificationGate:
         if cells and isinstance(cells[0], tuple):
             pipeline_bindings = cells
         else:
-            res = self.unify_pipeline(cells, ctx)
+            ctx_run = ctx.clone() if hasattr(ctx, "clone") else ctx
+            if hasattr(ctx_run, "reset"):
+                ctx_run.reset()
+            res = self.unify_pipeline(cells, ctx_run)
             if res.is_bottom():
                 reason = res.reason if isinstance(res, Failure) else "Unknown unification failure"
                 raise ValueError(f"Unification Failed: {reason}")
