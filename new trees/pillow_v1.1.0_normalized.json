@@ -2295,7 +2295,12 @@
           "name": "output_var",
           "type_name": "ndarray",
           "state": "color_bgr",
-          "qualifiers": [],
+          "qualifiers": [
+            [
+              "cv2",
+              "image"
+            ]
+          ],
           "default_value": null,
           "description": "3-channel uint8 numpy array in BGR order.",
           "domain": "Pillow",
@@ -2391,7 +2396,12 @@
           "name": "output_var",
           "type_name": "ndarray",
           "state": "gray",
-          "qualifiers": [],
+          "qualifiers": [
+            [
+              "cv2",
+              "image"
+            ]
+          ],
           "default_value": null,
           "description": "2D uint8 numpy array representing gray intensity.",
           "domain": "Pillow",

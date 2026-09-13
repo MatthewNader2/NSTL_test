@@ -538,11 +538,21 @@ class LatticePlanner:
                 cells_by_in_type.setdefault(t_key, []).append(cand)
                 distinct_in_states.setdefault(t_key, set()).add(str(getattr(p_sig.signature, "state", "")))
 
+        candidate_map = {c.cell_id: c for c in candidates}
+
         def _successors(prev_cell: Cell) -> List[Cell]:
-            out_t = str(getattr(prev_cell.primary_output, "type_name", ""))
-            out_s = str(getattr(prev_cell.primary_output, "state", ""))
+            out_sig = prev_cell.primary_output.signature if hasattr(prev_cell.primary_output, "signature") else prev_cell.primary_output
+            out_t = str(getattr(out_sig, "type_name", ""))
+            out_s = str(getattr(out_sig, "state", ""))
 
             acc: Dict[str, Cell] = {}
+
+            # Prioritize/include explicit graph edges declared on prev_cell
+            for edge in getattr(prev_cell, "edges", []):
+                tgt_id = edge.get("target_cell_id") if isinstance(edge, dict) else getattr(edge, "target_cell_id", None)
+                if tgt_id and tgt_id in candidate_map:
+                    tgt_cell = candidate_map[tgt_id]
+                    acc.setdefault(tgt_cell.cell_id, tgt_cell)
 
             # Generic carriers ("Sequence[T]", products) and TYPE VARIABLES ("T",
             # "S") unify by binding, not by poset subtyping: enumerate all
@@ -550,7 +560,7 @@ class LatticePlanner:
             is_type_var = out_t.isalpha() and len(out_t) == 1 and out_t.isupper()
             if "[" in out_t or is_type_var:
                 for cand in candidates:
-                    if any(unify(prev_cell.primary_output.signature, p_sig.signature) is not None
+                    if any(unify(out_sig, p_sig.signature) is not None
                            for p_sig in cand.inputs.values()):
                         acc.setdefault(cand.cell_id, cand)
                 return list(acc.values())
@@ -558,12 +568,17 @@ class LatticePlanner:
             for in_t, cell_list in cells_by_in_type.items():
                 if not registry.is_subtype(out_t, in_t):
                     continue
-                states = distinct_in_states.get(in_t, set())
-                state_ok = (out_s == "any") or any(s == "any" or s == out_s for s in states)
-                if not state_ok:
-                    continue
                 for c in cell_list:
-                    acc.setdefault(c.cell_id, c)
+                    # Typestate compatibility with accepted_states and parent_state walking
+                    if any(registry.is_state_compatible(
+                        producer_state=out_s,
+                        consumer_state=getattr(p_sig.signature, "state", "any"),
+                        producer_accepted=getattr(out_sig, "accepted_states", frozenset()),
+                        consumer_accepted=getattr(p_sig.signature, "accepted_states", frozenset()),
+                        consumer_parent=getattr(p_sig.signature, "parent_state", None),
+                        producer_parent=getattr(out_sig, "parent_state", None),
+                    ) for p_sig in c.inputs.values()):
+                        acc.setdefault(c.cell_id, c)
             return list(acc.values())
 
         # Viterbi Trellis: paths of length t = 1 ... T_max

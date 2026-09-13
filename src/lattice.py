@@ -348,6 +348,20 @@ def _clean_abs_carrier(val: Any) -> str:
     return s
 
 
+def _normalize_qualifiers(raw_qualifiers: Any) -> FrozenSet[Tuple[str, ...]]:
+    if not raw_qualifiers:
+        return frozenset()
+    result = []
+    for q in raw_qualifiers:
+        if isinstance(q, (list, tuple)):
+            result.append(tuple(str(item) for item in q))
+        elif isinstance(q, str):
+            result.append((q,))
+        else:
+            result.append((str(q),))
+    return frozenset(result)
+
+
 @dataclass(frozen=True, slots=True)
 class AlgebraicSignature:
     """
@@ -369,6 +383,10 @@ class AlgebraicSignature:
             object.__setattr__(self, "accepted_states", frozenset(str(s).strip().lower() for s in self.accepted_states if str(s).strip()))
         if self.parent_state:
             object.__setattr__(self, "parent_state", str(self.parent_state).strip().lower())
+        if self.qualifiers is not None:
+            norm_q = _normalize_qualifiers(self.qualifiers)
+            if norm_q != self.qualifiers:
+                object.__setattr__(self, "qualifiers", norm_q)
 
     @classmethod
     def from_string(cls, type_name: str, state: str = "any", abstract_type: str = "", accepted_states: Optional[Any] = None, parent_state: Optional[str] = None) -> "AlgebraicSignature":
@@ -706,6 +724,18 @@ class Cell(ABC):
         self._primary_output = None
 
         # Normalize inputs into Dict[str, PortSignature]
+        if isinstance(inputs, list):
+            inputs_dict = {}
+            for idx, item in enumerate(inputs):
+                if isinstance(item, dict):
+                    p_name = item.get("name") or item.get("port_name") or f"port_{idx}"
+                    inputs_dict[p_name] = item
+                elif isinstance(item, (PortSignature, AlgebraicSignature)):
+                    inputs_dict[getattr(item, "name", f"port_{idx}")] = item
+                else:
+                    inputs_dict[f"port_{idx}"] = item
+            inputs = inputs_dict
+
         self.inputs: Dict[str, PortSignature] = {}
         for k, v in (inputs or {}).items():
             if isinstance(v, PortSignature):
@@ -719,7 +749,7 @@ class Cell(ABC):
                 sig = AlgebraicSignature(
                     type_name=v.get("type_name", "any"),
                     state=v.get("state", "any"),
-                    qualifiers=frozenset(tuple(q) for q in v.get("qualifiers", [])),
+                    qualifiers=_normalize_qualifiers(v.get("qualifiers", [])),
                     abstract_type=abs_t,
                     accepted_states=acc_s,
                     parent_state=p_s,
@@ -743,6 +773,18 @@ class Cell(ABC):
                 self.inputs[k] = PortSignature(name=k, signature=AlgebraicSignature("any", "any"))
 
         # Normalize outputs into Dict[str, PortSignature]
+        if isinstance(outputs, list):
+            outputs_dict = {}
+            for idx, item in enumerate(outputs):
+                if isinstance(item, dict):
+                    p_name = item.get("name") or item.get("port_name") or f"port_{idx}"
+                    outputs_dict[p_name] = item
+                elif isinstance(item, (PortSignature, AlgebraicSignature)):
+                    outputs_dict[getattr(item, "name", f"port_{idx}")] = item
+                else:
+                    outputs_dict[f"port_{idx}"] = item
+            outputs = outputs_dict
+
         self.outputs: Dict[str, PortSignature] = {}
         for k, v in (outputs or {}).items():
             if isinstance(v, PortSignature):
@@ -756,7 +798,7 @@ class Cell(ABC):
                 sig = AlgebraicSignature(
                     type_name=v.get("type_name", "any"),
                     state=v.get("state", "any"),
-                    qualifiers=frozenset(tuple(q) for q in v.get("qualifiers", [])),
+                    qualifiers=_normalize_qualifiers(v.get("qualifiers", [])),
                     abstract_type=abs_t,
                     accepted_states=acc_s,
                     parent_state=p_s,
@@ -961,6 +1003,8 @@ class LatticeOrchestrator:
     An edge (u, v) exists iff u.primary_output unifies with v's accepting input port.
     """
     def __init__(self, trees_directory: str = "trees", active_domain: str = "all", db_path: Optional[str] = None):
+        if not os.path.exists(trees_directory) and os.path.exists("new trees"):
+            trees_directory = "new trees"
         self.trees_directory = trees_directory
         self.db_path = db_path if db_path is not None else os.path.join(trees_directory, "lattice.db")
         self.active_domain = active_domain
@@ -1010,7 +1054,14 @@ class LatticeOrchestrator:
                             registry.register_state(s)
 
             for c_dict in raw_cells:
-                cell = MicroCell(
+                is_macro = (
+                    str(c_dict.get("node_type", "")).lower() in ("macro", "higher_order")
+                    or str(c_dict.get("node_role", "")).lower() in ("macro", "higher_order")
+                    or str(c_dict.get("node_type", "")).lower().startswith("macro_")
+                    or str(c_dict.get("node_role", "")).lower().startswith("macro_")
+                )
+                cell_cls = MacroCell if is_macro else MicroCell
+                cell = cell_cls(
                     cell_id=c_dict.get("cell_id"),
                     stage=c_dict.get("stage", 2),
                     keywords=c_dict.get("keywords", []),
@@ -1049,11 +1100,17 @@ class LatticeOrchestrator:
 
     def load_all_json_trees(self):
         """Loads all JSON trees located in trees_directory."""
-        if not os.path.exists(self.trees_directory):
-            return
-        for fname in os.listdir(self.trees_directory):
-            if fname.endswith(".json"):
-                self.load_tree_file(os.path.join(self.trees_directory, fname))
+        target_dir = self.trees_directory
+        if not os.path.exists(target_dir):
+            if os.path.exists("new trees"):
+                target_dir = "new trees"
+            else:
+                return
+        all_fnames = [f for f in os.listdir(target_dir) if f.endswith(".json")]
+        normalized_fnames = [f for f in all_fnames if f.endswith("_normalized.json")]
+        target_fnames = normalized_fnames if normalized_fnames else all_fnames
+        for fname in sorted(target_fnames):
+            self.load_tree_file(os.path.join(target_dir, fname))
 
     def load_from_database(self, db_path: Optional[str] = None):
         """Loads nodes from the compiled SQLite database."""
@@ -1133,7 +1190,7 @@ class LatticeOrchestrator:
                                         signature=AlgebraicSignature(
                                             type_name=str(p_val.get("type_name", in_type or "any")),
                                             state=str(p_val.get("state", in_state or "any")),
-                                            qualifiers=frozenset(tuple(q) for q in p_val.get("qualifiers", [])),
+                                            qualifiers=_normalize_qualifiers(p_val.get("qualifiers", [])),
                                             abstract_type=abs_t,
                                             accepted_states=acc_s,
                                             parent_state=p_s,
@@ -1159,7 +1216,7 @@ class LatticeOrchestrator:
                                         signature=AlgebraicSignature(
                                             type_name=str(p_val.get("type_name", out_type or "any")),
                                             state=str(p_val.get("state", out_state or "any")),
-                                            qualifiers=frozenset(tuple(q) for q in p_val.get("qualifiers", [])),
+                                            qualifiers=_normalize_qualifiers(p_val.get("qualifiers", [])),
                                             abstract_type=abs_t,
                                             accepted_states=acc_s,
                                             parent_state=p_s,
@@ -1254,7 +1311,7 @@ class LatticeOrchestrator:
                                         signature=AlgebraicSignature(
                                             type_name=str(p_val.get("type_name", in_type or "any")),
                                             state=str(p_val.get("state", in_state or "any")),
-                                            qualifiers=frozenset(tuple(q) for q in p_val.get("qualifiers", []))
+                                            qualifiers=_normalize_qualifiers(p_val.get("qualifiers", []))
                                         ),
                                         required=p_val.get("required", True),
                                         default_value=p_val.get("default_value")
@@ -1266,7 +1323,7 @@ class LatticeOrchestrator:
                                         signature=AlgebraicSignature(
                                             type_name=str(p_val.get("type_name", out_type or "any")),
                                             state=str(p_val.get("state", out_state or "any")),
-                                            qualifiers=frozenset(tuple(q) for q in p_val.get("qualifiers", []))
+                                            qualifiers=_normalize_qualifiers(p_val.get("qualifiers", []))
                                         )
                                     )
 
@@ -1298,8 +1355,8 @@ class LatticeOrchestrator:
 
     def build_topology(self):
         """
-        Builds the lattice directed edges based strictly on monadic type compatibility:
-          (u, v) in E <=> u.primary_output.unifies_with(v.primary_input)
+        Builds the lattice directed edges based strictly on declared edges and monadic type compatibility:
+          (u, v) in E <=> v.cell_id in u.edges or u.primary_output.unifies_with(v.primary_input)
         """
         with self._lock:
             self._adjacency.clear()
@@ -1309,7 +1366,8 @@ class LatticeOrchestrator:
             self._token_index.clear()
             self._bridge_cells.clear()
 
-            for cell in self.loaded_cells.values():
+            all_cells = list(self.loaded_cells.values())
+            for cell in all_cells:
                 _ = cell.token_set  # Warm up cached token set
                 for tok in cell.token_set:
                     self._token_index.setdefault(tok, []).append(cell)
@@ -1323,6 +1381,27 @@ class LatticeOrchestrator:
                 for p in cell.outputs.values():
                     key = (p.type_name, p.state)
                     self._cells_by_output.setdefault(key, []).append(cell)
+
+            # Populate graph edges
+            for u in all_cells:
+                # 1. Declared edges from cell schema
+                for edge in getattr(u, "edges", []):
+                    tgt_id = edge.get("target_cell_id") if isinstance(edge, dict) else getattr(edge, "target_cell_id", None)
+                    if tgt_id and tgt_id in self.loaded_cells and tgt_id not in self._adjacency[u.cell_id]:
+                        self._adjacency[u.cell_id].append(tgt_id)
+                        self._reverse_adjacency[tgt_id].append(u.cell_id)
+
+                # 2. Monadic type compatibility
+                out_p = u.primary_output
+                if out_p:
+                    out_sig = out_p.signature
+                    for v in all_cells:
+                        if u.cell_id == v.cell_id or v.cell_id in self._adjacency[u.cell_id]:
+                            continue
+                        in_p = v.primary_input
+                        if in_p and out_sig.unifies_with(in_p.signature):
+                            self._adjacency[u.cell_id].append(v.cell_id)
+                            self._reverse_adjacency[v.cell_id].append(u.cell_id)
 
     @property
     def token_index(self) -> Dict[str, List[Cell]]:
@@ -1350,12 +1429,7 @@ class LatticeOrchestrator:
     def get_successors_for_sig(self, sig: AlgebraicSignature) -> List[Cell]:
         """Returns cells whose input unifies with the given output signature."""
         results = []
-        seen = set()
-        for (in_type, in_state), cells in self._cells_by_input.items():
-            cand_sig = AlgebraicSignature(in_type, in_state)
-            if sig.unifies_with(cand_sig):
-                for c in cells:
-                    if c.cell_id not in seen:
-                        seen.add(c.cell_id)
-                        results.append(c)
+        for c in self.loaded_cells.values():
+            if c.can_accept(sig):
+                results.append(c)
         return results

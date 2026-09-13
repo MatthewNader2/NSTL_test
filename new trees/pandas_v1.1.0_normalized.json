@@ -9163,7 +9163,9 @@
         "port_0": {
           "type_name": "ndarray",
           "state": "ndarray_generic",
-          "qualifiers": [],
+          "qualifiers": [
+            "matrix"
+          ],
           "default_value": null,
           "description": "Standardized generic NumPy ndarray representation.",
           "domain": "pandas",
@@ -9243,7 +9245,9 @@
         "port_0": {
           "type_name": "ndarray",
           "state": "ndarray_generic",
-          "qualifiers": [],
+          "qualifiers": [
+            "vector"
+          ],
           "default_value": null,
           "description": "Standardized generic 1D NumPy ndarray.",
           "domain": "pandas",
