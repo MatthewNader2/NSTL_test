@@ -1,13 +1,109 @@
 # src/schema.py
-from typing import Dict, List, Optional, Literal, Any
+from typing import Dict, List, Optional, Literal, Any, Union
 from pydantic import BaseModel, Field, field_validator, ConfigDict
 import ast
+import re
+
+class ConditionPredicate(BaseModel):
+    """
+    Formal predicate for preconditions and postconditions/effects.
+    Domain-agnostic: supports arbitrary properties, operators, and target ports/variables.
+    Examples: channels==1, dtype=='binary', is_fitted==True, shape[-1]==3.
+    """
+    model_config = ConfigDict(extra="ignore")
+
+    target: Optional[str] = None       # Port name or variable identifier (e.g. "image", "df", "self")
+    property: Optional[str] = None     # Property being evaluated (e.g. "channels", "dtype", "is_fitted")
+    operator: str = "=="               # "==", "!=", ">", ">=", "<", "<=", "in", "is", "matches"
+    value: Any = None                  # Target value (e.g. 1, "binary", True)
+    expression: Optional[str] = None   # Raw string expression (e.g. "channels == 1")
+    description: Optional[str] = None  # Human-readable explanation
+
+    @classmethod
+    def from_any(cls, v: Any) -> "ConditionPredicate":
+        if isinstance(v, ConditionPredicate):
+            return v
+        if isinstance(v, str):
+            expr = v.strip()
+            match = re.match(r"^([a-zA-Z_][a-zA-Z0-9_\.]*)\s*(==|!=|>=|<=|>|<|in|is)\s*(.+)$", expr)
+            if match:
+                prop = match.group(1)
+                op = match.group(2)
+                val_raw = match.group(3).strip()
+                val: Any = val_raw
+                if val_raw.lower() == "true":
+                    val = True
+                elif val_raw.lower() == "false":
+                    val = False
+                elif (val_raw.startswith("'") and val_raw.endswith("'")) or (val_raw.startswith('"') and val_raw.endswith('"')):
+                    val = val_raw[1:-1]
+                else:
+                    try:
+                        val = int(val_raw)
+                    except ValueError:
+                        try:
+                            val = float(val_raw)
+                        except ValueError:
+                            pass
+                return cls(property=prop, operator=op, value=val, expression=expr)
+            return cls(expression=expr)
+        if isinstance(v, dict):
+            if "property" in v or "operator" in v or "expression" in v or "target" in v:
+                return cls(**v)
+            items = list(v.items())
+            if len(items) == 1:
+                return cls(property=items[0][0], operator="==", value=items[0][1])
+            return cls(property=items[0][0], operator="==", value=items[0][1], description=str(v))
+        return cls(description=str(v))
+
+class EdgeSchema(BaseModel):
+    """
+    Explicit transition edge between lattice cells.
+    Captures learned/curated transition affinities and bridging contracts.
+    """
+    model_config = ConfigDict(extra="ignore")
+
+    target_cell_id: str
+    affinity_score: float = Field(default=1.0, ge=0.0)
+    bridging_precondition: Optional[Union[ConditionPredicate, str, Dict[str, Any]]] = None
+    metadata: Dict[str, Any] = Field(default_factory=dict)
+
+    @field_validator("bridging_precondition", mode="before")
+    @classmethod
+    def normalize_bridging_precondition(cls, v: Any) -> Optional[Any]:
+        if v is None:
+            return None
+        if isinstance(v, (str, dict)):
+            return ConditionPredicate.from_any(v)
+        return v
+
+class TypestateDefinition(BaseModel):
+    """Declarative typestate specification within a domain."""
+    model_config = ConfigDict(extra="ignore")
+
+    name: str                                  # e.g. "color", "gray", "raw", "unfit"
+    parent_state: Optional[str] = None         # For state hierarchy / subtyping
+    carrier_type: Optional[str] = None         # e.g. "ndarray", "DataFrame", "BaseEstimator"
+    description: Optional[str] = None
+    properties: Dict[str, Any] = Field(default_factory=dict) # e.g. {"channels": 1}
+
+class TypestateVocabularySchema(BaseModel):
+    """Domain-level typestate vocabulary and state transitions."""
+    model_config = ConfigDict(extra="ignore")
+
+    domain: str
+    states: List[Union[str, TypestateDefinition]] = Field(default_factory=list)
+    transitions: List[Dict[str, Any]] = Field(default_factory=list) # optional e.g. [{"from": "color", "to": "gray", "via": "cvtColor"}]
+    initial_state: Optional[str] = None
+    terminal_states: List[str] = Field(default_factory=list)
 
 class PortSchema(BaseModel):
     model_config = ConfigDict(extra="ignore")
 
     type_name: str
     state: str = "default"
+    parent_state: Optional[str] = None
+    accepted_states: List[str] = Field(default_factory=list)
     qualifiers: List[List[str]] = Field(default_factory=list)
     default_value: Optional[Any] = None
     description: Optional[str] = None
@@ -57,6 +153,86 @@ class CellSchema(BaseModel):
     is_context_manager: bool = False
     raises: List[str] = Field(default_factory=list)
     type_vars: List[str] = Field(default_factory=list)
+
+    # --- Semantic IR Extensions (Phase 1) ---
+    preconditions: List[Union[ConditionPredicate, str, Dict[str, Any]]] = Field(default_factory=list)
+    postconditions: List[Union[ConditionPredicate, str, Dict[str, Any]]] = Field(default_factory=list)
+    effects: List[Union[ConditionPredicate, str, Dict[str, Any]]] = Field(default_factory=list)
+    edges: List[Union[EdgeSchema, Dict[str, Any]]] = Field(default_factory=list)
+
+    def model_post_init(self, __context: Any) -> None:
+        # Synchronize effects and postconditions if one is set but not the other
+        if self.postconditions and not self.effects:
+            self.effects = list(self.postconditions)
+        elif self.effects and not self.postconditions:
+            self.postconditions = list(self.effects)
+
+    @field_validator("preconditions", mode="before")
+    @classmethod
+    def normalize_preconditions(cls, v: Any) -> List[Any]:
+        if v is None:
+            return []
+        if isinstance(v, dict):
+            if "property" in v or "expression" in v or "target" in v:
+                return [ConditionPredicate.from_any(v)]
+            return [ConditionPredicate(property=k, operator="==", value=val) for k, val in v.items()]
+        if isinstance(v, (list, tuple)):
+            res = []
+            for item in v:
+                if isinstance(item, (str, dict, ConditionPredicate)):
+                    res.append(ConditionPredicate.from_any(item) if not isinstance(item, ConditionPredicate) else item)
+                else:
+                    res.append(item)
+            return res
+        return [ConditionPredicate.from_any(v)]
+
+    @field_validator("postconditions", "effects", mode="before")
+    @classmethod
+    def normalize_conditions_list(cls, v: Any) -> List[Any]:
+        if v is None:
+            return []
+        if isinstance(v, dict):
+            if "property" in v or "expression" in v or "target" in v:
+                return [ConditionPredicate.from_any(v)]
+            return [ConditionPredicate(property=k, operator="==", value=val) for k, val in v.items()]
+        if isinstance(v, (list, tuple)):
+            res = []
+            for item in v:
+                if isinstance(item, (str, dict, ConditionPredicate)):
+                    res.append(ConditionPredicate.from_any(item) if not isinstance(item, ConditionPredicate) else item)
+                else:
+                    res.append(item)
+            return res
+        return [ConditionPredicate.from_any(v)]
+
+    @field_validator("edges", mode="before")
+    @classmethod
+    def normalize_edges(cls, v: Any) -> List[Any]:
+        if v is None:
+            return []
+        if isinstance(v, dict):
+            if "target_cell_id" in v:
+                return [EdgeSchema(**v)]
+            res = []
+            for target_id, edge_info in v.items():
+                if isinstance(edge_info, dict):
+                    res.append(EdgeSchema(target_cell_id=target_id, **edge_info))
+                elif isinstance(edge_info, (int, float)):
+                    res.append(EdgeSchema(target_cell_id=target_id, affinity_score=float(edge_info)))
+                else:
+                    res.append(EdgeSchema(target_cell_id=target_id))
+            return res
+        if isinstance(v, (list, tuple)):
+            res = []
+            for item in v:
+                if isinstance(item, dict):
+                    res.append(EdgeSchema(**item))
+                elif isinstance(item, EdgeSchema):
+                    res.append(item)
+                else:
+                    res.append(item)
+            return res
+        return []
 
     @field_validator("topology_type")
     @classmethod
@@ -118,3 +294,19 @@ class TreeSchema(BaseModel):
     domain: str
     version: str = "1.0.0"
     cells: List[CellSchema]
+    typestates: Optional[Union[TypestateVocabularySchema, Dict[str, Any], List[str]]] = None
+
+    @field_validator("typestates", mode="before")
+    @classmethod
+    def normalize_typestates(cls, v: Any) -> Optional[Any]:
+        if v is None:
+            return None
+        if isinstance(v, TypestateVocabularySchema):
+            return v
+        if isinstance(v, dict):
+            if "domain" in v:
+                return TypestateVocabularySchema(**v)
+            return v
+        if isinstance(v, (list, tuple)):
+            return TypestateVocabularySchema(domain="generic", states=list(v))
+        return v

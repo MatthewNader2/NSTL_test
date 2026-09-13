@@ -216,11 +216,13 @@ class TypeVariable(TypeTerm):
 
 @dataclass(frozen=True, slots=True)
 class TypestateTerm(TypeTerm):
-    """Typestate compound term: tau = (type_name, state, qualifiers)."""
+    """Typestate compound term: tau = (type_name, state, qualifiers, abstract_type, accepted_states, parent_state)."""
     type_name: str
     state: str = "any"
     qualifiers: FrozenSet[Tuple[str, str]] = field(default_factory=frozenset)
     abstract_type: Optional[str] = None
+    accepted_states: FrozenSet[str] = field(default_factory=frozenset)
+    parent_state: Optional[str] = None
 
     def __post_init__(self):
         raw = self.abstract_type
@@ -228,6 +230,10 @@ class TypestateTerm(TypeTerm):
             object.__setattr__(self, "abstract_type", str(raw).strip())
         else:
             object.__setattr__(self, "abstract_type", None)
+        if self.accepted_states and not isinstance(self.accepted_states, frozenset):
+            object.__setattr__(self, "accepted_states", frozenset(str(s).strip().lower() for s in self.accepted_states if str(s).strip()))
+        if self.parent_state:
+            object.__setattr__(self, "parent_state", str(self.parent_state).strip().lower())
 
     def apply_substitution(self, sigma: 'Substitution', visited: Optional[FrozenSet[str]] = None) -> 'TypeTerm':
         t_resolved = self.type_name
@@ -247,11 +253,15 @@ class TypestateTerm(TypeTerm):
             state=self.state,
             qualifiers=self.qualifiers,
             abstract_type=self.abstract_type,
+            accepted_states=self.accepted_states,
+            parent_state=self.parent_state,
         )
 
     def __repr__(self) -> str:
         abs_str = f", abs={self.abstract_type}" if self.abstract_type else ""
-        return f"{self.type_name}[{self.state}{abs_str}]"
+        acc_str = f", acc={list(self.accepted_states)}" if self.accepted_states else ""
+        p_str = f", parent={self.parent_state}" if self.parent_state else ""
+        return f"{self.type_name}[{self.state}{abs_str}{acc_str}{p_str}]"
 
 
 class Substitution:
@@ -363,8 +373,8 @@ def unify(
     t1 = t1.apply_substitution(sub)
     t2 = t2.apply_substitution(sub)
 
-    # 1. Identity or Consumer Top (consumer accepts any producer)
-    if t1 == t2 or isinstance(t2, TopType):
+    # 1. Identity or Universal Top (Top unifies with any type term)
+    if t1 == t2 or isinstance(t2, TopType) or isinstance(t1, TopType):
         if is_ground_query:
             _UNIFY_BASE_CACHE[cache_key] = sub
         return sub
@@ -393,13 +403,6 @@ def unify(
         if is_ground_query:
             _UNIFY_BASE_CACHE[cache_key] = sub
         return sub
-
-    # 2.1. Producer is Top, but consumer is a concrete, non-Top requirement -> Fail (bottom)
-    # Sound categorical subtyping: untyped producer Top does not satisfy concrete consumer type
-    if isinstance(t1, TopType):
-        if is_ground_query:
-            _UNIFY_BASE_CACHE[cache_key] = None
-        return None
 
     # 2.3. Coproduct / Union unification (canonical injection)
     if isinstance(t1, UnionTypeTerm):
@@ -465,12 +468,19 @@ def unify(
 
     # 3. Typestate term unification
     if isinstance(t1, TypestateTerm) and isinstance(t2, TypestateTerm):
-        # State unification: if both specify a concrete state, they must match
-        if t1.state != "any" and t2.state != "any":
-            if t1.state.lower() != t2.state.lower():
-                if is_ground_query:
-                    _UNIFY_BASE_CACHE[cache_key] = None
-                return None  # State mismatch -> bottom
+        # State compatibility check: delegate to TypeRegistry.is_state_compatible
+        registry = TypeRegistry.get_instance()
+        if not registry.is_state_compatible(
+            producer_state=t1.state,
+            consumer_state=t2.state,
+            producer_accepted=t1.accepted_states,
+            consumer_accepted=t2.accepted_states,
+            consumer_parent=t2.parent_state,
+            producer_parent=t1.parent_state,
+        ):
+            if is_ground_query:
+                _UNIFY_BASE_CACHE[cache_key] = None
+            return None  # State mismatch -> bottom
 
         # Qualifier subset check
         if t2.qualifiers and not t2.qualifiers.issubset(t1.qualifiers):
@@ -566,7 +576,9 @@ def _to_type_term(item: Any) -> TypeTerm:
                         type_name=canonical,
                         state=item.state,
                         qualifiers=item.qualifiers,
-                        abstract_type=getattr(item, "abstract_type", None)
+                        abstract_type=getattr(item, "abstract_type", None),
+                        accepted_states=getattr(item, "accepted_states", frozenset()),
+                        parent_state=getattr(item, "parent_state", None),
                     )
         try:
             item._cached_term = res

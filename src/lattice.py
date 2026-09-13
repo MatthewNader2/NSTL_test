@@ -64,6 +64,7 @@ class TypeRegistry:
     def __init__(self):
         self._parents: Dict[str, Set[str]] = {}
         self._aliases: Dict[str, str] = {}
+        self._state_parents: Dict[str, str] = {}
         self._bootstrap_carrier_hierarchy()
 
     def _bootstrap_carrier_hierarchy(self):
@@ -261,6 +262,74 @@ class TypeRegistry:
 
         return False
 
+    def register_state(self, state: str, parent_state: Optional[str] = None):
+        """Registers a typestate and its optional parent_state."""
+        s = str(state).strip().lower()
+        if not s:
+            return
+        if parent_state:
+            p = str(parent_state).strip().lower()
+            if p and p != s:
+                self._state_parents[s] = p
+
+    def get_state_parent(self, state: str) -> Optional[str]:
+        """Returns the declared parent_state of a typestate, if any."""
+        return self._state_parents.get(str(state).strip().lower())
+
+    def is_state_compatible(
+        self,
+        producer_state: str,
+        consumer_state: str,
+        producer_accepted: Union[Set[str], FrozenSet[str], List[str]] = frozenset(),
+        consumer_accepted: Union[Set[str], FrozenSet[str], List[str]] = frozenset(),
+        consumer_parent: Optional[str] = None,
+        producer_parent: Optional[str] = None,
+    ) -> bool:
+        """
+        Evaluates typestate compatibility between producer output and consumer input.
+        Rules:
+          1. Wildcard match if either state is 'any' or '*'.
+          2. Exact match (case-insensitive).
+          3. Accept if consumer_state is in producer's accepted_states (or producer_state in consumer's accepted_states).
+          4. Walk parent_state up consumer's declared chain before rejecting.
+          5. Walk parent_state up producer's declared chain before rejecting.
+        """
+        p_state = str(producer_state or "any").strip().lower()
+        c_state = str(consumer_state or "any").strip().lower()
+
+        if p_state in ("any", "*") or c_state in ("any", "*"):
+            return True
+
+        if p_state == c_state:
+            return True
+
+        p_acc = {str(s).strip().lower() for s in (producer_accepted or []) if str(s).strip()}
+        c_acc = {str(s).strip().lower() for s in (consumer_accepted or []) if str(s).strip()}
+
+        # (a) Accept if other_sig.state is in producer's accepted_states (or producer_state in consumer's accepted_states)
+        if c_state in p_acc or p_state in c_acc:
+            return True
+
+        # (b) Walk parent_state up consumer's declared chain before rejecting
+        visited_c = set()
+        curr_c = str(consumer_parent).strip().lower() if consumer_parent else self.get_state_parent(c_state)
+        while curr_c and curr_c not in visited_c:
+            visited_c.add(curr_c)
+            if curr_c == p_state or curr_c in p_acc:
+                return True
+            curr_c = self.get_state_parent(curr_c)
+
+        # Also walk parent_state up producer's declared chain
+        visited_p = set()
+        curr_p = str(producer_parent).strip().lower() if producer_parent else self.get_state_parent(p_state)
+        while curr_p and curr_p not in visited_p:
+            visited_p.add(curr_p)
+            if curr_p == c_state or curr_p in c_acc:
+                return True
+            curr_p = self.get_state_parent(curr_p)
+
+        return False
+
 
 def is_subtype(sub: str, parent: str) -> bool:
     return TypeRegistry.get_instance().is_subtype(sub, parent)
@@ -282,22 +351,30 @@ def _clean_abs_carrier(val: Any) -> str:
 @dataclass(frozen=True, slots=True)
 class AlgebraicSignature:
     """
-    Formal typestate signature: tau = (type_name, state, qualifiers, abstract_type).
+    Formal typestate signature: tau = (type_name, state, qualifiers, abstract_type, accepted_states, parent_state).
     Conforms to Section 3.1 of the NSTL paper.
     """
     type_name: str = "any"
     state: str = "any"
     qualifiers: FrozenSet[Tuple[str, str]] = field(default_factory=frozenset)
     abstract_type: str = ""
+    accepted_states: FrozenSet[str] = field(default_factory=frozenset)
+    parent_state: Optional[str] = None
 
     def __post_init__(self):
         cleaned = _clean_abs_carrier(self.abstract_type)
         if cleaned != self.abstract_type:
             object.__setattr__(self, "abstract_type", cleaned)
+        if self.accepted_states and not isinstance(self.accepted_states, frozenset):
+            object.__setattr__(self, "accepted_states", frozenset(str(s).strip().lower() for s in self.accepted_states if str(s).strip()))
+        if self.parent_state:
+            object.__setattr__(self, "parent_state", str(self.parent_state).strip().lower())
 
     @classmethod
-    def from_string(cls, type_name: str, state: str = "any", abstract_type: str = "") -> "AlgebraicSignature":
-        return cls(type_name=type_name, state=state, abstract_type=_clean_abs_carrier(abstract_type))
+    def from_string(cls, type_name: str, state: str = "any", abstract_type: str = "", accepted_states: Optional[Any] = None, parent_state: Optional[str] = None) -> "AlgebraicSignature":
+        acc = frozenset(str(s).strip().lower() for s in (accepted_states or []) if str(s).strip()) if accepted_states else frozenset()
+        p = str(parent_state).strip().lower() if parent_state else None
+        return cls(type_name=type_name, state=state, abstract_type=_clean_abs_carrier(abstract_type), accepted_states=acc, parent_state=p)
 
     def is_top(self) -> bool:
         canonical = TypeRegistry.get_instance().canonical_name(self.type_name)
@@ -309,7 +386,11 @@ class AlgebraicSignature:
         Rules:
           1. Consumer Top accepts any producer type.
           2. Non-top consumer rejects top producer.
-          3. If both declare non-'any' state, states must match (case-insensitive).
+          3. State compatibility check:
+             - matches if either is 'any' or '*'
+             - matches if exact match
+             - (a) accepts if other_sig.state is in producer's accepted_states (or vice versa)
+             - (b) walks parent_state up consumer's declared chain before rejecting
           4. Producer type must be a subtype of consumer type in the Type Poset,
              or unify via compatible abstract categorical carriers.
           5. Consumer qualifiers must be a subset of producer qualifiers.
@@ -322,9 +403,16 @@ class AlgebraicSignature:
             return False
 
         # State compatibility check
-        if self.state != "any" and other_sig.state != "any":
-            if self.state.lower() != other_sig.state.lower():
-                return False
+        registry = TypeRegistry.get_instance()
+        if not registry.is_state_compatible(
+            producer_state=self.state,
+            consumer_state=other_sig.state,
+            producer_accepted=self.accepted_states,
+            consumer_accepted=other_sig.accepted_states,
+            consumer_parent=other_sig.parent_state,
+            producer_parent=self.parent_state,
+        ):
+            return False
 
         # Consumer accepts anything
         if other_sig.is_top():
@@ -366,7 +454,8 @@ class PortSignature:
     """Named port carrying an AlgebraicSignature typestate."""
     __slots__ = [
         "name", "signature", "required", "default_value", "doc", "domain",
-        "abstract_type", "enum_values", "param_kind", "value_constraints", "shape_contract"
+        "abstract_type", "enum_values", "param_kind", "value_constraints", "shape_contract",
+        "accepted_states", "parent_state"
     ]
 
     def __init__(
@@ -382,6 +471,8 @@ class PortSignature:
         param_kind: str = "standard",
         value_constraints: Optional[Dict[str, Any]] = None,
         shape_contract: Optional[Dict[str, Any]] = None,
+        accepted_states: Optional[Union[List[str], Set[str], FrozenSet[str]]] = None,
+        parent_state: Optional[str] = None,
         **kwargs
     ):
         self.name = str(name)
@@ -392,20 +483,45 @@ class PortSignature:
         self.value_constraints = value_constraints if value_constraints is not None else kwargs.get("value_constraints")
         self.shape_contract = shape_contract if shape_contract is not None else kwargs.get("shape_contract")
 
+        acc = accepted_states if accepted_states is not None else kwargs.get("accepted_states", [])
+        if isinstance(acc, (set, frozenset, list, tuple)):
+            self.accepted_states = frozenset(str(s).strip().lower() for s in acc if str(s).strip())
+        else:
+            self.accepted_states = frozenset()
+
+        raw_parent = parent_state or kwargs.get("parent_state")
+        self.parent_state = str(raw_parent).strip().lower() if raw_parent else None
+
         if isinstance(signature, AlgebraicSignature):
-            if self.abstract_type and not signature.abstract_type:
+            acc_combined = self.accepted_states or signature.accepted_states
+            p_combined = self.parent_state or signature.parent_state
+            if (self.abstract_type and not signature.abstract_type) or (acc_combined != signature.accepted_states) or (p_combined != signature.parent_state):
                 self.signature = AlgebraicSignature(
                     type_name=signature.type_name,
                     state=signature.state,
                     qualifiers=signature.qualifiers,
-                    abstract_type=self.abstract_type
+                    abstract_type=self.abstract_type or signature.abstract_type,
+                    accepted_states=acc_combined,
+                    parent_state=p_combined
                 )
             else:
                 self.signature = signature
-                if signature.abstract_type:
-                    self.abstract_type = signature.abstract_type
+            if signature.abstract_type:
+                self.abstract_type = signature.abstract_type
+            if signature.accepted_states and not self.accepted_states:
+                self.accepted_states = signature.accepted_states
+            if signature.parent_state and not self.parent_state:
+                self.parent_state = signature.parent_state
         elif hasattr(signature, "signature") and isinstance(signature.signature, AlgebraicSignature):
-            self.signature = signature.signature
+            sig = signature.signature
+            self.signature = AlgebraicSignature(
+                type_name=sig.type_name,
+                state=sig.state,
+                qualifiers=sig.qualifiers,
+                abstract_type=self.abstract_type or sig.abstract_type,
+                accepted_states=self.accepted_states or sig.accepted_states,
+                parent_state=self.parent_state or sig.parent_state
+            )
             if self.signature.abstract_type:
                 self.abstract_type = self.signature.abstract_type
         elif isinstance(signature, str):
@@ -414,23 +530,34 @@ class PortSignature:
                 self.signature = AlgebraicSignature(
                     type_name=signature,
                     state=kwargs.get("state", "any"),
-                    abstract_type=self.abstract_type
+                    abstract_type=self.abstract_type,
+                    accepted_states=self.accepted_states,
+                    parent_state=self.parent_state
                 )
             elif signature != "any":
                 self.name = kwargs.get("name", f"port_{name}")
                 self.signature = AlgebraicSignature(
                     type_name=name,
                     state=signature,
-                    abstract_type=self.abstract_type
+                    abstract_type=self.abstract_type,
+                    accepted_states=self.accepted_states,
+                    parent_state=self.parent_state
                 )
             else:
                 self.signature = AlgebraicSignature(
                     type_name=name if name else "any",
                     state="any",
-                    abstract_type=self.abstract_type
+                    abstract_type=self.abstract_type,
+                    accepted_states=self.accepted_states,
+                    parent_state=self.parent_state
                 )
         else:
-            self.signature = AlgebraicSignature("any", "any", abstract_type=self.abstract_type)
+            self.signature = AlgebraicSignature(
+                "any", "any",
+                abstract_type=self.abstract_type,
+                accepted_states=self.accepted_states,
+                parent_state=self.parent_state
+            )
 
         self.required = bool(required)
         self.default_value = default_value
@@ -460,7 +587,8 @@ class PortSignature:
 
     def __repr__(self) -> str:
         abs_info = f", abs={self.abstract_type}" if self.abstract_type else ""
-        return f"Port({self.name}: {self.signature.type_name}[{self.signature.state}]{abs_info}, req={self.required})"
+        acc_info = f", acc={list(self.accepted_states)}" if self.accepted_states else ""
+        return f"Port({self.name}: {self.signature.type_name}[{self.signature.state}]{abs_info}{acc_info}, req={self.required})"
 
 
 class Cell(ABC):
@@ -478,6 +606,7 @@ class Cell(ABC):
         "topology_type", "feedback_state_type", "bound_slots",
         "replica_of", "replica_role",
         "mutation_type", "is_context_manager", "raises", "type_vars",
+        "preconditions", "postconditions", "effects", "edges",
         "_primary_input", "_primary_output", "_token_set", "_token_count",
         "_identity_tokens"
     ]
@@ -513,6 +642,10 @@ class Cell(ABC):
         is_context_manager: bool = False,
         raises: Optional[List[str]] = None,
         type_vars: Optional[List[str]] = None,
+        preconditions: Optional[List[Any]] = None,
+        postconditions: Optional[List[Any]] = None,
+        effects: Optional[List[Any]] = None,
+        edges: Optional[List[Any]] = None,
         **kwargs
     ):
         self.cell_id = cell_id
@@ -554,6 +687,14 @@ class Cell(ABC):
         self.feedback_state_type = feedback_state_type
         self.bound_slots = dict(bound_slots) if bound_slots else {}
 
+        self.preconditions = list(preconditions or kwargs.get("preconditions", []))
+        eff = effects if effects is not None else postconditions
+        if eff is None:
+            eff = kwargs.get("effects", kwargs.get("postconditions", []))
+        self.postconditions = list(eff or [])
+        self.effects = self.postconditions
+        self.edges = list(edges or kwargs.get("edges", []))
+
         # For-each multiplicity expansion: a replica is a runtime copy of a
         # planned cell that re-consumes its receiver from the environment and
         # binds the NEXT member of an identifier role group (X, Y, Z). None on
@@ -570,27 +711,33 @@ class Cell(ABC):
             if isinstance(v, PortSignature):
                 self.inputs[k] = v
             elif isinstance(v, AlgebraicSignature):
-                self.inputs[k] = PortSignature(name=k, signature=v)
+                self.inputs[k] = PortSignature(name=k, signature=v, accepted_states=v.accepted_states, parent_state=v.parent_state)
             elif isinstance(v, dict):
                 abs_t = _clean_abs_carrier(v.get("abstract_type"))
+                acc_s = frozenset(str(s).strip().lower() for s in (v.get("accepted_states") or []) if str(s).strip())
+                p_s = str(v.get("parent_state") or "").strip().lower() or None
                 sig = AlgebraicSignature(
                     type_name=v.get("type_name", "any"),
                     state=v.get("state", "any"),
                     qualifiers=frozenset(tuple(q) for q in v.get("qualifiers", [])),
-                    abstract_type=abs_t
+                    abstract_type=abs_t,
+                    accepted_states=acc_s,
+                    parent_state=p_s,
                 )
                 self.inputs[k] = PortSignature(
                     name=k,
                     signature=sig,
                     required=v.get("required", True),
                     default_value=v.get("default_value"),
-                    doc=v.get("doc", ""),
+                    doc=v.get("doc", v.get("description", "")),
                     domain=v.get("domain", ""),
                     abstract_type=abs_t,
                     enum_values=v.get("enum_values"),
                     param_kind=v.get("param_kind", "standard"),
                     value_constraints=v.get("value_constraints"),
-                    shape_contract=v.get("shape_contract")
+                    shape_contract=v.get("shape_contract"),
+                    accepted_states=acc_s,
+                    parent_state=p_s,
                 )
             else:
                 self.inputs[k] = PortSignature(name=k, signature=AlgebraicSignature("any", "any"))
@@ -601,27 +748,33 @@ class Cell(ABC):
             if isinstance(v, PortSignature):
                 self.outputs[k] = v
             elif isinstance(v, AlgebraicSignature):
-                self.outputs[k] = PortSignature(name=k, signature=v)
+                self.outputs[k] = PortSignature(name=k, signature=v, accepted_states=v.accepted_states, parent_state=v.parent_state)
             elif isinstance(v, dict):
                 abs_t = _clean_abs_carrier(v.get("abstract_type"))
+                acc_s = frozenset(str(s).strip().lower() for s in (v.get("accepted_states") or []) if str(s).strip())
+                p_s = str(v.get("parent_state") or "").strip().lower() or None
                 sig = AlgebraicSignature(
                     type_name=v.get("type_name", "any"),
                     state=v.get("state", "any"),
                     qualifiers=frozenset(tuple(q) for q in v.get("qualifiers", [])),
-                    abstract_type=abs_t
+                    abstract_type=abs_t,
+                    accepted_states=acc_s,
+                    parent_state=p_s,
                 )
                 self.outputs[k] = PortSignature(
                     name=k,
                     signature=sig,
                     required=v.get("required", True),
                     default_value=v.get("default_value"),
-                    doc=v.get("doc", ""),
+                    doc=v.get("doc", v.get("description", "")),
                     domain=v.get("domain", ""),
                     abstract_type=abs_t,
                     enum_values=v.get("enum_values"),
                     param_kind=v.get("param_kind", "standard"),
                     value_constraints=v.get("value_constraints"),
-                    shape_contract=v.get("shape_contract")
+                    shape_contract=v.get("shape_contract"),
+                    accepted_states=acc_s,
+                    parent_state=p_s,
                 )
             else:
                 self.outputs[k] = PortSignature(name=k, signature=AlgebraicSignature("any", "any"))
@@ -812,6 +965,7 @@ class LatticeOrchestrator:
         self.db_path = db_path if db_path is not None else os.path.join(trees_directory, "lattice.db")
         self.active_domain = active_domain
         self.loaded_cells: Dict[str, Cell] = {}
+        self.typestate_vocabularies: Dict[str, Any] = {}
         self._adjacency: Dict[str, List[str]] = {}
         self._reverse_adjacency: Dict[str, List[str]] = {}
         self._cells_by_input: Dict[Tuple[str, str], List[Cell]] = {}
@@ -841,6 +995,19 @@ class LatticeOrchestrator:
             else:
                 domain = data.get("domain", "generic")
                 raw_cells = data.get("cells", [])
+                if "typestates" in data and data["typestates"]:
+                    self.typestate_vocabularies[domain] = data["typestates"]
+                    ts_info = data["typestates"]
+                    registry = TypeRegistry.get_instance()
+                    states_list = ts_info.get("states", []) if isinstance(ts_info, dict) else []
+                    for s in states_list:
+                        if isinstance(s, dict):
+                            s_name = s.get("name")
+                            s_parent = s.get("parent_state")
+                            if s_name:
+                                registry.register_state(s_name, s_parent)
+                        elif isinstance(s, str):
+                            registry.register_state(s)
 
             for c_dict in raw_cells:
                 cell = MicroCell(
@@ -864,6 +1031,10 @@ class LatticeOrchestrator:
                     is_context_manager=bool(c_dict.get("is_context_manager", False)),
                     raises=c_dict.get("raises", []),
                     type_vars=c_dict.get("type_vars", []),
+                    preconditions=c_dict.get("preconditions", []),
+                    postconditions=c_dict.get("postconditions", []),
+                    effects=c_dict.get("effects", []),
+                    edges=c_dict.get("edges", []),
                 )
                 self.loaded_cells[cell.cell_id] = cell
             logger.info(f"[LATTICE] Loaded {len(raw_cells)} nodes from tree: {json_path} (domain: {domain})")
@@ -955,13 +1126,17 @@ class LatticeOrchestrator:
                             for p_name, p_val in cfg.get("inputs", {}).items():
                                 if isinstance(p_val, dict):
                                     abs_t = _clean_abs_carrier(p_val.get("abstract_type"))
+                                    acc_s = frozenset(str(s).strip().lower() for s in (p_val.get("accepted_states") or []) if str(s).strip())
+                                    p_s = str(p_val.get("parent_state") or "").strip().lower() or None
                                     inputs[p_name] = PortSignature(
                                         name=p_name,
                                         signature=AlgebraicSignature(
                                             type_name=str(p_val.get("type_name", in_type or "any")),
                                             state=str(p_val.get("state", in_state or "any")),
                                             qualifiers=frozenset(tuple(q) for q in p_val.get("qualifiers", [])),
-                                            abstract_type=abs_t
+                                            abstract_type=abs_t,
+                                            accepted_states=acc_s,
+                                            parent_state=p_s,
                                         ),
                                         required=p_val.get("required", True),
                                         default_value=p_val.get("default_value"),
@@ -970,18 +1145,24 @@ class LatticeOrchestrator:
                                         enum_values=p_val.get("enum_values"),
                                         param_kind=p_val.get("param_kind", "standard"),
                                         value_constraints=p_val.get("value_constraints"),
-                                        shape_contract=p_val.get("shape_contract")
+                                        shape_contract=p_val.get("shape_contract"),
+                                        accepted_states=acc_s,
+                                        parent_state=p_s,
                                     )
                             for p_name, p_val in cfg.get("outputs", {}).items():
                                 if isinstance(p_val, dict):
                                     abs_t = _clean_abs_carrier(p_val.get("abstract_type"))
+                                    acc_s = frozenset(str(s).strip().lower() for s in (p_val.get("accepted_states") or []) if str(s).strip())
+                                    p_s = str(p_val.get("parent_state") or "").strip().lower() or None
                                     outputs[p_name] = PortSignature(
                                         name=p_name,
                                         signature=AlgebraicSignature(
                                             type_name=str(p_val.get("type_name", out_type or "any")),
                                             state=str(p_val.get("state", out_state or "any")),
                                             qualifiers=frozenset(tuple(q) for q in p_val.get("qualifiers", [])),
-                                            abstract_type=abs_t
+                                            abstract_type=abs_t,
+                                            accepted_states=acc_s,
+                                            parent_state=p_s,
                                         ),
                                         required=p_val.get("required", True),
                                         default_value=p_val.get("default_value"),
@@ -990,7 +1171,9 @@ class LatticeOrchestrator:
                                         enum_values=p_val.get("enum_values"),
                                         param_kind=p_val.get("param_kind", "standard"),
                                         value_constraints=p_val.get("value_constraints"),
-                                        shape_contract=p_val.get("shape_contract")
+                                        shape_contract=p_val.get("shape_contract"),
+                                        accepted_states=acc_s,
+                                        parent_state=p_s,
                                     )
 
                         if not inputs:
@@ -1030,7 +1213,11 @@ class LatticeOrchestrator:
                             mutation_type=cfg.get("mutation_type", "pure"),
                             is_context_manager=cfg.get("is_context_manager", False),
                             raises=cfg.get("raises", []),
-                            type_vars=cfg.get("type_vars", [])
+                            type_vars=cfg.get("type_vars", []),
+                            preconditions=cfg.get("preconditions", []),
+                            postconditions=cfg.get("postconditions", []),
+                            effects=cfg.get("effects", []),
+                            edges=cfg.get("edges", [])
                         )
                         self.loaded_cells[cell.cell_id] = cell
 

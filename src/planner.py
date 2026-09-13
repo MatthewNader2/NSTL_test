@@ -730,8 +730,8 @@ class LatticePlanner:
             if goal_sig is not None:
                 g_sig = goal_sig.signature if hasattr(goal_sig, "signature") else goal_sig
                 matching_goals = [
-                    (p, s, sc) for p, s, sc in valid_candidates
-                    if unify(p[-1].primary_output.signature, g_sig) is not None
+                    item for item in valid_candidates
+                    if unify(item[0][-1].primary_output.signature, g_sig) is not None
                 ]
                 if matching_goals:
                     valid_candidates = matching_goals
