@@ -12,6 +12,7 @@ from __future__ import annotations
 import functools
 import json
 import os
+import re
 import sqlite3
 import sys
 import threading
@@ -473,7 +474,7 @@ class PortSignature:
     __slots__ = [
         "name", "signature", "required", "default_value", "doc", "domain",
         "abstract_type", "enum_values", "param_kind", "value_constraints", "shape_contract",
-        "accepted_states", "parent_state"
+        "accepted_states", "parent_state", "port_role"
     ]
 
     def __init__(
@@ -491,6 +492,7 @@ class PortSignature:
         shape_contract: Optional[Dict[str, Any]] = None,
         accepted_states: Optional[Union[List[str], Set[str], FrozenSet[str]]] = None,
         parent_state: Optional[str] = None,
+        port_role: Optional[str] = None,
         **kwargs
     ):
         self.name = str(name)
@@ -500,6 +502,7 @@ class PortSignature:
         self.param_kind = str(param_kind or kwargs.get("param_kind", "standard"))
         self.value_constraints = value_constraints if value_constraints is not None else kwargs.get("value_constraints")
         self.shape_contract = shape_contract if shape_contract is not None else kwargs.get("shape_contract")
+        self.port_role = str(port_role).strip().lower() if port_role else (str(kwargs.get("port_role")).strip().lower() if kwargs.get("port_role") else None)
 
         acc = accepted_states if accepted_states is not None else kwargs.get("accepted_states", [])
         if isinstance(acc, (set, frozenset, list, tuple)):
@@ -593,6 +596,54 @@ class PortSignature:
     def description(self) -> str:
         return self.doc or ""
 
+    @property
+    def derived_role(self) -> str:
+        if self.port_role:
+            return self.port_role
+
+        name_lower = self.name.lower()
+        state_lower = str(getattr(self.signature, "state", "")).lower()
+        desc_lower = (self.doc or "").lower()
+        qualifiers = {q[0].lower() for q in getattr(self.signature, "qualifiers", []) if q}
+
+        # Check for feature input
+        if (
+            "feature" in state_lower
+            or "feature" in name_lower
+            or "matrix" in qualifiers
+            or (self.name in ("X", "x") or self.name.startswith(("X_", "x_")))
+            or "matrix" in desc_lower
+        ):
+            return "feature_input"
+
+        # Check for target input
+        if (
+            "target" in state_lower
+            or "label" in state_lower
+            or "target" in name_lower
+            or "label" in name_lower
+            or "vector" in qualifiers
+            or (self.name == "y" or self.name.startswith("y_"))
+            or "vector" in desc_lower
+        ):
+            return "target_input"
+
+        # Check for model / estimator input
+        if (
+            "model" in name_lower
+            or "estimator" in name_lower
+            or "model" in state_lower
+            or "estimator" in state_lower
+        ):
+            return "model_input"
+
+        # Check for tabular data input
+        t_name = self.type_name.lower()
+        if t_name in ("dataframe", "table", "dataset") or "dataframe" in state_lower:
+            return "data_input"
+
+        return "standard"
+
     def is_top(self) -> bool:
         return self.signature.is_top()
 
@@ -673,7 +724,10 @@ class Cell(ABC):
         self.domain_name = domain_name
         self.node_type = node_type
         self.node_role = str(node_role).lower() if node_role else "function"
-        self.slots = slots or {}
+        if isinstance(slots, (list, set, tuple)):
+            self.slots = {s: {} for s in slots}
+        else:
+            self.slots = slots or {}
         self.dependencies = dependencies or []
         self.code_template = code_template
         self.metadata_tags = metadata_tags or {}
@@ -723,6 +777,28 @@ class Cell(ABC):
         self._primary_input = None
         self._primary_output = None
 
+        # Extract declared slot names from slots or code_template to resolve generic 'port_X' keys
+        slot_names_list = []
+        if isinstance(slots, (list, tuple, set)):
+            slot_names_list = list(slots)
+        elif isinstance(slots, dict):
+            slot_names_list = list(slots.keys())
+
+        m_assign = re.match(r'^\s*(\{.+?\})\s*=\s*(.+)$', code_template)
+        if m_assign:
+            lhs_matches = re.findall(r'\{([a-zA-Z0-9_]+)\}', m_assign.group(1))
+            lhs_outs = set(lhs_matches)
+        else:
+            lhs_matches = []
+            lhs_outs = set()
+        lhs_outs.add("output_var")
+        in_slots_derived = [s for s in slot_names_list if s not in lhs_outs]
+        if not in_slots_derived and code_template:
+            rhs = m_assign.group(2) if m_assign else code_template
+            rhs_matches = re.findall(r'\{([a-zA-Z0-9_]+)\}', rhs)
+            seen_m = set()
+            in_slots_derived = [m for m in rhs_matches if not (m in seen_m or seen_m.add(m))]
+
         # Normalize inputs into Dict[str, PortSignature]
         if isinstance(inputs, list):
             inputs_dict = {}
@@ -738,10 +814,19 @@ class Cell(ABC):
 
         self.inputs: Dict[str, PortSignature] = {}
         for k, v in (inputs or {}).items():
+            orig_k = k
+            if k.startswith("port_"):
+                try:
+                    p_idx = int(k.split("_")[1])
+                    if p_idx < len(in_slots_derived):
+                        k = in_slots_derived[p_idx]
+                except (ValueError, IndexError):
+                    pass
+
             if isinstance(v, PortSignature):
-                self.inputs[k] = v
+                port_sig = v
             elif isinstance(v, AlgebraicSignature):
-                self.inputs[k] = PortSignature(name=k, signature=v, accepted_states=v.accepted_states, parent_state=v.parent_state)
+                port_sig = PortSignature(name=k, signature=v, accepted_states=v.accepted_states, parent_state=v.parent_state)
             elif isinstance(v, dict):
                 abs_t = _clean_abs_carrier(v.get("abstract_type"))
                 acc_s = frozenset(str(s).strip().lower() for s in (v.get("accepted_states") or []) if str(s).strip())
@@ -754,7 +839,7 @@ class Cell(ABC):
                     accepted_states=acc_s,
                     parent_state=p_s,
                 )
-                self.inputs[k] = PortSignature(
+                port_sig = PortSignature(
                     name=k,
                     signature=sig,
                     required=v.get("required", True),
@@ -768,9 +853,13 @@ class Cell(ABC):
                     shape_contract=v.get("shape_contract"),
                     accepted_states=acc_s,
                     parent_state=p_s,
+                    port_role=v.get("port_role"),
                 )
             else:
-                self.inputs[k] = PortSignature(name=k, signature=AlgebraicSignature("any", "any"))
+                port_sig = PortSignature(name=k, signature=AlgebraicSignature("any", "any"))
+
+            port_sig.name = k
+            self.inputs[k] = port_sig
 
         # Normalize outputs into Dict[str, PortSignature]
         if isinstance(outputs, list):
@@ -787,7 +876,18 @@ class Cell(ABC):
 
         self.outputs: Dict[str, PortSignature] = {}
         for k, v in (outputs or {}).items():
+            if k.startswith("port_"):
+                try:
+                    p_idx = int(k.split("_")[1])
+                    if p_idx < len(lhs_matches):
+                        k = lhs_matches[p_idx]
+                    elif len(lhs_matches) == 1:
+                        k = lhs_matches[0]
+                except (ValueError, IndexError):
+                    pass
+
             if isinstance(v, PortSignature):
+                v.name = k
                 self.outputs[k] = v
             elif isinstance(v, AlgebraicSignature):
                 self.outputs[k] = PortSignature(name=k, signature=v, accepted_states=v.accepted_states, parent_state=v.parent_state)
@@ -817,6 +917,7 @@ class Cell(ABC):
                     shape_contract=v.get("shape_contract"),
                     accepted_states=acc_s,
                     parent_state=p_s,
+                    port_role=v.get("port_role"),
                 )
             else:
                 self.outputs[k] = PortSignature(name=k, signature=AlgebraicSignature("any", "any"))
@@ -1219,6 +1320,7 @@ class LatticeOrchestrator:
                                         shape_contract=p_val.get("shape_contract"),
                                         accepted_states=acc_s,
                                         parent_state=p_s,
+                                        port_role=p_val.get("port_role"),
                                     )
                             for p_name, p_val in cfg.get("outputs", {}).items():
                                 if isinstance(p_val, dict):
@@ -1245,11 +1347,12 @@ class LatticeOrchestrator:
                                         shape_contract=p_val.get("shape_contract"),
                                         accepted_states=acc_s,
                                         parent_state=p_s,
+                                        port_role=p_val.get("port_role"),
                                     )
 
-                        if not inputs:
+                        if not inputs and (not isinstance(cfg, dict) or "inputs" not in cfg):
                             inputs = {"input_data": PortSignature("input_data", in_sig)}
-                        if not outputs:
+                        if not outputs and (not isinstance(cfg, dict) or "outputs" not in cfg):
                             outputs = {"output_data": PortSignature("output_data", out_sig)}
 
                         is_macro = (

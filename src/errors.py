@@ -72,6 +72,11 @@ class ArtifactMaterializationError(ExecutionError):
     pass
 
 
+class PostconditionVerificationError(ExecutionError):
+    """Pipeline postcondition check failed: runtime state or artifact does not match intent."""
+    pass
+
+
 # === Model Errors ===
 class ModelError(NSTLError):
     """Model loading or inference failed."""

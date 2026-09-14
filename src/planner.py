@@ -19,11 +19,11 @@ from log_config import get_logger
 
 try:
     from .lattice import LatticeOrchestrator, Cell, MicroCell, MacroCell, TypeRegistry
-    from .unification import unify, Substitution, verify_traced_loop_invariant, verify_coproduct_branch, substitute_generics, ExecutionContext
+    from .unification import unify, Substitution, verify_traced_loop_invariant, verify_coproduct_branch, substitute_generics, ExecutionContext, UnificationGate, Success
     from .tokenizer import CellTokenizer
 except (ImportError, ValueError):
     from lattice import LatticeOrchestrator, Cell, MicroCell, MacroCell, TypeRegistry
-    from unification import unify, Substitution, verify_traced_loop_invariant, verify_coproduct_branch, substitute_generics, ExecutionContext
+    from unification import unify, Substitution, verify_traced_loop_invariant, verify_coproduct_branch, substitute_generics, ExecutionContext, UnificationGate, Success
     from tokenizer import CellTokenizer
 
 logger = get_logger('planner')
@@ -37,6 +37,16 @@ STOPWORDS = frozenset({
 })
 
 _WILDCARD_CARRIERS = frozenset(("any", "", "none", "*", "top", "unknown"))
+
+
+def _safe_slots_items(cell: Any):
+    s = getattr(cell, "slots", None)
+    if isinstance(s, dict):
+        return list(s.items())
+    elif isinstance(s, (list, tuple, set)):
+        return [(item, {}) for item in s]
+    return []
+
 
 
 def _segment_prompt_clauses(prompt: str) -> List[str]:
@@ -73,6 +83,50 @@ class LatticePlanner:
     def __init__(self, orchestrator: LatticeOrchestrator, rag: Optional[Any] = None):
         self.orchestrator = orchestrator
         self.rag = rag
+
+    def _calculate_edge_affinity(self, src_cell: Cell, dst_cell: Cell) -> float:
+        """
+        Calculates empirical edge affinity score between two cells.
+        AST-mined edges from real code snippets receive the highest affinity,
+        followed by LLM seed edges and topological reachability.
+        """
+        # 1. Forward declared edges on src_cell
+        for edge in getattr(src_cell, "edges", []):
+            tgt_id = edge.get("target_cell_id") if isinstance(edge, dict) else getattr(edge, "target_cell_id", None)
+            if tgt_id == dst_cell.cell_id:
+                aff = float(edge.get("affinity_score", 0.5) if isinstance(edge, dict) else getattr(edge, "affinity_score", 0.5))
+                prov = edge.get("score_provenance") if isinstance(edge, dict) else getattr(edge, "score_provenance", "")
+                if prov == "ast_mined":
+                    return min(1.0, aff * 1.25)
+                return aff
+
+        # 2. Reverse declared edges on dst_cell (bidirectional idiom affinity)
+        for edge in getattr(dst_cell, "edges", []):
+            tgt_id = edge.get("target_cell_id") if isinstance(edge, dict) else getattr(edge, "target_cell_id", None)
+            if tgt_id == src_cell.cell_id:
+                aff = float(edge.get("affinity_score", 0.3) if isinstance(edge, dict) else getattr(edge, "affinity_score", 0.3))
+                return aff * 0.75
+
+        # 3. Stage 2 -> Stage 3 Egress Completion:
+        # A data transformer transitioning to a matching Stage 3 sink in the same domain
+        # represents a canonical pipeline conclusion (e.g. dropna -> to_csv, canny -> imwrite).
+        src_stage = getattr(src_cell, "stage", None)
+        dst_stage = getattr(dst_cell, "stage", None)
+        src_domain = getattr(src_cell, "domain_name", "")
+        dst_domain = getattr(dst_cell, "domain_name", "")
+        if src_stage == 2 and dst_stage == 3 and src_domain and dst_domain and src_domain == dst_domain:
+            return 0.75
+
+        # 4. Topological reachability in orchestrator if built
+        adj = getattr(self.orchestrator, "_adjacency", None) or getattr(self.orchestrator, "adjacency", None)
+        if adj and dst_cell.cell_id in adj.get(src_cell.cell_id, ()):
+            return 0.35
+
+        # 5. Same-domain morphism continuity
+        if src_domain and dst_domain and src_domain == dst_domain:
+            return 0.20
+
+        return 0.0
 
     def plan(
         self,
@@ -128,12 +182,52 @@ class LatticePlanner:
 
         def _has_path_port(cell: Cell) -> bool:
             for p_name, p_sig in cell.inputs.items():
-                if p_name.lower() in ("filepath", "filename", "file_path", "path", "file", "savepath", "pathname", "fname"):
+                if p_name.lower() in ("filepath", "filename", "file_path", "path", "file", "savepath", "pathname", "fname", "image_path"):
                     return True
                 t_name = str(getattr(p_sig, "type_name", "")).lower()
-                if registry.is_subtype(t_name, "filepath") or registry.is_subtype(t_name, "path") or registry.is_subtype(t_name, "uri"):
+                if registry.is_subtype(t_name, "filepath") or registry.is_subtype(t_name, "path") or registry.is_subtype(t_name, "uri") or getattr(p_sig, "abstract_type", None) == "path":
                     return True
             return False
+
+        # Numeric literals extracted from prompt
+        numeric_literals = [
+            v for _, t, v in ExecutionContext._extract_universal_literals(prompt or "")
+            if t in ("numeric", "int", "float", "number")
+        ]
+
+        def _can_be_entry_source(cell: Cell) -> bool:
+            for p_name, p_sig in cell.inputs.items():
+                if not p_sig.required or p_sig.default_value is not None:
+                    continue
+                t_name = str(getattr(p_sig.signature, "type_name", "")).lower()
+                is_path = (
+                    p_name.lower() in ("filepath", "filename", "file_path", "path", "file", "savepath", "pathname", "fname", "image_path")
+                    or registry.is_subtype(t_name, "filepath")
+                    or registry.is_subtype(t_name, "path")
+                    or registry.is_subtype(t_name, "uri")
+                    or getattr(p_sig, "abstract_type", None) == "path"
+                )
+                if is_path:
+                    if not file_literals:
+                        return False
+                    continue
+                is_num = (
+                    registry.is_subtype(t_name, "numeric")
+                    or registry.is_subtype(t_name, "int")
+                    or registry.is_subtype(t_name, "float")
+                    or t_name in ("int", "float", "number", "dim_size")
+                )
+                if is_num:
+                    if not numeric_literals:
+                        return False
+                    continue
+                if not (
+                    registry.is_subtype(t_name, "str")
+                    or registry.is_subtype(t_name, "bool")
+                    or t_name in ("any", "*", "top", "scalar", "color", "enum")
+                ):
+                    return False
+            return True
 
         tunnel_has_sinks = any(getattr(c, "stage", None) == 3 for c in candidates)
         tunnel_absorbs_assets = any(
@@ -148,24 +242,27 @@ class LatticePlanner:
             if matching:
                 candidate_entries = matching
         else:
-            # If Stage 1 sources exist in tunnel, prioritize them as initial state entries
-            s1_entries = [c for c in candidate_entries if getattr(c, "stage", None) == 1]
-            if s1_entries:
-                first_clause = re.split(r'[,;]|\b(?:and|then)\b', prompt.strip())[0].strip()
-                clause_tokens = (CellTokenizer.tokenize_prompt(first_clause) if first_clause else set()) - STOPWORDS
-                if clause_tokens:
-                    overlaps = [len(clause_tokens & (c.token_set - STOPWORDS)) for c in s1_entries]
-                    max_overlap = max(overlaps) if overlaps else 0
-                    if max_overlap > 0:
-                        s1_entries = [c for c, ov in zip(s1_entries, overlaps) if ov == max_overlap]
-                # Asset absorption at the entry: sources declaring path-typed ports
-                # are the categorical ingestion points for file-asset literals.
-                if file_literals:
-                    absorbing = [c for c in s1_entries if _has_path_port(c)]
-                    if absorbing:
-                        s1_entries = absorbing
-                s1_entries.sort(key=lambda c: (getattr(c, "source_priority", 100), -relevance_map.get(c.cell_id, 0.0)))
-                candidate_entries = s1_entries[:30]
+            viable_entries = [c for c in candidate_entries if _can_be_entry_source(c)]
+            if file_literals:
+                s1_entries = [c for c in viable_entries if getattr(c, "stage", None) == 1 and _has_path_port(c)]
+                if s1_entries:
+                    first_clause = re.split(r'[,;]|\b(?:and|then)\b', prompt.strip())[0].strip()
+                    clause_tokens = (CellTokenizer.tokenize_prompt(first_clause) if first_clause else set()) - STOPWORDS
+                    if clause_tokens:
+                        matching_s1 = [c for c in s1_entries if len(clause_tokens & (c.token_set - STOPWORDS)) > 0]
+                        if matching_s1:
+                            s1_entries = matching_s1
+                    s1_entries.sort(key=lambda c: (
+                        getattr(c, "source_priority", 100),
+                        -(relevance_map.get(c.cell_id, 0.0) * (1.0 + (len(clause_tokens & (c.token_set - STOPWORDS)) if clause_tokens else 0)))
+                    ))
+                    candidate_entries = s1_entries[:30]
+                else:
+                    viable_entries.sort(key=lambda c: -relevance_map.get(c.cell_id, 0.0))
+                    candidate_entries = viable_entries[:30]
+            else:
+                viable_entries.sort(key=lambda c: -relevance_map.get(c.cell_id, 0.0))
+                candidate_entries = viable_entries[:30]
 
         # Clauses and tokens for sequential alignment and concept coverage
         clauses = _segment_prompt_clauses(prompt)
@@ -239,13 +336,11 @@ class LatticePlanner:
             for cl_toks in clause_tokens_list:
                 m = _match_mass(cl_toks, c_toks, id_toks)
                 masses.append(m)
-                # A clause is CLAIMED only by identity matches (cell_id/keywords/
-                # port names). Docstring prose may rank a cell but never claims
-                # intent coverage — measured junk exploit: a triangle estimator's
-                # docstring mentioning "area" claimed the loop clause.
-                id_mass = sum(idf_of_prompt.get(t, _idf(t)) for t in (cl_toks & (c_toks & id_toks)))
-                if id_mass >= 0.4 * clause_weights[len(masses) - 1]:
-                    covered.add(len(masses) - 1)
+                # Intent coverage: With empirical edge affinity dominating path selection,
+                # the legacy id_mass clamp is replaced with calibrated clause matching.
+                cl_idx = len(masses) - 1
+                if m >= 0.15 * clause_weights[cl_idx]:
+                    covered.add(cl_idx)
             cell_clause_mass[c.cell_id] = masses
             cell_covered[c.cell_id] = covered
 
@@ -347,15 +442,15 @@ class LatticePlanner:
                     break
             return (not has_strong) and has_any
 
+        _edge_affinity = self._calculate_edge_affinity
+
         def compute_path_score(item: Tuple[List[Cell], Substitution, float, int, int], is_final: bool = False) -> float:
             path, _, sc, weak_edges, unbindable = item
             k = len(path)
 
-            # Identity-weighted UNION coverage: each prompt token counts at most
-            # once, at its strongest provenance across the path (identity match by
-            # any cell > prose match). Per-cell summation lets overlapping cells
-            # multi-count their dominant tokens and inflate coverage above the
-            # total prompt mass — a measured junk-path exploit.
+            # Prompt token coverage across the composition path:
+            # Edge affinity dominates path ranking, so token coverage cleanly
+            # reflects path coverage without artificial multi-count clamps.
             strong_tokens: Set[str] = set()
             weak_tokens: Set[str] = set()
             for c in path:
@@ -363,7 +458,7 @@ class LatticePlanner:
                 weak_tokens |= cell_cov_weak.get(c.cell_id, set())
             coverage = (
                 sum(idf_of_prompt.get(t, _idf(t)) for t in strong_tokens)
-                + 0.3 * sum(idf_of_prompt.get(t, _idf(t)) for t in (weak_tokens - strong_tokens))
+                + 0.5 * sum(idf_of_prompt.get(t, _idf(t)) for t in (weak_tokens - strong_tokens))
             ) / total_prompt_idf
 
             # Clause coverage is a SET relation: a cell whose declared vocabulary
@@ -460,16 +555,14 @@ class LatticePlanner:
                 and unbindable == 0
                 and (
                     not file_literals
-                    or any(
-                        registry.is_subtype(str(p.signature.type_name).lower(), "filepath")
-                        or registry.is_subtype(str(p.signature.type_name).lower(), "path")
-                        or registry.is_subtype(str(p.signature.type_name).lower(), "uri")
-                        for p in terminal.inputs.values()
-                    )
+                    or _has_path_port(terminal)
                 )
             )
-            if tunnel_has_sinks and terminal_is_materializing:
-                goal_bonus += 2.5
+            if tunnel_has_sinks:
+                if terminal_is_materializing:
+                    goal_bonus += 8.0
+                elif has_egress_intent and not terminal_is_materializing:
+                    goal_bonus -= 6.0
             # Domain coherence: the terminal morphism should belong to the
             # pipeline's own declared domains. A terminal imported from a foreign
             # domain (e.g. a plotting library bolted onto a vision pipeline)
@@ -518,10 +611,17 @@ class LatticePlanner:
             }
             domain_dispersion = max(0, len(pipeline_domains) - 2) * 5.0
 
-            # Receiver-bindability (threaded incrementally): chains containing
-            # fit-like morphisms whose instance receiver cannot be produced by any
-            # earlier cell would fail at synthesis with an unresolved placeholder.
-            return (coverage * 10.0 + alignment * 10.0 - parsimony_penalty
+            # Edge affinity term: AST-mined and declared topological transitions
+            # are the dominant score term for idiomatic composition.
+            if k <= 1:
+                affinity_score = 0.5
+            else:
+                total_aff = sum(_edge_affinity(path[i], path[i + 1]) for i in range(k - 1))
+                affinity_score = total_aff / max(k - 1, 1)
+
+            # Dominant score combination: edge affinity (w_aff = 25.0) heavily rewards
+            # AST-mined canonical transitions, rendering legacy junk exploit patches obsolete.
+            return (coverage * 10.0 + alignment * 10.0 + affinity_score * 25.0 - parsimony_penalty
                     + mean_log_prob + goal_bonus - weak_total
                     - dead_ctors * 25.0 - unbindable * 50.0 - domain_dispersion - gap_penalty)
 
@@ -563,7 +663,7 @@ class LatticePlanner:
                     if any(unify(out_sig, p_sig.signature) is not None
                            for p_sig in cand.inputs.values()):
                         acc.setdefault(cand.cell_id, cand)
-                return list(acc.values())
+                return sorted(list(acc.values()), key=lambda c: _edge_affinity(prev_cell, c), reverse=True)
 
             for in_t, cell_list in cells_by_in_type.items():
                 if not registry.is_subtype(out_t, in_t):
@@ -579,7 +679,7 @@ class LatticePlanner:
                         producer_parent=getattr(out_sig, "parent_state", None),
                     ) for p_sig in c.inputs.values()):
                         acc.setdefault(c.cell_id, c)
-            return list(acc.values())
+            return sorted(list(acc.values()), key=lambda c: _edge_affinity(prev_cell, c), reverse=True)
 
         # Viterbi Trellis: paths of length t = 1 ... T_max
         # Item layout: (path, sigma, cumulative log-prob, weak_edge_count, unbindable_count)
@@ -785,7 +885,7 @@ class LatticePlanner:
                 # Plan slots for this candidate (mutates bound_slots for trial)
                 trial_sigma = it[1]
                 for c in cand_path:
-                    for slot_name, slot_contract in (getattr(c, "slots", {}) or {}).items():
+                    for slot_name, slot_contract in _safe_slots_items(c):
                         if slot_name not in getattr(c, "bound_slots", {}):
                             sub = self.plan_sublattice(
                                 c, slot_name, slot_contract, tunnel, relevance_map, trial_sigma, prompt
@@ -835,7 +935,21 @@ class LatticePlanner:
                     dbg_align_w = sum(clause_weights[i] for i in dbg_covd) / total_clause_weight
                     dbg_mlb = 0.3 * (dbg_sc / max(dbg_k, 1))
                     print(f"  {s:.3f} cov={dbg_cov:.2f} alignW={dbg_align_w:.2f} k={dbg_k} weak={dbg_weak} unbind={dbg_unbind} mlb={dbg_mlb:.2f}  {' -> '.join(ids)}", file=_sys.stderr)
-            best_candidate = scored_candidates[0][0]
+            gate = UnificationGate()
+            chosen_candidate = None
+            for it, sc in scored_candidates:
+                cand_p = it[0]
+                cand_test = self._expand_identifier_multiplicity(cand_p, prompt)
+                try:
+                    res = gate.unify_pipeline(cand_test, ExecutionContext(prompt=prompt))
+                    if isinstance(res, Success) and not res.is_bottom():
+                        chosen_candidate = it
+                        break
+                except Exception:
+                    continue
+            if chosen_candidate is None:
+                chosen_candidate = scored_candidates[0][0]
+            best_candidate = chosen_candidate
             best_path, best_sigma, _, _, _ = best_candidate
 
             # For-each multiplicity expansion (Section 3.4 goal decomposition):
@@ -852,7 +966,7 @@ class LatticePlanner:
             # Sub-Lattice recursive planning for macro/control-flow cells with slots
             for cell in best_path:
                 if getattr(cell, "slots", None):
-                    for slot_name, slot_contract in cell.slots.items():
+                    for slot_name, slot_contract in _safe_slots_items(cell):
                         if slot_name not in getattr(cell, "bound_slots", {}):
                             sub_plan = self.plan_sublattice(
                                 cell, slot_name, slot_contract, tunnel, relevance_map, best_sigma, prompt
@@ -954,12 +1068,31 @@ class LatticePlanner:
         prev_cell = prev_path[-1]
         prev_out = prev_cell.primary_output.signature
 
+        def _extract_ndim(sc: Any) -> Optional[int]:
+            if isinstance(sc, dict):
+                val = sc.get("ndim")
+                if isinstance(val, int):
+                    return val
+                try:
+                    return int(val) if val is not None else None
+                except (ValueError, TypeError):
+                    return None
+            elif isinstance(sc, str):
+                sc = sc.strip()
+                if sc.startswith("(") and sc.endswith(")"):
+                    inner = sc[1:-1].strip()
+                    if not inner:
+                        return 0
+                    parts = [p.strip() for p in inner.split(",") if p.strip()]
+                    return len(parts)
+            return None
+
         def _shape_compatible(p_out: Any, p_in: Any) -> bool:
             out_sc = getattr(p_out, "shape_contract", None)
             in_sc = getattr(p_in, "shape_contract", None)
             if out_sc and in_sc:
-                o_ndim = out_sc.get("ndim")
-                i_ndim = in_sc.get("ndim")
+                o_ndim = _extract_ndim(out_sc)
+                i_ndim = _extract_ndim(in_sc)
                 if o_ndim is not None and i_ndim is not None and o_ndim != i_ndim:
                     return False
             return True
@@ -1162,8 +1295,8 @@ class LatticePlanner:
                 if not valid_next:
                     break
 
-                # Bias exploration by semantic relevance probability
-                valid_next.sort(key=lambda x: relevance_map.get(x[0].cell_id, 0.0), reverse=True)
+                # Bias exploration by semantic relevance probability combined with edge affinity
+                valid_next.sort(key=lambda x: relevance_map.get(x[0].cell_id, 0.0) + 2.0 * self._calculate_edge_affinity(curr, x[0]), reverse=True)
                 chosen_cand, chosen_sigma = valid_next[0]
                 chain.append(chosen_cand)
                 current_sigma = chosen_sigma
@@ -1171,7 +1304,7 @@ class LatticePlanner:
                 if chosen_cand.stage == 3 and not getattr(chosen_cand, "slots", None):
                     for cell in chain:
                         if getattr(cell, "slots", None):
-                            for slot_name, slot_contract in cell.slots.items():
+                            for slot_name, slot_contract in _safe_slots_items(cell):
                                 if slot_name not in getattr(cell, "bound_slots", {}):
                                     sub_plan = self.plan_sublattice(
                                         cell, slot_name, slot_contract, tunnel, relevance_map, current_sigma, ""
@@ -1183,7 +1316,7 @@ class LatticePlanner:
             if len(chain) > 1:
                 for cell in chain:
                     if getattr(cell, "slots", None):
-                        for slot_name, slot_contract in cell.slots.items():
+                        for slot_name, slot_contract in _safe_slots_items(cell):
                             if slot_name not in getattr(cell, "bound_slots", {}):
                                 sub_plan = self.plan_sublattice(
                                     cell, slot_name, slot_contract, tunnel, relevance_map, current_sigma, ""

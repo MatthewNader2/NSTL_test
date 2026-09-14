@@ -1362,10 +1362,10 @@
   "cells": [
     {
       "cell_id": "sklearn.model_selection.train_test_split",
-      "stage": 1,
+      "stage": 2,
       "topology_type": "branching",
       "node_type": "function",
-      "node_role": "source",
+      "node_role": "transformer",
       "mutation_type": "pure",
       "is_context_manager": false,
       "verified": true,
@@ -7907,10 +7907,10 @@
     },
     {
       "cell_id": "sklearn.model_selection.KFold.split",
-      "stage": 1,
+      "stage": 2,
       "topology_type": "branching",
       "node_type": "method",
-      "node_role": "source",
+      "node_role": "transformer",
       "mutation_type": "pure",
       "is_context_manager": false,
       "verified": true,
@@ -8064,10 +8064,10 @@
     },
     {
       "cell_id": "sklearn.model_selection.StratifiedKFold.split",
-      "stage": 1,
+      "stage": 2,
       "topology_type": "branching",
       "node_type": "method",
-      "node_role": "source",
+      "node_role": "transformer",
       "mutation_type": "pure",
       "is_context_manager": false,
       "verified": true,

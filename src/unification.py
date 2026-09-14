@@ -1191,15 +1191,47 @@ class ExecutionContext:
         except Exception as e:
             logger.debug(f"[UNIFICATION] Semantic slot projection fallback: {e}")
 
-        # Fallback: if param_name explicitly matches a prompt word, take next token
-        p_name_lower = target_label.lower()
-        words_lower = [w.lower() for w in words]
-        if p_name_lower in words_lower:
-            idx = words_lower.index(p_name_lower)
-            if idx + 1 < len(words):
-                candidate = words[idx + 1]
-                self.consumed_tokens.add(candidate.lower())
-                return candidate
+        # Fallback (symbolic / embedding-free mode):
+        # Scan prompt tokens for param_name triggers (e.g. "by", "on", "index", "column")
+        # or role triggers (e.g. "sort" for "sort_column", "group" for "group_column").
+        raw_tokens = [w.strip(" '\".,;:()[]{}=:") for w in self.prompt.strip().split()]
+        raw_lower = [w.lower() for w in raw_tokens]
+
+        triggers = []
+        if param_name:
+            triggers.append(param_name.lower())
+            if param_name.lower() in ("x", "y", "col", "column", "hue", "feature"):
+                triggers.extend(["by", "of", "column", "feature", "field", "variable", "plot", "chart", "bar"])
+        if role_label:
+            triggers.extend(t.lower() for t in _TOKENIZER.tokenize_identifier(role_label) if len(t) >= 3)
+        if target_label:
+            triggers.append(target_label.lower())
+
+        skip_words = {
+            "by", "on", "with", "of", "for", "in", "to", "the", "a", "an", "and", "then",
+            "ascending", "descending", "true", "false", "load", "read", "save", "write"
+        }
+
+        for tr in triggers:
+            if tr in raw_lower:
+                t_idx = raw_lower.index(tr)
+                for f_idx in range(t_idx + 1, min(t_idx + 6, len(raw_tokens))):
+                    tok = raw_tokens[f_idx]
+                    tl = tok.lower()
+                    if tl in skip_words or tl in self.consumed_tokens or "." in tok or len(tok) < 2:
+                        continue
+                    self.consumed_tokens.add(tl)
+                    return tok
+
+        # Fallback: if words has remaining unconsumed non-file tokens
+        content_candidates = [
+            w for w in words
+            if w.lower() not in self.consumed_tokens and "." not in w and len(w) >= 2 and w.lower() not in skip_words
+        ]
+        if len(content_candidates) == 1:
+            cand = content_candidates[0]
+            self.consumed_tokens.add(cand.lower())
+            return cand
 
         return None
 
@@ -1358,9 +1390,19 @@ class ExecutionContext:
 
         # 3. Vector Polarity Projection for Boolean / Valuation Ports
         if is_bool and self.prompt:
-            qualifier_map = dict(getattr(port_sig.signature, "qualifiers", []))
+            raw_quals = getattr(port_sig.signature, "qualifiers", [])
+            qualifier_map = {}
+            for q in (raw_quals or ()):
+                if isinstance(q, (tuple, list)) and len(q) == 2:
+                    qualifier_map[q[0]] = q[1]
+                elif isinstance(q, str):
+                    qualifier_map[q] = q
             pos_label = qualifier_map.get("positive", port_sig.name)
             neg_label = qualifier_map.get("negative", f"not {port_sig.name}")
+            if p_name == "ascending" and "negative" not in qualifier_map:
+                neg_label = "descending"
+            elif p_name == "descending" and "negative" not in qualifier_map:
+                neg_label = "ascending"
 
             try:
                 try:
@@ -1464,9 +1506,9 @@ class ExecutionContext:
 
         # 6. Stage 2 Morphism: Operational Parameter Extraction
         if (cell_stage == 2 or cell_stage is None) and is_str:
-            # A. Check for unconsumed quoted string argument or file asset in prompt
+            # A. Check for unconsumed quoted string argument in prompt (excluding file assets)
             for idx, (_, kind, val) in enumerate(self.ordered_literals):
-                if idx not in self.used_indices and kind in ("quoted_str", "file_asset"):
+                if idx not in self.used_indices and kind == "quoted_str":
                     self.used_indices.add(idx)
                     return json.dumps(val)
 
@@ -1531,6 +1573,41 @@ class ExecutionContext:
 # 5. Type-Monadic Unification Gate
 # =====================================================================
 
+@dataclass
+class VerificationContract:
+    """
+    Structured task verification contract generated during AST synthesis.
+    Encapsulates Phase-1 postconditions and terminal node intent checks for GEVR sandbox execution.
+    """
+    cell_checks: List[Dict[str, Any]] = field(default_factory=list)
+    terminal_checks: List[Dict[str, Any]] = field(default_factory=list)
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "cell_checks": self.cell_checks,
+            "terminal_checks": self.terminal_checks
+        }
+
+    @classmethod
+    def from_dict(cls, d: Dict[str, Any]) -> "VerificationContract":
+        return cls(
+            cell_checks=d.get("cell_checks", []),
+            terminal_checks=d.get("terminal_checks", [])
+        )
+
+@functools.lru_cache(maxsize=512)
+def _get_module_symbols(mod_name: str) -> FrozenSet[str]:
+    """Caches exported symbols of submodules for fast dependency resolution."""
+    try:
+        import sys, importlib
+        mod = sys.modules.get(mod_name)
+        if mod is None:
+            mod = importlib.import_module(mod_name)
+        return frozenset(w for w in dir(mod) if not w.startswith("_"))
+    except Exception:
+        return frozenset()
+
+
 class UnificationGate:
     """
     Formal Unification Gate verifying dataflow composition and emitting code.
@@ -1539,6 +1616,8 @@ class UnificationGate:
     def __init__(self):
         self.context = ExecutionContext()
         self.last_egress_paths: List[str] = []
+        self.last_pipeline_bindings: List[Tuple[Cell, Dict[str, str]]] = []
+        self.last_verification_contract: Optional[VerificationContract] = None
 
     def get_egress_paths(self) -> List[str]:
         """
@@ -1616,12 +1695,31 @@ class UnificationGate:
         """
         out_sig = producer.primary_output
 
+        def _extract_ndim(sc: Any) -> Optional[int]:
+            if isinstance(sc, dict):
+                val = sc.get("ndim")
+                if isinstance(val, int):
+                    return val
+                try:
+                    return int(val) if val is not None else None
+                except (ValueError, TypeError):
+                    return None
+            elif isinstance(sc, str):
+                sc = sc.strip()
+                if sc.startswith("(") and sc.endswith(")"):
+                    inner = sc[1:-1].strip()
+                    if not inner:
+                        return 0
+                    parts = [p.strip() for p in inner.split(",") if p.strip()]
+                    return len(parts)
+            return None
+
         def _shape_compatible(p_out: Any, p_in: Any) -> bool:
             out_sc = getattr(p_out, "shape_contract", None)
             in_sc = getattr(p_in, "shape_contract", None)
             if out_sc and in_sc:
-                o_ndim = out_sc.get("ndim")
-                i_ndim = in_sc.get("ndim")
+                o_ndim = _extract_ndim(out_sc)
+                i_ndim = _extract_ndim(in_sc)
                 if o_ndim is not None and i_ndim is not None and o_ndim != i_ndim:
                     return False
             return True
@@ -1784,69 +1882,117 @@ class UnificationGate:
                 assert isinstance(transition_res, Success)
                 accumulated_sigma = transition_res.sigma
 
-            # 2. Multi-Port Monoidal Matching: Bind input ports across available wires
-            req_ports = [p for p in cell.inputs.values() if p.required]
+            # 2. Multi-Port Monoidal Matching: Bind input ports across available wires using semantic roles
+            def _is_matching_port(p_n: str, p_s: Any) -> bool:
+                if getattr(p_s, "required", False):
+                    return True
+                role = getattr(p_s, "derived_role", "standard")
+                if role in ("feature_input", "target_input", "data_input", "model_input"):
+                    return True
+                if p_n in ("X", "y", "target", "labels", "label", "features", "data"):
+                    return True
+                return False
+
+            multi_ports = [(k, p) for k, p in cell.inputs.items() if _is_matching_port(k, p)]
             bound_producer = False
 
-            if len(req_ports) > 1 and len(ctx.variables) >= len(req_ports):
-                # Symmetrical Monoidal Product Port Assignment (Section 3.2):
-                # Search compatible wire assignments ensuring distinct wires for distinct required ports,
-                # immediate producer wire connection (if producer_var is present), and maximal semantic affinity.
-                avail_vars = list(ctx.variables.keys())
-                best_assign = None
-                best_sub = None
-                best_affinity = -999.0
+            if len(multi_ports) > 1 and len(ctx.variables) >= 2:
+                # Deterministic O(P * V) role-based matching with zero itertools.permutations
+                # Restricts feature_input/target_input/model_input from cross-binding,
+                # preventing reversed argument bugs like fit(y, X).
+                avail_vars = [v for v in ctx.variables.keys() if not _is_product(ctx.variables[v][0])]
 
-                import itertools
-                for assignment in itertools.permutations(avail_vars, len(req_ports)):
-                    if producer_var is not None and producer_var not in assignment:
-                        continue
-                    # A heterogeneous product (tuple[A,B,...]) is never assigned whole
-                    # to a data port: its members must be projected individually.
-                    if any(_is_product(ctx.variables[v_name][0]) for v_name in assignment):
-                        continue
-                    test_sub = accumulated_sigma
-                    valid = True
-                    aff_score = 0.0
-                    for p, v_name in zip(req_ports, assignment):
+                candidates = []
+                ROLE_RESTRICTED = {"feature_input", "target_input", "model_input"}
+
+                for p_name, p in multi_ports:
+                    p_role = getattr(p, "derived_role", "standard")
+                    p_toks = CellTokenizer.tokenize_identifier((p_name or "").lower())
+                    p_state = (getattr(p, "state", "") or "").lower()
+
+                    for v_name in avail_vars:
                         v_sig, _ = ctx.variables[v_name]
-                        u_p = unify(v_sig.signature, p.signature, test_sub)
+                        v_role = getattr(v_sig, "derived_role", "standard")
+
+                        # Hard role gating
+                        if p_role in ROLE_RESTRICTED and v_role in ROLE_RESTRICTED:
+                            if p_role != v_role:
+                                continue
+                        elif p_role == "target_input" and v_role != "target_input":
+                            continue
+                        elif p_role == "feature_input" and v_role == "target_input":
+                            continue
+                        elif p_role == "model_input" and v_role != "model_input":
+                            continue
+
+                        # Signature unification check
+                        u_p = unify(v_sig.signature, p.signature, accumulated_sigma)
                         if u_p is None:
-                            valid = False
-                            break
-                        test_sub = u_p
+                            continue
 
-                        # Token affinity between port name and variable's producing cell
-                        p_toks = CellTokenizer.tokenize_identifier(p.name.lower())
-                        src_cell = getattr(ctx, "var_sources", {}).get(v_name)
-                        src_toks = set()
-                        if src_cell:
-                            src_toks = set(src_cell.token_set)
-                            for slot_cells in getattr(src_cell, "bound_slots", {}).values():
-                                for sc in slot_cells:
-                                    src_toks.update(sc.token_set)
-                        v_sig, _ = ctx.variables[v_name]
-                        src_toks.update(CellTokenizer.tokenize_identifier(v_name.lower()))
-                        if hasattr(v_sig, "name") and v_sig.name:
-                            src_toks.update(CellTokenizer.tokenize_identifier(v_sig.name.lower()))
-                        overlap = len(p_toks & src_toks)
-                        aff_score += overlap * 2.0
-                        if any(tok in src_toks for tok in p_toks):
-                            aff_score += 1.0
+                        # Compute score for (p, v_name)
+                        score = 10.0
+                        if p_role == v_role and p_role != "standard":
+                            score += 25.0
+                        if p_role == "feature_input" and v_role == "feature_input":
+                            score += 15.0
+                        if p_role == "target_input" and v_role == "target_input":
+                            score += 15.0
                         if producer_var is not None and v_name == producer_var:
-                            aff_score += 0.5
+                            score += 8.0
 
-                    if valid and aff_score > best_affinity:
-                        best_affinity = aff_score
-                        best_assign = dict(zip([p.name for p in req_ports], assignment))
-                        best_sub = test_sub
+                        # Token overlap
+                        v_toks = set(CellTokenizer.tokenize_identifier((getattr(v_sig, "name", "") or "").lower()))
+                        v_toks.update(CellTokenizer.tokenize_identifier(v_name.lower()))
+                        v_state = (getattr(v_sig, "state", "") or "").lower()
+                        if v_state:
+                            v_toks.update(v_state.split("_"))
+                        src_cell = getattr(ctx, "var_sources", {}).get(v_name)
+                        if src_cell:
+                            v_toks.update(src_cell.token_set)
 
-                if best_assign is not None:
+                        overlap = len(p_toks & v_toks)
+                        score += overlap * 4.0
+
+                        # Context alignment: "train" vs "test"
+                        if "train" in p_toks or "train" in p_state:
+                            if "train" in v_toks or "train" in v_state:
+                                score += 12.0
+                            elif "test" in v_toks or "test" in v_state:
+                                score -= 10.0
+                        elif "test" in p_toks or "test" in p_state:
+                            if "test" in v_toks or "test" in v_state:
+                                score += 12.0
+                            elif "train" in v_toks or "train" in v_state:
+                                score -= 10.0
+
+                        candidates.append((score, p_name, p, v_name))
+
+                # Deterministic greedy assignment
+                candidates.sort(key=lambda item: item[0], reverse=True)
+                assigned_ports = set()
+                assigned_vars = set()
+                best_assign = {}
+                test_sub = accumulated_sigma
+
+                for score, p_name, p, v_name in candidates:
+                    if p_name in assigned_ports or v_name in assigned_vars:
+                        continue
+                    v_sig, _ = ctx.variables[v_name]
+                    u_curr = unify(v_sig.signature, p.signature, test_sub)
+                    if u_curr is None:
+                        continue
+                    test_sub = u_curr
+                    assigned_ports.add(p_name)
+                    assigned_vars.add(v_name)
+                    best_assign[p_name] = v_name
+
+                if best_assign:
                     for p_name, v_name in best_assign.items():
                         cell_bindings[p_name] = v_name
-                    if best_sub is not None:
-                        accumulated_sigma = best_sub
-                    bound_producer = True
+                    accumulated_sigma = test_sub
+                    if producer_var is not None and producer_var in assigned_vars:
+                        bound_producer = True
 
             # If multi-port matching was not triggered or producer_var is not yet bound:
             # Replicas NEVER auto-bind the previous wire — their inputs come
@@ -1888,21 +2034,47 @@ class UnificationGate:
                 # Substitute generics if type variable in p_sig
                 concrete_sig = substitute_generics(p_sig, accumulated_sigma)
 
+                # Optional data carriers (e.g. target vector 'y' in fit(X, y)) check in-scope variables first
+                is_data_carrier = (
+                    getattr(p_sig, "port_role", None) in ("target_input", "feature_input", "data_input")
+                    or getattr(p_sig, "derived_role", "standard") in ("target_input", "feature_input", "data_input")
+                    or p_name in ("y", "target", "labels", "label")
+                    or str(getattr(concrete_sig, "type_name", "")).lower() in ("ndarray", "dataframe", "series", "tensor")
+                )
+                if not p_sig.required and is_data_carrier:
+                    scoped_var = None
+                    for v_name, (v_sig, _) in reversed(list(ctx.variables.items())):
+                        if _is_product(v_sig) or v_name in cell_bindings.values():
+                            continue
+                        u_v = unify(v_sig.signature, concrete_sig.signature, accumulated_sigma)
+                        if u_v is not None:
+                            scoped_var = v_name
+                            accumulated_sigma = u_v
+                            break
+                    if scoped_var is not None:
+                        cell_bindings[p_name] = scoped_var
+                        continue
+
                 # Optional parameters with declared default: use prompt literal or default value
                 if not p_sig.required and p_sig.default_value is not None:
                     resolved_literal = ctx.resolve_literal_for_port(concrete_sig, cell_stage=cell.stage, cell_inputs=cell.inputs, cell_tokens=getattr(cell, "token_set", set()))
-                    val = resolved_literal if resolved_literal is not None else str(p_sig.default_value)
-                    cell_bindings[p_name] = val
-                    accumulated_sigma.bind(p_name, val)
+                    if resolved_literal is not None:
+                        cell_bindings[p_name] = resolved_literal
+                        accumulated_sigma.bind(p_name, resolved_literal)
+                    elif str(p_sig.default_value) in ("None", "none"):
+                        cell_bindings[p_name] = None
+                    else:
+                        val = str(p_sig.default_value)
+                        if getattr(concrete_sig, "type_name", "") == "str" and not (val.startswith(("'", '"')) or val in ("None", "True", "False")):
+                            val = repr(val)
+                        cell_bindings[p_name] = val
+                        accumulated_sigma.bind(p_name, val)
                     continue
 
                 # Optional parameters WITHOUT a default are omitted from the
                 # emitted call unless the prompt itself supplies a literal through
                 # the type-affinity channels (a destination path, a numeric or
-                # boolean qualifier). They capture neither in-scope data wires nor
-                # the expression channel: configuration slots are not dataflow
-                # continuations, and the shared expression channel belongs to the
-                # cell's required data ports.
+                # boolean qualifier).
                 if not p_sig.required:
                     _lit = ctx.resolve_literal_for_port(concrete_sig, cell_stage=cell.stage, cell_inputs=cell.inputs, cell_tokens=getattr(cell, "token_set", set()))
                     if _lit is not None:
@@ -1961,8 +2133,11 @@ class UnificationGate:
 
                 # C. Check default value declared in tree
                 if p_sig.default_value is not None:
-                    cell_bindings[p_name] = str(p_sig.default_value)
-                    accumulated_sigma.bind(p_name, str(p_sig.default_value))
+                    val = str(p_sig.default_value)
+                    if getattr(concrete_sig, "type_name", "") == "str" and not (val.startswith(("'", '"')) or val in ("None", "True", "False")):
+                        val = repr(val)
+                    cell_bindings[p_name] = val
+                    accumulated_sigma.bind(p_name, val)
                     continue
 
                 # D. Declared-domain enum grounding (reflection-driven, zero domain hardcodes)
@@ -1987,18 +2162,48 @@ class UnificationGate:
                 else:
                     cell_bindings[p_name] = None
 
-            # Register output port in context for future steps
-            # Concrete output port with generic substitution
-            concrete_out = substitute_generics(cell.primary_output, accumulated_sigma)
-            # If the cell performs in-place mutation on a receiver, alias the output to the receiver
-            if getattr(cell, "mutation_type", "pure") == "in_place":
-                receiver_var = cell_bindings.get("data") or cell_bindings.get("self")
-                if receiver_var and receiver_var in ctx.variables:
-                    current_out_var = receiver_var
-                    cell_bindings["output_var"] = current_out_var
+            # Register output port(s) in context for future steps
+            if len(cell.outputs) > 1:
+                # Multi-output cell (e.g. train_test_split, load_wine, cv2.threshold, subplots)
+                # Declare each individual output port in the execution context and bind in template
+                first_out_var = None
+                prim_out = cell.primary_output
+                prim_var = None
+                for idx_out, (out_name, out_sig) in enumerate(cell.outputs.items()):
+                    if idx_out == 0:
+                        out_var = current_out_var
+                        first_out_var = out_var
+                    else:
+                        var_counter += 1
+                        ctx.var_counter = var_counter
+                        out_var = f"var_{var_counter}"
+                    cell_bindings[out_name] = out_var
 
-            ctx.declare_variable(current_out_var, concrete_out, current_out_var, cell=cell)
-            producer_var = current_out_var
+                    concrete_out = substitute_generics(out_sig, accumulated_sigma)
+                    ctx.declare_variable(out_var, concrete_out, out_var, cell=cell)
+                    if prim_out and out_name == prim_out.name:
+                        prim_var = out_var
+
+                producer_var = prim_var if prim_var is not None else (first_out_var or current_out_var)
+                if "output_var" not in cell.outputs:
+                    cell_bindings["output_var"] = producer_var
+            else:
+                # Single output cell
+                concrete_out = substitute_generics(cell.primary_output, accumulated_sigma)
+                # If the cell performs in-place mutation on a receiver, alias the output to the receiver
+                if getattr(cell, "mutation_type", "pure") == "in_place":
+                    receiver_var = cell_bindings.get("data") or cell_bindings.get("self")
+                    if receiver_var and receiver_var in ctx.variables:
+                        current_out_var = receiver_var
+                        cell_bindings["output_var"] = current_out_var
+
+                # Bind primary output port name if distinct from output_var
+                if cell.primary_output and cell.primary_output.name:
+                    cell_bindings[cell.primary_output.name] = current_out_var
+
+                ctx.declare_variable(current_out_var, concrete_out, current_out_var, cell=cell)
+                producer_var = current_out_var
+
             pipeline_bindings.append((cell, cell_bindings))
 
         return Success(pipeline_bindings, accumulated_sigma)
@@ -2053,14 +2258,10 @@ class UnificationGate:
                                 val_node = ast.Constant(value=val_str)
                             if p_kind == "keyword_only":
                                 new_keywords.append(ast.keyword(arg=orig_name, value=val_node))
-                            elif p_kind in ("positional_only", "var_positional"):
-                                new_args.append(val_node)
                             elif p_kind == "var_keyword":
                                 new_keywords.append(ast.keyword(arg=None, value=val_node))
-                            elif is_req:
-                                new_args.append(val_node)
                             else:
-                                new_keywords.append(ast.keyword(arg=orig_name, value=val_node))
+                                new_args.append(val_node)
                         elif is_req:
                             registry = TypeRegistry.get_instance()
                             t_name = getattr(getattr(p_sig, "signature", None), "type_name", "") or getattr(p_sig, "type_name", "")
@@ -2119,13 +2320,42 @@ class UnificationGate:
             accum_sigma = res.sigma
             self.last_egress_paths = self._derive_egress_paths(pipeline_bindings)
 
+        self.last_pipeline_bindings = pipeline_bindings
+        self.last_verification_contract = self.build_verification_contract(pipeline_bindings, ctx, getattr(ctx, "prompt", ""))
+
         # Collect dependencies recursively
         deps: List[str] = []
         def collect_deps(c: Cell):
             for dep in c.dependencies:
                 dep_clean = dep.strip()
-                if dep_clean and dep_clean not in deps:
-                    deps.append(dep_clean)
+                if not dep_clean:
+                    continue
+                if dep_clean.startswith(("import ", "from ")):
+                    if dep_clean not in deps:
+                        deps.append(dep_clean)
+                    continue
+
+                base_mod = dep_clean.split(".")[0]
+                tpl = getattr(c, "code_template", "") or ""
+                if f"{base_mod}." in tpl or f"{dep_clean}." in tpl or "." not in dep_clean:
+                    stmt = f"import {dep_clean}"
+                    if stmt not in deps:
+                        deps.append(stmt)
+                else:
+                    # Submodule with dot notation: check if template references symbols directly
+                    symbols = _get_module_symbols(dep_clean)
+                    words = frozenset(re.findall(r"\b[a-zA-Z_][a-zA-Z0-9_]*\b", tpl))
+                    matched = words & symbols
+                    if matched:
+                        for w in sorted(matched):
+                            stmt = f"from {dep_clean} import {w}"
+                            if stmt not in deps:
+                                deps.append(stmt)
+                    else:
+                        stmt = f"import {dep_clean}"
+                        if stmt not in deps:
+                            deps.append(stmt)
+
             for sub_list in getattr(c, "bound_slots", {}).values():
                 if isinstance(sub_list, list):
                     for sc in sub_list:
@@ -2151,7 +2381,7 @@ class UnificationGate:
                 has_render_cell = False
 
         for cell, bindings in pipeline_bindings:
-            if has_render_cell and (getattr(cell, "bound_slots", None) or getattr(cell, "slots", None)):
+            if has_render_cell and (bool(getattr(cell, "bound_slots", None)) or getattr(cell, "node_type", "") == "macro"):
                 rendered = render_cell(cell, bindings, indent_level=0, context=ctx, accumulated_sigma=accum_sigma)
                 if rendered:
                     code_lines.append(rendered)
@@ -2171,6 +2401,240 @@ class UnificationGate:
         self.context = ExecutionContext(prompt=prompt)
         return self.emit_code(cells, self.context)
 
+    def build_verification_contract(
+        self,
+        pipeline_bindings: List[Tuple[Cell, Dict[str, str]]],
+        ctx: Optional[ExecutionContext] = None,
+        prompt: str = ""
+    ) -> VerificationContract:
+        """
+        Builds a structured VerificationContract capturing Phase-1 postconditions
+        and terminal node intent rules for GEVR sandbox execution.
+        """
+        contract = VerificationContract()
+
+        # Track wires across pipeline
+        registry = TypeRegistry.get_instance()
+
+        split_train_features = None
+        split_train_targets = None
+        unsplit_features = None
+        unsplit_targets = None
+
+        ingress_image_var = None
+        annotated_image_vars: List[str] = []
+
+        ingress_df_var = None
+        has_dropna = False
+        has_dedup = False
+
+        def _is_path_port(p: Any) -> bool:
+            if not p:
+                return False
+            t = getattr(p, "type_name", "").lower()
+            st = getattr(p, "state", "").lower()
+            ab = getattr(p, "abstract_type", "").lower()
+            return ab == "path" or st in ("file_path", "filepath", "destination_path", "path") or registry.is_subtype(t, "path")
+
+        def _is_tensor_or_image(p: Any) -> bool:
+            if not p:
+                return False
+            t = getattr(p, "type_name", "").lower()
+            st = getattr(p, "state", "").lower()
+            ab = getattr(p, "abstract_type", "").lower()
+            return ab == "tensor" or registry.is_subtype(t, "tensor") or t in ("ndarray", "image", "mat") or "color" in st or "gray" in st
+
+        def _is_table_or_df(p: Any) -> bool:
+            if not p:
+                return False
+            t = getattr(p, "type_name", "").lower()
+            ab = getattr(p, "abstract_type", "").lower()
+            return ab == "table" or registry.is_subtype(t, "table") or t in ("dataframe", "series", "dataset")
+
+        def _is_figure(p: Any) -> bool:
+            if not p:
+                return False
+            t = getattr(p, "type_name", "").lower()
+            return t in ("figure", "axes", "fig")
+
+        for cell, bindings in pipeline_bindings:
+            stage = getattr(cell, "stage", None)
+            role = getattr(cell, "node_role", "")
+            effects = getattr(cell, "effects", []) or []
+
+            # 1. Phase-1 Cell Postconditions
+            for post in (getattr(cell, "postconditions", []) or []):
+                p_obj = post
+                if not hasattr(p_obj, "property") and not hasattr(p_obj, "expression"):
+                    try:
+                        from .schema import ConditionPredicate
+                        p_obj = ConditionPredicate.from_any(post)
+                    except Exception:
+                        try:
+                            from schema import ConditionPredicate
+                            p_obj = ConditionPredicate.from_any(post)
+                        except Exception:
+                            p_obj = post
+
+                target_name = getattr(p_obj, "target", None) or "output_var"
+                target_var = bindings.get(target_name)
+                if not target_var:
+                    target_var = bindings.get("output_var") or (bindings.get(cell.primary_output.name) if cell.primary_output else None)
+                if target_var:
+                    contract.cell_checks.append({
+                        "cell_id": cell.cell_id,
+                        "target_var": target_var,
+                        "target_port": target_name,
+                        "property": getattr(p_obj, "property", None),
+                        "operator": getattr(p_obj, "operator", "=="),
+                        "value": getattr(p_obj, "value", None),
+                        "expression": getattr(p_obj, "expression", None),
+                        "description": getattr(p_obj, "description", None),
+                    })
+
+            # 2. Ingress Tracking (Stage 1 or Source Role)
+            if stage == 1 or role == "source":
+                for p_name, p_sig in cell.outputs.items():
+                    bound_v = bindings.get(p_name)
+                    if not bound_v:
+                        continue
+                    if _is_tensor_or_image(p_sig):
+                        if not ingress_image_var:
+                            ingress_image_var = bound_v
+                    elif _is_table_or_df(p_sig):
+                        if not ingress_df_var:
+                            ingress_df_var = bound_v
+
+                    st = getattr(p_sig, "state", "").lower()
+                    r = getattr(p_sig, "port_role", "") or ""
+                    if r == "feature_input" or "raw_dataset" in st or "features" in st or p_name in ("X", "data"):
+                        if not unsplit_features:
+                            unsplit_features = bound_v
+                    elif r == "target_input" or "target" in st or p_name in ("y", "target"):
+                        if not unsplit_targets:
+                            unsplit_targets = bound_v
+
+            # 3. Data Splitting / Partitioning Tracking
+            for p_name, p_sig in cell.outputs.items():
+                st = getattr(p_sig, "state", "").lower()
+                if "split_train_features" in st:
+                    split_train_features = bindings.get(p_name)
+                elif "split_train_targets" in st:
+                    split_train_targets = bindings.get(p_name)
+
+            if split_train_features and not unsplit_features:
+                for in_name, in_sig in cell.inputs.items():
+                    in_st = getattr(in_sig, "state", "").lower()
+                    in_r = getattr(in_sig, "port_role", "") or ""
+                    if in_r == "feature_input" or "raw_dataset" in in_st or in_name in ("X", "arrays", "data"):
+                        unsplit_features = bindings.get(in_name)
+                        break
+
+            # 4. Canvas Annotation / Drawing Tracking
+            is_draw_cell = (
+                "draws_annotation" in effects
+                or "renders_annotation" in effects
+                or (
+                    stage == 2
+                    and any("contour" in in_name or "text" in in_name or "point" in in_name or "shape" in in_name for in_name in cell.inputs)
+                    and any(_is_tensor_or_image(p) for p in cell.outputs.values())
+                )
+            )
+            if is_draw_cell:
+                for out_name, out_sig in cell.outputs.items():
+                    if _is_tensor_or_image(out_sig):
+                        out_v = bindings.get(out_name)
+                        if out_v and out_v not in annotated_image_vars:
+                            annotated_image_vars.append(out_v)
+
+            # 5. Data Cleaning Tracking
+            if "cleans_missing" in effects or any("dropna" in getattr(p, "expression", "").lower() for p in getattr(cell, "postconditions", []) or [] if hasattr(p, "expression")):
+                has_dropna = True
+            elif any(getattr(p, "property", "") == "has_nans" and getattr(p, "value", True) is False for p in getattr(cell, "postconditions", []) or []):
+                has_dropna = True
+
+            if "deduplicates" in effects or any(getattr(p, "property", "") == "is_deduped" and getattr(p, "value", False) is True for p in getattr(cell, "postconditions", []) or []):
+                has_dedup = True
+
+            # 6. Terminal Intent Checks
+            # Model Training Intent
+            is_estimator_cell = (
+                role == "estimator"
+                or any(registry.is_subtype(getattr(p, "type_name", ""), "estimator") or getattr(p, "type_name", "").lower() in ("classifier", "regressor", "model") for p in cell.outputs.values())
+                or any("fit" in getattr(p, "state", "").lower() or "trained_model" in getattr(p, "state", "").lower() for p in cell.outputs.values())
+            )
+            if is_estimator_cell:
+                model_var = bindings.get("model") or bindings.get("self") or bindings.get("output_var")
+                feat_var = None
+                tgt_var = None
+                for in_name, in_sig in cell.inputs.items():
+                    r = getattr(in_sig, "port_role", "") or ""
+                    if r == "feature_input" or in_name in ("X", "data"):
+                        feat_var = bindings.get(in_name)
+                    elif r == "target_input" or in_name in ("y", "target"):
+                        tgt_var = bindings.get(in_name)
+
+                contract.terminal_checks.append({
+                    "type": "model_fit_split",
+                    "cell_id": cell.cell_id,
+                    "model_var": model_var,
+                    "feature_var": feat_var,
+                    "target_var": tgt_var,
+                    "expected_train_feature_var": split_train_features,
+                    "unsplit_feature_var": unsplit_features,
+                })
+
+            # Terminal Egress Sinks (Stage 3 or sink role with path port)
+            has_path_input = any(_is_path_port(p) for p in cell.inputs.values())
+            is_sink_cell = (stage == 3 or role == "sink" or has_path_input) and stage != 1
+
+            if is_sink_cell and has_path_input:
+                path_var = None
+                data_var = None
+                data_kind = None
+
+                for in_name, in_sig in cell.inputs.items():
+                    if _is_path_port(in_sig):
+                        path_var = bindings.get(in_name)
+                    elif _is_tensor_or_image(in_sig):
+                        data_var = bindings.get(in_name)
+                        data_kind = "image"
+                    elif _is_table_or_df(in_sig):
+                        data_var = bindings.get(in_name)
+                        data_kind = "table"
+                    elif _is_figure(in_sig):
+                        data_var = bindings.get(in_name)
+                        data_kind = "figure"
+
+                if data_kind == "image" or (_is_tensor_or_image(cell.primary_input) if cell.primary_input else False):
+                    last_annotated = annotated_image_vars[-1] if annotated_image_vars else None
+                    contract.terminal_checks.append({
+                        "type": "image_annotation_egress",
+                        "cell_id": cell.cell_id,
+                        "saved_var": data_var,
+                        "annotated_var": last_annotated,
+                        "ingress_var": ingress_image_var,
+                        "output_path": path_var,
+                    })
+                elif data_kind == "table" or (_is_table_or_df(cell.primary_input) if cell.primary_input else False):
+                    contract.terminal_checks.append({
+                        "type": "tabular_egress",
+                        "cell_id": cell.cell_id,
+                        "saved_var": data_var,
+                        "ingress_var": ingress_df_var,
+                        "output_path": path_var,
+                        "expected_clean": {"no_nans": has_dropna, "is_deduped": has_dedup},
+                    })
+                elif data_kind == "figure" or (_is_figure(cell.primary_input) if cell.primary_input else False):
+                    contract.terminal_checks.append({
+                        "type": "visualization_egress",
+                        "cell_id": cell.cell_id,
+                        "fig_var": data_var,
+                        "output_path": path_var,
+                    })
+
+        return contract
+
     @classmethod
     def unify_cell(cls, context: Any, cell: Cell) -> str:
         """Single-cell unification helper for backwards-compatibility with tests."""
@@ -2187,6 +2651,8 @@ class UnificationGate:
                 for dep in getattr(node, "dependencies", []):
                     dep_str = dep.strip()
                     if dep_str:
+                        if not (dep_str.startswith("import ") or dep_str.startswith("from ")):
+                            dep_str = f"import {dep_str}"
                         imports.add(dep_str)
         import_block = "\n".join(sorted(list(imports)))
         if code_text:

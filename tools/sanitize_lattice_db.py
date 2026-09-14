@@ -93,6 +93,16 @@ def sanitize_database(db_path: Union[Path, str] = DB_PATH, backup: bool = True):
           AND code NOT LIKE '%{filepath}%'
           AND code NOT LIKE '%{path}%'
     """)
+    # Reclassify intermediate transformers/bridges that were erroneously stamped with stage = 1
+    cur.execute("""
+        UPDATE nodes SET stage = 2 WHERE cell_id IN (
+            'CV2_IMDECODE', 'MATPLOTLIB_FIG_ADD_SUBPLOT', 'MATPLOTLIB_FIG_ADD_SUBPLOT_3D',
+            'MATPLOTLIB_FIG_ADD_AXES', 'NUMPY_ARRAY_CREATION', 'NUMPY_ASARRAY',
+            'PILLOW_FROM_NDARRAY_BGR', 'PILLOW_FROM_NDARRAY_GRAY',
+            'PILLOW_IMAGEOPS_EXIF_TRANSPOSE', 'PILLOW_NDARRAY_GENERIC_TO_PILLOW',
+            'SNS_BRIDGE_DATAFRAME_TO_AXES'
+        )
+    """)
     conn.commit()
 
     # Step 4: Register verified stdlib cells
@@ -136,12 +146,30 @@ def sanitize_database(db_path: Union[Path, str] = DB_PATH, backup: bool = True):
         ),
         (
             'PYTHON_DIJKSTRA_ALGORITHM', 'python_core', 'function', 'transformation', 2,
-            '["algorithm", "dijkstra", "shortest_path", "graph", "distances", "heapq"]',
+            '["algorithm", "dijkstra", "shortest_path", "graph", "distances", "heapq", "bfs", "dfs", "traversal", "search"]',
             'dict', 'adjacency_dict', 'dict', 'distances',
             'import heapq\n\ndef dijkstra(graph, start):\n    distances = {node: float("inf") for node in graph}\n    distances[start] = 0\n    pq = [(0, start)]\n    while pq:\n        curr_dist, curr_node = heapq.heappop(pq)\n        if curr_dist > distances[curr_node]:\n            continue\n        for neighbor, weight in graph.get(curr_node, {}).items():\n            dist = curr_dist + weight\n            if dist < distances[neighbor]:\n                distances[neighbor] = dist\n                heapq.heappush(pq, (dist, neighbor))\n    return distances\n\n{output_var} = dijkstra({graph}, {start})',
             '["import heapq"]',
             '{"inputs": {"graph": {"type_name": "dict", "state": "adjacency_dict", "required": false, "default_value": "{\'A\': {\'B\': 1, \'C\': 4}, \'B\': {\'C\': 2, \'D\': 5}, \'C\': {\'D\': 1}, \'D\': {}}"}, "start": {"type_name": "str", "state": "source_node", "required": false, "default_value": "\'A\'"}}, "outputs": {"output_data": {"type_name": "dict", "state": "distances", "required": true}}}',
             1, 'Dijkstra shortest path algorithm on graph adjacency dictionary.', 'verified_stdlib', 10
+        ),
+        (
+            'PYTHON_BINARY_SEARCH_SORT', 'python_core', 'function', 'transformation', 2,
+            '["algorithm", "binary_search", "binary", "search", "sorted", "list", "sort", "lookup"]',
+            'list', 'sorted_list', 'int', 'index',
+            'def binary_search(arr, target):\n    low, high = 0, len(arr) - 1\n    while low <= high:\n        mid = (low + high) // 2\n        if arr[mid] == target:\n            return mid\n        elif arr[mid] < target:\n            low = mid + 1\n        else:\n            high = mid - 1\n    return -1\n\n{output_var} = binary_search({data}, {target})',
+            '[]',
+            '{"inputs": {"data": {"type_name": "list", "state": "sorted_list", "required": false, "default_value": "[1, 3, 5, 7, 9]"}, "target": {"type_name": "int", "state": "query", "required": false, "default_value": "5"}}, "outputs": {"output_data": {"type_name": "int", "state": "index", "required": true}}}',
+            1, 'Binary search on a sorted list.', 'verified_stdlib', 10
+        ),
+        (
+            'PYTHON_MERGE_SORT_ALGORITHM', 'python_core', 'function', 'transformation', 2,
+            '["algorithm", "merge_sort", "merge", "sort", "sorting", "list", "divide_and_conquer"]',
+            'list', 'raw_list', 'list', 'sorted_list',
+            'def merge_sort(arr):\n    if len(arr) <= 1:\n        return arr\n    mid = len(arr) // 2\n    left = merge_sort(arr[:mid])\n    right = merge_sort(arr[mid:])\n    res = []\n    i = j = 0\n    while i < len(left) and j < len(right):\n        if left[i] <= right[j]:\n            res.append(left[i])\n            i += 1\n        else:\n            res.append(right[j])\n            j += 1\n    res.extend(left[i:])\n    res.extend(right[j:])\n    return res\n\n{output_var} = merge_sort({data})',
+            '[]',
+            '{"inputs": {"data": {"type_name": "list", "state": "raw_list", "required": false, "default_value": "[5, 2, 8, 1, 9]"}}, "outputs": {"output_data": {"type_name": "list", "state": "sorted_list", "required": true}}}',
+            1, 'Merge sort algorithm on a list.', 'verified_stdlib', 10
         )
     ]
     for node in verified_nodes:
@@ -175,6 +203,11 @@ def sanitize_database(db_path: Union[Path, str] = DB_PATH, backup: bool = True):
         "sigma": "0",
         "radius": "0",
         "dsize": "(100, 100)",
+        "y": "None",
+        "col": "None",
+        "hue": "None",
+        "row": "None",
+        "x": "None",
     }
     cur.execute("SELECT cell_id, configuration_schema FROM nodes")
     updates = []
@@ -189,9 +222,11 @@ def sanitize_database(db_path: Union[Path, str] = DB_PATH, backup: bool = True):
                 if p_info.get("default_value") is None:
                     if p_name in KNOWN_PORT_DEFAULTS:
                         p_info["default_value"] = KNOWN_PORT_DEFAULTS[p_name]
+                        p_info["required"] = False
                         changed = True
                     elif p_name in ("type", "thresholdType", "threshold_type") and "thresh" in cid.lower():
                         p_info["default_value"] = "cv2.THRESH_BINARY"
+                        p_info["required"] = False
                         changed = True
             if changed:
                 updates.append((json.dumps(cfg), cid))

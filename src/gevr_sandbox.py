@@ -13,9 +13,10 @@ import os
 import sys
 import threading
 import traceback
+import re
 import signal
 import resource
-from typing import Tuple, Optional, Callable, Dict, Any
+from typing import Tuple, Optional, Callable, Dict, Any, Union, List
 from log_config import get_logger
 
 try:
@@ -48,12 +49,307 @@ def _restricted_import(name, *args, **kwargs):
     return __builtins__.__import__(name, *args, **kwargs) if hasattr(__builtins__, '__import__') else __import__(name, *args, **kwargs)
 
 try:
-    from .errors import DataflowExecutionError, ArtifactMaterializationError
+    from .errors import DataflowExecutionError, ArtifactMaterializationError, PostconditionVerificationError
 except (ImportError, ValueError):
-    from errors import DataflowExecutionError, ArtifactMaterializationError
+    from errors import DataflowExecutionError, ArtifactMaterializationError, PostconditionVerificationError
 
 
-def _sandbox_worker_exec(code: str, egress_paths: Optional[list[str]] = None, cwd: Optional[str] = None) -> Dict[str, Any]:
+def _check_estimator_fitted(estimator: Any, cell_id: str, var_name: str) -> None:
+    """Verifies that an estimator object has been fitted."""
+    if estimator is None:
+        raise PostconditionVerificationError(f"Estimator '{var_name}' ({cell_id}) is None.")
+
+    try:
+        from sklearn.utils.validation import check_is_fitted
+        check_is_fitted(estimator)
+        return
+    except Exception:
+        pass
+
+    fitted_attrs = [
+        "coef_", "intercept_", "estimators_", "classes_", "tree_",
+        "cluster_centers_", "labels_", "mean_", "var_", "scale_",
+        "support_vectors_", "components_", "explained_variance_",
+        "n_features_in_", "best_score_", "best_estimator_"
+    ]
+    if any(hasattr(estimator, a) for a in fitted_attrs):
+        return
+
+    raise PostconditionVerificationError(
+        f"Estimator '{var_name}' ({cell_id}) has not been fitted (.fit() was not called or failed)."
+    )
+
+
+def _evaluate_cell_postcondition(exec_globals: Dict[str, Any], check: Dict[str, Any]) -> None:
+    """Evaluates an individual Phase-1 postcondition against runtime execution scope."""
+    cell_id = check.get("cell_id", "unknown_cell")
+    target_var = check.get("target_var")
+    prop = check.get("property")
+    op = check.get("operator", "==")
+    val = check.get("value")
+    expr = check.get("expression")
+    desc = check.get("description") or expr or f"{prop} {op} {val}"
+
+    if not target_var or target_var not in exec_globals:
+        return
+
+    target_val = exec_globals[target_var]
+
+    # Raw expression evaluation
+    if expr:
+        subbed_expr = expr
+        target_name = check.get("target_port") or check.get("target") or "output_var"
+        if target_name in subbed_expr:
+            subbed_expr = re.sub(rf"\b{re.escape(target_name)}\b", target_var, subbed_expr)
+
+        try:
+            eval_scope = {
+                "__builtins__": {
+                    "isinstance": isinstance, "hasattr": hasattr, "getattr": getattr,
+                    "len": len, "type": type, "bool": bool, "int": int, "float": float,
+                    "str": str, "True": True, "False": False, "None": None
+                },
+                target_var: target_val
+            }
+            import types
+            for k, v in exec_globals.items():
+                if isinstance(v, types.ModuleType) or (not k.startswith("__") and k != target_var):
+                    eval_scope[k] = v
+
+            if not ("state ==" in subbed_expr or "state !=" in subbed_expr):
+                passed = bool(eval(subbed_expr, eval_scope, exec_globals))
+                if not passed:
+                    raise PostconditionVerificationError(
+                        f"Postcondition failed for cell '{cell_id}': '{desc}' evaluated to False on variable '{target_var}'."
+                    )
+        except PostconditionVerificationError:
+            raise
+        except Exception:
+            pass
+
+    # Property-based evaluation
+    if prop == "ndim":
+        actual_ndim = getattr(target_val, "ndim", None)
+        if actual_ndim is not None:
+            if op == "==" and actual_ndim != val:
+                raise PostconditionVerificationError(
+                    f"Postcondition 'ndim == {val}' failed for cell '{cell_id}': '{target_var}.ndim' is {actual_ndim}."
+                )
+            elif op == ">=" and actual_ndim < val:
+                raise PostconditionVerificationError(
+                    f"Postcondition 'ndim >= {val}' failed for cell '{cell_id}': '{target_var}.ndim' is {actual_ndim}."
+                )
+    elif prop == "has_nans":
+        has_nans = False
+        if hasattr(target_val, "isna"):
+            has_nans = bool(target_val.isna().any().any() if hasattr(target_val.isna().any(), "any") else target_val.isna().any())
+        elif hasattr(target_val, "isnull"):
+            has_nans = bool(target_val.isnull().any().any() if hasattr(target_val.isnull().any(), "any") else target_val.isnull().any())
+        elif hasattr(target_val, "dtype") and getattr(target_val, "size", 0) > 0:
+            import numpy as _np
+            has_nans = bool(_np.isnan(target_val).any()) if _np.issubdtype(target_val.dtype, _np.number) else False
+
+        expected_has_nans = bool(val)
+        if has_nans != expected_has_nans:
+            raise PostconditionVerificationError(
+                f"Postcondition 'has_nans == {expected_has_nans}' failed for cell '{cell_id}': variable '{target_var}' {'contains NaNs' if has_nans else 'does not contain NaNs'}."
+            )
+    elif prop == "is_deduped":
+        if hasattr(target_val, "duplicated"):
+            is_deduped = not bool(target_val.duplicated().any())
+            if is_deduped != bool(val):
+                raise PostconditionVerificationError(
+                    f"Postcondition 'is_deduped == {val}' failed for cell '{cell_id}': DataFrame '{target_var}' contains duplicates."
+                )
+    elif prop == "is_fitted":
+        _check_estimator_fitted(target_val, cell_id, target_var)
+    elif prop == "state":
+        if val == "gray":
+            ndim = getattr(target_val, "ndim", None)
+            shape = getattr(target_val, "shape", None)
+            is_gray = (ndim == 2) or (ndim == 3 and shape and shape[2] == 1)
+            if not is_gray:
+                raise PostconditionVerificationError(
+                    f"Postcondition 'state == gray' failed for cell '{cell_id}': variable '{target_var}' has shape {shape} (not single-channel grayscale)."
+                )
+        elif val in ("color_bgr", "color_rgb"):
+            shape = getattr(target_val, "shape", None)
+            is_color = bool(shape and len(shape) == 3 and shape[2] == 3)
+            if not is_color:
+                raise PostconditionVerificationError(
+                    f"Postcondition 'state == {val}' failed for cell '{cell_id}': variable '{target_var}' has shape {shape} (not 3-channel color image)."
+                )
+
+
+def _evaluate_terminal_intent(
+    exec_globals: Dict[str, Any],
+    term_check: Dict[str, Any],
+    egress_paths: Optional[list[str]] = None
+) -> None:
+    """Evaluates task intent on terminal nodes (model fit split data, image annotation egress, etc.)."""
+    intent_type = term_check.get("type")
+    cell_id = term_check.get("cell_id", "terminal_node")
+
+    if intent_type == "model_fit_split":
+        model_var = term_check.get("model_var")
+        feature_var = term_check.get("feature_var")
+        expected_train_var = term_check.get("expected_train_feature_var")
+        unsplit_feature_var = term_check.get("unsplit_feature_var")
+
+        if not model_var or model_var not in exec_globals:
+            raise PostconditionVerificationError(
+                f"Terminal model variable '{model_var}' was not created in execution scope."
+            )
+        model_obj = exec_globals[model_var]
+        _check_estimator_fitted(model_obj, cell_id, model_var)
+
+        # Verify model was fitted on split training partition (not full unsplit dataset)
+        if expected_train_var and feature_var:
+            if feature_var != expected_train_var:
+                raise PostconditionVerificationError(
+                    f"Terminal model '{model_var}' ({cell_id}) was fitted on '{feature_var}' instead of split training partition '{expected_train_var}'. Model training intent violated."
+                )
+
+        if unsplit_feature_var and expected_train_var:
+            unsplit_val = exec_globals.get(unsplit_feature_var)
+            train_val = exec_globals.get(expected_train_var)
+            if unsplit_val is not None and train_val is not None:
+                n_unsplit = len(unsplit_val) if hasattr(unsplit_val, "__len__") else 0
+                n_train = len(train_val) if hasattr(train_val, "__len__") else 0
+                if n_train > 0 and n_train < n_unsplit:
+                    if hasattr(model_obj, "estimators_") and len(model_obj.estimators_) > 0:
+                        tree = getattr(model_obj.estimators_[0], "tree_", None)
+                        if tree and hasattr(tree, "n_node_samples"):
+                            if tree.n_node_samples[0] == n_unsplit:
+                                raise PostconditionVerificationError(
+                                    f"Terminal model '{model_var}' ({cell_id}) was fitted on un-split dataset ({n_unsplit} samples) instead of training partition ({n_train} samples)."
+                                )
+
+    elif intent_type == "image_annotation_egress":
+        saved_var = term_check.get("saved_var")
+        annotated_var = term_check.get("annotated_var")
+        ingress_var = term_check.get("ingress_var")
+        output_path = term_check.get("output_path", "")
+
+        # 1. Wire check: verify saved variable is annotated wire, not raw ingress wire
+        if annotated_var and ingress_var and saved_var:
+            if saved_var == ingress_var and annotated_var != ingress_var:
+                raise PostconditionVerificationError(
+                    f"Terminal node '{cell_id}' saved unannotated raw input image '{ingress_var}' instead of annotated image '{annotated_var}'. Annotation intent was not realized in egress artifact."
+                )
+
+        # 2. Disk content check: verify saved artifact is not identical to raw input
+        clean_path = output_path.strip("'\"") if output_path else None
+        if not clean_path and egress_paths:
+            clean_path = egress_paths[0].strip("'\"") if egress_paths else None
+
+        if clean_path and os.path.exists(clean_path):
+            import cv2
+            import numpy as _np
+            disk_img = cv2.imread(clean_path)
+            ingress_img = exec_globals.get(ingress_var) if ingress_var else None
+
+            if disk_img is not None and ingress_img is not None:
+                if disk_img.shape == ingress_img.shape and _np.array_equal(disk_img, ingress_img):
+                    if annotated_var and annotated_var != ingress_var:
+                        raise PostconditionVerificationError(
+                            f"Egress image '{clean_path}' contains byte-identical raw input image without annotations. Annotation intent was not realized in saved artifact."
+                        )
+
+    elif intent_type == "tabular_egress":
+        saved_var = term_check.get("saved_var")
+        ingress_var = term_check.get("ingress_var")
+        output_path = term_check.get("output_path", "")
+        expected_clean = term_check.get("expected_clean", {})
+
+        if saved_var and ingress_var and saved_var == ingress_var and expected_clean.get("no_nans"):
+            raise PostconditionVerificationError(
+                f"Terminal node '{cell_id}' saved raw uncleaned DataFrame '{ingress_var}' instead of transformed DataFrame."
+            )
+
+        clean_path = output_path.strip("'\"") if output_path else None
+        if not clean_path and egress_paths:
+            clean_path = egress_paths[0].strip("'\"") if egress_paths else None
+
+        if clean_path and os.path.exists(clean_path) and expected_clean.get("no_nans"):
+            import pandas as _pd
+            try:
+                disk_df = _pd.read_csv(clean_path)
+                if disk_df.isna().any().any():
+                    raise PostconditionVerificationError(
+                        f"Egress CSV '{clean_path}' contains NaN values; dropna intent was not realized in saved artifact."
+                    )
+            except Exception as e:
+                if isinstance(e, PostconditionVerificationError):
+                    raise
+
+    elif intent_type == "visualization_egress":
+        fig_var = term_check.get("fig_var")
+        output_path = term_check.get("output_path", "")
+
+        fig_obj = exec_globals.get(fig_var) if fig_var else None
+        if fig_obj is None:
+            for v in exec_globals.values():
+                if type(v).__name__ == "Figure":
+                    fig_obj = v
+                    break
+
+        if fig_obj is not None:
+            axes = getattr(fig_obj, "axes", [])
+            total_elements = sum(
+                len(getattr(ax, "lines", [])) +
+                len(getattr(ax, "collections", [])) +
+                len(getattr(ax, "patches", [])) +
+                len(getattr(ax, "containers", [])) +
+                len(getattr(ax, "images", []))
+                for ax in axes
+            )
+            if len(axes) > 0 and total_elements == 0:
+                raise PostconditionVerificationError(
+                    f"Terminal node '{cell_id}' saved an empty figure to '{output_path}' with 0 plotted data elements."
+                )
+
+
+def verify_postconditions(
+    exec_globals: Dict[str, Any],
+    verification_spec: Any,
+    egress_paths: Optional[list[str]] = None
+) -> None:
+    """
+    Evaluates Phase-1 postconditions and terminal node intent against runtime execution scope.
+    Raises PostconditionVerificationError if any check fails.
+    """
+    if verification_spec is None:
+        return
+
+    if hasattr(verification_spec, "verify") and callable(verification_spec.verify):
+        verification_spec.verify(exec_globals, egress_paths)
+        return
+
+    if isinstance(verification_spec, dict):
+        cell_checks = verification_spec.get("cell_checks", [])
+        terminal_checks = verification_spec.get("terminal_checks", [])
+    elif isinstance(verification_spec, list):
+        cell_checks = verification_spec
+        terminal_checks = []
+    else:
+        return
+
+    # 1. Evaluate Phase-1 Cell Postconditions
+    for check in cell_checks:
+        _evaluate_cell_postcondition(exec_globals, check)
+
+    # 2. Evaluate Terminal Node Intent Checks
+    for term_check in terminal_checks:
+        _evaluate_terminal_intent(exec_globals, term_check, egress_paths)
+
+
+def _sandbox_worker_exec(
+    code: str,
+    egress_paths: Optional[list[str]] = None,
+    cwd: Optional[str] = None,
+    verification_spec: Optional[Union[Dict[str, Any], List[Dict[str, Any]], Any]] = None
+) -> Dict[str, Any]:
     """
     Isolated execution unit executed within persistent worker process.
     Executes the candidate strictly as-is: no synthetic fixtures are ever created.
@@ -110,7 +406,7 @@ def _sandbox_worker_exec(code: str, egress_paths: Optional[list[str]] = None, cw
                         f"Terminal pipeline save operation '{terminal_var}' returned False."
                     )
 
-            # 2. Guarded Branch Failure Detection in STDERR (not STDOUT, which may contain legitimate metrics like 'Mean Squared Error')
+            # 2. Guarded Branch Failure Detection in STDERR
             stdout_str = stdout_buf.getvalue()
             stderr_str = stderr_buf.getvalue()
             stderr_lower = stderr_str.lower()
@@ -135,6 +431,10 @@ def _sandbox_worker_exec(code: str, egress_paths: Optional[list[str]] = None, cw
                             f"Egress destination artifact '{clean_p}' was not created or has 0 bytes."
                         )
 
+            # 4. Phase-1 Postcondition & Terminal Task Verification
+            if verification_spec:
+                verify_postconditions(exec_globals, verification_spec, egress_paths)
+
             return {
                 "success": True,
                 "stdout": stdout_str,
@@ -143,7 +443,7 @@ def _sandbox_worker_exec(code: str, egress_paths: Optional[list[str]] = None, cw
             }
         except Exception as e:
             is_extrinsic = isinstance(e, (FileNotFoundError, ConnectionError, TimeoutError, ModuleNotFoundError))
-            err_msg = f"{type(e).__name__}: {e}" if isinstance(e, (DataflowExecutionError, ArtifactMaterializationError)) else traceback.format_exc()
+            err_msg = f"{type(e).__name__}: {e}" if isinstance(e, (DataflowExecutionError, ArtifactMaterializationError, PostconditionVerificationError)) else traceback.format_exc()
             return {
                 "success": False,
                 "extrinsic": is_extrinsic,
@@ -152,7 +452,6 @@ def _sandbox_worker_exec(code: str, egress_paths: Optional[list[str]] = None, cw
                 "error": err_msg
             }
         finally:
-            # No synthetic fixtures are created by the sandbox; nothing to clean up.
             pass
 
 
@@ -186,7 +485,8 @@ class GEVRSandbox:
         code: str,
         timeout: Optional[float] = None,
         egress_paths: Optional[list[str]] = None,
-        cwd: Optional[str] = None
+        cwd: Optional[str] = None,
+        verification_spec: Optional[Union[Dict[str, Any], List[Dict[str, Any]], Any]] = None
     ) -> Dict[str, Any]:
         """
         Executes Python code in the persistent worker process pool.
@@ -203,9 +503,11 @@ class GEVRSandbox:
 
         tout = timeout if timeout is not None else self.timeout
         exec_cwd = cwd or os.getcwd()
+        spec_dict = verification_spec.to_dict() if hasattr(verification_spec, "to_dict") else verification_spec
+
         try:
             self._ensure_pool()
-            async_res = self._pool.apply_async(_sandbox_worker_exec, (code, egress_paths, exec_cwd))
+            async_res = self._pool.apply_async(_sandbox_worker_exec, (code, egress_paths, exec_cwd, spec_dict))
             res = async_res.get(timeout=tout)
             if res.get("error") is None:
                 res["error"] = ""
@@ -219,12 +521,13 @@ class GEVRSandbox:
         self,
         code: str,
         egress_paths: Optional[list[str]] = None,
-        cwd: Optional[str] = None
+        cwd: Optional[str] = None,
+        verification_spec: Optional[Union[Dict[str, Any], List[Dict[str, Any]], Any]] = None
     ) -> Tuple[bool, str, str]:
         """
         Executes Python code and returns (success, stdout, stderr/error).
         """
-        res = self.execute(code, egress_paths=egress_paths, cwd=cwd)
+        res = self.execute(code, egress_paths=egress_paths, cwd=cwd, verification_spec=verification_spec)
         err = res.get("error", "") or res.get("stderr", "")
         return res["success"], res["stdout"], err
 
@@ -232,15 +535,21 @@ class GEVRSandbox:
         self,
         initial_code: str,
         llm_repair_func: Optional[Callable[[str, str], str]] = None,
-        max_attempts: int = 2
+        max_attempts: int = 2,
+        egress_paths: Optional[list[str]] = None,
+        cwd: Optional[str] = None,
+        verification_spec: Optional[Union[Dict[str, Any], List[Dict[str, Any]], Any]] = None
     ) -> Tuple[bool, str, str]:
         """
         Feedback verification loop:
-        Executes code, captures tracebacks, and applies diagnostic LLM repairs.
+        Executes code, captures tracebacks and task verification errors, and applies diagnostic LLM repairs.
         """
         current_code = initial_code
+        error = ""
         for attempt in range(max_attempts):
-            success, stdout, error = self.execute_and_verify(current_code)
+            success, stdout, error = self.execute_and_verify(
+                current_code, egress_paths=egress_paths, cwd=cwd, verification_spec=verification_spec
+            )
             if success:
                 logger.info(f"[GEVR Sandbox] Verification PASSED on attempt {attempt + 1}")
                 return True, current_code, ""

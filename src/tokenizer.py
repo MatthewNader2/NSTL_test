@@ -280,6 +280,13 @@ class CellTokenizer:
                     if len(stem) > 1:
                         tokens.add(stem)
 
+        # Also extract camel-case and dotted/underscored identifier sub-words
+        for raw_word in prompt.split():
+            clean_w = raw_word.strip(",;.:!?()[]{}\"'")
+            if any(c.isupper() for c in clean_w) or '_' in clean_w or '.' in clean_w:
+                sub_toks = cls.tokenize_identifier(clean_w)
+                tokens.update(sub_toks)
+
         return tokens
 
     @classmethod

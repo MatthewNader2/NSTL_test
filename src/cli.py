@@ -144,7 +144,11 @@ def cmd_compile(args):
                 "outputs": {k: v.model_dump() for k, v in cell.outputs.items()},
                 "slots": getattr(cell, "slots", {}),
                 "topology_type": getattr(cell, "topology_type", "sequential"),
-                "feedback_state_type": getattr(cell, "feedback_state_type", None)
+                "feedback_state_type": getattr(cell, "feedback_state_type", None),
+                "preconditions": [p.model_dump() if hasattr(p, "model_dump") else p for p in getattr(cell, "preconditions", [])],
+                "postconditions": [p.model_dump() if hasattr(p, "model_dump") else p for p in getattr(cell, "postconditions", [])],
+                "effects": [p.model_dump() if hasattr(p, "model_dump") else p for p in getattr(cell, "effects", [])],
+                "edges": [e.model_dump() if hasattr(e, "model_dump") else e for e in getattr(cell, "edges", [])],
             }
             cfg_json = json.dumps(cfg_dict)
             deps_json = json.dumps(cell.dependencies)
@@ -869,7 +873,8 @@ class PipelineDebugger:
 
         if final_code and execute_sandbox:
             t_exec_start = time.perf_counter()
-            sandbox_res = self.sandbox.execute(final_code, timeout=timeout, egress_paths=dest_paths)
+            v_contract = getattr(self.gate, "last_verification_contract", None)
+            sandbox_res = self.sandbox.execute(final_code, timeout=timeout, egress_paths=dest_paths, verification_spec=v_contract)
             sandbox_dt = (time.perf_counter() - t_exec_start) * 1000.0
 
             sb_success = sandbox_res.get("success", False)
@@ -1027,7 +1032,8 @@ class NSTLInteractiveShell(cmd.Cmd):
         llm: str = "",
         device: str = "auto",
         debug: bool = False,
-        interactive: bool = True
+        interactive: bool = True,
+        no_exec: bool = False
     ):
         super().__init__()
         self.db_path = db_path
@@ -1039,6 +1045,7 @@ class NSTLInteractiveShell(cmd.Cmd):
         self.history: List[Dict[str, Any]] = []
         self.debug: bool = debug
         self.interactive: bool = interactive
+        self.no_exec: bool = no_exec
 
         if interactive:
             console.print("\n[bold cyan][*] Initializing NSTL Neuro-Symbolic Engine...[/bold cyan]")
@@ -1503,9 +1510,14 @@ class NSTLInteractiveShell(cmd.Cmd):
         # path-typed ports of terminal morphisms) — a single source of truth derived
         # from the verified dataflow, never re-parsed from the raw prompt.
         dest_paths = self.gate.get_egress_paths() or None
+        v_contract = getattr(self.gate, "last_verification_contract", None)
 
-        sandbox_res = self.sandbox.execute(final_code, timeout=5.0, egress_paths=dest_paths)
-        sandbox_dt = (time.perf_counter() - t_exec_start) * 1000.0
+        if getattr(self, "no_exec", False):
+            sandbox_res = {"success": True, "skipped": True}
+            sandbox_dt = 0.0
+        else:
+            sandbox_res = self.sandbox.execute(final_code, timeout=5.0, egress_paths=dest_paths, verification_spec=v_contract)
+            sandbox_dt = (time.perf_counter() - t_exec_start) * 1000.0
 
         repaired = False
         # If execution failed and LLM feedback is available (Profile C/E), trigger self-repair.
@@ -1542,7 +1554,7 @@ class NSTLInteractiveShell(cmd.Cmd):
                             final_code = repaired_code
                             repaired = True
                             # Re-verify repaired code
-                            sandbox_res = self.sandbox.execute(final_code, timeout=5.0, egress_paths=dest_paths)
+                            sandbox_res = self.sandbox.execute(final_code, timeout=5.0, egress_paths=dest_paths, verification_spec=v_contract)
                     rep_dt = (time.perf_counter() - t_rep_start) * 1000.0
                     console.print(f"  [bold green][✓] Repair cycle completed ({rep_dt:.1f}ms).[/bold green]")
 
@@ -1569,7 +1581,10 @@ class NSTLInteractiveShell(cmd.Cmd):
         timing_elements.append(f"[bold yellow]Total: {total_dt:.2f}ms[/bold yellow]")
 
         # Report Sandbox Execution Status
-        if sandbox_res.get("success", False):
+        if sandbox_res.get("skipped", False):
+            sb_badge = "[bold yellow]↷ SKIPPED (--no-exec)[/bold yellow]"
+            sb_status = "SKIPPED"
+        elif sandbox_res.get("success", False):
             sb_badge = f"[bold green]✓ PASSED[/bold green]"
             sb_status = "PASSED"
         else:
@@ -1653,7 +1668,8 @@ def cmd_run(args):
         llm=llm,
         device=device,
         debug=debug_mode,
-        interactive=False
+        interactive=False,
+        no_exec=getattr(args, "no_exec", False)
     )
     shell.default(f"{prompt} --debug" if debug_mode else prompt)
 

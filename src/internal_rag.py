@@ -39,10 +39,10 @@ logger = get_logger("internal_rag")
 _CACHE_DIR_NAME = ".rag_cache"
 # Persisted-index format version: bump to invalidate on-disk FAISS indexes when
 # the embedding-text construction changes.
-_INDEX_FORMAT_VERSION = 2
+_INDEX_FORMAT_VERSION = 3
 
 
-def build_cell_embedding_text(cell: Any) -> str:
+def build_cell_embedding_text(cell: Any, orchestrator: Optional[Any] = None) -> str:
     """Builds a rich semantic representation of a cell for dense vector embedding.
 
     Includes:
@@ -56,6 +56,9 @@ def build_cell_embedding_text(cell: Any) -> str:
     - Input & output typestate data flow contract
     - Input parameter names and descriptions
     - Domain & library context
+    - Outbound edge transitions (with transition probabilities and affinities)
+    - Inbound edge transitions (predecessors feeding into this cell)
+    - Preconditions and effects / postconditions
     """
     parts = []
 
@@ -142,6 +145,58 @@ def build_cell_embedding_text(cell: Any) -> str:
     domain = getattr(cell, "domain_name", "") if not isinstance(cell, dict) else (cell.get("domain_name") or cell.get("domain", ""))
     if domain:
         parts.append(f"Domain: {domain}")
+
+    # 8. Outbound Edge Transitions (with transition probabilities and affinities)
+    edges = getattr(cell, "edges", []) if not isinstance(cell, dict) else cell.get("edges", [])
+    if edges:
+        succ_entries = []
+        for e in edges[:6]:
+            tgt = e.get("target_cell_id") if isinstance(e, dict) else getattr(e, "target_cell_id", "")
+            if not tgt:
+                continue
+            prov = e.get("score_provenance", "") if isinstance(e, dict) else getattr(e, "score_provenance", "")
+            aff = e.get("affinity_score", 0.0) if isinstance(e, dict) else getattr(e, "affinity_score", 0.0)
+            meta = e.get("metadata", {}) if isinstance(e, dict) else getattr(e, "metadata", {})
+            prob = meta.get("transition_probability") if isinstance(meta, dict) else None
+            p_str = f"p={prob:.3f}" if prob is not None else f"aff={aff:.2f}"
+            succ_entries.append(f"{tgt} ({p_str}, {prov})")
+        if succ_entries:
+            parts.append(f"Successors: {'; '.join(succ_entries)}")
+
+    # 9. Inbound Edge Transitions (Predecessors from orchestrator topology)
+    if orchestrator is not None and hasattr(orchestrator, "_reverse_adjacency") and cid:
+        preds = orchestrator._reverse_adjacency.get(cid, [])[:6]
+        if preds:
+            parts.append(f"Predecessors: {', '.join(preds)}")
+
+    # 10. Preconditions and Effects / Postconditions
+    preconds = getattr(cell, "preconditions", []) if not isinstance(cell, dict) else cell.get("preconditions", [])
+    if preconds:
+        p_strs = []
+        for p in preconds[:3]:
+            if isinstance(p, dict):
+                expr = p.get("expression") or f"{p.get('property')} {p.get('operator')} {p.get('value')}"
+            elif hasattr(p, "expression") and p.expression:
+                expr = p.expression
+            else:
+                expr = str(p)
+            p_strs.append(expr)
+        if p_strs:
+            parts.append(f"Preconditions: {'; '.join(p_strs)}")
+
+    effects = getattr(cell, "effects", []) or getattr(cell, "postconditions", []) if not isinstance(cell, dict) else (cell.get("effects") or cell.get("postconditions", []))
+    if effects:
+        e_strs = []
+        for ef in effects[:3]:
+            if isinstance(ef, dict):
+                expr = ef.get("expression") or f"{ef.get('property')} {ef.get('operator')} {ef.get('value')}"
+            elif hasattr(ef, "expression") and ef.expression:
+                expr = ef.expression
+            else:
+                expr = str(ef)
+            e_strs.append(expr)
+        if e_strs:
+            parts.append(f"Effects: {'; '.join(e_strs)}")
 
     return " | ".join(parts) if parts else cid
 
@@ -259,7 +314,7 @@ class LocalRAG:
                 seen_ids.add(cid)
 
                 desc = (getattr(cell, "docstring", "") or "").strip()
-                text_repr = build_cell_embedding_text(cell)
+                text_repr = build_cell_embedding_text(cell, orchestrator=self.orchestrator)
                 content_hash = hashlib.sha256(text_repr.encode("utf-8")).hexdigest()
 
                 schema = {
@@ -412,7 +467,7 @@ class LocalRAG:
                 return
 
             cid = cell_dict.get("cell_id", "dynamic_cell")
-            text_repr = build_cell_embedding_text(cell_dict)
+            text_repr = build_cell_embedding_text(cell_dict, orchestrator=self.orchestrator)
 
             raw_emb = np.array([ModelManager.get_instance().get_embedding(text_repr)], dtype=np.float32)
             norm = np.linalg.norm(raw_emb)
