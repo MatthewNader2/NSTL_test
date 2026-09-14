@@ -1012,8 +1012,6 @@ class LatticeOrchestrator:
         self.typestate_vocabularies: Dict[str, Any] = {}
         self._adjacency: Dict[str, List[str]] = {}
         self._reverse_adjacency: Dict[str, List[str]] = {}
-        self._cells_by_input: Dict[Tuple[str, str], List[Cell]] = {}
-        self._cells_by_output: Dict[Tuple[str, str], List[Cell]] = {}
         self._token_index: Dict[str, List[Cell]] = {}
         self._bridge_cells: List[Cell] = []
         self._lock = threading.RLock()
@@ -1027,6 +1025,22 @@ class LatticeOrchestrator:
     @property
     def cells(self) -> List[Cell]:
         return list(self.loaded_cells.values())
+
+    @property
+    def _cells_by_input(self) -> Dict[Tuple[str, str], List[Cell]]:
+        res: Dict[Tuple[str, str], List[Cell]] = {}
+        for c in self.loaded_cells.values():
+            for p in c.inputs.values():
+                res.setdefault((p.type_name, p.state), []).append(c)
+        return res
+
+    @property
+    def _cells_by_output(self) -> Dict[Tuple[str, str], List[Cell]]:
+        res: Dict[Tuple[str, str], List[Cell]] = {}
+        for c in self.loaded_cells.values():
+            for p in c.outputs.values():
+                res.setdefault((p.type_name, p.state), []).append(c)
+        return res
 
     def load_tree_file(self, json_path: str):
         """Loads an arbitrary domain tree from JSON without engine hardcodes."""
@@ -1361,8 +1375,6 @@ class LatticeOrchestrator:
         with self._lock:
             self._adjacency.clear()
             self._reverse_adjacency.clear()
-            self._cells_by_input.clear()
-            self._cells_by_output.clear()
             self._token_index.clear()
             self._bridge_cells.clear()
 
@@ -1375,12 +1387,6 @@ class LatticeOrchestrator:
                     self._bridge_cells.append(cell)
                 self._adjacency[cell.cell_id] = []
                 self._reverse_adjacency[cell.cell_id] = []
-                for p in cell.inputs.values():
-                    key = (p.type_name, p.state)
-                    self._cells_by_input.setdefault(key, []).append(cell)
-                for p in cell.outputs.values():
-                    key = (p.type_name, p.state)
-                    self._cells_by_output.setdefault(key, []).append(cell)
 
             # Populate graph edges
             for u in all_cells:

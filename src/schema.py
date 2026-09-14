@@ -104,7 +104,7 @@ class PortSchema(BaseModel):
     state: str = "default"
     parent_state: Optional[str] = None
     accepted_states: List[str] = Field(default_factory=list)
-    qualifiers: List[List[str]] = Field(default_factory=list)
+    qualifiers: List[Any] = Field(default_factory=list)
     default_value: Optional[Any] = None
     description: Optional[str] = None
     domain: Optional[str] = None
@@ -113,7 +113,14 @@ class PortSchema(BaseModel):
     enum_values: Optional[List[Any]] = None
     param_kind: Optional[str] = "standard"  # "positional_only", "keyword_only", "var_positional", "var_keyword", "standard"
     value_constraints: Optional[Dict[str, Any]] = None  # e.g. {"min": 0, "max": 1, "interval": "[0, 1]"}
-    shape_contract: Optional[Dict[str, Any]] = None  # e.g. {"ndim": 2}
+    shape_contract: Optional[Union[Dict[str, Any], str]] = None  # e.g. {"ndim": 2} or "(n_samples, n_features)"
+
+    @field_validator("accepted_states", mode="before")
+    @classmethod
+    def clean_accepted_states(cls, v: Any) -> List[str]:
+        if v is None:
+            return []
+        return v
 
     @field_validator("abstract_type", mode="before")
     @classmethod
@@ -133,7 +140,7 @@ class CellSchema(BaseModel):
     inputs: Dict[str, PortSchema] = Field(default_factory=dict)
     outputs: Dict[str, PortSchema] = Field(default_factory=dict)
     topology_type: str = "sequential"  # "sequential", "monoidal_product", "coproduct_branch", "traced_loop"
-    slots: Dict[str, Any] = Field(default_factory=dict)
+    slots: Union[Dict[str, Any], List[str]] = Field(default_factory=list)
     feedback_state_type: Optional[str] = None
     bound_slots: Dict[str, Any] = Field(default_factory=dict)
     code_template: str
@@ -237,10 +244,9 @@ class CellSchema(BaseModel):
     @field_validator("topology_type")
     @classmethod
     def validate_topology(cls, v: str) -> str:
-        allowed = {"sequential", "monoidal_product", "coproduct_branch", "traced_loop"}
-        if v not in allowed:
-            raise ValueError(f"Invalid topology_type: '{v}'. Must be one of {allowed}")
-        return v
+        if not v or not str(v).strip():
+            return "sequential"
+        return str(v).strip().lower()
 
     @property
     def primary_input(self) -> PortSchema:
