@@ -67,6 +67,7 @@ class TypeRegistry:
         self._aliases: Dict[str, str] = {}
         self._state_parents: Dict[str, str] = {}
         self._bootstrap_carrier_hierarchy()
+        self._bootstrap_state_hierarchy()
 
     def _bootstrap_carrier_hierarchy(self):
         """Initializes universal, language-agnostic computational carrier types."""
@@ -111,6 +112,66 @@ class TypeRegistry:
             ("matlike", "tensor"),
         ):
             self.register_alias(alias, can)
+
+    def _bootstrap_state_hierarchy(self):
+        """Initializes canonical, universal typestate preorder poset (S, <=)."""
+        # Machine learning features, partitions, and target states
+        self.register_state("split_train_features", "unscaled_features")
+        self.register_state("split_test_features", "unscaled_features")
+        self.register_state("unscaled_features", "feature_matrix")
+        self.register_state("scaled_features", "feature_matrix")
+        self.register_state("imputed_features", "unscaled_features")
+        self.register_state("encoded_features", "unscaled_features")
+        self.register_state("reduced_features", "feature_matrix")
+        self.register_state("feature_matrix", "ndarray_generic")
+
+        self.register_state("split_train_targets", "target_vector")
+        self.register_state("split_test_targets", "target_vector")
+        self.register_state("target_vector", "ndarray_generic")
+
+        # Tabular states
+        self.register_state("series_cleaned", "series_numeric")
+        self.register_state("series_numeric", "series_raw")
+        self.register_state("dataframe_2d_generic", "raw_dataset")
+        self.register_state("cleaned", "raw_dataset")
+        self.register_state("normalized", "cleaned")
+        self.register_state("transformed", "cleaned")
+        self.register_state("deduped", "cleaned")
+        self.register_state("filtered", "cleaned")
+        self.register_state("indexed", "cleaned")
+        self.register_state("numeric_only", "cleaned")
+
+        # Estimator states
+        self.register_state("fit_regressor", "fit_estimator")
+        self.register_state("fit_classifier", "fit_estimator")
+        self.register_state("fit_clusterer", "fit_estimator")
+        self.register_state("fit_transformer", "fit_estimator")
+        self.register_state("fit_estimator", "trained")
+        self.register_state("unfit_estimator", "default")
+
+        # Computer vision states
+        self.register_state("binary", "gray")
+        self.register_state("grayscale", "gray")
+        self.register_state("computed_threshold", "binary")
+        self.register_state("blurred", "gray")
+        self.register_state("edge_map", "gray")
+        self.register_state("dilated", "binary")
+        self.register_state("eroded", "binary")
+        self.register_state("morphology_processed", "binary")
+        self.register_state("contours", "collection")
+
+        # Egress / storage states
+        self.register_state("saved", "written_to_disk")
+        self.register_state("figure_saved", "written_to_disk")
+        self.register_state("saved_npy", "written_to_disk")
+        self.register_state("saved_npz", "written_to_disk")
+        self.register_state("written_to_disk", "exported")
+
+        # Path and source identifier states
+        self.register_state("valid_path", "source_identifier")
+        self.register_state("file_path", "source_identifier")
+        self.register_state("file_path_str", "source_identifier")
+        self.register_state("source_path", "source_identifier")
 
     @classmethod
     def get_instance(cls) -> TypeRegistry:
@@ -461,12 +522,97 @@ class AlgebraicSignature:
 
         # Qualifier satisfaction
         if other_sig.qualifiers and not other_sig.qualifiers.issubset(self.qualifiers):
-            return False
+            ignorable = {("const",), ("scalar",), ("vector",), ("matrix",), ("primary",)}
+            req = {q for q in other_sig.qualifiers if q not in ignorable}
+            if req and not req.issubset(self.qualifiers):
+                return False
 
         return True
 
     def matches(self, other: Any) -> bool:
         return self.unifies_with(other)
+
+
+class CaseInsensitiveDict(dict):
+    """
+    Case-insensitive dictionary for cell lookups across lowercase/uppercase identifiers.
+    Preserves exact keys while allowing case-insensitive retrieval.
+    """
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._lower_map: Dict[str, Any] = {str(k).lower(): k for k in self.keys()}
+
+    def __setitem__(self, key, value):
+        super().__setitem__(key, value)
+        self._lower_map[str(key).lower()] = key
+
+    def __delitem__(self, key):
+        super().__delitem__(key)
+        self._lower_map.pop(str(key).lower(), None)
+
+    def __getitem__(self, key):
+        if super().__contains__(key):
+            return super().__getitem__(key)
+        lower = str(key).lower()
+        if lower in self._lower_map:
+            return super().__getitem__(self._lower_map[lower])
+        raise KeyError(key)
+
+    def __contains__(self, key):
+        if super().__contains__(key):
+            return True
+        return str(key).lower() in self._lower_map
+
+    def get(self, key, default=None):
+        try:
+            return self[key]
+        except KeyError:
+            return default
+
+    def pop(self, key, *args):
+        if super().__contains__(key):
+            self._lower_map.pop(str(key).lower(), None)
+            return super().pop(key, *args)
+        lower = str(key).lower()
+        if lower in self._lower_map:
+            actual = self._lower_map.pop(lower)
+            return super().pop(actual, *args)
+        if args:
+            return args[0]
+        raise KeyError(key)
+
+    def clear(self):
+        super().clear()
+        self._lower_map.clear()
+
+
+class PortMapping(dict):
+    """
+    Port dictionary supporting canonical port names as primary keys,
+    while permitting alias access (e.g. 'port_0', 'port_1') for backward compatibility.
+    """
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._aliases: Dict[str, str] = {}
+
+    def add_alias(self, alias: str, canonical: str):
+        self._aliases[alias] = canonical
+
+    def __getitem__(self, key):
+        if super().__contains__(key):
+            return super().__getitem__(key)
+        if key in self._aliases:
+            return super().__getitem__(self._aliases[key])
+        raise KeyError(key)
+
+    def get(self, key, default=None):
+        try:
+            return self[key]
+        except KeyError:
+            return default
+
+    def __contains__(self, key):
+        return super().__contains__(key) or key in self._aliases
 
 
 class PortSignature:
@@ -675,7 +821,7 @@ class Cell(ABC):
         "topology_type", "feedback_state_type", "bound_slots",
         "replica_of", "replica_role",
         "mutation_type", "is_context_manager", "raises", "type_vars",
-        "preconditions", "postconditions", "effects", "edges",
+        "preconditions", "postconditions", "effects", "edges", "endable",
         "_primary_input", "_primary_output", "_token_set", "_token_count",
         "_identity_tokens"
     ]
@@ -715,6 +861,7 @@ class Cell(ABC):
         postconditions: Optional[List[Any]] = None,
         effects: Optional[List[Any]] = None,
         edges: Optional[List[Any]] = None,
+        endable: Optional[bool] = None,
         **kwargs
     ):
         self.cell_id = cell_id
@@ -766,6 +913,7 @@ class Cell(ABC):
         self.postconditions = list(eff or [])
         self.effects = self.postconditions
         self.edges = list(edges or kwargs.get("edges", []))
+        self.endable = endable if endable is not None else kwargs.get("endable")
 
         # For-each multiplicity expansion: a replica is a runtime copy of a
         # planned cell that re-consumes its receiver from the environment and
@@ -812,7 +960,7 @@ class Cell(ABC):
                     inputs_dict[f"port_{idx}"] = item
             inputs = inputs_dict
 
-        self.inputs: Dict[str, PortSignature] = {}
+        self.inputs: Dict[str, PortSignature] = PortMapping()
         for k, v in (inputs or {}).items():
             orig_k = k
             if k.startswith("port_"):
@@ -860,6 +1008,8 @@ class Cell(ABC):
 
             port_sig.name = k
             self.inputs[k] = port_sig
+            if orig_k != k:
+                self.inputs.add_alias(orig_k, k)
 
         # Normalize outputs into Dict[str, PortSignature]
         if isinstance(outputs, list):
@@ -874,8 +1024,9 @@ class Cell(ABC):
                     outputs_dict[f"port_{idx}"] = item
             outputs = outputs_dict
 
-        self.outputs: Dict[str, PortSignature] = {}
+        self.outputs: Dict[str, PortSignature] = PortMapping()
         for k, v in (outputs or {}).items():
+            orig_k = k
             if k.startswith("port_"):
                 try:
                     p_idx = int(k.split("_")[1])
@@ -921,6 +1072,9 @@ class Cell(ABC):
                 )
             else:
                 self.outputs[k] = PortSignature(name=k, signature=AlgebraicSignature("any", "any"))
+
+            if orig_k != k:
+                self.outputs.add_alias(orig_k, k)
 
         self._token_set: Optional[Set[str]] = None
         self._token_count: int = 0
@@ -971,6 +1125,24 @@ class Cell(ABC):
                 toks.update(CellTokenizer.tokenize_identifier(p))
             self._identity_tokens = toks
         return self._identity_tokens
+
+    @property
+    def is_endable(self) -> bool:
+        """
+        Determines whether this node can validly terminate an execution pipeline:
+        - Explicit node-level endable override if declared.
+        - Stage 3 terminal/egress/sink/consumer/evaluator nodes.
+        - Display/visualization/cleanup/destructor nodes.
+        - Otherwise, intermediate data transformers require downstream closure.
+        """
+        if self.endable is not None:
+            return bool(self.endable)
+        if self.stage == 3 or self.node_role in ("sink", "terminal", "evaluator", "consumer"):
+            return True
+        t_role = self.node_role.lower()
+        if t_role in ("display", "visualizer", "cleanup", "destructor"):
+            return True
+        return False
 
     @property
     def token_count(self) -> int:
@@ -1109,7 +1281,7 @@ class LatticeOrchestrator:
         self.trees_directory = trees_directory
         self.db_path = db_path if db_path is not None else os.path.join(trees_directory, "lattice.db")
         self.active_domain = active_domain
-        self.loaded_cells: Dict[str, Cell] = {}
+        self.loaded_cells: Dict[str, Cell] = CaseInsensitiveDict()
         self.typestate_vocabularies: Dict[str, Any] = {}
         self._adjacency: Dict[str, List[str]] = {}
         self._reverse_adjacency: Dict[str, List[str]] = {}
@@ -1300,6 +1472,8 @@ class LatticeOrchestrator:
                                     abs_t = _clean_abs_carrier(p_val.get("abstract_type"))
                                     acc_s = frozenset(str(s).strip().lower() for s in (p_val.get("accepted_states") or []) if str(s).strip())
                                     p_s = str(p_val.get("parent_state") or "").strip().lower() or None
+                                    if p_s and p_val.get("state"):
+                                        TypeRegistry.get_instance().register_state(p_val.get("state"), p_s)
                                     inputs[p_name] = PortSignature(
                                         name=p_name,
                                         signature=AlgebraicSignature(
@@ -1327,6 +1501,8 @@ class LatticeOrchestrator:
                                     abs_t = _clean_abs_carrier(p_val.get("abstract_type"))
                                     acc_s = frozenset(str(s).strip().lower() for s in (p_val.get("accepted_states") or []) if str(s).strip())
                                     p_s = str(p_val.get("parent_state") or "").strip().lower() or None
+                                    if p_s and p_val.get("state"):
+                                        TypeRegistry.get_instance().register_state(p_val.get("state"), p_s)
                                     outputs[p_name] = PortSignature(
                                         name=p_name,
                                         signature=AlgebraicSignature(
@@ -1391,7 +1567,8 @@ class LatticeOrchestrator:
                             preconditions=cfg.get("preconditions", []),
                             postconditions=cfg.get("postconditions", []),
                             effects=cfg.get("effects", []),
-                            edges=cfg.get("edges", [])
+                            edges=cfg.get("edges", []),
+                            endable=cfg.get("endable")
                         )
                         self.loaded_cells[cell.cell_id] = cell
 
@@ -1460,7 +1637,8 @@ class LatticeOrchestrator:
                             domain_name="data_processing",
                             dependencies=deps,
                             code_template=code or "",
-                            verified=True
+                            verified=True,
+                            endable=cfg.get("endable")
                         )
                         if cell.is_public_morphism:
                             self.loaded_cells[cell.cell_id] = cell
@@ -1496,9 +1674,11 @@ class LatticeOrchestrator:
                 # 1. Declared edges from cell schema
                 for edge in getattr(u, "edges", []):
                     tgt_id = edge.get("target_cell_id") if isinstance(edge, dict) else getattr(edge, "target_cell_id", None)
-                    if tgt_id and tgt_id in self.loaded_cells and tgt_id not in self._adjacency[u.cell_id]:
-                        self._adjacency[u.cell_id].append(tgt_id)
-                        self._reverse_adjacency[tgt_id].append(u.cell_id)
+                    if tgt_id:
+                        tgt_cell = self.loaded_cells.get(tgt_id)
+                        if tgt_cell and tgt_cell.cell_id not in self._adjacency[u.cell_id]:
+                            self._adjacency[u.cell_id].append(tgt_cell.cell_id)
+                            self._reverse_adjacency[tgt_cell.cell_id].append(u.cell_id)
 
                 # 2. Monadic type compatibility
                 out_p = u.primary_output

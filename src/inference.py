@@ -199,7 +199,7 @@ class BenchmarkProfile_A(InferenceProfile):
         self.model = None
         self._dim = 384
         self.embedder_name = "default"
-        self._lock = threading.RLock()
+        self._lock = threading.Lock()
 
     def load_models(self, embedder_name: str, llm_name: str):
         from sentence_transformers import SentenceTransformer
@@ -269,7 +269,7 @@ class BenchmarkProfile_C(InferenceProfile):
         self._dim = 384
         self.embedder_name = "default"
         self.llm_name = "default"
-        self._lock = threading.RLock()
+        self._lock = threading.Lock()
 
     def load_models(self, embedder_name: str, llm_name: str):
         from sentence_transformers import SentenceTransformer

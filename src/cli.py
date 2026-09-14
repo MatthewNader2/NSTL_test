@@ -302,6 +302,7 @@ try:
     from config import MODELS_DIR
     from utils import extract_code_from_llm_response
     from tokenizer import CellTokenizer
+    from planner import _segment_prompt_clauses
 except ImportError:
     from .lattice import LatticeOrchestrator, Cell, PortSignature, AlgebraicSignature
     from .router import LatticeRouter, HardwareProfiler
@@ -316,6 +317,7 @@ except ImportError:
     from .config import MODELS_DIR
     from .utils import extract_code_from_llm_response
     from .tokenizer import CellTokenizer
+    from .planner import _segment_prompt_clauses
 
 STOPWORDS = frozenset({
     "a", "an", "the", "in", "on", "at", "of", "to", "for", "from", "by", "with",
@@ -518,7 +520,7 @@ class PipelineDebugger:
                 effective_prompt = effective_prompt.strip().strip('`').strip()
                 t_trans = (time.perf_counter() - t0_t) * 1000.0
 
-        clauses = [cl.strip() for cl in re.split(r'[,;]|\b(?:and|then)\b', effective_prompt) if cl.strip()]
+        clauses = _segment_prompt_clauses(effective_prompt)
         prompt_tokens = CellTokenizer.tokenize_prompt(effective_prompt)
         content_tokens = prompt_tokens - STOPWORDS
         literals = ExecutionContext._extract_universal_literals(effective_prompt)

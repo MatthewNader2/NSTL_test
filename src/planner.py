@@ -91,9 +91,10 @@ class LatticePlanner:
         followed by LLM seed edges and topological reachability.
         """
         # 1. Forward declared edges on src_cell
+        dst_id_lower = dst_cell.cell_id.lower()
         for edge in getattr(src_cell, "edges", []):
             tgt_id = edge.get("target_cell_id") if isinstance(edge, dict) else getattr(edge, "target_cell_id", None)
-            if tgt_id == dst_cell.cell_id:
+            if tgt_id and (tgt_id == dst_cell.cell_id or str(tgt_id).lower() == dst_id_lower):
                 aff = float(edge.get("affinity_score", 0.5) if isinstance(edge, dict) else getattr(edge, "affinity_score", 0.5))
                 prov = edge.get("score_provenance") if isinstance(edge, dict) else getattr(edge, "score_provenance", "")
                 if prov == "ast_mined":
@@ -101,9 +102,10 @@ class LatticePlanner:
                 return aff
 
         # 2. Reverse declared edges on dst_cell (bidirectional idiom affinity)
+        src_id_lower = src_cell.cell_id.lower()
         for edge in getattr(dst_cell, "edges", []):
             tgt_id = edge.get("target_cell_id") if isinstance(edge, dict) else getattr(edge, "target_cell_id", None)
-            if tgt_id == src_cell.cell_id:
+            if tgt_id and (tgt_id == src_cell.cell_id or str(tgt_id).lower() == src_id_lower):
                 aff = float(edge.get("affinity_score", 0.3) if isinstance(edge, dict) else getattr(edge, "affinity_score", 0.3))
                 return aff * 0.75
 
@@ -523,7 +525,28 @@ class LatticePlanner:
                     for p in downstream_cell.inputs.values()
                 )
             )
-            effective_k = k - consumed_ctors
+            # Prerequisite bridging morphisms: essential bridges whose predecessor
+            # cannot directly connect to its successor without this carrier conversion.
+            prerequisite_bridges = 0
+            for i in range(1, k - 1):
+                c = path[i]
+                if not cell_covered.get(c.cell_id):
+                    pred = path[i - 1]
+                    succ = path[i + 1]
+                    pred_out = pred.primary_output.signature
+                    direct_compat = any(
+                        unify(pred_out, p.signature) is not None
+                        for p in succ.inputs.values()
+                    )
+                    if not direct_compat:
+                        is_consumed = any(
+                            unify(c.primary_output.signature, p.signature) is not None
+                            for p in succ.inputs.values()
+                        )
+                        if is_consumed:
+                            prerequisite_bridges += 1
+
+            effective_k = max(1, k - consumed_ctors - prerequisite_bridges)
             excess_steps = max(0, effective_k - max(distinct_matched_clauses, 1))
             parsimony_penalty = excess_steps * 1.2 + effective_k * 0.2
 
@@ -619,11 +642,15 @@ class LatticePlanner:
                 total_aff = sum(_edge_affinity(path[i], path[i + 1]) for i in range(k - 1))
                 affinity_score = total_aff / max(k - 1, 1)
 
+            # Intent deficit objective: penalize incomplete pipelines that abandon requested clauses
+            intent_deficit = (35.0 if is_final else 15.0) * max(0.0, 1.0 - clause_cov) if num_clauses > 1 else 0.0
+
             # Dominant score combination: edge affinity (w_aff = 25.0) heavily rewards
             # AST-mined canonical transitions, rendering legacy junk exploit patches obsolete.
             return (coverage * 10.0 + alignment * 10.0 + affinity_score * 25.0 - parsimony_penalty
                     + mean_log_prob + goal_bonus - weak_total
-                    - dead_ctors * 25.0 - unbindable * 50.0 - domain_dispersion - gap_penalty)
+                    - dead_ctors * 25.0 - unbindable * 50.0 - domain_dispersion - gap_penalty
+                    - intent_deficit)
 
         # Type-gated adjacency: index candidates by the DECLARED input carrier they
         # expose. Expansion enumerates distinct port carriers and gates them through
@@ -639,6 +666,7 @@ class LatticePlanner:
                 distinct_in_states.setdefault(t_key, set()).add(str(getattr(p_sig.signature, "state", "")))
 
         candidate_map = {c.cell_id: c for c in candidates}
+        candidate_map_lower = {c.cell_id.lower(): c for c in candidates}
 
         def _successors(prev_cell: Cell) -> List[Cell]:
             out_sig = prev_cell.primary_output.signature if hasattr(prev_cell.primary_output, "signature") else prev_cell.primary_output
@@ -650,9 +678,10 @@ class LatticePlanner:
             # Prioritize/include explicit graph edges declared on prev_cell
             for edge in getattr(prev_cell, "edges", []):
                 tgt_id = edge.get("target_cell_id") if isinstance(edge, dict) else getattr(edge, "target_cell_id", None)
-                if tgt_id and tgt_id in candidate_map:
-                    tgt_cell = candidate_map[tgt_id]
-                    acc.setdefault(tgt_cell.cell_id, tgt_cell)
+                if tgt_id:
+                    tgt_cell = candidate_map.get(tgt_id) or candidate_map_lower.get(str(tgt_id).lower())
+                    if tgt_cell:
+                        acc.setdefault(tgt_cell.cell_id, tgt_cell)
 
             # Generic carriers ("Sequence[T]", products) and TYPE VARIABLES ("T",
             # "S") unify by binding, not by poset subtyping: enumerate all
@@ -788,8 +817,8 @@ class LatticePlanner:
                             continue
 
                         # Monadic Unification Gate: edge exists iff unify(tau_out, tau_in, sigma) != bottom
-                        prev_out_types = tuple(sorted(out_sig.signature.type_name for c in prev_path[:-1] for out_sig in c.outputs.values()))
-                        pair_key = (prev_cell.cell_id, cand.cell_id, _sigma_fingerprint(prev_sigma), prev_out_types)
+                        prev_out_sigs = tuple(sorted((out_sig.signature.type_name, str(getattr(out_sig.signature, "state", "any"))) for c in prev_path for out_sig in c.outputs.values()))
+                        pair_key = (prev_cell.cell_id, cand.cell_id, _sigma_fingerprint(prev_sigma), prev_out_sigs)
                         if pair_key in edge_compat_cache:
                             new_sigma = edge_compat_cache[pair_key]
                         else:
@@ -850,6 +879,43 @@ class LatticePlanner:
                 ]
                 if matching_goals:
                     valid_candidates = matching_goals
+
+            # 2. Valid terminal boundary filter (Endable Nodes):
+            # A pipeline cannot terminate at an intermediate data transformer (Stage 2)
+            # if the prompt contains downstream unfulfilled action clauses.
+            def _is_valid_terminal(cand_path: List[Cell]) -> bool:
+                terminal = cand_path[-1]
+                if getattr(terminal, "endable", None) is True:
+                    return True
+                if getattr(terminal, "is_endable", False):
+                    covered = set().union(*(cell_covered.get(c.cell_id, set()) for c in cand_path))
+                    if num_clauses > 1 and covered and max(covered) < num_clauses - 1:
+                        if getattr(terminal, "stage", None) != 3:
+                            return False
+                    return True
+                t_stage = getattr(terminal, "stage", None)
+                if t_stage == 3:
+                    return True
+                t_id = terminal.cell_id.lower()
+                t_role = getattr(terminal, "node_role", "")
+                is_transformer = (t_role == "transformer" or t_id.endswith(".transform") or t_id.endswith(".fit_transform"))
+                if is_transformer:
+                    covered = set().union(*(cell_covered.get(c.cell_id, set()) for c in cand_path))
+                    if num_clauses > 1 and covered and max(covered) < num_clauses - 1:
+                        return False
+
+                if any(t_id.endswith(k) or f"{k}." in t_id or f"{k}_" in t_id for k in (".fit", "_fit", ".predict", "score", "evaluate", "metric", "accuracy", "loss", "report")):
+                    return True
+                if any(k in t_id for k in ("dijkstra", "search", "sort", "traversal")):
+                    return True
+                covered = set().union(*(cell_covered.get(c.cell_id, set()) for c in cand_path))
+                if num_clauses > 1 and covered and max(covered) < num_clauses - 1:
+                    return False
+                return True
+
+            endable_candidates = [item for item in valid_candidates if _is_valid_terminal(item[0])]
+            if endable_candidates:
+                valid_candidates = endable_candidates
 
             scored_candidates = [(item, compute_path_score(item, is_final=True)) for item in valid_candidates]
             scored_candidates.sort(key=lambda x: x[1], reverse=True)

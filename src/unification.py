@@ -10,6 +10,7 @@ Conforms strictly to Section 3.2 of the NSTL paper:
 
 from __future__ import annotations
 import ast
+import sys
 import re
 import json
 import functools
@@ -484,9 +485,12 @@ def unify(
 
         # Qualifier subset check
         if t2.qualifiers and not t2.qualifiers.issubset(t1.qualifiers):
-            if is_ground_query:
-                _UNIFY_BASE_CACHE[cache_key] = None
-            return None
+            ignorable = {("const",), ("scalar",), ("vector",), ("matrix",), ("primary",)}
+            req = {q for q in t2.qualifiers if q not in ignorable}
+            if req and not req.issubset(t1.qualifiers):
+                if is_ground_query:
+                    _UNIFY_BASE_CACHE[cache_key] = None
+                return None
 
         # Check if type_names contain generic definitions
         if ("[" in t1.type_name) or ("[" in t2.type_name) or (len(t1.type_name) == 1 and t1.type_name.isupper()) or (len(t2.type_name) == 1 and t2.type_name.isupper()):
@@ -1100,6 +1104,7 @@ class ExecutionContext:
         elif not isinstance(port_sig, PortSignature):
             port_sig = PortSignature(name=name, signature=AlgebraicSignature(str(port_sig), "any"))
         self.variables[name] = (port_sig, expr or name)
+        self.scope[name] = port_sig
         if cell is not None:
             self.var_sources[name] = cell
 
@@ -1140,13 +1145,14 @@ class ExecutionContext:
             "who", "whom", "whose"
         }
 
-        # Candidate word tokens from prompt, excluding self-referential collisions and function words
+        # Candidate word tokens from prompt, excluding self-referential collisions, function words, and file assets
+        file_assets = {val.lower() for _, kind, val in self.ordered_literals if kind == "file_asset"}
         p_stem = normalize_token((param_name or "").lower()) if param_name else ""
         words = []
         for w in self.prompt.strip().split():
             clean_w = w.strip(" '\".,;:()[]{}=:")
             w_lower = clean_w.lower()
-            if len(clean_w) < 2 or w_lower in self.consumed_tokens or w_lower in _FUNCTION_WORDS:
+            if len(clean_w) < 2 or w_lower in self.consumed_tokens or w_lower in _FUNCTION_WORDS or w_lower in file_assets:
                 continue
             if p_stem:
                 w_stem = normalize_token(w_lower)
@@ -1542,13 +1548,12 @@ class ExecutionContext:
             def_str = str(port_sig.default_value).strip()
             if def_str in ("True", "False", "None"):
                 return def_str
-            try:
-                parsed = ast.parse(def_str, mode="eval").body
-                if not is_str or not (isinstance(parsed, ast.Constant) and isinstance(parsed.value, str)):
-                    return def_str
-            except Exception:
-                if not is_str:
-                    return def_str
+            if not is_str:
+                return def_str
+            # For string ports, check if def_str is an unquoted module constant (e.g. cv2.COLOR_BGR2GRAY)
+            parts = def_str.split(".")
+            if len(parts) > 1 and parts[0] in sys.modules:
+                return def_str
             return def_str if (def_str.startswith('"') or def_str.startswith("'")) else json.dumps(def_str)
 
         # 8. Pure Vector Semantic Slot Projection for unquoted string/identifier arguments.
@@ -2154,11 +2159,14 @@ class UnificationGate:
                 # identifier that NameErrors at runtime); it is reported as a synthesis
                 # failure so the caller (or the LLM repair cycle) can react honestly.
                 if p_sig.required:
-                    raise UnresolvedPlaceholderError(
-                        f"Required port '{p_name}' of cell '{cell.cell_id}' "
-                        f"(type '{concrete_sig.type_name}', state '{concrete_sig.state}') "
-                        f"could not be resolved from the prompt, context, or declared defaults."
-                    )
+                    if len(cells) == 1 and not ctx.variables:
+                        cell_bindings[p_name] = p_name
+                    else:
+                        raise UnresolvedPlaceholderError(
+                            f"Required port '{p_name}' of cell '{cell.cell_id}' "
+                            f"(type '{concrete_sig.type_name}', state '{concrete_sig.state}') "
+                            f"could not be resolved from the prompt, context, or declared defaults."
+                        )
                 else:
                     cell_bindings[p_name] = None
 
@@ -2727,17 +2735,57 @@ class DynamicPlaceholderResolver:
         assert_placeholders_resolved(code_str)
 
     def resolve_port(self, port_name: str, port_sig: Any, stage: int, ctx: Any, current_out_var: str) -> str:
-        # Check in-scope variables
-        if hasattr(ctx, "scope_variables") and ctx.scope_variables:
-            return list(ctx.scope_variables.keys())[-1]
+        sig = getattr(port_sig, "signature", port_sig)
+        t_name = str(getattr(sig, "type_name", "")).lower()
+        s_name = str(getattr(sig, "state", "")).lower()
+        p_lower = str(port_name).lower()
 
-        # Check default value
+        # 1. Source files / paths
+        is_source_port = (
+            p_lower in ("filepath", "source_path", "filename", "file_path", "path", "file", "image_path")
+            or s_name in ("source_identifier", "file_path")
+            or (stage == 1 and t_name in ("str", "path", "filepath", "any") and p_lower not in ("df", "data", "img", "image"))
+        )
+        if is_source_port and hasattr(ctx, "source_files") and ctx.source_files:
+            return f'"{ctx.source_files[0]}"'
+
+        # 2. Destination files / paths
+        is_dest_port = (
+            p_lower in ("dest_path", "savepath", "output_path", "dest_identifier", "target_path")
+            or s_name in ("dest_identifier", "filepath_written")
+            or (stage == 3 and t_name in ("str", "path", "filepath", "any") and p_lower not in ("df", "data", "img", "image", "src", "input"))
+        )
+        if is_dest_port and hasattr(ctx, "dest_files") and ctx.dest_files:
+            return f'"{ctx.dest_files[0]}"'
+
+        # 3. Columns / Column names
+        if p_lower in ("by", "column", "columns", "subset") or s_name in ("column_name", "column_identifier"):
+            if hasattr(ctx, "columns") and ctx.columns:
+                return f'"{ctx.columns[0]}"'
+
+        # 4. Operational flags
+        if hasattr(ctx, "flags") and isinstance(ctx.flags, dict) and port_name in ctx.flags:
+            return str(ctx.flags[port_name])
+        if s_name == "sort_flag" and hasattr(ctx, "flags") and isinstance(ctx.flags, dict) and "ascending" in ctx.flags:
+            return str(ctx.flags["ascending"])
+
+        # 5. Direct context parameters
+        if hasattr(ctx, "parameters") and port_name in ctx.parameters:
+            return str(ctx.parameters[port_name])
+
+        # 6. Default value
         if getattr(port_sig, "default_value", None) is not None:
             return str(port_sig.default_value)
 
-        # Check context parameters
-        if hasattr(ctx, "parameters") and port_name in ctx.parameters:
-            return str(ctx.parameters[port_name])
+        # 7. Type-compatible in-scope dataflow variable
+        if hasattr(ctx, "scope_variables") and ctx.scope_variables:
+            target_type = getattr(sig, "type_name", None)
+            if target_type and target_type not in ("any", "*", "top"):
+                for v_name, v_sig in reversed(list(ctx.scope_variables.items())):
+                    v_type = getattr(getattr(v_sig, "signature", v_sig), "type_name", None)
+                    if v_type == target_type:
+                        return v_name
+            return list(ctx.scope_variables.keys())[-1]
 
         return current_out_var
 

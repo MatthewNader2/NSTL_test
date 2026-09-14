@@ -196,6 +196,21 @@ class CellTokenizer:
                 stem = normalize_token(t)
                 if len(stem) > 1:
                     tokens.add(stem)
+                # Universal programming morpheme splitting:
+                # 1. Null/missing data suffix -na / -nan (e.g. dropna, fillna, isna, notna)
+                if (t.endswith("na") and len(t) > 3 and _measure(t[:-2]) >= 1):
+                    r = t[:-2]
+                    tokens.add(r)
+                    tokens.add(normalize_token(r))
+                elif (t.endswith("nan") and len(t) > 4 and _measure(t[:-3]) >= 1):
+                    r = t[:-3]
+                    tokens.add(r)
+                    tokens.add(normalize_token(r))
+                # 2. Image prefix im- (e.g. imread, imwrite, imshow)
+                if (t.startswith("im") and len(t) > 4 and _measure(t[2:]) >= 1):
+                    r = t[2:]
+                    tokens.add(r)
+                    tokens.add(normalize_token(r))
 
         # Mathematical character transition state machine:
         # Boundaries occur at:

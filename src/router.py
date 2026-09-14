@@ -363,6 +363,18 @@ class LatticeRouter:
             kept = sorted(clause_scores.items(), key=lambda x: x[1], reverse=True)[:100]
             grouped_candidates.append(dict(kept))
 
+        # Step 3.1: Candidate Subgraph / Idiom Group Preservation
+        # Discovered idioms represent coherent topological paths across clauses and hidden clauses.
+        # Adding each idiom as its own candidate group ensures bridging nodes survive the group-relative softmax.
+        for idiom in candidate_idioms[:3]:
+            if not idiom.cells:
+                continue
+            idiom_group: Dict[Cell, float] = {}
+            for c in idiom.cells:
+                idiom_group[c] = 1.0 + (0.5 if c == idiom.entry_node else 0.0)
+            if idiom_group:
+                grouped_candidates.append(idiom_group)
+
         # Step 4: Optional dense vector blending from edge-context embeddings
         if self.internal_rag is not None and self.internal_rag.index is not None:
             query_spans = self._generate_query_spans(prompt.strip())

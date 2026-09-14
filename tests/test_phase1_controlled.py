@@ -103,11 +103,12 @@ def test_phase1_controlled_micro_lattice():
         start_sig = PortSignature("str", "source_identifier")
         goal_sig = PortSignature("str", "filepath_written")
         
-        selected_cells = router.plan_path(
+        selected_res = router.plan_path(
             prompt=prompt,
             start_sig=start_sig,
             goal_sig=goal_sig
         )
+        selected_cells = selected_res[0] if isinstance(selected_res, tuple) else selected_res
         
         selected_ids = [c.cell_id for c in selected_cells]
         lat_ms = (time.perf_counter() - t0) * 1000
