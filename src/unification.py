@@ -21,10 +21,10 @@ from typing import Dict, List, Optional, Set, Tuple, Any, Union, Callable, Gener
 from log_config import get_logger
 
 try:
-    from .lattice import AlgebraicSignature, PortSignature, Cell, TypeRegistry, ABSTRACT_CARRIERS
+    from .lattice import AlgebraicSignature, PortSignature, Cell, MacroCell, TypeRegistry, ABSTRACT_CARRIERS
     from .tokenizer import CellTokenizer, normalize_token
 except (ImportError, ValueError):
-    from lattice import AlgebraicSignature, PortSignature, Cell, TypeRegistry, ABSTRACT_CARRIERS
+    from lattice import AlgebraicSignature, PortSignature, Cell, MacroCell, TypeRegistry, ABSTRACT_CARRIERS
     from tokenizer import CellTokenizer, normalize_token
 
 logger = get_logger('unification')
@@ -1618,7 +1618,8 @@ class UnificationGate:
     Formal Unification Gate verifying dataflow composition and emitting code.
     Contains ZERO hardcoded domain libraries or prompt-sniffing regexes.
     """
-    def __init__(self):
+    def __init__(self, orchestrator: Optional[Any] = None):
+        self.orchestrator = orchestrator
         self.context = ExecutionContext()
         self.last_egress_paths: List[str] = []
         self.last_pipeline_bindings: List[Tuple[Cell, Dict[str, str]]] = []
@@ -1857,6 +1858,34 @@ class UnificationGate:
                 candidates.append((sc, i, u))
             return candidates
 
+        # Static Pre-Unification Structural Macro Expansion (Phase 4 / T4.1)
+        changed = True
+        expansion_depth = 0
+        while changed and expansion_depth < 10:
+            changed = False
+            expansion_depth += 1
+            expanded_cells: List[Cell] = []
+            for c in cells:
+                sub_cells = getattr(c, "sub_cells", None)
+                if (getattr(c, "cell_type", "") == "macro" or isinstance(c, MacroCell)) and sub_cells:
+                    for sub_item in sub_cells:
+                        if isinstance(sub_item, Cell):
+                            expanded_cells.append(sub_item)
+                            changed = True
+                        elif isinstance(sub_item, str):
+                            orch = getattr(self, "orchestrator", None)
+                            resolved = orch.loaded_cells.get(sub_item) if orch else None
+                            if not resolved:
+                                resolved = getattr(c, "_resolved_sub_cells", {}).get(sub_item)
+                            if resolved:
+                                expanded_cells.append(resolved)
+                                changed = True
+                            else:
+                                expanded_cells.append(c)
+                else:
+                    expanded_cells.append(c)
+            cells = expanded_cells
+
         # Process each cell in sequence
         for idx, cell in enumerate(cells):
             # For-each replicas (multiplicity expansion): a replica RE-CONSUMES
@@ -2039,11 +2068,10 @@ class UnificationGate:
                 # Substitute generics if type variable in p_sig
                 concrete_sig = substitute_generics(p_sig, accumulated_sigma)
 
-                # Optional data carriers (e.g. target vector 'y' in fit(X, y)) check in-scope variables first
+                # Optional data carriers check in-scope variables first
                 is_data_carrier = (
-                    getattr(p_sig, "port_role", None) in ("target_input", "feature_input", "data_input")
-                    or getattr(p_sig, "derived_role", "standard") in ("target_input", "feature_input", "data_input")
-                    or p_name in ("y", "target", "labels", "label")
+                    getattr(p_sig, "port_role", None) in ("target_input", "feature_input", "data_input", "model_input", "source_data", "model_sink")
+                    or getattr(p_sig, "derived_role", "standard") in ("target_input", "feature_input", "data_input", "model_input", "source_data", "model_sink")
                     or str(getattr(concrete_sig, "type_name", "")).lower() in ("ndarray", "dataframe", "series", "tensor")
                 )
                 if not p_sig.required and is_data_carrier:
@@ -2060,14 +2088,29 @@ class UnificationGate:
                         cell_bindings[p_name] = scoped_var
                         continue
 
-                # Optional parameters with declared default: use prompt literal or default value
+                    # If no in-scope variable unified, check for unconsumed L0 universal literals
+                    unconsumed_lits = [
+                        val for _, kind, val in getattr(ctx, "ordered_literals", [])
+                        if str(val).lower() not in getattr(ctx, "consumed_tokens", set())
+                        and kind in ("identifier", "quoted_str")
+                    ]
+                    if unconsumed_lits:
+                        cell_bindings[p_name] = "<UNRESOLVED>"
+                        ctx.unbindable_count = getattr(ctx, "unbindable_count", 0) + 1
+                        continue
+
+                # Optional parameters with declared default: use prompt literal or omit/default
                 if not p_sig.required and p_sig.default_value is not None:
                     resolved_literal = ctx.resolve_literal_for_port(concrete_sig, cell_stage=cell.stage, cell_inputs=cell.inputs, cell_tokens=getattr(cell, "token_set", set()))
                     if resolved_literal is not None:
                         cell_bindings[p_name] = resolved_literal
                         accumulated_sigma.bind(p_name, resolved_literal)
                     elif str(p_sig.default_value) in ("None", "none"):
-                        cell_bindings[p_name] = None
+                        # Port default is None: omit unless callee explicitly handles None as a real value
+                        if getattr(p_sig, "handles_none", False):
+                            cell_bindings[p_name] = "None"
+                        else:
+                            cell_bindings[p_name] = None
                     else:
                         val = str(p_sig.default_value)
                         if getattr(concrete_sig, "type_name", "") == "str" and not (val.startswith(("'", '"')) or val in ("None", "True", "False")):
@@ -2773,9 +2816,14 @@ class DynamicPlaceholderResolver:
         if hasattr(ctx, "parameters") and port_name in ctx.parameters:
             return str(ctx.parameters[port_name])
 
-        # 6. Default value
+        # 6. Default value (omit None default unless handles_none)
         if getattr(port_sig, "default_value", None) is not None:
-            return str(port_sig.default_value)
+            def_str = str(port_sig.default_value)
+            if def_str in ("None", "none"):
+                if getattr(port_sig, "handles_none", False):
+                    return "None"
+                return ""
+            return def_str
 
         # 7. Type-compatible in-scope dataflow variable
         if hasattr(ctx, "scope_variables") and ctx.scope_variables:

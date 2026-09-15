@@ -57,6 +57,7 @@ def run_smoke_test():
     print("\n" + "-" * 50)
     print(" [1] Tabular Pipeline: Read -> DropNA -> Write")
     print("-" * 50)
+    gate = UnificationGate()
     prompt_tab = "load input.csv and drop missing values then save to output.csv"
     print(f"    Prompt: '{prompt_tab}'")
 
@@ -64,8 +65,7 @@ def run_smoke_test():
     print(f"    Router Path: {[c.cell_id for c in path_tab]}")
 
     ctx_tab = ExecutionContext(prompt=prompt_tab)
-    lines_tab = [UnificationGate.unify_cell(ctx_tab, c) for c in path_tab]
-    code_tab = UnificationGate.resolve_imports("\n".join(lines_tab), ctx_tab)
+    code_tab = gate.emit_code(path_tab, ctx_tab)
     print("    Generated Code:\n" + "\n".join(f"      | {l}" for l in code_tab.splitlines()))
 
     # Assertions
@@ -114,8 +114,7 @@ def run_smoke_test():
     print(f"    Router Path: {[c.cell_id for c in path_vis]}")
 
     ctx_vis = ExecutionContext(prompt=prompt_vis)
-    lines_vis = [UnificationGate.unify_cell(ctx_vis, c) for c in path_vis]
-    code_vis = UnificationGate.resolve_imports("\n".join(lines_vis), ctx_vis)
+    code_vis = gate.emit_code(path_vis, ctx_vis)
     print("    Generated Code:\n" + "\n".join(f"      | {l}" for l in code_vis.splitlines()))
 
     # Assertions
@@ -172,8 +171,7 @@ def run_smoke_test():
             "start_node": PortSignature("start_node", AlgebraicSignature("str", "source_node"))
         }
     )
-    lines_algo = [UnificationGate.unify_cell(ctx_algo, c) for c in path_algo]
-    code_algo = UnificationGate.resolve_imports("\n".join(lines_algo), ctx_algo)
+    code_algo = gate.emit_code(path_algo, ctx_algo)
     print("    Generated Code:\n" + "\n".join(f"      | {l}" for l in code_algo.splitlines()))
 
     # Assertions
@@ -211,8 +209,7 @@ def run_smoke_test():
     print(f"    Router Path: {[c.cell_id for c in path_sort]}")
 
     ctx_sort = ExecutionContext(prompt=prompt_sort)
-    lines_sort = [UnificationGate.unify_cell(ctx_sort, c) for c in path_sort]
-    code_sort = UnificationGate.resolve_imports("\n".join(lines_sort), ctx_sort)
+    code_sort = gate.emit_code(path_sort, ctx_sort)
     print("    Generated Code:\n" + "\n".join(f"      | {l}" for l in code_sort.splitlines()))
 
     assert "sort_values" in code_sort, "FAIL: sort_values missing in sort pipeline!"

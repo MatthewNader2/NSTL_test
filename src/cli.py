@@ -303,6 +303,10 @@ try:
     from utils import extract_code_from_llm_response
     from tokenizer import CellTokenizer
     from planner import _segment_prompt_clauses
+    from preflight import PreflightLinter
+    from lattice_auditor import LatticeAuditor
+    from macro_harvester import MacroHarvester
+    from route_methods import ROUTE_METHOD_REGISTRY, get_route_method
 except ImportError:
     from .lattice import LatticeOrchestrator, Cell, PortSignature, AlgebraicSignature
     from .router import LatticeRouter, HardwareProfiler
@@ -318,6 +322,10 @@ except ImportError:
     from .utils import extract_code_from_llm_response
     from .tokenizer import CellTokenizer
     from .planner import _segment_prompt_clauses
+    from .preflight import PreflightLinter
+    from .lattice_auditor import LatticeAuditor
+    from .macro_harvester import MacroHarvester
+    from .route_methods import ROUTE_METHOD_REGISTRY, get_route_method
 
 STOPWORDS = frozenset({
     "a", "an", "the", "in", "on", "at", "of", "to", "for", "from", "by", "with",
@@ -446,7 +454,8 @@ class PipelineDebugger:
         device: str = "auto",
         embedder_name: str = "",
         llm_name: str = "",
-        console: Optional[Console] = None
+        console: Optional[Console] = None,
+        route_method: Optional[str] = None
     ):
         self.orchestrator = orchestrator
         self.router = router
@@ -457,6 +466,7 @@ class PipelineDebugger:
         self.embedder_name = embedder_name
         self.llm_name = llm_name
         self.console = console or Console()
+        self.route_method = route_method.upper() if route_method else None
 
     def run(
         self,
@@ -638,11 +648,18 @@ class PipelineDebugger:
         t_plan_0 = time.perf_counter()
         os.environ["NSTL_DEBUG_PLAN"] = "1"
         try:
-            cells = self.router.planner.plan(
-                prompt=effective_prompt,
-                tunnel=tunnel_cells,
-                relevance_map=relevance_map
-            )
+            if self.route_method:
+                cells = self.router.plan_path(
+                    effective_prompt,
+                    return_tuple=False,
+                    route_method=self.route_method
+                )
+            else:
+                cells = self.router.planner.plan(
+                    prompt=effective_prompt,
+                    tunnel=tunnel_cells,
+                    relevance_map=relevance_map
+                )
         finally:
             os.environ.pop("NSTL_DEBUG_PLAN", None)
         plan_dt = (time.perf_counter() - t_plan_0) * 1000.0
@@ -867,6 +884,23 @@ class PipelineDebugger:
                     c.print(Panel(syntax_code, title="[bold green]✨ Synthesized Python Code[/bold green]", border_style="green", padding=(0, 1)))
                     c.print("")
 
+                # Static Pre-Flight Linting Diagnostics
+                if pipeline_bindings:
+                    lint_res = PreflightLinter.lint(pipeline_bindings)
+                    if not lint_res.is_valid:
+                        c.print(Panel(
+                            "[bold red]❌ PRE-FLIGHT LINT VIOLATIONS DETECTED:[/bold red]\n" +
+                            "\n".join(f"  • {v}" for v in lint_res.violations),
+                            title="[bold red]⚠️ Pre-Flight Static Validator[/bold red]",
+                            border_style="red"
+                        ))
+                    else:
+                        lint_msg = "[bold green]✓ All structural contracts and port binding constraints satisfied.[/bold green]"
+                        if lint_res.warnings:
+                            lint_msg += "\n[yellow]Warnings:[/yellow]\n" + "\n".join(f"  • {w}" for w in lint_res.warnings)
+                        c.print(Panel(lint_msg, title="[bold green]✓ Pre-Flight Static Validator Passed[/bold green]", border_style="green"))
+                    c.print("")
+
         # =================================================================
         # LAYER 4: GEVR Sandbox Execution & Egress Verification
         # =================================================================
@@ -1035,7 +1069,9 @@ class NSTLInteractiveShell(cmd.Cmd):
         device: str = "auto",
         debug: bool = False,
         interactive: bool = True,
-        no_exec: bool = False
+        no_exec: bool = False,
+        route_method: Optional[str] = None,
+        no_lint: bool = False
     ):
         super().__init__()
         self.db_path = db_path
@@ -1043,6 +1079,8 @@ class NSTLInteractiveShell(cmd.Cmd):
         self.embedder_name = embedder
         self.llm_name = llm
         self.active_profile = "0"
+        self.route_method = route_method.upper() if route_method else None
+        self.no_lint = no_lint
         self.rag: Optional[LocalRAG] = None
         self.history: List[Dict[str, Any]] = []
         self.debug: bool = debug
@@ -1056,7 +1094,7 @@ class NSTLInteractiveShell(cmd.Cmd):
         self.orchestrator = LatticeOrchestrator()
         self.orchestrator.load_from_database(db_path)
         self.orchestrator.build_topology()
-        self.gate = UnificationGate()
+        self.gate = UnificationGate(self.orchestrator)
         self.sandbox = GEVRSandbox()
         self.resolver = DynamicPlaceholderResolver()
 
@@ -1093,7 +1131,8 @@ class NSTLInteractiveShell(cmd.Cmd):
         # Hardware & DB info
         db_nodes = f"[cyan]Nodes:[/cyan] {len(self.orchestrator.cells):,} in {len(domains)} domains"
         dbg_text = "[bold green]ON (Verbose)[/bold green]" if self.debug else "[dim]OFF[/dim]"
-        dev_info = f"[cyan]Device:[/cyan] {self.device.upper()} | [cyan]Debug:[/cyan] {dbg_text} | [cyan]Queries:[/cyan] {len(self.history)}"
+        method_text = f"[bold yellow]{self.route_method or 'M0 (Default)'}[/bold yellow]"
+        dev_info = f"[cyan]Method:[/cyan] {method_text} | [cyan]Device:[/cyan] {self.device.upper()} | [cyan]Debug:[/cyan] {dbg_text}"
         hardware_text = f"{db_nodes}\n{dev_info}"
 
         header_table.add_row(prof_text, models_text, hardware_text)
@@ -1102,7 +1141,7 @@ class NSTLInteractiveShell(cmd.Cmd):
         title_text = Text("🧬 NSTL NEURO-SYMBOLIC TOPOLOGICAL LATTICE STUDIO", justify="center", style="bold white on blue")
         quick_shortcuts = Text(
             "Quick Layers: [1] 0:Symbolic  [2] A:Embedder  [3] C:Neuro-Symbolic  [4] D:Routing  [5] E:Translator\n"
-            "Commands: /profile <0|A|C|D|E> | /debug [on|off] | /models | /set <key> <val> | /status | /new | /clear | /exit",
+            "Commands: /profile <0|A|C|D|E> | /method <M0-M6> | /audit | /macro | /debug [on|off] | /status | /new | /clear | /exit",
             justify="center",
             style="dim cyan"
         )
@@ -1149,8 +1188,9 @@ class NSTLInteractiveShell(cmd.Cmd):
         prof_label = self.active_profile.upper()
         if prof_label in ("0", "SYMBOLIC", "ZERO", "PURE"):
             prof_label = "0: Symbolic"
+        method_label = f" | {self.route_method}" if self.route_method else ""
         dbg_label = " \033[1;33m[DEBUG]\033[0m" if self.debug else ""
-        self.prompt = f"\033[1;36mNSTL [Profile {prof_label}]\033[0m{dbg_label} > "
+        self.prompt = f"\033[1;36mNSTL [Profile {prof_label}{method_label}]\033[0m{dbg_label} > "
 
     def do_debug(self, arg: str):
         """Toggle or configure debug mode across all pipeline layers. Usage: debug [on|off] or /debug [on|off]"""
@@ -1176,7 +1216,7 @@ class NSTLInteractiveShell(cmd.Cmd):
         if p in ("0", "SYMBOLIC", "ZERO", "PURE"):
             self.active_profile = "0"
             self.rag = None
-            self.router = LatticeRouter(self.orchestrator, internal_rag=None)
+            self.router = LatticeRouter(self.orchestrator, internal_rag=None, default_route_method=self.route_method)
             self._update_prompt()
             if verbose:
                 console.print(f"[bold green][✓] Switched to {self._format_profile_name(self.active_profile)}[/bold green]\n")
@@ -1208,7 +1248,7 @@ class NSTLInteractiveShell(cmd.Cmd):
             if verbose:
                 console.print(f"[*] Indexing FAISS vector space for {len(self.orchestrator.cells):,} nodes...")
             self.rag = LocalRAG(trees_dir="trees", orchestrator=self.orchestrator)
-            self.router = LatticeRouter(self.orchestrator, internal_rag=self.rag)
+            self.router = LatticeRouter(self.orchestrator, internal_rag=self.rag, default_route_method=self.route_method)
 
             self.active_profile = p
             self._update_prompt()
@@ -1224,7 +1264,7 @@ class NSTLInteractiveShell(cmd.Cmd):
                 pass
             self.active_profile = "0"
             self.rag = None
-            self.router = LatticeRouter(self.orchestrator, internal_rag=None)
+            self.router = LatticeRouter(self.orchestrator, internal_rag=None, default_route_method=self.route_method)
             self._update_prompt()
             return False
 
@@ -1368,6 +1408,111 @@ class NSTLInteractiveShell(cmd.Cmd):
         console.print(table)
         console.print("")
 
+    def do_method(self, arg: str):
+        """Set or view active RouteMethod algorithm (M0-M6). Usage: /method [M0|M1|M2|M3|M4|M5|M6]"""
+        raw_arg = arg.strip()
+        clean = raw_arg.lower()
+        if not clean:
+            curr = self.route_method or "M0"
+            console.print(f"\n[cyan]Active RouteMethod:[/cyan] [bold yellow]{curr}[/bold yellow]")
+            console.print("[cyan]Available Methods:[/cyan]")
+            methods_summary = [
+                ("M0", "m0_trellis", "Classical Trellis / Viterbi Dynamic Programming"),
+                ("M1", "m1_clause_anchor", "Clause-Based Strict Anchoring"),
+                ("M2", "m2_endpoint_anchor", "Endpoint Anchoring (Source & Sink)"),
+                ("M3", "m3_greedy_freeze", "Greedy Forward Beam with Prefix Freeze"),
+                ("M4", "m4_llm_stepwise", "LLM Stepwise Transition Oracle"),
+                ("M5", "m5_llm_oneshot", "LLM One-Shot Topological Alignment"),
+                ("M6", "m6_hybrid_anchors", "Hybrid Clause & Dynamic Routing"),
+            ]
+            for m_tag, m_alias, m_desc in methods_summary:
+                is_active = (self.route_method and self.route_method.upper().startswith(m_tag)) or (not self.route_method and m_tag == "M0")
+                prefix = "➔ " if is_active else "  "
+                console.print(f"  {prefix}[bold cyan]{m_tag}[/bold cyan] ({m_alias}): {m_desc}")
+            console.print("")
+            return
+
+        if clean not in ROUTE_METHOD_REGISTRY:
+            console.print(f"[bold red][!] Unknown route method '{raw_arg}'. Valid: m0..m6, {', '.join(list(ROUTE_METHOD_REGISTRY.keys())[:7])}[/bold red]")
+            return
+
+        m_cls = ROUTE_METHOD_REGISTRY[clean]
+        tag = raw_arg.upper() if len(raw_arg) <= 2 else getattr(m_cls, 'name', raw_arg).upper()
+        self.route_method = tag
+        if self.router:
+            self.router.default_route_method = clean
+        self._update_prompt()
+        console.print(f"[bold green][✓] RouteMethod switched to {tag} ({getattr(m_cls, 'name', clean)})[/bold green]\n")
+
+    def do_routemethod(self, arg: str):
+        """Alias for method."""
+        self.do_method(arg)
+
+    def do_audit(self, arg: str):
+        """Audit lattice topology reachability, cross-tree transitions, and dead-ends. Usage: /audit"""
+        console.print("\n[bold cyan][*] Running Lattice Auditor on active topology...[/bold cyan]")
+        auditor = LatticeAuditor(self.orchestrator)
+        report = auditor.audit()
+        summary = report.summary
+
+        table = Table(title=f"📊 Lattice Topological Audit ({summary['total_cells']} Nodes)", box=box.ROUNDED, border_style="cyan")
+        table.add_column("Metric", style="bold yellow")
+        table.add_column("Value", style="bold white")
+        table.add_column("Status / SLA", style="bold green")
+
+        ratio = summary['reachable_ratio'] * 100.0
+        status_style = "[green]HEALTHY[/green]" if ratio >= 90.0 else "[red]DEGRADED[/red]"
+        table.add_row("Reachable Ratio", f"{ratio:.2f}%", status_style)
+        table.add_row("Entry Nodes (Stage 1)", str(summary['entry_node_count']), "Ingress sources")
+        table.add_row("Terminal Nodes (Stage 3)", str(summary['terminal_node_count']), "Egress sinks")
+        table.add_row("Cross-Tree Dynamic Bridges", str(summary['cross_tree_edges']), "Inter-domain transitions")
+        table.add_row("Unreachable Nodes", str(summary['unreachable_count']), "[green]0[/green]" if summary['unreachable_count'] == 0 else f"[yellow]{summary['unreachable_count']}[/yellow]")
+        table.add_row("Dead-End Nodes", str(summary['dead_end_count']), "[green]PASS (0)[/green]" if summary['dead_end_count'] == 0 else "[red]FAIL[/red]")
+        table.add_row("Disconnected Components", str(summary['disconnected_count']), "[green]PASS (0)[/green]" if summary['disconnected_count'] == 0 else "[red]FAIL[/red]")
+
+        console.print(table)
+        console.print("")
+
+    def do_macro(self, arg: str):
+        """Harvest composite MacroCell from micro-cells. Usage: /macro <CELL1> <CELL2> ... [--id <NAME>] [--doc <DOC>]"""
+        parts = arg.strip().split()
+        if not parts:
+            console.print("[yellow]Usage: /macro <CELL1> <CELL2> ... [--id <NAME>] [--doc <DOC>][/yellow]")
+            return
+
+        macro_id = None
+        doc = None
+        cells = []
+        i = 0
+        while i < len(parts):
+            if parts[i] == "--id" and i + 1 < len(parts):
+                macro_id = parts[i+1]
+                i += 2
+            elif parts[i] == "--doc" and i + 1 < len(parts):
+                doc = parts[i+1]
+                i += 2
+            else:
+                cells.append(parts[i])
+                i += 1
+
+        if len(cells) < 2:
+            console.print("[yellow]Please specify at least two cell IDs to compose into a macro.[/yellow]")
+            return
+
+        try:
+            macro = MacroHarvester.harvest_macro(
+                cell_ids=cells,
+                orchestrator=self.orchestrator,
+                macro_id=macro_id,
+                docstring=doc
+            )
+            console.print(f"[bold green][✓] Successfully harvested and registered MacroCell '{macro.cell_id}'[/bold green]")
+            console.print(f"    [cyan]Constituents:[/cyan] {' -> '.join(macro.sub_cells)}")
+            console.print(f"    [cyan]Inputs:[/cyan] {list(macro.inputs.keys())}")
+            console.print(f"    [cyan]Outputs:[/cyan] {list(macro.outputs.keys())}\n")
+        except Exception as e:
+            console.print(f"[bold red][!] Macro harvesting failed:[/bold red] {e}\n")
+
     def default(self, line: str):
         prompt = line.strip()
         if not prompt:
@@ -1400,7 +1545,16 @@ class NSTLInteractiveShell(cmd.Cmd):
             if cmd_name in ("profile", "p"):
                 self.do_profile(cmd_arg)
                 return
-            elif cmd_name in ("models", "m"):
+            elif cmd_name in ("method", "routemethod", "m"):
+                self.do_method(cmd_arg)
+                return
+            elif cmd_name == "audit":
+                self.do_audit(cmd_arg)
+                return
+            elif cmd_name == "macro":
+                self.do_macro(cmd_arg)
+                return
+            elif cmd_name in ("models", "mod"):
                 self.do_models(cmd_arg)
                 return
             elif cmd_name == "set":
@@ -1427,6 +1581,20 @@ class NSTLInteractiveShell(cmd.Cmd):
             elif cmd_name in ("exit", "quit", "q"):
                 return self.do_exit(cmd_arg)
 
+        # Check for query-level flags
+        query_method = self.route_method
+        for m in ("M0", "M1", "M2", "M3", "M4", "M5", "M6"):
+            for flag in (f"--method {m}", f"--route-method {m}", f"-m {m}", f"--method={m}", f"--route-method={m}"):
+                if flag.lower() in prompt.lower():
+                    prompt = re.sub(re.escape(flag), "", prompt, flags=re.IGNORECASE).strip()
+                    query_method = m
+                    break
+
+        query_no_lint = self.no_lint
+        if "--no-lint" in prompt:
+            prompt = prompt.replace("--no-lint", "").strip()
+            query_no_lint = True
+
         # Check for query-level or shell-level debug flag
         query_debug = self.debug
         if "--debug" in prompt:
@@ -1443,7 +1611,8 @@ class NSTLInteractiveShell(cmd.Cmd):
                 device=self.device,
                 embedder_name=self.embedder_name,
                 llm_name=self.llm_name,
-                console=console
+                console=console,
+                route_method=query_method
             )
             res = debugger.run(prompt, execute_sandbox=True, timeout=5.0)
             self.history.append({
@@ -1485,7 +1654,7 @@ class NSTLInteractiveShell(cmd.Cmd):
 
         # Step 2: Routing via LatticeRouter
         t_route_start = time.perf_counter()
-        cells = self.router.plan_path(effective_prompt, return_tuple=False)
+        cells = self.router.plan_path(effective_prompt, return_tuple=False, route_method=query_method)
         route_dt = (time.perf_counter() - t_route_start) * 1000.0
 
         if not cells:
@@ -1506,11 +1675,20 @@ class NSTLInteractiveShell(cmd.Cmd):
             return
         synth_dt = (time.perf_counter() - t_synth_start) * 1000.0
 
+        # Step 3b: Static Pre-Flight Linting
+        if not query_no_lint and hasattr(self.gate, "last_pipeline_bindings") and self.gate.last_pipeline_bindings:
+            lint_res = PreflightLinter.lint(self.gate.last_pipeline_bindings)
+            if not lint_res.is_valid:
+                console.print("\n[bold red][!] Static Pre-Flight Lint Violations:[/bold red]")
+                for v in lint_res.violations:
+                    console.print(f"  [red]• {v}[/red]")
+            elif lint_res.warnings:
+                console.print("\n[bold yellow][!] Pre-Flight Warnings:[/bold yellow]")
+                for w in lint_res.warnings:
+                    console.print(f"  [yellow]• {w}[/yellow]")
+
         # Step 4: Sandbox Verification & Optional Self-Repair
         t_exec_start = time.perf_counter()
-        # Egress destinations come from the unification gate itself (values bound to
-        # path-typed ports of terminal morphisms) — a single source of truth derived
-        # from the verified dataflow, never re-parsed from the raw prompt.
         dest_paths = self.gate.get_egress_paths() or None
         v_contract = getattr(self.gate, "last_verification_contract", None)
 
@@ -1522,14 +1700,6 @@ class NSTLInteractiveShell(cmd.Cmd):
             sandbox_dt = (time.perf_counter() - t_exec_start) * 1000.0
 
         repaired = False
-        # If execution failed and LLM feedback is available (Profile C/E), trigger self-repair.
-        # Guardrails:
-        # 1. Environmental failures (missing input asset, missing module, connectivity)
-        #    are NOT code defects — repairing code cannot create the user's data file,
-        #    so the failure is reported honestly and the repair cycle is skipped.
-        # 2. Accepted repairs must stay on the lattice's API surface: every attribute
-        #    referenced by the repaired code must already appear in a verified cell
-        #    template or in the original code — hallucinated methods are rejected.
         if not sandbox_res.get("success", False) and prof in ("C", "E"):
             mm = ModelManager.get_instance()
             if mm.profile and mm.can_feedback_check():
@@ -1555,7 +1725,6 @@ class NSTLInteractiveShell(cmd.Cmd):
                         else:
                             final_code = repaired_code
                             repaired = True
-                            # Re-verify repaired code
                             sandbox_res = self.sandbox.execute(final_code, timeout=5.0, egress_paths=dest_paths, verification_spec=v_contract)
                     rep_dt = (time.perf_counter() - t_rep_start) * 1000.0
                     console.print(f"  [bold green][✓] Repair cycle completed ({rep_dt:.1f}ms).[/bold green]")
@@ -1572,15 +1741,19 @@ class NSTLInteractiveShell(cmd.Cmd):
         )
         console.print(code_panel)
 
-        # Report Latency Metrics Bar
+        # Report Latency Metrics Bar with RouteMethod and Attribution
+        method_name = query_method or getattr(self.router, "default_route_method", "M0") or "M0"
+        attribution = getattr(self.gate, "last_attribution", "path")
         timing_elements = [
+            f"[bold cyan]Method:[/bold cyan] [bold]{method_name}[/bold]",
             f"[cyan]Route:[/cyan] [bold]{route_dt:.2f}ms[/bold]",
             f"[cyan]Synth:[/cyan] [bold]{synth_dt:.2f}ms[/bold]",
             f"[cyan]Exec:[/cyan] [bold]{sandbox_dt:.2f}ms[/bold]"
         ]
         if t_trans > 0:
-            timing_elements.insert(0, f"[magenta]Trans:[/magenta] [bold]{t_trans:.1f}ms[/bold]")
+            timing_elements.insert(1, f"[magenta]Trans:[/magenta] [bold]{t_trans:.1f}ms[/bold]")
         timing_elements.append(f"[bold yellow]Total: {total_dt:.2f}ms[/bold yellow]")
+        timing_elements.append(f"[dim]Attr: {attribution}[/dim]")
 
         # Report Sandbox Execution Status
         if sandbox_res.get("skipped", False):
@@ -1638,13 +1811,15 @@ class NSTLInteractiveShell(cmd.Cmd):
 def cmd_shell(args):
     """Launches the full interactive Rich TUI studio."""
     shell = NSTLInteractiveShell(
-        db_path=args.db,
-        initial_profile=args.profile,
-        embedder=args.embedder,
-        llm=args.llm,
-        device=args.device,
+        db_path=getattr(args, "db", "trees/lattice.db"),
+        initial_profile=getattr(args, "profile", "0"),
+        embedder=getattr(args, "embedder", ""),
+        llm=getattr(args, "llm", ""),
+        device=getattr(args, "device", "auto"),
         debug=getattr(args, "debug", False),
-        interactive=True
+        interactive=True,
+        route_method=getattr(args, "route_method", None),
+        no_lint=getattr(args, "no_lint", False)
     )
     shell.cmdloop()
 
@@ -1671,9 +1846,114 @@ def cmd_run(args):
         device=device,
         debug=debug_mode,
         interactive=False,
-        no_exec=getattr(args, "no_exec", False)
+        no_exec=getattr(args, "no_exec", False),
+        route_method=getattr(args, "route_method", None),
+        no_lint=getattr(args, "no_lint", False)
     )
     shell.default(f"{prompt} --debug" if debug_mode else prompt)
+
+
+def cmd_audit(args):
+    """Audits lattice topology reachability, disconnected nodes, and cross-tree transitions."""
+    db_path = Path(args.db)
+    trees_dir = getattr(args, "trees_dir", "trees")
+    print(f"[*] Initializing Lattice Orchestrator from '{db_path}'...")
+    orch = LatticeOrchestrator(trees_directory=trees_dir, db_path=str(db_path))
+    if db_path.exists():
+        orch.load_from_database(str(db_path))
+    orch.build_topology()
+
+    print(f"[*] Running Lattice Auditor on {len(orch.cells):,} cells...")
+    auditor = LatticeAuditor(orch)
+    report = auditor.audit()
+
+    summary = report.summary
+    table = Table(title=f"📊 Lattice Topological Audit ({summary['total_cells']} Total Nodes)", box=box.ROUNDED, border_style="cyan")
+    table.add_column("Metric", style="bold yellow")
+    table.add_column("Value", style="bold white")
+    table.add_column("Status / SLA", style="bold green")
+
+    ratio = summary['reachable_ratio'] * 100.0
+    status_style = "[green]HEALTHY[/green]" if ratio >= 90.0 else "[red]DEGRADED[/red]"
+    table.add_row("Reachable Nodes Ratio", f"{ratio:.2f}%", status_style)
+    table.add_row("Entry Nodes (Stage 1)", str(summary['entry_node_count']), "Ingress sources")
+    table.add_row("Terminal Nodes (Stage 3)", str(summary['terminal_node_count']), "Egress sinks")
+    table.add_row("Cross-Tree Dynamic Bridges", str(summary['cross_tree_edges']), "Inter-domain transitions")
+    table.add_row("Unreachable Nodes", str(summary['unreachable_count']), "[green]0[/green]" if summary['unreachable_count'] == 0 else f"[yellow]{summary['unreachable_count']}[/yellow]")
+    table.add_row("Dead-End Nodes", str(summary['dead_end_count']), "[green]PASS (0)[/green]" if summary['dead_end_count'] == 0 else "[red]FAIL[/red]")
+    table.add_row("Disconnected Components", str(summary['disconnected_count']), "[green]PASS (0)[/green]" if summary['disconnected_count'] == 0 else "[red]FAIL[/red]")
+
+    console.print(table)
+
+    if getattr(args, "output", ""):
+        out_path = Path(args.output)
+        from dataclasses import asdict
+        with open(out_path, "w", encoding="utf-8") as f:
+            json.dump(asdict(report), f, indent=2)
+        print(f"[+] Audit report saved to '{out_path}'.")
+
+
+def cmd_macro(args):
+    """Harvests a composite MacroCell from constituent micro-cells."""
+    cell_ids = args.cells
+    db_path = Path(args.db)
+    trees_dir = getattr(args, "trees_dir", "trees")
+
+    print(f"[*] Loading lattice for macro harvesting...")
+    orch = LatticeOrchestrator(trees_directory=trees_dir, db_path=str(db_path))
+    if db_path.exists():
+        orch.load_from_database(str(db_path))
+    orch.build_topology()
+
+    macro_id = getattr(args, "id", None) or None
+    domain = getattr(args, "domain", None) or None
+    doc = getattr(args, "doc", None) or None
+
+    print(f"[*] Harvesting composite macro from cells: {' -> '.join(cell_ids)}...")
+    try:
+        macro = MacroHarvester.harvest_macro(
+            cell_ids=cell_ids,
+            orchestrator=orch,
+            macro_id=macro_id,
+            domain_name=domain,
+            docstring=doc
+        )
+    except Exception as e:
+        console.print(f"[bold red][!] Macro harvesting failed:[/bold red] {e}")
+        return
+
+    table = Table(title=f"🧩 Harvested MacroCell: {macro.cell_id}", box=box.ROUNDED, border_style="green")
+    table.add_column("Property", style="bold yellow")
+    table.add_column("Details", style="white")
+
+    table.add_row("Macro ID", macro.cell_id)
+    table.add_row("Stage", str(macro.stage))
+    table.add_row("Domain", macro.domain_name or "unknown")
+    table.add_row("Constituents", " ➔ ".join(macro.sub_cells))
+    in_desc = ", ".join(f"{k}: {v.signature.type_name}[{v.signature.state}]" for k, v in macro.inputs.items())
+    table.add_row("Composite Inputs", in_desc or "None")
+    out_desc = ", ".join(f"{k}: {v.signature.type_name}[{v.signature.state}]" for k, v in macro.outputs.items())
+    table.add_row("Composite Outputs", out_desc or "None")
+    table.add_row("Internal Topology", str(getattr(macro, "internal_topology", {})))
+    table.add_row("Docstring", macro.docstring or "")
+
+    console.print(table)
+    console.print(f"[bold green][✓] MacroCell '{macro.cell_id}' verified and registered in orchestrator.[/bold green]")
+
+
+def cmd_benchmark(args):
+    """Runs empirical benchmark suite (matrix or reference bank)."""
+    bench_type = getattr(args, "type", "matrix")
+    if bench_type == "reference":
+        print("[*] Running 50-Task Empirical Reference Benchmark Bank...")
+        import pytest
+        ret = pytest.main(["-s", "tests/test_reference_benchmark_bank.py"])
+        sys.exit(ret)
+    else:
+        print("[*] Running NSTL Phase 5 Evaluation Matrix (RouteMethods M0-M6)...")
+        import pytest
+        ret = pytest.main(["-s", "tests/test_evaluation_matrix.py"])
+        sys.exit(ret)
 
 
 def cmd_precompute_rag(args):
@@ -1735,6 +2015,31 @@ def build_parser() -> argparse.ArgumentParser:
     p_validate.add_argument("--db", type=str, default="trees/lattice.db", help="Path to SQLite database")
     p_validate.set_defaults(func=cmd_validate)
 
+    # audit
+    p_audit = subparsers.add_parser("audit", help="Audit lattice graph connectivity, reachability, and cross-tree bridges")
+    p_audit.add_argument("--db", type=str, default="trees/lattice.db", help="Path to SQLite database")
+    p_audit.add_argument("--trees-dir", type=str, default="trees", help="Directory for domain tree JSON files")
+    p_audit.add_argument("--output", "-o", type=str, default="", help="Optional JSON path to save audit report")
+    p_audit.set_defaults(func=cmd_audit)
+
+    # macro
+    p_macro = subparsers.add_parser("macro", help="Harvest and register a composite MacroCell from constituent micro-cells")
+    p_macro.add_argument("cells", nargs="+", help="Sequence of cell IDs composing the macro (e.g. PD_READ_CSV PD_DROPNA)")
+    p_macro.add_argument("--id", type=str, default="", help="Custom macro cell ID (e.g. MACRO_LOAD_AND_CLEAN)")
+    p_macro.add_argument("--domain", type=str, default="", help="Domain name for the macro")
+    p_macro.add_argument("--doc", type=str, default="", help="Docstring/description for the macro")
+    p_macro.add_argument("--db", type=str, default="trees/lattice.db", help="Path to SQLite database")
+    p_macro.add_argument("--trees-dir", type=str, default="trees", help="Directory for domain tree JSON files")
+    p_macro.set_defaults(func=cmd_macro)
+
+    # benchmark
+    p_bench = subparsers.add_parser("benchmark", help="Run NSTL empirical benchmarks (reference 50-task bank or RouteMethods matrix)")
+    p_bench.add_argument("--type", choices=["reference", "matrix"], default="matrix", help="Benchmark type to run (default: matrix)")
+    p_bench.add_argument("--output", type=str, default="evaluation_results.json", help="Path to write evaluation results JSON")
+    p_bench.add_argument("--db", type=str, default="trees/lattice.db", help="Path to SQLite database")
+    p_bench.add_argument("--methods", nargs="*", default=["M0", "M1", "M2", "M3", "M6"], help="Route methods to evaluate in matrix")
+    p_bench.set_defaults(func=cmd_benchmark)
+
     # precompute-rag
     p_precompute = subparsers.add_parser("precompute-rag", help="Precompute FAISS dense embeddings into .rag_cache/")
     p_precompute.add_argument("--db", type=str, default="trees/lattice.db", help="Path to SQLite database")
@@ -1748,6 +2053,8 @@ def build_parser() -> argparse.ArgumentParser:
     p_run.add_argument("--debug", "-d", action="store_true", help="Enable verbose debug output across all pipeline layers")
     p_run.add_argument("--db", type=str, default="trees/lattice.db", help="Path to SQLite database")
     p_run.add_argument("--profile", type=str, default="0", help="Inference profile (0=Symbolic, A=Embedder, C=Neuro-Symbolic, D, E)")
+    p_run.add_argument("--route-method", "-m", type=str, default=None, choices=["M0", "M1", "M2", "M3", "M4", "M5", "M6"], help="Routing method algorithm (default: M0 Trellis)")
+    p_run.add_argument("--no-lint", action="store_true", help="Skip static pre-flight linter")
     p_run.add_argument("--embedder", type=str, default="", help="Embedding model name (e.g. jina-embeddings-v5-text-nano)")
     p_run.add_argument("--llm", type=str, default="", help="LLM model name (e.g. qwen2.5-coder-0.5b-instruct)")
     p_run.add_argument("--device", type=str, default="auto", choices=["auto", "cpu", "cuda"], help="Compute device")
@@ -1758,6 +2065,8 @@ def build_parser() -> argparse.ArgumentParser:
     p_shell = subparsers.add_parser("shell", help="Launch real-time interactive synthesis TUI studio")
     p_shell.add_argument("--db", type=str, default="trees/lattice.db", help="Path to SQLite database")
     p_shell.add_argument("--profile", type=str, default="0", help="Initial inference profile (0=Symbolic/Instant, A=Embedder, C=Neuro-Symbolic LLM, D, E)")
+    p_shell.add_argument("--route-method", "-m", type=str, default=None, choices=["M0", "M1", "M2", "M3", "M4", "M5", "M6"], help="Initial routing method algorithm (default: M0)")
+    p_shell.add_argument("--no-lint", action="store_true", help="Skip static pre-flight linter")
     p_shell.add_argument("--embedder", type=str, default="", help="Embedding model name (e.g. jina-embeddings-v5-text-nano)")
     p_shell.add_argument("--llm", type=str, default="", help="LLM model name (e.g. qwen2.5-coder-0.5b-instruct)")
     p_shell.add_argument("--device", type=str, default="auto", choices=["auto", "cpu", "cuda"], help="Compute device")
@@ -1781,7 +2090,7 @@ def main():
         return
 
     # Pre-process arguments to support direct prompt or top-level --debug
-    known_cmds = {"harvest", "compile", "validate", "precompute-rag", "shell", "run", "-h", "--help"}
+    known_cmds = {"harvest", "compile", "validate", "audit", "macro", "benchmark", "precompute-rag", "shell", "run", "-h", "--help"}
     if len(sys.argv) > 1 and sys.argv[1] not in known_cmds:
         if sys.argv[1] in ("--debug", "-d") and len(sys.argv) > 2 and sys.argv[2] not in known_cmds:
             prompt_arg = sys.argv[2]
@@ -1805,7 +2114,9 @@ def main():
             embedder="",
             llm="",
             device="auto",
-            debug=getattr(args, "debug", False)
+            debug=getattr(args, "debug", False),
+            route_method=None,
+            no_lint=False
         ))
 
 

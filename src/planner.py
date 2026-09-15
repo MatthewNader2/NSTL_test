@@ -130,6 +130,58 @@ class LatticePlanner:
 
         return 0.0
 
+    def compute_edge_score(
+        self,
+        src_cell: Cell,
+        dst_cell: Cell,
+        relevance_map: Optional[Dict[str, float]] = None,
+        weights: Tuple[float, float, float, float] = (0.35, 0.30, 0.25, 0.10)
+    ) -> float:
+        """
+        Formal 4-Term Edge Score Model (T3.1):
+        E(u, v) = w1 * AST_affinity(u, v) + w2 * semantic_relevance(v) + w3 * role_progress(u, v) + w4 * (1 / distance(u, v))
+        """
+        w1, w2, w3, w4 = weights
+
+        # Term 1: AST-affinity
+        ast_aff = self._calculate_edge_affinity(src_cell, dst_cell)
+
+        # Term 2: Semantic Relevance
+        rel = (relevance_map or {}).get(dst_cell.cell_id, 0.0)
+
+        # Term 3: Role Progress
+        src_stage = getattr(src_cell, "stage", 1) or 1
+        dst_stage = getattr(dst_cell, "stage", 2) or 2
+        if src_stage == 1 and dst_stage == 2:
+            stage_prog = 0.5
+        elif src_stage == 2 and dst_stage == 2:
+            stage_prog = 0.3
+        elif src_stage == 2 and dst_stage == 3:
+            stage_prog = 0.8
+        elif src_stage == 1 and dst_stage == 3:
+            stage_prog = 0.6
+        else:
+            stage_prog = 0.2
+
+        src_roles = {getattr(p, "port_role", None) or getattr(p, "derived_role", "") for p in src_cell.outputs.values()}
+        dst_roles = {getattr(p, "port_role", None) or getattr(p, "derived_role", "") for p in dst_cell.inputs.values()}
+        role_prog = stage_prog
+        if ("source_data" in src_roles or "data_input" in src_roles) and ("feature_input" in dst_roles or "data_input" in dst_roles):
+            role_prog += 0.3
+        if ("feature_input" in src_roles or "model_input" in src_roles) and ("model_sink" in dst_roles or "data_input" in dst_roles):
+            role_prog += 0.3
+        role_prog = min(1.0, role_prog)
+
+        # Term 4: Graph Distance (1 / dist)
+        adj = getattr(self.orchestrator, "_adjacency", {})
+        if dst_cell.cell_id in adj.get(src_cell.cell_id, ()):
+            inv_dist = 1.0
+        else:
+            two_hop = any(dst_cell.cell_id in adj.get(mid, ()) for mid in adj.get(src_cell.cell_id, ()))
+            inv_dist = 0.5 if two_hop else 0.2
+
+        return (w1 * ast_aff) + (w2 * rel) + (w3 * role_prog) + (w4 * inv_dist)
+
     def plan(
         self,
         prompt: str,
@@ -177,9 +229,14 @@ class LatticePlanner:
 
         # ---- Goal-directed objective data (all derived from DECLARED structure) ----
         registry = TypeRegistry.get_instance()
+        l0_extracted_literals = ExecutionContext._extract_universal_literals(prompt or "")
+        universal_literals = [
+            (kind, val) for _, kind, val in l0_extracted_literals
+            if kind in ("file_asset", "identifier", "quoted_str")
+        ]
         file_literals = [
-            v for _, t, v in ExecutionContext._extract_universal_literals(prompt or "")
-            if t == "file_asset"
+            v for kind, v in universal_literals
+            if kind == "file_asset"
         ]
 
         def _has_path_port(cell: Cell) -> bool:
@@ -645,12 +702,45 @@ class LatticePlanner:
             # Intent deficit objective: penalize incomplete pipelines that abandon requested clauses
             intent_deficit = (35.0 if is_final else 15.0) * max(0.0, 1.0 - clause_cov) if num_clauses > 1 else 0.0
 
+            # Literal consumption term (T1.3):
+            # Measures ratio of L0 universal literals bound to at least one port on the path.
+            if universal_literals:
+                path_ports = set()
+                path_file_ports = 0
+                for c in path:
+                    if _has_path_port(c):
+                        path_file_ports += 1
+                    for p_name, p_sig in c.inputs.items():
+                        path_ports.add(p_name.lower())
+                        role = getattr(p_sig, "port_role", None) or getattr(p_sig, "derived_role", "")
+                        if role:
+                            path_ports.add(role.lower())
+                    for s_k in getattr(c, "bound_slots", {}).keys():
+                        path_ports.add(s_k.lower())
+
+                consumed_count = 0
+                used_file_ports = 0
+                for kind, lit in universal_literals:
+                    lit_clean = str(lit).lower().strip("'\"")
+                    if kind == "file_asset":
+                        if used_file_ports < path_file_ports:
+                            consumed_count += 1
+                            used_file_ports += 1
+                    else:
+                        if lit_clean in path_ports or any(lit_clean in p for p in path_ports):
+                            consumed_count += 1
+                        elif any(role in path_ports for role in ("feature_input", "target_input", "data_input")):
+                            consumed_count += 1
+                literal_consumption = consumed_count / len(universal_literals)
+            else:
+                literal_consumption = 1.0
+
             # Dominant score combination: edge affinity (w_aff = 25.0) heavily rewards
             # AST-mined canonical transitions, rendering legacy junk exploit patches obsolete.
             return (coverage * 10.0 + alignment * 10.0 + affinity_score * 25.0 - parsimony_penalty
                     + mean_log_prob + goal_bonus - weak_total
                     - dead_ctors * 25.0 - unbindable * 50.0 - domain_dispersion - gap_penalty
-                    - intent_deficit)
+                    - intent_deficit + literal_consumption * 15.0)
 
         # Type-gated adjacency: index candidates by the DECLARED input carrier they
         # expose. Expansion enumerates distinct port carriers and gates them through

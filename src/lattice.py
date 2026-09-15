@@ -783,10 +783,38 @@ class PortSignature:
         ):
             return "model_input"
 
-        # Check for tabular data input
+        # Check for tabular / structural data input
         t_name = self.type_name.lower()
-        if t_name in ("dataframe", "table", "dataset") or "dataframe" in state_lower:
+        if (
+            t_name in ("dataframe", "table", "dataset")
+            or "dataframe" in state_lower
+            or "adjacency" in state_lower
+            or "graph" in state_lower
+            or "data" in state_lower
+            or name_lower in ("df", "dataframe", "data", "graph", "dataset")
+        ):
             return "data_input"
+
+        # Check for source data / file input
+        if (
+            "source" in state_lower
+            or "source" in name_lower
+            or "filepath" in name_lower
+            or name_lower in ("file_path", "filename", "path")
+            or "source_identifier" in state_lower
+        ):
+            return "source_data"
+
+        # Check for model / destination sink
+        if (
+            "sink" in state_lower
+            or "dest" in state_lower
+            or "target_path" in name_lower
+            or "output_path" in name_lower
+            or "savepath" in name_lower
+            or "dest_identifier" in state_lower
+        ):
+            return "model_sink"
 
         return "standard"
 
@@ -1255,18 +1283,21 @@ class MicroCell(Cell):
 
 class MacroCell(Cell):
     """Higher-level hierarchical composite node in the lattice (Section 3.1)."""
-    __slots__ = ("sub_cells", "algorithmic_steps")
+    __slots__ = ("sub_cells", "algorithmic_steps", "_resolved_sub_cells", "internal_topology", "__dict__")
 
     def __init__(
         self,
         sub_cells: Optional[List[str]] = None,
         algorithmic_steps: Optional[List[str]] = None,
+        internal_topology: Optional[Dict[str, List[str]]] = None,
         **kwargs
     ):
         kwargs["cell_type"] = "macro"
         super().__init__(**kwargs)
         self.sub_cells = sub_cells or []
         self.algorithmic_steps = algorithmic_steps or []
+        self.internal_topology = internal_topology or {}
+        self._resolved_sub_cells: Dict[str, Cell] = {}
 
 
 class LatticeOrchestrator:
@@ -1287,6 +1318,7 @@ class LatticeOrchestrator:
         self._reverse_adjacency: Dict[str, List[str]] = {}
         self._token_index: Dict[str, List[Cell]] = {}
         self._bridge_cells: List[Cell] = []
+        self.dynamic_edges: Dict[Tuple[str, str], Dict[str, Any]] = {}
         self._lock = threading.RLock()
 
         if os.path.exists(self.db_path):
@@ -1722,3 +1754,59 @@ class LatticeOrchestrator:
             if c.can_accept(sig):
                 results.append(c)
         return results
+
+    def register_dynamic_edge(
+        self,
+        src_cell_id: str,
+        dst_cell_id: str,
+        affinity_score: float = 0.8,
+        provenance: str = "runtime_verified"
+    ) -> bool:
+        """
+        Dynamically promotes a verified cross-tree or within-tree bridge morphism edge at runtime.
+        Updates in-memory adjacency, adds to source cell edges, and tracks in dynamic_edges.
+        """
+        with self._lock:
+            src_cell = self.loaded_cells.get(src_cell_id)
+            dst_cell = self.loaded_cells.get(dst_cell_id)
+            if not src_cell or not dst_cell:
+                return False
+
+            edge_data = {
+                "target_cell_id": dst_cell.cell_id,
+                "affinity_score": float(affinity_score),
+                "score_provenance": provenance,
+                "is_cross_tree": bool(src_cell.domain_name != dst_cell.domain_name)
+            }
+            self.dynamic_edges[(src_cell.cell_id, dst_cell.cell_id)] = edge_data
+
+            # Add to cell edges if not already present
+            existing_targets = {
+                e.get("target_cell_id") if isinstance(e, dict) else getattr(e, "target_cell_id", None)
+                for e in getattr(src_cell, "edges", [])
+            }
+            if dst_cell.cell_id not in existing_targets:
+                if not hasattr(src_cell, "edges") or src_cell.edges is None:
+                    src_cell.edges = []
+                src_cell.edges.append(edge_data)
+
+            # Add to directed adjacency
+            if src_cell.cell_id not in self._adjacency:
+                self._adjacency[src_cell.cell_id] = []
+            if dst_cell.cell_id not in self._adjacency[src_cell.cell_id]:
+                self._adjacency[src_cell.cell_id].append(dst_cell.cell_id)
+
+            if dst_cell.cell_id not in self._reverse_adjacency:
+                self._reverse_adjacency[dst_cell.cell_id] = []
+            if src_cell.cell_id not in self._reverse_adjacency[dst_cell.cell_id]:
+                self._reverse_adjacency[dst_cell.cell_id].append(src_cell.cell_id)
+
+            return True
+
+    def get_promoted_bridges(self) -> List[Dict[str, Any]]:
+        """Returns all dynamically promoted bridge edges."""
+        with self._lock:
+            return [
+                {"source": s, "target": t, **data}
+                for (s, t), data in self.dynamic_edges.items()
+            ]

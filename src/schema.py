@@ -114,7 +114,7 @@ class PortSchema(BaseModel):
     param_kind: Optional[str] = "standard"  # "positional_only", "keyword_only", "var_positional", "var_keyword", "standard"
     value_constraints: Optional[Dict[str, Any]] = None  # e.g. {"min": 0, "max": 1, "interval": "[0, 1]"}
     shape_contract: Optional[Union[Dict[str, Any], str]] = None  # e.g. {"ndim": 2} or "(n_samples, n_features)"
-    port_role: Optional[str] = None  # e.g. "feature_input", "target_input", "model_input", "data_input"
+    port_role: Optional[str] = None  # e.g. "feature_input", "target_input", "model_input", "data_input", "source_data", "model_sink"
 
     @field_validator("accepted_states", mode="before")
     @classmethod

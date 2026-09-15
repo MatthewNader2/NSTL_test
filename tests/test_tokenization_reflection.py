@@ -15,7 +15,9 @@ import numpy as np
 import cv2
 import sklearn.preprocessing
 
-from src.tokenizer import CellTokenizer, _IDENTIFIER_SPLIT_REGEX
+from src.tokenizer import CellTokenizer
+
+_IDENTIFIER_SPLIT_REGEX = re.compile(r"[_\-.\s]+|(?<=[a-z])(?=[A-Z])|(?<=[A-Z])(?=[A-Z][a-z])|(?<=[a-zA-Z])(?=[0-9])|(?<=[0-9])(?=[a-zA-Z])")
 
 
 def _get_reflected_identifiers() -> List[str]:

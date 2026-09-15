@@ -247,7 +247,64 @@ def _resolve_port_carrier_and_type(
         p_abs = "path"
     if p_abs == "path" and p_type in ("any", "str", "object", ""):
         p_type = "path"
-    return p_abs, p_type
+CONVENTIONAL_ESTIMATOR_VERBS: Tuple[str, ...] = (
+    "fit",
+    "predict",
+    "transform",
+    "score",
+    "partial_fit",
+    "fit_transform",
+)
+
+
+def _infer_port_role(
+    callable_name: str,
+    param_name: str,
+    pos_idx: int = 0,
+    param_type: str = "any",
+    is_required: bool = True,
+    default_val: Any = None,
+    doc_desc: str = ""
+) -> Optional[str]:
+    """
+    Structural role extraction for harvested port signatures across all libraries.
+    Detects estimator contracts, source data inputs, and destination/model sinks.
+    """
+    c_lower = str(callable_name).lower()
+    p_lower = str(param_name).lower()
+    d_lower = str(doc_desc).lower()
+    t_lower = str(param_type).lower()
+
+    # 1. Estimator verbs (conventional estimator shape)
+    is_estimator = any(
+        c_lower == v or c_lower.startswith(f"{v}_") or c_lower.endswith(f"_{v}") or v in c_lower
+        for v in CONVENTIONAL_ESTIMATOR_VERBS
+    )
+    if is_estimator:
+        if pos_idx == 0 or p_lower in ("x", "x_", "data", "features", "input_data"):
+            return "feature_input"
+        if pos_idx == 1 or p_lower in ("y", "y_", "target", "targets", "labels", "label", "y_true", "y_pred"):
+            return "target_input"
+
+    # 2. Source Data (reading/loading files or data input)
+    if any(prefix in c_lower for prefix in ("read", "load", "open", "from_")) or p_lower in ("filepath", "source_path", "filename", "file_path", "path", "image_path"):
+        if pos_idx == 0 or p_lower in ("filepath", "source_path", "filename", "file_path", "path", "image_path"):
+            return "source_data"
+
+    # 3. Model / Destination Sink (writing/saving files or model persistence)
+    if any(prefix in c_lower for prefix in ("save", "write", "dump", "export", "to_")) or p_lower in ("dest_path", "savepath", "output_path", "target_path"):
+        if p_lower in ("dest_path", "savepath", "output_path", "target_path") or (pos_idx > 0 and t_lower in ("str", "path")):
+            return "model_sink"
+
+    # 4. Data / Structural Input
+    if t_lower in ("dataframe", "table", "dataset") or p_lower in ("df", "dataframe", "data", "graph", "dataset"):
+        return "data_input"
+
+    # 5. Model Input
+    if p_lower in ("model", "estimator", "clf", "regressor"):
+        return "model_input"
+
+    return None
 
 
 def _harvest_constant_cell(
@@ -708,7 +765,7 @@ class UniversalHarvester:
                         for p in sig.parameters.values()
                     )
 
-                    for p in sig.parameters.values():
+                    for p_idx, p in enumerate(sig.parameters.values()):
                         p_kind = self.adapter.get_param_kind(p)
                         if p.kind is inspect.Parameter.VAR_POSITIONAL:
                             is_primary_variadic = not has_positional
@@ -763,6 +820,16 @@ class UniversalHarvester:
                         p_constraints = self.adapter.get_param_constraints(doc_desc) or self.adapter.get_param_constraints(doc)
                         p_shape = self.adapter.get_shape_contract(doc_type) or self.adapter.get_shape_contract(doc_desc)
 
+                        p_role = _infer_port_role(
+                            callable_name=attr_name,
+                            param_name=p.name,
+                            pos_idx=p_idx,
+                            param_type=p_type,
+                            is_required=is_req,
+                            default_val=p_default,
+                            doc_desc=doc_desc
+                        )
+
                         inputs[p.name] = PortSchema(
                             type_name=p_type,
                             state="any",
@@ -773,6 +840,7 @@ class UniversalHarvester:
                             param_kind=p_kind,
                             value_constraints=p_constraints,
                             shape_contract=p_shape,
+                            port_role=p_role,
                             description=f"Argument {p.name}"
                         )
                         if is_req:
@@ -1516,6 +1584,16 @@ class UniversalHarvester:
                 p_constraints = self.adapter.get_param_constraints(doc_desc) or self.adapter.get_param_constraints(doc)
                 p_shape = self.adapter.get_shape_contract(doc_type) or self.adapter.get_shape_contract(doc_desc)
 
+                p_role = _infer_port_role(
+                    callable_name=attr,
+                    param_name=p.name,
+                    pos_idx=p_idx if 'p_idx' in locals() else 0,
+                    param_type=p_type,
+                    is_required=is_req,
+                    default_val=p_default,
+                    doc_desc=doc_desc
+                )
+
                 inputs[p.name] = PortSchema(
                     type_name=p_type,
                     state="any",
@@ -1526,6 +1604,7 @@ class UniversalHarvester:
                     param_kind=p_kind,
                     value_constraints=p_constraints,
                     shape_contract=p_shape,
+                    port_role=p_role,
                     description=f"Argument {p.name}"
                 )
                 if is_req:
@@ -1620,6 +1699,16 @@ class UniversalHarvester:
                 p_constraints = self.adapter.get_param_constraints(doc_desc) or self.adapter.get_param_constraints(doc)
                 p_shape = self.adapter.get_shape_contract(doc_type) or self.adapter.get_shape_contract(doc_desc)
 
+                p_role = _infer_port_role(
+                    callable_name=attr,
+                    param_name=p.name,
+                    pos_idx=p_idx if 'p_idx' in locals() else 0,
+                    param_type=p_type,
+                    is_required=is_req,
+                    default_val=p_default,
+                    doc_desc=doc_desc
+                )
+
                 inputs[p.name] = PortSchema(
                     type_name=p_type,
                     state="any",
@@ -1630,6 +1719,7 @@ class UniversalHarvester:
                     param_kind=p_kind,
                     value_constraints=p_constraints,
                     shape_contract=p_shape,
+                    port_role=p_role,
                     description=f"Argument {p.name}"
                 )
                 if is_req:

@@ -25,12 +25,14 @@ try:
     from .planner import LatticePlanner, STOPWORDS
     from .tokenizer import CellTokenizer
     from .inference import ModelManager
+    from .route_methods import get_route_method, RouteMethod
 except (ImportError, ValueError):
     from lattice import LatticeOrchestrator, Cell
     from internal_rag import LocalRAG
     from planner import LatticePlanner, STOPWORDS
     from tokenizer import CellTokenizer
     from inference import ModelManager
+    from route_methods import get_route_method, RouteMethod
 
 logger = get_logger('router')
 
@@ -94,6 +96,7 @@ class LatticeRouter:
         self.internal_rag = internal_rag or rag_engine
         self.gamma = gamma          # Temperature parameter scaling cosine similarity
         self.epsilon = epsilon      # Cutoff threshold for tunnel inclusion
+        self.default_route_method = str(kwargs.get("route_method", "m0")).strip().lower()
         self.planner = LatticePlanner(orchestrator=self.orchestrator)
 
     def _score_clause_lexical_idf(
@@ -546,12 +549,15 @@ class LatticeRouter:
         start_sig: Optional[Any] = None,
         goal_sig: Optional[Any] = None,
         return_tuple: bool = True,
-        top_k: int = 400
+        top_k: int = 400,
+        route_method: Optional[str] = None,
+        ctx: Optional[Any] = None,
+        **kwargs
     ) -> Union[List[Cell], Tuple[List[Cell], Set[str]]]:
         """
         End-to-end routing & topological pathfinding:
           1. Computes active semantic tunnel T for prompt.
-          2. Uses LatticePlanner to find valid monadic composition through T.
+          2. Uses selected RouteMethod (M0 - M6) to find valid monadic composition through T.
         """
         tunnel_cells, relevance_map = self.route(prompt, top_k=top_k)
         if not tunnel_cells:
@@ -564,14 +570,39 @@ class LatticeRouter:
         if top_k and len(tunnel_cells) > top_k:
             tunnel_cells = tunnel_cells[:top_k]
 
-        # Find verified composition path inside tunnel T
-        path = self.planner.plan(
-            prompt=prompt,
-            tunnel=tunnel_cells,
-            relevance_map=relevance_map,
-            start_sig=start_sig,
-            goal_sig=goal_sig
-        )
+        # Dispatch to selected RouteMethod
+        method_name = str(route_method or self.default_route_method or "m0").strip().lower()
+        if method_name not in ("m0", "m0_trellis", "trellis", "viterbi"):
+            try:
+                method = get_route_method(method_name, orchestrator=self.orchestrator)
+                path = method.plan(
+                    prompt=prompt,
+                    tunnel=tunnel_cells,
+                    relevance_map=relevance_map,
+                    orchestrator=self.orchestrator,
+                    ctx=ctx,
+                    start_sig=start_sig,
+                    goal_sig=goal_sig,
+                    **kwargs
+                )
+            except Exception as e:
+                logger.warning(f"[ROUTER] RouteMethod '{method_name}' failed with {e}; falling back to M0 Trellis.")
+                path = self.planner.plan(
+                    prompt=prompt,
+                    tunnel=tunnel_cells,
+                    relevance_map=relevance_map,
+                    start_sig=start_sig,
+                    goal_sig=goal_sig
+                )
+        else:
+            # Find verified composition path inside tunnel T using baseline Trellis
+            path = self.planner.plan(
+                prompt=prompt,
+                tunnel=tunnel_cells,
+                relevance_map=relevance_map,
+                start_sig=start_sig,
+                goal_sig=goal_sig
+            )
 
         if return_tuple:
             candidate_ids = set(c.cell_id for c in tunnel_cells)

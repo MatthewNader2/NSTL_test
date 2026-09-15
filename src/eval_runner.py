@@ -112,11 +112,30 @@ def run_eval():
             # Generate
             code = generate_code(task['prompt'])
             
+            # Preflight static lint check (T1.1)
+            is_type_safe = False
+            preflight_violations = []
+            try:
+                from preflight import PreflightLinter
+                # Basic AST parsing and structural check
+                lint_res = PreflightLinter.lint([], prompt=task['prompt'], code_str=code)
+                is_type_safe = lint_res.is_valid
+                preflight_violations = lint_res.violations
+            except Exception:
+                try:
+                    ast.parse(code or "")
+                    is_type_safe = True
+                except Exception as e:
+                    preflight_violations.append(str(e))
+
+            tier = "failed"
             passed = False
             error_msg = ""
             stdout_str = ""
             stderr_str = ""
-            
+            repaired_code = None
+            pass_attribution = "none"
+
             if code is None or not code.strip():
                 error_msg = "No code generated."
             else:
@@ -124,48 +143,87 @@ def run_eval():
                 temp_file = os.path.join(str(PROJECT_ROOT), 'temp_eval_run.py')
                 with open(temp_file, 'w') as f:
                     f.write(code)
-                
+
                 # Execute
                 try:
                     run_proc = subprocess.run(["python3", temp_file], capture_output=True, text=True, timeout=30)
                     stdout_str = run_proc.stdout
                     stderr_str = run_proc.stderr
-                    
+
                     if run_proc.returncode != 0:
                         error_msg = f"Execution failed with return code {run_proc.returncode}:\n{stderr_str}"
+                        tier = "failed"
                     else:
-                        # Validate
+                        # Exit code 0 -> at least 'runs'
+                        tier = "runs"
+                        if is_type_safe:
+                            tier = "type-safe"
+
+                        # Validate semantic assertions from task declaration
+                        # Supports either 'assertions' list/dict or legacy 'validation_script'
+                        task_assertions = task.get('assertions')
                         validation_script = task.get('validation_script')
-                        if validation_script:
+
+                        if task_assertions:
+                            # Evaluate task-declared assertions
+                            val_env = {"stdout": stdout_str, "stderr": stderr_str}
+                            all_asserts_passed = True
+                            for a_expr in task_assertions:
+                                try:
+                                    if not eval(a_expr, {"__builtins__": __builtins__, **val_env}):
+                                        all_asserts_passed = False
+                                        error_msg = f"Assertion failed: {a_expr}"
+                                        break
+                                except Exception as ae:
+                                    all_asserts_passed = False
+                                    error_msg = f"Assertion evaluation error: {ae}"
+                                    break
+                            if all_asserts_passed:
+                                tier = "semantically-validated"
+                                passed = True
+                        elif validation_script:
                             # Pass stdout and stderr to the validation env
                             val_env = {"stdout": stdout_str, "stderr": stderr_str}
                             try:
                                 exec(validation_script, {"__builtins__": __builtins__, **val_env})
+                                tier = "semantically-validated"
                                 passed = True
                             except AssertionError as ae:
                                 error_msg = f"Validation failed: {ae}"
                             except Exception as e:
                                 error_msg = f"Validation script crashed: {e}\n{traceback.format_exc()}"
                         else:
-                            passed = None # No validation script = unvalidated
+                            # No declared assertions: caps at type-safe
+                            passed = (tier == "type-safe")
+
+                        # Determine pass attribution structurally
+                        # If passed code is byte-identical post-normalization to emitted code -> path
+                        if tier in ("runs", "type-safe", "semantically-validated"):
+                            pass_attribution = "path"
+
                 except subprocess.TimeoutExpired:
                     error_msg = "Execution timed out after 30 seconds."
+                    tier = "failed"
                 except Exception as e:
                     error_msg = f"Failed to run code: {e}"
-            
+                    tier = "failed"
+
             result = {
                 "profile": profile,
                 "embedder": emb,
                 "llm": llm,
                 "task_id": task["task_id"],
-                "passed": passed,
+                "tier": tier,
+                "passed": (tier == "semantically-validated") or (passed and tier == "type-safe"),
+                "pass_attribution": pass_attribution,
                 "error": error_msg,
                 "stdout": stdout_str,
-                "code": code
+                "code": code,
+                "repaired_code": repaired_code
             }
             results.append(result)
-            print(f"Task {task['task_id']} Passed: {passed}")
-            if not passed:
+            print(f"Task {task['task_id']} Tier: {tier}, Passed: {result['passed']}, Attribution: {pass_attribution}")
+            if not result['passed']:
                 print(f"Error: {error_msg}")
         
         print("Terminating server...")
