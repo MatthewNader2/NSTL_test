@@ -21,10 +21,10 @@ from typing import Dict, List, Optional, Set, Tuple, Any, Union, Callable, Gener
 from log_config import get_logger
 
 try:
-    from .lattice import AlgebraicSignature, PortSignature, Cell, MacroCell, TypeRegistry, ABSTRACT_CARRIERS
+    from .lattice import AlgebraicSignature, PortSignature, Cell, MacroCell, TypeRegistry, ABSTRACT_CARRIERS, UNRESOLVED_PORT
     from .tokenizer import CellTokenizer, normalize_token
 except (ImportError, ValueError):
-    from lattice import AlgebraicSignature, PortSignature, Cell, MacroCell, TypeRegistry, ABSTRACT_CARRIERS
+    from lattice import AlgebraicSignature, PortSignature, Cell, MacroCell, TypeRegistry, ABSTRACT_CARRIERS, UNRESOLVED_PORT
     from tokenizer import CellTokenizer, normalize_token
 
 logger = get_logger('unification')
@@ -806,6 +806,8 @@ class ExecutionContext:
         # product prefer the remaining members — this is how allocation semantics
         # (train/verify/test partitions) emerge from consumption order.
         self.consumed_members: Set[Tuple[str, int]] = set()
+        self.unresolved_ports: List[Tuple[str, str]] = []
+        self.unbindable_count: int = 0
         self.ordered_literals: List[Tuple[int, str, str]] = self._extract_universal_literals(self._prompt)
         # Bare-identifier role map: char position -> stemmed role context tokens
         # (e.g. pos(X) -> {"column"}). Drives role-conditioned identifier binding
@@ -822,6 +824,8 @@ class ExecutionContext:
         self.used_indices = set()
         self.consumed_tokens = set()
         self.consumed_members = set()
+        self.unresolved_ports = []
+        self.unbindable_count = 0
         self.var_counter = 0
         if hasattr(self, "scope") and self.scope:
             for k, v in self.scope.items():
@@ -835,6 +839,8 @@ class ExecutionContext:
         new_ctx.used_indices = set(self.used_indices)
         new_ctx.consumed_tokens = set(self.consumed_tokens)
         new_ctx.consumed_members = set(self.consumed_members)
+        new_ctx.unresolved_ports = list(self.unresolved_ports)
+        new_ctx.unbindable_count = self.unbindable_count
         new_ctx.var_counter = self.var_counter
         return new_ctx
 
@@ -1543,6 +1549,37 @@ class ExecutionContext:
                     self.used_indices.add(idx)
                     return json.dumps(val)
 
+        # 6c. Multi-identifier collection / list projection (e.g. columns list for selection or projection)
+        is_collection = (
+            registry.is_subtype(t_name, "list")
+            or registry.is_subtype(t_name, "collection")
+            or registry.is_subtype(t_name, "sequence")
+            or t_name in ("list", "sequence", "collection")
+            or getattr(port_sig, "abstract_type", None) == "collection"
+            or str(getattr(port_sig, "state", "")).lower() in ("column_projection", "columns", "columns_list", "feature_names")
+        )
+        if (cell_stage == 2 or cell_stage is None) and is_collection:
+            _raw_state = str(getattr(port_sig, "state", "") or "")
+            _state_tokens = _TOKENIZER.tokenize_identifier(_raw_state) if _raw_state.lower() not in ("any", "default", "") else set()
+            _identity_scope: Set[str] = set(cell_tokens or set()) | _state_tokens | {"column", "feature", "select", "columns", "features"}
+
+            matched_indices = []
+            matched_vals = []
+            for idx, (_, kind, val) in enumerate(self.ordered_literals):
+                if idx in self.used_indices:
+                    continue
+                if kind in ("identifier", "quoted_str"):
+                    role_tokens = self.identifier_roles.get(self.ordered_literals[idx][0], frozenset())
+                    if (role_tokens and (role_tokens & _identity_scope)) or "column" in role_tokens or _raw_state == "column_projection":
+                        matched_indices.append(idx)
+                        matched_vals.append(val)
+
+            if matched_vals:
+                for idx in matched_indices:
+                    self.used_indices.add(idx)
+                    self.consumed_tokens.add(str(self.ordered_literals[idx][2]).lower())
+                return json.dumps(matched_vals)
+
         # 7. Port default value declared in tree schema
         if port_sig.default_value is not None:
             def_str = str(port_sig.default_value).strip()
@@ -2095,7 +2132,8 @@ class UnificationGate:
                         and kind in ("identifier", "quoted_str")
                     ]
                     if unconsumed_lits:
-                        cell_bindings[p_name] = "<UNRESOLVED>"
+                        if hasattr(ctx, "unresolved_ports"):
+                            ctx.unresolved_ports.append((cell.cell_id, p_name))
                         ctx.unbindable_count = getattr(ctx, "unbindable_count", 0) + 1
                         continue
 
@@ -2300,6 +2338,10 @@ class UnificationGate:
                         is_req = getattr(p_sig, "required", True) if p_sig else True
                         p_kind = getattr(p_sig, "param_kind", "standard")
                         val = bindings.get(orig_name)
+                        if val is UNRESOLVED_PORT or (isinstance(val, str) and val in ("<UNRESOLVED_PORT>", "<UNRESOLVED>", "<unbound>")):
+                            raise UnresolvedPlaceholderError(
+                                f"Cannot emit code with unresolved port value for placeholder '{orig_name}' in template: {template}"
+                            )
 
                         if val is not None:
                             val_str = str(val)
@@ -2355,6 +2397,12 @@ class UnificationGate:
         Replaces port placeholders strictly from unified variable bindings.
         """
         ctx = context or self.context
+        if getattr(ctx, "unresolved_ports", None):
+            ports_str = ", ".join(f"{cid}.{p}" for cid, p in ctx.unresolved_ports)
+            raise UnresolvedPlaceholderError(
+                f"Code synthesis refused: pipeline contains unresolved ports: [{ports_str}]"
+            )
+
         accum_sigma: Substitution = Substitution()
         if cells and isinstance(cells[0], tuple):
             pipeline_bindings = cells
@@ -2370,6 +2418,19 @@ class UnificationGate:
             pipeline_bindings = res.value
             accum_sigma = res.sigma
             self.last_egress_paths = self._derive_egress_paths(pipeline_bindings)
+            if getattr(ctx_run, "unresolved_ports", None):
+                ports_str = ", ".join(f"{cid}.{p}" for cid, p in ctx_run.unresolved_ports)
+                raise UnresolvedPlaceholderError(
+                    f"Code synthesis refused: pipeline contains unresolved ports: [{ports_str}]"
+                )
+
+        # Ensure no binding contains an unresolved sentinel
+        for cell, bnd in pipeline_bindings:
+            for p_name, val in bnd.items():
+                if val is UNRESOLVED_PORT or (isinstance(val, str) and val in ("<UNRESOLVED_PORT>", "<UNRESOLVED>", "<unbound>")):
+                    raise UnresolvedPlaceholderError(
+                        f"Code synthesis refused: port '{p_name}' of cell '{cell.cell_id}' has unresolved value '{val}'"
+                    )
 
         self.last_pipeline_bindings = pipeline_bindings
         self.last_verification_contract = self.build_verification_contract(pipeline_bindings, ctx, getattr(ctx, "prompt", ""))

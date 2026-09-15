@@ -51,6 +51,37 @@ ABSTRACT_CARRIERS: FrozenSet[str] = frozenset((
     "numeric",
 ))
 
+class _UnresolvedPortSentinel:
+    """
+    Singleton sentinel indicating a port could not be resolved during binding.
+    Structurally prevented from being treated as a bound variable or literal value.
+    """
+    __slots__ = ()
+    _instance: Optional["_UnresolvedPortSentinel"] = None
+
+    def __new__(cls) -> "_UnresolvedPortSentinel":
+        if cls._instance is None:
+            cls._instance = super().__new__(cls)
+        return cls._instance
+
+    def __repr__(self) -> str:
+        return "<UNRESOLVED_PORT>"
+
+    def __str__(self) -> str:
+        return "<UNRESOLVED_PORT>"
+
+    def __bool__(self) -> bool:
+        return False
+
+    def __eq__(self, other: Any) -> bool:
+        return other is self or (isinstance(other, str) and other in ("<UNRESOLVED_PORT>", "<UNRESOLVED>", "<unbound>"))
+
+    def __hash__(self) -> int:
+        return hash("<UNRESOLVED_PORT>")
+
+
+UNRESOLVED_PORT = _UnresolvedPortSentinel()
+
 
 class TypeRegistry:
     """

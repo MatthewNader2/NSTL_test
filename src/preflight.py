@@ -19,6 +19,11 @@ import ast
 from typing import List, Dict, Set, Tuple, Any, Optional
 from dataclasses import dataclass, field
 
+try:
+    from .lattice import UNRESOLVED_PORT
+except (ImportError, ValueError):
+    from lattice import UNRESOLVED_PORT
+
 DATA_BEARING_ROLES: Set[str] = frozenset({
     "feature_input",
     "target_input",
@@ -128,10 +133,11 @@ class PreflightLinter:
 
                 if p_role in DATA_BEARING_ROLES:
                     bound_val = bindings.get(p_name)
-                    # Detect bare None
+                    # Detect bare None or unresolved port
                     is_bare_none = (
                         bound_val is None
-                        or str(bound_val).strip() in ("None", "none", "null")
+                        or bound_val is UNRESOLVED_PORT
+                        or str(bound_val).strip() in ("None", "none", "null", str(UNRESOLVED_PORT), "<UNRESOLVED>", "<unbound>")
                     )
                     if is_bare_none:
                         # Check if port explicitly declares handles_none
@@ -139,7 +145,7 @@ class PreflightLinter:
                         if not handles_none:
                             violations.append(
                                 f"Cell '{cell.cell_id}' port '{p_name}' has data-bearing role '{p_role}' "
-                                f"but received bare None."
+                                f"but received bare None or unresolved value."
                             )
 
         # ---------------------------------------------------------------------
@@ -168,16 +174,26 @@ class PreflightLinter:
                 if feature_port is not None and target_port is not None:
                     fb = bindings.get(feature_port)
                     tb = bindings.get(target_port)
-                    if not fb or str(fb).strip() in ("None", "none", "<unbound>"):
+                    if not fb or fb is UNRESOLVED_PORT or str(fb).strip() in ("None", "none", str(UNRESOLVED_PORT), "<UNRESOLVED>", "<unbound>"):
                         violations.append(
                             f"Estimator-shaped cell '{cell.cell_id}' requires feature port '{feature_port}', "
                             f"which was left unbound or None."
                         )
-                    if not tb or str(tb).strip() in ("None", "none", "<unbound>"):
+                    if not tb or tb is UNRESOLVED_PORT or str(tb).strip() in ("None", "none", str(UNRESOLVED_PORT), "<UNRESOLVED>", "<unbound>"):
                         violations.append(
                             f"Estimator-shaped cell '{cell.cell_id}' requires target port '{target_port}' "
                             f"for prompt with multiple data identifiers {data_ids}, but it was left unbound or None."
                         )
+
+        # ---------------------------------------------------------------------
+        # Check 3b: Explicit Unresolved Port Detection
+        # ---------------------------------------------------------------------
+        for cell, bindings in pipeline_bindings:
+            for p_name, val in bindings.items():
+                if val is UNRESOLVED_PORT or (isinstance(val, str) and val in (str(UNRESOLVED_PORT), "<UNRESOLVED>", "<unbound>")):
+                    violations.append(
+                        f"Cell '{cell.cell_id}' port '{p_name}' has unresolved binding value: '{val}'"
+                    )
 
         # ---------------------------------------------------------------------
         # Check 4: AST Syntax Validation (if code_str provided)

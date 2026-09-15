@@ -289,7 +289,7 @@ from rich import box
 from rich.columns import Columns
 
 try:
-    from lattice import LatticeOrchestrator, Cell, PortSignature, AlgebraicSignature
+    from lattice import LatticeOrchestrator, Cell, PortSignature, AlgebraicSignature, UNRESOLVED_PORT
     from router import LatticeRouter, HardwareProfiler
     from unification import (
         UnificationGate, DynamicPlaceholderResolver, UnresolvedPlaceholderError,
@@ -308,7 +308,7 @@ try:
     from macro_harvester import MacroHarvester
     from route_methods import ROUTE_METHOD_REGISTRY, get_route_method
 except ImportError:
-    from .lattice import LatticeOrchestrator, Cell, PortSignature, AlgebraicSignature
+    from .lattice import LatticeOrchestrator, Cell, PortSignature, AlgebraicSignature, UNRESOLVED_PORT
     from .router import LatticeRouter, HardwareProfiler
     from .unification import (
         UnificationGate, DynamicPlaceholderResolver, UnresolvedPlaceholderError,
@@ -831,18 +831,30 @@ class PipelineDebugger:
                 bind_table.add_column("Provenance / Source", style="dim", ratio=2)
 
                 prompt_lits = {v for _, _, v in literals}
+                unresolved_ports_set = set(getattr(ctx, "unresolved_ports", []))
                 for step_idx, (cl, bindings) in enumerate(pipeline_bindings, 1):
                     for p_name, p_sig in cl.inputs.items():
-                        b_val = str(bindings.get(p_name, "<unbound>"))
                         t_str = f"{p_sig.signature.type_name} [{p_sig.signature.state}]"
-                        if any(b_val.strip("'\"") == lit for lit in prompt_lits):
-                            source_desc = "Prompt Literal"
-                        elif b_val.startswith("var_") or b_val.startswith("v"):
-                            source_desc = "Wired Variable"
+                        is_unresolved = (cl.cell_id, p_name) in unresolved_ports_set or bindings.get(p_name) is UNRESOLVED_PORT
+                        if is_unresolved:
+                            b_val = str(UNRESOLVED_PORT)
+                            source_desc = "Unresolved Port"
+                        elif p_name in bindings and bindings[p_name] is not None:
+                            b_val = str(bindings[p_name])
+                            if any(b_val.strip("'\"") == lit for lit in prompt_lits):
+                                source_desc = "Prompt Literal"
+                            elif b_val.startswith("var_") or b_val.startswith("v"):
+                                source_desc = "Wired Variable"
+                            elif p_sig.default_value is not None:
+                                source_desc = "Declared Default"
+                            else:
+                                source_desc = "Dynamic Resolver"
                         elif p_sig.default_value is not None:
+                            b_val = str(p_sig.default_value)
                             source_desc = "Declared Default"
                         else:
-                            source_desc = "Dynamic Resolver"
+                            b_val = str(UNRESOLVED_PORT)
+                            source_desc = "Unresolved Port"
 
                         bind_table.add_row(
                             str(step_idx),
@@ -855,7 +867,7 @@ class PipelineDebugger:
                             source_desc
                         )
                     for p_name, p_sig in cl.outputs.items():
-                        b_val = str(bindings.get(p_name, "<unbound>"))
+                        b_val = str(bindings.get(p_name, UNRESOLVED_PORT))
                         t_str = f"{p_sig.signature.type_name} [{p_sig.signature.state}]"
                         bind_table.add_row(
                             str(step_idx),
@@ -885,8 +897,10 @@ class PipelineDebugger:
                     c.print("")
 
                 # Static Pre-Flight Linting Diagnostics
+                lint_valid = True
                 if pipeline_bindings:
-                    lint_res = PreflightLinter.lint(pipeline_bindings)
+                    lint_res = PreflightLinter.lint(pipeline_bindings, prompt=prompt, code_str=final_code)
+                    lint_valid = lint_res.is_valid
                     if not lint_res.is_valid:
                         c.print(Panel(
                             "[bold red]❌ PRE-FLIGHT LINT VIOLATIONS DETECTED:[/bold red]\n" +
@@ -908,10 +922,21 @@ class PipelineDebugger:
         sandbox_dt = 0.0
 
         if final_code and execute_sandbox:
-            t_exec_start = time.perf_counter()
-            v_contract = getattr(self.gate, "last_verification_contract", None)
-            sandbox_res = self.sandbox.execute(final_code, timeout=timeout, egress_paths=dest_paths, verification_spec=v_contract)
-            sandbox_dt = (time.perf_counter() - t_exec_start) * 1000.0
+            has_unresolved = bool(getattr(ctx, "unresolved_ports", None))
+            if not lint_valid or has_unresolved:
+                reasons = []
+                if not lint_valid and 'lint_res' in locals():
+                    reasons.extend(lint_res.violations)
+                if has_unresolved:
+                    reasons.extend([f"Unresolved port: {cid}.{p}" for cid, p in ctx.unresolved_ports])
+                err_msg = f"Pre-flight lint validation failed: {'; '.join(reasons)}"
+                sandbox_res = {"success": False, "error": err_msg, "skipped": True}
+                c.print(f"[bold red][!] Sandbox execution aborted: {err_msg}[/bold red]\n")
+            else:
+                t_exec_start = time.perf_counter()
+                v_contract = getattr(self.gate, "last_verification_contract", None)
+                sandbox_res = self.sandbox.execute(final_code, timeout=timeout, egress_paths=dest_paths, verification_spec=v_contract)
+                sandbox_dt = (time.perf_counter() - t_exec_start) * 1000.0
 
             sb_success = sandbox_res.get("success", False)
             sb_ret = sandbox_res.get("returncode", 0)
@@ -1676,8 +1701,10 @@ class NSTLInteractiveShell(cmd.Cmd):
         synth_dt = (time.perf_counter() - t_synth_start) * 1000.0
 
         # Step 3b: Static Pre-Flight Linting
+        lint_valid = True
         if not query_no_lint and hasattr(self.gate, "last_pipeline_bindings") and self.gate.last_pipeline_bindings:
-            lint_res = PreflightLinter.lint(self.gate.last_pipeline_bindings)
+            lint_res = PreflightLinter.lint(self.gate.last_pipeline_bindings, prompt=prompt, code_str=final_code)
+            lint_valid = lint_res.is_valid
             if not lint_res.is_valid:
                 console.print("\n[bold red][!] Static Pre-Flight Lint Violations:[/bold red]")
                 for v in lint_res.violations:
@@ -1686,6 +1713,10 @@ class NSTLInteractiveShell(cmd.Cmd):
                 console.print("\n[bold yellow][!] Pre-Flight Warnings:[/bold yellow]")
                 for w in lint_res.warnings:
                     console.print(f"  [yellow]• {w}[/yellow]")
+
+        if not lint_valid:
+            console.print("\n[bold red][!] Execution halted due to pre-flight lint violations.[/bold red]\n")
+            return
 
         # Step 4: Sandbox Verification & Optional Self-Repair
         t_exec_start = time.perf_counter()

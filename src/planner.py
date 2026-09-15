@@ -457,6 +457,15 @@ class LatticePlanner:
                 sigs.append(p_sig.signature)
             cell_receiver_sigs[c.cell_id] = sigs
 
+        def _is_col_proj_cell(cell: Cell) -> bool:
+            for p_n, p_s in cell.inputs.items():
+                st = str(getattr(p_s.signature, "state", "")).lower()
+                tname = str(getattr(p_s.signature, "type_name", "")).lower()
+                if st == "column_projection" or (tname in ("list", "sequence") and p_n.lower() in ("columns", "cols", "column")):
+                    return True
+            cid = cell.cell_id.lower()
+            return any(k in cid for k in ("select_columns", "filter_columns", "get_dummies", "extract"))
+
         def _new_unbindable(cand: Cell, prev_path: List[Cell]) -> int:
             produced = [out_sig.signature for prev in prev_path for out_sig in prev.outputs.values()]
             count = 0
@@ -483,6 +492,52 @@ class LatticePlanner:
                         break
             if required_path_ports > len(file_literals):
                 count += (required_path_ports - len(file_literals))
+
+            # Role-carrier tracking (R2.5):
+            # Check role-bearing inputs (e.g. target_input, feature_input, data_input)
+            ROLE_CARRIERS = frozenset({"target_input", "feature_input", "data_input", "model_input"})
+            matched_producers: Set[Tuple[int, str]] = set()
+
+            for p_name, p_sig in cand.inputs.items():
+                p_role = getattr(p_sig, "port_role", None) or getattr(p_sig, "derived_role", "")
+                if not p_role and hasattr(p_sig, "derive_port_role"):
+                    p_role = p_sig.derive_port_role()
+
+                if p_role in ROLE_CARRIERS:
+                    t_name = str(p_sig.signature.type_name)
+                    def_val = p_sig.default_value
+                    if def_val is not None and str(def_val).strip() not in ("None", "none", "null", ""):
+                        continue
+                    if _port_literal_groundable(t_name):
+                        continue
+
+                    # Search for an unallocated matching producer output in prev_path (newest to oldest)
+                    found_out = None
+                    for idx in range(len(prev_path) - 1, -1, -1):
+                        prev = prev_path[idx]
+                        for out_name, out_sig in prev.outputs.items():
+                            if (idx, out_name) in matched_producers:
+                                continue
+                            if unify(out_sig.signature, p_sig.signature) is not None:
+                                found_out = (idx, out_name)
+                                break
+                        if found_out is not None:
+                            matched_producers.add(found_out)
+                            break
+
+                    if found_out is None:
+                        already_penalized = (
+                            p_sig.required
+                            and p_sig.default_value is None
+                            and p_sig.signature in cell_receiver_sigs.get(cand.cell_id, ())
+                            and not any(unify(prod, p_sig.signature) is not None for prod in produced)
+                        )
+                        if not already_penalized:
+                            if p_role == "target_input":
+                                count += 1
+                            elif not p_sig.required:
+                                if p_name in getattr(cand, "slots", []) and f"{{{p_name}}}" in getattr(cand, "code_template", ""):
+                                    count += 1
 
             return count
 
@@ -702,11 +757,12 @@ class LatticePlanner:
             # Intent deficit objective: penalize incomplete pipelines that abandon requested clauses
             intent_deficit = (35.0 if is_final else 15.0) * max(0.0, 1.0 - clause_cov) if num_clauses > 1 else 0.0
 
-            # Literal consumption term (T1.3):
+            # Literal consumption term (T1.3 & R2.7):
             # Measures ratio of L0 universal literals bound to at least one port on the path.
             if universal_literals:
                 path_ports = set()
                 path_file_ports = 0
+                path_has_col_proj = any(_is_col_proj_cell(c) for c in path)
                 for c in path:
                     if _has_path_port(c):
                         path_file_ports += 1
@@ -729,7 +785,7 @@ class LatticePlanner:
                     else:
                         if lit_clean in path_ports or any(lit_clean in p for p in path_ports):
                             consumed_count += 1
-                        elif any(role in path_ports for role in ("feature_input", "target_input", "data_input")):
+                        elif path_has_col_proj:
                             consumed_count += 1
                 literal_consumption = consumed_count / len(universal_literals)
             else:
