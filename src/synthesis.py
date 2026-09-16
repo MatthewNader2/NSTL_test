@@ -7,7 +7,9 @@ from __future__ import annotations
 import ast
 import json
 import os
-from typing import Dict, Any, List, Optional
+import re
+import textwrap
+from typing import Dict, Any, List, Optional, Tuple
 from log_config import get_logger
 
 try:
@@ -21,6 +23,180 @@ except (ImportError, ValueError):
 
 logger = get_logger('synthesis')
 
+
+# --------------------------------------------------------------------------- #
+# Combinator-library detection
+# --------------------------------------------------------------------------- #
+#
+# A synthesized micro-cell may use a stdlib combinator (functools.reduce, etc.)
+# inside its template without declaring the corresponding import in
+# ``dependencies`` — that is the single most common NameError class in
+# LLM-generated bodies. This table is a value-independent safety net: keyed
+# by call-site pattern, valued by the import statement that makes it legal.
+# Extend the table, not the function.
+_REQUIRED_IMPORT_PATTERNS: Tuple[Tuple[str, str], ...] = (
+    ("functools.reduce",     "import functools"),
+    ("functools.partial",    "import functools"),
+    ("functools.lru_cache",  "import functools"),
+    ("functools.cache",      "import functools"),
+    ("itertools.chain",      "import itertools"),
+    ("itertools.groupby",    "import itertools"),
+    ("itertools.product",    "import itertools"),
+    ("itertools.islice",     "import itertools"),
+    ("time.sleep",           "import time"),
+    ("time.perf_counter",    "import time"),
+    ("time.time",            "import time"),
+    ("math.sqrt",            "import math"),
+    ("math.floor",           "import math"),
+    ("math.ceil",            "import math"),
+    ("collections.defaultdict", "import collections"),
+    ("collections.Counter",  "import collections"),
+    ("collections.OrderedDict", "import collections"),
+    ("collections.deque",    "import collections"),
+    ("random.choice",        "import random"),
+    ("random.shuffle",       "import random"),
+    ("random.seed",          "import random"),
+    ("copy.deepcopy",        "import copy"),
+    ("os.path.",             "import os"),
+    ("re.sub",               "import re"),
+    ("re.findall",           "import re"),
+    ("re.search",            "import re"),
+    ("re.match",             "import re"),
+    ("re.compile",           "import re"),
+    ("json.loads",           "import json"),
+    ("json.dumps",           "import json"),
+)
+
+
+def detect_required_imports(synthesized_code: str) -> List[str]:
+    """
+    Dynamically scans generated code for combinator-library call sites and
+    returns the import statements that prevent NameError. Deterministic,
+    order-stable, and idempotent.
+    """
+    if not synthesized_code:
+        return []
+    imports: List[str] = []
+    for pattern, stmt in _REQUIRED_IMPORT_PATTERNS:
+        if pattern in synthesized_code and stmt not in imports:
+            imports.append(stmt)
+    return imports
+
+
+# --------------------------------------------------------------------------- #
+# Block indentation formatter
+# --------------------------------------------------------------------------- #
+
+_PLACEHOLDER_RE = re.compile(r"\{([a-zA-Z_][a-zA-Z0-9_]*)\}")
+
+
+def _safe_substitute(template: str, bindings: Dict[str, Any]) -> str:
+    """
+    Placeholder substitution that ONLY touches ``{identifier}`` spans.
+
+    ``str.format`` interprets every ``{...}`` in the template as a field,
+    which crashes on legitimate Python syntax like dict literals
+    (``{"a": 1}``), f-strings (``f"{x}"``), set comprehensions, and
+    format specs. Regex substitution leaves those untouched and only
+    replaces identifiers we actually have a binding for; unresolved
+    identifiers pass through verbatim.
+    """
+    def _lookup(match: "re.Match[str]") -> str:
+        name = match.group(1)
+        if name in bindings and bindings[name] is not None:
+            return str(bindings[name])
+        return match.group(0)
+
+    return _PLACEHOLDER_RE.sub(_lookup, template)
+
+
+def format_cell_code(
+    template: str,
+    bindings: Dict[str, Any],
+    base_indent_level: int = 4,
+) -> str:
+    """
+    Renders a multi-line statement template (try/except, while, for, with)
+    with correct indentation nesting.
+
+    The FIRST line is placed at ``base_indent_level``; subsequent lines keep
+    their natural indentation delta *relative to the first line* (so a nested
+    block inside the template stays nested after the base indent is added).
+    Empty lines are preserved as empty.
+    """
+    raw_code = _safe_substitute(template, bindings or {})
+    lines = raw_code.splitlines()
+    if not lines:
+        return ""
+
+    # Natural indent of the first non-empty line in the raw template.
+    base_delta = ""
+    for first in lines:
+        if first.strip():
+            base_delta = first[: len(first) - len(first.lstrip())]
+            break
+
+    prefix = " " * base_indent_level
+    indented_lines: List[str] = []
+    for line in lines:
+        if not line.strip():
+            indented_lines.append("")
+            continue
+        # Strip the template's own baseline indent, then re-apply our prefix.
+        if base_delta and line.startswith(base_delta):
+            relative = line[len(base_delta):]
+        else:
+            relative = line
+        indented_lines.append(prefix + relative)
+
+    return "\n".join(indented_lines)
+
+
+# --------------------------------------------------------------------------- #
+# Scoped block generator
+# --------------------------------------------------------------------------- #
+
+class ScopeContext:
+    """
+    Explicit nesting-depth tracker for block rendering.
+
+    A ScopeContext carries the *absolute* indentation level of the block it
+    renders. ``enter_block`` produces a child scope at one level deeper.
+    ``render_block`` substitutes placeholders (safely — see ``_safe_substitute``)
+    and prefixes every non-empty line with the scope's indentation, preserving
+    the template's own internal nesting.
+    """
+
+    __slots__ = ("indent_level", "indent_unit")
+
+    def __init__(self, indent_level: int = 4, indent_unit: str = " "):
+        self.indent_level = indent_level
+        self.indent_unit = indent_unit
+
+    def enter_block(self) -> "ScopeContext":
+        return ScopeContext(
+            indent_level=self.indent_level + 4,
+            indent_unit=self.indent_unit,
+        )
+
+    def render_block(self, template: str, bindings: Dict[str, Any]) -> str:
+        code = _safe_substitute(template, bindings or {})
+        prefix = self.indent_unit * self.indent_level
+        rendered: List[str] = []
+        for line in code.splitlines():
+            if line.strip():
+                rendered.append(prefix + line)
+            else:
+                rendered.append("")
+        return "\n".join(rendered)
+
+    def __repr__(self) -> str:
+        return f"ScopeContext(indent_level={self.indent_level})"
+
+
+# --------------------------------------------------------------------------- #
+# Micro-cell synthesis
+# --------------------------------------------------------------------------- #
 
 class SynthesisEngine:
     """
@@ -264,7 +440,6 @@ def render_cell(
 
     for slot_name, slot_code in slot_rendered.items():
         placeholder = f"{{{slot_name}}}"
-        import re
         match = re.search(rf"^([ \t]*)\{{{slot_name}\}}", rendered, flags=re.MULTILINE)
         if match:
             base_indent = match.group(1) or "    "
@@ -332,15 +507,28 @@ def build_script(
     for cell, _ in pipeline_bindings:
         collect_deps(cell)
 
+    # Render each cell first, THEN scan its emitted text for combinator-library
+    # call sites whose imports were not declared in ``dependencies``. This is
+    # the safety net for synthesized micro-cells: the LLM may emit
+    # ``functools.reduce(...)`` in the body while declaring only ``import math``
+    # in the dependencies array. The scan is on the concrete emitted string so
+    # it catches the actual call site regardless of how it was constructed.
+    rendered_cells: List[str] = []
+    for cell, bindings in pipeline_bindings:
+        rendered = render_cell(cell, bindings, indent_level=0, context=ctx, accumulated_sigma=res.sigma)
+        if not rendered:
+            continue
+        rendered_cells.append(rendered)
+        for stmt in detect_required_imports(rendered):
+            if stmt not in deps:
+                deps.append(stmt)
+
     code_lines: List[str] = []
     if deps:
         code_lines.extend(deps)
         code_lines.append("")
 
-    for cell, bindings in pipeline_bindings:
-        rendered = render_cell(cell, bindings, indent_level=0, context=ctx, accumulated_sigma=res.sigma)
-        if rendered:
-            code_lines.append(rendered)
+    code_lines.extend(rendered_cells)
 
     final_code = "\n".join(code_lines).strip()
     return final_code

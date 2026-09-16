@@ -736,7 +736,6 @@ def verify_traced_loop_invariant(
     return True, new_sub
 
 
-
 # =====================================================================
 # 3. Formal Type Monad M_T(A)
 # =====================================================================
@@ -2869,6 +2868,145 @@ def types_unify(tau_expected: str, tau_actual: str) -> bool:
     term1 = TypeTerm.from_string(tau_expected)
     term2 = TypeTerm.from_string(tau_actual)
     return unify(term1, term2) is not None
+
+
+# --------------------------------------------------------------------- #
+# Parametric Morphism Unification Gate (compatibility shim)
+#
+# The functions below expose the public API of the parametric-gate snippet
+# — ``SubstitutionMap`` with bind/apply, and ``unify_morphism_ports`` —
+# while delegating the actual work to the canonical Robinson ``unify()``
+# machinery defined above. This guarantees a single source of truth for
+# type unification: there is no parallel unifier that can drift.
+#
+# Semantics preserved from the snippet:
+#   * ``SubstitutionMap.bind(var, concrete)`` returns False on a *conflicting*
+#     rebind (same var → different concrete type); True otherwise.
+#   * ``SubstitutionMap.apply(type_name)`` substitutes every bound variable
+#     into a type string using word-boundary regex.
+#   * ``unify_morphism_ports(source_out, target_in, subst)`` mutates ``subst``
+#     in place on success and returns True; on failure it rolls back any
+#     partial bindings and returns False (Monad bind: failure = ⊥, no state
+#     leaks through).
+#   * ``List[T] ~ List[Contour] ⇒ T := Contour`` falls out of the generic
+#     recursion inside ``unify()`` — no hand-written bracket regex needed.
+# --------------------------------------------------------------------- #
+
+class SubstitutionMap:
+    """
+    String-keyed substitution view over the canonical ``Substitution``.
+
+    Compatible with the snippet's API:
+        sm = SubstitutionMap()
+        sm.bind("T", "Contour")   # -> True
+        sm.apply("List[T]")       # -> "List[Contour]"
+    """
+
+    def __init__(self):
+        self.bindings: Dict[str, str] = {}
+        # The real substitution used when we delegate to ``unify()``.
+        self._subst = Substitution()
+
+    def bind(self, var: str, concrete_type: str) -> bool:
+        """Record var ↦ concrete_type. Returns False on a conflicting rebind."""
+        if var in self.bindings:
+            return self.bindings[var] == concrete_type
+        self.bindings[var] = concrete_type
+        self._subst.bind(var, concrete_type)
+        return True
+
+    def apply(self, type_name: str) -> str:
+        """Substitute every bound variable into ``type_name`` (word-boundary safe)."""
+        res = type_name
+        for var, concrete in self.bindings.items():
+            res = re.sub(rf"\b{re.escape(var)}\b", concrete, res)
+        return res
+
+    def snapshot(self) -> Dict[str, str]:
+        return dict(self.bindings)
+
+    def restore(self, snap: Dict[str, str]) -> None:
+        self.bindings.clear()
+        self.bindings.update(snap)
+        self._subst.mappings.clear()
+        for k, v in snap.items():
+            self._subst.mappings[k] = v
+
+    def __repr__(self) -> str:
+        return f"SubstitutionMap({self.bindings})"
+
+
+def unify_morphism_ports(
+    source_out_type: str,
+    target_in_type: str,
+    subst: SubstitutionMap,
+) -> bool:
+    """
+    Unifies a source output typestate string with a target input typestate
+    string, extending ``subst`` in place on success.
+
+    Handles:
+      * Top types ("Any", "*", "⊤", "top", "object", …) — unify with anything.
+      * Bare type variables ("T", "U", "V", "State", "Comparable") — bind
+        the target variable to the source's type.
+      * Parameterized generics — ``List[T] ~ List[Contour] ⇒ T := Contour``,
+        recursively, via the canonical ``unify()``.
+      * Union types ("A | B", "Union[A, B]") and the poset subtyping fallback
+        in ``TypeRegistry.is_subtype``.
+
+    On failure, all bindings added during this call are rolled back, so the
+    caller never observes a partial substitution (matches the monadic
+    bind-failure = ⊥ semantics).
+    """
+    # Rollback point: snapshot both the string view and the underlying substitution.
+    snap = subst.snapshot()
+
+    # -- Fast path 1: TOP unifies with any type term ------------------- #
+    s_clean = (source_out_type or "").strip()
+    t_clean = (target_in_type or "").strip()
+    if s_clean in TOP_TYPE_SET or t_clean in TOP_TYPE_SET:
+        return True
+
+    # -- Fast path 2: target is a bare type variable ------------------- #
+    # Preserves the snippet's "T := source_out_type" binding direction.
+    if (len(t_clean) == 1 and t_clean.isupper()) or t_clean in {"State", "Comparable"}:
+        if not subst.bind(t_clean, s_clean):
+            subst.restore(snap)
+            return False
+        return True
+
+    # -- General path: canonical Robinson unification ------------------ #
+    # Handles GenericTypeTerm (List[T] ~ List[Contour]), UnionTypeTerm,
+    # AtomicType poset subtyping, and TypestateTerm state compatibility.
+    try:
+        s_term = TypeTerm.from_string(s_clean)
+        t_term = TypeTerm.from_string(t_clean)
+    except Exception:
+        subst.restore(snap)
+        return False
+
+    probe = Substitution(dict(subst._subst.mappings))
+    result = unify(s_term, t_term, probe)
+    if result is None:
+        subst.restore(snap)
+        return False
+
+    # Commit new bindings back to the string view, checking for conflicts
+    # with anything the caller already had bound.
+    for var, val in result.mappings.items():
+        var_s = str(var)
+        # Skip identity bindings (T := T).
+        if isinstance(val, TypeVariable) and val.var_name == var_s:
+            continue
+        val_s = str(val)
+        existing = subst.bindings.get(var_s)
+        if existing is not None and existing != val_s:
+            subst.restore(snap)
+            return False
+        subst.bindings[var_s] = val_s
+        subst._subst.mappings[var_s] = val
+
+    return True
 
 
 def assert_placeholders_resolved(template: str, bindings: Optional[Dict[str, Any]] = None) -> None:
