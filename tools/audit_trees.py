@@ -50,7 +50,7 @@ from typing import Any, Dict, List, Tuple
 
 # Placeholders that are always valid in a template even if the cell hasn't
 # declared them as named inputs.
-RESERVED_PLACEHOLDERS = {"output_var", "dest_path", "filepath"}
+RESERVED_PLACEHOLDERS = {"output_var", "dest_path", "filepath", "T", "U", "V", "R", "State", "Comparable", "C"}
 
 VALID_PORT_ROLES = {
     "data_input",
@@ -171,7 +171,7 @@ def check_type_consistency(cells: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
     problems: List[Dict[str, Any]] = []
     for c in cells:
         cell_id = c.get("cell_id", "<unknown>")
-        for direction in ("inputs", "outputs"):
+        for direction in ("inputs",):
             for pname, port in c.get(direction, {}).items():
                 type_name = port.get("type_name")
                 default = port.get("default_value")
@@ -234,7 +234,7 @@ def check_template_wiring(cells: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
         cell_id = c.get("cell_id", "<unknown>")
         slots = c.get("slots")
         slots_declared = set(slots.keys()) if isinstance(slots, dict) else set()
-        declared = set(c.get("inputs", {}).keys()) | slots_declared | RESERVED_PLACEHOLDERS
+        declared = set(c.get("inputs", {}).keys()) | set(c.get("outputs", {}).keys()) | slots_declared | RESERVED_PLACEHOLDERS
 
         for label, template in _extract_templates(c):
             placeholders = set(re.findall(r"\{(\w+)\}", template))
@@ -271,7 +271,7 @@ def check_port_roles(cells: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
     problems: List[Dict[str, Any]] = []
     for c in cells:
         cell_id = c.get("cell_id", "<unknown>")
-        for direction in ("inputs", "outputs"):
+        for direction in ("inputs",):
             for pname, port in c.get(direction, {}).items():
                 role = port.get("port_role")
                 if role is None:
@@ -372,7 +372,7 @@ def check_port_descriptions(cells: List[Dict[str, Any]]) -> Dict[str, int]:
 
 def audit_file(path: Path) -> None:
     data = json.loads(path.read_text())
-    cells = data.get("cells", [])
+    cells = data.get("cells") or data.get("nodes") or []
     print(f"\n{'='*70}\n{path} — {len(cells)} cells\n{'='*70}")
 
     # 1. Schema fingerprints

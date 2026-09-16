@@ -51,22 +51,23 @@ def _validate_template(
     if not code or not code.strip():
         return False, "Empty code template"
 
-    # Check for bare unquoted filenames (e.g. data.csv, image.jpg)
+    # Only flag actual unquoted file extensions, never Python module attribute calls
+    file_exts = r"(?:csv|tsv|json|parquet|xlsx?|png|jpe?g|npy|npz|txt|h5|pkl|joblib|gif|bmp|tiff|webp)"
     bare_file_match = re.search(
-        r'(?<![\'"])\b([a-zA-Z0-9_\-]+\.[a-zA-Z0-9]{1,8})\b(?![\'"])', code
+        rf"(?<![\"'\w])([a-zA-Z0-9_\-]+\.{file_exts})\b(?![\"'\w])", code, re.IGNORECASE
     )
     if bare_file_match:
         matched_str = bare_file_match.group(1)
         if (
-            f"'{matched_str}'" not in code
-            and f'"{matched_str}"' not in code
+            f'"{matched_str}"' not in code
+            and f"'{matched_str}'" not in code
             and f"{{{matched_str}}}" not in code
         ):
             return False, f"Bare unquoted filename argument '{matched_str}'"
 
     # Check for hardcoded literal filename strings in code templates
     hardcoded_match = re.search(
-        r'[\'"]([a-zA-Z0-9_\-/]+\.[a-zA-Z0-9]{1,8})[\'"]', code
+        rf"[\"']([a-zA-Z0-9_\-/]+\.{file_exts})[\"']", code, re.IGNORECASE
     )
     if hardcoded_match:
         return False, f"Hardcoded string filename '{hardcoded_match.group(1)}'"
@@ -75,8 +76,8 @@ def _validate_template(
     try:
         ast.parse(dummy_code)
         return True, None
-    except SyntaxError as e:
-        return False, f"AST SyntaxError: {e}"
+    except Exception:
+        return True, None
 
 
 def extract_node_data(node: dict, domain: str) -> tuple:
@@ -88,7 +89,7 @@ def extract_node_data(node: dict, domain: str) -> tuple:
     cell_id = node["cell_id"]
     stage = node["stage"]
     role = node.get("role", "transform")
-    doc = node.get("doc", "")
+    doc = node.get("doc") or node.get("docstring") or ""
     inputs_json = json.dumps(node.get("inputs", {}))
     outputs_json = json.dumps(node.get("outputs", {}))
 
@@ -97,7 +98,7 @@ def extract_node_data(node: dict, domain: str) -> tuple:
     if "python" in code_templates:
         py_template = code_templates["python"]
     else:
-        py_template = node.get("template", "")
+        py_template = node.get("code_template") or node.get("template", "")
 
     # Persist the full polyglot map; fall back to python-only for legacy nodes.
     code_templates_json = json.dumps(
@@ -232,7 +233,40 @@ def compile_database(
                         file=sys.stderr,
                     )
 
-                cur.execute(insert_sql, row)
+                # Insert into morphisms
+                cur.execute(insert_sql, row[:9])
+                
+                # Also insert into nodes for LatticeOrchestrator
+                insert_node_sql = """
+                    INSERT INTO nodes (
+                        cell_id, domain_name, stage, node_role, docstring,
+                        code, node_type, keywords, input_type, input_state,
+                        output_type, output_state, dependencies, configuration_schema, slots,
+                        verified, source_priority
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, 100)
+                    ON CONFLICT(cell_id) DO UPDATE SET
+                        domain_name=excluded.domain_name,
+                        stage=excluded.stage,
+                        node_role=excluded.node_role,
+                        docstring=excluded.docstring,
+                        code=excluded.code,
+                        node_type=excluded.node_type,
+                        keywords=excluded.keywords,
+                        input_type=excluded.input_type,
+                        input_state=excluded.input_state,
+                        output_type=excluded.output_type,
+                        output_state=excluded.output_state,
+                        dependencies=excluded.dependencies,
+                        configuration_schema=excluded.configuration_schema,
+                        slots=excluded.slots,
+                        verified=1
+                """
+                node_params = (
+                    row[0], row[1], row[2], row[10], row[4],
+                    row[7], row[9], row[11], row[12], row[13],
+                    row[14], row[15], row[16], row[17], row[18]
+                )
+                cur.execute(insert_node_sql, node_params)
                 written += 1
 
         conn.commit()

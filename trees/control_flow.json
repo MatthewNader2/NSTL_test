@@ -2,7 +2,7 @@
   "domain": "control_flow",
   "description": "Higher-Order Lattice Combinators (Cartesian Closed Category morphisms) for modular, language-agnostic control flow synthesis in NSTL.",
   "version": "1.0.0",
-  "nodes": [
+  "cells": [
     {
       "cell_id": "CF_FUNCTION_DEF",
       "stage": 2,
@@ -33,8 +33,9 @@
       "code_templates": {
         "python": "def {fn_name}({arg_names}):\n    return {body_pipeline}({arg_names})\n{function_handle} = {fn_name}",
         "cpp": "auto {fn_name} = []({arg_names}) { return {body_pipeline}({arg_names}); };\nauto {function_handle} = {fn_name};",
-        "rust": "let {function_handle} = |{arg_names}| {body_pipeline}({arg_names});"
-      }
+        "rust": "let {fn_name} = |{arg_names}| {body_pipeline}({arg_names});\nlet {function_handle} = {fn_name};"
+      },
+      "docstring": "Lambda Abstraction / Morphism Definition: Encapsulates a parameterized sub-pipeline into a named, reusable Callable function with explicit signature and scope."
     },
     {
       "cell_id": "CF_LAMBDA",
@@ -62,7 +63,8 @@
         "python": "{closure} = lambda {arg_names}: {expression}({arg_names})",
         "cpp": "auto {closure} = []({arg_names}) { return {expression}({arg_names}); };",
         "rust": "let {closure} = |{arg_names}| {expression}({arg_names});"
-      }
+      },
+      "docstring": "Anonymous Curried Morphism: Constructs an inline anonymous lambda closure mapping bound arguments to an expression."
     },
     {
       "cell_id": "CF_CLASS_DEF",
@@ -109,8 +111,9 @@
       "code_templates": {
         "python": "class {class_name}:\n    def __init__(self, {init_params}):\n        {init_assignments}\n    def {method_name}(self, {method_params}):\n        return {method_body}(self, {method_params})\n{class_handle} = {class_name}",
         "cpp": "class {class_name} {\npublic:\n    {class_name}({init_params}) { {init_assignments} }\n    auto {method_name}({method_params}) { return {method_body}(*this, {method_params}); }\n};\nusing {class_handle} = {class_name};",
-        "rust": "struct {class_name};\nimpl {class_name} {\n    fn new({init_params}) -> Self { {class_name} }\n    fn {method_name}(&self, {method_params}) { {method_body}(self, {method_params}); }\n}\ntype {class_handle} = {class_name};"
-      }
+        "rust": "struct {class_name};\nimpl {class_name} {\n    fn new({init_params}) -> Self { let _ = ({init_assignments}); {class_name} }\n    fn {method_name}(&self, {method_params}) { {method_body}(self, {method_params}); }\n}\ntype {class_handle} = {class_name};"
+      },
+      "docstring": "Object Coalgebra Encapsulation: Defines a class state machine bundling internal typestate fields and member method morphisms."
     },
     {
       "cell_id": "CF_RECURSIVE_FUNC",
@@ -153,7 +156,8 @@
         "python": "def {fn_name}(_x):\n    if {base_predicate}(_x):\n        return {base_action}(_x)\n    return {step_action}(_x, {fn_name})\n{result} = {fn_name}({data})",
         "cpp": "std::function<{R}({T})> {fn_name} = [&](const {T}& _x) -> {R} {\n    if ({base_predicate}(_x)) return {base_action}(_x);\n    return {step_action}(_x, {fn_name});\n};\n{R} {result} = {fn_name}({data});",
         "rust": "fn {fn_name}(x: &{T}) -> {R} {\n    if {base_predicate}(x) { return {base_action}(x); }\n    {step_action}(x, |sub| {fn_name}(sub))\n}\nlet {result} = {fn_name}(&{data});"
-      }
+      },
+      "docstring": "Structural Recursion (Fixpoint Operator): Defines a self-referential recursive morphism with base predicate, base action, and inductive recursive step."
     },
     {
       "cell_id": "CF_DIVIDE_AND_CONQUER",
@@ -201,7 +205,8 @@
         "python": "def {fn_name}(_x):\n    if {base_predicate}(_x):\n        return {base_action}(_x)\n    _subs = {split_fn}(_x)\n    _sub_results = [{fn_name}(_sub) for _sub in _subs]\n    return {combine_fn}(_x, _sub_results)\n{result} = {fn_name}({data})",
         "cpp": "std::function<{R}({T})> {fn_name} = [&](const {T}& _x) -> {R} {\n    if ({base_predicate}(_x)) return {base_action}(_x);\n    auto _subs = {split_fn}(_x);\n    std::vector<{R}> _sub_results;\n    for (const auto& _s : _subs) _sub_results.push_back({fn_name}(_s));\n    return {combine_fn}(_x, _sub_results);\n};\n{R} {result} = {fn_name}({data});",
         "rust": "fn {fn_name}(x: &{T}) -> {R} {\n    if {base_predicate}(x) { return {base_action}(x); }\n    let subs = {split_fn}(x);\n    let sub_results: Vec<{R}> = subs.iter().map(|s| {fn_name}(s)).collect();\n    {combine_fn}(x, sub_results)\n}\nlet {result} = {fn_name}(&{data});"
-      }
+      },
+      "docstring": "Branching Divide-and-Conquer Recursion: Recursively partitions a problem into subproblems, evaluates them recursively, and combines results (e.g. MergeSort, QuadTree, Tree Traversal)."
     },
     {
       "cell_id": "CF_COND_CHAIN",
@@ -234,7 +239,8 @@
         "python": "_matched = False\nfor _pred, _act in {branch_table}:\n    if _pred({data}):\n        {result} = _act({data})\n        _matched = True\n        break\nif not _matched:\n    {result} = {default_action}({data})",
         "cpp": "{R} {result};\nbool _matched = false;\nfor (const auto& [_pred, _act] : {branch_table}) {\n    if (_pred({data})) {\n        {result} = _act({data});\n        _matched = true;\n        break;\n    }\n}\nif (!_matched) { {result} = {default_action}({data}); }",
         "rust": "let mut {result}: Option<{R}> = None;\nfor (_pred, _act) in &{branch_table} {\n    if _pred(&{data}) {\n        {result} = Some(_act(&{data}));\n        break;\n    }\n}\nlet {result} = {result}.unwrap_or_else(|| {default_action}(&{data}));"
-      }
+      },
+      "docstring": "Arbitrary N-Ary Conditional Dispatcher (if / elif ... / elif / else): Evaluates an ordered list of (predicate, action) pairs sequentially until one matches, falling back to default."
     },
     {
       "cell_id": "CF_NESTED_FOR_EACH",
@@ -272,7 +278,8 @@
         "python": "{final_state} = {init_state}\nfor _outer in {outer_collection}:\n    for _inner in {inner_generator}(_outer):\n        {final_state} = {body_fn}(_outer, _inner, {final_state})",
         "cpp": "{State} {final_state} = {init_state};\nfor (const auto& _outer : {outer_collection}) {\n    for (const auto& _inner : {inner_generator}(_outer)) {\n        {final_state} = {body_fn}(_outer, _inner, {final_state});\n    }\n}",
         "rust": "let mut {final_state} = {init_state};\nfor _outer in &{outer_collection} {\n    for _inner in {inner_generator}(_outer) {\n        {final_state} = {body_fn}(_outer, &_inner, {final_state});\n    }\n}"
-      }
+      },
+      "docstring": "Hierarchical 2D Nested Iteration: Evaluates a loop inside a loop across outer and inner collections, threading an accumulated state forward across all coordinate points."
     },
     {
       "cell_id": "CF_TOP_K",
@@ -305,7 +312,8 @@
         "python": "{output_collection} = sorted({collection}, key={key_fn}, reverse=True)[:{k}]",
         "cpp": "std::vector<{T}> {output_collection};\nstd::partial_sort_copy({collection}.begin(), {collection}.end(), std::back_inserter({output_collection}), {k}, [](const {T}& a, const {T}& b) { return {key_fn}(a) > {key_fn}(b); });",
         "rust": "let mut {output_collection} = {collection}.clone();\n{output_collection}.sort_by(|a, b| {key_fn}(b).partial_cmp(&{key_fn}(a)).unwrap());\n{output_collection}.truncate({k} as usize);"
-      }
+      },
+      "docstring": "Ranked slice morphism: Sorts a collection in descending order via an extracted scalar key projection function and extracts the top K elements (e.g. largest K contours)."
     },
     {
       "cell_id": "CF_BOTTOM_K",
@@ -338,7 +346,8 @@
         "python": "{output_collection} = sorted({collection}, key={key_fn}, reverse=False)[:{k}]",
         "cpp": "std::vector<{T}> {output_collection};\nstd::partial_sort_copy({collection}.begin(), {collection}.end(), std::back_inserter({output_collection}), {k}, [](const {T}& a, const {T}& b) { return {key_fn}(a) < {key_fn}(b); });",
         "rust": "let mut {output_collection} = {collection}.clone();\n{output_collection}.sort_by(|a, b| {key_fn}(a).partial_cmp(&{key_fn}(b)).unwrap());\n{output_collection}.truncate({k} as usize);"
-      }
+      },
+      "docstring": "Ranked bottom slice morphism: Sorts a collection in ascending order via an extracted scalar key projection function and extracts the smallest K elements."
     },
     {
       "cell_id": "CF_MAP",
@@ -366,7 +375,8 @@
         "python": "{output_collection} = [{transform}(item) for item in {collection}]",
         "cpp": "std::vector<{U}> {output_collection};\nstd::transform({collection}.begin(), {collection}.end(), std::back_inserter({output_collection}), {transform});",
         "rust": "let {output_collection}: Vec<{U}> = {collection}.iter().map(|item| {transform}(item)).collect();"
-      }
+      },
+      "docstring": "Element-wise Functor morphism: Applies a unary transformation to every element of a collection [T] -> [U]."
     },
     {
       "cell_id": "CF_FILTER",
@@ -394,7 +404,8 @@
         "python": "{output_collection} = [item for item in {collection} if {predicate}(item)]",
         "cpp": "std::vector<{T}> {output_collection};\nstd::copy_if({collection}.begin(), {collection}.end(), std::back_inserter({output_collection}), {predicate});",
         "rust": "let {output_collection}: Vec<{T}> = {collection}.into_iter().filter(|item| {predicate}(item)).collect();"
-      }
+      },
+      "docstring": "Predicate Selection Sub-collection morphism: Filters elements of a collection matching a boolean predicate function."
     },
     {
       "cell_id": "CF_FLAT_MAP",
@@ -422,7 +433,8 @@
         "python": "{output_collection} = [elem for sublist in ({transform}(item) for item in {collection}) for elem in sublist]",
         "cpp": "std::vector<{U}> {output_collection};\nfor (const auto& item : {collection}) {\n    auto sub = {transform}(item);\n    {output_collection}.insert({output_collection}.end(), sub.begin(), sub.end());\n}",
         "rust": "let {output_collection}: Vec<{U}> = {collection}.iter().flat_map(|item| {transform}(item)).collect();"
-      }
+      },
+      "docstring": "Monadic Bind morphism: Maps each element to a collection and flattens the resulting collections into a single one-dimensional list."
     },
     {
       "cell_id": "CF_FOLD_REDUCE",
@@ -455,7 +467,8 @@
         "python": "import functools\n{accumulated_state} = functools.reduce({accumulator}, {collection}, {initial})",
         "cpp": "{State} {accumulated_state} = std::accumulate({collection}.begin(), {collection}.end(), {initial}, {accumulator});",
         "rust": "let {accumulated_state}: {State} = {collection}.iter().fold({initial}, |acc, item| {accumulator}(acc, item));"
-      }
+      },
+      "docstring": "Catamorphism / Accumulator morphism: Iteratively applies a binary associative operator over a collection, folding it into a single accumulated State value."
     },
     {
       "cell_id": "CF_ZIP_WITH",
@@ -488,7 +501,8 @@
         "python": "{output_collection} = [{zipper}(a, b) for a, b in zip({collection_a}, {collection_b})]",
         "cpp": "std::vector<{V}> {output_collection};\nsize_t _zip_n = std::min({collection_a}.size(), {collection_b}.size());\n{output_collection}.reserve(_zip_n);\nfor (size_t _i = 0; _i < _zip_n; ++_i) { {output_collection}.push_back({zipper}({collection_a}[_i], {collection_b}[_i])); }",
         "rust": "let {output_collection}: Vec<{V}> = {collection_a}.iter().zip({collection_b}.iter()).map(|(a, b)| {zipper}(a, b)).collect();"
-      }
+      },
+      "docstring": "Applicative Zipper morphism: Pairs elements from two lists, applying a binary zipper function to produce a unified list."
     },
     {
       "cell_id": "CF_FOR_EACH_STATE",
@@ -521,7 +535,8 @@
         "python": "{final_state} = {init_state}\nfor _item in {collection}:\n    {final_state} = {body_fn}(_item, {final_state})",
         "cpp": "{State} {final_state} = {init_state};\nfor (const auto& _item : {collection}) {\n    {final_state} = {body_fn}(_item, {final_state});\n}",
         "rust": "let mut {final_state} = {init_state};\nfor _item in &{collection} {\n    {final_state} = {body_fn}(_item, {final_state});\n}"
-      }
+      },
+      "docstring": "Iterative State-Threading Loop: Sequentially iterates through a collection, feeding each element and threading the accumulated State forward."
     },
     {
       "cell_id": "CF_FOR_RANGE_STATE",
@@ -565,7 +580,8 @@
         "python": "{final_state} = {init_state}\nfor _idx in range({start}, {stop}, {step}):\n    {final_state} = {body_fn}(_idx, {final_state})",
         "cpp": "{State} {final_state} = {init_state};\nfor (int _idx = {start}; _idx < {stop}; _idx += {step}) {\n    {final_state} = {body_fn}(_idx, {final_state});\n}",
         "rust": "let mut {final_state} = {init_state};\nfor _idx in ({start}..{stop}).step_by({step} as usize) {\n    {final_state} = {body_fn}(_idx, {final_state});\n}"
-      }
+      },
+      "docstring": "Bounded Index Range Loop: Executes a counted loop over [start, stop) with step, threading state through each iteration."
     },
     {
       "cell_id": "CF_FOR_ENUMERATE_MAP",
@@ -599,7 +615,8 @@
         "python": "{output_collection} = [{transform}(idx, item) for idx, item in enumerate({collection}, start={start_index})]",
         "cpp": "std::vector<{U}> {output_collection};\n{output_collection}.reserve({collection}.size());\nfor (size_t _i = 0; _i < {collection}.size(); ++_i) {\n    {output_collection}.push_back({transform}(static_cast<int>(_i + {start_index}), {collection}[_i]));\n}",
         "rust": "let {output_collection}: Vec<{U}> = {collection}.iter().enumerate().map(|(idx, item)| {transform}((idx as i64 + {start_index}) as i32, item)).collect();"
-      }
+      },
+      "docstring": "Indexed Enumeration Map: Transforms each element alongside its integer index (idx, item) into an updated collection."
     },
     {
       "cell_id": "CF_WHILE_LOOP",
@@ -632,7 +649,8 @@
         "python": "{final_state} = {init_state}\nwhile {cond_fn}({final_state}):\n    {final_state} = {body_fn}({final_state})",
         "cpp": "{State} {final_state} = {init_state};\nwhile ({cond_fn}({final_state})) {\n    {final_state} = {body_fn}({final_state});\n}",
         "rust": "let mut {final_state} = {init_state};\nwhile {cond_fn}(&{final_state}) {\n    {final_state} = {body_fn}({final_state});\n}"
-      }
+      },
+      "docstring": "Inductive Fixpoint Monad: Continuously computes State -> State as long as cond_fn(State) remains true."
     },
     {
       "cell_id": "CF_WHILE_BOUNDED",
@@ -670,7 +688,8 @@
         "python": "{final_state} = {init_state}\n_iter_count = 0\nwhile {cond_fn}({final_state}) and _iter_count < {max_iters}:\n    {final_state} = {body_fn}({final_state})\n    _iter_count += 1",
         "cpp": "{State} {final_state} = {init_state};\nint _iter_count = 0;\nwhile ({cond_fn}({final_state}) && _iter_count < {max_iters}) {\n    {final_state} = {body_fn}({final_state});\n    ++_iter_count;\n}",
         "rust": "let mut {final_state} = {init_state};\nlet mut _iter_count = 0;\nwhile {cond_fn}(&{final_state}) && _iter_count < {max_iters} {\n    {final_state} = {body_fn}({final_state});\n    _iter_count += 1;\n}"
-      }
+      },
+      "docstring": "Safe Bounded Fixpoint Loop: Evaluates State -> State while cond_fn(State) is true, with a strict max_iters bound to guarantee termination."
     },
     {
       "cell_id": "CF_REPEAT_UNTIL",
@@ -703,7 +722,8 @@
         "python": "{final_state} = {init_state}\nwhile True:\n    {final_state} = {body_fn}({final_state})\n    if {until_cond_fn}({final_state}):\n        break",
         "cpp": "{State} {final_state} = {init_state};\ndo {\n    {final_state} = {body_fn}({final_state});\n} while (!{until_cond_fn}({final_state}));",
         "rust": "let mut {final_state} = {init_state};\nloop {\n    {final_state} = {body_fn}({final_state});\n    if {until_cond_fn}(&{final_state}) {\n        break;\n    }\n}"
-      }
+      },
+      "docstring": "Post-Condition Inductive Loop (do-while): Executes body_fn at least once, repeating until until_cond_fn(State) is true."
     },
     {
       "cell_id": "CF_BRANCH_IF_ELSE",
@@ -741,7 +761,8 @@
         "python": "{result} = {on_true}({data}) if {condition} else {on_false}({data})",
         "cpp": "{U} {result} = ({condition}) ? {on_true}({data}) : {on_false}({data});",
         "rust": "let {result}: {U} = if {condition} { {on_true}({data}) } else { {on_false}({data}) };"
-      }
+      },
+      "docstring": "Coproduct / Sum Eliminator: Dispatches computation to either on_true or on_false based on a boolean condition flag."
     },
     {
       "cell_id": "CF_BRANCH_COND_ELIF",
@@ -789,7 +810,8 @@
         "python": "if {cond_1}:\n    {result} = {branch_1}({data})\nelif {cond_2}:\n    {result} = {branch_2}({data})\nelse:\n    {result} = {default_branch}({data})",
         "cpp": "{U} {result};\nif ({cond_1}) {\n    {result} = {branch_1}({data});\n} else if ({cond_2}) {\n    {result} = {branch_2}({data});\n} else {\n    {result} = {default_branch}({data});\n}",
         "rust": "let {result}: {U} = if {cond_1} {\n    {branch_1}({data})\n} else if {cond_2} {\n    {branch_2}({data})\n} else {\n    {default_branch}({data})\n};"
-      }
+      },
+      "docstring": "Chained Conditional Dispatcher (if / elif / else): Evaluates primary and secondary boolean conditions sequentially to dispatch the corresponding operator."
     },
     {
       "cell_id": "CF_MATCH_CASE",
@@ -842,7 +864,8 @@
         "python": "match {discriminator}:\n    case _val if _val == {case_a_val}:\n        {result} = {action_a}({data})\n    case _val if _val == {case_b_val}:\n        {result} = {action_b}({data})\n    case _:\n        {result} = {default_action}({data})",
         "cpp": "{U} {result};\nif ({discriminator} == {case_a_val}) {\n    {result} = {action_a}({data});\n} else if ({discriminator} == {case_b_val}) {\n    {result} = {action_b}({data});\n} else {\n    {result} = {default_action}({data});\n}",
         "rust": "let {result}: {U} = match {discriminator}.as_str() {\n    _val if _val == {case_a_val} => {action_a}({data}),\n    _val if _val == {case_b_val} => {action_b}({data}),\n    _ => {default_action}({data}),\n};"
-      }
+      },
+      "docstring": "Structural Pattern Matching / Switch: Dispatches against discrete discriminator values with a wildcard default fallback."
     },
     {
       "cell_id": "CF_TRY_EXCEPT",
@@ -879,9 +902,10 @@
       },
       "code_templates": {
         "python": "try:\n    {result} = {action}({data})\nexcept {exception_type} as _err:\n    {result} = {fallback}(_err, {data})",
-        "cpp": "{U} {result};\ntry {\n    {result} = {action}({data});\n} catch (const std::exception& _err) {\n    {result} = {fallback}(_err, {data});\n}",
-        "rust": "let {result}: {U} = match std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {action}({data}))) {\n    Ok(res) => res,\n    Err(_err) => {fallback}(_err, {data}),\n};"
-      }
+        "cpp": "{U} {result};\ntry {\n    {result} = {action}({data});\n} catch (const std::exception& _err /* {exception_type} */) {\n    {result} = {fallback}(_err, {data});\n}",
+        "rust": "let {result}: {U} = match std::panic::catch_unwind(std::panic::AssertUnwindSafe /* {exception_type} */(|| {action}({data}))) {\n    Ok(res) => res,\n    Err(_err) => {fallback}(_err, {data}),\n};"
+      },
+      "docstring": "Error Trap / Either Monad morphism: Safely evaluates an action, catching specific runtime exceptions and executing a fallback handler."
     },
     {
       "cell_id": "CF_TRY_EXCEPT_FINALLY",
@@ -923,9 +947,10 @@
       },
       "code_templates": {
         "python": "try:\n    {result} = {action}({data})\nexcept {exception_type} as _err:\n    {result} = {fallback}(_err, {data})\nfinally:\n    {finalizer}({data})",
-        "cpp": "{U} {result};\nstruct _FinalizerGuard { std::function<void()> clean; ~_FinalizerGuard() { clean(); } } _fg{[&]() { {finalizer}({data}); }};\ntry {\n    {result} = {action}({data});\n} catch (const std::exception& _err) {\n    {result} = {fallback}(_err, {data});\n}",
-        "rust": "struct Cleanup<F: FnOnce()>(Option<F>);\nimpl<F: FnOnce()> Drop for Cleanup<F> {\n    fn drop(&mut self) { if let Some(f) = self.0.take() { f(); } }\n}\nlet _guard = Cleanup(Some(|| {finalizer}({data})));\nlet {result}: {U} = match std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {action}({data}))) {\n    Ok(res) => res,\n    Err(_err) => {fallback}(_err, {data}),\n};"
-      }
+        "cpp": "{U} {result};\nstruct _FinalizerGuard { std::function<void()> clean; ~_FinalizerGuard() { clean(); } } _fg{[&]() { {finalizer}({data}); }};\ntry {\n    {result} = {action}({data});\n} catch (const std::exception& _err /* {exception_type} */) {\n    {result} = {fallback}(_err, {data});\n}",
+        "rust": "struct Cleanup<F: FnOnce()>(Option<F>);\nimpl<F: FnOnce()> Drop for Cleanup<F> {\n    fn drop(&mut self) { if let Some(f) = self.0.take() { f(); } }\n}\nlet _guard = Cleanup(Some(|| {finalizer}({data})));\nlet {result}: {U} = match std::panic::catch_unwind(std::panic::AssertUnwindSafe /* {exception_type} */(|| {action}({data}))) {\n    Ok(res) => res,\n    Err(_err) => {fallback}(_err, {data}),\n};"
+      },
+      "docstring": "Guaranteed Cleanup Trap: Wraps action execution with exception recovery and a guaranteed finalizer hook executed under all conditions."
     },
     {
       "cell_id": "CF_TRY_EXCEPT_ELSE",
@@ -967,9 +992,10 @@
       },
       "code_templates": {
         "python": "try:\n    _res = {action}({data})\nexcept {exception_type} as _err:\n    {result} = {fallback}(_err, {data})\nelse:\n    {result} = {success_continuation}(_res)",
-        "cpp": "{V} {result};\ntry {\n    auto _res = {action}({data});\n    {result} = {success_continuation}(_res);\n} catch (const std::exception& _err) {\n    {result} = {fallback}(_err, {data});\n}",
-        "rust": "let {result}: {V} = match std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {action}({data}))) {\n    Ok(_res) => {success_continuation}(_res),\n    Err(_err) => {fallback}(_err, {data}),\n};"
-      }
+        "cpp": "{V} {result};\ntry {\n    auto _res = {action}({data});\n    {result} = {success_continuation}(_res);\n} catch (const std::exception& _err /* {exception_type} */) {\n    {result} = {fallback}(_err, {data});\n}",
+        "rust": "let {result}: {V} = match std::panic::catch_unwind(std::panic::AssertUnwindSafe /* {exception_type} */(|| {action}({data}))) {\n    Ok(_res) => {success_continuation}(_res),\n    Err(_err) => {fallback}(_err, {data}),\n};"
+      },
+      "docstring": "Branching Error Guard: Executes success_continuation solely if action completes with no exceptions; otherwise triggers fallback."
     },
     {
       "cell_id": "CF_RETRY_BACKOFF",
@@ -1014,7 +1040,8 @@
         "python": "import time\nfor _attempt in range({max_retries}):\n    try:\n        {result} = {action}({data})\n        break\n    except Exception as _err:\n        if _attempt == {max_retries} - 1:\n            {result} = {fallback}(_err, {data})\n        else:\n            time.sleep({backoff_sec} * (2 ** _attempt))",
         "cpp": "{U} {result};\nfor (int _att = 0; _att < {max_retries}; ++_att) {\n    try {\n        {result} = {action}({data});\n        break;\n    } catch (const std::exception& _err) {\n        if (_att == {max_retries} - 1) {\n            {result} = {fallback}(_err, {data});\n        } else {\n            std::this_thread::sleep_for(std::chrono::milliseconds(static_cast<int>({backoff_sec} * 1000 * (1 << _att))));\n        }\n    }\n}",
         "rust": "let mut {result}: Option<{U}> = None;\nfor _att in 0..{max_retries} {\n    match std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {action}({data}))) {\n        Ok(res) => { {result} = Some(res); break; },\n        Err(_err) => {\n            if _att == {max_retries} - 1 { {result} = Some({fallback}(_err, {data})); }\n            else { std::thread::sleep(std::time::Duration::from_millis(({backoff_sec} * 1000.0 * (1 << _att) as f64) as u64)); }\n        }\n    }\n}\nlet {result} = {result}.unwrap();"
-      }
+      },
+      "docstring": "Resilience Retry Loop: Repeatedly attempts an action up to max_retries with exponential delay, falling back if all attempts fail."
     },
     {
       "cell_id": "CF_FIND_FIRST",
@@ -1048,7 +1075,8 @@
         "python": "{result} = next((item for item in {collection} if {predicate}(item)), {default_val})",
         "cpp": "auto _it = std::find_if({collection}.begin(), {collection}.end(), {predicate});\nauto {result} = (_it != {collection}.end()) ? *(_it) : {default_val};",
         "rust": "let {result}: Option<{T}> = {collection}.iter().cloned().find(|item| {predicate}(item)).or(Some({default_val}));"
-      }
+      },
+      "docstring": "Short-Circuit Search: Traverses a collection and returns the first element satisfying a predicate, or default_val if no match is found."
     },
     {
       "cell_id": "CF_ALL_SATISFY",
@@ -1076,7 +1104,8 @@
         "python": "{all_match} = all({predicate}(item) for item in {collection})",
         "cpp": "bool {all_match} = std::all_of({collection}.begin(), {collection}.end(), {predicate});",
         "rust": "let {all_match}: bool = {collection}.iter().all(|item| {predicate}(item));"
-      }
+      },
+      "docstring": "Universal Quantifier: Checks whether all elements of a collection satisfy a boolean predicate."
     },
     {
       "cell_id": "CF_ANY_SATISFY",
@@ -1104,7 +1133,8 @@
         "python": "{any_match} = any({predicate}(item) for item in {collection})",
         "cpp": "bool {any_match} = std::any_of({collection}.begin(), {collection}.end(), {predicate});",
         "rust": "let {any_match}: bool = {collection}.iter().any(|item| {predicate}(item));"
-      }
+      },
+      "docstring": "Existential Quantifier: Checks whether at least one element of a collection satisfies a boolean predicate."
     },
     {
       "cell_id": "CF_PARTITION",
@@ -1135,7 +1165,8 @@
         "python": "{true_collection}, {false_collection} = ([x for x in {collection} if {predicate}(x)], [x for x in {collection} if not {predicate}(x)])",
         "cpp": "std::vector<{T}> {true_collection}, {false_collection};\nfor (const auto& x : {collection}) {\n    if ({predicate}(x)) { {true_collection}.push_back(x); } else { {false_collection}.push_back(x); }\n}",
         "rust": "let ({true_collection}, {false_collection}): (Vec<{T}>, Vec<{T}>) = {collection}.into_iter().partition(|x| {predicate}(x));"
-      }
+      },
+      "docstring": "Predicate Partition Morphism: Divides a collection into two complementary sub-collections: (satisfied, unsatisfied)."
     },
     {
       "cell_id": "CF_GUARD",
@@ -1173,7 +1204,8 @@
         "python": "{result} = {action}({data}) if {condition} else {fallback_val}",
         "cpp": "{U} {result} = ({condition}) ? {action}({data}) : {fallback_val};",
         "rust": "let {result}: {U} = if {condition} { {action}({data}) } else { {fallback_val} };"
-      }
+      },
+      "docstring": "Precondition Guard Clause: Asserts a boolean condition holds; if false, immediately yields fallback_val without evaluating action."
     },
     {
       "cell_id": "CF_WITH_CONTEXT",
@@ -1201,7 +1233,8 @@
         "python": "with {context_manager} as _ctx:\n    {result} = {body_fn}(_ctx)",
         "cpp": "{U} {result};\n{\n    auto _ctx = {context_manager}.acquire();\n    {result} = {body_fn}(_ctx.get());\n}",
         "rust": "let {result}: {U} = {\n    let _ctx = {context_manager}.enter();\n    {body_fn}(&_ctx)\n};"
-      }
+      },
+      "docstring": "Bracket / RAII Context Manager: Acquires a managed resource, securely runs body_fn within the active context, and guarantees deterministic release."
     }
   ]
 }
