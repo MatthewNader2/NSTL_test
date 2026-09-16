@@ -1118,7 +1118,7 @@
       "inputs": {
         "image_path": {
           "name": "image_path",
-          "type_name": "str",
+          "type_name": "File[Image, Any]",
           "state": "unopened",
           "qualifiers": [],
           "default_value": null,
@@ -6670,7 +6670,7 @@
         },
         "dest_path": {
           "name": "dest_path",
-          "type_name": "str",
+          "type_name": "File[Image, Any]",
           "state": "destination_path",
           "qualifiers": [],
           "default_value": null,
@@ -6768,7 +6768,7 @@
         },
         "dest_path": {
           "name": "dest_path",
-          "type_name": "str",
+          "type_name": "File[Image, JPEG]",
           "state": "destination_path",
           "qualifiers": [],
           "default_value": null,
@@ -6884,7 +6884,7 @@
         },
         "dest_path": {
           "name": "dest_path",
-          "type_name": "str",
+          "type_name": "File[Image, PNG]",
           "state": "destination_path",
           "qualifiers": [],
           "default_value": null,
@@ -10110,7 +10110,7 @@
         },
         "dest_path": {
           "name": "dest_path",
-          "type_name": "str",
+          "type_name": "File[Image, WEBP]",
           "state": "destination_path",
           "qualifiers": [],
           "default_value": null,
@@ -10232,7 +10232,7 @@
         },
         "dest_path": {
           "name": "dest_path",
-          "type_name": "str",
+          "type_name": "File[Image, GIF]",
           "state": "destination_path",
           "qualifiers": [],
           "default_value": null,
@@ -10247,7 +10247,7 @@
         },
         "append_images": {
           "name": "append_images",
-          "type_name": "list",
+          "type_name": "List[PILImage]",
           "state": "subsequent_frames",
           "qualifiers": [],
           "default_value": "[]",
@@ -10539,5 +10539,26 @@
       "primary_in": "image",
       "primary_out": "void"
     }
-  ]
+  ],
+  "types": {
+    "PILImage": {
+      "parent": "ndarray",
+      "description": "PIL.Image.Image instance compatible with array-like"
+    },
+    "Image": {
+      "parent": "Modality"
+    },
+    "PNG": {
+      "parent": "ImageFormat"
+    },
+    "JPEG": {
+      "parent": "ImageFormat"
+    },
+    "WEBP": {
+      "parent": "ImageFormat"
+    },
+    "GIF": {
+      "parent": "ImageFormat"
+    }
+  }
 }

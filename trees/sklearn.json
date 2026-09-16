@@ -7333,7 +7333,7 @@
         },
         "filepath": {
           "name": "filepath",
-          "type_name": "str",
+          "type_name": "File[Model, Joblib]",
           "state": "file_path",
           "qualifiers": [
             "scalar"
@@ -7342,7 +7342,7 @@
           "description": "Output path for the serialized object.",
           "domain": "sklearn",
           "required": true,
-          "abstract_type": "scalar",
+          "abstract_type": "path",
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
@@ -7422,7 +7422,7 @@
       "inputs": {
         "filepath": {
           "name": "filepath",
-          "type_name": "str",
+          "type_name": "File[Model, Joblib]",
           "state": "file_path",
           "qualifiers": [
             "scalar"
@@ -7431,7 +7431,7 @@
           "description": "Filesystem path pointing to serialized joblib payload.",
           "domain": "sklearn",
           "required": true,
-          "abstract_type": "scalar",
+          "abstract_type": "path",
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
@@ -8089,7 +8089,7 @@
       "outputs": {
         "splits": {
           "name": "splits",
-          "type_name": "list",
+          "type_name": "List[Tuple[ndarray, ndarray]]",
           "state": "evaluated_metrics",
           "qualifiers": [
             "collection"
@@ -8270,7 +8270,7 @@
       "outputs": {
         "splits": {
           "name": "splits",
-          "type_name": "list",
+          "type_name": "List[Tuple[ndarray, ndarray]]",
           "state": "evaluated_metrics",
           "qualifiers": [
             "collection"
@@ -9532,7 +9532,7 @@
       "inputs": {
         "corpus": {
           "name": "corpus",
-          "type_name": "list",
+          "type_name": "List[str]",
           "state": "raw_dataset",
           "qualifiers": [
             "collection"
@@ -11826,7 +11826,7 @@
         },
         "hidden_layer_sizes": {
           "name": "hidden_layer_sizes",
-          "type_name": "tuple",
+          "type_name": "Tuple[int, ...]",
           "state": "hyperparameter",
           "qualifiers": [
             "collection"
@@ -14701,7 +14701,7 @@
         },
         "file_obj": {
           "name": "file_obj",
-          "type_name": "BinaryIO",
+          "type_name": "File[Model, Pickle]",
           "state": "file_path",
           "qualifiers": [
             "scalar"
@@ -14710,7 +14710,7 @@
           "description": "Open writable binary file handle.",
           "domain": "sklearn",
           "required": true,
-          "abstract_type": "scalar",
+          "abstract_type": "path",
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
@@ -14776,7 +14776,7 @@
       "inputs": {
         "file_obj": {
           "name": "file_obj",
-          "type_name": "BinaryIO",
+          "type_name": "File[Model, Pickle]",
           "state": "file_path",
           "qualifiers": [
             "scalar"
@@ -14785,7 +14785,7 @@
           "description": "Open readable binary file stream containing pickled estimator.",
           "domain": "sklearn",
           "required": true,
-          "abstract_type": "scalar",
+          "abstract_type": "path",
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
@@ -14838,5 +14838,28 @@
       "primary_in": "file_obj",
       "primary_out": "model"
     }
-  ]
+  ],
+  "types": {
+    "Model": {
+      "parent": "Modality"
+    },
+    "Joblib": {
+      "parent": "ModelFormat"
+    },
+    "Pickle": {
+      "parent": "ModelFormat"
+    },
+    "Estimator": {
+      "parent": "object"
+    },
+    "Classifier": {
+      "parent": "Estimator"
+    },
+    "Regressor": {
+      "parent": "Estimator"
+    },
+    "Transformer": {
+      "parent": "Estimator"
+    }
+  }
 }

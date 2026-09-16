@@ -1388,7 +1388,7 @@
       "type_vars": [],
       "inputs": {
         "port_0": {
-          "type_name": "str",
+          "type_name": "File[Tabular, CSV]",
           "state": "valid_path",
           "qualifiers": [
             "const"
@@ -1519,7 +1519,7 @@
       "type_vars": [],
       "inputs": {
         "port_0": {
-          "type_name": "str",
+          "type_name": "File[Tabular, Parquet]",
           "state": "valid_path",
           "qualifiers": [
             "const"
@@ -1616,7 +1616,7 @@
       "type_vars": [],
       "inputs": {
         "port_0": {
-          "type_name": "str",
+          "type_name": "File[Tabular, JSONFormat]",
           "state": "valid_path",
           "qualifiers": [
             "const"
@@ -1705,7 +1705,7 @@
       "type_vars": [],
       "inputs": {
         "port_0": {
-          "type_name": "str",
+          "type_name": "File[Tabular, Excel]",
           "state": "valid_path",
           "qualifiers": [
             "const"
@@ -2255,7 +2255,7 @@
           "shape_contract": null
         },
         "port_1": {
-          "type_name": "list",
+          "type_name": "List[str]",
           "state": "column_list",
           "qualifiers": [],
           "default_value": null,
@@ -2774,7 +2774,7 @@
           "shape_contract": null
         },
         "port_1": {
-          "type_name": "list",
+          "type_name": "List[str]",
           "state": "column_subset",
           "qualifiers": [],
           "default_value": "None",
@@ -3052,7 +3052,7 @@
           "shape_contract": null
         },
         "port_1": {
-          "type_name": "dict",
+          "type_name": "Dict[str, str]",
           "state": "dtype_mapping",
           "qualifiers": [],
           "default_value": null,
@@ -4291,7 +4291,7 @@
           "shape_contract": null
         },
         "port_1": {
-          "type_name": "list",
+          "type_name": "List[str]",
           "state": "column_projection",
           "qualifiers": [],
           "default_value": null,
@@ -4394,7 +4394,7 @@
           "shape_contract": null
         },
         "port_1": {
-          "type_name": "list",
+          "type_name": "List[str]",
           "state": "column_labels",
           "qualifiers": [],
           "default_value": null,
@@ -4486,7 +4486,7 @@
           "shape_contract": null
         },
         "port_1": {
-          "type_name": "dict",
+          "type_name": "Dict[str, str]",
           "state": "column_dict",
           "qualifiers": [],
           "default_value": null,
@@ -6373,7 +6373,7 @@
           "shape_contract": null
         },
         "port_1": {
-          "type_name": "list",
+          "type_name": "List[str]",
           "state": "id_columns",
           "qualifiers": [],
           "default_value": null,
@@ -6387,7 +6387,7 @@
           "shape_contract": null
         },
         "port_2": {
-          "type_name": "list",
+          "type_name": "List[str]",
           "state": "value_columns",
           "qualifiers": [],
           "default_value": "None",
@@ -6880,7 +6880,7 @@
           "shape_contract": null
         },
         "port_1": {
-          "type_name": "list",
+          "type_name": "List[str]",
           "state": "columns_to_encode",
           "qualifiers": [],
           "default_value": "None",
@@ -7306,7 +7306,7 @@
           "shape_contract": null
         },
         "port_1": {
-          "type_name": "list",
+          "type_name": "List[str]",
           "state": "level_order",
           "qualifiers": [],
           "default_value": null,
@@ -9801,7 +9801,7 @@
           "shape_contract": null
         },
         "port_1": {
-          "type_name": "str",
+          "type_name": "File[Tabular, CSV]",
           "state": "destination_path",
           "qualifiers": [
             "const"
@@ -9836,14 +9836,14 @@
       },
       "outputs": {
         "port_0": {
-          "type_name": "DataFrame",
+          "type_name": "File[Tabular, CSV]",
           "state": "written_to_disk",
           "qualifiers": [],
           "default_value": null,
           "description": "Terminal disk-persisted state.",
           "domain": "pandas",
           "required": true,
-          "abstract_type": "table",
+          "abstract_type": "path",
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
@@ -9922,7 +9922,7 @@
           "shape_contract": null
         },
         "port_1": {
-          "type_name": "str",
+          "type_name": "File[Tabular, Parquet]",
           "state": "destination_path",
           "qualifiers": [
             "const"
@@ -9957,14 +9957,14 @@
       },
       "outputs": {
         "port_0": {
-          "type_name": "DataFrame",
+          "type_name": "File[Tabular, Parquet]",
           "state": "written_to_disk",
           "qualifiers": [],
           "default_value": null,
           "description": "Terminal disk-persisted state.",
           "domain": "pandas",
           "required": true,
-          "abstract_type": "table",
+          "abstract_type": "path",
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
@@ -10041,7 +10041,7 @@
           "shape_contract": null
         },
         "port_1": {
-          "type_name": "str",
+          "type_name": "File[Tabular, JSONFormat]",
           "state": "destination_path",
           "qualifiers": [
             "const"
@@ -10079,14 +10079,14 @@
       },
       "outputs": {
         "port_0": {
-          "type_name": "DataFrame",
+          "type_name": "File[Tabular, JSONFormat]",
           "state": "written_to_disk",
           "qualifiers": [],
           "default_value": null,
           "description": "Terminal disk-persisted state.",
           "domain": "pandas",
           "required": true,
-          "abstract_type": "table",
+          "abstract_type": "path",
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
@@ -10163,7 +10163,7 @@
           "shape_contract": null
         },
         "port_1": {
-          "type_name": "str",
+          "type_name": "File[Tabular, Excel]",
           "state": "destination_path",
           "qualifiers": [
             "const"
@@ -10198,14 +10198,14 @@
       },
       "outputs": {
         "port_0": {
-          "type_name": "DataFrame",
+          "type_name": "File[Tabular, Excel]",
           "state": "written_to_disk",
           "qualifiers": [],
           "default_value": null,
           "description": "Terminal disk-persisted state.",
           "domain": "pandas",
           "required": true,
-          "abstract_type": "table",
+          "abstract_type": "path",
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
@@ -10348,7 +10348,7 @@
       },
       "outputs": {
         "port_0": {
-          "type_name": "DataFrame",
+          "type_name": "File[Tabular, Any]",
           "state": "written_to_disk",
           "qualifiers": [],
           "default_value": null,
@@ -10433,7 +10433,7 @@
           "shape_contract": null
         },
         "port_1": {
-          "type_name": "str",
+          "type_name": "File[Tabular, Feather]",
           "state": "destination_path",
           "qualifiers": [
             "const"
@@ -10451,14 +10451,14 @@
       },
       "outputs": {
         "port_0": {
-          "type_name": "DataFrame",
+          "type_name": "File[Tabular, Feather]",
           "state": "written_to_disk",
           "qualifiers": [],
           "default_value": null,
           "description": "Terminal disk-persisted state.",
           "domain": "pandas",
           "required": true,
-          "abstract_type": "table",
+          "abstract_type": "path",
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
@@ -10590,6 +10590,15 @@
       "parent": "TabularFormat"
     },
     "Parquet": {
+      "parent": "TabularFormat"
+    },
+    "Excel": {
+      "parent": "TabularFormat"
+    },
+    "JSONFormat": {
+      "parent": "TabularFormat"
+    },
+    "Feather": {
       "parent": "TabularFormat"
     }
   }

@@ -1164,7 +1164,7 @@
       },
       "outputs": {
         "port_0": {
-          "type_name": "list",
+          "type_name": "List[Tuple[float, float, float]]",
           "state": "color_rgb",
           "qualifiers": [],
           "default_value": null,
@@ -4901,7 +4901,7 @@
           "shape_contract": null
         },
         "port_5": {
-          "type_name": "list",
+          "type_name": "List[str]",
           "state": "unbound",
           "qualifiers": [],
           "default_value": [
@@ -6631,7 +6631,7 @@
           "shape_contract": null
         },
         "port_2": {
-          "type_name": "list",
+          "type_name": "List[str]",
           "state": "unbound",
           "qualifiers": [],
           "default_value": null,
@@ -8752,7 +8752,7 @@
           "shape_contract": null
         },
         "port_1": {
-          "type_name": "str",
+          "type_name": "File[Plot, Any]",
           "state": "unbound",
           "qualifiers": [],
           "default_value": null,
@@ -8849,7 +8849,7 @@
           "shape_contract": null
         },
         "port_1": {
-          "type_name": "str",
+          "type_name": "File[Plot, Any]",
           "state": "unbound",
           "qualifiers": [],
           "default_value": null,
@@ -8945,7 +8945,7 @@
           "shape_contract": null
         },
         "port_1": {
-          "type_name": "str",
+          "type_name": "File[Plot, Any]",
           "state": "unbound",
           "qualifiers": [],
           "default_value": null,
@@ -9045,7 +9045,7 @@
           "shape_contract": null
         },
         "port_1": {
-          "type_name": "str",
+          "type_name": "File[Plot, Any]",
           "state": "unbound",
           "qualifiers": [],
           "default_value": null,
@@ -9253,7 +9253,7 @@
       },
       "outputs": {
         "port_0": {
-          "type_name": "Axes",
+          "type_name": "Figure",
           "state": "figure_saved",
           "qualifiers": [],
           "default_value": null,
@@ -9274,5 +9274,16 @@
       "primary_in": "port_0",
       "primary_out": "port_0"
     }
-  ]
+  ],
+  "types": {
+    "Figure": {
+      "parent": "Canvas"
+    },
+    "Axes": {
+      "parent": "Canvas"
+    },
+    "Plot": {
+      "parent": "Modality"
+    }
+  }
 }

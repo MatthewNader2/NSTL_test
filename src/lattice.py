@@ -155,6 +155,15 @@ class LatticeType:
         if len(other.parameters) == 0:
             return True
 
+        # Variadic tuple subtyping: Tuple[S1, ..., Sn] <: Tuple[T, ...]
+        if other.constructor.lower() == "tuple" and len(other.parameters) == 2 and other.parameters[1].constructor in ("...", "Ellipsis"):
+            elem_t = other.parameters[0]
+            if len(self.parameters) == 2 and self.parameters[1].constructor in ("...", "Ellipsis"):
+                return self.parameters[0].is_subtype_of(elem_t, poset_lookup)
+            if len(self.parameters) > 0:
+                return all(p.is_subtype_of(elem_t, poset_lookup) for p in self.parameters)
+            return False
+
         # Sound parameter demand: F </: F[T] if producer is unparameterized
         if len(self.parameters) == 0 and len(other.parameters) > 0:
             return all(p.is_top() for p in other.parameters)
@@ -219,6 +228,9 @@ class TypeRegistry:
         self.register_type("format", "object")
         self.register_type("imageformat", "format")
         self.register_type("tabularformat", "format")
+        self.register_type("arrayformat", "format")
+        self.register_type("modelformat", "format")
+        self.register_type("canvas", "object")
 
         # Collection carriers
         for t in ("list", "tuple", "set", "frozenset", "dict", "mapping", "map"):

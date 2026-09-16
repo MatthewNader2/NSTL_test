@@ -1552,7 +1552,7 @@
       "type_vars": [],
       "inputs": {
         "shape": {
-          "type_name": "tuple",
+          "type_name": "Tuple[int, ...]",
           "state": "shape_tuple",
           "qualifiers": [],
           "default_value": null,
@@ -1870,7 +1870,7 @@
       "type_vars": [],
       "inputs": {
         "shape": {
-          "type_name": "tuple",
+          "type_name": "Tuple[int, ...]",
           "state": "shape_tuple",
           "qualifiers": [],
           "default_value": null,
@@ -1965,7 +1965,7 @@
       "type_vars": [],
       "inputs": {
         "shape": {
-          "type_name": "tuple",
+          "type_name": "Tuple[int, ...]",
           "state": "shape_tuple",
           "qualifiers": [],
           "default_value": null,
@@ -2577,7 +2577,7 @@
       "type_vars": [],
       "inputs": {
         "shape": {
-          "type_name": "tuple",
+          "type_name": "Tuple[int, ...]",
           "state": "shape_tuple",
           "qualifiers": [],
           "default_value": null,
@@ -2674,7 +2674,7 @@
       "type_vars": [],
       "inputs": {
         "file_path": {
-          "type_name": "str",
+          "type_name": "File[Array, NPY]",
           "state": "file_path_str",
           "qualifiers": [],
           "default_value": null,
@@ -2922,7 +2922,7 @@
           "shape_contract": null
         },
         "new_shape": {
-          "type_name": "tuple",
+          "type_name": "Tuple[int, ...]",
           "state": "shape_tuple",
           "qualifiers": [],
           "default_value": null,
@@ -3352,7 +3352,7 @@
           "shape_contract": null
         },
         "axes": {
-          "type_name": "tuple",
+          "type_name": "Tuple[int, ...]",
           "state": "axes_permutation",
           "qualifiers": [],
           "default_value": "None",
@@ -4292,7 +4292,7 @@
           "shape_contract": null
         },
         "shape": {
-          "type_name": "tuple",
+          "type_name": "Tuple[int, ...]",
           "state": "shape_tuple",
           "qualifiers": [],
           "default_value": null,
@@ -7162,7 +7162,7 @@
       },
       "outputs": {
         "output_var": {
-          "type_name": "tuple",
+          "type_name": "Tuple[ndarray, ndarray]",
           "state": "eigen_decomposed",
           "qualifiers": [],
           "default_value": null,
@@ -7245,7 +7245,7 @@
       },
       "outputs": {
         "output_var": {
-          "type_name": "tuple",
+          "type_name": "Tuple[ndarray, ndarray]",
           "state": "eigen_decomposed",
           "qualifiers": [],
           "default_value": null,
@@ -7343,7 +7343,7 @@
       },
       "outputs": {
         "output_var": {
-          "type_name": "tuple",
+          "type_name": "Tuple[ndarray, ndarray, ndarray]",
           "state": "svd_decomposed",
           "qualifiers": [],
           "default_value": null,
@@ -7447,7 +7447,7 @@
       },
       "outputs": {
         "output_var": {
-          "type_name": "tuple",
+          "type_name": "Tuple[ndarray, ndarray]",
           "state": "qr_decomposed",
           "qualifiers": [],
           "default_value": null,
@@ -10235,7 +10235,7 @@
       "type_vars": [],
       "inputs": {
         "file_path": {
-          "type_name": "str",
+          "type_name": "File[Array, NPY]",
           "state": "file_path_str",
           "qualifiers": [],
           "default_value": null,
@@ -10272,7 +10272,7 @@
       },
       "outputs": {
         "output_var": {
-          "type_name": "str",
+          "type_name": "File[Array, NPY]",
           "state": "saved_npy",
           "qualifiers": [],
           "default_value": null,
@@ -10330,7 +10330,7 @@
       "type_vars": [],
       "inputs": {
         "file_path": {
-          "type_name": "str",
+          "type_name": "File[Array, NPZ]",
           "state": "file_path_str",
           "qualifiers": [],
           "default_value": null,
@@ -10365,7 +10365,7 @@
       },
       "outputs": {
         "output_var": {
-          "type_name": "str",
+          "type_name": "File[Array, NPZ]",
           "state": "saved_npz",
           "qualifiers": [],
           "default_value": null,
@@ -10540,7 +10540,7 @@
           "shape_contract": null
         },
         "file_path": {
-          "type_name": "str",
+          "type_name": "File[Array, Any]",
           "state": "file_path_str",
           "qualifiers": [],
           "default_value": null,
@@ -10584,7 +10584,7 @@
       },
       "outputs": {
         "output_var": {
-          "type_name": "str",
+          "type_name": "File[Array, Any]",
           "state": "exported_buffer",
           "qualifiers": [],
           "default_value": null,
@@ -10684,5 +10684,16 @@
       "primary_in": "array",
       "primary_out": "output_var"
     }
-  ]
+  ],
+  "types": {
+    "Array": {
+      "parent": "Modality"
+    },
+    "NPY": {
+      "parent": "ArrayFormat"
+    },
+    "NPZ": {
+      "parent": "ArrayFormat"
+    }
+  }
 }

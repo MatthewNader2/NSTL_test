@@ -796,7 +796,7 @@
       "inputs": {
         "figsize": {
           "name": "figsize",
-          "type_name": "tuple",
+          "type_name": "Tuple[float, float]",
           "state": "unregistered",
           "accepted_states": null,
           "qualifiers": [
@@ -939,7 +939,7 @@
       "inputs": {
         "figsize": {
           "name": "figsize",
-          "type_name": "tuple",
+          "type_name": "Tuple[float, float]",
           "state": "unregistered",
           "accepted_states": null,
           "qualifiers": [
@@ -3045,7 +3045,7 @@
         },
         "labels": {
           "name": "labels",
-          "type_name": "list",
+          "type_name": "List[str]",
           "state": "unregistered",
           "accepted_states": null,
           "qualifiers": [
@@ -7634,7 +7634,7 @@
         },
         "labels": {
           "name": "labels",
-          "type_name": "list",
+          "type_name": "List[str]",
           "state": "unregistered",
           "accepted_states": null,
           "qualifiers": [],
@@ -9804,7 +9804,7 @@
         },
         "output_filepath": {
           "name": "output_filepath",
-          "type_name": "str",
+          "type_name": "File[Plot, Any]",
           "state": "unregistered",
           "accepted_states": null,
           "qualifiers": [],
@@ -10041,5 +10041,27 @@
       "primary_in": "fig",
       "primary_out": "void"
     }
-  ]
+  ],
+  "types": {
+    "Figure": {
+      "parent": "Canvas",
+      "description": "matplotlib.figure.Figure instance"
+    },
+    "Axes": {
+      "parent": "Canvas",
+      "description": "matplotlib.axes.Axes subplot instance"
+    },
+    "Canvas": {
+      "parent": "object"
+    },
+    "Plot": {
+      "parent": "Modality"
+    },
+    "PDF": {
+      "parent": "Format"
+    },
+    "SVG": {
+      "parent": "Format"
+    }
+  }
 }

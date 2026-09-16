@@ -934,7 +934,7 @@
       "type_vars": [],
       "inputs": {
         "output_path": {
-          "type_name": "str",
+          "type_name": "File[Image, Any]",
           "state": "file_path",
           "qualifiers": [
             [
@@ -981,14 +981,14 @@
       },
       "outputs": {
         "output_var": {
-          "type_name": "bool",
+          "type_name": "File[Image, Any]",
           "state": "saved",
           "qualifiers": [],
           "default_value": null,
           "description": "Boolean flag indicating whether image serialization succeeded.",
           "domain": "cv2",
           "required": true,
-          "abstract_type": "scalar",
+          "abstract_type": "path",
           "enum_values": [
             true,
             false
@@ -2125,7 +2125,7 @@
           "shape_contract": null
         },
         "dsize": {
-          "type_name": "tuple",
+          "type_name": "Tuple[int, int]",
           "state": "size_tuple",
           "qualifiers": [],
           "default_value": null,
@@ -2356,7 +2356,7 @@
           }
         },
         "dsize": {
-          "type_name": "tuple",
+          "type_name": "Tuple[int, int]",
           "state": "size_tuple",
           "qualifiers": [],
           "default_value": null,
@@ -2682,7 +2682,7 @@
           }
         },
         "dsize": {
-          "type_name": "tuple",
+          "type_name": "Tuple[int, int]",
           "state": "size_tuple",
           "qualifiers": [],
           "default_value": null,
@@ -7987,7 +7987,7 @@
       },
       "outputs": {
         "output_var": {
-          "type_name": "list",
+          "type_name": "List[ndarray]",
           "state": "channel_list",
           "qualifiers": [],
           "default_value": null,
@@ -8069,7 +8069,7 @@
       "type_vars": [],
       "inputs": {
         "mv": {
-          "type_name": "list",
+          "type_name": "List[ndarray]",
           "state": "channel_list",
           "qualifiers": [],
           "default_value": null,
@@ -8190,7 +8190,7 @@
           "shape_contract": null
         },
         "channels": {
-          "type_name": "list",
+          "type_name": "List[int]",
           "state": "channel_indices",
           "qualifiers": [],
           "default_value": [
@@ -8220,7 +8220,7 @@
           "shape_contract": null
         },
         "hist_size": {
-          "type_name": "list",
+          "type_name": "List[int]",
           "state": "bin_counts",
           "qualifiers": [],
           "default_value": [
@@ -8236,7 +8236,7 @@
           "shape_contract": null
         },
         "ranges": {
-          "type_name": "list",
+          "type_name": "List[float]",
           "state": "bin_ranges",
           "qualifiers": [],
           "default_value": [
@@ -9750,7 +9750,7 @@
           "shape_contract": null
         },
         "pts": {
-          "type_name": "list",
+          "type_name": "List[ndarray]",
           "state": "polygons",
           "qualifiers": [],
           "default_value": null,
@@ -9942,7 +9942,7 @@
           "shape_contract": null
         },
         "pts": {
-          "type_name": "list",
+          "type_name": "List[ndarray]",
           "state": "polygons",
           "qualifiers": [],
           "default_value": null,
@@ -11042,7 +11042,7 @@
       },
       "outputs": {
         "keypoints": {
-          "type_name": "list",
+          "type_name": "List[KeyPoint]",
           "state": "keypoints",
           "qualifiers": [],
           "default_value": null,
@@ -11345,7 +11345,7 @@
       },
       "outputs": {
         "keypoints": {
-          "type_name": "list",
+          "type_name": "List[KeyPoint]",
           "state": "keypoints",
           "qualifiers": [],
           "default_value": null,
@@ -11642,7 +11642,7 @@
       },
       "outputs": {
         "matches": {
-          "type_name": "list",
+          "type_name": "List[DMatch]",
           "state": "matches",
           "qualifiers": [],
           "default_value": null,
@@ -11758,7 +11758,7 @@
           "shape_contract": null
         },
         "keypoints": {
-          "type_name": "list",
+          "type_name": "List[KeyPoint]",
           "state": "keypoints",
           "qualifiers": [],
           "default_value": null,
@@ -11931,7 +11931,7 @@
           "shape_contract": null
         },
         "keypoints1": {
-          "type_name": "list",
+          "type_name": "List[KeyPoint]",
           "state": "keypoints",
           "qualifiers": [],
           "default_value": null,
@@ -11964,7 +11964,7 @@
           "shape_contract": null
         },
         "keypoints2": {
-          "type_name": "list",
+          "type_name": "List[KeyPoint]",
           "state": "keypoints",
           "qualifiers": [],
           "default_value": null,
@@ -11978,7 +11978,7 @@
           "shape_contract": null
         },
         "matches1to2": {
-          "type_name": "list",
+          "type_name": "List[DMatch]",
           "state": "matches",
           "qualifiers": [],
           "default_value": null,
@@ -13226,7 +13226,7 @@
       "type_vars": [],
       "inputs": {
         "filename": {
-          "type_name": "str",
+          "type_name": "File[Image, Any]",
           "state": "file_path",
           "qualifiers": [
             [
@@ -13275,7 +13275,7 @@
           "shape_contract": null
         },
         "frame_size": {
-          "type_name": "tuple",
+          "type_name": "Tuple[int, int]",
           "state": "size_tuple",
           "qualifiers": [],
           "default_value": null,
@@ -13763,7 +13763,7 @@
   "types": {
     "Contour": {
       "parent": "ndarray",
-      "description": "Boundary vector of 2D coordinates with shape (N, 1, 2) or (N, 2)"
+      "description": "Boundary coordinate vector (N, 1, 2)"
     },
     "Image": {
       "parent": "Modality"
@@ -13776,6 +13776,14 @@
     },
     "JPEG": {
       "parent": "ImageFormat"
+    },
+    "KeyPoint": {
+      "parent": "object",
+      "description": "cv2.KeyPoint interest point feature"
+    },
+    "DMatch": {
+      "parent": "object",
+      "description": "cv2.DMatch descriptor match"
     }
   }
 }
