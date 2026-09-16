@@ -1,0 +1,457 @@
+{
+  "domain": "macros",
+  "version": "1.0",
+  "typestates": {
+    "domain": "macros",
+    "states": []
+  },
+  "types": [],
+  "cells": [
+    {
+      "cell_id": "MACRO_PANDAS_TOP_N_BY_COLUMN",
+      "stage": 1,
+      "topology_type": "sequential",
+      "node_type": "macro",
+      "node_role": "macro",
+      "mutation_type": "pure",
+      "is_context_manager": false,
+      "verified": true,
+      "source_priority": 1,
+      "is_public": true,
+      "endable": true,
+      "keywords": [
+        "top",
+        "top_n",
+        "head",
+        "rows",
+        "filter",
+        "sort",
+        "sort_values",
+        "largest",
+        "smallest",
+        "highest",
+        "lowest",
+        "rank",
+        "ranking",
+        "limit",
+        "first",
+        "order",
+        "ascending",
+        "descending",
+        "csv",
+        "export"
+      ],
+      "docstring": "Known-good macro-goal pipeline: ingest a CSV table, sort its rows by a chosen column, keep the top N rows, and export the result back to a CSV file. Composed entirely of verified pandas micro-cells: PD_READ_CSV -> PD_SORT_VALUES -> PD_HEAD -> PD_TO_CSV.",
+      "dependencies": [
+        "pandas as pd"
+      ],
+      "semantic_tags": [
+        "tabular",
+        "ranking",
+        "topn",
+        "macro_goal"
+      ],
+      "inputs": {
+        "filepath": {
+          "type_name": "File[Tabular, CSV]",
+          "state": "valid_path",
+          "qualifiers": [
+            "const"
+          ],
+          "default_value": null,
+          "description": "Path to the input CSV file to ingest.",
+          "domain": "pandas",
+          "required": true,
+          "abstract_type": "path",
+          "enum_values": null,
+          "param_kind": "positional_or_keyword",
+          "value_constraints": null,
+          "shape_contract": null
+        },
+        "by": {
+          "type_name": "str",
+          "state": "sort_column",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Column to sort by when ranking rows.",
+          "domain": "pandas",
+          "required": true,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "positional_or_keyword",
+          "value_constraints": null,
+          "shape_contract": null
+        },
+        "n": {
+          "type_name": "int",
+          "state": "limit_count",
+          "qualifiers": [
+            "scalar"
+          ],
+          "default_value": 5,
+          "description": "Number of top rows to keep.",
+          "domain": "pandas",
+          "required": false,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "positional_or_keyword",
+          "value_constraints": null,
+          "shape_contract": null
+        },
+        "ascending": {
+          "type_name": "bool",
+          "state": "order_flag",
+          "qualifiers": [
+            "scalar"
+          ],
+          "default_value": true,
+          "description": "Sort order flag; true keeps the smallest first, false keeps the largest first.",
+          "domain": "pandas",
+          "required": false,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "positional_or_keyword",
+          "value_constraints": null,
+          "shape_contract": null
+        },
+        "destination": {
+          "type_name": "File[Tabular, CSV]",
+          "state": "destination_path",
+          "qualifiers": [
+            "const"
+          ],
+          "default_value": null,
+          "description": "Destination CSV path for the exported top-N table.",
+          "domain": "pandas",
+          "required": true,
+          "abstract_type": "path",
+          "enum_values": null,
+          "param_kind": "positional_or_keyword",
+          "value_constraints": null,
+          "shape_contract": null
+        }
+      },
+      "outputs": {
+        "output_var": {
+          "type_name": "File[Tabular, CSV]",
+          "state": "written_to_disk",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Egress artifact: the exported top-N CSV file.",
+          "domain": "pandas",
+          "required": true,
+          "abstract_type": "path",
+          "enum_values": null,
+          "param_kind": "positional_or_keyword",
+          "value_constraints": null,
+          "shape_contract": null
+        }
+      },
+      "sub_cells": [
+        "PD_READ_CSV",
+        "PD_SORT_VALUES",
+        "PD_HEAD",
+        "PD_TO_CSV"
+      ],
+      "algorithmic_steps": [
+        "Ingest the CSV table from the given filepath (PD_READ_CSV).",
+        "Sort the rows by the chosen column in the requested order (PD_SORT_VALUES).",
+        "Keep the first N rows of the sorted table (PD_HEAD).",
+        "Export the resulting table to the destination CSV path (PD_TO_CSV)."
+      ],
+      "internal_topology": {
+        "PD_READ_CSV": [
+          "PD_SORT_VALUES"
+        ],
+        "PD_SORT_VALUES": [
+          "PD_HEAD"
+        ],
+        "PD_HEAD": [
+          "PD_TO_CSV"
+        ]
+      },
+      "slots": {},
+      "bound_slots": {},
+      "code_template": "",
+      "edges": [],
+      "preconditions": [],
+      "postconditions": [],
+      "effects": [],
+      "type_vars": [],
+      "raises": [],
+      "domain_name": "pandas"
+    },
+    {
+      "cell_id": "MACRO_CV2_CONTOUR_ANNOTATION",
+      "stage": 1,
+      "topology_type": "sequential",
+      "node_type": "macro",
+      "node_role": "macro",
+      "mutation_type": "pure",
+      "is_context_manager": false,
+      "verified": true,
+      "source_priority": 1,
+      "is_public": true,
+      "endable": true,
+      "keywords": [
+        "contours",
+        "contour",
+        "findContours",
+        "drawContours",
+        "grayscale",
+        "gray",
+        "threshold",
+        "otsu",
+        "binarize",
+        "binary",
+        "outline",
+        "boundary",
+        "annotate",
+        "annotation",
+        "draw",
+        "segment",
+        "image",
+        "imread",
+        "imwrite",
+        "save",
+        "write"
+      ],
+      "docstring": "Known-good macro-goal pipeline: load an image, convert it to grayscale, binarize it with automatic Otsu thresholding, find contours, draw the contours back onto the color image, and save the annotated result. Composed entirely of verified cv2 micro-cells: CV2_IMREAD -> CV2_CVT_COLOR_BGR2GRAY -> CV2_THRESHOLD_OTSU -> CV2_FIND_CONTOURS -> CV2_DRAW_CONTOURS -> CV2_IMWRITE.",
+      "dependencies": [
+        "cv2"
+      ],
+      "semantic_tags": [
+        "vision",
+        "contours",
+        "annotation",
+        "macro_goal"
+      ],
+      "inputs": {
+        "image_path": {
+          "type_name": "File[Image, Any]",
+          "state": "file_path",
+          "qualifiers": [
+            "const"
+          ],
+          "default_value": null,
+          "description": "Path to the source image to load.",
+          "domain": "cv2",
+          "required": true,
+          "abstract_type": "path",
+          "enum_values": null,
+          "param_kind": "positional_or_keyword",
+          "value_constraints": null,
+          "shape_contract": null
+        },
+        "maxval": {
+          "type_name": "float",
+          "state": "maximum_value",
+          "qualifiers": [
+            "scalar"
+          ],
+          "default_value": 255.0,
+          "description": "Maximum value used with the Otsu threshold.",
+          "domain": "cv2",
+          "required": false,
+          "abstract_type": null,
+          "enum_values": null,
+          "param_kind": "positional_or_keyword",
+          "value_constraints": null,
+          "shape_contract": null
+        },
+        "destination_path": {
+          "type_name": "File[Image, Any]",
+          "state": "file_path",
+          "qualifiers": [
+            "const"
+          ],
+          "default_value": null,
+          "description": "Destination path for the annotated image.",
+          "domain": "cv2",
+          "required": true,
+          "abstract_type": "path",
+          "enum_values": null,
+          "param_kind": "positional_or_keyword",
+          "value_constraints": null,
+          "shape_contract": null
+        }
+      },
+      "outputs": {
+        "output_var": {
+          "type_name": "File[Image, Any]",
+          "state": "saved",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Egress artifact: the annotated image written to disk.",
+          "domain": "cv2",
+          "required": true,
+          "abstract_type": "path",
+          "enum_values": null,
+          "param_kind": "positional_or_keyword",
+          "value_constraints": null,
+          "shape_contract": null
+        }
+      },
+      "sub_cells": [
+        "CV2_IMREAD",
+        "CV2_CVT_COLOR_BGR2GRAY",
+        "CV2_THRESHOLD_OTSU",
+        "CV2_FIND_CONTOURS",
+        "CV2_DRAW_CONTOURS",
+        "CV2_IMWRITE"
+      ],
+      "algorithmic_steps": [
+        "Load the source image from disk (CV2_IMREAD).",
+        "Convert the image to grayscale (CV2_CVT_COLOR_BGR2GRAY).",
+        "Binarize the grayscale image with automatic Otsu thresholding (CV2_THRESHOLD_OTSU).",
+        "Find contours in the binary mask (CV2_FIND_CONTOURS).",
+        "Draw the contours onto the color image (CV2_DRAW_CONTOURS).",
+        "Save the annotated image to the destination path (CV2_IMWRITE)."
+      ],
+      "internal_topology": {
+        "CV2_IMREAD": [
+          "CV2_CVT_COLOR_BGR2GRAY"
+        ],
+        "CV2_CVT_COLOR_BGR2GRAY": [
+          "CV2_THRESHOLD_OTSU"
+        ],
+        "CV2_THRESHOLD_OTSU": [
+          "CV2_FIND_CONTOURS"
+        ],
+        "CV2_FIND_CONTOURS": [
+          "CV2_DRAW_CONTOURS"
+        ],
+        "CV2_DRAW_CONTOURS": [
+          "CV2_IMWRITE"
+        ]
+      },
+      "slots": {},
+      "bound_slots": {},
+      "code_template": "",
+      "edges": [],
+      "preconditions": [],
+      "postconditions": [],
+      "effects": [],
+      "type_vars": [],
+      "raises": [],
+      "domain_name": "cv2"
+    },
+    {
+      "cell_id": "MACRO_PANDAS_CLEAN_AND_EXPORT",
+      "stage": 1,
+      "topology_type": "sequential",
+      "node_type": "macro",
+      "node_role": "macro",
+      "mutation_type": "pure",
+      "is_context_manager": false,
+      "verified": true,
+      "source_priority": 1,
+      "is_public": true,
+      "endable": true,
+      "keywords": [
+        "clean",
+        "cleaning",
+        "dropna",
+        "missing",
+        "nan",
+        "nulls",
+        "drop",
+        "empty",
+        "csv",
+        "export",
+        "save",
+        "write",
+        "load",
+        "read"
+      ],
+      "docstring": "Known-good macro-goal pipeline: ingest a CSV table, drop rows with missing values, and export the cleaned table back to a CSV file. Composed entirely of verified pandas micro-cells: PD_READ_CSV -> PD_DROPNA -> PD_TO_CSV.",
+      "dependencies": [
+        "pandas as pd"
+      ],
+      "semantic_tags": [
+        "tabular",
+        "cleaning",
+        "etl",
+        "macro_goal"
+      ],
+      "inputs": {
+        "filepath": {
+          "type_name": "File[Tabular, CSV]",
+          "state": "valid_path",
+          "qualifiers": [
+            "const"
+          ],
+          "default_value": null,
+          "description": "Path to the input CSV file to ingest.",
+          "domain": "pandas",
+          "required": true,
+          "abstract_type": "path",
+          "enum_values": null,
+          "param_kind": "positional_or_keyword",
+          "value_constraints": null,
+          "shape_contract": null
+        },
+        "destination": {
+          "type_name": "File[Tabular, CSV]",
+          "state": "destination_path",
+          "qualifiers": [
+            "const"
+          ],
+          "default_value": null,
+          "description": "Destination CSV path for the cleaned table.",
+          "domain": "pandas",
+          "required": true,
+          "abstract_type": "path",
+          "enum_values": null,
+          "param_kind": "positional_or_keyword",
+          "value_constraints": null,
+          "shape_contract": null
+        }
+      },
+      "outputs": {
+        "output_var": {
+          "type_name": "File[Tabular, CSV]",
+          "state": "written_to_disk",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Egress artifact: the cleaned CSV file.",
+          "domain": "pandas",
+          "required": true,
+          "abstract_type": "path",
+          "enum_values": null,
+          "param_kind": "positional_or_keyword",
+          "value_constraints": null,
+          "shape_contract": null
+        }
+      },
+      "sub_cells": [
+        "PD_READ_CSV",
+        "PD_DROPNA",
+        "PD_TO_CSV"
+      ],
+      "algorithmic_steps": [
+        "Ingest the CSV table from the given filepath (PD_READ_CSV).",
+        "Drop rows containing missing values (PD_DROPNA).",
+        "Export the cleaned table to the destination CSV path (PD_TO_CSV)."
+      ],
+      "internal_topology": {
+        "PD_READ_CSV": [
+          "PD_DROPNA"
+        ],
+        "PD_DROPNA": [
+          "PD_TO_CSV"
+        ]
+      },
+      "slots": {},
+      "bound_slots": {},
+      "code_template": "",
+      "edges": [],
+      "preconditions": [],
+      "postconditions": [],
+      "effects": [],
+      "type_vars": [],
+      "raises": [],
+      "domain_name": "pandas"
+    }
+  ]
+}

@@ -17,6 +17,12 @@ import re
 import signal
 import resource
 from typing import Tuple, Optional, Callable, Dict, Any, Union, List
+
+try:
+    from typing import NamedTuple
+except ImportError:  # pragma: no cover
+    from collections import namedtuple as NamedTuple  # type: ignore
+
 from log_config import get_logger
 
 try:
@@ -27,6 +33,68 @@ except (ImportError, ValueError):
     from utils import extract_code_from_llm_response
 
 logger = get_logger('gevr_sandbox')
+
+
+class ExecutionResult(NamedTuple):
+    """
+    Structured result of a sandbox execution.
+
+    Backwards compatible with the historical 3-tuple contract
+    ``(success, stdout, error)`` — tuple unpacking and indexing still work —
+    while additionally exposing named attributes for programmatic callers:
+
+        res = sandbox.execute_and_verify(code)
+        res.success / res.verified      # bool
+        res.stdout / res.error_message  # str
+    """
+    success: bool
+    stdout: str
+    error: str
+
+    @property
+    def verified(self) -> bool:
+        """Alias for :attr:`success` (GEVR verification passed)."""
+        return self.success
+
+    @property
+    def stderr(self) -> str:
+        """Alias for :attr:`error` (the captured error channel)."""
+        return self.error
+
+    @property
+    def error_message(self) -> str:
+        """Alias for :attr:`error` (empty string on success)."""
+        return self.error
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "success": self.success,
+            "verified": self.success,
+            "stdout": self.stdout,
+            "stderr": self.error,
+            "error": self.error,
+            "error_message": self.error,
+        }
+
+
+class RepairResult(NamedTuple):
+    """
+    Structured result of a GEVR repair cycle.
+
+    Backwards compatible with the historical 3-tuple ``(success, code, error)``;
+    ``stdout`` is exposed as an alias of ``error`` (the diagnostic channel).
+    """
+    success: bool
+    code: str
+    error: str
+
+    @property
+    def verified(self) -> bool:
+        return self.success
+
+    @property
+    def error_message(self) -> str:
+        return self.error
 
 
 def _init_worker(paths: list[str]):
@@ -523,13 +591,18 @@ class GEVRSandbox:
         egress_paths: Optional[list[str]] = None,
         cwd: Optional[str] = None,
         verification_spec: Optional[Union[Dict[str, Any], List[Dict[str, Any]], Any]] = None
-    ) -> Tuple[bool, str, str]:
+    ) -> ExecutionResult:
         """
-        Executes Python code and returns (success, stdout, stderr/error).
+        Executes Python code and verifies it in the sandbox.
+
+        Returns an :class:`ExecutionResult` — a named 3-tuple
+        ``(success, stdout, error)``. Callers may either unpack it positionally
+        (``success, stdout, err = sandbox.execute_and_verify(code)``) or access
+        the named fields (``res.verified``, ``res.error_message``).
         """
         res = self.execute(code, egress_paths=egress_paths, cwd=cwd, verification_spec=verification_spec)
         err = res.get("error", "") or res.get("stderr", "")
-        return res["success"], res["stdout"], err
+        return ExecutionResult(bool(res["success"]), res.get("stdout", ""), err)
 
     def repair_cycle(
         self,
@@ -539,20 +612,25 @@ class GEVRSandbox:
         egress_paths: Optional[list[str]] = None,
         cwd: Optional[str] = None,
         verification_spec: Optional[Union[Dict[str, Any], List[Dict[str, Any]], Any]] = None
-    ) -> Tuple[bool, str, str]:
+    ) -> RepairResult:
         """
         Feedback verification loop:
         Executes code, captures tracebacks and task verification errors, and applies diagnostic LLM repairs.
+
+        Returns a :class:`RepairResult` — a named 3-tuple ``(success, code, error)``
+        where ``code`` is the final (possibly repaired) code and ``error`` the last
+        diagnostic message (empty on success).
         """
         current_code = initial_code
         error = ""
         for attempt in range(max_attempts):
-            success, stdout, error = self.execute_and_verify(
+            exec_res = self.execute_and_verify(
                 current_code, egress_paths=egress_paths, cwd=cwd, verification_spec=verification_spec
             )
+            success, stdout, error = exec_res.success, exec_res.stdout, exec_res.error
             if success:
                 logger.info(f"[GEVR Sandbox] Verification PASSED on attempt {attempt + 1}")
-                return True, current_code, ""
+                return RepairResult(True, current_code, "")
 
             logger.warning(f"[GEVR Sandbox] Attempt {attempt + 1} failed with error:\n{error}")
             if attempt < max_attempts - 1:
@@ -576,4 +654,4 @@ class GEVRSandbox:
             else:
                 break
 
-        return False, current_code, error
+        return RepairResult(False, current_code, error)

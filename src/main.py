@@ -75,7 +75,7 @@ def _ensure_base_engine_loaded():
         _orchestrator = LatticeOrchestrator()
         _orchestrator.load_from_database(DB_PATH)
         _orchestrator.build_topology()
-        _gate = UnificationGate()
+        _gate = UnificationGate(orchestrator=_orchestrator)
         _sandbox = GEVRSandbox()
         _router = LatticeRouter(orchestrator=_orchestrator, internal_rag=None)
         elapsed = (time.perf_counter() - t0) * 1000

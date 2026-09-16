@@ -39,6 +39,13 @@ class NSTLSettings(BaseSettings):
     llm_temperature: float = 0.1
     llm_top_p: float = 0.95
 
+    # Macro-goal routing (Section 3.5): when True, MacroCell composite paths
+    # (known-good pipelines of existing micro-cells) participate in routing and
+    # are promoted above their constituent micro-cells when the prompt matches
+    # them. Toggleable for A/B benchmarking via the CLI (--macros/--no-macros),
+    # the interactive shell (`set macros on|off`), or the NSTL_MACROS env var.
+    macros_enabled: bool = True
+
     def model_post_init(self, __context) -> None:
         """Resolve default paths relative to project_root after construction."""
         if self.trees_dir is None:

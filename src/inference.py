@@ -38,6 +38,58 @@ if "PYTORCH_CUDA_ALLOC_CONF" not in os.environ:
 logger = get_logger("inference")
 
 
+def resolve_embedding_dimension(model: Any, fallback: int = 384) -> int:
+    """
+    Resolves the embedding dimension of a loaded SentenceTransformer model
+    across library versions.
+
+    sentence-transformers >= 3.0 deprecated the parameterless instance call of
+    ``get_sentence_embedding_dimension()`` (it is now a staticmethod requiring
+    the model name) in favour of the instance method ``get_embedding_dimension()``.
+    Older versions only expose the former. This helper probes the modern API
+    first, falls back to the legacy call, and finally to a cheap probe encode,
+    so profile loading never crashes on a version drift.
+    """
+    modern = getattr(model, "get_embedding_dimension", None)
+    if callable(modern):
+        try:
+            dim = int(modern())
+            if dim > 0:
+                return dim
+        except Exception:
+            pass
+
+    legacy = getattr(model, "get_sentence_embedding_dimension", None)
+    if callable(legacy):
+        try:
+            dim = int(legacy())
+            if dim > 0:
+                return dim
+        except TypeError:
+            # staticmethod signature: get_sentence_embedding_dimension(model_name)
+            name = getattr(model, "_model_name", None) or getattr(model, "model_name_or_path", None)
+            if isinstance(name, str) and name:
+                try:
+                    dim = int(legacy(name))
+                    if dim > 0:
+                        return dim
+                except Exception:
+                    pass
+        except Exception:
+            pass
+
+    try:
+        probe = model.encode(["nstl dimension probe"], convert_to_numpy=True)
+        dim = int(probe.shape[-1])
+        if dim > 0:
+            return dim
+    except Exception:
+        pass
+
+    logger.warning(f"[INFERENCE] Could not resolve embedding dimension; using fallback {fallback}.")
+    return fallback
+
+
 def get_adaptive_batch_size(device: str = "cuda") -> int:
     """
     Computes an optimal batch size for embedding inference based on hardware telemetry.
@@ -216,7 +268,7 @@ class BenchmarkProfile_A(InferenceProfile):
         except Exception:
             self.model = SentenceTransformer(emb_path, device=device, trust_remote_code=True)
 
-        self._dim = self.model.get_sentence_embedding_dimension() or 384
+        self._dim = resolve_embedding_dimension(self.model)
         logger.info(f"[PROFILE A] Loaded embedder '{self.embedder_name}' (dim={self._dim}) on {device.upper()}")
 
     def get_embedding(self, text: str) -> List[float]:
@@ -290,7 +342,7 @@ class BenchmarkProfile_C(InferenceProfile):
         except Exception:
             self.embedder = SentenceTransformer(emb_path, device=device, trust_remote_code=True)
 
-        self._dim = self.embedder.get_sentence_embedding_dimension() or 384
+        self._dim = resolve_embedding_dimension(self.embedder)
 
         # 2. Load LLM
         self.llm_name = llm_name or "auto"
@@ -423,7 +475,7 @@ class ModelManager:
             self.current_profile_name = None
 
             gc.collect()
-            if torch.cuda.is_available():
+            if TORCH_AVAILABLE and torch.cuda.is_available():
                 torch.cuda.empty_cache()
                 torch.cuda.ipc_collect()
             logger.info("[MODEL MANAGER] Completed VRAM cleanup and memory reclamation.")

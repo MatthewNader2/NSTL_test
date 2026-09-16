@@ -138,7 +138,7 @@ class M1ClauseAnchorRouteMethod(RouteMethod):
         if orch:
             try:
                 from ..unification import UnificationGate
-                gate = UnificationGate()
+                gate = UnificationGate(orchestrator=orch)
                 test_res = gate.unify_pipeline(routed_path, ExecutionContext(prompt=prompt))
                 if test_res.is_bottom():
                     from ..planner import LatticePlanner

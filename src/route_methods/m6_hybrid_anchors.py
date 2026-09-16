@@ -119,7 +119,7 @@ class M6HybridAnchorsRouteMethod(RouteMethod):
                 bridged_path.append(nxt)
 
         # 6. Pre-flight verification & alternative exploration
-        gate = UnificationGate()
+        gate = UnificationGate(orchestrator=getattr(self, "orchestrator", orch))
         exec_ctx = ctx or ExecutionContext(prompt=prompt)
         
         # Test if bridged_path lints cleanly

@@ -324,6 +324,10 @@ def extract_node_data(node: dict, domain: str) -> tuple:
 
     # configuration_schema carries every extended-state field the loader reads
     # after the initial SELECT — inputs, outputs, slots, postconditions, etc.
+    # Macro hierarchy fields (sub_cells, algorithmic_steps, internal_topology),
+    # edges, endable and metadata_tags are persisted here as well — dropping
+    # them previously destroyed AST-mined affinity edges and made MacroCells
+    # loaded from SQLite inert (empty sub_cells could never expand).
     configuration_schema = {
         "inputs": node.get("inputs", {}) or {},
         "outputs": node.get("outputs", {}) or {},
@@ -343,6 +347,12 @@ def extract_node_data(node: dict, domain: str) -> tuple:
         "primary_in": node.get("primary_in", "") or "",
         "primary_out": node.get("primary_out", "") or "",
         "code_templates": code_templates,
+        "edges": node.get("edges", []) or [],
+        "endable": bool(node["endable"]) if "endable" in node else None,
+        "metadata_tags": node.get("metadata_tags", {}) or {},
+        "sub_cells": node.get("sub_cells", []) or [],
+        "algorithmic_steps": node.get("algorithmic_steps", []) or [],
+        "internal_topology": node.get("internal_topology", {}) or {},
     }
 
     return (
@@ -430,12 +440,66 @@ def _ensure_schema(conn: sqlite3.Connection) -> None:
     """
     cur = conn.cursor()
     cur.execute(_CREATE_TABLE_SQL)
+    cur.execute(_CREATE_TYPES_TABLE_SQL)
     existing = {row[1] for row in cur.execute("PRAGMA table_info(nodes)")}
     for col in _COLUMNS:
         if col not in existing:
             col_type = "INTEGER" if col in _INT_COLUMNS else "TEXT"
             cur.execute(f"ALTER TABLE nodes ADD COLUMN {col} {col_type}")
     conn.commit()
+
+
+_CREATE_TYPES_TABLE_SQL = """
+CREATE TABLE IF NOT EXISTS types (
+    type_name   TEXT PRIMARY KEY,
+    parent_type TEXT
+);
+"""
+
+
+def _persist_type_hierarchies(conn: sqlite3.Connection, tree_files: List[Path]) -> int:
+    """Persists per-tree ``types`` hierarchies into the ``types`` table.
+
+    The loader (LatticeOrchestrator.load_from_database) reads this table to
+    restore the type poset in SQLite mode; without it, subtype relations
+    declared in tree JSONs were silently lost on compilation.
+    Accepts both list-form entries ("Name" or {"name": ..., "parent": ...})
+    and dict-mappings {name: parent}.
+    """
+    cur = conn.cursor()
+    written = 0
+    for path in tree_files:
+        try:
+            with path.open("r", encoding="utf-8") as fh:
+                data = json.load(fh)
+        except (json.JSONDecodeError, OSError):
+            continue
+        if not isinstance(data, dict):
+            continue
+
+        entries: List[Tuple[str, Optional[str]]] = []
+        raw_types = data.get("types")
+        if isinstance(raw_types, list):
+            for item in raw_types:
+                if isinstance(item, str):
+                    entries.append((item, None))
+                elif isinstance(item, dict):
+                    name = item.get("name") or item.get("type_name")
+                    if name:
+                        entries.append((str(name), item.get("parent") or item.get("parent_type")))
+        elif isinstance(raw_types, dict):
+            for name, parent in raw_types.items():
+                entries.append((str(name), str(parent) if parent else None))
+
+        for name, parent in entries:
+            cur.execute(
+                "INSERT INTO types (type_name, parent_type) VALUES (?, ?) "
+                "ON CONFLICT(type_name) DO UPDATE SET parent_type=excluded.parent_type",
+                (name, parent),
+            )
+            written += 1
+    conn.commit()
+    return written
 
 
 # --------------------------------------------------------------------------- #
@@ -464,6 +528,10 @@ def compile_database(
         signature_only = 0
         signature_only_by_domain: dict = {}
         warnings: List[str] = []
+
+        types_written = _persist_type_hierarchies(conn, tree_files)
+        if types_written:
+            print(f"[compile_trees] Persisted {types_written} type-hierarchy entrie(s) into the types table.")
 
         for path in tree_files:
             try:

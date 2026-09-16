@@ -81,16 +81,18 @@ class MacroHarvester:
         composite_inputs: Dict[str, PortSignature] = dict(first_cell.inputs)
 
         # For intermediate cells, collect unfulfilled required inputs (e.g. hyper-parameters)
+        preceding_cells: List[Cell] = []
         for c in cells[1:]:
             for p_name, p_sig in c.inputs.items():
                 # If this port matches none of the previous cells' outputs, it's external
                 is_internal = any(
                     out_sig.signature.matches(p_sig.signature)
-                    for prev_c in cells[:cells.index(c)]
+                    for prev_c in preceding_cells
                     for out_sig in prev_c.outputs.values()
                 )
                 if not is_internal and p_name not in composite_inputs:
                     composite_inputs[p_name] = p_sig
+            preceding_cells.append(c)
 
         # Composite outputs: all outputs of the last cell
         composite_outputs: Dict[str, PortSignature] = dict(last_cell.outputs)
@@ -131,6 +133,16 @@ class MacroHarvester:
 
         # Register in orchestrator
         orchestrator.loaded_cells[macro_cell.cell_id] = macro_cell
+
+        # Rebuild topology so the macro is immediately routable: build_topology
+        # refreshes the token index (used by the router's IDF retrieval), the
+        # adjacency maps, and the bridge-cell registry. Without this, a freshly
+        # harvested macro is invisible to LatticeRouter until the next restart.
+        try:
+            orchestrator.build_topology()
+        except Exception as exc:
+            logger.warning(f"[MACRO_HARVESTER] Topology rebuild after harvest failed: {exc}")
+
         logger.info(f"[MACRO_HARVESTER] Successfully harvested and registered MacroCell '{resolved_macro_id}'")
 
         return macro_cell

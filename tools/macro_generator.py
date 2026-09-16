@@ -3,14 +3,18 @@ import sys
 import json
 import logging
 
-# Ensure root directory is in path
-sys.path.insert(0, os.getcwd())
+# Resolve the project root from this file's location (cwd-independent) so the
+# src/ modules import correctly regardless of where the script is invoked from.
+_PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+for _p in (_PROJECT_ROOT, os.path.join(_PROJECT_ROOT, "src")):
+    if _p not in sys.path:
+        sys.path.insert(0, _p)
 
 from inference import ModelManager
 from internal_rag import LocalRAG
 
 # Constants
-TREES_DIR = "trees"
+TREES_DIR = os.path.join(_PROJECT_ROOT, "trees")
 MACRO_DIR = os.path.join(TREES_DIR, "macro")
 
 # MacroCell JSON Schema for llama-cpp-python
@@ -23,24 +27,23 @@ MACRO_SCHEMA = {
                 "type": "object",
                 "properties": {
                     "cell_id": {"type": "string"},
-                    "type": {"type": "string", "enum": ["macro"]},
+                    "node_type": {"type": "string", "enum": ["macro"]},
+                    "node_role": {"type": "string", "enum": ["macro"]},
                     "stage": {"type": "integer"},
                     "keywords": {"type": "array", "items": {"type": "string"}},
+                    "docstring": {"type": "string"},
+                    "dependencies": {"type": "array", "items": {"type": "string"}},
                     "inputs": {
                         "type": "object",
-                        "properties": {
-                            "type_name": {"type": "string"},
-                            "state": {"type": "string"}
-                        },
-                        "required": ["type_name", "state"]
+                        "description": "Map of port name -> PortSignature dict (type_name, state, required, ...). Must mirror the port schema used by trees/*.json cells.",
+                        "type_name": {"type": "string"},
+                        "state": {"type": "string"}
                     },
                     "outputs": {
                         "type": "object",
-                        "properties": {
-                            "type_name": {"type": "string"},
-                            "state": {"type": "string"}
-                        },
-                        "required": ["type_name", "state"]
+                        "description": "Map of port name -> PortSignature dict (type_name, state, required, ...). Must mirror the port schema used by trees/*.json cells.",
+                        "type_name": {"type": "string"},
+                        "state": {"type": "string"}
                     },
                     "algorithmic_steps": {"type": "array", "items": {"type": "string"}},
                     "sub_cells": {"type": "array", "items": {"type": "string"}},
@@ -48,12 +51,15 @@ MACRO_SCHEMA = {
                         "type": "object"
                     }
                 },
-                "required": ["cell_id", "type", "stage", "keywords", "inputs", "outputs", "algorithmic_steps", "sub_cells", "internal_topology"]
+                "required": ["cell_id", "node_type", "stage", "keywords", "inputs", "outputs", "algorithmic_steps", "sub_cells", "internal_topology"]
             }
         }
     },
     "required": ["cells"]
 }
+# NOTE: the discriminator is `node_type: "macro"` (NOT `type`) to match the
+# engine loader contract in src/lattice.py, which classifies a node as a
+# MacroCell via node_type/node_role in {"macro", "higher_order"} or macro_*.
 
 
 def generate_macro_nodes():

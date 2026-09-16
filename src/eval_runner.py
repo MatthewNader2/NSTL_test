@@ -1,12 +1,11 @@
 import sys
 import os
 import time
+import ast
 import urllib.request
 import json
-import threading
 import subprocess
 import traceback
-import sys
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 import config
 PROJECT_ROOT = config.PROJECT_ROOT

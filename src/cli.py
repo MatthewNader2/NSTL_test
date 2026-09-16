@@ -310,7 +310,7 @@ try:
     from gevr_sandbox import GEVRSandbox
     from inference import ModelManager, select_optimal_embedder
     from internal_rag import LocalRAG
-    from config import MODELS_DIR
+    from config import MODELS_DIR, settings
     from utils import extract_code_from_llm_response
     from tokenizer import CellTokenizer
     from planner import _segment_prompt_clauses
@@ -329,7 +329,7 @@ except ImportError:
     from .gevr_sandbox import GEVRSandbox
     from .inference import ModelManager, select_optimal_embedder
     from .internal_rag import LocalRAG
-    from .config import MODELS_DIR
+    from .config import MODELS_DIR, settings
     from .utils import extract_code_from_llm_response
     from .tokenizer import CellTokenizer
     from .planner import _segment_prompt_clauses
@@ -1107,7 +1107,8 @@ class NSTLInteractiveShell(cmd.Cmd):
         interactive: bool = True,
         no_exec: bool = False,
         route_method: Optional[str] = None,
-        no_lint: bool = False
+        no_lint: bool = False,
+        macros: Optional[bool] = None
     ):
         super().__init__()
         self.db_path = db_path
@@ -1122,6 +1123,12 @@ class NSTLInteractiveShell(cmd.Cmd):
         self.debug: bool = debug
         self.interactive: bool = interactive
         self.no_exec: bool = no_exec
+
+        # Macro-goal routing toggle: apply the CLI flag to the global settings
+        # BEFORE any LatticeRouter is constructed (routers snapshot the setting).
+        if macros is not None:
+            settings.macros_enabled = bool(macros)
+        self.macros_enabled = settings.macros_enabled
 
         if interactive:
             console.print("\n[bold cyan][*] Initializing NSTL Neuro-Symbolic Engine...[/bold cyan]")
@@ -1357,13 +1364,13 @@ class NSTLInteractiveShell(cmd.Cmd):
         console.print("[dim]Use `set embedder <name>` or `set llm <name>` to activate a specific model.[/dim]\n")
 
     def do_set(self, arg: str):
-        """Configure models or hardware device. Usage: set <embedder|llm|device> <value>"""
+        """Configure models or hardware device. Usage: set <embedder|llm|device|macros|debug> <value>"""
         arg = arg.strip().lstrip("/")
         if arg.lower().startswith("set"):
             arg = arg[3:].strip()
         parts = arg.split(maxsplit=1)
         if len(parts) < 2:
-            console.print("[yellow]Usage: set <embedder|llm|device> <value>[/yellow]")
+            console.print("[yellow]Usage: set <embedder|llm|device|macros|debug> <value>[/yellow]")
             return
         key, val = parts[0].lower(), parts[1].strip()
 
@@ -1382,6 +1389,19 @@ class NSTLInteractiveShell(cmd.Cmd):
             console.print(f"[green][*] Compute device set to '{val}'.[/green]")
             if self.active_profile != "0":
                 self._switch_profile(self.active_profile, device=val)
+        elif key in ("macros", "macro", "macro_goals"):
+            if val.lower() in ("1", "true", "on", "yes", "enable", "enabled"):
+                enabled = True
+            elif val.lower() in ("0", "false", "off", "no", "disable", "disabled"):
+                enabled = False
+            else:
+                enabled = not settings.macros_enabled
+            settings.macros_enabled = enabled
+            self.macros_enabled = enabled
+            # Live routers snapshot the setting at construction — update them too.
+            if getattr(self, "router", None) is not None:
+                self.router.macros_enabled = enabled
+            console.print(f"[green][*] Macro-goal routing set to {'ON' if enabled else 'OFF'}.[/green]")
         elif key in ("debug", "dbg"):
             if val.lower() in ("1", "true", "on", "yes", "enable", "enabled"):
                 self.debug = True
@@ -1392,7 +1412,7 @@ class NSTLInteractiveShell(cmd.Cmd):
             console.print(f"[green][*] Debug mode set to {'ON' if self.debug else 'OFF'}.[/green]")
             self._update_prompt()
         else:
-            console.print(f"[bold red][!] Unknown parameter '{key}'. Supported: embedder, llm, device, debug.[/bold red]")
+            console.print(f"[bold red][!] Unknown parameter '{key}'. Supported: embedder, llm, device, macros, debug.[/bold red]")
 
     def do_status(self, arg: str):
         """Display real-time system status and active configuration."""
@@ -1861,7 +1881,8 @@ def cmd_shell(args):
         debug=getattr(args, "debug", False),
         interactive=True,
         route_method=getattr(args, "route_method", None),
-        no_lint=getattr(args, "no_lint", False)
+        no_lint=getattr(args, "no_lint", False),
+        macros=getattr(args, "macros", None)
     )
     shell.cmdloop()
 
@@ -1890,7 +1911,8 @@ def cmd_run(args):
         interactive=False,
         no_exec=getattr(args, "no_exec", False),
         route_method=getattr(args, "route_method", None),
-        no_lint=getattr(args, "no_lint", False)
+        no_lint=getattr(args, "no_lint", False),
+        macros=getattr(args, "macros", None)
     )
     shell.default(f"{prompt} --debug" if debug_mode else prompt)
 
@@ -2101,6 +2123,8 @@ def build_parser() -> argparse.ArgumentParser:
     p_run.add_argument("--llm", type=str, default="", help="LLM model name (e.g. qwen2.5-coder-0.5b-instruct)")
     p_run.add_argument("--device", type=str, default="auto", choices=["auto", "cpu", "cuda"], help="Compute device")
     p_run.add_argument("--no-exec", action="store_true", help="Skip GEVR sandbox execution")
+    p_run.add_argument("--macros", dest="macros", action="store_true", default=None, help="Enable macro-goal routing (known-good composite paths)")
+    p_run.add_argument("--no-macros", dest="macros", action="store_false", help="Disable macro-goal routing (for A/B benchmarking)")
     p_run.set_defaults(func=cmd_run)
 
     # shell
@@ -2113,6 +2137,8 @@ def build_parser() -> argparse.ArgumentParser:
     p_shell.add_argument("--llm", type=str, default="", help="LLM model name (e.g. qwen2.5-coder-0.5b-instruct)")
     p_shell.add_argument("--device", type=str, default="auto", choices=["auto", "cpu", "cuda"], help="Compute device")
     p_shell.add_argument("--debug", "-d", action="store_true", help="Launch studio with debug mode enabled")
+    p_shell.add_argument("--macros", dest="macros", action="store_true", default=None, help="Enable macro-goal routing (known-good composite paths)")
+    p_shell.add_argument("--no-macros", dest="macros", action="store_false", help="Disable macro-goal routing (for A/B benchmarking)")
     p_shell.set_defaults(func=cmd_shell)
 
     return parser
@@ -2145,8 +2171,6 @@ def main():
 
     args = parser.parse_args()
     if hasattr(args, "func"):
-        if getattr(args, "debug", False):
-            setattr(args, "debug", True)
         args.func(args)
     else:
         # Default to interactive shell
@@ -2158,7 +2182,8 @@ def main():
             device="auto",
             debug=getattr(args, "debug", False),
             route_method=None,
-            no_lint=False
+            no_lint=False,
+            macros=None
         ))
 
 

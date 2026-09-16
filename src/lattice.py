@@ -20,7 +20,7 @@ from abc import ABC
 from collections import deque
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Dict, List, Optional, Set, Tuple, Any, FrozenSet, Union
+from typing import Dict, List, Optional, Set, Tuple, Any, Callable, FrozenSet, Union
 
 from log_config import get_logger
 try:
@@ -82,9 +82,6 @@ class _UnresolvedPortSentinel:
 
 UNRESOLVED_PORT = _UnresolvedPortSentinel()
 
-
-from dataclasses import dataclass, field
-from typing import Tuple, Dict, List, Any, Optional, Callable, Set
 
 @dataclass(frozen=True)
 class LatticeType:
@@ -1147,7 +1144,9 @@ class Cell(ABC):
         if eff is None:
             eff = kwargs.get("effects", kwargs.get("postconditions", []))
         self.postconditions = list(eff or [])
-        self.effects = self.postconditions
+        # Independent copy: effects and postconditions are separate slots and
+        # must never alias the same list object (mutations would cross-leak).
+        self.effects = list(self.postconditions)
         self.edges = list(edges or kwargs.get("edges", []))
         self.endable = endable if endable is not None else kwargs.get("endable")
 
@@ -1619,6 +1618,10 @@ class LatticeOrchestrator:
                     postconditions=c_dict.get("postconditions", []),
                     effects=c_dict.get("effects", []),
                     edges=c_dict.get("edges", []),
+                    endable=c_dict.get("endable"),
+                    sub_cells=c_dict.get("sub_cells", []),
+                    algorithmic_steps=c_dict.get("algorithmic_steps", []),
+                    internal_topology=c_dict.get("internal_topology", {}),
                 )
                 self.loaded_cells[cell.cell_id] = cell
             logger.info(f"[LATTICE] Loaded {len(raw_cells)} nodes from tree: {json_path} (domain: {domain})")
@@ -1821,7 +1824,10 @@ class LatticeOrchestrator:
                             postconditions=cfg.get("postconditions", []),
                             effects=cfg.get("effects", []),
                             edges=cfg.get("edges", []),
-                            endable=cfg.get("endable")
+                            endable=cfg.get("endable"),
+                            sub_cells=cfg.get("sub_cells", []),
+                            algorithmic_steps=cfg.get("algorithmic_steps", []),
+                            internal_topology=cfg.get("internal_topology", {}),
                         )
                         self.loaded_cells[cell.cell_id] = cell
 

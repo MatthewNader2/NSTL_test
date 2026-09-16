@@ -227,6 +227,10 @@ class LatticePlanner:
             p = max(relevance_map.get(c.cell_id, 0.0), 1e-6)
             log_probs[c.cell_id] = math.log(p)
 
+        # Set NSTL_DEBUG_PLAN=1 to dump the ranked candidate paths after planning.
+        _debug_plan = os.environ.get("NSTL_DEBUG_PLAN", "") in ("1", "true", "True", "on")
+        _component_trace: Dict[Tuple[str, ...], Dict[str, float]] = {}
+
         # ---- Goal-directed objective data (all derived from DECLARED structure) ----
         registry = TypeRegistry.get_instance()
         l0_extracted_literals = ExecutionContext._extract_universal_literals(prompt or "")
@@ -241,12 +245,23 @@ class LatticePlanner:
 
         def _has_path_port(cell: Cell) -> bool:
             for p_name, p_sig in cell.inputs.items():
-                if p_name.lower() in ("filepath", "filename", "file_path", "path", "file", "savepath", "pathname", "fname", "image_path"):
-                    return True
-                t_name = str(getattr(p_sig, "type_name", "")).lower()
-                if registry.is_subtype(t_name, "filepath") or registry.is_subtype(t_name, "path") or registry.is_subtype(t_name, "uri") or getattr(p_sig, "abstract_type", None) == "path":
+                if _is_path_port_name(p_name, p_sig):
                     return True
             return False
+
+        def _is_path_port_name(p_name: str, p_sig: Any) -> bool:
+            t_name = str(getattr(getattr(p_sig, "signature", p_sig), "type_name", "")).lower()
+            return (
+                p_name.lower() in ("filepath", "filename", "file_path", "path", "file", "savepath", "pathname", "fname", "image_path", "destination_path", "output_path")
+                or registry.is_subtype(t_name, "filepath")
+                or registry.is_subtype(t_name, "path")
+                or registry.is_subtype(t_name, "uri")
+                or getattr(p_sig, "abstract_type", None) == "path"
+            )
+
+        def _is_path_port_sig(p_sig: Any) -> bool:
+            sig = getattr(p_sig, "signature", p_sig)
+            return _is_path_port_name(str(getattr(p_sig, "name", "") or ""), sig)
 
         # Numeric literals extracted from prompt
         numeric_literals = [
@@ -662,13 +677,20 @@ class LatticePlanner:
             excess_steps = max(0, effective_k - max(distinct_matched_clauses, 1))
             parsimony_penalty = excess_steps * 1.2 + effective_k * 0.2
 
-            # Tunnel likelihood is a WEAK tiebreaker: the group-relative softmax
-            # already guarantees every surviving cell is within the same likelihood
-            # window of its clause's maximum, so the raw log-prob gap between
-            # clause-rank-1 cells and correct-but-rank-2 cells is distribution
-            # noise, not semantic evidence. Full-weight log-probs structurally
-            # prefer whichever garbage cell happened to rank #1 in a weak clause.
-            mean_log_prob = 0.3 * (sc / max(k, 1))
+            # Tunnel likelihood is a WEAK tiebreaker for flat cells: the
+            # group-relative softmax already guarantees every surviving cell is
+            # within the same likelihood window of its clause's maximum, so the
+            # raw log-prob gap between clause-rank-1 cells and correct-but-rank-2
+            # cells is distribution noise, not semantic evidence. Full-weight
+            # log-probs structurally prefer whichever garbage cell happened to
+            # rank #1 in a weak clause. A promoted macro-goal cell is the
+            # exception: its relevance is a deliberate router verdict (it cleared
+            # the concept-coverage gate and outranks its own micro-cells), so it
+            # carries meaningful weight instead of distribution noise.
+            if k == 1 and getattr(path[0], "cell_type", "") == "macro":
+                mean_log_prob = 1.3 * (sc / max(k, 1))
+            else:
+                mean_log_prob = 0.3 * (sc / max(k, 1))
 
             # Goal-directed terms
             goal_bonus = 0.0
@@ -684,8 +706,19 @@ class LatticePlanner:
             has_egress_intent = bool(content_prompt_tokens & egress_tokens) or (
                 len(file_literals) > 1 and any(getattr(c, "stage", None) == 1 for c in path)
             ) or (goal_sig is not None)
+            # Materialization is a property of the terminal's OUTPUT STATE, not
+            # merely of its stage field: composite macro-goal cells inherit the
+            # stage of their first (ingress) sub-cell, yet their output declares
+            # egress (written_to_disk / saved / exported / ...) because their
+            # final sub-cell is a sink. Mirrors the egress-derivation contract
+            # in UnificationGate._derive_egress_paths.
+            output_declares_materialization = any(
+                str(getattr(out_p, "state", "")).lower()
+                in ("destination_written", "filepath_written", "saved", "exported", "written_to_disk")
+                for out_p in getattr(terminal, "outputs", {}).values()
+            )
             terminal_is_materializing = (
-                terminal.stage == 3
+                (terminal.stage == 3 or output_declares_materialization)
                 and has_egress_intent
                 and unbindable == 0
                 and (
@@ -702,10 +735,18 @@ class LatticePlanner:
             # pipeline's own declared domains. A terminal imported from a foreign
             # domain (e.g. a plotting library bolted onto a vision pipeline)
             # exists to harvest bonuses — it pays a coherence tax, while a
-            # home-domain terminal earns one.
+            # home-domain terminal earns one. Composite macro-goal terminals are
+            # coherent with the domains of their EXPANDED composition: their
+            # sub-cells are the pipeline the macro stands for.
             terminal_domain = getattr(terminal, "domain_name", "")
             if terminal_domain:
-                other_domains = {getattr(c, "domain_name", "") for c in path[:-1]}
+                effective_other_cells: List[Cell] = list(path[:-1])
+                if getattr(terminal, "cell_type", "") == "macro" and getattr(terminal, "sub_cells", None) and self.orchestrator is not None:
+                    for sid in terminal.sub_cells:
+                        sub_cell = self.orchestrator.loaded_cells.get(sid)
+                        if sub_cell is not None:
+                            effective_other_cells.append(sub_cell)
+                other_domains = {getattr(c, "domain_name", "") for c in effective_other_cells}
                 if terminal_domain not in other_domains:
                     goal_bonus -= 1.5
                 else:
@@ -750,6 +791,21 @@ class LatticePlanner:
             # are the dominant score term for idiomatic composition.
             if k <= 1:
                 affinity_score = 0.5
+                # A single macro-goal cell embodies a verified internal
+                # composition: it earns the affinity evidence of its own
+                # sub-cell sequence (declared edges, egress completion,
+                # adjacency, same-domain continuity), floored at the
+                # single-step baseline because every internal transition was
+                # type-verified at macro definition/harvest time.
+                if k == 1 and getattr(path[0], "cell_type", "") == "macro" and getattr(path[0], "sub_cells", None) and self.orchestrator is not None:
+                    subs = [self.orchestrator.loaded_cells.get(sid) for sid in path[0].sub_cells]
+                    subs = [s for s in subs if s is not None]
+                    if len(subs) >= 2:
+                        affs = [
+                            max(self._calculate_edge_affinity(subs[i], subs[i + 1]), 0.5)
+                            for i in range(len(subs) - 1)
+                        ]
+                        affinity_score = sum(affs) / len(affs)
             else:
                 total_aff = sum(_edge_affinity(path[i], path[i + 1]) for i in range(k - 1))
                 affinity_score = total_aff / max(k - 1, 1)
@@ -764,13 +820,17 @@ class LatticePlanner:
                 path_file_ports = 0
                 path_has_col_proj = any(_is_col_proj_cell(c) for c in path)
                 for c in path:
-                    if _has_path_port(c):
-                        path_file_ports += 1
                     for p_name, p_sig in c.inputs.items():
                         path_ports.add(p_name.lower())
                         role = getattr(p_sig, "port_role", None) or getattr(p_sig, "derived_role", "")
                         if role:
                             path_ports.add(role.lower())
+                        # Count each declared required path port: a cell (or a
+                        # composite macro-goal with separate ingest/egress path
+                        # ports) can absorb as many file literals as it declares
+                        # destinations for.
+                        if p_sig.required and p_sig.default_value is None and _is_path_port_sig(p_sig):
+                            path_file_ports += 1
                     for s_k in getattr(c, "bound_slots", {}).keys():
                         path_ports.add(s_k.lower())
 
@@ -793,10 +853,24 @@ class LatticePlanner:
 
             # Dominant score combination: edge affinity (w_aff = 25.0) heavily rewards
             # AST-mined canonical transitions, rendering legacy junk exploit patches obsolete.
-            return (coverage * 10.0 + alignment * 10.0 + affinity_score * 25.0 - parsimony_penalty
-                    + mean_log_prob + goal_bonus - weak_total
-                    - dead_ctors * 25.0 - unbindable * 50.0 - domain_dispersion - gap_penalty
-                    - intent_deficit + literal_consumption * 15.0)
+            total = (coverage * 10.0 + alignment * 10.0 + affinity_score * 25.0 - parsimony_penalty
+                     + mean_log_prob + goal_bonus - weak_total
+                     - dead_ctors * 25.0 - unbindable * 50.0 - domain_dispersion - gap_penalty
+                     - intent_deficit + literal_consumption * 15.0)
+            if _debug_plan:
+                _component_trace[tuple(c.cell_id for c in path)] = {
+                    "coverage*10": round(coverage * 10.0, 2),
+                    "alignment*10": round(alignment * 10.0, 2),
+                    "affinity*25": round(affinity_score * 25.0, 2),
+                    "parsimony": round(-parsimony_penalty, 2),
+                    "log_prob": round(mean_log_prob, 2),
+                    "goal_bonus": round(goal_bonus, 2),
+                    "weak": round(-weak_total, 2),
+                    "gap": round(-gap_penalty, 2),
+                    "intent_deficit": round(-intent_deficit, 2),
+                    "literal*15": round(literal_consumption * 15.0, 2),
+                }
+            return total
 
         # Type-gated adjacency: index candidates by the DECLARED input carrier they
         # expose. Expansion enumerates distinct port carriers and gates them through
@@ -942,7 +1016,6 @@ class LatticePlanner:
                         successor_cells.append(ctor)
                         seen_ids.add(ctor.cell_id)
 
-                _dbg = os.environ.get("NSTL_DEBUG_PLAN")
                 for cand in successor_cells:
                     # Acyclic: cell cannot repeat in pipeline
                     if cand.cell_id in prev_path_ids:
@@ -1066,6 +1139,26 @@ class LatticePlanner:
             scored_candidates = [(item, compute_path_score(item, is_final=True)) for item in valid_candidates]
             scored_candidates.sort(key=lambda x: x[1], reverse=True)
 
+            if _debug_plan:
+                dbg_top = [
+                    (round(score, 2), " -> ".join(c.cell_id for c in item[0]))
+                    for item, score in scored_candidates[:12]
+                ]
+                logger.info(f"[PLANNER-DEBUG] top candidates for prompt '{prompt[:60]}...':")
+                for s, p in dbg_top:
+                    comps = _component_trace.get(tuple(p.split(" -> ")), {})
+                    logger.info(f"[PLANNER-DEBUG]   {s}  {p}  {comps}")
+                macro_paths = [(round(score, 2), " -> ".join(c.cell_id for c in item[0]))
+                               for item, score in scored_candidates
+                               if any(getattr(c, "cell_type", "") == "macro" for c in item[0])][:5]
+                if macro_paths:
+                    logger.info(f"[PLANNER-DEBUG] best macro paths:")
+                    for s, p in macro_paths:
+                        comps = _component_trace.get(tuple(p.split(" -> ")), {})
+                        logger.info(f"[PLANNER-DEBUG]   {s}  {p}  {comps}")
+                else:
+                    logger.info("[PLANNER-DEBUG] NO macro path survived the candidate filters")
+
             # Slot-aware re-ranking: a macro's planned sub-lattice is part of the
             # pipeline's semantics (a loop body calling contourArea covers the
             # "minimum area" clause). Plan the slots of the strongest candidates
@@ -1147,7 +1240,11 @@ class LatticePlanner:
                     dbg_align_w = sum(clause_weights[i] for i in dbg_covd) / total_clause_weight
                     dbg_mlb = 0.3 * (dbg_sc / max(dbg_k, 1))
                     print(f"  {s:.3f} cov={dbg_cov:.2f} alignW={dbg_align_w:.2f} k={dbg_k} weak={dbg_weak} unbind={dbg_unbind} mlb={dbg_mlb:.2f}  {' -> '.join(ids)}", file=_sys.stderr)
-            gate = UnificationGate()
+            # The acceptance gate must share this planner's orchestrator so that
+            # macro-goal cells can resolve their string sub-cell ids during
+            # pre-unification expansion (otherwise macros stay unexpanded here
+            # and are accepted as opaque single nodes).
+            gate = UnificationGate(orchestrator=self.orchestrator)
             chosen_candidate = None
             for it, sc in scored_candidates:
                 cand_p = it[0]

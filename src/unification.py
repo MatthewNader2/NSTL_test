@@ -49,6 +49,25 @@ _SENTENCE_CONNECTIVES = frozenset({
     "sure", "some", "each", "all", "both", "make",
 })
 
+# Ordinal direction lexicon (LANGUAGE-level primitives, not domain vocabulary):
+# how English speakers express ordering polarity for phrases like "top 2 rows
+# by age" (descending) or "bottom 2 rows" (ascending). Used ONLY to resolve
+# declared order/direction flag ports; never for generic booleans.
+_ASCENDING_HINTS = frozenset({
+    "bottom", "lowest", "smallest", "minimum", "min", "worst", "least",
+    "ascending", "asc", "fewest",
+})
+_DESCENDING_HINTS = frozenset({
+    "top", "highest", "largest", "biggest", "greatest", "maximum", "max",
+    "best", "most", "descending", "desc", "newest", "latest",
+})
+# Port names/states that carry an ordering polarity (generic, not domain names).
+_ORDER_FLAG_NAMES = frozenset({
+    "ascending", "descending", "asc", "desc", "reverse", "order", "order_flag",
+    "sort_order", "sort_ascending", "sort_descending", "direction", "decreasing", "increasing",
+})
+_ORDER_FLAG_STATES = frozenset({"order_flag", "sort_order", "direction", "order", "decreasing", "increasing"})
+
 
 class IdentifierGroup:
     """
@@ -1469,6 +1488,33 @@ class ExecutionContext:
             if pos_hit != neg_hit:
                 return "True" if pos_hit else "False"
 
+            # Ordinal direction lexicon grounding: natural-language direction
+            # adjectives ("top 2 rows", "smallest first") resolve declared
+            # order/direction flag ports. Applied only to ports whose name or
+            # declared state carries an ordering polarity — never to arbitrary
+            # booleans. Zero domain vocabulary: pure English ordinals.
+            p_state_l = str(getattr(port_sig, "state", "") or "").lower()
+            is_order_port = (
+                p_name in _ORDER_FLAG_NAMES
+                or p_state_l in _ORDER_FLAG_STATES
+                or "asc" in p_name or "desc" in p_name
+                or "asc" in str(pos_label).lower() or "desc" in str(neg_label).lower()
+            )
+            if is_order_port:
+                hint_toks = _TOKENIZER.tokenize_prompt(self.prompt)
+                asc_hint = bool(hint_toks & _ASCENDING_HINTS)
+                desc_hint = bool(hint_toks & _DESCENDING_HINTS)
+                if asc_hint != desc_hint:
+                    # Does this port's POSITIVE pole mean ascending order?
+                    positive_means_ascending = not (
+                        p_name in ("descending", "desc", "decreasing", "sort_descending", "reverse")
+                        or "desc" in p_name
+                    )
+                    descending_requested = desc_hint
+                    if positive_means_ascending:
+                        return "False" if descending_requested else "True"
+                    return "True" if descending_requested else "False"
+
             if port_sig.required:
                 if port_sig.default_value is not None:
                     return str(port_sig.default_value)
@@ -1901,6 +1947,11 @@ class UnificationGate:
             return candidates
 
         # Static Pre-Unification Structural Macro Expansion (Phase 4 / T4.1)
+        # A macro expands ONLY when every sub-cell id resolves; otherwise the
+        # macro stays intact (rendered as a single composite morphism) and a
+        # warning is logged. Re-inserting a partially-resolved macro here would
+        # make the expansion loop non-convergent (resolved sub-cells would be
+        # duplicated on every pass while the macro itself remained in the list).
         changed = True
         expansion_depth = 0
         while changed and expansion_depth < 10:
@@ -1909,23 +1960,33 @@ class UnificationGate:
             expanded_cells: List[Cell] = []
             for c in cells:
                 sub_cells = getattr(c, "sub_cells", None)
-                if (getattr(c, "cell_type", "") == "macro" or isinstance(c, MacroCell)) and sub_cells:
-                    for sub_item in sub_cells:
-                        if isinstance(sub_item, Cell):
-                            expanded_cells.append(sub_item)
-                            changed = True
-                        elif isinstance(sub_item, str):
-                            orch = getattr(self, "orchestrator", None)
-                            resolved = orch.loaded_cells.get(sub_item) if orch else None
-                            if not resolved:
-                                resolved = getattr(c, "_resolved_sub_cells", {}).get(sub_item)
-                            if resolved:
-                                expanded_cells.append(resolved)
-                                changed = True
-                            else:
-                                expanded_cells.append(c)
-                else:
+                if not ((getattr(c, "cell_type", "") == "macro" or isinstance(c, MacroCell)) and sub_cells):
                     expanded_cells.append(c)
+                    continue
+
+                orch = getattr(self, "orchestrator", None)
+                resolved_cache = getattr(c, "_resolved_sub_cells", {}) or {}
+                resolved: List[Cell] = []
+                missing: List[str] = []
+                for sub_item in sub_cells:
+                    sub_cell = sub_item if isinstance(sub_item, Cell) else None
+                    if sub_cell is None:
+                        sub_cell = orch.loaded_cells.get(sub_item) if orch else None
+                    if sub_cell is None:
+                        sub_cell = resolved_cache.get(sub_item)
+                    if sub_cell is None:
+                        missing.append(str(sub_item))
+                    else:
+                        resolved.append(sub_cell)
+
+                if missing:
+                    logger.warning(
+                        f"[UNIFY] Macro '{c.cell_id}' kept unexpanded: unresolved sub-cells {missing}."
+                    )
+                    expanded_cells.append(c)
+                else:
+                    expanded_cells.extend(resolved)
+                    changed = True
             cells = expanded_cells
 
         # Process each cell in sequence
