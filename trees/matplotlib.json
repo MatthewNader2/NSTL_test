@@ -769,7 +769,7 @@
       "is_public": true,
       "docstring": "Create a figure and a single subplot Axes object.",
       "dependencies": [
-        "matplotlib.pyplot"
+        "matplotlib.pyplot as plt"
       ],
       "semantic_tags": [
         "init",
@@ -915,7 +915,7 @@
       "is_public": true,
       "docstring": "Create a standalone top-level Matplotlib Figure.",
       "dependencies": [
-        "matplotlib.pyplot"
+        "matplotlib.pyplot as plt"
       ],
       "semantic_tags": [
         "init",
@@ -1050,7 +1050,7 @@
       "is_public": true,
       "docstring": "Add a standard 2D subplot Axes to an existing Figure instance.",
       "dependencies": [
-        "matplotlib.pyplot"
+        "matplotlib.pyplot as plt"
       ],
       "semantic_tags": [
         "init",
@@ -1231,7 +1231,7 @@
       "is_public": true,
       "docstring": "Add a 3D subplot (Axes3D) to a Figure container using projection='3d'.",
       "dependencies": [
-        "matplotlib.pyplot",
+        "matplotlib.pyplot as plt",
         "mpl_toolkits.mplot3d"
       ],
       "semantic_tags": [
@@ -1412,7 +1412,7 @@
       "is_public": true,
       "docstring": "Add an axes with arbitrary normalized rectangular coordinates [left, bottom, width, height].",
       "dependencies": [
-        "matplotlib.pyplot"
+        "matplotlib.pyplot as plt"
       ],
       "semantic_tags": [
         "init",
@@ -1541,7 +1541,7 @@
       "is_public": true,
       "docstring": "Plot 2D coordinates as lines and/or markers onto the provided Axes.",
       "dependencies": [
-        "matplotlib.pyplot"
+        "matplotlib.pyplot as plt"
       ],
       "semantic_tags": [
         "plot",
@@ -1779,7 +1779,7 @@
       "is_public": true,
       "docstring": "Render a scatter plot of markers with variable size and color.",
       "dependencies": [
-        "matplotlib.pyplot"
+        "matplotlib.pyplot as plt"
       ],
       "semantic_tags": [
         "plot",
@@ -2016,7 +2016,7 @@
       "is_public": true,
       "docstring": "Render a vertical bar plot on the specified Axes.",
       "dependencies": [
-        "matplotlib.pyplot"
+        "matplotlib.pyplot as plt"
       ],
       "semantic_tags": [
         "plot",
@@ -2223,7 +2223,7 @@
       "is_public": true,
       "docstring": "Render a horizontal bar plot on the specified Axes.",
       "dependencies": [
-        "matplotlib.pyplot"
+        "matplotlib.pyplot as plt"
       ],
       "semantic_tags": [
         "plot",
@@ -2430,7 +2430,7 @@
       "is_public": true,
       "docstring": "Compute and draw a histogram distribution of values.",
       "dependencies": [
-        "matplotlib.pyplot"
+        "matplotlib.pyplot as plt"
       ],
       "semantic_tags": [
         "plot",
@@ -2644,7 +2644,7 @@
       "is_public": true,
       "docstring": "Render a box and whisker plot to visualize quartiles and outliers.",
       "dependencies": [
-        "matplotlib.pyplot"
+        "matplotlib.pyplot as plt"
       ],
       "semantic_tags": [
         "plot",
@@ -2812,7 +2812,7 @@
       "is_public": true,
       "docstring": "Render a violin plot showing kernel density estimates.",
       "dependencies": [
-        "matplotlib.pyplot"
+        "matplotlib.pyplot as plt"
       ],
       "semantic_tags": [
         "plot",
@@ -2979,7 +2979,7 @@
       "is_public": true,
       "docstring": "Render a pie chart showing fractional proportions.",
       "dependencies": [
-        "matplotlib.pyplot"
+        "matplotlib.pyplot as plt"
       ],
       "semantic_tags": [
         "plot",
@@ -3166,7 +3166,7 @@
       "is_public": true,
       "docstring": "Display 2D data or RGB image rasters on the given Axes.",
       "dependencies": [
-        "matplotlib.pyplot"
+        "matplotlib.pyplot as plt"
       ],
       "semantic_tags": [
         "raster",
@@ -3385,7 +3385,7 @@
       "is_public": true,
       "docstring": "Create a pseudocolor plot with a non-regular rectangular mesh.",
       "dependencies": [
-        "matplotlib.pyplot"
+        "matplotlib.pyplot as plt"
       ],
       "semantic_tags": [
         "raster",
@@ -3609,7 +3609,7 @@
       "is_public": true,
       "docstring": "Plot 2D contour isolines of a surface function Z.",
       "dependencies": [
-        "matplotlib.pyplot"
+        "matplotlib.pyplot as plt"
       ],
       "semantic_tags": [
         "contour",
@@ -3827,7 +3827,7 @@
       "is_public": true,
       "docstring": "Plot filled contour regions for surface function Z.",
       "dependencies": [
-        "matplotlib.pyplot"
+        "matplotlib.pyplot as plt"
       ],
       "semantic_tags": [
         "contour",
@@ -4046,7 +4046,7 @@
       "is_public": true,
       "docstring": "Plot 3D line curves on an Axes3D object.",
       "dependencies": [
-        "matplotlib.pyplot",
+        "matplotlib.pyplot as plt",
         "mpl_toolkits.mplot3d"
       ],
       "semantic_tags": [
@@ -4239,7 +4239,7 @@
       "is_public": true,
       "docstring": "Render a 3D scatter plot of points.",
       "dependencies": [
-        "matplotlib.pyplot",
+        "matplotlib.pyplot as plt",
         "mpl_toolkits.mplot3d"
       ],
       "semantic_tags": [
@@ -4450,7 +4450,7 @@
       "is_public": true,
       "docstring": "Render a continuous 3D surface plot from 2D coordinate matrices.",
       "dependencies": [
-        "matplotlib.pyplot",
+        "matplotlib.pyplot as plt",
         "mpl_toolkits.mplot3d"
       ],
       "semantic_tags": [
@@ -4660,7 +4660,7 @@
       "is_public": true,
       "docstring": "Set the elevation angle and azimuth orientation for a 3D Axes camera.",
       "dependencies": [
-        "matplotlib.pyplot",
+        "matplotlib.pyplot as plt",
         "mpl_toolkits.mplot3d"
       ],
       "semantic_tags": [
@@ -4821,7 +4821,7 @@
       "is_public": true,
       "docstring": "Plot data points with associated symmetric or asymmetric error bars.",
       "dependencies": [
-        "matplotlib.pyplot"
+        "matplotlib.pyplot as plt"
       ],
       "semantic_tags": [
         "plot",
@@ -5025,7 +5025,7 @@
       "is_public": true,
       "docstring": "Fill the area between two horizontal curves y1 and y2 across x.",
       "dependencies": [
-        "matplotlib.pyplot"
+        "matplotlib.pyplot as plt"
       ],
       "semantic_tags": [
         "plot",
@@ -5227,7 +5227,7 @@
       "is_public": true,
       "docstring": "Plot a stem graph representing discrete sample sequences.",
       "dependencies": [
-        "matplotlib.pyplot"
+        "matplotlib.pyplot as plt"
       ],
       "semantic_tags": [
         "plot",
@@ -5411,7 +5411,7 @@
       "is_public": true,
       "docstring": "Add a horizontal reference line spanning the full horizontal axis.",
       "dependencies": [
-        "matplotlib.pyplot"
+        "matplotlib.pyplot as plt"
       ],
       "semantic_tags": [
         "reference",
@@ -5598,7 +5598,7 @@
       "is_public": true,
       "docstring": "Add a vertical reference line spanning the full vertical axis.",
       "dependencies": [
-        "matplotlib.pyplot"
+        "matplotlib.pyplot as plt"
       ],
       "semantic_tags": [
         "reference",
@@ -5785,7 +5785,7 @@
       "is_public": true,
       "docstring": "Place a legend on the axes using artist label tags.",
       "dependencies": [
-        "matplotlib.pyplot"
+        "matplotlib.pyplot as plt"
       ],
       "semantic_tags": [
         "legend",
@@ -5978,7 +5978,7 @@
       "is_public": true,
       "docstring": "Annotate a point (xy) with text and an optional pointer arrow.",
       "dependencies": [
-        "matplotlib.pyplot"
+        "matplotlib.pyplot as plt"
       ],
       "semantic_tags": [
         "annotate",
@@ -6162,7 +6162,7 @@
       "is_public": true,
       "docstring": "Place arbitrary string text at data coordinates (x, y).",
       "dependencies": [
-        "matplotlib.pyplot"
+        "matplotlib.pyplot as plt"
       ],
       "semantic_tags": [
         "text",
@@ -6364,7 +6364,7 @@
       "is_public": true,
       "docstring": "Set a title string on the target axes.",
       "dependencies": [
-        "matplotlib.pyplot"
+        "matplotlib.pyplot as plt"
       ],
       "semantic_tags": [
         "title",
@@ -6540,7 +6540,7 @@
       "is_public": true,
       "docstring": "Set the label text for the X axis.",
       "dependencies": [
-        "matplotlib.pyplot"
+        "matplotlib.pyplot as plt"
       ],
       "semantic_tags": [
         "axis",
@@ -6716,7 +6716,7 @@
       "is_public": true,
       "docstring": "Set the label text for the Y axis.",
       "dependencies": [
-        "matplotlib.pyplot"
+        "matplotlib.pyplot as plt"
       ],
       "semantic_tags": [
         "axis",
@@ -6884,7 +6884,7 @@
       "is_public": true,
       "docstring": "Set the view data limits for the horizontal X axis.",
       "dependencies": [
-        "matplotlib.pyplot"
+        "matplotlib.pyplot as plt"
       ],
       "semantic_tags": [
         "axis",
@@ -7036,7 +7036,7 @@
       "is_public": true,
       "docstring": "Set the view data limits for the vertical Y axis.",
       "dependencies": [
-        "matplotlib.pyplot"
+        "matplotlib.pyplot as plt"
       ],
       "semantic_tags": [
         "axis",
@@ -7188,7 +7188,7 @@
       "is_public": true,
       "docstring": "Set the coordinate scaling algorithm for the X axis.",
       "dependencies": [
-        "matplotlib.pyplot"
+        "matplotlib.pyplot as plt"
       ],
       "semantic_tags": [
         "axis",
@@ -7323,7 +7323,7 @@
       "is_public": true,
       "docstring": "Set the coordinate scaling algorithm for the Y axis.",
       "dependencies": [
-        "matplotlib.pyplot"
+        "matplotlib.pyplot as plt"
       ],
       "semantic_tags": [
         "axis",
@@ -7458,7 +7458,7 @@
       "is_public": true,
       "docstring": "Set explicit tick coordinate locations for the X axis.",
       "dependencies": [
-        "matplotlib.pyplot"
+        "matplotlib.pyplot as plt"
       ],
       "semantic_tags": [
         "ticks",
@@ -7587,7 +7587,7 @@
       "is_public": true,
       "docstring": "Set custom string labels and rotation for X axis ticks.",
       "dependencies": [
-        "matplotlib.pyplot"
+        "matplotlib.pyplot as plt"
       ],
       "semantic_tags": [
         "ticks",
@@ -7735,7 +7735,7 @@
       "is_public": true,
       "docstring": "Configure appearance parameters for tick marks and labels.",
       "dependencies": [
-        "matplotlib.pyplot"
+        "matplotlib.pyplot as plt"
       ],
       "semantic_tags": [
         "ticks",
@@ -7932,7 +7932,7 @@
       "is_public": true,
       "docstring": "Add a scalar colorbar legend linked to an image or contour plot.",
       "dependencies": [
-        "matplotlib.pyplot"
+        "matplotlib.pyplot as plt"
       ],
       "semantic_tags": [
         "colorbar",
@@ -8120,7 +8120,7 @@
       "is_public": true,
       "docstring": "Create a secondary twin Axes sharing the same X axis but independent Y axis.",
       "dependencies": [
-        "matplotlib.pyplot"
+        "matplotlib.pyplot as plt"
       ],
       "semantic_tags": [
         "twin",
@@ -8232,7 +8232,7 @@
       "is_public": true,
       "docstring": "Create a secondary twin Axes sharing the same Y axis but independent X axis.",
       "dependencies": [
-        "matplotlib.pyplot"
+        "matplotlib.pyplot as plt"
       ],
       "semantic_tags": [
         "twin",
@@ -8344,7 +8344,7 @@
       "is_public": true,
       "docstring": "Invert the positive direction of the X axis.",
       "dependencies": [
-        "matplotlib.pyplot"
+        "matplotlib.pyplot as plt"
       ],
       "semantic_tags": [
         "axis",
@@ -8456,7 +8456,7 @@
       "is_public": true,
       "docstring": "Invert the positive direction of the Y axis.",
       "dependencies": [
-        "matplotlib.pyplot"
+        "matplotlib.pyplot as plt"
       ],
       "semantic_tags": [
         "axis",
@@ -8568,7 +8568,7 @@
       "is_public": true,
       "docstring": "Configure background gridlines visibility and style on axes.",
       "dependencies": [
-        "matplotlib.pyplot"
+        "matplotlib.pyplot as plt"
       ],
       "semantic_tags": [
         "grid",
@@ -8766,7 +8766,7 @@
       "is_public": true,
       "docstring": "Apply a global matplotlib style sheet across active and upcoming plots.",
       "dependencies": [
-        "matplotlib.pyplot"
+        "matplotlib.pyplot as plt"
       ],
       "semantic_tags": [
         "theme",
@@ -8852,7 +8852,7 @@
       "is_public": true,
       "docstring": "Set the background fill color of the axes canvas.",
       "dependencies": [
-        "matplotlib.pyplot"
+        "matplotlib.pyplot as plt"
       ],
       "semantic_tags": [
         "color",
@@ -8973,7 +8973,7 @@
       "is_public": true,
       "docstring": "Set the outer background fill color of the top-level Figure.",
       "dependencies": [
-        "matplotlib.pyplot"
+        "matplotlib.pyplot as plt"
       ],
       "semantic_tags": [
         "color",
@@ -9095,7 +9095,7 @@
       "is_public": true,
       "docstring": "Toggle the visibility of an axis boundary spine (top, right, bottom, left).",
       "dependencies": [
-        "matplotlib.pyplot"
+        "matplotlib.pyplot as plt"
       ],
       "semantic_tags": [
         "spines",
@@ -9241,7 +9241,7 @@
       "is_public": true,
       "docstring": "Add a centered overarching title above all subplots in the figure.",
       "dependencies": [
-        "matplotlib.pyplot"
+        "matplotlib.pyplot as plt"
       ],
       "semantic_tags": [
         "suptitle",
@@ -9391,7 +9391,7 @@
       "is_public": true,
       "docstring": "Automatically adjust subplot parameters to give specified padding and avoid overlap.",
       "dependencies": [
-        "matplotlib.pyplot"
+        "matplotlib.pyplot as plt"
       ],
       "semantic_tags": [
         "layout",
@@ -9523,7 +9523,7 @@
       "is_public": true,
       "docstring": "Tune subplot layout margins and spacing explicitly.",
       "dependencies": [
-        "matplotlib.pyplot"
+        "matplotlib.pyplot as plt"
       ],
       "semantic_tags": [
         "layout",
@@ -9751,7 +9751,7 @@
       "is_public": true,
       "docstring": "Save the current figure canvas to image file on disk.",
       "dependencies": [
-        "matplotlib.pyplot"
+        "matplotlib.pyplot as plt"
       ],
       "semantic_tags": [
         "export",
@@ -9935,7 +9935,7 @@
       "is_public": true,
       "docstring": "Display all open figures in graphical windows.",
       "dependencies": [
-        "matplotlib.pyplot"
+        "matplotlib.pyplot as plt"
       ],
       "semantic_tags": [
         "display",
@@ -9986,7 +9986,7 @@
       "is_public": true,
       "docstring": "Close and purge a Figure window to release memory.",
       "dependencies": [
-        "matplotlib.pyplot"
+        "matplotlib.pyplot as plt"
       ],
       "semantic_tags": [
         "teardown",

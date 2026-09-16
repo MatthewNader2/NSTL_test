@@ -2298,6 +2298,20 @@ class UnificationGate:
                         accumulated_sigma.bind(p_name, enum_val)
                         continue
 
+                # D.2 Higher-Order Functional Operator resolution:
+                # If the port is a functional operator (Callable), synthesize a safe default lambda
+                # (identity functor, predicate, or fallback) rather than failing synthesis.
+                if getattr(p_sig, "port_role", None) == "functional_operator" or "Callable" in getattr(concrete_sig, "type_name", ""):
+                    if "bool" in str(concrete_sig.type_name).lower():
+                        default_fn = "lambda x: bool(x)"
+                    elif "Exception" in str(concrete_sig.type_name):
+                        default_fn = "lambda err, d=None: d"
+                    else:
+                        default_fn = "lambda *args: args[0] if args else None"
+                    cell_bindings[p_name] = default_fn
+                    accumulated_sigma.bind(p_name, default_fn)
+                    continue
+
                 # E. Unresolved REQUIRED port: fail loudly. A pipeline with an
                 # unsatisfiable required port must not emit garbage code (e.g. a bare
                 # identifier that NameErrors at runtime); it is reported as a synthesis

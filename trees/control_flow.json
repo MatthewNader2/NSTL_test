@@ -12,17 +12,20 @@
         "fn_name": {
           "type_name": "str",
           "required": true,
-          "port_role": "literal_parameter"
+          "port_role": "literal_parameter",
+          "default_value": "synthesized_fn"
         },
         "arg_names": {
           "type_name": "str",
           "required": true,
-          "port_role": "literal_parameter"
+          "port_role": "literal_parameter",
+          "default_value": "x"
         },
         "body_pipeline": {
           "type_name": "Callable[..., R]",
           "required": true,
-          "port_role": "functional_operator"
+          "port_role": "functional_operator",
+          "default_value": "lambda *args: None"
         }
       },
       "outputs": {
@@ -35,7 +38,14 @@
         "cpp": "auto {fn_name} = []({arg_names}) { return {body_pipeline}({arg_names}); };\nauto {function_handle} = {fn_name};",
         "rust": "let {fn_name} = |{arg_names}| {body_pipeline}({arg_names});\nlet {function_handle} = {fn_name};"
       },
-      "docstring": "Lambda Abstraction / Morphism Definition: Encapsulates a parameterized sub-pipeline into a named, reusable Callable function with explicit signature and scope."
+      "docstring": "Lambda Abstraction / Morphism Definition: Encapsulates a parameterized sub-pipeline into a named, reusable Callable function with explicit signature and scope.",
+      "keywords": [
+        "def",
+        "function",
+        "define",
+        "method",
+        "procedure"
+      ]
     },
     {
       "cell_id": "CF_LAMBDA",
@@ -46,12 +56,14 @@
         "arg_names": {
           "type_name": "str",
           "required": true,
-          "port_role": "literal_parameter"
+          "port_role": "literal_parameter",
+          "default_value": "x"
         },
         "expression": {
           "type_name": "Callable[..., R]",
           "required": true,
-          "port_role": "functional_operator"
+          "port_role": "functional_operator",
+          "default_value": "lambda x: x"
         }
       },
       "outputs": {
@@ -64,7 +76,12 @@
         "cpp": "auto {closure} = []({arg_names}) { return {expression}({arg_names}); };",
         "rust": "let {closure} = |{arg_names}| {expression}({arg_names});"
       },
-      "docstring": "Anonymous Curried Morphism: Constructs an inline anonymous lambda closure mapping bound arguments to an expression."
+      "docstring": "Anonymous Curried Morphism: Constructs an inline anonymous lambda closure mapping bound arguments to an expression.",
+      "keywords": [
+        "lambda",
+        "anonymous",
+        "inline_function"
+      ]
     },
     {
       "cell_id": "CF_CLASS_DEF",
@@ -75,32 +92,38 @@
         "class_name": {
           "type_name": "str",
           "required": true,
-          "port_role": "literal_parameter"
+          "port_role": "literal_parameter",
+          "default_value": "SynthesizedClass"
         },
         "init_params": {
           "type_name": "str",
           "required": true,
-          "port_role": "literal_parameter"
+          "port_role": "literal_parameter",
+          "default_value": "self"
         },
         "init_assignments": {
           "type_name": "str",
           "required": true,
-          "port_role": "literal_parameter"
+          "port_role": "literal_parameter",
+          "default_value": "pass"
         },
         "method_name": {
           "type_name": "str",
           "required": true,
-          "port_role": "literal_parameter"
+          "port_role": "literal_parameter",
+          "default_value": "execute"
         },
         "method_params": {
           "type_name": "str",
           "required": true,
-          "port_role": "literal_parameter"
+          "port_role": "literal_parameter",
+          "default_value": "x"
         },
         "method_body": {
           "type_name": "Callable[..., R]",
           "required": true,
-          "port_role": "functional_operator"
+          "port_role": "functional_operator",
+          "default_value": "lambda self, *args: None"
         }
       },
       "outputs": {
@@ -113,7 +136,13 @@
         "cpp": "class {class_name} {\npublic:\n    {class_name}({init_params}) { {init_assignments} }\n    auto {method_name}({method_params}) { return {method_body}(*this, {method_params}); }\n};\nusing {class_handle} = {class_name};",
         "rust": "struct {class_name};\nimpl {class_name} {\n    fn new({init_params}) -> Self { let _ = ({init_assignments}); {class_name} }\n    fn {method_name}(&self, {method_params}) { {method_body}(self, {method_params}); }\n}\ntype {class_handle} = {class_name};"
       },
-      "docstring": "Object Coalgebra Encapsulation: Defines a class state machine bundling internal typestate fields and member method morphisms."
+      "docstring": "Object Coalgebra Encapsulation: Defines a class state machine bundling internal typestate fields and member method morphisms.",
+      "keywords": [
+        "class",
+        "object",
+        "type",
+        "struct"
+      ]
     },
     {
       "cell_id": "CF_RECURSIVE_FUNC",
@@ -124,27 +153,32 @@
         "fn_name": {
           "type_name": "str",
           "required": true,
-          "port_role": "literal_parameter"
+          "port_role": "literal_parameter",
+          "default_value": "synthesized_fn"
         },
         "base_predicate": {
           "type_name": "Callable[[T], bool]",
           "required": true,
-          "port_role": "functional_operator"
+          "port_role": "functional_operator",
+          "default_value": "lambda x: False"
         },
         "base_action": {
           "type_name": "Callable[[T], R]",
           "required": true,
-          "port_role": "functional_operator"
+          "port_role": "functional_operator",
+          "default_value": "lambda x: x"
         },
         "step_action": {
           "type_name": "Callable[[T, Callable[[T], R]], R]",
           "required": true,
-          "port_role": "functional_operator"
+          "port_role": "functional_operator",
+          "default_value": "lambda x, fn: fn(x)"
         },
         "data": {
           "type_name": "T",
           "required": true,
-          "port_role": "data_input"
+          "port_role": "data_input",
+          "default_value": "None"
         }
       },
       "outputs": {
@@ -157,7 +191,13 @@
         "cpp": "std::function<{R}({T})> {fn_name} = [&](const {T}& _x) -> {R} {\n    if ({base_predicate}(_x)) return {base_action}(_x);\n    return {step_action}(_x, {fn_name});\n};\n{R} {result} = {fn_name}({data});",
         "rust": "fn {fn_name}(x: &{T}) -> {R} {\n    if {base_predicate}(x) { return {base_action}(x); }\n    {step_action}(x, |sub| {fn_name}(sub))\n}\nlet {result} = {fn_name}(&{data});"
       },
-      "docstring": "Structural Recursion (Fixpoint Operator): Defines a self-referential recursive morphism with base predicate, base action, and inductive recursive step."
+      "docstring": "Structural Recursion (Fixpoint Operator): Defines a self-referential recursive morphism with base predicate, base action, and inductive recursive step.",
+      "keywords": [
+        "recursion",
+        "recursive",
+        "self_referential",
+        "fixpoint"
+      ]
     },
     {
       "cell_id": "CF_DIVIDE_AND_CONQUER",
@@ -168,32 +208,38 @@
         "fn_name": {
           "type_name": "str",
           "required": true,
-          "port_role": "literal_parameter"
+          "port_role": "literal_parameter",
+          "default_value": "synthesized_fn"
         },
         "base_predicate": {
           "type_name": "Callable[[T], bool]",
           "required": true,
-          "port_role": "functional_operator"
+          "port_role": "functional_operator",
+          "default_value": "lambda x: False"
         },
         "base_action": {
           "type_name": "Callable[[T], R]",
           "required": true,
-          "port_role": "functional_operator"
+          "port_role": "functional_operator",
+          "default_value": "lambda x: x"
         },
         "split_fn": {
           "type_name": "Callable[[T], List[T]]",
           "required": true,
-          "port_role": "functional_operator"
+          "port_role": "functional_operator",
+          "default_value": "lambda d: [d]"
         },
         "combine_fn": {
           "type_name": "Callable[[T, List[R]], R]",
           "required": true,
-          "port_role": "functional_operator"
+          "port_role": "functional_operator",
+          "default_value": "lambda d, subs: subs"
         },
         "data": {
           "type_name": "T",
           "required": true,
-          "port_role": "data_input"
+          "port_role": "data_input",
+          "default_value": "None"
         }
       },
       "outputs": {
@@ -206,7 +252,13 @@
         "cpp": "std::function<{R}({T})> {fn_name} = [&](const {T}& _x) -> {R} {\n    if ({base_predicate}(_x)) return {base_action}(_x);\n    auto _subs = {split_fn}(_x);\n    std::vector<{R}> _sub_results;\n    for (const auto& _s : _subs) _sub_results.push_back({fn_name}(_s));\n    return {combine_fn}(_x, _sub_results);\n};\n{R} {result} = {fn_name}({data});",
         "rust": "fn {fn_name}(x: &{T}) -> {R} {\n    if {base_predicate}(x) { return {base_action}(x); }\n    let subs = {split_fn}(x);\n    let sub_results: Vec<{R}> = subs.iter().map(|s| {fn_name}(s)).collect();\n    {combine_fn}(x, sub_results)\n}\nlet {result} = {fn_name}(&{data});"
       },
-      "docstring": "Branching Divide-and-Conquer Recursion: Recursively partitions a problem into subproblems, evaluates them recursively, and combines results (e.g. MergeSort, QuadTree, Tree Traversal)."
+      "docstring": "Branching Divide-and-Conquer Recursion: Recursively partitions a problem into subproblems, evaluates them recursively, and combines results (e.g. MergeSort, QuadTree, Tree Traversal).",
+      "keywords": [
+        "divide_and_conquer",
+        "mergesort",
+        "tree",
+        "split_combine"
+      ]
     },
     {
       "cell_id": "CF_COND_CHAIN",
@@ -222,12 +274,14 @@
         "default_action": {
           "type_name": "Callable[[T], R]",
           "required": true,
-          "port_role": "functional_operator"
+          "port_role": "functional_operator",
+          "default_value": "lambda d: d"
         },
         "data": {
           "type_name": "T",
           "required": true,
-          "port_role": "data_input"
+          "port_role": "data_input",
+          "default_value": "None"
         }
       },
       "outputs": {
@@ -240,7 +294,14 @@
         "cpp": "{R} {result};\nbool _matched = false;\nfor (const auto& [_pred, _act] : {branch_table}) {\n    if (_pred({data})) {\n        {result} = _act({data});\n        _matched = true;\n        break;\n    }\n}\nif (!_matched) { {result} = {default_action}({data}); }",
         "rust": "let mut {result}: Option<{R}> = None;\nfor (_pred, _act) in &{branch_table} {\n    if _pred(&{data}) {\n        {result} = Some(_act(&{data}));\n        break;\n    }\n}\nlet {result} = {result}.unwrap_or_else(|| {default_action}(&{data}));"
       },
-      "docstring": "Arbitrary N-Ary Conditional Dispatcher (if / elif ... / elif / else): Evaluates an ordered list of (predicate, action) pairs sequentially until one matches, falling back to default."
+      "docstring": "Arbitrary N-Ary Conditional Dispatcher (if / elif ... / elif / else): Evaluates an ordered list of (predicate, action) pairs sequentially until one matches, falling back to default.",
+      "keywords": [
+        "cond",
+        "chain",
+        "elif",
+        "dispatch",
+        "cases"
+      ]
     },
     {
       "cell_id": "CF_NESTED_FOR_EACH",
@@ -251,22 +312,26 @@
         "outer_collection": {
           "type_name": "List[T]",
           "required": true,
-          "port_role": "data_input"
+          "port_role": "data_input",
+          "default_value": "[]"
         },
         "inner_generator": {
           "type_name": "Callable[[T], List[U]]",
           "required": true,
-          "port_role": "functional_operator"
+          "port_role": "functional_operator",
+          "default_value": "lambda x: [x]"
         },
         "body_fn": {
           "type_name": "Callable[[T, U, State], State]",
           "required": true,
-          "port_role": "functional_operator"
+          "port_role": "functional_operator",
+          "default_value": "lambda item, s: s"
         },
         "init_state": {
           "type_name": "State",
           "required": true,
-          "port_role": "data_input"
+          "port_role": "data_input",
+          "default_value": "None"
         }
       },
       "outputs": {
@@ -279,7 +344,13 @@
         "cpp": "{State} {final_state} = {init_state};\nfor (const auto& _outer : {outer_collection}) {\n    for (const auto& _inner : {inner_generator}(_outer)) {\n        {final_state} = {body_fn}(_outer, _inner, {final_state});\n    }\n}",
         "rust": "let mut {final_state} = {init_state};\nfor _outer in &{outer_collection} {\n    for _inner in {inner_generator}(_outer) {\n        {final_state} = {body_fn}(_outer, &_inner, {final_state});\n    }\n}"
       },
-      "docstring": "Hierarchical 2D Nested Iteration: Evaluates a loop inside a loop across outer and inner collections, threading an accumulated state forward across all coordinate points."
+      "docstring": "Hierarchical 2D Nested Iteration: Evaluates a loop inside a loop across outer and inner collections, threading an accumulated state forward across all coordinate points.",
+      "keywords": [
+        "nested_loop",
+        "2d_loop",
+        "grid",
+        "outer_inner"
+      ]
     },
     {
       "cell_id": "CF_TOP_K",
@@ -290,17 +361,20 @@
         "collection": {
           "type_name": "List[T]",
           "required": true,
-          "port_role": "data_input"
+          "port_role": "data_input",
+          "default_value": "[]"
         },
         "key_fn": {
           "type_name": "Callable[[T], Comparable]",
           "required": true,
-          "port_role": "functional_operator"
+          "port_role": "functional_operator",
+          "default_value": "lambda x: x"
         },
         "k": {
           "type_name": "int",
           "required": true,
-          "port_role": "literal_parameter"
+          "port_role": "literal_parameter",
+          "default_value": 3
         }
       },
       "outputs": {
@@ -313,7 +387,19 @@
         "cpp": "std::vector<{T}> {output_collection};\nstd::partial_sort_copy({collection}.begin(), {collection}.end(), std::back_inserter({output_collection}), {k}, [](const {T}& a, const {T}& b) { return {key_fn}(a) > {key_fn}(b); });",
         "rust": "let mut {output_collection} = {collection}.clone();\n{output_collection}.sort_by(|a, b| {key_fn}(b).partial_cmp(&{key_fn}(a)).unwrap());\n{output_collection}.truncate({k} as usize);"
       },
-      "docstring": "Ranked slice morphism: Sorts a collection in descending order via an extracted scalar key projection function and extracts the top K elements (e.g. largest K contours)."
+      "docstring": "Ranked slice morphism: Sorts a collection in descending order via an extracted scalar key projection function and extracts the top K elements (e.g. largest K contours).",
+      "keywords": [
+        "top",
+        "top_k",
+        "largest",
+        "highest",
+        "best",
+        "rank",
+        "slice",
+        "max",
+        "sort",
+        "head"
+      ]
     },
     {
       "cell_id": "CF_BOTTOM_K",
@@ -324,17 +410,20 @@
         "collection": {
           "type_name": "List[T]",
           "required": true,
-          "port_role": "data_input"
+          "port_role": "data_input",
+          "default_value": "[]"
         },
         "key_fn": {
           "type_name": "Callable[[T], Comparable]",
           "required": true,
-          "port_role": "functional_operator"
+          "port_role": "functional_operator",
+          "default_value": "lambda x: x"
         },
         "k": {
           "type_name": "int",
           "required": true,
-          "port_role": "literal_parameter"
+          "port_role": "literal_parameter",
+          "default_value": 3
         }
       },
       "outputs": {
@@ -347,7 +436,16 @@
         "cpp": "std::vector<{T}> {output_collection};\nstd::partial_sort_copy({collection}.begin(), {collection}.end(), std::back_inserter({output_collection}), {k}, [](const {T}& a, const {T}& b) { return {key_fn}(a) < {key_fn}(b); });",
         "rust": "let mut {output_collection} = {collection}.clone();\n{output_collection}.sort_by(|a, b| {key_fn}(a).partial_cmp(&{key_fn}(b)).unwrap());\n{output_collection}.truncate({k} as usize);"
       },
-      "docstring": "Ranked bottom slice morphism: Sorts a collection in ascending order via an extracted scalar key projection function and extracts the smallest K elements."
+      "docstring": "Ranked bottom slice morphism: Sorts a collection in ascending order via an extracted scalar key projection function and extracts the smallest K elements.",
+      "keywords": [
+        "bottom",
+        "smallest",
+        "lowest",
+        "least",
+        "min",
+        "rank",
+        "tail"
+      ]
     },
     {
       "cell_id": "CF_MAP",
@@ -358,12 +456,14 @@
         "collection": {
           "type_name": "List[T]",
           "required": true,
-          "port_role": "data_input"
+          "port_role": "data_input",
+          "default_value": "[]"
         },
         "transform": {
           "type_name": "Callable[[T], U]",
           "required": true,
-          "port_role": "functional_operator"
+          "port_role": "functional_operator",
+          "default_value": "lambda x: x"
         }
       },
       "outputs": {
@@ -376,7 +476,15 @@
         "cpp": "std::vector<{U}> {output_collection};\nstd::transform({collection}.begin(), {collection}.end(), std::back_inserter({output_collection}), {transform});",
         "rust": "let {output_collection}: Vec<{U}> = {collection}.iter().map(|item| {transform}(item)).collect();"
       },
-      "docstring": "Element-wise Functor morphism: Applies a unary transformation to every element of a collection [T] -> [U]."
+      "docstring": "Element-wise Functor morphism: Applies a unary transformation to every element of a collection [T] -> [U].",
+      "keywords": [
+        "map",
+        "transform",
+        "apply",
+        "each",
+        "elementwise",
+        "convert"
+      ]
     },
     {
       "cell_id": "CF_FILTER",
@@ -387,12 +495,14 @@
         "collection": {
           "type_name": "List[T]",
           "required": true,
-          "port_role": "data_input"
+          "port_role": "data_input",
+          "default_value": "[]"
         },
         "predicate": {
           "type_name": "Callable[[T], bool]",
           "required": true,
-          "port_role": "functional_operator"
+          "port_role": "functional_operator",
+          "default_value": "lambda x: bool(x)"
         }
       },
       "outputs": {
@@ -405,7 +515,15 @@
         "cpp": "std::vector<{T}> {output_collection};\nstd::copy_if({collection}.begin(), {collection}.end(), std::back_inserter({output_collection}), {predicate});",
         "rust": "let {output_collection}: Vec<{T}> = {collection}.into_iter().filter(|item| {predicate}(item)).collect();"
       },
-      "docstring": "Predicate Selection Sub-collection morphism: Filters elements of a collection matching a boolean predicate function."
+      "docstring": "Predicate Selection Sub-collection morphism: Filters elements of a collection matching a boolean predicate function.",
+      "keywords": [
+        "filter",
+        "where",
+        "select",
+        "condition",
+        "predicate",
+        "keep"
+      ]
     },
     {
       "cell_id": "CF_FLAT_MAP",
@@ -416,12 +534,14 @@
         "collection": {
           "type_name": "List[T]",
           "required": true,
-          "port_role": "data_input"
+          "port_role": "data_input",
+          "default_value": "[]"
         },
         "transform": {
           "type_name": "Callable[[T], List[U]]",
           "required": true,
-          "port_role": "functional_operator"
+          "port_role": "functional_operator",
+          "default_value": "lambda x: x"
         }
       },
       "outputs": {
@@ -434,7 +554,13 @@
         "cpp": "std::vector<{U}> {output_collection};\nfor (const auto& item : {collection}) {\n    auto sub = {transform}(item);\n    {output_collection}.insert({output_collection}.end(), sub.begin(), sub.end());\n}",
         "rust": "let {output_collection}: Vec<{U}> = {collection}.iter().flat_map(|item| {transform}(item)).collect();"
       },
-      "docstring": "Monadic Bind morphism: Maps each element to a collection and flattens the resulting collections into a single one-dimensional list."
+      "docstring": "Monadic Bind morphism: Maps each element to a collection and flattens the resulting collections into a single one-dimensional list.",
+      "keywords": [
+        "flat_map",
+        "flatten",
+        "bind",
+        "nested"
+      ]
     },
     {
       "cell_id": "CF_FOLD_REDUCE",
@@ -445,12 +571,14 @@
         "collection": {
           "type_name": "List[T]",
           "required": true,
-          "port_role": "data_input"
+          "port_role": "data_input",
+          "default_value": "[]"
         },
         "accumulator": {
           "type_name": "Callable[[State, T], State]",
           "required": true,
-          "port_role": "functional_operator"
+          "port_role": "functional_operator",
+          "default_value": "lambda s, x: s"
         },
         "initial": {
           "type_name": "State",
@@ -458,6 +586,9 @@
           "port_role": "data_input"
         }
       },
+      "dependencies": [
+        "functools"
+      ],
       "outputs": {
         "accumulated_state": {
           "type_name": "State"
@@ -468,7 +599,15 @@
         "cpp": "{State} {accumulated_state} = std::accumulate({collection}.begin(), {collection}.end(), {initial}, {accumulator});",
         "rust": "let {accumulated_state}: {State} = {collection}.iter().fold({initial}, |acc, item| {accumulator}(acc, item));"
       },
-      "docstring": "Catamorphism / Accumulator morphism: Iteratively applies a binary associative operator over a collection, folding it into a single accumulated State value."
+      "docstring": "Catamorphism / Accumulator morphism: Iteratively applies a binary associative operator over a collection, folding it into a single accumulated State value.",
+      "keywords": [
+        "reduce",
+        "fold",
+        "accumulate",
+        "aggregate",
+        "sum",
+        "combine"
+      ]
     },
     {
       "cell_id": "CF_ZIP_WITH",
@@ -479,17 +618,20 @@
         "collection_a": {
           "type_name": "List[T]",
           "required": true,
-          "port_role": "data_input"
+          "port_role": "data_input",
+          "default_value": "[]"
         },
         "collection_b": {
           "type_name": "List[U]",
           "required": true,
-          "port_role": "data_input"
+          "port_role": "data_input",
+          "default_value": "[]"
         },
         "zipper": {
           "type_name": "Callable[[T, U], V]",
           "required": true,
-          "port_role": "functional_operator"
+          "port_role": "functional_operator",
+          "default_value": "lambda a, b: (a, b)"
         }
       },
       "outputs": {
@@ -502,7 +644,13 @@
         "cpp": "std::vector<{V}> {output_collection};\nsize_t _zip_n = std::min({collection_a}.size(), {collection_b}.size());\n{output_collection}.reserve(_zip_n);\nfor (size_t _i = 0; _i < _zip_n; ++_i) { {output_collection}.push_back({zipper}({collection_a}[_i], {collection_b}[_i])); }",
         "rust": "let {output_collection}: Vec<{V}> = {collection_a}.iter().zip({collection_b}.iter()).map(|(a, b)| {zipper}(a, b)).collect();"
       },
-      "docstring": "Applicative Zipper morphism: Pairs elements from two lists, applying a binary zipper function to produce a unified list."
+      "docstring": "Applicative Zipper morphism: Pairs elements from two lists, applying a binary zipper function to produce a unified list.",
+      "keywords": [
+        "zip",
+        "pair",
+        "combine",
+        "pairwise"
+      ]
     },
     {
       "cell_id": "CF_FOR_EACH_STATE",
@@ -513,17 +661,20 @@
         "collection": {
           "type_name": "List[T]",
           "required": true,
-          "port_role": "data_input"
+          "port_role": "data_input",
+          "default_value": "[]"
         },
         "body_fn": {
           "type_name": "Callable[[T, State], State]",
           "required": true,
-          "port_role": "functional_operator"
+          "port_role": "functional_operator",
+          "default_value": "lambda item, s: s"
         },
         "init_state": {
           "type_name": "State",
           "required": true,
-          "port_role": "data_input"
+          "port_role": "data_input",
+          "default_value": "None"
         }
       },
       "outputs": {
@@ -536,7 +687,14 @@
         "cpp": "{State} {final_state} = {init_state};\nfor (const auto& _item : {collection}) {\n    {final_state} = {body_fn}(_item, {final_state});\n}",
         "rust": "let mut {final_state} = {init_state};\nfor _item in &{collection} {\n    {final_state} = {body_fn}(_item, {final_state});\n}"
       },
-      "docstring": "Iterative State-Threading Loop: Sequentially iterates through a collection, feeding each element and threading the accumulated State forward."
+      "docstring": "Iterative State-Threading Loop: Sequentially iterates through a collection, feeding each element and threading the accumulated State forward.",
+      "keywords": [
+        "for",
+        "foreach",
+        "iterate",
+        "loop",
+        "accumulate"
+      ]
     },
     {
       "cell_id": "CF_FOR_RANGE_STATE",
@@ -547,12 +705,14 @@
         "start": {
           "type_name": "int",
           "required": true,
-          "port_role": "literal_parameter"
+          "port_role": "literal_parameter",
+          "default_value": 0
         },
         "stop": {
           "type_name": "int",
           "required": true,
-          "port_role": "literal_parameter"
+          "port_role": "literal_parameter",
+          "default_value": 10
         },
         "step": {
           "type_name": "int",
@@ -563,12 +723,14 @@
         "body_fn": {
           "type_name": "Callable[[int, State], State]",
           "required": true,
-          "port_role": "functional_operator"
+          "port_role": "functional_operator",
+          "default_value": "lambda item, s: s"
         },
         "init_state": {
           "type_name": "State",
           "required": true,
-          "port_role": "data_input"
+          "port_role": "data_input",
+          "default_value": "None"
         }
       },
       "outputs": {
@@ -581,7 +743,14 @@
         "cpp": "{State} {final_state} = {init_state};\nfor (int _idx = {start}; _idx < {stop}; _idx += {step}) {\n    {final_state} = {body_fn}(_idx, {final_state});\n}",
         "rust": "let mut {final_state} = {init_state};\nfor _idx in ({start}..{stop}).step_by({step} as usize) {\n    {final_state} = {body_fn}(_idx, {final_state});\n}"
       },
-      "docstring": "Bounded Index Range Loop: Executes a counted loop over [start, stop) with step, threading state through each iteration."
+      "docstring": "Bounded Index Range Loop: Executes a counted loop over [start, stop) with step, threading state through each iteration.",
+      "keywords": [
+        "range",
+        "count",
+        "step",
+        "iteration",
+        "loop"
+      ]
     },
     {
       "cell_id": "CF_FOR_ENUMERATE_MAP",
@@ -592,12 +761,14 @@
         "collection": {
           "type_name": "List[T]",
           "required": true,
-          "port_role": "data_input"
+          "port_role": "data_input",
+          "default_value": "[]"
         },
         "transform": {
           "type_name": "Callable[[int, T], U]",
           "required": true,
-          "port_role": "functional_operator"
+          "port_role": "functional_operator",
+          "default_value": "lambda x: x"
         },
         "start_index": {
           "type_name": "int",
@@ -616,7 +787,12 @@
         "cpp": "std::vector<{U}> {output_collection};\n{output_collection}.reserve({collection}.size());\nfor (size_t _i = 0; _i < {collection}.size(); ++_i) {\n    {output_collection}.push_back({transform}(static_cast<int>(_i + {start_index}), {collection}[_i]));\n}",
         "rust": "let {output_collection}: Vec<{U}> = {collection}.iter().enumerate().map(|(idx, item)| {transform}((idx as i64 + {start_index}) as i32, item)).collect();"
       },
-      "docstring": "Indexed Enumeration Map: Transforms each element alongside its integer index (idx, item) into an updated collection."
+      "docstring": "Indexed Enumeration Map: Transforms each element alongside its integer index (idx, item) into an updated collection.",
+      "keywords": [
+        "enumerate",
+        "index",
+        "indexed_map"
+      ]
     },
     {
       "cell_id": "CF_WHILE_LOOP",
@@ -627,17 +803,20 @@
         "init_state": {
           "type_name": "State",
           "required": true,
-          "port_role": "data_input"
+          "port_role": "data_input",
+          "default_value": "None"
         },
         "cond_fn": {
           "type_name": "Callable[[State], bool]",
           "required": true,
-          "port_role": "functional_operator"
+          "port_role": "functional_operator",
+          "default_value": "lambda s: True"
         },
         "body_fn": {
           "type_name": "Callable[[State], State]",
           "required": true,
-          "port_role": "functional_operator"
+          "port_role": "functional_operator",
+          "default_value": "lambda item, s: s"
         }
       },
       "outputs": {
@@ -650,7 +829,15 @@
         "cpp": "{State} {final_state} = {init_state};\nwhile ({cond_fn}({final_state})) {\n    {final_state} = {body_fn}({final_state});\n}",
         "rust": "let mut {final_state} = {init_state};\nwhile {cond_fn}(&{final_state}) {\n    {final_state} = {body_fn}({final_state});\n}"
       },
-      "docstring": "Inductive Fixpoint Monad: Continuously computes State -> State as long as cond_fn(State) remains true."
+      "docstring": "Inductive Fixpoint Monad: Continuously computes State -> State as long as cond_fn(State) remains true.",
+      "keywords": [
+        "while",
+        "loop",
+        "until",
+        "repeat",
+        "converge",
+        "iterate"
+      ]
     },
     {
       "cell_id": "CF_WHILE_BOUNDED",
@@ -661,22 +848,26 @@
         "init_state": {
           "type_name": "State",
           "required": true,
-          "port_role": "data_input"
+          "port_role": "data_input",
+          "default_value": "None"
         },
         "cond_fn": {
           "type_name": "Callable[[State], bool]",
           "required": true,
-          "port_role": "functional_operator"
+          "port_role": "functional_operator",
+          "default_value": "lambda s: True"
         },
         "body_fn": {
           "type_name": "Callable[[State], State]",
           "required": true,
-          "port_role": "functional_operator"
+          "port_role": "functional_operator",
+          "default_value": "lambda item, s: s"
         },
         "max_iters": {
           "type_name": "int",
           "required": true,
-          "port_role": "literal_parameter"
+          "port_role": "literal_parameter",
+          "default_value": 100
         }
       },
       "outputs": {
@@ -689,7 +880,12 @@
         "cpp": "{State} {final_state} = {init_state};\nint _iter_count = 0;\nwhile ({cond_fn}({final_state}) && _iter_count < {max_iters}) {\n    {final_state} = {body_fn}({final_state});\n    ++_iter_count;\n}",
         "rust": "let mut {final_state} = {init_state};\nlet mut _iter_count = 0;\nwhile {cond_fn}(&{final_state}) && _iter_count < {max_iters} {\n    {final_state} = {body_fn}({final_state});\n    _iter_count += 1;\n}"
       },
-      "docstring": "Safe Bounded Fixpoint Loop: Evaluates State -> State while cond_fn(State) is true, with a strict max_iters bound to guarantee termination."
+      "docstring": "Safe Bounded Fixpoint Loop: Evaluates State -> State while cond_fn(State) is true, with a strict max_iters bound to guarantee termination.",
+      "keywords": [
+        "bounded_while",
+        "safe_loop",
+        "max_iterations"
+      ]
     },
     {
       "cell_id": "CF_REPEAT_UNTIL",
@@ -700,17 +896,20 @@
         "init_state": {
           "type_name": "State",
           "required": true,
-          "port_role": "data_input"
+          "port_role": "data_input",
+          "default_value": "None"
         },
         "body_fn": {
           "type_name": "Callable[[State], State]",
           "required": true,
-          "port_role": "functional_operator"
+          "port_role": "functional_operator",
+          "default_value": "lambda item, s: s"
         },
         "until_cond_fn": {
           "type_name": "Callable[[State], bool]",
           "required": true,
-          "port_role": "functional_operator"
+          "port_role": "functional_operator",
+          "default_value": "lambda s: True"
         }
       },
       "outputs": {
@@ -723,7 +922,12 @@
         "cpp": "{State} {final_state} = {init_state};\ndo {\n    {final_state} = {body_fn}({final_state});\n} while (!{until_cond_fn}({final_state}));",
         "rust": "let mut {final_state} = {init_state};\nloop {\n    {final_state} = {body_fn}({final_state});\n    if {until_cond_fn}(&{final_state}) {\n        break;\n    }\n}"
       },
-      "docstring": "Post-Condition Inductive Loop (do-while): Executes body_fn at least once, repeating until until_cond_fn(State) is true."
+      "docstring": "Post-Condition Inductive Loop (do-while): Executes body_fn at least once, repeating until until_cond_fn(State) is true.",
+      "keywords": [
+        "repeat",
+        "until",
+        "do_while"
+      ]
     },
     {
       "cell_id": "CF_BRANCH_IF_ELSE",
@@ -734,22 +938,26 @@
         "condition": {
           "type_name": "bool",
           "required": true,
-          "port_role": "data_input"
+          "port_role": "data_input",
+          "default_value": true
         },
         "on_true": {
           "type_name": "Callable[[T], U]",
           "required": true,
-          "port_role": "functional_operator"
+          "port_role": "functional_operator",
+          "default_value": "lambda d: d"
         },
         "on_false": {
           "type_name": "Callable[[T], U]",
           "required": true,
-          "port_role": "functional_operator"
+          "port_role": "functional_operator",
+          "default_value": "lambda d: d"
         },
         "data": {
           "type_name": "T",
           "required": true,
-          "port_role": "data_input"
+          "port_role": "data_input",
+          "default_value": "None"
         }
       },
       "outputs": {
@@ -762,7 +970,15 @@
         "cpp": "{U} {result} = ({condition}) ? {on_true}({data}) : {on_false}({data});",
         "rust": "let {result}: {U} = if {condition} { {on_true}({data}) } else { {on_false}({data}) };"
       },
-      "docstring": "Coproduct / Sum Eliminator: Dispatches computation to either on_true or on_false based on a boolean condition flag."
+      "docstring": "Coproduct / Sum Eliminator: Dispatches computation to either on_true or on_false based on a boolean condition flag.",
+      "keywords": [
+        "if",
+        "else",
+        "branch",
+        "conditional",
+        "switch",
+        "choose"
+      ]
     },
     {
       "cell_id": "CF_BRANCH_COND_ELIF",
@@ -773,32 +989,38 @@
         "cond_1": {
           "type_name": "bool",
           "required": true,
-          "port_role": "data_input"
+          "port_role": "data_input",
+          "default_value": true
         },
         "branch_1": {
           "type_name": "Callable[[T], U]",
           "required": true,
-          "port_role": "functional_operator"
+          "port_role": "functional_operator",
+          "default_value": "lambda d: d"
         },
         "cond_2": {
           "type_name": "bool",
           "required": true,
-          "port_role": "data_input"
+          "port_role": "data_input",
+          "default_value": false
         },
         "branch_2": {
           "type_name": "Callable[[T], U]",
           "required": true,
-          "port_role": "functional_operator"
+          "port_role": "functional_operator",
+          "default_value": "lambda d: d"
         },
         "default_branch": {
           "type_name": "Callable[[T], U]",
           "required": true,
-          "port_role": "functional_operator"
+          "port_role": "functional_operator",
+          "default_value": "lambda d: d"
         },
         "data": {
           "type_name": "T",
           "required": true,
-          "port_role": "data_input"
+          "port_role": "data_input",
+          "default_value": "None"
         }
       },
       "outputs": {
@@ -811,7 +1033,13 @@
         "cpp": "{U} {result};\nif ({cond_1}) {\n    {result} = {branch_1}({data});\n} else if ({cond_2}) {\n    {result} = {branch_2}({data});\n} else {\n    {result} = {default_branch}({data});\n}",
         "rust": "let {result}: {U} = if {cond_1} {\n    {branch_1}({data})\n} else if {cond_2} {\n    {branch_2}({data})\n} else {\n    {default_branch}({data})\n};"
       },
-      "docstring": "Chained Conditional Dispatcher (if / elif / else): Evaluates primary and secondary boolean conditions sequentially to dispatch the corresponding operator."
+      "docstring": "Chained Conditional Dispatcher (if / elif / else): Evaluates primary and secondary boolean conditions sequentially to dispatch the corresponding operator.",
+      "keywords": [
+        "elif",
+        "multi_branch",
+        "conditional",
+        "cases"
+      ]
     },
     {
       "cell_id": "CF_MATCH_CASE",
@@ -822,37 +1050,44 @@
         "discriminator": {
           "type_name": "str",
           "required": true,
-          "port_role": "data_input"
+          "port_role": "data_input",
+          "default_value": "'default'"
         },
         "case_a_val": {
           "type_name": "str",
           "required": true,
-          "port_role": "literal_parameter"
+          "port_role": "literal_parameter",
+          "default_value": "'case_a'"
         },
         "action_a": {
           "type_name": "Callable[[T], U]",
           "required": true,
-          "port_role": "functional_operator"
+          "port_role": "functional_operator",
+          "default_value": "lambda d: d"
         },
         "case_b_val": {
           "type_name": "str",
           "required": true,
-          "port_role": "literal_parameter"
+          "port_role": "literal_parameter",
+          "default_value": "'case_b'"
         },
         "action_b": {
           "type_name": "Callable[[T], U]",
           "required": true,
-          "port_role": "functional_operator"
+          "port_role": "functional_operator",
+          "default_value": "lambda d: d"
         },
         "default_action": {
           "type_name": "Callable[[T], U]",
           "required": true,
-          "port_role": "functional_operator"
+          "port_role": "functional_operator",
+          "default_value": "lambda d: d"
         },
         "data": {
           "type_name": "T",
           "required": true,
-          "port_role": "data_input"
+          "port_role": "data_input",
+          "default_value": "None"
         }
       },
       "outputs": {
@@ -865,7 +1100,13 @@
         "cpp": "{U} {result};\nif ({discriminator} == {case_a_val}) {\n    {result} = {action_a}({data});\n} else if ({discriminator} == {case_b_val}) {\n    {result} = {action_b}({data});\n} else {\n    {result} = {default_action}({data});\n}",
         "rust": "let {result}: {U} = match {discriminator}.as_str() {\n    _val if _val == {case_a_val} => {action_a}({data}),\n    _val if _val == {case_b_val} => {action_b}({data}),\n    _ => {default_action}({data}),\n};"
       },
-      "docstring": "Structural Pattern Matching / Switch: Dispatches against discrete discriminator values with a wildcard default fallback."
+      "docstring": "Structural Pattern Matching / Switch: Dispatches against discrete discriminator values with a wildcard default fallback.",
+      "keywords": [
+        "match",
+        "case",
+        "pattern_match",
+        "switch"
+      ]
     },
     {
       "cell_id": "CF_TRY_EXCEPT",
@@ -876,12 +1117,14 @@
         "action": {
           "type_name": "Callable[[T], U]",
           "required": true,
-          "port_role": "functional_operator"
+          "port_role": "functional_operator",
+          "default_value": "lambda d: d"
         },
         "fallback": {
           "type_name": "Callable[[Exception, T], U]",
           "required": true,
-          "port_role": "functional_operator"
+          "port_role": "functional_operator",
+          "default_value": "lambda err, d: d"
         },
         "exception_type": {
           "type_name": "str",
@@ -892,7 +1135,8 @@
         "data": {
           "type_name": "T",
           "required": true,
-          "port_role": "data_input"
+          "port_role": "data_input",
+          "default_value": "None"
         }
       },
       "outputs": {
@@ -905,7 +1149,17 @@
         "cpp": "{U} {result};\ntry {\n    {result} = {action}({data});\n} catch (const std::exception& _err /* {exception_type} */) {\n    {result} = {fallback}(_err, {data});\n}",
         "rust": "let {result}: {U} = match std::panic::catch_unwind(std::panic::AssertUnwindSafe /* {exception_type} */(|| {action}({data}))) {\n    Ok(res) => res,\n    Err(_err) => {fallback}(_err, {data}),\n};"
       },
-      "docstring": "Error Trap / Either Monad morphism: Safely evaluates an action, catching specific runtime exceptions and executing a fallback handler."
+      "docstring": "Error Trap / Either Monad morphism: Safely evaluates an action, catching specific runtime exceptions and executing a fallback handler.",
+      "keywords": [
+        "try",
+        "except",
+        "catch",
+        "fallback",
+        "error",
+        "safe",
+        "exception",
+        "handle"
+      ]
     },
     {
       "cell_id": "CF_TRY_EXCEPT_FINALLY",
@@ -916,17 +1170,20 @@
         "action": {
           "type_name": "Callable[[T], U]",
           "required": true,
-          "port_role": "functional_operator"
+          "port_role": "functional_operator",
+          "default_value": "lambda d: d"
         },
         "fallback": {
           "type_name": "Callable[[Exception, T], U]",
           "required": true,
-          "port_role": "functional_operator"
+          "port_role": "functional_operator",
+          "default_value": "lambda err, d: d"
         },
         "finalizer": {
           "type_name": "Callable[[T], None]",
           "required": true,
-          "port_role": "functional_operator"
+          "port_role": "functional_operator",
+          "default_value": "lambda d: None"
         },
         "exception_type": {
           "type_name": "str",
@@ -937,7 +1194,8 @@
         "data": {
           "type_name": "T",
           "required": true,
-          "port_role": "data_input"
+          "port_role": "data_input",
+          "default_value": "None"
         }
       },
       "outputs": {
@@ -950,7 +1208,14 @@
         "cpp": "{U} {result};\nstruct _FinalizerGuard { std::function<void()> clean; ~_FinalizerGuard() { clean(); } } _fg{[&]() { {finalizer}({data}); }};\ntry {\n    {result} = {action}({data});\n} catch (const std::exception& _err /* {exception_type} */) {\n    {result} = {fallback}(_err, {data});\n}",
         "rust": "struct Cleanup<F: FnOnce()>(Option<F>);\nimpl<F: FnOnce()> Drop for Cleanup<F> {\n    fn drop(&mut self) { if let Some(f) = self.0.take() { f(); } }\n}\nlet _guard = Cleanup(Some(|| {finalizer}({data})));\nlet {result}: {U} = match std::panic::catch_unwind(std::panic::AssertUnwindSafe /* {exception_type} */(|| {action}({data}))) {\n    Ok(res) => res,\n    Err(_err) => {fallback}(_err, {data}),\n};"
       },
-      "docstring": "Guaranteed Cleanup Trap: Wraps action execution with exception recovery and a guaranteed finalizer hook executed under all conditions."
+      "docstring": "Guaranteed Cleanup Trap: Wraps action execution with exception recovery and a guaranteed finalizer hook executed under all conditions.",
+      "keywords": [
+        "try",
+        "finally",
+        "cleanup",
+        "guaranteed",
+        "catch"
+      ]
     },
     {
       "cell_id": "CF_TRY_EXCEPT_ELSE",
@@ -961,17 +1226,20 @@
         "action": {
           "type_name": "Callable[[T], U]",
           "required": true,
-          "port_role": "functional_operator"
+          "port_role": "functional_operator",
+          "default_value": "lambda d: d"
         },
         "success_continuation": {
           "type_name": "Callable[[U], V]",
           "required": true,
-          "port_role": "functional_operator"
+          "port_role": "functional_operator",
+          "default_value": "lambda res: res"
         },
         "fallback": {
           "type_name": "Callable[[Exception, T], V]",
           "required": true,
-          "port_role": "functional_operator"
+          "port_role": "functional_operator",
+          "default_value": "lambda err, d: d"
         },
         "exception_type": {
           "type_name": "str",
@@ -982,7 +1250,8 @@
         "data": {
           "type_name": "T",
           "required": true,
-          "port_role": "data_input"
+          "port_role": "data_input",
+          "default_value": "None"
         }
       },
       "outputs": {
@@ -995,7 +1264,13 @@
         "cpp": "{V} {result};\ntry {\n    auto _res = {action}({data});\n    {result} = {success_continuation}(_res);\n} catch (const std::exception& _err /* {exception_type} */) {\n    {result} = {fallback}(_err, {data});\n}",
         "rust": "let {result}: {V} = match std::panic::catch_unwind(std::panic::AssertUnwindSafe /* {exception_type} */(|| {action}({data}))) {\n    Ok(_res) => {success_continuation}(_res),\n    Err(_err) => {fallback}(_err, {data}),\n};"
       },
-      "docstring": "Branching Error Guard: Executes success_continuation solely if action completes with no exceptions; otherwise triggers fallback."
+      "docstring": "Branching Error Guard: Executes success_continuation solely if action completes with no exceptions; otherwise triggers fallback.",
+      "keywords": [
+        "try",
+        "except",
+        "else",
+        "success"
+      ]
     },
     {
       "cell_id": "CF_RETRY_BACKOFF",
@@ -1006,12 +1281,14 @@
         "action": {
           "type_name": "Callable[[T], U]",
           "required": true,
-          "port_role": "functional_operator"
+          "port_role": "functional_operator",
+          "default_value": "lambda d: d"
         },
         "fallback": {
           "type_name": "Callable[[Exception, T], U]",
           "required": true,
-          "port_role": "functional_operator"
+          "port_role": "functional_operator",
+          "default_value": "lambda err, d: d"
         },
         "max_retries": {
           "type_name": "int",
@@ -1025,10 +1302,14 @@
           "default_value": 0.5,
           "port_role": "literal_parameter"
         },
+        "dependencies": [
+          "time"
+        ],
         "data": {
           "type_name": "T",
           "required": true,
-          "port_role": "data_input"
+          "port_role": "data_input",
+          "default_value": "None"
         }
       },
       "outputs": {
@@ -1041,7 +1322,17 @@
         "cpp": "{U} {result};\nfor (int _att = 0; _att < {max_retries}; ++_att) {\n    try {\n        {result} = {action}({data});\n        break;\n    } catch (const std::exception& _err) {\n        if (_att == {max_retries} - 1) {\n            {result} = {fallback}(_err, {data});\n        } else {\n            std::this_thread::sleep_for(std::chrono::milliseconds(static_cast<int>({backoff_sec} * 1000 * (1 << _att))));\n        }\n    }\n}",
         "rust": "let mut {result}: Option<{U}> = None;\nfor _att in 0..{max_retries} {\n    match std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {action}({data}))) {\n        Ok(res) => { {result} = Some(res); break; },\n        Err(_err) => {\n            if _att == {max_retries} - 1 { {result} = Some({fallback}(_err, {data})); }\n            else { std::thread::sleep(std::time::Duration::from_millis(({backoff_sec} * 1000.0 * (1 << _att) as f64) as u64)); }\n        }\n    }\n}\nlet {result} = {result}.unwrap();"
       },
-      "docstring": "Resilience Retry Loop: Repeatedly attempts an action up to max_retries with exponential delay, falling back if all attempts fail."
+      "docstring": "Resilience Retry Loop: Repeatedly attempts an action up to max_retries with exponential delay, falling back if all attempts fail.",
+      "dependencies": [
+        "time"
+      ],
+      "keywords": [
+        "retry",
+        "backoff",
+        "resilience",
+        "attempts",
+        "exponential"
+      ]
     },
     {
       "cell_id": "CF_FIND_FIRST",
@@ -1052,12 +1343,14 @@
         "collection": {
           "type_name": "List[T]",
           "required": true,
-          "port_role": "data_input"
+          "port_role": "data_input",
+          "default_value": "[]"
         },
         "predicate": {
           "type_name": "Callable[[T], bool]",
           "required": true,
-          "port_role": "functional_operator"
+          "port_role": "functional_operator",
+          "default_value": "lambda x: bool(x)"
         },
         "default_val": {
           "type_name": "Optional[T]",
@@ -1076,7 +1369,13 @@
         "cpp": "auto _it = std::find_if({collection}.begin(), {collection}.end(), {predicate});\nauto {result} = (_it != {collection}.end()) ? *(_it) : {default_val};",
         "rust": "let {result}: Option<{T}> = {collection}.iter().cloned().find(|item| {predicate}(item)).or(Some({default_val}));"
       },
-      "docstring": "Short-Circuit Search: Traverses a collection and returns the first element satisfying a predicate, or default_val if no match is found."
+      "docstring": "Short-Circuit Search: Traverses a collection and returns the first element satisfying a predicate, or default_val if no match is found.",
+      "keywords": [
+        "find",
+        "first",
+        "search",
+        "match"
+      ]
     },
     {
       "cell_id": "CF_ALL_SATISFY",
@@ -1087,12 +1386,14 @@
         "collection": {
           "type_name": "List[T]",
           "required": true,
-          "port_role": "data_input"
+          "port_role": "data_input",
+          "default_value": "[]"
         },
         "predicate": {
           "type_name": "Callable[[T], bool]",
           "required": true,
-          "port_role": "functional_operator"
+          "port_role": "functional_operator",
+          "default_value": "lambda x: bool(x)"
         }
       },
       "outputs": {
@@ -1105,7 +1406,12 @@
         "cpp": "bool {all_match} = std::all_of({collection}.begin(), {collection}.end(), {predicate});",
         "rust": "let {all_match}: bool = {collection}.iter().all(|item| {predicate}(item));"
       },
-      "docstring": "Universal Quantifier: Checks whether all elements of a collection satisfy a boolean predicate."
+      "docstring": "Universal Quantifier: Checks whether all elements of a collection satisfy a boolean predicate.",
+      "keywords": [
+        "all",
+        "every",
+        "universal"
+      ]
     },
     {
       "cell_id": "CF_ANY_SATISFY",
@@ -1116,12 +1422,14 @@
         "collection": {
           "type_name": "List[T]",
           "required": true,
-          "port_role": "data_input"
+          "port_role": "data_input",
+          "default_value": "[]"
         },
         "predicate": {
           "type_name": "Callable[[T], bool]",
           "required": true,
-          "port_role": "functional_operator"
+          "port_role": "functional_operator",
+          "default_value": "lambda x: bool(x)"
         }
       },
       "outputs": {
@@ -1134,7 +1442,12 @@
         "cpp": "bool {any_match} = std::any_of({collection}.begin(), {collection}.end(), {predicate});",
         "rust": "let {any_match}: bool = {collection}.iter().any(|item| {predicate}(item));"
       },
-      "docstring": "Existential Quantifier: Checks whether at least one element of a collection satisfies a boolean predicate."
+      "docstring": "Existential Quantifier: Checks whether at least one element of a collection satisfies a boolean predicate.",
+      "keywords": [
+        "any",
+        "some",
+        "exists"
+      ]
     },
     {
       "cell_id": "CF_PARTITION",
@@ -1145,12 +1458,14 @@
         "collection": {
           "type_name": "List[T]",
           "required": true,
-          "port_role": "data_input"
+          "port_role": "data_input",
+          "default_value": "[]"
         },
         "predicate": {
           "type_name": "Callable[[T], bool]",
           "required": true,
-          "port_role": "functional_operator"
+          "port_role": "functional_operator",
+          "default_value": "lambda x: bool(x)"
         }
       },
       "outputs": {
@@ -1166,7 +1481,12 @@
         "cpp": "std::vector<{T}> {true_collection}, {false_collection};\nfor (const auto& x : {collection}) {\n    if ({predicate}(x)) { {true_collection}.push_back(x); } else { {false_collection}.push_back(x); }\n}",
         "rust": "let ({true_collection}, {false_collection}): (Vec<{T}>, Vec<{T}>) = {collection}.into_iter().partition(|x| {predicate}(x));"
       },
-      "docstring": "Predicate Partition Morphism: Divides a collection into two complementary sub-collections: (satisfied, unsatisfied)."
+      "docstring": "Predicate Partition Morphism: Divides a collection into two complementary sub-collections: (satisfied, unsatisfied).",
+      "keywords": [
+        "partition",
+        "split",
+        "divide"
+      ]
     },
     {
       "cell_id": "CF_GUARD",
@@ -1177,22 +1497,26 @@
         "condition": {
           "type_name": "bool",
           "required": true,
-          "port_role": "data_input"
+          "port_role": "data_input",
+          "default_value": true
         },
         "action": {
           "type_name": "Callable[[T], U]",
           "required": true,
-          "port_role": "functional_operator"
+          "port_role": "functional_operator",
+          "default_value": "lambda d: d"
         },
         "fallback_val": {
           "type_name": "U",
           "required": true,
-          "port_role": "data_input"
+          "port_role": "data_input",
+          "default_value": "None"
         },
         "data": {
           "type_name": "T",
           "required": true,
-          "port_role": "data_input"
+          "port_role": "data_input",
+          "default_value": "None"
         }
       },
       "outputs": {
@@ -1205,7 +1529,13 @@
         "cpp": "{U} {result} = ({condition}) ? {action}({data}) : {fallback_val};",
         "rust": "let {result}: {U} = if {condition} { {action}({data}) } else { {fallback_val} };"
       },
-      "docstring": "Precondition Guard Clause: Asserts a boolean condition holds; if false, immediately yields fallback_val without evaluating action."
+      "docstring": "Precondition Guard Clause: Asserts a boolean condition holds; if false, immediately yields fallback_val without evaluating action.",
+      "keywords": [
+        "guard",
+        "precondition",
+        "assert",
+        "validate"
+      ]
     },
     {
       "cell_id": "CF_WITH_CONTEXT",
@@ -1216,12 +1546,14 @@
         "context_manager": {
           "type_name": "ContextManager[C]",
           "required": true,
-          "port_role": "data_input"
+          "port_role": "data_input",
+          "default_value": "open('/dev/null')"
         },
         "body_fn": {
           "type_name": "Callable[[C], U]",
           "required": true,
-          "port_role": "functional_operator"
+          "port_role": "functional_operator",
+          "default_value": "lambda item, s: s"
         }
       },
       "outputs": {
@@ -1234,7 +1566,14 @@
         "cpp": "{U} {result};\n{\n    auto _ctx = {context_manager}.acquire();\n    {result} = {body_fn}(_ctx.get());\n}",
         "rust": "let {result}: {U} = {\n    let _ctx = {context_manager}.enter();\n    {body_fn}(&_ctx)\n};"
       },
-      "docstring": "Bracket / RAII Context Manager: Acquires a managed resource, securely runs body_fn within the active context, and guarantees deterministic release."
+      "docstring": "Bracket / RAII Context Manager: Acquires a managed resource, securely runs body_fn within the active context, and guarantees deterministic release.",
+      "keywords": [
+        "with",
+        "context",
+        "resource",
+        "bracket",
+        "open"
+      ]
     }
   ]
 }

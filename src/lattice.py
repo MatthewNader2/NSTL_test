@@ -684,9 +684,34 @@ class AlgebraicSignature:
         if self.is_top():
             return False
 
+        # Category-Theoretic Generic Functor & Type Variable Unification
+        p_tn = (self.type_name or "").strip()
+        c_tn = (other_sig.type_name or "").strip()
+        is_generic_match = False
+        
+        # 1. Bare type variables (T, U, V, State, Comparable, C, R) universally unify
+        if c_tn in ("T", "U", "V", "State", "Comparable", "C", "R") or p_tn in ("T", "U", "V", "State", "Comparable", "C", "R"):
+            is_generic_match = True
+        else:
+            # 2. Parametric Container / Functor unification (e.g. List[Contour] <-> List[T])
+            import re
+            m_c = re.match(r"^(\w+)\[(.*)\]$", c_tn)
+            m_p = re.match(r"^(\w+)\[(.*)\]$", p_tn)
+            if m_c and m_p:
+                c_ctor, c_inner = m_c.group(1).lower(), m_c.group(2).strip()
+                p_ctor, p_inner = m_p.group(1).lower(), m_p.group(2).strip()
+                if c_ctor == p_ctor:
+                    if (
+                        c_inner in ("T", "U", "V", "State", "Comparable", "C", "R", "Any", "*")
+                        or p_inner in ("T", "U", "V", "State", "Comparable", "C", "R", "Any", "*")
+                    ):
+                        is_generic_match = True
+            elif (c_tn.startswith("List[") and p_tn.lower() in ("list", "sequence", "iterable", "collection")) or                  (p_tn.startswith("List[") and c_tn.lower() in ("list", "sequence", "iterable", "collection")):
+                is_generic_match = True
+
         # Poset subtyping
         registry = TypeRegistry.get_instance()
-        if not registry.is_subtype(self.type_name, other_sig.type_name):
+        if not is_generic_match and not registry.is_subtype(self.type_name, other_sig.type_name):
             # Poset abstract carrier compatibility fallback:
             # Fallback ONLY applies when consumer target is expecting an abstract carrier/interface,
             # NOT when consumer target is a concrete class receiver (e.g. MultiIndex, LinearRegression).
