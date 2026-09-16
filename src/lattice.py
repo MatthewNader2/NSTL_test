@@ -83,6 +83,99 @@ class _UnresolvedPortSentinel:
 UNRESOLVED_PORT = _UnresolvedPortSentinel()
 
 
+from dataclasses import dataclass, field
+from typing import Tuple, Dict, List, Any, Optional, Callable, Set
+
+@dataclass(frozen=True)
+class LatticeType:
+    """
+    Formal Algebraic Free Term for Higher-Kinded Carriers:
+      tau ::= B | F[tau_1, ..., tau_n] | Refined(B, phi)
+    """
+    constructor: str
+    parameters: Tuple["LatticeType", ...] = field(default_factory=tuple)
+    qualifiers: Tuple[str, ...] = field(default_factory=tuple)
+
+    @classmethod
+    def from_str(cls, s: str) -> "LatticeType":
+        if not s:
+            return cls(constructor="None")
+        s = s.strip()
+        quals = ()
+        if "{" in s and s.endswith("}"):
+            base_part, q_part = s[:-1].split("{", 1)
+            s = base_part.strip()
+            quals = tuple(q.strip() for q in q_part.split(",") if q.strip())
+
+        if "[" not in s:
+            return cls(constructor=s.strip(), qualifiers=quals)
+
+        head, rest = s.split("[", 1)
+        inner = rest.rsplit("]", 1)[0]
+        parts, depth, cur = [], 0, []
+        for ch in inner:
+            if ch in "[({":
+                depth += 1
+            elif ch in "])}":
+                depth -= 1
+            if ch == "," and depth == 0:
+                parts.append("".join(cur).strip())
+                cur = []
+            else:
+                cur.append(ch)
+        if cur:
+            parts.append("".join(cur).strip())
+        return cls(
+            constructor=head.strip(),
+            parameters=tuple(cls.from_str(p) for p in parts),
+            qualifiers=quals
+        )
+
+    def is_bottom(self) -> bool:
+        return self.constructor.lower() in ("none", "null", "undefined", "bottom", "⊥", "")
+
+    def is_top(self) -> bool:
+        return self.constructor.lower() in ("any", "object", "*", "top", "⊤", "unknown")
+
+    def is_subtype_of(self, other: "LatticeType", poset_lookup: Callable[[str, str], bool]) -> bool:
+        if self.is_bottom() or other.is_bottom():
+            return False
+        if other.is_top():
+            return True
+        if self.is_top() and not other.is_top():
+            return False
+        if self == other:
+            return True
+
+        # Constructor poset subtyping
+        if not poset_lookup(self.constructor, other.constructor):
+            return False
+
+        # Raw type fallback: F[T1, ..., Tn] <: F
+        if len(other.parameters) == 0:
+            return True
+
+        # Sound parameter demand: F </: F[T] if producer is unparameterized
+        if len(self.parameters) == 0 and len(other.parameters) > 0:
+            return all(p.is_top() for p in other.parameters)
+
+        if len(self.parameters) != len(other.parameters):
+            return False
+
+        if other.qualifiers:
+            if not set(other.qualifiers).issubset(set(self.qualifiers)):
+                return False
+
+        return all(p1.is_subtype_of(p2, poset_lookup) for p1, p2 in zip(self.parameters, other.parameters))
+
+    def __str__(self) -> str:
+        s = self.constructor
+        if self.parameters:
+            s += f"[{', '.join(str(p) for p in self.parameters)}]"
+        if self.qualifiers:
+            s += f"{{{', '.join(self.qualifiers)}}}"
+        return s
+
 class TypeRegistry:
     """
     Dynamic Poset Type Hierarchy (T, <=).
@@ -99,6 +192,7 @@ class TypeRegistry:
         self._state_parents: Dict[str, str] = {}
         self._bootstrap_carrier_hierarchy()
         self._bootstrap_state_hierarchy()
+        self._bootstrap_plugin_types()
 
     def _bootstrap_carrier_hierarchy(self):
         """Initializes universal, language-agnostic computational carrier types."""
@@ -112,6 +206,20 @@ class TypeRegistry:
             self.register_type(t, "numeric")
         self.register_type("numeric", "scalar")
         self.register_type("bool", "logical")
+        # Functor and Container Constructors
+        for ctor in ("list", "sequence", "collection", "tuple", "set", "dict", "file"):
+            self.register_type(ctor, "object")
+        self.register_type("file", "pathlike")
+        self.register_type("file", "filepath")
+        self.register_type("file", "path")
+        self.register_type("file", "str")
+
+        # Modality and Format Base Taxonomy
+        self.register_type("modality", "object")
+        self.register_type("format", "object")
+        self.register_type("imageformat", "format")
+        self.register_type("tabularformat", "format")
+
         # Collection carriers
         for t in ("list", "tuple", "set", "frozenset", "dict", "mapping", "map"):
             self.register_type(t, "collection")
@@ -203,6 +311,24 @@ class TypeRegistry:
         self.register_state("file_path", "source_identifier")
         self.register_state("file_path_str", "source_identifier")
         self.register_state("source_path", "source_identifier")
+
+    def _bootstrap_plugin_types(self):
+        """Dynamically ingests domain plugin types from trees/*.json without engine hardcoding."""
+        import glob, json
+        for s_dir in ("trees", "new trees"):
+            if not os.path.exists(s_dir):
+                continue
+            for p in sorted(glob.glob(f"{s_dir}/*.json")):
+                try:
+                    with open(p, "r", encoding="utf-8") as f:
+                        data = json.load(f)
+                    if isinstance(data, dict) and "types" in data and isinstance(data["types"], dict):
+                        for t_name, t_meta in data["types"].items():
+                            parent = t_meta.get("parent") if isinstance(t_meta, dict) else str(t_meta)
+                            if parent:
+                                self.register_type(t_name, parent)
+                except Exception:
+                    pass
 
     @classmethod
     def get_instance(cls) -> TypeRegistry:
@@ -301,9 +427,26 @@ class TypeRegistry:
     def is_subtype(self, sub: str, super_: str) -> bool:
         """
         Computes poset partial order: returns True iff sub <= super_.
+        Supports recursive structural generic subtyping for terms F[tau_1, ..., tau_n].
         Wildcards ('any', 'object', '*', 'top') are Top types that subsume all types.
         Uses formal MRO and poset reachability dynamically.
         """
+        if not sub or not super_:
+            return False
+        sub_str = str(sub).strip()
+        super_str = str(super_).strip()
+
+        if sub_str.lower() in ("none", "null", "undefined", "") or super_str.lower() in ("none", "null", "undefined", ""):
+            return False
+
+        if "[" in sub_str or "[" in super_str or "{" in sub_str or "{" in super_str:
+            t1 = LatticeType.from_str(sub_str)
+            t2 = LatticeType.from_str(super_str)
+            return t1.is_subtype_of(t2, self._atomic_is_subtype)
+
+        return self._atomic_is_subtype(sub_str, super_str)
+
+    def _atomic_is_subtype(self, sub: str, super_: str) -> bool:
         if not sub or not super_:
             return False
         sub_c = self.canonical_name(sub)
@@ -312,7 +455,7 @@ class TypeRegistry:
         sub_l = sub_c.lower()
         super_l = super_c.lower()
 
-        if sub_l in ("none", "null", "") or super_l in ("none", "null", ""):
+        if sub_l in ("none", "null", "undefined", "") or super_l in ("none", "null", "undefined", ""):
             return False
 
         if super_l in ("any", "object", "*", "top", "unknown"):
@@ -322,16 +465,15 @@ class TypeRegistry:
         if sub_l == super_l:
             return True
 
-        # Union type decomposition (e.g. A_or_B is a subtype of C if any branch satisfies C)
         if "_or_" in sub_l:
-            if any(self.is_subtype(part, super_c) for part in sub_l.split("_or_")):
+            if any(self._atomic_is_subtype(part, super_c) for part in sub_l.split("_or_")):
                 return True
 
-        # Graph poset reachability (case-insensitive)
         sub_key = sub_l.rsplit(".", 1)[-1] if sub_l not in self._parents and "." in sub_l else sub_l
         super_key = super_l.rsplit(".", 1)[-1] if super_l not in self._parents and "." in super_l else super_l
         if sub_key in self._parents:
             visited = set()
+            from collections import deque
             queue = deque([sub_key])
             while queue:
                 curr = queue.popleft()
@@ -343,7 +485,6 @@ class TypeRegistry:
                     if p_l not in visited:
                         queue.append(p_l)
 
-        # Dynamic runtime reflection via sys.modules and MRO
         sub_cls = self._resolve_runtime_class(sub_c)
         super_cls = self._resolve_runtime_class(super_c)
         if sub_cls is not None and super_cls is not None:
@@ -354,7 +495,6 @@ class TypeRegistry:
                 pass
 
         return False
-
     def register_state(self, state: str, parent_state: Optional[str] = None):
         """Registers a typestate and its optional parent_state."""
         s = str(state).strip().lower()
@@ -1389,6 +1529,12 @@ class LatticeOrchestrator:
             else:
                 domain = data.get("domain", "generic")
                 raw_cells = data.get("cells", [])
+                if "types" in data and isinstance(data["types"], dict):
+                    reg = TypeRegistry.get_instance()
+                    for t_name, t_meta in data["types"].items():
+                        parent = t_meta.get("parent") if isinstance(t_meta, dict) else str(t_meta)
+                        if parent:
+                            reg.register_type(t_name, parent)
                 if "typestates" in data and data["typestates"]:
                     self.typestate_vocabularies[domain] = data["typestates"]
                     ts_info = data["typestates"]
@@ -1475,6 +1621,13 @@ class LatticeOrchestrator:
             try:
                 conn = sqlite3.connect(self.db_path, check_same_thread=False)
                 cursor = conn.cursor()
+                cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='types'")
+                if cursor.fetchone():
+                    cursor.execute("SELECT type_name, parent_type FROM types")
+                    reg = TypeRegistry.get_instance()
+                    for t_name, p_type in cursor.fetchall():
+                        if t_name and p_type:
+                            reg.register_type(t_name, p_type)
                 cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name IN ('nodes', 'cells')")
                 tables = [row[0] for row in cursor.fetchall()]
 
@@ -1743,17 +1896,30 @@ class LatticeOrchestrator:
                             self._adjacency[u.cell_id].append(tgt_cell.cell_id)
                             self._reverse_adjacency[tgt_cell.cell_id].append(u.cell_id)
 
-                # 2. Monadic type compatibility
+                # 2. Monadic type compatibility (guarded against undefined/none/any spurious edges)
                 out_p = u.primary_output
-                if out_p:
-                    out_sig = out_p.signature
-                    for v in all_cells:
-                        if u.cell_id == v.cell_id or v.cell_id in self._adjacency[u.cell_id]:
-                            continue
-                        in_p = v.primary_input
-                        if in_p and out_sig.unifies_with(in_p.signature):
-                            self._adjacency[u.cell_id].append(v.cell_id)
-                            self._reverse_adjacency[v.cell_id].append(u.cell_id)
+                if out_p and getattr(out_p, "type_name", None):
+                    out_tn = str(out_p.type_name).strip().lower()
+                    if out_tn not in ("none", "null", "undefined", "any", "*", ""):
+                        out_sig = out_p.signature
+                        is_out_bot = (hasattr(out_sig, 'is_bottom') and out_sig.is_bottom()) or out_tn in ('none', 'null', 'undefined', 'bottom', '')
+                        if not (hasattr(out_sig, 'is_top') and out_sig.is_top()) and not is_out_bot:
+                            for v in all_cells:
+                                if u.cell_id == v.cell_id or v.cell_id in self._adjacency[u.cell_id]:
+                                    continue
+                                # Stage 1 source/reader nodes never accept upstream incoming dataflow
+                                if getattr(v, "stage", None) == 1 or not getattr(v, "inputs", None):
+                                    continue
+                                in_p = v.primary_input
+                                if in_p and getattr(in_p, "type_name", None):
+                                    in_tn = str(in_p.type_name).strip().lower()
+                                    if in_tn not in ("none", "null", "undefined", "any", "*", ""):
+                                        in_sig = in_p.signature
+                                        is_in_bot = (hasattr(in_sig, 'is_bottom') and in_sig.is_bottom()) or in_tn in ('none', 'null', 'undefined', 'bottom', '')
+                                        if not (hasattr(in_sig, 'is_top') and in_sig.is_top()) and not is_in_bot:
+                                            if out_sig.unifies_with(in_sig):
+                                                self._adjacency[u.cell_id].append(v.cell_id)
+                                                self._reverse_adjacency[v.cell_id].append(u.cell_id)
 
     @property
     def token_index(self) -> Dict[str, List[Cell]]:

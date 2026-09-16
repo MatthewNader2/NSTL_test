@@ -572,7 +572,7 @@
       "type_vars": [],
       "inputs": {
         "image_path": {
-          "type_name": "str",
+          "type_name": "File[Image, Any]",
           "state": "file_path",
           "qualifiers": [
             [
@@ -5931,7 +5931,7 @@
       },
       "outputs": {
         "contours": {
-          "type_name": "list",
+          "type_name": "List[Contour]",
           "state": "contours",
           "qualifiers": [],
           "default_value": null,
@@ -6121,7 +6121,7 @@
           "shape_contract": null
         },
         "contours": {
-          "type_name": "list",
+          "type_name": "List[Contour]",
           "state": "contours",
           "qualifiers": [],
           "default_value": null,
@@ -6270,7 +6270,7 @@
       "type_vars": [],
       "inputs": {
         "contour": {
-          "type_name": "ndarray",
+          "type_name": "Contour",
           "state": "contour",
           "qualifiers": [],
           "default_value": null,
@@ -13759,5 +13759,23 @@
       "primary_in": "buf",
       "primary_out": "output_var"
     }
-  ]
+  ],
+  "types": {
+    "Contour": {
+      "parent": "ndarray",
+      "description": "Boundary vector of 2D coordinates with shape (N, 1, 2) or (N, 2)"
+    },
+    "Image": {
+      "parent": "Modality"
+    },
+    "PNG": {
+      "parent": "ImageFormat"
+    },
+    "JPG": {
+      "parent": "ImageFormat"
+    },
+    "JPEG": {
+      "parent": "ImageFormat"
+    }
+  }
 }

@@ -10581,5 +10581,16 @@
       "primary_in": "port_0",
       "primary_out": "port_0"
     }
-  ]
+  ],
+  "types": {
+    "Tabular": {
+      "parent": "Modality"
+    },
+    "CSV": {
+      "parent": "TabularFormat"
+    },
+    "Parquet": {
+      "parent": "TabularFormat"
+    }
+  }
 }

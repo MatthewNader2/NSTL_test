@@ -250,9 +250,9 @@ class CellSchema(BaseModel):
         return str(v).strip().lower()
 
     @property
-    def primary_input(self) -> PortSchema:
+    def primary_input(self) -> Optional[PortSchema]:
         if not self.inputs:
-            return PortSchema(type_name="any", state="any")
+            return None
         required = [p for p in self.inputs.values() if p.required]
         if required:
             non_scalar = [p for p in required if (p.abstract_type or "").lower() not in ("scalar", "text", "path", "logical")]
@@ -260,9 +260,9 @@ class CellSchema(BaseModel):
         return next(iter(self.inputs.values()))
 
     @property
-    def primary_output(self) -> PortSchema:
+    def primary_output(self) -> Optional[PortSchema]:
         if not self.outputs:
-            return PortSchema(type_name="any", state="default")
+            return None
         return next(iter(self.outputs.values()))
 
     @field_validator("code_template")
@@ -301,6 +301,7 @@ class TreeSchema(BaseModel):
     domain: str
     version: str = "1.0.0"
     cells: List[CellSchema]
+    types: Optional[Dict[str, Any]] = Field(default_factory=dict)
     typestates: Optional[Union[TypestateVocabularySchema, Dict[str, Any], List[str]]] = None
 
     @field_validator("typestates", mode="before")

@@ -428,12 +428,12 @@ def unify(
             _UNIFY_BASE_CACHE[cache_key] = None
         return None
 
-    # 2.5. Generic container unification
+    # 2.5. Generic container unification (covariant structural unification)
     if isinstance(t1, GenericTypeTerm) and isinstance(t2, GenericTypeTerm):
         registry = TypeRegistry.get_instance()
         c1 = t1.constructor.lower()
         c2 = t2.constructor.lower()
-        compat = (c1 == c2) or registry.is_subtype(c1, c2) or registry.is_subtype(c2, c1)
+        compat = (c1 == c2) or registry.is_subtype(c1, c2)
         if compat and len(t1.args) == len(t2.args):
             for a1, a2 in zip(t1.args, t2.args):
                 sub = unify(a1, a2, sub)
@@ -448,6 +448,7 @@ def unify(
             _UNIFY_BASE_CACHE[cache_key] = None
         return None
 
+    # Raw type fallback: List[Contour] satisfies unparameterized List
     if isinstance(t1, GenericTypeTerm) and (isinstance(t2, AtomicType) or isinstance(t2, TypestateTerm)):
         registry = TypeRegistry.get_instance()
         target_name = t2.type_name if isinstance(t2, TypestateTerm) else t2.name
@@ -456,16 +457,21 @@ def unify(
                 _UNIFY_BASE_CACHE[cache_key] = sub
             return sub
 
+    # Sound parameter demand: untyped list satisfies GenericTypeTerm ONLY IF parameters are type variables
     if isinstance(t2, GenericTypeTerm) and (isinstance(t1, AtomicType) or isinstance(t1, TypestateTerm)):
         registry = TypeRegistry.get_instance()
         source_name = t1.type_name if isinstance(t1, TypestateTerm) else t1.name
         if registry.is_subtype(source_name, t2.constructor):
-            for arg in t2.args:
-                if isinstance(arg, TypeVariable) and arg.var_name not in sub.mappings:
-                    sub.bind(arg.var_name, TOP)
+            if all(isinstance(arg, (TypeVariable, TopType)) for arg in t2.args):
+                for arg in t2.args:
+                    if isinstance(arg, TypeVariable) and arg.var_name not in sub.mappings:
+                        sub.bind(arg.var_name, TOP)
+                if is_ground_query:
+                    _UNIFY_BASE_CACHE[cache_key] = sub
+                return sub
             if is_ground_query:
-                _UNIFY_BASE_CACHE[cache_key] = sub
-            return sub
+                _UNIFY_BASE_CACHE[cache_key] = None
+            return None
 
     # 3. Typestate term unification
     if isinstance(t1, TypestateTerm) and isinstance(t2, TypestateTerm):

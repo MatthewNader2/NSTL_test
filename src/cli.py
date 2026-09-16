@@ -84,6 +84,7 @@ def init_sqlite_db(db_path: Path, clean: bool = False) -> sqlite3.Connection:
     cur.execute("CREATE INDEX IF NOT EXISTS idx_role ON nodes(node_role)")
     cur.execute("CREATE INDEX IF NOT EXISTS idx_type ON nodes(node_type)")
     cur.execute("CREATE INDEX IF NOT EXISTS idx_slots ON nodes(slots)")
+    cur.execute("CREATE TABLE IF NOT EXISTS types (type_name TEXT PRIMARY KEY, parent_type TEXT, domain_name TEXT)")
     conn.commit()
     return conn
 
@@ -118,6 +119,16 @@ def cmd_compile(args):
                 tree = TreeSchema(**data)
                 cells = tree.cells
                 domain = tree.domain
+                # Dynamic domain plugin type registration
+                types_dict = getattr(tree, "types", {}) or data.get("types", {})
+                if isinstance(types_dict, dict):
+                    reg = TypeRegistry.get_instance()
+                    for t_name, t_meta in types_dict.items():
+                        parent = t_meta.get("parent") if isinstance(t_meta, dict) else str(t_meta)
+                        if parent:
+                            reg.register_type(t_name, parent)
+                            cur.execute("INSERT OR REPLACE INTO types (type_name, parent_type, domain_name) VALUES (?, ?, ?)",
+                                        (str(t_name).strip(), str(parent).strip(), domain))
             except Exception as e:
                 print(f"[!] Schema validation error in {jf.name}: {e}")
                 cells = []
@@ -134,10 +145,10 @@ def cmd_compile(args):
             primary_in = cell.primary_input
             primary_out = cell.primary_output
 
-            in_type = primary_in.type_name
-            in_state = primary_in.state
-            out_type = primary_out.type_name
-            out_state = primary_out.state
+            in_type = primary_in.type_name if primary_in and getattr(primary_in, "type_name", None) and str(primary_in.type_name).lower() not in ("none", "null", "undefined") else None
+            in_state = primary_in.state if primary_in and getattr(primary_in, "state", None) and str(primary_in.state).lower() not in ("none", "null", "undefined") else None
+            out_type = primary_out.type_name if primary_out and getattr(primary_out, "type_name", None) and str(primary_out.type_name).lower() not in ("none", "null", "undefined") else None
+            out_state = primary_out.state if primary_out and getattr(primary_out, "state", None) and str(primary_out.state).lower() not in ("none", "null", "undefined") else None
 
             cfg_dict = {
                 "inputs": {k: v.model_dump() for k, v in cell.inputs.items()},
