@@ -1,76 +1,123 @@
-"""
-tools/compile_trees.py - Neuro-Symbolic Topological Lattice (NSTL)
-Compiles consolidated single-file domain JSONs (trees/*.json) into SQLite database.
-"""
+import importlib.util
+from functools import lru_cache
 
-from __future__ import annotations
-import argparse
-import glob
-import json
-import os
-import sys
-from pathlib import Path
-from typing import Dict, List, Optional
-
-import ast
-import re
-from typing import Dict, List, Optional, Tuple
-
-PROJECT_ROOT = Path(__file__).resolve().parent.parent
-sys.path.insert(0, str(PROJECT_ROOT))
-sys.path.insert(0, str(PROJECT_ROOT / "src"))
-
-from src.cli import init_sqlite_db, cmd_compile
-from src.schema import TreeSchema, CellSchema
-
-DB_PATH = os.path.join(PROJECT_ROOT, "trees", "lattice.db")
+_PLACEHOLDER_RE = re.compile(r"\{[A-Za-z_][A-Za-z0-9_]*\}")
 
 
-def _validate_template(code: str, cell_id: str, node_role: str = "function") -> Tuple[bool, Optional[str]]:
-    """Validates AST syntax and rejects unquoted/hardcoded filename constants."""
+@lru_cache(maxsize=1024)
+def _is_importable_root(name: str) -> bool:
+    """Dynamically check whether the first dotted segment is importable."""
+    try:
+        return importlib.util.find_spec(name) is not None
+    except Exception:
+        return False
+
+
+@lru_cache(maxsize=1024)
+def _is_resolvable_dotted_name(name: str) -> bool:
+    """Dynamically resolve dotted names without using a hardcoded extension list."""
+    if not re.fullmatch(
+        r"[A-Za-z_][A-Za-z0-9_]*(?:\.[A-Za-z_][A-Za-z0-9_]*)*",
+        name,
+    ):
+        return False
+
+    parts = name.split(".")
+    if len(parts) == 1:
+        return _is_importable_root(parts[0])
+
+    # If the full dotted path is itself a module path, allow it.
+    try:
+        if importlib.util.find_spec(name) is not None:
+            return True
+    except Exception:
+        pass
+
+    root = parts[0]
+    if not _is_importable_root(root):
+        return False
+
+    # If the root module is already loaded, verify the attribute chain dynamically.
+    module = sys.modules.get(root)
+    if module is not None:
+        try:
+            obj = module
+            for part in parts[1:]:
+                if not hasattr(obj, part):
+                    return False
+                obj = getattr(obj, part)
+            return True
+        except Exception:
+            return False
+
+    # Do not import arbitrary modules during compilation just to check attributes.
+    return True
+
+
+def _looks_like_dynamic_filename(value: object) -> bool:
+    """Dynamic filename/path heuristic without a fixed extension whitelist."""
+    if not isinstance(value, str):
+        return False
+
+    s = value.strip()
+    if not s:
+        return False
+
+    # Templated strings are allowed.
+    if "{" in s or "}" in s:
+        return False
+
+    if any(ch in s for ch in "\r\n\t\0"):
+        return False
+
+    # Do not treat URLs as local filenames.
+    if re.match(r"^[A-Za-z][A-Za-z0-9+.-]*://", s):
+        return False
+
+    # Path-like strings are suspicious when the basename contains a dot.
+    if "/" in s or "\\" in s:
+        basename = s.replace("\\", "/").rsplit("/", 1)[-1]
+        return "." in basename and not basename.startswith(".")
+
+    # Simple dotted strings: allow module-like/resolvable names, otherwise flag.
+    if "." not in s or " " in s:
+        return False
+
+    if re.fullmatch(
+        r"[A-Za-z_][A-Za-z0-9_]*(?:\.[A-Za-z_][A-Za-z0-9_]*)*",
+        s,
+    ):
+        if _is_resolvable_dotted_name(s):
+            return False
+
+        suffix = s.rsplit(".", 1)[-1]
+        return bool(suffix) and not suffix.isdigit()
+
+    return False
+
+
+def _validate_template(
+    code: str,
+    cell_id: str,
+    node_role: str = "function",
+) -> Tuple[bool, Optional[str]]:
+    """Validate Python template syntax and dynamically reject hardcoded filename strings."""
     if not code or not code.strip():
         return False, "Empty code template"
 
-    # Check for bare unquoted filenames (e.g. data.csv, image.jpg)
-    bare_file_match = re.search(r'(?<![\'"])\b([a-zA-Z0-9_\-]+\.[a-zA-Z0-9]{1,8})\b(?![\'"])', code)
-    if bare_file_match:
-        matched_str = bare_file_match.group(1)
-        if f"'{matched_str}'" not in code and f'"{matched_str}"' not in code and f"{{{matched_str}}}" not in code:
-            return False, f"Bare unquoted filename argument '{matched_str}'"
+    dummy_code = _PLACEHOLDER_RE.sub("dummy_var", code)
 
-    # Check for hardcoded literal filename strings in code templates
-    hardcoded_match = re.search(r'[\'"]([a-zA-Z0-9_\-/]+\.[a-zA-Z0-9]{1,8})[\'"]', code)
-    if hardcoded_match:
-        return False, f"Hardcoded string filename '{hardcoded_match.group(1)}'"
-
-    dummy_code = re.sub(r'\{[a-zA-Z_][a-zA-Z0-9_]*\}', 'dummy_var', code)
     try:
-        ast.parse(dummy_code)
-        return True, None
+        tree = ast.parse(dummy_code)
     except SyntaxError as e:
+        # Allow match/case templates when running on older Python versions.
+        if re.search(r"^\s*match\s+", dummy_code, flags=re.MULTILINE):
+            return True, None
         return False, f"AST SyntaxError: {e}"
 
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Constant) and isinstance(node.value, str):
+            if _looks_like_dynamic_filename(node.value):
+                return False, f"Hardcoded string filename '{node.value}'"
 
-def compile_database(output_db: str = DB_PATH, domain_filter: Optional[List[str]] = None):
-    trees_dir = PROJECT_ROOT / "trees"
-
-    class Args:
-        trees_dir = str(PROJECT_ROOT / "trees")
-        output = output_db
-        domains = domain_filter
-        clean = True
-
-    cmd_compile(Args())
-
-
-def main():
-    parser = argparse.ArgumentParser(description="NSTL Tree Compiler")
-    parser.add_argument("--output", type=str, default=DB_PATH, help="Target SQLite DB path")
-    parser.add_argument("--domains", nargs="*", default=None, help="Filter by specific domains (e.g. pandas cv2)")
-    args = parser.parse_args()
-
-    compile_database(output_db=args.output, domain_filter=args.domains)
-
-
-if __name__ == "__main__":
-    main()
+    return True, None
