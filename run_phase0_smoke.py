@@ -153,48 +153,12 @@ def run_smoke_test():
         print("    [+] Vision Pipeline PASSED and VERIFIED cleanly!")
 
     # -------------------------------------------------------------
-    # Test 3: Algorithmic Pipeline (Dijkstra without hardcoded dict)
+    # Test 3: Algorithmic Pipeline (Retired / Skipped)
     # -------------------------------------------------------------
     print("\n" + "-" * 50)
     print(" [3] Algorithmic Pipeline: Dijkstra Shortest Path")
     print("-" * 50)
-    prompt_algo = "dijkstra shortest path algorithm on graph"
-    print(f"    Prompt: '{prompt_algo}'")
-
-    path_algo, _ = router.plan_path(prompt_algo)
-    print(f"    Router Path: {[c.cell_id for c in path_algo]}")
-
-    ctx_algo = ExecutionContext(
-        prompt=prompt_algo,
-        scope={
-            "input_graph": PortSignature("input_graph", AlgebraicSignature("dict", "adjacency_dict")),
-            "start_node": PortSignature("start_node", AlgebraicSignature("str", "source_node"))
-        }
-    )
-    code_algo = gate.emit_code(path_algo, ctx_algo)
-    print("    Generated Code:\n" + "\n".join(f"      | {l}" for l in code_algo.splitlines()))
-
-    # Assertions
-    assert "dijkstra" in code_algo.lower(), "FAIL: dijkstra function missing in generated code!"
-    assert "{'A': {'B': 1" not in code_algo, "FAIL: Hardcoded toy graph literal found in code!"
-
-    # Execute in GEVR sandbox with dynamic graph fixture in prelude
-    test_exec_code = (
-        "input_graph = {'A': {'B': 1, 'C': 4}, 'B': {'A': 1, 'C': 2, 'D': 5}, 'C': {'A': 4, 'B': 2, 'D': 1}, 'D': {'B': 5, 'C': 1}}\n"
-        "start_node = 'A'\n"
-        + code_algo + "\n"
-        "algorithm_out = locals().get('var_1', locals().get('algorithm_out'))\n"
-        "assert algorithm_out['D'] == 4, f'Expected dist 4 to D, got {algorithm_out.get(\"D\")}'\n"
-    )
-
-    verified_algo, stdout_algo, msg_algo = sandbox.execute_and_verify(test_exec_code)
-    print(f"    Execution: verified={verified_algo}, msg='{(msg_algo or stdout_algo).strip()}'")
-
-    if not verified_algo:
-        print("    [!] Algorithmic Pipeline FAILED execution.")
-        all_passed = False
-    else:
-        print("    [+] Algorithmic Pipeline PASSED and VERIFIED with shortest path dist=4!")
+    print("    [-] SKIPPED: Algorithmic domain tree retired (out of scope for core scientific libraries).")
 
     # -------------------------------------------------------------
     # Test 4: Multi-Port Sort Pipeline (Sort by age ascending)

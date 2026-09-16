@@ -2093,21 +2093,6 @@ class UnificationGate:
                             bound_producer = True
                             break
 
-            # Dual-Port Feature Projection for DataFrame-to-Array transforms
-            if bound_producer and ("DATAFRAME_TO_NUMPY" in getattr(cell, "cell_id", "") or getattr(cell, "cell_id", "") == "PANDAS_DATAFRAME_TO_NUMPY"):
-                prompt_str = getattr(ctx, "prompt", "")
-                feat_m = re.search(r'\bon\s+([A-Za-z0-9_,\s]+?)\s+to\s+predict', prompt_str, re.IGNORECASE)
-                if feat_m:
-                    raw_feats = feat_m.group(1).strip()
-                    feats = [f.strip() for f in re.split(r'[, ]+and\s+|[,\s]+', raw_feats) if f.strip() and f.strip().lower() not in ('a', 'the', 'column', 'columns')]
-                    if feats:
-                        for p_k in ("df", getattr(cell.primary_input, "name", "df")):
-                            if p_k in cell_bindings and "[" not in str(cell_bindings[p_k]):
-                                cell_bindings[p_k] = f"{cell_bindings[p_k]}[{feats!r}]"
-                                if hasattr(ctx, "consumed_tokens"):
-                                    for f in feats:
-                                        ctx.consumed_tokens.add(f.lower())
-
             # 3. Resolve auxiliary input ports (variable reuse / port sharing / parameters / literals).
             # REQUIRED ports are processed before optional ones so data ports claim
             # the prompt's shared literal channels (expressions, paths) first;
@@ -2137,19 +2122,6 @@ class UnificationGate:
                             accumulated_sigma = u_v
                             break
                     if scoped_var is not None:
-                        # Dual-Port Feature Projection: slice feature columns if bridging to ndarray
-                        if p_name == "df" and ("DATAFRAME_TO_NUMPY" in getattr(cell, "cell_id", "") or getattr(cell, "cell_id", "") == "PANDAS_DATAFRAME_TO_NUMPY"):
-                            prompt_str = getattr(ctx, "prompt", "")
-                            feat_m = re.search(r'\bon\s+([A-Za-z0-9_,\s]+?)\s+to\s+predict', prompt_str, re.IGNORECASE)
-                            if feat_m:
-                                raw_feats = feat_m.group(1).strip()
-                                feats = [f.strip() for f in re.split(r'[, ]+and\s+|[,\s]+', raw_feats) if f.strip() and f.strip().lower() not in ('a', 'the', 'column', 'columns')]
-                                if feats:
-                                    cell_bindings[p_name] = f"{scoped_var}[{feats!r}]"
-                                    if hasattr(ctx, "consumed_tokens"):
-                                        for f in feats:
-                                            ctx.consumed_tokens.add(f.lower())
-                                    continue
                         cell_bindings[p_name] = scoped_var
                         continue
 
@@ -2159,37 +2131,7 @@ class UnificationGate:
                         if str(val).lower() not in getattr(ctx, "consumed_tokens", set())
                         and kind in ("identifier", "quoted_str")
                     ]
-
-                    # Dual-Port Typestate Projection:
-                    # Project target vector from upstream DataFrame carrier for supervised tasks
-                    p_role = getattr(p_sig, "port_role", None) or getattr(p_sig, "derived_role", "")
-                    if p_role == "target_input" or p_name in ("y", "target", "y_true"):
-                        target_col = None
-                        prompt_str = getattr(ctx, "prompt", "")
-                        pred_m = re.search(r'(?:to\s+predict|predict)\s+([A-Za-z0-9_]+)', prompt_str, re.IGNORECASE)
-                        if pred_m:
-                            target_col = pred_m.group(1).strip()
-                        elif unconsumed_lits:
-                            target_col = unconsumed_lits[-1]
-
-                        if target_col:
-                            df_candidate = None
-                            for v_name, (v_sig, _) in reversed(list(ctx.variables.items())):
-                                tname = str(getattr(v_sig, "signature", None) or getattr(v_sig, "type_name", "")).lower()
-                                if "dataframe" in tname or getattr(v_sig, "type_name", "") == "DataFrame":
-                                    df_candidate = v_name
-                                    break
-
-                            if df_candidate:
-                                if str(getattr(concrete_sig, "type_name", "")).lower() in ("ndarray", "tensor"):
-                                    cell_bindings[p_name] = f"{df_candidate}['{target_col}'].to_numpy()"
-                                else:
-                                    cell_bindings[p_name] = f"{df_candidate}['{target_col}']"
-                                if hasattr(ctx, "consumed_tokens"):
-                                    ctx.consumed_tokens.add(str(target_col).lower())
-                                continue
-
-                    if unconsumed_lits and p_sig.required:
+                    if unconsumed_lits:
                         if hasattr(ctx, "unresolved_ports"):
                             ctx.unresolved_ports.append((cell.cell_id, p_name))
                         ctx.unbindable_count = getattr(ctx, "unbindable_count", 0) + 1

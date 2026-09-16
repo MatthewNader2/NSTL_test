@@ -1754,7 +1754,9 @@
           },
           "needs_mining": false
         }
-      ]
+      ],
+      "primary_in": "X",
+      "primary_out": "X_train"
     },
     {
       "cell_id": "sklearn.datasets.load_iris",
@@ -1850,7 +1852,9 @@
           "metadata": {},
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "void",
+      "primary_out": "X"
     },
     {
       "cell_id": "sklearn.datasets.make_classification",
@@ -2007,7 +2011,9 @@
           "metadata": {},
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "n_samples",
+      "primary_out": "X"
     },
     {
       "cell_id": "sklearn.datasets.make_regression",
@@ -2164,7 +2170,9 @@
           "metadata": {},
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "n_samples",
+      "primary_out": "X"
     },
     {
       "cell_id": "sklearn.preprocessing.StandardScaler.fit_transform",
@@ -2405,7 +2413,9 @@
           },
           "needs_mining": false
         }
-      ]
+      ],
+      "primary_in": "X",
+      "primary_out": "output_var"
     },
     {
       "cell_id": "sklearn.preprocessing.MinMaxScaler.fit_transform",
@@ -2530,7 +2540,9 @@
           },
           "needs_mining": false
         }
-      ]
+      ],
+      "primary_in": "X",
+      "primary_out": "output_var"
     },
     {
       "cell_id": "sklearn.preprocessing.RobustScaler.fit_transform",
@@ -2655,7 +2667,9 @@
           },
           "needs_mining": false
         }
-      ]
+      ],
+      "primary_in": "X",
+      "primary_out": "output_var"
     },
     {
       "cell_id": "sklearn.impute.SimpleImputer.fit_transform",
@@ -2803,7 +2817,9 @@
           },
           "needs_mining": false
         }
-      ]
+      ],
+      "primary_in": "X",
+      "primary_out": "output_var"
     },
     {
       "cell_id": "sklearn.preprocessing.OneHotEncoder.fit_transform",
@@ -2916,7 +2932,9 @@
           "metadata": {},
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "X",
+      "primary_out": "output_var"
     },
     {
       "cell_id": "sklearn.preprocessing.PolynomialFeatures.fit_transform",
@@ -3049,7 +3067,9 @@
           "metadata": {},
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "X",
+      "primary_out": "output_var"
     },
     {
       "cell_id": "sklearn.decomposition.PCA.fit_transform",
@@ -3202,7 +3222,9 @@
           },
           "needs_mining": false
         }
-      ]
+      ],
+      "primary_in": "X",
+      "primary_out": "output_var"
     },
     {
       "cell_id": "sklearn.decomposition.TruncatedSVD.fit_transform",
@@ -3336,7 +3358,9 @@
           "metadata": {},
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "X",
+      "primary_out": "output_var"
     },
     {
       "cell_id": "sklearn.feature_selection.SelectKBest.fit_transform",
@@ -3503,7 +3527,9 @@
           },
           "needs_mining": false
         }
-      ]
+      ],
+      "primary_in": "X",
+      "primary_out": "output_var"
     },
     {
       "cell_id": "sklearn.linear_model.LogisticRegression.fit",
@@ -3717,7 +3743,9 @@
           "metadata": {},
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "X",
+      "primary_out": "model"
     },
     {
       "cell_id": "sklearn.linear_model.LogisticRegression.predict",
@@ -3883,7 +3911,9 @@
           },
           "needs_mining": false
         }
-      ]
+      ],
+      "primary_in": "X",
+      "primary_out": "y_pred"
     },
     {
       "cell_id": "sklearn.linear_model.LogisticRegression.predict_proba",
@@ -4013,7 +4043,9 @@
           "metadata": {},
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "X",
+      "primary_out": "y_proba"
     },
     {
       "cell_id": "sklearn.ensemble.RandomForestClassifier.fit",
@@ -4235,7 +4267,9 @@
           },
           "needs_mining": false
         }
-      ]
+      ],
+      "primary_in": "X",
+      "primary_out": "model"
     },
     {
       "cell_id": "sklearn.svm.SVC.fit",
@@ -4426,7 +4460,9 @@
           },
           "needs_mining": false
         }
-      ]
+      ],
+      "primary_in": "X",
+      "primary_out": "model"
     },
     {
       "cell_id": "sklearn.linear_model.LinearRegression.fit",
@@ -4564,7 +4600,9 @@
           },
           "needs_mining": false
         }
-      ]
+      ],
+      "primary_in": "X",
+      "primary_out": "model"
     },
     {
       "cell_id": "sklearn.linear_model.LinearRegression.predict",
@@ -4709,7 +4747,9 @@
           },
           "needs_mining": false
         }
-      ]
+      ],
+      "primary_in": "X",
+      "primary_out": "y_pred"
     },
     {
       "cell_id": "sklearn.linear_model.Ridge.fit",
@@ -4877,7 +4917,9 @@
           },
           "needs_mining": false
         }
-      ]
+      ],
+      "primary_in": "X",
+      "primary_out": "model"
     },
     {
       "cell_id": "sklearn.linear_model.Lasso.fit",
@@ -5033,7 +5075,9 @@
           "metadata": {},
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "X",
+      "primary_out": "model"
     },
     {
       "cell_id": "sklearn.ensemble.RandomForestRegressor.fit",
@@ -5207,7 +5251,9 @@
           "metadata": {},
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "X",
+      "primary_out": "model"
     },
     {
       "cell_id": "sklearn.cluster.KMeans.fit",
@@ -5372,7 +5418,9 @@
           },
           "needs_mining": false
         }
-      ]
+      ],
+      "primary_in": "X",
+      "primary_out": "model"
     },
     {
       "cell_id": "sklearn.cluster.KMeans.fit_predict",
@@ -5522,7 +5570,9 @@
           "metadata": {},
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "X",
+      "primary_out": "cluster_labels"
     },
     {
       "cell_id": "sklearn.cluster.DBSCAN.fit_predict",
@@ -5680,7 +5730,9 @@
           },
           "needs_mining": false
         }
-      ]
+      ],
+      "primary_in": "X",
+      "primary_out": "cluster_labels"
     },
     {
       "cell_id": "sklearn.pipeline.Pipeline.fit",
@@ -5841,7 +5893,9 @@
           "metadata": {},
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "X",
+      "primary_out": "pipe"
     },
     {
       "cell_id": "sklearn.model_selection.GridSearchCV.fit",
@@ -6040,7 +6094,9 @@
           "metadata": {},
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "X",
+      "primary_out": "search"
     },
     {
       "cell_id": "sklearn.model_selection.cross_val_score",
@@ -6218,7 +6274,9 @@
           },
           "needs_mining": false
         }
-      ]
+      ],
+      "primary_in": "X",
+      "primary_out": "scores"
     },
     {
       "cell_id": "sklearn.metrics.accuracy_score",
@@ -6371,7 +6429,9 @@
           },
           "needs_mining": false
         }
-      ]
+      ],
+      "primary_in": "y_true",
+      "primary_out": "score"
     },
     {
       "cell_id": "sklearn.metrics.f1_score",
@@ -6535,7 +6595,9 @@
           },
           "needs_mining": false
         }
-      ]
+      ],
+      "primary_in": "y_true",
+      "primary_out": "score"
     },
     {
       "cell_id": "sklearn.metrics.confusion_matrix",
@@ -6674,7 +6736,9 @@
           },
           "needs_mining": false
         }
-      ]
+      ],
+      "primary_in": "y_true",
+      "primary_out": "matrix"
     },
     {
       "cell_id": "sklearn.metrics.roc_auc_score",
@@ -6803,7 +6867,9 @@
       "effects": [
         "computes_rank_discrimination"
       ],
-      "edges": []
+      "edges": [],
+      "primary_in": "y_true",
+      "primary_out": "score"
     },
     {
       "cell_id": "sklearn.metrics.mean_squared_error",
@@ -6944,7 +7010,9 @@
           },
           "needs_mining": false
         }
-      ]
+      ],
+      "primary_in": "y_true",
+      "primary_out": "score"
     },
     {
       "cell_id": "sklearn.metrics.r2_score",
@@ -7069,7 +7137,9 @@
       "effects": [
         "measures_explained_variance_ratio"
       ],
-      "edges": []
+      "edges": [],
+      "primary_in": "y_true",
+      "primary_out": "score"
     },
     {
       "cell_id": "sklearn.metrics.silhouette_score",
@@ -7198,7 +7268,9 @@
       "effects": [
         "measures_cluster_separation"
       ],
-      "edges": []
+      "edges": [],
+      "primary_in": "X",
+      "primary_out": "score"
     },
     {
       "cell_id": "joblib.dump",
@@ -7305,7 +7377,9 @@
           },
           "needs_mining": false
         }
-      ]
+      ],
+      "primary_in": "model",
+      "primary_out": "void"
     },
     {
       "cell_id": "joblib.load",
@@ -7418,7 +7492,9 @@
           },
           "needs_mining": false
         }
-      ]
+      ],
+      "primary_in": "filepath",
+      "primary_out": "model"
     },
     {
       "cell_id": "sklearn.datasets.load_wine",
@@ -7530,7 +7606,9 @@
           "metadata": {},
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "void",
+      "primary_out": "X"
     },
     {
       "cell_id": "sklearn.datasets.load_breast_cancer",
@@ -7634,7 +7712,9 @@
           "metadata": {},
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "void",
+      "primary_out": "X"
     },
     {
       "cell_id": "sklearn.datasets.load_digits",
@@ -7738,7 +7818,9 @@
           "metadata": {},
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "void",
+      "primary_out": "X"
     },
     {
       "cell_id": "sklearn.datasets.make_blobs",
@@ -7903,7 +7985,9 @@
           "metadata": {},
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "n_samples",
+      "primary_out": "X"
     },
     {
       "cell_id": "sklearn.model_selection.KFold.split",
@@ -8060,7 +8144,9 @@
           },
           "needs_mining": false
         }
-      ]
+      ],
+      "primary_in": "X",
+      "primary_out": "splits"
     },
     {
       "cell_id": "sklearn.model_selection.StratifiedKFold.split",
@@ -8214,7 +8300,9 @@
       "effects": [
         "partitions_stratified_folds"
       ],
-      "edges": []
+      "edges": [],
+      "primary_in": "X",
+      "primary_out": "splits"
     },
     {
       "cell_id": "sklearn.preprocessing.StandardScaler.transform",
@@ -8361,7 +8449,9 @@
           "metadata": {},
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "X",
+      "primary_out": "output_var"
     },
     {
       "cell_id": "sklearn.preprocessing.MaxAbsScaler.fit_transform",
@@ -8473,7 +8563,9 @@
           "metadata": {},
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "X",
+      "primary_out": "output_var"
     },
     {
       "cell_id": "sklearn.preprocessing.Normalizer.fit_transform",
@@ -8608,7 +8700,9 @@
           "metadata": {},
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "X",
+      "primary_out": "output_var"
     },
     {
       "cell_id": "sklearn.preprocessing.QuantileTransformer.fit_transform",
@@ -8759,7 +8853,9 @@
           "metadata": {},
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "X",
+      "primary_out": "output_var"
     },
     {
       "cell_id": "sklearn.preprocessing.PowerTransformer.fit_transform",
@@ -8893,7 +8989,9 @@
           "metadata": {},
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "X",
+      "primary_out": "output_var"
     },
     {
       "cell_id": "sklearn.preprocessing.OrdinalEncoder.fit_transform",
@@ -9006,7 +9104,9 @@
           "metadata": {},
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "X",
+      "primary_out": "output_var"
     },
     {
       "cell_id": "sklearn.preprocessing.LabelEncoder.fit_transform",
@@ -9118,7 +9218,9 @@
           "metadata": {},
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "y",
+      "primary_out": "output_var"
     },
     {
       "cell_id": "sklearn.impute.KNNImputer.fit_transform",
@@ -9251,7 +9353,9 @@
           "metadata": {},
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "X",
+      "primary_out": "output_var"
     },
     {
       "cell_id": "sklearn.preprocessing.FunctionTransformer.fit_transform",
@@ -9382,7 +9486,9 @@
           "metadata": {},
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "X",
+      "primary_out": "output_var"
     },
     {
       "cell_id": "sklearn.feature_extraction.text.TfidfVectorizer.fit_transform",
@@ -9511,7 +9617,9 @@
           "metadata": {},
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "corpus",
+      "primary_out": "output_var"
     },
     {
       "cell_id": "sklearn.decomposition.PCA.transform",
@@ -9642,7 +9750,9 @@
           "metadata": {},
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "X",
+      "primary_out": "output_var"
     },
     {
       "cell_id": "sklearn.decomposition.IncrementalPCA.fit_transform",
@@ -9796,7 +9906,9 @@
           "metadata": {},
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "X",
+      "primary_out": "output_var"
     },
     {
       "cell_id": "sklearn.decomposition.FastICA.fit_transform",
@@ -9947,7 +10059,9 @@
           "metadata": {},
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "X",
+      "primary_out": "output_var"
     },
     {
       "cell_id": "sklearn.decomposition.NMF.fit_transform",
@@ -10099,7 +10213,9 @@
           "metadata": {},
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "X",
+      "primary_out": "output_var"
     },
     {
       "cell_id": "sklearn.discriminant_analysis.LinearDiscriminantAnalysis.fit_transform",
@@ -10254,7 +10370,9 @@
           "metadata": {},
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "X",
+      "primary_out": "output_var"
     },
     {
       "cell_id": "sklearn.manifold.TSNE.fit_transform",
@@ -10427,7 +10545,9 @@
           "metadata": {},
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "X",
+      "primary_out": "output_var"
     },
     {
       "cell_id": "sklearn.feature_selection.VarianceThreshold.fit_transform",
@@ -10559,7 +10679,9 @@
           "metadata": {},
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "X",
+      "primary_out": "output_var"
     },
     {
       "cell_id": "sklearn.feature_selection.RFE.fit_transform",
@@ -10732,7 +10854,9 @@
           "metadata": {},
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "X",
+      "primary_out": "output_var"
     },
     {
       "cell_id": "sklearn.tree.DecisionTreeClassifier.fit",
@@ -10914,7 +11038,9 @@
           "metadata": {},
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "X",
+      "primary_out": "model"
     },
     {
       "cell_id": "sklearn.ensemble.GradientBoostingClassifier.fit",
@@ -11112,7 +11238,9 @@
           },
           "needs_mining": false
         }
-      ]
+      ],
+      "primary_in": "X",
+      "primary_out": "model"
     },
     {
       "cell_id": "sklearn.neighbors.KNeighborsClassifier.fit",
@@ -11268,7 +11396,9 @@
           "metadata": {},
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "X",
+      "primary_out": "model"
     },
     {
       "cell_id": "sklearn.naive_bayes.GaussianNB.fit",
@@ -11404,7 +11534,9 @@
           "metadata": {},
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "X",
+      "primary_out": "model"
     },
     {
       "cell_id": "sklearn.linear_model.SGDClassifier.fit",
@@ -11602,7 +11734,9 @@
           "metadata": {},
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "X",
+      "primary_out": "model"
     },
     {
       "cell_id": "sklearn.neural_network.MLPClassifier.fit",
@@ -11795,7 +11929,9 @@
           "metadata": {},
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "X",
+      "primary_out": "model"
     },
     {
       "cell_id": "sklearn.tree.DecisionTreeRegressor.fit",
@@ -11968,7 +12104,9 @@
           "metadata": {},
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "X",
+      "primary_out": "model"
     },
     {
       "cell_id": "sklearn.ensemble.GradientBoostingRegressor.fit",
@@ -12161,7 +12299,9 @@
           "metadata": {},
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "X",
+      "primary_out": "model"
     },
     {
       "cell_id": "sklearn.linear_model.ElasticNet.fit",
@@ -12356,7 +12496,9 @@
           "metadata": {},
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "X",
+      "primary_out": "model"
     },
     {
       "cell_id": "sklearn.svm.SVR.fit",
@@ -12535,7 +12677,9 @@
           "metadata": {},
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "X",
+      "primary_out": "model"
     },
     {
       "cell_id": "sklearn.neighbors.KNeighborsRegressor.fit",
@@ -12690,7 +12834,9 @@
           "metadata": {},
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "X",
+      "primary_out": "model"
     },
     {
       "cell_id": "sklearn.cluster.AgglomerativeClustering.fit_predict",
@@ -12832,7 +12978,9 @@
           "metadata": {},
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "X",
+      "primary_out": "cluster_labels"
     },
     {
       "cell_id": "sklearn.mixture.GaussianMixture.fit_predict",
@@ -12993,7 +13141,9 @@
           "metadata": {},
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "X",
+      "primary_out": "cluster_labels"
     },
     {
       "cell_id": "sklearn.cluster.SpectralClustering.fit_predict",
@@ -13145,7 +13295,9 @@
           "metadata": {},
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "X",
+      "primary_out": "cluster_labels"
     },
     {
       "cell_id": "sklearn.compose.ColumnTransformer.fit_transform",
@@ -13276,7 +13428,9 @@
           "metadata": {},
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "X",
+      "primary_out": "output_var"
     },
     {
       "cell_id": "sklearn.model_selection.RandomizedSearchCV.fit",
@@ -13513,7 +13667,9 @@
           "metadata": {},
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "X",
+      "primary_out": "search"
     },
     {
       "cell_id": "sklearn.model_selection.cross_validate",
@@ -13668,7 +13824,9 @@
       "effects": [
         "computes_multimetric_cv_diagnostics"
       ],
-      "edges": []
+      "edges": [],
+      "primary_in": "X",
+      "primary_out": "results"
     },
     {
       "cell_id": "sklearn.metrics.precision_score",
@@ -13819,7 +13977,9 @@
       "effects": [
         "quantifies_positive_predictive_accuracy"
       ],
-      "edges": []
+      "edges": [],
+      "primary_in": "y_true",
+      "primary_out": "score"
     },
     {
       "cell_id": "sklearn.metrics.recall_score",
@@ -13970,7 +14130,9 @@
       "effects": [
         "quantifies_sensitivity_rate"
       ],
-      "edges": []
+      "edges": [],
+      "primary_in": "y_true",
+      "primary_out": "score"
     },
     {
       "cell_id": "sklearn.metrics.classification_report",
@@ -14086,7 +14248,9 @@
       "effects": [
         "formats_comprehensive_classification_diagnostics"
       ],
-      "edges": []
+      "edges": [],
+      "primary_in": "y_true",
+      "primary_out": "report"
     },
     {
       "cell_id": "sklearn.metrics.mean_absolute_error",
@@ -14214,7 +14378,9 @@
       "effects": [
         "evaluates_l1_residual_loss"
       ],
-      "edges": []
+      "edges": [],
+      "primary_in": "y_true",
+      "primary_out": "score"
     },
     {
       "cell_id": "sklearn.metrics.calinski_harabasz_score",
@@ -14341,7 +14507,9 @@
       "effects": [
         "measures_between_to_within_cluster_dispersion"
       ],
-      "edges": []
+      "edges": [],
+      "primary_in": "X",
+      "primary_out": "score"
     },
     {
       "cell_id": "sklearn.metrics.davies_bouldin_score",
@@ -14468,7 +14636,9 @@
       "effects": [
         "measures_cluster_similarity_index"
       ],
-      "edges": []
+      "edges": [],
+      "primary_in": "X",
+      "primary_out": "score"
     },
     {
       "cell_id": "pickle.dump",
@@ -14531,7 +14701,7 @@
         },
         "file_obj": {
           "name": "file_obj",
-          "type_name": "object",
+          "type_name": "BinaryIO",
           "state": "file_path",
           "qualifiers": [
             "scalar"
@@ -14562,7 +14732,9 @@
       "effects": [
         "writes_pickled_bytes_to_stream"
       ],
-      "edges": []
+      "edges": [],
+      "primary_in": "model",
+      "primary_out": "void"
     },
     {
       "cell_id": "pickle.load",
@@ -14604,7 +14776,7 @@
       "inputs": {
         "file_obj": {
           "name": "file_obj",
-          "type_name": "object",
+          "type_name": "BinaryIO",
           "state": "file_path",
           "qualifiers": [
             "scalar"
@@ -14662,7 +14834,9 @@
           "metadata": {},
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "file_obj",
+      "primary_out": "model"
     }
   ]
 }

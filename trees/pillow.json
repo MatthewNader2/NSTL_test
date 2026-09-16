@@ -1197,7 +1197,9 @@
           "metadata": {},
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "image_path",
+      "primary_out": "output_var"
     },
     {
       "cell_id": "PILLOW_IMAGE_NEW_RGB",
@@ -1326,7 +1328,9 @@
           "metadata": {},
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "size",
+      "primary_out": "output_var"
     },
     {
       "cell_id": "PILLOW_IMAGE_NEW_RGBA",
@@ -1449,7 +1453,9 @@
           "metadata": {},
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "size",
+      "primary_out": "output_var"
     },
     {
       "cell_id": "PILLOW_IMAGE_NEW_GRAYSCALE",
@@ -1573,7 +1579,9 @@
           "metadata": {},
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "size",
+      "primary_out": "output_var"
     },
     {
       "cell_id": "PILLOW_CONVERT_TO_RGB",
@@ -1701,7 +1709,9 @@
           "metadata": {},
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "image",
+      "primary_out": "output_var"
     },
     {
       "cell_id": "PILLOW_CONVERT_TO_RGBA",
@@ -1811,7 +1821,9 @@
           "metadata": {},
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "image",
+      "primary_out": "output_var"
     },
     {
       "cell_id": "PILLOW_CONVERT_TO_GRAYSCALE",
@@ -1930,7 +1942,9 @@
           "metadata": {},
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "image",
+      "primary_out": "output_var"
     },
     {
       "cell_id": "PILLOW_CONVERT_TO_BINARY",
@@ -2032,7 +2046,9 @@
           "metadata": {},
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "image",
+      "primary_out": "output_var"
     },
     {
       "cell_id": "PILLOW_CONVERT_TO_CMYK",
@@ -2137,7 +2153,9 @@
           "metadata": {},
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "image",
+      "primary_out": "output_var"
     },
     {
       "cell_id": "PILLOW_RGB_TO_NDARRAY_RGB_ORDER",
@@ -2233,7 +2251,9 @@
       "effects": [
         "bridges_to_numpy_rgb"
       ],
-      "edges": []
+      "edges": [],
+      "primary_in": "image",
+      "primary_out": "output_var"
     },
     {
       "cell_id": "PILLOW_RGB_TO_NDARRAY_BGR_ORDER",
@@ -2335,7 +2355,9 @@
       "effects": [
         "bridges_to_numpy_bgr"
       ],
-      "edges": []
+      "edges": [],
+      "primary_in": "image",
+      "primary_out": "output_var"
     },
     {
       "cell_id": "PILLOW_GRAYSCALE_TO_NDARRAY",
@@ -2436,7 +2458,9 @@
       "effects": [
         "bridges_to_numpy_gray"
       ],
-      "edges": []
+      "edges": [],
+      "primary_in": "image",
+      "primary_out": "output_var"
     },
     {
       "cell_id": "PILLOW_FROM_NDARRAY_BGR",
@@ -2553,7 +2577,9 @@
           "metadata": {},
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "array",
+      "primary_out": "output_var"
     },
     {
       "cell_id": "PILLOW_FROM_NDARRAY_GRAY",
@@ -2661,7 +2687,9 @@
           "metadata": {},
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "array",
+      "primary_out": "output_var"
     },
     {
       "cell_id": "PILLOW_RESIZE_LANCZOS",
@@ -2796,7 +2824,9 @@
           "metadata": {},
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "image",
+      "primary_out": "output_var"
     },
     {
       "cell_id": "PILLOW_RESIZE_BILINEAR",
@@ -2903,7 +2933,9 @@
           "metadata": {},
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "image",
+      "primary_out": "output_var"
     },
     {
       "cell_id": "PILLOW_RESIZE_NEAREST",
@@ -3013,7 +3045,9 @@
           "metadata": {},
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "image",
+      "primary_out": "output_var"
     },
     {
       "cell_id": "PILLOW_CROP",
@@ -3139,7 +3173,9 @@
           "metadata": {},
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "image",
+      "primary_out": "output_var"
     },
     {
       "cell_id": "PILLOW_ROTATE",
@@ -3263,7 +3299,9 @@
           "metadata": {},
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "image",
+      "primary_out": "output_var"
     },
     {
       "cell_id": "PILLOW_TRANSPOSE_FLIP_LEFT_RIGHT",
@@ -3354,7 +3392,9 @@
           "metadata": {},
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "image",
+      "primary_out": "output_var"
     },
     {
       "cell_id": "PILLOW_TRANSPOSE_FLIP_TOP_BOTTOM",
@@ -3445,7 +3485,9 @@
           "metadata": {},
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "image",
+      "primary_out": "output_var"
     },
     {
       "cell_id": "PILLOW_TRANSPOSE_ROTATE_90",
@@ -3534,7 +3576,9 @@
           "metadata": {},
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "image",
+      "primary_out": "output_var"
     },
     {
       "cell_id": "PILLOW_FILTER_GAUSSIAN_BLUR",
@@ -3655,7 +3699,9 @@
           "metadata": {},
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "image",
+      "primary_out": "output_var"
     },
     {
       "cell_id": "PILLOW_FILTER_BOX_BLUR",
@@ -3766,7 +3812,9 @@
           "metadata": {},
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "image",
+      "primary_out": "output_var"
     },
     {
       "cell_id": "PILLOW_FILTER_FIND_EDGES",
@@ -3856,7 +3904,9 @@
           "metadata": {},
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "image",
+      "primary_out": "output_var"
     },
     {
       "cell_id": "PILLOW_FILTER_CONTOUR",
@@ -3945,7 +3995,9 @@
           "metadata": {},
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "image",
+      "primary_out": "output_var"
     },
     {
       "cell_id": "PILLOW_FILTER_SHARPEN",
@@ -4034,7 +4086,9 @@
           "metadata": {},
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "image",
+      "primary_out": "output_var"
     },
     {
       "cell_id": "PILLOW_FILTER_UNSHARP_MASK",
@@ -4174,7 +4228,9 @@
           "metadata": {},
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "image",
+      "primary_out": "output_var"
     },
     {
       "cell_id": "PILLOW_FILTER_MEDIAN",
@@ -4293,7 +4349,9 @@
           "metadata": {},
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "image",
+      "primary_out": "output_var"
     },
     {
       "cell_id": "PILLOW_ENHANCE_CONTRAST",
@@ -4419,7 +4477,9 @@
           "metadata": {},
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "image",
+      "primary_out": "output_var"
     },
     {
       "cell_id": "PILLOW_ENHANCE_BRIGHTNESS",
@@ -4537,7 +4597,9 @@
           "metadata": {},
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "image",
+      "primary_out": "output_var"
     },
     {
       "cell_id": "PILLOW_ENHANCE_COLOR",
@@ -4652,7 +4714,9 @@
           "metadata": {},
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "image",
+      "primary_out": "output_var"
     },
     {
       "cell_id": "PILLOW_ENHANCE_SHARPNESS",
@@ -4761,7 +4825,9 @@
           "metadata": {},
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "image",
+      "primary_out": "output_var"
     },
     {
       "cell_id": "PILLOW_DRAW_INITIALIZE",
@@ -4878,7 +4944,9 @@
           "metadata": {},
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "image",
+      "primary_out": "output_var"
     },
     {
       "cell_id": "PILLOW_DRAW_LINE",
@@ -4998,7 +5066,9 @@
           "metadata": {},
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "draw",
+      "primary_out": "void"
     },
     {
       "cell_id": "PILLOW_DRAW_RECTANGLE",
@@ -5145,7 +5215,9 @@
           "metadata": {},
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "draw",
+      "primary_out": "void"
     },
     {
       "cell_id": "PILLOW_DRAW_ELLIPSE",
@@ -5272,7 +5344,9 @@
       "effects": [
         "mutates_image_pixels"
       ],
-      "edges": []
+      "edges": [],
+      "primary_in": "draw",
+      "primary_out": "void"
     },
     {
       "cell_id": "PILLOW_DRAW_TEXT",
@@ -5383,7 +5457,9 @@
       "effects": [
         "rasterizes_glyphs"
       ],
-      "edges": []
+      "edges": [],
+      "primary_in": "draw",
+      "primary_out": "void"
     },
     {
       "cell_id": "PILLOW_ALPHA_COMPOSITE",
@@ -5522,7 +5598,9 @@
           "metadata": {},
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "image_dst",
+      "primary_out": "output_var"
     },
     {
       "cell_id": "PILLOW_BLEND",
@@ -5654,7 +5732,9 @@
           "metadata": {},
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "image1",
+      "primary_out": "output_var"
     },
     {
       "cell_id": "PILLOW_COMPOSITE",
@@ -5786,7 +5866,9 @@
           "metadata": {},
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "image1",
+      "primary_out": "output_var"
     },
     {
       "cell_id": "PILLOW_SPLIT",
@@ -5914,7 +5996,9 @@
           "metadata": {},
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "image",
+      "primary_out": "output_r"
     },
     {
       "cell_id": "PILLOW_MERGE_RGB",
@@ -6052,7 +6136,9 @@
           "metadata": {},
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "band_r",
+      "primary_out": "output_var"
     },
     {
       "cell_id": "PILLOW_IMAGEOPS_INVERT",
@@ -6144,7 +6230,9 @@
           "metadata": {},
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "image",
+      "primary_out": "output_var"
     },
     {
       "cell_id": "PILLOW_IMAGEOPS_AUTOCONTRAST",
@@ -6253,7 +6341,9 @@
           "metadata": {},
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "image",
+      "primary_out": "output_var"
     },
     {
       "cell_id": "PILLOW_IMAGEOPS_PAD",
@@ -6388,7 +6478,9 @@
           "metadata": {},
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "image",
+      "primary_out": "output_var"
     },
     {
       "cell_id": "PILLOW_IMAGEOPS_FIT",
@@ -6497,7 +6589,9 @@
           "metadata": {},
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "image",
+      "primary_out": "output_var"
     },
     {
       "cell_id": "PILLOW_IMAGE_SAVE",
@@ -6605,7 +6699,9 @@
       "effects": [
         "writes_to_filesystem"
       ],
-      "edges": []
+      "edges": [],
+      "primary_in": "image",
+      "primary_out": "void"
     },
     {
       "cell_id": "PILLOW_IMAGE_SAVE_JPEG",
@@ -6719,7 +6815,9 @@
       "effects": [
         "writes_jpeg_file"
       ],
-      "edges": []
+      "edges": [],
+      "primary_in": "image",
+      "primary_out": "void"
     },
     {
       "cell_id": "PILLOW_IMAGE_SAVE_PNG",
@@ -6821,7 +6919,9 @@
       "effects": [
         "writes_png_file"
       ],
-      "edges": []
+      "edges": [],
+      "primary_in": "image",
+      "primary_out": "void"
     },
     {
       "cell_id": "PILLOW_IMAGE_SHOW",
@@ -6902,7 +7002,9 @@
       "effects": [
         "spawns_external_viewer"
       ],
-      "edges": []
+      "edges": [],
+      "primary_in": "image",
+      "primary_out": "void"
     },
     {
       "cell_id": "PILLOW_IMAGE_FROMBYTES",
@@ -7045,7 +7147,9 @@
           "metadata": {},
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "data",
+      "primary_out": "output_var"
     },
     {
       "cell_id": "PILLOW_LINEAR_GRADIENT",
@@ -7143,7 +7247,9 @@
           "metadata": {},
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "mode",
+      "primary_out": "output_var"
     },
     {
       "cell_id": "PILLOW_RADIAL_GRADIENT",
@@ -7232,7 +7338,9 @@
           "metadata": {},
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "mode",
+      "primary_out": "output_var"
     },
     {
       "cell_id": "PILLOW_IMAGEOPS_EXIF_TRANSPOSE",
@@ -7324,7 +7432,9 @@
           "metadata": {},
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "image",
+      "primary_out": "output_var"
     },
     {
       "cell_id": "PILLOW_CONVERT_TO_PALETTE_ADAPTIVE",
@@ -7444,7 +7554,9 @@
           "metadata": {},
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "image",
+      "primary_out": "output_var"
     },
     {
       "cell_id": "PILLOW_CONVERT_TO_HSV",
@@ -7550,7 +7662,9 @@
           "metadata": {},
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "image",
+      "primary_out": "output_var"
     },
     {
       "cell_id": "PILLOW_CONVERT_TO_LAB",
@@ -7646,7 +7760,9 @@
           "metadata": {},
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "image",
+      "primary_out": "output_var"
     },
     {
       "cell_id": "PILLOW_CONVERT_TO_INT32",
@@ -7746,7 +7862,9 @@
           "metadata": {},
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "image",
+      "primary_out": "output_var"
     },
     {
       "cell_id": "PILLOW_CONVERT_TO_FLOAT32",
@@ -7847,7 +7965,9 @@
           "metadata": {},
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "image",
+      "primary_out": "output_var"
     },
     {
       "cell_id": "PILLOW_PILLOW_TO_NDARRAY_GENERIC",
@@ -7930,7 +8050,9 @@
       "effects": [
         "bridges_to_numpy_generic"
       ],
-      "edges": []
+      "edges": [],
+      "primary_in": "image",
+      "primary_out": "output_var"
     },
     {
       "cell_id": "PILLOW_NDARRAY_GENERIC_TO_PILLOW",
@@ -8019,7 +8141,9 @@
           "metadata": {},
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "array",
+      "primary_out": "output_var"
     },
     {
       "cell_id": "PILLOW_TRANSFORM_AFFINE",
@@ -8154,7 +8278,9 @@
           "metadata": {},
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "image",
+      "primary_out": "output_var"
     },
     {
       "cell_id": "PILLOW_TRANSFORM_PERSPECTIVE",
@@ -8288,7 +8414,9 @@
           "metadata": {},
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "image",
+      "primary_out": "output_var"
     },
     {
       "cell_id": "PILLOW_IMAGEOPS_CONTAIN",
@@ -8398,7 +8526,9 @@
           "metadata": {},
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "image",
+      "primary_out": "output_var"
     },
     {
       "cell_id": "PILLOW_IMAGEOPS_COVER",
@@ -8506,7 +8636,9 @@
           "metadata": {},
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "image",
+      "primary_out": "output_var"
     },
     {
       "cell_id": "PILLOW_FILTER_CUSTOM_KERNEL",
@@ -8663,7 +8795,9 @@
           "metadata": {},
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "image",
+      "primary_out": "output_var"
     },
     {
       "cell_id": "PILLOW_FILTER_SMOOTH",
@@ -8752,7 +8886,9 @@
           "metadata": {},
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "image",
+      "primary_out": "output_var"
     },
     {
       "cell_id": "PILLOW_IMAGEOPS_COLORIZE",
@@ -8891,7 +9027,9 @@
           "metadata": {},
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "image",
+      "primary_out": "output_var"
     },
     {
       "cell_id": "PILLOW_IMAGEOPS_SOLARIZE",
@@ -9000,7 +9138,9 @@
           "metadata": {},
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "image",
+      "primary_out": "output_var"
     },
     {
       "cell_id": "PILLOW_DRAW_ROUNDED_RECTANGLE",
@@ -9154,7 +9294,9 @@
           "metadata": {},
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "draw",
+      "primary_out": "void"
     },
     {
       "cell_id": "PILLOW_DRAW_MULTILINE_TEXT",
@@ -9300,7 +9442,9 @@
       "effects": [
         "renders_multiline_text"
       ],
-      "edges": []
+      "edges": [],
+      "primary_in": "draw",
+      "primary_out": "void"
     },
     {
       "cell_id": "PILLOW_IMAGE_PASTE",
@@ -9410,7 +9554,9 @@
           "metadata": {},
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "image_dst",
+      "primary_out": "void"
     },
     {
       "cell_id": "PILLOW_IMAGE_GETCHANNEL",
@@ -9541,7 +9687,9 @@
           "metadata": {},
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "image",
+      "primary_out": "output_var"
     },
     {
       "cell_id": "PILLOW_IMAGECHOPS_ADD",
@@ -9677,7 +9825,9 @@
           "metadata": {},
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "image1",
+      "primary_out": "output_var"
     },
     {
       "cell_id": "PILLOW_IMAGECHOPS_DIFFERENCE",
@@ -9782,7 +9932,9 @@
           "metadata": {},
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "image1",
+      "primary_out": "output_var"
     },
     {
       "cell_id": "PILLOW_IMAGECHOPS_MULTIPLY",
@@ -9886,7 +10038,9 @@
           "metadata": {},
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "image1",
+      "primary_out": "output_var"
     },
     {
       "cell_id": "PILLOW_IMAGE_SAVE_WEBP",
@@ -10009,7 +10163,9 @@
       "effects": [
         "writes_webp_file"
       ],
-      "edges": []
+      "edges": [],
+      "primary_in": "image",
+      "primary_out": "void"
     },
     {
       "cell_id": "PILLOW_IMAGE_SAVE_GIF_ANIMATED",
@@ -10143,7 +10299,9 @@
       "effects": [
         "writes_animated_gif"
       ],
-      "edges": []
+      "edges": [],
+      "primary_in": "image",
+      "primary_out": "void"
     },
     {
       "cell_id": "PILLOW_IMAGE_SEEK",
@@ -10232,7 +10390,9 @@
           "metadata": {},
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "image",
+      "primary_out": "void"
     },
     {
       "cell_id": "PILLOW_IMAGE_TELL",
@@ -10305,7 +10465,9 @@
       "preconditions": [],
       "postconditions": [],
       "effects": [],
-      "edges": []
+      "edges": [],
+      "primary_in": "image",
+      "primary_out": "output_var"
     },
     {
       "cell_id": "PILLOW_IMAGE_CLOSE",
@@ -10373,7 +10535,9 @@
         "deallocates_buffers",
         "closes_file_descriptor"
       ],
-      "edges": []
+      "edges": [],
+      "primary_in": "image",
+      "primary_out": "void"
     }
   ]
 }

@@ -93,7 +93,6 @@ class PreflightLinter:
         # ---------------------------------------------------------------------
         if extracted_literals:
             bound_values_str: Set[str] = set()
-            seen_consumed_lits: Set[str] = set()
             for cell, bindings in pipeline_bindings:
                 for p_name, val in bindings.items():
                     if val is not None:
@@ -108,9 +107,6 @@ class PreflightLinter:
 
                 # Identifiers and file assets MUST be consumed
                 if kind in ("file_asset", "identifier", "quoted_str"):
-                    if clean_lit in seen_consumed_lits:
-                        continue
-                    seen_consumed_lits.add(clean_lit)
                     # Check if directly bound or present in bound strings
                     is_consumed = any(
                         clean_lit == b or clean_lit in b
@@ -160,7 +156,6 @@ class PreflightLinter:
             val for _, kind, val in extracted_literals
             if kind in ("identifier", "quoted_str")
         ]
-        data_ids = list(dict.fromkeys(data_ids))
         has_multi_data_relation = len(data_ids) >= 2
 
         if has_multi_data_relation:

@@ -317,47 +317,6 @@ class LatticeRouter:
 
         return best_cell
 
-
-    def extract_semantic_intent(self, prompt: str, literals: list) -> dict:
-        """Extract generic feature and target semantic roles from user prompt."""
-        features, target, is_supervised = [], None, False
-        pred_match = re.search(
-            r'(?:train|fit|regress|classify|model)?.*?on\s+([A-Za-z0-9_,\s]+?)\s+to\s+predict\s+([A-Za-z0-9_]+)',
-            prompt, re.IGNORECASE
-        )
-        if pred_match:
-            raw_feats, raw_tgt = pred_match.group(1), pred_match.group(2)
-            target = raw_tgt.strip()
-            features = [
-                f.strip() for f in re.split(r'[, ]+and\s+|[,\s]+', raw_feats)
-                if f.strip() and f.strip().lower() not in ('a', 'the', 'column', 'columns')
-            ]
-            is_supervised = True
-        else:
-            inv_match = re.search(
-                r'\bpredict\s+([A-Za-z0-9_]+)\s+(?:from|using|on)\s+([A-Za-z0-9_,\s]+)',
-                prompt, re.IGNORECASE
-            )
-            if inv_match:
-                target = inv_match.group(1).strip()
-                features = [
-                    f.strip() for f in re.split(r'[, ]+and\s+|[,\s]+', inv_match.group(2))
-                    if f.strip() and f.strip().lower() not in ('a', 'the', 'column', 'columns')
-                ]
-                is_supervised = True
-
-        all_ids = [getattr(l, 'value', str(l)) for l in literals if getattr(l, 'kind', '') == 'identifier']
-        if not features and is_supervised and all_ids:
-            features = [i for i in all_ids if i != target]
-
-        return {
-            'features': features,
-            'target': target,
-            'targets': [target] if target else [],
-            'column_identifiers': all_ids,
-            'is_supervised': is_supervised
-        }
-
     def route(
         self,
         prompt: str,

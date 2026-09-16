@@ -656,7 +656,9 @@
           },
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "port_0",
+      "primary_out": "void"
     },
     {
       "cell_id": "sns_set_style",
@@ -744,7 +746,9 @@
           },
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "port_0",
+      "primary_out": "void"
     },
     {
       "cell_id": "sns_set_context",
@@ -839,7 +843,9 @@
           },
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "port_0",
+      "primary_out": "void"
     },
     {
       "cell_id": "sns_set_palette",
@@ -936,7 +942,9 @@
           },
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "port_0",
+      "primary_out": "void"
     },
     {
       "cell_id": "sns_load_dataset",
@@ -1070,7 +1078,9 @@
           },
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "port_0",
+      "primary_out": "port_0"
     },
     {
       "cell_id": "sns_color_palette",
@@ -1182,7 +1192,9 @@
           },
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "port_0",
+      "primary_out": "port_0"
     },
     {
       "cell_id": "sns_histplot_univariate",
@@ -1376,7 +1388,9 @@
           },
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "port_0",
+      "primary_out": "port_0"
     },
     {
       "cell_id": "sns_histplot_bivariate",
@@ -1529,7 +1543,9 @@
           },
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "port_0",
+      "primary_out": "port_0"
     },
     {
       "cell_id": "sns_histplot_hue",
@@ -1699,7 +1715,9 @@
           },
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "port_0",
+      "primary_out": "port_0"
     },
     {
       "cell_id": "sns_kdeplot_univariate",
@@ -1865,7 +1883,9 @@
           },
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "port_0",
+      "primary_out": "port_0"
     },
     {
       "cell_id": "sns_kdeplot_bivariate",
@@ -2036,7 +2056,9 @@
           },
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "port_0",
+      "primary_out": "port_0"
     },
     {
       "cell_id": "sns_ecdfplot_univariate",
@@ -2203,7 +2225,9 @@
           },
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "port_0",
+      "primary_out": "port_0"
     },
     {
       "cell_id": "sns_rugplot_univariate",
@@ -2344,7 +2368,9 @@
           },
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "port_0",
+      "primary_out": "port_0"
     },
     {
       "cell_id": "sns_displot_facet",
@@ -2500,7 +2526,9 @@
           },
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "port_0",
+      "primary_out": "port_0"
     },
     {
       "cell_id": "sns_barplot_xy",
@@ -2689,7 +2717,9 @@
           },
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "port_0",
+      "primary_out": "port_0"
     },
     {
       "cell_id": "sns_barplot_hue",
@@ -2858,7 +2888,9 @@
           },
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "port_0",
+      "primary_out": "port_0"
     },
     {
       "cell_id": "sns_countplot_x",
@@ -3021,7 +3053,9 @@
           },
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "port_0",
+      "primary_out": "port_0"
     },
     {
       "cell_id": "sns_boxplot_xy",
@@ -3201,7 +3235,9 @@
           },
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "port_0",
+      "primary_out": "port_0"
     },
     {
       "cell_id": "sns_boxplot_hue",
@@ -3370,7 +3406,9 @@
           },
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "port_0",
+      "primary_out": "port_0"
     },
     {
       "cell_id": "sns_violinplot_xy",
@@ -3555,7 +3593,9 @@
           },
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "port_0",
+      "primary_out": "port_0"
     },
     {
       "cell_id": "sns_violinplot_split",
@@ -3728,7 +3768,9 @@
           },
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "port_0",
+      "primary_out": "port_0"
     },
     {
       "cell_id": "sns_boxenplot_xy",
@@ -3886,7 +3928,9 @@
           },
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "port_0",
+      "primary_out": "port_0"
     },
     {
       "cell_id": "sns_stripplot_xy",
@@ -4056,7 +4100,9 @@
           },
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "port_0",
+      "primary_out": "port_0"
     },
     {
       "cell_id": "sns_swarmplot_xy",
@@ -4225,7 +4271,9 @@
           },
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "port_0",
+      "primary_out": "port_0"
     },
     {
       "cell_id": "sns_pointplot_xy",
@@ -4398,7 +4446,9 @@
           },
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "port_0",
+      "primary_out": "port_0"
     },
     {
       "cell_id": "sns_catplot_facet",
@@ -4559,7 +4609,9 @@
           },
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "port_0",
+      "primary_out": "port_0"
     },
     {
       "cell_id": "sns_scatterplot_xy",
@@ -4725,7 +4777,9 @@
           },
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "port_0",
+      "primary_out": "port_0"
     },
     {
       "cell_id": "sns_scatterplot_hue_size",
@@ -4928,7 +4982,9 @@
           },
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "port_0",
+      "primary_out": "port_0"
     },
     {
       "cell_id": "sns_lineplot_xy",
@@ -5098,7 +5154,9 @@
           },
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "port_0",
+      "primary_out": "port_0"
     },
     {
       "cell_id": "sns_lineplot_hue_style",
@@ -5283,7 +5341,9 @@
           },
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "port_0",
+      "primary_out": "port_0"
     },
     {
       "cell_id": "sns_relplot_facet",
@@ -5452,7 +5512,9 @@
           },
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "port_0",
+      "primary_out": "port_0"
     },
     {
       "cell_id": "sns_heatmap_annotated",
@@ -5637,7 +5699,9 @@
           },
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "port_0",
+      "primary_out": "port_0"
     },
     {
       "cell_id": "sns_heatmap_masked",
@@ -5813,7 +5877,9 @@
           },
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "port_0",
+      "primary_out": "port_0"
     },
     {
       "cell_id": "sns_clustermap_hierarchical",
@@ -5991,7 +6057,9 @@
           },
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "port_0",
+      "primary_out": "port_0"
     },
     {
       "cell_id": "sns_facetgrid_init",
@@ -6137,7 +6205,9 @@
           },
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "port_0",
+      "primary_out": "port_0"
     },
     {
       "cell_id": "sns_facetgrid_map",
@@ -6267,7 +6337,9 @@
           },
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "port_0",
+      "primary_out": "port_0"
     },
     {
       "cell_id": "sns_facetgrid_map_dataframe",
@@ -6381,7 +6453,9 @@
           },
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "port_0",
+      "primary_out": "port_0"
     },
     {
       "cell_id": "sns_facetgrid_add_legend",
@@ -6481,7 +6555,9 @@
           },
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "port_0",
+      "primary_out": "port_0"
     },
     {
       "cell_id": "sns_pairgrid_init",
@@ -6611,7 +6687,9 @@
           },
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "port_0",
+      "primary_out": "port_0"
     },
     {
       "cell_id": "sns_pairgrid_map_diag_offdiag",
@@ -6730,7 +6808,9 @@
           },
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "port_0",
+      "primary_out": "port_0"
     },
     {
       "cell_id": "sns_pairgrid_map_upper_lower",
@@ -6865,7 +6945,9 @@
           },
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "port_0",
+      "primary_out": "port_0"
     },
     {
       "cell_id": "sns_pairplot_simple",
@@ -7004,7 +7086,9 @@
           },
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "port_0",
+      "primary_out": "port_0"
     },
     {
       "cell_id": "sns_jointgrid_init",
@@ -7124,7 +7208,9 @@
           },
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "port_0",
+      "primary_out": "port_0"
     },
     {
       "cell_id": "sns_jointgrid_plot",
@@ -7244,7 +7330,9 @@
           },
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "port_0",
+      "primary_out": "port_0"
     },
     {
       "cell_id": "sns_jointplot_simple",
@@ -7388,7 +7476,9 @@
           },
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "port_0",
+      "primary_out": "port_0"
     },
     {
       "cell_id": "sns_regplot_linear",
@@ -7572,7 +7662,9 @@
           },
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "port_0",
+      "primary_out": "port_0"
     },
     {
       "cell_id": "sns_regplot_polynomial",
@@ -7738,7 +7830,9 @@
           },
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "port_0",
+      "primary_out": "port_0"
     },
     {
       "cell_id": "sns_regplot_logistic",
@@ -7920,7 +8014,9 @@
           },
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "port_0",
+      "primary_out": "port_0"
     },
     {
       "cell_id": "sns_residplot_xy",
@@ -8084,7 +8180,9 @@
           },
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "port_0",
+      "primary_out": "port_0"
     },
     {
       "cell_id": "sns_lmplot_facet",
@@ -8250,7 +8348,9 @@
           },
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "port_0",
+      "primary_out": "port_0"
     },
     {
       "cell_id": "sns_despine_axes",
@@ -8426,7 +8526,9 @@
           },
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "port_0",
+      "primary_out": "port_0"
     },
     {
       "cell_id": "sns_move_legend_axes",
@@ -8588,7 +8690,9 @@
           },
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "port_0",
+      "primary_out": "port_0"
     },
     {
       "cell_id": "sns_facetgrid_savefig",
@@ -8684,7 +8788,9 @@
       "effects": [
         "writes_image_file_to_disk"
       ],
-      "edges": []
+      "edges": [],
+      "primary_in": "port_0",
+      "primary_out": "void"
     },
     {
       "cell_id": "sns_jointgrid_savefig",
@@ -8779,7 +8885,9 @@
       "effects": [
         "writes_image_file_to_disk"
       ],
-      "edges": []
+      "edges": [],
+      "primary_in": "port_0",
+      "primary_out": "void"
     },
     {
       "cell_id": "sns_clustermap_savefig",
@@ -8873,7 +8981,9 @@
       "effects": [
         "writes_image_file_to_disk"
       ],
-      "edges": []
+      "edges": [],
+      "primary_in": "port_0",
+      "primary_out": "void"
     },
     {
       "cell_id": "sns_axes_savefig",
@@ -8988,7 +9098,9 @@
       "effects": [
         "writes_image_file_to_disk"
       ],
-      "edges": []
+      "edges": [],
+      "primary_in": "port_0",
+      "primary_out": "void"
     },
     {
       "cell_id": "sns_bridge_dataframe_to_axes",
@@ -9084,7 +9196,9 @@
           },
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "port_0",
+      "primary_out": "port_0"
     },
     {
       "cell_id": "sns_bridge_export_figure",
@@ -9156,7 +9270,9 @@
       "preconditions": [],
       "postconditions": [],
       "effects": [],
-      "edges": []
+      "edges": [],
+      "primary_in": "port_0",
+      "primary_out": "port_0"
     }
   ]
 }

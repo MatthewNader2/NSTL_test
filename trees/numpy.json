@@ -1060,7 +1060,9 @@
           "metadata": {},
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "data",
+      "primary_out": "output_var"
     },
     {
       "cell_id": "NUMPY_ASARRAY",
@@ -1164,7 +1166,9 @@
           "metadata": {},
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "a",
+      "primary_out": "output_var"
     },
     {
       "cell_id": "NUMPY_FROMBUFFER",
@@ -1283,7 +1287,9 @@
           "metadata": {},
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "buffer",
+      "primary_out": "output_var"
     },
     {
       "cell_id": "NUMPY_ZEROS_1D",
@@ -1386,7 +1392,9 @@
           "metadata": {},
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "length",
+      "primary_out": "output_var"
     },
     {
       "cell_id": "NUMPY_ZEROS_2D",
@@ -1505,7 +1513,9 @@
           "metadata": {},
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "rows",
+      "primary_out": "output_var"
     },
     {
       "cell_id": "NUMPY_ZEROS_ND",
@@ -1606,7 +1616,9 @@
           "metadata": {},
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "shape",
+      "primary_out": "output_var"
     },
     {
       "cell_id": "NUMPY_ONES_1D",
@@ -1708,7 +1720,9 @@
           "metadata": {},
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "length",
+      "primary_out": "output_var"
     },
     {
       "cell_id": "NUMPY_ONES_2D",
@@ -1818,7 +1832,9 @@
           "metadata": {},
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "rows",
+      "primary_out": "output_var"
     },
     {
       "cell_id": "NUMPY_ONES_ND",
@@ -1910,7 +1926,9 @@
           "metadata": {},
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "shape",
+      "primary_out": "output_var"
     },
     {
       "cell_id": "NUMPY_FULL_ND",
@@ -2017,7 +2035,9 @@
           "metadata": {},
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "shape",
+      "primary_out": "output_var"
     },
     {
       "cell_id": "NUMPY_ARANGE",
@@ -2152,7 +2172,9 @@
           "metadata": {},
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "start",
+      "primary_out": "output_var"
     },
     {
       "cell_id": "NUMPY_LINSPACE",
@@ -2284,7 +2306,9 @@
           "metadata": {},
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "start",
+      "primary_out": "output_var"
     },
     {
       "cell_id": "NUMPY_EYE",
@@ -2417,7 +2441,9 @@
           "metadata": {},
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "m",
+      "primary_out": "output_var"
     },
     {
       "cell_id": "NUMPY_IDENTITY",
@@ -2512,7 +2538,9 @@
           "metadata": {},
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "n",
+      "primary_out": "output_var"
     },
     {
       "cell_id": "NUMPY_EMPTY_ND",
@@ -2605,7 +2633,9 @@
           "metadata": {},
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "shape",
+      "primary_out": "output_var"
     },
     {
       "cell_id": "NUMPY_LOAD_NPY",
@@ -2694,7 +2724,9 @@
           "metadata": {},
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "file_path",
+      "primary_out": "output_var"
     },
     {
       "cell_id": "NUMPY_RESHAPE_2D",
@@ -2831,7 +2863,9 @@
           "metadata": {},
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "array",
+      "primary_out": "output_var"
     },
     {
       "cell_id": "NUMPY_RESHAPE_ND",
@@ -2938,7 +2972,9 @@
           "metadata": {},
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "array",
+      "primary_out": "output_var"
     },
     {
       "cell_id": "NUMPY_RAVEL",
@@ -3059,7 +3095,9 @@
           "metadata": {},
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "array",
+      "primary_out": "output_var"
     },
     {
       "cell_id": "NUMPY_FLATTEN",
@@ -3160,7 +3198,9 @@
           "metadata": {},
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "array",
+      "primary_out": "output_var"
     },
     {
       "cell_id": "NUMPY_TRANSPOSE_2D",
@@ -3256,7 +3296,9 @@
           "metadata": {},
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "matrix",
+      "primary_out": "output_var"
     },
     {
       "cell_id": "NUMPY_TRANSPOSE_ND",
@@ -3352,7 +3394,9 @@
           "metadata": {},
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "tensor",
+      "primary_out": "output_var"
     },
     {
       "cell_id": "NUMPY_SQUEEZE",
@@ -3447,7 +3491,9 @@
           "metadata": {},
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "array",
+      "primary_out": "output_var"
     },
     {
       "cell_id": "NUMPY_EXPAND_DIMS",
@@ -3553,7 +3599,9 @@
           "metadata": {},
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "array",
+      "primary_out": "output_var"
     },
     {
       "cell_id": "NUMPY_CONCATENATE_AXIS0",
@@ -3647,7 +3695,9 @@
           "metadata": {},
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "array_a",
+      "primary_out": "output_var"
     },
     {
       "cell_id": "NUMPY_STACK",
@@ -3756,7 +3806,9 @@
           "metadata": {},
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "array_a",
+      "primary_out": "output_var"
     },
     {
       "cell_id": "NUMPY_VSTACK",
@@ -3859,7 +3911,9 @@
           "metadata": {},
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "array_a",
+      "primary_out": "output_var"
     },
     {
       "cell_id": "NUMPY_HSTACK",
@@ -3962,7 +4016,9 @@
           "metadata": {},
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "array_a",
+      "primary_out": "output_var"
     },
     {
       "cell_id": "NUMPY_WHERE",
@@ -4070,7 +4126,9 @@
           "metadata": {},
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "x",
+      "primary_out": "output_var"
     },
     {
       "cell_id": "NUMPY_BOOLEAN_MASK_SELECT",
@@ -4181,7 +4239,9 @@
           "metadata": {},
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "array",
+      "primary_out": "output_var"
     },
     {
       "cell_id": "NUMPY_BROADCAST_TO",
@@ -4274,7 +4334,9 @@
           "metadata": {},
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "array",
+      "primary_out": "output_var"
     },
     {
       "cell_id": "NUMPY_PAD",
@@ -4395,7 +4457,9 @@
           "metadata": {},
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "array",
+      "primary_out": "output_var"
     },
     {
       "cell_id": "NUMPY_CLIP",
@@ -4504,7 +4568,9 @@
           "metadata": {},
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "array",
+      "primary_out": "output_var"
     },
     {
       "cell_id": "NUMPY_ADD",
@@ -4598,7 +4664,9 @@
           "metadata": {},
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "x1",
+      "primary_out": "output_var"
     },
     {
       "cell_id": "NUMPY_SUBTRACT",
@@ -4691,7 +4759,9 @@
           "metadata": {},
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "x1",
+      "primary_out": "output_var"
     },
     {
       "cell_id": "NUMPY_MULTIPLY",
@@ -4784,7 +4854,9 @@
           "metadata": {},
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "x1",
+      "primary_out": "output_var"
     },
     {
       "cell_id": "NUMPY_DIVIDE",
@@ -4878,7 +4950,9 @@
           "metadata": {},
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "x1",
+      "primary_out": "output_var"
     },
     {
       "cell_id": "NUMPY_EXP",
@@ -4960,7 +5034,9 @@
           "metadata": {},
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "x",
+      "primary_out": "output_var"
     },
     {
       "cell_id": "NUMPY_LOG",
@@ -5042,7 +5118,9 @@
           "metadata": {},
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "x",
+      "primary_out": "output_var"
     },
     {
       "cell_id": "NUMPY_SQRT",
@@ -5124,7 +5202,9 @@
           "metadata": {},
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "x",
+      "primary_out": "output_var"
     },
     {
       "cell_id": "NUMPY_ABS",
@@ -5207,7 +5287,9 @@
           "metadata": {},
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "x",
+      "primary_out": "output_var"
     },
     {
       "cell_id": "NUMPY_SUM_ALL",
@@ -5281,7 +5363,9 @@
       "preconditions": [],
       "postconditions": [],
       "effects": [],
-      "edges": []
+      "edges": [],
+      "primary_in": "array",
+      "primary_out": "output_var"
     },
     {
       "cell_id": "NUMPY_SUM_AXIS",
@@ -5391,7 +5475,9 @@
           "metadata": {},
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "array",
+      "primary_out": "output_var"
     },
     {
       "cell_id": "NUMPY_MEAN_ALL",
@@ -5466,7 +5552,9 @@
       "preconditions": [],
       "postconditions": [],
       "effects": [],
-      "edges": []
+      "edges": [],
+      "primary_in": "array",
+      "primary_out": "output_var"
     },
     {
       "cell_id": "NUMPY_MEAN_AXIS",
@@ -5576,7 +5664,9 @@
           "metadata": {},
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "array",
+      "primary_out": "output_var"
     },
     {
       "cell_id": "NUMPY_STD_AXIS",
@@ -5686,7 +5776,9 @@
           "metadata": {},
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "array",
+      "primary_out": "output_var"
     },
     {
       "cell_id": "NUMPY_VAR_AXIS",
@@ -5796,7 +5888,9 @@
           "metadata": {},
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "array",
+      "primary_out": "output_var"
     },
     {
       "cell_id": "NUMPY_MIN_AXIS",
@@ -5906,7 +6000,9 @@
           "metadata": {},
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "array",
+      "primary_out": "output_var"
     },
     {
       "cell_id": "NUMPY_MAX_AXIS",
@@ -6016,7 +6112,9 @@
           "metadata": {},
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "array",
+      "primary_out": "output_var"
     },
     {
       "cell_id": "NUMPY_ARGMIN",
@@ -6102,7 +6200,9 @@
       "preconditions": [],
       "postconditions": [],
       "effects": [],
-      "edges": []
+      "edges": [],
+      "primary_in": "array",
+      "primary_out": "output_var"
     },
     {
       "cell_id": "NUMPY_ARGMAX",
@@ -6188,7 +6288,9 @@
       "preconditions": [],
       "postconditions": [],
       "effects": [],
-      "edges": []
+      "edges": [],
+      "primary_in": "array",
+      "primary_out": "output_var"
     },
     {
       "cell_id": "NUMPY_CUMSUM",
@@ -6283,7 +6385,9 @@
           "metadata": {},
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "array",
+      "primary_out": "output_var"
     },
     {
       "cell_id": "NUMPY_NORMALIZE_L2",
@@ -6401,7 +6505,9 @@
           "metadata": {},
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "array",
+      "primary_out": "output_var"
     },
     {
       "cell_id": "NUMPY_DOT",
@@ -6503,7 +6609,9 @@
           "metadata": {},
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "a",
+      "primary_out": "output_var"
     },
     {
       "cell_id": "NUMPY_MATMUL",
@@ -6638,7 +6746,9 @@
           "metadata": {},
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "x1",
+      "primary_out": "output_var"
     },
     {
       "cell_id": "NUMPY_INNER",
@@ -6721,7 +6831,9 @@
       "preconditions": [],
       "postconditions": [],
       "effects": [],
-      "edges": []
+      "edges": [],
+      "primary_in": "a",
+      "primary_out": "output_var"
     },
     {
       "cell_id": "NUMPY_OUTER",
@@ -6821,7 +6933,9 @@
           "metadata": {},
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "a",
+      "primary_out": "output_var"
     },
     {
       "cell_id": "NUMPY_LINALG_INV",
@@ -6910,7 +7024,9 @@
           "metadata": {},
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "matrix",
+      "primary_out": "output_var"
     },
     {
       "cell_id": "NUMPY_LINALG_DET",
@@ -6989,7 +7105,9 @@
       ],
       "postconditions": [],
       "effects": [],
-      "edges": []
+      "edges": [],
+      "primary_in": "matrix",
+      "primary_out": "output_var"
     },
     {
       "cell_id": "NUMPY_LINALG_EIG",
@@ -7070,7 +7188,9 @@
       ],
       "postconditions": [],
       "effects": [],
-      "edges": []
+      "edges": [],
+      "primary_in": "matrix",
+      "primary_out": "output_var"
     },
     {
       "cell_id": "NUMPY_LINALG_EIGH",
@@ -7151,7 +7271,9 @@
       ],
       "postconditions": [],
       "effects": [],
-      "edges": []
+      "edges": [],
+      "primary_in": "matrix",
+      "primary_out": "output_var"
     },
     {
       "cell_id": "NUMPY_LINALG_SVD",
@@ -7247,7 +7369,9 @@
       ],
       "postconditions": [],
       "effects": [],
-      "edges": []
+      "edges": [],
+      "primary_in": "matrix",
+      "primary_out": "output_var"
     },
     {
       "cell_id": "NUMPY_LINALG_QR",
@@ -7340,7 +7464,9 @@
       "preconditions": [],
       "postconditions": [],
       "effects": [],
-      "edges": []
+      "edges": [],
+      "primary_in": "matrix",
+      "primary_out": "output_var"
     },
     {
       "cell_id": "NUMPY_LINALG_CHOLESKY",
@@ -7428,7 +7554,9 @@
           "metadata": {},
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "matrix",
+      "primary_out": "output_var"
     },
     {
       "cell_id": "NUMPY_LINALG_SOLVE",
@@ -7535,7 +7663,9 @@
           "metadata": {},
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "a",
+      "primary_out": "output_var"
     },
     {
       "cell_id": "NUMPY_LINALG_NORM",
@@ -7657,7 +7787,9 @@
       "preconditions": [],
       "postconditions": [],
       "effects": [],
-      "edges": []
+      "edges": [],
+      "primary_in": "x",
+      "primary_out": "output_var"
     },
     {
       "cell_id": "NUMPY_LINALG_MATRIX_RANK",
@@ -7751,7 +7883,9 @@
       ],
       "postconditions": [],
       "effects": [],
-      "edges": []
+      "edges": [],
+      "primary_in": "matrix",
+      "primary_out": "output_var"
     },
     {
       "cell_id": "NUMPY_TRACE",
@@ -7844,7 +7978,9 @@
       ],
       "postconditions": [],
       "effects": [],
-      "edges": []
+      "edges": [],
+      "primary_in": "matrix",
+      "primary_out": "output_var"
     },
     {
       "cell_id": "NUMPY_FFT_FFT",
@@ -7984,7 +8120,9 @@
           "metadata": {},
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "a",
+      "primary_out": "output_var"
     },
     {
       "cell_id": "NUMPY_FFT_IFFT",
@@ -8094,7 +8232,9 @@
           "metadata": {},
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "a",
+      "primary_out": "output_var"
     },
     {
       "cell_id": "NUMPY_FFT_FFT2",
@@ -8225,7 +8365,9 @@
           "metadata": {},
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "a",
+      "primary_out": "output_var"
     },
     {
       "cell_id": "NUMPY_FFT_IFFT2",
@@ -8335,7 +8477,9 @@
           "metadata": {},
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "a",
+      "primary_out": "output_var"
     },
     {
       "cell_id": "NUMPY_FFT_FFTN",
@@ -8453,7 +8597,9 @@
           "metadata": {},
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "a",
+      "primary_out": "output_var"
     },
     {
       "cell_id": "NUMPY_FFT_RFFT",
@@ -8575,7 +8721,9 @@
           "metadata": {},
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "a",
+      "primary_out": "output_var"
     },
     {
       "cell_id": "NUMPY_FFT_IRFFT",
@@ -8685,7 +8833,9 @@
           "metadata": {},
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "a",
+      "primary_out": "output_var"
     },
     {
       "cell_id": "NUMPY_FFT_FFTSHIFT",
@@ -8786,7 +8936,9 @@
           "metadata": {},
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "x",
+      "primary_out": "output_var"
     },
     {
       "cell_id": "NUMPY_FFT_IFFTSHIFT",
@@ -8878,7 +9030,9 @@
           "metadata": {},
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "x",
+      "primary_out": "output_var"
     },
     {
       "cell_id": "NUMPY_RANDOM_UNIFORM",
@@ -8996,7 +9150,9 @@
           "metadata": {},
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "low",
+      "primary_out": "output_var"
     },
     {
       "cell_id": "NUMPY_RANDOM_NORMAL",
@@ -9124,7 +9280,9 @@
           "metadata": {},
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "loc",
+      "primary_out": "output_var"
     },
     {
       "cell_id": "NUMPY_RANDOM_STANDARD_NORMAL",
@@ -9211,7 +9369,9 @@
           "metadata": {},
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "size",
+      "primary_out": "output_var"
     },
     {
       "cell_id": "NUMPY_RANDOM_RANDINT",
@@ -9345,7 +9505,9 @@
           "metadata": {},
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "low",
+      "primary_out": "output_var"
     },
     {
       "cell_id": "NUMPY_RANDOM_CHOICE",
@@ -9475,7 +9637,9 @@
           "metadata": {},
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "a",
+      "primary_out": "output_var"
     },
     {
       "cell_id": "NUMPY_RANDOM_PERMUTATION",
@@ -9564,7 +9728,9 @@
           "metadata": {},
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "x",
+      "primary_out": "output_var"
     },
     {
       "cell_id": "NUMPY_SORT",
@@ -9702,7 +9868,9 @@
           "metadata": {},
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "array",
+      "primary_out": "output_var"
     },
     {
       "cell_id": "NUMPY_ARGSORT",
@@ -9808,7 +9976,9 @@
       "preconditions": [],
       "postconditions": [],
       "effects": [],
-      "edges": []
+      "edges": [],
+      "primary_in": "array",
+      "primary_out": "output_var"
     },
     {
       "cell_id": "NUMPY_SEARCHSORTED",
@@ -9921,7 +10091,9 @@
       ],
       "postconditions": [],
       "effects": [],
-      "edges": []
+      "edges": [],
+      "primary_in": "a",
+      "primary_out": "output_var"
     },
     {
       "cell_id": "NUMPY_UNIQUE",
@@ -10021,7 +10193,9 @@
           "metadata": {},
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "array",
+      "primary_out": "output_var"
     },
     {
       "cell_id": "NUMPY_SAVE_NPY",
@@ -10115,7 +10289,9 @@
       "preconditions": [],
       "postconditions": [],
       "effects": [],
-      "edges": []
+      "edges": [],
+      "primary_in": "array",
+      "primary_out": "output_var"
     },
     {
       "cell_id": "NUMPY_SAVEZ_COMPRESSED",
@@ -10206,7 +10382,9 @@
       "preconditions": [],
       "postconditions": [],
       "effects": [],
-      "edges": []
+      "edges": [],
+      "primary_in": "array",
+      "primary_out": "output_var"
     },
     {
       "cell_id": "NUMPY_TOBYTES",
@@ -10300,7 +10478,9 @@
       "preconditions": [],
       "postconditions": [],
       "effects": [],
-      "edges": []
+      "edges": [],
+      "primary_in": "array",
+      "primary_out": "output_var"
     },
     {
       "cell_id": "NUMPY_TOFILE",
@@ -10421,7 +10601,9 @@
       "preconditions": [],
       "postconditions": [],
       "effects": [],
-      "edges": []
+      "edges": [],
+      "primary_in": "array",
+      "primary_out": "output_var"
     },
     {
       "cell_id": "NUMPY_TOLIST",
@@ -10498,7 +10680,9 @@
       "preconditions": [],
       "postconditions": [],
       "effects": [],
-      "edges": []
+      "edges": [],
+      "primary_in": "array",
+      "primary_out": "output_var"
     }
   ]
 }

@@ -898,7 +898,9 @@
           "metadata": {},
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "figsize",
+      "primary_out": "ax"
     },
     {
       "cell_id": "matplotlib_plt_figure",
@@ -1031,7 +1033,9 @@
           "metadata": {},
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "figsize",
+      "primary_out": "fig"
     },
     {
       "cell_id": "matplotlib_fig_add_subplot",
@@ -1210,7 +1214,9 @@
           "metadata": {},
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "fig",
+      "primary_out": "ax"
     },
     {
       "cell_id": "matplotlib_fig_add_subplot_3d",
@@ -1389,7 +1395,9 @@
           "metadata": {},
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "fig",
+      "primary_out": "ax"
     },
     {
       "cell_id": "matplotlib_fig_add_axes",
@@ -1516,7 +1524,9 @@
           "metadata": {},
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "fig",
+      "primary_out": "ax"
     },
     {
       "cell_id": "matplotlib_ax_plot",
@@ -1752,7 +1762,9 @@
           "metadata": {},
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "x",
+      "primary_out": "out_ax"
     },
     {
       "cell_id": "matplotlib_ax_scatter",
@@ -1987,7 +1999,9 @@
           "metadata": {},
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "x",
+      "primary_out": "out_ax"
     },
     {
       "cell_id": "matplotlib_ax_bar",
@@ -2192,7 +2206,9 @@
           "metadata": {},
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "x",
+      "primary_out": "out_ax"
     },
     {
       "cell_id": "matplotlib_ax_barh",
@@ -2397,7 +2413,9 @@
           "metadata": {},
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "ax",
+      "primary_out": "out_ax"
     },
     {
       "cell_id": "matplotlib_ax_hist",
@@ -2609,7 +2627,9 @@
           "metadata": {},
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "x",
+      "primary_out": "out_ax"
     },
     {
       "cell_id": "matplotlib_ax_boxplot",
@@ -2775,7 +2795,9 @@
           "metadata": {},
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "x",
+      "primary_out": "out_ax"
     },
     {
       "cell_id": "matplotlib_ax_violinplot",
@@ -2940,7 +2962,9 @@
           "metadata": {},
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "ax",
+      "primary_out": "out_ax"
     },
     {
       "cell_id": "matplotlib_ax_pie",
@@ -3125,7 +3149,9 @@
           "metadata": {},
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "x",
+      "primary_out": "out_ax"
     },
     {
       "cell_id": "matplotlib_ax_imshow",
@@ -3342,7 +3368,9 @@
           "metadata": {},
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "X",
+      "primary_out": "out_ax"
     },
     {
       "cell_id": "matplotlib_ax_pcolormesh",
@@ -3564,7 +3592,9 @@
           "metadata": {},
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "X",
+      "primary_out": "out_ax"
     },
     {
       "cell_id": "matplotlib_ax_contour",
@@ -3780,7 +3810,9 @@
           "metadata": {},
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "X",
+      "primary_out": "out_ax"
     },
     {
       "cell_id": "matplotlib_ax_contourf",
@@ -3997,7 +4029,9 @@
           "metadata": {},
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "X",
+      "primary_out": "out_ax"
     },
     {
       "cell_id": "matplotlib_ax3d_plot",
@@ -4188,7 +4222,9 @@
           "metadata": {},
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "ax",
+      "primary_out": "out_ax"
     },
     {
       "cell_id": "matplotlib_ax3d_scatter",
@@ -4397,7 +4433,9 @@
           "metadata": {},
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "ax",
+      "primary_out": "out_ax"
     },
     {
       "cell_id": "matplotlib_ax3d_plot_surface",
@@ -4605,7 +4643,9 @@
           "metadata": {},
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "X",
+      "primary_out": "out_ax"
     },
     {
       "cell_id": "matplotlib_ax3d_view_init",
@@ -4764,7 +4804,9 @@
           "metadata": {},
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "ax",
+      "primary_out": "out_ax"
     },
     {
       "cell_id": "matplotlib_ax_errorbar",
@@ -4966,7 +5008,9 @@
           "metadata": {},
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "x",
+      "primary_out": "out_ax"
     },
     {
       "cell_id": "matplotlib_ax_fill_between",
@@ -5166,7 +5210,9 @@
           "metadata": {},
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "x",
+      "primary_out": "out_ax"
     },
     {
       "cell_id": "matplotlib_ax_stem",
@@ -5348,7 +5394,9 @@
           "metadata": {},
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "x",
+      "primary_out": "out_ax"
     },
     {
       "cell_id": "matplotlib_ax_axhline",
@@ -5533,7 +5581,9 @@
           "metadata": {},
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "ax",
+      "primary_out": "out_ax"
     },
     {
       "cell_id": "matplotlib_ax_axvline",
@@ -5718,7 +5768,9 @@
           "metadata": {},
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "x",
+      "primary_out": "out_ax"
     },
     {
       "cell_id": "matplotlib_ax_legend",
@@ -5909,7 +5961,9 @@
           "metadata": {},
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "ax",
+      "primary_out": "out_ax"
     },
     {
       "cell_id": "matplotlib_ax_annotate",
@@ -6091,7 +6145,9 @@
           "metadata": {},
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "ax",
+      "primary_out": "out_ax"
     },
     {
       "cell_id": "matplotlib_ax_text",
@@ -6291,7 +6347,9 @@
           "metadata": {},
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "x",
+      "primary_out": "out_ax"
     },
     {
       "cell_id": "matplotlib_ax_set_title",
@@ -6465,7 +6523,9 @@
           "metadata": {},
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "ax",
+      "primary_out": "out_ax"
     },
     {
       "cell_id": "matplotlib_ax_set_xlabel",
@@ -6639,7 +6699,9 @@
           "metadata": {},
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "ax",
+      "primary_out": "out_ax"
     },
     {
       "cell_id": "matplotlib_ax_set_ylabel",
@@ -6805,7 +6867,9 @@
           "metadata": {},
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "ax",
+      "primary_out": "out_ax"
     },
     {
       "cell_id": "matplotlib_ax_set_xlim",
@@ -6955,7 +7019,9 @@
           "metadata": {},
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "left",
+      "primary_out": "out_ax"
     },
     {
       "cell_id": "matplotlib_ax_set_ylim",
@@ -7105,7 +7171,9 @@
           "metadata": {},
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "ax",
+      "primary_out": "out_ax"
     },
     {
       "cell_id": "matplotlib_ax_set_xscale",
@@ -7238,7 +7306,9 @@
           "metadata": {},
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "ax",
+      "primary_out": "out_ax"
     },
     {
       "cell_id": "matplotlib_ax_set_yscale",
@@ -7371,7 +7441,9 @@
           "metadata": {},
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "ax",
+      "primary_out": "out_ax"
     },
     {
       "cell_id": "matplotlib_ax_set_xticks",
@@ -7498,7 +7570,9 @@
           "metadata": {},
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "ax",
+      "primary_out": "out_ax"
     },
     {
       "cell_id": "matplotlib_ax_set_xticklabels",
@@ -7644,7 +7718,9 @@
           "metadata": {},
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "ax",
+      "primary_out": "out_ax"
     },
     {
       "cell_id": "matplotlib_ax_tick_params",
@@ -7839,7 +7915,9 @@
           "metadata": {},
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "ax",
+      "primary_out": "out_ax"
     },
     {
       "cell_id": "matplotlib_fig_colorbar",
@@ -8025,7 +8103,9 @@
           "metadata": {},
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "ax",
+      "primary_out": "out_fig"
     },
     {
       "cell_id": "matplotlib_ax_twinx",
@@ -8135,7 +8215,9 @@
           "metadata": {},
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "ax",
+      "primary_out": "ax2"
     },
     {
       "cell_id": "matplotlib_ax_twiny",
@@ -8245,7 +8327,9 @@
           "metadata": {},
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "ax",
+      "primary_out": "ax2"
     },
     {
       "cell_id": "matplotlib_ax_invert_xaxis",
@@ -8355,7 +8439,9 @@
           "metadata": {},
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "ax",
+      "primary_out": "out_ax"
     },
     {
       "cell_id": "matplotlib_ax_invert_yaxis",
@@ -8465,7 +8551,9 @@
           "metadata": {},
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "ax",
+      "primary_out": "out_ax"
     },
     {
       "cell_id": "matplotlib_ax_grid",
@@ -8661,7 +8749,9 @@
           "metadata": {},
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "ax",
+      "primary_out": "out_ax"
     },
     {
       "cell_id": "matplotlib_plt_style_use",
@@ -8745,7 +8835,9 @@
           "metadata": {},
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "style",
+      "primary_out": "void"
     },
     {
       "cell_id": "matplotlib_ax_set_facecolor",
@@ -8864,7 +8956,9 @@
           "metadata": {},
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "ax",
+      "primary_out": "out_ax"
     },
     {
       "cell_id": "matplotlib_fig_set_facecolor",
@@ -8984,7 +9078,9 @@
           "metadata": {},
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "fig",
+      "primary_out": "out_fig"
     },
     {
       "cell_id": "matplotlib_ax_spine_set_visible",
@@ -9128,7 +9224,9 @@
           "metadata": {},
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "ax",
+      "primary_out": "out_ax"
     },
     {
       "cell_id": "matplotlib_fig_suptitle",
@@ -9276,7 +9374,9 @@
           "metadata": {},
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "fig",
+      "primary_out": "out_fig"
     },
     {
       "cell_id": "matplotlib_fig_tight_layout",
@@ -9406,7 +9506,9 @@
           "metadata": {},
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "fig",
+      "primary_out": "out_fig"
     },
     {
       "cell_id": "matplotlib_fig_subplots_adjust",
@@ -9632,7 +9734,9 @@
           "metadata": {},
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "left",
+      "primary_out": "out_fig"
     },
     {
       "cell_id": "matplotlib_fig_savefig",
@@ -9814,7 +9918,9 @@
           "metadata": {},
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "fig",
+      "primary_out": "out_fig"
     },
     {
       "cell_id": "matplotlib_plt_show",
@@ -9863,7 +9969,9 @@
           "metadata": {},
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "void",
+      "primary_out": "void"
     },
     {
       "cell_id": "matplotlib_plt_close",
@@ -9929,7 +10037,9 @@
       "effects": [
         "De-registers figure from pyplot GUI manager and frees memory."
       ],
-      "edges": []
+      "edges": [],
+      "primary_in": "fig",
+      "primary_out": "void"
     }
   ]
 }

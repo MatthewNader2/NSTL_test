@@ -893,7 +893,9 @@
           },
           "needs_mining": false
         }
-      ]
+      ],
+      "primary_in": "image_path",
+      "primary_out": "output_var"
     },
     {
       "cell_id": "CV2_IMWRITE",
@@ -1026,7 +1028,9 @@
           "description": "Disk image is written."
         }
       ],
-      "edges": []
+      "edges": [],
+      "primary_in": "image",
+      "primary_out": "output_var"
     },
     {
       "cell_id": "CV2_IMSHOW",
@@ -1134,7 +1138,9 @@
           "score_provenance": "llm_seed",
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "image",
+      "primary_out": "void"
     },
     {
       "cell_id": "CV2_WAIT_KEY",
@@ -1223,7 +1229,9 @@
           },
           "needs_mining": false
         }
-      ]
+      ],
+      "primary_in": "delay",
+      "primary_out": "output_var"
     },
     {
       "cell_id": "CV2_DESTROY_ALL_WINDOWS",
@@ -1264,7 +1272,9 @@
       "preconditions": [],
       "postconditions": [],
       "effects": [],
-      "edges": []
+      "edges": [],
+      "primary_in": "void",
+      "primary_out": "void"
     },
     {
       "cell_id": "CV2_CVT_COLOR_BGR2GRAY",
@@ -1557,7 +1567,9 @@
           },
           "needs_mining": false
         }
-      ]
+      ],
+      "primary_in": "src",
+      "primary_out": "output_var"
     },
     {
       "cell_id": "CV2_CVT_COLOR_GRAY2BGR",
@@ -1682,7 +1694,9 @@
           "score_provenance": "llm_seed",
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "src",
+      "primary_out": "output_var"
     },
     {
       "cell_id": "CV2_CVT_COLOR_BGR2RGB",
@@ -1792,7 +1806,9 @@
         }
       ],
       "effects": [],
-      "edges": []
+      "edges": [],
+      "primary_in": "src",
+      "primary_out": "output_var"
     },
     {
       "cell_id": "CV2_CVT_COLOR_BGR2HSV",
@@ -1924,7 +1940,9 @@
           "score_provenance": "llm_seed",
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "src",
+      "primary_out": "output_var"
     },
     {
       "cell_id": "CV2_CVT_COLOR_BGR2LAB",
@@ -2042,7 +2060,9 @@
           "score_provenance": "llm_seed",
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "src",
+      "primary_out": "output_var"
     },
     {
       "cell_id": "CV2_RESIZE",
@@ -2087,7 +2107,7 @@
       "inputs": {
         "src": {
           "type_name": "ndarray",
-          "state": "any",
+          "state": "BGR",
           "qualifiers": [
             [
               "cv2",
@@ -2252,7 +2272,9 @@
           },
           "needs_mining": false
         }
-      ]
+      ],
+      "primary_in": "src",
+      "primary_out": "output_var"
     },
     {
       "cell_id": "CV2_WARP_AFFINE",
@@ -2296,7 +2318,7 @@
       "inputs": {
         "src": {
           "type_name": "ndarray",
-          "state": "any",
+          "state": "BGR",
           "qualifiers": [
             [
               "cv2",
@@ -2435,7 +2457,9 @@
           },
           "needs_mining": false
         }
-      ]
+      ],
+      "primary_in": "src",
+      "primary_out": "output_var"
     },
     {
       "cell_id": "CV2_GET_ROTATION_MATRIX_2D",
@@ -2575,7 +2599,9 @@
           },
           "needs_mining": false
         }
-      ]
+      ],
+      "primary_in": "center",
+      "primary_out": "output_var"
     },
     {
       "cell_id": "CV2_WARP_PERSPECTIVE",
@@ -2618,7 +2644,7 @@
       "inputs": {
         "src": {
           "type_name": "ndarray",
-          "state": "any",
+          "state": "BGR",
           "qualifiers": [
             [
               "cv2",
@@ -2757,7 +2783,9 @@
           },
           "needs_mining": false
         }
-      ]
+      ],
+      "primary_in": "src",
+      "primary_out": "output_var"
     },
     {
       "cell_id": "CV2_GET_PERSPECTIVE_TRANSFORM",
@@ -2908,7 +2936,9 @@
           },
           "needs_mining": false
         }
-      ]
+      ],
+      "primary_in": "src_pts",
+      "primary_out": "output_var"
     },
     {
       "cell_id": "CV2_FLIP",
@@ -2949,7 +2979,7 @@
       "inputs": {
         "src": {
           "type_name": "ndarray",
-          "state": "any",
+          "state": "BGR",
           "qualifiers": [
             [
               "cv2",
@@ -2988,7 +3018,7 @@
       "outputs": {
         "output_var": {
           "type_name": "ndarray",
-          "state": "any",
+          "state": "BGR",
           "qualifiers": [
             [
               "cv2",
@@ -3027,7 +3057,9 @@
           "score_provenance": "llm_seed",
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "src",
+      "primary_out": "output_var"
     },
     {
       "cell_id": "CV2_GAUSSIAN_BLUR",
@@ -3267,7 +3299,9 @@
           },
           "needs_mining": false
         }
-      ]
+      ],
+      "primary_in": "src",
+      "primary_out": "output_var"
     },
     {
       "cell_id": "CV2_MEDIAN_BLUR",
@@ -3310,7 +3344,7 @@
       "inputs": {
         "src": {
           "type_name": "ndarray",
-          "state": "any",
+          "state": "BGR",
           "qualifiers": [
             [
               "cv2",
@@ -3404,7 +3438,9 @@
           },
           "needs_mining": false
         }
-      ]
+      ],
+      "primary_in": "src",
+      "primary_out": "output_var"
     },
     {
       "cell_id": "CV2_BILATERAL_FILTER",
@@ -3448,7 +3484,7 @@
       "inputs": {
         "src": {
           "type_name": "ndarray",
-          "state": "any",
+          "state": "BGR",
           "qualifiers": [
             [
               "cv2",
@@ -3551,7 +3587,9 @@
           },
           "needs_mining": false
         }
-      ]
+      ],
+      "primary_in": "src",
+      "primary_out": "output_var"
     },
     {
       "cell_id": "CV2_FILTER2D",
@@ -3593,7 +3631,7 @@
       "inputs": {
         "src": {
           "type_name": "ndarray",
-          "state": "any",
+          "state": "BGR",
           "qualifiers": [
             [
               "cv2",
@@ -3653,7 +3691,7 @@
       "outputs": {
         "output_var": {
           "type_name": "ndarray",
-          "state": "any",
+          "state": "BGR",
           "qualifiers": [
             [
               "cv2",
@@ -3683,7 +3721,9 @@
       ],
       "postconditions": [],
       "effects": [],
-      "edges": []
+      "edges": [],
+      "primary_in": "src",
+      "primary_out": "output_var"
     },
     {
       "cell_id": "CV2_SOBEL",
@@ -3888,7 +3928,9 @@
           },
           "needs_mining": false
         }
-      ]
+      ],
+      "primary_in": "src",
+      "primary_out": "output_var"
     },
     {
       "cell_id": "CV2_LAPLACIAN",
@@ -4036,7 +4078,9 @@
           },
           "needs_mining": false
         }
-      ]
+      ],
+      "primary_in": "src",
+      "primary_out": "output_var"
     },
     {
       "cell_id": "CV2_CANNY",
@@ -4261,7 +4305,9 @@
           },
           "needs_mining": false
         }
-      ]
+      ],
+      "primary_in": "src",
+      "primary_out": "output_var"
     },
     {
       "cell_id": "CV2_THRESHOLD_BINARY",
@@ -4513,7 +4559,9 @@
           },
           "needs_mining": false
         }
-      ]
+      ],
+      "primary_in": "src",
+      "primary_out": "output_var"
     },
     {
       "cell_id": "CV2_THRESHOLD_OTSU",
@@ -4672,7 +4720,9 @@
           "score_provenance": "llm_seed",
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "src",
+      "primary_out": "output_var"
     },
     {
       "cell_id": "CV2_ADAPTIVE_THRESHOLD_GAUSSIAN",
@@ -4862,7 +4912,9 @@
           },
           "needs_mining": false
         }
-      ]
+      ],
+      "primary_in": "src",
+      "primary_out": "output_var"
     },
     {
       "cell_id": "CV2_IN_RANGE",
@@ -4903,7 +4955,7 @@
       "inputs": {
         "src": {
           "type_name": "ndarray",
-          "state": "any",
+          "state": "HSV",
           "qualifiers": [
             [
               "cv2",
@@ -5023,7 +5075,9 @@
           },
           "needs_mining": false
         }
-      ]
+      ],
+      "primary_in": "src",
+      "primary_out": "output_var"
     },
     {
       "cell_id": "CV2_GET_STRUCTURING_ELEMENT",
@@ -5190,7 +5244,9 @@
           },
           "needs_mining": false
         }
-      ]
+      ],
+      "primary_in": "shape",
+      "primary_out": "output_var"
     },
     {
       "cell_id": "CV2_ERODE",
@@ -5335,7 +5391,9 @@
           "score_provenance": "llm_seed",
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "src",
+      "primary_out": "output_var"
     },
     {
       "cell_id": "CV2_DILATE",
@@ -5500,7 +5558,9 @@
           },
           "needs_mining": false
         }
-      ]
+      ],
+      "primary_in": "src",
+      "primary_out": "output_var"
     },
     {
       "cell_id": "CV2_MORPHOLOGY_EX_OPEN",
@@ -5624,7 +5684,9 @@
           "score_provenance": "llm_seed",
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "src",
+      "primary_out": "output_var"
     },
     {
       "cell_id": "CV2_MORPHOLOGY_EX_CLOSE",
@@ -5748,7 +5810,9 @@
           "score_provenance": "llm_seed",
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "src",
+      "primary_out": "output_var"
     },
     {
       "cell_id": "CV2_FIND_CONTOURS",
@@ -5989,7 +6053,9 @@
           },
           "needs_mining": false
         }
-      ]
+      ],
+      "primary_in": "image",
+      "primary_out": "contours"
     },
     {
       "cell_id": "CV2_DRAW_CONTOURS",
@@ -6162,7 +6228,9 @@
           "score_provenance": "llm_seed",
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "image",
+      "primary_out": "output_var"
     },
     {
       "cell_id": "CV2_CONTOUR_AREA",
@@ -6267,7 +6335,9 @@
           },
           "needs_mining": false
         }
-      ]
+      ],
+      "primary_in": "contour",
+      "primary_out": "output_var"
     },
     {
       "cell_id": "CV2_ARC_LENGTH",
@@ -6373,7 +6443,9 @@
           },
           "needs_mining": false
         }
-      ]
+      ],
+      "primary_in": "curve",
+      "primary_out": "output_var"
     },
     {
       "cell_id": "CV2_BOUNDING_RECT",
@@ -6520,7 +6592,9 @@
           },
           "needs_mining": false
         }
-      ]
+      ],
+      "primary_in": "array",
+      "primary_out": "x"
     },
     {
       "cell_id": "CV2_MIN_ENCLOSING_CIRCLE",
@@ -6619,7 +6693,9 @@
           "score_provenance": "llm_seed",
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "points",
+      "primary_out": "center"
     },
     {
       "cell_id": "CV2_APPROX_POLY_DP",
@@ -6749,7 +6825,9 @@
           },
           "needs_mining": false
         }
-      ]
+      ],
+      "primary_in": "curve",
+      "primary_out": "output_var"
     },
     {
       "cell_id": "CV2_CONVEX_HULL",
@@ -6878,7 +6956,9 @@
           },
           "needs_mining": false
         }
-      ]
+      ],
+      "primary_in": "points",
+      "primary_out": "output_var"
     },
     {
       "cell_id": "CV2_MOMENTS",
@@ -6920,7 +7000,7 @@
       "inputs": {
         "array": {
           "type_name": "ndarray",
-          "state": "any",
+          "state": "BINARY",
           "qualifiers": [],
           "default_value": null,
           "description": "Raster image or 2D point set array.",
@@ -6969,7 +7049,9 @@
       "preconditions": [],
       "postconditions": [],
       "effects": [],
-      "edges": []
+      "edges": [],
+      "primary_in": "array",
+      "primary_out": "output_var"
     },
     {
       "cell_id": "CV2_ADD",
@@ -7008,7 +7090,7 @@
       "inputs": {
         "src1": {
           "type_name": "ndarray",
-          "state": "any",
+          "state": "BGR",
           "qualifiers": [
             [
               "cv2",
@@ -7027,7 +7109,7 @@
         },
         "src2": {
           "type_name": "ndarray",
-          "state": "any",
+          "state": "BGR",
           "qualifiers": [
             [
               "cv2",
@@ -7048,7 +7130,7 @@
       "outputs": {
         "output_var": {
           "type_name": "ndarray",
-          "state": "any",
+          "state": "BGR",
           "qualifiers": [
             [
               "cv2",
@@ -7078,7 +7160,9 @@
       ],
       "postconditions": [],
       "effects": [],
-      "edges": []
+      "edges": [],
+      "primary_in": "src1",
+      "primary_out": "output_var"
     },
     {
       "cell_id": "CV2_SUBTRACT",
@@ -7116,7 +7200,7 @@
       "inputs": {
         "src1": {
           "type_name": "ndarray",
-          "state": "any",
+          "state": "BGR",
           "qualifiers": [
             [
               "cv2",
@@ -7135,7 +7219,7 @@
         },
         "src2": {
           "type_name": "ndarray",
-          "state": "any",
+          "state": "BGR",
           "qualifiers": [
             [
               "cv2",
@@ -7156,7 +7240,7 @@
       "outputs": {
         "output_var": {
           "type_name": "ndarray",
-          "state": "any",
+          "state": "BGR",
           "qualifiers": [
             [
               "cv2",
@@ -7177,7 +7261,9 @@
       "preconditions": [],
       "postconditions": [],
       "effects": [],
-      "edges": []
+      "edges": [],
+      "primary_in": "src1",
+      "primary_out": "output_var"
     },
     {
       "cell_id": "CV2_ADD_WEIGHTED",
@@ -7222,7 +7308,7 @@
       "inputs": {
         "src1": {
           "type_name": "ndarray",
-          "state": "any",
+          "state": "BGR",
           "qualifiers": [
             [
               "cv2",
@@ -7255,7 +7341,7 @@
         },
         "src2": {
           "type_name": "ndarray",
-          "state": "any",
+          "state": "BGR",
           "qualifiers": [
             [
               "cv2",
@@ -7304,7 +7390,7 @@
       "outputs": {
         "output_var": {
           "type_name": "ndarray",
-          "state": "any",
+          "state": "BGR",
           "qualifiers": [
             [
               "cv2",
@@ -7347,7 +7433,9 @@
           },
           "needs_mining": false
         }
-      ]
+      ],
+      "primary_in": "src1",
+      "primary_out": "output_var"
     },
     {
       "cell_id": "CV2_BITWISE_AND",
@@ -7390,7 +7478,7 @@
       "inputs": {
         "src1": {
           "type_name": "ndarray",
-          "state": "any",
+          "state": "BGR",
           "qualifiers": [
             [
               "cv2",
@@ -7409,7 +7497,7 @@
         },
         "src2": {
           "type_name": "ndarray",
-          "state": "any",
+          "state": "BGR",
           "qualifiers": [
             [
               "cv2",
@@ -7449,7 +7537,7 @@
       "outputs": {
         "output_var": {
           "type_name": "ndarray",
-          "state": "any",
+          "state": "BGR",
           "qualifiers": [
             [
               "cv2",
@@ -7483,7 +7571,9 @@
           },
           "needs_mining": false
         }
-      ]
+      ],
+      "primary_in": "src1",
+      "primary_out": "output_var"
     },
     {
       "cell_id": "CV2_BITWISE_OR",
@@ -7524,7 +7614,7 @@
       "inputs": {
         "src1": {
           "type_name": "ndarray",
-          "state": "any",
+          "state": "BGR",
           "qualifiers": [
             [
               "cv2",
@@ -7543,7 +7633,7 @@
         },
         "src2": {
           "type_name": "ndarray",
-          "state": "any",
+          "state": "BGR",
           "qualifiers": [
             [
               "cv2",
@@ -7578,7 +7668,7 @@
       "outputs": {
         "output_var": {
           "type_name": "ndarray",
-          "state": "any",
+          "state": "BGR",
           "qualifiers": [
             [
               "cv2",
@@ -7599,7 +7689,9 @@
       "preconditions": [],
       "postconditions": [],
       "effects": [],
-      "edges": []
+      "edges": [],
+      "primary_in": "src1",
+      "primary_out": "output_var"
     },
     {
       "cell_id": "CV2_BITWISE_NOT",
@@ -7641,7 +7733,7 @@
       "inputs": {
         "src": {
           "type_name": "ndarray",
-          "state": "any",
+          "state": "BGR",
           "qualifiers": [
             [
               "cv2",
@@ -7676,7 +7768,7 @@
       "outputs": {
         "output_var": {
           "type_name": "ndarray",
-          "state": "any",
+          "state": "BGR",
           "qualifiers": [
             [
               "cv2",
@@ -7718,7 +7810,9 @@
           },
           "needs_mining": false
         }
-      ]
+      ],
+      "primary_in": "src",
+      "primary_out": "output_var"
     },
     {
       "cell_id": "CV2_ABS_DIFF",
@@ -7758,7 +7852,7 @@
       "inputs": {
         "src1": {
           "type_name": "ndarray",
-          "state": "any",
+          "state": "BGR",
           "qualifiers": [
             [
               "cv2",
@@ -7777,7 +7871,7 @@
         },
         "src2": {
           "type_name": "ndarray",
-          "state": "any",
+          "state": "BGR",
           "qualifiers": [
             [
               "cv2",
@@ -7798,7 +7892,7 @@
       "outputs": {
         "output_var": {
           "type_name": "ndarray",
-          "state": "any",
+          "state": "BGR",
           "qualifiers": [
             [
               "cv2",
@@ -7828,7 +7922,9 @@
           "score_provenance": "llm_seed",
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "src1",
+      "primary_out": "output_var"
     },
     {
       "cell_id": "CV2_SPLIT",
@@ -7869,7 +7965,7 @@
       "inputs": {
         "src": {
           "type_name": "ndarray",
-          "state": "any",
+          "state": "BGR",
           "qualifiers": [
             [
               "cv2",
@@ -7934,7 +8030,9 @@
           "score_provenance": "llm_seed",
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "src",
+      "primary_out": "output_var"
     },
     {
       "cell_id": "CV2_MERGE",
@@ -7988,7 +8086,7 @@
       "outputs": {
         "output_var": {
           "type_name": "ndarray",
-          "state": "any",
+          "state": "BGR",
           "qualifiers": [
             [
               "cv2",
@@ -8020,7 +8118,9 @@
           "score_provenance": "llm_seed",
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "mv",
+      "primary_out": "output_var"
     },
     {
       "cell_id": "CV2_CALC_HIST",
@@ -8072,7 +8172,7 @@
       "inputs": {
         "images": {
           "type_name": "ndarray",
-          "state": "any",
+          "state": "BGR",
           "qualifiers": [
             [
               "cv2",
@@ -8189,7 +8289,9 @@
           },
           "needs_mining": false
         }
-      ]
+      ],
+      "primary_in": "images",
+      "primary_out": "output_var"
     },
     {
       "cell_id": "CV2_EQUALIZE_HIST",
@@ -8298,7 +8400,9 @@
           "score_provenance": "llm_seed",
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "src",
+      "primary_out": "output_var"
     },
     {
       "cell_id": "CV2_NORMALIZE",
@@ -8342,7 +8446,7 @@
       "inputs": {
         "src": {
           "type_name": "ndarray",
-          "state": "any",
+          "state": "BGR",
           "qualifiers": [],
           "default_value": null,
           "description": "Input matrix.",
@@ -8356,7 +8460,7 @@
         },
         "dst": {
           "type_name": "ndarray",
-          "state": "any",
+          "state": "BGR",
           "qualifiers": [],
           "default_value": null,
           "description": "Destination array of matching size.",
@@ -8424,7 +8528,7 @@
       "outputs": {
         "output_var": {
           "type_name": "ndarray",
-          "state": "any",
+          "state": "BGR",
           "qualifiers": [],
           "default_value": null,
           "description": "Normalized array.",
@@ -8453,7 +8557,9 @@
           },
           "needs_mining": false
         }
-      ]
+      ],
+      "primary_in": "src",
+      "primary_out": "output_var"
     },
     {
       "cell_id": "CV2_CREATE_CLAHE",
@@ -8565,7 +8671,9 @@
           },
           "needs_mining": false
         }
-      ]
+      ],
+      "primary_in": "clip_limit",
+      "primary_out": "clahe"
     },
     {
       "cell_id": "CV2_CLAHE_APPLY",
@@ -8690,7 +8798,9 @@
           },
           "needs_mining": false
         }
-      ]
+      ],
+      "primary_in": "src",
+      "primary_out": "output_var"
     },
     {
       "cell_id": "CV2_LINE",
@@ -8901,7 +9011,9 @@
           },
           "needs_mining": false
         }
-      ]
+      ],
+      "primary_in": "img",
+      "primary_out": "output_var"
     },
     {
       "cell_id": "CV2_RECTANGLE",
@@ -9115,7 +9227,9 @@
           },
           "needs_mining": false
         }
-      ]
+      ],
+      "primary_in": "img",
+      "primary_out": "output_var"
     },
     {
       "cell_id": "CV2_CIRCLE",
@@ -9316,7 +9430,9 @@
           },
           "needs_mining": false
         }
-      ]
+      ],
+      "primary_in": "img",
+      "primary_out": "output_var"
     },
     {
       "cell_id": "CV2_PUT_TEXT",
@@ -9564,7 +9680,9 @@
           "score_provenance": "llm_seed",
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "img",
+      "primary_out": "output_var"
     },
     {
       "cell_id": "CV2_POLY_LINES",
@@ -9755,7 +9873,9 @@
           "score_provenance": "llm_seed",
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "img",
+      "primary_out": "output_var"
     },
     {
       "cell_id": "CV2_FILL_POLY",
@@ -9804,7 +9924,7 @@
       "inputs": {
         "img": {
           "type_name": "ndarray",
-          "state": "any",
+          "state": "BGR",
           "qualifiers": [
             [
               "cv2",
@@ -9880,7 +10000,7 @@
       "outputs": {
         "output_var": {
           "type_name": "ndarray",
-          "state": "any",
+          "state": "BGR",
           "qualifiers": [
             [
               "cv2",
@@ -9910,7 +10030,9 @@
           "score_provenance": "llm_seed",
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "img",
+      "primary_out": "output_var"
     },
     {
       "cell_id": "CV2_HOUGH_LINES_P",
@@ -10100,7 +10222,9 @@
           "score_provenance": "llm_seed",
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "image",
+      "primary_out": "output_var"
     },
     {
       "cell_id": "CV2_HOUGH_CIRCLES",
@@ -10330,7 +10454,9 @@
           "score_provenance": "llm_seed",
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "image",
+      "primary_out": "output_var"
     },
     {
       "cell_id": "CV2_CORNER_HARRIS",
@@ -10492,7 +10618,9 @@
           },
           "needs_mining": false
         }
-      ]
+      ],
+      "primary_in": "src",
+      "primary_out": "output_var"
     },
     {
       "cell_id": "CV2_GOOD_FEATURES_TO_TRACK",
@@ -10677,7 +10805,9 @@
           "score_provenance": "llm_seed",
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "image",
+      "primary_out": "output_var"
     },
     {
       "cell_id": "CV2_SIFT_CREATE",
@@ -10815,7 +10945,9 @@
           "score_provenance": "llm_seed",
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "n_features",
+      "primary_out": "sift"
     },
     {
       "cell_id": "CV2_SIFT_DETECT_AND_COMPUTE",
@@ -10989,7 +11121,9 @@
           "score_provenance": "llm_seed",
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "image",
+      "primary_out": "keypoints"
     },
     {
       "cell_id": "CV2_ORB_CREATE",
@@ -11115,7 +11249,9 @@
           },
           "needs_mining": false
         }
-      ]
+      ],
+      "primary_in": "n_features",
+      "primary_out": "orb"
     },
     {
       "cell_id": "CV2_ORB_DETECT_AND_COMPUTE",
@@ -11299,7 +11435,9 @@
           },
           "needs_mining": false
         }
-      ]
+      ],
+      "primary_in": "image",
+      "primary_out": "keypoints"
     },
     {
       "cell_id": "CV2_BFMATCHER_CREATE",
@@ -11415,7 +11553,9 @@
           },
           "needs_mining": false
         }
-      ]
+      ],
+      "primary_in": "norm_type",
+      "primary_out": "matcher"
     },
     {
       "cell_id": "CV2_BFMATCHER_MATCH",
@@ -11550,7 +11690,9 @@
           },
           "needs_mining": false
         }
-      ]
+      ],
+      "primary_in": "matcher",
+      "primary_out": "matches"
     },
     {
       "cell_id": "CV2_DRAW_KEYPOINTS",
@@ -11598,7 +11740,7 @@
       "inputs": {
         "image": {
           "type_name": "ndarray",
-          "state": "any",
+          "state": "BGR",
           "qualifiers": [
             [
               "cv2",
@@ -11631,7 +11773,7 @@
         },
         "out_image": {
           "type_name": "ndarray",
-          "state": "any",
+          "state": "BGR",
           "qualifiers": [
             [
               "cv2",
@@ -11726,7 +11868,9 @@
           "score_provenance": "llm_seed",
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "image",
+      "primary_out": "output_var"
     },
     {
       "cell_id": "CV2_DRAW_MATCHES",
@@ -11769,7 +11913,7 @@
       "inputs": {
         "img1": {
           "type_name": "ndarray",
-          "state": "any",
+          "state": "BGR",
           "qualifiers": [
             [
               "cv2",
@@ -11802,7 +11946,7 @@
         },
         "img2": {
           "type_name": "ndarray",
-          "state": "any",
+          "state": "BGR",
           "qualifiers": [
             [
               "cv2",
@@ -11849,7 +11993,7 @@
         },
         "out_img": {
           "type_name": "ndarray",
-          "state": "any",
+          "state": "BGR",
           "qualifiers": [
             [
               "cv2",
@@ -11904,7 +12048,9 @@
           },
           "needs_mining": false
         }
-      ]
+      ],
+      "primary_in": "img1",
+      "primary_out": "output_var"
     },
     {
       "cell_id": "CV2_COPY_MAKE_BORDER",
@@ -11956,7 +12102,7 @@
       "inputs": {
         "src": {
           "type_name": "ndarray",
-          "state": "any",
+          "state": "BGR",
           "qualifiers": [
             [
               "cv2",
@@ -12083,7 +12229,7 @@
       "outputs": {
         "output_var": {
           "type_name": "ndarray",
-          "state": "any",
+          "state": "BGR",
           "qualifiers": [
             [
               "cv2",
@@ -12104,7 +12250,9 @@
       "preconditions": [],
       "postconditions": [],
       "effects": [],
-      "edges": []
+      "edges": [],
+      "primary_in": "src",
+      "primary_out": "output_var"
     },
     {
       "cell_id": "CV2_CONVERT_SCALE_ABS",
@@ -12148,7 +12296,7 @@
       "inputs": {
         "src": {
           "type_name": "ndarray",
-          "state": "any",
+          "state": "GRAY",
           "qualifiers": [],
           "default_value": null,
           "description": "Input floating-point or integer array (e.g. Sobel derivative matrix).",
@@ -12257,7 +12405,9 @@
           },
           "needs_mining": false
         }
-      ]
+      ],
+      "primary_in": "src",
+      "primary_out": "output_var"
     },
     {
       "cell_id": "CV2_WATERSHED",
@@ -12378,7 +12528,9 @@
       ],
       "postconditions": [],
       "effects": [],
-      "edges": []
+      "edges": [],
+      "primary_in": "image",
+      "primary_out": "markers"
     },
     {
       "cell_id": "CV2_INPAINT",
@@ -12422,7 +12574,7 @@
       "inputs": {
         "src": {
           "type_name": "ndarray",
-          "state": "any",
+          "state": "BGR",
           "qualifiers": [
             [
               "cv2",
@@ -12506,7 +12658,7 @@
       "outputs": {
         "output_var": {
           "type_name": "ndarray",
-          "state": "any",
+          "state": "BGR",
           "qualifiers": [
             [
               "cv2",
@@ -12545,7 +12697,9 @@
           "score_provenance": "llm_seed",
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "src",
+      "primary_out": "output_var"
     },
     {
       "cell_id": "CV2_FAST_NL_MEANS_DENOISING_COLORED",
@@ -12726,7 +12880,9 @@
           "score_provenance": "llm_seed",
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "src",
+      "primary_out": "output_var"
     },
     {
       "cell_id": "CV2_VIDEOCAPTURE_INIT",
@@ -12812,7 +12968,9 @@
           "score_provenance": "llm_seed",
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "source",
+      "primary_out": "cap"
     },
     {
       "cell_id": "CV2_VIDEOCAPTURE_READ",
@@ -12954,7 +13112,9 @@
           "score_provenance": "llm_seed",
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "cap",
+      "primary_out": "ret"
     },
     {
       "cell_id": "CV2_VIDEOCAPTURE_RELEASE",
@@ -13019,7 +13179,9 @@
           "score_provenance": "llm_seed",
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "cap",
+      "primary_out": "void"
     },
     {
       "cell_id": "CV2_VIDEOWRITER_INIT",
@@ -13174,7 +13336,9 @@
           "score_provenance": "llm_seed",
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "filename",
+      "primary_out": "writer"
     },
     {
       "cell_id": "CV2_VIDEOWRITER_WRITE",
@@ -13261,7 +13425,9 @@
           "score_provenance": "llm_seed",
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "image",
+      "primary_out": "void"
     },
     {
       "cell_id": "CV2_VIDEOWRITER_RELEASE",
@@ -13318,7 +13484,9 @@
       "preconditions": [],
       "postconditions": [],
       "effects": [],
-      "edges": []
+      "edges": [],
+      "primary_in": "writer",
+      "primary_out": "void"
     },
     {
       "cell_id": "CV2_IMENCODE",
@@ -13381,7 +13549,7 @@
         },
         "image": {
           "type_name": "ndarray",
-          "state": "any",
+          "state": "BGR",
           "qualifiers": [
             [
               "cv2",
@@ -13450,7 +13618,9 @@
           "score_provenance": "llm_seed",
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "image",
+      "primary_out": "retval"
     },
     {
       "cell_id": "CV2_IMDECODE",
@@ -13585,7 +13755,9 @@
           "score_provenance": "llm_seed",
           "needs_mining": true
         }
-      ]
+      ],
+      "primary_in": "buf",
+      "primary_out": "output_var"
     }
   ]
 }
