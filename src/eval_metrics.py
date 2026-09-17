@@ -1,3 +1,4 @@
+# STATUS: partially wired / candidate for future removal. Do not expand until usage is confirmed.
 import json
 import os
 from collections import defaultdict

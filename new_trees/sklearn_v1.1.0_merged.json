@@ -257,1099 +257,54 @@
     ],
     "transitions": [
       {
-        "from": "dataframe_2d_generic",
-        "to": "cluster_labels",
-        "via": "sklearn.cluster.AgglomerativeClustering.fit_predict"
-      },
-      {
-        "from": "dataframe_2d_generic",
-        "to": "cluster_labels",
-        "via": "sklearn.cluster.DBSCAN.fit_predict"
-      },
-      {
-        "from": "dataframe_2d_generic",
-        "to": "cluster_labels",
-        "via": "sklearn.cluster.KMeans.fit_predict"
-      },
-      {
-        "from": "dataframe_2d_generic",
-        "to": "cluster_labels",
-        "via": "sklearn.cluster.SpectralClustering.fit_predict"
-      },
-      {
-        "from": "dataframe_2d_generic",
-        "to": "cluster_labels",
-        "via": "sklearn.mixture.GaussianMixture.fit_predict"
-      },
-      {
-        "from": "dataframe_2d_generic",
-        "to": "encoded_features",
-        "via": "sklearn.preprocessing.OneHotEncoder.fit_transform"
-      },
-      {
-        "from": "dataframe_2d_generic",
-        "to": "encoded_features",
-        "via": "sklearn.preprocessing.OrdinalEncoder.fit_transform"
-      },
-      {
-        "from": "dataframe_2d_generic",
-        "to": "evaluated_metrics",
-        "via": "sklearn.metrics.accuracy_score"
-      },
-      {
-        "from": "dataframe_2d_generic",
-        "to": "evaluated_metrics",
-        "via": "sklearn.metrics.calinski_harabasz_score"
-      },
-      {
-        "from": "dataframe_2d_generic",
-        "to": "evaluated_metrics",
-        "via": "sklearn.metrics.classification_report"
-      },
-      {
-        "from": "dataframe_2d_generic",
-        "to": "evaluated_metrics",
-        "via": "sklearn.metrics.confusion_matrix"
-      },
-      {
-        "from": "dataframe_2d_generic",
-        "to": "evaluated_metrics",
-        "via": "sklearn.metrics.davies_bouldin_score"
-      },
-      {
-        "from": "dataframe_2d_generic",
-        "to": "evaluated_metrics",
-        "via": "sklearn.metrics.f1_score"
-      },
-      {
-        "from": "dataframe_2d_generic",
-        "to": "evaluated_metrics",
-        "via": "sklearn.metrics.mean_absolute_error"
-      },
-      {
-        "from": "dataframe_2d_generic",
-        "to": "evaluated_metrics",
-        "via": "sklearn.metrics.mean_squared_error"
-      },
-      {
-        "from": "dataframe_2d_generic",
-        "to": "evaluated_metrics",
-        "via": "sklearn.metrics.precision_score"
-      },
-      {
-        "from": "dataframe_2d_generic",
-        "to": "evaluated_metrics",
-        "via": "sklearn.metrics.r2_score"
-      },
-      {
-        "from": "dataframe_2d_generic",
-        "to": "evaluated_metrics",
-        "via": "sklearn.metrics.recall_score"
-      },
-      {
-        "from": "dataframe_2d_generic",
-        "to": "evaluated_metrics",
-        "via": "sklearn.metrics.roc_auc_score"
-      },
-      {
-        "from": "dataframe_2d_generic",
-        "to": "evaluated_metrics",
-        "via": "sklearn.metrics.silhouette_score"
-      },
-      {
-        "from": "dataframe_2d_generic",
-        "to": "evaluated_metrics",
-        "via": "sklearn.model_selection.KFold.split"
-      },
-      {
-        "from": "dataframe_2d_generic",
-        "to": "evaluated_metrics",
-        "via": "sklearn.model_selection.StratifiedKFold.split"
-      },
-      {
-        "from": "dataframe_2d_generic",
-        "to": "fit_classifier",
-        "via": "sklearn.ensemble.GradientBoostingClassifier.fit"
-      },
-      {
-        "from": "dataframe_2d_generic",
-        "to": "fit_classifier",
-        "via": "sklearn.ensemble.RandomForestClassifier.fit"
-      },
-      {
-        "from": "dataframe_2d_generic",
-        "to": "fit_classifier",
-        "via": "sklearn.linear_model.LogisticRegression.fit"
-      },
-      {
-        "from": "dataframe_2d_generic",
-        "to": "fit_classifier",
-        "via": "sklearn.linear_model.SGDClassifier.fit"
-      },
-      {
-        "from": "dataframe_2d_generic",
-        "to": "fit_classifier",
-        "via": "sklearn.naive_bayes.GaussianNB.fit"
-      },
-      {
-        "from": "dataframe_2d_generic",
-        "to": "fit_classifier",
-        "via": "sklearn.neighbors.KNeighborsClassifier.fit"
-      },
-      {
-        "from": "dataframe_2d_generic",
-        "to": "fit_classifier",
-        "via": "sklearn.neural_network.MLPClassifier.fit"
-      },
-      {
-        "from": "dataframe_2d_generic",
-        "to": "fit_classifier",
-        "via": "sklearn.svm.SVC.fit"
-      },
-      {
-        "from": "dataframe_2d_generic",
-        "to": "fit_classifier",
-        "via": "sklearn.tree.DecisionTreeClassifier.fit"
-      },
-      {
-        "from": "dataframe_2d_generic",
-        "to": "fit_clusterer",
-        "via": "sklearn.cluster.KMeans.fit"
-      },
-      {
-        "from": "dataframe_2d_generic",
-        "to": "fit_regressor",
-        "via": "sklearn.ensemble.GradientBoostingRegressor.fit"
-      },
-      {
-        "from": "dataframe_2d_generic",
-        "to": "fit_regressor",
-        "via": "sklearn.ensemble.RandomForestRegressor.fit"
-      },
-      {
-        "from": "dataframe_2d_generic",
-        "to": "fit_regressor",
-        "via": "sklearn.linear_model.ElasticNet.fit"
-      },
-      {
-        "from": "dataframe_2d_generic",
-        "to": "fit_regressor",
-        "via": "sklearn.linear_model.Lasso.fit"
-      },
-      {
-        "from": "dataframe_2d_generic",
-        "to": "fit_regressor",
-        "via": "sklearn.linear_model.LinearRegression.fit"
-      },
-      {
-        "from": "dataframe_2d_generic",
-        "to": "fit_regressor",
-        "via": "sklearn.linear_model.Ridge.fit"
-      },
-      {
-        "from": "dataframe_2d_generic",
-        "to": "fit_regressor",
-        "via": "sklearn.neighbors.KNeighborsRegressor.fit"
-      },
-      {
-        "from": "dataframe_2d_generic",
-        "to": "fit_regressor",
-        "via": "sklearn.svm.SVR.fit"
-      },
-      {
-        "from": "dataframe_2d_generic",
-        "to": "fit_regressor",
-        "via": "sklearn.tree.DecisionTreeRegressor.fit"
-      },
-      {
-        "from": "dataframe_2d_generic",
-        "to": "imputed_features",
-        "via": "sklearn.impute.KNNImputer.fit_transform"
-      },
-      {
-        "from": "dataframe_2d_generic",
-        "to": "imputed_features",
-        "via": "sklearn.impute.SimpleImputer.fit_transform"
-      },
-      {
-        "from": "dataframe_2d_generic",
-        "to": "reduced_features",
-        "via": "sklearn.decomposition.FastICA.fit_transform"
-      },
-      {
-        "from": "dataframe_2d_generic",
-        "to": "reduced_features",
-        "via": "sklearn.decomposition.IncrementalPCA.fit_transform"
-      },
-      {
-        "from": "dataframe_2d_generic",
-        "to": "reduced_features",
-        "via": "sklearn.decomposition.NMF.fit_transform"
-      },
-      {
-        "from": "dataframe_2d_generic",
-        "to": "reduced_features",
-        "via": "sklearn.decomposition.PCA.fit_transform"
-      },
-      {
-        "from": "dataframe_2d_generic",
-        "to": "reduced_features",
-        "via": "sklearn.decomposition.TruncatedSVD.fit_transform"
-      },
-      {
-        "from": "dataframe_2d_generic",
-        "to": "reduced_features",
-        "via": "sklearn.discriminant_analysis.LinearDiscriminantAnalysis.fit_transform"
-      },
-      {
-        "from": "dataframe_2d_generic",
-        "to": "reduced_features",
-        "via": "sklearn.feature_selection.SelectKBest.fit_transform"
-      },
-      {
-        "from": "dataframe_2d_generic",
-        "to": "reduced_features",
-        "via": "sklearn.feature_selection.VarianceThreshold.fit_transform"
-      },
-      {
-        "from": "dataframe_2d_generic",
-        "to": "reduced_features",
-        "via": "sklearn.manifold.TSNE.fit_transform"
-      },
-      {
-        "from": "dataframe_2d_generic",
-        "to": "scaled_features",
-        "via": "sklearn.preprocessing.MaxAbsScaler.fit_transform"
-      },
-      {
-        "from": "dataframe_2d_generic",
-        "to": "scaled_features",
-        "via": "sklearn.preprocessing.MinMaxScaler.fit_transform"
-      },
-      {
-        "from": "dataframe_2d_generic",
-        "to": "scaled_features",
-        "via": "sklearn.preprocessing.Normalizer.fit_transform"
-      },
-      {
-        "from": "dataframe_2d_generic",
-        "to": "scaled_features",
-        "via": "sklearn.preprocessing.PolynomialFeatures.fit_transform"
-      },
-      {
-        "from": "dataframe_2d_generic",
-        "to": "scaled_features",
-        "via": "sklearn.preprocessing.PowerTransformer.fit_transform"
-      },
-      {
-        "from": "dataframe_2d_generic",
-        "to": "scaled_features",
-        "via": "sklearn.preprocessing.QuantileTransformer.fit_transform"
-      },
-      {
-        "from": "dataframe_2d_generic",
-        "to": "scaled_features",
-        "via": "sklearn.preprocessing.RobustScaler.fit_transform"
-      },
-      {
-        "from": "dataframe_2d_generic",
-        "to": "scaled_features",
-        "via": "sklearn.preprocessing.StandardScaler.fit_transform"
-      },
-      {
-        "from": "dataframe_2d_generic",
-        "to": "split_train_features",
-        "via": "sklearn.model_selection.train_test_split"
-      },
-      {
-        "from": "dataframe_2d_generic",
-        "to": "split_train_targets",
-        "via": "sklearn.preprocessing.LabelEncoder.fit_transform"
-      },
-      {
-        "from": "dataframe_2d_generic",
-        "to": "unscaled_features",
-        "via": "sklearn.preprocessing.FunctionTransformer.fit_transform"
-      },
-      {
-        "from": "encoded_features",
-        "to": "reduced_features",
-        "via": "sklearn.decomposition.NMF.fit_transform"
-      },
-      {
-        "from": "encoded_features",
-        "to": "reduced_features",
-        "via": "sklearn.decomposition.TruncatedSVD.fit_transform"
-      },
-      {
-        "from": "file_path",
-        "to": "fit_estimator",
-        "via": "joblib.load"
-      },
-      {
-        "from": "file_path",
-        "to": "fit_estimator",
-        "via": "pickle.load"
-      },
-      {
-        "from": "fit_classifier",
-        "to": "predicted_labels",
-        "via": "sklearn.ensemble.GradientBoostingClassifier.predict"
-      },
-      {
-        "from": "fit_classifier",
-        "to": "predicted_labels",
-        "via": "sklearn.linear_model.LogisticRegression.predict"
-      },
-      {
-        "from": "fit_classifier",
-        "to": "predicted_labels",
-        "via": "sklearn.linear_model.SGDClassifier.predict"
-      },
-      {
-        "from": "fit_classifier",
-        "to": "predicted_labels",
-        "via": "sklearn.naive_bayes.GaussianNB.predict"
-      },
-      {
-        "from": "fit_classifier",
-        "to": "predicted_labels",
-        "via": "sklearn.neighbors.KNeighborsClassifier.predict"
-      },
-      {
-        "from": "fit_classifier",
-        "to": "predicted_labels",
-        "via": "sklearn.neural_network.MLPClassifier.predict"
-      },
-      {
-        "from": "fit_classifier",
-        "to": "predicted_labels",
-        "via": "sklearn.tree.DecisionTreeClassifier.predict"
-      },
-      {
-        "from": "fit_classifier",
-        "to": "predicted_probabilities",
-        "via": "sklearn.linear_model.LogisticRegression.predict_proba"
-      },
-      {
-        "from": "fit_regressor",
-        "to": "predicted_values",
-        "via": "sklearn.ensemble.GradientBoostingRegressor.predict"
-      },
-      {
-        "from": "fit_regressor",
-        "to": "predicted_values",
-        "via": "sklearn.linear_model.ElasticNet.predict"
-      },
-      {
-        "from": "fit_regressor",
-        "to": "predicted_values",
-        "via": "sklearn.linear_model.LinearRegression.predict"
-      },
-      {
-        "from": "fit_regressor",
-        "to": "predicted_values",
-        "via": "sklearn.neighbors.KNeighborsRegressor.predict"
-      },
-      {
-        "from": "fit_regressor",
-        "to": "predicted_values",
-        "via": "sklearn.svm.SVR.predict"
-      },
-      {
-        "from": "fit_regressor",
-        "to": "predicted_values",
-        "via": "sklearn.tree.DecisionTreeRegressor.predict"
-      },
-      {
-        "from": "fit_transformer",
-        "to": "reduced_features",
-        "via": "sklearn.decomposition.PCA.transform"
-      },
-      {
-        "from": "fit_transformer",
-        "to": "scaled_features",
-        "via": "sklearn.preprocessing.MinMaxScaler.transform"
-      },
-      {
-        "from": "fit_transformer",
-        "to": "scaled_features",
-        "via": "sklearn.preprocessing.StandardScaler.transform"
-      },
-      {
-        "from": "hyperparameter",
-        "to": "fit_estimator",
-        "via": "sklearn.pipeline.Pipeline.fit"
-      },
-      {
-        "from": "hyperparameter",
-        "to": "raw_dataset",
-        "via": "sklearn.datasets.make_blobs"
-      },
-      {
-        "from": "hyperparameter",
-        "to": "raw_dataset",
-        "via": "sklearn.datasets.make_classification"
-      },
-      {
-        "from": "hyperparameter",
-        "to": "raw_dataset",
-        "via": "sklearn.datasets.make_regression"
-      },
-      {
-        "from": "hyperparameter",
-        "to": "scaled_features",
-        "via": "sklearn.compose.ColumnTransformer.fit_transform"
-      },
-      {
-        "from": "ndarray_generic",
-        "to": "cluster_labels",
-        "via": "sklearn.cluster.AgglomerativeClustering.fit_predict"
-      },
-      {
-        "from": "ndarray_generic",
-        "to": "cluster_labels",
-        "via": "sklearn.cluster.DBSCAN.fit_predict"
-      },
-      {
-        "from": "ndarray_generic",
-        "to": "cluster_labels",
-        "via": "sklearn.cluster.KMeans.fit_predict"
-      },
-      {
-        "from": "ndarray_generic",
-        "to": "cluster_labels",
-        "via": "sklearn.cluster.SpectralClustering.fit_predict"
-      },
-      {
-        "from": "ndarray_generic",
-        "to": "cluster_labels",
-        "via": "sklearn.mixture.GaussianMixture.fit_predict"
-      },
-      {
-        "from": "ndarray_generic",
-        "to": "encoded_features",
-        "via": "sklearn.preprocessing.OneHotEncoder.fit_transform"
-      },
-      {
-        "from": "ndarray_generic",
-        "to": "encoded_features",
-        "via": "sklearn.preprocessing.OrdinalEncoder.fit_transform"
-      },
-      {
-        "from": "ndarray_generic",
-        "to": "evaluated_metrics",
-        "via": "sklearn.metrics.accuracy_score"
-      },
-      {
-        "from": "ndarray_generic",
-        "to": "evaluated_metrics",
-        "via": "sklearn.metrics.calinski_harabasz_score"
-      },
-      {
-        "from": "ndarray_generic",
-        "to": "evaluated_metrics",
-        "via": "sklearn.metrics.classification_report"
-      },
-      {
-        "from": "ndarray_generic",
-        "to": "evaluated_metrics",
-        "via": "sklearn.metrics.confusion_matrix"
-      },
-      {
-        "from": "ndarray_generic",
-        "to": "evaluated_metrics",
-        "via": "sklearn.metrics.davies_bouldin_score"
-      },
-      {
-        "from": "ndarray_generic",
-        "to": "evaluated_metrics",
-        "via": "sklearn.metrics.f1_score"
-      },
-      {
-        "from": "ndarray_generic",
-        "to": "evaluated_metrics",
-        "via": "sklearn.metrics.mean_absolute_error"
-      },
-      {
-        "from": "ndarray_generic",
-        "to": "evaluated_metrics",
-        "via": "sklearn.metrics.mean_squared_error"
-      },
-      {
-        "from": "ndarray_generic",
-        "to": "evaluated_metrics",
-        "via": "sklearn.metrics.precision_score"
-      },
-      {
-        "from": "ndarray_generic",
-        "to": "evaluated_metrics",
-        "via": "sklearn.metrics.r2_score"
-      },
-      {
-        "from": "ndarray_generic",
-        "to": "evaluated_metrics",
-        "via": "sklearn.metrics.recall_score"
-      },
-      {
-        "from": "ndarray_generic",
-        "to": "evaluated_metrics",
-        "via": "sklearn.metrics.roc_auc_score"
-      },
-      {
-        "from": "ndarray_generic",
-        "to": "evaluated_metrics",
-        "via": "sklearn.metrics.silhouette_score"
-      },
-      {
-        "from": "ndarray_generic",
-        "to": "evaluated_metrics",
-        "via": "sklearn.model_selection.KFold.split"
-      },
-      {
-        "from": "ndarray_generic",
-        "to": "evaluated_metrics",
-        "via": "sklearn.model_selection.StratifiedKFold.split"
-      },
-      {
-        "from": "ndarray_generic",
-        "to": "fit_classifier",
-        "via": "sklearn.ensemble.GradientBoostingClassifier.fit"
-      },
-      {
-        "from": "ndarray_generic",
-        "to": "fit_classifier",
-        "via": "sklearn.ensemble.RandomForestClassifier.fit"
-      },
-      {
-        "from": "ndarray_generic",
-        "to": "fit_classifier",
-        "via": "sklearn.linear_model.LogisticRegression.fit"
-      },
-      {
-        "from": "ndarray_generic",
-        "to": "fit_classifier",
-        "via": "sklearn.linear_model.SGDClassifier.fit"
-      },
-      {
-        "from": "ndarray_generic",
-        "to": "fit_classifier",
-        "via": "sklearn.naive_bayes.GaussianNB.fit"
-      },
-      {
-        "from": "ndarray_generic",
-        "to": "fit_classifier",
-        "via": "sklearn.neighbors.KNeighborsClassifier.fit"
-      },
-      {
-        "from": "ndarray_generic",
-        "to": "fit_classifier",
-        "via": "sklearn.neural_network.MLPClassifier.fit"
-      },
-      {
-        "from": "ndarray_generic",
-        "to": "fit_classifier",
-        "via": "sklearn.svm.SVC.fit"
-      },
-      {
-        "from": "ndarray_generic",
-        "to": "fit_classifier",
-        "via": "sklearn.tree.DecisionTreeClassifier.fit"
-      },
-      {
-        "from": "ndarray_generic",
-        "to": "fit_clusterer",
-        "via": "sklearn.cluster.KMeans.fit"
-      },
-      {
-        "from": "ndarray_generic",
-        "to": "fit_regressor",
-        "via": "sklearn.ensemble.GradientBoostingRegressor.fit"
-      },
-      {
-        "from": "ndarray_generic",
-        "to": "fit_regressor",
-        "via": "sklearn.ensemble.RandomForestRegressor.fit"
-      },
-      {
-        "from": "ndarray_generic",
-        "to": "fit_regressor",
-        "via": "sklearn.linear_model.ElasticNet.fit"
-      },
-      {
-        "from": "ndarray_generic",
-        "to": "fit_regressor",
-        "via": "sklearn.linear_model.Lasso.fit"
-      },
-      {
-        "from": "ndarray_generic",
-        "to": "fit_regressor",
-        "via": "sklearn.linear_model.LinearRegression.fit"
-      },
-      {
-        "from": "ndarray_generic",
-        "to": "fit_regressor",
-        "via": "sklearn.linear_model.Ridge.fit"
-      },
-      {
-        "from": "ndarray_generic",
-        "to": "fit_regressor",
-        "via": "sklearn.neighbors.KNeighborsRegressor.fit"
-      },
-      {
-        "from": "ndarray_generic",
-        "to": "fit_regressor",
-        "via": "sklearn.svm.SVR.fit"
-      },
-      {
-        "from": "ndarray_generic",
-        "to": "fit_regressor",
-        "via": "sklearn.tree.DecisionTreeRegressor.fit"
-      },
-      {
-        "from": "ndarray_generic",
-        "to": "imputed_features",
-        "via": "sklearn.impute.KNNImputer.fit_transform"
-      },
-      {
-        "from": "ndarray_generic",
-        "to": "imputed_features",
-        "via": "sklearn.impute.SimpleImputer.fit_transform"
-      },
-      {
-        "from": "ndarray_generic",
-        "to": "reduced_features",
-        "via": "sklearn.decomposition.FastICA.fit_transform"
-      },
-      {
-        "from": "ndarray_generic",
-        "to": "reduced_features",
-        "via": "sklearn.decomposition.IncrementalPCA.fit_transform"
-      },
-      {
-        "from": "ndarray_generic",
-        "to": "reduced_features",
-        "via": "sklearn.decomposition.NMF.fit_transform"
-      },
-      {
-        "from": "ndarray_generic",
-        "to": "reduced_features",
-        "via": "sklearn.decomposition.PCA.fit_transform"
-      },
-      {
-        "from": "ndarray_generic",
-        "to": "reduced_features",
-        "via": "sklearn.decomposition.TruncatedSVD.fit_transform"
-      },
-      {
-        "from": "ndarray_generic",
-        "to": "reduced_features",
-        "via": "sklearn.discriminant_analysis.LinearDiscriminantAnalysis.fit_transform"
-      },
-      {
-        "from": "ndarray_generic",
-        "to": "reduced_features",
-        "via": "sklearn.feature_selection.SelectKBest.fit_transform"
-      },
-      {
-        "from": "ndarray_generic",
-        "to": "reduced_features",
-        "via": "sklearn.feature_selection.VarianceThreshold.fit_transform"
-      },
-      {
-        "from": "ndarray_generic",
-        "to": "reduced_features",
-        "via": "sklearn.manifold.TSNE.fit_transform"
-      },
-      {
-        "from": "ndarray_generic",
-        "to": "scaled_features",
-        "via": "sklearn.preprocessing.MaxAbsScaler.fit_transform"
-      },
-      {
-        "from": "ndarray_generic",
-        "to": "scaled_features",
-        "via": "sklearn.preprocessing.MinMaxScaler.fit_transform"
-      },
-      {
-        "from": "ndarray_generic",
-        "to": "scaled_features",
-        "via": "sklearn.preprocessing.Normalizer.fit_transform"
-      },
-      {
-        "from": "ndarray_generic",
-        "to": "scaled_features",
-        "via": "sklearn.preprocessing.PolynomialFeatures.fit_transform"
-      },
-      {
-        "from": "ndarray_generic",
-        "to": "scaled_features",
-        "via": "sklearn.preprocessing.PowerTransformer.fit_transform"
-      },
-      {
-        "from": "ndarray_generic",
-        "to": "scaled_features",
-        "via": "sklearn.preprocessing.QuantileTransformer.fit_transform"
-      },
-      {
-        "from": "ndarray_generic",
-        "to": "scaled_features",
-        "via": "sklearn.preprocessing.RobustScaler.fit_transform"
-      },
-      {
-        "from": "ndarray_generic",
-        "to": "scaled_features",
-        "via": "sklearn.preprocessing.StandardScaler.fit_transform"
-      },
-      {
-        "from": "ndarray_generic",
-        "to": "split_train_features",
-        "via": "sklearn.model_selection.train_test_split"
-      },
-      {
-        "from": "ndarray_generic",
-        "to": "split_train_targets",
-        "via": "sklearn.preprocessing.LabelEncoder.fit_transform"
-      },
-      {
-        "from": "ndarray_generic",
-        "to": "unscaled_features",
-        "via": "sklearn.preprocessing.FunctionTransformer.fit_transform"
-      },
-      {
-        "from": "raw_dataset",
-        "to": "encoded_features",
-        "via": "sklearn.feature_extraction.text.TfidfVectorizer.fit_transform"
-      },
-      {
-        "from": "raw_dataset",
-        "to": "encoded_features",
-        "via": "sklearn.preprocessing.OneHotEncoder.fit_transform"
-      },
-      {
-        "from": "raw_dataset",
-        "to": "encoded_features",
-        "via": "sklearn.preprocessing.OrdinalEncoder.fit_transform"
-      },
-      {
-        "from": "raw_dataset",
-        "to": "evaluated_metrics",
-        "via": "sklearn.model_selection.KFold.split"
-      },
-      {
-        "from": "raw_dataset",
-        "to": "evaluated_metrics",
-        "via": "sklearn.model_selection.StratifiedKFold.split"
-      },
-      {
-        "from": "raw_dataset",
-        "to": "imputed_features",
-        "via": "sklearn.impute.KNNImputer.fit_transform"
-      },
-      {
-        "from": "raw_dataset",
-        "to": "imputed_features",
-        "via": "sklearn.impute.SimpleImputer.fit_transform"
-      },
-      {
         "from": "raw_dataset",
         "to": "split_train_features",
-        "via": "sklearn.model_selection.train_test_split"
+        "trigger": "train_test_split"
+      },
+      {
+        "from": "unscaled_features",
+        "to": "scaled_features",
+        "trigger": "StandardScaler.fit_transform"
       },
       {
         "from": "raw_dataset",
-        "to": "split_train_targets",
-        "via": "sklearn.preprocessing.LabelEncoder.fit_transform"
-      },
-      {
-        "from": "scaled_features",
-        "to": "cluster_labels",
-        "via": "sklearn.cluster.AgglomerativeClustering.fit_predict"
-      },
-      {
-        "from": "scaled_features",
-        "to": "cluster_labels",
-        "via": "sklearn.cluster.DBSCAN.fit_predict"
-      },
-      {
-        "from": "scaled_features",
-        "to": "cluster_labels",
-        "via": "sklearn.cluster.KMeans.fit_predict"
-      },
-      {
-        "from": "scaled_features",
-        "to": "cluster_labels",
-        "via": "sklearn.cluster.SpectralClustering.fit_predict"
-      },
-      {
-        "from": "scaled_features",
-        "to": "cluster_labels",
-        "via": "sklearn.mixture.GaussianMixture.fit_predict"
-      },
-      {
-        "from": "scaled_features",
-        "to": "evaluated_metrics",
-        "via": "sklearn.metrics.calinski_harabasz_score"
-      },
-      {
-        "from": "scaled_features",
-        "to": "evaluated_metrics",
-        "via": "sklearn.metrics.davies_bouldin_score"
-      },
-      {
-        "from": "scaled_features",
-        "to": "evaluated_metrics",
-        "via": "sklearn.metrics.silhouette_score"
-      },
-      {
-        "from": "scaled_features",
-        "to": "fit_classifier",
-        "via": "sklearn.ensemble.GradientBoostingClassifier.fit"
-      },
-      {
-        "from": "scaled_features",
-        "to": "fit_classifier",
-        "via": "sklearn.linear_model.LogisticRegression.fit"
-      },
-      {
-        "from": "scaled_features",
-        "to": "fit_classifier",
-        "via": "sklearn.linear_model.SGDClassifier.fit"
-      },
-      {
-        "from": "scaled_features",
-        "to": "fit_classifier",
-        "via": "sklearn.naive_bayes.GaussianNB.fit"
-      },
-      {
-        "from": "scaled_features",
-        "to": "fit_classifier",
-        "via": "sklearn.neighbors.KNeighborsClassifier.fit"
-      },
-      {
-        "from": "scaled_features",
-        "to": "fit_classifier",
-        "via": "sklearn.neural_network.MLPClassifier.fit"
-      },
-      {
-        "from": "scaled_features",
-        "to": "fit_classifier",
-        "via": "sklearn.svm.SVC.fit"
-      },
-      {
-        "from": "scaled_features",
-        "to": "fit_classifier",
-        "via": "sklearn.tree.DecisionTreeClassifier.fit"
-      },
-      {
-        "from": "scaled_features",
-        "to": "fit_clusterer",
-        "via": "sklearn.cluster.KMeans.fit"
-      },
-      {
-        "from": "scaled_features",
-        "to": "fit_regressor",
-        "via": "sklearn.ensemble.GradientBoostingRegressor.fit"
-      },
-      {
-        "from": "scaled_features",
-        "to": "fit_regressor",
-        "via": "sklearn.linear_model.ElasticNet.fit"
-      },
-      {
-        "from": "scaled_features",
-        "to": "fit_regressor",
-        "via": "sklearn.linear_model.Lasso.fit"
-      },
-      {
-        "from": "scaled_features",
-        "to": "fit_regressor",
-        "via": "sklearn.linear_model.LinearRegression.fit"
-      },
-      {
-        "from": "scaled_features",
-        "to": "fit_regressor",
-        "via": "sklearn.linear_model.Ridge.fit"
-      },
-      {
-        "from": "scaled_features",
-        "to": "fit_regressor",
-        "via": "sklearn.neighbors.KNeighborsRegressor.fit"
-      },
-      {
-        "from": "scaled_features",
-        "to": "fit_regressor",
-        "via": "sklearn.svm.SVR.fit"
-      },
-      {
-        "from": "scaled_features",
-        "to": "fit_regressor",
-        "via": "sklearn.tree.DecisionTreeRegressor.fit"
+        "to": "imputed_features",
+        "trigger": "SimpleImputer.fit_transform"
       },
       {
         "from": "scaled_features",
         "to": "reduced_features",
-        "via": "sklearn.decomposition.FastICA.fit_transform"
-      },
-      {
-        "from": "scaled_features",
-        "to": "reduced_features",
-        "via": "sklearn.decomposition.IncrementalPCA.fit_transform"
-      },
-      {
-        "from": "scaled_features",
-        "to": "reduced_features",
-        "via": "sklearn.decomposition.PCA.fit_transform"
-      },
-      {
-        "from": "scaled_features",
-        "to": "reduced_features",
-        "via": "sklearn.discriminant_analysis.LinearDiscriminantAnalysis.fit_transform"
-      },
-      {
-        "from": "scaled_features",
-        "to": "reduced_features",
-        "via": "sklearn.feature_selection.SelectKBest.fit_transform"
-      },
-      {
-        "from": "scaled_features",
-        "to": "reduced_features",
-        "via": "sklearn.manifold.TSNE.fit_transform"
-      },
-      {
-        "from": "scaled_features",
-        "to": "scaled_features",
-        "via": "sklearn.preprocessing.PolynomialFeatures.fit_transform"
-      },
-      {
-        "from": "split_test_targets",
-        "to": "evaluated_metrics",
-        "via": "sklearn.metrics.accuracy_score"
-      },
-      {
-        "from": "split_test_targets",
-        "to": "evaluated_metrics",
-        "via": "sklearn.metrics.classification_report"
-      },
-      {
-        "from": "split_test_targets",
-        "to": "evaluated_metrics",
-        "via": "sklearn.metrics.confusion_matrix"
-      },
-      {
-        "from": "split_test_targets",
-        "to": "evaluated_metrics",
-        "via": "sklearn.metrics.f1_score"
-      },
-      {
-        "from": "split_test_targets",
-        "to": "evaluated_metrics",
-        "via": "sklearn.metrics.mean_absolute_error"
-      },
-      {
-        "from": "split_test_targets",
-        "to": "evaluated_metrics",
-        "via": "sklearn.metrics.mean_squared_error"
-      },
-      {
-        "from": "split_test_targets",
-        "to": "evaluated_metrics",
-        "via": "sklearn.metrics.precision_score"
-      },
-      {
-        "from": "split_test_targets",
-        "to": "evaluated_metrics",
-        "via": "sklearn.metrics.r2_score"
-      },
-      {
-        "from": "split_test_targets",
-        "to": "evaluated_metrics",
-        "via": "sklearn.metrics.recall_score"
-      },
-      {
-        "from": "split_test_targets",
-        "to": "evaluated_metrics",
-        "via": "sklearn.metrics.roc_auc_score"
+        "trigger": "PCA.fit_transform"
       },
       {
         "from": "split_train_features",
         "to": "fit_classifier",
-        "via": "sklearn.ensemble.RandomForestClassifier.fit"
+        "trigger": "Classifier.fit"
       },
       {
         "from": "split_train_features",
         "to": "fit_regressor",
-        "via": "sklearn.ensemble.RandomForestRegressor.fit"
+        "trigger": "Regressor.fit"
       },
       {
-        "from": "unfit_estimator",
+        "from": "fit_classifier",
+        "to": "predicted_labels",
+        "trigger": "Classifier.predict"
+      },
+      {
+        "from": "fit_regressor",
+        "to": "predicted_values",
+        "trigger": "Regressor.predict"
+      },
+      {
+        "from": "predicted_labels",
         "to": "evaluated_metrics",
-        "via": "sklearn.model_selection.cross_val_score"
+        "trigger": "accuracy_score"
       },
       {
-        "from": "unfit_estimator",
-        "to": "evaluated_metrics",
-        "via": "sklearn.model_selection.cross_validate"
-      },
-      {
-        "from": "unfit_estimator",
-        "to": "reduced_features",
-        "via": "sklearn.feature_selection.RFE.fit_transform"
-      },
-      {
-        "from": "unfit_estimator",
-        "to": "tuned_model",
-        "via": "sklearn.model_selection.GridSearchCV.fit"
-      },
-      {
-        "from": "unfit_estimator",
-        "to": "tuned_model",
-        "via": "sklearn.model_selection.RandomizedSearchCV.fit"
-      },
-      {
-        "from": "unscaled_features",
-        "to": "reduced_features",
-        "via": "sklearn.feature_selection.VarianceThreshold.fit_transform"
-      },
-      {
-        "from": "unscaled_features",
-        "to": "scaled_features",
-        "via": "sklearn.preprocessing.MaxAbsScaler.fit_transform"
-      },
-      {
-        "from": "unscaled_features",
-        "to": "scaled_features",
-        "via": "sklearn.preprocessing.MinMaxScaler.fit_transform"
-      },
-      {
-        "from": "unscaled_features",
-        "to": "scaled_features",
-        "via": "sklearn.preprocessing.Normalizer.fit_transform"
-      },
-      {
-        "from": "unscaled_features",
-        "to": "scaled_features",
-        "via": "sklearn.preprocessing.PowerTransformer.fit_transform"
-      },
-      {
-        "from": "unscaled_features",
-        "to": "scaled_features",
-        "via": "sklearn.preprocessing.QuantileTransformer.fit_transform"
-      },
-      {
-        "from": "unscaled_features",
-        "to": "scaled_features",
-        "via": "sklearn.preprocessing.RobustScaler.fit_transform"
-      },
-      {
-        "from": "unscaled_features",
-        "to": "scaled_features",
-        "via": "sklearn.preprocessing.StandardScaler.fit_transform"
-      },
-      {
-        "from": "unscaled_features",
-        "to": "unscaled_features",
-        "via": "sklearn.preprocessing.FunctionTransformer.fit_transform"
+        "from": "fit_estimator",
+        "to": "saved_model",
+        "trigger": "joblib.dump"
       }
     ],
     "initial_state": "raw_dataset",
@@ -1403,8 +358,8 @@
         "ValueError"
       ],
       "type_vars": [],
-      "inputs": {
-        "X": {
+      "inputs": [
+        {
           "name": "X",
           "type_name": "ndarray",
           "state": "raw_dataset",
@@ -1425,7 +380,7 @@
           "value_constraints": null,
           "shape_contract": "(n_samples, n_features)"
         },
-        "y": {
+        {
           "name": "y",
           "type_name": "ndarray",
           "state": "raw_dataset",
@@ -1446,7 +401,7 @@
           "value_constraints": null,
           "shape_contract": "(n_samples,)"
         },
-        "test_size": {
+        {
           "name": "test_size",
           "type_name": "float",
           "state": "hyperparameter",
@@ -1466,7 +421,7 @@
           },
           "shape_contract": null
         },
-        "random_state": {
+        {
           "name": "random_state",
           "type_name": "int",
           "state": "hyperparameter",
@@ -1483,9 +438,9 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
-      "outputs": {
-        "X_train": {
+      ],
+      "outputs": [
+        {
           "name": "X_train",
           "type_name": "ndarray",
           "state": "split_train_features",
@@ -1502,7 +457,7 @@
           "value_constraints": null,
           "shape_contract": "(n_train_samples, n_features)"
         },
-        "X_test": {
+        {
           "name": "X_test",
           "type_name": "ndarray",
           "state": "split_test_features",
@@ -1519,7 +474,7 @@
           "value_constraints": null,
           "shape_contract": "(n_test_samples, n_features)"
         },
-        "y_train": {
+        {
           "name": "y_train",
           "type_name": "ndarray",
           "state": "split_train_targets",
@@ -1536,7 +491,7 @@
           "value_constraints": null,
           "shape_contract": "(n_train_samples,)"
         },
-        "y_test": {
+        {
           "name": "y_test",
           "type_name": "ndarray",
           "state": "split_test_targets",
@@ -1553,7 +508,7 @@
           "value_constraints": null,
           "shape_contract": "(n_test_samples,)"
         }
-      },
+      ],
       "preconditions": [
         {
           "target": "X",
@@ -1583,16 +538,14 @@
           "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         },
         {
           "target_cell_id": "sklearn.linear_model.LogisticRegression.fit",
           "affinity_score": 0.5,
           "score_provenance": "llm_seed",
           "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         }
       ]
     },
@@ -1630,9 +583,9 @@
       "feedback_state_type": null,
       "raises": [],
       "type_vars": [],
-      "inputs": {},
-      "outputs": {
-        "X": {
+      "inputs": [],
+      "outputs": [
+        {
           "name": "X",
           "type_name": "ndarray",
           "state": "raw_dataset",
@@ -1649,7 +602,7 @@
           "value_constraints": null,
           "shape_contract": "(150, 4)"
         },
-        "y": {
+        {
           "name": "y",
           "type_name": "ndarray",
           "state": "raw_dataset",
@@ -1666,7 +619,7 @@
           "value_constraints": null,
           "shape_contract": "(150,)"
         }
-      },
+      ],
       "preconditions": [],
       "postconditions": [
         {
@@ -1687,8 +640,7 @@
           "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         }
       ]
     },
@@ -1731,8 +683,8 @@
         "ValueError"
       ],
       "type_vars": [],
-      "inputs": {
-        "n_samples": {
+      "inputs": [
+        {
           "name": "n_samples",
           "type_name": "int",
           "state": "hyperparameter",
@@ -1751,7 +703,7 @@
           },
           "shape_contract": null
         },
-        "n_features": {
+        {
           "name": "n_features",
           "type_name": "int",
           "state": "hyperparameter",
@@ -1770,7 +722,7 @@
           },
           "shape_contract": null
         },
-        "random_state": {
+        {
           "name": "random_state",
           "type_name": "int",
           "state": "hyperparameter",
@@ -1787,9 +739,9 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
-      "outputs": {
-        "X": {
+      ],
+      "outputs": [
+        {
           "name": "X",
           "type_name": "ndarray",
           "state": "raw_dataset",
@@ -1806,7 +758,7 @@
           "value_constraints": null,
           "shape_contract": "(n_samples, n_features)"
         },
-        "y": {
+        {
           "name": "y",
           "type_name": "ndarray",
           "state": "raw_dataset",
@@ -1823,7 +775,7 @@
           "value_constraints": null,
           "shape_contract": "(n_samples,)"
         }
-      },
+      ],
       "preconditions": [],
       "postconditions": [
         {
@@ -1844,8 +796,7 @@
           "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         }
       ]
     },
@@ -1888,8 +839,8 @@
         "ValueError"
       ],
       "type_vars": [],
-      "inputs": {
-        "n_samples": {
+      "inputs": [
+        {
           "name": "n_samples",
           "type_name": "int",
           "state": "hyperparameter",
@@ -1908,7 +859,7 @@
           },
           "shape_contract": null
         },
-        "n_features": {
+        {
           "name": "n_features",
           "type_name": "int",
           "state": "hyperparameter",
@@ -1927,7 +878,7 @@
           },
           "shape_contract": null
         },
-        "random_state": {
+        {
           "name": "random_state",
           "type_name": "int",
           "state": "hyperparameter",
@@ -1944,9 +895,9 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
-      "outputs": {
-        "X": {
+      ],
+      "outputs": [
+        {
           "name": "X",
           "type_name": "ndarray",
           "state": "raw_dataset",
@@ -1963,7 +914,7 @@
           "value_constraints": null,
           "shape_contract": "(n_samples, n_features)"
         },
-        "y": {
+        {
           "name": "y",
           "type_name": "ndarray",
           "state": "raw_dataset",
@@ -1980,7 +931,7 @@
           "value_constraints": null,
           "shape_contract": "(n_samples,)"
         }
-      },
+      ],
       "preconditions": [],
       "postconditions": [
         {
@@ -2001,8 +952,7 @@
           "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         }
       ]
     },
@@ -2043,8 +993,8 @@
         "ValueError"
       ],
       "type_vars": [],
-      "inputs": {
-        "X": {
+      "inputs": [
+        {
           "name": "X",
           "type_name": "ndarray",
           "state": "unscaled_features",
@@ -2065,9 +1015,9 @@
           "value_constraints": null,
           "shape_contract": "(n_samples, n_features)"
         }
-      },
-      "outputs": {
-        "output_var": {
+      ],
+      "outputs": [
+        {
           "name": "output_var",
           "type_name": "ndarray",
           "state": "scaled_features",
@@ -2084,7 +1034,7 @@
           "value_constraints": null,
           "shape_contract": "(n_samples, n_features)"
         }
-      },
+      ],
       "preconditions": [
         {
           "target": "X",
@@ -2114,24 +1064,21 @@
           "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         },
         {
           "target_cell_id": "sklearn.linear_model.LogisticRegression.fit",
-          "affinity_score": 0.5,
+          "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         },
         {
           "target_cell_id": "sklearn.svm.SVC.fit",
-          "affinity_score": 0.2,
+          "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         }
       ]
     },
@@ -2172,8 +1119,8 @@
         "ValueError"
       ],
       "type_vars": [],
-      "inputs": {
-        "X": {
+      "inputs": [
+        {
           "name": "X",
           "type_name": "ndarray",
           "state": "unscaled_features",
@@ -2194,9 +1141,9 @@
           "value_constraints": null,
           "shape_contract": "(n_samples, n_features)"
         }
-      },
-      "outputs": {
-        "output_var": {
+      ],
+      "outputs": [
+        {
           "name": "output_var",
           "type_name": "ndarray",
           "state": "scaled_features",
@@ -2213,7 +1160,7 @@
           "value_constraints": null,
           "shape_contract": "(n_samples, n_features)"
         }
-      },
+      ],
       "preconditions": [
         {
           "target": "X",
@@ -2243,8 +1190,7 @@
           "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         }
       ]
     },
@@ -2285,8 +1231,8 @@
         "ValueError"
       ],
       "type_vars": [],
-      "inputs": {
-        "X": {
+      "inputs": [
+        {
           "name": "X",
           "type_name": "ndarray",
           "state": "unscaled_features",
@@ -2307,9 +1253,9 @@
           "value_constraints": null,
           "shape_contract": "(n_samples, n_features)"
         }
-      },
-      "outputs": {
-        "output_var": {
+      ],
+      "outputs": [
+        {
           "name": "output_var",
           "type_name": "ndarray",
           "state": "scaled_features",
@@ -2326,7 +1272,7 @@
           "value_constraints": null,
           "shape_contract": "(n_samples, n_features)"
         }
-      },
+      ],
       "preconditions": [
         {
           "target": "X",
@@ -2356,8 +1302,7 @@
           "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         }
       ]
     },
@@ -2399,8 +1344,8 @@
         "ValueError"
       ],
       "type_vars": [],
-      "inputs": {
-        "X": {
+      "inputs": [
+        {
           "name": "X",
           "type_name": "ndarray",
           "state": "raw_dataset",
@@ -2421,7 +1366,7 @@
           "value_constraints": null,
           "shape_contract": "(n_samples, n_features)"
         },
-        "strategy": {
+        {
           "name": "strategy",
           "type_name": "str",
           "state": "hyperparameter",
@@ -2443,9 +1388,9 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
-      "outputs": {
-        "output_var": {
+      ],
+      "outputs": [
+        {
           "name": "output_var",
           "type_name": "ndarray",
           "state": "imputed_features",
@@ -2462,7 +1407,7 @@
           "value_constraints": null,
           "shape_contract": "(n_samples, n_features)"
         }
-      },
+      ],
       "preconditions": [
         {
           "target": "X",
@@ -2492,8 +1437,7 @@
           "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         }
       ]
     },
@@ -2534,8 +1478,8 @@
         "ValueError"
       ],
       "type_vars": [],
-      "inputs": {
-        "X": {
+      "inputs": [
+        {
           "name": "X",
           "type_name": "ndarray",
           "state": "raw_dataset",
@@ -2556,9 +1500,9 @@
           "value_constraints": null,
           "shape_contract": "(n_samples, n_categorical_features)"
         }
-      },
-      "outputs": {
-        "output_var": {
+      ],
+      "outputs": [
+        {
           "name": "output_var",
           "type_name": "ndarray",
           "state": "encoded_features",
@@ -2575,7 +1519,7 @@
           "value_constraints": null,
           "shape_contract": "(n_samples, n_encoded_features)"
         }
-      },
+      ],
       "preconditions": [
         {
           "target": "X",
@@ -2605,8 +1549,7 @@
           "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         }
       ]
     },
@@ -2648,8 +1591,8 @@
         "ValueError"
       ],
       "type_vars": [],
-      "inputs": {
-        "X": {
+      "inputs": [
+        {
           "name": "X",
           "type_name": "ndarray",
           "state": "scaled_features",
@@ -2670,7 +1613,7 @@
           "value_constraints": null,
           "shape_contract": "(n_samples, n_features)"
         },
-        "degree": {
+        {
           "name": "degree",
           "type_name": "int",
           "state": "hyperparameter",
@@ -2689,9 +1632,9 @@
           },
           "shape_contract": null
         }
-      },
-      "outputs": {
-        "output_var": {
+      ],
+      "outputs": [
+        {
           "name": "output_var",
           "type_name": "ndarray",
           "state": "scaled_features",
@@ -2708,7 +1651,7 @@
           "value_constraints": null,
           "shape_contract": "(n_samples, n_expanded_features)"
         }
-      },
+      ],
       "preconditions": [
         {
           "target": "X",
@@ -2738,8 +1681,7 @@
           "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         }
       ]
     },
@@ -2781,8 +1723,8 @@
         "ValueError"
       ],
       "type_vars": [],
-      "inputs": {
-        "X": {
+      "inputs": [
+        {
           "name": "X",
           "type_name": "ndarray",
           "state": "scaled_features",
@@ -2803,7 +1745,7 @@
           "value_constraints": null,
           "shape_contract": "(n_samples, n_features)"
         },
-        "n_components": {
+        {
           "name": "n_components",
           "type_name": "int",
           "state": "hyperparameter",
@@ -2822,9 +1764,9 @@
           },
           "shape_contract": null
         }
-      },
-      "outputs": {
-        "output_var": {
+      ],
+      "outputs": [
+        {
           "name": "output_var",
           "type_name": "ndarray",
           "state": "reduced_features",
@@ -2841,7 +1783,7 @@
           "value_constraints": null,
           "shape_contract": "(n_samples, n_components)"
         }
-      },
+      ],
       "preconditions": [
         {
           "target": "X",
@@ -2871,16 +1813,14 @@
           "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         },
         {
           "target_cell_id": "sklearn.linear_model.LogisticRegression.fit",
           "affinity_score": 0.5,
           "score_provenance": "llm_seed",
           "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         }
       ]
     },
@@ -2923,8 +1863,8 @@
         "ValueError"
       ],
       "type_vars": [],
-      "inputs": {
-        "X": {
+      "inputs": [
+        {
           "name": "X",
           "type_name": "ndarray",
           "state": "encoded_features",
@@ -2945,7 +1885,7 @@
           "value_constraints": null,
           "shape_contract": "(n_samples, n_features)"
         },
-        "n_components": {
+        {
           "name": "n_components",
           "type_name": "int",
           "state": "hyperparameter",
@@ -2964,9 +1904,9 @@
           },
           "shape_contract": null
         }
-      },
-      "outputs": {
-        "output_var": {
+      ],
+      "outputs": [
+        {
           "name": "output_var",
           "type_name": "ndarray",
           "state": "reduced_features",
@@ -2983,7 +1923,7 @@
           "value_constraints": null,
           "shape_contract": "(n_samples, n_components)"
         }
-      },
+      ],
       "preconditions": [
         {
           "target": "X",
@@ -3013,8 +1953,7 @@
           "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         }
       ]
     },
@@ -3057,8 +1996,8 @@
         "ValueError"
       ],
       "type_vars": [],
-      "inputs": {
-        "X": {
+      "inputs": [
+        {
           "name": "X",
           "type_name": "ndarray",
           "state": "scaled_features",
@@ -3079,7 +2018,7 @@
           "value_constraints": null,
           "shape_contract": "(n_samples, n_features)"
         },
-        "y": {
+        {
           "name": "y",
           "type_name": "ndarray",
           "state": "split_train_targets",
@@ -3100,7 +2039,7 @@
           "value_constraints": null,
           "shape_contract": "(n_samples,)"
         },
-        "k": {
+        {
           "name": "k",
           "type_name": "int",
           "state": "hyperparameter",
@@ -3119,9 +2058,9 @@
           },
           "shape_contract": null
         }
-      },
-      "outputs": {
-        "output_var": {
+      ],
+      "outputs": [
+        {
           "name": "output_var",
           "type_name": "ndarray",
           "state": "reduced_features",
@@ -3138,7 +2077,7 @@
           "value_constraints": null,
           "shape_contract": "(n_samples, k)"
         }
-      },
+      ],
       "preconditions": [
         {
           "target": "X",
@@ -3168,8 +2107,7 @@
           "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         }
       ]
     },
@@ -3215,8 +2153,8 @@
         "ConvergenceWarning"
       ],
       "type_vars": [],
-      "inputs": {
-        "X": {
+      "inputs": [
+        {
           "name": "X",
           "type_name": "ndarray",
           "state": "scaled_features",
@@ -3237,7 +2175,7 @@
           "value_constraints": null,
           "shape_contract": "(n_samples, n_features)"
         },
-        "y": {
+        {
           "name": "y",
           "type_name": "ndarray",
           "state": "split_train_targets",
@@ -3258,7 +2196,7 @@
           "value_constraints": null,
           "shape_contract": "(n_samples,)"
         },
-        "C": {
+        {
           "name": "C",
           "type_name": "float",
           "state": "hyperparameter",
@@ -3277,7 +2215,7 @@
           },
           "shape_contract": null
         },
-        "max_iter": {
+        {
           "name": "max_iter",
           "type_name": "int",
           "state": "hyperparameter",
@@ -3296,7 +2234,7 @@
           },
           "shape_contract": null
         },
-        "random_state": {
+        {
           "name": "random_state",
           "type_name": "int",
           "state": "hyperparameter",
@@ -3313,9 +2251,9 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
-      "outputs": {
-        "model": {
+      ],
+      "outputs": [
+        {
           "name": "model",
           "type_name": "Classifier",
           "state": "fit_classifier",
@@ -3332,7 +2270,7 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
+      ],
       "preconditions": [
         {
           "target": "X",
@@ -3362,24 +2300,21 @@
           "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         },
         {
           "target_cell_id": "sklearn.linear_model.LogisticRegression.predict_proba",
-          "affinity_score": 0.5,
+          "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         },
         {
           "target_cell_id": "joblib.dump",
-          "affinity_score": 0.2,
+          "affinity_score": 0.5,
           "score_provenance": "llm_seed",
           "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         }
       ]
     },
@@ -3420,8 +2355,8 @@
         "NotFittedError"
       ],
       "type_vars": [],
-      "inputs": {
-        "model": {
+      "inputs": [
+        {
           "name": "model",
           "type_name": "Classifier",
           "state": "fit_classifier",
@@ -3438,7 +2373,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        "X": {
+        {
           "name": "X",
           "type_name": "ndarray",
           "state": "split_test_features",
@@ -3459,9 +2394,9 @@
           "value_constraints": null,
           "shape_contract": "(n_samples, n_features)"
         }
-      },
-      "outputs": {
-        "y_pred": {
+      ],
+      "outputs": [
+        {
           "name": "y_pred",
           "type_name": "ndarray",
           "state": "predicted_labels",
@@ -3478,7 +2413,7 @@
           "value_constraints": null,
           "shape_contract": "(n_samples,)"
         }
-      },
+      ],
       "preconditions": [
         {
           "target": "model",
@@ -3508,24 +2443,21 @@
           "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         },
         {
           "target_cell_id": "sklearn.metrics.f1_score",
-          "affinity_score": 0.5,
+          "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         },
         {
           "target_cell_id": "sklearn.metrics.confusion_matrix",
-          "affinity_score": 0.2,
+          "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         }
       ]
     },
@@ -3566,8 +2498,8 @@
         "NotFittedError"
       ],
       "type_vars": [],
-      "inputs": {
-        "model": {
+      "inputs": [
+        {
           "name": "model",
           "type_name": "Classifier",
           "state": "fit_classifier",
@@ -3584,7 +2516,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        "X": {
+        {
           "name": "X",
           "type_name": "ndarray",
           "state": "split_test_features",
@@ -3605,9 +2537,9 @@
           "value_constraints": null,
           "shape_contract": "(n_samples, n_features)"
         }
-      },
-      "outputs": {
-        "y_proba": {
+      ],
+      "outputs": [
+        {
           "name": "y_proba",
           "type_name": "ndarray",
           "state": "predicted_probabilities",
@@ -3624,7 +2556,7 @@
           "value_constraints": null,
           "shape_contract": "(n_samples, n_classes)"
         }
-      },
+      ],
       "preconditions": [
         {
           "target": "model",
@@ -3654,8 +2586,7 @@
           "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         }
       ]
     },
@@ -3700,8 +2631,8 @@
         "ValueError"
       ],
       "type_vars": [],
-      "inputs": {
-        "X": {
+      "inputs": [
+        {
           "name": "X",
           "type_name": "ndarray",
           "state": "split_train_features",
@@ -3722,7 +2653,7 @@
           "value_constraints": null,
           "shape_contract": "(n_samples, n_features)"
         },
-        "y": {
+        {
           "name": "y",
           "type_name": "ndarray",
           "state": "split_train_targets",
@@ -3743,7 +2674,7 @@
           "value_constraints": null,
           "shape_contract": "(n_samples,)"
         },
-        "n_estimators": {
+        {
           "name": "n_estimators",
           "type_name": "int",
           "state": "hyperparameter",
@@ -3762,7 +2693,7 @@
           },
           "shape_contract": null
         },
-        "random_state": {
+        {
           "name": "random_state",
           "type_name": "int",
           "state": "hyperparameter",
@@ -3779,9 +2710,9 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
-      "outputs": {
-        "model": {
+      ],
+      "outputs": [
+        {
           "name": "model",
           "type_name": "Classifier",
           "state": "fit_classifier",
@@ -3798,7 +2729,7 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
+      ],
       "preconditions": [
         {
           "target": "X",
@@ -3828,16 +2759,14 @@
           "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         },
         {
           "target_cell_id": "joblib.dump",
           "affinity_score": 0.5,
           "score_provenance": "llm_seed",
           "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         }
       ]
     },
@@ -3882,8 +2811,8 @@
         "ValueError"
       ],
       "type_vars": [],
-      "inputs": {
-        "X": {
+      "inputs": [
+        {
           "name": "X",
           "type_name": "ndarray",
           "state": "scaled_features",
@@ -3904,7 +2833,7 @@
           "value_constraints": null,
           "shape_contract": "(n_samples, n_features)"
         },
-        "y": {
+        {
           "name": "y",
           "type_name": "ndarray",
           "state": "split_train_targets",
@@ -3925,7 +2854,7 @@
           "value_constraints": null,
           "shape_contract": "(n_samples,)"
         },
-        "C": {
+        {
           "name": "C",
           "type_name": "float",
           "state": "hyperparameter",
@@ -3944,7 +2873,7 @@
           },
           "shape_contract": null
         },
-        "kernel": {
+        {
           "name": "kernel",
           "type_name": "str",
           "state": "hyperparameter",
@@ -3966,9 +2895,9 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
-      "outputs": {
-        "model": {
+      ],
+      "outputs": [
+        {
           "name": "model",
           "type_name": "Classifier",
           "state": "fit_classifier",
@@ -3985,7 +2914,7 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
+      ],
       "preconditions": [
         {
           "target": "X",
@@ -4015,8 +2944,7 @@
           "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         }
       ]
     },
@@ -4057,8 +2985,8 @@
         "ValueError"
       ],
       "type_vars": [],
-      "inputs": {
-        "X": {
+      "inputs": [
+        {
           "name": "X",
           "type_name": "ndarray",
           "state": "scaled_features",
@@ -4079,7 +3007,7 @@
           "value_constraints": null,
           "shape_contract": "(n_samples, n_features)"
         },
-        "y": {
+        {
           "name": "y",
           "type_name": "ndarray",
           "state": "split_train_targets",
@@ -4100,9 +3028,9 @@
           "value_constraints": null,
           "shape_contract": "(n_samples,)"
         }
-      },
-      "outputs": {
-        "model": {
+      ],
+      "outputs": [
+        {
           "name": "model",
           "type_name": "Regressor",
           "state": "fit_regressor",
@@ -4119,7 +3047,7 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
+      ],
       "preconditions": [
         {
           "target": "X",
@@ -4149,8 +3077,7 @@
           "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         }
       ]
     },
@@ -4190,8 +3117,8 @@
         "NotFittedError"
       ],
       "type_vars": [],
-      "inputs": {
-        "model": {
+      "inputs": [
+        {
           "name": "model",
           "type_name": "Regressor",
           "state": "fit_regressor",
@@ -4208,7 +3135,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        "X": {
+        {
           "name": "X",
           "type_name": "ndarray",
           "state": "split_test_features",
@@ -4229,9 +3156,9 @@
           "value_constraints": null,
           "shape_contract": "(n_samples, n_features)"
         }
-      },
-      "outputs": {
-        "y_pred": {
+      ],
+      "outputs": [
+        {
           "name": "y_pred",
           "type_name": "ndarray",
           "state": "predicted_values",
@@ -4248,7 +3175,7 @@
           "value_constraints": null,
           "shape_contract": "(n_samples,)"
         }
-      },
+      ],
       "preconditions": [
         {
           "target": "model",
@@ -4278,16 +3205,14 @@
           "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         },
         {
           "target_cell_id": "sklearn.metrics.r2_score",
-          "affinity_score": 0.5,
+          "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         }
       ]
     },
@@ -4331,8 +3256,8 @@
         "ValueError"
       ],
       "type_vars": [],
-      "inputs": {
-        "X": {
+      "inputs": [
+        {
           "name": "X",
           "type_name": "ndarray",
           "state": "scaled_features",
@@ -4353,7 +3278,7 @@
           "value_constraints": null,
           "shape_contract": "(n_samples, n_features)"
         },
-        "y": {
+        {
           "name": "y",
           "type_name": "ndarray",
           "state": "split_train_targets",
@@ -4374,7 +3299,7 @@
           "value_constraints": null,
           "shape_contract": "(n_samples,)"
         },
-        "alpha": {
+        {
           "name": "alpha",
           "type_name": "float",
           "state": "hyperparameter",
@@ -4393,9 +3318,9 @@
           },
           "shape_contract": null
         }
-      },
-      "outputs": {
-        "model": {
+      ],
+      "outputs": [
+        {
           "name": "model",
           "type_name": "Regressor",
           "state": "fit_regressor",
@@ -4412,7 +3337,7 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
+      ],
       "preconditions": [
         {
           "target": "X",
@@ -4442,8 +3367,7 @@
           "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         }
       ]
     },
@@ -4487,8 +3411,8 @@
         "ValueError"
       ],
       "type_vars": [],
-      "inputs": {
-        "X": {
+      "inputs": [
+        {
           "name": "X",
           "type_name": "ndarray",
           "state": "scaled_features",
@@ -4509,7 +3433,7 @@
           "value_constraints": null,
           "shape_contract": "(n_samples, n_features)"
         },
-        "y": {
+        {
           "name": "y",
           "type_name": "ndarray",
           "state": "split_train_targets",
@@ -4530,7 +3454,7 @@
           "value_constraints": null,
           "shape_contract": "(n_samples,)"
         },
-        "alpha": {
+        {
           "name": "alpha",
           "type_name": "float",
           "state": "hyperparameter",
@@ -4549,9 +3473,9 @@
           },
           "shape_contract": null
         }
-      },
-      "outputs": {
-        "model": {
+      ],
+      "outputs": [
+        {
           "name": "model",
           "type_name": "Regressor",
           "state": "fit_regressor",
@@ -4568,7 +3492,7 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
+      ],
       "preconditions": [
         {
           "target": "X",
@@ -4598,8 +3522,7 @@
           "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         }
       ]
     },
@@ -4644,8 +3567,8 @@
         "ValueError"
       ],
       "type_vars": [],
-      "inputs": {
-        "X": {
+      "inputs": [
+        {
           "name": "X",
           "type_name": "ndarray",
           "state": "split_train_features",
@@ -4666,7 +3589,7 @@
           "value_constraints": null,
           "shape_contract": "(n_samples, n_features)"
         },
-        "y": {
+        {
           "name": "y",
           "type_name": "ndarray",
           "state": "split_train_targets",
@@ -4687,7 +3610,7 @@
           "value_constraints": null,
           "shape_contract": "(n_samples,)"
         },
-        "n_estimators": {
+        {
           "name": "n_estimators",
           "type_name": "int",
           "state": "hyperparameter",
@@ -4706,7 +3629,7 @@
           },
           "shape_contract": null
         },
-        "random_state": {
+        {
           "name": "random_state",
           "type_name": "int",
           "state": "hyperparameter",
@@ -4723,9 +3646,9 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
-      "outputs": {
-        "model": {
+      ],
+      "outputs": [
+        {
           "name": "model",
           "type_name": "Regressor",
           "state": "fit_regressor",
@@ -4742,7 +3665,7 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
+      ],
       "preconditions": [
         {
           "target": "X",
@@ -4772,8 +3695,7 @@
           "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         }
       ]
     },
@@ -4818,8 +3740,8 @@
         "ConvergenceWarning"
       ],
       "type_vars": [],
-      "inputs": {
-        "X": {
+      "inputs": [
+        {
           "name": "X",
           "type_name": "ndarray",
           "state": "scaled_features",
@@ -4840,7 +3762,7 @@
           "value_constraints": null,
           "shape_contract": "(n_samples, n_features)"
         },
-        "n_clusters": {
+        {
           "name": "n_clusters",
           "type_name": "int",
           "state": "hyperparameter",
@@ -4859,7 +3781,7 @@
           },
           "shape_contract": null
         },
-        "random_state": {
+        {
           "name": "random_state",
           "type_name": "int",
           "state": "hyperparameter",
@@ -4876,9 +3798,9 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
-      "outputs": {
-        "model": {
+      ],
+      "outputs": [
+        {
           "name": "model",
           "type_name": "BaseEstimator",
           "state": "fit_clusterer",
@@ -4895,7 +3817,7 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
+      ],
       "preconditions": [
         {
           "target": "X",
@@ -4922,11 +3844,10 @@
       "edges": [
         {
           "target_cell_id": "sklearn.cluster.KMeans.fit_predict",
-          "affinity_score": 0.8,
+          "affinity_score": 0.5,
           "score_provenance": "llm_seed",
           "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         }
       ]
     },
@@ -4968,8 +3889,8 @@
         "ValueError"
       ],
       "type_vars": [],
-      "inputs": {
-        "X": {
+      "inputs": [
+        {
           "name": "X",
           "type_name": "ndarray",
           "state": "scaled_features",
@@ -4990,7 +3911,7 @@
           "value_constraints": null,
           "shape_contract": "(n_samples, n_features)"
         },
-        "n_clusters": {
+        {
           "name": "n_clusters",
           "type_name": "int",
           "state": "hyperparameter",
@@ -5009,7 +3930,7 @@
           },
           "shape_contract": null
         },
-        "random_state": {
+        {
           "name": "random_state",
           "type_name": "int",
           "state": "hyperparameter",
@@ -5026,9 +3947,9 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
-      "outputs": {
-        "cluster_labels": {
+      ],
+      "outputs": [
+        {
           "name": "cluster_labels",
           "type_name": "ndarray",
           "state": "cluster_labels",
@@ -5045,7 +3966,7 @@
           "value_constraints": null,
           "shape_contract": "(n_samples,)"
         }
-      },
+      ],
       "preconditions": [
         {
           "target": "X",
@@ -5075,8 +3996,7 @@
           "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         }
       ]
     },
@@ -5120,8 +4040,8 @@
         "ValueError"
       ],
       "type_vars": [],
-      "inputs": {
-        "X": {
+      "inputs": [
+        {
           "name": "X",
           "type_name": "ndarray",
           "state": "scaled_features",
@@ -5142,7 +4062,7 @@
           "value_constraints": null,
           "shape_contract": "(n_samples, n_features)"
         },
-        "eps": {
+        {
           "name": "eps",
           "type_name": "float",
           "state": "hyperparameter",
@@ -5161,7 +4081,7 @@
           },
           "shape_contract": null
         },
-        "min_samples": {
+        {
           "name": "min_samples",
           "type_name": "int",
           "state": "hyperparameter",
@@ -5180,9 +4100,9 @@
           },
           "shape_contract": null
         }
-      },
-      "outputs": {
-        "cluster_labels": {
+      ],
+      "outputs": [
+        {
           "name": "cluster_labels",
           "type_name": "ndarray",
           "state": "cluster_labels",
@@ -5199,7 +4119,7 @@
           "value_constraints": null,
           "shape_contract": "(n_samples,)"
         }
-      },
+      ],
       "preconditions": [
         {
           "target": "X",
@@ -5229,8 +4149,7 @@
           "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         }
       ]
     },
@@ -5273,8 +4192,8 @@
         "ValueError"
       ],
       "type_vars": [],
-      "inputs": {
-        "steps": {
+      "inputs": [
+        {
           "name": "steps",
           "type_name": "list",
           "state": "hyperparameter",
@@ -5291,7 +4210,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        "X": {
+        {
           "name": "X",
           "type_name": "ndarray",
           "state": "raw_dataset",
@@ -5312,7 +4231,7 @@
           "value_constraints": null,
           "shape_contract": "(n_samples, n_features)"
         },
-        "y": {
+        {
           "name": "y",
           "type_name": "ndarray",
           "state": "split_train_targets",
@@ -5333,9 +4252,9 @@
           "value_constraints": null,
           "shape_contract": "(n_samples,)"
         }
-      },
-      "outputs": {
-        "pipe": {
+      ],
+      "outputs": [
+        {
           "name": "pipe",
           "type_name": "BaseEstimator",
           "state": "fit_estimator",
@@ -5352,7 +4271,7 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
+      ],
       "preconditions": [
         {
           "target": "X",
@@ -5382,16 +4301,14 @@
           "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         },
         {
           "target_cell_id": "joblib.dump",
-          "affinity_score": 0.5,
+          "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         }
       ]
     },
@@ -5436,8 +4353,8 @@
         "ValueError"
       ],
       "type_vars": [],
-      "inputs": {
-        "estimator": {
+      "inputs": [
+        {
           "name": "estimator",
           "type_name": "BaseEstimator",
           "state": "unfit_estimator",
@@ -5454,7 +4371,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        "param_grid": {
+        {
           "name": "param_grid",
           "type_name": "dict",
           "state": "hyperparameter",
@@ -5471,7 +4388,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        "cv": {
+        {
           "name": "cv",
           "type_name": "int",
           "state": "hyperparameter",
@@ -5490,7 +4407,7 @@
           },
           "shape_contract": null
         },
-        "X": {
+        {
           "name": "X",
           "type_name": "ndarray",
           "state": "split_train_features",
@@ -5511,7 +4428,7 @@
           "value_constraints": null,
           "shape_contract": "(n_samples, n_features)"
         },
-        "y": {
+        {
           "name": "y",
           "type_name": "ndarray",
           "state": "split_train_targets",
@@ -5532,9 +4449,9 @@
           "value_constraints": null,
           "shape_contract": "(n_samples,)"
         }
-      },
-      "outputs": {
-        "search": {
+      ],
+      "outputs": [
+        {
           "name": "search",
           "type_name": "BaseEstimator",
           "state": "tuned_model",
@@ -5551,7 +4468,7 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
+      ],
       "preconditions": [
         {
           "target": "X",
@@ -5581,16 +4498,14 @@
           "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         },
         {
           "target_cell_id": "joblib.dump",
-          "affinity_score": 0.5,
+          "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         }
       ]
     },
@@ -5635,8 +4550,8 @@
         "ValueError"
       ],
       "type_vars": [],
-      "inputs": {
-        "estimator": {
+      "inputs": [
+        {
           "name": "estimator",
           "type_name": "BaseEstimator",
           "state": "unfit_estimator",
@@ -5653,7 +4568,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        "X": {
+        {
           "name": "X",
           "type_name": "ndarray",
           "state": "scaled_features",
@@ -5674,7 +4589,7 @@
           "value_constraints": null,
           "shape_contract": "(n_samples, n_features)"
         },
-        "y": {
+        {
           "name": "y",
           "type_name": "ndarray",
           "state": "split_train_targets",
@@ -5695,7 +4610,7 @@
           "value_constraints": null,
           "shape_contract": "(n_samples,)"
         },
-        "cv": {
+        {
           "name": "cv",
           "type_name": "int",
           "state": "hyperparameter",
@@ -5714,9 +4629,9 @@
           },
           "shape_contract": null
         }
-      },
-      "outputs": {
-        "scores": {
+      ],
+      "outputs": [
+        {
           "name": "scores",
           "type_name": "ndarray",
           "state": "evaluated_metrics",
@@ -5733,7 +4648,7 @@
           "value_constraints": null,
           "shape_contract": "(cv,)"
         }
-      },
+      ],
       "preconditions": [
         {
           "target": "X",
@@ -5796,8 +4711,8 @@
         "ValueError"
       ],
       "type_vars": [],
-      "inputs": {
-        "y_true": {
+      "inputs": [
+        {
           "name": "y_true",
           "type_name": "ndarray",
           "state": "split_test_targets",
@@ -5818,7 +4733,7 @@
           "value_constraints": null,
           "shape_contract": "(n_samples,)"
         },
-        "y_pred": {
+        {
           "name": "y_pred",
           "type_name": "ndarray",
           "state": "predicted_labels",
@@ -5839,9 +4754,9 @@
           "value_constraints": null,
           "shape_contract": "(n_samples,)"
         }
-      },
-      "outputs": {
-        "score": {
+      ],
+      "outputs": [
+        {
           "name": "score",
           "type_name": "float",
           "state": "evaluated_metrics",
@@ -5861,7 +4776,7 @@
           },
           "shape_contract": null
         }
-      },
+      ],
       "preconditions": [
         {
           "target": "y_true",
@@ -5925,8 +4840,8 @@
         "ValueError"
       ],
       "type_vars": [],
-      "inputs": {
-        "y_true": {
+      "inputs": [
+        {
           "name": "y_true",
           "type_name": "ndarray",
           "state": "split_test_targets",
@@ -5947,7 +4862,7 @@
           "value_constraints": null,
           "shape_contract": "(n_samples,)"
         },
-        "y_pred": {
+        {
           "name": "y_pred",
           "type_name": "ndarray",
           "state": "predicted_labels",
@@ -5968,7 +4883,7 @@
           "value_constraints": null,
           "shape_contract": "(n_samples,)"
         },
-        "average": {
+        {
           "name": "average",
           "type_name": "str",
           "state": "hyperparameter",
@@ -5990,9 +4905,9 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
-      "outputs": {
-        "score": {
+      ],
+      "outputs": [
+        {
           "name": "score",
           "type_name": "float",
           "state": "evaluated_metrics",
@@ -6012,7 +4927,7 @@
           },
           "shape_contract": null
         }
-      },
+      ],
       "preconditions": [
         {
           "target": "y_true",
@@ -6076,8 +4991,8 @@
         "ValueError"
       ],
       "type_vars": [],
-      "inputs": {
-        "y_true": {
+      "inputs": [
+        {
           "name": "y_true",
           "type_name": "ndarray",
           "state": "split_test_targets",
@@ -6098,7 +5013,7 @@
           "value_constraints": null,
           "shape_contract": "(n_samples,)"
         },
-        "y_pred": {
+        {
           "name": "y_pred",
           "type_name": "ndarray",
           "state": "predicted_labels",
@@ -6119,9 +5034,9 @@
           "value_constraints": null,
           "shape_contract": "(n_samples,)"
         }
-      },
-      "outputs": {
-        "matrix": {
+      ],
+      "outputs": [
+        {
           "name": "matrix",
           "type_name": "ndarray",
           "state": "evaluated_metrics",
@@ -6138,7 +5053,7 @@
           "value_constraints": null,
           "shape_contract": "(n_classes, n_classes)"
         }
-      },
+      ],
       "preconditions": [
         {
           "target": "y_true",
@@ -6202,8 +5117,8 @@
         "ValueError"
       ],
       "type_vars": [],
-      "inputs": {
-        "y_true": {
+      "inputs": [
+        {
           "name": "y_true",
           "type_name": "ndarray",
           "state": "split_test_targets",
@@ -6224,7 +5139,7 @@
           "value_constraints": null,
           "shape_contract": "(n_samples,)"
         },
-        "y_score": {
+        {
           "name": "y_score",
           "type_name": "ndarray",
           "state": "predicted_probabilities",
@@ -6245,9 +5160,9 @@
           "value_constraints": null,
           "shape_contract": "(n_samples, n_classes)"
         }
-      },
-      "outputs": {
-        "score": {
+      ],
+      "outputs": [
+        {
           "name": "score",
           "type_name": "float",
           "state": "evaluated_metrics",
@@ -6267,7 +5182,7 @@
           },
           "shape_contract": null
         }
-      },
+      ],
       "preconditions": [
         {
           "target": "y_true",
@@ -6331,8 +5246,8 @@
         "ValueError"
       ],
       "type_vars": [],
-      "inputs": {
-        "y_true": {
+      "inputs": [
+        {
           "name": "y_true",
           "type_name": "ndarray",
           "state": "split_test_targets",
@@ -6353,7 +5268,7 @@
           "value_constraints": null,
           "shape_contract": "(n_samples,)"
         },
-        "y_pred": {
+        {
           "name": "y_pred",
           "type_name": "ndarray",
           "state": "predicted_values",
@@ -6374,9 +5289,9 @@
           "value_constraints": null,
           "shape_contract": "(n_samples,)"
         }
-      },
-      "outputs": {
-        "score": {
+      ],
+      "outputs": [
+        {
           "name": "score",
           "type_name": "float",
           "state": "evaluated_metrics",
@@ -6395,7 +5310,7 @@
           },
           "shape_contract": null
         }
-      },
+      ],
       "preconditions": [
         {
           "target": "y_true",
@@ -6458,8 +5373,8 @@
         "ValueError"
       ],
       "type_vars": [],
-      "inputs": {
-        "y_true": {
+      "inputs": [
+        {
           "name": "y_true",
           "type_name": "ndarray",
           "state": "split_test_targets",
@@ -6480,7 +5395,7 @@
           "value_constraints": null,
           "shape_contract": "(n_samples,)"
         },
-        "y_pred": {
+        {
           "name": "y_pred",
           "type_name": "ndarray",
           "state": "predicted_values",
@@ -6501,9 +5416,9 @@
           "value_constraints": null,
           "shape_contract": "(n_samples,)"
         }
-      },
-      "outputs": {
-        "score": {
+      ],
+      "outputs": [
+        {
           "name": "score",
           "type_name": "float",
           "state": "evaluated_metrics",
@@ -6520,7 +5435,7 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
+      ],
       "preconditions": [
         {
           "target": "y_true",
@@ -6584,8 +5499,8 @@
         "ValueError"
       ],
       "type_vars": [],
-      "inputs": {
-        "X": {
+      "inputs": [
+        {
           "name": "X",
           "type_name": "ndarray",
           "state": "scaled_features",
@@ -6606,7 +5521,7 @@
           "value_constraints": null,
           "shape_contract": "(n_samples, n_features)"
         },
-        "labels": {
+        {
           "name": "labels",
           "type_name": "ndarray",
           "state": "cluster_labels",
@@ -6627,9 +5542,9 @@
           "value_constraints": null,
           "shape_contract": "(n_samples,)"
         }
-      },
-      "outputs": {
-        "score": {
+      ],
+      "outputs": [
+        {
           "name": "score",
           "type_name": "float",
           "state": "evaluated_metrics",
@@ -6649,7 +5564,7 @@
           },
           "shape_contract": null
         }
-      },
+      ],
       "preconditions": [
         {
           "target": "X",
@@ -6713,8 +5628,8 @@
         "PickleError"
       ],
       "type_vars": [],
-      "inputs": {
-        "model": {
+      "inputs": [
+        {
           "name": "model",
           "type_name": "BaseEstimator",
           "state": "fit_estimator",
@@ -6734,7 +5649,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        "filepath": {
+        {
           "name": "filepath",
           "type_name": "str",
           "state": "file_path",
@@ -6751,8 +5666,8 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
-      "outputs": {},
+      ],
+      "outputs": [],
       "preconditions": [
         {
           "target": "model",
@@ -6807,8 +5722,8 @@
         "PickleError"
       ],
       "type_vars": [],
-      "inputs": {
-        "filepath": {
+      "inputs": [
+        {
           "name": "filepath",
           "type_name": "str",
           "state": "file_path",
@@ -6825,9 +5740,9 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
-      "outputs": {
-        "model": {
+      ],
+      "outputs": [
+        {
           "name": "model",
           "type_name": "BaseEstimator",
           "state": "fit_estimator",
@@ -6844,7 +5759,7 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
+      ],
       "preconditions": [],
       "postconditions": [
         {
@@ -6865,8 +5780,7 @@
           "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         }
       ]
     },
@@ -6904,9 +5818,9 @@
       "feedback_state_type": null,
       "raises": [],
       "type_vars": [],
-      "inputs": {},
-      "outputs": {
-        "X": {
+      "inputs": [],
+      "outputs": [
+        {
           "name": "X",
           "type_name": "ndarray",
           "state": "raw_dataset",
@@ -6923,7 +5837,7 @@
           "value_constraints": null,
           "shape_contract": "(178, 13)"
         },
-        "y": {
+        {
           "name": "y",
           "type_name": "ndarray",
           "state": "raw_dataset",
@@ -6940,7 +5854,7 @@
           "value_constraints": null,
           "shape_contract": "(178,)"
         }
-      },
+      ],
       "preconditions": [],
       "postconditions": [
         {
@@ -6961,24 +5875,21 @@
           "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         },
         {
           "target_cell_id": "sklearn.tree.DecisionTreeClassifier.fit",
-          "affinity_score": 0.5,
+          "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         },
         {
           "target_cell_id": "sklearn.neighbors.KNeighborsClassifier.fit",
-          "affinity_score": 0.2,
+          "affinity_score": 0.5,
           "score_provenance": "llm_seed",
           "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         }
       ]
     },
@@ -7016,9 +5927,9 @@
       "feedback_state_type": null,
       "raises": [],
       "type_vars": [],
-      "inputs": {},
-      "outputs": {
-        "X": {
+      "inputs": [],
+      "outputs": [
+        {
           "name": "X",
           "type_name": "ndarray",
           "state": "raw_dataset",
@@ -7035,7 +5946,7 @@
           "value_constraints": null,
           "shape_contract": "(569, 30)"
         },
-        "y": {
+        {
           "name": "y",
           "type_name": "ndarray",
           "state": "raw_dataset",
@@ -7052,7 +5963,7 @@
           "value_constraints": null,
           "shape_contract": "(569,)"
         }
-      },
+      ],
       "preconditions": [],
       "postconditions": [
         {
@@ -7073,16 +5984,14 @@
           "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         },
         {
           "target_cell_id": "sklearn.ensemble.GradientBoostingClassifier.fit",
-          "affinity_score": 0.5,
+          "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         }
       ]
     },
@@ -7120,9 +6029,9 @@
       "feedback_state_type": null,
       "raises": [],
       "type_vars": [],
-      "inputs": {},
-      "outputs": {
-        "X": {
+      "inputs": [],
+      "outputs": [
+        {
           "name": "X",
           "type_name": "ndarray",
           "state": "raw_dataset",
@@ -7139,7 +6048,7 @@
           "value_constraints": null,
           "shape_contract": "(1797, 64)"
         },
-        "y": {
+        {
           "name": "y",
           "type_name": "ndarray",
           "state": "raw_dataset",
@@ -7156,7 +6065,7 @@
           "value_constraints": null,
           "shape_contract": "(1797,)"
         }
-      },
+      ],
       "preconditions": [],
       "postconditions": [
         {
@@ -7177,16 +6086,14 @@
           "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         },
         {
           "target_cell_id": "sklearn.tree.DecisionTreeClassifier.fit",
           "affinity_score": 0.5,
           "score_provenance": "llm_seed",
           "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         }
       ]
     },
@@ -7229,8 +6136,8 @@
         "ValueError"
       ],
       "type_vars": [],
-      "inputs": {
-        "n_samples": {
+      "inputs": [
+        {
           "name": "n_samples",
           "type_name": "int",
           "state": "hyperparameter",
@@ -7249,7 +6156,7 @@
           },
           "shape_contract": null
         },
-        "centers": {
+        {
           "name": "centers",
           "type_name": "int",
           "state": "hyperparameter",
@@ -7268,7 +6175,7 @@
           },
           "shape_contract": null
         },
-        "random_state": {
+        {
           "name": "random_state",
           "type_name": "int",
           "state": "hyperparameter",
@@ -7285,9 +6192,9 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
-      "outputs": {
-        "X": {
+      ],
+      "outputs": [
+        {
           "name": "X",
           "type_name": "ndarray",
           "state": "raw_dataset",
@@ -7304,7 +6211,7 @@
           "value_constraints": null,
           "shape_contract": "(n_samples, 2)"
         },
-        "y": {
+        {
           "name": "y",
           "type_name": "ndarray",
           "state": "raw_dataset",
@@ -7321,7 +6228,7 @@
           "value_constraints": null,
           "shape_contract": "(n_samples,)"
         }
-      },
+      ],
       "preconditions": [],
       "postconditions": [
         {
@@ -7342,16 +6249,14 @@
           "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         },
         {
           "target_cell_id": "sklearn.mixture.GaussianMixture.fit_predict",
-          "affinity_score": 0.5,
+          "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         }
       ]
     },
@@ -7393,8 +6298,8 @@
         "ValueError"
       ],
       "type_vars": [],
-      "inputs": {
-        "X": {
+      "inputs": [
+        {
           "name": "X",
           "type_name": "ndarray",
           "state": "raw_dataset",
@@ -7415,7 +6320,7 @@
           "value_constraints": null,
           "shape_contract": "(n_samples, n_features)"
         },
-        "n_splits": {
+        {
           "name": "n_splits",
           "type_name": "int",
           "state": "hyperparameter",
@@ -7434,7 +6339,7 @@
           },
           "shape_contract": null
         },
-        "random_state": {
+        {
           "name": "random_state",
           "type_name": "int",
           "state": "hyperparameter",
@@ -7451,9 +6356,9 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
-      "outputs": {
-        "splits": {
+      ],
+      "outputs": [
+        {
           "name": "splits",
           "type_name": "list",
           "state": "evaluated_metrics",
@@ -7470,7 +6375,7 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
+      ],
       "preconditions": [
         {
           "target": "X",
@@ -7526,8 +6431,8 @@
         "ValueError"
       ],
       "type_vars": [],
-      "inputs": {
-        "X": {
+      "inputs": [
+        {
           "name": "X",
           "type_name": "ndarray",
           "state": "raw_dataset",
@@ -7548,7 +6453,7 @@
           "value_constraints": null,
           "shape_contract": "(n_samples, n_features)"
         },
-        "y": {
+        {
           "name": "y",
           "type_name": "ndarray",
           "state": "raw_dataset",
@@ -7569,7 +6474,7 @@
           "value_constraints": null,
           "shape_contract": "(n_samples,)"
         },
-        "n_splits": {
+        {
           "name": "n_splits",
           "type_name": "int",
           "state": "hyperparameter",
@@ -7588,7 +6493,7 @@
           },
           "shape_contract": null
         },
-        "random_state": {
+        {
           "name": "random_state",
           "type_name": "int",
           "state": "hyperparameter",
@@ -7605,9 +6510,9 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
-      "outputs": {
-        "splits": {
+      ],
+      "outputs": [
+        {
           "name": "splits",
           "type_name": "list",
           "state": "evaluated_metrics",
@@ -7624,7 +6529,7 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
+      ],
       "preconditions": [
         {
           "target": "y",
@@ -7679,8 +6584,8 @@
         "ValueError"
       ],
       "type_vars": [],
-      "inputs": {
-        "scaler": {
+      "inputs": [
+        {
           "name": "scaler",
           "type_name": "BaseEstimator",
           "state": "fit_transformer",
@@ -7697,7 +6602,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        "X": {
+        {
           "name": "X",
           "type_name": "ndarray",
           "state": "unscaled_features",
@@ -7718,9 +6623,9 @@
           "value_constraints": null,
           "shape_contract": "(n_samples, n_features)"
         }
-      },
-      "outputs": {
-        "output_var": {
+      ],
+      "outputs": [
+        {
           "name": "output_var",
           "type_name": "ndarray",
           "state": "scaled_features",
@@ -7737,7 +6642,7 @@
           "value_constraints": null,
           "shape_contract": "(n_samples, n_features)"
         }
-      },
+      ],
       "preconditions": [
         {
           "target": "scaler",
@@ -7767,24 +6672,21 @@
           "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         },
         {
           "target_cell_id": "sklearn.tree.DecisionTreeClassifier.fit",
-          "affinity_score": 0.5,
+          "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         },
         {
           "target_cell_id": "sklearn.neighbors.KNeighborsClassifier.fit",
-          "affinity_score": 0.2,
+          "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         }
       ]
     },
@@ -7826,8 +6728,8 @@
         "ValueError"
       ],
       "type_vars": [],
-      "inputs": {
-        "scaler": {
+      "inputs": [
+        {
           "name": "scaler",
           "type_name": "BaseEstimator",
           "state": "fit_transformer",
@@ -7844,7 +6746,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        "X": {
+        {
           "name": "X",
           "type_name": "ndarray",
           "state": "unscaled_features",
@@ -7865,9 +6767,9 @@
           "value_constraints": null,
           "shape_contract": "(n_samples, n_features)"
         }
-      },
-      "outputs": {
-        "output_var": {
+      ],
+      "outputs": [
+        {
           "name": "output_var",
           "type_name": "ndarray",
           "state": "scaled_features",
@@ -7884,7 +6786,7 @@
           "value_constraints": null,
           "shape_contract": "(n_samples, n_features)"
         }
-      },
+      ],
       "preconditions": [
         {
           "target": "scaler",
@@ -7911,11 +6813,10 @@
       "edges": [
         {
           "target_cell_id": "sklearn.decomposition.FastICA.fit_transform",
-          "affinity_score": 0.8,
+          "affinity_score": 0.5,
           "score_provenance": "llm_seed",
           "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         }
       ]
     },
@@ -7955,8 +6856,8 @@
         "ValueError"
       ],
       "type_vars": [],
-      "inputs": {
-        "X": {
+      "inputs": [
+        {
           "name": "X",
           "type_name": "ndarray",
           "state": "unscaled_features",
@@ -7977,9 +6878,9 @@
           "value_constraints": null,
           "shape_contract": "(n_samples, n_features)"
         }
-      },
-      "outputs": {
-        "output_var": {
+      ],
+      "outputs": [
+        {
           "name": "output_var",
           "type_name": "ndarray",
           "state": "scaled_features",
@@ -7996,7 +6897,7 @@
           "value_constraints": null,
           "shape_contract": "(n_samples, n_features)"
         }
-      },
+      ],
       "preconditions": [
         {
           "target": "X",
@@ -8026,8 +6927,7 @@
           "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         }
       ]
     },
@@ -8069,8 +6969,8 @@
         "ValueError"
       ],
       "type_vars": [],
-      "inputs": {
-        "X": {
+      "inputs": [
+        {
           "name": "X",
           "type_name": "ndarray",
           "state": "unscaled_features",
@@ -8091,7 +6991,7 @@
           "value_constraints": null,
           "shape_contract": "(n_samples, n_features)"
         },
-        "norm": {
+        {
           "name": "norm",
           "type_name": "str",
           "state": "hyperparameter",
@@ -8112,9 +7012,9 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
-      "outputs": {
-        "output_var": {
+      ],
+      "outputs": [
+        {
           "name": "output_var",
           "type_name": "ndarray",
           "state": "scaled_features",
@@ -8131,7 +7031,7 @@
           "value_constraints": null,
           "shape_contract": "(n_samples, n_features)"
         }
-      },
+      ],
       "preconditions": [
         {
           "target": "X",
@@ -8161,8 +7061,7 @@
           "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         }
       ]
     },
@@ -8205,8 +7104,8 @@
         "ValueError"
       ],
       "type_vars": [],
-      "inputs": {
-        "X": {
+      "inputs": [
+        {
           "name": "X",
           "type_name": "ndarray",
           "state": "unscaled_features",
@@ -8227,7 +7126,7 @@
           "value_constraints": null,
           "shape_contract": "(n_samples, n_features)"
         },
-        "n_quantiles": {
+        {
           "name": "n_quantiles",
           "type_name": "int",
           "state": "hyperparameter",
@@ -8246,7 +7145,7 @@
           },
           "shape_contract": null
         },
-        "random_state": {
+        {
           "name": "random_state",
           "type_name": "int",
           "state": "hyperparameter",
@@ -8263,9 +7162,9 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
-      "outputs": {
-        "output_var": {
+      ],
+      "outputs": [
+        {
           "name": "output_var",
           "type_name": "ndarray",
           "state": "scaled_features",
@@ -8282,7 +7181,7 @@
           "value_constraints": null,
           "shape_contract": "(n_samples, n_features)"
         }
-      },
+      ],
       "preconditions": [
         {
           "target": "X",
@@ -8312,8 +7211,7 @@
           "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         }
       ]
     },
@@ -8355,8 +7253,8 @@
         "ValueError"
       ],
       "type_vars": [],
-      "inputs": {
-        "X": {
+      "inputs": [
+        {
           "name": "X",
           "type_name": "ndarray",
           "state": "unscaled_features",
@@ -8377,7 +7275,7 @@
           "value_constraints": null,
           "shape_contract": "(n_samples, n_features)"
         },
-        "method": {
+        {
           "name": "method",
           "type_name": "str",
           "state": "hyperparameter",
@@ -8397,9 +7295,9 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
-      "outputs": {
-        "output_var": {
+      ],
+      "outputs": [
+        {
           "name": "output_var",
           "type_name": "ndarray",
           "state": "scaled_features",
@@ -8416,7 +7314,7 @@
           "value_constraints": null,
           "shape_contract": "(n_samples, n_features)"
         }
-      },
+      ],
       "preconditions": [
         {
           "target": "X",
@@ -8446,8 +7344,7 @@
           "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         }
       ]
     },
@@ -8488,8 +7385,8 @@
         "ValueError"
       ],
       "type_vars": [],
-      "inputs": {
-        "X": {
+      "inputs": [
+        {
           "name": "X",
           "type_name": "ndarray",
           "state": "raw_dataset",
@@ -8510,9 +7407,9 @@
           "value_constraints": null,
           "shape_contract": "(n_samples, n_categorical_features)"
         }
-      },
-      "outputs": {
-        "output_var": {
+      ],
+      "outputs": [
+        {
           "name": "output_var",
           "type_name": "ndarray",
           "state": "encoded_features",
@@ -8529,7 +7426,7 @@
           "value_constraints": null,
           "shape_contract": "(n_samples, n_categorical_features)"
         }
-      },
+      ],
       "preconditions": [
         {
           "target": "X",
@@ -8559,8 +7456,7 @@
           "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         }
       ]
     },
@@ -8600,8 +7496,8 @@
         "ValueError"
       ],
       "type_vars": [],
-      "inputs": {
-        "y": {
+      "inputs": [
+        {
           "name": "y",
           "type_name": "ndarray",
           "state": "raw_dataset",
@@ -8622,9 +7518,9 @@
           "value_constraints": null,
           "shape_contract": "(n_samples,)"
         }
-      },
-      "outputs": {
-        "output_var": {
+      ],
+      "outputs": [
+        {
           "name": "output_var",
           "type_name": "ndarray",
           "state": "split_train_targets",
@@ -8641,7 +7537,7 @@
           "value_constraints": null,
           "shape_contract": "(n_samples,)"
         }
-      },
+      ],
       "preconditions": [
         {
           "target": "y",
@@ -8671,8 +7567,7 @@
           "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         }
       ]
     },
@@ -8714,8 +7609,8 @@
         "ValueError"
       ],
       "type_vars": [],
-      "inputs": {
-        "X": {
+      "inputs": [
+        {
           "name": "X",
           "type_name": "ndarray",
           "state": "raw_dataset",
@@ -8736,7 +7631,7 @@
           "value_constraints": null,
           "shape_contract": "(n_samples, n_features)"
         },
-        "n_neighbors": {
+        {
           "name": "n_neighbors",
           "type_name": "int",
           "state": "hyperparameter",
@@ -8755,9 +7650,9 @@
           },
           "shape_contract": null
         }
-      },
-      "outputs": {
-        "output_var": {
+      ],
+      "outputs": [
+        {
           "name": "output_var",
           "type_name": "ndarray",
           "state": "imputed_features",
@@ -8774,7 +7669,7 @@
           "value_constraints": null,
           "shape_contract": "(n_samples, n_features)"
         }
-      },
+      ],
       "preconditions": [
         {
           "target": "X",
@@ -8804,8 +7699,7 @@
           "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         }
       ]
     },
@@ -8847,8 +7741,8 @@
         "ValueError"
       ],
       "type_vars": [],
-      "inputs": {
-        "X": {
+      "inputs": [
+        {
           "name": "X",
           "type_name": "ndarray",
           "state": "unscaled_features",
@@ -8869,7 +7763,7 @@
           "value_constraints": null,
           "shape_contract": "(n_samples, n_features)"
         },
-        "func": {
+        {
           "name": "func",
           "type_name": "str",
           "state": "hyperparameter",
@@ -8886,9 +7780,9 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
-      "outputs": {
-        "output_var": {
+      ],
+      "outputs": [
+        {
           "name": "output_var",
           "type_name": "ndarray",
           "state": "unscaled_features",
@@ -8905,7 +7799,7 @@
           "value_constraints": null,
           "shape_contract": "(n_samples, n_features)"
         }
-      },
+      ],
       "preconditions": [
         {
           "target": "X",
@@ -8935,8 +7829,7 @@
           "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         }
       ]
     },
@@ -8979,8 +7872,8 @@
         "ValueError"
       ],
       "type_vars": [],
-      "inputs": {
-        "corpus": {
+      "inputs": [
+        {
           "name": "corpus",
           "type_name": "list",
           "state": "raw_dataset",
@@ -8997,7 +7890,7 @@
           "value_constraints": null,
           "shape_contract": "(n_samples,)"
         },
-        "max_features": {
+        {
           "name": "max_features",
           "type_name": "int",
           "state": "hyperparameter",
@@ -9016,9 +7909,9 @@
           },
           "shape_contract": null
         }
-      },
-      "outputs": {
-        "output_var": {
+      ],
+      "outputs": [
+        {
           "name": "output_var",
           "type_name": "ndarray",
           "state": "encoded_features",
@@ -9035,7 +7928,7 @@
           "value_constraints": null,
           "shape_contract": "(n_samples, max_features)"
         }
-      },
+      ],
       "preconditions": [],
       "postconditions": [
         {
@@ -9056,16 +7949,14 @@
           "affinity_score": 0.5,
           "score_provenance": "llm_seed",
           "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         },
         {
           "target_cell_id": "sklearn.linear_model.SGDClassifier.fit",
           "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         }
       ]
     },
@@ -9107,8 +7998,8 @@
         "ValueError"
       ],
       "type_vars": [],
-      "inputs": {
-        "pca": {
+      "inputs": [
+        {
           "name": "pca",
           "type_name": "BaseEstimator",
           "state": "fit_transformer",
@@ -9125,7 +8016,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        "X": {
+        {
           "name": "X",
           "type_name": "ndarray",
           "state": "scaled_features",
@@ -9146,9 +8037,9 @@
           "value_constraints": null,
           "shape_contract": "(n_samples, n_features)"
         }
-      },
-      "outputs": {
-        "output_var": {
+      ],
+      "outputs": [
+        {
           "name": "output_var",
           "type_name": "ndarray",
           "state": "reduced_features",
@@ -9165,7 +8056,7 @@
           "value_constraints": null,
           "shape_contract": "(n_samples, n_components)"
         }
-      },
+      ],
       "preconditions": [
         {
           "target": "pca",
@@ -9195,8 +8086,7 @@
           "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         }
       ]
     },
@@ -9240,8 +8130,8 @@
         "ValueError"
       ],
       "type_vars": [],
-      "inputs": {
-        "X": {
+      "inputs": [
+        {
           "name": "X",
           "type_name": "ndarray",
           "state": "scaled_features",
@@ -9262,7 +8152,7 @@
           "value_constraints": null,
           "shape_contract": "(n_samples, n_features)"
         },
-        "n_components": {
+        {
           "name": "n_components",
           "type_name": "int",
           "state": "hyperparameter",
@@ -9281,7 +8171,7 @@
           },
           "shape_contract": null
         },
-        "batch_size": {
+        {
           "name": "batch_size",
           "type_name": "int",
           "state": "hyperparameter",
@@ -9300,9 +8190,9 @@
           },
           "shape_contract": null
         }
-      },
-      "outputs": {
-        "output_var": {
+      ],
+      "outputs": [
+        {
           "name": "output_var",
           "type_name": "ndarray",
           "state": "reduced_features",
@@ -9319,7 +8209,7 @@
           "value_constraints": null,
           "shape_contract": "(n_samples, n_components)"
         }
-      },
+      ],
       "preconditions": [
         {
           "target": "X",
@@ -9349,8 +8239,7 @@
           "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         }
       ]
     },
@@ -9393,8 +8282,8 @@
         "ValueError"
       ],
       "type_vars": [],
-      "inputs": {
-        "X": {
+      "inputs": [
+        {
           "name": "X",
           "type_name": "ndarray",
           "state": "scaled_features",
@@ -9415,7 +8304,7 @@
           "value_constraints": null,
           "shape_contract": "(n_samples, n_features)"
         },
-        "n_components": {
+        {
           "name": "n_components",
           "type_name": "int",
           "state": "hyperparameter",
@@ -9434,7 +8323,7 @@
           },
           "shape_contract": null
         },
-        "random_state": {
+        {
           "name": "random_state",
           "type_name": "int",
           "state": "hyperparameter",
@@ -9451,9 +8340,9 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
-      "outputs": {
-        "output_var": {
+      ],
+      "outputs": [
+        {
           "name": "output_var",
           "type_name": "ndarray",
           "state": "reduced_features",
@@ -9470,7 +8359,7 @@
           "value_constraints": null,
           "shape_contract": "(n_samples, n_components)"
         }
-      },
+      ],
       "preconditions": [
         {
           "target": "X",
@@ -9497,11 +8386,10 @@
       "edges": [
         {
           "target_cell_id": "sklearn.cluster.SpectralClustering.fit_predict",
-          "affinity_score": 0.8,
+          "affinity_score": 0.5,
           "score_provenance": "llm_seed",
           "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         }
       ]
     },
@@ -9545,8 +8433,8 @@
         "ValueError"
       ],
       "type_vars": [],
-      "inputs": {
-        "X": {
+      "inputs": [
+        {
           "name": "X",
           "type_name": "ndarray",
           "state": "encoded_features",
@@ -9567,7 +8455,7 @@
           "value_constraints": null,
           "shape_contract": "(n_samples, n_features)"
         },
-        "n_components": {
+        {
           "name": "n_components",
           "type_name": "int",
           "state": "hyperparameter",
@@ -9586,7 +8474,7 @@
           },
           "shape_contract": null
         },
-        "random_state": {
+        {
           "name": "random_state",
           "type_name": "int",
           "state": "hyperparameter",
@@ -9603,9 +8491,9 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
-      "outputs": {
-        "output_var": {
+      ],
+      "outputs": [
+        {
           "name": "output_var",
           "type_name": "ndarray",
           "state": "reduced_features",
@@ -9622,7 +8510,7 @@
           "value_constraints": null,
           "shape_contract": "(n_samples, n_components)"
         }
-      },
+      ],
       "preconditions": [
         {
           "target": "X",
@@ -9649,11 +8537,10 @@
       "edges": [
         {
           "target_cell_id": "sklearn.tree.DecisionTreeClassifier.fit",
-          "affinity_score": 0.8,
+          "affinity_score": 0.5,
           "score_provenance": "llm_seed",
           "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         }
       ]
     },
@@ -9696,8 +8583,8 @@
         "ValueError"
       ],
       "type_vars": [],
-      "inputs": {
-        "X": {
+      "inputs": [
+        {
           "name": "X",
           "type_name": "ndarray",
           "state": "scaled_features",
@@ -9718,7 +8605,7 @@
           "value_constraints": null,
           "shape_contract": "(n_samples, n_features)"
         },
-        "y": {
+        {
           "name": "y",
           "type_name": "ndarray",
           "state": "split_train_targets",
@@ -9739,7 +8626,7 @@
           "value_constraints": null,
           "shape_contract": "(n_samples,)"
         },
-        "n_components": {
+        {
           "name": "n_components",
           "type_name": "int",
           "state": "hyperparameter",
@@ -9758,9 +8645,9 @@
           },
           "shape_contract": null
         }
-      },
-      "outputs": {
-        "output_var": {
+      ],
+      "outputs": [
+        {
           "name": "output_var",
           "type_name": "ndarray",
           "state": "reduced_features",
@@ -9777,7 +8664,7 @@
           "value_constraints": null,
           "shape_contract": "(n_samples, n_components)"
         }
-      },
+      ],
       "preconditions": [
         {
           "target": "X",
@@ -9807,8 +8694,7 @@
           "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         }
       ]
     },
@@ -9853,8 +8739,8 @@
         "ValueError"
       ],
       "type_vars": [],
-      "inputs": {
-        "X": {
+      "inputs": [
+        {
           "name": "X",
           "type_name": "ndarray",
           "state": "scaled_features",
@@ -9875,7 +8761,7 @@
           "value_constraints": null,
           "shape_contract": "(n_samples, n_features)"
         },
-        "n_components": {
+        {
           "name": "n_components",
           "type_name": "int",
           "state": "hyperparameter",
@@ -9895,7 +8781,7 @@
           },
           "shape_contract": null
         },
-        "perplexity": {
+        {
           "name": "perplexity",
           "type_name": "float",
           "state": "hyperparameter",
@@ -9914,7 +8800,7 @@
           },
           "shape_contract": null
         },
-        "random_state": {
+        {
           "name": "random_state",
           "type_name": "int",
           "state": "hyperparameter",
@@ -9931,9 +8817,9 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
-      "outputs": {
-        "output_var": {
+      ],
+      "outputs": [
+        {
           "name": "output_var",
           "type_name": "ndarray",
           "state": "reduced_features",
@@ -9950,7 +8836,7 @@
           "value_constraints": null,
           "shape_contract": "(n_samples, n_components)"
         }
-      },
+      ],
       "preconditions": [
         {
           "target": "X",
@@ -9980,8 +8866,7 @@
           "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         }
       ]
     },
@@ -10022,8 +8907,8 @@
         "ValueError"
       ],
       "type_vars": [],
-      "inputs": {
-        "X": {
+      "inputs": [
+        {
           "name": "X",
           "type_name": "ndarray",
           "state": "unscaled_features",
@@ -10044,7 +8929,7 @@
           "value_constraints": null,
           "shape_contract": "(n_samples, n_features)"
         },
-        "threshold": {
+        {
           "name": "threshold",
           "type_name": "float",
           "state": "hyperparameter",
@@ -10063,9 +8948,9 @@
           },
           "shape_contract": null
         }
-      },
-      "outputs": {
-        "output_var": {
+      ],
+      "outputs": [
+        {
           "name": "output_var",
           "type_name": "ndarray",
           "state": "reduced_features",
@@ -10082,7 +8967,7 @@
           "value_constraints": null,
           "shape_contract": "(n_samples, n_retained_features)"
         }
-      },
+      ],
       "preconditions": [
         {
           "target": "X",
@@ -10112,8 +8997,7 @@
           "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         }
       ]
     },
@@ -10157,8 +9041,8 @@
         "ValueError"
       ],
       "type_vars": [],
-      "inputs": {
-        "estimator": {
+      "inputs": [
+        {
           "name": "estimator",
           "type_name": "BaseEstimator",
           "state": "unfit_estimator",
@@ -10175,7 +9059,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        "X": {
+        {
           "name": "X",
           "type_name": "ndarray",
           "state": "scaled_features",
@@ -10196,7 +9080,7 @@
           "value_constraints": null,
           "shape_contract": "(n_samples, n_features)"
         },
-        "y": {
+        {
           "name": "y",
           "type_name": "ndarray",
           "state": "split_train_targets",
@@ -10217,7 +9101,7 @@
           "value_constraints": null,
           "shape_contract": "(n_samples,)"
         },
-        "n_features_to_select": {
+        {
           "name": "n_features_to_select",
           "type_name": "int",
           "state": "hyperparameter",
@@ -10236,9 +9120,9 @@
           },
           "shape_contract": null
         }
-      },
-      "outputs": {
-        "output_var": {
+      ],
+      "outputs": [
+        {
           "name": "output_var",
           "type_name": "ndarray",
           "state": "reduced_features",
@@ -10255,7 +9139,7 @@
           "value_constraints": null,
           "shape_contract": "(n_samples, n_features_to_select)"
         }
-      },
+      ],
       "preconditions": [
         {
           "target": "X",
@@ -10285,8 +9169,7 @@
           "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         }
       ]
     },
@@ -10331,8 +9214,8 @@
         "ValueError"
       ],
       "type_vars": [],
-      "inputs": {
-        "X": {
+      "inputs": [
+        {
           "name": "X",
           "type_name": "ndarray",
           "state": "scaled_features",
@@ -10353,7 +9236,7 @@
           "value_constraints": null,
           "shape_contract": "(n_samples, n_features)"
         },
-        "y": {
+        {
           "name": "y",
           "type_name": "ndarray",
           "state": "split_train_targets",
@@ -10374,7 +9257,7 @@
           "value_constraints": null,
           "shape_contract": "(n_samples,)"
         },
-        "max_depth": {
+        {
           "name": "max_depth",
           "type_name": "int",
           "state": "hyperparameter",
@@ -10393,7 +9276,7 @@
           },
           "shape_contract": null
         },
-        "random_state": {
+        {
           "name": "random_state",
           "type_name": "int",
           "state": "hyperparameter",
@@ -10410,9 +9293,9 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
-      "outputs": {
-        "model": {
+      ],
+      "outputs": [
+        {
           "name": "model",
           "type_name": "Classifier",
           "state": "fit_classifier",
@@ -10429,7 +9312,7 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
+      ],
       "preconditions": [
         {
           "target": "X",
@@ -10459,16 +9342,14 @@
           "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         },
         {
           "target_cell_id": "pickle.dump",
           "affinity_score": 0.5,
           "score_provenance": "llm_seed",
           "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         }
       ]
     },
@@ -10509,8 +9390,8 @@
         "NotFittedError"
       ],
       "type_vars": [],
-      "inputs": {
-        "model": {
+      "inputs": [
+        {
           "name": "model",
           "type_name": "Classifier",
           "state": "fit_classifier",
@@ -10527,7 +9408,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        "X": {
+        {
           "name": "X",
           "type_name": "ndarray",
           "state": "split_test_features",
@@ -10548,9 +9429,9 @@
           "value_constraints": null,
           "shape_contract": "(n_samples, n_features)"
         }
-      },
-      "outputs": {
-        "y_pred": {
+      ],
+      "outputs": [
+        {
           "name": "y_pred",
           "type_name": "ndarray",
           "state": "predicted_labels",
@@ -10567,7 +9448,7 @@
           "value_constraints": null,
           "shape_contract": "(n_samples,)"
         }
-      },
+      ],
       "preconditions": [
         {
           "target": "model",
@@ -10597,24 +9478,21 @@
           "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         },
         {
           "target_cell_id": "sklearn.metrics.recall_score",
-          "affinity_score": 0.5,
+          "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         },
         {
           "target_cell_id": "sklearn.metrics.classification_report",
-          "affinity_score": 0.2,
+          "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         }
       ]
     },
@@ -10660,8 +9538,8 @@
         "ValueError"
       ],
       "type_vars": [],
-      "inputs": {
-        "X": {
+      "inputs": [
+        {
           "name": "X",
           "type_name": "ndarray",
           "state": "scaled_features",
@@ -10682,7 +9560,7 @@
           "value_constraints": null,
           "shape_contract": "(n_samples, n_features)"
         },
-        "y": {
+        {
           "name": "y",
           "type_name": "ndarray",
           "state": "split_train_targets",
@@ -10703,7 +9581,7 @@
           "value_constraints": null,
           "shape_contract": "(n_samples,)"
         },
-        "n_estimators": {
+        {
           "name": "n_estimators",
           "type_name": "int",
           "state": "hyperparameter",
@@ -10722,7 +9600,7 @@
           },
           "shape_contract": null
         },
-        "learning_rate": {
+        {
           "name": "learning_rate",
           "type_name": "float",
           "state": "hyperparameter",
@@ -10741,7 +9619,7 @@
           },
           "shape_contract": null
         },
-        "random_state": {
+        {
           "name": "random_state",
           "type_name": "int",
           "state": "hyperparameter",
@@ -10758,9 +9636,9 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
-      "outputs": {
-        "model": {
+      ],
+      "outputs": [
+        {
           "name": "model",
           "type_name": "Classifier",
           "state": "fit_classifier",
@@ -10777,7 +9655,7 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
+      ],
       "preconditions": [
         {
           "target": "X",
@@ -10807,8 +9685,7 @@
           "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         }
       ]
     },
@@ -10848,8 +9725,8 @@
         "NotFittedError"
       ],
       "type_vars": [],
-      "inputs": {
-        "model": {
+      "inputs": [
+        {
           "name": "model",
           "type_name": "Classifier",
           "state": "fit_classifier",
@@ -10866,7 +9743,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        "X": {
+        {
           "name": "X",
           "type_name": "ndarray",
           "state": "split_test_features",
@@ -10887,9 +9764,9 @@
           "value_constraints": null,
           "shape_contract": "(n_samples, n_features)"
         }
-      },
-      "outputs": {
-        "y_pred": {
+      ],
+      "outputs": [
+        {
           "name": "y_pred",
           "type_name": "ndarray",
           "state": "predicted_labels",
@@ -10906,7 +9783,7 @@
           "value_constraints": null,
           "shape_contract": "(n_samples,)"
         }
-      },
+      ],
       "preconditions": [
         {
           "target": "model",
@@ -10936,16 +9813,14 @@
           "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         },
         {
           "target_cell_id": "sklearn.metrics.precision_score",
-          "affinity_score": 0.5,
+          "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         }
       ]
     },
@@ -10989,8 +9864,8 @@
         "ValueError"
       ],
       "type_vars": [],
-      "inputs": {
-        "X": {
+      "inputs": [
+        {
           "name": "X",
           "type_name": "ndarray",
           "state": "scaled_features",
@@ -11011,7 +9886,7 @@
           "value_constraints": null,
           "shape_contract": "(n_samples, n_features)"
         },
-        "y": {
+        {
           "name": "y",
           "type_name": "ndarray",
           "state": "split_train_targets",
@@ -11032,7 +9907,7 @@
           "value_constraints": null,
           "shape_contract": "(n_samples,)"
         },
-        "n_neighbors": {
+        {
           "name": "n_neighbors",
           "type_name": "int",
           "state": "hyperparameter",
@@ -11051,9 +9926,9 @@
           },
           "shape_contract": null
         }
-      },
-      "outputs": {
-        "model": {
+      ],
+      "outputs": [
+        {
           "name": "model",
           "type_name": "Classifier",
           "state": "fit_classifier",
@@ -11070,7 +9945,7 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
+      ],
       "preconditions": [
         {
           "target": "X",
@@ -11100,8 +9975,7 @@
           "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         }
       ]
     },
@@ -11141,8 +10015,8 @@
         "NotFittedError"
       ],
       "type_vars": [],
-      "inputs": {
-        "model": {
+      "inputs": [
+        {
           "name": "model",
           "type_name": "Classifier",
           "state": "fit_classifier",
@@ -11159,7 +10033,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        "X": {
+        {
           "name": "X",
           "type_name": "ndarray",
           "state": "split_test_features",
@@ -11180,9 +10054,9 @@
           "value_constraints": null,
           "shape_contract": "(n_samples, n_features)"
         }
-      },
-      "outputs": {
-        "y_pred": {
+      ],
+      "outputs": [
+        {
           "name": "y_pred",
           "type_name": "ndarray",
           "state": "predicted_labels",
@@ -11199,7 +10073,7 @@
           "value_constraints": null,
           "shape_contract": "(n_samples,)"
         }
-      },
+      ],
       "preconditions": [
         {
           "target": "model",
@@ -11229,16 +10103,14 @@
           "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         },
         {
           "target_cell_id": "sklearn.metrics.recall_score",
-          "affinity_score": 0.5,
+          "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         }
       ]
     },
@@ -11281,8 +10153,8 @@
         "ValueError"
       ],
       "type_vars": [],
-      "inputs": {
-        "X": {
+      "inputs": [
+        {
           "name": "X",
           "type_name": "ndarray",
           "state": "scaled_features",
@@ -11303,7 +10175,7 @@
           "value_constraints": null,
           "shape_contract": "(n_samples, n_features)"
         },
-        "y": {
+        {
           "name": "y",
           "type_name": "ndarray",
           "state": "split_train_targets",
@@ -11324,9 +10196,9 @@
           "value_constraints": null,
           "shape_contract": "(n_samples,)"
         }
-      },
-      "outputs": {
-        "model": {
+      ],
+      "outputs": [
+        {
           "name": "model",
           "type_name": "Classifier",
           "state": "fit_classifier",
@@ -11343,7 +10215,7 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
+      ],
       "preconditions": [
         {
           "target": "X",
@@ -11373,8 +10245,7 @@
           "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         }
       ]
     },
@@ -11414,8 +10285,8 @@
         "NotFittedError"
       ],
       "type_vars": [],
-      "inputs": {
-        "model": {
+      "inputs": [
+        {
           "name": "model",
           "type_name": "Classifier",
           "state": "fit_classifier",
@@ -11432,7 +10303,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        "X": {
+        {
           "name": "X",
           "type_name": "ndarray",
           "state": "split_test_features",
@@ -11453,9 +10324,9 @@
           "value_constraints": null,
           "shape_contract": "(n_samples, n_features)"
         }
-      },
-      "outputs": {
-        "y_pred": {
+      ],
+      "outputs": [
+        {
           "name": "y_pred",
           "type_name": "ndarray",
           "state": "predicted_labels",
@@ -11472,7 +10343,7 @@
           "value_constraints": null,
           "shape_contract": "(n_samples,)"
         }
-      },
+      ],
       "preconditions": [
         {
           "target": "model",
@@ -11502,8 +10373,7 @@
           "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         }
       ]
     },
@@ -11548,8 +10418,8 @@
         "ValueError"
       ],
       "type_vars": [],
-      "inputs": {
-        "X": {
+      "inputs": [
+        {
           "name": "X",
           "type_name": "ndarray",
           "state": "scaled_features",
@@ -11570,7 +10440,7 @@
           "value_constraints": null,
           "shape_contract": "(n_samples, n_features)"
         },
-        "y": {
+        {
           "name": "y",
           "type_name": "ndarray",
           "state": "split_train_targets",
@@ -11591,7 +10461,7 @@
           "value_constraints": null,
           "shape_contract": "(n_samples,)"
         },
-        "loss": {
+        {
           "name": "loss",
           "type_name": "str",
           "state": "hyperparameter",
@@ -11613,7 +10483,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        "penalty": {
+        {
           "name": "penalty",
           "type_name": "str",
           "state": "hyperparameter",
@@ -11634,7 +10504,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        "random_state": {
+        {
           "name": "random_state",
           "type_name": "int",
           "state": "hyperparameter",
@@ -11651,9 +10521,9 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
-      "outputs": {
-        "model": {
+      ],
+      "outputs": [
+        {
           "name": "model",
           "type_name": "Classifier",
           "state": "fit_classifier",
@@ -11670,7 +10540,7 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
+      ],
       "preconditions": [
         {
           "target": "X",
@@ -11700,8 +10570,7 @@
           "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         }
       ]
     },
@@ -11741,8 +10610,8 @@
         "NotFittedError"
       ],
       "type_vars": [],
-      "inputs": {
-        "model": {
+      "inputs": [
+        {
           "name": "model",
           "type_name": "Classifier",
           "state": "fit_classifier",
@@ -11759,7 +10628,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        "X": {
+        {
           "name": "X",
           "type_name": "ndarray",
           "state": "split_test_features",
@@ -11780,9 +10649,9 @@
           "value_constraints": null,
           "shape_contract": "(n_samples, n_features)"
         }
-      },
-      "outputs": {
-        "y_pred": {
+      ],
+      "outputs": [
+        {
           "name": "y_pred",
           "type_name": "ndarray",
           "state": "predicted_labels",
@@ -11799,7 +10668,7 @@
           "value_constraints": null,
           "shape_contract": "(n_samples,)"
         }
-      },
+      ],
       "preconditions": [
         {
           "target": "model",
@@ -11829,8 +10698,7 @@
           "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         }
       ]
     },
@@ -11877,8 +10745,8 @@
         "ConvergenceWarning"
       ],
       "type_vars": [],
-      "inputs": {
-        "X": {
+      "inputs": [
+        {
           "name": "X",
           "type_name": "ndarray",
           "state": "scaled_features",
@@ -11899,7 +10767,7 @@
           "value_constraints": null,
           "shape_contract": "(n_samples, n_features)"
         },
-        "y": {
+        {
           "name": "y",
           "type_name": "ndarray",
           "state": "split_train_targets",
@@ -11920,7 +10788,7 @@
           "value_constraints": null,
           "shape_contract": "(n_samples,)"
         },
-        "hidden_layer_sizes": {
+        {
           "name": "hidden_layer_sizes",
           "type_name": "tuple",
           "state": "hyperparameter",
@@ -11937,7 +10805,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        "max_iter": {
+        {
           "name": "max_iter",
           "type_name": "int",
           "state": "hyperparameter",
@@ -11956,7 +10824,7 @@
           },
           "shape_contract": null
         },
-        "random_state": {
+        {
           "name": "random_state",
           "type_name": "int",
           "state": "hyperparameter",
@@ -11973,9 +10841,9 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
-      "outputs": {
-        "model": {
+      ],
+      "outputs": [
+        {
           "name": "model",
           "type_name": "Classifier",
           "state": "fit_classifier",
@@ -11992,7 +10860,7 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
+      ],
       "preconditions": [
         {
           "target": "X",
@@ -12022,8 +10890,7 @@
           "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         }
       ]
     },
@@ -12063,8 +10930,8 @@
         "NotFittedError"
       ],
       "type_vars": [],
-      "inputs": {
-        "model": {
+      "inputs": [
+        {
           "name": "model",
           "type_name": "Classifier",
           "state": "fit_classifier",
@@ -12081,7 +10948,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        "X": {
+        {
           "name": "X",
           "type_name": "ndarray",
           "state": "split_test_features",
@@ -12102,9 +10969,9 @@
           "value_constraints": null,
           "shape_contract": "(n_samples, n_features)"
         }
-      },
-      "outputs": {
-        "y_pred": {
+      ],
+      "outputs": [
+        {
           "name": "y_pred",
           "type_name": "ndarray",
           "state": "predicted_labels",
@@ -12121,7 +10988,7 @@
           "value_constraints": null,
           "shape_contract": "(n_samples,)"
         }
-      },
+      ],
       "preconditions": [
         {
           "target": "model",
@@ -12151,8 +11018,7 @@
           "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         }
       ]
     },
@@ -12196,8 +11062,8 @@
         "ValueError"
       ],
       "type_vars": [],
-      "inputs": {
-        "X": {
+      "inputs": [
+        {
           "name": "X",
           "type_name": "ndarray",
           "state": "scaled_features",
@@ -12218,7 +11084,7 @@
           "value_constraints": null,
           "shape_contract": "(n_samples, n_features)"
         },
-        "y": {
+        {
           "name": "y",
           "type_name": "ndarray",
           "state": "split_train_targets",
@@ -12239,7 +11105,7 @@
           "value_constraints": null,
           "shape_contract": "(n_samples,)"
         },
-        "max_depth": {
+        {
           "name": "max_depth",
           "type_name": "int",
           "state": "hyperparameter",
@@ -12258,7 +11124,7 @@
           },
           "shape_contract": null
         },
-        "random_state": {
+        {
           "name": "random_state",
           "type_name": "int",
           "state": "hyperparameter",
@@ -12275,9 +11141,9 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
-      "outputs": {
-        "model": {
+      ],
+      "outputs": [
+        {
           "name": "model",
           "type_name": "Regressor",
           "state": "fit_regressor",
@@ -12294,7 +11160,7 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
+      ],
       "preconditions": [
         {
           "target": "X",
@@ -12324,8 +11190,7 @@
           "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         }
       ]
     },
@@ -12365,8 +11230,8 @@
         "NotFittedError"
       ],
       "type_vars": [],
-      "inputs": {
-        "model": {
+      "inputs": [
+        {
           "name": "model",
           "type_name": "Regressor",
           "state": "fit_regressor",
@@ -12383,7 +11248,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        "X": {
+        {
           "name": "X",
           "type_name": "ndarray",
           "state": "split_test_features",
@@ -12404,9 +11269,9 @@
           "value_constraints": null,
           "shape_contract": "(n_samples, n_features)"
         }
-      },
-      "outputs": {
-        "y_pred": {
+      ],
+      "outputs": [
+        {
           "name": "y_pred",
           "type_name": "ndarray",
           "state": "predicted_values",
@@ -12423,7 +11288,7 @@
           "value_constraints": null,
           "shape_contract": "(n_samples,)"
         }
-      },
+      ],
       "preconditions": [
         {
           "target": "model",
@@ -12453,8 +11318,7 @@
           "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         }
       ]
     },
@@ -12499,8 +11363,8 @@
         "ValueError"
       ],
       "type_vars": [],
-      "inputs": {
-        "X": {
+      "inputs": [
+        {
           "name": "X",
           "type_name": "ndarray",
           "state": "scaled_features",
@@ -12521,7 +11385,7 @@
           "value_constraints": null,
           "shape_contract": "(n_samples, n_features)"
         },
-        "y": {
+        {
           "name": "y",
           "type_name": "ndarray",
           "state": "split_train_targets",
@@ -12542,7 +11406,7 @@
           "value_constraints": null,
           "shape_contract": "(n_samples,)"
         },
-        "n_estimators": {
+        {
           "name": "n_estimators",
           "type_name": "int",
           "state": "hyperparameter",
@@ -12561,7 +11425,7 @@
           },
           "shape_contract": null
         },
-        "learning_rate": {
+        {
           "name": "learning_rate",
           "type_name": "float",
           "state": "hyperparameter",
@@ -12580,7 +11444,7 @@
           },
           "shape_contract": null
         },
-        "random_state": {
+        {
           "name": "random_state",
           "type_name": "int",
           "state": "hyperparameter",
@@ -12597,9 +11461,9 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
-      "outputs": {
-        "model": {
+      ],
+      "outputs": [
+        {
           "name": "model",
           "type_name": "Regressor",
           "state": "fit_regressor",
@@ -12616,7 +11480,7 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
+      ],
       "preconditions": [
         {
           "target": "X",
@@ -12646,8 +11510,7 @@
           "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         }
       ]
     },
@@ -12687,8 +11550,8 @@
         "NotFittedError"
       ],
       "type_vars": [],
-      "inputs": {
-        "model": {
+      "inputs": [
+        {
           "name": "model",
           "type_name": "Regressor",
           "state": "fit_regressor",
@@ -12705,7 +11568,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        "X": {
+        {
           "name": "X",
           "type_name": "ndarray",
           "state": "split_test_features",
@@ -12726,9 +11589,9 @@
           "value_constraints": null,
           "shape_contract": "(n_samples, n_features)"
         }
-      },
-      "outputs": {
-        "y_pred": {
+      ],
+      "outputs": [
+        {
           "name": "y_pred",
           "type_name": "ndarray",
           "state": "predicted_values",
@@ -12745,7 +11608,7 @@
           "value_constraints": null,
           "shape_contract": "(n_samples,)"
         }
-      },
+      ],
       "preconditions": [
         {
           "target": "model",
@@ -12775,8 +11638,7 @@
           "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         }
       ]
     },
@@ -12822,8 +11684,8 @@
         "ValueError"
       ],
       "type_vars": [],
-      "inputs": {
-        "X": {
+      "inputs": [
+        {
           "name": "X",
           "type_name": "ndarray",
           "state": "scaled_features",
@@ -12844,7 +11706,7 @@
           "value_constraints": null,
           "shape_contract": "(n_samples, n_features)"
         },
-        "y": {
+        {
           "name": "y",
           "type_name": "ndarray",
           "state": "split_train_targets",
@@ -12865,7 +11727,7 @@
           "value_constraints": null,
           "shape_contract": "(n_samples,)"
         },
-        "alpha": {
+        {
           "name": "alpha",
           "type_name": "float",
           "state": "hyperparameter",
@@ -12884,7 +11746,7 @@
           },
           "shape_contract": null
         },
-        "l1_ratio": {
+        {
           "name": "l1_ratio",
           "type_name": "float",
           "state": "hyperparameter",
@@ -12904,7 +11766,7 @@
           },
           "shape_contract": null
         },
-        "random_state": {
+        {
           "name": "random_state",
           "type_name": "int",
           "state": "hyperparameter",
@@ -12921,9 +11783,9 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
-      "outputs": {
-        "model": {
+      ],
+      "outputs": [
+        {
           "name": "model",
           "type_name": "Regressor",
           "state": "fit_regressor",
@@ -12940,7 +11802,7 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
+      ],
       "preconditions": [
         {
           "target": "X",
@@ -12970,8 +11832,7 @@
           "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         }
       ]
     },
@@ -13011,8 +11872,8 @@
         "NotFittedError"
       ],
       "type_vars": [],
-      "inputs": {
-        "model": {
+      "inputs": [
+        {
           "name": "model",
           "type_name": "Regressor",
           "state": "fit_regressor",
@@ -13029,7 +11890,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        "X": {
+        {
           "name": "X",
           "type_name": "ndarray",
           "state": "split_test_features",
@@ -13050,9 +11911,9 @@
           "value_constraints": null,
           "shape_contract": "(n_samples, n_features)"
         }
-      },
-      "outputs": {
-        "y_pred": {
+      ],
+      "outputs": [
+        {
           "name": "y_pred",
           "type_name": "ndarray",
           "state": "predicted_values",
@@ -13069,7 +11930,7 @@
           "value_constraints": null,
           "shape_contract": "(n_samples,)"
         }
-      },
+      ],
       "preconditions": [
         {
           "target": "model",
@@ -13099,8 +11960,7 @@
           "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         }
       ]
     },
@@ -13145,8 +12005,8 @@
         "ValueError"
       ],
       "type_vars": [],
-      "inputs": {
-        "X": {
+      "inputs": [
+        {
           "name": "X",
           "type_name": "ndarray",
           "state": "scaled_features",
@@ -13167,7 +12027,7 @@
           "value_constraints": null,
           "shape_contract": "(n_samples, n_features)"
         },
-        "y": {
+        {
           "name": "y",
           "type_name": "ndarray",
           "state": "split_train_targets",
@@ -13188,7 +12048,7 @@
           "value_constraints": null,
           "shape_contract": "(n_samples,)"
         },
-        "C": {
+        {
           "name": "C",
           "type_name": "float",
           "state": "hyperparameter",
@@ -13207,7 +12067,7 @@
           },
           "shape_contract": null
         },
-        "kernel": {
+        {
           "name": "kernel",
           "type_name": "str",
           "state": "hyperparameter",
@@ -13229,9 +12089,9 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
-      "outputs": {
-        "model": {
+      ],
+      "outputs": [
+        {
           "name": "model",
           "type_name": "Regressor",
           "state": "fit_regressor",
@@ -13248,7 +12108,7 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
+      ],
       "preconditions": [
         {
           "target": "X",
@@ -13278,8 +12138,7 @@
           "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         }
       ]
     },
@@ -13319,8 +12178,8 @@
         "NotFittedError"
       ],
       "type_vars": [],
-      "inputs": {
-        "model": {
+      "inputs": [
+        {
           "name": "model",
           "type_name": "Regressor",
           "state": "fit_regressor",
@@ -13337,7 +12196,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        "X": {
+        {
           "name": "X",
           "type_name": "ndarray",
           "state": "split_test_features",
@@ -13358,9 +12217,9 @@
           "value_constraints": null,
           "shape_contract": "(n_samples, n_features)"
         }
-      },
-      "outputs": {
-        "y_pred": {
+      ],
+      "outputs": [
+        {
           "name": "y_pred",
           "type_name": "ndarray",
           "state": "predicted_values",
@@ -13377,7 +12236,7 @@
           "value_constraints": null,
           "shape_contract": "(n_samples,)"
         }
-      },
+      ],
       "preconditions": [
         {
           "target": "model",
@@ -13407,8 +12266,7 @@
           "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         }
       ]
     },
@@ -13451,8 +12309,8 @@
         "ValueError"
       ],
       "type_vars": [],
-      "inputs": {
-        "X": {
+      "inputs": [
+        {
           "name": "X",
           "type_name": "ndarray",
           "state": "scaled_features",
@@ -13473,7 +12331,7 @@
           "value_constraints": null,
           "shape_contract": "(n_samples, n_features)"
         },
-        "y": {
+        {
           "name": "y",
           "type_name": "ndarray",
           "state": "split_train_targets",
@@ -13494,7 +12352,7 @@
           "value_constraints": null,
           "shape_contract": "(n_samples,)"
         },
-        "n_neighbors": {
+        {
           "name": "n_neighbors",
           "type_name": "int",
           "state": "hyperparameter",
@@ -13513,9 +12371,9 @@
           },
           "shape_contract": null
         }
-      },
-      "outputs": {
-        "model": {
+      ],
+      "outputs": [
+        {
           "name": "model",
           "type_name": "Regressor",
           "state": "fit_regressor",
@@ -13532,7 +12390,7 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
+      ],
       "preconditions": [
         {
           "target": "X",
@@ -13562,8 +12420,7 @@
           "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         }
       ]
     },
@@ -13603,8 +12460,8 @@
         "NotFittedError"
       ],
       "type_vars": [],
-      "inputs": {
-        "model": {
+      "inputs": [
+        {
           "name": "model",
           "type_name": "Regressor",
           "state": "fit_regressor",
@@ -13621,7 +12478,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        "X": {
+        {
           "name": "X",
           "type_name": "ndarray",
           "state": "split_test_features",
@@ -13642,9 +12499,9 @@
           "value_constraints": null,
           "shape_contract": "(n_samples, n_features)"
         }
-      },
-      "outputs": {
-        "y_pred": {
+      ],
+      "outputs": [
+        {
           "name": "y_pred",
           "type_name": "ndarray",
           "state": "predicted_values",
@@ -13661,7 +12518,7 @@
           "value_constraints": null,
           "shape_contract": "(n_samples,)"
         }
-      },
+      ],
       "preconditions": [
         {
           "target": "model",
@@ -13691,8 +12548,7 @@
           "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         }
       ]
     },
@@ -13735,8 +12591,8 @@
         "ValueError"
       ],
       "type_vars": [],
-      "inputs": {
-        "X": {
+      "inputs": [
+        {
           "name": "X",
           "type_name": "ndarray",
           "state": "scaled_features",
@@ -13757,7 +12613,7 @@
           "value_constraints": null,
           "shape_contract": "(n_samples, n_features)"
         },
-        "n_clusters": {
+        {
           "name": "n_clusters",
           "type_name": "int",
           "state": "hyperparameter",
@@ -13776,9 +12632,9 @@
           },
           "shape_contract": null
         }
-      },
-      "outputs": {
-        "cluster_labels": {
+      ],
+      "outputs": [
+        {
           "name": "cluster_labels",
           "type_name": "ndarray",
           "state": "cluster_labels",
@@ -13795,7 +12651,7 @@
           "value_constraints": null,
           "shape_contract": "(n_samples,)"
         }
-      },
+      ],
       "preconditions": [
         {
           "target": "X",
@@ -13825,16 +12681,14 @@
           "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         },
         {
           "target_cell_id": "sklearn.metrics.davies_bouldin_score",
-          "affinity_score": 0.5,
+          "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         }
       ]
     },
@@ -13879,8 +12733,8 @@
         "ConvergenceWarning"
       ],
       "type_vars": [],
-      "inputs": {
-        "X": {
+      "inputs": [
+        {
           "name": "X",
           "type_name": "ndarray",
           "state": "scaled_features",
@@ -13901,7 +12755,7 @@
           "value_constraints": null,
           "shape_contract": "(n_samples, n_features)"
         },
-        "n_components": {
+        {
           "name": "n_components",
           "type_name": "int",
           "state": "hyperparameter",
@@ -13920,7 +12774,7 @@
           },
           "shape_contract": null
         },
-        "random_state": {
+        {
           "name": "random_state",
           "type_name": "int",
           "state": "hyperparameter",
@@ -13937,9 +12791,9 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
-      "outputs": {
-        "cluster_labels": {
+      ],
+      "outputs": [
+        {
           "name": "cluster_labels",
           "type_name": "ndarray",
           "state": "cluster_labels",
@@ -13956,7 +12810,7 @@
           "value_constraints": null,
           "shape_contract": "(n_samples,)"
         }
-      },
+      ],
       "preconditions": [
         {
           "target": "X",
@@ -13986,16 +12840,14 @@
           "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         },
         {
           "target_cell_id": "sklearn.metrics.davies_bouldin_score",
-          "affinity_score": 0.5,
+          "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         }
       ]
     },
@@ -14039,8 +12891,8 @@
         "ValueError"
       ],
       "type_vars": [],
-      "inputs": {
-        "X": {
+      "inputs": [
+        {
           "name": "X",
           "type_name": "ndarray",
           "state": "scaled_features",
@@ -14061,7 +12913,7 @@
           "value_constraints": null,
           "shape_contract": "(n_samples, n_features)"
         },
-        "n_clusters": {
+        {
           "name": "n_clusters",
           "type_name": "int",
           "state": "hyperparameter",
@@ -14080,7 +12932,7 @@
           },
           "shape_contract": null
         },
-        "random_state": {
+        {
           "name": "random_state",
           "type_name": "int",
           "state": "hyperparameter",
@@ -14097,9 +12949,9 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
-      "outputs": {
-        "cluster_labels": {
+      ],
+      "outputs": [
+        {
           "name": "cluster_labels",
           "type_name": "ndarray",
           "state": "cluster_labels",
@@ -14116,7 +12968,7 @@
           "value_constraints": null,
           "shape_contract": "(n_samples,)"
         }
-      },
+      ],
       "preconditions": [
         {
           "target": "X",
@@ -14146,8 +12998,7 @@
           "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         }
       ]
     },
@@ -14189,8 +13040,8 @@
         "ValueError"
       ],
       "type_vars": [],
-      "inputs": {
-        "transformers": {
+      "inputs": [
+        {
           "name": "transformers",
           "type_name": "list",
           "state": "hyperparameter",
@@ -14207,7 +13058,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        "X": {
+        {
           "name": "X",
           "type_name": "ndarray",
           "state": "raw_dataset",
@@ -14228,9 +13079,9 @@
           "value_constraints": null,
           "shape_contract": "(n_samples, n_features)"
         }
-      },
-      "outputs": {
-        "output_var": {
+      ],
+      "outputs": [
+        {
           "name": "output_var",
           "type_name": "ndarray",
           "state": "scaled_features",
@@ -14247,7 +13098,7 @@
           "value_constraints": null,
           "shape_contract": "(n_samples, n_transformed_features)"
         }
-      },
+      ],
       "preconditions": [
         {
           "target": "X",
@@ -14277,8 +13128,7 @@
           "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         }
       ]
     },
@@ -14325,8 +13175,8 @@
         "ValueError"
       ],
       "type_vars": [],
-      "inputs": {
-        "estimator": {
+      "inputs": [
+        {
           "name": "estimator",
           "type_name": "BaseEstimator",
           "state": "unfit_estimator",
@@ -14343,7 +13193,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        "param_distributions": {
+        {
           "name": "param_distributions",
           "type_name": "dict",
           "state": "hyperparameter",
@@ -14360,7 +13210,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        "n_iter": {
+        {
           "name": "n_iter",
           "type_name": "int",
           "state": "hyperparameter",
@@ -14379,7 +13229,7 @@
           },
           "shape_contract": null
         },
-        "cv": {
+        {
           "name": "cv",
           "type_name": "int",
           "state": "hyperparameter",
@@ -14398,7 +13248,7 @@
           },
           "shape_contract": null
         },
-        "random_state": {
+        {
           "name": "random_state",
           "type_name": "int",
           "state": "hyperparameter",
@@ -14415,7 +13265,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        "X": {
+        {
           "name": "X",
           "type_name": "ndarray",
           "state": "scaled_features",
@@ -14436,7 +13286,7 @@
           "value_constraints": null,
           "shape_contract": "(n_samples, n_features)"
         },
-        "y": {
+        {
           "name": "y",
           "type_name": "ndarray",
           "state": "split_train_targets",
@@ -14457,9 +13307,9 @@
           "value_constraints": null,
           "shape_contract": "(n_samples,)"
         }
-      },
-      "outputs": {
-        "search": {
+      ],
+      "outputs": [
+        {
           "name": "search",
           "type_name": "BaseEstimator",
           "state": "tuned_model",
@@ -14476,7 +13326,7 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
+      ],
       "preconditions": [
         {
           "target": "X",
@@ -14506,16 +13356,14 @@
           "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         },
         {
           "target_cell_id": "pickle.dump",
-          "affinity_score": 0.5,
+          "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         }
       ]
     },
@@ -14559,8 +13407,8 @@
         "ValueError"
       ],
       "type_vars": [],
-      "inputs": {
-        "estimator": {
+      "inputs": [
+        {
           "name": "estimator",
           "type_name": "BaseEstimator",
           "state": "unfit_estimator",
@@ -14577,7 +13425,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        "X": {
+        {
           "name": "X",
           "type_name": "ndarray",
           "state": "scaled_features",
@@ -14598,7 +13446,7 @@
           "value_constraints": null,
           "shape_contract": "(n_samples, n_features)"
         },
-        "y": {
+        {
           "name": "y",
           "type_name": "ndarray",
           "state": "split_train_targets",
@@ -14619,7 +13467,7 @@
           "value_constraints": null,
           "shape_contract": "(n_samples,)"
         },
-        "cv": {
+        {
           "name": "cv",
           "type_name": "int",
           "state": "hyperparameter",
@@ -14638,9 +13486,9 @@
           },
           "shape_contract": null
         }
-      },
-      "outputs": {
-        "results": {
+      ],
+      "outputs": [
+        {
           "name": "results",
           "type_name": "dict",
           "state": "evaluated_metrics",
@@ -14657,7 +13505,7 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
+      ],
       "preconditions": [
         {
           "target": "X",
@@ -14712,8 +13560,8 @@
         "ValueError"
       ],
       "type_vars": [],
-      "inputs": {
-        "y_true": {
+      "inputs": [
+        {
           "name": "y_true",
           "type_name": "ndarray",
           "state": "split_test_targets",
@@ -14734,7 +13582,7 @@
           "value_constraints": null,
           "shape_contract": "(n_samples,)"
         },
-        "y_pred": {
+        {
           "name": "y_pred",
           "type_name": "ndarray",
           "state": "predicted_labels",
@@ -14755,7 +13603,7 @@
           "value_constraints": null,
           "shape_contract": "(n_samples,)"
         },
-        "average": {
+        {
           "name": "average",
           "type_name": "str",
           "state": "hyperparameter",
@@ -14777,9 +13625,9 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
-      "outputs": {
-        "score": {
+      ],
+      "outputs": [
+        {
           "name": "score",
           "type_name": "float",
           "state": "evaluated_metrics",
@@ -14799,7 +13647,7 @@
           },
           "shape_contract": null
         }
-      },
+      ],
       "preconditions": [
         {
           "target": "y_true",
@@ -14863,8 +13711,8 @@
         "ValueError"
       ],
       "type_vars": [],
-      "inputs": {
-        "y_true": {
+      "inputs": [
+        {
           "name": "y_true",
           "type_name": "ndarray",
           "state": "split_test_targets",
@@ -14885,7 +13733,7 @@
           "value_constraints": null,
           "shape_contract": "(n_samples,)"
         },
-        "y_pred": {
+        {
           "name": "y_pred",
           "type_name": "ndarray",
           "state": "predicted_labels",
@@ -14906,7 +13754,7 @@
           "value_constraints": null,
           "shape_contract": "(n_samples,)"
         },
-        "average": {
+        {
           "name": "average",
           "type_name": "str",
           "state": "hyperparameter",
@@ -14928,9 +13776,9 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
-      "outputs": {
-        "score": {
+      ],
+      "outputs": [
+        {
           "name": "score",
           "type_name": "float",
           "state": "evaluated_metrics",
@@ -14950,7 +13798,7 @@
           },
           "shape_contract": null
         }
-      },
+      ],
       "preconditions": [
         {
           "target": "y_true",
@@ -15013,8 +13861,8 @@
         "ValueError"
       ],
       "type_vars": [],
-      "inputs": {
-        "y_true": {
+      "inputs": [
+        {
           "name": "y_true",
           "type_name": "ndarray",
           "state": "split_test_targets",
@@ -15035,7 +13883,7 @@
           "value_constraints": null,
           "shape_contract": "(n_samples,)"
         },
-        "y_pred": {
+        {
           "name": "y_pred",
           "type_name": "ndarray",
           "state": "predicted_labels",
@@ -15056,9 +13904,9 @@
           "value_constraints": null,
           "shape_contract": "(n_samples,)"
         }
-      },
-      "outputs": {
-        "report": {
+      ],
+      "outputs": [
+        {
           "name": "report",
           "type_name": "dict",
           "state": "evaluated_metrics",
@@ -15075,7 +13923,7 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
+      ],
       "preconditions": [
         {
           "target": "y_true",
@@ -15130,8 +13978,8 @@
         "ValueError"
       ],
       "type_vars": [],
-      "inputs": {
-        "y_true": {
+      "inputs": [
+        {
           "name": "y_true",
           "type_name": "ndarray",
           "state": "split_test_targets",
@@ -15152,7 +14000,7 @@
           "value_constraints": null,
           "shape_contract": "(n_samples,)"
         },
-        "y_pred": {
+        {
           "name": "y_pred",
           "type_name": "ndarray",
           "state": "predicted_values",
@@ -15173,9 +14021,9 @@
           "value_constraints": null,
           "shape_contract": "(n_samples,)"
         }
-      },
-      "outputs": {
-        "score": {
+      ],
+      "outputs": [
+        {
           "name": "score",
           "type_name": "float",
           "state": "evaluated_metrics",
@@ -15194,7 +14042,7 @@
           },
           "shape_contract": null
         }
-      },
+      ],
       "preconditions": [
         {
           "target": "y_true",
@@ -15257,8 +14105,8 @@
         "ValueError"
       ],
       "type_vars": [],
-      "inputs": {
-        "X": {
+      "inputs": [
+        {
           "name": "X",
           "type_name": "ndarray",
           "state": "scaled_features",
@@ -15279,7 +14127,7 @@
           "value_constraints": null,
           "shape_contract": "(n_samples, n_features)"
         },
-        "labels": {
+        {
           "name": "labels",
           "type_name": "ndarray",
           "state": "cluster_labels",
@@ -15300,9 +14148,9 @@
           "value_constraints": null,
           "shape_contract": "(n_samples,)"
         }
-      },
-      "outputs": {
-        "score": {
+      ],
+      "outputs": [
+        {
           "name": "score",
           "type_name": "float",
           "state": "evaluated_metrics",
@@ -15321,7 +14169,7 @@
           },
           "shape_contract": null
         }
-      },
+      ],
       "preconditions": [
         {
           "target": "X",
@@ -15384,8 +14232,8 @@
         "ValueError"
       ],
       "type_vars": [],
-      "inputs": {
-        "X": {
+      "inputs": [
+        {
           "name": "X",
           "type_name": "ndarray",
           "state": "scaled_features",
@@ -15406,7 +14254,7 @@
           "value_constraints": null,
           "shape_contract": "(n_samples, n_features)"
         },
-        "labels": {
+        {
           "name": "labels",
           "type_name": "ndarray",
           "state": "cluster_labels",
@@ -15427,9 +14275,9 @@
           "value_constraints": null,
           "shape_contract": "(n_samples,)"
         }
-      },
-      "outputs": {
-        "score": {
+      ],
+      "outputs": [
+        {
           "name": "score",
           "type_name": "float",
           "state": "evaluated_metrics",
@@ -15448,7 +14296,7 @@
           },
           "shape_contract": null
         }
-      },
+      ],
       "preconditions": [
         {
           "target": "X",
@@ -15512,8 +14360,8 @@
         "OSError"
       ],
       "type_vars": [],
-      "inputs": {
-        "model": {
+      "inputs": [
+        {
           "name": "model",
           "type_name": "BaseEstimator",
           "state": "fit_estimator",
@@ -15533,7 +14381,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        "file_obj": {
+        {
           "name": "file_obj",
           "type_name": "object",
           "state": "file_path",
@@ -15550,8 +14398,8 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
-      "outputs": {},
+      ],
+      "outputs": [],
       "preconditions": [
         {
           "target": "model",
@@ -15605,8 +14453,8 @@
         "EOFError"
       ],
       "type_vars": [],
-      "inputs": {
-        "file_obj": {
+      "inputs": [
+        {
           "name": "file_obj",
           "type_name": "object",
           "state": "file_path",
@@ -15623,9 +14471,9 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
-      "outputs": {
-        "model": {
+      ],
+      "outputs": [
+        {
           "name": "model",
           "type_name": "BaseEstimator",
           "state": "fit_estimator",
@@ -15642,7 +14490,7 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
+      ],
       "preconditions": [],
       "postconditions": [
         {
@@ -15663,10 +14511,56 @@
           "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         }
       ]
     }
-  ]
+  ],
+  "egress_intent_tokens": [
+    "save",
+    "export",
+    "write",
+    "dump",
+    "persist",
+    "store",
+    "plot",
+    "show",
+    "display"
+  ],
+  "materialization_states": [
+    "destination_written",
+    "filepath_written",
+    "saved",
+    "exported",
+    "written_to_disk"
+  ],
+  "polarity_hints": {
+    "ascending": [
+      "bottom",
+      "lowest",
+      "smallest",
+      "minimum",
+      "min",
+      "worst",
+      "least",
+      "ascending",
+      "asc",
+      "fewest"
+    ],
+    "descending": [
+      "top",
+      "highest",
+      "largest",
+      "biggest",
+      "greatest",
+      "maximum",
+      "max",
+      "best",
+      "most",
+      "descending",
+      "desc",
+      "newest",
+      "latest"
+    ]
+  }
 }

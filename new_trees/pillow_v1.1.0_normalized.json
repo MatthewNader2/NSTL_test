@@ -378,9 +378,694 @@
     ],
     "transitions": [
       {
-        "source": "unopened",
-        "target": "mode_rgb",
-        "trigger": "PILLOW_IMAGE_OPEN"
+        "from": "color_bgr",
+        "to": "mode_rgb",
+        "via": "PILLOW_FROM_NDARRAY_BGR"
+      },
+      {
+        "from": "dimensions",
+        "to": "mode_grayscale",
+        "via": "PILLOW_IMAGE_NEW_GRAYSCALE"
+      },
+      {
+        "from": "dimensions",
+        "to": "mode_rgb",
+        "via": "PILLOW_IMAGE_FROMBYTES"
+      },
+      {
+        "from": "dimensions",
+        "to": "mode_rgb",
+        "via": "PILLOW_IMAGE_NEW_RGB"
+      },
+      {
+        "from": "dimensions",
+        "to": "mode_rgba",
+        "via": "PILLOW_IMAGE_NEW_RGBA"
+      },
+      {
+        "from": "gradient_mode",
+        "to": "mode_grayscale",
+        "via": "PILLOW_LINEAR_GRADIENT"
+      },
+      {
+        "from": "gradient_mode",
+        "to": "mode_grayscale",
+        "via": "PILLOW_RADIAL_GRADIENT"
+      },
+      {
+        "from": "gray",
+        "to": "mode_grayscale",
+        "via": "PILLOW_FROM_NDARRAY_GRAY"
+      },
+      {
+        "from": "mode_binary_1bit",
+        "to": "mode_rgb",
+        "via": "PILLOW_CONVERT_TO_RGB"
+      },
+      {
+        "from": "mode_binary_1bit",
+        "to": "resized",
+        "via": "PILLOW_RESIZE_NEAREST"
+      },
+      {
+        "from": "mode_cmyk",
+        "to": "mode_grayscale",
+        "via": "PILLOW_CONVERT_TO_GRAYSCALE"
+      },
+      {
+        "from": "mode_cmyk",
+        "to": "mode_grayscale",
+        "via": "PILLOW_IMAGE_GETCHANNEL"
+      },
+      {
+        "from": "mode_cmyk",
+        "to": "mode_rgb",
+        "via": "PILLOW_CONVERT_TO_RGB"
+      },
+      {
+        "from": "mode_cmyk",
+        "to": "ndarray_generic",
+        "via": "PILLOW_PILLOW_TO_NDARRAY_GENERIC"
+      },
+      {
+        "from": "mode_float32",
+        "to": "ndarray_generic",
+        "via": "PILLOW_PILLOW_TO_NDARRAY_GENERIC"
+      },
+      {
+        "from": "mode_grayscale",
+        "to": "cropped",
+        "via": "PILLOW_CROP"
+      },
+      {
+        "from": "mode_grayscale",
+        "to": "draw_context_active",
+        "via": "PILLOW_DRAW_INITIALIZE"
+      },
+      {
+        "from": "mode_grayscale",
+        "to": "enhanced_brightness",
+        "via": "PILLOW_ENHANCE_BRIGHTNESS"
+      },
+      {
+        "from": "mode_grayscale",
+        "to": "enhanced_contrast",
+        "via": "PILLOW_ENHANCE_CONTRAST"
+      },
+      {
+        "from": "mode_grayscale",
+        "to": "enhanced_contrast",
+        "via": "PILLOW_IMAGEOPS_AUTOCONTRAST"
+      },
+      {
+        "from": "mode_grayscale",
+        "to": "enhanced_contrast",
+        "via": "PILLOW_IMAGEOPS_SOLARIZE"
+      },
+      {
+        "from": "mode_grayscale",
+        "to": "enhanced_sharpness",
+        "via": "PILLOW_ENHANCE_SHARPNESS"
+      },
+      {
+        "from": "mode_grayscale",
+        "to": "filtered_blur",
+        "via": "PILLOW_FILTER_BOX_BLUR"
+      },
+      {
+        "from": "mode_grayscale",
+        "to": "filtered_blur",
+        "via": "PILLOW_FILTER_GAUSSIAN_BLUR"
+      },
+      {
+        "from": "mode_grayscale",
+        "to": "filtered_blur",
+        "via": "PILLOW_FILTER_SMOOTH"
+      },
+      {
+        "from": "mode_grayscale",
+        "to": "filtered_edges",
+        "via": "PILLOW_FILTER_CONTOUR"
+      },
+      {
+        "from": "mode_grayscale",
+        "to": "filtered_edges",
+        "via": "PILLOW_FILTER_FIND_EDGES"
+      },
+      {
+        "from": "mode_grayscale",
+        "to": "filtered_general",
+        "via": "PILLOW_FILTER_CUSTOM_KERNEL"
+      },
+      {
+        "from": "mode_grayscale",
+        "to": "filtered_general",
+        "via": "PILLOW_FILTER_MEDIAN"
+      },
+      {
+        "from": "mode_grayscale",
+        "to": "filtered_general",
+        "via": "PILLOW_FILTER_SHARPEN"
+      },
+      {
+        "from": "mode_grayscale",
+        "to": "filtered_general",
+        "via": "PILLOW_FILTER_UNSHARP_MASK"
+      },
+      {
+        "from": "mode_grayscale",
+        "to": "gray",
+        "via": "PILLOW_GRAYSCALE_TO_NDARRAY"
+      },
+      {
+        "from": "mode_grayscale",
+        "to": "mode_binary_1bit",
+        "via": "PILLOW_CONVERT_TO_BINARY"
+      },
+      {
+        "from": "mode_grayscale",
+        "to": "mode_float32",
+        "via": "PILLOW_CONVERT_TO_FLOAT32"
+      },
+      {
+        "from": "mode_grayscale",
+        "to": "mode_int32",
+        "via": "PILLOW_CONVERT_TO_INT32"
+      },
+      {
+        "from": "mode_grayscale",
+        "to": "mode_rgb",
+        "via": "PILLOW_CONVERT_TO_RGB"
+      },
+      {
+        "from": "mode_grayscale",
+        "to": "mode_rgb",
+        "via": "PILLOW_IMAGEOPS_COLORIZE"
+      },
+      {
+        "from": "mode_grayscale",
+        "to": "mode_rgb",
+        "via": "PILLOW_IMAGEOPS_EXIF_TRANSPOSE"
+      },
+      {
+        "from": "mode_grayscale",
+        "to": "mode_rgb",
+        "via": "PILLOW_IMAGEOPS_INVERT"
+      },
+      {
+        "from": "mode_grayscale",
+        "to": "mode_rgb",
+        "via": "PILLOW_MERGE_RGB"
+      },
+      {
+        "from": "mode_grayscale",
+        "to": "mode_rgba",
+        "via": "PILLOW_CONVERT_TO_RGBA"
+      },
+      {
+        "from": "mode_grayscale",
+        "to": "resized",
+        "via": "PILLOW_IMAGEOPS_CONTAIN"
+      },
+      {
+        "from": "mode_grayscale",
+        "to": "resized",
+        "via": "PILLOW_IMAGEOPS_COVER"
+      },
+      {
+        "from": "mode_grayscale",
+        "to": "resized",
+        "via": "PILLOW_IMAGEOPS_FIT"
+      },
+      {
+        "from": "mode_grayscale",
+        "to": "resized",
+        "via": "PILLOW_IMAGEOPS_PAD"
+      },
+      {
+        "from": "mode_grayscale",
+        "to": "resized",
+        "via": "PILLOW_RESIZE_BILINEAR"
+      },
+      {
+        "from": "mode_grayscale",
+        "to": "resized",
+        "via": "PILLOW_RESIZE_LANCZOS"
+      },
+      {
+        "from": "mode_grayscale",
+        "to": "resized",
+        "via": "PILLOW_RESIZE_NEAREST"
+      },
+      {
+        "from": "mode_grayscale",
+        "to": "rotated",
+        "via": "PILLOW_ROTATE"
+      },
+      {
+        "from": "mode_grayscale",
+        "to": "rotated",
+        "via": "PILLOW_TRANSPOSE_FLIP_LEFT_RIGHT"
+      },
+      {
+        "from": "mode_grayscale",
+        "to": "rotated",
+        "via": "PILLOW_TRANSPOSE_FLIP_TOP_BOTTOM"
+      },
+      {
+        "from": "mode_grayscale",
+        "to": "rotated",
+        "via": "PILLOW_TRANSPOSE_ROTATE_90"
+      },
+      {
+        "from": "mode_grayscale",
+        "to": "transformed",
+        "via": "PILLOW_TRANSFORM_AFFINE"
+      },
+      {
+        "from": "mode_grayscale",
+        "to": "transformed",
+        "via": "PILLOW_TRANSFORM_PERSPECTIVE"
+      },
+      {
+        "from": "mode_hsv",
+        "to": "mode_grayscale",
+        "via": "PILLOW_IMAGE_GETCHANNEL"
+      },
+      {
+        "from": "mode_int32",
+        "to": "mode_float32",
+        "via": "PILLOW_CONVERT_TO_FLOAT32"
+      },
+      {
+        "from": "mode_int32",
+        "to": "ndarray_generic",
+        "via": "PILLOW_PILLOW_TO_NDARRAY_GENERIC"
+      },
+      {
+        "from": "mode_palette",
+        "to": "mode_grayscale",
+        "via": "PILLOW_CONVERT_TO_GRAYSCALE"
+      },
+      {
+        "from": "mode_palette",
+        "to": "mode_rgb",
+        "via": "PILLOW_CONVERT_TO_RGB"
+      },
+      {
+        "from": "mode_palette",
+        "to": "mode_rgba",
+        "via": "PILLOW_CONVERT_TO_RGBA"
+      },
+      {
+        "from": "mode_palette",
+        "to": "ndarray_generic",
+        "via": "PILLOW_PILLOW_TO_NDARRAY_GENERIC"
+      },
+      {
+        "from": "mode_palette",
+        "to": "resized",
+        "via": "PILLOW_RESIZE_NEAREST"
+      },
+      {
+        "from": "mode_rgb",
+        "to": "color_bgr",
+        "via": "PILLOW_RGB_TO_NDARRAY_BGR_ORDER"
+      },
+      {
+        "from": "mode_rgb",
+        "to": "color_rgb",
+        "via": "PILLOW_RGB_TO_NDARRAY_RGB_ORDER"
+      },
+      {
+        "from": "mode_rgb",
+        "to": "composited",
+        "via": "PILLOW_BLEND"
+      },
+      {
+        "from": "mode_rgb",
+        "to": "composited",
+        "via": "PILLOW_COMPOSITE"
+      },
+      {
+        "from": "mode_rgb",
+        "to": "composited",
+        "via": "PILLOW_IMAGECHOPS_ADD"
+      },
+      {
+        "from": "mode_rgb",
+        "to": "composited",
+        "via": "PILLOW_IMAGECHOPS_DIFFERENCE"
+      },
+      {
+        "from": "mode_rgb",
+        "to": "composited",
+        "via": "PILLOW_IMAGECHOPS_MULTIPLY"
+      },
+      {
+        "from": "mode_rgb",
+        "to": "cropped",
+        "via": "PILLOW_CROP"
+      },
+      {
+        "from": "mode_rgb",
+        "to": "draw_context_active",
+        "via": "PILLOW_DRAW_INITIALIZE"
+      },
+      {
+        "from": "mode_rgb",
+        "to": "enhanced_brightness",
+        "via": "PILLOW_ENHANCE_BRIGHTNESS"
+      },
+      {
+        "from": "mode_rgb",
+        "to": "enhanced_color",
+        "via": "PILLOW_ENHANCE_COLOR"
+      },
+      {
+        "from": "mode_rgb",
+        "to": "enhanced_contrast",
+        "via": "PILLOW_ENHANCE_CONTRAST"
+      },
+      {
+        "from": "mode_rgb",
+        "to": "enhanced_contrast",
+        "via": "PILLOW_IMAGEOPS_AUTOCONTRAST"
+      },
+      {
+        "from": "mode_rgb",
+        "to": "enhanced_contrast",
+        "via": "PILLOW_IMAGEOPS_SOLARIZE"
+      },
+      {
+        "from": "mode_rgb",
+        "to": "enhanced_sharpness",
+        "via": "PILLOW_ENHANCE_SHARPNESS"
+      },
+      {
+        "from": "mode_rgb",
+        "to": "filtered_blur",
+        "via": "PILLOW_FILTER_BOX_BLUR"
+      },
+      {
+        "from": "mode_rgb",
+        "to": "filtered_blur",
+        "via": "PILLOW_FILTER_GAUSSIAN_BLUR"
+      },
+      {
+        "from": "mode_rgb",
+        "to": "filtered_blur",
+        "via": "PILLOW_FILTER_SMOOTH"
+      },
+      {
+        "from": "mode_rgb",
+        "to": "filtered_edges",
+        "via": "PILLOW_FILTER_CONTOUR"
+      },
+      {
+        "from": "mode_rgb",
+        "to": "filtered_edges",
+        "via": "PILLOW_FILTER_FIND_EDGES"
+      },
+      {
+        "from": "mode_rgb",
+        "to": "filtered_general",
+        "via": "PILLOW_FILTER_CUSTOM_KERNEL"
+      },
+      {
+        "from": "mode_rgb",
+        "to": "filtered_general",
+        "via": "PILLOW_FILTER_MEDIAN"
+      },
+      {
+        "from": "mode_rgb",
+        "to": "filtered_general",
+        "via": "PILLOW_FILTER_SHARPEN"
+      },
+      {
+        "from": "mode_rgb",
+        "to": "filtered_general",
+        "via": "PILLOW_FILTER_UNSHARP_MASK"
+      },
+      {
+        "from": "mode_rgb",
+        "to": "mode_binary_1bit",
+        "via": "PILLOW_CONVERT_TO_BINARY"
+      },
+      {
+        "from": "mode_rgb",
+        "to": "mode_cmyk",
+        "via": "PILLOW_CONVERT_TO_CMYK"
+      },
+      {
+        "from": "mode_rgb",
+        "to": "mode_float32",
+        "via": "PILLOW_CONVERT_TO_FLOAT32"
+      },
+      {
+        "from": "mode_rgb",
+        "to": "mode_grayscale",
+        "via": "PILLOW_CONVERT_TO_GRAYSCALE"
+      },
+      {
+        "from": "mode_rgb",
+        "to": "mode_grayscale",
+        "via": "PILLOW_IMAGE_GETCHANNEL"
+      },
+      {
+        "from": "mode_rgb",
+        "to": "mode_grayscale",
+        "via": "PILLOW_SPLIT"
+      },
+      {
+        "from": "mode_rgb",
+        "to": "mode_hsv",
+        "via": "PILLOW_CONVERT_TO_HSV"
+      },
+      {
+        "from": "mode_rgb",
+        "to": "mode_int32",
+        "via": "PILLOW_CONVERT_TO_INT32"
+      },
+      {
+        "from": "mode_rgb",
+        "to": "mode_lab",
+        "via": "PILLOW_CONVERT_TO_LAB"
+      },
+      {
+        "from": "mode_rgb",
+        "to": "mode_palette",
+        "via": "PILLOW_CONVERT_TO_PALETTE_ADAPTIVE"
+      },
+      {
+        "from": "mode_rgb",
+        "to": "mode_rgb",
+        "via": "PILLOW_IMAGEOPS_EXIF_TRANSPOSE"
+      },
+      {
+        "from": "mode_rgb",
+        "to": "mode_rgb",
+        "via": "PILLOW_IMAGEOPS_INVERT"
+      },
+      {
+        "from": "mode_rgb",
+        "to": "mode_rgba",
+        "via": "PILLOW_CONVERT_TO_RGBA"
+      },
+      {
+        "from": "mode_rgb",
+        "to": "resized",
+        "via": "PILLOW_IMAGEOPS_CONTAIN"
+      },
+      {
+        "from": "mode_rgb",
+        "to": "resized",
+        "via": "PILLOW_IMAGEOPS_COVER"
+      },
+      {
+        "from": "mode_rgb",
+        "to": "resized",
+        "via": "PILLOW_IMAGEOPS_FIT"
+      },
+      {
+        "from": "mode_rgb",
+        "to": "resized",
+        "via": "PILLOW_IMAGEOPS_PAD"
+      },
+      {
+        "from": "mode_rgb",
+        "to": "resized",
+        "via": "PILLOW_RESIZE_BILINEAR"
+      },
+      {
+        "from": "mode_rgb",
+        "to": "resized",
+        "via": "PILLOW_RESIZE_LANCZOS"
+      },
+      {
+        "from": "mode_rgb",
+        "to": "resized",
+        "via": "PILLOW_RESIZE_NEAREST"
+      },
+      {
+        "from": "mode_rgb",
+        "to": "rotated",
+        "via": "PILLOW_ROTATE"
+      },
+      {
+        "from": "mode_rgb",
+        "to": "rotated",
+        "via": "PILLOW_TRANSPOSE_FLIP_LEFT_RIGHT"
+      },
+      {
+        "from": "mode_rgb",
+        "to": "rotated",
+        "via": "PILLOW_TRANSPOSE_FLIP_TOP_BOTTOM"
+      },
+      {
+        "from": "mode_rgb",
+        "to": "rotated",
+        "via": "PILLOW_TRANSPOSE_ROTATE_90"
+      },
+      {
+        "from": "mode_rgb",
+        "to": "transformed",
+        "via": "PILLOW_TRANSFORM_AFFINE"
+      },
+      {
+        "from": "mode_rgb",
+        "to": "transformed",
+        "via": "PILLOW_TRANSFORM_PERSPECTIVE"
+      },
+      {
+        "from": "mode_rgba",
+        "to": "composited",
+        "via": "PILLOW_ALPHA_COMPOSITE"
+      },
+      {
+        "from": "mode_rgba",
+        "to": "cropped",
+        "via": "PILLOW_CROP"
+      },
+      {
+        "from": "mode_rgba",
+        "to": "draw_context_active",
+        "via": "PILLOW_DRAW_INITIALIZE"
+      },
+      {
+        "from": "mode_rgba",
+        "to": "filtered_blur",
+        "via": "PILLOW_FILTER_BOX_BLUR"
+      },
+      {
+        "from": "mode_rgba",
+        "to": "filtered_blur",
+        "via": "PILLOW_FILTER_GAUSSIAN_BLUR"
+      },
+      {
+        "from": "mode_rgba",
+        "to": "filtered_blur",
+        "via": "PILLOW_FILTER_SMOOTH"
+      },
+      {
+        "from": "mode_rgba",
+        "to": "mode_grayscale",
+        "via": "PILLOW_CONVERT_TO_GRAYSCALE"
+      },
+      {
+        "from": "mode_rgba",
+        "to": "mode_grayscale",
+        "via": "PILLOW_IMAGE_GETCHANNEL"
+      },
+      {
+        "from": "mode_rgba",
+        "to": "mode_palette",
+        "via": "PILLOW_CONVERT_TO_PALETTE_ADAPTIVE"
+      },
+      {
+        "from": "mode_rgba",
+        "to": "mode_rgb",
+        "via": "PILLOW_CONVERT_TO_RGB"
+      },
+      {
+        "from": "mode_rgba",
+        "to": "mode_rgb",
+        "via": "PILLOW_IMAGEOPS_EXIF_TRANSPOSE"
+      },
+      {
+        "from": "mode_rgba",
+        "to": "resized",
+        "via": "PILLOW_IMAGEOPS_CONTAIN"
+      },
+      {
+        "from": "mode_rgba",
+        "to": "resized",
+        "via": "PILLOW_IMAGEOPS_COVER"
+      },
+      {
+        "from": "mode_rgba",
+        "to": "resized",
+        "via": "PILLOW_IMAGEOPS_FIT"
+      },
+      {
+        "from": "mode_rgba",
+        "to": "resized",
+        "via": "PILLOW_IMAGEOPS_PAD"
+      },
+      {
+        "from": "mode_rgba",
+        "to": "resized",
+        "via": "PILLOW_RESIZE_BILINEAR"
+      },
+      {
+        "from": "mode_rgba",
+        "to": "resized",
+        "via": "PILLOW_RESIZE_LANCZOS"
+      },
+      {
+        "from": "mode_rgba",
+        "to": "rotated",
+        "via": "PILLOW_ROTATE"
+      },
+      {
+        "from": "mode_rgba",
+        "to": "rotated",
+        "via": "PILLOW_TRANSPOSE_FLIP_LEFT_RIGHT"
+      },
+      {
+        "from": "mode_rgba",
+        "to": "rotated",
+        "via": "PILLOW_TRANSPOSE_FLIP_TOP_BOTTOM"
+      },
+      {
+        "from": "mode_rgba",
+        "to": "rotated",
+        "via": "PILLOW_TRANSPOSE_ROTATE_90"
+      },
+      {
+        "from": "mode_rgba",
+        "to": "transformed",
+        "via": "PILLOW_TRANSFORM_AFFINE"
+      },
+      {
+        "from": "mode_rgba",
+        "to": "transformed",
+        "via": "PILLOW_TRANSFORM_PERSPECTIVE"
+      },
+      {
+        "from": "multi_frame_stream",
+        "to": "active_frame_index",
+        "via": "PILLOW_IMAGE_TELL"
+      },
+      {
+        "from": "ndarray_generic",
+        "to": "mode_rgb",
+        "via": "PILLOW_NDARRAY_GENERIC_TO_PILLOW"
+      },
+      {
+        "from": "unopened",
+        "to": "mode_rgb",
+        "via": "PILLOW_IMAGE_OPEN"
       }
     ],
     "initial_state": "mode_rgb",
@@ -430,8 +1115,8 @@
         "UnidentifiedImageError"
       ],
       "type_vars": [],
-      "inputs": [
-        {
+      "inputs": {
+        "image_path": {
           "name": "image_path",
           "type_name": "str",
           "state": "unopened",
@@ -446,9 +1131,9 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      ],
-      "outputs": [
-        {
+      },
+      "outputs": {
+        "output_var": {
           "name": "output_var",
           "type_name": "Image",
           "state": "mode_rgb",
@@ -463,7 +1148,7 @@
           "value_constraints": null,
           "shape_contract": "(H, W, C)"
         }
-      ],
+      },
       "preconditions": [
         {
           "target": "image_path",
@@ -493,21 +1178,24 @@
           "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": "output_var.mode != 'RGB'",
-          "metadata": {}
+          "metadata": {},
+          "needs_mining": true
         },
         {
           "target_cell_id": "PILLOW_RESIZE_LANCZOS",
-          "affinity_score": 0.8,
+          "affinity_score": 0.5,
           "score_provenance": "llm_seed",
           "bridging_precondition": "true",
-          "metadata": {}
+          "metadata": {},
+          "needs_mining": true
         },
         {
           "target_cell_id": "PILLOW_RGB_TO_NDARRAY_RGB_ORDER",
-          "affinity_score": 0.5,
+          "affinity_score": 0.2,
           "score_provenance": "llm_seed",
           "bridging_precondition": "output_var.mode == 'RGB'",
-          "metadata": {}
+          "metadata": {},
+          "needs_mining": true
         }
       ]
     },
@@ -549,8 +1237,8 @@
         "ValueError"
       ],
       "type_vars": [],
-      "inputs": [
-        {
+      "inputs": {
+        "size": {
           "name": "size",
           "type_name": "tuple",
           "state": "dimensions",
@@ -565,7 +1253,7 @@
           "value_constraints": null,
           "shape_contract": "(2,)"
         },
-        {
+        "color": {
           "name": "color",
           "type_name": "tuple",
           "state": "color_rgb_tuple",
@@ -580,9 +1268,9 @@
           "value_constraints": null,
           "shape_contract": "(3,)"
         }
-      ],
-      "outputs": [
-        {
+      },
+      "outputs": {
+        "output_var": {
           "name": "output_var",
           "type_name": "Image",
           "state": "mode_rgb",
@@ -597,7 +1285,7 @@
           "value_constraints": null,
           "shape_contract": "(H, W, 3)"
         }
-      ],
+      },
       "preconditions": [
         {
           "target": "size",
@@ -627,14 +1315,16 @@
           "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": "true",
-          "metadata": {}
+          "metadata": {},
+          "needs_mining": true
         },
         {
           "target_cell_id": "PILLOW_RGB_TO_NDARRAY_RGB_ORDER",
           "affinity_score": 0.5,
           "score_provenance": "llm_seed",
           "bridging_precondition": "true",
-          "metadata": {}
+          "metadata": {},
+          "needs_mining": true
         }
       ]
     },
@@ -678,8 +1368,8 @@
         "ValueError"
       ],
       "type_vars": [],
-      "inputs": [
-        {
+      "inputs": {
+        "size": {
           "name": "size",
           "type_name": "tuple",
           "state": "dimensions",
@@ -694,7 +1384,7 @@
           "value_constraints": null,
           "shape_contract": "(2,)"
         },
-        {
+        "color": {
           "name": "color",
           "type_name": "tuple",
           "state": "color_rgba_tuple",
@@ -709,9 +1399,9 @@
           "value_constraints": null,
           "shape_contract": "(4,)"
         }
-      ],
-      "outputs": [
-        {
+      },
+      "outputs": {
+        "output_var": {
           "name": "output_var",
           "type_name": "Image",
           "state": "mode_rgba",
@@ -726,7 +1416,7 @@
           "value_constraints": null,
           "shape_contract": "(H, W, 4)"
         }
-      ],
+      },
       "preconditions": [
         {
           "target": "size",
@@ -756,7 +1446,8 @@
           "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": "true",
-          "metadata": {}
+          "metadata": {},
+          "needs_mining": true
         }
       ]
     },
@@ -798,8 +1489,8 @@
         "ValueError"
       ],
       "type_vars": [],
-      "inputs": [
-        {
+      "inputs": {
+        "size": {
           "name": "size",
           "type_name": "tuple",
           "state": "dimensions",
@@ -814,7 +1505,7 @@
           "value_constraints": null,
           "shape_contract": "(2,)"
         },
-        {
+        "color": {
           "name": "color",
           "type_name": "int",
           "state": "gray_intensity",
@@ -832,9 +1523,9 @@
           },
           "shape_contract": null
         }
-      ],
-      "outputs": [
-        {
+      },
+      "outputs": {
+        "output_var": {
           "name": "output_var",
           "type_name": "Image",
           "state": "mode_grayscale",
@@ -849,7 +1540,7 @@
           "value_constraints": null,
           "shape_contract": "(H, W)"
         }
-      ],
+      },
       "preconditions": [
         {
           "target": "size",
@@ -879,7 +1570,8 @@
           "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": "true",
-          "metadata": {}
+          "metadata": {},
+          "needs_mining": true
         }
       ]
     },
@@ -920,8 +1612,8 @@
         "ValueError"
       ],
       "type_vars": [],
-      "inputs": [
-        {
+      "inputs": {
+        "image": {
           "name": "image",
           "type_name": "Image",
           "state": "mode_rgba",
@@ -943,9 +1635,9 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      ],
-      "outputs": [
-        {
+      },
+      "outputs": {
+        "output_var": {
           "name": "output_var",
           "type_name": "Image",
           "state": "mode_rgb",
@@ -960,7 +1652,7 @@
           "value_constraints": null,
           "shape_contract": "(H, W, 3)"
         }
-      ],
+      },
       "preconditions": [
         {
           "target": "image",
@@ -990,21 +1682,24 @@
           "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": "true",
-          "metadata": {}
+          "metadata": {},
+          "needs_mining": true
         },
         {
           "target_cell_id": "PILLOW_RGB_TO_NDARRAY_BGR_ORDER",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": "true",
-          "metadata": {}
-        },
-        {
-          "target_cell_id": "PILLOW_RESIZE_LANCZOS",
           "affinity_score": 0.5,
           "score_provenance": "llm_seed",
           "bridging_precondition": "true",
-          "metadata": {}
+          "metadata": {},
+          "needs_mining": true
+        },
+        {
+          "target_cell_id": "PILLOW_RESIZE_LANCZOS",
+          "affinity_score": 0.2,
+          "score_provenance": "llm_seed",
+          "bridging_precondition": "true",
+          "metadata": {},
+          "needs_mining": true
         }
       ]
     },
@@ -1045,8 +1740,8 @@
         "ValueError"
       ],
       "type_vars": [],
-      "inputs": [
-        {
+      "inputs": {
+        "image": {
           "name": "image",
           "type_name": "Image",
           "state": "mode_rgb",
@@ -1066,9 +1761,9 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      ],
-      "outputs": [
-        {
+      },
+      "outputs": {
+        "output_var": {
           "name": "output_var",
           "type_name": "Image",
           "state": "mode_rgba",
@@ -1083,7 +1778,7 @@
           "value_constraints": null,
           "shape_contract": "(H, W, 4)"
         }
-      ],
+      },
       "preconditions": [
         {
           "target": "image",
@@ -1113,7 +1808,8 @@
           "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": "true",
-          "metadata": {}
+          "metadata": {},
+          "needs_mining": true
         }
       ]
     },
@@ -1154,8 +1850,8 @@
         "ValueError"
       ],
       "type_vars": [],
-      "inputs": [
-        {
+      "inputs": {
+        "image": {
           "name": "image",
           "type_name": "Image",
           "state": "mode_rgb",
@@ -1176,9 +1872,9 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      ],
-      "outputs": [
-        {
+      },
+      "outputs": {
+        "output_var": {
           "name": "output_var",
           "type_name": "Image",
           "state": "mode_grayscale",
@@ -1193,7 +1889,7 @@
           "value_constraints": null,
           "shape_contract": "(H, W)"
         }
-      ],
+      },
       "preconditions": [
         {
           "target": "image",
@@ -1223,14 +1919,16 @@
           "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": "true",
-          "metadata": {}
+          "metadata": {},
+          "needs_mining": true
         },
         {
           "target_cell_id": "PILLOW_CONVERT_TO_BINARY",
           "affinity_score": 0.5,
           "score_provenance": "llm_seed",
           "bridging_precondition": "true",
-          "metadata": {}
+          "metadata": {},
+          "needs_mining": true
         }
       ]
     },
@@ -1273,8 +1971,8 @@
         "ValueError"
       ],
       "type_vars": [],
-      "inputs": [
-        {
+      "inputs": {
+        "image": {
           "name": "image",
           "type_name": "Image",
           "state": "mode_grayscale",
@@ -1293,9 +1991,9 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      ],
-      "outputs": [
-        {
+      },
+      "outputs": {
+        "output_var": {
           "name": "output_var",
           "type_name": "Image",
           "state": "mode_binary_1bit",
@@ -1310,7 +2008,7 @@
           "value_constraints": null,
           "shape_contract": "(H, W)"
         }
-      ],
+      },
       "preconditions": [],
       "postconditions": [
         {
@@ -1328,10 +2026,11 @@
       "edges": [
         {
           "target_cell_id": "PILLOW_IMAGE_SAVE",
-          "affinity_score": 0.5,
+          "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": "true",
-          "metadata": {}
+          "metadata": {},
+          "needs_mining": true
         }
       ]
     },
@@ -1372,8 +2071,8 @@
         "ValueError"
       ],
       "type_vars": [],
-      "inputs": [
-        {
+      "inputs": {
+        "image": {
           "name": "image",
           "type_name": "Image",
           "state": "mode_rgb",
@@ -1388,9 +2087,9 @@
           "value_constraints": null,
           "shape_contract": "(H, W, 3)"
         }
-      ],
-      "outputs": [
-        {
+      },
+      "outputs": {
+        "output_var": {
           "name": "output_var",
           "type_name": "Image",
           "state": "mode_cmyk",
@@ -1405,7 +2104,7 @@
           "value_constraints": null,
           "shape_contract": "(H, W, 4)"
         }
-      ],
+      },
       "preconditions": [
         {
           "target": "image",
@@ -1432,10 +2131,11 @@
       "edges": [
         {
           "target_cell_id": "PILLOW_IMAGE_SAVE_JPEG",
-          "affinity_score": 0.5,
+          "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": "true",
-          "metadata": {}
+          "metadata": {},
+          "needs_mining": true
         }
       ]
     },
@@ -1476,8 +2176,8 @@
       "feedback_state_type": null,
       "raises": [],
       "type_vars": [],
-      "inputs": [
-        {
+      "inputs": {
+        "image": {
           "name": "image",
           "type_name": "Image",
           "state": "mode_rgb",
@@ -1492,9 +2192,9 @@
           "value_constraints": null,
           "shape_contract": "(H, W, 3)"
         }
-      ],
-      "outputs": [
-        {
+      },
+      "outputs": {
+        "output_var": {
           "name": "output_var",
           "type_name": "ndarray",
           "state": "color_rgb",
@@ -1509,7 +2209,7 @@
           "value_constraints": null,
           "shape_contract": "(H, W, 3)"
         }
-      ],
+      },
       "preconditions": [
         {
           "target": "image",
@@ -1573,8 +2273,8 @@
       "feedback_state_type": null,
       "raises": [],
       "type_vars": [],
-      "inputs": [
-        {
+      "inputs": {
+        "image": {
           "name": "image",
           "type_name": "Image",
           "state": "mode_rgb",
@@ -1589,13 +2289,18 @@
           "value_constraints": null,
           "shape_contract": "(H, W, 3)"
         }
-      ],
-      "outputs": [
-        {
+      },
+      "outputs": {
+        "output_var": {
           "name": "output_var",
           "type_name": "ndarray",
           "state": "color_bgr",
-          "qualifiers": [],
+          "qualifiers": [
+            [
+              "cv2",
+              "image"
+            ]
+          ],
           "default_value": null,
           "description": "3-channel uint8 numpy array in BGR order.",
           "domain": "Pillow",
@@ -1606,7 +2311,7 @@
           "value_constraints": null,
           "shape_contract": "(H, W, 3)"
         }
-      ],
+      },
       "preconditions": [
         {
           "target": "image",
@@ -1669,8 +2374,8 @@
       "feedback_state_type": null,
       "raises": [],
       "type_vars": [],
-      "inputs": [
-        {
+      "inputs": {
+        "image": {
           "name": "image",
           "type_name": "Image",
           "state": "mode_grayscale",
@@ -1685,13 +2390,18 @@
           "value_constraints": null,
           "shape_contract": "(H, W)"
         }
-      ],
-      "outputs": [
-        {
+      },
+      "outputs": {
+        "output_var": {
           "name": "output_var",
           "type_name": "ndarray",
           "state": "gray",
-          "qualifiers": [],
+          "qualifiers": [
+            [
+              "cv2",
+              "image"
+            ]
+          ],
           "default_value": null,
           "description": "2D uint8 numpy array representing gray intensity.",
           "domain": "Pillow",
@@ -1702,7 +2412,7 @@
           "value_constraints": null,
           "shape_contract": "(H, W)"
         }
-      ],
+      },
       "preconditions": [
         {
           "target": "image",
@@ -1769,8 +2479,8 @@
         "ValueError"
       ],
       "type_vars": [],
-      "inputs": [
-        {
+      "inputs": {
+        "array": {
           "name": "array",
           "type_name": "ndarray",
           "state": "color_bgr",
@@ -1785,9 +2495,9 @@
           "value_constraints": null,
           "shape_contract": "(H, W, 3)"
         }
-      ],
-      "outputs": [
-        {
+      },
+      "outputs": {
+        "output_var": {
           "name": "output_var",
           "type_name": "Image",
           "state": "mode_rgb",
@@ -1802,7 +2512,7 @@
           "value_constraints": null,
           "shape_contract": "(H, W, 3)"
         }
-      ],
+      },
       "preconditions": [
         {
           "target": "array",
@@ -1832,14 +2542,16 @@
           "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": "true",
-          "metadata": {}
+          "metadata": {},
+          "needs_mining": true
         },
         {
           "target_cell_id": "PILLOW_IMAGE_SAVE",
           "affinity_score": 0.5,
           "score_provenance": "llm_seed",
           "bridging_precondition": "true",
-          "metadata": {}
+          "metadata": {},
+          "needs_mining": true
         }
       ]
     },
@@ -1883,8 +2595,8 @@
         "ValueError"
       ],
       "type_vars": [],
-      "inputs": [
-        {
+      "inputs": {
+        "array": {
           "name": "array",
           "type_name": "ndarray",
           "state": "gray",
@@ -1899,9 +2611,9 @@
           "value_constraints": null,
           "shape_contract": "(H, W)"
         }
-      ],
-      "outputs": [
-        {
+      },
+      "outputs": {
+        "output_var": {
           "name": "output_var",
           "type_name": "Image",
           "state": "mode_grayscale",
@@ -1916,7 +2628,7 @@
           "value_constraints": null,
           "shape_contract": "(H, W)"
         }
-      ],
+      },
       "preconditions": [
         {
           "target": "array",
@@ -1946,7 +2658,8 @@
           "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": "true",
-          "metadata": {}
+          "metadata": {},
+          "needs_mining": true
         }
       ]
     },
@@ -1989,8 +2702,8 @@
         "ValueError"
       ],
       "type_vars": [],
-      "inputs": [
-        {
+      "inputs": {
+        "image": {
           "name": "image",
           "type_name": "Image",
           "state": "mode_rgb",
@@ -2010,7 +2723,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        {
+        "size": {
           "name": "size",
           "type_name": "tuple",
           "state": "target_dimensions",
@@ -2025,9 +2738,9 @@
           "value_constraints": null,
           "shape_contract": "(2,)"
         }
-      ],
-      "outputs": [
-        {
+      },
+      "outputs": {
+        "output_var": {
           "name": "output_var",
           "type_name": "Image",
           "state": "resized",
@@ -2042,7 +2755,7 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      ],
+      },
       "preconditions": [
         {
           "target": "size",
@@ -2072,14 +2785,16 @@
           "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": "true",
-          "metadata": {}
+          "metadata": {},
+          "needs_mining": true
         },
         {
           "target_cell_id": "PILLOW_RGB_TO_NDARRAY_RGB_ORDER",
           "affinity_score": 0.5,
           "score_provenance": "llm_seed",
           "bridging_precondition": "output_var.mode == 'RGB'",
-          "metadata": {}
+          "metadata": {},
+          "needs_mining": true
         }
       ]
     },
@@ -2120,8 +2835,8 @@
         "ValueError"
       ],
       "type_vars": [],
-      "inputs": [
-        {
+      "inputs": {
+        "image": {
           "name": "image",
           "type_name": "Image",
           "state": "mode_rgb",
@@ -2141,7 +2856,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        {
+        "size": {
           "name": "size",
           "type_name": "tuple",
           "state": "target_dimensions",
@@ -2156,9 +2871,9 @@
           "value_constraints": null,
           "shape_contract": "(2,)"
         }
-      ],
-      "outputs": [
-        {
+      },
+      "outputs": {
+        "output_var": {
           "name": "output_var",
           "type_name": "Image",
           "state": "resized",
@@ -2173,7 +2888,7 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      ],
+      },
       "preconditions": [],
       "postconditions": [],
       "effects": [
@@ -2185,7 +2900,8 @@
           "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": "true",
-          "metadata": {}
+          "metadata": {},
+          "needs_mining": true
         }
       ]
     },
@@ -2228,8 +2944,8 @@
         "ValueError"
       ],
       "type_vars": [],
-      "inputs": [
-        {
+      "inputs": {
+        "image": {
           "name": "image",
           "type_name": "Image",
           "state": "mode_grayscale",
@@ -2250,7 +2966,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        {
+        "size": {
           "name": "size",
           "type_name": "tuple",
           "state": "target_dimensions",
@@ -2265,9 +2981,9 @@
           "value_constraints": null,
           "shape_contract": "(2,)"
         }
-      ],
-      "outputs": [
-        {
+      },
+      "outputs": {
+        "output_var": {
           "name": "output_var",
           "type_name": "Image",
           "state": "resized",
@@ -2282,7 +2998,7 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      ],
+      },
       "preconditions": [],
       "postconditions": [],
       "effects": [
@@ -2291,10 +3007,11 @@
       "edges": [
         {
           "target_cell_id": "PILLOW_IMAGE_SAVE",
-          "affinity_score": 0.5,
+          "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": "true",
-          "metadata": {}
+          "metadata": {},
+          "needs_mining": true
         }
       ]
     },
@@ -2337,8 +3054,8 @@
         "ValueError"
       ],
       "type_vars": [],
-      "inputs": [
-        {
+      "inputs": {
+        "image": {
           "name": "image",
           "type_name": "Image",
           "state": "mode_rgb",
@@ -2358,7 +3075,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        {
+        "box": {
           "name": "box",
           "type_name": "tuple",
           "state": "crop_box",
@@ -2373,9 +3090,9 @@
           "value_constraints": null,
           "shape_contract": "(4,)"
         }
-      ],
-      "outputs": [
-        {
+      },
+      "outputs": {
+        "output_var": {
           "name": "output_var",
           "type_name": "Image",
           "state": "cropped",
@@ -2390,7 +3107,7 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      ],
+      },
       "preconditions": [
         {
           "target": "box",
@@ -2411,14 +3128,16 @@
           "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": "true",
-          "metadata": {}
+          "metadata": {},
+          "needs_mining": true
         },
         {
           "target_cell_id": "PILLOW_IMAGE_SAVE",
           "affinity_score": 0.5,
           "score_provenance": "llm_seed",
           "bridging_precondition": "true",
-          "metadata": {}
+          "metadata": {},
+          "needs_mining": true
         }
       ]
     },
@@ -2461,8 +3180,8 @@
         "ValueError"
       ],
       "type_vars": [],
-      "inputs": [
-        {
+      "inputs": {
+        "image": {
           "name": "image",
           "type_name": "Image",
           "state": "mode_rgb",
@@ -2482,7 +3201,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        {
+        "angle": {
           "name": "angle",
           "type_name": "float",
           "state": "degrees",
@@ -2497,7 +3216,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        {
+        "expand": {
           "name": "expand",
           "type_name": "bool",
           "state": "expand_canvas_flag",
@@ -2512,9 +3231,9 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      ],
-      "outputs": [
-        {
+      },
+      "outputs": {
+        "output_var": {
           "name": "output_var",
           "type_name": "Image",
           "state": "rotated",
@@ -2529,7 +3248,7 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      ],
+      },
       "preconditions": [],
       "postconditions": [],
       "effects": [
@@ -2541,7 +3260,8 @@
           "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": "true",
-          "metadata": {}
+          "metadata": {},
+          "needs_mining": true
         }
       ]
     },
@@ -2581,8 +3301,8 @@
       "feedback_state_type": null,
       "raises": [],
       "type_vars": [],
-      "inputs": [
-        {
+      "inputs": {
+        "image": {
           "name": "image",
           "type_name": "Image",
           "state": "mode_rgb",
@@ -2602,9 +3322,9 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      ],
-      "outputs": [
-        {
+      },
+      "outputs": {
+        "output_var": {
           "name": "output_var",
           "type_name": "Image",
           "state": "rotated",
@@ -2619,7 +3339,7 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      ],
+      },
       "preconditions": [],
       "postconditions": [],
       "effects": [
@@ -2631,7 +3351,8 @@
           "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": "true",
-          "metadata": {}
+          "metadata": {},
+          "needs_mining": true
         }
       ]
     },
@@ -2671,8 +3392,8 @@
       "feedback_state_type": null,
       "raises": [],
       "type_vars": [],
-      "inputs": [
-        {
+      "inputs": {
+        "image": {
           "name": "image",
           "type_name": "Image",
           "state": "mode_rgb",
@@ -2692,9 +3413,9 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      ],
-      "outputs": [
-        {
+      },
+      "outputs": {
+        "output_var": {
           "name": "output_var",
           "type_name": "Image",
           "state": "rotated",
@@ -2709,7 +3430,7 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      ],
+      },
       "preconditions": [],
       "postconditions": [],
       "effects": [
@@ -2721,7 +3442,8 @@
           "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": "true",
-          "metadata": {}
+          "metadata": {},
+          "needs_mining": true
         }
       ]
     },
@@ -2759,8 +3481,8 @@
       "feedback_state_type": null,
       "raises": [],
       "type_vars": [],
-      "inputs": [
-        {
+      "inputs": {
+        "image": {
           "name": "image",
           "type_name": "Image",
           "state": "mode_rgb",
@@ -2780,9 +3502,9 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      ],
-      "outputs": [
-        {
+      },
+      "outputs": {
+        "output_var": {
           "name": "output_var",
           "type_name": "Image",
           "state": "rotated",
@@ -2797,7 +3519,7 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      ],
+      },
       "preconditions": [],
       "postconditions": [],
       "effects": [
@@ -2809,7 +3531,8 @@
           "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": "true",
-          "metadata": {}
+          "metadata": {},
+          "needs_mining": true
         }
       ]
     },
@@ -2853,8 +3576,8 @@
         "ValueError"
       ],
       "type_vars": [],
-      "inputs": [
-        {
+      "inputs": {
+        "image": {
           "name": "image",
           "type_name": "Image",
           "state": "mode_rgb",
@@ -2874,7 +3597,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        {
+        "radius": {
           "name": "radius",
           "type_name": "float",
           "state": "blur_radius",
@@ -2891,9 +3614,9 @@
           },
           "shape_contract": null
         }
-      ],
-      "outputs": [
-        {
+      },
+      "outputs": {
+        "output_var": {
           "name": "output_var",
           "type_name": "Image",
           "state": "filtered_blur",
@@ -2908,7 +3631,7 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      ],
+      },
       "preconditions": [
         {
           "target": "radius",
@@ -2929,7 +3652,8 @@
           "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": "true",
-          "metadata": {}
+          "metadata": {},
+          "needs_mining": true
         }
       ]
     },
@@ -2972,8 +3696,8 @@
         "ValueError"
       ],
       "type_vars": [],
-      "inputs": [
-        {
+      "inputs": {
+        "image": {
           "name": "image",
           "type_name": "Image",
           "state": "mode_rgb",
@@ -2993,7 +3717,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        {
+        "radius": {
           "name": "radius",
           "type_name": "int",
           "state": "box_radius",
@@ -3010,9 +3734,9 @@
           },
           "shape_contract": null
         }
-      ],
-      "outputs": [
-        {
+      },
+      "outputs": {
+        "output_var": {
           "name": "output_var",
           "type_name": "Image",
           "state": "filtered_blur",
@@ -3027,7 +3751,7 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      ],
+      },
       "preconditions": [],
       "postconditions": [],
       "effects": [
@@ -3039,7 +3763,8 @@
           "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": "true",
-          "metadata": {}
+          "metadata": {},
+          "needs_mining": true
         }
       ]
     },
@@ -3079,8 +3804,8 @@
       "feedback_state_type": null,
       "raises": [],
       "type_vars": [],
-      "inputs": [
-        {
+      "inputs": {
+        "image": {
           "name": "image",
           "type_name": "Image",
           "state": "mode_rgb",
@@ -3099,9 +3824,9 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      ],
-      "outputs": [
-        {
+      },
+      "outputs": {
+        "output_var": {
           "name": "output_var",
           "type_name": "Image",
           "state": "filtered_edges",
@@ -3116,7 +3841,7 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      ],
+      },
       "preconditions": [],
       "postconditions": [],
       "effects": [
@@ -3128,7 +3853,8 @@
           "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": "true",
-          "metadata": {}
+          "metadata": {},
+          "needs_mining": true
         }
       ]
     },
@@ -3167,8 +3893,8 @@
       "feedback_state_type": null,
       "raises": [],
       "type_vars": [],
-      "inputs": [
-        {
+      "inputs": {
+        "image": {
           "name": "image",
           "type_name": "Image",
           "state": "mode_rgb",
@@ -3187,9 +3913,9 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      ],
-      "outputs": [
-        {
+      },
+      "outputs": {
+        "output_var": {
           "name": "output_var",
           "type_name": "Image",
           "state": "filtered_edges",
@@ -3204,7 +3930,7 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      ],
+      },
       "preconditions": [],
       "postconditions": [],
       "effects": [
@@ -3216,7 +3942,8 @@
           "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": "true",
-          "metadata": {}
+          "metadata": {},
+          "needs_mining": true
         }
       ]
     },
@@ -3255,8 +3982,8 @@
       "feedback_state_type": null,
       "raises": [],
       "type_vars": [],
-      "inputs": [
-        {
+      "inputs": {
+        "image": {
           "name": "image",
           "type_name": "Image",
           "state": "mode_rgb",
@@ -3275,9 +4002,9 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      ],
-      "outputs": [
-        {
+      },
+      "outputs": {
+        "output_var": {
           "name": "output_var",
           "type_name": "Image",
           "state": "filtered_general",
@@ -3292,7 +4019,7 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      ],
+      },
       "preconditions": [],
       "postconditions": [],
       "effects": [
@@ -3304,7 +4031,8 @@
           "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": "true",
-          "metadata": {}
+          "metadata": {},
+          "needs_mining": true
         }
       ]
     },
@@ -3349,8 +4077,8 @@
         "ValueError"
       ],
       "type_vars": [],
-      "inputs": [
-        {
+      "inputs": {
+        "image": {
           "name": "image",
           "type_name": "Image",
           "state": "mode_rgb",
@@ -3369,7 +4097,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        {
+        "radius": {
           "name": "radius",
           "type_name": "float",
           "state": "blur_radius",
@@ -3384,7 +4112,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        {
+        "percent": {
           "name": "percent",
           "type_name": "int",
           "state": "percentage",
@@ -3399,7 +4127,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        {
+        "threshold": {
           "name": "threshold",
           "type_name": "int",
           "state": "threshold_delta",
@@ -3414,9 +4142,9 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      ],
-      "outputs": [
-        {
+      },
+      "outputs": {
+        "output_var": {
           "name": "output_var",
           "type_name": "Image",
           "state": "filtered_general",
@@ -3431,7 +4159,7 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      ],
+      },
       "preconditions": [],
       "postconditions": [],
       "effects": [
@@ -3443,7 +4171,8 @@
           "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": "true",
-          "metadata": {}
+          "metadata": {},
+          "needs_mining": true
         }
       ]
     },
@@ -3486,8 +4215,8 @@
         "ValueError"
       ],
       "type_vars": [],
-      "inputs": [
-        {
+      "inputs": {
+        "image": {
           "name": "image",
           "type_name": "Image",
           "state": "mode_rgb",
@@ -3506,7 +4235,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        {
+        "size_val": {
           "name": "size_val",
           "type_name": "int",
           "state": "odd_kernel_size",
@@ -3523,9 +4252,9 @@
           },
           "shape_contract": null
         }
-      ],
-      "outputs": [
-        {
+      },
+      "outputs": {
+        "output_var": {
           "name": "output_var",
           "type_name": "Image",
           "state": "filtered_general",
@@ -3540,7 +4269,7 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      ],
+      },
       "preconditions": [
         {
           "target": "size_val",
@@ -3561,7 +4290,8 @@
           "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": "true",
-          "metadata": {}
+          "metadata": {},
+          "needs_mining": true
         }
       ]
     },
@@ -3603,8 +4333,8 @@
         "ValueError"
       ],
       "type_vars": [],
-      "inputs": [
-        {
+      "inputs": {
+        "image": {
           "name": "image",
           "type_name": "Image",
           "state": "mode_rgb",
@@ -3623,7 +4353,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        {
+        "factor": {
           "name": "factor",
           "type_name": "float",
           "state": "contrast_factor",
@@ -3640,9 +4370,9 @@
           },
           "shape_contract": null
         }
-      ],
-      "outputs": [
-        {
+      },
+      "outputs": {
+        "output_var": {
           "name": "output_var",
           "type_name": "Image",
           "state": "enhanced_contrast",
@@ -3657,7 +4387,7 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      ],
+      },
       "preconditions": [
         {
           "target": "factor",
@@ -3678,14 +4408,16 @@
           "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": "true",
-          "metadata": {}
+          "metadata": {},
+          "needs_mining": true
         },
         {
           "target_cell_id": "PILLOW_IMAGE_SAVE",
           "affinity_score": 0.5,
           "score_provenance": "llm_seed",
           "bridging_precondition": "true",
-          "metadata": {}
+          "metadata": {},
+          "needs_mining": true
         }
       ]
     },
@@ -3727,8 +4459,8 @@
         "ValueError"
       ],
       "type_vars": [],
-      "inputs": [
-        {
+      "inputs": {
+        "image": {
           "name": "image",
           "type_name": "Image",
           "state": "mode_rgb",
@@ -3747,7 +4479,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        {
+        "factor": {
           "name": "factor",
           "type_name": "float",
           "state": "brightness_factor",
@@ -3764,9 +4496,9 @@
           },
           "shape_contract": null
         }
-      ],
-      "outputs": [
-        {
+      },
+      "outputs": {
+        "output_var": {
           "name": "output_var",
           "type_name": "Image",
           "state": "enhanced_brightness",
@@ -3781,7 +4513,7 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      ],
+      },
       "preconditions": [
         {
           "target": "factor",
@@ -3802,7 +4534,8 @@
           "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": "true",
-          "metadata": {}
+          "metadata": {},
+          "needs_mining": true
         }
       ]
     },
@@ -3845,8 +4578,8 @@
         "ValueError"
       ],
       "type_vars": [],
-      "inputs": [
-        {
+      "inputs": {
+        "image": {
           "name": "image",
           "type_name": "Image",
           "state": "mode_rgb",
@@ -3861,7 +4594,7 @@
           "value_constraints": null,
           "shape_contract": "(H, W, 3)"
         },
-        {
+        "factor": {
           "name": "factor",
           "type_name": "float",
           "state": "saturation_factor",
@@ -3878,9 +4611,9 @@
           },
           "shape_contract": null
         }
-      ],
-      "outputs": [
-        {
+      },
+      "outputs": {
+        "output_var": {
           "name": "output_var",
           "type_name": "Image",
           "state": "enhanced_color",
@@ -3895,7 +4628,7 @@
           "value_constraints": null,
           "shape_contract": "(H, W, 3)"
         }
-      ],
+      },
       "preconditions": [
         {
           "target": "image",
@@ -3916,7 +4649,8 @@
           "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": "true",
-          "metadata": {}
+          "metadata": {},
+          "needs_mining": true
         }
       ]
     },
@@ -3958,8 +4692,8 @@
         "ValueError"
       ],
       "type_vars": [],
-      "inputs": [
-        {
+      "inputs": {
+        "image": {
           "name": "image",
           "type_name": "Image",
           "state": "mode_rgb",
@@ -3978,7 +4712,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        {
+        "factor": {
           "name": "factor",
           "type_name": "float",
           "state": "sharpness_factor",
@@ -3995,9 +4729,9 @@
           },
           "shape_contract": null
         }
-      ],
-      "outputs": [
-        {
+      },
+      "outputs": {
+        "output_var": {
           "name": "output_var",
           "type_name": "Image",
           "state": "enhanced_sharpness",
@@ -4012,7 +4746,7 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      ],
+      },
       "preconditions": [],
       "postconditions": [],
       "effects": [
@@ -4024,7 +4758,8 @@
           "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": "true",
-          "metadata": {}
+          "metadata": {},
+          "needs_mining": true
         }
       ]
     },
@@ -4065,8 +4800,8 @@
       "feedback_state_type": null,
       "raises": [],
       "type_vars": [],
-      "inputs": [
-        {
+      "inputs": {
+        "image": {
           "name": "image",
           "type_name": "Image",
           "state": "mode_rgb",
@@ -4086,9 +4821,9 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      ],
-      "outputs": [
-        {
+      },
+      "outputs": {
+        "output_var": {
           "name": "output_var",
           "type_name": "ImageDraw",
           "state": "draw_context_active",
@@ -4103,7 +4838,7 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      ],
+      },
       "preconditions": [],
       "postconditions": [
         {
@@ -4124,21 +4859,24 @@
           "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": "true",
-          "metadata": {}
+          "metadata": {},
+          "needs_mining": true
         },
         {
           "target_cell_id": "PILLOW_DRAW_TEXT",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": "true",
-          "metadata": {}
-        },
-        {
-          "target_cell_id": "PILLOW_DRAW_LINE",
           "affinity_score": 0.5,
           "score_provenance": "llm_seed",
           "bridging_precondition": "true",
-          "metadata": {}
+          "metadata": {},
+          "needs_mining": true
+        },
+        {
+          "target_cell_id": "PILLOW_DRAW_LINE",
+          "affinity_score": 0.2,
+          "score_provenance": "llm_seed",
+          "bridging_precondition": "true",
+          "metadata": {},
+          "needs_mining": true
         }
       ]
     },
@@ -4181,8 +4919,8 @@
         "ValueError"
       ],
       "type_vars": [],
-      "inputs": [
-        {
+      "inputs": {
+        "draw": {
           "name": "draw",
           "type_name": "ImageDraw",
           "state": "draw_context_active",
@@ -4197,7 +4935,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        {
+        "xy": {
           "name": "xy",
           "type_name": "list",
           "state": "coordinates_seq",
@@ -4212,7 +4950,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        {
+        "fill": {
           "name": "fill",
           "type_name": "tuple",
           "state": "stroke_color",
@@ -4227,7 +4965,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        {
+        "width": {
           "name": "width",
           "type_name": "int",
           "state": "stroke_width",
@@ -4244,8 +4982,8 @@
           },
           "shape_contract": null
         }
-      ],
-      "outputs": [],
+      },
+      "outputs": {},
       "preconditions": [],
       "postconditions": [],
       "effects": [
@@ -4254,10 +4992,11 @@
       "edges": [
         {
           "target_cell_id": "PILLOW_DRAW_TEXT",
-          "affinity_score": 0.5,
+          "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": "true",
-          "metadata": {}
+          "metadata": {},
+          "needs_mining": true
         }
       ]
     },
@@ -4303,8 +5042,8 @@
         "ValueError"
       ],
       "type_vars": [],
-      "inputs": [
-        {
+      "inputs": {
+        "draw": {
           "name": "draw",
           "type_name": "ImageDraw",
           "state": "draw_context_active",
@@ -4319,7 +5058,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        {
+        "xy": {
           "name": "xy",
           "type_name": "tuple",
           "state": "rect_coordinates",
@@ -4334,7 +5073,7 @@
           "value_constraints": null,
           "shape_contract": "(4,)"
         },
-        {
+        "fill": {
           "name": "fill",
           "type_name": "tuple",
           "state": "fill_color",
@@ -4349,7 +5088,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        {
+        "outline": {
           "name": "outline",
           "type_name": "tuple",
           "state": "outline_color",
@@ -4364,7 +5103,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        {
+        "width": {
           "name": "width",
           "type_name": "int",
           "state": "border_width",
@@ -4381,8 +5120,8 @@
           },
           "shape_contract": null
         }
-      ],
-      "outputs": [],
+      },
+      "outputs": {},
       "preconditions": [
         {
           "target": "xy",
@@ -4403,7 +5142,8 @@
           "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": "true",
-          "metadata": {}
+          "metadata": {},
+          "needs_mining": true
         }
       ]
     },
@@ -4447,8 +5187,8 @@
         "ValueError"
       ],
       "type_vars": [],
-      "inputs": [
-        {
+      "inputs": {
+        "draw": {
           "name": "draw",
           "type_name": "ImageDraw",
           "state": "draw_context_active",
@@ -4463,7 +5203,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        {
+        "xy": {
           "name": "xy",
           "type_name": "tuple",
           "state": "ellipse_bounds",
@@ -4478,7 +5218,7 @@
           "value_constraints": null,
           "shape_contract": "(4,)"
         },
-        {
+        "fill": {
           "name": "fill",
           "type_name": "tuple",
           "state": "fill_color",
@@ -4493,7 +5233,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        {
+        "outline": {
           "name": "outline",
           "type_name": "tuple",
           "state": "outline_color",
@@ -4508,7 +5248,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        {
+        "width": {
           "name": "width",
           "type_name": "int",
           "state": "outline_width",
@@ -4525,8 +5265,8 @@
           },
           "shape_contract": null
         }
-      ],
-      "outputs": [],
+      },
+      "outputs": {},
       "preconditions": [],
       "postconditions": [],
       "effects": [
@@ -4575,8 +5315,8 @@
         "ValueError"
       ],
       "type_vars": [],
-      "inputs": [
-        {
+      "inputs": {
+        "draw": {
           "name": "draw",
           "type_name": "ImageDraw",
           "state": "draw_context_active",
@@ -4591,7 +5331,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        {
+        "xy": {
           "name": "xy",
           "type_name": "tuple",
           "state": "anchor_point",
@@ -4606,7 +5346,7 @@
           "value_constraints": null,
           "shape_contract": "(2,)"
         },
-        {
+        "text": {
           "name": "text",
           "type_name": "str",
           "state": "raw_text",
@@ -4621,7 +5361,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        {
+        "fill": {
           "name": "fill",
           "type_name": "tuple",
           "state": "text_color",
@@ -4636,8 +5376,8 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      ],
-      "outputs": [],
+      },
+      "outputs": {},
       "preconditions": [],
       "postconditions": [],
       "effects": [
@@ -4685,8 +5425,8 @@
         "ValueError"
       ],
       "type_vars": [],
-      "inputs": [
-        {
+      "inputs": {
+        "image_dst": {
           "name": "image_dst",
           "type_name": "Image",
           "state": "mode_rgba",
@@ -4701,7 +5441,7 @@
           "value_constraints": null,
           "shape_contract": "(H, W, 4)"
         },
-        {
+        "image_src": {
           "name": "image_src",
           "type_name": "Image",
           "state": "mode_rgba",
@@ -4716,9 +5456,9 @@
           "value_constraints": null,
           "shape_contract": "(H, W, 4)"
         }
-      ],
-      "outputs": [
-        {
+      },
+      "outputs": {
+        "output_var": {
           "name": "output_var",
           "type_name": "Image",
           "state": "composited",
@@ -4733,7 +5473,7 @@
           "value_constraints": null,
           "shape_contract": "(H, W, 4)"
         }
-      ],
+      },
       "preconditions": [
         {
           "target": "image_dst",
@@ -4771,14 +5511,16 @@
           "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": "true",
-          "metadata": {}
+          "metadata": {},
+          "needs_mining": true
         },
         {
           "target_cell_id": "PILLOW_IMAGE_SAVE_PNG",
-          "affinity_score": 0.8,
+          "affinity_score": 0.5,
           "score_provenance": "llm_seed",
           "bridging_precondition": "true",
-          "metadata": {}
+          "metadata": {},
+          "needs_mining": true
         }
       ]
     },
@@ -4822,8 +5564,8 @@
         "ValueError"
       ],
       "type_vars": [],
-      "inputs": [
-        {
+      "inputs": {
+        "image1": {
           "name": "image1",
           "type_name": "Image",
           "state": "mode_rgb",
@@ -4838,7 +5580,7 @@
           "value_constraints": null,
           "shape_contract": "(H, W, 3)"
         },
-        {
+        "image2": {
           "name": "image2",
           "type_name": "Image",
           "state": "mode_rgb",
@@ -4853,7 +5595,7 @@
           "value_constraints": null,
           "shape_contract": "(H, W, 3)"
         },
-        {
+        "alpha": {
           "name": "alpha",
           "type_name": "float",
           "state": "blend_weight",
@@ -4871,9 +5613,9 @@
           },
           "shape_contract": null
         }
-      ],
-      "outputs": [
-        {
+      },
+      "outputs": {
+        "output_var": {
           "name": "output_var",
           "type_name": "Image",
           "state": "composited",
@@ -4888,7 +5630,7 @@
           "value_constraints": null,
           "shape_contract": "(H, W, 3)"
         }
-      ],
+      },
       "preconditions": [
         {
           "target": "image1",
@@ -4909,7 +5651,8 @@
           "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": "true",
-          "metadata": {}
+          "metadata": {},
+          "needs_mining": true
         }
       ]
     },
@@ -4952,8 +5695,8 @@
         "ValueError"
       ],
       "type_vars": [],
-      "inputs": [
-        {
+      "inputs": {
+        "image1": {
           "name": "image1",
           "type_name": "Image",
           "state": "mode_rgb",
@@ -4968,7 +5711,7 @@
           "value_constraints": null,
           "shape_contract": "(H, W, 3)"
         },
-        {
+        "image2": {
           "name": "image2",
           "type_name": "Image",
           "state": "mode_rgb",
@@ -4983,7 +5726,7 @@
           "value_constraints": null,
           "shape_contract": "(H, W, 3)"
         },
-        {
+        "mask": {
           "name": "mask",
           "type_name": "Image",
           "state": "mode_grayscale",
@@ -5002,9 +5745,9 @@
           "value_constraints": null,
           "shape_contract": "(H, W)"
         }
-      ],
-      "outputs": [
-        {
+      },
+      "outputs": {
+        "output_var": {
           "name": "output_var",
           "type_name": "Image",
           "state": "composited",
@@ -5019,7 +5762,7 @@
           "value_constraints": null,
           "shape_contract": "(H, W, 3)"
         }
-      ],
+      },
       "preconditions": [
         {
           "target": "mask",
@@ -5040,7 +5783,8 @@
           "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": "true",
-          "metadata": {}
+          "metadata": {},
+          "needs_mining": true
         }
       ]
     },
@@ -5083,8 +5827,8 @@
         "ValueError"
       ],
       "type_vars": [],
-      "inputs": [
-        {
+      "inputs": {
+        "image": {
           "name": "image",
           "type_name": "Image",
           "state": "mode_rgb",
@@ -5099,9 +5843,9 @@
           "value_constraints": null,
           "shape_contract": "(H, W, 3)"
         }
-      ],
-      "outputs": [
-        {
+      },
+      "outputs": {
+        "output_r": {
           "name": "output_r",
           "type_name": "Image",
           "state": "mode_grayscale",
@@ -5116,7 +5860,7 @@
           "value_constraints": null,
           "shape_contract": "(H, W)"
         },
-        {
+        "output_g": {
           "name": "output_g",
           "type_name": "Image",
           "state": "mode_grayscale",
@@ -5131,7 +5875,7 @@
           "value_constraints": null,
           "shape_contract": "(H, W)"
         },
-        {
+        "output_b": {
           "name": "output_b",
           "type_name": "Image",
           "state": "mode_grayscale",
@@ -5146,7 +5890,7 @@
           "value_constraints": null,
           "shape_contract": "(H, W)"
         }
-      ],
+      },
       "preconditions": [
         {
           "target": "image",
@@ -5167,7 +5911,8 @@
           "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": "true",
-          "metadata": {}
+          "metadata": {},
+          "needs_mining": true
         }
       ]
     },
@@ -5211,8 +5956,8 @@
         "ValueError"
       ],
       "type_vars": [],
-      "inputs": [
-        {
+      "inputs": {
+        "band_r": {
           "name": "band_r",
           "type_name": "Image",
           "state": "mode_grayscale",
@@ -5227,7 +5972,7 @@
           "value_constraints": null,
           "shape_contract": "(H, W)"
         },
-        {
+        "band_g": {
           "name": "band_g",
           "type_name": "Image",
           "state": "mode_grayscale",
@@ -5242,7 +5987,7 @@
           "value_constraints": null,
           "shape_contract": "(H, W)"
         },
-        {
+        "band_b": {
           "name": "band_b",
           "type_name": "Image",
           "state": "mode_grayscale",
@@ -5257,9 +6002,9 @@
           "value_constraints": null,
           "shape_contract": "(H, W)"
         }
-      ],
-      "outputs": [
-        {
+      },
+      "outputs": {
+        "output_var": {
           "name": "output_var",
           "type_name": "Image",
           "state": "mode_rgb",
@@ -5274,7 +6019,7 @@
           "value_constraints": null,
           "shape_contract": "(H, W, 3)"
         }
-      ],
+      },
       "preconditions": [
         {
           "target": "band_r",
@@ -5304,7 +6049,8 @@
           "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": "true",
-          "metadata": {}
+          "metadata": {},
+          "needs_mining": true
         }
       ]
     },
@@ -5346,8 +6092,8 @@
         "OSError"
       ],
       "type_vars": [],
-      "inputs": [
-        {
+      "inputs": {
+        "image": {
           "name": "image",
           "type_name": "Image",
           "state": "mode_rgb",
@@ -5366,9 +6112,9 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      ],
-      "outputs": [
-        {
+      },
+      "outputs": {
+        "output_var": {
           "name": "output_var",
           "type_name": "Image",
           "state": "mode_rgb",
@@ -5383,7 +6129,7 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      ],
+      },
       "preconditions": [],
       "postconditions": [],
       "effects": [
@@ -5395,7 +6141,8 @@
           "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": "true",
-          "metadata": {}
+          "metadata": {},
+          "needs_mining": true
         }
       ]
     },
@@ -5436,8 +6183,8 @@
       "feedback_state_type": null,
       "raises": [],
       "type_vars": [],
-      "inputs": [
-        {
+      "inputs": {
+        "image": {
           "name": "image",
           "type_name": "Image",
           "state": "mode_rgb",
@@ -5456,7 +6203,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        {
+        "cutoff": {
           "name": "cutoff",
           "type_name": "float",
           "state": "percent_cutoff",
@@ -5474,9 +6221,9 @@
           },
           "shape_contract": null
         }
-      ],
-      "outputs": [
-        {
+      },
+      "outputs": {
+        "output_var": {
           "name": "output_var",
           "type_name": "Image",
           "state": "enhanced_contrast",
@@ -5491,7 +6238,7 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      ],
+      },
       "preconditions": [],
       "postconditions": [],
       "effects": [
@@ -5503,7 +6250,8 @@
           "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": "true",
-          "metadata": {}
+          "metadata": {},
+          "needs_mining": true
         }
       ]
     },
@@ -5548,8 +6296,8 @@
         "ValueError"
       ],
       "type_vars": [],
-      "inputs": [
-        {
+      "inputs": {
+        "image": {
           "name": "image",
           "type_name": "Image",
           "state": "mode_rgb",
@@ -5569,7 +6317,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        {
+        "size": {
           "name": "size",
           "type_name": "tuple",
           "state": "target_dimensions",
@@ -5584,7 +6332,7 @@
           "value_constraints": null,
           "shape_contract": "(2,)"
         },
-        {
+        "color": {
           "name": "color",
           "type_name": "tuple",
           "state": "padding_color",
@@ -5599,9 +6347,9 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      ],
-      "outputs": [
-        {
+      },
+      "outputs": {
+        "output_var": {
           "name": "output_var",
           "type_name": "Image",
           "state": "resized",
@@ -5616,7 +6364,7 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      ],
+      },
       "preconditions": [],
       "postconditions": [
         {
@@ -5637,7 +6385,8 @@
           "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": "true",
-          "metadata": {}
+          "metadata": {},
+          "needs_mining": true
         }
       ]
     },
@@ -5680,8 +6429,8 @@
         "ValueError"
       ],
       "type_vars": [],
-      "inputs": [
-        {
+      "inputs": {
+        "image": {
           "name": "image",
           "type_name": "Image",
           "state": "mode_rgb",
@@ -5701,7 +6450,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        {
+        "size": {
           "name": "size",
           "type_name": "tuple",
           "state": "target_dimensions",
@@ -5716,9 +6465,9 @@
           "value_constraints": null,
           "shape_contract": "(2,)"
         }
-      ],
-      "outputs": [
-        {
+      },
+      "outputs": {
+        "output_var": {
           "name": "output_var",
           "type_name": "Image",
           "state": "resized",
@@ -5733,7 +6482,7 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      ],
+      },
       "preconditions": [],
       "postconditions": [],
       "effects": [
@@ -5745,7 +6494,8 @@
           "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": "true",
-          "metadata": {}
+          "metadata": {},
+          "needs_mining": true
         }
       ]
     },
@@ -5788,8 +6538,8 @@
         "ValueError"
       ],
       "type_vars": [],
-      "inputs": [
-        {
+      "inputs": {
+        "image": {
           "name": "image",
           "type_name": "Image",
           "state": "mode_rgb",
@@ -5824,7 +6574,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        {
+        "dest_path": {
           "name": "dest_path",
           "type_name": "str",
           "state": "destination_path",
@@ -5839,8 +6589,8 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      ],
-      "outputs": [],
+      },
+      "outputs": {},
       "preconditions": [
         {
           "target": "dest_path",
@@ -5897,8 +6647,8 @@
         "OSError"
       ],
       "type_vars": [],
-      "inputs": [
-        {
+      "inputs": {
+        "image": {
           "name": "image",
           "type_name": "Image",
           "state": "mode_rgb",
@@ -5920,7 +6670,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        {
+        "dest_path": {
           "name": "dest_path",
           "type_name": "str",
           "state": "destination_path",
@@ -5935,7 +6685,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        {
+        "quality": {
           "name": "quality",
           "type_name": "int",
           "state": "compression_quality",
@@ -5953,8 +6703,8 @@
           },
           "shape_contract": null
         }
-      ],
-      "outputs": [],
+      },
+      "outputs": {},
       "preconditions": [
         {
           "target": "image",
@@ -6011,8 +6761,8 @@
         "OSError"
       ],
       "type_vars": [],
-      "inputs": [
-        {
+      "inputs": {
+        "image": {
           "name": "image",
           "type_name": "Image",
           "state": "mode_rgba",
@@ -6034,7 +6784,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        {
+        "dest_path": {
           "name": "dest_path",
           "type_name": "str",
           "state": "destination_path",
@@ -6049,7 +6799,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        {
+        "optimize": {
           "name": "optimize",
           "type_name": "bool",
           "state": "optimize_flag",
@@ -6064,8 +6814,8 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      ],
-      "outputs": [],
+      },
+      "outputs": {},
       "preconditions": [],
       "postconditions": [],
       "effects": [
@@ -6109,8 +6859,8 @@
       "feedback_state_type": null,
       "raises": [],
       "type_vars": [],
-      "inputs": [
-        {
+      "inputs": {
+        "image": {
           "name": "image",
           "type_name": "Image",
           "state": "mode_rgb",
@@ -6130,7 +6880,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        {
+        "title": {
           "name": "title",
           "type_name": "str",
           "state": "window_title",
@@ -6145,8 +6895,8 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      ],
-      "outputs": [],
+      },
+      "outputs": {},
       "preconditions": [],
       "postconditions": [],
       "effects": [
@@ -6194,8 +6944,8 @@
         "ValueError"
       ],
       "type_vars": [],
-      "inputs": [
-        {
+      "inputs": {
+        "mode": {
           "name": "mode",
           "type_name": "str",
           "state": "image_mode_str",
@@ -6216,7 +6966,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        {
+        "size": {
           "name": "size",
           "type_name": "tuple",
           "state": "dimensions",
@@ -6231,7 +6981,7 @@
           "value_constraints": null,
           "shape_contract": "(2,)"
         },
-        {
+        "data": {
           "name": "data",
           "type_name": "bytes",
           "state": "raw_byte_stream",
@@ -6246,9 +6996,9 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      ],
-      "outputs": [
-        {
+      },
+      "outputs": {
+        "output_var": {
           "name": "output_var",
           "type_name": "Image",
           "state": "mode_rgb",
@@ -6263,7 +7013,7 @@
           "value_constraints": null,
           "shape_contract": "(H, W, 3)"
         }
-      ],
+      },
       "preconditions": [
         {
           "target": "data",
@@ -6284,14 +7034,16 @@
           "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": "true",
-          "metadata": {}
+          "metadata": {},
+          "needs_mining": true
         },
         {
           "target_cell_id": "PILLOW_IMAGE_SAVE_WEBP",
           "affinity_score": 0.5,
           "score_provenance": "llm_seed",
           "bridging_precondition": "true",
-          "metadata": {}
+          "metadata": {},
+          "needs_mining": true
         }
       ]
     },
@@ -6332,8 +7084,8 @@
         "ValueError"
       ],
       "type_vars": [],
-      "inputs": [
-        {
+      "inputs": {
+        "mode": {
           "name": "mode",
           "type_name": "str",
           "state": "gradient_mode",
@@ -6350,9 +7102,9 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      ],
-      "outputs": [
-        {
+      },
+      "outputs": {
+        "output_var": {
           "name": "output_var",
           "type_name": "Image",
           "state": "mode_grayscale",
@@ -6367,7 +7119,7 @@
           "value_constraints": null,
           "shape_contract": "(256, 256)"
         }
-      ],
+      },
       "preconditions": [],
       "postconditions": [
         {
@@ -6388,7 +7140,8 @@
           "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": "true",
-          "metadata": {}
+          "metadata": {},
+          "needs_mining": true
         }
       ]
     },
@@ -6429,8 +7182,8 @@
         "ValueError"
       ],
       "type_vars": [],
-      "inputs": [
-        {
+      "inputs": {
+        "mode": {
           "name": "mode",
           "type_name": "str",
           "state": "gradient_mode",
@@ -6447,9 +7200,9 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      ],
-      "outputs": [
-        {
+      },
+      "outputs": {
+        "output_var": {
           "name": "output_var",
           "type_name": "Image",
           "state": "mode_grayscale",
@@ -6464,7 +7217,7 @@
           "value_constraints": null,
           "shape_contract": "(256, 256)"
         }
-      ],
+      },
       "preconditions": [],
       "postconditions": [],
       "effects": [
@@ -6476,7 +7229,8 @@
           "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": "true",
-          "metadata": {}
+          "metadata": {},
+          "needs_mining": true
         }
       ]
     },
@@ -6517,8 +7271,8 @@
       "feedback_state_type": null,
       "raises": [],
       "type_vars": [],
-      "inputs": [
-        {
+      "inputs": {
+        "image": {
           "name": "image",
           "type_name": "Image",
           "state": "mode_rgb",
@@ -6538,9 +7292,9 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      ],
-      "outputs": [
-        {
+      },
+      "outputs": {
+        "output_var": {
           "name": "output_var",
           "type_name": "Image",
           "state": "mode_rgb",
@@ -6555,7 +7309,7 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      ],
+      },
       "preconditions": [],
       "postconditions": [],
       "effects": [
@@ -6567,7 +7321,8 @@
           "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": "true",
-          "metadata": {}
+          "metadata": {},
+          "needs_mining": true
         }
       ]
     },
@@ -6610,8 +7365,8 @@
         "ValueError"
       ],
       "type_vars": [],
-      "inputs": [
-        {
+      "inputs": {
+        "image": {
           "name": "image",
           "type_name": "Image",
           "state": "mode_rgb",
@@ -6630,7 +7385,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        {
+        "colors": {
           "name": "colors",
           "type_name": "int",
           "state": "palette_size",
@@ -6648,9 +7403,9 @@
           },
           "shape_contract": null
         }
-      ],
-      "outputs": [
-        {
+      },
+      "outputs": {
+        "output_var": {
           "name": "output_var",
           "type_name": "Image",
           "state": "mode_palette",
@@ -6665,7 +7420,7 @@
           "value_constraints": null,
           "shape_contract": "(H, W)"
         }
-      ],
+      },
       "preconditions": [],
       "postconditions": [
         {
@@ -6686,7 +7441,8 @@
           "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": "true",
-          "metadata": {}
+          "metadata": {},
+          "needs_mining": true
         }
       ]
     },
@@ -6728,8 +7484,8 @@
         "ValueError"
       ],
       "type_vars": [],
-      "inputs": [
-        {
+      "inputs": {
+        "image": {
           "name": "image",
           "type_name": "Image",
           "state": "mode_rgb",
@@ -6744,9 +7500,9 @@
           "value_constraints": null,
           "shape_contract": "(H, W, 3)"
         }
-      ],
-      "outputs": [
-        {
+      },
+      "outputs": {
+        "output_var": {
           "name": "output_var",
           "type_name": "Image",
           "state": "mode_hsv",
@@ -6761,7 +7517,7 @@
           "value_constraints": null,
           "shape_contract": "(H, W, 3)"
         }
-      ],
+      },
       "preconditions": [
         {
           "target": "image",
@@ -6791,7 +7547,8 @@
           "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": "true",
-          "metadata": {}
+          "metadata": {},
+          "needs_mining": true
         }
       ]
     },
@@ -6832,8 +7589,8 @@
         "ValueError"
       ],
       "type_vars": [],
-      "inputs": [
-        {
+      "inputs": {
+        "image": {
           "name": "image",
           "type_name": "Image",
           "state": "mode_rgb",
@@ -6848,9 +7605,9 @@
           "value_constraints": null,
           "shape_contract": "(H, W, 3)"
         }
-      ],
-      "outputs": [
-        {
+      },
+      "outputs": {
+        "output_var": {
           "name": "output_var",
           "type_name": "Image",
           "state": "mode_lab",
@@ -6865,7 +7622,7 @@
           "value_constraints": null,
           "shape_contract": "(H, W, 3)"
         }
-      ],
+      },
       "preconditions": [],
       "postconditions": [
         {
@@ -6886,7 +7643,8 @@
           "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": "true",
-          "metadata": {}
+          "metadata": {},
+          "needs_mining": true
         }
       ]
     },
@@ -6927,8 +7685,8 @@
         "ValueError"
       ],
       "type_vars": [],
-      "inputs": [
-        {
+      "inputs": {
+        "image": {
           "name": "image",
           "type_name": "Image",
           "state": "mode_grayscale",
@@ -6947,9 +7705,9 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      ],
-      "outputs": [
-        {
+      },
+      "outputs": {
+        "output_var": {
           "name": "output_var",
           "type_name": "Image",
           "state": "mode_int32",
@@ -6964,7 +7722,7 @@
           "value_constraints": null,
           "shape_contract": "(H, W)"
         }
-      ],
+      },
       "preconditions": [],
       "postconditions": [
         {
@@ -6985,7 +7743,8 @@
           "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": "true",
-          "metadata": {}
+          "metadata": {},
+          "needs_mining": true
         }
       ]
     },
@@ -7026,8 +7785,8 @@
         "ValueError"
       ],
       "type_vars": [],
-      "inputs": [
-        {
+      "inputs": {
+        "image": {
           "name": "image",
           "type_name": "Image",
           "state": "mode_grayscale",
@@ -7047,9 +7806,9 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      ],
-      "outputs": [
-        {
+      },
+      "outputs": {
+        "output_var": {
           "name": "output_var",
           "type_name": "Image",
           "state": "mode_float32",
@@ -7064,7 +7823,7 @@
           "value_constraints": null,
           "shape_contract": "(H, W)"
         }
-      ],
+      },
       "preconditions": [],
       "postconditions": [
         {
@@ -7085,7 +7844,8 @@
           "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": "true",
-          "metadata": {}
+          "metadata": {},
+          "needs_mining": true
         }
       ]
     },
@@ -7125,8 +7885,8 @@
       "feedback_state_type": null,
       "raises": [],
       "type_vars": [],
-      "inputs": [
-        {
+      "inputs": {
+        "image": {
           "name": "image",
           "type_name": "Image",
           "state": "mode_int32",
@@ -7147,9 +7907,9 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      ],
-      "outputs": [
-        {
+      },
+      "outputs": {
+        "output_var": {
           "name": "output_var",
           "type_name": "ndarray",
           "state": "ndarray_generic",
@@ -7164,7 +7924,7 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      ],
+      },
       "preconditions": [],
       "postconditions": [],
       "effects": [
@@ -7211,8 +7971,8 @@
         "TypeError"
       ],
       "type_vars": [],
-      "inputs": [
-        {
+      "inputs": {
+        "array": {
           "name": "array",
           "type_name": "ndarray",
           "state": "ndarray_generic",
@@ -7227,9 +7987,9 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      ],
-      "outputs": [
-        {
+      },
+      "outputs": {
+        "output_var": {
           "name": "output_var",
           "type_name": "Image",
           "state": "mode_rgb",
@@ -7244,7 +8004,7 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      ],
+      },
       "preconditions": [],
       "postconditions": [],
       "effects": [
@@ -7256,7 +8016,8 @@
           "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": "true",
-          "metadata": {}
+          "metadata": {},
+          "needs_mining": true
         }
       ]
     },
@@ -7301,8 +8062,8 @@
         "ValueError"
       ],
       "type_vars": [],
-      "inputs": [
-        {
+      "inputs": {
+        "image": {
           "name": "image",
           "type_name": "Image",
           "state": "mode_rgb",
@@ -7322,7 +8083,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        {
+        "size": {
           "name": "size",
           "type_name": "tuple",
           "state": "target_dimensions",
@@ -7337,7 +8098,7 @@
           "value_constraints": null,
           "shape_contract": "(2,)"
         },
-        {
+        "data": {
           "name": "data",
           "type_name": "tuple",
           "state": "affine_coefficients",
@@ -7352,9 +8113,9 @@
           "value_constraints": null,
           "shape_contract": "(6,)"
         }
-      ],
-      "outputs": [
-        {
+      },
+      "outputs": {
+        "output_var": {
           "name": "output_var",
           "type_name": "Image",
           "state": "transformed",
@@ -7369,7 +8130,7 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      ],
+      },
       "preconditions": [
         {
           "target": "data",
@@ -7390,7 +8151,8 @@
           "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": "true",
-          "metadata": {}
+          "metadata": {},
+          "needs_mining": true
         }
       ]
     },
@@ -7434,8 +8196,8 @@
         "ValueError"
       ],
       "type_vars": [],
-      "inputs": [
-        {
+      "inputs": {
+        "image": {
           "name": "image",
           "type_name": "Image",
           "state": "mode_rgb",
@@ -7455,7 +8217,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        {
+        "size": {
           "name": "size",
           "type_name": "tuple",
           "state": "target_dimensions",
@@ -7470,7 +8232,7 @@
           "value_constraints": null,
           "shape_contract": "(2,)"
         },
-        {
+        "data": {
           "name": "data",
           "type_name": "tuple",
           "state": "perspective_coefficients",
@@ -7485,9 +8247,9 @@
           "value_constraints": null,
           "shape_contract": "(8,)"
         }
-      ],
-      "outputs": [
-        {
+      },
+      "outputs": {
+        "output_var": {
           "name": "output_var",
           "type_name": "Image",
           "state": "transformed",
@@ -7502,7 +8264,7 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      ],
+      },
       "preconditions": [
         {
           "target": "data",
@@ -7523,7 +8285,8 @@
           "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": "true",
-          "metadata": {}
+          "metadata": {},
+          "needs_mining": true
         }
       ]
     },
@@ -7567,8 +8330,8 @@
         "ValueError"
       ],
       "type_vars": [],
-      "inputs": [
-        {
+      "inputs": {
+        "image": {
           "name": "image",
           "type_name": "Image",
           "state": "mode_rgb",
@@ -7588,7 +8351,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        {
+        "size": {
           "name": "size",
           "type_name": "tuple",
           "state": "bounding_box",
@@ -7603,9 +8366,9 @@
           "value_constraints": null,
           "shape_contract": "(2,)"
         }
-      ],
-      "outputs": [
-        {
+      },
+      "outputs": {
+        "output_var": {
           "name": "output_var",
           "type_name": "Image",
           "state": "resized",
@@ -7620,7 +8383,7 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      ],
+      },
       "preconditions": [],
       "postconditions": [],
       "effects": [
@@ -7632,7 +8395,8 @@
           "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": "true",
-          "metadata": {}
+          "metadata": {},
+          "needs_mining": true
         }
       ]
     },
@@ -7674,8 +8438,8 @@
         "ValueError"
       ],
       "type_vars": [],
-      "inputs": [
-        {
+      "inputs": {
+        "image": {
           "name": "image",
           "type_name": "Image",
           "state": "mode_rgb",
@@ -7695,7 +8459,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        {
+        "size": {
           "name": "size",
           "type_name": "tuple",
           "state": "target_boundary",
@@ -7710,9 +8474,9 @@
           "value_constraints": null,
           "shape_contract": "(2,)"
         }
-      ],
-      "outputs": [
-        {
+      },
+      "outputs": {
+        "output_var": {
           "name": "output_var",
           "type_name": "Image",
           "state": "resized",
@@ -7727,7 +8491,7 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      ],
+      },
       "preconditions": [],
       "postconditions": [],
       "effects": [
@@ -7739,7 +8503,8 @@
           "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": "true",
-          "metadata": {}
+          "metadata": {},
+          "needs_mining": true
         }
       ]
     },
@@ -7786,8 +8551,8 @@
         "ValueError"
       ],
       "type_vars": [],
-      "inputs": [
-        {
+      "inputs": {
+        "image": {
           "name": "image",
           "type_name": "Image",
           "state": "mode_rgb",
@@ -7806,7 +8571,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        {
+        "size": {
           "name": "size",
           "type_name": "tuple",
           "state": "kernel_dimensions",
@@ -7821,7 +8586,7 @@
           "value_constraints": null,
           "shape_contract": "(2,)"
         },
-        {
+        "kernel": {
           "name": "kernel",
           "type_name": "tuple",
           "state": "kernel_weights",
@@ -7836,7 +8601,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        {
+        "scale": {
           "name": "scale",
           "type_name": "float",
           "state": "divisor_scale",
@@ -7851,7 +8616,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        {
+        "offset": {
           "name": "offset",
           "type_name": "float",
           "state": "bias_offset",
@@ -7866,9 +8631,9 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      ],
-      "outputs": [
-        {
+      },
+      "outputs": {
+        "output_var": {
           "name": "output_var",
           "type_name": "Image",
           "state": "filtered_general",
@@ -7883,7 +8648,7 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      ],
+      },
       "preconditions": [],
       "postconditions": [],
       "effects": [
@@ -7895,7 +8660,8 @@
           "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": "true",
-          "metadata": {}
+          "metadata": {},
+          "needs_mining": true
         }
       ]
     },
@@ -7933,8 +8699,8 @@
       "feedback_state_type": null,
       "raises": [],
       "type_vars": [],
-      "inputs": [
-        {
+      "inputs": {
+        "image": {
           "name": "image",
           "type_name": "Image",
           "state": "mode_rgb",
@@ -7954,9 +8720,9 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      ],
-      "outputs": [
-        {
+      },
+      "outputs": {
+        "output_var": {
           "name": "output_var",
           "type_name": "Image",
           "state": "filtered_blur",
@@ -7971,7 +8737,7 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      ],
+      },
       "preconditions": [],
       "postconditions": [],
       "effects": [
@@ -7983,7 +8749,8 @@
           "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": "true",
-          "metadata": {}
+          "metadata": {},
+          "needs_mining": true
         }
       ]
     },
@@ -8028,8 +8795,8 @@
         "ValueError"
       ],
       "type_vars": [],
-      "inputs": [
-        {
+      "inputs": {
+        "image": {
           "name": "image",
           "type_name": "Image",
           "state": "mode_grayscale",
@@ -8044,7 +8811,7 @@
           "value_constraints": null,
           "shape_contract": "(H, W)"
         },
-        {
+        "black": {
           "name": "black",
           "type_name": "tuple",
           "state": "shadow_color",
@@ -8059,7 +8826,7 @@
           "value_constraints": null,
           "shape_contract": "(3,)"
         },
-        {
+        "white": {
           "name": "white",
           "type_name": "tuple",
           "state": "highlight_color",
@@ -8074,9 +8841,9 @@
           "value_constraints": null,
           "shape_contract": "(3,)"
         }
-      ],
-      "outputs": [
-        {
+      },
+      "outputs": {
+        "output_var": {
           "name": "output_var",
           "type_name": "Image",
           "state": "mode_rgb",
@@ -8091,7 +8858,7 @@
           "value_constraints": null,
           "shape_contract": "(H, W, 3)"
         }
-      ],
+      },
       "preconditions": [
         {
           "target": "image",
@@ -8121,7 +8888,8 @@
           "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": "true",
-          "metadata": {}
+          "metadata": {},
+          "needs_mining": true
         }
       ]
     },
@@ -8162,8 +8930,8 @@
       "feedback_state_type": null,
       "raises": [],
       "type_vars": [],
-      "inputs": [
-        {
+      "inputs": {
+        "image": {
           "name": "image",
           "type_name": "Image",
           "state": "mode_rgb",
@@ -8182,7 +8950,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        {
+        "threshold": {
           "name": "threshold",
           "type_name": "int",
           "state": "luminance_threshold",
@@ -8200,9 +8968,9 @@
           },
           "shape_contract": null
         }
-      ],
-      "outputs": [
-        {
+      },
+      "outputs": {
+        "output_var": {
           "name": "output_var",
           "type_name": "Image",
           "state": "enhanced_contrast",
@@ -8217,7 +8985,7 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      ],
+      },
       "preconditions": [],
       "postconditions": [],
       "effects": [
@@ -8229,7 +8997,8 @@
           "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": "true",
-          "metadata": {}
+          "metadata": {},
+          "needs_mining": true
         }
       ]
     },
@@ -8274,8 +9043,8 @@
         "ValueError"
       ],
       "type_vars": [],
-      "inputs": [
-        {
+      "inputs": {
+        "draw": {
           "name": "draw",
           "type_name": "ImageDraw",
           "state": "draw_context_active",
@@ -8290,7 +9059,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        {
+        "xy": {
           "name": "xy",
           "type_name": "tuple",
           "state": "bounding_box",
@@ -8305,7 +9074,7 @@
           "value_constraints": null,
           "shape_contract": "(4,)"
         },
-        {
+        "radius": {
           "name": "radius",
           "type_name": "int",
           "state": "corner_radius_px",
@@ -8322,7 +9091,7 @@
           },
           "shape_contract": null
         },
-        {
+        "fill": {
           "name": "fill",
           "type_name": "tuple",
           "state": "fill_color",
@@ -8337,7 +9106,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        {
+        "outline": {
           "name": "outline",
           "type_name": "tuple",
           "state": "border_color",
@@ -8352,7 +9121,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        {
+        "width": {
           "name": "width",
           "type_name": "int",
           "state": "stroke_width",
@@ -8369,8 +9138,8 @@
           },
           "shape_contract": null
         }
-      ],
-      "outputs": [],
+      },
+      "outputs": {},
       "preconditions": [],
       "postconditions": [],
       "effects": [
@@ -8382,7 +9151,8 @@
           "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": "true",
-          "metadata": {}
+          "metadata": {},
+          "needs_mining": true
         }
       ]
     },
@@ -8428,8 +9198,8 @@
         "ValueError"
       ],
       "type_vars": [],
-      "inputs": [
-        {
+      "inputs": {
+        "draw": {
           "name": "draw",
           "type_name": "ImageDraw",
           "state": "draw_context_active",
@@ -8444,7 +9214,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        {
+        "xy": {
           "name": "xy",
           "type_name": "tuple",
           "state": "text_origin",
@@ -8459,7 +9229,7 @@
           "value_constraints": null,
           "shape_contract": "(2,)"
         },
-        {
+        "text": {
           "name": "text",
           "type_name": "str",
           "state": "multiline_content",
@@ -8474,7 +9244,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        {
+        "fill": {
           "name": "fill",
           "type_name": "tuple",
           "state": "color_spec",
@@ -8489,7 +9259,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        {
+        "spacing": {
           "name": "spacing",
           "type_name": "int",
           "state": "line_spacing",
@@ -8504,7 +9274,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        {
+        "align": {
           "name": "align",
           "type_name": "str",
           "state": "alignment",
@@ -8523,8 +9293,8 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      ],
-      "outputs": [],
+      },
+      "outputs": {},
       "preconditions": [],
       "postconditions": [],
       "effects": [
@@ -8570,8 +9340,8 @@
         "ValueError"
       ],
       "type_vars": [],
-      "inputs": [
-        {
+      "inputs": {
+        "image_dst": {
           "name": "image_dst",
           "type_name": "Image",
           "state": "mode_rgb",
@@ -8590,7 +9360,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        {
+        "image_src": {
           "name": "image_src",
           "type_name": "Image",
           "state": "mode_rgb",
@@ -8609,7 +9379,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        {
+        "box": {
           "name": "box",
           "type_name": "tuple",
           "state": "paste_coordinates",
@@ -8624,8 +9394,8 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      ],
-      "outputs": [],
+      },
+      "outputs": {},
       "preconditions": [],
       "postconditions": [],
       "effects": [
@@ -8637,7 +9407,8 @@
           "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": "true",
-          "metadata": {}
+          "metadata": {},
+          "needs_mining": true
         }
       ]
     },
@@ -8680,8 +9451,8 @@
         "ValueError"
       ],
       "type_vars": [],
-      "inputs": [
-        {
+      "inputs": {
+        "image": {
           "name": "image",
           "type_name": "Image",
           "state": "mode_rgb",
@@ -8702,7 +9473,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        {
+        "channel": {
           "name": "channel",
           "type_name": "str",
           "state": "channel_identifier",
@@ -8729,9 +9500,9 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      ],
-      "outputs": [
-        {
+      },
+      "outputs": {
+        "output_var": {
           "name": "output_var",
           "type_name": "Image",
           "state": "mode_grayscale",
@@ -8746,7 +9517,7 @@
           "value_constraints": null,
           "shape_contract": "(H, W)"
         }
-      ],
+      },
       "preconditions": [],
       "postconditions": [
         {
@@ -8767,7 +9538,8 @@
           "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": "true",
-          "metadata": {}
+          "metadata": {},
+          "needs_mining": true
         }
       ]
     },
@@ -8812,8 +9584,8 @@
         "ValueError"
       ],
       "type_vars": [],
-      "inputs": [
-        {
+      "inputs": {
+        "image1": {
           "name": "image1",
           "type_name": "Image",
           "state": "mode_rgb",
@@ -8828,7 +9600,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        {
+        "image2": {
           "name": "image2",
           "type_name": "Image",
           "state": "mode_rgb",
@@ -8843,7 +9615,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        {
+        "scale": {
           "name": "scale",
           "type_name": "float",
           "state": "arithmetic_scale",
@@ -8858,7 +9630,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        {
+        "offset": {
           "name": "offset",
           "type_name": "int",
           "state": "arithmetic_offset",
@@ -8873,9 +9645,9 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      ],
-      "outputs": [
-        {
+      },
+      "outputs": {
+        "output_var": {
           "name": "output_var",
           "type_name": "Image",
           "state": "composited",
@@ -8890,7 +9662,7 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      ],
+      },
       "preconditions": [],
       "postconditions": [],
       "effects": [
@@ -8902,7 +9674,8 @@
           "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": "true",
-          "metadata": {}
+          "metadata": {},
+          "needs_mining": true
         }
       ]
     },
@@ -8946,8 +9719,8 @@
         "ValueError"
       ],
       "type_vars": [],
-      "inputs": [
-        {
+      "inputs": {
+        "image1": {
           "name": "image1",
           "type_name": "Image",
           "state": "mode_rgb",
@@ -8962,7 +9735,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        {
+        "image2": {
           "name": "image2",
           "type_name": "Image",
           "state": "mode_rgb",
@@ -8977,9 +9750,9 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      ],
-      "outputs": [
-        {
+      },
+      "outputs": {
+        "output_var": {
           "name": "output_var",
           "type_name": "Image",
           "state": "composited",
@@ -8994,7 +9767,7 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      ],
+      },
       "preconditions": [],
       "postconditions": [],
       "effects": [
@@ -9006,7 +9779,8 @@
           "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": "true",
-          "metadata": {}
+          "metadata": {},
+          "needs_mining": true
         }
       ]
     },
@@ -9049,8 +9823,8 @@
         "ValueError"
       ],
       "type_vars": [],
-      "inputs": [
-        {
+      "inputs": {
+        "image1": {
           "name": "image1",
           "type_name": "Image",
           "state": "mode_rgb",
@@ -9065,7 +9839,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        {
+        "image2": {
           "name": "image2",
           "type_name": "Image",
           "state": "mode_rgb",
@@ -9080,9 +9854,9 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      ],
-      "outputs": [
-        {
+      },
+      "outputs": {
+        "output_var": {
           "name": "output_var",
           "type_name": "Image",
           "state": "composited",
@@ -9097,7 +9871,7 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      ],
+      },
       "preconditions": [],
       "postconditions": [],
       "effects": [
@@ -9109,7 +9883,8 @@
           "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": "true",
-          "metadata": {}
+          "metadata": {},
+          "needs_mining": true
         }
       ]
     },
@@ -9154,8 +9929,8 @@
         "OSError"
       ],
       "type_vars": [],
-      "inputs": [
-        {
+      "inputs": {
+        "image": {
           "name": "image",
           "type_name": "Image",
           "state": "mode_rgb",
@@ -9179,7 +9954,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        {
+        "dest_path": {
           "name": "dest_path",
           "type_name": "str",
           "state": "destination_path",
@@ -9194,7 +9969,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        {
+        "quality": {
           "name": "quality",
           "type_name": "int",
           "state": "webp_quality",
@@ -9212,7 +9987,7 @@
           },
           "shape_contract": null
         },
-        {
+        "lossless": {
           "name": "lossless",
           "type_name": "bool",
           "state": "lossless_flag",
@@ -9227,8 +10002,8 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      ],
-      "outputs": [],
+      },
+      "outputs": {},
       "preconditions": [],
       "postconditions": [],
       "effects": [
@@ -9278,8 +10053,8 @@
         "OSError"
       ],
       "type_vars": [],
-      "inputs": [
-        {
+      "inputs": {
+        "image": {
           "name": "image",
           "type_name": "Image",
           "state": "mode_palette",
@@ -9299,7 +10074,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        {
+        "dest_path": {
           "name": "dest_path",
           "type_name": "str",
           "state": "destination_path",
@@ -9314,7 +10089,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        {
+        "append_images": {
           "name": "append_images",
           "type_name": "list",
           "state": "subsequent_frames",
@@ -9329,7 +10104,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        {
+        "duration": {
           "name": "duration",
           "type_name": "int",
           "state": "frame_duration_ms",
@@ -9346,7 +10121,7 @@
           },
           "shape_contract": null
         },
-        {
+        "loop": {
           "name": "loop",
           "type_name": "int",
           "state": "loop_count",
@@ -9361,8 +10136,8 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      ],
-      "outputs": [],
+      },
+      "outputs": {},
       "preconditions": [],
       "postconditions": [],
       "effects": [
@@ -9408,8 +10183,8 @@
         "EOFError"
       ],
       "type_vars": [],
-      "inputs": [
-        {
+      "inputs": {
+        "image": {
           "name": "image",
           "type_name": "Image",
           "state": "multi_frame_stream",
@@ -9424,7 +10199,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        {
+        "frame": {
           "name": "frame",
           "type_name": "int",
           "state": "frame_index",
@@ -9441,8 +10216,8 @@
           },
           "shape_contract": null
         }
-      ],
-      "outputs": [],
+      },
+      "outputs": {},
       "preconditions": [],
       "postconditions": [],
       "effects": [
@@ -9454,7 +10229,8 @@
           "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": "true",
-          "metadata": {}
+          "metadata": {},
+          "needs_mining": true
         }
       ]
     },
@@ -9492,8 +10268,8 @@
       "feedback_state_type": null,
       "raises": [],
       "type_vars": [],
-      "inputs": [
-        {
+      "inputs": {
+        "image": {
           "name": "image",
           "type_name": "Image",
           "state": "multi_frame_stream",
@@ -9508,9 +10284,9 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      ],
-      "outputs": [
-        {
+      },
+      "outputs": {
+        "output_var": {
           "name": "output_var",
           "type_name": "int",
           "state": "active_frame_index",
@@ -9525,7 +10301,7 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      ],
+      },
       "preconditions": [],
       "postconditions": [],
       "effects": [],
@@ -9566,8 +10342,8 @@
       "feedback_state_type": null,
       "raises": [],
       "type_vars": [],
-      "inputs": [
-        {
+      "inputs": {
+        "image": {
           "name": "image",
           "type_name": "Image",
           "state": "mode_rgb",
@@ -9589,8 +10365,8 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      ],
-      "outputs": [],
+      },
+      "outputs": {},
       "preconditions": [],
       "postconditions": [],
       "effects": [
@@ -9599,5 +10375,52 @@
       ],
       "edges": []
     }
-  ]
+  ],
+  "egress_intent_tokens": [
+    "save",
+    "export",
+    "write",
+    "dump",
+    "persist",
+    "store",
+    "plot",
+    "show",
+    "display"
+  ],
+  "materialization_states": [
+    "destination_written",
+    "filepath_written",
+    "saved",
+    "exported",
+    "written_to_disk"
+  ],
+  "polarity_hints": {
+    "ascending": [
+      "bottom",
+      "lowest",
+      "smallest",
+      "minimum",
+      "min",
+      "worst",
+      "least",
+      "ascending",
+      "asc",
+      "fewest"
+    ],
+    "descending": [
+      "top",
+      "highest",
+      "largest",
+      "biggest",
+      "greatest",
+      "maximum",
+      "max",
+      "best",
+      "most",
+      "descending",
+      "desc",
+      "newest",
+      "latest"
+    ]
+  }
 }

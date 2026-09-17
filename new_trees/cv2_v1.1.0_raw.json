@@ -224,89 +224,24 @@
     ],
     "transitions": [
       {
-        "from": "binary",
-        "to": "contours",
-        "via": "CV2_FIND_CONTOURS"
-      },
-      {
-        "from": "binary",
-        "to": "dilated",
-        "via": "CV2_DILATE"
-      },
-      {
-        "from": "binary",
-        "to": "eroded",
-        "via": "CV2_ERODE"
-      },
-      {
-        "from": "binary",
-        "to": "morphology_processed",
-        "via": "CV2_MORPHOLOGY_EX_CLOSE"
-      },
-      {
-        "from": "binary",
-        "to": "morphology_processed",
-        "via": "CV2_MORPHOLOGY_EX_OPEN"
-      },
-      {
-        "from": "binary",
-        "to": "saved",
-        "via": "CV2_IMWRITE"
-      },
-      {
-        "from": "blurred",
-        "to": "edge_map",
-        "via": "CV2_CANNY"
-      },
-      {
-        "from": "color_bgr",
-        "to": "blurred",
-        "via": "CV2_GAUSSIAN_BLUR"
-      },
-      {
-        "from": "color_bgr",
+        "from": "file_path",
         "to": "color_bgr",
-        "via": "CV2_CIRCLE"
-      },
-      {
-        "from": "color_bgr",
-        "to": "color_bgr",
-        "via": "CV2_DRAW_CONTOURS"
-      },
-      {
-        "from": "color_bgr",
-        "to": "color_bgr",
-        "via": "CV2_FAST_NL_MEANS_DENOISING_COLORED"
-      },
-      {
-        "from": "color_bgr",
-        "to": "color_bgr",
-        "via": "CV2_LINE"
-      },
-      {
-        "from": "color_bgr",
-        "to": "color_bgr",
-        "via": "CV2_POLY_LINES"
-      },
-      {
-        "from": "color_bgr",
-        "to": "color_bgr",
-        "via": "CV2_PUT_TEXT"
-      },
-      {
-        "from": "color_bgr",
-        "to": "color_bgr",
-        "via": "CV2_RECTANGLE"
-      },
-      {
-        "from": "color_bgr",
-        "to": "color_rgb",
-        "via": "CV2_CVT_COLOR_BGR2RGB"
+        "via": "CV2_IMREAD"
       },
       {
         "from": "color_bgr",
         "to": "gray",
         "via": "CV2_CVT_COLOR_BGR2GRAY"
+      },
+      {
+        "from": "gray",
+        "to": "color_bgr",
+        "via": "CV2_CVT_COLOR_GRAY2BGR"
+      },
+      {
+        "from": "color_bgr",
+        "to": "color_rgb",
+        "via": "CV2_CVT_COLOR_BGR2RGB"
       },
       {
         "from": "color_bgr",
@@ -319,99 +254,14 @@
         "via": "CV2_CVT_COLOR_BGR2LAB"
       },
       {
-        "from": "color_bgr",
-        "to": "saved",
-        "via": "CV2_IMWRITE"
-      },
-      {
-        "from": "color_bgr",
-        "to": "segmented_markers",
-        "via": "CV2_WATERSHED"
-      },
-      {
-        "from": "compressed_buffer",
-        "to": "color_bgr",
-        "via": "CV2_IMDECODE"
-      },
-      {
-        "from": "contour",
-        "to": "area_scalar",
-        "via": "CV2_CONTOUR_AREA"
-      },
-      {
-        "from": "contour",
-        "to": "contour",
-        "via": "CV2_APPROX_POLY_DP"
-      },
-      {
-        "from": "contour",
-        "to": "contour",
-        "via": "CV2_CONVEX_HULL"
-      },
-      {
-        "from": "contour",
-        "to": "coord",
-        "via": "CV2_BOUNDING_RECT"
-      },
-      {
-        "from": "contour",
-        "to": "perimeter_scalar",
-        "via": "CV2_ARC_LENGTH"
-      },
-      {
-        "from": "contour",
-        "to": "point_2d",
-        "via": "CV2_MIN_ENCLOSING_CIRCLE"
-      },
-      {
-        "from": "delay_ms",
-        "to": "key_code",
-        "via": "CV2_WAIT_KEY"
-      },
-      {
-        "from": "descriptors",
-        "to": "matches",
-        "via": "CV2_BFMATCHER_MATCH"
-      },
-      {
-        "from": "device_index",
-        "to": "video_capture",
-        "via": "CV2_VIDEOCAPTURE_INIT"
-      },
-      {
-        "from": "edge_map",
-        "to": "contours",
-        "via": "CV2_FIND_CONTOURS"
-      },
-      {
-        "from": "edge_map",
-        "to": "line_segments",
-        "via": "CV2_HOUGH_LINES_P"
-      },
-      {
-        "from": "edge_map",
-        "to": "saved",
-        "via": "CV2_IMWRITE"
-      },
-      {
-        "from": "feature_limit",
-        "to": "orb_detector",
-        "via": "CV2_ORB_CREATE"
-      },
-      {
-        "from": "feature_limit",
-        "to": "sift_detector",
-        "via": "CV2_SIFT_CREATE"
-      },
-      {
-        "from": "file_path",
-        "to": "color_bgr",
-        "via": "CV2_IMREAD"
-      },
-      {
         "from": "gray",
-        "to": "binary",
-        "via": "CV2_ADAPTIVE_THRESHOLD_GAUSSIAN"
+        "to": "blurred",
+        "via": "CV2_GAUSSIAN_BLUR"
+      },
+      {
+        "from": "color_bgr",
+        "to": "blurred",
+        "via": "CV2_GAUSSIAN_BLUR"
       },
       {
         "from": "gray",
@@ -424,29 +274,9 @@
         "via": "CV2_THRESHOLD_OTSU"
       },
       {
-        "from": "gray",
-        "to": "blurred",
-        "via": "CV2_GAUSSIAN_BLUR"
-      },
-      {
-        "from": "gray",
-        "to": "circles",
-        "via": "CV2_HOUGH_CIRCLES"
-      },
-      {
-        "from": "gray",
-        "to": "color_bgr",
-        "via": "CV2_CVT_COLOR_GRAY2BGR"
-      },
-      {
-        "from": "gray",
-        "to": "corner_points",
-        "via": "CV2_GOOD_FEATURES_TO_TRACK"
-      },
-      {
-        "from": "gray",
-        "to": "corner_response",
-        "via": "CV2_CORNER_HARRIS"
+        "from": "blurred",
+        "to": "edge_map",
+        "via": "CV2_CANNY"
       },
       {
         "from": "gray",
@@ -454,34 +284,29 @@
         "via": "CV2_CANNY"
       },
       {
-        "from": "gray",
-        "to": "gradient_map",
-        "via": "CV2_LAPLACIAN"
+        "from": "binary",
+        "to": "contours",
+        "via": "CV2_FIND_CONTOURS"
       },
       {
-        "from": "gray",
-        "to": "gradient_map",
-        "via": "CV2_SOBEL"
+        "from": "edge_map",
+        "to": "contours",
+        "via": "CV2_FIND_CONTOURS"
       },
       {
-        "from": "gray",
-        "to": "gray",
-        "via": "CV2_CLAHE_APPLY"
+        "from": "binary",
+        "to": "morphology_processed",
+        "via": "CV2_MORPHOLOGY_EX_OPEN"
       },
       {
-        "from": "gray",
-        "to": "gray",
-        "via": "CV2_EQUALIZE_HIST"
+        "from": "binary",
+        "to": "morphology_processed",
+        "via": "CV2_MORPHOLOGY_EX_CLOSE"
       },
       {
-        "from": "gray",
-        "to": "keypoints",
-        "via": "CV2_ORB_DETECT_AND_COMPUTE"
-      },
-      {
-        "from": "gray",
-        "to": "keypoints",
-        "via": "CV2_SIFT_DETECT_AND_COMPUTE"
+        "from": "color_bgr",
+        "to": "saved",
+        "via": "CV2_IMWRITE"
       },
       {
         "from": "gray",
@@ -489,39 +314,14 @@
         "via": "CV2_IMWRITE"
       },
       {
-        "from": "grid_size",
-        "to": "clahe_object",
-        "via": "CV2_CREATE_CLAHE"
+        "from": "binary",
+        "to": "saved",
+        "via": "CV2_IMWRITE"
       },
       {
-        "from": "kernel_size",
-        "to": "structuring_element",
-        "via": "CV2_GET_STRUCTURING_ELEMENT"
-      },
-      {
-        "from": "norm_metric",
-        "to": "bf_matcher",
-        "via": "CV2_BFMATCHER_CREATE"
-      },
-      {
-        "from": "point_2d",
-        "to": "affine_matrix",
-        "via": "CV2_GET_ROTATION_MATRIX_2D"
-      },
-      {
-        "from": "points",
-        "to": "homography_matrix",
-        "via": "CV2_GET_PERSPECTIVE_TRANSFORM"
-      },
-      {
-        "from": "size_tuple",
-        "to": "video_writer",
-        "via": "CV2_VIDEOWRITER_INIT"
-      },
-      {
-        "from": "video_capture",
-        "to": "color_bgr",
-        "via": "CV2_VIDEOCAPTURE_READ"
+        "from": "edge_map",
+        "to": "saved",
+        "via": "CV2_IMWRITE"
       }
     ],
     "initial_state": "color_bgr",
@@ -675,35 +475,27 @@
       "edges": [
         {
           "target_cell_id": "CV2_CVT_COLOR_BGR2GRAY",
-          "affinity_score": 0.8,
+          "affinity_score": 0.95,
           "bridging_precondition": "channels == 3",
-          "metadata": {},
-          "score_provenance": "llm_seed",
-          "needs_mining": true
+          "metadata": {}
         },
         {
           "target_cell_id": "CV2_RESIZE",
-          "affinity_score": 0.5,
+          "affinity_score": 0.85,
           "bridging_precondition": null,
-          "metadata": {},
-          "score_provenance": "llm_seed",
-          "needs_mining": true
+          "metadata": {}
         },
         {
           "target_cell_id": "CV2_GAUSSIAN_BLUR",
-          "affinity_score": 0.2,
+          "affinity_score": 0.8,
           "bridging_precondition": null,
-          "metadata": {},
-          "score_provenance": "llm_seed",
-          "needs_mining": true
+          "metadata": {}
         },
         {
           "target_cell_id": "CV2_IMSHOW",
-          "affinity_score": 0.2,
+          "affinity_score": 0.75,
           "bridging_precondition": null,
-          "metadata": {},
-          "score_provenance": "llm_seed",
-          "needs_mining": true
+          "metadata": {}
         }
       ]
     },
@@ -928,19 +720,15 @@
       "edges": [
         {
           "target_cell_id": "CV2_WAIT_KEY",
-          "affinity_score": 0.8,
+          "affinity_score": 0.99,
           "bridging_precondition": null,
-          "metadata": {},
-          "score_provenance": "llm_seed",
-          "needs_mining": true
+          "metadata": {}
         },
         {
           "target_cell_id": "CV2_DESTROY_ALL_WINDOWS",
-          "affinity_score": 0.5,
+          "affinity_score": 0.8,
           "bridging_precondition": null,
-          "metadata": {},
-          "score_provenance": "llm_seed",
-          "needs_mining": true
+          "metadata": {}
         }
       ]
     },
@@ -1021,11 +809,9 @@
       "edges": [
         {
           "target_cell_id": "CV2_DESTROY_ALL_WINDOWS",
-          "affinity_score": 0.8,
+          "affinity_score": 0.9,
           "bridging_precondition": null,
-          "metadata": {},
-          "score_provenance": "llm_seed",
-          "needs_mining": true
+          "metadata": {}
         }
       ]
     },
@@ -1199,51 +985,39 @@
       "edges": [
         {
           "target_cell_id": "CV2_GAUSSIAN_BLUR",
-          "affinity_score": 0.8,
+          "affinity_score": 0.92,
           "bridging_precondition": "state == 'gray'",
-          "metadata": {},
-          "score_provenance": "llm_seed",
-          "needs_mining": true
+          "metadata": {}
         },
         {
           "target_cell_id": "CV2_CANNY",
-          "affinity_score": 0.8,
+          "affinity_score": 0.9,
           "bridging_precondition": "state == 'gray'",
-          "metadata": {},
-          "score_provenance": "llm_seed",
-          "needs_mining": true
+          "metadata": {}
         },
         {
           "target_cell_id": "CV2_THRESHOLD_BINARY",
-          "affinity_score": 0.5,
+          "affinity_score": 0.88,
           "bridging_precondition": "state == 'gray'",
-          "metadata": {},
-          "score_provenance": "llm_seed",
-          "needs_mining": true
+          "metadata": {}
         },
         {
           "target_cell_id": "CV2_THRESHOLD_OTSU",
-          "affinity_score": 0.5,
+          "affinity_score": 0.85,
           "bridging_precondition": "state == 'gray'",
-          "metadata": {},
-          "score_provenance": "llm_seed",
-          "needs_mining": true
+          "metadata": {}
         },
         {
           "target_cell_id": "CV2_EQUALIZE_HIST",
-          "affinity_score": 0.2,
+          "affinity_score": 0.8,
           "bridging_precondition": "state == 'gray'",
-          "metadata": {},
-          "score_provenance": "llm_seed",
-          "needs_mining": true
+          "metadata": {}
         },
         {
           "target_cell_id": "CV2_SOBEL",
-          "affinity_score": 0.2,
+          "affinity_score": 0.78,
           "bridging_precondition": "state == 'gray'",
-          "metadata": {},
-          "score_provenance": "llm_seed",
-          "needs_mining": true
+          "metadata": {}
         }
       ]
     },
@@ -1356,19 +1130,15 @@
       "edges": [
         {
           "target_cell_id": "CV2_DRAW_CONTOURS",
-          "affinity_score": 0.8,
+          "affinity_score": 0.85,
           "bridging_precondition": null,
-          "metadata": {},
-          "score_provenance": "llm_seed",
-          "needs_mining": true
+          "metadata": {}
         },
         {
           "target_cell_id": "CV2_IMWRITE",
-          "affinity_score": 0.5,
+          "affinity_score": 0.8,
           "bridging_precondition": null,
-          "metadata": {},
-          "score_provenance": "llm_seed",
-          "needs_mining": true
+          "metadata": {}
         }
       ]
     },
@@ -1594,19 +1364,15 @@
       "edges": [
         {
           "target_cell_id": "CV2_IN_RANGE",
-          "affinity_score": 0.8,
+          "affinity_score": 0.95,
           "bridging_precondition": "state == 'hsv'",
-          "metadata": {},
-          "score_provenance": "llm_seed",
-          "needs_mining": true
+          "metadata": {}
         },
         {
           "target_cell_id": "CV2_SPLIT",
-          "affinity_score": 0.5,
+          "affinity_score": 0.8,
           "bridging_precondition": null,
-          "metadata": {},
-          "score_provenance": "llm_seed",
-          "needs_mining": true
+          "metadata": {}
         }
       ]
     },
@@ -1720,11 +1486,9 @@
       "edges": [
         {
           "target_cell_id": "CV2_SPLIT",
-          "affinity_score": 0.8,
+          "affinity_score": 0.85,
           "bridging_precondition": null,
-          "metadata": {},
-          "score_provenance": "llm_seed",
-          "needs_mining": true
+          "metadata": {}
         }
       ]
     },
@@ -1900,17 +1664,13 @@
           "target_cell_id": "CV2_CVT_COLOR_BGR2GRAY",
           "affinity_score": 0.8,
           "bridging_precondition": null,
-          "metadata": {},
-          "score_provenance": "llm_seed",
-          "needs_mining": true
+          "metadata": {}
         },
         {
           "target_cell_id": "CV2_GAUSSIAN_BLUR",
-          "affinity_score": 0.5,
+          "affinity_score": 0.75,
           "bridging_precondition": null,
-          "metadata": {},
-          "score_provenance": "llm_seed",
-          "needs_mining": true
+          "metadata": {}
         }
       ]
     },
@@ -2079,9 +1839,7 @@
           "target_cell_id": "CV2_IMWRITE",
           "affinity_score": 0.8,
           "bridging_precondition": null,
-          "metadata": {},
-          "score_provenance": "llm_seed",
-          "needs_mining": true
+          "metadata": {}
         }
       ]
     },
@@ -2213,11 +1971,9 @@
       "edges": [
         {
           "target_cell_id": "CV2_WARP_AFFINE",
-          "affinity_score": 0.8,
+          "affinity_score": 0.98,
           "bridging_precondition": null,
-          "metadata": {},
-          "score_provenance": "llm_seed",
-          "needs_mining": true
+          "metadata": {}
         }
       ]
     },
@@ -2385,9 +2141,7 @@
           "target_cell_id": "CV2_IMWRITE",
           "affinity_score": 0.8,
           "bridging_precondition": null,
-          "metadata": {},
-          "score_provenance": "llm_seed",
-          "needs_mining": true
+          "metadata": {}
         }
       ]
     },
@@ -2530,11 +2284,9 @@
       "edges": [
         {
           "target_cell_id": "CV2_WARP_PERSPECTIVE",
-          "affinity_score": 0.8,
+          "affinity_score": 0.98,
           "bridging_precondition": null,
-          "metadata": {},
-          "score_provenance": "llm_seed",
-          "needs_mining": true
+          "metadata": {}
         }
       ]
     },
@@ -2649,11 +2401,9 @@
       "edges": [
         {
           "target_cell_id": "CV2_IMWRITE",
-          "affinity_score": 0.8,
+          "affinity_score": 0.7,
           "bridging_precondition": null,
-          "metadata": {},
-          "score_provenance": "llm_seed",
-          "needs_mining": true
+          "metadata": {}
         }
       ]
     },
@@ -2821,43 +2571,33 @@
       "edges": [
         {
           "target_cell_id": "CV2_CANNY",
-          "affinity_score": 0.8,
+          "affinity_score": 0.95,
           "bridging_precondition": null,
-          "metadata": {},
-          "score_provenance": "llm_seed",
-          "needs_mining": true
+          "metadata": {}
         },
         {
           "target_cell_id": "CV2_THRESHOLD_BINARY",
-          "affinity_score": 0.5,
+          "affinity_score": 0.88,
           "bridging_precondition": null,
-          "metadata": {},
-          "score_provenance": "llm_seed",
-          "needs_mining": true
+          "metadata": {}
         },
         {
           "target_cell_id": "CV2_THRESHOLD_OTSU",
-          "affinity_score": 0.5,
+          "affinity_score": 0.87,
           "bridging_precondition": null,
-          "metadata": {},
-          "score_provenance": "llm_seed",
-          "needs_mining": true
+          "metadata": {}
         },
         {
           "target_cell_id": "CV2_SOBEL",
-          "affinity_score": 0.2,
+          "affinity_score": 0.82,
           "bridging_precondition": null,
-          "metadata": {},
-          "score_provenance": "llm_seed",
-          "needs_mining": true
+          "metadata": {}
         },
         {
           "target_cell_id": "CV2_LAPLACIAN",
-          "affinity_score": 0.2,
+          "affinity_score": 0.78,
           "bridging_precondition": null,
-          "metadata": {},
-          "score_provenance": "llm_seed",
-          "needs_mining": true
+          "metadata": {}
         }
       ]
     },
@@ -2978,11 +2718,9 @@
       "edges": [
         {
           "target_cell_id": "CV2_CANNY",
-          "affinity_score": 0.8,
+          "affinity_score": 0.85,
           "bridging_precondition": null,
-          "metadata": {},
-          "score_provenance": "llm_seed",
-          "needs_mining": true
+          "metadata": {}
         }
       ]
     },
@@ -3121,11 +2859,9 @@
       "edges": [
         {
           "target_cell_id": "CV2_CANNY",
-          "affinity_score": 0.8,
+          "affinity_score": 0.9,
           "bridging_precondition": null,
-          "metadata": {},
-          "score_provenance": "llm_seed",
-          "needs_mining": true
+          "metadata": {}
         }
       ]
     },
@@ -3454,11 +3190,9 @@
       "edges": [
         {
           "target_cell_id": "CV2_CONVERT_SCALE_ABS",
-          "affinity_score": 0.8,
+          "affinity_score": 0.95,
           "bridging_precondition": null,
-          "metadata": {},
-          "score_provenance": "llm_seed",
-          "needs_mining": true
+          "metadata": {}
         }
       ]
     },
@@ -3598,11 +3332,9 @@
       "edges": [
         {
           "target_cell_id": "CV2_CONVERT_SCALE_ABS",
-          "affinity_score": 0.8,
+          "affinity_score": 0.9,
           "bridging_precondition": null,
-          "metadata": {},
-          "score_provenance": "llm_seed",
-          "needs_mining": true
+          "metadata": {}
         }
       ]
     },
@@ -3791,35 +3523,27 @@
       "edges": [
         {
           "target_cell_id": "CV2_FIND_CONTOURS",
-          "affinity_score": 0.8,
+          "affinity_score": 0.95,
           "bridging_precondition": "state == 'edge_map'",
-          "metadata": {},
-          "score_provenance": "llm_seed",
-          "needs_mining": true
+          "metadata": {}
         },
         {
           "target_cell_id": "CV2_HOUGH_LINES_P",
-          "affinity_score": 0.5,
+          "affinity_score": 0.9,
           "bridging_precondition": "state == 'edge_map'",
-          "metadata": {},
-          "score_provenance": "llm_seed",
-          "needs_mining": true
+          "metadata": {}
         },
         {
           "target_cell_id": "CV2_DILATE",
-          "affinity_score": 0.2,
+          "affinity_score": 0.85,
           "bridging_precondition": null,
-          "metadata": {},
-          "score_provenance": "llm_seed",
-          "needs_mining": true
+          "metadata": {}
         },
         {
           "target_cell_id": "CV2_IMWRITE",
-          "affinity_score": 0.2,
+          "affinity_score": 0.8,
           "bridging_precondition": null,
-          "metadata": {},
-          "score_provenance": "llm_seed",
-          "needs_mining": true
+          "metadata": {}
         }
       ]
     },
@@ -3983,43 +3707,33 @@
       "edges": [
         {
           "target_cell_id": "CV2_FIND_CONTOURS",
-          "affinity_score": 0.8,
+          "affinity_score": 0.95,
           "bridging_precondition": "state == 'binary'",
-          "metadata": {},
-          "score_provenance": "llm_seed",
-          "needs_mining": true
+          "metadata": {}
         },
         {
           "target_cell_id": "CV2_ERODE",
-          "affinity_score": 0.5,
+          "affinity_score": 0.88,
           "bridging_precondition": null,
-          "metadata": {},
-          "score_provenance": "llm_seed",
-          "needs_mining": true
+          "metadata": {}
         },
         {
           "target_cell_id": "CV2_DILATE",
-          "affinity_score": 0.5,
+          "affinity_score": 0.88,
           "bridging_precondition": null,
-          "metadata": {},
-          "score_provenance": "llm_seed",
-          "needs_mining": true
+          "metadata": {}
         },
         {
           "target_cell_id": "CV2_MORPHOLOGY_EX_OPEN",
-          "affinity_score": 0.2,
+          "affinity_score": 0.85,
           "bridging_precondition": null,
-          "metadata": {},
-          "score_provenance": "llm_seed",
-          "needs_mining": true
+          "metadata": {}
         },
         {
           "target_cell_id": "CV2_MORPHOLOGY_EX_CLOSE",
-          "affinity_score": 0.2,
+          "affinity_score": 0.85,
           "bridging_precondition": null,
-          "metadata": {},
-          "score_provenance": "llm_seed",
-          "needs_mining": true
+          "metadata": {}
         }
       ]
     },
@@ -4166,19 +3880,15 @@
       "edges": [
         {
           "target_cell_id": "CV2_FIND_CONTOURS",
-          "affinity_score": 0.8,
+          "affinity_score": 0.95,
           "bridging_precondition": "state == 'binary'",
-          "metadata": {},
-          "score_provenance": "llm_seed",
-          "needs_mining": true
+          "metadata": {}
         },
         {
           "target_cell_id": "CV2_MORPHOLOGY_EX_OPEN",
-          "affinity_score": 0.5,
+          "affinity_score": 0.88,
           "bridging_precondition": null,
-          "metadata": {},
-          "score_provenance": "llm_seed",
-          "needs_mining": true
+          "metadata": {}
         }
       ]
     },
@@ -4348,11 +4058,9 @@
       "edges": [
         {
           "target_cell_id": "CV2_FIND_CONTOURS",
-          "affinity_score": 0.8,
+          "affinity_score": 0.94,
           "bridging_precondition": "state == 'binary'",
-          "metadata": {},
-          "score_provenance": "llm_seed",
-          "needs_mining": true
+          "metadata": {}
         }
       ]
     },
@@ -4481,27 +4189,21 @@
       "edges": [
         {
           "target_cell_id": "CV2_BITWISE_AND",
-          "affinity_score": 0.8,
+          "affinity_score": 0.95,
           "bridging_precondition": null,
-          "metadata": {},
-          "score_provenance": "llm_seed",
-          "needs_mining": true
+          "metadata": {}
         },
         {
           "target_cell_id": "CV2_FIND_CONTOURS",
-          "affinity_score": 0.5,
+          "affinity_score": 0.9,
           "bridging_precondition": "state == 'binary'",
-          "metadata": {},
-          "score_provenance": "llm_seed",
-          "needs_mining": true
+          "metadata": {}
         },
         {
           "target_cell_id": "CV2_MORPHOLOGY_EX_OPEN",
-          "affinity_score": 0.2,
+          "affinity_score": 0.88,
           "bridging_precondition": null,
-          "metadata": {},
-          "score_provenance": "llm_seed",
-          "needs_mining": true
+          "metadata": {}
         }
       ]
     },
@@ -4616,35 +4318,27 @@
       "edges": [
         {
           "target_cell_id": "CV2_ERODE",
-          "affinity_score": 0.8,
+          "affinity_score": 0.95,
           "bridging_precondition": null,
-          "metadata": {},
-          "score_provenance": "llm_seed",
-          "needs_mining": true
+          "metadata": {}
         },
         {
           "target_cell_id": "CV2_DILATE",
-          "affinity_score": 0.5,
+          "affinity_score": 0.95,
           "bridging_precondition": null,
-          "metadata": {},
-          "score_provenance": "llm_seed",
-          "needs_mining": true
+          "metadata": {}
         },
         {
           "target_cell_id": "CV2_MORPHOLOGY_EX_OPEN",
-          "affinity_score": 0.2,
+          "affinity_score": 0.92,
           "bridging_precondition": null,
-          "metadata": {},
-          "score_provenance": "llm_seed",
-          "needs_mining": true
+          "metadata": {}
         },
         {
           "target_cell_id": "CV2_MORPHOLOGY_EX_CLOSE",
-          "affinity_score": 0.2,
+          "affinity_score": 0.92,
           "bridging_precondition": null,
-          "metadata": {},
-          "score_provenance": "llm_seed",
-          "needs_mining": true
+          "metadata": {}
         }
       ]
     },
@@ -4773,19 +4467,15 @@
       "edges": [
         {
           "target_cell_id": "CV2_DILATE",
-          "affinity_score": 0.8,
+          "affinity_score": 0.88,
           "bridging_precondition": null,
-          "metadata": {},
-          "score_provenance": "llm_seed",
-          "needs_mining": true
+          "metadata": {}
         },
         {
           "target_cell_id": "CV2_FIND_CONTOURS",
-          "affinity_score": 0.5,
+          "affinity_score": 0.85,
           "bridging_precondition": null,
-          "metadata": {},
-          "score_provenance": "llm_seed",
-          "needs_mining": true
+          "metadata": {}
         }
       ]
     },
@@ -4914,19 +4604,15 @@
       "edges": [
         {
           "target_cell_id": "CV2_FIND_CONTOURS",
-          "affinity_score": 0.8,
+          "affinity_score": 0.92,
           "bridging_precondition": null,
-          "metadata": {},
-          "score_provenance": "llm_seed",
-          "needs_mining": true
+          "metadata": {}
         },
         {
           "target_cell_id": "CV2_ERODE",
-          "affinity_score": 0.5,
+          "affinity_score": 0.85,
           "bridging_precondition": null,
-          "metadata": {},
-          "score_provenance": "llm_seed",
-          "needs_mining": true
+          "metadata": {}
         }
       ]
     },
@@ -5046,11 +4732,9 @@
       "edges": [
         {
           "target_cell_id": "CV2_FIND_CONTOURS",
-          "affinity_score": 0.8,
+          "affinity_score": 0.94,
           "bridging_precondition": null,
-          "metadata": {},
-          "score_provenance": "llm_seed",
-          "needs_mining": true
+          "metadata": {}
         }
       ]
     },
@@ -5170,11 +4854,9 @@
       "edges": [
         {
           "target_cell_id": "CV2_FIND_CONTOURS",
-          "affinity_score": 0.8,
+          "affinity_score": 0.94,
           "bridging_precondition": null,
-          "metadata": {},
-          "score_provenance": "llm_seed",
-          "needs_mining": true
+          "metadata": {}
         }
       ]
     },
@@ -5351,51 +5033,39 @@
       "edges": [
         {
           "target_cell_id": "CV2_DRAW_CONTOURS",
-          "affinity_score": 0.8,
+          "affinity_score": 0.95,
           "bridging_precondition": null,
-          "metadata": {},
-          "score_provenance": "llm_seed",
-          "needs_mining": true
+          "metadata": {}
         },
         {
           "target_cell_id": "CV2_CONTOUR_AREA",
-          "affinity_score": 0.8,
+          "affinity_score": 0.92,
           "bridging_precondition": null,
-          "metadata": {},
-          "score_provenance": "llm_seed",
-          "needs_mining": true
+          "metadata": {}
         },
         {
           "target_cell_id": "CV2_BOUNDING_RECT",
-          "affinity_score": 0.5,
+          "affinity_score": 0.9,
           "bridging_precondition": null,
-          "metadata": {},
-          "score_provenance": "llm_seed",
-          "needs_mining": true
+          "metadata": {}
         },
         {
           "target_cell_id": "CV2_ARC_LENGTH",
-          "affinity_score": 0.5,
+          "affinity_score": 0.88,
           "bridging_precondition": null,
-          "metadata": {},
-          "score_provenance": "llm_seed",
-          "needs_mining": true
+          "metadata": {}
         },
         {
           "target_cell_id": "CV2_MIN_ENCLOSING_CIRCLE",
-          "affinity_score": 0.2,
+          "affinity_score": 0.82,
           "bridging_precondition": null,
-          "metadata": {},
-          "score_provenance": "llm_seed",
-          "needs_mining": true
+          "metadata": {}
         },
         {
           "target_cell_id": "CV2_APPROX_POLY_DP",
-          "affinity_score": 0.2,
+          "affinity_score": 0.8,
           "bridging_precondition": null,
-          "metadata": {},
-          "score_provenance": "llm_seed",
-          "needs_mining": true
+          "metadata": {}
         }
       ]
     },
@@ -5552,19 +5222,15 @@
       "edges": [
         {
           "target_cell_id": "CV2_IMWRITE",
-          "affinity_score": 0.8,
+          "affinity_score": 0.9,
           "bridging_precondition": null,
-          "metadata": {},
-          "score_provenance": "llm_seed",
-          "needs_mining": true
+          "metadata": {}
         },
         {
           "target_cell_id": "CV2_IMSHOW",
-          "affinity_score": 0.5,
+          "affinity_score": 0.85,
           "bridging_precondition": null,
-          "metadata": {},
-          "score_provenance": "llm_seed",
-          "needs_mining": true
+          "metadata": {}
         }
       ]
     },
@@ -5754,11 +5420,9 @@
       "edges": [
         {
           "target_cell_id": "CV2_APPROX_POLY_DP",
-          "affinity_score": 0.8,
+          "affinity_score": 0.95,
           "bridging_precondition": null,
-          "metadata": {},
-          "score_provenance": "llm_seed",
-          "needs_mining": true
+          "metadata": {}
         }
       ]
     },
@@ -5885,11 +5549,9 @@
       "edges": [
         {
           "target_cell_id": "CV2_RECTANGLE",
-          "affinity_score": 0.8,
+          "affinity_score": 0.95,
           "bridging_precondition": null,
-          "metadata": {},
-          "score_provenance": "llm_seed",
-          "needs_mining": true
+          "metadata": {}
         }
       ]
     },
@@ -5984,11 +5646,9 @@
       "edges": [
         {
           "target_cell_id": "CV2_CIRCLE",
-          "affinity_score": 0.8,
+          "affinity_score": 0.95,
           "bridging_precondition": null,
-          "metadata": {},
-          "score_provenance": "llm_seed",
-          "needs_mining": true
+          "metadata": {}
         }
       ]
     },
@@ -6102,11 +5762,9 @@
       "edges": [
         {
           "target_cell_id": "CV2_DRAW_CONTOURS",
-          "affinity_score": 0.8,
+          "affinity_score": 0.85,
           "bridging_precondition": null,
-          "metadata": {},
-          "score_provenance": "llm_seed",
-          "needs_mining": true
+          "metadata": {}
         }
       ]
     },
@@ -6219,11 +5877,9 @@
       "edges": [
         {
           "target_cell_id": "CV2_DRAW_CONTOURS",
-          "affinity_score": 0.8,
+          "affinity_score": 0.88,
           "bridging_precondition": null,
-          "metadata": {},
-          "score_provenance": "llm_seed",
-          "needs_mining": true
+          "metadata": {}
         }
       ]
     },
@@ -6686,9 +6342,7 @@
           "target_cell_id": "CV2_IMWRITE",
           "affinity_score": 0.8,
           "bridging_precondition": null,
-          "metadata": {},
-          "score_provenance": "llm_seed",
-          "needs_mining": true
+          "metadata": {}
         }
       ]
     },
@@ -6816,11 +6470,9 @@
       "edges": [
         {
           "target_cell_id": "CV2_IMWRITE",
-          "affinity_score": 0.8,
+          "affinity_score": 0.85,
           "bridging_precondition": null,
-          "metadata": {},
-          "score_provenance": "llm_seed",
-          "needs_mining": true
+          "metadata": {}
         }
       ]
     },
@@ -7041,9 +6693,7 @@
           "target_cell_id": "CV2_FIND_CONTOURS",
           "affinity_score": 0.8,
           "bridging_precondition": null,
-          "metadata": {},
-          "score_provenance": "llm_seed",
-          "needs_mining": true
+          "metadata": {}
         }
       ]
     },
@@ -7149,11 +6799,9 @@
       "edges": [
         {
           "target_cell_id": "CV2_THRESHOLD_BINARY",
-          "affinity_score": 0.8,
+          "affinity_score": 0.95,
           "bridging_precondition": null,
-          "metadata": {},
-          "score_provenance": "llm_seed",
-          "needs_mining": true
+          "metadata": {}
         }
       ]
     },
@@ -7247,19 +6895,15 @@
       "edges": [
         {
           "target_cell_id": "CV2_MERGE",
-          "affinity_score": 0.8,
+          "affinity_score": 0.9,
           "bridging_precondition": null,
-          "metadata": {},
-          "score_provenance": "llm_seed",
-          "needs_mining": true
+          "metadata": {}
         },
         {
           "target_cell_id": "CV2_EQUALIZE_HIST",
-          "affinity_score": 0.5,
+          "affinity_score": 0.8,
           "bridging_precondition": null,
-          "metadata": {},
-          "score_provenance": "llm_seed",
-          "needs_mining": true
+          "metadata": {}
         }
       ]
     },
@@ -7341,11 +6985,9 @@
       "edges": [
         {
           "target_cell_id": "CV2_IMWRITE",
-          "affinity_score": 0.8,
+          "affinity_score": 0.85,
           "bridging_precondition": null,
-          "metadata": {},
-          "score_provenance": "llm_seed",
-          "needs_mining": true
+          "metadata": {}
         }
       ]
     },
@@ -7506,11 +7148,9 @@
       "edges": [
         {
           "target_cell_id": "CV2_NORMALIZE",
-          "affinity_score": 0.8,
+          "affinity_score": 0.95,
           "bridging_precondition": null,
-          "metadata": {},
-          "score_provenance": "llm_seed",
-          "needs_mining": true
+          "metadata": {}
         }
       ]
     },
@@ -7615,11 +7255,9 @@
       "edges": [
         {
           "target_cell_id": "CV2_CANNY",
-          "affinity_score": 0.8,
+          "affinity_score": 0.85,
           "bridging_precondition": null,
-          "metadata": {},
-          "score_provenance": "llm_seed",
-          "needs_mining": true
+          "metadata": {}
         }
       ]
     },
@@ -7865,11 +7503,9 @@
       "edges": [
         {
           "target_cell_id": "CV2_CLAHE_APPLY",
-          "affinity_score": 0.8,
+          "affinity_score": 0.99,
           "bridging_precondition": null,
-          "metadata": {},
-          "score_provenance": "llm_seed",
-          "needs_mining": true
+          "metadata": {}
         }
       ]
     },
@@ -7986,11 +7622,9 @@
       "edges": [
         {
           "target_cell_id": "CV2_CANNY",
-          "affinity_score": 0.8,
+          "affinity_score": 0.88,
           "bridging_precondition": null,
-          "metadata": {},
-          "score_provenance": "llm_seed",
-          "needs_mining": true
+          "metadata": {}
         }
       ]
     },
@@ -8177,19 +7811,15 @@
       "edges": [
         {
           "target_cell_id": "CV2_IMWRITE",
-          "affinity_score": 0.8,
+          "affinity_score": 0.85,
           "bridging_precondition": null,
-          "metadata": {},
-          "score_provenance": "llm_seed",
-          "needs_mining": true
+          "metadata": {}
         },
         {
           "target_cell_id": "CV2_IMSHOW",
-          "affinity_score": 0.5,
+          "affinity_score": 0.8,
           "bridging_precondition": null,
-          "metadata": {},
-          "score_provenance": "llm_seed",
-          "needs_mining": true
+          "metadata": {}
         }
       ]
     },
@@ -8375,19 +8005,15 @@
       "edges": [
         {
           "target_cell_id": "CV2_PUT_TEXT",
-          "affinity_score": 0.8,
+          "affinity_score": 0.95,
           "bridging_precondition": null,
-          "metadata": {},
-          "score_provenance": "llm_seed",
-          "needs_mining": true
+          "metadata": {}
         },
         {
           "target_cell_id": "CV2_IMWRITE",
-          "affinity_score": 0.5,
+          "affinity_score": 0.85,
           "bridging_precondition": null,
-          "metadata": {},
-          "score_provenance": "llm_seed",
-          "needs_mining": true
+          "metadata": {}
         }
       ]
     },
@@ -8572,11 +8198,9 @@
       "edges": [
         {
           "target_cell_id": "CV2_IMWRITE",
-          "affinity_score": 0.8,
+          "affinity_score": 0.85,
           "bridging_precondition": null,
-          "metadata": {},
-          "score_provenance": "llm_seed",
-          "needs_mining": true
+          "metadata": {}
         }
       ]
     },
@@ -8808,19 +8432,15 @@
       "edges": [
         {
           "target_cell_id": "CV2_IMWRITE",
-          "affinity_score": 0.8,
+          "affinity_score": 0.95,
           "bridging_precondition": null,
-          "metadata": {},
-          "score_provenance": "llm_seed",
-          "needs_mining": true
+          "metadata": {}
         },
         {
           "target_cell_id": "CV2_IMSHOW",
-          "affinity_score": 0.5,
+          "affinity_score": 0.9,
           "bridging_precondition": null,
-          "metadata": {},
-          "score_provenance": "llm_seed",
-          "needs_mining": true
+          "metadata": {}
         }
       ]
     },
@@ -9009,9 +8629,7 @@
           "target_cell_id": "CV2_IMWRITE",
           "affinity_score": 0.8,
           "bridging_precondition": null,
-          "metadata": {},
-          "score_provenance": "llm_seed",
-          "needs_mining": true
+          "metadata": {}
         }
       ]
     },
@@ -9162,11 +8780,9 @@
       "edges": [
         {
           "target_cell_id": "CV2_BITWISE_AND",
-          "affinity_score": 0.8,
+          "affinity_score": 0.9,
           "bridging_precondition": null,
-          "metadata": {},
-          "score_provenance": "llm_seed",
-          "needs_mining": true
+          "metadata": {}
         }
       ]
     },
@@ -9352,11 +8968,9 @@
       "edges": [
         {
           "target_cell_id": "CV2_LINE",
-          "affinity_score": 0.8,
+          "affinity_score": 0.95,
           "bridging_precondition": null,
-          "metadata": {},
-          "score_provenance": "llm_seed",
-          "needs_mining": true
+          "metadata": {}
         }
       ]
     },
@@ -9582,11 +9196,9 @@
       "edges": [
         {
           "target_cell_id": "CV2_CIRCLE",
-          "affinity_score": 0.8,
+          "affinity_score": 0.95,
           "bridging_precondition": null,
-          "metadata": {},
-          "score_provenance": "llm_seed",
-          "needs_mining": true
+          "metadata": {}
         }
       ]
     },
@@ -9740,11 +9352,9 @@
       "edges": [
         {
           "target_cell_id": "CV2_DILATE",
-          "affinity_score": 0.8,
+          "affinity_score": 0.85,
           "bridging_precondition": null,
-          "metadata": {},
-          "score_provenance": "llm_seed",
-          "needs_mining": true
+          "metadata": {}
         }
       ]
     },
@@ -9925,11 +9535,9 @@
       "edges": [
         {
           "target_cell_id": "CV2_CIRCLE",
-          "affinity_score": 0.8,
+          "affinity_score": 0.9,
           "bridging_precondition": null,
-          "metadata": {},
-          "score_provenance": "llm_seed",
-          "needs_mining": true
+          "metadata": {}
         }
       ]
     },
@@ -10063,11 +9671,9 @@
       "edges": [
         {
           "target_cell_id": "CV2_SIFT_DETECT_AND_COMPUTE",
-          "affinity_score": 0.8,
+          "affinity_score": 0.99,
           "bridging_precondition": null,
-          "metadata": {},
-          "score_provenance": "llm_seed",
-          "needs_mining": true
+          "metadata": {}
         }
       ]
     },
@@ -10229,19 +9835,15 @@
       "edges": [
         {
           "target_cell_id": "CV2_DRAW_KEYPOINTS",
-          "affinity_score": 0.8,
+          "affinity_score": 0.95,
           "bridging_precondition": null,
-          "metadata": {},
-          "score_provenance": "llm_seed",
-          "needs_mining": true
+          "metadata": {}
         },
         {
           "target_cell_id": "CV2_BFMATCHER_MATCH",
-          "affinity_score": 0.5,
+          "affinity_score": 0.92,
           "bridging_precondition": null,
-          "metadata": {},
-          "score_provenance": "llm_seed",
-          "needs_mining": true
+          "metadata": {}
         }
       ]
     },
@@ -10359,11 +9961,9 @@
       "edges": [
         {
           "target_cell_id": "CV2_ORB_DETECT_AND_COMPUTE",
-          "affinity_score": 0.8,
+          "affinity_score": 0.99,
           "bridging_precondition": null,
-          "metadata": {},
-          "score_provenance": "llm_seed",
-          "needs_mining": true
+          "metadata": {}
         }
       ]
     },
@@ -10507,19 +10107,15 @@
       "edges": [
         {
           "target_cell_id": "CV2_DRAW_KEYPOINTS",
-          "affinity_score": 0.8,
+          "affinity_score": 0.95,
           "bridging_precondition": null,
-          "metadata": {},
-          "score_provenance": "llm_seed",
-          "needs_mining": true
+          "metadata": {}
         },
         {
           "target_cell_id": "CV2_BFMATCHER_MATCH",
-          "affinity_score": 0.5,
+          "affinity_score": 0.92,
           "bridging_precondition": null,
-          "metadata": {},
-          "score_provenance": "llm_seed",
-          "needs_mining": true
+          "metadata": {}
         }
       ]
     },
@@ -10627,11 +10223,9 @@
       "edges": [
         {
           "target_cell_id": "CV2_BFMATCHER_MATCH",
-          "affinity_score": 0.8,
+          "affinity_score": 0.98,
           "bridging_precondition": null,
-          "metadata": {},
-          "score_provenance": "llm_seed",
-          "needs_mining": true
+          "metadata": {}
         }
       ]
     },
@@ -10758,11 +10352,9 @@
       "edges": [
         {
           "target_cell_id": "CV2_DRAW_MATCHES",
-          "affinity_score": 0.8,
+          "affinity_score": 0.95,
           "bridging_precondition": null,
-          "metadata": {},
-          "score_provenance": "llm_seed",
-          "needs_mining": true
+          "metadata": {}
         }
       ]
     },
@@ -10934,11 +10526,9 @@
       "edges": [
         {
           "target_cell_id": "CV2_IMWRITE",
-          "affinity_score": 0.8,
+          "affinity_score": 0.85,
           "bridging_precondition": null,
-          "metadata": {},
-          "score_provenance": "llm_seed",
-          "needs_mining": true
+          "metadata": {}
         }
       ]
     },
@@ -11108,11 +10698,9 @@
       "edges": [
         {
           "target_cell_id": "CV2_IMWRITE",
-          "affinity_score": 0.8,
+          "affinity_score": 0.85,
           "bridging_precondition": null,
-          "metadata": {},
-          "score_provenance": "llm_seed",
-          "needs_mining": true
+          "metadata": {}
         }
       ]
     },
@@ -11437,11 +11025,9 @@
       "edges": [
         {
           "target_cell_id": "CV2_THRESHOLD_BINARY",
-          "affinity_score": 0.8,
+          "affinity_score": 0.9,
           "bridging_precondition": null,
-          "metadata": {},
-          "score_provenance": "llm_seed",
-          "needs_mining": true
+          "metadata": {}
         }
       ]
     },
@@ -11725,11 +11311,9 @@
       "edges": [
         {
           "target_cell_id": "CV2_IMWRITE",
-          "affinity_score": 0.8,
+          "affinity_score": 0.85,
           "bridging_precondition": null,
-          "metadata": {},
-          "score_provenance": "llm_seed",
-          "needs_mining": true
+          "metadata": {}
         }
       ]
     },
@@ -11906,11 +11490,9 @@
       "edges": [
         {
           "target_cell_id": "CV2_IMWRITE",
-          "affinity_score": 0.8,
+          "affinity_score": 0.85,
           "bridging_precondition": null,
-          "metadata": {},
-          "score_provenance": "llm_seed",
-          "needs_mining": true
+          "metadata": {}
         }
       ]
     },
@@ -11992,11 +11574,9 @@
       "edges": [
         {
           "target_cell_id": "CV2_VIDEOCAPTURE_READ",
-          "affinity_score": 0.8,
+          "affinity_score": 0.99,
           "bridging_precondition": null,
-          "metadata": {},
-          "score_provenance": "llm_seed",
-          "needs_mining": true
+          "metadata": {}
         }
       ]
     },
@@ -12110,35 +11690,27 @@
       "edges": [
         {
           "target_cell_id": "CV2_CVT_COLOR_BGR2GRAY",
-          "affinity_score": 0.8,
+          "affinity_score": 0.95,
           "bridging_precondition": null,
-          "metadata": {},
-          "score_provenance": "llm_seed",
-          "needs_mining": true
+          "metadata": {}
         },
         {
           "target_cell_id": "CV2_RESIZE",
-          "affinity_score": 0.5,
+          "affinity_score": 0.9,
           "bridging_precondition": null,
-          "metadata": {},
-          "score_provenance": "llm_seed",
-          "needs_mining": true
+          "metadata": {}
         },
         {
           "target_cell_id": "CV2_IMSHOW",
-          "affinity_score": 0.2,
+          "affinity_score": 0.85,
           "bridging_precondition": null,
-          "metadata": {},
-          "score_provenance": "llm_seed",
-          "needs_mining": true
+          "metadata": {}
         },
         {
           "target_cell_id": "CV2_VIDEOWRITER_WRITE",
-          "affinity_score": 0.2,
+          "affinity_score": 0.8,
           "bridging_precondition": null,
-          "metadata": {},
-          "score_provenance": "llm_seed",
-          "needs_mining": true
+          "metadata": {}
         }
       ]
     },
@@ -12199,11 +11771,9 @@
       "edges": [
         {
           "target_cell_id": "CV2_DESTROY_ALL_WINDOWS",
-          "affinity_score": 0.8,
+          "affinity_score": 0.9,
           "bridging_precondition": null,
-          "metadata": {},
-          "score_provenance": "llm_seed",
-          "needs_mining": true
+          "metadata": {}
         }
       ]
     },
@@ -12354,11 +11924,9 @@
       "edges": [
         {
           "target_cell_id": "CV2_VIDEOWRITER_WRITE",
-          "affinity_score": 0.8,
+          "affinity_score": 0.99,
           "bridging_precondition": null,
-          "metadata": {},
-          "score_provenance": "llm_seed",
-          "needs_mining": true
+          "metadata": {}
         }
       ]
     },
@@ -12441,11 +12009,9 @@
       "edges": [
         {
           "target_cell_id": "CV2_VIDEOWRITER_RELEASE",
-          "affinity_score": 0.8,
+          "affinity_score": 0.9,
           "bridging_precondition": null,
-          "metadata": {},
-          "score_provenance": "llm_seed",
-          "needs_mining": true
+          "metadata": {}
         }
       ]
     },
@@ -12630,11 +12196,9 @@
       "edges": [
         {
           "target_cell_id": "CV2_IMDECODE",
-          "affinity_score": 0.8,
+          "affinity_score": 0.85,
           "bridging_precondition": null,
-          "metadata": {},
-          "score_provenance": "llm_seed",
-          "needs_mining": true
+          "metadata": {}
         }
       ]
     },
@@ -12757,21 +12321,64 @@
       "edges": [
         {
           "target_cell_id": "CV2_CVT_COLOR_BGR2GRAY",
-          "affinity_score": 0.8,
+          "affinity_score": 0.95,
           "bridging_precondition": null,
-          "metadata": {},
-          "score_provenance": "llm_seed",
-          "needs_mining": true
+          "metadata": {}
         },
         {
           "target_cell_id": "CV2_GAUSSIAN_BLUR",
-          "affinity_score": 0.5,
+          "affinity_score": 0.85,
           "bridging_precondition": null,
-          "metadata": {},
-          "score_provenance": "llm_seed",
-          "needs_mining": true
+          "metadata": {}
         }
       ]
     }
-  ]
+  ],
+  "egress_intent_tokens": [
+    "save",
+    "export",
+    "write",
+    "dump",
+    "persist",
+    "store",
+    "plot",
+    "show",
+    "display"
+  ],
+  "materialization_states": [
+    "destination_written",
+    "filepath_written",
+    "saved",
+    "exported",
+    "written_to_disk"
+  ],
+  "polarity_hints": {
+    "ascending": [
+      "bottom",
+      "lowest",
+      "smallest",
+      "minimum",
+      "min",
+      "worst",
+      "least",
+      "ascending",
+      "asc",
+      "fewest"
+    ],
+    "descending": [
+      "top",
+      "highest",
+      "largest",
+      "biggest",
+      "greatest",
+      "maximum",
+      "max",
+      "best",
+      "most",
+      "descending",
+      "desc",
+      "newest",
+      "latest"
+    ]
+  }
 }

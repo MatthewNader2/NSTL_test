@@ -6828,2858 +6828,2905 @@
           "qualifiers": [],
           "default_value": "None",
           "description": "Axis along which to compute vector or matrix norm. If None, array is flattened.",
-                    "domain": "numpy",
-                    "required": false,
-                    "abstract_type": "scalar",
-                    "enum_values": null,
-                    "param_kind": "keyword_only",
-                    "value_constraints": null,
-                    "shape_contract": null
-                  },
-                  "keepdims": {
-                    "type_name": "bool",
-                    "state": "flag",
-                    "qualifiers": [],
-                    "default_value": "False",
-                    "description": "Retain reduced dimensions",
-                    "domain": "numpy",
-                    "required": false,
-                    "abstract_type": "scalar",
-                    "enum_values": null,
-                    "param_kind": "keyword_only",
-                    "value_constraints": null,
-                    "shape_contract": null
-                  }
-                },
-                "outputs": {
-                  "output_var": {
-                    "type_name": "float",
-                    "state": "scalar_value",
-                    "qualifiers": [],
-                    "default_value": null,
-                    "description": "Computed matrix or vector norm",
-                    "domain": "numpy",
-                    "required": true,
-                    "abstract_type": "scalar",
-                    "enum_values": null,
-                    "param_kind": "standard",
-                    "value_constraints": null,
-                    "shape_contract": null
-                  }
-                },
-                "preconditions": [],
-                "postconditions": [],
-                "effects": [],
-                "edges": []
-              },
-              {
-                "cell_id": "NUMPY_LINALG_MATRIX_RANK",
-                "stage": 2,
-                "topology_type": "sequential",
-                "node_type": "function",
-                "node_role": "transformer",
-                "mutation_type": "pure",
-                "is_context_manager": false,
-                "verified": true,
-                "source_priority": 1,
-                "is_public": true,
-                "docstring": "Return matrix rank of array using SVD-based estimation method.",
-                "dependencies": [
-                  "numpy as np"
-                ],
-                "semantic_tags": [
-                  "linear_algebra",
-                  "rank",
-                  "svd"
-                ],
-                "keywords": [
-                  "matrix_rank",
-                  "rank",
-                  "dimension",
-                  "span"
-                ],
-                "code_template": "{output_var} = np.linalg.matrix_rank({matrix}, tol={tol})",
-                "slots": {
-                  "tol": "None"
-                },
-                "bound_slots": {},
-                "feedback_state_type": null,
-                "raises": [],
-                "type_vars": [],
-                "inputs": {
-                  "matrix": {
-                    "type_name": "ndarray",
-                    "state": "2d_matrix",
-                    "qualifiers": [],
-                    "default_value": null,
-                    "description": "Input matrix",
-                    "domain": "numpy",
-                    "required": true,
-                    "abstract_type": "matrix",
-                    "enum_values": null,
-                    "param_kind": "standard",
-                    "value_constraints": null,
-                    "shape_contract": null
-                  },
-                  "tol": {
-                    "type_name": "float",
-                    "state": "threshold_tolerance",
-                    "qualifiers": [],
-                    "default_value": "None",
-                    "description": "Threshold below which SVD values are considered zero",
-                    "domain": "numpy",
-                    "required": false,
-                    "abstract_type": "scalar",
-                    "enum_values": null,
-                    "param_kind": "keyword_only",
-                    "value_constraints": null,
-                    "shape_contract": null
-                  }
-                },
-                "outputs": {
-                  "output_var": {
-                    "type_name": "int",
-                    "state": "scalar_value",
-                    "qualifiers": [],
-                    "default_value": null,
-                    "description": "Estimated matrix rank scalar",
-                    "domain": "numpy",
-                    "required": true,
-                    "abstract_type": "scalar",
-                    "enum_values": null,
-                    "param_kind": "standard",
-                    "value_constraints": null,
-                    "shape_contract": null
-                  }
-                },
-                "preconditions": [
-                  {
-                    "target": "matrix",
-                    "property": "ndim",
-                    "operator": "==",
-                    "value": 2,
-                    "expression": "matrix.ndim == 2",
-                    "description": "Input must be a 2D matrix"
-                  }
-                ],
-                "postconditions": [],
-                "effects": [],
-                "edges": []
-              },
-              {
-                "cell_id": "NUMPY_TRACE",
-                "stage": 2,
-                "topology_type": "sequential",
-                "node_type": "function",
-                "node_role": "transformer",
-                "mutation_type": "pure",
-                "is_context_manager": false,
-                "verified": true,
-                "source_priority": 1,
-                "is_public": true,
-                "docstring": "Return the sum along diagonals of the array.",
-                "dependencies": [
-                  "numpy as np"
-                ],
-                "semantic_tags": [
-                  "linear_algebra",
-                  "trace",
-                  "diagonal"
-                ],
-                "keywords": [
-                  "trace",
-                  "diagonal_sum",
-                  "spoor"
-                ],
-                "code_template": "{output_var} = np.trace({matrix}, offset={offset})",
-                "slots": {
-                  "offset": "0"
-                },
-                "bound_slots": {},
-                "feedback_state_type": null,
-                "raises": [],
-                "type_vars": [],
-                "inputs": {
-                  "matrix": {
-                    "type_name": "ndarray",
-                    "state": "2d_matrix",
-                    "qualifiers": [],
-                    "default_value": null,
-                    "description": "Input matrix operand",
-                    "domain": "numpy",
-                    "required": true,
-                    "abstract_type": "matrix",
-                    "enum_values": null,
-                    "param_kind": "standard",
-                    "value_constraints": null,
-                    "shape_contract": null
-                  },
-                  "offset": {
-                    "type_name": "int",
-                    "state": "diag_offset",
-                    "qualifiers": [],
-                    "default_value": "0",
-                    "description": "Offset of diagonal from the main diagonal",
-                    "domain": "numpy",
-                    "required": false,
-                    "abstract_type": "scalar",
-                    "enum_values": null,
-                    "param_kind": "keyword_only",
-                    "value_constraints": null,
-                    "shape_contract": null
-                  }
-                },
-                "outputs": {
-                  "output_var": {
-                    "type_name": "float",
-                    "state": "scalar_value",
-                    "qualifiers": [],
-                    "default_value": null,
-                    "description": "Scalar sum of diagonal elements",
-                    "domain": "numpy",
-                    "required": true,
-                    "abstract_type": "scalar",
-                    "enum_values": null,
-                    "param_kind": "standard",
-                    "value_constraints": null,
-                    "shape_contract": null
-                  }
-                },
-                "preconditions": [
-                  {
-                    "target": "matrix",
-                    "property": "ndim",
-                    "operator": "==",
-                    "value": 2,
-                    "expression": "matrix.ndim == 2",
-                    "description": "Input must be a 2D matrix"
-                  }
-                ],
-                "postconditions": [],
-                "effects": [],
-                "edges": []
-              },
-              {
-                "cell_id": "NUMPY_FFT_FFT",
-                "stage": 2,
-                "topology_type": "sequential",
-                "node_type": "function",
-                "node_role": "transformer",
-                "mutation_type": "pure",
-                "is_context_manager": false,
-                "verified": true,
-                "source_priority": 1,
-                "is_public": true,
-                "docstring": "Compute the 1-dimensional discrete Fourier Transform.",
-                "dependencies": [
-                  "numpy as np"
-                ],
-                "semantic_tags": [
-                  "fft",
-                  "frequency_domain",
-                  "fourier"
-                ],
-                "keywords": [
-                  "fft",
-                  "fourier",
-                  "spectrum",
-                  "frequency"
-                ],
-                "code_template": "{output_var} = np.fft.fft({a}, n={n}, axis={axis})",
-                "slots": {
-                  "n": "None",
-                  "axis": "-1"
-                },
-                "bound_slots": {},
-                "feedback_state_type": null,
-                "raises": [
-                  "ValueError"
-                ],
-                "type_vars": [],
-                "inputs": {
-                  "a": {
-                    "type_name": "ndarray",
-                    "state": "nd_tensor",
-                    "accepted_states": [
-                      "nd_tensor",
-                      "1d_vector"
-                    ],
-                    "qualifiers": [],
-                    "default_value": null,
-                    "description": "Input array representing time or spatial series",
-                    "domain": "numpy",
-                    "required": true,
-                    "abstract_type": "tensor",
-                    "enum_values": null,
-                    "param_kind": "standard",
-                    "value_constraints": null,
-                    "shape_contract": null
-                  },
-                  "n": {
-                    "type_name": "int",
-                    "state": "transform_length",
-                    "qualifiers": [],
-                    "default_value": "None",
-                    "description": "Length of the transformed axis",
-                    "domain": "numpy",
-                    "required": false,
-                    "abstract_type": "scalar",
-                    "enum_values": null,
-                    "param_kind": "keyword_only",
-                    "value_constraints": null,
-                    "shape_contract": null
-                  },
-                  "axis": {
-                    "type_name": "int",
-                    "state": "axis_spec",
-                    "qualifiers": [],
-                    "default_value": "-1",
-                    "description": "Axis over which to compute the FFT",
-                    "domain": "numpy",
-                    "required": false,
-                    "abstract_type": "scalar",
-                    "enum_values": null,
-                    "param_kind": "keyword_only",
-                    "value_constraints": null,
-                    "shape_contract": null
-                  }
-                },
-                "outputs": {
-                  "output_var": {
-                    "type_name": "ndarray",
-                    "state": "fft_frequency_domain",
-                    "qualifiers": [],
-                    "default_value": null,
-                    "description": "Complex Fourier frequency spectrum",
-                    "domain": "numpy",
-                    "required": true,
-                    "abstract_type": "tensor",
-                    "enum_values": null,
-                    "param_kind": "standard",
-                    "value_constraints": null,
-                    "shape_contract": null
-                  }
-                },
-                "preconditions": [],
-                "postconditions": [
-                  {
-                    "target": "output_var",
-                    "property": "is_complex",
-                    "operator": "==",
-                    "value": true,
-                    "expression": "np.iscomplexobj(output_var)",
-                    "description": "FFT output components are complex numbers"
-                  }
-                ],
-                "effects": [],
-                "edges": [
-                  {
-                    "target_cell_id": "NUMPY_FFT_IFFT",
-                    "affinity_score": 0.8,
-                    "score_provenance": "llm_seed",
-                    "bridging_precondition": null,
-                    "metadata": {}
-                  },
-                  {
-                    "target_cell_id": "NUMPY_FFT_FFTSHIFT",
-                    "affinity_score": 0.8,
-                    "score_provenance": "llm_seed",
-                    "bridging_precondition": null,
-                    "metadata": {}
-                  },
-                  {
-                    "target_cell_id": "NUMPY_ABS",
-                    "affinity_score": 0.8,
-                    "score_provenance": "llm_seed",
-                    "bridging_precondition": null,
-                    "metadata": {}
-                  }
-                ]
-              },
-              {
-                "cell_id": "NUMPY_FFT_IFFT",
-                "stage": 2,
-                "topology_type": "sequential",
-                "node_type": "function",
-                "node_role": "transformer",
-                "mutation_type": "pure",
-                "is_context_manager": false,
-                "verified": true,
-                "source_priority": 1,
-                "is_public": true,
-                "docstring": "Compute the 1-dimensional inverse discrete Fourier Transform.",
-                "dependencies": [
-                  "numpy as np"
-                ],
-                "semantic_tags": [
-                  "fft",
-                  "inverse_fourier",
-                  "time_domain"
-                ],
-                "keywords": [
-                  "ifft",
-                  "inverse_fourier",
-                  "reconstruction"
-                ],
-                "code_template": "{output_var} = np.fft.ifft({a}, n={n}, axis={axis})",
-                "slots": {
-                  "n": "None",
-                  "axis": "-1"
-                },
-                "bound_slots": {},
-                "feedback_state_type": null,
-                "raises": [
-                  "ValueError"
-                ],
-                "type_vars": [],
-                "inputs": {
-                  "a": {
-                    "type_name": "ndarray",
-                    "state": "fft_frequency_domain",
-                    "qualifiers": [],
-                    "default_value": null,
-                    "description": "Frequency-domain complex spectrum",
-                    "domain": "numpy",
-                    "required": true,
-                    "abstract_type": "tensor",
-                    "enum_values": null,
-                    "param_kind": "standard",
-                    "value_constraints": null,
-                    "shape_contract": null
-                  },
-                  "n": {
-                    "type_name": "int",
-                    "state": "transform_length",
-                    "qualifiers": [],
-                    "default_value": "None",
-                    "description": "Length of output axis",
-                    "domain": "numpy",
-                    "required": false,
-                    "abstract_type": "scalar",
-                    "enum_values": null,
-                    "param_kind": "keyword_only",
-                    "value_constraints": null,
-                    "shape_contract": null
-                  },
-                  "axis": {
-                    "type_name": "int",
-                    "state": "axis_spec",
-                    "qualifiers": [],
-                    "default_value": "-1",
-                    "description": "Axis over which inverse transform is evaluated",
-                    "domain": "numpy",
-                    "required": false,
-                    "abstract_type": "scalar",
-                    "enum_values": null,
-                    "param_kind": "keyword_only",
-                    "value_constraints": null,
-                    "shape_contract": null
-                  }
-                },
-                "outputs": {
-                  "output_var": {
-                    "type_name": "ndarray",
-                    "state": "complex_tensor",
-                    "qualifiers": [],
-                    "default_value": null,
-                    "description": "Reconstructed spatial or temporal domain array",
-                    "domain": "numpy",
-                    "required": true,
-                    "abstract_type": "tensor",
-                    "enum_values": null,
-                    "param_kind": "standard",
-                    "value_constraints": null,
-                    "shape_contract": null
-                  }
-                },
-                "preconditions": [],
-                "postconditions": [],
-                "effects": [],
-                "edges": [
-                  {
-                    "target_cell_id": "NUMPY_ABS",
-                    "affinity_score": 0.8,
-                    "score_provenance": "llm_seed",
-                    "bridging_precondition": null,
-                    "metadata": {}
-                  }
-                ]
-              },
-              {
-                "cell_id": "NUMPY_FFT_FFT2",
-                "stage": 2,
-                "topology_type": "sequential",
-                "node_type": "function",
-                "node_role": "transformer",
-                "mutation_type": "pure",
-                "is_context_manager": false,
-                "verified": true,
-                "source_priority": 1,
-                "is_public": true,
-                "docstring": "Compute the 2-dimensional discrete Fourier Transform.",
-                "dependencies": [
-                  "numpy as np"
-                ],
-                "semantic_tags": [
-                  "fft",
-                  "2d",
-                  "spectral",
-                  "image_processing"
-                ],
-                "keywords": [
-                  "fft2",
-                  "fourier_2d",
-                  "spatial_frequency"
-                ],
-                "code_template": "{output_var} = np.fft.fft2({a}, s={s}, axes={axes})",
-                "slots": {
-                  "s": "None",
-                  "axes": "(-2, -1)"
-                },
-                "bound_slots": {},
-                "feedback_state_type": null,
-                "raises": [
-                  "ValueError"
-                ],
-                "type_vars": [],
-                "inputs": {
-                  "a": {
-                    "type_name": "ndarray",
-                    "state": "2d_matrix",
-                    "accepted_states": [
-                      "2d_matrix",
-                      "nd_tensor"
-                    ],
-                    "qualifiers": [],
-                    "default_value": null,
-                    "description": "2D input spatial grid or matrix",
-                    "domain": "numpy",
-                    "required": true,
-                    "abstract_type": "matrix",
-                    "enum_values": null,
-                    "param_kind": "standard",
-                    "value_constraints": null,
-                    "shape_contract": null
-                  },
-                  "s": {
-                    "type_name": "tuple",
-                    "state": "shape_tuple",
-                    "qualifiers": [],
-                    "default_value": "None",
-                    "description": "Shape of output along transformed axes",
-                    "domain": "numpy",
-                    "required": false,
-                    "abstract_type": "array-like",
-                    "enum_values": null,
-                    "param_kind": "keyword_only",
-                    "value_constraints": null,
-                    "shape_contract": null
-                  },
-                  "axes": {
-                    "type_name": "tuple",
-                    "state": "axes_tuple",
-                    "qualifiers": [],
-                    "default_value": "(-2, -1)",
-                    "description": "Axes over which 2D FFT is computed",
-                    "domain": "numpy",
-                    "required": false,
-                    "abstract_type": "array-like",
-                    "enum_values": null,
-                    "param_kind": "keyword_only",
-                    "value_constraints": null,
-                    "shape_contract": null
-                  }
-                },
-                "outputs": {
-                  "output_var": {
-                    "type_name": "ndarray",
-                    "state": "fft_frequency_domain",
-                    "qualifiers": [],
-                    "default_value": null,
-                    "description": "2D complex frequency spectrum",
-                    "domain": "numpy",
-                    "required": true,
-                    "abstract_type": "matrix",
-                    "enum_values": null,
-                    "param_kind": "standard",
-                    "value_constraints": null,
-                    "shape_contract": null
-                  }
-                },
-                "preconditions": [],
-                "postconditions": [],
-                "effects": [],
-                "edges": [
-                  {
-                    "target_cell_id": "NUMPY_FFT_IFFT2",
-                    "affinity_score": 0.8,
-                    "score_provenance": "llm_seed",
-                    "bridging_precondition": null,
-                    "metadata": {}
-                  },
-                  {
-                    "target_cell_id": "NUMPY_FFT_FFTSHIFT",
-                    "affinity_score": 0.8,
-                    "score_provenance": "llm_seed",
-                    "bridging_precondition": null,
-                    "metadata": {}
-                  },
-                  {
-                    "target_cell_id": "NUMPY_ABS",
-                    "affinity_score": 0.5,
-                    "score_provenance": "llm_seed",
-                    "bridging_precondition": null,
-                    "metadata": {}
-                  }
-                ]
-              },
-              {
-                "cell_id": "NUMPY_FFT_IFFT2",
-                "stage": 2,
-                "topology_type": "sequential",
-                "node_type": "function",
-                "node_role": "transformer",
-                "mutation_type": "pure",
-                "is_context_manager": false,
-                "verified": true,
-                "source_priority": 1,
-                "is_public": true,
-                "docstring": "Compute the 2-dimensional inverse discrete Fourier Transform.",
-                "dependencies": [
-                  "numpy as np"
-                ],
-                "semantic_tags": [
-                  "fft",
-                  "2d",
-                  "inverse_fourier"
-                ],
-                "keywords": [
-                  "ifft2",
-                  "inverse_fourier_2d",
-                  "reconstruction"
-                ],
-                "code_template": "{output_var} = np.fft.ifft2({a}, s={s}, axes={axes})",
-                "slots": {
-                  "s": "None",
-                  "axes": "(-2, -1)"
-                },
-                "bound_slots": {},
-                "feedback_state_type": null,
-                "raises": [
-                  "ValueError"
-                ],
-                "type_vars": [],
-                "inputs": {
-                  "a": {
-                    "type_name": "ndarray",
-                    "state": "fft_frequency_domain",
-                    "qualifiers": [],
-                    "default_value": null,
-                    "description": "2D complex spectrum array",
-                    "domain": "numpy",
-                    "required": true,
-                    "abstract_type": "matrix",
-                    "enum_values": null,
-                    "param_kind": "standard",
-                    "value_constraints": null,
-                    "shape_contract": null
-                  },
-                  "s": {
-                    "type_name": "tuple",
-                    "state": "shape_tuple",
-                    "qualifiers": [],
-                    "default_value": "None",
-                    "description": "Output shape",
-                    "domain": "numpy",
-                    "required": false,
-                    "abstract_type": "array-like",
-                    "enum_values": null,
-                    "param_kind": "keyword_only",
-                    "value_constraints": null,
-                    "shape_contract": null
-                  },
-                  "axes": {
-                    "type_name": "tuple",
-                    "state": "axes_tuple",
-                    "qualifiers": [],
-                    "default_value": "(-2, -1)",
-                    "description": "Axes over which inverse FFT is computed",
-                    "domain": "numpy",
-                    "required": false,
-                    "abstract_type": "array-like",
-                    "enum_values": null,
-                    "param_kind": "keyword_only",
-                    "value_constraints": null,
-                    "shape_contract": null
-                  }
-                },
-                "outputs": {
-                  "output_var": {
-                    "type_name": "ndarray",
-                    "state": "complex_tensor",
-                    "qualifiers": [],
-                    "default_value": null,
-                    "description": "Reconstructed 2D complex spatial matrix",
-                    "domain": "numpy",
-                    "required": true,
-                    "abstract_type": "matrix",
-                    "enum_values": null,
-                    "param_kind": "standard",
-                    "value_constraints": null,
-                    "shape_contract": null
-                  }
-                },
-                "preconditions": [],
-                "postconditions": [],
-                "effects": [],
-                "edges": [
-                  {
-                    "target_cell_id": "NUMPY_ABS",
-                    "affinity_score": 0.8,
-                    "score_provenance": "llm_seed",
-                    "bridging_precondition": null,
-                    "metadata": {}
-                  }
-                ]
-              },
-              {
-                "cell_id": "NUMPY_FFT_FFTN",
-                "stage": 2,
-                "topology_type": "sequential",
-                "node_type": "function",
-                "node_role": "transformer",
-                "mutation_type": "pure",
-                "is_context_manager": false,
-                "verified": true,
-                "source_priority": 10,
-                "is_public": true,
-                "docstring": "Compute the N-dimensional discrete Fourier Transform.",
-                "dependencies": [
-                  "numpy as np"
-                ],
-                "semantic_tags": [
-                  "fft",
-                  "nd",
-                  "fourier"
-                ],
-                "keywords": [
-                  "fftn",
-                  "multidimensional_fourier",
-                  "spectral"
-                ],
-                "code_template": "{output_var} = np.fft.fftn({a}, s={s}, axes={axes})",
-                "slots": {
-                  "s": "None",
-                  "axes": "None"
-                },
-                "bound_slots": {},
-                "feedback_state_type": null,
-                "raises": [
-                  "ValueError"
-                ],
-                "type_vars": [],
-                "inputs": {
-                  "a": {
-                    "type_name": "ndarray",
-                    "state": "nd_tensor",
-                    "qualifiers": [],
-                    "default_value": null,
-                    "description": "N-dimensional real or complex array",
-                    "domain": "numpy",
-                    "required": true,
-                    "abstract_type": "tensor",
-                    "enum_values": null,
-                    "param_kind": "standard",
-                    "value_constraints": null,
-                    "shape_contract": null
-                  },
-                  "s": {
-                    "type_name": "tuple",
-                    "state": "shape_tuple",
-                    "qualifiers": [],
-                    "default_value": "None",
-                    "description": "Output shape along transformed axes",
-                    "domain": "numpy",
-                    "required": false,
-                    "abstract_type": "array-like",
-                    "enum_values": null,
-                    "param_kind": "keyword_only",
-                    "value_constraints": null,
-                    "shape_contract": null
-                  },
-                  "axes": {
-                    "type_name": "tuple",
-                    "state": "axes_tuple",
-                    "qualifiers": [],
-                    "default_value": "None",
-                    "description": "Axes over which to compute FFT",
-                    "domain": "numpy",
-                    "required": false,
-                    "abstract_type": "array-like",
-                    "enum_values": null,
-                    "param_kind": "keyword_only",
-                    "value_constraints": null,
-                    "shape_contract": null
-                  }
-                },
-                "outputs": {
-                  "output_var": {
-                    "type_name": "ndarray",
-                    "state": "fft_frequency_domain",
-                    "qualifiers": [],
-                    "default_value": null,
-                    "description": "N-dimensional complex spectrum tensor",
-                    "domain": "numpy",
-                    "required": true,
-                    "abstract_type": "tensor",
-                    "enum_values": null,
-                    "param_kind": "standard",
-                    "value_constraints": null,
-                    "shape_contract": null
-                  }
-                },
-                "preconditions": [],
-                "postconditions": [],
-                "effects": [],
-                "edges": [
-                  {
-                    "target_cell_id": "NUMPY_FFT_FFTSHIFT",
-                    "affinity_score": 0.8,
-                    "score_provenance": "llm_seed",
-                    "bridging_precondition": null,
-                    "metadata": {}
-                  },
-                  {
-                    "target_cell_id": "NUMPY_ABS",
-                    "affinity_score": 0.5,
-                    "score_provenance": "llm_seed",
-                    "bridging_precondition": null,
-                    "metadata": {}
-                  }
-                ]
-              },
-              {
-                "cell_id": "NUMPY_FFT_RFFT",
-                "stage": 2,
-                "topology_type": "sequential",
-                "node_type": "function",
-                "node_role": "transformer",
-                "mutation_type": "pure",
-                "is_context_manager": false,
-                "verified": true,
-                "source_priority": 1,
-                "is_public": true,
-                "docstring": "Compute the 1-dimensional discrete Fourier Transform for real input.",
-                "dependencies": [
-                  "numpy as np"
-                ],
-                "semantic_tags": [
-                  "fft",
-                  "real_input",
-                  "hermitian"
-                ],
-                "keywords": [
-                  "rfft",
-                  "real_fourier",
-                  "half_spectrum"
-                ],
-                "code_template": "{output_var} = np.fft.rfft({a}, n={n}, axis={axis})",
-                "slots": {
-                  "n": "None",
-                  "axis": "-1"
-                },
-                "bound_slots": {},
-                "feedback_state_type": null,
-                "raises": [
-                  "ValueError"
-                ],
-                "type_vars": [],
-                "inputs": {
-                  "a": {
-                    "type_name": "ndarray",
-                    "state": "nd_tensor",
-                    "accepted_states": [
-                      "nd_tensor",
-                      "1d_vector"
-                    ],
-                    "qualifiers": [],
-                    "default_value": null,
-                    "description": "Real-valued input signal tensor",
-                    "domain": "numpy",
-                    "required": true,
-                    "abstract_type": "tensor",
-                    "enum_values": null,
-                    "param_kind": "standard",
-                    "value_constraints": null,
-                    "shape_contract": null
-                  },
-                  "n": {
-                    "type_name": "int",
-                    "state": "transform_length",
-                    "qualifiers": [],
-                    "default_value": "None",
-                    "description": "Number of points along transformation axis",
-                    "domain": "numpy",
-                    "required": false,
-                    "abstract_type": "scalar",
-                    "enum_values": null,
-                    "param_kind": "keyword_only",
-                    "value_constraints": null,
-                    "shape_contract": null
-                  },
-                  "axis": {
-                    "type_name": "int",
-                    "state": "axis_spec",
-                    "qualifiers": [],
-                    "default_value": "-1",
-                    "description": "Axis along which rfft is evaluated",
-                    "domain": "numpy",
-                    "required": false,
-                    "abstract_type": "scalar",
-                    "enum_values": null,
-                    "param_kind": "keyword_only",
-                    "value_constraints": null,
-                    "shape_contract": null
-                  }
-                },
-                "outputs": {
-                  "output_var": {
-                    "type_name": "ndarray",
-                    "state": "fft_frequency_domain",
-                    "qualifiers": [],
-                    "default_value": null,
-                    "description": "Hermitian-symmetric positive frequency spectrum",
-                    "domain": "numpy",
-                    "required": true,
-                    "abstract_type": "tensor",
-                    "enum_values": null,
-                    "param_kind": "standard",
-                    "value_constraints": null,
-                    "shape_contract": null
-                  }
-                },
-                "preconditions": [],
-                "postconditions": [],
-                "effects": [],
-                "edges": [
-                  {
-                    "target_cell_id": "NUMPY_FFT_IRFFT",
-                    "affinity_score": 0.8,
-                    "score_provenance": "llm_seed",
-                    "bridging_precondition": null,
-                    "metadata": {}
-                  },
-                  {
-                    "target_cell_id": "NUMPY_ABS",
-                    "affinity_score": 0.5,
-                    "score_provenance": "llm_seed",
-                    "bridging_precondition": null,
-                    "metadata": {}
-                  }
-                ]
-              },
-              {
-                "cell_id": "NUMPY_FFT_IRFFT",
-                "stage": 2,
-                "topology_type": "sequential",
-                "node_type": "function",
-                "node_role": "transformer",
-                "mutation_type": "pure",
-                "is_context_manager": false,
-                "verified": true,
-                "source_priority": 1,
-                "is_public": true,
-                "docstring": "Computes the inverse of rfft for real output.",
-                "dependencies": [
-                  "numpy as np"
-                ],
-                "semantic_tags": [
-                  "fft",
-                  "inverse_real",
-                  "time_domain"
-                ],
-                "keywords": [
-                  "irfft",
-                  "inverse_real_fourier",
-                  "reconstruction"
-                ],
-                "code_template": "{output_var} = np.fft.irfft({a}, n={n}, axis={axis})",
-                "slots": {
-                  "n": "None",
-                  "axis": "-1"
-                },
-                "bound_slots": {},
-                "feedback_state_type": null,
-                "raises": [
-                  "ValueError"
-                ],
-                "type_vars": [],
-                "inputs": {
-                  "a": {
-                    "type_name": "ndarray",
-                    "state": "fft_frequency_domain",
-                    "qualifiers": [],
-                    "default_value": null,
-                    "description": "Complex half-spectrum from rfft",
-                    "domain": "numpy",
-                    "required": true,
-                    "abstract_type": "tensor",
-                    "enum_values": null,
-                    "param_kind": "standard",
-                    "value_constraints": null,
-                    "shape_contract": null
-                  },
-                  "n": {
-                    "type_name": "int",
-                    "state": "transform_length",
-                    "qualifiers": [],
-                    "default_value": "None",
-                    "description": "Length of output real sequence",
-                    "domain": "numpy",
-                    "required": false,
-                    "abstract_type": "scalar",
-                    "enum_values": null,
-                    "param_kind": "keyword_only",
-                    "value_constraints": null,
-                    "shape_contract": null
-                  },
-                  "axis": {
-                    "type_name": "int",
-                    "state": "axis_spec",
-                    "qualifiers": [],
-                    "default_value": "-1",
-                    "description": "Axis along which irfft is computed",
-                    "domain": "numpy",
-                    "required": false,
-                    "abstract_type": "scalar",
-                    "enum_values": null,
-                    "param_kind": "keyword_only",
-                    "value_constraints": null,
-                    "shape_contract": null
-                  }
-                },
-                "outputs": {
-                  "output_var": {
-                    "type_name": "ndarray",
-                    "state": "nd_tensor",
-                    "qualifiers": [],
-                    "default_value": null,
-                    "description": "Real-valued output signal array",
-                    "domain": "numpy",
-                    "required": true,
-                    "abstract_type": "tensor",
-                    "enum_values": null,
-                    "param_kind": "standard",
-                    "value_constraints": null,
-                    "shape_contract": null
-                  }
-                },
-                "preconditions": [],
-                "postconditions": [],
-                "effects": [],
-                "edges": [
-                  {
-                    "target_cell_id": "NUMPY_MEAN_AXIS",
-                    "affinity_score": 0.8,
-                    "score_provenance": "llm_seed",
-                    "bridging_precondition": null,
-                    "metadata": {}
-                  }
-                ]
-              },
-              {
-                "cell_id": "NUMPY_FFT_FFTSHIFT",
-                "stage": 2,
-                "topology_type": "sequential",
-                "node_type": "function",
-                "node_role": "transformer",
-                "mutation_type": "pure",
-                "is_context_manager": false,
-                "verified": true,
-                "source_priority": 1,
-                "is_public": true,
-                "docstring": "Shift the zero-frequency component to the center of the spectrum.",
-                "dependencies": [
-                  "numpy as np"
-                ],
-                "semantic_tags": [
-                  "fft",
-                  "shift",
-                  "center_frequency"
-                ],
-                "keywords": [
-                  "fftshift",
-                  "center",
-                  "dc_component"
-                ],
-                "code_template": "{output_var} = np.fft.fftshift({x}, axes={axes})",
-                "slots": {
-                  "axes": "None"
-                },
-                "bound_slots": {},
-                "feedback_state_type": null,
-                "raises": [],
-                "type_vars": [],
-                "inputs": {
-                  "x": {
-                    "type_name": "ndarray",
-                    "state": "fft_frequency_domain",
-                    "qualifiers": [],
-                    "default_value": null,
-                    "description": "Frequency domain array to shift",
-                    "domain": "numpy",
-                    "required": true,
-                    "abstract_type": "tensor",
-                    "enum_values": null,
-                    "param_kind": "standard",
-                    "value_constraints": null,
-                    "shape_contract": null
-                  },
-                  "axes": {
-                    "type_name": "tuple",
-                    "state": "axes_tuple",
-                    "qualifiers": [],
-                    "default_value": "None",
-                    "description": "Axes over which to shift; shifts all if None",
-                    "domain": "numpy",
-                    "required": false,
-                    "abstract_type": "array-like",
-                    "enum_values": null,
-                    "param_kind": "keyword_only",
-                    "value_constraints": null,
-                    "shape_contract": null
-                  }
-                },
-                "outputs": {
-                  "output_var": {
-                    "type_name": "ndarray",
-                    "state": "fft_frequency_domain",
-                    "qualifiers": [],
-                    "default_value": null,
-                    "description": "Zero-centered frequency spectrum",
-                    "domain": "numpy",
-                    "required": true,
-                    "abstract_type": "tensor",
-                    "enum_values": null,
-                    "param_kind": "standard",
-                    "value_constraints": null,
-                    "shape_contract": null
-                  }
-                },
-                "preconditions": [],
-                "postconditions": [],
-                "effects": [],
-                "edges": [
-                  {
-                    "target_cell_id": "NUMPY_FFT_IFFTSHIFT",
-                    "affinity_score": 0.8,
-                    "score_provenance": "llm_seed",
-                    "bridging_precondition": null,
-                    "metadata": {}
-                  },
-                  {
-                    "target_cell_id": "NUMPY_ABS",
-                    "affinity_score": 0.5,
-                    "score_provenance": "llm_seed",
-                    "bridging_precondition": null,
-                    "metadata": {}
-                  }
-                ]
-              },
-              {
-                "cell_id": "NUMPY_FFT_IFFTSHIFT",
-                "stage": 2,
-                "topology_type": "sequential",
-                "node_type": "function",
-                "node_role": "transformer",
-                "mutation_type": "pure",
-                "is_context_manager": false,
-                "verified": true,
-                "source_priority": 1,
-                "is_public": true,
-                "docstring": "The inverse of fftshift; shifts zero-frequency back to beginning.",
-                "dependencies": [
-                  "numpy as np"
-                ],
-                "semantic_tags": [
-                  "fft",
-                  "inverse_shift"
-                ],
-                "keywords": [
-                  "ifftshift",
-                  "unshift",
-                  "dc"
-                ],
-                "code_template": "{output_var} = np.fft.ifftshift({x}, axes={axes})",
-                "slots": {
-                  "axes": "None"
-                },
-                "bound_slots": {},
-                "feedback_state_type": null,
-                "raises": [],
-                "type_vars": [],
-                "inputs": {
-                  "x": {
-                    "type_name": "ndarray",
-                    "state": "fft_frequency_domain",
-                    "qualifiers": [],
-                    "default_value": null,
-                    "description": "Shifted frequency array",
-                    "domain": "numpy",
-                    "required": true,
-                    "abstract_type": "tensor",
-                    "enum_values": null,
-                    "param_kind": "standard",
-                    "value_constraints": null,
-                    "shape_contract": null
-                  },
-                  "axes": {
-                    "type_name": "tuple",
-                    "state": "axes_tuple",
-                    "qualifiers": [],
-                    "default_value": "None",
-                    "description": "Axes over which to reverse shift",
-                    "domain": "numpy",
-                    "required": false,
-                    "abstract_type": "array-like",
-                    "enum_values": null,
-                    "param_kind": "keyword_only",
-                    "value_constraints": null,
-                    "shape_contract": null
-                  }
-                },
-                "outputs": {
-                  "output_var": {
-                    "type_name": "ndarray",
-                    "state": "fft_frequency_domain",
-                    "qualifiers": [],
-                    "default_value": null,
-                    "description": "Array with zero-frequency restored to edge",
-                    "domain": "numpy",
-                    "required": true,
-                    "abstract_type": "tensor",
-                    "enum_values": null,
-                    "param_kind": "standard",
-                    "value_constraints": null,
-                    "shape_contract": null
-                  }
-                },
-                "preconditions": [],
-                "postconditions": [],
-                "effects": [],
-                "edges": [
-                  {
-                    "target_cell_id": "NUMPY_FFT_IFFT",
-                    "affinity_score": 0.8,
-                    "score_provenance": "llm_seed",
-                    "bridging_precondition": null,
-                    "metadata": {}
-                  }
-                ]
-              },
-              {
-                "cell_id": "NUMPY_RANDOM_UNIFORM",
-                "stage": 1,
-                "topology_type": "sequential",
-                "node_type": "function",
-                "node_role": "source",
-                "mutation_type": "pure",
-                "is_context_manager": false,
-                "verified": true,
-                "source_priority": 1,
-                "is_public": true,
-                "docstring": "Draw samples from a uniform continuous distribution [low, high).",
-                "dependencies": [
-                  "numpy as np"
-                ],
-                "semantic_tags": [
-                  "random",
-                  "uniform",
-                  "stochastic"
-                ],
-                "keywords": [
-                  "uniform",
-                  "random",
-                  "sample",
-                  "monte_carlo"
-                ],
-                "code_template": "{output_var} = np.random.uniform(low={low}, high={high}, size={size})",
-                "slots": {
-                  "low": "0.0",
-                  "high": "1.0",
-                  "size": "None"
-                },
-                "bound_slots": {},
-                "feedback_state_type": null,
-                "raises": [],
-                "type_vars": [],
-                "inputs": {
-                  "low": {
-                    "type_name": "float",
-                    "state": "bound_scalar",
-                    "qualifiers": [],
-                    "default_value": "0.0",
-                    "description": "Lower boundary of output interval",
-                    "domain": "numpy",
-                    "required": false,
-                    "abstract_type": "scalar",
-                    "enum_values": null,
-                    "param_kind": "keyword_only",
-                    "value_constraints": null,
-                    "shape_contract": null
-                  },
-                  "high": {
-                    "type_name": "float",
-                    "state": "bound_scalar",
-                    "qualifiers": [],
-                    "default_value": "1.0",
-                    "description": "Upper boundary of output interval",
-                    "domain": "numpy",
-                    "required": false,
-                    "abstract_type": "scalar",
-                    "enum_values": null,
-                    "param_kind": "keyword_only",
-                    "value_constraints": null,
-                    "shape_contract": null
-                  },
-                  "size": {
-                    "type_name": "tuple",
-                    "state": "shape_tuple",
-                    "qualifiers": [],
-                    "default_value": "None",
-                    "description": "Output shape tuple",
-                    "domain": "numpy",
-                    "required": false,
-                    "abstract_type": "array-like",
-                    "enum_values": null,
-                    "param_kind": "keyword_only",
-                    "value_constraints": null,
-                    "shape_contract": null
-                  }
-                },
-                "outputs": {
-                  "output_var": {
-                    "type_name": "ndarray",
-                    "state": "nd_tensor",
-                    "qualifiers": [],
-                    "default_value": null,
-                    "description": "Sampled uniform random tensor",
-                    "domain": "numpy",
-                    "required": true,
-                    "abstract_type": "tensor",
-                    "enum_values": null,
-                    "param_kind": "standard",
-                    "value_constraints": null,
-                    "shape_contract": null
-                  }
-                },
-                "preconditions": [],
-                "postconditions": [],
-                "effects": [],
-                "edges": [
-                  {
-                    "target_cell_id": "NUMPY_MEAN_ALL",
-                    "affinity_score": 0.8,
-                    "score_provenance": "llm_seed",
-                    "bridging_precondition": null,
-                    "metadata": {}
-                  },
-                  {
-                    "target_cell_id": "NUMPY_SORT",
-                    "affinity_score": 0.5,
-                    "score_provenance": "llm_seed",
-                    "bridging_precondition": null,
-                    "metadata": {}
-                  }
-                ]
-              },
-              {
-                "cell_id": "NUMPY_RANDOM_NORMAL",
-                "stage": 1,
-                "topology_type": "sequential",
-                "node_type": "function",
-                "node_role": "source",
-                "mutation_type": "pure",
-                "is_context_manager": false,
-                "verified": true,
-                "source_priority": 1,
-                "is_public": true,
-                "docstring": "Draw random samples from a normal (Gaussian) distribution.",
-                "dependencies": [
-                  "numpy as np"
-                ],
-                "semantic_tags": [
-                  "random",
-                  "gaussian",
-                  "normal"
-                ],
-                "keywords": [
-                  "normal",
-                  "gaussian",
-                  "bell_curve",
-                  "stochastic"
-                ],
-                "code_template": "{output_var} = np.random.normal(loc={loc}, scale={scale}, size={size})",
-                "slots": {
-                  "loc": "0.0",
-                  "scale": "1.0",
-                  "size": "None"
-                },
-                "bound_slots": {},
-                "feedback_state_type": null,
-                "raises": [],
-                "type_vars": [],
-                "inputs": {
-                  "loc": {
-                    "type_name": "float",
-                    "state": "distribution_mean",
-                    "qualifiers": [],
-                    "default_value": "0.0",
-                    "description": "Mean of the distribution",
-                    "domain": "numpy",
-                    "required": false,
-                    "abstract_type": "scalar",
-                    "enum_values": null,
-                    "param_kind": "keyword_only",
-                    "value_constraints": null,
-                    "shape_contract": null
-                  },
-                  "scale": {
-                    "type_name": "float",
-                    "state": "distribution_std",
-                    "qualifiers": [],
-                    "default_value": "1.0",
-                    "description": "Standard deviation (non-negative)",
-                    "domain": "numpy",
-                    "required": false,
-                    "abstract_type": "scalar",
-                    "enum_values": null,
-                    "param_kind": "keyword_only",
-                    "value_constraints": {
-                      "min": 0.0
-                    },
-                    "shape_contract": null
-                  },
-                  "size": {
-                    "type_name": "tuple",
-                    "state": "shape_tuple",
-                    "qualifiers": [],
-                    "default_value": "None",
-                    "description": "Output shape",
-                    "domain": "numpy",
-                    "required": false,
-                    "abstract_type": "array-like",
-                    "enum_values": null,
-                    "param_kind": "keyword_only",
-                    "value_constraints": null,
-                    "shape_contract": null
-                  }
-                },
-                "outputs": {
-                  "output_var": {
-                    "type_name": "ndarray",
-                    "state": "nd_tensor",
-                    "qualifiers": [],
-                    "default_value": null,
-                    "description": "Sampled Gaussian tensor",
-                    "domain": "numpy",
-                    "required": true,
-                    "abstract_type": "tensor",
-                    "enum_values": null,
-                    "param_kind": "standard",
-                    "value_constraints": null,
-                    "shape_contract": null
-                  }
-                },
-                "preconditions": [],
-                "postconditions": [],
-                "effects": [],
-                "edges": [
-                  {
-                    "target_cell_id": "NUMPY_MEAN_ALL",
-                    "affinity_score": 0.8,
-                    "score_provenance": "llm_seed",
-                    "bridging_precondition": null,
-                    "metadata": {}
-                  },
-                  {
-                    "target_cell_id": "NUMPY_STD_AXIS",
-                    "affinity_score": 0.8,
-                    "score_provenance": "llm_seed",
-                    "bridging_precondition": null,
-                    "metadata": {}
-                  },
-                  {
-                    "target_cell_id": "NUMPY_NORMALIZE_L2",
-                    "affinity_score": 0.5,
-                    "score_provenance": "llm_seed",
-                    "bridging_precondition": null,
-                    "metadata": {}
-                  }
-                ]
-              },
-              {
-                "cell_id": "NUMPY_RANDOM_STANDARD_NORMAL",
-                "stage": 1,
-                "topology_type": "sequential",
-                "node_type": "function",
-                "node_role": "source",
-                "mutation_type": "pure",
-                "is_context_manager": false,
-                "verified": true,
-                "source_priority": 1,
-                "is_public": true,
-                "docstring": "Draw samples from a standard Normal distribution (mean=0, stdev=1).",
-                "dependencies": [
-                  "numpy as np"
-                ],
-                "semantic_tags": [
-                  "random",
-                  "standard_normal",
-                  "gaussian"
-                ],
-                "keywords": [
-                  "standard_normal",
-                  "randn",
-                  "normal"
-                ],
-                "code_template": "{output_var} = np.random.standard_normal(size={size})",
-                "slots": {
-                  "size": "None"
-                },
-                "bound_slots": {},
-                "feedback_state_type": null,
-                "raises": [],
-                "type_vars": [],
-                "inputs": {
-                  "size": {
-                    "type_name": "tuple",
-                    "state": "shape_tuple",
-                    "qualifiers": [],
-                    "default_value": "None",
-                    "description": "Output dimensions",
-                    "domain": "numpy",
-                    "required": false,
-                    "abstract_type": "array-like",
-                    "enum_values": null,
-                    "param_kind": "keyword_only",
-                    "value_constraints": null,
-                    "shape_contract": null
-                  }
-                },
-                "outputs": {
-                  "output_var": {
-                    "type_name": "ndarray",
-                    "state": "nd_tensor",
-                    "qualifiers": [],
-                    "default_value": null,
-                    "description": "Array populated with standard normal variates",
-                    "domain": "numpy",
-                    "required": true,
-                    "abstract_type": "tensor",
-                    "enum_values": null,
-                    "param_kind": "standard",
-                    "value_constraints": null,
-                    "shape_contract": null
-                  }
-                },
-                "preconditions": [],
-                "postconditions": [],
-                "effects": [],
-                "edges": [
-                  {
-                    "target_cell_id": "NUMPY_MATMUL",
-                    "affinity_score": 0.5,
-                    "score_provenance": "llm_seed",
-                    "bridging_precondition": null,
-                    "metadata": {}
-                  },
-                  {
-                    "target_cell_id": "NUMPY_MEAN_ALL",
-                    "affinity_score": 0.8,
-                    "score_provenance": "llm_seed",
-                    "bridging_precondition": null,
-                    "metadata": {}
-                  }
-                ]
-              },
-              {
-                "cell_id": "NUMPY_RANDOM_RANDINT",
-                "stage": 1,
-                "topology_type": "sequential",
-                "node_type": "function",
-                "node_role": "source",
-                "mutation_type": "pure",
-                "is_context_manager": false,
-                "verified": true,
-                "source_priority": 1,
-                "is_public": true,
-                "docstring": "Return random integers from low (inclusive) to high (exclusive).",
-                "dependencies": [
-                  "numpy as np"
-                ],
-                "semantic_tags": [
-                  "random",
-                  "integers",
-                  "discrete"
-                ],
-                "keywords": [
-                  "randint",
-                  "discrete",
-                  "integer",
-                  "random"
-                ],
-                "code_template": "{output_var} = np.random.randint(low={low}, high={high}, size={size}, dtype={dtype})",
-                "slots": {
-                  "high": "None",
-                  "size": "None",
-                  "dtype": "np.int64"
-                },
-                "bound_slots": {},
-                "feedback_state_type": null,
-                "raises": [
-                  "ValueError"
-                ],
-                "type_vars": [],
-                "inputs": {
-                  "low": {
-                    "type_name": "int",
-                    "state": "bound_scalar",
-                    "qualifiers": [],
-                    "default_value": null,
-                    "description": "Lowest integer to be drawn",
-                    "domain": "numpy",
-                    "required": true,
-                    "abstract_type": "scalar",
-                    "enum_values": null,
-                    "param_kind": "standard",
-                    "value_constraints": null,
-                    "shape_contract": null
-                  },
-                  "high": {
-                    "type_name": "int",
-                    "state": "bound_scalar",
-                    "qualifiers": [],
-                    "default_value": "None",
-                    "description": "Upper bound (exclusive)",
-                    "domain": "numpy",
-                    "required": false,
-                    "abstract_type": "scalar",
-                    "enum_values": null,
-                    "param_kind": "keyword_only",
-                    "value_constraints": null,
-                    "shape_contract": null
-                  },
-                  "size": {
-                    "type_name": "tuple",
-                    "state": "shape_tuple",
-                    "qualifiers": [],
-                    "default_value": "None",
-                    "description": "Output shape",
-                    "domain": "numpy",
-                    "required": false,
-                    "abstract_type": "array-like",
-                    "enum_values": null,
-                    "param_kind": "keyword_only",
-                    "value_constraints": null,
-                    "shape_contract": null
-                  },
-                  "dtype": {
-                    "type_name": "str",
-                    "state": "dtype_spec",
-                    "qualifiers": [],
-                    "default_value": "np.int64",
-                    "description": "Desired integer dtype",
-                    "domain": "numpy",
-                    "required": false,
-                    "abstract_type": "scalar",
-                    "enum_values": null,
-                    "param_kind": "keyword_only",
-                    "value_constraints": null,
-                    "shape_contract": null
-                  }
-                },
-                "outputs": {
-                  "output_var": {
-                    "type_name": "ndarray",
-                    "state": "nd_tensor",
-                    "qualifiers": [],
-                    "default_value": null,
-                    "description": "Random integer array",
-                    "domain": "numpy",
-                    "required": true,
-                    "abstract_type": "tensor",
-                    "enum_values": null,
-                    "param_kind": "standard",
-                    "value_constraints": null,
-                    "shape_contract": null
-                  }
-                },
-                "preconditions": [],
-                "postconditions": [],
-                "effects": [],
-                "edges": [
-                  {
-                    "target_cell_id": "NUMPY_UNIQUE",
-                    "affinity_score": 0.8,
-                    "score_provenance": "llm_seed",
-                    "bridging_precondition": null,
-                    "metadata": {}
-                  },
-                  {
-                    "target_cell_id": "NUMPY_SORT",
-                    "affinity_score": 0.5,
-                    "score_provenance": "llm_seed",
-                    "bridging_precondition": null,
-                    "metadata": {}
-                  }
-                ]
-              },
-              {
-                "cell_id": "NUMPY_RANDOM_CHOICE",
-                "stage": 2,
-                "topology_type": "sequential",
-                "node_type": "function",
-                "node_role": "transformer",
-                "mutation_type": "pure",
-                "is_context_manager": false,
-                "verified": true,
-                "source_priority": 1,
-                "is_public": true,
-                "docstring": "Generates a random sample from a given 1-D array.",
-                "dependencies": [
-                  "numpy as np"
-                ],
-                "semantic_tags": [
-                  "random",
-                  "sample",
-                  "choice"
-                ],
-                "keywords": [
-                  "choice",
-                  "sample",
-                  "bootstrap",
-                  "subset"
-                ],
-                "code_template": "{output_var} = np.random.choice({a}, size={size}, replace={replace}, p={p})",
-                "slots": {
-                  "size": "None",
-                  "replace": "True",
-                  "p": "None"
-                },
-                "bound_slots": {},
-                "feedback_state_type": null,
-                "raises": [
-                  "ValueError"
-                ],
-                "type_vars": [],
-                "inputs": {
-                  "a": {
-                    "type_name": "ndarray",
-                    "state": "1d_vector",
-                    "accepted_states": [
-                      "1d_vector",
-                      "nd_tensor"
-                    ],
-                    "qualifiers": [],
-                    "default_value": null,
-                    "description": "Source 1-D array or population",
-                    "domain": "numpy",
-                    "required": true,
-                    "abstract_type": "tensor",
-                    "enum_values": null,
-                    "param_kind": "standard",
-                    "value_constraints": null,
-                    "shape_contract": null
-                  },
-                  "size": {
-                    "type_name": "tuple",
-                    "state": "shape_tuple",
-                    "qualifiers": [],
-                    "default_value": "None",
-                    "description": "Output shape",
-                    "domain": "numpy",
-                    "required": false,
-                    "abstract_type": "array-like",
-                    "enum_values": null,
-                    "param_kind": "keyword_only",
-                    "value_constraints": null,
-                    "shape_contract": null
-                  },
-                  "replace": {
-                    "type_name": "bool",
-                    "state": "flag",
-                    "qualifiers": [],
-                    "default_value": "True",
-                    "description": "Whether the sample is with or without replacement",
-                    "domain": "numpy",
-                    "required": false,
-                    "abstract_type": "scalar",
-                    "enum_values": null,
-                    "param_kind": "keyword_only",
-                    "value_constraints": null,
-                    "shape_contract": null
-                  },
-                  "p": {
-                    "type_name": "ndarray",
-                    "state": "probability_vector",
-                    "qualifiers": [],
-                    "default_value": "None",
-                    "description": "Probabilities associated with each entry in a",
-                    "domain": "numpy",
-                    "required": false,
-                    "abstract_type": "tensor",
-                    "enum_values": null,
-                    "param_kind": "keyword_only",
-                    "value_constraints": null,
-                    "shape_contract": null
-                  }
-                },
-                "outputs": {
-                  "output_var": {
-                    "type_name": "ndarray",
-                    "state": "nd_tensor",
-                    "qualifiers": [],
-                    "default_value": null,
-                    "description": "Generated random samples",
-                    "domain": "numpy",
-                    "required": true,
-                    "abstract_type": "tensor",
-                    "enum_values": null,
-                    "param_kind": "standard",
-                    "value_constraints": null,
-                    "shape_contract": null
-                  }
-                },
-                "preconditions": [],
-                "postconditions": [],
-                "effects": [],
-                "edges": [
-                  {
-                    "target_cell_id": "NUMPY_UNIQUE",
-                    "affinity_score": 0.8,
-                    "score_provenance": "llm_seed",
-                    "bridging_precondition": null,
-                    "metadata": {}
-                  }
-                ]
-              },
-              {
-                "cell_id": "NUMPY_RANDOM_PERMUTATION",
-                "stage": 2,
-                "topology_type": "sequential",
-                "node_type": "function",
-                "node_role": "transformer",
-                "mutation_type": "pure",
-                "is_context_manager": false,
-                "verified": true,
-                "source_priority": 1,
-                "is_public": true,
-                "docstring": "Randomly permute a sequence, or return a permuted range.",
-                "dependencies": [
-                  "numpy as np"
-                ],
-                "semantic_tags": [
-                  "random",
-                  "permutation",
-                  "shuffle"
-                ],
-                "keywords": [
-                  "permutation",
-                  "shuffle",
-                  "reorder"
-                ],
-                "code_template": "{output_var} = np.random.permutation({x})",
-                "slots": {},
-                "bound_slots": {},
-                "feedback_state_type": null,
-                "raises": [],
-                "type_vars": [],
-                "inputs": {
-                  "x": {
-                    "type_name": "ndarray",
-                    "state": "nd_tensor",
-                    "accepted_states": [
-                      "nd_tensor",
-                      "1d_vector"
-                    ],
-                    "qualifiers": [],
-                    "default_value": null,
-                    "description": "Array to be permuted",
-                    "domain": "numpy",
-                    "required": true,
-                    "abstract_type": "tensor",
-                    "enum_values": null,
-                    "param_kind": "standard",
-                    "value_constraints": null,
-                    "shape_contract": null
-                  }
-                },
-                "outputs": {
-                  "output_var": {
-                    "type_name": "ndarray",
-                    "state": "nd_tensor",
-                    "qualifiers": [],
-                    "default_value": null,
-                    "description": "Permuted copy of array",
-                    "domain": "numpy",
-                    "required": true,
-                    "abstract_type": "tensor",
-                    "enum_values": null,
-                    "param_kind": "standard",
-                    "value_constraints": null,
-                    "shape_contract": null
-                  }
-                },
-                "preconditions": [],
-                "postconditions": [],
-                "effects": [],
-                "edges": [
-                  {
-                    "target_cell_id": "NUMPY_RESHAPE_2D",
-                    "affinity_score": 0.8,
-                    "score_provenance": "llm_seed",
-                    "bridging_precondition": null,
-                    "metadata": {}
-                  },
-                  {
-                    "target_cell_id": "NUMPY_SAVE_NPY",
-                    "affinity_score": 0.5,
-                    "score_provenance": "llm_seed",
-                    "bridging_precondition": null,
-                    "metadata": {}
-                  }
-                ]
-              },
-              {
-                "cell_id": "NUMPY_SORT",
-                "stage": 2,
-                "topology_type": "sequential",
-                "node_type": "function",
-                "node_role": "transformer",
-                "mutation_type": "pure",
-                "is_context_manager": false,
-                "verified": true,
-                "source_priority": 1,
-                "is_public": true,
-                "docstring": "Return a sorted copy of an array along a specified axis.",
-                "dependencies": [
-                  "numpy as np"
-                ],
-                "semantic_tags": [
-                  "sort",
-                  "order",
-                  "monotonic"
-                ],
-                "keywords": [
-                  "sort",
-                  "quicksort",
-                  "ascending",
-                  "order"
-                ],
-                "code_template": "{output_var} = np.sort({array}, axis={axis}, kind={kind})",
-                "slots": {
-                  "axis": "-1",
-                  "kind": "'quicksort'"
-                },
-                "bound_slots": {},
-                "feedback_state_type": null,
-                "raises": [
-                  "ValueError"
-                ],
-                "type_vars": [],
-                "inputs": {
-                  "array": {
-                    "type_name": "ndarray",
-                    "state": "nd_tensor",
-                    "accepted_states": [
-                      "nd_tensor",
-                      "1d_vector",
-                      "2d_matrix"
-                    ],
-                    "qualifiers": [],
-                    "default_value": null,
-                    "description": "Array to be sorted",
-                    "domain": "numpy",
-                    "required": true,
-                    "abstract_type": "tensor",
-                    "enum_values": null,
-                    "param_kind": "standard",
-                    "value_constraints": null,
-                    "shape_contract": null
-                  },
-                  "axis": {
-                    "type_name": "int",
-                    "state": "axis_spec",
-                    "qualifiers": [],
-                    "default_value": "-1",
-                    "description": "Axis along which to sort",
-                    "domain": "numpy",
-                    "required": false,
-                    "abstract_type": "scalar",
-                    "enum_values": null,
-                    "param_kind": "keyword_only",
-                    "value_constraints": null,
-                    "shape_contract": null
-                  },
-                  "kind": {
-                    "type_name": "str",
-                    "state": "sort_algorithm",
-                    "qualifiers": [],
-                    "default_value": "'quicksort'",
-                    "description": "Sorting algorithm: 'quicksort', 'mergesort', 'heapsort', 'stable'",
-                    "domain": "numpy",
-                    "required": false,
-                    "abstract_type": "scalar",
-                    "enum_values": [
-                      "'quicksort'",
-                      "'mergesort'",
-                      "'heapsort'",
-                      "'stable'"
-                    ],
-                    "param_kind": "keyword_only",
-                    "value_constraints": null,
-                    "shape_contract": null
-                  }
-                },
-                "outputs": {
-                  "output_var": {
-                    "type_name": "ndarray",
-                    "state": "sorted",
-                    "qualifiers": [],
-                    "default_value": null,
-                    "description": "Sorted array",
-                    "domain": "numpy",
-                    "required": true,
-                    "abstract_type": "tensor",
-                    "enum_values": null,
-                    "param_kind": "standard",
-                    "value_constraints": null,
-                    "shape_contract": null
-                  }
-                },
-                "preconditions": [],
-                "postconditions": [
-                  {
-                    "target": "output_var",
-                    "property": "is_sorted",
-                    "operator": "==",
-                    "value": true,
-                    "expression": "np.all(output_var[..., :-1] <= output_var[..., 1:])",
-                    "description": "Array elements must be monotonically non-decreasing along axis"
-                  }
-                ],
-                "effects": [],
-                "edges": [
-                  {
-                    "target_cell_id": "NUMPY_SEARCHSORTED",
-                    "affinity_score": 0.8,
-                    "score_provenance": "llm_seed",
-                    "bridging_precondition": null,
-                    "metadata": {}
-                  },
-                  {
-                    "target_cell_id": "NUMPY_SAVE_NPY",
-                    "affinity_score": 0.5,
-                    "score_provenance": "llm_seed",
-                    "bridging_precondition": null,
-                    "metadata": {}
-                  }
-                ]
-              },
-              {
-                "cell_id": "NUMPY_ARGSORT",
-                "stage": 2,
-                "topology_type": "sequential",
-                "node_type": "function",
-                "node_role": "transformer",
-                "mutation_type": "pure",
-                "is_context_manager": false,
-                "verified": true,
-                "source_priority": 1,
-                "is_public": true,
-                "docstring": "Returns the indices that would sort an array.",
-                "dependencies": [
-                  "numpy as np"
-                ],
-                "semantic_tags": [
-                  "sort",
-                  "index",
-                  "argsort"
-                ],
-                "keywords": [
-                  "argsort",
-                  "indices",
-                  "rank"
-                ],
-                "code_template": "{output_var} = np.argsort({array}, axis={axis}, kind={kind})",
-                "slots": {
-                  "axis": "-1",
-                  "kind": "'quicksort'"
-                },
-                "bound_slots": {},
-                "feedback_state_type": null,
-                "raises": [
-                  "ValueError"
-                ],
-                "type_vars": [],
-                "inputs": {
-                  "array": {
-                    "type_name": "ndarray",
-                    "state": "nd_tensor",
-                    "qualifiers": [],
-                    "default_value": null,
-                    "description": "Array to sort",
-                    "domain": "numpy",
-                    "required": true,
-                    "abstract_type": "tensor",
-                    "enum_values": null,
-                    "param_kind": "standard",
-                    "value_constraints": null,
-                    "shape_contract": null
-                  },
-                  "axis": {
-                    "type_name": "int",
-                    "state": "axis_spec",
-                    "qualifiers": [],
-                    "default_value": "-1",
-                    "description": "Axis along which to sort",
-                    "domain": "numpy",
-                    "required": false,
-                    "abstract_type": "scalar",
-                    "enum_values": null,
-                    "param_kind": "keyword_only",
-                    "value_constraints": null,
-                    "shape_contract": null
-                  },
-                  "kind": {
-                    "type_name": "str",
-                    "state": "sort_algorithm",
-                    "qualifiers": [],
-                    "default_value": "'quicksort'",
-                    "description": "Sorting algorithm choice",
-                    "domain": "numpy",
-                    "required": false,
-                    "abstract_type": "scalar",
-                    "enum_values": [
-                      "'quicksort'",
-                      "'mergesort'",
-                      "'heapsort'",
-                      "'stable'"
-                    ],
-                    "param_kind": "keyword_only",
-                    "value_constraints": null,
-                    "shape_contract": null
-                  }
-                },
-                "outputs": {
-                  "output_var": {
-                    "type_name": "ndarray",
-                    "state": "nd_tensor",
-                    "qualifiers": [],
-                    "default_value": null,
-                    "description": "Array of index integers that sort the array",
-                    "domain": "numpy",
-                    "required": true,
-                    "abstract_type": "tensor",
-                    "enum_values": null,
-                    "param_kind": "standard",
-                    "value_constraints": null,
-                    "shape_contract": null
-                  }
-                },
-                "preconditions": [],
-                "postconditions": [],
-                "effects": [],
-                "edges": []
-              },
-              {
-                "cell_id": "NUMPY_SEARCHSORTED",
-                "stage": 2,
-                "topology_type": "sequential",
-                "node_type": "function",
-                "node_role": "transformer",
-                "mutation_type": "pure",
-                "is_context_manager": false,
-                "verified": true,
-                "source_priority": 1,
-                "is_public": true,
-                "docstring": "Find indices where elements should be inserted to maintain order.",
-                "dependencies": [
-                  "numpy as np"
-                ],
-                "semantic_tags": [
-                  "search",
-                  "binary_search",
-                  "searchsorted"
-                ],
-                "keywords": [
-                  "searchsorted",
-                  "binary_search",
-                  "insert",
-                  "lookup"
-                ],
-                "code_template": "{output_var} = np.searchsorted({a}, {v}, side={side})",
-                "slots": {
-                  "side": "'left'"
-                },
-                "bound_slots": {},
-                "feedback_state_type": null,
-                "raises": [
-                  "ValueError"
-                ],
-                "type_vars": [],
-                "inputs": {
-                  "a": {
-                    "type_name": "ndarray",
-                    "state": "sorted",
-                    "qualifiers": [],
-                    "default_value": null,
-                    "description": "Input 1-D sorted array",
-                    "domain": "numpy",
-                    "required": true,
-                    "abstract_type": "tensor",
-                    "enum_values": null,
-                    "param_kind": "standard",
-                    "value_constraints": null,
-                    "shape_contract": null
-                  },
-                  "v": {
-                    "type_name": "ndarray",
-                    "state": "nd_tensor",
-                    "qualifiers": [],
-                    "default_value": null,
-                    "description": "Values to insert into a",
-                    "domain": "numpy",
-                    "required": true,
-                    "abstract_type": "tensor",
-                    "enum_values": null,
-                    "param_kind": "standard",
-                    "value_constraints": null,
-                    "shape_contract": null
-                  },
-                  "side": {
-                    "type_name": "str",
-                    "state": "side_spec",
-                    "qualifiers": [],
-                    "default_value": "'left'",
-                    "description": "'left' gives first suitable index, 'right' gives last",
-                    "domain": "numpy",
-                    "required": false,
-                    "abstract_type": "scalar",
-                    "enum_values": [
-                      "'left'",
-                      "'right'"
-                    ],
-                    "param_kind": "keyword_only",
-                    "value_constraints": null,
-                    "shape_contract": null
-                  }
-                },
-                "outputs": {
-                  "output_var": {
-                    "type_name": "ndarray",
-                    "state": "nd_tensor",
-                    "qualifiers": [],
-                    "default_value": null,
-                    "description": "Insertion indices matching shape of v",
-                    "domain": "numpy",
-                    "required": true,
-                    "abstract_type": "tensor",
-                    "enum_values": null,
-                    "param_kind": "standard",
-                    "value_constraints": null,
-                    "shape_contract": null
-                  }
-                },
-                "preconditions": [
-                  {
-                    "target": "a",
-                    "property": "is_sorted",
-                    "operator": "==",
-                    "value": true,
-                    "expression": "np.all(a[:-1] <= a[1:])",
-                    "description": "Array a must be sorted monotonically"
-                  }
-                ],
-                "postconditions": [],
-                "effects": [],
-                "edges": []
-              },
-              {
-                "cell_id": "NUMPY_UNIQUE",
-                "stage": 2,
-                "topology_type": "sequential",
-                "node_type": "function",
-                "node_role": "transformer",
-                "mutation_type": "pure",
-                "is_context_manager": false,
-                "verified": true,
-                "source_priority": 1,
-                "is_public": true,
-                "docstring": "Find the unique elements of an array.",
-                "dependencies": [
-                  "numpy as np"
-                ],
-                "semantic_tags": [
-                  "deduplicate",
-                  "unique",
-                  "distinct"
-                ],
-                "keywords": [
-                  "unique",
-                  "distinct",
-                  "dedupe",
-                  "set"
-                ],
-                "code_template": "{output_var} = np.unique({array})",
-                "slots": {},
-                "bound_slots": {},
-                "feedback_state_type": null,
-                "raises": [],
-                "type_vars": [],
-                "inputs": {
-                  "array": {
-                    "type_name": "ndarray",
-                    "state": "nd_tensor",
-                    "accepted_states": [
-                      "nd_tensor",
-                      "1d_vector",
-                      "2d_matrix"
-                    ],
-                    "qualifiers": [],
-                    "default_value": null,
-                    "description": "Input array to find unique values within",
-                    "domain": "numpy",
-                    "required": true,
-                    "abstract_type": "tensor",
-                    "enum_values": null,
-                    "param_kind": "standard",
-                    "value_constraints": null,
-                    "shape_contract": null
-                  }
-                },
-                "outputs": {
-                  "output_var": {
-                    "type_name": "ndarray",
-                    "state": "1d_vector",
-                    "qualifiers": [],
-                    "default_value": null,
-                    "description": "Sorted unique elements flattened into 1-D vector",
-                    "domain": "numpy",
-                    "required": true,
-                    "abstract_type": "tensor",
-                    "enum_values": null,
-                    "param_kind": "standard",
-                    "value_constraints": null,
-                    "shape_contract": null
-                  }
-                },
-                "preconditions": [],
-                "postconditions": [
-                  {
-                    "target": "output_var",
-                    "property": "ndim",
-                    "operator": "==",
-                    "value": 1,
-                    "expression": "output_var.ndim == 1",
-                    "description": "Unique returns a 1D vector by default"
-                  }
-                ],
-                "effects": [],
-                "edges": [
-                  {
-                    "target_cell_id": "NUMPY_SEARCHSORTED",
-                    "affinity_score": 0.5,
-                    "score_provenance": "llm_seed",
-                    "bridging_precondition": null,
-                    "metadata": {}
-                  },
-                  {
-                    "target_cell_id": "NUMPY_SAVE_NPY",
-                    "affinity_score": 0.5,
-                    "score_provenance": "llm_seed",
-                    "bridging_precondition": null,
-                    "metadata": {}
-                  }
-                ]
-              },
-              {
-                "cell_id": "NUMPY_SAVE_NPY",
-                "stage": 3,
-                "topology_type": "sequential",
-                "node_type": "function",
-                "node_role": "sink",
-                "mutation_type": "pure",
-                "is_context_manager": false,
-                "verified": true,
-                "source_priority": 1,
-                "is_public": true,
-                "docstring": "Save an array to a binary file in NumPy .npy format.",
-                "dependencies": [
-                  "numpy as np"
-                ],
-                "semantic_tags": [
-                  "io",
-                  "save",
-                  "binary",
-                  "persist"
-                ],
-                "keywords": [
-                  "save",
-                  "npy",
-                  "serialize",
-                  "persist",
-                  "disk"
-                ],
-                "code_template": "np.save({file_path}, {array})",
-                "slots": {},
-                "bound_slots": {},
-                "feedback_state_type": null,
-                "raises": [
-                  "IOError"
-                ],
-                "type_vars": [],
-                "inputs": {
-                  "file_path": {
-                    "type_name": "str",
-                    "state": "file_path_str",
-                    "qualifiers": [],
-                    "default_value": null,
-                    "description": "Target filesystem path ending in .npy",
-                    "domain": "numpy",
-                    "required": true,
-                    "abstract_type": "path",
-                    "enum_values": null,
-                    "param_kind": "standard",
-                    "value_constraints": null,
-                    "shape_contract": null
-                  },
-                  "array": {
-                    "type_name": "ndarray",
-                    "state": "nd_tensor",
-                    "accepted_states": [
-                      "nd_tensor",
-                      "1d_vector",
-                      "2d_matrix",
-                      "sorted",
-                      "normalized"
-                    ],
-                    "qualifiers": [],
-                    "default_value": null,
-                    "description": "Array data to be persisted",
-                    "domain": "numpy",
-                    "required": true,
-                    "abstract_type": "tensor",
-                    "enum_values": null,
-                    "param_kind": "standard",
-                    "value_constraints": null,
-                    "shape_contract": null
-                  }
-                },
-                "outputs": {
-                  "output_var": {
-                    "type_name": "str",
-                    "state": "saved_npy",
-                    "qualifiers": [],
-                    "default_value": null,
-                    "description": "Confirmation indicator of saved .npy file",
-                    "domain": "numpy",
-                    "required": true,
-                    "abstract_type": "path",
-                    "enum_values": null,
-                    "param_kind": "standard",
-                    "value_constraints": null,
-                    "shape_contract": null
-                  }
-                },
-                "preconditions": [],
-                "postconditions": [],
-                "effects": [],
-                "edges": []
-              },
-              {
-                "cell_id": "NUMPY_SAVEZ_COMPRESSED",
-                "stage": 3,
-                "topology_type": "sequential",
-                "node_type": "function",
-                "node_role": "sink",
-                "mutation_type": "pure",
-                "is_context_manager": false,
-                "verified": true,
-                "source_priority": 1,
-                "is_public": true,
-                "docstring": "Save several arrays into a single compressed .npz archive.",
-                "dependencies": [
-                  "numpy as np"
-                ],
-                "semantic_tags": [
-                  "io",
-                  "archive",
-                  "compression",
-                  "npz"
-                ],
-                "keywords": [
-                  "savez_compressed",
-                  "zip",
-                  "archive",
-                  "npz"
-                ],
-                "code_template": "np.savez_compressed({file_path}, data={array})",
-                "slots": {},
-                "bound_slots": {},
-                "feedback_state_type": null,
-                "raises": [
-                  "IOError"
-                ],
-                "type_vars": [],
-                "inputs": {
-                  "file_path": {
-                    "type_name": "str",
-                    "state": "file_path_str",
-                    "qualifiers": [],
-                    "default_value": null,
-                    "description": "Target destination path for .npz archive",
-                    "domain": "numpy",
-                    "required": true,
-                    "abstract_type": "path",
-                    "enum_values": null,
-                    "param_kind": "standard",
-                    "value_constraints": null,
-                    "shape_contract": null
-                  },
-                  "array": {
-                    "type_name": "ndarray",
-                    "state": "nd_tensor",
-                    "accepted_states": [
-                      "nd_tensor",
-                      "1d_vector",
-                      "2d_matrix"
-                    ],
-                    "qualifiers": [],
-                    "default_value": null,
-                    "description": "Array to compress into archive",
-                    "domain": "numpy",
-                    "required": true,
-                    "abstract_type": "tensor",
-                    "enum_values": null,
-                    "param_kind": "standard",
-                    "value_constraints": null,
-                    "shape_contract": null
-                  }
-                },
-                "outputs": {
-                  "output_var": {
-                    "type_name": "str",
-                    "state": "saved_npz",
-                    "qualifiers": [],
-                    "default_value": null,
-                    "description": "Confirmation indicator of saved .npz archive",
-                    "domain": "numpy",
-                    "required": true,
-                    "abstract_type": "path",
-                    "enum_values": null,
-                    "param_kind": "standard",
-                    "value_constraints": null,
-                    "shape_contract": null
-                  }
-                },
-                "preconditions": [],
-                "postconditions": [],
-                "effects": [],
-                "edges": []
-              },
-              {
-                "cell_id": "NUMPY_TOBYTES",
-                "stage": 3,
-                "topology_type": "sequential",
-                "node_type": "method",
-                "node_role": "sink",
-                "mutation_type": "pure",
-                "is_context_manager": false,
-                "verified": true,
-                "source_priority": 1,
-                "is_public": true,
-                "docstring": "Construct Python bytes containing the raw data bytes in the array.",
-                "dependencies": [
-                  "numpy as np"
-                ],
-                "semantic_tags": [
-                  "export",
-                  "bytes",
-                  "buffer"
-                ],
-                "keywords": [
-                  "tobytes",
-                  "bytes",
-                  "buffer",
-                  "serialize"
-                ],
-                "code_template": "{output_var} = {array}.tobytes(order={order})",
-                "slots": {
-                  "order": "'C'"
-                },
-                "bound_slots": {},
-                "feedback_state_type": null,
-                "raises": [],
-                "type_vars": [],
-                "inputs": {
-                  "array": {
-                    "type_name": "ndarray",
-                    "state": "nd_tensor",
-                    "accepted_states": [
-                      "nd_tensor",
-                      "1d_vector",
-                      "2d_matrix"
-                    ],
-                    "qualifiers": [],
-                    "default_value": null,
-                    "description": "Array to export to raw byte buffer",
-                    "domain": "numpy",
-                    "required": true,
-                    "abstract_type": "tensor",
-                    "enum_values": null,
-                    "param_kind": "standard",
-                    "value_constraints": null,
-                    "shape_contract": null
-                  },
-                  "order": {
-                    "type_name": "str",
-                    "state": "order_spec",
-                    "qualifiers": [],
-                    "default_value": "'C'",
-                    "description": "Memory order: 'C', 'F', or 'A'",
-                    "domain": "numpy",
-                    "required": false,
-                    "abstract_type": "scalar",
-                    "enum_values": [
-                      "'C'",
-                      "'F'",
-                      "'A'"
-                    ],
-                    "param_kind": "keyword_only",
-                    "value_constraints": null,
-                    "shape_contract": null
-                  }
-                },
-                "outputs": {
-                  "output_var": {
-                    "type_name": "str",
-                    "state": "exported_buffer",
-                    "qualifiers": [],
-                    "default_value": null,
-                    "description": "Raw bytes object containing array buffer data",
-                    "domain": "numpy",
-                    "required": true,
-                    "abstract_type": "scalar",
-                    "enum_values": null,
-                    "param_kind": "standard",
-                    "value_constraints": null,
-                    "shape_contract": null
-                  }
-                },
-                "preconditions": [],
-                "postconditions": [],
-                "effects": [],
-                "edges": []
-              },
-              {
-                "cell_id": "NUMPY_TOFILE",
-                "stage": 3,
-                "topology_type": "sequential",
-                "node_type": "method",
-                "node_role": "sink",
-                "mutation_type": "pure",
-                "is_context_manager": false,
-                "verified": true,
-                "source_priority": 10,
-                "is_public": true,
-                "docstring": "Write array to a file as text or binary (in platform-native format).",
-                "dependencies": [
-                  "numpy as np"
-                ],
-                "semantic_tags": [
-                  "export",
-                  "file",
-                  "binary_dump"
-                ],
-                "keywords": [
-                  "tofile",
-                  "dump",
-                  "write",
-                  "file"
-                ],
-                "code_template": "{array}.tofile({file_path}, sep={sep}, format={format})",
-                "slots": {
-                  "sep": "''",
-                  "format": "'%s'"
-                },
-                "bound_slots": {},
-                "feedback_state_type": null,
-                "raises": [
-                  "IOError"
-                ],
-                "type_vars": [],
-                "inputs": {
-                  "array": {
-                    "type_name": "ndarray",
-                    "state": "nd_tensor",
-                    "accepted_states": [
-                      "nd_tensor",
-                      "1d_vector",
-                      "2d_matrix"
-                    ],
-                    "qualifiers": [],
-                    "default_value": null,
-                    "description": "Source array to write",
-                    "domain": "numpy",
-                    "required": true,
-                    "abstract_type": "tensor",
-                    "enum_values": null,
-                    "param_kind": "standard",
-                    "value_constraints": null,
-                    "shape_contract": null
-                  },
-                  "file_path": {
-                    "type_name": "str",
-                    "state": "file_path_str",
-                    "qualifiers": [],
-                    "default_value": null,
-                    "description": "Path to file destination",
-                    "domain": "numpy",
-                    "required": true,
-                    "abstract_type": "path",
-                    "enum_values": null,
-                    "param_kind": "standard",
-                    "value_constraints": null,
-                    "shape_contract": null
-                  },
-                  "sep": {
-                    "type_name": "str",
-                    "state": "separator_str",
-                    "qualifiers": [],
-                    "default_value": "''",
-                    "description": "Separator between items. If empty, binary file is written.",
-                    "domain": "numpy",
-                    "required": false,
-                    "abstract_type": "scalar",
-                    "enum_values": null,
-                    "param_kind": "keyword_only",
-                    "value_constraints": null,
-                    "shape_contract": null
-                  },
-                  "format": {
-                    "type_name": "str",
-                    "state": "format_str",
-                    "qualifiers": [],
-                    "default_value": "'%s'",
-                    "description": "Format string for text output",
-                    "domain": "numpy",
-                    "required": false,
-                    "abstract_type": "scalar",
-                    "enum_values": null,
-                    "param_kind": "keyword_only",
-                    "value_constraints": null,
-                    "shape_contract": null
-                  }
-                },
-                "outputs": {
-                  "output_var": {
-                    "type_name": "str",
-                    "state": "exported_buffer",
-                    "qualifiers": [],
-                    "default_value": null,
-                    "description": "Status string indicating dump completion",
-                    "domain": "numpy",
-                    "required": true,
-                    "abstract_type": "path",
-                    "enum_values": null,
-                    "param_kind": "standard",
-                    "value_constraints": null,
-                    "shape_contract": null
-                  }
-                },
-                "preconditions": [],
-                "postconditions": [],
-                "effects": [],
-                "edges": []
-              },
-              {
-                "cell_id": "NUMPY_TOLIST",
-                "stage": 3,
-                "topology_type": "sequential",
-                "node_type": "method",
-                "node_role": "bridge",
-                "mutation_type": "pure",
-                "is_context_manager": false,
-                "verified": true,
-                "source_priority": 1,
-                "is_public": true,
-                "docstring": "Return the array as an a.ndim-levels deep nested list of Python scalars.",
-                "dependencies": [
-                  "numpy as np"
-                ],
-                "semantic_tags": [
-                  "export",
-                  "bridge",
-                  "python_list"
-                ],
-                "keywords": [
-                  "tolist",
-                  "list",
-                  "convert",
-                  "python_native"
-                ],
-                "code_template": "{output_var} = {array}.tolist()",
-                "slots": {},
-                "bound_slots": {},
-                "feedback_state_type": null,
-                "raises": [],
-                "type_vars": [],
-                "inputs": {
-                  "array": {
-                    "type_name": "ndarray",
-                    "state": "nd_tensor",
-                    "accepted_states": [
-                      "nd_tensor",
-                      "1d_vector",
-                      "2d_matrix",
-                      "sorted",
-                      "normalized",
-                      "transposed"
-                    ],
-                    "qualifiers": [],
-                    "default_value": null,
-                    "description": "Array to be converted to native nested Python list",
-                    "domain": "numpy",
-                    "required": true,
-                    "abstract_type": "tensor",
-                    "enum_values": null,
-                    "param_kind": "standard",
-                    "value_constraints": null,
-                    "shape_contract": null
-                  }
-                },
-                "outputs": {
-                  "output_var": {
-                    "type_name": "tuple",
-                    "state": "exported_buffer",
-                    "qualifiers": [],
-                    "default_value": null,
-                    "description": "Hierarchical nested Python list of scalar values",
-                    "domain": "numpy",
-                    "required": true,
-                    "abstract_type": "array-like",
-                    "enum_values": null,
-                    "param_kind": "standard",
-                    "value_constraints": null,
-                    "shape_contract": null
-                  }
-                },
-                "preconditions": [],
-                "postconditions": [],
-                "effects": [],
-                "edges": []
-              }
-            ]
-          }
+          "domain": "numpy",
+          "required": false,
+          "abstract_type": "scalar",
+          "enum_values": null,
+          "param_kind": "keyword_only",
+          "value_constraints": null,
+          "shape_contract": null
+        },
+        "keepdims": {
+          "type_name": "bool",
+          "state": "flag",
+          "qualifiers": [],
+          "default_value": "False",
+          "description": "Retain reduced dimensions",
+          "domain": "numpy",
+          "required": false,
+          "abstract_type": "scalar",
+          "enum_values": null,
+          "param_kind": "keyword_only",
+          "value_constraints": null,
+          "shape_contract": null
+        }
+      },
+      "outputs": {
+        "output_var": {
+          "type_name": "float",
+          "state": "scalar_value",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Computed matrix or vector norm",
+          "domain": "numpy",
+          "required": true,
+          "abstract_type": "scalar",
+          "enum_values": null,
+          "param_kind": "standard",
+          "value_constraints": null,
+          "shape_contract": null
+        }
+      },
+      "preconditions": [],
+      "postconditions": [],
+      "effects": [],
+      "edges": []
+    },
+    {
+      "cell_id": "NUMPY_LINALG_MATRIX_RANK",
+      "stage": 2,
+      "topology_type": "sequential",
+      "node_type": "function",
+      "node_role": "transformer",
+      "mutation_type": "pure",
+      "is_context_manager": false,
+      "verified": true,
+      "source_priority": 1,
+      "is_public": true,
+      "docstring": "Return matrix rank of array using SVD-based estimation method.",
+      "dependencies": [
+        "numpy as np"
+      ],
+      "semantic_tags": [
+        "linear_algebra",
+        "rank",
+        "svd"
+      ],
+      "keywords": [
+        "matrix_rank",
+        "rank",
+        "dimension",
+        "span"
+      ],
+      "code_template": "{output_var} = np.linalg.matrix_rank({matrix}, tol={tol})",
+      "slots": {
+        "tol": "None"
+      },
+      "bound_slots": {},
+      "feedback_state_type": null,
+      "raises": [],
+      "type_vars": [],
+      "inputs": {
+        "matrix": {
+          "type_name": "ndarray",
+          "state": "2d_matrix",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Input matrix",
+          "domain": "numpy",
+          "required": true,
+          "abstract_type": "matrix",
+          "enum_values": null,
+          "param_kind": "standard",
+          "value_constraints": null,
+          "shape_contract": null
+        },
+        "tol": {
+          "type_name": "float",
+          "state": "threshold_tolerance",
+          "qualifiers": [],
+          "default_value": "None",
+          "description": "Threshold below which SVD values are considered zero",
+          "domain": "numpy",
+          "required": false,
+          "abstract_type": "scalar",
+          "enum_values": null,
+          "param_kind": "keyword_only",
+          "value_constraints": null,
+          "shape_contract": null
+        }
+      },
+      "outputs": {
+        "output_var": {
+          "type_name": "int",
+          "state": "scalar_value",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Estimated matrix rank scalar",
+          "domain": "numpy",
+          "required": true,
+          "abstract_type": "scalar",
+          "enum_values": null,
+          "param_kind": "standard",
+          "value_constraints": null,
+          "shape_contract": null
+        }
+      },
+      "preconditions": [
+        {
+          "target": "matrix",
+          "property": "ndim",
+          "operator": "==",
+          "value": 2,
+          "expression": "matrix.ndim == 2",
+          "description": "Input must be a 2D matrix"
+        }
+      ],
+      "postconditions": [],
+      "effects": [],
+      "edges": []
+    },
+    {
+      "cell_id": "NUMPY_TRACE",
+      "stage": 2,
+      "topology_type": "sequential",
+      "node_type": "function",
+      "node_role": "transformer",
+      "mutation_type": "pure",
+      "is_context_manager": false,
+      "verified": true,
+      "source_priority": 1,
+      "is_public": true,
+      "docstring": "Return the sum along diagonals of the array.",
+      "dependencies": [
+        "numpy as np"
+      ],
+      "semantic_tags": [
+        "linear_algebra",
+        "trace",
+        "diagonal"
+      ],
+      "keywords": [
+        "trace",
+        "diagonal_sum",
+        "spoor"
+      ],
+      "code_template": "{output_var} = np.trace({matrix}, offset={offset})",
+      "slots": {
+        "offset": "0"
+      },
+      "bound_slots": {},
+      "feedback_state_type": null,
+      "raises": [],
+      "type_vars": [],
+      "inputs": {
+        "matrix": {
+          "type_name": "ndarray",
+          "state": "2d_matrix",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Input matrix operand",
+          "domain": "numpy",
+          "required": true,
+          "abstract_type": "matrix",
+          "enum_values": null,
+          "param_kind": "standard",
+          "value_constraints": null,
+          "shape_contract": null
+        },
+        "offset": {
+          "type_name": "int",
+          "state": "diag_offset",
+          "qualifiers": [],
+          "default_value": "0",
+          "description": "Offset of diagonal from the main diagonal",
+          "domain": "numpy",
+          "required": false,
+          "abstract_type": "scalar",
+          "enum_values": null,
+          "param_kind": "keyword_only",
+          "value_constraints": null,
+          "shape_contract": null
+        }
+      },
+      "outputs": {
+        "output_var": {
+          "type_name": "float",
+          "state": "scalar_value",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Scalar sum of diagonal elements",
+          "domain": "numpy",
+          "required": true,
+          "abstract_type": "scalar",
+          "enum_values": null,
+          "param_kind": "standard",
+          "value_constraints": null,
+          "shape_contract": null
+        }
+      },
+      "preconditions": [
+        {
+          "target": "matrix",
+          "property": "ndim",
+          "operator": "==",
+          "value": 2,
+          "expression": "matrix.ndim == 2",
+          "description": "Input must be a 2D matrix"
+        }
+      ],
+      "postconditions": [],
+      "effects": [],
+      "edges": []
+    },
+    {
+      "cell_id": "NUMPY_FFT_FFT",
+      "stage": 2,
+      "topology_type": "sequential",
+      "node_type": "function",
+      "node_role": "transformer",
+      "mutation_type": "pure",
+      "is_context_manager": false,
+      "verified": true,
+      "source_priority": 1,
+      "is_public": true,
+      "docstring": "Compute the 1-dimensional discrete Fourier Transform.",
+      "dependencies": [
+        "numpy as np"
+      ],
+      "semantic_tags": [
+        "fft",
+        "frequency_domain",
+        "fourier"
+      ],
+      "keywords": [
+        "fft",
+        "fourier",
+        "spectrum",
+        "frequency"
+      ],
+      "code_template": "{output_var} = np.fft.fft({a}, n={n}, axis={axis})",
+      "slots": {
+        "n": "None",
+        "axis": "-1"
+      },
+      "bound_slots": {},
+      "feedback_state_type": null,
+      "raises": [
+        "ValueError"
+      ],
+      "type_vars": [],
+      "inputs": {
+        "a": {
+          "type_name": "ndarray",
+          "state": "nd_tensor",
+          "accepted_states": [
+            "nd_tensor",
+            "1d_vector"
+          ],
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Input array representing time or spatial series",
+          "domain": "numpy",
+          "required": true,
+          "abstract_type": "tensor",
+          "enum_values": null,
+          "param_kind": "standard",
+          "value_constraints": null,
+          "shape_contract": null
+        },
+        "n": {
+          "type_name": "int",
+          "state": "transform_length",
+          "qualifiers": [],
+          "default_value": "None",
+          "description": "Length of the transformed axis",
+          "domain": "numpy",
+          "required": false,
+          "abstract_type": "scalar",
+          "enum_values": null,
+          "param_kind": "keyword_only",
+          "value_constraints": null,
+          "shape_contract": null
+        },
+        "axis": {
+          "type_name": "int",
+          "state": "axis_spec",
+          "qualifiers": [],
+          "default_value": "-1",
+          "description": "Axis over which to compute the FFT",
+          "domain": "numpy",
+          "required": false,
+          "abstract_type": "scalar",
+          "enum_values": null,
+          "param_kind": "keyword_only",
+          "value_constraints": null,
+          "shape_contract": null
+        }
+      },
+      "outputs": {
+        "output_var": {
+          "type_name": "ndarray",
+          "state": "fft_frequency_domain",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Complex Fourier frequency spectrum",
+          "domain": "numpy",
+          "required": true,
+          "abstract_type": "tensor",
+          "enum_values": null,
+          "param_kind": "standard",
+          "value_constraints": null,
+          "shape_contract": null
+        }
+      },
+      "preconditions": [],
+      "postconditions": [
+        {
+          "target": "output_var",
+          "property": "is_complex",
+          "operator": "==",
+          "value": true,
+          "expression": "np.iscomplexobj(output_var)",
+          "description": "FFT output components are complex numbers"
+        }
+      ],
+      "effects": [],
+      "edges": [
+        {
+          "target_cell_id": "NUMPY_FFT_IFFT",
+          "affinity_score": 0.8,
+          "score_provenance": "llm_seed",
+          "bridging_precondition": null,
+          "metadata": {}
+        },
+        {
+          "target_cell_id": "NUMPY_FFT_FFTSHIFT",
+          "affinity_score": 0.8,
+          "score_provenance": "llm_seed",
+          "bridging_precondition": null,
+          "metadata": {}
+        },
+        {
+          "target_cell_id": "NUMPY_ABS",
+          "affinity_score": 0.8,
+          "score_provenance": "llm_seed",
+          "bridging_precondition": null,
+          "metadata": {}
+        }
+      ]
+    },
+    {
+      "cell_id": "NUMPY_FFT_IFFT",
+      "stage": 2,
+      "topology_type": "sequential",
+      "node_type": "function",
+      "node_role": "transformer",
+      "mutation_type": "pure",
+      "is_context_manager": false,
+      "verified": true,
+      "source_priority": 1,
+      "is_public": true,
+      "docstring": "Compute the 1-dimensional inverse discrete Fourier Transform.",
+      "dependencies": [
+        "numpy as np"
+      ],
+      "semantic_tags": [
+        "fft",
+        "inverse_fourier",
+        "time_domain"
+      ],
+      "keywords": [
+        "ifft",
+        "inverse_fourier",
+        "reconstruction"
+      ],
+      "code_template": "{output_var} = np.fft.ifft({a}, n={n}, axis={axis})",
+      "slots": {
+        "n": "None",
+        "axis": "-1"
+      },
+      "bound_slots": {},
+      "feedback_state_type": null,
+      "raises": [
+        "ValueError"
+      ],
+      "type_vars": [],
+      "inputs": {
+        "a": {
+          "type_name": "ndarray",
+          "state": "fft_frequency_domain",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Frequency-domain complex spectrum",
+          "domain": "numpy",
+          "required": true,
+          "abstract_type": "tensor",
+          "enum_values": null,
+          "param_kind": "standard",
+          "value_constraints": null,
+          "shape_contract": null
+        },
+        "n": {
+          "type_name": "int",
+          "state": "transform_length",
+          "qualifiers": [],
+          "default_value": "None",
+          "description": "Length of output axis",
+          "domain": "numpy",
+          "required": false,
+          "abstract_type": "scalar",
+          "enum_values": null,
+          "param_kind": "keyword_only",
+          "value_constraints": null,
+          "shape_contract": null
+        },
+        "axis": {
+          "type_name": "int",
+          "state": "axis_spec",
+          "qualifiers": [],
+          "default_value": "-1",
+          "description": "Axis over which inverse transform is evaluated",
+          "domain": "numpy",
+          "required": false,
+          "abstract_type": "scalar",
+          "enum_values": null,
+          "param_kind": "keyword_only",
+          "value_constraints": null,
+          "shape_contract": null
+        }
+      },
+      "outputs": {
+        "output_var": {
+          "type_name": "ndarray",
+          "state": "complex_tensor",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Reconstructed spatial or temporal domain array",
+          "domain": "numpy",
+          "required": true,
+          "abstract_type": "tensor",
+          "enum_values": null,
+          "param_kind": "standard",
+          "value_constraints": null,
+          "shape_contract": null
+        }
+      },
+      "preconditions": [],
+      "postconditions": [],
+      "effects": [],
+      "edges": [
+        {
+          "target_cell_id": "NUMPY_ABS",
+          "affinity_score": 0.8,
+          "score_provenance": "llm_seed",
+          "bridging_precondition": null,
+          "metadata": {}
+        }
+      ]
+    },
+    {
+      "cell_id": "NUMPY_FFT_FFT2",
+      "stage": 2,
+      "topology_type": "sequential",
+      "node_type": "function",
+      "node_role": "transformer",
+      "mutation_type": "pure",
+      "is_context_manager": false,
+      "verified": true,
+      "source_priority": 1,
+      "is_public": true,
+      "docstring": "Compute the 2-dimensional discrete Fourier Transform.",
+      "dependencies": [
+        "numpy as np"
+      ],
+      "semantic_tags": [
+        "fft",
+        "2d",
+        "spectral",
+        "image_processing"
+      ],
+      "keywords": [
+        "fft2",
+        "fourier_2d",
+        "spatial_frequency"
+      ],
+      "code_template": "{output_var} = np.fft.fft2({a}, s={s}, axes={axes})",
+      "slots": {
+        "s": "None",
+        "axes": "(-2, -1)"
+      },
+      "bound_slots": {},
+      "feedback_state_type": null,
+      "raises": [
+        "ValueError"
+      ],
+      "type_vars": [],
+      "inputs": {
+        "a": {
+          "type_name": "ndarray",
+          "state": "2d_matrix",
+          "accepted_states": [
+            "2d_matrix",
+            "nd_tensor"
+          ],
+          "qualifiers": [],
+          "default_value": null,
+          "description": "2D input spatial grid or matrix",
+          "domain": "numpy",
+          "required": true,
+          "abstract_type": "matrix",
+          "enum_values": null,
+          "param_kind": "standard",
+          "value_constraints": null,
+          "shape_contract": null
+        },
+        "s": {
+          "type_name": "tuple",
+          "state": "shape_tuple",
+          "qualifiers": [],
+          "default_value": "None",
+          "description": "Shape of output along transformed axes",
+          "domain": "numpy",
+          "required": false,
+          "abstract_type": "array-like",
+          "enum_values": null,
+          "param_kind": "keyword_only",
+          "value_constraints": null,
+          "shape_contract": null
+        },
+        "axes": {
+          "type_name": "tuple",
+          "state": "axes_tuple",
+          "qualifiers": [],
+          "default_value": "(-2, -1)",
+          "description": "Axes over which 2D FFT is computed",
+          "domain": "numpy",
+          "required": false,
+          "abstract_type": "array-like",
+          "enum_values": null,
+          "param_kind": "keyword_only",
+          "value_constraints": null,
+          "shape_contract": null
+        }
+      },
+      "outputs": {
+        "output_var": {
+          "type_name": "ndarray",
+          "state": "fft_frequency_domain",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "2D complex frequency spectrum",
+          "domain": "numpy",
+          "required": true,
+          "abstract_type": "matrix",
+          "enum_values": null,
+          "param_kind": "standard",
+          "value_constraints": null,
+          "shape_contract": null
+        }
+      },
+      "preconditions": [],
+      "postconditions": [],
+      "effects": [],
+      "edges": [
+        {
+          "target_cell_id": "NUMPY_FFT_IFFT2",
+          "affinity_score": 0.8,
+          "score_provenance": "llm_seed",
+          "bridging_precondition": null,
+          "metadata": {}
+        },
+        {
+          "target_cell_id": "NUMPY_FFT_FFTSHIFT",
+          "affinity_score": 0.8,
+          "score_provenance": "llm_seed",
+          "bridging_precondition": null,
+          "metadata": {}
+        },
+        {
+          "target_cell_id": "NUMPY_ABS",
+          "affinity_score": 0.5,
+          "score_provenance": "llm_seed",
+          "bridging_precondition": null,
+          "metadata": {}
+        }
+      ]
+    },
+    {
+      "cell_id": "NUMPY_FFT_IFFT2",
+      "stage": 2,
+      "topology_type": "sequential",
+      "node_type": "function",
+      "node_role": "transformer",
+      "mutation_type": "pure",
+      "is_context_manager": false,
+      "verified": true,
+      "source_priority": 1,
+      "is_public": true,
+      "docstring": "Compute the 2-dimensional inverse discrete Fourier Transform.",
+      "dependencies": [
+        "numpy as np"
+      ],
+      "semantic_tags": [
+        "fft",
+        "2d",
+        "inverse_fourier"
+      ],
+      "keywords": [
+        "ifft2",
+        "inverse_fourier_2d",
+        "reconstruction"
+      ],
+      "code_template": "{output_var} = np.fft.ifft2({a}, s={s}, axes={axes})",
+      "slots": {
+        "s": "None",
+        "axes": "(-2, -1)"
+      },
+      "bound_slots": {},
+      "feedback_state_type": null,
+      "raises": [
+        "ValueError"
+      ],
+      "type_vars": [],
+      "inputs": {
+        "a": {
+          "type_name": "ndarray",
+          "state": "fft_frequency_domain",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "2D complex spectrum array",
+          "domain": "numpy",
+          "required": true,
+          "abstract_type": "matrix",
+          "enum_values": null,
+          "param_kind": "standard",
+          "value_constraints": null,
+          "shape_contract": null
+        },
+        "s": {
+          "type_name": "tuple",
+          "state": "shape_tuple",
+          "qualifiers": [],
+          "default_value": "None",
+          "description": "Output shape",
+          "domain": "numpy",
+          "required": false,
+          "abstract_type": "array-like",
+          "enum_values": null,
+          "param_kind": "keyword_only",
+          "value_constraints": null,
+          "shape_contract": null
+        },
+        "axes": {
+          "type_name": "tuple",
+          "state": "axes_tuple",
+          "qualifiers": [],
+          "default_value": "(-2, -1)",
+          "description": "Axes over which inverse FFT is computed",
+          "domain": "numpy",
+          "required": false,
+          "abstract_type": "array-like",
+          "enum_values": null,
+          "param_kind": "keyword_only",
+          "value_constraints": null,
+          "shape_contract": null
+        }
+      },
+      "outputs": {
+        "output_var": {
+          "type_name": "ndarray",
+          "state": "complex_tensor",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Reconstructed 2D complex spatial matrix",
+          "domain": "numpy",
+          "required": true,
+          "abstract_type": "matrix",
+          "enum_values": null,
+          "param_kind": "standard",
+          "value_constraints": null,
+          "shape_contract": null
+        }
+      },
+      "preconditions": [],
+      "postconditions": [],
+      "effects": [],
+      "edges": [
+        {
+          "target_cell_id": "NUMPY_ABS",
+          "affinity_score": 0.8,
+          "score_provenance": "llm_seed",
+          "bridging_precondition": null,
+          "metadata": {}
+        }
+      ]
+    },
+    {
+      "cell_id": "NUMPY_FFT_FFTN",
+      "stage": 2,
+      "topology_type": "sequential",
+      "node_type": "function",
+      "node_role": "transformer",
+      "mutation_type": "pure",
+      "is_context_manager": false,
+      "verified": true,
+      "source_priority": 10,
+      "is_public": true,
+      "docstring": "Compute the N-dimensional discrete Fourier Transform.",
+      "dependencies": [
+        "numpy as np"
+      ],
+      "semantic_tags": [
+        "fft",
+        "nd",
+        "fourier"
+      ],
+      "keywords": [
+        "fftn",
+        "multidimensional_fourier",
+        "spectral"
+      ],
+      "code_template": "{output_var} = np.fft.fftn({a}, s={s}, axes={axes})",
+      "slots": {
+        "s": "None",
+        "axes": "None"
+      },
+      "bound_slots": {},
+      "feedback_state_type": null,
+      "raises": [
+        "ValueError"
+      ],
+      "type_vars": [],
+      "inputs": {
+        "a": {
+          "type_name": "ndarray",
+          "state": "nd_tensor",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "N-dimensional real or complex array",
+          "domain": "numpy",
+          "required": true,
+          "abstract_type": "tensor",
+          "enum_values": null,
+          "param_kind": "standard",
+          "value_constraints": null,
+          "shape_contract": null
+        },
+        "s": {
+          "type_name": "tuple",
+          "state": "shape_tuple",
+          "qualifiers": [],
+          "default_value": "None",
+          "description": "Output shape along transformed axes",
+          "domain": "numpy",
+          "required": false,
+          "abstract_type": "array-like",
+          "enum_values": null,
+          "param_kind": "keyword_only",
+          "value_constraints": null,
+          "shape_contract": null
+        },
+        "axes": {
+          "type_name": "tuple",
+          "state": "axes_tuple",
+          "qualifiers": [],
+          "default_value": "None",
+          "description": "Axes over which to compute FFT",
+          "domain": "numpy",
+          "required": false,
+          "abstract_type": "array-like",
+          "enum_values": null,
+          "param_kind": "keyword_only",
+          "value_constraints": null,
+          "shape_contract": null
+        }
+      },
+      "outputs": {
+        "output_var": {
+          "type_name": "ndarray",
+          "state": "fft_frequency_domain",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "N-dimensional complex spectrum tensor",
+          "domain": "numpy",
+          "required": true,
+          "abstract_type": "tensor",
+          "enum_values": null,
+          "param_kind": "standard",
+          "value_constraints": null,
+          "shape_contract": null
+        }
+      },
+      "preconditions": [],
+      "postconditions": [],
+      "effects": [],
+      "edges": [
+        {
+          "target_cell_id": "NUMPY_FFT_FFTSHIFT",
+          "affinity_score": 0.8,
+          "score_provenance": "llm_seed",
+          "bridging_precondition": null,
+          "metadata": {}
+        },
+        {
+          "target_cell_id": "NUMPY_ABS",
+          "affinity_score": 0.5,
+          "score_provenance": "llm_seed",
+          "bridging_precondition": null,
+          "metadata": {}
+        }
+      ]
+    },
+    {
+      "cell_id": "NUMPY_FFT_RFFT",
+      "stage": 2,
+      "topology_type": "sequential",
+      "node_type": "function",
+      "node_role": "transformer",
+      "mutation_type": "pure",
+      "is_context_manager": false,
+      "verified": true,
+      "source_priority": 1,
+      "is_public": true,
+      "docstring": "Compute the 1-dimensional discrete Fourier Transform for real input.",
+      "dependencies": [
+        "numpy as np"
+      ],
+      "semantic_tags": [
+        "fft",
+        "real_input",
+        "hermitian"
+      ],
+      "keywords": [
+        "rfft",
+        "real_fourier",
+        "half_spectrum"
+      ],
+      "code_template": "{output_var} = np.fft.rfft({a}, n={n}, axis={axis})",
+      "slots": {
+        "n": "None",
+        "axis": "-1"
+      },
+      "bound_slots": {},
+      "feedback_state_type": null,
+      "raises": [
+        "ValueError"
+      ],
+      "type_vars": [],
+      "inputs": {
+        "a": {
+          "type_name": "ndarray",
+          "state": "nd_tensor",
+          "accepted_states": [
+            "nd_tensor",
+            "1d_vector"
+          ],
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Real-valued input signal tensor",
+          "domain": "numpy",
+          "required": true,
+          "abstract_type": "tensor",
+          "enum_values": null,
+          "param_kind": "standard",
+          "value_constraints": null,
+          "shape_contract": null
+        },
+        "n": {
+          "type_name": "int",
+          "state": "transform_length",
+          "qualifiers": [],
+          "default_value": "None",
+          "description": "Number of points along transformation axis",
+          "domain": "numpy",
+          "required": false,
+          "abstract_type": "scalar",
+          "enum_values": null,
+          "param_kind": "keyword_only",
+          "value_constraints": null,
+          "shape_contract": null
+        },
+        "axis": {
+          "type_name": "int",
+          "state": "axis_spec",
+          "qualifiers": [],
+          "default_value": "-1",
+          "description": "Axis along which rfft is evaluated",
+          "domain": "numpy",
+          "required": false,
+          "abstract_type": "scalar",
+          "enum_values": null,
+          "param_kind": "keyword_only",
+          "value_constraints": null,
+          "shape_contract": null
+        }
+      },
+      "outputs": {
+        "output_var": {
+          "type_name": "ndarray",
+          "state": "fft_frequency_domain",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Hermitian-symmetric positive frequency spectrum",
+          "domain": "numpy",
+          "required": true,
+          "abstract_type": "tensor",
+          "enum_values": null,
+          "param_kind": "standard",
+          "value_constraints": null,
+          "shape_contract": null
+        }
+      },
+      "preconditions": [],
+      "postconditions": [],
+      "effects": [],
+      "edges": [
+        {
+          "target_cell_id": "NUMPY_FFT_IRFFT",
+          "affinity_score": 0.8,
+          "score_provenance": "llm_seed",
+          "bridging_precondition": null,
+          "metadata": {}
+        },
+        {
+          "target_cell_id": "NUMPY_ABS",
+          "affinity_score": 0.5,
+          "score_provenance": "llm_seed",
+          "bridging_precondition": null,
+          "metadata": {}
+        }
+      ]
+    },
+    {
+      "cell_id": "NUMPY_FFT_IRFFT",
+      "stage": 2,
+      "topology_type": "sequential",
+      "node_type": "function",
+      "node_role": "transformer",
+      "mutation_type": "pure",
+      "is_context_manager": false,
+      "verified": true,
+      "source_priority": 1,
+      "is_public": true,
+      "docstring": "Computes the inverse of rfft for real output.",
+      "dependencies": [
+        "numpy as np"
+      ],
+      "semantic_tags": [
+        "fft",
+        "inverse_real",
+        "time_domain"
+      ],
+      "keywords": [
+        "irfft",
+        "inverse_real_fourier",
+        "reconstruction"
+      ],
+      "code_template": "{output_var} = np.fft.irfft({a}, n={n}, axis={axis})",
+      "slots": {
+        "n": "None",
+        "axis": "-1"
+      },
+      "bound_slots": {},
+      "feedback_state_type": null,
+      "raises": [
+        "ValueError"
+      ],
+      "type_vars": [],
+      "inputs": {
+        "a": {
+          "type_name": "ndarray",
+          "state": "fft_frequency_domain",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Complex half-spectrum from rfft",
+          "domain": "numpy",
+          "required": true,
+          "abstract_type": "tensor",
+          "enum_values": null,
+          "param_kind": "standard",
+          "value_constraints": null,
+          "shape_contract": null
+        },
+        "n": {
+          "type_name": "int",
+          "state": "transform_length",
+          "qualifiers": [],
+          "default_value": "None",
+          "description": "Length of output real sequence",
+          "domain": "numpy",
+          "required": false,
+          "abstract_type": "scalar",
+          "enum_values": null,
+          "param_kind": "keyword_only",
+          "value_constraints": null,
+          "shape_contract": null
+        },
+        "axis": {
+          "type_name": "int",
+          "state": "axis_spec",
+          "qualifiers": [],
+          "default_value": "-1",
+          "description": "Axis along which irfft is computed",
+          "domain": "numpy",
+          "required": false,
+          "abstract_type": "scalar",
+          "enum_values": null,
+          "param_kind": "keyword_only",
+          "value_constraints": null,
+          "shape_contract": null
+        }
+      },
+      "outputs": {
+        "output_var": {
+          "type_name": "ndarray",
+          "state": "nd_tensor",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Real-valued output signal array",
+          "domain": "numpy",
+          "required": true,
+          "abstract_type": "tensor",
+          "enum_values": null,
+          "param_kind": "standard",
+          "value_constraints": null,
+          "shape_contract": null
+        }
+      },
+      "preconditions": [],
+      "postconditions": [],
+      "effects": [],
+      "edges": [
+        {
+          "target_cell_id": "NUMPY_MEAN_AXIS",
+          "affinity_score": 0.8,
+          "score_provenance": "llm_seed",
+          "bridging_precondition": null,
+          "metadata": {}
+        }
+      ]
+    },
+    {
+      "cell_id": "NUMPY_FFT_FFTSHIFT",
+      "stage": 2,
+      "topology_type": "sequential",
+      "node_type": "function",
+      "node_role": "transformer",
+      "mutation_type": "pure",
+      "is_context_manager": false,
+      "verified": true,
+      "source_priority": 1,
+      "is_public": true,
+      "docstring": "Shift the zero-frequency component to the center of the spectrum.",
+      "dependencies": [
+        "numpy as np"
+      ],
+      "semantic_tags": [
+        "fft",
+        "shift",
+        "center_frequency"
+      ],
+      "keywords": [
+        "fftshift",
+        "center",
+        "dc_component"
+      ],
+      "code_template": "{output_var} = np.fft.fftshift({x}, axes={axes})",
+      "slots": {
+        "axes": "None"
+      },
+      "bound_slots": {},
+      "feedback_state_type": null,
+      "raises": [],
+      "type_vars": [],
+      "inputs": {
+        "x": {
+          "type_name": "ndarray",
+          "state": "fft_frequency_domain",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Frequency domain array to shift",
+          "domain": "numpy",
+          "required": true,
+          "abstract_type": "tensor",
+          "enum_values": null,
+          "param_kind": "standard",
+          "value_constraints": null,
+          "shape_contract": null
+        },
+        "axes": {
+          "type_name": "tuple",
+          "state": "axes_tuple",
+          "qualifiers": [],
+          "default_value": "None",
+          "description": "Axes over which to shift; shifts all if None",
+          "domain": "numpy",
+          "required": false,
+          "abstract_type": "array-like",
+          "enum_values": null,
+          "param_kind": "keyword_only",
+          "value_constraints": null,
+          "shape_contract": null
+        }
+      },
+      "outputs": {
+        "output_var": {
+          "type_name": "ndarray",
+          "state": "fft_frequency_domain",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Zero-centered frequency spectrum",
+          "domain": "numpy",
+          "required": true,
+          "abstract_type": "tensor",
+          "enum_values": null,
+          "param_kind": "standard",
+          "value_constraints": null,
+          "shape_contract": null
+        }
+      },
+      "preconditions": [],
+      "postconditions": [],
+      "effects": [],
+      "edges": [
+        {
+          "target_cell_id": "NUMPY_FFT_IFFTSHIFT",
+          "affinity_score": 0.8,
+          "score_provenance": "llm_seed",
+          "bridging_precondition": null,
+          "metadata": {}
+        },
+        {
+          "target_cell_id": "NUMPY_ABS",
+          "affinity_score": 0.5,
+          "score_provenance": "llm_seed",
+          "bridging_precondition": null,
+          "metadata": {}
+        }
+      ]
+    },
+    {
+      "cell_id": "NUMPY_FFT_IFFTSHIFT",
+      "stage": 2,
+      "topology_type": "sequential",
+      "node_type": "function",
+      "node_role": "transformer",
+      "mutation_type": "pure",
+      "is_context_manager": false,
+      "verified": true,
+      "source_priority": 1,
+      "is_public": true,
+      "docstring": "The inverse of fftshift; shifts zero-frequency back to beginning.",
+      "dependencies": [
+        "numpy as np"
+      ],
+      "semantic_tags": [
+        "fft",
+        "inverse_shift"
+      ],
+      "keywords": [
+        "ifftshift",
+        "unshift",
+        "dc"
+      ],
+      "code_template": "{output_var} = np.fft.ifftshift({x}, axes={axes})",
+      "slots": {
+        "axes": "None"
+      },
+      "bound_slots": {},
+      "feedback_state_type": null,
+      "raises": [],
+      "type_vars": [],
+      "inputs": {
+        "x": {
+          "type_name": "ndarray",
+          "state": "fft_frequency_domain",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Shifted frequency array",
+          "domain": "numpy",
+          "required": true,
+          "abstract_type": "tensor",
+          "enum_values": null,
+          "param_kind": "standard",
+          "value_constraints": null,
+          "shape_contract": null
+        },
+        "axes": {
+          "type_name": "tuple",
+          "state": "axes_tuple",
+          "qualifiers": [],
+          "default_value": "None",
+          "description": "Axes over which to reverse shift",
+          "domain": "numpy",
+          "required": false,
+          "abstract_type": "array-like",
+          "enum_values": null,
+          "param_kind": "keyword_only",
+          "value_constraints": null,
+          "shape_contract": null
+        }
+      },
+      "outputs": {
+        "output_var": {
+          "type_name": "ndarray",
+          "state": "fft_frequency_domain",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Array with zero-frequency restored to edge",
+          "domain": "numpy",
+          "required": true,
+          "abstract_type": "tensor",
+          "enum_values": null,
+          "param_kind": "standard",
+          "value_constraints": null,
+          "shape_contract": null
+        }
+      },
+      "preconditions": [],
+      "postconditions": [],
+      "effects": [],
+      "edges": [
+        {
+          "target_cell_id": "NUMPY_FFT_IFFT",
+          "affinity_score": 0.8,
+          "score_provenance": "llm_seed",
+          "bridging_precondition": null,
+          "metadata": {}
+        }
+      ]
+    },
+    {
+      "cell_id": "NUMPY_RANDOM_UNIFORM",
+      "stage": 1,
+      "topology_type": "sequential",
+      "node_type": "function",
+      "node_role": "source",
+      "mutation_type": "pure",
+      "is_context_manager": false,
+      "verified": true,
+      "source_priority": 1,
+      "is_public": true,
+      "docstring": "Draw samples from a uniform continuous distribution [low, high).",
+      "dependencies": [
+        "numpy as np"
+      ],
+      "semantic_tags": [
+        "random",
+        "uniform",
+        "stochastic"
+      ],
+      "keywords": [
+        "uniform",
+        "random",
+        "sample",
+        "monte_carlo"
+      ],
+      "code_template": "{output_var} = np.random.uniform(low={low}, high={high}, size={size})",
+      "slots": {
+        "low": "0.0",
+        "high": "1.0",
+        "size": "None"
+      },
+      "bound_slots": {},
+      "feedback_state_type": null,
+      "raises": [],
+      "type_vars": [],
+      "inputs": {
+        "low": {
+          "type_name": "float",
+          "state": "bound_scalar",
+          "qualifiers": [],
+          "default_value": "0.0",
+          "description": "Lower boundary of output interval",
+          "domain": "numpy",
+          "required": false,
+          "abstract_type": "scalar",
+          "enum_values": null,
+          "param_kind": "keyword_only",
+          "value_constraints": null,
+          "shape_contract": null
+        },
+        "high": {
+          "type_name": "float",
+          "state": "bound_scalar",
+          "qualifiers": [],
+          "default_value": "1.0",
+          "description": "Upper boundary of output interval",
+          "domain": "numpy",
+          "required": false,
+          "abstract_type": "scalar",
+          "enum_values": null,
+          "param_kind": "keyword_only",
+          "value_constraints": null,
+          "shape_contract": null
+        },
+        "size": {
+          "type_name": "tuple",
+          "state": "shape_tuple",
+          "qualifiers": [],
+          "default_value": "None",
+          "description": "Output shape tuple",
+          "domain": "numpy",
+          "required": false,
+          "abstract_type": "array-like",
+          "enum_values": null,
+          "param_kind": "keyword_only",
+          "value_constraints": null,
+          "shape_contract": null
+        }
+      },
+      "outputs": {
+        "output_var": {
+          "type_name": "ndarray",
+          "state": "nd_tensor",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Sampled uniform random tensor",
+          "domain": "numpy",
+          "required": true,
+          "abstract_type": "tensor",
+          "enum_values": null,
+          "param_kind": "standard",
+          "value_constraints": null,
+          "shape_contract": null
+        }
+      },
+      "preconditions": [],
+      "postconditions": [],
+      "effects": [],
+      "edges": [
+        {
+          "target_cell_id": "NUMPY_MEAN_ALL",
+          "affinity_score": 0.8,
+          "score_provenance": "llm_seed",
+          "bridging_precondition": null,
+          "metadata": {}
+        },
+        {
+          "target_cell_id": "NUMPY_SORT",
+          "affinity_score": 0.5,
+          "score_provenance": "llm_seed",
+          "bridging_precondition": null,
+          "metadata": {}
+        }
+      ]
+    },
+    {
+      "cell_id": "NUMPY_RANDOM_NORMAL",
+      "stage": 1,
+      "topology_type": "sequential",
+      "node_type": "function",
+      "node_role": "source",
+      "mutation_type": "pure",
+      "is_context_manager": false,
+      "verified": true,
+      "source_priority": 1,
+      "is_public": true,
+      "docstring": "Draw random samples from a normal (Gaussian) distribution.",
+      "dependencies": [
+        "numpy as np"
+      ],
+      "semantic_tags": [
+        "random",
+        "gaussian",
+        "normal"
+      ],
+      "keywords": [
+        "normal",
+        "gaussian",
+        "bell_curve",
+        "stochastic"
+      ],
+      "code_template": "{output_var} = np.random.normal(loc={loc}, scale={scale}, size={size})",
+      "slots": {
+        "loc": "0.0",
+        "scale": "1.0",
+        "size": "None"
+      },
+      "bound_slots": {},
+      "feedback_state_type": null,
+      "raises": [],
+      "type_vars": [],
+      "inputs": {
+        "loc": {
+          "type_name": "float",
+          "state": "distribution_mean",
+          "qualifiers": [],
+          "default_value": "0.0",
+          "description": "Mean of the distribution",
+          "domain": "numpy",
+          "required": false,
+          "abstract_type": "scalar",
+          "enum_values": null,
+          "param_kind": "keyword_only",
+          "value_constraints": null,
+          "shape_contract": null
+        },
+        "scale": {
+          "type_name": "float",
+          "state": "distribution_std",
+          "qualifiers": [],
+          "default_value": "1.0",
+          "description": "Standard deviation (non-negative)",
+          "domain": "numpy",
+          "required": false,
+          "abstract_type": "scalar",
+          "enum_values": null,
+          "param_kind": "keyword_only",
+          "value_constraints": {
+            "min": 0.0
+          },
+          "shape_contract": null
+        },
+        "size": {
+          "type_name": "tuple",
+          "state": "shape_tuple",
+          "qualifiers": [],
+          "default_value": "None",
+          "description": "Output shape",
+          "domain": "numpy",
+          "required": false,
+          "abstract_type": "array-like",
+          "enum_values": null,
+          "param_kind": "keyword_only",
+          "value_constraints": null,
+          "shape_contract": null
+        }
+      },
+      "outputs": {
+        "output_var": {
+          "type_name": "ndarray",
+          "state": "nd_tensor",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Sampled Gaussian tensor",
+          "domain": "numpy",
+          "required": true,
+          "abstract_type": "tensor",
+          "enum_values": null,
+          "param_kind": "standard",
+          "value_constraints": null,
+          "shape_contract": null
+        }
+      },
+      "preconditions": [],
+      "postconditions": [],
+      "effects": [],
+      "edges": [
+        {
+          "target_cell_id": "NUMPY_MEAN_ALL",
+          "affinity_score": 0.8,
+          "score_provenance": "llm_seed",
+          "bridging_precondition": null,
+          "metadata": {}
+        },
+        {
+          "target_cell_id": "NUMPY_STD_AXIS",
+          "affinity_score": 0.8,
+          "score_provenance": "llm_seed",
+          "bridging_precondition": null,
+          "metadata": {}
+        },
+        {
+          "target_cell_id": "NUMPY_NORMALIZE_L2",
+          "affinity_score": 0.5,
+          "score_provenance": "llm_seed",
+          "bridging_precondition": null,
+          "metadata": {}
+        }
+      ]
+    },
+    {
+      "cell_id": "NUMPY_RANDOM_STANDARD_NORMAL",
+      "stage": 1,
+      "topology_type": "sequential",
+      "node_type": "function",
+      "node_role": "source",
+      "mutation_type": "pure",
+      "is_context_manager": false,
+      "verified": true,
+      "source_priority": 1,
+      "is_public": true,
+      "docstring": "Draw samples from a standard Normal distribution (mean=0, stdev=1).",
+      "dependencies": [
+        "numpy as np"
+      ],
+      "semantic_tags": [
+        "random",
+        "standard_normal",
+        "gaussian"
+      ],
+      "keywords": [
+        "standard_normal",
+        "randn",
+        "normal"
+      ],
+      "code_template": "{output_var} = np.random.standard_normal(size={size})",
+      "slots": {
+        "size": "None"
+      },
+      "bound_slots": {},
+      "feedback_state_type": null,
+      "raises": [],
+      "type_vars": [],
+      "inputs": {
+        "size": {
+          "type_name": "tuple",
+          "state": "shape_tuple",
+          "qualifiers": [],
+          "default_value": "None",
+          "description": "Output dimensions",
+          "domain": "numpy",
+          "required": false,
+          "abstract_type": "array-like",
+          "enum_values": null,
+          "param_kind": "keyword_only",
+          "value_constraints": null,
+          "shape_contract": null
+        }
+      },
+      "outputs": {
+        "output_var": {
+          "type_name": "ndarray",
+          "state": "nd_tensor",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Array populated with standard normal variates",
+          "domain": "numpy",
+          "required": true,
+          "abstract_type": "tensor",
+          "enum_values": null,
+          "param_kind": "standard",
+          "value_constraints": null,
+          "shape_contract": null
+        }
+      },
+      "preconditions": [],
+      "postconditions": [],
+      "effects": [],
+      "edges": [
+        {
+          "target_cell_id": "NUMPY_MATMUL",
+          "affinity_score": 0.5,
+          "score_provenance": "llm_seed",
+          "bridging_precondition": null,
+          "metadata": {}
+        },
+        {
+          "target_cell_id": "NUMPY_MEAN_ALL",
+          "affinity_score": 0.8,
+          "score_provenance": "llm_seed",
+          "bridging_precondition": null,
+          "metadata": {}
+        }
+      ]
+    },
+    {
+      "cell_id": "NUMPY_RANDOM_RANDINT",
+      "stage": 1,
+      "topology_type": "sequential",
+      "node_type": "function",
+      "node_role": "source",
+      "mutation_type": "pure",
+      "is_context_manager": false,
+      "verified": true,
+      "source_priority": 1,
+      "is_public": true,
+      "docstring": "Return random integers from low (inclusive) to high (exclusive).",
+      "dependencies": [
+        "numpy as np"
+      ],
+      "semantic_tags": [
+        "random",
+        "integers",
+        "discrete"
+      ],
+      "keywords": [
+        "randint",
+        "discrete",
+        "integer",
+        "random"
+      ],
+      "code_template": "{output_var} = np.random.randint(low={low}, high={high}, size={size}, dtype={dtype})",
+      "slots": {
+        "high": "None",
+        "size": "None",
+        "dtype": "np.int64"
+      },
+      "bound_slots": {},
+      "feedback_state_type": null,
+      "raises": [
+        "ValueError"
+      ],
+      "type_vars": [],
+      "inputs": {
+        "low": {
+          "type_name": "int",
+          "state": "bound_scalar",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Lowest integer to be drawn",
+          "domain": "numpy",
+          "required": true,
+          "abstract_type": "scalar",
+          "enum_values": null,
+          "param_kind": "standard",
+          "value_constraints": null,
+          "shape_contract": null
+        },
+        "high": {
+          "type_name": "int",
+          "state": "bound_scalar",
+          "qualifiers": [],
+          "default_value": "None",
+          "description": "Upper bound (exclusive)",
+          "domain": "numpy",
+          "required": false,
+          "abstract_type": "scalar",
+          "enum_values": null,
+          "param_kind": "keyword_only",
+          "value_constraints": null,
+          "shape_contract": null
+        },
+        "size": {
+          "type_name": "tuple",
+          "state": "shape_tuple",
+          "qualifiers": [],
+          "default_value": "None",
+          "description": "Output shape",
+          "domain": "numpy",
+          "required": false,
+          "abstract_type": "array-like",
+          "enum_values": null,
+          "param_kind": "keyword_only",
+          "value_constraints": null,
+          "shape_contract": null
+        },
+        "dtype": {
+          "type_name": "str",
+          "state": "dtype_spec",
+          "qualifiers": [],
+          "default_value": "np.int64",
+          "description": "Desired integer dtype",
+          "domain": "numpy",
+          "required": false,
+          "abstract_type": "scalar",
+          "enum_values": null,
+          "param_kind": "keyword_only",
+          "value_constraints": null,
+          "shape_contract": null
+        }
+      },
+      "outputs": {
+        "output_var": {
+          "type_name": "ndarray",
+          "state": "nd_tensor",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Random integer array",
+          "domain": "numpy",
+          "required": true,
+          "abstract_type": "tensor",
+          "enum_values": null,
+          "param_kind": "standard",
+          "value_constraints": null,
+          "shape_contract": null
+        }
+      },
+      "preconditions": [],
+      "postconditions": [],
+      "effects": [],
+      "edges": [
+        {
+          "target_cell_id": "NUMPY_UNIQUE",
+          "affinity_score": 0.8,
+          "score_provenance": "llm_seed",
+          "bridging_precondition": null,
+          "metadata": {}
+        },
+        {
+          "target_cell_id": "NUMPY_SORT",
+          "affinity_score": 0.5,
+          "score_provenance": "llm_seed",
+          "bridging_precondition": null,
+          "metadata": {}
+        }
+      ]
+    },
+    {
+      "cell_id": "NUMPY_RANDOM_CHOICE",
+      "stage": 2,
+      "topology_type": "sequential",
+      "node_type": "function",
+      "node_role": "transformer",
+      "mutation_type": "pure",
+      "is_context_manager": false,
+      "verified": true,
+      "source_priority": 1,
+      "is_public": true,
+      "docstring": "Generates a random sample from a given 1-D array.",
+      "dependencies": [
+        "numpy as np"
+      ],
+      "semantic_tags": [
+        "random",
+        "sample",
+        "choice"
+      ],
+      "keywords": [
+        "choice",
+        "sample",
+        "bootstrap",
+        "subset"
+      ],
+      "code_template": "{output_var} = np.random.choice({a}, size={size}, replace={replace}, p={p})",
+      "slots": {
+        "size": "None",
+        "replace": "True",
+        "p": "None"
+      },
+      "bound_slots": {},
+      "feedback_state_type": null,
+      "raises": [
+        "ValueError"
+      ],
+      "type_vars": [],
+      "inputs": {
+        "a": {
+          "type_name": "ndarray",
+          "state": "1d_vector",
+          "accepted_states": [
+            "1d_vector",
+            "nd_tensor"
+          ],
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Source 1-D array or population",
+          "domain": "numpy",
+          "required": true,
+          "abstract_type": "tensor",
+          "enum_values": null,
+          "param_kind": "standard",
+          "value_constraints": null,
+          "shape_contract": null
+        },
+        "size": {
+          "type_name": "tuple",
+          "state": "shape_tuple",
+          "qualifiers": [],
+          "default_value": "None",
+          "description": "Output shape",
+          "domain": "numpy",
+          "required": false,
+          "abstract_type": "array-like",
+          "enum_values": null,
+          "param_kind": "keyword_only",
+          "value_constraints": null,
+          "shape_contract": null
+        },
+        "replace": {
+          "type_name": "bool",
+          "state": "flag",
+          "qualifiers": [],
+          "default_value": "True",
+          "description": "Whether the sample is with or without replacement",
+          "domain": "numpy",
+          "required": false,
+          "abstract_type": "scalar",
+          "enum_values": null,
+          "param_kind": "keyword_only",
+          "value_constraints": null,
+          "shape_contract": null
+        },
+        "p": {
+          "type_name": "ndarray",
+          "state": "probability_vector",
+          "qualifiers": [],
+          "default_value": "None",
+          "description": "Probabilities associated with each entry in a",
+          "domain": "numpy",
+          "required": false,
+          "abstract_type": "tensor",
+          "enum_values": null,
+          "param_kind": "keyword_only",
+          "value_constraints": null,
+          "shape_contract": null
+        }
+      },
+      "outputs": {
+        "output_var": {
+          "type_name": "ndarray",
+          "state": "nd_tensor",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Generated random samples",
+          "domain": "numpy",
+          "required": true,
+          "abstract_type": "tensor",
+          "enum_values": null,
+          "param_kind": "standard",
+          "value_constraints": null,
+          "shape_contract": null
+        }
+      },
+      "preconditions": [],
+      "postconditions": [],
+      "effects": [],
+      "edges": [
+        {
+          "target_cell_id": "NUMPY_UNIQUE",
+          "affinity_score": 0.8,
+          "score_provenance": "llm_seed",
+          "bridging_precondition": null,
+          "metadata": {}
+        }
+      ]
+    },
+    {
+      "cell_id": "NUMPY_RANDOM_PERMUTATION",
+      "stage": 2,
+      "topology_type": "sequential",
+      "node_type": "function",
+      "node_role": "transformer",
+      "mutation_type": "pure",
+      "is_context_manager": false,
+      "verified": true,
+      "source_priority": 1,
+      "is_public": true,
+      "docstring": "Randomly permute a sequence, or return a permuted range.",
+      "dependencies": [
+        "numpy as np"
+      ],
+      "semantic_tags": [
+        "random",
+        "permutation",
+        "shuffle"
+      ],
+      "keywords": [
+        "permutation",
+        "shuffle",
+        "reorder"
+      ],
+      "code_template": "{output_var} = np.random.permutation({x})",
+      "slots": {},
+      "bound_slots": {},
+      "feedback_state_type": null,
+      "raises": [],
+      "type_vars": [],
+      "inputs": {
+        "x": {
+          "type_name": "ndarray",
+          "state": "nd_tensor",
+          "accepted_states": [
+            "nd_tensor",
+            "1d_vector"
+          ],
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Array to be permuted",
+          "domain": "numpy",
+          "required": true,
+          "abstract_type": "tensor",
+          "enum_values": null,
+          "param_kind": "standard",
+          "value_constraints": null,
+          "shape_contract": null
+        }
+      },
+      "outputs": {
+        "output_var": {
+          "type_name": "ndarray",
+          "state": "nd_tensor",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Permuted copy of array",
+          "domain": "numpy",
+          "required": true,
+          "abstract_type": "tensor",
+          "enum_values": null,
+          "param_kind": "standard",
+          "value_constraints": null,
+          "shape_contract": null
+        }
+      },
+      "preconditions": [],
+      "postconditions": [],
+      "effects": [],
+      "edges": [
+        {
+          "target_cell_id": "NUMPY_RESHAPE_2D",
+          "affinity_score": 0.8,
+          "score_provenance": "llm_seed",
+          "bridging_precondition": null,
+          "metadata": {}
+        },
+        {
+          "target_cell_id": "NUMPY_SAVE_NPY",
+          "affinity_score": 0.5,
+          "score_provenance": "llm_seed",
+          "bridging_precondition": null,
+          "metadata": {}
+        }
+      ]
+    },
+    {
+      "cell_id": "NUMPY_SORT",
+      "stage": 2,
+      "topology_type": "sequential",
+      "node_type": "function",
+      "node_role": "transformer",
+      "mutation_type": "pure",
+      "is_context_manager": false,
+      "verified": true,
+      "source_priority": 1,
+      "is_public": true,
+      "docstring": "Return a sorted copy of an array along a specified axis.",
+      "dependencies": [
+        "numpy as np"
+      ],
+      "semantic_tags": [
+        "sort",
+        "order",
+        "monotonic"
+      ],
+      "keywords": [
+        "sort",
+        "quicksort",
+        "ascending",
+        "order"
+      ],
+      "code_template": "{output_var} = np.sort({array}, axis={axis}, kind={kind})",
+      "slots": {
+        "axis": "-1",
+        "kind": "'quicksort'"
+      },
+      "bound_slots": {},
+      "feedback_state_type": null,
+      "raises": [
+        "ValueError"
+      ],
+      "type_vars": [],
+      "inputs": {
+        "array": {
+          "type_name": "ndarray",
+          "state": "nd_tensor",
+          "accepted_states": [
+            "nd_tensor",
+            "1d_vector",
+            "2d_matrix"
+          ],
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Array to be sorted",
+          "domain": "numpy",
+          "required": true,
+          "abstract_type": "tensor",
+          "enum_values": null,
+          "param_kind": "standard",
+          "value_constraints": null,
+          "shape_contract": null
+        },
+        "axis": {
+          "type_name": "int",
+          "state": "axis_spec",
+          "qualifiers": [],
+          "default_value": "-1",
+          "description": "Axis along which to sort",
+          "domain": "numpy",
+          "required": false,
+          "abstract_type": "scalar",
+          "enum_values": null,
+          "param_kind": "keyword_only",
+          "value_constraints": null,
+          "shape_contract": null
+        },
+        "kind": {
+          "type_name": "str",
+          "state": "sort_algorithm",
+          "qualifiers": [],
+          "default_value": "'quicksort'",
+          "description": "Sorting algorithm: 'quicksort', 'mergesort', 'heapsort', 'stable'",
+          "domain": "numpy",
+          "required": false,
+          "abstract_type": "scalar",
+          "enum_values": [
+            "'quicksort'",
+            "'mergesort'",
+            "'heapsort'",
+            "'stable'"
+          ],
+          "param_kind": "keyword_only",
+          "value_constraints": null,
+          "shape_contract": null
+        }
+      },
+      "outputs": {
+        "output_var": {
+          "type_name": "ndarray",
+          "state": "sorted",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Sorted array",
+          "domain": "numpy",
+          "required": true,
+          "abstract_type": "tensor",
+          "enum_values": null,
+          "param_kind": "standard",
+          "value_constraints": null,
+          "shape_contract": null
+        }
+      },
+      "preconditions": [],
+      "postconditions": [
+        {
+          "target": "output_var",
+          "property": "is_sorted",
+          "operator": "==",
+          "value": true,
+          "expression": "np.all(output_var[..., :-1] <= output_var[..., 1:])",
+          "description": "Array elements must be monotonically non-decreasing along axis"
+        }
+      ],
+      "effects": [],
+      "edges": [
+        {
+          "target_cell_id": "NUMPY_SEARCHSORTED",
+          "affinity_score": 0.8,
+          "score_provenance": "llm_seed",
+          "bridging_precondition": null,
+          "metadata": {}
+        },
+        {
+          "target_cell_id": "NUMPY_SAVE_NPY",
+          "affinity_score": 0.5,
+          "score_provenance": "llm_seed",
+          "bridging_precondition": null,
+          "metadata": {}
+        }
+      ]
+    },
+    {
+      "cell_id": "NUMPY_ARGSORT",
+      "stage": 2,
+      "topology_type": "sequential",
+      "node_type": "function",
+      "node_role": "transformer",
+      "mutation_type": "pure",
+      "is_context_manager": false,
+      "verified": true,
+      "source_priority": 1,
+      "is_public": true,
+      "docstring": "Returns the indices that would sort an array.",
+      "dependencies": [
+        "numpy as np"
+      ],
+      "semantic_tags": [
+        "sort",
+        "index",
+        "argsort"
+      ],
+      "keywords": [
+        "argsort",
+        "indices",
+        "rank"
+      ],
+      "code_template": "{output_var} = np.argsort({array}, axis={axis}, kind={kind})",
+      "slots": {
+        "axis": "-1",
+        "kind": "'quicksort'"
+      },
+      "bound_slots": {},
+      "feedback_state_type": null,
+      "raises": [
+        "ValueError"
+      ],
+      "type_vars": [],
+      "inputs": {
+        "array": {
+          "type_name": "ndarray",
+          "state": "nd_tensor",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Array to sort",
+          "domain": "numpy",
+          "required": true,
+          "abstract_type": "tensor",
+          "enum_values": null,
+          "param_kind": "standard",
+          "value_constraints": null,
+          "shape_contract": null
+        },
+        "axis": {
+          "type_name": "int",
+          "state": "axis_spec",
+          "qualifiers": [],
+          "default_value": "-1",
+          "description": "Axis along which to sort",
+          "domain": "numpy",
+          "required": false,
+          "abstract_type": "scalar",
+          "enum_values": null,
+          "param_kind": "keyword_only",
+          "value_constraints": null,
+          "shape_contract": null
+        },
+        "kind": {
+          "type_name": "str",
+          "state": "sort_algorithm",
+          "qualifiers": [],
+          "default_value": "'quicksort'",
+          "description": "Sorting algorithm choice",
+          "domain": "numpy",
+          "required": false,
+          "abstract_type": "scalar",
+          "enum_values": [
+            "'quicksort'",
+            "'mergesort'",
+            "'heapsort'",
+            "'stable'"
+          ],
+          "param_kind": "keyword_only",
+          "value_constraints": null,
+          "shape_contract": null
+        }
+      },
+      "outputs": {
+        "output_var": {
+          "type_name": "ndarray",
+          "state": "nd_tensor",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Array of index integers that sort the array",
+          "domain": "numpy",
+          "required": true,
+          "abstract_type": "tensor",
+          "enum_values": null,
+          "param_kind": "standard",
+          "value_constraints": null,
+          "shape_contract": null
+        }
+      },
+      "preconditions": [],
+      "postconditions": [],
+      "effects": [],
+      "edges": []
+    },
+    {
+      "cell_id": "NUMPY_SEARCHSORTED",
+      "stage": 2,
+      "topology_type": "sequential",
+      "node_type": "function",
+      "node_role": "transformer",
+      "mutation_type": "pure",
+      "is_context_manager": false,
+      "verified": true,
+      "source_priority": 1,
+      "is_public": true,
+      "docstring": "Find indices where elements should be inserted to maintain order.",
+      "dependencies": [
+        "numpy as np"
+      ],
+      "semantic_tags": [
+        "search",
+        "binary_search",
+        "searchsorted"
+      ],
+      "keywords": [
+        "searchsorted",
+        "binary_search",
+        "insert",
+        "lookup"
+      ],
+      "code_template": "{output_var} = np.searchsorted({a}, {v}, side={side})",
+      "slots": {
+        "side": "'left'"
+      },
+      "bound_slots": {},
+      "feedback_state_type": null,
+      "raises": [
+        "ValueError"
+      ],
+      "type_vars": [],
+      "inputs": {
+        "a": {
+          "type_name": "ndarray",
+          "state": "sorted",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Input 1-D sorted array",
+          "domain": "numpy",
+          "required": true,
+          "abstract_type": "tensor",
+          "enum_values": null,
+          "param_kind": "standard",
+          "value_constraints": null,
+          "shape_contract": null
+        },
+        "v": {
+          "type_name": "ndarray",
+          "state": "nd_tensor",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Values to insert into a",
+          "domain": "numpy",
+          "required": true,
+          "abstract_type": "tensor",
+          "enum_values": null,
+          "param_kind": "standard",
+          "value_constraints": null,
+          "shape_contract": null
+        },
+        "side": {
+          "type_name": "str",
+          "state": "side_spec",
+          "qualifiers": [],
+          "default_value": "'left'",
+          "description": "'left' gives first suitable index, 'right' gives last",
+          "domain": "numpy",
+          "required": false,
+          "abstract_type": "scalar",
+          "enum_values": [
+            "'left'",
+            "'right'"
+          ],
+          "param_kind": "keyword_only",
+          "value_constraints": null,
+          "shape_contract": null
+        }
+      },
+      "outputs": {
+        "output_var": {
+          "type_name": "ndarray",
+          "state": "nd_tensor",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Insertion indices matching shape of v",
+          "domain": "numpy",
+          "required": true,
+          "abstract_type": "tensor",
+          "enum_values": null,
+          "param_kind": "standard",
+          "value_constraints": null,
+          "shape_contract": null
+        }
+      },
+      "preconditions": [
+        {
+          "target": "a",
+          "property": "is_sorted",
+          "operator": "==",
+          "value": true,
+          "expression": "np.all(a[:-1] <= a[1:])",
+          "description": "Array a must be sorted monotonically"
+        }
+      ],
+      "postconditions": [],
+      "effects": [],
+      "edges": []
+    },
+    {
+      "cell_id": "NUMPY_UNIQUE",
+      "stage": 2,
+      "topology_type": "sequential",
+      "node_type": "function",
+      "node_role": "transformer",
+      "mutation_type": "pure",
+      "is_context_manager": false,
+      "verified": true,
+      "source_priority": 1,
+      "is_public": true,
+      "docstring": "Find the unique elements of an array.",
+      "dependencies": [
+        "numpy as np"
+      ],
+      "semantic_tags": [
+        "deduplicate",
+        "unique",
+        "distinct"
+      ],
+      "keywords": [
+        "unique",
+        "distinct",
+        "dedupe",
+        "set"
+      ],
+      "code_template": "{output_var} = np.unique({array})",
+      "slots": {},
+      "bound_slots": {},
+      "feedback_state_type": null,
+      "raises": [],
+      "type_vars": [],
+      "inputs": {
+        "array": {
+          "type_name": "ndarray",
+          "state": "nd_tensor",
+          "accepted_states": [
+            "nd_tensor",
+            "1d_vector",
+            "2d_matrix"
+          ],
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Input array to find unique values within",
+          "domain": "numpy",
+          "required": true,
+          "abstract_type": "tensor",
+          "enum_values": null,
+          "param_kind": "standard",
+          "value_constraints": null,
+          "shape_contract": null
+        }
+      },
+      "outputs": {
+        "output_var": {
+          "type_name": "ndarray",
+          "state": "1d_vector",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Sorted unique elements flattened into 1-D vector",
+          "domain": "numpy",
+          "required": true,
+          "abstract_type": "tensor",
+          "enum_values": null,
+          "param_kind": "standard",
+          "value_constraints": null,
+          "shape_contract": null
+        }
+      },
+      "preconditions": [],
+      "postconditions": [
+        {
+          "target": "output_var",
+          "property": "ndim",
+          "operator": "==",
+          "value": 1,
+          "expression": "output_var.ndim == 1",
+          "description": "Unique returns a 1D vector by default"
+        }
+      ],
+      "effects": [],
+      "edges": [
+        {
+          "target_cell_id": "NUMPY_SEARCHSORTED",
+          "affinity_score": 0.5,
+          "score_provenance": "llm_seed",
+          "bridging_precondition": null,
+          "metadata": {}
+        },
+        {
+          "target_cell_id": "NUMPY_SAVE_NPY",
+          "affinity_score": 0.5,
+          "score_provenance": "llm_seed",
+          "bridging_precondition": null,
+          "metadata": {}
+        }
+      ]
+    },
+    {
+      "cell_id": "NUMPY_SAVE_NPY",
+      "stage": 3,
+      "topology_type": "sequential",
+      "node_type": "function",
+      "node_role": "sink",
+      "mutation_type": "pure",
+      "is_context_manager": false,
+      "verified": true,
+      "source_priority": 1,
+      "is_public": true,
+      "docstring": "Save an array to a binary file in NumPy .npy format.",
+      "dependencies": [
+        "numpy as np"
+      ],
+      "semantic_tags": [
+        "io",
+        "save",
+        "binary",
+        "persist"
+      ],
+      "keywords": [
+        "save",
+        "npy",
+        "serialize",
+        "persist",
+        "disk"
+      ],
+      "code_template": "np.save({file_path}, {array})",
+      "slots": {},
+      "bound_slots": {},
+      "feedback_state_type": null,
+      "raises": [
+        "IOError"
+      ],
+      "type_vars": [],
+      "inputs": {
+        "file_path": {
+          "type_name": "str",
+          "state": "file_path_str",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Target filesystem path ending in .npy",
+          "domain": "numpy",
+          "required": true,
+          "abstract_type": "path",
+          "enum_values": null,
+          "param_kind": "standard",
+          "value_constraints": null,
+          "shape_contract": null
+        },
+        "array": {
+          "type_name": "ndarray",
+          "state": "nd_tensor",
+          "accepted_states": [
+            "nd_tensor",
+            "1d_vector",
+            "2d_matrix",
+            "sorted",
+            "normalized"
+          ],
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Array data to be persisted",
+          "domain": "numpy",
+          "required": true,
+          "abstract_type": "tensor",
+          "enum_values": null,
+          "param_kind": "standard",
+          "value_constraints": null,
+          "shape_contract": null
+        }
+      },
+      "outputs": {
+        "output_var": {
+          "type_name": "str",
+          "state": "saved_npy",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Confirmation indicator of saved .npy file",
+          "domain": "numpy",
+          "required": true,
+          "abstract_type": "path",
+          "enum_values": null,
+          "param_kind": "standard",
+          "value_constraints": null,
+          "shape_contract": null
+        }
+      },
+      "preconditions": [],
+      "postconditions": [],
+      "effects": [],
+      "edges": []
+    },
+    {
+      "cell_id": "NUMPY_SAVEZ_COMPRESSED",
+      "stage": 3,
+      "topology_type": "sequential",
+      "node_type": "function",
+      "node_role": "sink",
+      "mutation_type": "pure",
+      "is_context_manager": false,
+      "verified": true,
+      "source_priority": 1,
+      "is_public": true,
+      "docstring": "Save several arrays into a single compressed .npz archive.",
+      "dependencies": [
+        "numpy as np"
+      ],
+      "semantic_tags": [
+        "io",
+        "archive",
+        "compression",
+        "npz"
+      ],
+      "keywords": [
+        "savez_compressed",
+        "zip",
+        "archive",
+        "npz"
+      ],
+      "code_template": "np.savez_compressed({file_path}, data={array})",
+      "slots": {},
+      "bound_slots": {},
+      "feedback_state_type": null,
+      "raises": [
+        "IOError"
+      ],
+      "type_vars": [],
+      "inputs": {
+        "file_path": {
+          "type_name": "str",
+          "state": "file_path_str",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Target destination path for .npz archive",
+          "domain": "numpy",
+          "required": true,
+          "abstract_type": "path",
+          "enum_values": null,
+          "param_kind": "standard",
+          "value_constraints": null,
+          "shape_contract": null
+        },
+        "array": {
+          "type_name": "ndarray",
+          "state": "nd_tensor",
+          "accepted_states": [
+            "nd_tensor",
+            "1d_vector",
+            "2d_matrix"
+          ],
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Array to compress into archive",
+          "domain": "numpy",
+          "required": true,
+          "abstract_type": "tensor",
+          "enum_values": null,
+          "param_kind": "standard",
+          "value_constraints": null,
+          "shape_contract": null
+        }
+      },
+      "outputs": {
+        "output_var": {
+          "type_name": "str",
+          "state": "saved_npz",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Confirmation indicator of saved .npz archive",
+          "domain": "numpy",
+          "required": true,
+          "abstract_type": "path",
+          "enum_values": null,
+          "param_kind": "standard",
+          "value_constraints": null,
+          "shape_contract": null
+        }
+      },
+      "preconditions": [],
+      "postconditions": [],
+      "effects": [],
+      "edges": []
+    },
+    {
+      "cell_id": "NUMPY_TOBYTES",
+      "stage": 3,
+      "topology_type": "sequential",
+      "node_type": "method",
+      "node_role": "sink",
+      "mutation_type": "pure",
+      "is_context_manager": false,
+      "verified": true,
+      "source_priority": 1,
+      "is_public": true,
+      "docstring": "Construct Python bytes containing the raw data bytes in the array.",
+      "dependencies": [
+        "numpy as np"
+      ],
+      "semantic_tags": [
+        "export",
+        "bytes",
+        "buffer"
+      ],
+      "keywords": [
+        "tobytes",
+        "bytes",
+        "buffer",
+        "serialize"
+      ],
+      "code_template": "{output_var} = {array}.tobytes(order={order})",
+      "slots": {
+        "order": "'C'"
+      },
+      "bound_slots": {},
+      "feedback_state_type": null,
+      "raises": [],
+      "type_vars": [],
+      "inputs": {
+        "array": {
+          "type_name": "ndarray",
+          "state": "nd_tensor",
+          "accepted_states": [
+            "nd_tensor",
+            "1d_vector",
+            "2d_matrix"
+          ],
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Array to export to raw byte buffer",
+          "domain": "numpy",
+          "required": true,
+          "abstract_type": "tensor",
+          "enum_values": null,
+          "param_kind": "standard",
+          "value_constraints": null,
+          "shape_contract": null
+        },
+        "order": {
+          "type_name": "str",
+          "state": "order_spec",
+          "qualifiers": [],
+          "default_value": "'C'",
+          "description": "Memory order: 'C', 'F', or 'A'",
+          "domain": "numpy",
+          "required": false,
+          "abstract_type": "scalar",
+          "enum_values": [
+            "'C'",
+            "'F'",
+            "'A'"
+          ],
+          "param_kind": "keyword_only",
+          "value_constraints": null,
+          "shape_contract": null
+        }
+      },
+      "outputs": {
+        "output_var": {
+          "type_name": "str",
+          "state": "exported_buffer",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Raw bytes object containing array buffer data",
+          "domain": "numpy",
+          "required": true,
+          "abstract_type": "scalar",
+          "enum_values": null,
+          "param_kind": "standard",
+          "value_constraints": null,
+          "shape_contract": null
+        }
+      },
+      "preconditions": [],
+      "postconditions": [],
+      "effects": [],
+      "edges": []
+    },
+    {
+      "cell_id": "NUMPY_TOFILE",
+      "stage": 3,
+      "topology_type": "sequential",
+      "node_type": "method",
+      "node_role": "sink",
+      "mutation_type": "pure",
+      "is_context_manager": false,
+      "verified": true,
+      "source_priority": 10,
+      "is_public": true,
+      "docstring": "Write array to a file as text or binary (in platform-native format).",
+      "dependencies": [
+        "numpy as np"
+      ],
+      "semantic_tags": [
+        "export",
+        "file",
+        "binary_dump"
+      ],
+      "keywords": [
+        "tofile",
+        "dump",
+        "write",
+        "file"
+      ],
+      "code_template": "{array}.tofile({file_path}, sep={sep}, format={format})",
+      "slots": {
+        "sep": "''",
+        "format": "'%s'"
+      },
+      "bound_slots": {},
+      "feedback_state_type": null,
+      "raises": [
+        "IOError"
+      ],
+      "type_vars": [],
+      "inputs": {
+        "array": {
+          "type_name": "ndarray",
+          "state": "nd_tensor",
+          "accepted_states": [
+            "nd_tensor",
+            "1d_vector",
+            "2d_matrix"
+          ],
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Source array to write",
+          "domain": "numpy",
+          "required": true,
+          "abstract_type": "tensor",
+          "enum_values": null,
+          "param_kind": "standard",
+          "value_constraints": null,
+          "shape_contract": null
+        },
+        "file_path": {
+          "type_name": "str",
+          "state": "file_path_str",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Path to file destination",
+          "domain": "numpy",
+          "required": true,
+          "abstract_type": "path",
+          "enum_values": null,
+          "param_kind": "standard",
+          "value_constraints": null,
+          "shape_contract": null
+        },
+        "sep": {
+          "type_name": "str",
+          "state": "separator_str",
+          "qualifiers": [],
+          "default_value": "''",
+          "description": "Separator between items. If empty, binary file is written.",
+          "domain": "numpy",
+          "required": false,
+          "abstract_type": "scalar",
+          "enum_values": null,
+          "param_kind": "keyword_only",
+          "value_constraints": null,
+          "shape_contract": null
+        },
+        "format": {
+          "type_name": "str",
+          "state": "format_str",
+          "qualifiers": [],
+          "default_value": "'%s'",
+          "description": "Format string for text output",
+          "domain": "numpy",
+          "required": false,
+          "abstract_type": "scalar",
+          "enum_values": null,
+          "param_kind": "keyword_only",
+          "value_constraints": null,
+          "shape_contract": null
+        }
+      },
+      "outputs": {
+        "output_var": {
+          "type_name": "str",
+          "state": "exported_buffer",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Status string indicating dump completion",
+          "domain": "numpy",
+          "required": true,
+          "abstract_type": "path",
+          "enum_values": null,
+          "param_kind": "standard",
+          "value_constraints": null,
+          "shape_contract": null
+        }
+      },
+      "preconditions": [],
+      "postconditions": [],
+      "effects": [],
+      "edges": []
+    },
+    {
+      "cell_id": "NUMPY_TOLIST",
+      "stage": 3,
+      "topology_type": "sequential",
+      "node_type": "method",
+      "node_role": "bridge",
+      "mutation_type": "pure",
+      "is_context_manager": false,
+      "verified": true,
+      "source_priority": 1,
+      "is_public": true,
+      "docstring": "Return the array as an a.ndim-levels deep nested list of Python scalars.",
+      "dependencies": [
+        "numpy as np"
+      ],
+      "semantic_tags": [
+        "export",
+        "bridge",
+        "python_list"
+      ],
+      "keywords": [
+        "tolist",
+        "list",
+        "convert",
+        "python_native"
+      ],
+      "code_template": "{output_var} = {array}.tolist()",
+      "slots": {},
+      "bound_slots": {},
+      "feedback_state_type": null,
+      "raises": [],
+      "type_vars": [],
+      "inputs": {
+        "array": {
+          "type_name": "ndarray",
+          "state": "nd_tensor",
+          "accepted_states": [
+            "nd_tensor",
+            "1d_vector",
+            "2d_matrix",
+            "sorted",
+            "normalized",
+            "transposed"
+          ],
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Array to be converted to native nested Python list",
+          "domain": "numpy",
+          "required": true,
+          "abstract_type": "tensor",
+          "enum_values": null,
+          "param_kind": "standard",
+          "value_constraints": null,
+          "shape_contract": null
+        }
+      },
+      "outputs": {
+        "output_var": {
+          "type_name": "tuple",
+          "state": "exported_buffer",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Hierarchical nested Python list of scalar values",
+          "domain": "numpy",
+          "required": true,
+          "abstract_type": "array-like",
+          "enum_values": null,
+          "param_kind": "standard",
+          "value_constraints": null,
+          "shape_contract": null
+        }
+      },
+      "preconditions": [],
+      "postconditions": [],
+      "effects": [],
+      "edges": []
+    }
+  ],
+  "egress_intent_tokens": [
+    "save",
+    "export",
+    "write",
+    "dump",
+    "persist",
+    "store",
+    "plot",
+    "show",
+    "display"
+  ],
+  "materialization_states": [
+    "destination_written",
+    "filepath_written",
+    "saved",
+    "exported",
+    "written_to_disk"
+  ],
+  "polarity_hints": {
+    "ascending": [
+      "bottom",
+      "lowest",
+      "smallest",
+      "minimum",
+      "min",
+      "worst",
+      "least",
+      "ascending",
+      "asc",
+      "fewest"
+    ],
+    "descending": [
+      "top",
+      "highest",
+      "largest",
+      "biggest",
+      "greatest",
+      "maximum",
+      "max",
+      "best",
+      "most",
+      "descending",
+      "desc",
+      "newest",
+      "latest"
+    ]
+  }
+}

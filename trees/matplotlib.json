@@ -10099,5 +10099,52 @@
     "canvas": {
       "parent": "object"
     }
+  },
+  "egress_intent_tokens": [
+    "save",
+    "export",
+    "write",
+    "dump",
+    "persist",
+    "store",
+    "plot",
+    "show",
+    "display"
+  ],
+  "materialization_states": [
+    "destination_written",
+    "filepath_written",
+    "saved",
+    "exported",
+    "written_to_disk"
+  ],
+  "polarity_hints": {
+    "ascending": [
+      "bottom",
+      "lowest",
+      "smallest",
+      "minimum",
+      "min",
+      "worst",
+      "least",
+      "ascending",
+      "asc",
+      "fewest"
+    ],
+    "descending": [
+      "top",
+      "highest",
+      "largest",
+      "biggest",
+      "greatest",
+      "maximum",
+      "max",
+      "best",
+      "most",
+      "descending",
+      "desc",
+      "newest",
+      "latest"
+    ]
   }
 }

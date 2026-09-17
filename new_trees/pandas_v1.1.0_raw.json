@@ -239,1104 +239,84 @@
     ],
     "transitions": [
       {
-        "from": "aggregated",
+        "from": "raw",
         "to": "cleaned",
-        "via": "PD_RESET_INDEX"
-      },
-      {
-        "from": "aggregated",
-        "to": "exported",
-        "via": "PD_TO_DICT"
-      },
-      {
-        "from": "aggregated",
-        "to": "written_to_disk",
-        "via": "PD_TO_CSV"
-      },
-      {
-        "from": "aggregated",
-        "to": "written_to_disk",
-        "via": "PD_TO_EXCEL"
-      },
-      {
-        "from": "aggregated",
-        "to": "written_to_disk",
-        "via": "PD_TO_JSON"
-      },
-      {
-        "from": "aggregated",
-        "to": "written_to_disk",
-        "via": "PD_TO_PARQUET"
-      },
-      {
-        "from": "aggregated",
-        "to": "written_to_disk",
-        "via": "PD_TO_SQL"
-      },
-      {
-        "from": "cleaned",
-        "to": "aggregated",
-        "via": "PD_DESCRIBE"
-      },
-      {
-        "from": "cleaned",
-        "to": "cleaned",
-        "via": "PD_ASSIGN"
-      },
-      {
-        "from": "cleaned",
-        "to": "cleaned",
-        "via": "PD_ASTYPE"
-      },
-      {
-        "from": "cleaned",
-        "to": "cleaned",
-        "via": "PD_DROPNA"
-      },
-      {
-        "from": "cleaned",
-        "to": "cleaned",
-        "via": "PD_DROPNA_SUBSET"
-      },
-      {
-        "from": "cleaned",
-        "to": "cleaned",
-        "via": "PD_DROP_COLUMNS"
-      },
-      {
-        "from": "cleaned",
-        "to": "cleaned",
-        "via": "PD_EXPLODE"
-      },
-      {
-        "from": "cleaned",
-        "to": "cleaned",
-        "via": "PD_FILLNA_CONST"
-      },
-      {
-        "from": "cleaned",
-        "to": "cleaned",
-        "via": "PD_RENAME_COLUMNS"
-      },
-      {
-        "from": "cleaned",
-        "to": "cleaned",
-        "via": "PD_REPLACE"
-      },
-      {
-        "from": "cleaned",
-        "to": "cleaned",
-        "via": "PD_SORT_VALUES"
-      },
-      {
-        "from": "cleaned",
-        "to": "dataframe_2d_generic",
-        "via": "PANDAS_DATAFRAME_TO_GENERIC_2D"
+        "mechanism": "dropna / fillna / replace"
       },
       {
         "from": "cleaned",
         "to": "deduped",
-        "via": "PD_DROP_DUPLICATES"
-      },
-      {
-        "from": "cleaned",
-        "to": "exported",
-        "via": "PD_TO_DICT"
-      },
-      {
-        "from": "cleaned",
-        "to": "filtered",
-        "via": "PD_FILTER_BOOL"
-      },
-      {
-        "from": "cleaned",
-        "to": "filtered",
-        "via": "PD_HEAD"
-      },
-      {
-        "from": "cleaned",
-        "to": "filtered",
-        "via": "PD_ILOC"
-      },
-      {
-        "from": "cleaned",
-        "to": "filtered",
-        "via": "PD_LOC"
-      },
-      {
-        "from": "cleaned",
-        "to": "filtered",
-        "via": "PD_QUERY"
-      },
-      {
-        "from": "cleaned",
-        "to": "filtered",
-        "via": "PD_SAMPLE"
-      },
-      {
-        "from": "cleaned",
-        "to": "filtered",
-        "via": "PD_SELECT_COLUMNS"
-      },
-      {
-        "from": "cleaned",
-        "to": "filtered",
-        "via": "PD_TAIL"
-      },
-      {
-        "from": "cleaned",
-        "to": "grouped",
-        "via": "PD_GROUPBY"
-      },
-      {
-        "from": "cleaned",
-        "to": "indexed",
-        "via": "PD_SET_INDEX"
-      },
-      {
-        "from": "cleaned",
-        "to": "melted",
-        "via": "PD_MELT"
-      },
-      {
-        "from": "cleaned",
-        "to": "merged",
-        "via": "PD_CONCAT_COLS"
-      },
-      {
-        "from": "cleaned",
-        "to": "merged",
-        "via": "PD_CONCAT_ROWS"
-      },
-      {
-        "from": "cleaned",
-        "to": "merged",
-        "via": "PD_JOIN"
-      },
-      {
-        "from": "cleaned",
-        "to": "merged",
-        "via": "PD_MERGE"
-      },
-      {
-        "from": "cleaned",
-        "to": "merged",
-        "via": "PD_MERGE_ASOF"
-      },
-      {
-        "from": "cleaned",
-        "to": "merged",
-        "via": "PD_MERGE_KEYS"
-      },
-      {
-        "from": "cleaned",
-        "to": "ndarray_generic",
-        "via": "PANDAS_DATAFRAME_TO_NUMPY"
+        "mechanism": "drop_duplicates"
       },
       {
         "from": "cleaned",
         "to": "numeric_only",
-        "via": "PD_GET_DUMMIES"
-      },
-      {
-        "from": "cleaned",
-        "to": "numeric_only",
-        "via": "PD_SELECT_DTYPES_NUMERIC"
-      },
-      {
-        "from": "cleaned",
-        "to": "pivoted",
-        "via": "PD_PIVOT"
-      },
-      {
-        "from": "cleaned",
-        "to": "pivoted",
-        "via": "PD_PIVOT_TABLE"
-      },
-      {
-        "from": "cleaned",
-        "to": "raw",
-        "via": "PD_DIFF"
-      },
-      {
-        "from": "cleaned",
-        "to": "raw",
-        "via": "PD_PCT_CHANGE"
-      },
-      {
-        "from": "cleaned",
-        "to": "raw",
-        "via": "PD_SHIFT"
-      },
-      {
-        "from": "cleaned",
-        "to": "series_raw",
-        "via": "PD_STACK"
-      },
-      {
-        "from": "cleaned",
-        "to": "windowed",
-        "via": "PD_EWM_MEAN"
-      },
-      {
-        "from": "cleaned",
-        "to": "windowed",
-        "via": "PD_ROLLING_MEAN"
-      },
-      {
-        "from": "cleaned",
-        "to": "windowed",
-        "via": "PD_ROLLING_STD"
-      },
-      {
-        "from": "cleaned",
-        "to": "windowed",
-        "via": "PD_ROLLING_SUM"
-      },
-      {
-        "from": "cleaned",
-        "to": "written_to_disk",
-        "via": "PD_TO_CSV"
-      },
-      {
-        "from": "cleaned",
-        "to": "written_to_disk",
-        "via": "PD_TO_EXCEL"
-      },
-      {
-        "from": "cleaned",
-        "to": "written_to_disk",
-        "via": "PD_TO_FEATHER"
-      },
-      {
-        "from": "cleaned",
-        "to": "written_to_disk",
-        "via": "PD_TO_JSON"
-      },
-      {
-        "from": "cleaned",
-        "to": "written_to_disk",
-        "via": "PD_TO_PARQUET"
-      },
-      {
-        "from": "cleaned",
-        "to": "written_to_disk",
-        "via": "PD_TO_SQL"
-      },
-      {
-        "from": "dataframe_2d_generic",
-        "to": "ndarray_generic",
-        "via": "PANDAS_DATAFRAME_TO_NUMPY"
-      },
-      {
-        "from": "dataframe_2d_generic",
-        "to": "written_to_disk",
-        "via": "PD_TO_CSV"
-      },
-      {
-        "from": "dataframe_2d_generic",
-        "to": "written_to_disk",
-        "via": "PD_TO_FEATHER"
-      },
-      {
-        "from": "dataframe_2d_generic",
-        "to": "written_to_disk",
-        "via": "PD_TO_PARQUET"
-      },
-      {
-        "from": "datetime_indexed",
-        "to": "cleaned",
-        "via": "PD_BFILL"
-      },
-      {
-        "from": "datetime_indexed",
-        "to": "cleaned",
-        "via": "PD_FFILL"
-      },
-      {
-        "from": "datetime_indexed",
-        "to": "cleaned",
-        "via": "PD_INTERPOLATE"
-      },
-      {
-        "from": "datetime_indexed",
-        "to": "cleaned",
-        "via": "PD_RESET_INDEX"
-      },
-      {
-        "from": "datetime_indexed",
-        "to": "filtered",
-        "via": "PD_LOC"
-      },
-      {
-        "from": "datetime_indexed",
-        "to": "indexed",
-        "via": "PD_SORT_INDEX"
-      },
-      {
-        "from": "datetime_indexed",
-        "to": "merged",
-        "via": "PD_MERGE_ASOF"
-      },
-      {
-        "from": "datetime_indexed",
-        "to": "raw",
-        "via": "PD_DIFF"
-      },
-      {
-        "from": "datetime_indexed",
-        "to": "raw",
-        "via": "PD_PCT_CHANGE"
-      },
-      {
-        "from": "datetime_indexed",
-        "to": "raw",
-        "via": "PD_SHIFT"
-      },
-      {
-        "from": "datetime_indexed",
-        "to": "resampled",
-        "via": "PD_RESAMPLE"
-      },
-      {
-        "from": "datetime_indexed",
-        "to": "windowed",
-        "via": "PD_EWM_MEAN"
-      },
-      {
-        "from": "datetime_indexed",
-        "to": "windowed",
-        "via": "PD_ROLLING_MEAN"
-      },
-      {
-        "from": "datetime_indexed",
-        "to": "windowed",
-        "via": "PD_ROLLING_STD"
-      },
-      {
-        "from": "datetime_indexed",
-        "to": "windowed",
-        "via": "PD_ROLLING_SUM"
-      },
-      {
-        "from": "deduped",
-        "to": "dataframe_2d_generic",
-        "via": "PANDAS_DATAFRAME_TO_GENERIC_2D"
-      },
-      {
-        "from": "deduped",
-        "to": "exported",
-        "via": "PD_TO_DICT"
-      },
-      {
-        "from": "deduped",
-        "to": "grouped",
-        "via": "PD_GROUPBY"
-      },
-      {
-        "from": "deduped",
-        "to": "indexed",
-        "via": "PD_SET_INDEX"
-      },
-      {
-        "from": "deduped",
-        "to": "merged",
-        "via": "PD_MERGE"
-      },
-      {
-        "from": "deduped",
-        "to": "ndarray_generic",
-        "via": "PANDAS_DATAFRAME_TO_NUMPY"
-      },
-      {
-        "from": "deduped",
-        "to": "numeric_only",
-        "via": "PD_GET_DUMMIES"
-      },
-      {
-        "from": "deduped",
-        "to": "numeric_only",
-        "via": "PD_SELECT_DTYPES_NUMERIC"
-      },
-      {
-        "from": "deduped",
-        "to": "pivoted",
-        "via": "PD_PIVOT"
-      },
-      {
-        "from": "deduped",
-        "to": "pivoted",
-        "via": "PD_PIVOT_TABLE"
-      },
-      {
-        "from": "deduped",
-        "to": "written_to_disk",
-        "via": "PD_TO_CSV"
-      },
-      {
-        "from": "deduped",
-        "to": "written_to_disk",
-        "via": "PD_TO_FEATHER"
-      },
-      {
-        "from": "deduped",
-        "to": "written_to_disk",
-        "via": "PD_TO_JSON"
-      },
-      {
-        "from": "deduped",
-        "to": "written_to_disk",
-        "via": "PD_TO_PARQUET"
-      },
-      {
-        "from": "deduped",
-        "to": "written_to_disk",
-        "via": "PD_TO_SQL"
-      },
-      {
-        "from": "filtered",
-        "to": "cleaned",
-        "via": "PD_DROPNA"
-      },
-      {
-        "from": "filtered",
-        "to": "dataframe_2d_generic",
-        "via": "PANDAS_DATAFRAME_TO_GENERIC_2D"
-      },
-      {
-        "from": "filtered",
-        "to": "deduped",
-        "via": "PD_DROP_DUPLICATES"
-      },
-      {
-        "from": "filtered",
-        "to": "filtered",
-        "via": "PD_HEAD"
-      },
-      {
-        "from": "filtered",
-        "to": "ndarray_generic",
-        "via": "PANDAS_DATAFRAME_TO_NUMPY"
-      },
-      {
-        "from": "grouped",
-        "to": "aggregated",
-        "via": "PD_GROUPBY_AGG"
-      },
-      {
-        "from": "grouped",
-        "to": "aggregated",
-        "via": "PD_GROUPBY_COUNT"
-      },
-      {
-        "from": "grouped",
-        "to": "aggregated",
-        "via": "PD_GROUPBY_MEAN"
-      },
-      {
-        "from": "grouped",
-        "to": "aggregated",
-        "via": "PD_GROUPBY_SUM"
-      },
-      {
-        "from": "grouped",
-        "to": "cleaned",
-        "via": "PD_GROUPBY_TRANSFORM"
-      },
-      {
-        "from": "grouped",
-        "to": "filtered",
-        "via": "PD_GROUPBY_FILTER"
-      },
-      {
-        "from": "grouped",
-        "to": "series_numeric",
-        "via": "PD_GROUPBY_SIZE"
-      },
-      {
-        "from": "in_memory_data",
-        "to": "raw",
-        "via": "PD_DATAFRAME_INIT"
-      },
-      {
-        "from": "indexed",
-        "to": "cleaned",
-        "via": "PD_BFILL"
-      },
-      {
-        "from": "indexed",
-        "to": "cleaned",
-        "via": "PD_DROPNA"
-      },
-      {
-        "from": "indexed",
-        "to": "cleaned",
-        "via": "PD_DROPNA_SUBSET"
-      },
-      {
-        "from": "indexed",
-        "to": "cleaned",
-        "via": "PD_FFILL"
-      },
-      {
-        "from": "indexed",
-        "to": "cleaned",
-        "via": "PD_FILLNA_CONST"
-      },
-      {
-        "from": "indexed",
-        "to": "cleaned",
-        "via": "PD_INTERPOLATE"
-      },
-      {
-        "from": "indexed",
-        "to": "cleaned",
-        "via": "PD_RESET_INDEX"
-      },
-      {
-        "from": "indexed",
-        "to": "cleaned",
-        "via": "PD_SORT_VALUES"
-      },
-      {
-        "from": "indexed",
-        "to": "filtered",
-        "via": "PD_FILTER_BOOL"
-      },
-      {
-        "from": "indexed",
-        "to": "filtered",
-        "via": "PD_HEAD"
-      },
-      {
-        "from": "indexed",
-        "to": "filtered",
-        "via": "PD_ILOC"
-      },
-      {
-        "from": "indexed",
-        "to": "filtered",
-        "via": "PD_LOC"
-      },
-      {
-        "from": "indexed",
-        "to": "filtered",
-        "via": "PD_QUERY"
-      },
-      {
-        "from": "indexed",
-        "to": "filtered",
-        "via": "PD_SAMPLE"
-      },
-      {
-        "from": "indexed",
-        "to": "filtered",
-        "via": "PD_SELECT_COLUMNS"
-      },
-      {
-        "from": "indexed",
-        "to": "filtered",
-        "via": "PD_TAIL"
-      },
-      {
-        "from": "indexed",
-        "to": "indexed",
-        "via": "PD_SORT_INDEX"
-      },
-      {
-        "from": "indexed",
-        "to": "merged",
-        "via": "PD_JOIN"
-      },
-      {
-        "from": "indexed",
-        "to": "pivoted",
-        "via": "PD_UNSTACK"
-      },
-      {
-        "from": "indexed",
-        "to": "raw",
-        "via": "PD_SHIFT"
-      },
-      {
-        "from": "indexed",
-        "to": "windowed",
-        "via": "PD_ROLLING_MEAN"
-      },
-      {
-        "from": "indexed",
-        "to": "written_to_disk",
-        "via": "PD_TO_CSV"
-      },
-      {
-        "from": "level_arrays",
-        "to": "index_generic",
-        "via": "PD_MULTIINDEX_FROM_ARRAYS"
-      },
-      {
-        "from": "multi_indexed",
-        "to": "cleaned",
-        "via": "PD_RESET_INDEX"
-      },
-      {
-        "from": "multi_indexed",
-        "to": "filtered",
-        "via": "PD_XS"
-      },
-      {
-        "from": "multi_indexed",
-        "to": "indexed",
-        "via": "PD_DROPLEVEL"
-      },
-      {
-        "from": "multi_indexed",
-        "to": "indexed",
-        "via": "PD_SORT_INDEX"
-      },
-      {
-        "from": "multi_indexed",
-        "to": "multi_indexed",
-        "via": "PD_REORDER_LEVELS"
-      },
-      {
-        "from": "multi_indexed",
-        "to": "multi_indexed",
-        "via": "PD_SWAPLEVEL"
-      },
-      {
-        "from": "multi_indexed",
-        "to": "pivoted",
-        "via": "PD_UNSTACK"
-      },
-      {
-        "from": "numeric_only",
-        "to": "aggregated",
-        "via": "PD_DESCRIBE"
+        "mechanism": "select_dtypes"
       },
       {
         "from": "numeric_only",
         "to": "dataframe_2d_generic",
-        "via": "PANDAS_DATAFRAME_TO_GENERIC_2D"
+        "mechanism": "select_dtypes & fillna"
       },
       {
-        "from": "numeric_only",
-        "to": "ndarray_generic",
-        "via": "PANDAS_DATAFRAME_TO_NUMPY"
+        "from": "cleaned",
+        "to": "indexed",
+        "mechanism": "set_index"
       },
       {
-        "from": "numeric_only",
-        "to": "raw",
-        "via": "PD_DIFF"
-      },
-      {
-        "from": "numeric_only",
-        "to": "raw",
-        "via": "PD_PCT_CHANGE"
-      },
-      {
-        "from": "numeric_only",
-        "to": "windowed",
-        "via": "PD_EWM_MEAN"
-      },
-      {
-        "from": "numeric_only",
-        "to": "windowed",
-        "via": "PD_ROLLING_MEAN"
-      },
-      {
-        "from": "numeric_only",
-        "to": "windowed",
-        "via": "PD_ROLLING_STD"
-      },
-      {
-        "from": "numeric_only",
-        "to": "windowed",
-        "via": "PD_ROLLING_SUM"
-      },
-      {
-        "from": "numeric_only",
-        "to": "written_to_disk",
-        "via": "PD_TO_CSV"
-      },
-      {
-        "from": "numeric_only",
-        "to": "written_to_disk",
-        "via": "PD_TO_FEATHER"
-      },
-      {
-        "from": "numeric_only",
-        "to": "written_to_disk",
-        "via": "PD_TO_PARQUET"
-      },
-      {
-        "from": "pivoted",
-        "to": "exported",
-        "via": "PD_TO_DICT"
-      },
-      {
-        "from": "pivoted",
-        "to": "melted",
-        "via": "PD_MELT"
-      },
-      {
-        "from": "pivoted",
-        "to": "series_raw",
-        "via": "PD_STACK"
-      },
-      {
-        "from": "pivoted",
-        "to": "written_to_disk",
-        "via": "PD_TO_CSV"
-      },
-      {
-        "from": "pivoted",
-        "to": "written_to_disk",
-        "via": "PD_TO_EXCEL"
-      },
-      {
-        "from": "pivoted",
-        "to": "written_to_disk",
-        "via": "PD_TO_JSON"
-      },
-      {
-        "from": "raw",
-        "to": "aggregated",
-        "via": "PD_DESCRIBE"
-      },
-      {
-        "from": "raw",
-        "to": "cleaned",
-        "via": "PD_ASSIGN"
-      },
-      {
-        "from": "raw",
-        "to": "cleaned",
-        "via": "PD_ASTYPE"
-      },
-      {
-        "from": "raw",
-        "to": "cleaned",
-        "via": "PD_BFILL"
-      },
-      {
-        "from": "raw",
-        "to": "cleaned",
-        "via": "PD_DROPNA"
-      },
-      {
-        "from": "raw",
-        "to": "cleaned",
-        "via": "PD_DROPNA_SUBSET"
-      },
-      {
-        "from": "raw",
-        "to": "cleaned",
-        "via": "PD_DROP_COLUMNS"
-      },
-      {
-        "from": "raw",
-        "to": "cleaned",
-        "via": "PD_EXPLODE"
-      },
-      {
-        "from": "raw",
-        "to": "cleaned",
-        "via": "PD_FFILL"
-      },
-      {
-        "from": "raw",
-        "to": "cleaned",
-        "via": "PD_FILLNA_CONST"
-      },
-      {
-        "from": "raw",
-        "to": "cleaned",
-        "via": "PD_INTERPOLATE"
-      },
-      {
-        "from": "raw",
-        "to": "cleaned",
-        "via": "PD_RENAME_COLUMNS"
-      },
-      {
-        "from": "raw",
-        "to": "cleaned",
-        "via": "PD_REPLACE"
-      },
-      {
-        "from": "raw",
-        "to": "cleaned",
-        "via": "PD_SORT_VALUES"
-      },
-      {
-        "from": "raw",
-        "to": "dataframe_2d_generic",
-        "via": "PANDAS_DATAFRAME_TO_GENERIC_2D"
-      },
-      {
-        "from": "raw",
-        "to": "deduped",
-        "via": "PD_DROP_DUPLICATES"
-      },
-      {
-        "from": "raw",
-        "to": "exported",
-        "via": "PD_TO_DICT"
-      },
-      {
-        "from": "raw",
-        "to": "filtered",
-        "via": "PD_FILTER_BOOL"
-      },
-      {
-        "from": "raw",
-        "to": "filtered",
-        "via": "PD_HEAD"
-      },
-      {
-        "from": "raw",
-        "to": "filtered",
-        "via": "PD_ILOC"
-      },
-      {
-        "from": "raw",
-        "to": "filtered",
-        "via": "PD_LOC"
-      },
-      {
-        "from": "raw",
-        "to": "filtered",
-        "via": "PD_QUERY"
-      },
-      {
-        "from": "raw",
-        "to": "filtered",
-        "via": "PD_SAMPLE"
-      },
-      {
-        "from": "raw",
-        "to": "filtered",
-        "via": "PD_SELECT_COLUMNS"
-      },
-      {
-        "from": "raw",
-        "to": "filtered",
-        "via": "PD_TAIL"
+        "from": "indexed",
+        "to": "datetime_indexed",
+        "mechanism": "to_datetime / set_index"
       },
       {
         "from": "raw",
         "to": "grouped",
-        "via": "PD_GROUPBY"
+        "mechanism": "groupby"
+      },
+      {
+        "from": "grouped",
+        "to": "aggregated",
+        "mechanism": "agg / mean / sum"
       },
       {
         "from": "raw",
-        "to": "indexed",
-        "via": "PD_SET_INDEX"
+        "to": "pivoted",
+        "mechanism": "pivot / pivot_table"
       },
       {
         "from": "raw",
         "to": "melted",
-        "via": "PD_MELT"
+        "mechanism": "melt"
       },
       {
         "from": "raw",
         "to": "merged",
-        "via": "PD_CONCAT_COLS"
+        "mechanism": "merge / join / concat"
       },
       {
-        "from": "raw",
-        "to": "merged",
-        "via": "PD_CONCAT_ROWS"
-      },
-      {
-        "from": "raw",
-        "to": "merged",
-        "via": "PD_MERGE"
-      },
-      {
-        "from": "raw",
-        "to": "merged",
-        "via": "PD_MERGE_ASOF"
-      },
-      {
-        "from": "raw",
-        "to": "merged",
-        "via": "PD_MERGE_KEYS"
-      },
-      {
-        "from": "raw",
-        "to": "ndarray_generic",
-        "via": "PANDAS_DATAFRAME_TO_NUMPY"
-      },
-      {
-        "from": "raw",
-        "to": "numeric_only",
-        "via": "PD_GET_DUMMIES"
-      },
-      {
-        "from": "raw",
-        "to": "numeric_only",
-        "via": "PD_SELECT_DTYPES_NUMERIC"
-      },
-      {
-        "from": "raw",
-        "to": "pivoted",
-        "via": "PD_PIVOT_TABLE"
-      },
-      {
-        "from": "raw",
-        "to": "raw",
-        "via": "PD_SHIFT"
-      },
-      {
-        "from": "raw",
-        "to": "series_raw",
-        "via": "PD_STACK"
-      },
-      {
-        "from": "raw",
-        "to": "written_to_disk",
-        "via": "PD_TO_CSV"
-      },
-      {
-        "from": "raw",
-        "to": "written_to_disk",
-        "via": "PD_TO_EXCEL"
-      },
-      {
-        "from": "raw",
-        "to": "written_to_disk",
-        "via": "PD_TO_FEATHER"
-      },
-      {
-        "from": "raw",
-        "to": "written_to_disk",
-        "via": "PD_TO_JSON"
-      },
-      {
-        "from": "raw",
-        "to": "written_to_disk",
-        "via": "PD_TO_PARQUET"
-      },
-      {
-        "from": "raw",
-        "to": "written_to_disk",
-        "via": "PD_TO_SQL"
-      },
-      {
-        "from": "raw_sequence",
-        "to": "series_raw",
-        "via": "PD_SERIES_INIT"
-      },
-      {
-        "from": "series_cleaned",
-        "to": "ndarray_generic",
-        "via": "PANDAS_SERIES_TO_NUMPY"
-      },
-      {
-        "from": "series_cleaned",
-        "to": "pivoted",
-        "via": "PD_CROSSTAB"
-      },
-      {
-        "from": "series_cleaned",
+        "from": "series_raw",
         "to": "series_cleaned",
-        "via": "PD_STR_REPLACE"
-      },
-      {
-        "from": "series_cleaned",
-        "to": "series_cleaned",
-        "via": "PD_STR_STRIP"
-      },
-      {
-        "from": "series_cleaned",
-        "to": "series_cleaned",
-        "via": "PD_TO_DATETIME"
+        "mechanism": "dropna / fillna / str transforms"
       },
       {
         "from": "series_cleaned",
         "to": "series_numeric",
-        "via": "PD_TO_NUMERIC"
+        "mechanism": "to_numeric"
+      },
+      {
+        "from": "cleaned",
+        "to": "ndarray_generic",
+        "mechanism": "to_numpy"
       },
       {
         "from": "series_cleaned",
-        "to": "series_numeric",
-        "via": "PD_VALUE_COUNTS"
-      },
-      {
-        "from": "series_numeric",
         "to": "ndarray_generic",
-        "via": "PANDAS_SERIES_TO_NUMPY"
+        "mechanism": "to_numpy"
       },
       {
-        "from": "series_raw",
-        "to": "ndarray_generic",
-        "via": "PANDAS_SERIES_TO_NUMPY"
-      },
-      {
-        "from": "series_raw",
-        "to": "pivoted",
-        "via": "PD_CROSSTAB"
-      },
-      {
-        "from": "series_raw",
-        "to": "series_cleaned",
-        "via": "PD_STR_REPLACE"
-      },
-      {
-        "from": "series_raw",
-        "to": "series_cleaned",
-        "via": "PD_STR_STRIP"
-      },
-      {
-        "from": "series_raw",
-        "to": "series_cleaned",
-        "via": "PD_TO_DATETIME"
-      },
-      {
-        "from": "series_raw",
-        "to": "series_numeric",
-        "via": "PD_TO_NUMERIC"
-      },
-      {
-        "from": "series_raw",
-        "to": "series_numeric",
-        "via": "PD_VALUE_COUNTS"
-      },
-      {
-        "from": "sql_query",
-        "to": "raw",
-        "via": "PD_READ_SQL"
-      },
-      {
-        "from": "tuple_list",
-        "to": "index_generic",
-        "via": "PD_MULTIINDEX_FROM_TUPLES"
-      },
-      {
-        "from": "valid_path",
-        "to": "raw",
-        "via": "PD_READ_CSV"
-      },
-      {
-        "from": "valid_path",
-        "to": "raw",
-        "via": "PD_READ_EXCEL"
-      },
-      {
-        "from": "valid_path",
-        "to": "raw",
-        "via": "PD_READ_JSON"
-      },
-      {
-        "from": "valid_path",
-        "to": "raw",
-        "via": "PD_READ_PARQUET"
-      },
-      {
-        "from": "windowed",
-        "to": "ndarray_generic",
-        "via": "PANDAS_DATAFRAME_TO_NUMPY"
+        "from": "cleaned",
+        "to": "written_to_disk",
+        "mechanism": "to_csv / to_parquet"
       }
     ],
     "initial_state": "raw",
@@ -1386,8 +366,8 @@
         "ParserError"
       ],
       "type_vars": [],
-      "inputs": {
-        "port_0": {
+      "inputs": [
+        {
           "type_name": "str",
           "state": "valid_path",
           "qualifiers": [
@@ -1403,9 +383,9 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
-      "outputs": {
-        "port_0": {
+      ],
+      "outputs": [
+        {
           "type_name": "DataFrame",
           "state": "raw",
           "qualifiers": [],
@@ -1419,7 +399,7 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
+      ],
       "preconditions": [],
       "postconditions": [
         {
@@ -1440,24 +420,21 @@
           "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         },
         {
           "target_cell_id": "PD_FILLNA_CONST",
-          "affinity_score": 0.5,
+          "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         },
         {
           "target_cell_id": "PD_SET_INDEX",
-          "affinity_score": 0.2,
+          "affinity_score": 0.5,
           "score_provenance": "llm_seed",
           "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         }
       ]
     },
@@ -1499,8 +476,8 @@
         "ImportError"
       ],
       "type_vars": [],
-      "inputs": {
-        "port_0": {
+      "inputs": [
+        {
           "type_name": "str",
           "state": "valid_path",
           "qualifiers": [
@@ -1516,9 +493,9 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
-      "outputs": {
-        "port_0": {
+      ],
+      "outputs": [
+        {
           "type_name": "DataFrame",
           "state": "raw",
           "qualifiers": [],
@@ -1532,7 +509,7 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
+      ],
       "preconditions": [],
       "postconditions": [],
       "effects": [
@@ -1544,16 +521,14 @@
           "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         },
         {
           "target_cell_id": "PD_SELECT_COLUMNS",
           "affinity_score": 0.5,
           "score_provenance": "llm_seed",
           "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         }
       ]
     },
@@ -1594,8 +569,8 @@
         "FileNotFoundError"
       ],
       "type_vars": [],
-      "inputs": {
-        "port_0": {
+      "inputs": [
+        {
           "type_name": "str",
           "state": "valid_path",
           "qualifiers": [
@@ -1611,9 +586,9 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
-      "outputs": {
-        "port_0": {
+      ],
+      "outputs": [
+        {
           "type_name": "DataFrame",
           "state": "raw",
           "qualifiers": [],
@@ -1627,7 +602,7 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
+      ],
       "preconditions": [],
       "postconditions": [],
       "effects": [
@@ -1639,8 +614,7 @@
           "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         }
       ]
     },
@@ -1681,8 +655,8 @@
         "ValueError"
       ],
       "type_vars": [],
-      "inputs": {
-        "port_0": {
+      "inputs": [
+        {
           "type_name": "str",
           "state": "valid_path",
           "qualifiers": [
@@ -1698,9 +672,9 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
-      "outputs": {
-        "port_0": {
+      ],
+      "outputs": [
+        {
           "type_name": "DataFrame",
           "state": "raw",
           "qualifiers": [],
@@ -1714,7 +688,7 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
+      ],
       "preconditions": [],
       "postconditions": [],
       "effects": [
@@ -1726,8 +700,7 @@
           "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         }
       ]
     },
@@ -1768,8 +741,8 @@
         "DatabaseError"
       ],
       "type_vars": [],
-      "inputs": {
-        "port_0": {
+      "inputs": [
+        {
           "type_name": "str",
           "state": "sql_query",
           "qualifiers": [],
@@ -1783,7 +756,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        "port_1": {
+        {
           "type_name": "Engine",
           "state": "db_connection",
           "qualifiers": [],
@@ -1797,9 +770,9 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
-      "outputs": {
-        "port_0": {
+      ],
+      "outputs": [
+        {
           "type_name": "DataFrame",
           "state": "raw",
           "qualifiers": [],
@@ -1813,7 +786,7 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
+      ],
       "preconditions": [],
       "postconditions": [],
       "effects": [
@@ -1826,8 +799,7 @@
           "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         }
       ]
     },
@@ -1866,8 +838,8 @@
         "ValueError"
       ],
       "type_vars": [],
-      "inputs": {
-        "port_0": {
+      "inputs": [
+        {
           "type_name": "dict",
           "state": "in_memory_data",
           "qualifiers": [],
@@ -1881,9 +853,9 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
-      "outputs": {
-        "port_0": {
+      ],
+      "outputs": [
+        {
           "type_name": "DataFrame",
           "state": "raw",
           "qualifiers": [],
@@ -1897,7 +869,7 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
+      ],
       "preconditions": [],
       "postconditions": [],
       "effects": [
@@ -1909,8 +881,7 @@
           "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         }
       ]
     },
@@ -1947,8 +918,8 @@
       "feedback_state_type": null,
       "raises": [],
       "type_vars": [],
-      "inputs": {
-        "port_0": {
+      "inputs": [
+        {
           "type_name": "list",
           "state": "raw_sequence",
           "qualifiers": [],
@@ -1962,9 +933,9 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
-      "outputs": {
-        "port_0": {
+      ],
+      "outputs": [
+        {
           "type_name": "Series",
           "state": "series_raw",
           "qualifiers": [],
@@ -1978,7 +949,7 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
+      ],
       "preconditions": [],
       "postconditions": [],
       "effects": [
@@ -1990,8 +961,7 @@
           "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         }
       ]
     },
@@ -2034,8 +1004,8 @@
         "KeyError"
       ],
       "type_vars": [],
-      "inputs": {
-        "port_0": {
+      "inputs": [
+        {
           "type_name": "DataFrame",
           "state": "raw",
           "accepted_states": [
@@ -2055,7 +1025,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        "port_1": {
+        {
           "type_name": "int",
           "state": "axis_param",
           "qualifiers": [],
@@ -2072,7 +1042,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        "port_2": {
+        {
           "type_name": "str",
           "state": "how_param",
           "qualifiers": [],
@@ -2089,9 +1059,9 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
-      "outputs": {
-        "port_0": {
+      ],
+      "outputs": [
+        {
           "type_name": "DataFrame",
           "state": "cleaned",
           "qualifiers": [],
@@ -2105,7 +1075,7 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
+      ],
       "preconditions": [],
       "postconditions": [
         {
@@ -2124,24 +1094,21 @@
           "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         },
         {
           "target_cell_id": "PD_SELECT_DTYPES_NUMERIC",
-          "affinity_score": 0.5,
+          "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         },
         {
           "target_cell_id": "PANDAS_DATAFRAME_TO_NUMPY",
-          "affinity_score": 0.2,
+          "affinity_score": 0.5,
           "score_provenance": "llm_seed",
           "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         }
       ]
     },
@@ -2182,8 +1149,8 @@
         "KeyError"
       ],
       "type_vars": [],
-      "inputs": {
-        "port_0": {
+      "inputs": [
+        {
           "type_name": "DataFrame",
           "state": "raw",
           "accepted_states": [
@@ -2202,7 +1169,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        "port_1": {
+        {
           "type_name": "list",
           "state": "column_list",
           "qualifiers": [],
@@ -2216,9 +1183,9 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
-      "outputs": {
-        "port_0": {
+      ],
+      "outputs": [
+        {
           "type_name": "DataFrame",
           "state": "cleaned",
           "qualifiers": [],
@@ -2232,7 +1199,7 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
+      ],
       "preconditions": [],
       "postconditions": [],
       "effects": [],
@@ -2242,8 +1209,7 @@
           "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         }
       ]
     },
@@ -2282,8 +1248,8 @@
       "feedback_state_type": null,
       "raises": [],
       "type_vars": [],
-      "inputs": {
-        "port_0": {
+      "inputs": [
+        {
           "type_name": "DataFrame",
           "state": "raw",
           "accepted_states": [
@@ -2302,7 +1268,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        "port_1": {
+        {
           "type_name": "float",
           "state": "scalar_fill",
           "qualifiers": [],
@@ -2316,9 +1282,9 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
-      "outputs": {
-        "port_0": {
+      ],
+      "outputs": [
+        {
           "type_name": "DataFrame",
           "state": "cleaned",
           "qualifiers": [],
@@ -2332,7 +1298,7 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
+      ],
       "preconditions": [],
       "postconditions": [
         {
@@ -2351,16 +1317,14 @@
           "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         },
         {
           "target_cell_id": "PD_SELECT_DTYPES_NUMERIC",
-          "affinity_score": 0.5,
+          "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         }
       ]
     },
@@ -2398,8 +1362,8 @@
       "feedback_state_type": null,
       "raises": [],
       "type_vars": [],
-      "inputs": {
-        "port_0": {
+      "inputs": [
+        {
           "type_name": "DataFrame",
           "state": "raw",
           "accepted_states": [
@@ -2418,9 +1382,9 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
-      "outputs": {
-        "port_0": {
+      ],
+      "outputs": [
+        {
           "type_name": "DataFrame",
           "state": "cleaned",
           "qualifiers": [],
@@ -2434,18 +1398,17 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
+      ],
       "preconditions": [],
       "postconditions": [],
       "effects": [],
       "edges": [
         {
           "target_cell_id": "PD_BFILL",
-          "affinity_score": 0.8,
+          "affinity_score": 0.5,
           "score_provenance": "llm_seed",
           "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         }
       ]
     },
@@ -2483,8 +1446,8 @@
       "feedback_state_type": null,
       "raises": [],
       "type_vars": [],
-      "inputs": {
-        "port_0": {
+      "inputs": [
+        {
           "type_name": "DataFrame",
           "state": "raw",
           "accepted_states": [
@@ -2503,9 +1466,9 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
-      "outputs": {
-        "port_0": {
+      ],
+      "outputs": [
+        {
           "type_name": "DataFrame",
           "state": "cleaned",
           "qualifiers": [],
@@ -2519,7 +1482,7 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
+      ],
       "preconditions": [],
       "postconditions": [],
       "effects": [],
@@ -2529,8 +1492,7 @@
           "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         }
       ]
     },
@@ -2571,8 +1533,8 @@
         "ValueError"
       ],
       "type_vars": [],
-      "inputs": {
-        "port_0": {
+      "inputs": [
+        {
           "type_name": "DataFrame",
           "state": "raw",
           "accepted_states": [
@@ -2591,7 +1553,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        "port_1": {
+        {
           "type_name": "str",
           "state": "method_type",
           "qualifiers": [],
@@ -2610,9 +1572,9 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
-      "outputs": {
-        "port_0": {
+      ],
+      "outputs": [
+        {
           "type_name": "DataFrame",
           "state": "cleaned",
           "qualifiers": [],
@@ -2626,7 +1588,7 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
+      ],
       "preconditions": [],
       "postconditions": [],
       "effects": [],
@@ -2636,8 +1598,7 @@
           "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         }
       ]
     },
@@ -2679,8 +1640,8 @@
         "KeyError"
       ],
       "type_vars": [],
-      "inputs": {
-        "port_0": {
+      "inputs": [
+        {
           "type_name": "DataFrame",
           "state": "cleaned",
           "accepted_states": [
@@ -2699,7 +1660,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        "port_1": {
+        {
           "type_name": "list",
           "state": "column_subset",
           "qualifiers": [],
@@ -2713,7 +1674,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        "port_2": {
+        {
           "type_name": "str",
           "state": "keep_strategy",
           "qualifiers": [],
@@ -2731,9 +1692,9 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
-      "outputs": {
-        "port_0": {
+      ],
+      "outputs": [
+        {
           "type_name": "DataFrame",
           "state": "deduped",
           "qualifiers": [],
@@ -2747,7 +1708,7 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
+      ],
       "preconditions": [],
       "postconditions": [
         {
@@ -2766,16 +1727,14 @@
           "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         },
         {
           "target_cell_id": "PD_GROUPBY",
-          "affinity_score": 0.5,
+          "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         }
       ]
     },
@@ -2814,8 +1773,8 @@
       "feedback_state_type": null,
       "raises": [],
       "type_vars": [],
-      "inputs": {
-        "port_0": {
+      "inputs": [
+        {
           "type_name": "DataFrame",
           "state": "raw",
           "accepted_states": [
@@ -2833,7 +1792,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        "port_1": {
+        {
           "type_name": "str",
           "state": "target_val",
           "qualifiers": [],
@@ -2847,7 +1806,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        "port_2": {
+        {
           "type_name": "str",
           "state": "replacement_val",
           "qualifiers": [],
@@ -2861,9 +1820,9 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
-      "outputs": {
-        "port_0": {
+      ],
+      "outputs": [
+        {
           "type_name": "DataFrame",
           "state": "cleaned",
           "qualifiers": [],
@@ -2877,7 +1836,7 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
+      ],
       "preconditions": [],
       "postconditions": [],
       "effects": [],
@@ -2887,8 +1846,7 @@
           "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         }
       ]
     },
@@ -2930,8 +1888,8 @@
         "TypeError"
       ],
       "type_vars": [],
-      "inputs": {
-        "port_0": {
+      "inputs": [
+        {
           "type_name": "DataFrame",
           "state": "raw",
           "accepted_states": [
@@ -2949,7 +1907,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        "port_1": {
+        {
           "type_name": "dict",
           "state": "dtype_mapping",
           "qualifiers": [],
@@ -2963,9 +1921,9 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
-      "outputs": {
-        "port_0": {
+      ],
+      "outputs": [
+        {
           "type_name": "DataFrame",
           "state": "cleaned",
           "qualifiers": [],
@@ -2979,7 +1937,7 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
+      ],
       "preconditions": [],
       "postconditions": [],
       "effects": [],
@@ -2989,8 +1947,7 @@
           "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         }
       ]
     },
@@ -3031,8 +1988,8 @@
         "ValueError"
       ],
       "type_vars": [],
-      "inputs": {
-        "port_0": {
+      "inputs": [
+        {
           "type_name": "Series",
           "state": "series_raw",
           "accepted_states": [
@@ -3050,7 +2007,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        "port_1": {
+        {
           "type_name": "str",
           "state": "error_handling",
           "qualifiers": [],
@@ -3068,9 +2025,9 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
-      "outputs": {
-        "port_0": {
+      ],
+      "outputs": [
+        {
           "type_name": "Series",
           "state": "series_numeric",
           "qualifiers": [],
@@ -3084,7 +2041,7 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
+      ],
       "preconditions": [],
       "postconditions": [],
       "effects": [],
@@ -3094,8 +2051,7 @@
           "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         }
       ]
     },
@@ -3136,8 +2092,8 @@
         "ValueError"
       ],
       "type_vars": [],
-      "inputs": {
-        "port_0": {
+      "inputs": [
+        {
           "type_name": "Series",
           "state": "series_raw",
           "accepted_states": [
@@ -3155,7 +2111,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        "port_1": {
+        {
           "type_name": "str",
           "state": "date_format",
           "qualifiers": [],
@@ -3169,9 +2125,9 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
-      "outputs": {
-        "port_0": {
+      ],
+      "outputs": [
+        {
           "type_name": "Series",
           "state": "series_cleaned",
           "qualifiers": [],
@@ -3185,7 +2141,7 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
+      ],
       "preconditions": [],
       "postconditions": [],
       "effects": [],
@@ -3225,8 +2181,8 @@
       "feedback_state_type": null,
       "raises": [],
       "type_vars": [],
-      "inputs": {
-        "port_0": {
+      "inputs": [
+        {
           "type_name": "DataFrame",
           "state": "cleaned",
           "accepted_states": [
@@ -3245,9 +2201,9 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
-      "outputs": {
-        "port_0": {
+      ],
+      "outputs": [
+        {
           "type_name": "DataFrame",
           "state": "numeric_only",
           "qualifiers": [],
@@ -3261,7 +2217,7 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
+      ],
       "preconditions": [],
       "postconditions": [],
       "effects": [],
@@ -3271,16 +2227,14 @@
           "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         },
         {
           "target_cell_id": "PANDAS_DATAFRAME_TO_NUMPY",
-          "affinity_score": 0.5,
+          "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         }
       ]
     },
@@ -3320,8 +2274,8 @@
         "AttributeError"
       ],
       "type_vars": [],
-      "inputs": {
-        "port_0": {
+      "inputs": [
+        {
           "type_name": "Series",
           "state": "series_raw",
           "accepted_states": [
@@ -3339,9 +2293,9 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
-      "outputs": {
-        "port_0": {
+      ],
+      "outputs": [
+        {
           "type_name": "Series",
           "state": "series_cleaned",
           "qualifiers": [],
@@ -3355,7 +2309,7 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
+      ],
       "preconditions": [],
       "postconditions": [],
       "effects": [],
@@ -3398,8 +2352,8 @@
       "feedback_state_type": null,
       "raises": [],
       "type_vars": [],
-      "inputs": {
-        "port_0": {
+      "inputs": [
+        {
           "type_name": "Series",
           "state": "series_raw",
           "accepted_states": [
@@ -3417,7 +2371,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        "port_1": {
+        {
           "type_name": "str",
           "state": "regex_pattern",
           "qualifiers": [],
@@ -3431,7 +2385,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        "port_2": {
+        {
           "type_name": "str",
           "state": "repl_text",
           "qualifiers": [],
@@ -3445,7 +2399,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        "port_3": {
+        {
           "type_name": "bool",
           "state": "regex_flag",
           "qualifiers": [],
@@ -3462,9 +2416,9 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
-      "outputs": {
-        "port_0": {
+      ],
+      "outputs": [
+        {
           "type_name": "Series",
           "state": "series_cleaned",
           "qualifiers": [],
@@ -3478,7 +2432,7 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
+      ],
       "preconditions": [],
       "postconditions": [],
       "effects": [],
@@ -3522,8 +2476,8 @@
         "KeyError"
       ],
       "type_vars": [],
-      "inputs": {
-        "port_0": {
+      "inputs": [
+        {
           "type_name": "DataFrame",
           "state": "raw",
           "accepted_states": [
@@ -3542,7 +2496,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        "port_1": {
+        {
           "type_name": "str",
           "state": "index_column",
           "qualifiers": [],
@@ -3556,7 +2510,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        "port_2": {
+        {
           "type_name": "bool",
           "state": "drop_flag",
           "qualifiers": [],
@@ -3573,9 +2527,9 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
-      "outputs": {
-        "port_0": {
+      ],
+      "outputs": [
+        {
           "type_name": "DataFrame",
           "state": "indexed",
           "qualifiers": [],
@@ -3589,7 +2543,7 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
+      ],
       "preconditions": [],
       "postconditions": [
         {
@@ -3608,16 +2562,14 @@
           "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         },
         {
           "target_cell_id": "PD_RESET_INDEX",
           "affinity_score": 0.5,
           "score_provenance": "llm_seed",
           "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         }
       ]
     },
@@ -3655,8 +2607,8 @@
       "feedback_state_type": null,
       "raises": [],
       "type_vars": [],
-      "inputs": {
-        "port_0": {
+      "inputs": [
+        {
           "type_name": "DataFrame",
           "state": "indexed",
           "accepted_states": [
@@ -3676,7 +2628,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        "port_1": {
+        {
           "type_name": "bool",
           "state": "drop_flag",
           "qualifiers": [],
@@ -3693,9 +2645,9 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
-      "outputs": {
-        "port_0": {
+      ],
+      "outputs": [
+        {
           "type_name": "DataFrame",
           "state": "cleaned",
           "qualifiers": [],
@@ -3709,18 +2661,17 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
+      ],
       "preconditions": [],
       "postconditions": [],
       "effects": [],
       "edges": [
         {
           "target_cell_id": "PD_DROP_DUPLICATES",
-          "affinity_score": 0.8,
+          "affinity_score": 0.5,
           "score_provenance": "llm_seed",
           "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         }
       ]
     },
@@ -3761,8 +2712,8 @@
         "KeyError"
       ],
       "type_vars": [],
-      "inputs": {
-        "port_0": {
+      "inputs": [
+        {
           "type_name": "DataFrame",
           "state": "raw",
           "accepted_states": [
@@ -3782,7 +2733,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        "port_1": {
+        {
           "type_name": "str",
           "state": "label_slice",
           "qualifiers": [],
@@ -3796,9 +2747,9 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
-      "outputs": {
-        "port_0": {
+      ],
+      "outputs": [
+        {
           "type_name": "DataFrame",
           "state": "filtered",
           "qualifiers": [],
@@ -3812,7 +2763,7 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
+      ],
       "preconditions": [],
       "postconditions": [],
       "effects": [],
@@ -3855,8 +2806,8 @@
         "IndexError"
       ],
       "type_vars": [],
-      "inputs": {
-        "port_0": {
+      "inputs": [
+        {
           "type_name": "DataFrame",
           "state": "raw",
           "accepted_states": [
@@ -3875,7 +2826,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        "port_1": {
+        {
           "type_name": "str",
           "state": "integer_slice",
           "qualifiers": [],
@@ -3889,9 +2840,9 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
-      "outputs": {
-        "port_0": {
+      ],
+      "outputs": [
+        {
           "type_name": "DataFrame",
           "state": "filtered",
           "qualifiers": [],
@@ -3905,7 +2856,7 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
+      ],
       "preconditions": [],
       "postconditions": [],
       "effects": [],
@@ -3949,8 +2900,8 @@
         "KeyError"
       ],
       "type_vars": [],
-      "inputs": {
-        "port_0": {
+      "inputs": [
+        {
           "type_name": "DataFrame",
           "state": "raw",
           "accepted_states": [
@@ -3969,7 +2920,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        "port_1": {
+        {
           "type_name": "str",
           "state": "query_string",
           "qualifiers": [],
@@ -3983,9 +2934,9 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
-      "outputs": {
-        "port_0": {
+      ],
+      "outputs": [
+        {
           "type_name": "DataFrame",
           "state": "filtered",
           "qualifiers": [],
@@ -3999,7 +2950,7 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
+      ],
       "preconditions": [],
       "postconditions": [],
       "effects": [],
@@ -4009,8 +2960,7 @@
           "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         }
       ]
     },
@@ -4051,8 +3001,8 @@
         "ValueError"
       ],
       "type_vars": [],
-      "inputs": {
-        "port_0": {
+      "inputs": [
+        {
           "type_name": "DataFrame",
           "state": "raw",
           "accepted_states": [
@@ -4071,7 +3021,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        "port_1": {
+        {
           "type_name": "Series",
           "state": "boolean_condition",
           "qualifiers": [],
@@ -4085,9 +3035,9 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
-      "outputs": {
-        "port_0": {
+      ],
+      "outputs": [
+        {
           "type_name": "DataFrame",
           "state": "filtered",
           "qualifiers": [],
@@ -4101,7 +3051,7 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
+      ],
       "preconditions": [],
       "postconditions": [],
       "effects": [],
@@ -4144,8 +3094,8 @@
         "KeyError"
       ],
       "type_vars": [],
-      "inputs": {
-        "port_0": {
+      "inputs": [
+        {
           "type_name": "DataFrame",
           "state": "raw",
           "accepted_states": [
@@ -4164,7 +3114,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        "port_1": {
+        {
           "type_name": "list",
           "state": "column_projection",
           "qualifiers": [],
@@ -4178,9 +3128,9 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
-      "outputs": {
-        "port_0": {
+      ],
+      "outputs": [
+        {
           "type_name": "DataFrame",
           "state": "filtered",
           "qualifiers": [],
@@ -4194,7 +3144,7 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
+      ],
       "preconditions": [],
       "postconditions": [],
       "effects": [],
@@ -4204,8 +3154,7 @@
           "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         }
       ]
     },
@@ -4246,8 +3195,8 @@
         "KeyError"
       ],
       "type_vars": [],
-      "inputs": {
-        "port_0": {
+      "inputs": [
+        {
           "type_name": "DataFrame",
           "state": "raw",
           "accepted_states": [
@@ -4265,7 +3214,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        "port_1": {
+        {
           "type_name": "list",
           "state": "column_labels",
           "qualifiers": [],
@@ -4279,9 +3228,9 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
-      "outputs": {
-        "port_0": {
+      ],
+      "outputs": [
+        {
           "type_name": "DataFrame",
           "state": "cleaned",
           "qualifiers": [],
@@ -4295,7 +3244,7 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
+      ],
       "preconditions": [],
       "postconditions": [],
       "effects": [],
@@ -4336,8 +3285,8 @@
       "feedback_state_type": null,
       "raises": [],
       "type_vars": [],
-      "inputs": {
-        "port_0": {
+      "inputs": [
+        {
           "type_name": "DataFrame",
           "state": "raw",
           "accepted_states": [
@@ -4355,7 +3304,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        "port_1": {
+        {
           "type_name": "dict",
           "state": "column_dict",
           "qualifiers": [],
@@ -4369,9 +3318,9 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
-      "outputs": {
-        "port_0": {
+      ],
+      "outputs": [
+        {
           "type_name": "DataFrame",
           "state": "cleaned",
           "qualifiers": [],
@@ -4385,7 +3334,7 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
+      ],
       "preconditions": [],
       "postconditions": [],
       "effects": [],
@@ -4430,8 +3379,8 @@
         "KeyError"
       ],
       "type_vars": [],
-      "inputs": {
-        "port_0": {
+      "inputs": [
+        {
           "type_name": "DataFrame",
           "state": "raw",
           "accepted_states": [
@@ -4450,7 +3399,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        "port_1": {
+        {
           "type_name": "str",
           "state": "sort_column",
           "qualifiers": [],
@@ -4464,7 +3413,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        "port_2": {
+        {
           "type_name": "bool",
           "state": "order_flag",
           "qualifiers": [],
@@ -4481,9 +3430,9 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
-      "outputs": {
-        "port_0": {
+      ],
+      "outputs": [
+        {
           "type_name": "DataFrame",
           "state": "cleaned",
           "qualifiers": [],
@@ -4497,7 +3446,7 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
+      ],
       "preconditions": [],
       "postconditions": [],
       "effects": [],
@@ -4507,8 +3456,7 @@
           "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         }
       ]
     },
@@ -4546,8 +3494,8 @@
       "feedback_state_type": null,
       "raises": [],
       "type_vars": [],
-      "inputs": {
-        "port_0": {
+      "inputs": [
+        {
           "type_name": "DataFrame",
           "state": "indexed",
           "accepted_states": [
@@ -4566,7 +3514,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        "port_1": {
+        {
           "type_name": "bool",
           "state": "order_flag",
           "qualifiers": [],
@@ -4583,9 +3531,9 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
-      "outputs": {
-        "port_0": {
+      ],
+      "outputs": [
+        {
           "type_name": "DataFrame",
           "state": "indexed",
           "qualifiers": [],
@@ -4599,7 +3547,7 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
+      ],
       "preconditions": [],
       "postconditions": [],
       "effects": [],
@@ -4640,8 +3588,8 @@
       "feedback_state_type": null,
       "raises": [],
       "type_vars": [],
-      "inputs": {
-        "port_0": {
+      "inputs": [
+        {
           "type_name": "DataFrame",
           "state": "raw",
           "accepted_states": [
@@ -4661,7 +3609,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        "port_1": {
+        {
           "type_name": "int",
           "state": "limit_count",
           "qualifiers": [],
@@ -4675,9 +3623,9 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
-      "outputs": {
-        "port_0": {
+      ],
+      "outputs": [
+        {
           "type_name": "DataFrame",
           "state": "filtered",
           "qualifiers": [],
@@ -4691,7 +3639,7 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
+      ],
       "preconditions": [],
       "postconditions": [],
       "effects": [],
@@ -4732,8 +3680,8 @@
       "feedback_state_type": null,
       "raises": [],
       "type_vars": [],
-      "inputs": {
-        "port_0": {
+      "inputs": [
+        {
           "type_name": "DataFrame",
           "state": "raw",
           "accepted_states": [
@@ -4752,7 +3700,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        "port_1": {
+        {
           "type_name": "int",
           "state": "limit_count",
           "qualifiers": [],
@@ -4766,9 +3714,9 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
-      "outputs": {
-        "port_0": {
+      ],
+      "outputs": [
+        {
           "type_name": "DataFrame",
           "state": "filtered",
           "qualifiers": [],
@@ -4782,7 +3730,7 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
+      ],
       "preconditions": [],
       "postconditions": [],
       "effects": [],
@@ -4826,8 +3774,8 @@
         "ValueError"
       ],
       "type_vars": [],
-      "inputs": {
-        "port_0": {
+      "inputs": [
+        {
           "type_name": "DataFrame",
           "state": "raw",
           "accepted_states": [
@@ -4846,7 +3794,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        "port_1": {
+        {
           "type_name": "int",
           "state": "sample_size",
           "qualifiers": [],
@@ -4860,7 +3808,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        "port_2": {
+        {
           "type_name": "int",
           "state": "seed",
           "qualifiers": [],
@@ -4874,9 +3822,9 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
-      "outputs": {
-        "port_0": {
+      ],
+      "outputs": [
+        {
           "type_name": "DataFrame",
           "state": "filtered",
           "qualifiers": [],
@@ -4890,7 +3838,7 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
+      ],
       "preconditions": [],
       "postconditions": [],
       "effects": [],
@@ -4931,8 +3879,8 @@
       "feedback_state_type": null,
       "raises": [],
       "type_vars": [],
-      "inputs": {
-        "port_0": {
+      "inputs": [
+        {
           "type_name": "DataFrame",
           "state": "raw",
           "accepted_states": [
@@ -4950,7 +3898,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        "port_1": {
+        {
           "type_name": "dict",
           "state": "column_assignments",
           "qualifiers": [],
@@ -4964,9 +3912,9 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
-      "outputs": {
-        "port_0": {
+      ],
+      "outputs": [
+        {
           "type_name": "DataFrame",
           "state": "cleaned",
           "qualifiers": [],
@@ -4980,7 +3928,7 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
+      ],
       "preconditions": [],
       "postconditions": [],
       "effects": [],
@@ -5024,8 +3972,8 @@
         "KeyError"
       ],
       "type_vars": [],
-      "inputs": {
-        "port_0": {
+      "inputs": [
+        {
           "type_name": "DataFrame",
           "state": "raw",
           "accepted_states": [
@@ -5044,7 +3992,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        "port_1": {
+        {
           "type_name": "str",
           "state": "group_column",
           "qualifiers": [],
@@ -5058,7 +4006,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        "port_2": {
+        {
           "type_name": "bool",
           "state": "index_option",
           "qualifiers": [],
@@ -5075,9 +4023,9 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
-      "outputs": {
-        "port_0": {
+      ],
+      "outputs": [
+        {
           "type_name": "GroupBy",
           "state": "grouped",
           "qualifiers": [],
@@ -5091,7 +4039,7 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
+      ],
       "preconditions": [],
       "postconditions": [],
       "effects": [],
@@ -5101,32 +4049,28 @@
           "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         },
         {
           "target_cell_id": "PD_GROUPBY_MEAN",
-          "affinity_score": 0.5,
+          "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         },
         {
           "target_cell_id": "PD_GROUPBY_SUM",
-          "affinity_score": 0.2,
+          "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         },
         {
           "target_cell_id": "PD_GROUPBY_TRANSFORM",
-          "affinity_score": 0.2,
+          "affinity_score": 0.5,
           "score_provenance": "llm_seed",
           "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         }
       ]
     },
@@ -5165,8 +4109,8 @@
       "feedback_state_type": null,
       "raises": [],
       "type_vars": [],
-      "inputs": {
-        "port_0": {
+      "inputs": [
+        {
           "type_name": "GroupBy",
           "state": "grouped",
           "qualifiers": [],
@@ -5180,7 +4124,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        "port_1": {
+        {
           "type_name": "dict",
           "state": "agg_specification",
           "qualifiers": [],
@@ -5194,9 +4138,9 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
-      "outputs": {
-        "port_0": {
+      ],
+      "outputs": [
+        {
           "type_name": "DataFrame",
           "state": "aggregated",
           "qualifiers": [],
@@ -5210,7 +4154,7 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
+      ],
       "preconditions": [],
       "postconditions": [],
       "effects": [],
@@ -5220,8 +4164,7 @@
           "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         }
       ]
     },
@@ -5260,8 +4203,8 @@
       "feedback_state_type": null,
       "raises": [],
       "type_vars": [],
-      "inputs": {
-        "port_0": {
+      "inputs": [
+        {
           "type_name": "GroupBy",
           "state": "grouped",
           "qualifiers": [],
@@ -5275,7 +4218,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        "port_1": {
+        {
           "type_name": "str",
           "state": "agg_function_name",
           "qualifiers": [],
@@ -5289,9 +4232,9 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
-      "outputs": {
-        "port_0": {
+      ],
+      "outputs": [
+        {
           "type_name": "DataFrame",
           "state": "cleaned",
           "qualifiers": [],
@@ -5305,7 +4248,7 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
+      ],
       "preconditions": [],
       "postconditions": [],
       "effects": [],
@@ -5344,8 +4287,8 @@
       "feedback_state_type": null,
       "raises": [],
       "type_vars": [],
-      "inputs": {
-        "port_0": {
+      "inputs": [
+        {
           "type_name": "GroupBy",
           "state": "grouped",
           "qualifiers": [],
@@ -5359,7 +4302,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        "port_1": {
+        {
           "type_name": "str",
           "state": "lambda_expr",
           "qualifiers": [],
@@ -5373,9 +4316,9 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
-      "outputs": {
-        "port_0": {
+      ],
+      "outputs": [
+        {
           "type_name": "DataFrame",
           "state": "filtered",
           "qualifiers": [],
@@ -5389,7 +4332,7 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
+      ],
       "preconditions": [],
       "postconditions": [],
       "effects": [],
@@ -5429,8 +4372,8 @@
       "feedback_state_type": null,
       "raises": [],
       "type_vars": [],
-      "inputs": {
-        "port_0": {
+      "inputs": [
+        {
           "type_name": "GroupBy",
           "state": "grouped",
           "qualifiers": [],
@@ -5444,9 +4387,9 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
-      "outputs": {
-        "port_0": {
+      ],
+      "outputs": [
+        {
           "type_name": "DataFrame",
           "state": "aggregated",
           "qualifiers": [],
@@ -5460,7 +4403,7 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
+      ],
       "preconditions": [],
       "postconditions": [],
       "effects": [],
@@ -5470,8 +4413,7 @@
           "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         }
       ]
     },
@@ -5509,8 +4451,8 @@
       "feedback_state_type": null,
       "raises": [],
       "type_vars": [],
-      "inputs": {
-        "port_0": {
+      "inputs": [
+        {
           "type_name": "GroupBy",
           "state": "grouped",
           "qualifiers": [],
@@ -5524,9 +4466,9 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
-      "outputs": {
-        "port_0": {
+      ],
+      "outputs": [
+        {
           "type_name": "DataFrame",
           "state": "aggregated",
           "qualifiers": [],
@@ -5540,7 +4482,7 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
+      ],
       "preconditions": [],
       "postconditions": [],
       "effects": [],
@@ -5550,8 +4492,7 @@
           "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         }
       ]
     },
@@ -5588,8 +4529,8 @@
       "feedback_state_type": null,
       "raises": [],
       "type_vars": [],
-      "inputs": {
-        "port_0": {
+      "inputs": [
+        {
           "type_name": "GroupBy",
           "state": "grouped",
           "qualifiers": [],
@@ -5603,9 +4544,9 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
-      "outputs": {
-        "port_0": {
+      ],
+      "outputs": [
+        {
           "type_name": "DataFrame",
           "state": "aggregated",
           "qualifiers": [],
@@ -5619,7 +4560,7 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
+      ],
       "preconditions": [],
       "postconditions": [],
       "effects": [],
@@ -5658,8 +4599,8 @@
       "feedback_state_type": null,
       "raises": [],
       "type_vars": [],
-      "inputs": {
-        "port_0": {
+      "inputs": [
+        {
           "type_name": "GroupBy",
           "state": "grouped",
           "qualifiers": [],
@@ -5673,9 +4614,9 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
-      "outputs": {
-        "port_0": {
+      ],
+      "outputs": [
+        {
           "type_name": "Series",
           "state": "series_numeric",
           "qualifiers": [],
@@ -5689,7 +4630,7 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
+      ],
       "preconditions": [],
       "postconditions": [],
       "effects": [],
@@ -5729,8 +4670,8 @@
       "feedback_state_type": null,
       "raises": [],
       "type_vars": [],
-      "inputs": {
-        "port_0": {
+      "inputs": [
+        {
           "type_name": "DataFrame",
           "state": "raw",
           "accepted_states": [
@@ -5749,9 +4690,9 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
-      "outputs": {
-        "port_0": {
+      ],
+      "outputs": [
+        {
           "type_name": "DataFrame",
           "state": "aggregated",
           "qualifiers": [],
@@ -5765,7 +4706,7 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
+      ],
       "preconditions": [],
       "postconditions": [],
       "effects": [],
@@ -5806,8 +4747,8 @@
       "feedback_state_type": null,
       "raises": [],
       "type_vars": [],
-      "inputs": {
-        "port_0": {
+      "inputs": [
+        {
           "type_name": "Series",
           "state": "series_raw",
           "accepted_states": [
@@ -5825,7 +4766,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        "port_1": {
+        {
           "type_name": "bool",
           "state": "norm_flag",
           "qualifiers": [],
@@ -5842,9 +4783,9 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
-      "outputs": {
-        "port_0": {
+      ],
+      "outputs": [
+        {
           "type_name": "Series",
           "state": "series_numeric",
           "qualifiers": [],
@@ -5858,7 +4799,7 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
+      ],
       "preconditions": [],
       "postconditions": [],
       "effects": [],
@@ -5868,8 +4809,7 @@
           "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         }
       ]
     },
@@ -5913,8 +4853,8 @@
         "KeyError"
       ],
       "type_vars": [],
-      "inputs": {
-        "port_0": {
+      "inputs": [
+        {
           "type_name": "DataFrame",
           "state": "raw",
           "accepted_states": [
@@ -5933,7 +4873,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        "port_1": {
+        {
           "type_name": "str",
           "state": "row_key",
           "qualifiers": [],
@@ -5947,7 +4887,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        "port_2": {
+        {
           "type_name": "str",
           "state": "col_key",
           "qualifiers": [],
@@ -5961,7 +4901,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        "port_3": {
+        {
           "type_name": "str",
           "state": "val_key",
           "qualifiers": [],
@@ -5975,7 +4915,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        "port_4": {
+        {
           "type_name": "str",
           "state": "agg_function",
           "qualifiers": [],
@@ -5993,9 +4933,9 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
-      "outputs": {
-        "port_0": {
+      ],
+      "outputs": [
+        {
           "type_name": "DataFrame",
           "state": "pivoted",
           "qualifiers": [],
@@ -6009,7 +4949,7 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
+      ],
       "preconditions": [],
       "postconditions": [],
       "effects": [],
@@ -6019,8 +4959,7 @@
           "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         }
       ]
     },
@@ -6062,8 +5001,8 @@
         "ValueError"
       ],
       "type_vars": [],
-      "inputs": {
-        "port_0": {
+      "inputs": [
+        {
           "type_name": "DataFrame",
           "state": "deduped",
           "accepted_states": [
@@ -6081,7 +5020,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        "port_1": {
+        {
           "type_name": "str",
           "state": "row_index_key",
           "qualifiers": [],
@@ -6095,7 +5034,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        "port_2": {
+        {
           "type_name": "str",
           "state": "col_index_key",
           "qualifiers": [],
@@ -6109,7 +5048,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        "port_3": {
+        {
           "type_name": "str",
           "state": "val_column_key",
           "qualifiers": [],
@@ -6123,9 +5062,9 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
-      "outputs": {
-        "port_0": {
+      ],
+      "outputs": [
+        {
           "type_name": "DataFrame",
           "state": "pivoted",
           "qualifiers": [],
@@ -6139,7 +5078,7 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
+      ],
       "preconditions": [],
       "postconditions": [],
       "effects": [],
@@ -6184,8 +5123,8 @@
       "feedback_state_type": null,
       "raises": [],
       "type_vars": [],
-      "inputs": {
-        "port_0": {
+      "inputs": [
+        {
           "type_name": "DataFrame",
           "state": "raw",
           "accepted_states": [
@@ -6204,7 +5143,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        "port_1": {
+        {
           "type_name": "list",
           "state": "id_columns",
           "qualifiers": [],
@@ -6218,7 +5157,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        "port_2": {
+        {
           "type_name": "list",
           "state": "value_columns",
           "qualifiers": [],
@@ -6232,7 +5171,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        "port_3": {
+        {
           "type_name": "str",
           "state": "var_col_name",
           "qualifiers": [],
@@ -6246,7 +5185,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        "port_4": {
+        {
           "type_name": "str",
           "state": "val_col_name",
           "qualifiers": [],
@@ -6260,9 +5199,9 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
-      "outputs": {
-        "port_0": {
+      ],
+      "outputs": [
+        {
           "type_name": "DataFrame",
           "state": "melted",
           "qualifiers": [],
@@ -6276,7 +5215,7 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
+      ],
       "preconditions": [],
       "postconditions": [],
       "effects": [],
@@ -6286,8 +5225,7 @@
           "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         }
       ]
     },
@@ -6325,8 +5263,8 @@
       "feedback_state_type": null,
       "raises": [],
       "type_vars": [],
-      "inputs": {
-        "port_0": {
+      "inputs": [
+        {
           "type_name": "DataFrame",
           "state": "raw",
           "accepted_states": [
@@ -6345,9 +5283,9 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
-      "outputs": {
-        "port_0": {
+      ],
+      "outputs": [
+        {
           "type_name": "Series",
           "state": "series_raw",
           "qualifiers": [],
@@ -6361,7 +5299,7 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
+      ],
       "preconditions": [],
       "postconditions": [],
       "effects": [],
@@ -6404,8 +5342,8 @@
         "IndexError"
       ],
       "type_vars": [],
-      "inputs": {
-        "port_0": {
+      "inputs": [
+        {
           "type_name": "DataFrame",
           "state": "multi_indexed",
           "accepted_states": [
@@ -6423,7 +5361,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        "port_1": {
+        {
           "type_name": "int",
           "state": "unstack_level",
           "qualifiers": [],
@@ -6437,9 +5375,9 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
-      "outputs": {
-        "port_0": {
+      ],
+      "outputs": [
+        {
           "type_name": "DataFrame",
           "state": "pivoted",
           "qualifiers": [],
@@ -6453,7 +5391,7 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
+      ],
       "preconditions": [],
       "postconditions": [],
       "effects": [],
@@ -6496,8 +5434,8 @@
         "KeyError"
       ],
       "type_vars": [],
-      "inputs": {
-        "port_0": {
+      "inputs": [
+        {
           "type_name": "DataFrame",
           "state": "raw",
           "accepted_states": [
@@ -6515,7 +5453,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        "port_1": {
+        {
           "type_name": "str",
           "state": "col_to_explode",
           "qualifiers": [],
@@ -6529,9 +5467,9 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
-      "outputs": {
-        "port_0": {
+      ],
+      "outputs": [
+        {
           "type_name": "DataFrame",
           "state": "cleaned",
           "qualifiers": [],
@@ -6545,7 +5483,7 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
+      ],
       "preconditions": [],
       "postconditions": [],
       "effects": [],
@@ -6586,8 +5524,8 @@
       "feedback_state_type": null,
       "raises": [],
       "type_vars": [],
-      "inputs": {
-        "port_0": {
+      "inputs": [
+        {
           "type_name": "Series",
           "state": "series_raw",
           "accepted_states": [
@@ -6605,7 +5543,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        "port_1": {
+        {
           "type_name": "Series",
           "state": "series_raw",
           "accepted_states": [
@@ -6623,9 +5561,9 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
-      "outputs": {
-        "port_0": {
+      ],
+      "outputs": [
+        {
           "type_name": "DataFrame",
           "state": "pivoted",
           "qualifiers": [],
@@ -6639,7 +5577,7 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
+      ],
       "preconditions": [],
       "postconditions": [],
       "effects": [],
@@ -6681,8 +5619,8 @@
       "feedback_state_type": null,
       "raises": [],
       "type_vars": [],
-      "inputs": {
-        "port_0": {
+      "inputs": [
+        {
           "type_name": "DataFrame",
           "state": "cleaned",
           "accepted_states": [
@@ -6701,7 +5639,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        "port_1": {
+        {
           "type_name": "list",
           "state": "columns_to_encode",
           "qualifiers": [],
@@ -6715,7 +5653,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        "port_2": {
+        {
           "type_name": "bool",
           "state": "drop_first_flag",
           "qualifiers": [],
@@ -6732,9 +5670,9 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
-      "outputs": {
-        "port_0": {
+      ],
+      "outputs": [
+        {
           "type_name": "DataFrame",
           "state": "numeric_only",
           "qualifiers": [],
@@ -6748,7 +5686,7 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
+      ],
       "preconditions": [],
       "postconditions": [],
       "effects": [],
@@ -6758,8 +5696,7 @@
           "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         }
       ]
     },
@@ -6799,8 +5736,8 @@
         "ValueError"
       ],
       "type_vars": [],
-      "inputs": {
-        "port_0": {
+      "inputs": [
+        {
           "type_name": "list",
           "state": "level_arrays",
           "qualifiers": [],
@@ -6814,7 +5751,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        "port_1": {
+        {
           "type_name": "list",
           "state": "index_level_names",
           "qualifiers": [],
@@ -6828,9 +5765,9 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
-      "outputs": {
-        "port_0": {
+      ],
+      "outputs": [
+        {
           "type_name": "Index",
           "state": "index_generic",
           "qualifiers": [],
@@ -6844,7 +5781,7 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
+      ],
       "preconditions": [],
       "postconditions": [],
       "effects": [],
@@ -6884,8 +5821,8 @@
       "feedback_state_type": null,
       "raises": [],
       "type_vars": [],
-      "inputs": {
-        "port_0": {
+      "inputs": [
+        {
           "type_name": "list",
           "state": "tuple_list",
           "qualifiers": [],
@@ -6899,7 +5836,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        "port_1": {
+        {
           "type_name": "list",
           "state": "tuple_level_names",
           "qualifiers": [],
@@ -6913,9 +5850,9 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
-      "outputs": {
-        "port_0": {
+      ],
+      "outputs": [
+        {
           "type_name": "Index",
           "state": "index_generic",
           "qualifiers": [],
@@ -6929,7 +5866,7 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
+      ],
       "preconditions": [],
       "postconditions": [],
       "effects": [],
@@ -6973,8 +5910,8 @@
         "IndexError"
       ],
       "type_vars": [],
-      "inputs": {
-        "port_0": {
+      "inputs": [
+        {
           "type_name": "DataFrame",
           "state": "multi_indexed",
           "qualifiers": [],
@@ -6988,7 +5925,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        "port_1": {
+        {
           "type_name": "int",
           "state": "level_index_1",
           "qualifiers": [],
@@ -7002,7 +5939,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        "port_2": {
+        {
           "type_name": "int",
           "state": "level_index_2",
           "qualifiers": [],
@@ -7016,7 +5953,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        "port_3": {
+        {
           "type_name": "int",
           "state": "swap_axis",
           "qualifiers": [],
@@ -7033,9 +5970,9 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
-      "outputs": {
-        "port_0": {
+      ],
+      "outputs": [
+        {
           "type_name": "DataFrame",
           "state": "multi_indexed",
           "qualifiers": [],
@@ -7049,7 +5986,7 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
+      ],
       "preconditions": [],
       "postconditions": [],
       "effects": [],
@@ -7092,8 +6029,8 @@
         "IndexError"
       ],
       "type_vars": [],
-      "inputs": {
-        "port_0": {
+      "inputs": [
+        {
           "type_name": "DataFrame",
           "state": "multi_indexed",
           "qualifiers": [],
@@ -7107,7 +6044,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        "port_1": {
+        {
           "type_name": "list",
           "state": "level_order",
           "qualifiers": [],
@@ -7121,7 +6058,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        "port_2": {
+        {
           "type_name": "int",
           "state": "target_axis",
           "qualifiers": [],
@@ -7138,9 +6075,9 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
-      "outputs": {
-        "port_0": {
+      ],
+      "outputs": [
+        {
           "type_name": "DataFrame",
           "state": "multi_indexed",
           "qualifiers": [],
@@ -7154,7 +6091,7 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
+      ],
       "preconditions": [],
       "postconditions": [],
       "effects": [],
@@ -7198,8 +6135,8 @@
         "IndexError"
       ],
       "type_vars": [],
-      "inputs": {
-        "port_0": {
+      "inputs": [
+        {
           "type_name": "DataFrame",
           "state": "multi_indexed",
           "qualifiers": [],
@@ -7213,7 +6150,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        "port_1": {
+        {
           "type_name": "int",
           "state": "target_level",
           "qualifiers": [],
@@ -7227,7 +6164,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        "port_2": {
+        {
           "type_name": "int",
           "state": "target_axis",
           "qualifiers": [],
@@ -7244,9 +6181,9 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
-      "outputs": {
-        "port_0": {
+      ],
+      "outputs": [
+        {
           "type_name": "DataFrame",
           "state": "indexed",
           "qualifiers": [],
@@ -7260,7 +6197,7 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
+      ],
       "preconditions": [],
       "postconditions": [],
       "effects": [],
@@ -7305,8 +6242,8 @@
         "KeyError"
       ],
       "type_vars": [],
-      "inputs": {
-        "port_0": {
+      "inputs": [
+        {
           "type_name": "DataFrame",
           "state": "multi_indexed",
           "qualifiers": [],
@@ -7320,7 +6257,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        "port_1": {
+        {
           "type_name": "str",
           "state": "slice_key",
           "qualifiers": [],
@@ -7334,7 +6271,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        "port_2": {
+        {
           "type_name": "str",
           "state": "slice_level",
           "qualifiers": [],
@@ -7348,7 +6285,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        "port_3": {
+        {
           "type_name": "int",
           "state": "slice_axis",
           "qualifiers": [],
@@ -7365,9 +6302,9 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
-      "outputs": {
-        "port_0": {
+      ],
+      "outputs": [
+        {
           "type_name": "DataFrame",
           "state": "filtered",
           "qualifiers": [],
@@ -7381,7 +6318,7 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
+      ],
       "preconditions": [],
       "postconditions": [],
       "effects": [],
@@ -7429,8 +6366,8 @@
         "KeyError"
       ],
       "type_vars": [],
-      "inputs": {
-        "port_0": {
+      "inputs": [
+        {
           "type_name": "DataFrame",
           "state": "raw",
           "accepted_states": [
@@ -7449,7 +6386,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        "port_1": {
+        {
           "type_name": "DataFrame",
           "state": "raw",
           "accepted_states": [
@@ -7468,7 +6405,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        "port_2": {
+        {
           "type_name": "str",
           "state": "join_column",
           "qualifiers": [],
@@ -7482,7 +6419,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        "port_3": {
+        {
           "type_name": "str",
           "state": "join_method",
           "qualifiers": [],
@@ -7502,9 +6439,9 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
-      "outputs": {
-        "port_0": {
+      ],
+      "outputs": [
+        {
           "type_name": "DataFrame",
           "state": "merged",
           "qualifiers": [],
@@ -7518,7 +6455,7 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
+      ],
       "preconditions": [],
       "postconditions": [],
       "effects": [],
@@ -7528,8 +6465,7 @@
           "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         }
       ]
     },
@@ -7573,8 +6509,8 @@
         "KeyError"
       ],
       "type_vars": [],
-      "inputs": {
-        "port_0": {
+      "inputs": [
+        {
           "type_name": "DataFrame",
           "state": "raw",
           "accepted_states": [
@@ -7592,7 +6528,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        "port_1": {
+        {
           "type_name": "DataFrame",
           "state": "raw",
           "accepted_states": [
@@ -7610,7 +6546,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        "port_2": {
+        {
           "type_name": "str",
           "state": "left_key_col",
           "qualifiers": [],
@@ -7624,7 +6560,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        "port_3": {
+        {
           "type_name": "str",
           "state": "right_key_col",
           "qualifiers": [],
@@ -7638,7 +6574,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        "port_4": {
+        {
           "type_name": "str",
           "state": "merge_strategy",
           "qualifiers": [],
@@ -7657,9 +6593,9 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
-      "outputs": {
-        "port_0": {
+      ],
+      "outputs": [
+        {
           "type_name": "DataFrame",
           "state": "merged",
           "qualifiers": [],
@@ -7673,7 +6609,7 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
+      ],
       "preconditions": [],
       "postconditions": [],
       "effects": [],
@@ -7718,8 +6654,8 @@
         "ValueError"
       ],
       "type_vars": [],
-      "inputs": {
-        "port_0": {
+      "inputs": [
+        {
           "type_name": "DataFrame",
           "state": "indexed",
           "accepted_states": [
@@ -7737,7 +6673,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        "port_1": {
+        {
           "type_name": "DataFrame",
           "state": "indexed",
           "accepted_states": [
@@ -7755,7 +6691,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        "port_2": {
+        {
           "type_name": "str",
           "state": "join_on_key",
           "qualifiers": [],
@@ -7769,7 +6705,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        "port_3": {
+        {
           "type_name": "str",
           "state": "join_how",
           "qualifiers": [],
@@ -7788,7 +6724,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        "port_4": {
+        {
           "type_name": "str",
           "state": "left_suffix",
           "qualifiers": [],
@@ -7802,7 +6738,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        "port_5": {
+        {
           "type_name": "str",
           "state": "right_suffix",
           "qualifiers": [],
@@ -7816,9 +6752,9 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
-      "outputs": {
-        "port_0": {
+      ],
+      "outputs": [
+        {
           "type_name": "DataFrame",
           "state": "merged",
           "qualifiers": [],
@@ -7832,7 +6768,7 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
+      ],
       "preconditions": [],
       "postconditions": [],
       "effects": [],
@@ -7874,8 +6810,8 @@
       "feedback_state_type": null,
       "raises": [],
       "type_vars": [],
-      "inputs": {
-        "port_0": {
+      "inputs": [
+        {
           "type_name": "DataFrame",
           "state": "raw",
           "accepted_states": [
@@ -7893,7 +6829,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        "port_1": {
+        {
           "type_name": "DataFrame",
           "state": "raw",
           "accepted_states": [
@@ -7911,7 +6847,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        "port_2": {
+        {
           "type_name": "bool",
           "state": "ignore_idx_flag",
           "qualifiers": [],
@@ -7928,9 +6864,9 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
-      "outputs": {
-        "port_0": {
+      ],
+      "outputs": [
+        {
           "type_name": "DataFrame",
           "state": "merged",
           "qualifiers": [],
@@ -7944,7 +6880,7 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
+      ],
       "preconditions": [],
       "postconditions": [],
       "effects": [],
@@ -7954,8 +6890,7 @@
           "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         }
       ]
     },
@@ -7995,8 +6930,8 @@
       "feedback_state_type": null,
       "raises": [],
       "type_vars": [],
-      "inputs": {
-        "port_0": {
+      "inputs": [
+        {
           "type_name": "DataFrame",
           "state": "raw",
           "accepted_states": [
@@ -8014,7 +6949,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        "port_1": {
+        {
           "type_name": "DataFrame",
           "state": "raw",
           "accepted_states": [
@@ -8032,7 +6967,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        "port_2": {
+        {
           "type_name": "bool",
           "state": "ignore_idx_flag",
           "qualifiers": [],
@@ -8049,9 +6984,9 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
-      "outputs": {
-        "port_0": {
+      ],
+      "outputs": [
+        {
           "type_name": "DataFrame",
           "state": "merged",
           "qualifiers": [],
@@ -8065,7 +7000,7 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
+      ],
       "preconditions": [],
       "postconditions": [],
       "effects": [],
@@ -8110,8 +7045,8 @@
         "ValueError"
       ],
       "type_vars": [],
-      "inputs": {
-        "port_0": {
+      "inputs": [
+        {
           "type_name": "DataFrame",
           "state": "raw",
           "accepted_states": [
@@ -8130,7 +7065,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        "port_1": {
+        {
           "type_name": "DataFrame",
           "state": "raw",
           "accepted_states": [
@@ -8149,7 +7084,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        "port_2": {
+        {
           "type_name": "str",
           "state": "time_key",
           "qualifiers": [],
@@ -8163,7 +7098,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        "port_3": {
+        {
           "type_name": "str",
           "state": "match_direction",
           "qualifiers": [],
@@ -8181,9 +7116,9 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
-      "outputs": {
-        "port_0": {
+      ],
+      "outputs": [
+        {
           "type_name": "DataFrame",
           "state": "merged",
           "qualifiers": [],
@@ -8197,7 +7132,7 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
+      ],
       "preconditions": [],
       "postconditions": [],
       "effects": [],
@@ -8242,8 +7177,8 @@
         "ValueError"
       ],
       "type_vars": [],
-      "inputs": {
-        "port_0": {
+      "inputs": [
+        {
           "type_name": "DataFrame",
           "state": "cleaned",
           "accepted_states": [
@@ -8263,7 +7198,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        "port_1": {
+        {
           "type_name": "int",
           "state": "window_size",
           "qualifiers": [],
@@ -8277,7 +7212,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        "port_2": {
+        {
           "type_name": "int",
           "state": "min_observations",
           "qualifiers": [],
@@ -8291,9 +7226,9 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
-      "outputs": {
-        "port_0": {
+      ],
+      "outputs": [
+        {
           "type_name": "DataFrame",
           "state": "windowed",
           "qualifiers": [],
@@ -8307,7 +7242,7 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
+      ],
       "preconditions": [],
       "postconditions": [],
       "effects": [],
@@ -8317,8 +7252,7 @@
           "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         }
       ]
     },
@@ -8360,8 +7294,8 @@
         "ValueError"
       ],
       "type_vars": [],
-      "inputs": {
-        "port_0": {
+      "inputs": [
+        {
           "type_name": "DataFrame",
           "state": "cleaned",
           "accepted_states": [
@@ -8380,7 +7314,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        "port_1": {
+        {
           "type_name": "int",
           "state": "window_size",
           "qualifiers": [],
@@ -8394,7 +7328,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        "port_2": {
+        {
           "type_name": "int",
           "state": "min_observations",
           "qualifiers": [],
@@ -8408,9 +7342,9 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
-      "outputs": {
-        "port_0": {
+      ],
+      "outputs": [
+        {
           "type_name": "DataFrame",
           "state": "windowed",
           "qualifiers": [],
@@ -8424,7 +7358,7 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
+      ],
       "preconditions": [],
       "postconditions": [],
       "effects": [],
@@ -8468,8 +7402,8 @@
         "ValueError"
       ],
       "type_vars": [],
-      "inputs": {
-        "port_0": {
+      "inputs": [
+        {
           "type_name": "DataFrame",
           "state": "cleaned",
           "accepted_states": [
@@ -8488,7 +7422,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        "port_1": {
+        {
           "type_name": "int",
           "state": "window_size",
           "qualifiers": [],
@@ -8502,7 +7436,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        "port_2": {
+        {
           "type_name": "int",
           "state": "min_observations",
           "qualifiers": [],
@@ -8516,9 +7450,9 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
-      "outputs": {
-        "port_0": {
+      ],
+      "outputs": [
+        {
           "type_name": "DataFrame",
           "state": "windowed",
           "qualifiers": [],
@@ -8532,7 +7466,7 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
+      ],
       "preconditions": [],
       "postconditions": [],
       "effects": [],
@@ -8576,8 +7510,8 @@
         "ValueError"
       ],
       "type_vars": [],
-      "inputs": {
-        "port_0": {
+      "inputs": [
+        {
           "type_name": "DataFrame",
           "state": "cleaned",
           "accepted_states": [
@@ -8596,7 +7530,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        "port_1": {
+        {
           "type_name": "float",
           "state": "decay_span",
           "qualifiers": [],
@@ -8610,7 +7544,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        "port_2": {
+        {
           "type_name": "bool",
           "state": "adjust_flag",
           "qualifiers": [],
@@ -8627,9 +7561,9 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
-      "outputs": {
-        "port_0": {
+      ],
+      "outputs": [
+        {
           "type_name": "DataFrame",
           "state": "windowed",
           "qualifiers": [],
@@ -8643,7 +7577,7 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
+      ],
       "preconditions": [],
       "postconditions": [],
       "effects": [],
@@ -8689,8 +7623,8 @@
         "ValueError"
       ],
       "type_vars": [],
-      "inputs": {
-        "port_0": {
+      "inputs": [
+        {
           "type_name": "DataFrame",
           "state": "datetime_indexed",
           "accepted_states": [
@@ -8707,7 +7641,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        "port_1": {
+        {
           "type_name": "str",
           "state": "freq_rule",
           "qualifiers": [],
@@ -8728,7 +7662,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        "port_2": {
+        {
           "type_name": "str",
           "state": "reduction_fn",
           "qualifiers": [],
@@ -8748,9 +7682,9 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
-      "outputs": {
-        "port_0": {
+      ],
+      "outputs": [
+        {
           "type_name": "DataFrame",
           "state": "resampled",
           "qualifiers": [],
@@ -8764,7 +7698,7 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
+      ],
       "preconditions": [
         {
           "target": "df",
@@ -8783,8 +7717,7 @@
           "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         }
       ]
     },
@@ -8824,8 +7757,8 @@
       "feedback_state_type": null,
       "raises": [],
       "type_vars": [],
-      "inputs": {
-        "port_0": {
+      "inputs": [
+        {
           "type_name": "DataFrame",
           "state": "raw",
           "accepted_states": [
@@ -8845,7 +7778,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        "port_1": {
+        {
           "type_name": "int",
           "state": "shift_periods",
           "qualifiers": [],
@@ -8859,9 +7792,9 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
-      "outputs": {
-        "port_0": {
+      ],
+      "outputs": [
+        {
           "type_name": "DataFrame",
           "state": "raw",
           "qualifiers": [],
@@ -8875,7 +7808,7 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
+      ],
       "preconditions": [],
       "postconditions": [],
       "effects": [],
@@ -8885,16 +7818,14 @@
           "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         },
         {
           "target_cell_id": "PD_BFILL",
           "affinity_score": 0.5,
           "score_provenance": "llm_seed",
           "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         }
       ]
     },
@@ -8933,8 +7864,8 @@
       "feedback_state_type": null,
       "raises": [],
       "type_vars": [],
-      "inputs": {
-        "port_0": {
+      "inputs": [
+        {
           "type_name": "DataFrame",
           "state": "cleaned",
           "accepted_states": [
@@ -8953,7 +7884,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        "port_1": {
+        {
           "type_name": "int",
           "state": "diff_period",
           "qualifiers": [],
@@ -8967,9 +7898,9 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
-      "outputs": {
-        "port_0": {
+      ],
+      "outputs": [
+        {
           "type_name": "DataFrame",
           "state": "raw",
           "qualifiers": [],
@@ -8983,7 +7914,7 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
+      ],
       "preconditions": [],
       "postconditions": [],
       "effects": [],
@@ -8993,8 +7924,7 @@
           "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         }
       ]
     },
@@ -9034,8 +7964,8 @@
       "feedback_state_type": null,
       "raises": [],
       "type_vars": [],
-      "inputs": {
-        "port_0": {
+      "inputs": [
+        {
           "type_name": "DataFrame",
           "state": "cleaned",
           "accepted_states": [
@@ -9054,7 +7984,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        "port_1": {
+        {
           "type_name": "int",
           "state": "period_step",
           "qualifiers": [],
@@ -9068,9 +7998,9 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
-      "outputs": {
-        "port_0": {
+      ],
+      "outputs": [
+        {
           "type_name": "DataFrame",
           "state": "raw",
           "qualifiers": [],
@@ -9084,7 +8014,7 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
+      ],
       "preconditions": [],
       "postconditions": [],
       "effects": [],
@@ -9094,8 +8024,7 @@
           "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         }
       ]
     },
@@ -9134,8 +8063,8 @@
       "feedback_state_type": null,
       "raises": [],
       "type_vars": [],
-      "inputs": {
-        "port_0": {
+      "inputs": [
+        {
           "type_name": "DataFrame",
           "state": "cleaned",
           "accepted_states": [
@@ -9158,14 +8087,12 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
-      "outputs": {
-        "port_0": {
+      ],
+      "outputs": [
+        {
           "type_name": "ndarray",
           "state": "ndarray_generic",
-          "qualifiers": [
-            "matrix"
-          ],
+          "qualifiers": [],
           "default_value": null,
           "description": "Standardized generic NumPy ndarray representation.",
           "domain": "pandas",
@@ -9176,7 +8103,7 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
+      ],
       "preconditions": [],
       "postconditions": [],
       "effects": [
@@ -9220,8 +8147,8 @@
       "feedback_state_type": null,
       "raises": [],
       "type_vars": [],
-      "inputs": {
-        "port_0": {
+      "inputs": [
+        {
           "type_name": "Series",
           "state": "series_cleaned",
           "accepted_states": [
@@ -9240,14 +8167,12 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
-      "outputs": {
-        "port_0": {
+      ],
+      "outputs": [
+        {
           "type_name": "ndarray",
           "state": "ndarray_generic",
-          "qualifiers": [
-            "vector"
-          ],
+          "qualifiers": [],
           "default_value": null,
           "description": "Standardized generic 1D NumPy ndarray.",
           "domain": "pandas",
@@ -9258,7 +8183,7 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
+      ],
       "preconditions": [],
       "postconditions": [],
       "effects": [
@@ -9301,8 +8226,8 @@
       "feedback_state_type": null,
       "raises": [],
       "type_vars": [],
-      "inputs": {
-        "port_0": {
+      "inputs": [
+        {
           "type_name": "DataFrame",
           "state": "cleaned",
           "accepted_states": [
@@ -9323,7 +8248,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        "port_1": {
+        {
           "type_name": "float",
           "state": "default_fill",
           "qualifiers": [],
@@ -9337,9 +8262,9 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
-      "outputs": {
-        "port_0": {
+      ],
+      "outputs": [
+        {
           "type_name": "DataFrame",
           "state": "dataframe_2d_generic",
           "qualifiers": [],
@@ -9353,7 +8278,7 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
+      ],
       "preconditions": [],
       "postconditions": [
         {
@@ -9372,8 +8297,7 @@
           "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         }
       ]
     },
@@ -9416,8 +8340,8 @@
         "FileNotFoundError"
       ],
       "type_vars": [],
-      "inputs": {
-        "port_0": {
+      "inputs": [
+        {
           "type_name": "DataFrame",
           "state": "cleaned",
           "accepted_states": [
@@ -9441,7 +8365,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        "port_1": {
+        {
           "type_name": "str",
           "state": "destination_path",
           "qualifiers": [
@@ -9457,7 +8381,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        "port_2": {
+        {
           "type_name": "bool",
           "state": "write_index_flag",
           "qualifiers": [],
@@ -9474,9 +8398,9 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
-      "outputs": {
-        "port_0": {
+      ],
+      "outputs": [
+        {
           "type_name": "DataFrame",
           "state": "written_to_disk",
           "qualifiers": [],
@@ -9490,7 +8414,7 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
+      ],
       "preconditions": [],
       "postconditions": [],
       "effects": [
@@ -9537,8 +8461,8 @@
         "ImportError"
       ],
       "type_vars": [],
-      "inputs": {
-        "port_0": {
+      "inputs": [
+        {
           "type_name": "DataFrame",
           "state": "cleaned",
           "accepted_states": [
@@ -9560,7 +8484,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        "port_1": {
+        {
           "type_name": "str",
           "state": "destination_path",
           "qualifiers": [
@@ -9576,7 +8500,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        "port_2": {
+        {
           "type_name": "bool",
           "state": "write_index_flag",
           "qualifiers": [],
@@ -9593,9 +8517,9 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
-      "outputs": {
-        "port_0": {
+      ],
+      "outputs": [
+        {
           "type_name": "DataFrame",
           "state": "written_to_disk",
           "qualifiers": [],
@@ -9609,7 +8533,7 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
+      ],
       "preconditions": [],
       "postconditions": [],
       "effects": [
@@ -9655,8 +8579,8 @@
         "PermissionError"
       ],
       "type_vars": [],
-      "inputs": {
-        "port_0": {
+      "inputs": [
+        {
           "type_name": "DataFrame",
           "state": "cleaned",
           "accepted_states": [
@@ -9677,7 +8601,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        "port_1": {
+        {
           "type_name": "str",
           "state": "destination_path",
           "qualifiers": [
@@ -9693,7 +8617,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        "port_2": {
+        {
           "type_name": "str",
           "state": "json_orient",
           "qualifiers": [],
@@ -9713,9 +8637,9 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
-      "outputs": {
-        "port_0": {
+      ],
+      "outputs": [
+        {
           "type_name": "DataFrame",
           "state": "written_to_disk",
           "qualifiers": [],
@@ -9729,7 +8653,7 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
+      ],
       "preconditions": [],
       "postconditions": [],
       "effects": [
@@ -9776,8 +8700,8 @@
         "ImportError"
       ],
       "type_vars": [],
-      "inputs": {
-        "port_0": {
+      "inputs": [
+        {
           "type_name": "DataFrame",
           "state": "cleaned",
           "accepted_states": [
@@ -9797,7 +8721,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        "port_1": {
+        {
           "type_name": "str",
           "state": "destination_path",
           "qualifiers": [
@@ -9813,7 +8737,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        "port_2": {
+        {
           "type_name": "bool",
           "state": "write_index_flag",
           "qualifiers": [],
@@ -9830,9 +8754,9 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
-      "outputs": {
-        "port_0": {
+      ],
+      "outputs": [
+        {
           "type_name": "DataFrame",
           "state": "written_to_disk",
           "qualifiers": [],
@@ -9846,7 +8770,7 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
+      ],
       "preconditions": [],
       "postconditions": [],
       "effects": [
@@ -9894,8 +8818,8 @@
         "ValueError"
       ],
       "type_vars": [],
-      "inputs": {
-        "port_0": {
+      "inputs": [
+        {
           "type_name": "DataFrame",
           "state": "cleaned",
           "accepted_states": [
@@ -9915,7 +8839,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        "port_1": {
+        {
           "type_name": "str",
           "state": "table_name",
           "qualifiers": [],
@@ -9929,7 +8853,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        "port_2": {
+        {
           "type_name": "Engine",
           "state": "db_connection",
           "qualifiers": [],
@@ -9943,7 +8867,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        "port_3": {
+        {
           "type_name": "str",
           "state": "existence_strategy",
           "qualifiers": [],
@@ -9961,7 +8885,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        "port_4": {
+        {
           "type_name": "bool",
           "state": "index_persistence",
           "qualifiers": [],
@@ -9978,9 +8902,9 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
-      "outputs": {
-        "port_0": {
+      ],
+      "outputs": [
+        {
           "type_name": "DataFrame",
           "state": "written_to_disk",
           "qualifiers": [],
@@ -9994,7 +8918,7 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
+      ],
       "preconditions": [],
       "postconditions": [],
       "effects": [
@@ -10041,8 +8965,8 @@
         "ImportError"
       ],
       "type_vars": [],
-      "inputs": {
-        "port_0": {
+      "inputs": [
+        {
           "type_name": "DataFrame",
           "state": "cleaned",
           "accepted_states": [
@@ -10063,7 +8987,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        "port_1": {
+        {
           "type_name": "str",
           "state": "destination_path",
           "qualifiers": [
@@ -10079,9 +9003,9 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
-      "outputs": {
-        "port_0": {
+      ],
+      "outputs": [
+        {
           "type_name": "DataFrame",
           "state": "written_to_disk",
           "qualifiers": [],
@@ -10095,7 +9019,7 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
+      ],
       "preconditions": [],
       "postconditions": [],
       "effects": [
@@ -10141,8 +9065,8 @@
         "ValueError"
       ],
       "type_vars": [],
-      "inputs": {
-        "port_0": {
+      "inputs": [
+        {
           "type_name": "DataFrame",
           "state": "cleaned",
           "accepted_states": [
@@ -10163,7 +9087,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        "port_1": {
+        {
           "type_name": "str",
           "state": "dict_orient",
           "qualifiers": [],
@@ -10184,9 +9108,9 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
-      "outputs": {
-        "port_0": {
+      ],
+      "outputs": [
+        {
           "type_name": "dict",
           "state": "exported",
           "qualifiers": [],
@@ -10200,7 +9124,7 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
+      ],
       "preconditions": [],
       "postconditions": [],
       "effects": [
@@ -10208,5 +9132,52 @@
       ],
       "edges": []
     }
-  ]
+  ],
+  "egress_intent_tokens": [
+    "save",
+    "export",
+    "write",
+    "dump",
+    "persist",
+    "store",
+    "plot",
+    "show",
+    "display"
+  ],
+  "materialization_states": [
+    "destination_written",
+    "filepath_written",
+    "saved",
+    "exported",
+    "written_to_disk"
+  ],
+  "polarity_hints": {
+    "ascending": [
+      "bottom",
+      "lowest",
+      "smallest",
+      "minimum",
+      "min",
+      "worst",
+      "least",
+      "ascending",
+      "asc",
+      "fewest"
+    ],
+    "descending": [
+      "top",
+      "highest",
+      "largest",
+      "biggest",
+      "greatest",
+      "maximum",
+      "max",
+      "best",
+      "most",
+      "descending",
+      "desc",
+      "newest",
+      "latest"
+    ]
+  }
 }

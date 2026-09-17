@@ -79,23 +79,11 @@ class DynamicPolarityHints(frozenset):
 _ASCENDING_HINTS = DynamicPolarityHints("ascending")
 _DESCENDING_HINTS = DynamicPolarityHints("descending")
 # Port names/states that carry an ordering polarity (generic, not domain names).
-_ORDER_FLAG_NAMES = frozenset({
-    "ascending", "descending", "asc", "desc", "reverse", "order", "order_flag",
-    "sort_order", "sort_ascending", "sort_descending", "direction", "decreasing", "increasing",
-})
-_ORDER_FLAG_STATES = frozenset({"order_flag", "sort_order", "direction", "order", "decreasing", "increasing"})
-# Port names whose POSITIVE pole inverts the conventional ascending order
-# (e.g. a flag named `descending` set True means largest-first).
-_DESCENDING_POLE_NAMES = frozenset({"descending", "desc", "decreasing", "sort_descending", "reverse"})
-# Relational prepositions whose OBJECT is a referential candidate
-# ("sort BY age"): language-level binding of a value to a relation.
-_PREPOSITION_TRIGGERS = frozenset({"by", "of", "for", "with", "on", "per"})
-
-# Ordering-polarity tokens used for token-wise (not substring) matching.
-_ORDER_POLE_TOKENS = frozenset({
-    "asc", "ascend", "ascending", "desc", "descend", "descending",
-    "order", "direction", "decreasing", "increasing", "reverse",
-})
+_ORDER_FLAG_NAMES = frozenset()          # must be registered from trees
+_ORDER_FLAG_STATES = frozenset()
+_DESCENDING_POLE_NAMES = frozenset()
+_PREPOSITION_TRIGGERS = frozenset({"by", "of", "for", "with", "on", "per"})  # keep only pure English prepositions; move others to trees if needed
+_ORDER_POLE_TOKENS = frozenset()
 
 
 class IdentifierGroup:
@@ -1334,7 +1322,7 @@ class ExecutionContext:
         try:
             import importlib
             mod = importlib.import_module(mod_name)
-        except Exception:
+        except Exception as e:
             return None
 
         candidates = [name for name in dir(mod) if name.startswith(f"{prefix}_")]
@@ -1370,8 +1358,8 @@ class ExecutionContext:
                                 best_cand = cand
                     if best_cand and best_sim > 0.30:
                         return f"{mod_name}.{best_cand}"
-        except Exception:
-            pass
+        except Exception as e:
+            logger.debug("suppressed: %s", e, exc_info=False)
 
         # 2. Token overlap and parsimony scoring fallback
         prompt_lower = (self.prompt or "").lower()
@@ -1805,7 +1793,7 @@ def _get_module_symbols(mod_name: str) -> FrozenSet[str]:
         if mod is None:
             mod = importlib.import_module(mod_name)
         return frozenset(w for w in dir(mod) if not w.startswith("_"))
-    except Exception:
+    except Exception as e:
         return frozenset()
 
 
@@ -2045,7 +2033,7 @@ class UnificationGate:
             for i, m_str in enumerate(members):
                 try:
                     member_term = TypeTerm.from_string(m_str)
-                except Exception:
+                except Exception as e:
                     continue
                 u = unify(member_term, port_sig.signature, accumulated_sigma)
                 if u is None:
@@ -2087,7 +2075,7 @@ class UnificationGate:
                         try:
                             from .lattice import LatticeOrchestrator
                             orch = LatticeOrchestrator.get_active_instance()
-                        except Exception:
+                        except Exception as e:
                             orch = None
                 resolved_cache = getattr(c, "_resolved_sub_cells", {}) or {}
                 resolved: List[Cell] = []
@@ -2148,7 +2136,8 @@ class UnificationGate:
                 if getattr(p_s, "required", False):
                     return True
                 role = getattr(p_s, "derived_role", "standard")
-                if role in ("feature_input", "target_input", "data_input", "model_input"):
+                ROLE_CARRIERS = TypeRegistry.get_instance().get_declared_role_carriers()
+                if role in ROLE_CARRIERS:
                     return True
                 return False
 
@@ -2287,9 +2276,10 @@ class UnificationGate:
 
                 # Optional data carriers check in-scope variables first
                 _tn_lower = str(getattr(concrete_sig, "type_name", "")).lower()
+                ROLE_CARRIERS = TypeRegistry.get_instance().get_declared_role_carriers()
                 is_data_carrier = (
-                    getattr(p_sig, "port_role", None) in ("target_input", "feature_input", "data_input", "model_input", "source_data", "model_sink")
-                    or getattr(p_sig, "derived_role", "standard") in ("target_input", "feature_input", "data_input", "model_input", "source_data", "model_sink")
+                    getattr(p_sig, "port_role", None) in ROLE_CARRIERS
+                    or getattr(p_sig, "derived_role", "standard") in ROLE_CARRIERS
                     or registry.is_subtype(_tn_lower, "tensor")
                     or registry.is_subtype(_tn_lower, "table")
                 )
@@ -2588,7 +2578,7 @@ class UnificationGate:
                             val_str = str(val)
                             try:
                                 val_node = ast.parse(val_str, mode="eval").body
-                            except Exception:
+                            except Exception as e:
                                 val_node = ast.Constant(value=val_str)
                             if p_kind == "keyword_only":
                                 new_keywords.append(ast.keyword(arg=orig_name, value=val_node))
@@ -2621,7 +2611,7 @@ class UnificationGate:
 
         try:
             return ast.unparse(optimized)
-        except Exception:
+        except Exception as e:
             res = template
             for k, v in bindings.items():
                 if v is not None:
@@ -2758,7 +2748,7 @@ class UnificationGate:
             return code
         try:
             tree = ast.parse(code)
-        except Exception:
+        except Exception as e:
             return code
 
         bound: Set[str] = set(dir(__builtins__))
@@ -2847,8 +2837,8 @@ class UnificationGate:
                         stmt = f"import {root_clean}"
                         if stmt not in injected:
                             injected.append(stmt)
-                except Exception:
-                    pass
+                except Exception as e:
+                    logger.debug("suppressed: %s", e, exc_info=False)
 
         if not injected:
             return code
@@ -2942,11 +2932,11 @@ class UnificationGate:
                     try:
                         from .schema import ConditionPredicate
                         p_obj = ConditionPredicate.from_any(post)
-                    except Exception:
+                    except Exception as e:
                         try:
                             from schema import ConditionPredicate
                             p_obj = ConditionPredicate.from_any(post)
-                        except Exception:
+                        except Exception as e:
                             p_obj = post
 
                 target_name = getattr(p_obj, "target", None) or "output_var"

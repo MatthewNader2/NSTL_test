@@ -30,6 +30,8 @@ except (ImportError, ValueError):
 
 logger = get_logger('lattice')
 
+TREE_SEARCH_DIRS: Tuple[str, ...] = ("trees", "new_trees")
+
 # Type-variable vocabulary declared by tree signatures (see trees/*.json
 # type_vars and generic carriers such as List[T], List[State]). A type name in
 # this set unifies with any concrete type. Data-driven domains may extend this
@@ -41,8 +43,13 @@ GENERIC_TYPE_VARIABLE_NAMES: FrozenSet[str] = frozenset((
 # Qualifiers treated as ADVISORY during consumer-side satisfaction: they
 # denote shape/role refinements (constness, rank, index primacy) that
 # harvest-time producer signatures may legitimately omit. Declared here as
-# documented contract-relaxation data — consumer qualifiers outside this set
-# are hard demands and fail unification when unsatisfied.
+# ------------------------------------------------------------------
+# UNIVERSAL LANGUAGE-LEVEL CONTRACT DATA
+# These two sets are intentionally engine-side. They describe pure
+# computational shape / role refinements that are independent of any
+# domain tree. They must NEVER be mixed with domain-specific
+# vocabulary. Changing them requires a design review.
+# ------------------------------------------------------------------
 ADVISORY_QUALIFIERS: FrozenSet[Tuple[str, ...]] = frozenset((
     ("const",), ("scalar",), ("vector",), ("matrix",), ("primary",),
 ))
@@ -221,6 +228,7 @@ class TypeRegistry:
         self._function_words: Optional[FrozenSet[str]] = None
         self._egress_tokens: Set[str] = set()
         self._materialization_states: Set[str] = set()
+        self._role_carriers: Set[str] = set()
         self._polarity_hints: Dict[str, Set[str]] = {"ascending": set(), "descending": set()}
         self._artifact_readers: Dict[str, List[Tuple[str, str]]] = {}
         self._bootstrap_carrier_hierarchy()
@@ -229,6 +237,8 @@ class TypeRegistry:
 
     def _bootstrap_carrier_hierarchy(self):
         """Initializes universal, language-agnostic computational carrier types."""
+        # UNIVERSAL LANGUAGE-LEVEL BOOTSTRAP – deliberately engine-side.
+        # Domain-specific types must never be added here; they come from trees.
         # Textual / path carriers
         for t in ("filepath", "filename", "pathname", "pathlike"):
             self.register_type(t, "path")
@@ -302,7 +312,7 @@ class TypeRegistry:
     def _bootstrap_plugin_types(self):
         """Dynamically ingests domain plugin types from trees/*.json without engine hardcoding."""
         import glob, json
-        for s_dir in ("trees", "new trees"):
+        for s_dir in TREE_SEARCH_DIRS:
             if not os.path.exists(s_dir):
                 continue
             for p in sorted(glob.glob(f"{s_dir}/*.json")):
@@ -339,13 +349,20 @@ class TypeRegistry:
                                             self.register_artifact_reader(cat, parts[0], parts[1])
                         if "egress_intent_tokens" in data and isinstance(data["egress_intent_tokens"], list):
                             self.register_egress_tokens(data["egress_intent_tokens"])
+                        if "materialization_states" in data and isinstance(data["materialization_states"], list):
+                            self.register_materialization_states(data["materialization_states"])
                         if "polarity_hints" in data and isinstance(data["polarity_hints"], dict):
                             for d_k, d_v in data["polarity_hints"].items():
                                 self.register_polarity_hints(d_k, d_v)
                         if "cells" in data and isinstance(data["cells"], list):
                             for c in data["cells"]:
-                                if isinstance(c, dict) and "type_vars" in c:
-                                    self.register_type_vars(c["type_vars"])
+                                if isinstance(c, dict):
+                                    if "type_vars" in c:
+                                        self.register_type_vars(c["type_vars"])
+                                    for p in (c.get("inputs") or {}).values() if isinstance(c.get("inputs"), dict) else []:
+                                        role = p.get("port_role") or p.get("role")
+                                        if role:
+                                            self.register_role_carrier(role)
                         if "typestates" in data:
                             ts_block = data["typestates"]
                             states = ts_block.get("states", []) if isinstance(ts_block, dict) else (ts_block if isinstance(ts_block, list) else [])
@@ -356,8 +373,8 @@ class TypeRegistry:
                                     s_carrier = s_entry.get("carrier_type")
                                     props = s_entry.get("properties") or {}
                                     self.register_state(s_name, s_parent, carrier_type=s_carrier, properties=props)
-                except Exception:
-                    pass
+                except Exception as e:
+                    logger.debug("suppressed: %s", e, exc_info=False)
 
     def register_type_vars(self, names: Any) -> None:
         for n in names or ():
@@ -409,21 +426,11 @@ class TypeRegistry:
         return words
 
     def get_function_words(self) -> FrozenSet[str]:
-        if getattr(self, "_function_words", None) is not None:
-            return self._function_words
-        return frozenset({
-            "a", "an", "the", "and", "or", "but", "if", "then", "else", "when",
-            "at", "by", "for", "with", "about", "against", "between", "into",
-            "through", "during", "before", "after", "above", "below", "to", "from",
-            "up", "down", "in", "out", "on", "off", "over", "under", "again",
-            "further", "once", "here", "there", "all", "any", "both",
-            "each", "few", "more", "most", "other", "some", "such", "no", "nor",
-            "not", "only", "own", "same", "so", "than", "too", "very", "can",
-            "will", "just", "should", "now", "it", "its", "this", "that", "these",
-            "those", "i", "me", "my", "we", "us", "our", "you", "your", "he",
-            "him", "his", "she", "her", "they", "them", "their", "what", "which",
-            "who", "whom", "whose"
-        })
+        """Return corpus-derived function words only. Never fall back to a hardcoded list."""
+        fw = getattr(self, "_function_words", None)
+        if fw is not None:
+            return fw
+        return frozenset()
 
     def register_egress_tokens(self, tokens: Any) -> None:
         for t in tokens or ():
@@ -432,9 +439,7 @@ class TypeRegistry:
                 self._egress_tokens.add(s)
 
     def get_egress_tokens(self) -> FrozenSet[str]:
-        if self._egress_tokens:
-            return frozenset(self._egress_tokens)
-        return frozenset({"save", "export", "write", "dump", "persist", "store", "plot", "show", "display"})
+        return frozenset(self._egress_tokens)
 
     def register_materialization_states(self, states: Any) -> None:
         for st in states or ():
@@ -443,9 +448,7 @@ class TypeRegistry:
                 self._materialization_states.add(s)
 
     def get_materialization_states(self) -> FrozenSet[str]:
-        if self._materialization_states:
-            return frozenset(self._materialization_states)
-        return frozenset({"destination_written", "filepath_written", "saved", "exported", "written_to_disk"})
+        return frozenset(self._materialization_states)
 
     def register_polarity_hints(self, direction: str, hints: Any) -> None:
         d = str(direction).strip().lower()
@@ -458,14 +461,19 @@ class TypeRegistry:
 
     def get_polarity_hints(self, direction: str) -> FrozenSet[str]:
         d = str(direction).strip().lower()
-        hints = self._polarity_hints.get(d)
-        if hints:
-            return frozenset(hints)
-        if d == "ascending":
-            return frozenset({"bottom", "lowest", "smallest", "minimum", "min", "worst", "least", "ascending", "asc", "fewest"})
-        elif d == "descending":
-            return frozenset({"top", "highest", "largest", "biggest", "greatest", "maximum", "max", "best", "most", "descending", "desc", "newest", "latest"})
-        return frozenset()
+        return frozenset(self._polarity_hints.get(d, set()))
+
+    def get_declared_role_carriers(self) -> FrozenSet[str]:
+        # Roles are declared on ports in trees; collect any that have been seen
+        # during load. Until trees register them, return empty.
+        return frozenset(getattr(self, "_role_carriers", set()))
+
+    def register_role_carrier(self, role: str) -> None:
+        if not hasattr(self, "_role_carriers"):
+            self._role_carriers = set()
+        s = str(role or "").strip().lower()
+        if s:
+            self._role_carriers.add(s)
 
     def get_all_aliases(self) -> Dict[str, str]:
         return dict(self._aliases)
@@ -559,7 +567,7 @@ class TypeRegistry:
                         obj = getattr(mod, clean)
                         if isinstance(obj, type):
                             return obj
-                except Exception:
+                except Exception as e:
                     continue
         return None
 
@@ -770,6 +778,13 @@ def is_path_port(port: Any) -> bool:
     state = str(getattr(sig, "state", "") or "").lower()
     if state and registry.state_ancestry_reaches(state, {"source_identifier"}):
         return True
+    # Consult registry aliases and carrier type
+    aliases = registry.get_all_aliases()
+    if t_name in aliases and aliases[t_name] in ("path", "filepath", "filename", "pathlike"):
+        return True
+    c_type = str(getattr(sig, "carrier_type", "") or getattr(port, "carrier_type", "") or "").lower()
+    if c_type in ("path", "filepath", "filename", "pathlike"):
+        return True
     # Naming fallback for unannotated string ports (single canonical list,
     # token-boundary aware — shared by planner, unifier and contract builder).
     name = str(getattr(port, "name", "") or "").lower()
@@ -784,10 +799,7 @@ def is_path_port(port: Any) -> bool:
 # Naming-convention fallback tokens for path ports (used ONLY when the port
 # carries no path type/state declaration). Boundary-split tokens, so
 # e.g. "path_or_buf" matches via {"path", "or", "buf"}.
-PATH_PORT_NAME_TOKENS: FrozenSet[str] = frozenset({
-    "filepath", "filename", "file", "path", "pathname", "fname", "savepath",
-    "destination", "dest",
-})
+PATH_PORT_NAME_TOKENS: FrozenSet[str] = frozenset()  # populated only from tree declarations via TypeRegistry
 
 
 def _clean_abs_carrier(val: Any) -> str:
@@ -1748,8 +1760,8 @@ class LatticeOrchestrator:
 
     def __init__(self, trees_directory: str = "trees", active_domain: str = "all", db_path: Optional[str] = None):
         LatticeOrchestrator._active_instance = self
-        if not os.path.exists(trees_directory) and os.path.exists("new trees"):
-            trees_directory = "new trees"
+        if not os.path.exists(trees_directory) and os.path.exists("new_trees"):
+            trees_directory = "new_trees"
         self.trees_directory = trees_directory
         self.db_path = db_path if db_path is not None else os.path.join(trees_directory, "lattice.db")
         self.active_domain = active_domain
@@ -1905,8 +1917,8 @@ class LatticeOrchestrator:
         """Loads all JSON trees located in trees_directory and supplemental trees."""
         target_dir = self.trees_directory
         search_dirs = [target_dir]
-        if os.path.basename(os.path.normpath(target_dir)) in ("trees", "new trees"):
-            for candidate in ("trees", "new trees"):
+        if os.path.basename(os.path.normpath(target_dir)) in TREE_SEARCH_DIRS:
+            for candidate in TREE_SEARCH_DIRS:
                 cand_path = os.path.normpath(candidate)
                 if os.path.exists(cand_path) and cand_path not in [os.path.normpath(d) for d in search_dirs]:
                     search_dirs.append(cand_path)
@@ -1969,7 +1981,7 @@ class LatticeOrchestrator:
                             try:
                                 parsed = json.loads(s_props_json)
                                 props = parsed if isinstance(parsed, dict) else None
-                            except Exception:
+                            except Exception as e:
                                 props = None
                         reg.register_state(s_name, s_parent, carrier_type=s_carrier, properties=props)
 
@@ -2018,22 +2030,22 @@ class LatticeOrchestrator:
 
                         try:
                             keywords = set(json.loads(keywords_json)) if keywords_json else set()
-                        except Exception:
+                        except Exception as e:
                             keywords = set()
                         try:
                             deps = json.loads(deps_json) if deps_json else []
-                        except Exception:
+                        except Exception as e:
                             deps = []
                         try:
                             cfg = json.loads(config_json) if config_json else {}
-                        except Exception:
+                        except Exception as e:
                             cfg = {}
 
                         slots_val = cfg.get("slots", {})
                         if not slots_val and slots_json:
                             try:
                                 slots_val = json.loads(slots_json)
-                            except Exception:
+                            except Exception as e:
                                 slots_val = {}
 
                         in_sig = AlgebraicSignature(type_name=in_type or "any", state=in_state or "any")
@@ -2163,11 +2175,11 @@ class LatticeOrchestrator:
 
                         try:
                             deps = json.loads(deps_json) if deps_json else []
-                        except Exception:
+                        except Exception as e:
                             deps = []
                         try:
                             cfg = json.loads(config_json) if config_json else {}
-                        except Exception:
+                        except Exception as e:
                             cfg = {}
 
                         in_sig = AlgebraicSignature(type_name=in_type or "any", state=in_state or "any")

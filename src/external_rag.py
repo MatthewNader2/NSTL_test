@@ -1,3 +1,4 @@
+# STATUS: partially wired / candidate for future removal. Do not expand until usage is confirmed.
 """
 src/external_rag.py - Neuro-Symbolic Topological Lattice (NSTL)
 Documentation Fetchers for Live API Grounding at Synthesis Time.

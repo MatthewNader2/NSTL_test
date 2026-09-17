@@ -11,12 +11,12 @@ from unification import unify, TypestateTerm, TOP
 
 
 class TestCV2TypestateValidation(unittest.TestCase):
-    """Validation test suite using the normalized CV2 tree (new trees/cv2_v1.1.0_normalized.json)."""
+    """Validation test suite using the normalized CV2 tree (new_trees/cv2_v1.1.0_normalized.json)."""
 
     @classmethod
     def setUpClass(cls):
         cls.cv2_path = os.path.abspath(
-            os.path.join(os.path.dirname(__file__), "..", "new trees", "cv2_v1.1.0_normalized.json")
+            os.path.join(os.path.dirname(__file__), "..", "new_trees", "cv2_v1.1.0_normalized.json")
         )
         assert os.path.exists(cls.cv2_path), f"CV2 tree file not found at {cls.cv2_path}"
 

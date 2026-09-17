@@ -1,14 +1,6 @@
 {
   "domain": "pandas",
   "version": "1.1.0",
-  "aliases": {
-    "pd": "pandas"
-  },
-  "artifact_readers": {
-    "table": [
-      "pandas.read_csv"
-    ]
-  },
   "typestates": {
     "domain": "pandas",
     "states": [
@@ -243,42 +235,6 @@
         "properties": {
           "is_serialized": true
         }
-      },
-      {
-        "name": "column_projection",
-        "parent_state": null,
-        "carrier_type": "List[str]",
-        "description": "Declared by data migration (formerly engine bootstrap state 'column_projection')."
-      },
-      {
-        "name": "destination_path",
-        "parent_state": "source_identifier",
-        "carrier_type": "str",
-        "description": "Declared by data migration (formerly engine bootstrap state 'destination_path')."
-      },
-      {
-        "name": "limit_count",
-        "parent_state": null,
-        "carrier_type": "int",
-        "description": "Declared by data migration (formerly engine bootstrap state 'limit_count')."
-      },
-      {
-        "name": "order_flag",
-        "parent_state": null,
-        "carrier_type": "bool",
-        "description": "Declared by data migration (formerly engine bootstrap state 'order_flag')."
-      },
-      {
-        "name": "sort_column",
-        "parent_state": null,
-        "carrier_type": "str",
-        "description": "Declared by data migration (formerly engine bootstrap state 'sort_column')."
-      },
-      {
-        "name": "valid_path",
-        "parent_state": "source_identifier",
-        "carrier_type": "str",
-        "description": "Declared by data migration (formerly engine bootstrap state 'valid_path')."
       }
     ],
     "transitions": [
@@ -1432,7 +1388,7 @@
       "type_vars": [],
       "inputs": {
         "port_0": {
-          "type_name": "File[Tabular, CSV]",
+          "type_name": "str",
           "state": "valid_path",
           "qualifiers": [
             "const"
@@ -1481,15 +1437,11 @@
       "edges": [
         {
           "target_cell_id": "PD_DROPNA",
-          "affinity_score": 0.974,
-          "score_provenance": "ast_mined",
-          "bridging_precondition": "true",
-          "metadata": {
-            "co_occurrences": 20,
-            "producer_occurrences": 21,
-            "transition_probability": 0.9524
-          },
-          "needs_mining": false
+          "affinity_score": 0.8,
+          "score_provenance": "llm_seed",
+          "bridging_precondition": null,
+          "metadata": {},
+          "needs_mining": true
         },
         {
           "target_cell_id": "PD_FILLNA_CONST",
@@ -1506,22 +1458,8 @@
           "bridging_precondition": null,
           "metadata": {},
           "needs_mining": true
-        },
-        {
-          "target_cell_id": "PD_DROP_DUPLICATES",
-          "affinity_score": 0.476,
-          "score_provenance": "ast_mined",
-          "bridging_precondition": "true",
-          "metadata": {
-            "co_occurrences": 1,
-            "producer_occurrences": 21,
-            "transition_probability": 0.0476
-          },
-          "needs_mining": false
         }
-      ],
-      "primary_in": "port_0",
-      "primary_out": "port_0"
+      ]
     },
     {
       "cell_id": "PD_READ_PARQUET",
@@ -1563,7 +1501,7 @@
       "type_vars": [],
       "inputs": {
         "port_0": {
-          "type_name": "File[Tabular, Parquet]",
+          "type_name": "str",
           "state": "valid_path",
           "qualifiers": [
             "const"
@@ -1617,9 +1555,7 @@
           "metadata": {},
           "needs_mining": true
         }
-      ],
-      "primary_in": "port_0",
-      "primary_out": "port_0"
+      ]
     },
     {
       "cell_id": "PD_READ_JSON",
@@ -1660,7 +1596,7 @@
       "type_vars": [],
       "inputs": {
         "port_0": {
-          "type_name": "File[Tabular, JSONFormat]",
+          "type_name": "str",
           "state": "valid_path",
           "qualifiers": [
             "const"
@@ -1706,9 +1642,7 @@
           "metadata": {},
           "needs_mining": true
         }
-      ],
-      "primary_in": "port_0",
-      "primary_out": "port_0"
+      ]
     },
     {
       "cell_id": "PD_READ_EXCEL",
@@ -1749,7 +1683,7 @@
       "type_vars": [],
       "inputs": {
         "port_0": {
-          "type_name": "File[Tabular, Excel]",
+          "type_name": "str",
           "state": "valid_path",
           "qualifiers": [
             "const"
@@ -1795,9 +1729,7 @@
           "metadata": {},
           "needs_mining": true
         }
-      ],
-      "primary_in": "port_0",
-      "primary_out": "port_0"
+      ]
     },
     {
       "cell_id": "PD_READ_SQL",
@@ -1897,9 +1829,7 @@
           "metadata": {},
           "needs_mining": true
         }
-      ],
-      "primary_in": "port_0",
-      "primary_out": "port_0"
+      ]
     },
     {
       "cell_id": "PD_DATAFRAME_INIT",
@@ -1982,9 +1912,7 @@
           "metadata": {},
           "needs_mining": true
         }
-      ],
-      "primary_in": "port_0",
-      "primary_out": "port_0"
+      ]
     },
     {
       "cell_id": "PD_SERIES_INIT",
@@ -2065,9 +1993,7 @@
           "metadata": {},
           "needs_mining": true
         }
-      ],
-      "primary_in": "port_0",
-      "primary_out": "port_0"
+      ]
     },
     {
       "cell_id": "PD_DROPNA",
@@ -2127,8 +2053,7 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null,
-          "port_role": "data_input"
+          "shape_contract": null
         },
         "port_1": {
           "type_name": "int",
@@ -2192,21 +2117,15 @@
           "description": "Result contains no NaN values when axis=0 and how='any'."
         }
       ],
-      "effects": [
-        "cleans_missing"
-      ],
+      "effects": [],
       "edges": [
         {
           "target_cell_id": "PD_DROP_DUPLICATES",
-          "affinity_score": 0.627,
-          "score_provenance": "ast_mined",
-          "bridging_precondition": "true",
-          "metadata": {
-            "co_occurrences": 9,
-            "producer_occurrences": 28,
-            "transition_probability": 0.3214
-          },
-          "needs_mining": false
+          "affinity_score": 0.8,
+          "score_provenance": "llm_seed",
+          "bridging_precondition": null,
+          "metadata": {},
+          "needs_mining": true
         },
         {
           "target_cell_id": "PD_SELECT_DTYPES_NUMERIC",
@@ -2218,31 +2137,13 @@
         },
         {
           "target_cell_id": "PANDAS_DATAFRAME_TO_NUMPY",
-          "affinity_score": 0.804,
-          "score_provenance": "ast_mined",
-          "bridging_precondition": "true",
-          "metadata": {
-            "co_occurrences": 18,
-            "producer_occurrences": 28,
-            "transition_probability": 0.6429
-          },
-          "needs_mining": false
-        },
-        {
-          "target_cell_id": "PD_GET_DUMMIES",
-          "affinity_score": 0.47,
-          "score_provenance": "ast_mined",
-          "bridging_precondition": "true",
-          "metadata": {
-            "co_occurrences": 1,
-            "producer_occurrences": 28,
-            "transition_probability": 0.0357
-          },
-          "needs_mining": false
+          "affinity_score": 0.2,
+          "score_provenance": "llm_seed",
+          "bridging_precondition": null,
+          "metadata": {},
+          "needs_mining": true
         }
-      ],
-      "primary_in": "port_0",
-      "primary_out": "port_0"
+      ]
     },
     {
       "cell_id": "PD_DROPNA_SUBSET",
@@ -2299,11 +2200,10 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null,
-          "port_role": "data_input"
+          "shape_contract": null
         },
         "port_1": {
-          "type_name": "List[str]",
+          "type_name": "list",
           "state": "column_list",
           "qualifiers": [],
           "default_value": null,
@@ -2345,9 +2245,7 @@
           "metadata": {},
           "needs_mining": true
         }
-      ],
-      "primary_in": "port_0",
-      "primary_out": "port_0"
+      ]
     },
     {
       "cell_id": "PD_FILLNA_CONST",
@@ -2402,8 +2300,7 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null,
-          "port_role": "data_input"
+          "shape_contract": null
         },
         "port_1": {
           "type_name": "float",
@@ -2447,9 +2344,7 @@
           "description": "DataFrame contains zero nulls post-imputation."
         }
       ],
-      "effects": [
-        "cleans_missing"
-      ],
+      "effects": [],
       "edges": [
         {
           "target_cell_id": "PD_DROP_DUPLICATES",
@@ -2466,22 +2361,8 @@
           "bridging_precondition": null,
           "metadata": {},
           "needs_mining": true
-        },
-        {
-          "target_cell_id": "PANDAS_DATAFRAME_TO_NUMPY",
-          "affinity_score": 1.0,
-          "score_provenance": "ast_mined",
-          "bridging_precondition": "true",
-          "metadata": {
-            "co_occurrences": 2,
-            "producer_occurrences": 2,
-            "transition_probability": 1.0
-          },
-          "needs_mining": false
         }
-      ],
-      "primary_in": "port_0",
-      "primary_out": "port_0"
+      ]
     },
     {
       "cell_id": "PD_FFILL",
@@ -2535,8 +2416,7 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null,
-          "port_role": "data_input"
+          "shape_contract": null
         }
       },
       "outputs": {
@@ -2567,9 +2447,7 @@
           "metadata": {},
           "needs_mining": true
         }
-      ],
-      "primary_in": "port_0",
-      "primary_out": "port_0"
+      ]
     },
     {
       "cell_id": "PD_BFILL",
@@ -2623,8 +2501,7 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null,
-          "port_role": "data_input"
+          "shape_contract": null
         }
       },
       "outputs": {
@@ -2655,9 +2532,7 @@
           "metadata": {},
           "needs_mining": true
         }
-      ],
-      "primary_in": "port_0",
-      "primary_out": "port_0"
+      ]
     },
     {
       "cell_id": "PD_INTERPOLATE",
@@ -2714,8 +2589,7 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null,
-          "port_role": "data_input"
+          "shape_contract": null
         },
         "port_1": {
           "type_name": "str",
@@ -2765,9 +2639,7 @@
           "metadata": {},
           "needs_mining": true
         }
-      ],
-      "primary_in": "port_0",
-      "primary_out": "port_0"
+      ]
     },
     {
       "cell_id": "PD_DROP_DUPLICATES",
@@ -2825,11 +2697,10 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null,
-          "port_role": "data_input"
+          "shape_contract": null
         },
         "port_1": {
-          "type_name": "List[str]",
+          "type_name": "list",
           "state": "column_subset",
           "qualifiers": [],
           "default_value": "None",
@@ -2888,9 +2759,7 @@
           "description": "No exact row duplicates remain."
         }
       ],
-      "effects": [
-        "deduplicates"
-      ],
+      "effects": [],
       "edges": [
         {
           "target_cell_id": "PD_SET_INDEX",
@@ -2907,34 +2776,8 @@
           "bridging_precondition": null,
           "metadata": {},
           "needs_mining": true
-        },
-        {
-          "target_cell_id": "PANDAS_DATAFRAME_TO_NUMPY",
-          "affinity_score": 0.971,
-          "score_provenance": "ast_mined",
-          "bridging_precondition": "true",
-          "metadata": {
-            "co_occurrences": 18,
-            "producer_occurrences": 19,
-            "transition_probability": 0.9474
-          },
-          "needs_mining": false
-        },
-        {
-          "target_cell_id": "PD_FILLNA_CONST",
-          "affinity_score": 0.479,
-          "score_provenance": "ast_mined",
-          "bridging_precondition": "true",
-          "metadata": {
-            "co_occurrences": 1,
-            "producer_occurrences": 19,
-            "transition_probability": 0.0526
-          },
-          "needs_mining": false
         }
-      ],
-      "primary_in": "port_0",
-      "primary_out": "port_0"
+      ]
     },
     {
       "cell_id": "PD_REPLACE",
@@ -2988,8 +2831,7 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null,
-          "port_role": "data_input"
+          "shape_contract": null
         },
         "port_1": {
           "type_name": "str",
@@ -3048,9 +2890,7 @@
           "metadata": {},
           "needs_mining": true
         }
-      ],
-      "primary_in": "port_0",
-      "primary_out": "port_0"
+      ]
     },
     {
       "cell_id": "PD_ASTYPE",
@@ -3107,11 +2947,10 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null,
-          "port_role": "data_input"
+          "shape_contract": null
         },
         "port_1": {
-          "type_name": "Dict[str, str]",
+          "type_name": "dict",
           "state": "dtype_mapping",
           "qualifiers": [],
           "default_value": null,
@@ -3153,9 +2992,7 @@
           "metadata": {},
           "needs_mining": true
         }
-      ],
-      "primary_in": "port_0",
-      "primary_out": "port_0"
+      ]
     },
     {
       "cell_id": "PD_TO_NUMERIC",
@@ -3260,9 +3097,7 @@
           "metadata": {},
           "needs_mining": true
         }
-      ],
-      "primary_in": "port_0",
-      "primary_out": "port_0"
+      ]
     },
     {
       "cell_id": "PD_TO_DATETIME",
@@ -3354,9 +3189,7 @@
       "preconditions": [],
       "postconditions": [],
       "effects": [],
-      "edges": [],
-      "primary_in": "port_0",
-      "primary_out": "port_0"
+      "edges": []
     },
     {
       "cell_id": "PD_SELECT_DTYPES_NUMERIC",
@@ -3410,8 +3243,7 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null,
-          "port_role": "data_input"
+          "shape_contract": null
         }
       },
       "outputs": {
@@ -3450,9 +3282,7 @@
           "metadata": {},
           "needs_mining": true
         }
-      ],
-      "primary_in": "port_0",
-      "primary_out": "port_0"
+      ]
     },
     {
       "cell_id": "PD_STR_STRIP",
@@ -3529,9 +3359,7 @@
       "preconditions": [],
       "postconditions": [],
       "effects": [],
-      "edges": [],
-      "primary_in": "port_0",
-      "primary_out": "port_0"
+      "edges": []
     },
     {
       "cell_id": "PD_STR_REPLACE",
@@ -3654,9 +3482,7 @@
       "preconditions": [],
       "postconditions": [],
       "effects": [],
-      "edges": [],
-      "primary_in": "port_0",
-      "primary_out": "port_0"
+      "edges": []
     },
     {
       "cell_id": "PD_SET_INDEX",
@@ -3714,8 +3540,7 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null,
-          "port_role": "data_input"
+          "shape_contract": null
         },
         "port_1": {
           "type_name": "str",
@@ -3794,9 +3619,7 @@
           "metadata": {},
           "needs_mining": true
         }
-      ],
-      "primary_in": "port_0",
-      "primary_out": "port_0"
+      ]
     },
     {
       "cell_id": "PD_RESET_INDEX",
@@ -3851,8 +3674,7 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null,
-          "port_role": "data_input"
+          "shape_contract": null
         },
         "port_1": {
           "type_name": "bool",
@@ -3900,9 +3722,7 @@
           "metadata": {},
           "needs_mining": true
         }
-      ],
-      "primary_in": "port_0",
-      "primary_out": "port_0"
+      ]
     },
     {
       "cell_id": "PD_LOC",
@@ -3960,8 +3780,7 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null,
-          "port_role": "data_input"
+          "shape_contract": null
         },
         "port_1": {
           "type_name": "str",
@@ -3997,9 +3816,7 @@
       "preconditions": [],
       "postconditions": [],
       "effects": [],
-      "edges": [],
-      "primary_in": "port_0",
-      "primary_out": "port_0"
+      "edges": []
     },
     {
       "cell_id": "PD_ILOC",
@@ -4056,8 +3873,7 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null,
-          "port_role": "data_input"
+          "shape_contract": null
         },
         "port_1": {
           "type_name": "str",
@@ -4093,9 +3909,7 @@
       "preconditions": [],
       "postconditions": [],
       "effects": [],
-      "edges": [],
-      "primary_in": "port_0",
-      "primary_out": "port_0"
+      "edges": []
     },
     {
       "cell_id": "PD_QUERY",
@@ -4153,8 +3967,7 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null,
-          "port_role": "data_input"
+          "shape_contract": null
         },
         "port_1": {
           "type_name": "str",
@@ -4199,9 +4012,7 @@
           "metadata": {},
           "needs_mining": true
         }
-      ],
-      "primary_in": "port_0",
-      "primary_out": "port_0"
+      ]
     },
     {
       "cell_id": "PD_FILTER_BOOL",
@@ -4258,8 +4069,7 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null,
-          "port_role": "data_input"
+          "shape_contract": null
         },
         "port_1": {
           "type_name": "Series",
@@ -4295,9 +4105,7 @@
       "preconditions": [],
       "postconditions": [],
       "effects": [],
-      "edges": [],
-      "primary_in": "port_0",
-      "primary_out": "port_0"
+      "edges": []
     },
     {
       "cell_id": "PD_SELECT_COLUMNS",
@@ -4354,11 +4162,10 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null,
-          "port_role": "data_input"
+          "shape_contract": null
         },
         "port_1": {
-          "type_name": "List[str]",
+          "type_name": "list",
           "state": "column_projection",
           "qualifiers": [],
           "default_value": null,
@@ -4400,9 +4207,7 @@
           "metadata": {},
           "needs_mining": true
         }
-      ],
-      "primary_in": "port_0",
-      "primary_out": "port_0"
+      ]
     },
     {
       "cell_id": "PD_DROP_COLUMNS",
@@ -4458,11 +4263,10 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null,
-          "port_role": "data_input"
+          "shape_contract": null
         },
         "port_1": {
-          "type_name": "List[str]",
+          "type_name": "list",
           "state": "column_labels",
           "qualifiers": [],
           "default_value": null,
@@ -4495,9 +4299,7 @@
       "preconditions": [],
       "postconditions": [],
       "effects": [],
-      "edges": [],
-      "primary_in": "port_0",
-      "primary_out": "port_0"
+      "edges": []
     },
     {
       "cell_id": "PD_RENAME_COLUMNS",
@@ -4551,11 +4353,10 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null,
-          "port_role": "data_input"
+          "shape_contract": null
         },
         "port_1": {
-          "type_name": "Dict[str, str]",
+          "type_name": "dict",
           "state": "column_dict",
           "qualifiers": [],
           "default_value": null,
@@ -4588,9 +4389,7 @@
       "preconditions": [],
       "postconditions": [],
       "effects": [],
-      "edges": [],
-      "primary_in": "port_0",
-      "primary_out": "port_0"
+      "edges": []
     },
     {
       "cell_id": "PD_SORT_VALUES",
@@ -4649,8 +4448,7 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null,
-          "port_role": "data_input"
+          "shape_contract": null
         },
         "port_1": {
           "type_name": "str",
@@ -4712,9 +4510,7 @@
           "metadata": {},
           "needs_mining": true
         }
-      ],
-      "primary_in": "port_0",
-      "primary_out": "port_0"
+      ]
     },
     {
       "cell_id": "PD_SORT_INDEX",
@@ -4768,8 +4564,7 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null,
-          "port_role": "data_input"
+          "shape_contract": null
         },
         "port_1": {
           "type_name": "bool",
@@ -4808,9 +4603,7 @@
       "preconditions": [],
       "postconditions": [],
       "effects": [],
-      "edges": [],
-      "primary_in": "port_0",
-      "primary_out": "port_0"
+      "edges": []
     },
     {
       "cell_id": "PD_HEAD",
@@ -4866,8 +4659,7 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null,
-          "port_role": "data_input"
+          "shape_contract": null
         },
         "port_1": {
           "type_name": "int",
@@ -4903,9 +4695,7 @@
       "preconditions": [],
       "postconditions": [],
       "effects": [],
-      "edges": [],
-      "primary_in": "port_0",
-      "primary_out": "port_0"
+      "edges": []
     },
     {
       "cell_id": "PD_TAIL",
@@ -4960,8 +4750,7 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null,
-          "port_role": "data_input"
+          "shape_contract": null
         },
         "port_1": {
           "type_name": "int",
@@ -4997,9 +4786,7 @@
       "preconditions": [],
       "postconditions": [],
       "effects": [],
-      "edges": [],
-      "primary_in": "port_0",
-      "primary_out": "port_0"
+      "edges": []
     },
     {
       "cell_id": "PD_SAMPLE",
@@ -5057,8 +4844,7 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null,
-          "port_role": "data_input"
+          "shape_contract": null
         },
         "port_1": {
           "type_name": "int",
@@ -5108,9 +4894,7 @@
       "preconditions": [],
       "postconditions": [],
       "effects": [],
-      "edges": [],
-      "primary_in": "port_0",
-      "primary_out": "port_0"
+      "edges": []
     },
     {
       "cell_id": "PD_ASSIGN",
@@ -5164,8 +4948,7 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null,
-          "port_role": "data_input"
+          "shape_contract": null
         },
         "port_1": {
           "type_name": "dict",
@@ -5201,9 +4984,7 @@
       "preconditions": [],
       "postconditions": [],
       "effects": [],
-      "edges": [],
-      "primary_in": "port_0",
-      "primary_out": "port_0"
+      "edges": []
     },
     {
       "cell_id": "PD_GROUPBY",
@@ -5261,8 +5042,7 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null,
-          "port_role": "data_input"
+          "shape_contract": null
         },
         "port_1": {
           "type_name": "str",
@@ -5348,9 +5128,7 @@
           "metadata": {},
           "needs_mining": true
         }
-      ],
-      "primary_in": "port_0",
-      "primary_out": "port_0"
+      ]
     },
     {
       "cell_id": "PD_GROUPBY_AGG",
@@ -5445,9 +5223,7 @@
           "metadata": {},
           "needs_mining": true
         }
-      ],
-      "primary_in": "port_0",
-      "primary_out": "port_0"
+      ]
     },
     {
       "cell_id": "PD_GROUPBY_TRANSFORM",
@@ -5533,9 +5309,7 @@
       "preconditions": [],
       "postconditions": [],
       "effects": [],
-      "edges": [],
-      "primary_in": "port_0",
-      "primary_out": "port_0"
+      "edges": []
     },
     {
       "cell_id": "PD_GROUPBY_FILTER",
@@ -5619,9 +5393,7 @@
       "preconditions": [],
       "postconditions": [],
       "effects": [],
-      "edges": [],
-      "primary_in": "port_0",
-      "primary_out": "port_0"
+      "edges": []
     },
     {
       "cell_id": "PD_GROUPBY_SUM",
@@ -5701,9 +5473,7 @@
           "metadata": {},
           "needs_mining": true
         }
-      ],
-      "primary_in": "port_0",
-      "primary_out": "port_0"
+      ]
     },
     {
       "cell_id": "PD_GROUPBY_MEAN",
@@ -5783,9 +5553,7 @@
           "metadata": {},
           "needs_mining": true
         }
-      ],
-      "primary_in": "port_0",
-      "primary_out": "port_0"
+      ]
     },
     {
       "cell_id": "PD_GROUPBY_COUNT",
@@ -5855,9 +5623,7 @@
       "preconditions": [],
       "postconditions": [],
       "effects": [],
-      "edges": [],
-      "primary_in": "port_0",
-      "primary_out": "port_0"
+      "edges": []
     },
     {
       "cell_id": "PD_GROUPBY_SIZE",
@@ -5927,9 +5693,7 @@
       "preconditions": [],
       "postconditions": [],
       "effects": [],
-      "edges": [],
-      "primary_in": "port_0",
-      "primary_out": "port_0"
+      "edges": []
     },
     {
       "cell_id": "PD_DESCRIBE",
@@ -5983,8 +5747,7 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null,
-          "port_role": "data_input"
+          "shape_contract": null
         }
       },
       "outputs": {
@@ -6006,9 +5769,7 @@
       "preconditions": [],
       "postconditions": [],
       "effects": [],
-      "edges": [],
-      "primary_in": "port_0",
-      "primary_out": "port_0"
+      "edges": []
     },
     {
       "cell_id": "PD_VALUE_COUNTS",
@@ -6110,9 +5871,7 @@
           "metadata": {},
           "needs_mining": true
         }
-      ],
-      "primary_in": "port_0",
-      "primary_out": "port_0"
+      ]
     },
     {
       "cell_id": "PD_PIVOT_TABLE",
@@ -6172,8 +5931,7 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null,
-          "port_role": "data_input"
+          "shape_contract": null
         },
         "port_1": {
           "type_name": "str",
@@ -6264,9 +6022,7 @@
           "metadata": {},
           "needs_mining": true
         }
-      ],
-      "primary_in": "port_0",
-      "primary_out": "port_0"
+      ]
     },
     {
       "cell_id": "PD_PIVOT",
@@ -6323,8 +6079,7 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null,
-          "port_role": "data_input"
+          "shape_contract": null
         },
         "port_1": {
           "type_name": "str",
@@ -6388,9 +6143,7 @@
       "preconditions": [],
       "postconditions": [],
       "effects": [],
-      "edges": [],
-      "primary_in": "port_0",
-      "primary_out": "port_0"
+      "edges": []
     },
     {
       "cell_id": "PD_MELT",
@@ -6449,11 +6202,10 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null,
-          "port_role": "data_input"
+          "shape_contract": null
         },
         "port_1": {
-          "type_name": "List[str]",
+          "type_name": "list",
           "state": "id_columns",
           "qualifiers": [],
           "default_value": null,
@@ -6467,7 +6219,7 @@
           "shape_contract": null
         },
         "port_2": {
-          "type_name": "List[str]",
+          "type_name": "list",
           "state": "value_columns",
           "qualifiers": [],
           "default_value": "None",
@@ -6537,9 +6289,7 @@
           "metadata": {},
           "needs_mining": true
         }
-      ],
-      "primary_in": "port_0",
-      "primary_out": "port_0"
+      ]
     },
     {
       "cell_id": "PD_STACK",
@@ -6593,8 +6343,7 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null,
-          "port_role": "data_input"
+          "shape_contract": null
         }
       },
       "outputs": {
@@ -6616,9 +6365,7 @@
       "preconditions": [],
       "postconditions": [],
       "effects": [],
-      "edges": [],
-      "primary_in": "port_0",
-      "primary_out": "port_0"
+      "edges": []
     },
     {
       "cell_id": "PD_UNSTACK",
@@ -6674,8 +6421,7 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null,
-          "port_role": "data_input"
+          "shape_contract": null
         },
         "port_1": {
           "type_name": "int",
@@ -6711,9 +6457,7 @@
       "preconditions": [],
       "postconditions": [],
       "effects": [],
-      "edges": [],
-      "primary_in": "port_0",
-      "primary_out": "port_0"
+      "edges": []
     },
     {
       "cell_id": "PD_EXPLODE",
@@ -6769,8 +6513,7 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null,
-          "port_role": "data_input"
+          "shape_contract": null
         },
         "port_1": {
           "type_name": "str",
@@ -6806,9 +6549,7 @@
       "preconditions": [],
       "postconditions": [],
       "effects": [],
-      "edges": [],
-      "primary_in": "port_0",
-      "primary_out": "port_0"
+      "edges": []
     },
     {
       "cell_id": "PD_CROSSTAB",
@@ -6902,9 +6643,7 @@
       "preconditions": [],
       "postconditions": [],
       "effects": [],
-      "edges": [],
-      "primary_in": "port_0",
-      "primary_out": "port_0"
+      "edges": []
     },
     {
       "cell_id": "PD_GET_DUMMIES",
@@ -6960,11 +6699,10 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null,
-          "port_role": "data_input"
+          "shape_contract": null
         },
         "port_1": {
-          "type_name": "List[str]",
+          "type_name": "list",
           "state": "columns_to_encode",
           "qualifiers": [],
           "default_value": "None",
@@ -7022,22 +6760,8 @@
           "bridging_precondition": null,
           "metadata": {},
           "needs_mining": true
-        },
-        {
-          "target_cell_id": "PANDAS_DATAFRAME_TO_NUMPY",
-          "affinity_score": 1.0,
-          "score_provenance": "ast_mined",
-          "bridging_precondition": "true",
-          "metadata": {
-            "co_occurrences": 2,
-            "producer_occurrences": 2,
-            "transition_probability": 1.0
-          },
-          "needs_mining": false
         }
-      ],
-      "primary_in": "port_0",
-      "primary_out": "port_0"
+      ]
     },
     {
       "cell_id": "PD_MULTIINDEX_FROM_ARRAYS",
@@ -7124,9 +6848,7 @@
       "preconditions": [],
       "postconditions": [],
       "effects": [],
-      "edges": [],
-      "primary_in": "port_0",
-      "primary_out": "port_0"
+      "edges": []
     },
     {
       "cell_id": "PD_MULTIINDEX_FROM_TUPLES",
@@ -7211,9 +6933,7 @@
       "preconditions": [],
       "postconditions": [],
       "effects": [],
-      "edges": [],
-      "primary_in": "port_0",
-      "primary_out": "port_0"
+      "edges": []
     },
     {
       "cell_id": "PD_SWAPLEVEL",
@@ -7266,8 +6986,7 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null,
-          "port_role": "data_input"
+          "shape_contract": null
         },
         "port_1": {
           "type_name": "int",
@@ -7334,9 +7053,7 @@
       "preconditions": [],
       "postconditions": [],
       "effects": [],
-      "edges": [],
-      "primary_in": "port_0",
-      "primary_out": "port_0"
+      "edges": []
     },
     {
       "cell_id": "PD_REORDER_LEVELS",
@@ -7388,11 +7105,10 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null,
-          "port_role": "data_input"
+          "shape_contract": null
         },
         "port_1": {
-          "type_name": "List[str]",
+          "type_name": "list",
           "state": "level_order",
           "qualifiers": [],
           "default_value": null,
@@ -7442,9 +7158,7 @@
       "preconditions": [],
       "postconditions": [],
       "effects": [],
-      "edges": [],
-      "primary_in": "port_0",
-      "primary_out": "port_0"
+      "edges": []
     },
     {
       "cell_id": "PD_DROPLEVEL",
@@ -7497,8 +7211,7 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null,
-          "port_role": "data_input"
+          "shape_contract": null
         },
         "port_1": {
           "type_name": "int",
@@ -7551,9 +7264,7 @@
       "preconditions": [],
       "postconditions": [],
       "effects": [],
-      "edges": [],
-      "primary_in": "port_0",
-      "primary_out": "port_0"
+      "edges": []
     },
     {
       "cell_id": "PD_XS",
@@ -7607,8 +7318,7 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null,
-          "port_role": "data_input"
+          "shape_contract": null
         },
         "port_1": {
           "type_name": "str",
@@ -7675,9 +7385,7 @@
       "preconditions": [],
       "postconditions": [],
       "effects": [],
-      "edges": [],
-      "primary_in": "port_0",
-      "primary_out": "port_0"
+      "edges": []
     },
     {
       "cell_id": "PD_MERGE",
@@ -7739,8 +7447,7 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null,
-          "port_role": "data_input"
+          "shape_contract": null
         },
         "port_1": {
           "type_name": "DataFrame",
@@ -7759,8 +7466,7 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null,
-          "port_role": "data_input"
+          "shape_contract": null
         },
         "port_2": {
           "type_name": "str",
@@ -7825,9 +7531,7 @@
           "metadata": {},
           "needs_mining": true
         }
-      ],
-      "primary_in": "port_0",
-      "primary_out": "port_0"
+      ]
     },
     {
       "cell_id": "PD_MERGE_KEYS",
@@ -7886,8 +7590,7 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null,
-          "port_role": "data_input"
+          "shape_contract": null
         },
         "port_1": {
           "type_name": "DataFrame",
@@ -7905,8 +7608,7 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null,
-          "port_role": "data_input"
+          "shape_contract": null
         },
         "port_2": {
           "type_name": "str",
@@ -7975,9 +7677,7 @@
       "preconditions": [],
       "postconditions": [],
       "effects": [],
-      "edges": [],
-      "primary_in": "port_0",
-      "primary_out": "port_0"
+      "edges": []
     },
     {
       "cell_id": "PD_JOIN",
@@ -8035,8 +7735,7 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null,
-          "port_role": "data_input"
+          "shape_contract": null
         },
         "port_1": {
           "type_name": "DataFrame",
@@ -8054,8 +7753,7 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null,
-          "port_role": "data_input"
+          "shape_contract": null
         },
         "port_2": {
           "type_name": "str",
@@ -8138,9 +7836,7 @@
       "preconditions": [],
       "postconditions": [],
       "effects": [],
-      "edges": [],
-      "primary_in": "port_0",
-      "primary_out": "port_0"
+      "edges": []
     },
     {
       "cell_id": "PD_CONCAT_ROWS",
@@ -8195,8 +7891,7 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null,
-          "port_role": "data_input"
+          "shape_contract": null
         },
         "port_1": {
           "type_name": "DataFrame",
@@ -8214,8 +7909,7 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null,
-          "port_role": "data_input"
+          "shape_contract": null
         },
         "port_2": {
           "type_name": "bool",
@@ -8263,9 +7957,7 @@
           "metadata": {},
           "needs_mining": true
         }
-      ],
-      "primary_in": "port_0",
-      "primary_out": "port_0"
+      ]
     },
     {
       "cell_id": "PD_CONCAT_COLS",
@@ -8320,8 +8012,7 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null,
-          "port_role": "data_input"
+          "shape_contract": null
         },
         "port_1": {
           "type_name": "DataFrame",
@@ -8339,8 +8030,7 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null,
-          "port_role": "data_input"
+          "shape_contract": null
         },
         "port_2": {
           "type_name": "bool",
@@ -8379,9 +8069,7 @@
       "preconditions": [],
       "postconditions": [],
       "effects": [],
-      "edges": [],
-      "primary_in": "port_0",
-      "primary_out": "port_0"
+      "edges": []
     },
     {
       "cell_id": "PD_MERGE_ASOF",
@@ -8440,8 +8128,7 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null,
-          "port_role": "data_input"
+          "shape_contract": null
         },
         "port_1": {
           "type_name": "DataFrame",
@@ -8460,8 +8147,7 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null,
-          "port_role": "data_input"
+          "shape_contract": null
         },
         "port_2": {
           "type_name": "str",
@@ -8515,9 +8201,7 @@
       "preconditions": [],
       "postconditions": [],
       "effects": [],
-      "edges": [],
-      "primary_in": "port_0",
-      "primary_out": "port_0"
+      "edges": []
     },
     {
       "cell_id": "PD_ROLLING_MEAN",
@@ -8577,8 +8261,7 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null,
-          "port_role": "data_input"
+          "shape_contract": null
         },
         "port_1": {
           "type_name": "int",
@@ -8637,9 +8320,7 @@
           "metadata": {},
           "needs_mining": true
         }
-      ],
-      "primary_in": "port_0",
-      "primary_out": "port_0"
+      ]
     },
     {
       "cell_id": "PD_ROLLING_SUM",
@@ -8697,8 +8378,7 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null,
-          "port_role": "data_input"
+          "shape_contract": null
         },
         "port_1": {
           "type_name": "int",
@@ -8748,9 +8428,7 @@
       "preconditions": [],
       "postconditions": [],
       "effects": [],
-      "edges": [],
-      "primary_in": "port_0",
-      "primary_out": "port_0"
+      "edges": []
     },
     {
       "cell_id": "PD_ROLLING_STD",
@@ -8808,8 +8486,7 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null,
-          "port_role": "data_input"
+          "shape_contract": null
         },
         "port_1": {
           "type_name": "int",
@@ -8859,9 +8536,7 @@
       "preconditions": [],
       "postconditions": [],
       "effects": [],
-      "edges": [],
-      "primary_in": "port_0",
-      "primary_out": "port_0"
+      "edges": []
     },
     {
       "cell_id": "PD_EWM_MEAN",
@@ -8919,8 +8594,7 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null,
-          "port_role": "data_input"
+          "shape_contract": null
         },
         "port_1": {
           "type_name": "float",
@@ -8973,9 +8647,7 @@
       "preconditions": [],
       "postconditions": [],
       "effects": [],
-      "edges": [],
-      "primary_in": "port_0",
-      "primary_out": "port_0"
+      "edges": []
     },
     {
       "cell_id": "PD_RESAMPLE",
@@ -9033,8 +8705,7 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null,
-          "port_role": "data_input"
+          "shape_contract": null
         },
         "port_1": {
           "type_name": "str",
@@ -9115,9 +8786,7 @@
           "metadata": {},
           "needs_mining": true
         }
-      ],
-      "primary_in": "port_0",
-      "primary_out": "port_0"
+      ]
     },
     {
       "cell_id": "PD_SHIFT",
@@ -9174,8 +8843,7 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null,
-          "port_role": "data_input"
+          "shape_contract": null
         },
         "port_1": {
           "type_name": "int",
@@ -9228,9 +8896,7 @@
           "metadata": {},
           "needs_mining": true
         }
-      ],
-      "primary_in": "port_0",
-      "primary_out": "port_0"
+      ]
     },
     {
       "cell_id": "PD_DIFF",
@@ -9285,8 +8951,7 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null,
-          "port_role": "data_input"
+          "shape_contract": null
         },
         "port_1": {
           "type_name": "int",
@@ -9331,9 +8996,7 @@
           "metadata": {},
           "needs_mining": true
         }
-      ],
-      "primary_in": "port_0",
-      "primary_out": "port_0"
+      ]
     },
     {
       "cell_id": "PD_PCT_CHANGE",
@@ -9389,8 +9052,7 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null,
-          "port_role": "data_input"
+          "shape_contract": null
         },
         "port_1": {
           "type_name": "int",
@@ -9435,9 +9097,7 @@
           "metadata": {},
           "needs_mining": true
         }
-      ],
-      "primary_in": "port_0",
-      "primary_out": "port_0"
+      ]
     },
     {
       "cell_id": "PANDAS_DATAFRAME_TO_NUMPY",
@@ -9496,8 +9156,7 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null,
-          "port_role": "data_input"
+          "shape_contract": null
         }
       },
       "outputs": {
@@ -9523,131 +9182,7 @@
       "effects": [
         "zero_copy_or_allocates_buffer"
       ],
-      "edges": [
-        {
-          "target_cell_id": "sklearn.model_selection.train_test_split",
-          "affinity_score": 0.68,
-          "score_provenance": "ast_mined",
-          "bridging_precondition": "true",
-          "metadata": {
-            "co_occurrences": 18,
-            "producer_occurrences": 43,
-            "transition_probability": 0.4186
-          },
-          "needs_mining": false
-        },
-        {
-          "target_cell_id": "sklearn.preprocessing.StandardScaler.fit_transform",
-          "affinity_score": 0.578,
-          "score_provenance": "ast_mined",
-          "bridging_precondition": "true",
-          "metadata": {
-            "co_occurrences": 10,
-            "producer_occurrences": 43,
-            "transition_probability": 0.2326
-          },
-          "needs_mining": false
-        },
-        {
-          "target_cell_id": "sklearn.preprocessing.MinMaxScaler.fit_transform",
-          "affinity_score": 0.501,
-          "score_provenance": "ast_mined",
-          "bridging_precondition": "true",
-          "metadata": {
-            "co_occurrences": 4,
-            "producer_occurrences": 43,
-            "transition_probability": 0.093
-          },
-          "needs_mining": false
-        },
-        {
-          "target_cell_id": "sklearn.preprocessing.RobustScaler.fit_transform",
-          "affinity_score": 0.501,
-          "score_provenance": "ast_mined",
-          "bridging_precondition": "true",
-          "metadata": {
-            "co_occurrences": 4,
-            "producer_occurrences": 43,
-            "transition_probability": 0.093
-          },
-          "needs_mining": false
-        },
-        {
-          "target_cell_id": "sklearn.feature_selection.SelectKBest.fit_transform",
-          "affinity_score": 0.476,
-          "score_provenance": "ast_mined",
-          "bridging_precondition": "true",
-          "metadata": {
-            "co_occurrences": 2,
-            "producer_occurrences": 43,
-            "transition_probability": 0.0465
-          },
-          "needs_mining": false
-        },
-        {
-          "target_cell_id": "sklearn.impute.SimpleImputer.fit_transform",
-          "affinity_score": 0.463,
-          "score_provenance": "ast_mined",
-          "bridging_precondition": "true",
-          "metadata": {
-            "co_occurrences": 1,
-            "producer_occurrences": 43,
-            "transition_probability": 0.0233
-          },
-          "needs_mining": false
-        },
-        {
-          "target_cell_id": "sklearn.model_selection.cross_val_score",
-          "affinity_score": 0.463,
-          "score_provenance": "ast_mined",
-          "bridging_precondition": "true",
-          "metadata": {
-            "co_occurrences": 1,
-            "producer_occurrences": 43,
-            "transition_probability": 0.0233
-          },
-          "needs_mining": false
-        },
-        {
-          "target_cell_id": "sklearn.model_selection.GridSearchCV.fit",
-          "affinity_score": 0.463,
-          "score_provenance": "ast_mined",
-          "bridging_precondition": "true",
-          "metadata": {
-            "co_occurrences": 1,
-            "producer_occurrences": 43,
-            "transition_probability": 0.0233
-          },
-          "needs_mining": false
-        },
-        {
-          "target_cell_id": "sklearn.ensemble.RandomForestClassifier.fit",
-          "affinity_score": 0.463,
-          "score_provenance": "ast_mined",
-          "bridging_precondition": "true",
-          "metadata": {
-            "co_occurrences": 1,
-            "producer_occurrences": 43,
-            "transition_probability": 0.0233
-          },
-          "needs_mining": false
-        },
-        {
-          "target_cell_id": "sklearn.metrics.accuracy_score",
-          "affinity_score": 0.463,
-          "score_provenance": "ast_mined",
-          "bridging_precondition": "true",
-          "metadata": {
-            "co_occurrences": 1,
-            "producer_occurrences": 43,
-            "transition_probability": 0.0233
-          },
-          "needs_mining": false
-        }
-      ],
-      "primary_in": "port_0",
-      "primary_out": "port_0",
-      "endable": true
+      "edges": []
     },
     {
       "cell_id": "PANDAS_SERIES_TO_NUMPY",
@@ -9729,10 +9264,7 @@
       "effects": [
         "zero_copy_or_allocates_buffer"
       ],
-      "edges": [],
-      "primary_in": "port_0",
-      "primary_out": "port_0",
-      "endable": true
+      "edges": []
     },
     {
       "cell_id": "PANDAS_DATAFRAME_TO_GENERIC_2D",
@@ -9789,8 +9321,7 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null,
-          "port_role": "data_input"
+          "shape_contract": null
         },
         "port_1": {
           "type_name": "float",
@@ -9834,9 +9365,7 @@
           "description": "Guaranteed absence of null values."
         }
       ],
-      "effects": [
-        "cleans_missing"
-      ],
+      "effects": [],
       "edges": [
         {
           "target_cell_id": "PANDAS_DATAFRAME_TO_NUMPY",
@@ -9846,9 +9375,7 @@
           "metadata": {},
           "needs_mining": true
         }
-      ],
-      "primary_in": "port_0",
-      "primary_out": "port_0"
+      ]
     },
     {
       "cell_id": "PD_TO_CSV",
@@ -9912,11 +9439,10 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null,
-          "port_role": "data_input"
+          "shape_contract": null
         },
         "port_1": {
-          "type_name": "File[Tabular, CSV]",
+          "type_name": "str",
           "state": "destination_path",
           "qualifiers": [
             "const"
@@ -9951,14 +9477,14 @@
       },
       "outputs": {
         "port_0": {
-          "type_name": "File[Tabular, CSV]",
+          "type_name": "DataFrame",
           "state": "written_to_disk",
           "qualifiers": [],
           "default_value": null,
           "description": "Terminal disk-persisted state.",
           "domain": "pandas",
           "required": true,
-          "abstract_type": "path",
+          "abstract_type": "table",
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
@@ -9970,10 +9496,7 @@
       "effects": [
         "filesystem_write"
       ],
-      "edges": [],
-      "primary_in": "port_0",
-      "primary_out": "port_0",
-      "endable": true
+      "edges": []
     },
     {
       "cell_id": "PD_TO_PARQUET",
@@ -10035,11 +9558,10 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null,
-          "port_role": "data_input"
+          "shape_contract": null
         },
         "port_1": {
-          "type_name": "File[Tabular, Parquet]",
+          "type_name": "str",
           "state": "destination_path",
           "qualifiers": [
             "const"
@@ -10074,14 +9596,14 @@
       },
       "outputs": {
         "port_0": {
-          "type_name": "File[Tabular, Parquet]",
+          "type_name": "DataFrame",
           "state": "written_to_disk",
           "qualifiers": [],
           "default_value": null,
           "description": "Terminal disk-persisted state.",
           "domain": "pandas",
           "required": true,
-          "abstract_type": "path",
+          "abstract_type": "table",
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
@@ -10093,10 +9615,7 @@
       "effects": [
         "filesystem_write"
       ],
-      "edges": [],
-      "primary_in": "port_0",
-      "primary_out": "port_0",
-      "endable": true
+      "edges": []
     },
     {
       "cell_id": "PD_TO_JSON",
@@ -10156,11 +9675,10 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null,
-          "port_role": "data_input"
+          "shape_contract": null
         },
         "port_1": {
-          "type_name": "File[Tabular, JSONFormat]",
+          "type_name": "str",
           "state": "destination_path",
           "qualifiers": [
             "const"
@@ -10198,14 +9716,14 @@
       },
       "outputs": {
         "port_0": {
-          "type_name": "File[Tabular, JSONFormat]",
+          "type_name": "DataFrame",
           "state": "written_to_disk",
           "qualifiers": [],
           "default_value": null,
           "description": "Terminal disk-persisted state.",
           "domain": "pandas",
           "required": true,
-          "abstract_type": "path",
+          "abstract_type": "table",
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
@@ -10217,10 +9735,7 @@
       "effects": [
         "filesystem_write"
       ],
-      "edges": [],
-      "primary_in": "port_0",
-      "primary_out": "port_0",
-      "endable": true
+      "edges": []
     },
     {
       "cell_id": "PD_TO_EXCEL",
@@ -10280,11 +9795,10 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null,
-          "port_role": "data_input"
+          "shape_contract": null
         },
         "port_1": {
-          "type_name": "File[Tabular, Excel]",
+          "type_name": "str",
           "state": "destination_path",
           "qualifiers": [
             "const"
@@ -10319,14 +9833,14 @@
       },
       "outputs": {
         "port_0": {
-          "type_name": "File[Tabular, Excel]",
+          "type_name": "DataFrame",
           "state": "written_to_disk",
           "qualifiers": [],
           "default_value": null,
           "description": "Terminal disk-persisted state.",
           "domain": "pandas",
           "required": true,
-          "abstract_type": "path",
+          "abstract_type": "table",
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
@@ -10338,10 +9852,7 @@
       "effects": [
         "filesystem_write"
       ],
-      "edges": [],
-      "primary_in": "port_0",
-      "primary_out": "port_0",
-      "endable": true
+      "edges": []
     },
     {
       "cell_id": "PD_TO_SQL",
@@ -10402,8 +9913,7 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null,
-          "port_role": "data_input"
+          "shape_contract": null
         },
         "port_1": {
           "type_name": "str",
@@ -10471,7 +9981,7 @@
       },
       "outputs": {
         "port_0": {
-          "type_name": "File[Tabular, Any]",
+          "type_name": "DataFrame",
           "state": "written_to_disk",
           "qualifiers": [],
           "default_value": null,
@@ -10490,10 +10000,7 @@
       "effects": [
         "network_or_db_access"
       ],
-      "edges": [],
-      "primary_in": "port_0",
-      "primary_out": "port_0",
-      "endable": true
+      "edges": []
     },
     {
       "cell_id": "PD_TO_FEATHER",
@@ -10554,11 +10061,10 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null,
-          "port_role": "data_input"
+          "shape_contract": null
         },
         "port_1": {
-          "type_name": "File[Tabular, Feather]",
+          "type_name": "str",
           "state": "destination_path",
           "qualifiers": [
             "const"
@@ -10576,14 +10082,14 @@
       },
       "outputs": {
         "port_0": {
-          "type_name": "File[Tabular, Feather]",
+          "type_name": "DataFrame",
           "state": "written_to_disk",
           "qualifiers": [],
           "default_value": null,
           "description": "Terminal disk-persisted state.",
           "domain": "pandas",
           "required": true,
-          "abstract_type": "path",
+          "abstract_type": "table",
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
@@ -10595,10 +10101,7 @@
       "effects": [
         "filesystem_write"
       ],
-      "edges": [],
-      "primary_in": "port_0",
-      "primary_out": "port_0",
-      "endable": true
+      "edges": []
     },
     {
       "cell_id": "PD_TO_DICT",
@@ -10658,8 +10161,7 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null,
-          "port_role": "data_input"
+          "shape_contract": null
         },
         "port_1": {
           "type_name": "str",
@@ -10704,139 +10206,9 @@
       "effects": [
         "allocates_memory"
       ],
-      "edges": [],
-      "primary_in": "port_0",
-      "primary_out": "port_0",
-      "endable": true
-    },
-    {
-      "cell_id": "PD_DATAFRAME_PROJECT_TO_NUMPY",
-      "stage": 2,
-      "keywords": [
-        "to_numpy",
-        "values",
-        "array_bridge",
-        "columns",
-        "project",
-        "projection",
-        "feature",
-        "features"
-      ],
-      "cell_type": "micro",
-      "node_type": "function",
-      "node_role": "transformer",
-      "mutation_type": "pure",
-      "is_context_manager": false,
-      "verified": true,
-      "source_priority": 100,
-      "is_public": true,
-      "endable": false,
-      "docstring": "Project the given columns of a DataFrame and convert them to a NumPy ndarray. Composes column projection with the array bridge so feature selection for supervised tasks is expressed by declared lattice morphisms rather than engine-side special cases.",
-      "dependencies": [
-        "pandas as pd"
-      ],
-      "semantic_tags": [
-        "tabular",
-        "projection",
-        "array_bridge"
-      ],
-      "inputs": {
-        "port_0": {
-          "type_name": "DataFrame",
-          "state": "cleaned",
-          "qualifiers": [],
-          "default_value": null,
-          "description": "Source DataFrame.",
-          "domain": "pandas",
-          "required": true,
-          "abstract_type": "table",
-          "enum_values": null,
-          "param_kind": "positional_or_keyword",
-          "value_constraints": null,
-          "shape_contract": null
-        },
-        "columns": {
-          "type_name": "List[str]",
-          "state": "column_projection",
-          "qualifiers": [],
-          "default_value": null,
-          "description": "Column names to project before array conversion.",
-          "domain": "pandas",
-          "required": true,
-          "abstract_type": null,
-          "enum_values": null,
-          "param_kind": "positional_or_keyword",
-          "value_constraints": null,
-          "shape_contract": null
-        }
-      },
-      "outputs": {
-        "port_0": {
-          "type_name": "ndarray",
-          "state": "ndarray_generic",
-          "qualifiers": [],
-          "default_value": null,
-          "description": "Projected feature matrix.",
-          "domain": "pandas",
-          "required": true,
-          "abstract_type": "tensor",
-          "enum_values": null,
-          "param_kind": "positional_or_keyword",
-          "value_constraints": null,
-          "shape_contract": null
-        }
-      },
-      "slots": [
-        "output_var",
-        "df",
-        "columns"
-      ],
-      "bound_slots": {},
-      "code_template": "{output_var} = {df}[{columns}].to_numpy()",
-      "edges": [],
-      "preconditions": [],
-      "postconditions": [],
-      "effects": [],
-      "type_vars": [],
-      "raises": [],
-      "domain_name": "pandas"
+      "edges": []
     }
   ],
-  "types": {
-    "Tabular": {
-      "parent": "Modality"
-    },
-    "CSV": {
-      "parent": "TabularFormat"
-    },
-    "Parquet": {
-      "parent": "TabularFormat"
-    },
-    "Excel": {
-      "parent": "TabularFormat"
-    },
-    "JSONFormat": {
-      "parent": "TabularFormat"
-    },
-    "Feather": {
-      "parent": "TabularFormat"
-    },
-    "DataFrame": {
-      "parents": [
-        "table",
-        "array-like"
-      ]
-    },
-    "Series": {
-      "parents": [
-        "table",
-        "array-like"
-      ]
-    },
-    "tabularformat": {
-      "parent": "format"
-    }
-  },
   "egress_intent_tokens": [
     "save",
     "export",

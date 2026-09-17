@@ -364,7 +364,7 @@ try:
     from config import MODELS_DIR, settings
     from utils import extract_code_from_llm_response
     from tokenizer import CellTokenizer
-    from planner import _segment_prompt_clauses
+    from planner import _segment_prompt_clauses, STOPWORDS
     from preflight import PreflightLinter
     from lattice_auditor import LatticeAuditor
     from macro_harvester import MacroHarvester
@@ -383,17 +383,11 @@ except ImportError:
     from .config import MODELS_DIR, settings
     from .utils import extract_code_from_llm_response
     from .tokenizer import CellTokenizer
-    from .planner import _segment_prompt_clauses
+    from .planner import _segment_prompt_clauses, STOPWORDS
     from .preflight import PreflightLinter
     from .lattice_auditor import LatticeAuditor
     from .macro_harvester import MacroHarvester
     from .route_methods import ROUTE_METHOD_REGISTRY, get_route_method
-
-STOPWORDS = frozenset({
-    "a", "an", "the", "in", "on", "at", "of", "to", "for", "from", "by", "with",
-    "and", "or", "as", "is", "are", "was", "were", "be", "been", "it", "its",
-    "them", "they", "their", "this", "that", "these", "those"
-})
 
 
 console = Console()

@@ -1,13 +1,8 @@
 {
-  "domain": "pillow",
+  "domain": "Pillow",
   "version": "1.1.0",
-  "artifact_readers": {
-    "image": [
-      "PIL.Image.open"
-    ]
-  },
   "typestates": {
-    "domain": "pillow",
+    "domain": "Pillow",
     "states": [
       {
         "name": "ndarray_generic",
@@ -300,790 +295,59 @@
         "properties": {
           "displayed": true
         }
-      },
-      {
-        "name": "mode_hsv",
-        "parent_state": null,
-        "carrier_type": "Image",
-        "description": "Hue, Saturation, Value color model image.",
-        "properties": {
-          "mode": "HSV",
-          "channels": 3
-        }
-      },
-      {
-        "name": "mode_lab",
-        "parent_state": null,
-        "carrier_type": "Image",
-        "description": "CIE L*a*b* perceptual color space image.",
-        "properties": {
-          "mode": "LAB",
-          "channels": 3
-        }
-      },
-      {
-        "name": "mode_ycbcr",
-        "parent_state": null,
-        "carrier_type": "Image",
-        "description": "YCbCr video color format image.",
-        "properties": {
-          "mode": "YCbCr",
-          "channels": 3
-        }
-      },
-      {
-        "name": "mode_int32",
-        "parent_state": null,
-        "carrier_type": "Image",
-        "description": "32-bit signed integer single-channel image ('I' mode).",
-        "properties": {
-          "mode": "I",
-          "channels": 1,
-          "bits_per_pixel": 32
-        }
-      },
-      {
-        "name": "mode_float32",
-        "parent_state": null,
-        "carrier_type": "Image",
-        "description": "32-bit floating-point single-channel image ('F' mode).",
-        "properties": {
-          "mode": "F",
-          "channels": 1,
-          "bits_per_pixel": 32
-        }
-      },
-      {
-        "name": "transformed",
-        "parent_state": "cleaned",
-        "carrier_type": "Image",
-        "description": "Image geometrically transformed (affine, perspective, or mesh).",
-        "properties": {
-          "transformed": true
-        }
-      },
-      {
-        "name": "multi_frame_stream",
-        "parent_state": null,
-        "carrier_type": "Image",
-        "description": "Multi-frame animated or sequential image container (GIF/TIFF).",
-        "properties": {
-          "multi_frame": true
-        }
-      },
-      {
-        "name": "closed",
-        "parent_state": null,
-        "carrier_type": "Image",
-        "description": "Image object closed with deallocated resources.",
-        "properties": {
-          "closed": true
-        }
-      },
-      {
-        "name": "destination_path",
-        "parent_state": "source_identifier",
-        "carrier_type": "str",
-        "description": "Declared by data migration (formerly engine bootstrap state 'destination_path')."
       }
     ],
     "transitions": [
       {
-        "from": "color_bgr",
-        "to": "mode_rgb",
-        "via": "PILLOW_FROM_NDARRAY_BGR"
+        "source": "unopened",
+        "target": "mode_rgb",
+        "trigger": "PILLOW_IMAGE_OPEN"
       },
       {
-        "from": "dimensions",
-        "to": "mode_grayscale",
-        "via": "PILLOW_IMAGE_NEW_GRAYSCALE"
+        "source": "mode_rgb",
+        "target": "color_rgb",
+        "trigger": "PILLOW_RGB_TO_NDARRAY_RGB_ORDER"
       },
       {
-        "from": "dimensions",
-        "to": "mode_rgb",
-        "via": "PILLOW_IMAGE_FROMBYTES"
+        "source": "mode_rgb",
+        "target": "color_bgr",
+        "trigger": "PILLOW_RGB_TO_NDARRAY_BGR_ORDER"
       },
       {
-        "from": "dimensions",
-        "to": "mode_rgb",
-        "via": "PILLOW_IMAGE_NEW_RGB"
+        "source": "mode_grayscale",
+        "target": "gray",
+        "trigger": "PILLOW_GRAYSCALE_TO_NDARRAY"
       },
       {
-        "from": "dimensions",
-        "to": "mode_rgba",
-        "via": "PILLOW_IMAGE_NEW_RGBA"
+        "source": "color_bgr",
+        "target": "mode_rgb",
+        "trigger": "PILLOW_FROM_NDARRAY_BGR"
       },
       {
-        "from": "gradient_mode",
-        "to": "mode_grayscale",
-        "via": "PILLOW_LINEAR_GRADIENT"
+        "source": "gray",
+        "target": "mode_grayscale",
+        "trigger": "PILLOW_FROM_NDARRAY_GRAY"
       },
       {
-        "from": "gradient_mode",
-        "to": "mode_grayscale",
-        "via": "PILLOW_RADIAL_GRADIENT"
+        "source": "mode_rgb",
+        "target": "mode_rgba",
+        "trigger": "PILLOW_CONVERT_TO_RGBA"
       },
       {
-        "from": "gray",
-        "to": "mode_grayscale",
-        "via": "PILLOW_FROM_NDARRAY_GRAY"
+        "source": "mode_rgb",
+        "target": "mode_grayscale",
+        "trigger": "PILLOW_CONVERT_TO_GRAYSCALE"
       },
       {
-        "from": "mode_binary_1bit",
-        "to": "mode_rgb",
-        "via": "PILLOW_CONVERT_TO_RGB"
-      },
-      {
-        "from": "mode_binary_1bit",
-        "to": "resized",
-        "via": "PILLOW_RESIZE_NEAREST"
-      },
-      {
-        "from": "mode_cmyk",
-        "to": "mode_grayscale",
-        "via": "PILLOW_CONVERT_TO_GRAYSCALE"
-      },
-      {
-        "from": "mode_cmyk",
-        "to": "mode_grayscale",
-        "via": "PILLOW_IMAGE_GETCHANNEL"
-      },
-      {
-        "from": "mode_cmyk",
-        "to": "mode_rgb",
-        "via": "PILLOW_CONVERT_TO_RGB"
-      },
-      {
-        "from": "mode_cmyk",
-        "to": "ndarray_generic",
-        "via": "PILLOW_PILLOW_TO_NDARRAY_GENERIC"
-      },
-      {
-        "from": "mode_float32",
-        "to": "ndarray_generic",
-        "via": "PILLOW_PILLOW_TO_NDARRAY_GENERIC"
-      },
-      {
-        "from": "mode_grayscale",
-        "to": "cropped",
-        "via": "PILLOW_CROP"
-      },
-      {
-        "from": "mode_grayscale",
-        "to": "draw_context_active",
-        "via": "PILLOW_DRAW_INITIALIZE"
-      },
-      {
-        "from": "mode_grayscale",
-        "to": "enhanced_brightness",
-        "via": "PILLOW_ENHANCE_BRIGHTNESS"
-      },
-      {
-        "from": "mode_grayscale",
-        "to": "enhanced_contrast",
-        "via": "PILLOW_ENHANCE_CONTRAST"
-      },
-      {
-        "from": "mode_grayscale",
-        "to": "enhanced_contrast",
-        "via": "PILLOW_IMAGEOPS_AUTOCONTRAST"
-      },
-      {
-        "from": "mode_grayscale",
-        "to": "enhanced_contrast",
-        "via": "PILLOW_IMAGEOPS_SOLARIZE"
-      },
-      {
-        "from": "mode_grayscale",
-        "to": "enhanced_sharpness",
-        "via": "PILLOW_ENHANCE_SHARPNESS"
-      },
-      {
-        "from": "mode_grayscale",
-        "to": "filtered_blur",
-        "via": "PILLOW_FILTER_BOX_BLUR"
-      },
-      {
-        "from": "mode_grayscale",
-        "to": "filtered_blur",
-        "via": "PILLOW_FILTER_GAUSSIAN_BLUR"
-      },
-      {
-        "from": "mode_grayscale",
-        "to": "filtered_blur",
-        "via": "PILLOW_FILTER_SMOOTH"
-      },
-      {
-        "from": "mode_grayscale",
-        "to": "filtered_edges",
-        "via": "PILLOW_FILTER_CONTOUR"
-      },
-      {
-        "from": "mode_grayscale",
-        "to": "filtered_edges",
-        "via": "PILLOW_FILTER_FIND_EDGES"
-      },
-      {
-        "from": "mode_grayscale",
-        "to": "filtered_general",
-        "via": "PILLOW_FILTER_CUSTOM_KERNEL"
-      },
-      {
-        "from": "mode_grayscale",
-        "to": "filtered_general",
-        "via": "PILLOW_FILTER_MEDIAN"
-      },
-      {
-        "from": "mode_grayscale",
-        "to": "filtered_general",
-        "via": "PILLOW_FILTER_SHARPEN"
-      },
-      {
-        "from": "mode_grayscale",
-        "to": "filtered_general",
-        "via": "PILLOW_FILTER_UNSHARP_MASK"
-      },
-      {
-        "from": "mode_grayscale",
-        "to": "gray",
-        "via": "PILLOW_GRAYSCALE_TO_NDARRAY"
-      },
-      {
-        "from": "mode_grayscale",
-        "to": "mode_binary_1bit",
-        "via": "PILLOW_CONVERT_TO_BINARY"
-      },
-      {
-        "from": "mode_grayscale",
-        "to": "mode_float32",
-        "via": "PILLOW_CONVERT_TO_FLOAT32"
-      },
-      {
-        "from": "mode_grayscale",
-        "to": "mode_int32",
-        "via": "PILLOW_CONVERT_TO_INT32"
-      },
-      {
-        "from": "mode_grayscale",
-        "to": "mode_rgb",
-        "via": "PILLOW_CONVERT_TO_RGB"
-      },
-      {
-        "from": "mode_grayscale",
-        "to": "mode_rgb",
-        "via": "PILLOW_IMAGEOPS_COLORIZE"
-      },
-      {
-        "from": "mode_grayscale",
-        "to": "mode_rgb",
-        "via": "PILLOW_IMAGEOPS_EXIF_TRANSPOSE"
-      },
-      {
-        "from": "mode_grayscale",
-        "to": "mode_rgb",
-        "via": "PILLOW_IMAGEOPS_INVERT"
-      },
-      {
-        "from": "mode_grayscale",
-        "to": "mode_rgb",
-        "via": "PILLOW_MERGE_RGB"
-      },
-      {
-        "from": "mode_grayscale",
-        "to": "mode_rgba",
-        "via": "PILLOW_CONVERT_TO_RGBA"
-      },
-      {
-        "from": "mode_grayscale",
-        "to": "resized",
-        "via": "PILLOW_IMAGEOPS_CONTAIN"
-      },
-      {
-        "from": "mode_grayscale",
-        "to": "resized",
-        "via": "PILLOW_IMAGEOPS_COVER"
-      },
-      {
-        "from": "mode_grayscale",
-        "to": "resized",
-        "via": "PILLOW_IMAGEOPS_FIT"
-      },
-      {
-        "from": "mode_grayscale",
-        "to": "resized",
-        "via": "PILLOW_IMAGEOPS_PAD"
-      },
-      {
-        "from": "mode_grayscale",
-        "to": "resized",
-        "via": "PILLOW_RESIZE_BILINEAR"
-      },
-      {
-        "from": "mode_grayscale",
-        "to": "resized",
-        "via": "PILLOW_RESIZE_LANCZOS"
-      },
-      {
-        "from": "mode_grayscale",
-        "to": "resized",
-        "via": "PILLOW_RESIZE_NEAREST"
-      },
-      {
-        "from": "mode_grayscale",
-        "to": "rotated",
-        "via": "PILLOW_ROTATE"
-      },
-      {
-        "from": "mode_grayscale",
-        "to": "rotated",
-        "via": "PILLOW_TRANSPOSE_FLIP_LEFT_RIGHT"
-      },
-      {
-        "from": "mode_grayscale",
-        "to": "rotated",
-        "via": "PILLOW_TRANSPOSE_FLIP_TOP_BOTTOM"
-      },
-      {
-        "from": "mode_grayscale",
-        "to": "rotated",
-        "via": "PILLOW_TRANSPOSE_ROTATE_90"
-      },
-      {
-        "from": "mode_grayscale",
-        "to": "transformed",
-        "via": "PILLOW_TRANSFORM_AFFINE"
-      },
-      {
-        "from": "mode_grayscale",
-        "to": "transformed",
-        "via": "PILLOW_TRANSFORM_PERSPECTIVE"
-      },
-      {
-        "from": "mode_hsv",
-        "to": "mode_grayscale",
-        "via": "PILLOW_IMAGE_GETCHANNEL"
-      },
-      {
-        "from": "mode_int32",
-        "to": "mode_float32",
-        "via": "PILLOW_CONVERT_TO_FLOAT32"
-      },
-      {
-        "from": "mode_int32",
-        "to": "ndarray_generic",
-        "via": "PILLOW_PILLOW_TO_NDARRAY_GENERIC"
-      },
-      {
-        "from": "mode_palette",
-        "to": "mode_grayscale",
-        "via": "PILLOW_CONVERT_TO_GRAYSCALE"
-      },
-      {
-        "from": "mode_palette",
-        "to": "mode_rgb",
-        "via": "PILLOW_CONVERT_TO_RGB"
-      },
-      {
-        "from": "mode_palette",
-        "to": "mode_rgba",
-        "via": "PILLOW_CONVERT_TO_RGBA"
-      },
-      {
-        "from": "mode_palette",
-        "to": "ndarray_generic",
-        "via": "PILLOW_PILLOW_TO_NDARRAY_GENERIC"
-      },
-      {
-        "from": "mode_palette",
-        "to": "resized",
-        "via": "PILLOW_RESIZE_NEAREST"
-      },
-      {
-        "from": "mode_rgb",
-        "to": "color_bgr",
-        "via": "PILLOW_RGB_TO_NDARRAY_BGR_ORDER"
-      },
-      {
-        "from": "mode_rgb",
-        "to": "color_rgb",
-        "via": "PILLOW_RGB_TO_NDARRAY_RGB_ORDER"
-      },
-      {
-        "from": "mode_rgb",
-        "to": "composited",
-        "via": "PILLOW_BLEND"
-      },
-      {
-        "from": "mode_rgb",
-        "to": "composited",
-        "via": "PILLOW_COMPOSITE"
-      },
-      {
-        "from": "mode_rgb",
-        "to": "composited",
-        "via": "PILLOW_IMAGECHOPS_ADD"
-      },
-      {
-        "from": "mode_rgb",
-        "to": "composited",
-        "via": "PILLOW_IMAGECHOPS_DIFFERENCE"
-      },
-      {
-        "from": "mode_rgb",
-        "to": "composited",
-        "via": "PILLOW_IMAGECHOPS_MULTIPLY"
-      },
-      {
-        "from": "mode_rgb",
-        "to": "cropped",
-        "via": "PILLOW_CROP"
-      },
-      {
-        "from": "mode_rgb",
-        "to": "draw_context_active",
-        "via": "PILLOW_DRAW_INITIALIZE"
-      },
-      {
-        "from": "mode_rgb",
-        "to": "enhanced_brightness",
-        "via": "PILLOW_ENHANCE_BRIGHTNESS"
-      },
-      {
-        "from": "mode_rgb",
-        "to": "enhanced_color",
-        "via": "PILLOW_ENHANCE_COLOR"
-      },
-      {
-        "from": "mode_rgb",
-        "to": "enhanced_contrast",
-        "via": "PILLOW_ENHANCE_CONTRAST"
-      },
-      {
-        "from": "mode_rgb",
-        "to": "enhanced_contrast",
-        "via": "PILLOW_IMAGEOPS_AUTOCONTRAST"
-      },
-      {
-        "from": "mode_rgb",
-        "to": "enhanced_contrast",
-        "via": "PILLOW_IMAGEOPS_SOLARIZE"
-      },
-      {
-        "from": "mode_rgb",
-        "to": "enhanced_sharpness",
-        "via": "PILLOW_ENHANCE_SHARPNESS"
-      },
-      {
-        "from": "mode_rgb",
-        "to": "filtered_blur",
-        "via": "PILLOW_FILTER_BOX_BLUR"
-      },
-      {
-        "from": "mode_rgb",
-        "to": "filtered_blur",
-        "via": "PILLOW_FILTER_GAUSSIAN_BLUR"
-      },
-      {
-        "from": "mode_rgb",
-        "to": "filtered_blur",
-        "via": "PILLOW_FILTER_SMOOTH"
-      },
-      {
-        "from": "mode_rgb",
-        "to": "filtered_edges",
-        "via": "PILLOW_FILTER_CONTOUR"
-      },
-      {
-        "from": "mode_rgb",
-        "to": "filtered_edges",
-        "via": "PILLOW_FILTER_FIND_EDGES"
-      },
-      {
-        "from": "mode_rgb",
-        "to": "filtered_general",
-        "via": "PILLOW_FILTER_CUSTOM_KERNEL"
-      },
-      {
-        "from": "mode_rgb",
-        "to": "filtered_general",
-        "via": "PILLOW_FILTER_MEDIAN"
-      },
-      {
-        "from": "mode_rgb",
-        "to": "filtered_general",
-        "via": "PILLOW_FILTER_SHARPEN"
-      },
-      {
-        "from": "mode_rgb",
-        "to": "filtered_general",
-        "via": "PILLOW_FILTER_UNSHARP_MASK"
-      },
-      {
-        "from": "mode_rgb",
-        "to": "mode_binary_1bit",
-        "via": "PILLOW_CONVERT_TO_BINARY"
-      },
-      {
-        "from": "mode_rgb",
-        "to": "mode_cmyk",
-        "via": "PILLOW_CONVERT_TO_CMYK"
-      },
-      {
-        "from": "mode_rgb",
-        "to": "mode_float32",
-        "via": "PILLOW_CONVERT_TO_FLOAT32"
-      },
-      {
-        "from": "mode_rgb",
-        "to": "mode_grayscale",
-        "via": "PILLOW_CONVERT_TO_GRAYSCALE"
-      },
-      {
-        "from": "mode_rgb",
-        "to": "mode_grayscale",
-        "via": "PILLOW_IMAGE_GETCHANNEL"
-      },
-      {
-        "from": "mode_rgb",
-        "to": "mode_grayscale",
-        "via": "PILLOW_SPLIT"
-      },
-      {
-        "from": "mode_rgb",
-        "to": "mode_hsv",
-        "via": "PILLOW_CONVERT_TO_HSV"
-      },
-      {
-        "from": "mode_rgb",
-        "to": "mode_int32",
-        "via": "PILLOW_CONVERT_TO_INT32"
-      },
-      {
-        "from": "mode_rgb",
-        "to": "mode_lab",
-        "via": "PILLOW_CONVERT_TO_LAB"
-      },
-      {
-        "from": "mode_rgb",
-        "to": "mode_palette",
-        "via": "PILLOW_CONVERT_TO_PALETTE_ADAPTIVE"
-      },
-      {
-        "from": "mode_rgb",
-        "to": "mode_rgb",
-        "via": "PILLOW_IMAGEOPS_EXIF_TRANSPOSE"
-      },
-      {
-        "from": "mode_rgb",
-        "to": "mode_rgb",
-        "via": "PILLOW_IMAGEOPS_INVERT"
-      },
-      {
-        "from": "mode_rgb",
-        "to": "mode_rgba",
-        "via": "PILLOW_CONVERT_TO_RGBA"
-      },
-      {
-        "from": "mode_rgb",
-        "to": "resized",
-        "via": "PILLOW_IMAGEOPS_CONTAIN"
-      },
-      {
-        "from": "mode_rgb",
-        "to": "resized",
-        "via": "PILLOW_IMAGEOPS_COVER"
-      },
-      {
-        "from": "mode_rgb",
-        "to": "resized",
-        "via": "PILLOW_IMAGEOPS_FIT"
-      },
-      {
-        "from": "mode_rgb",
-        "to": "resized",
-        "via": "PILLOW_IMAGEOPS_PAD"
-      },
-      {
-        "from": "mode_rgb",
-        "to": "resized",
-        "via": "PILLOW_RESIZE_BILINEAR"
-      },
-      {
-        "from": "mode_rgb",
-        "to": "resized",
-        "via": "PILLOW_RESIZE_LANCZOS"
-      },
-      {
-        "from": "mode_rgb",
-        "to": "resized",
-        "via": "PILLOW_RESIZE_NEAREST"
-      },
-      {
-        "from": "mode_rgb",
-        "to": "rotated",
-        "via": "PILLOW_ROTATE"
-      },
-      {
-        "from": "mode_rgb",
-        "to": "rotated",
-        "via": "PILLOW_TRANSPOSE_FLIP_LEFT_RIGHT"
-      },
-      {
-        "from": "mode_rgb",
-        "to": "rotated",
-        "via": "PILLOW_TRANSPOSE_FLIP_TOP_BOTTOM"
-      },
-      {
-        "from": "mode_rgb",
-        "to": "rotated",
-        "via": "PILLOW_TRANSPOSE_ROTATE_90"
-      },
-      {
-        "from": "mode_rgb",
-        "to": "transformed",
-        "via": "PILLOW_TRANSFORM_AFFINE"
-      },
-      {
-        "from": "mode_rgb",
-        "to": "transformed",
-        "via": "PILLOW_TRANSFORM_PERSPECTIVE"
-      },
-      {
-        "from": "mode_rgba",
-        "to": "composited",
-        "via": "PILLOW_ALPHA_COMPOSITE"
-      },
-      {
-        "from": "mode_rgba",
-        "to": "cropped",
-        "via": "PILLOW_CROP"
-      },
-      {
-        "from": "mode_rgba",
-        "to": "draw_context_active",
-        "via": "PILLOW_DRAW_INITIALIZE"
-      },
-      {
-        "from": "mode_rgba",
-        "to": "filtered_blur",
-        "via": "PILLOW_FILTER_BOX_BLUR"
-      },
-      {
-        "from": "mode_rgba",
-        "to": "filtered_blur",
-        "via": "PILLOW_FILTER_GAUSSIAN_BLUR"
-      },
-      {
-        "from": "mode_rgba",
-        "to": "filtered_blur",
-        "via": "PILLOW_FILTER_SMOOTH"
-      },
-      {
-        "from": "mode_rgba",
-        "to": "mode_grayscale",
-        "via": "PILLOW_CONVERT_TO_GRAYSCALE"
-      },
-      {
-        "from": "mode_rgba",
-        "to": "mode_grayscale",
-        "via": "PILLOW_IMAGE_GETCHANNEL"
-      },
-      {
-        "from": "mode_rgba",
-        "to": "mode_palette",
-        "via": "PILLOW_CONVERT_TO_PALETTE_ADAPTIVE"
-      },
-      {
-        "from": "mode_rgba",
-        "to": "mode_rgb",
-        "via": "PILLOW_CONVERT_TO_RGB"
-      },
-      {
-        "from": "mode_rgba",
-        "to": "mode_rgb",
-        "via": "PILLOW_IMAGEOPS_EXIF_TRANSPOSE"
-      },
-      {
-        "from": "mode_rgba",
-        "to": "resized",
-        "via": "PILLOW_IMAGEOPS_CONTAIN"
-      },
-      {
-        "from": "mode_rgba",
-        "to": "resized",
-        "via": "PILLOW_IMAGEOPS_COVER"
-      },
-      {
-        "from": "mode_rgba",
-        "to": "resized",
-        "via": "PILLOW_IMAGEOPS_FIT"
-      },
-      {
-        "from": "mode_rgba",
-        "to": "resized",
-        "via": "PILLOW_IMAGEOPS_PAD"
-      },
-      {
-        "from": "mode_rgba",
-        "to": "resized",
-        "via": "PILLOW_RESIZE_BILINEAR"
-      },
-      {
-        "from": "mode_rgba",
-        "to": "resized",
-        "via": "PILLOW_RESIZE_LANCZOS"
-      },
-      {
-        "from": "mode_rgba",
-        "to": "rotated",
-        "via": "PILLOW_ROTATE"
-      },
-      {
-        "from": "mode_rgba",
-        "to": "rotated",
-        "via": "PILLOW_TRANSPOSE_FLIP_LEFT_RIGHT"
-      },
-      {
-        "from": "mode_rgba",
-        "to": "rotated",
-        "via": "PILLOW_TRANSPOSE_FLIP_TOP_BOTTOM"
-      },
-      {
-        "from": "mode_rgba",
-        "to": "rotated",
-        "via": "PILLOW_TRANSPOSE_ROTATE_90"
-      },
-      {
-        "from": "mode_rgba",
-        "to": "transformed",
-        "via": "PILLOW_TRANSFORM_AFFINE"
-      },
-      {
-        "from": "mode_rgba",
-        "to": "transformed",
-        "via": "PILLOW_TRANSFORM_PERSPECTIVE"
-      },
-      {
-        "from": "multi_frame_stream",
-        "to": "active_frame_index",
-        "via": "PILLOW_IMAGE_TELL"
-      },
-      {
-        "from": "ndarray_generic",
-        "to": "mode_rgb",
-        "via": "PILLOW_NDARRAY_GENERIC_TO_PILLOW"
-      },
-      {
-        "from": "unopened",
-        "to": "mode_rgb",
-        "via": "PILLOW_IMAGE_OPEN"
+        "source": "mode_rgb",
+        "target": "saved",
+        "trigger": "PILLOW_IMAGE_SAVE"
       }
     ],
     "initial_state": "mode_rgb",
     "terminal_states": [
       "saved",
-      "displayed",
-      "closed"
+      "displayed"
     ]
   },
   "cells": [
@@ -1126,10 +390,10 @@
         "UnidentifiedImageError"
       ],
       "type_vars": [],
-      "inputs": {
-        "image_path": {
+      "inputs": [
+        {
           "name": "image_path",
-          "type_name": "File[Image, Any]",
+          "type_name": "str",
           "state": "unopened",
           "qualifiers": [],
           "default_value": null,
@@ -1142,9 +406,9 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
-      "outputs": {
-        "output_var": {
+      ],
+      "outputs": [
+        {
           "name": "output_var",
           "type_name": "Image",
           "state": "mode_rgb",
@@ -1159,7 +423,7 @@
           "value_constraints": null,
           "shape_contract": "(H, W, C)"
         }
-      },
+      ],
       "preconditions": [
         {
           "target": "image_path",
@@ -1189,28 +453,23 @@
           "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": "output_var.mode != 'RGB'",
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         },
         {
           "target_cell_id": "PILLOW_RESIZE_LANCZOS",
-          "affinity_score": 0.5,
+          "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": "true",
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         },
         {
           "target_cell_id": "PILLOW_RGB_TO_NDARRAY_RGB_ORDER",
-          "affinity_score": 0.2,
+          "affinity_score": 0.5,
           "score_provenance": "llm_seed",
           "bridging_precondition": "output_var.mode == 'RGB'",
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         }
-      ],
-      "primary_in": "image_path",
-      "primary_out": "output_var"
+      ]
     },
     {
       "cell_id": "PILLOW_IMAGE_NEW_RGB",
@@ -1250,8 +509,8 @@
         "ValueError"
       ],
       "type_vars": [],
-      "inputs": {
-        "size": {
+      "inputs": [
+        {
           "name": "size",
           "type_name": "tuple",
           "state": "dimensions",
@@ -1266,7 +525,7 @@
           "value_constraints": null,
           "shape_contract": "(2,)"
         },
-        "color": {
+        {
           "name": "color",
           "type_name": "tuple",
           "state": "color_rgb_tuple",
@@ -1281,9 +540,9 @@
           "value_constraints": null,
           "shape_contract": "(3,)"
         }
-      },
-      "outputs": {
-        "output_var": {
+      ],
+      "outputs": [
+        {
           "name": "output_var",
           "type_name": "Image",
           "state": "mode_rgb",
@@ -1298,7 +557,7 @@
           "value_constraints": null,
           "shape_contract": "(H, W, 3)"
         }
-      },
+      ],
       "preconditions": [
         {
           "target": "size",
@@ -1328,20 +587,16 @@
           "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": "true",
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         },
         {
           "target_cell_id": "PILLOW_RGB_TO_NDARRAY_RGB_ORDER",
           "affinity_score": 0.5,
           "score_provenance": "llm_seed",
           "bridging_precondition": "true",
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         }
-      ],
-      "primary_in": "size",
-      "primary_out": "output_var"
+      ]
     },
     {
       "cell_id": "PILLOW_IMAGE_NEW_RGBA",
@@ -1383,8 +638,8 @@
         "ValueError"
       ],
       "type_vars": [],
-      "inputs": {
-        "size": {
+      "inputs": [
+        {
           "name": "size",
           "type_name": "tuple",
           "state": "dimensions",
@@ -1399,7 +654,7 @@
           "value_constraints": null,
           "shape_contract": "(2,)"
         },
-        "color": {
+        {
           "name": "color",
           "type_name": "tuple",
           "state": "color_rgba_tuple",
@@ -1414,9 +669,9 @@
           "value_constraints": null,
           "shape_contract": "(4,)"
         }
-      },
-      "outputs": {
-        "output_var": {
+      ],
+      "outputs": [
+        {
           "name": "output_var",
           "type_name": "Image",
           "state": "mode_rgba",
@@ -1431,7 +686,7 @@
           "value_constraints": null,
           "shape_contract": "(H, W, 4)"
         }
-      },
+      ],
       "preconditions": [
         {
           "target": "size",
@@ -1461,12 +716,9 @@
           "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": "true",
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         }
-      ],
-      "primary_in": "size",
-      "primary_out": "output_var"
+      ]
     },
     {
       "cell_id": "PILLOW_IMAGE_NEW_GRAYSCALE",
@@ -1506,8 +758,8 @@
         "ValueError"
       ],
       "type_vars": [],
-      "inputs": {
-        "size": {
+      "inputs": [
+        {
           "name": "size",
           "type_name": "tuple",
           "state": "dimensions",
@@ -1522,7 +774,7 @@
           "value_constraints": null,
           "shape_contract": "(2,)"
         },
-        "color": {
+        {
           "name": "color",
           "type_name": "int",
           "state": "gray_intensity",
@@ -1540,9 +792,9 @@
           },
           "shape_contract": null
         }
-      },
-      "outputs": {
-        "output_var": {
+      ],
+      "outputs": [
+        {
           "name": "output_var",
           "type_name": "Image",
           "state": "mode_grayscale",
@@ -1557,7 +809,7 @@
           "value_constraints": null,
           "shape_contract": "(H, W)"
         }
-      },
+      ],
       "preconditions": [
         {
           "target": "size",
@@ -1587,12 +839,9 @@
           "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": "true",
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         }
-      ],
-      "primary_in": "size",
-      "primary_out": "output_var"
+      ]
     },
     {
       "cell_id": "PILLOW_CONVERT_TO_RGB",
@@ -1631,8 +880,8 @@
         "ValueError"
       ],
       "type_vars": [],
-      "inputs": {
-        "image": {
+      "inputs": [
+        {
           "name": "image",
           "type_name": "Image",
           "state": "mode_rgba",
@@ -1654,9 +903,9 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
-      "outputs": {
-        "output_var": {
+      ],
+      "outputs": [
+        {
           "name": "output_var",
           "type_name": "Image",
           "state": "mode_rgb",
@@ -1671,7 +920,7 @@
           "value_constraints": null,
           "shape_contract": "(H, W, 3)"
         }
-      },
+      ],
       "preconditions": [
         {
           "target": "image",
@@ -1701,28 +950,23 @@
           "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": "true",
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         },
         {
           "target_cell_id": "PILLOW_RGB_TO_NDARRAY_BGR_ORDER",
-          "affinity_score": 0.5,
+          "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": "true",
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         },
         {
           "target_cell_id": "PILLOW_RESIZE_LANCZOS",
-          "affinity_score": 0.2,
+          "affinity_score": 0.5,
           "score_provenance": "llm_seed",
           "bridging_precondition": "true",
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         }
-      ],
-      "primary_in": "image",
-      "primary_out": "output_var"
+      ]
     },
     {
       "cell_id": "PILLOW_CONVERT_TO_RGBA",
@@ -1761,8 +1005,8 @@
         "ValueError"
       ],
       "type_vars": [],
-      "inputs": {
-        "image": {
+      "inputs": [
+        {
           "name": "image",
           "type_name": "Image",
           "state": "mode_rgb",
@@ -1782,9 +1026,9 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
-      "outputs": {
-        "output_var": {
+      ],
+      "outputs": [
+        {
           "name": "output_var",
           "type_name": "Image",
           "state": "mode_rgba",
@@ -1799,7 +1043,7 @@
           "value_constraints": null,
           "shape_contract": "(H, W, 4)"
         }
-      },
+      ],
       "preconditions": [
         {
           "target": "image",
@@ -1829,12 +1073,9 @@
           "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": "true",
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         }
-      ],
-      "primary_in": "image",
-      "primary_out": "output_var"
+      ]
     },
     {
       "cell_id": "PILLOW_CONVERT_TO_GRAYSCALE",
@@ -1873,8 +1114,8 @@
         "ValueError"
       ],
       "type_vars": [],
-      "inputs": {
-        "image": {
+      "inputs": [
+        {
           "name": "image",
           "type_name": "Image",
           "state": "mode_rgb",
@@ -1895,9 +1136,9 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
-      "outputs": {
-        "output_var": {
+      ],
+      "outputs": [
+        {
           "name": "output_var",
           "type_name": "Image",
           "state": "mode_grayscale",
@@ -1912,7 +1153,7 @@
           "value_constraints": null,
           "shape_contract": "(H, W)"
         }
-      },
+      ],
       "preconditions": [
         {
           "target": "image",
@@ -1942,20 +1183,16 @@
           "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": "true",
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         },
         {
           "target_cell_id": "PILLOW_CONVERT_TO_BINARY",
           "affinity_score": 0.5,
           "score_provenance": "llm_seed",
           "bridging_precondition": "true",
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         }
-      ],
-      "primary_in": "image",
-      "primary_out": "output_var"
+      ]
     },
     {
       "cell_id": "PILLOW_CONVERT_TO_BINARY",
@@ -1996,8 +1233,8 @@
         "ValueError"
       ],
       "type_vars": [],
-      "inputs": {
-        "image": {
+      "inputs": [
+        {
           "name": "image",
           "type_name": "Image",
           "state": "mode_grayscale",
@@ -2016,9 +1253,9 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
-      "outputs": {
-        "output_var": {
+      ],
+      "outputs": [
+        {
           "name": "output_var",
           "type_name": "Image",
           "state": "mode_binary_1bit",
@@ -2033,7 +1270,7 @@
           "value_constraints": null,
           "shape_contract": "(H, W)"
         }
-      },
+      ],
       "preconditions": [],
       "postconditions": [
         {
@@ -2051,15 +1288,12 @@
       "edges": [
         {
           "target_cell_id": "PILLOW_IMAGE_SAVE",
-          "affinity_score": 0.8,
+          "affinity_score": 0.5,
           "score_provenance": "llm_seed",
           "bridging_precondition": "true",
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         }
-      ],
-      "primary_in": "image",
-      "primary_out": "output_var"
+      ]
     },
     {
       "cell_id": "PILLOW_CONVERT_TO_CMYK",
@@ -2098,8 +1332,8 @@
         "ValueError"
       ],
       "type_vars": [],
-      "inputs": {
-        "image": {
+      "inputs": [
+        {
           "name": "image",
           "type_name": "Image",
           "state": "mode_rgb",
@@ -2114,9 +1348,9 @@
           "value_constraints": null,
           "shape_contract": "(H, W, 3)"
         }
-      },
-      "outputs": {
-        "output_var": {
+      ],
+      "outputs": [
+        {
           "name": "output_var",
           "type_name": "Image",
           "state": "mode_cmyk",
@@ -2131,7 +1365,7 @@
           "value_constraints": null,
           "shape_contract": "(H, W, 4)"
         }
-      },
+      ],
       "preconditions": [
         {
           "target": "image",
@@ -2158,15 +1392,12 @@
       "edges": [
         {
           "target_cell_id": "PILLOW_IMAGE_SAVE_JPEG",
-          "affinity_score": 0.8,
+          "affinity_score": 0.5,
           "score_provenance": "llm_seed",
           "bridging_precondition": "true",
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         }
-      ],
-      "primary_in": "image",
-      "primary_out": "output_var"
+      ]
     },
     {
       "cell_id": "PILLOW_RGB_TO_NDARRAY_RGB_ORDER",
@@ -2205,8 +1436,8 @@
       "feedback_state_type": null,
       "raises": [],
       "type_vars": [],
-      "inputs": {
-        "image": {
+      "inputs": [
+        {
           "name": "image",
           "type_name": "Image",
           "state": "mode_rgb",
@@ -2221,9 +1452,9 @@
           "value_constraints": null,
           "shape_contract": "(H, W, 3)"
         }
-      },
-      "outputs": {
-        "output_var": {
+      ],
+      "outputs": [
+        {
           "name": "output_var",
           "type_name": "ndarray",
           "state": "color_rgb",
@@ -2238,7 +1469,7 @@
           "value_constraints": null,
           "shape_contract": "(H, W, 3)"
         }
-      },
+      ],
       "preconditions": [
         {
           "target": "image",
@@ -2262,9 +1493,7 @@
       "effects": [
         "bridges_to_numpy_rgb"
       ],
-      "edges": [],
-      "primary_in": "image",
-      "primary_out": "output_var"
+      "edges": []
     },
     {
       "cell_id": "PILLOW_RGB_TO_NDARRAY_BGR_ORDER",
@@ -2304,8 +1533,8 @@
       "feedback_state_type": null,
       "raises": [],
       "type_vars": [],
-      "inputs": {
-        "image": {
+      "inputs": [
+        {
           "name": "image",
           "type_name": "Image",
           "state": "mode_rgb",
@@ -2320,18 +1549,13 @@
           "value_constraints": null,
           "shape_contract": "(H, W, 3)"
         }
-      },
-      "outputs": {
-        "output_var": {
+      ],
+      "outputs": [
+        {
           "name": "output_var",
           "type_name": "ndarray",
           "state": "color_bgr",
-          "qualifiers": [
-            [
-              "cv2",
-              "image"
-            ]
-          ],
+          "qualifiers": [],
           "default_value": null,
           "description": "3-channel uint8 numpy array in BGR order.",
           "domain": "Pillow",
@@ -2342,7 +1566,7 @@
           "value_constraints": null,
           "shape_contract": "(H, W, 3)"
         }
-      },
+      ],
       "preconditions": [
         {
           "target": "image",
@@ -2366,9 +1590,7 @@
       "effects": [
         "bridges_to_numpy_bgr"
       ],
-      "edges": [],
-      "primary_in": "image",
-      "primary_out": "output_var"
+      "edges": []
     },
     {
       "cell_id": "PILLOW_GRAYSCALE_TO_NDARRAY",
@@ -2407,8 +1629,8 @@
       "feedback_state_type": null,
       "raises": [],
       "type_vars": [],
-      "inputs": {
-        "image": {
+      "inputs": [
+        {
           "name": "image",
           "type_name": "Image",
           "state": "mode_grayscale",
@@ -2423,18 +1645,13 @@
           "value_constraints": null,
           "shape_contract": "(H, W)"
         }
-      },
-      "outputs": {
-        "output_var": {
+      ],
+      "outputs": [
+        {
           "name": "output_var",
           "type_name": "ndarray",
           "state": "gray",
-          "qualifiers": [
-            [
-              "cv2",
-              "image"
-            ]
-          ],
+          "qualifiers": [],
           "default_value": null,
           "description": "2D uint8 numpy array representing gray intensity.",
           "domain": "Pillow",
@@ -2445,7 +1662,7 @@
           "value_constraints": null,
           "shape_contract": "(H, W)"
         }
-      },
+      ],
       "preconditions": [
         {
           "target": "image",
@@ -2469,9 +1686,7 @@
       "effects": [
         "bridges_to_numpy_gray"
       ],
-      "edges": [],
-      "primary_in": "image",
-      "primary_out": "output_var"
+      "edges": []
     },
     {
       "cell_id": "PILLOW_FROM_NDARRAY_BGR",
@@ -2514,8 +1729,8 @@
         "ValueError"
       ],
       "type_vars": [],
-      "inputs": {
-        "array": {
+      "inputs": [
+        {
           "name": "array",
           "type_name": "ndarray",
           "state": "color_bgr",
@@ -2530,9 +1745,9 @@
           "value_constraints": null,
           "shape_contract": "(H, W, 3)"
         }
-      },
-      "outputs": {
-        "output_var": {
+      ],
+      "outputs": [
+        {
           "name": "output_var",
           "type_name": "Image",
           "state": "mode_rgb",
@@ -2547,7 +1762,7 @@
           "value_constraints": null,
           "shape_contract": "(H, W, 3)"
         }
-      },
+      ],
       "preconditions": [
         {
           "target": "array",
@@ -2577,20 +1792,16 @@
           "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": "true",
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         },
         {
           "target_cell_id": "PILLOW_IMAGE_SAVE",
           "affinity_score": 0.5,
           "score_provenance": "llm_seed",
           "bridging_precondition": "true",
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         }
-      ],
-      "primary_in": "array",
-      "primary_out": "output_var"
+      ]
     },
     {
       "cell_id": "PILLOW_FROM_NDARRAY_GRAY",
@@ -2632,8 +1843,8 @@
         "ValueError"
       ],
       "type_vars": [],
-      "inputs": {
-        "array": {
+      "inputs": [
+        {
           "name": "array",
           "type_name": "ndarray",
           "state": "gray",
@@ -2648,9 +1859,9 @@
           "value_constraints": null,
           "shape_contract": "(H, W)"
         }
-      },
-      "outputs": {
-        "output_var": {
+      ],
+      "outputs": [
+        {
           "name": "output_var",
           "type_name": "Image",
           "state": "mode_grayscale",
@@ -2665,7 +1876,7 @@
           "value_constraints": null,
           "shape_contract": "(H, W)"
         }
-      },
+      ],
       "preconditions": [
         {
           "target": "array",
@@ -2695,12 +1906,9 @@
           "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": "true",
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         }
-      ],
-      "primary_in": "array",
-      "primary_out": "output_var"
+      ]
     },
     {
       "cell_id": "PILLOW_RESIZE_LANCZOS",
@@ -2741,8 +1949,8 @@
         "ValueError"
       ],
       "type_vars": [],
-      "inputs": {
-        "image": {
+      "inputs": [
+        {
           "name": "image",
           "type_name": "Image",
           "state": "mode_rgb",
@@ -2762,7 +1970,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        "size": {
+        {
           "name": "size",
           "type_name": "tuple",
           "state": "target_dimensions",
@@ -2777,9 +1985,9 @@
           "value_constraints": null,
           "shape_contract": "(2,)"
         }
-      },
-      "outputs": {
-        "output_var": {
+      ],
+      "outputs": [
+        {
           "name": "output_var",
           "type_name": "Image",
           "state": "resized",
@@ -2794,7 +2002,7 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
+      ],
       "preconditions": [
         {
           "target": "size",
@@ -2824,20 +2032,16 @@
           "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": "true",
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         },
         {
           "target_cell_id": "PILLOW_RGB_TO_NDARRAY_RGB_ORDER",
           "affinity_score": 0.5,
           "score_provenance": "llm_seed",
           "bridging_precondition": "output_var.mode == 'RGB'",
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         }
-      ],
-      "primary_in": "image",
-      "primary_out": "output_var"
+      ]
     },
     {
       "cell_id": "PILLOW_RESIZE_BILINEAR",
@@ -2876,8 +2080,8 @@
         "ValueError"
       ],
       "type_vars": [],
-      "inputs": {
-        "image": {
+      "inputs": [
+        {
           "name": "image",
           "type_name": "Image",
           "state": "mode_rgb",
@@ -2897,7 +2101,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        "size": {
+        {
           "name": "size",
           "type_name": "tuple",
           "state": "target_dimensions",
@@ -2912,9 +2116,9 @@
           "value_constraints": null,
           "shape_contract": "(2,)"
         }
-      },
-      "outputs": {
-        "output_var": {
+      ],
+      "outputs": [
+        {
           "name": "output_var",
           "type_name": "Image",
           "state": "resized",
@@ -2929,7 +2133,7 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
+      ],
       "preconditions": [],
       "postconditions": [],
       "effects": [
@@ -2941,12 +2145,9 @@
           "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": "true",
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         }
-      ],
-      "primary_in": "image",
-      "primary_out": "output_var"
+      ]
     },
     {
       "cell_id": "PILLOW_RESIZE_NEAREST",
@@ -2987,8 +2188,8 @@
         "ValueError"
       ],
       "type_vars": [],
-      "inputs": {
-        "image": {
+      "inputs": [
+        {
           "name": "image",
           "type_name": "Image",
           "state": "mode_grayscale",
@@ -3009,7 +2210,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        "size": {
+        {
           "name": "size",
           "type_name": "tuple",
           "state": "target_dimensions",
@@ -3024,9 +2225,9 @@
           "value_constraints": null,
           "shape_contract": "(2,)"
         }
-      },
-      "outputs": {
-        "output_var": {
+      ],
+      "outputs": [
+        {
           "name": "output_var",
           "type_name": "Image",
           "state": "resized",
@@ -3041,7 +2242,7 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
+      ],
       "preconditions": [],
       "postconditions": [],
       "effects": [
@@ -3050,15 +2251,12 @@
       "edges": [
         {
           "target_cell_id": "PILLOW_IMAGE_SAVE",
-          "affinity_score": 0.8,
+          "affinity_score": 0.5,
           "score_provenance": "llm_seed",
           "bridging_precondition": "true",
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         }
-      ],
-      "primary_in": "image",
-      "primary_out": "output_var"
+      ]
     },
     {
       "cell_id": "PILLOW_CROP",
@@ -3099,8 +2297,8 @@
         "ValueError"
       ],
       "type_vars": [],
-      "inputs": {
-        "image": {
+      "inputs": [
+        {
           "name": "image",
           "type_name": "Image",
           "state": "mode_rgb",
@@ -3120,7 +2318,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        "box": {
+        {
           "name": "box",
           "type_name": "tuple",
           "state": "crop_box",
@@ -3135,9 +2333,9 @@
           "value_constraints": null,
           "shape_contract": "(4,)"
         }
-      },
-      "outputs": {
-        "output_var": {
+      ],
+      "outputs": [
+        {
           "name": "output_var",
           "type_name": "Image",
           "state": "cropped",
@@ -3152,7 +2350,7 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
+      ],
       "preconditions": [
         {
           "target": "box",
@@ -3173,20 +2371,16 @@
           "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": "true",
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         },
         {
           "target_cell_id": "PILLOW_IMAGE_SAVE",
           "affinity_score": 0.5,
           "score_provenance": "llm_seed",
           "bridging_precondition": "true",
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         }
-      ],
-      "primary_in": "image",
-      "primary_out": "output_var"
+      ]
     },
     {
       "cell_id": "PILLOW_ROTATE",
@@ -3227,8 +2421,8 @@
         "ValueError"
       ],
       "type_vars": [],
-      "inputs": {
-        "image": {
+      "inputs": [
+        {
           "name": "image",
           "type_name": "Image",
           "state": "mode_rgb",
@@ -3248,7 +2442,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        "angle": {
+        {
           "name": "angle",
           "type_name": "float",
           "state": "degrees",
@@ -3263,7 +2457,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        "expand": {
+        {
           "name": "expand",
           "type_name": "bool",
           "state": "expand_canvas_flag",
@@ -3278,9 +2472,9 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
-      "outputs": {
-        "output_var": {
+      ],
+      "outputs": [
+        {
           "name": "output_var",
           "type_name": "Image",
           "state": "rotated",
@@ -3295,7 +2489,7 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
+      ],
       "preconditions": [],
       "postconditions": [],
       "effects": [
@@ -3307,12 +2501,9 @@
           "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": "true",
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         }
-      ],
-      "primary_in": "image",
-      "primary_out": "output_var"
+      ]
     },
     {
       "cell_id": "PILLOW_TRANSPOSE_FLIP_LEFT_RIGHT",
@@ -3350,8 +2541,8 @@
       "feedback_state_type": null,
       "raises": [],
       "type_vars": [],
-      "inputs": {
-        "image": {
+      "inputs": [
+        {
           "name": "image",
           "type_name": "Image",
           "state": "mode_rgb",
@@ -3371,9 +2562,9 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
-      "outputs": {
-        "output_var": {
+      ],
+      "outputs": [
+        {
           "name": "output_var",
           "type_name": "Image",
           "state": "rotated",
@@ -3388,7 +2579,7 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
+      ],
       "preconditions": [],
       "postconditions": [],
       "effects": [
@@ -3400,12 +2591,9 @@
           "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": "true",
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         }
-      ],
-      "primary_in": "image",
-      "primary_out": "output_var"
+      ]
     },
     {
       "cell_id": "PILLOW_TRANSPOSE_FLIP_TOP_BOTTOM",
@@ -3443,8 +2631,8 @@
       "feedback_state_type": null,
       "raises": [],
       "type_vars": [],
-      "inputs": {
-        "image": {
+      "inputs": [
+        {
           "name": "image",
           "type_name": "Image",
           "state": "mode_rgb",
@@ -3464,9 +2652,9 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
-      "outputs": {
-        "output_var": {
+      ],
+      "outputs": [
+        {
           "name": "output_var",
           "type_name": "Image",
           "state": "rotated",
@@ -3481,7 +2669,7 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
+      ],
       "preconditions": [],
       "postconditions": [],
       "effects": [
@@ -3493,12 +2681,9 @@
           "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": "true",
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         }
-      ],
-      "primary_in": "image",
-      "primary_out": "output_var"
+      ]
     },
     {
       "cell_id": "PILLOW_TRANSPOSE_ROTATE_90",
@@ -3534,8 +2719,8 @@
       "feedback_state_type": null,
       "raises": [],
       "type_vars": [],
-      "inputs": {
-        "image": {
+      "inputs": [
+        {
           "name": "image",
           "type_name": "Image",
           "state": "mode_rgb",
@@ -3555,9 +2740,9 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
-      "outputs": {
-        "output_var": {
+      ],
+      "outputs": [
+        {
           "name": "output_var",
           "type_name": "Image",
           "state": "rotated",
@@ -3572,7 +2757,7 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
+      ],
       "preconditions": [],
       "postconditions": [],
       "effects": [
@@ -3584,12 +2769,9 @@
           "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": "true",
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         }
-      ],
-      "primary_in": "image",
-      "primary_out": "output_var"
+      ]
     },
     {
       "cell_id": "PILLOW_FILTER_GAUSSIAN_BLUR",
@@ -3631,8 +2813,8 @@
         "ValueError"
       ],
       "type_vars": [],
-      "inputs": {
-        "image": {
+      "inputs": [
+        {
           "name": "image",
           "type_name": "Image",
           "state": "mode_rgb",
@@ -3652,7 +2834,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        "radius": {
+        {
           "name": "radius",
           "type_name": "float",
           "state": "blur_radius",
@@ -3669,9 +2851,9 @@
           },
           "shape_contract": null
         }
-      },
-      "outputs": {
-        "output_var": {
+      ],
+      "outputs": [
+        {
           "name": "output_var",
           "type_name": "Image",
           "state": "filtered_blur",
@@ -3686,7 +2868,7 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
+      ],
       "preconditions": [
         {
           "target": "radius",
@@ -3707,12 +2889,9 @@
           "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": "true",
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         }
-      ],
-      "primary_in": "image",
-      "primary_out": "output_var"
+      ]
     },
     {
       "cell_id": "PILLOW_FILTER_BOX_BLUR",
@@ -3753,8 +2932,8 @@
         "ValueError"
       ],
       "type_vars": [],
-      "inputs": {
-        "image": {
+      "inputs": [
+        {
           "name": "image",
           "type_name": "Image",
           "state": "mode_rgb",
@@ -3774,7 +2953,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        "radius": {
+        {
           "name": "radius",
           "type_name": "int",
           "state": "box_radius",
@@ -3791,9 +2970,9 @@
           },
           "shape_contract": null
         }
-      },
-      "outputs": {
-        "output_var": {
+      ],
+      "outputs": [
+        {
           "name": "output_var",
           "type_name": "Image",
           "state": "filtered_blur",
@@ -3808,7 +2987,7 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
+      ],
       "preconditions": [],
       "postconditions": [],
       "effects": [
@@ -3820,12 +2999,9 @@
           "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": "true",
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         }
-      ],
-      "primary_in": "image",
-      "primary_out": "output_var"
+      ]
     },
     {
       "cell_id": "PILLOW_FILTER_FIND_EDGES",
@@ -3863,8 +3039,8 @@
       "feedback_state_type": null,
       "raises": [],
       "type_vars": [],
-      "inputs": {
-        "image": {
+      "inputs": [
+        {
           "name": "image",
           "type_name": "Image",
           "state": "mode_rgb",
@@ -3883,9 +3059,9 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
-      "outputs": {
-        "output_var": {
+      ],
+      "outputs": [
+        {
           "name": "output_var",
           "type_name": "Image",
           "state": "filtered_edges",
@@ -3900,7 +3076,7 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
+      ],
       "preconditions": [],
       "postconditions": [],
       "effects": [
@@ -3912,12 +3088,9 @@
           "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": "true",
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         }
-      ],
-      "primary_in": "image",
-      "primary_out": "output_var"
+      ]
     },
     {
       "cell_id": "PILLOW_FILTER_CONTOUR",
@@ -3954,8 +3127,8 @@
       "feedback_state_type": null,
       "raises": [],
       "type_vars": [],
-      "inputs": {
-        "image": {
+      "inputs": [
+        {
           "name": "image",
           "type_name": "Image",
           "state": "mode_rgb",
@@ -3974,9 +3147,9 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
-      "outputs": {
-        "output_var": {
+      ],
+      "outputs": [
+        {
           "name": "output_var",
           "type_name": "Image",
           "state": "filtered_edges",
@@ -3991,12 +3164,11 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
+      ],
       "preconditions": [],
       "postconditions": [],
       "effects": [
-        "extracts_contours",
-        "draws_annotation"
+        "extracts_contours"
       ],
       "edges": [
         {
@@ -4004,12 +3176,9 @@
           "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": "true",
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         }
-      ],
-      "primary_in": "image",
-      "primary_out": "output_var"
+      ]
     },
     {
       "cell_id": "PILLOW_FILTER_SHARPEN",
@@ -4046,8 +3215,8 @@
       "feedback_state_type": null,
       "raises": [],
       "type_vars": [],
-      "inputs": {
-        "image": {
+      "inputs": [
+        {
           "name": "image",
           "type_name": "Image",
           "state": "mode_rgb",
@@ -4066,9 +3235,9 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
-      "outputs": {
-        "output_var": {
+      ],
+      "outputs": [
+        {
           "name": "output_var",
           "type_name": "Image",
           "state": "filtered_general",
@@ -4083,7 +3252,7 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
+      ],
       "preconditions": [],
       "postconditions": [],
       "effects": [
@@ -4095,12 +3264,9 @@
           "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": "true",
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         }
-      ],
-      "primary_in": "image",
-      "primary_out": "output_var"
+      ]
     },
     {
       "cell_id": "PILLOW_FILTER_UNSHARP_MASK",
@@ -4143,8 +3309,8 @@
         "ValueError"
       ],
       "type_vars": [],
-      "inputs": {
-        "image": {
+      "inputs": [
+        {
           "name": "image",
           "type_name": "Image",
           "state": "mode_rgb",
@@ -4163,7 +3329,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        "radius": {
+        {
           "name": "radius",
           "type_name": "float",
           "state": "blur_radius",
@@ -4178,7 +3344,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        "percent": {
+        {
           "name": "percent",
           "type_name": "int",
           "state": "percentage",
@@ -4193,7 +3359,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        "threshold": {
+        {
           "name": "threshold",
           "type_name": "int",
           "state": "threshold_delta",
@@ -4208,9 +3374,9 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
-      "outputs": {
-        "output_var": {
+      ],
+      "outputs": [
+        {
           "name": "output_var",
           "type_name": "Image",
           "state": "filtered_general",
@@ -4225,7 +3391,7 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
+      ],
       "preconditions": [],
       "postconditions": [],
       "effects": [
@@ -4237,12 +3403,9 @@
           "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": "true",
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         }
-      ],
-      "primary_in": "image",
-      "primary_out": "output_var"
+      ]
     },
     {
       "cell_id": "PILLOW_FILTER_MEDIAN",
@@ -4283,8 +3446,8 @@
         "ValueError"
       ],
       "type_vars": [],
-      "inputs": {
-        "image": {
+      "inputs": [
+        {
           "name": "image",
           "type_name": "Image",
           "state": "mode_rgb",
@@ -4303,7 +3466,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        "size_val": {
+        {
           "name": "size_val",
           "type_name": "int",
           "state": "odd_kernel_size",
@@ -4320,9 +3483,9 @@
           },
           "shape_contract": null
         }
-      },
-      "outputs": {
-        "output_var": {
+      ],
+      "outputs": [
+        {
           "name": "output_var",
           "type_name": "Image",
           "state": "filtered_general",
@@ -4337,7 +3500,7 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
+      ],
       "preconditions": [
         {
           "target": "size_val",
@@ -4358,12 +3521,9 @@
           "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": "true",
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         }
-      ],
-      "primary_in": "image",
-      "primary_out": "output_var"
+      ]
     },
     {
       "cell_id": "PILLOW_ENHANCE_CONTRAST",
@@ -4403,8 +3563,8 @@
         "ValueError"
       ],
       "type_vars": [],
-      "inputs": {
-        "image": {
+      "inputs": [
+        {
           "name": "image",
           "type_name": "Image",
           "state": "mode_rgb",
@@ -4423,7 +3583,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        "factor": {
+        {
           "name": "factor",
           "type_name": "float",
           "state": "contrast_factor",
@@ -4440,9 +3600,9 @@
           },
           "shape_contract": null
         }
-      },
-      "outputs": {
-        "output_var": {
+      ],
+      "outputs": [
+        {
           "name": "output_var",
           "type_name": "Image",
           "state": "enhanced_contrast",
@@ -4457,7 +3617,7 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
+      ],
       "preconditions": [
         {
           "target": "factor",
@@ -4478,20 +3638,16 @@
           "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": "true",
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         },
         {
           "target_cell_id": "PILLOW_IMAGE_SAVE",
           "affinity_score": 0.5,
           "score_provenance": "llm_seed",
           "bridging_precondition": "true",
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         }
-      ],
-      "primary_in": "image",
-      "primary_out": "output_var"
+      ]
     },
     {
       "cell_id": "PILLOW_ENHANCE_BRIGHTNESS",
@@ -4531,8 +3687,8 @@
         "ValueError"
       ],
       "type_vars": [],
-      "inputs": {
-        "image": {
+      "inputs": [
+        {
           "name": "image",
           "type_name": "Image",
           "state": "mode_rgb",
@@ -4551,7 +3707,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        "factor": {
+        {
           "name": "factor",
           "type_name": "float",
           "state": "brightness_factor",
@@ -4568,9 +3724,9 @@
           },
           "shape_contract": null
         }
-      },
-      "outputs": {
-        "output_var": {
+      ],
+      "outputs": [
+        {
           "name": "output_var",
           "type_name": "Image",
           "state": "enhanced_brightness",
@@ -4585,7 +3741,7 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
+      ],
       "preconditions": [
         {
           "target": "factor",
@@ -4606,12 +3762,9 @@
           "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": "true",
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         }
-      ],
-      "primary_in": "image",
-      "primary_out": "output_var"
+      ]
     },
     {
       "cell_id": "PILLOW_ENHANCE_COLOR",
@@ -4652,8 +3805,8 @@
         "ValueError"
       ],
       "type_vars": [],
-      "inputs": {
-        "image": {
+      "inputs": [
+        {
           "name": "image",
           "type_name": "Image",
           "state": "mode_rgb",
@@ -4668,7 +3821,7 @@
           "value_constraints": null,
           "shape_contract": "(H, W, 3)"
         },
-        "factor": {
+        {
           "name": "factor",
           "type_name": "float",
           "state": "saturation_factor",
@@ -4685,9 +3838,9 @@
           },
           "shape_contract": null
         }
-      },
-      "outputs": {
-        "output_var": {
+      ],
+      "outputs": [
+        {
           "name": "output_var",
           "type_name": "Image",
           "state": "enhanced_color",
@@ -4702,7 +3855,7 @@
           "value_constraints": null,
           "shape_contract": "(H, W, 3)"
         }
-      },
+      ],
       "preconditions": [
         {
           "target": "image",
@@ -4723,12 +3876,9 @@
           "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": "true",
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         }
-      ],
-      "primary_in": "image",
-      "primary_out": "output_var"
+      ]
     },
     {
       "cell_id": "PILLOW_ENHANCE_SHARPNESS",
@@ -4768,8 +3918,8 @@
         "ValueError"
       ],
       "type_vars": [],
-      "inputs": {
-        "image": {
+      "inputs": [
+        {
           "name": "image",
           "type_name": "Image",
           "state": "mode_rgb",
@@ -4788,7 +3938,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        "factor": {
+        {
           "name": "factor",
           "type_name": "float",
           "state": "sharpness_factor",
@@ -4805,9 +3955,9 @@
           },
           "shape_contract": null
         }
-      },
-      "outputs": {
-        "output_var": {
+      ],
+      "outputs": [
+        {
           "name": "output_var",
           "type_name": "Image",
           "state": "enhanced_sharpness",
@@ -4822,7 +3972,7 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
+      ],
       "preconditions": [],
       "postconditions": [],
       "effects": [
@@ -4834,12 +3984,9 @@
           "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": "true",
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         }
-      ],
-      "primary_in": "image",
-      "primary_out": "output_var"
+      ]
     },
     {
       "cell_id": "PILLOW_DRAW_INITIALIZE",
@@ -4878,8 +4025,8 @@
       "feedback_state_type": null,
       "raises": [],
       "type_vars": [],
-      "inputs": {
-        "image": {
+      "inputs": [
+        {
           "name": "image",
           "type_name": "Image",
           "state": "mode_rgb",
@@ -4899,9 +4046,9 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
-      "outputs": {
-        "output_var": {
+      ],
+      "outputs": [
+        {
           "name": "output_var",
           "type_name": "ImageDraw",
           "state": "draw_context_active",
@@ -4916,7 +4063,7 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
+      ],
       "preconditions": [],
       "postconditions": [
         {
@@ -4937,28 +4084,23 @@
           "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": "true",
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         },
         {
           "target_cell_id": "PILLOW_DRAW_TEXT",
-          "affinity_score": 0.5,
+          "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": "true",
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         },
         {
           "target_cell_id": "PILLOW_DRAW_LINE",
-          "affinity_score": 0.2,
+          "affinity_score": 0.5,
           "score_provenance": "llm_seed",
           "bridging_precondition": "true",
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         }
-      ],
-      "primary_in": "image",
-      "primary_out": "output_var"
+      ]
     },
     {
       "cell_id": "PILLOW_DRAW_LINE",
@@ -4999,8 +4141,8 @@
         "ValueError"
       ],
       "type_vars": [],
-      "inputs": {
-        "draw": {
+      "inputs": [
+        {
           "name": "draw",
           "type_name": "ImageDraw",
           "state": "draw_context_active",
@@ -5015,7 +4157,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        "xy": {
+        {
           "name": "xy",
           "type_name": "list",
           "state": "coordinates_seq",
@@ -5030,7 +4172,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        "fill": {
+        {
           "name": "fill",
           "type_name": "tuple",
           "state": "stroke_color",
@@ -5045,7 +4187,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        "width": {
+        {
           "name": "width",
           "type_name": "int",
           "state": "stroke_width",
@@ -5062,8 +4204,8 @@
           },
           "shape_contract": null
         }
-      },
-      "outputs": {},
+      ],
+      "outputs": [],
       "preconditions": [],
       "postconditions": [],
       "effects": [
@@ -5072,15 +4214,12 @@
       "edges": [
         {
           "target_cell_id": "PILLOW_DRAW_TEXT",
-          "affinity_score": 0.8,
+          "affinity_score": 0.5,
           "score_provenance": "llm_seed",
           "bridging_precondition": "true",
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         }
-      ],
-      "primary_in": "draw",
-      "primary_out": "void"
+      ]
     },
     {
       "cell_id": "PILLOW_DRAW_RECTANGLE",
@@ -5124,8 +4263,8 @@
         "ValueError"
       ],
       "type_vars": [],
-      "inputs": {
-        "draw": {
+      "inputs": [
+        {
           "name": "draw",
           "type_name": "ImageDraw",
           "state": "draw_context_active",
@@ -5140,7 +4279,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        "xy": {
+        {
           "name": "xy",
           "type_name": "tuple",
           "state": "rect_coordinates",
@@ -5155,7 +4294,7 @@
           "value_constraints": null,
           "shape_contract": "(4,)"
         },
-        "fill": {
+        {
           "name": "fill",
           "type_name": "tuple",
           "state": "fill_color",
@@ -5170,7 +4309,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        "outline": {
+        {
           "name": "outline",
           "type_name": "tuple",
           "state": "outline_color",
@@ -5185,7 +4324,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        "width": {
+        {
           "name": "width",
           "type_name": "int",
           "state": "border_width",
@@ -5202,8 +4341,8 @@
           },
           "shape_contract": null
         }
-      },
-      "outputs": {},
+      ],
+      "outputs": [],
       "preconditions": [
         {
           "target": "xy",
@@ -5224,12 +4363,9 @@
           "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": "true",
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         }
-      ],
-      "primary_in": "draw",
-      "primary_out": "void"
+      ]
     },
     {
       "cell_id": "PILLOW_DRAW_ELLIPSE",
@@ -5271,8 +4407,8 @@
         "ValueError"
       ],
       "type_vars": [],
-      "inputs": {
-        "draw": {
+      "inputs": [
+        {
           "name": "draw",
           "type_name": "ImageDraw",
           "state": "draw_context_active",
@@ -5287,7 +4423,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        "xy": {
+        {
           "name": "xy",
           "type_name": "tuple",
           "state": "ellipse_bounds",
@@ -5302,7 +4438,7 @@
           "value_constraints": null,
           "shape_contract": "(4,)"
         },
-        "fill": {
+        {
           "name": "fill",
           "type_name": "tuple",
           "state": "fill_color",
@@ -5317,7 +4453,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        "outline": {
+        {
           "name": "outline",
           "type_name": "tuple",
           "state": "outline_color",
@@ -5332,7 +4468,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        "width": {
+        {
           "name": "width",
           "type_name": "int",
           "state": "outline_width",
@@ -5349,16 +4485,14 @@
           },
           "shape_contract": null
         }
-      },
-      "outputs": {},
+      ],
+      "outputs": [],
       "preconditions": [],
       "postconditions": [],
       "effects": [
         "mutates_image_pixels"
       ],
-      "edges": [],
-      "primary_in": "draw",
-      "primary_out": "void"
+      "edges": []
     },
     {
       "cell_id": "PILLOW_DRAW_TEXT",
@@ -5401,8 +4535,8 @@
         "ValueError"
       ],
       "type_vars": [],
-      "inputs": {
-        "draw": {
+      "inputs": [
+        {
           "name": "draw",
           "type_name": "ImageDraw",
           "state": "draw_context_active",
@@ -5417,7 +4551,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        "xy": {
+        {
           "name": "xy",
           "type_name": "tuple",
           "state": "anchor_point",
@@ -5432,7 +4566,7 @@
           "value_constraints": null,
           "shape_contract": "(2,)"
         },
-        "text": {
+        {
           "name": "text",
           "type_name": "str",
           "state": "raw_text",
@@ -5447,7 +4581,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        "fill": {
+        {
           "name": "fill",
           "type_name": "tuple",
           "state": "text_color",
@@ -5462,16 +4596,14 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
-      "outputs": {},
+      ],
+      "outputs": [],
       "preconditions": [],
       "postconditions": [],
       "effects": [
         "rasterizes_glyphs"
       ],
-      "edges": [],
-      "primary_in": "draw",
-      "primary_out": "void"
+      "edges": []
     },
     {
       "cell_id": "PILLOW_ALPHA_COMPOSITE",
@@ -5513,8 +4645,8 @@
         "ValueError"
       ],
       "type_vars": [],
-      "inputs": {
-        "image_dst": {
+      "inputs": [
+        {
           "name": "image_dst",
           "type_name": "Image",
           "state": "mode_rgba",
@@ -5529,7 +4661,7 @@
           "value_constraints": null,
           "shape_contract": "(H, W, 4)"
         },
-        "image_src": {
+        {
           "name": "image_src",
           "type_name": "Image",
           "state": "mode_rgba",
@@ -5544,9 +4676,9 @@
           "value_constraints": null,
           "shape_contract": "(H, W, 4)"
         }
-      },
-      "outputs": {
-        "output_var": {
+      ],
+      "outputs": [
+        {
           "name": "output_var",
           "type_name": "Image",
           "state": "composited",
@@ -5561,7 +4693,7 @@
           "value_constraints": null,
           "shape_contract": "(H, W, 4)"
         }
-      },
+      ],
       "preconditions": [
         {
           "target": "image_dst",
@@ -5599,20 +4731,16 @@
           "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": "true",
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         },
         {
           "target_cell_id": "PILLOW_IMAGE_SAVE_PNG",
-          "affinity_score": 0.5,
+          "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": "true",
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         }
-      ],
-      "primary_in": "image_dst",
-      "primary_out": "output_var"
+      ]
     },
     {
       "cell_id": "PILLOW_BLEND",
@@ -5654,8 +4782,8 @@
         "ValueError"
       ],
       "type_vars": [],
-      "inputs": {
-        "image1": {
+      "inputs": [
+        {
           "name": "image1",
           "type_name": "Image",
           "state": "mode_rgb",
@@ -5670,7 +4798,7 @@
           "value_constraints": null,
           "shape_contract": "(H, W, 3)"
         },
-        "image2": {
+        {
           "name": "image2",
           "type_name": "Image",
           "state": "mode_rgb",
@@ -5685,7 +4813,7 @@
           "value_constraints": null,
           "shape_contract": "(H, W, 3)"
         },
-        "alpha": {
+        {
           "name": "alpha",
           "type_name": "float",
           "state": "blend_weight",
@@ -5703,9 +4831,9 @@
           },
           "shape_contract": null
         }
-      },
-      "outputs": {
-        "output_var": {
+      ],
+      "outputs": [
+        {
           "name": "output_var",
           "type_name": "Image",
           "state": "composited",
@@ -5720,7 +4848,7 @@
           "value_constraints": null,
           "shape_contract": "(H, W, 3)"
         }
-      },
+      ],
       "preconditions": [
         {
           "target": "image1",
@@ -5741,12 +4869,9 @@
           "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": "true",
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         }
-      ],
-      "primary_in": "image1",
-      "primary_out": "output_var"
+      ]
     },
     {
       "cell_id": "PILLOW_COMPOSITE",
@@ -5787,8 +4912,8 @@
         "ValueError"
       ],
       "type_vars": [],
-      "inputs": {
-        "image1": {
+      "inputs": [
+        {
           "name": "image1",
           "type_name": "Image",
           "state": "mode_rgb",
@@ -5803,7 +4928,7 @@
           "value_constraints": null,
           "shape_contract": "(H, W, 3)"
         },
-        "image2": {
+        {
           "name": "image2",
           "type_name": "Image",
           "state": "mode_rgb",
@@ -5818,7 +4943,7 @@
           "value_constraints": null,
           "shape_contract": "(H, W, 3)"
         },
-        "mask": {
+        {
           "name": "mask",
           "type_name": "Image",
           "state": "mode_grayscale",
@@ -5837,9 +4962,9 @@
           "value_constraints": null,
           "shape_contract": "(H, W)"
         }
-      },
-      "outputs": {
-        "output_var": {
+      ],
+      "outputs": [
+        {
           "name": "output_var",
           "type_name": "Image",
           "state": "composited",
@@ -5854,7 +4979,7 @@
           "value_constraints": null,
           "shape_contract": "(H, W, 3)"
         }
-      },
+      ],
       "preconditions": [
         {
           "target": "mask",
@@ -5875,12 +5000,9 @@
           "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": "true",
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         }
-      ],
-      "primary_in": "image1",
-      "primary_out": "output_var"
+      ]
     },
     {
       "cell_id": "PILLOW_SPLIT",
@@ -5921,8 +5043,8 @@
         "ValueError"
       ],
       "type_vars": [],
-      "inputs": {
-        "image": {
+      "inputs": [
+        {
           "name": "image",
           "type_name": "Image",
           "state": "mode_rgb",
@@ -5937,9 +5059,9 @@
           "value_constraints": null,
           "shape_contract": "(H, W, 3)"
         }
-      },
-      "outputs": {
-        "output_r": {
+      ],
+      "outputs": [
+        {
           "name": "output_r",
           "type_name": "Image",
           "state": "mode_grayscale",
@@ -5954,7 +5076,7 @@
           "value_constraints": null,
           "shape_contract": "(H, W)"
         },
-        "output_g": {
+        {
           "name": "output_g",
           "type_name": "Image",
           "state": "mode_grayscale",
@@ -5969,7 +5091,7 @@
           "value_constraints": null,
           "shape_contract": "(H, W)"
         },
-        "output_b": {
+        {
           "name": "output_b",
           "type_name": "Image",
           "state": "mode_grayscale",
@@ -5984,7 +5106,7 @@
           "value_constraints": null,
           "shape_contract": "(H, W)"
         }
-      },
+      ],
       "preconditions": [
         {
           "target": "image",
@@ -6005,12 +5127,9 @@
           "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": "true",
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         }
-      ],
-      "primary_in": "image",
-      "primary_out": "output_r"
+      ]
     },
     {
       "cell_id": "PILLOW_MERGE_RGB",
@@ -6052,8 +5171,8 @@
         "ValueError"
       ],
       "type_vars": [],
-      "inputs": {
-        "band_r": {
+      "inputs": [
+        {
           "name": "band_r",
           "type_name": "Image",
           "state": "mode_grayscale",
@@ -6068,7 +5187,7 @@
           "value_constraints": null,
           "shape_contract": "(H, W)"
         },
-        "band_g": {
+        {
           "name": "band_g",
           "type_name": "Image",
           "state": "mode_grayscale",
@@ -6083,7 +5202,7 @@
           "value_constraints": null,
           "shape_contract": "(H, W)"
         },
-        "band_b": {
+        {
           "name": "band_b",
           "type_name": "Image",
           "state": "mode_grayscale",
@@ -6098,9 +5217,9 @@
           "value_constraints": null,
           "shape_contract": "(H, W)"
         }
-      },
-      "outputs": {
-        "output_var": {
+      ],
+      "outputs": [
+        {
           "name": "output_var",
           "type_name": "Image",
           "state": "mode_rgb",
@@ -6115,7 +5234,7 @@
           "value_constraints": null,
           "shape_contract": "(H, W, 3)"
         }
-      },
+      ],
       "preconditions": [
         {
           "target": "band_r",
@@ -6145,12 +5264,9 @@
           "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": "true",
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         }
-      ],
-      "primary_in": "band_r",
-      "primary_out": "output_var"
+      ]
     },
     {
       "cell_id": "PILLOW_IMAGEOPS_INVERT",
@@ -6190,8 +5306,8 @@
         "OSError"
       ],
       "type_vars": [],
-      "inputs": {
-        "image": {
+      "inputs": [
+        {
           "name": "image",
           "type_name": "Image",
           "state": "mode_rgb",
@@ -6210,9 +5326,9 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
-      "outputs": {
-        "output_var": {
+      ],
+      "outputs": [
+        {
           "name": "output_var",
           "type_name": "Image",
           "state": "mode_rgb",
@@ -6227,7 +5343,7 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
+      ],
       "preconditions": [],
       "postconditions": [],
       "effects": [
@@ -6239,12 +5355,9 @@
           "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": "true",
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         }
-      ],
-      "primary_in": "image",
-      "primary_out": "output_var"
+      ]
     },
     {
       "cell_id": "PILLOW_IMAGEOPS_AUTOCONTRAST",
@@ -6283,8 +5396,8 @@
       "feedback_state_type": null,
       "raises": [],
       "type_vars": [],
-      "inputs": {
-        "image": {
+      "inputs": [
+        {
           "name": "image",
           "type_name": "Image",
           "state": "mode_rgb",
@@ -6303,7 +5416,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        "cutoff": {
+        {
           "name": "cutoff",
           "type_name": "float",
           "state": "percent_cutoff",
@@ -6321,9 +5434,9 @@
           },
           "shape_contract": null
         }
-      },
-      "outputs": {
-        "output_var": {
+      ],
+      "outputs": [
+        {
           "name": "output_var",
           "type_name": "Image",
           "state": "enhanced_contrast",
@@ -6338,7 +5451,7 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
+      ],
       "preconditions": [],
       "postconditions": [],
       "effects": [
@@ -6350,12 +5463,9 @@
           "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": "true",
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         }
-      ],
-      "primary_in": "image",
-      "primary_out": "output_var"
+      ]
     },
     {
       "cell_id": "PILLOW_IMAGEOPS_PAD",
@@ -6398,8 +5508,8 @@
         "ValueError"
       ],
       "type_vars": [],
-      "inputs": {
-        "image": {
+      "inputs": [
+        {
           "name": "image",
           "type_name": "Image",
           "state": "mode_rgb",
@@ -6419,7 +5529,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        "size": {
+        {
           "name": "size",
           "type_name": "tuple",
           "state": "target_dimensions",
@@ -6434,7 +5544,7 @@
           "value_constraints": null,
           "shape_contract": "(2,)"
         },
-        "color": {
+        {
           "name": "color",
           "type_name": "tuple",
           "state": "padding_color",
@@ -6449,9 +5559,9 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
-      "outputs": {
-        "output_var": {
+      ],
+      "outputs": [
+        {
           "name": "output_var",
           "type_name": "Image",
           "state": "resized",
@@ -6466,7 +5576,7 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
+      ],
       "preconditions": [],
       "postconditions": [
         {
@@ -6487,12 +5597,9 @@
           "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": "true",
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         }
-      ],
-      "primary_in": "image",
-      "primary_out": "output_var"
+      ]
     },
     {
       "cell_id": "PILLOW_IMAGEOPS_FIT",
@@ -6533,8 +5640,8 @@
         "ValueError"
       ],
       "type_vars": [],
-      "inputs": {
-        "image": {
+      "inputs": [
+        {
           "name": "image",
           "type_name": "Image",
           "state": "mode_rgb",
@@ -6554,7 +5661,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        "size": {
+        {
           "name": "size",
           "type_name": "tuple",
           "state": "target_dimensions",
@@ -6569,9 +5676,9 @@
           "value_constraints": null,
           "shape_contract": "(2,)"
         }
-      },
-      "outputs": {
-        "output_var": {
+      ],
+      "outputs": [
+        {
           "name": "output_var",
           "type_name": "Image",
           "state": "resized",
@@ -6586,7 +5693,7 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
+      ],
       "preconditions": [],
       "postconditions": [],
       "effects": [
@@ -6598,12 +5705,9 @@
           "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": "true",
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         }
-      ],
-      "primary_in": "image",
-      "primary_out": "output_var"
+      ]
     },
     {
       "cell_id": "PILLOW_IMAGE_SAVE",
@@ -6644,8 +5748,8 @@
         "ValueError"
       ],
       "type_vars": [],
-      "inputs": {
-        "image": {
+      "inputs": [
+        {
           "name": "image",
           "type_name": "Image",
           "state": "mode_rgb",
@@ -6680,9 +5784,9 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        "dest_path": {
+        {
           "name": "dest_path",
-          "type_name": "File[Image, Any]",
+          "type_name": "str",
           "state": "destination_path",
           "qualifiers": [],
           "default_value": null,
@@ -6695,8 +5799,8 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
-      "outputs": {},
+      ],
+      "outputs": [],
       "preconditions": [
         {
           "target": "dest_path",
@@ -6711,10 +5815,7 @@
       "effects": [
         "writes_to_filesystem"
       ],
-      "edges": [],
-      "primary_in": "image",
-      "primary_out": "void",
-      "endable": true
+      "edges": []
     },
     {
       "cell_id": "PILLOW_IMAGE_SAVE_JPEG",
@@ -6756,8 +5857,8 @@
         "OSError"
       ],
       "type_vars": [],
-      "inputs": {
-        "image": {
+      "inputs": [
+        {
           "name": "image",
           "type_name": "Image",
           "state": "mode_rgb",
@@ -6779,9 +5880,9 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        "dest_path": {
+        {
           "name": "dest_path",
-          "type_name": "File[Image, JPEG]",
+          "type_name": "str",
           "state": "destination_path",
           "qualifiers": [],
           "default_value": null,
@@ -6794,7 +5895,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        "quality": {
+        {
           "name": "quality",
           "type_name": "int",
           "state": "compression_quality",
@@ -6812,8 +5913,8 @@
           },
           "shape_contract": null
         }
-      },
-      "outputs": {},
+      ],
+      "outputs": [],
       "preconditions": [
         {
           "target": "image",
@@ -6828,10 +5929,7 @@
       "effects": [
         "writes_jpeg_file"
       ],
-      "edges": [],
-      "primary_in": "image",
-      "primary_out": "void",
-      "endable": true
+      "edges": []
     },
     {
       "cell_id": "PILLOW_IMAGE_SAVE_PNG",
@@ -6873,8 +5971,8 @@
         "OSError"
       ],
       "type_vars": [],
-      "inputs": {
-        "image": {
+      "inputs": [
+        {
           "name": "image",
           "type_name": "Image",
           "state": "mode_rgba",
@@ -6896,9 +5994,9 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        "dest_path": {
+        {
           "name": "dest_path",
-          "type_name": "File[Image, PNG]",
+          "type_name": "str",
           "state": "destination_path",
           "qualifiers": [],
           "default_value": null,
@@ -6911,7 +6009,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        "optimize": {
+        {
           "name": "optimize",
           "type_name": "bool",
           "state": "optimize_flag",
@@ -6926,17 +6024,14 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
-      "outputs": {},
+      ],
+      "outputs": [],
       "preconditions": [],
       "postconditions": [],
       "effects": [
         "writes_png_file"
       ],
-      "edges": [],
-      "primary_in": "image",
-      "primary_out": "void",
-      "endable": true
+      "edges": []
     },
     {
       "cell_id": "PILLOW_IMAGE_SHOW",
@@ -6974,8 +6069,8 @@
       "feedback_state_type": null,
       "raises": [],
       "type_vars": [],
-      "inputs": {
-        "image": {
+      "inputs": [
+        {
           "name": "image",
           "type_name": "Image",
           "state": "mode_rgb",
@@ -6995,7 +6090,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        "title": {
+        {
           "name": "title",
           "type_name": "str",
           "state": "window_title",
@@ -7010,3579 +6105,16 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
-      "outputs": {},
+      ],
+      "outputs": [],
       "preconditions": [],
       "postconditions": [],
       "effects": [
         "spawns_external_viewer"
       ],
-      "edges": [],
-      "primary_in": "image",
-      "primary_out": "void",
-      "endable": true
-    },
-    {
-      "cell_id": "PILLOW_IMAGE_FROMBYTES",
-      "stage": 1,
-      "topology_type": "unary",
-      "node_type": "function",
-      "node_role": "source",
-      "mutation_type": "pure",
-      "is_context_manager": false,
-      "verified": true,
-      "source_priority": 95,
-      "is_public": true,
-      "docstring": "Constructs an image memory copy from raw byte buffer data.",
-      "dependencies": [
-        "PIL.Image"
-      ],
-      "semantic_tags": [
-        "source",
-        "bytes",
-        "ingest",
-        "buffer"
-      ],
-      "keywords": [
-        "frombytes",
-        "bytes",
-        "raw",
-        "buffer"
-      ],
-      "code_template": "{output_var} = Image.frombytes({mode}, {size}, {data})",
-      "slots": [
-        "output_var",
-        "mode",
-        "size",
-        "data"
-      ],
-      "bound_slots": {},
-      "feedback_state_type": null,
-      "raises": [
-        "ValueError"
-      ],
-      "type_vars": [],
-      "inputs": {
-        "mode": {
-          "name": "mode",
-          "type_name": "str",
-          "state": "image_mode_str",
-          "qualifiers": [],
-          "default_value": "'RGB'",
-          "description": "Pixel format mode.",
-          "domain": "Pillow",
-          "required": true,
-          "abstract_type": "scalar",
-          "enum_values": [
-            "RGB",
-            "RGBA",
-            "L",
-            "1",
-            "CMYK"
-          ],
-          "param_kind": "positional",
-          "value_constraints": null,
-          "shape_contract": null
-        },
-        "size": {
-          "name": "size",
-          "type_name": "tuple",
-          "state": "dimensions",
-          "qualifiers": [],
-          "default_value": "(128, 128)",
-          "description": "Image dimensions as (width, height).",
-          "domain": "Pillow",
-          "required": true,
-          "abstract_type": "collection",
-          "enum_values": null,
-          "param_kind": "positional",
-          "value_constraints": null,
-          "shape_contract": "(2,)"
-        },
-        "data": {
-          "name": "data",
-          "type_name": "bytes",
-          "state": "raw_byte_stream",
-          "qualifiers": [],
-          "default_value": null,
-          "description": "Raw byte string containing pixel data.",
-          "domain": "Pillow",
-          "required": true,
-          "abstract_type": "collection",
-          "enum_values": null,
-          "param_kind": "positional",
-          "value_constraints": null,
-          "shape_contract": null
-        }
-      },
-      "outputs": {
-        "output_var": {
-          "name": "output_var",
-          "type_name": "Image",
-          "state": "mode_rgb",
-          "qualifiers": [],
-          "default_value": null,
-          "description": "Constructed Image instance.",
-          "domain": "Pillow",
-          "required": true,
-          "abstract_type": "tensor",
-          "enum_values": null,
-          "param_kind": "positional",
-          "value_constraints": null,
-          "shape_contract": "(H, W, 3)"
-        }
-      },
-      "preconditions": [
-        {
-          "target": "data",
-          "property": "length",
-          "operator": ">",
-          "value": 0,
-          "expression": "len(data) > 0",
-          "description": "Data buffer must not be empty."
-        }
-      ],
-      "postconditions": [],
-      "effects": [
-        "allocates_from_byte_buffer"
-      ],
-      "edges": [
-        {
-          "target_cell_id": "PILLOW_TRANSFORM_AFFINE",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": "true",
-          "metadata": {},
-          "needs_mining": true
-        },
-        {
-          "target_cell_id": "PILLOW_IMAGE_SAVE_WEBP",
-          "affinity_score": 0.5,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": "true",
-          "metadata": {},
-          "needs_mining": true
-        }
-      ],
-      "primary_in": "data",
-      "primary_out": "output_var"
-    },
-    {
-      "cell_id": "PILLOW_LINEAR_GRADIENT",
-      "stage": 1,
-      "topology_type": "unary",
-      "node_type": "function",
-      "node_role": "source",
-      "mutation_type": "pure",
-      "is_context_manager": false,
-      "verified": true,
-      "source_priority": 85,
-      "is_public": true,
-      "docstring": "Generates a 256x256 linear gradient image in mode 'L'.",
-      "dependencies": [
-        "PIL.Image"
-      ],
-      "semantic_tags": [
-        "procedural",
-        "gradient",
-        "linear"
-      ],
-      "keywords": [
-        "gradient",
-        "linear",
-        "ramp",
-        "generator"
-      ],
-      "code_template": "{output_var} = Image.linear_gradient({mode})",
-      "slots": [
-        "output_var",
-        "mode"
-      ],
-      "bound_slots": {},
-      "feedback_state_type": null,
-      "raises": [
-        "ValueError"
-      ],
-      "type_vars": [],
-      "inputs": {
-        "mode": {
-          "name": "mode",
-          "type_name": "str",
-          "state": "gradient_mode",
-          "qualifiers": [],
-          "default_value": "'L'",
-          "description": "Color mode (typically 'L').",
-          "domain": "Pillow",
-          "required": false,
-          "abstract_type": "scalar",
-          "enum_values": [
-            "L"
-          ],
-          "param_kind": "positional",
-          "value_constraints": null,
-          "shape_contract": null
-        }
-      },
-      "outputs": {
-        "output_var": {
-          "name": "output_var",
-          "type_name": "Image",
-          "state": "mode_grayscale",
-          "qualifiers": [],
-          "default_value": null,
-          "description": "Linear grayscale gradient image.",
-          "domain": "Pillow",
-          "required": true,
-          "abstract_type": "tensor",
-          "enum_values": null,
-          "param_kind": "positional",
-          "value_constraints": null,
-          "shape_contract": "(256, 256)"
-        }
-      },
-      "preconditions": [],
-      "postconditions": [
-        {
-          "target": "output_var",
-          "property": "mode",
-          "operator": "==",
-          "value": "L",
-          "expression": "output_var.mode == 'L'",
-          "description": "Output is grayscale L mode."
-        }
-      ],
-      "effects": [
-        "procedural_gradient_generation"
-      ],
-      "edges": [
-        {
-          "target_cell_id": "PILLOW_IMAGEOPS_COLORIZE",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": "true",
-          "metadata": {},
-          "needs_mining": true
-        }
-      ],
-      "primary_in": "mode",
-      "primary_out": "output_var"
-    },
-    {
-      "cell_id": "PILLOW_RADIAL_GRADIENT",
-      "stage": 1,
-      "topology_type": "unary",
-      "node_type": "function",
-      "node_role": "source",
-      "mutation_type": "pure",
-      "is_context_manager": false,
-      "verified": true,
-      "source_priority": 85,
-      "is_public": true,
-      "docstring": "Generates a 256x256 radial gradient image in mode 'L'.",
-      "dependencies": [
-        "PIL.Image"
-      ],
-      "semantic_tags": [
-        "procedural",
-        "gradient",
-        "radial"
-      ],
-      "keywords": [
-        "gradient",
-        "radial",
-        "vignette",
-        "generator"
-      ],
-      "code_template": "{output_var} = Image.radial_gradient({mode})",
-      "slots": [
-        "output_var",
-        "mode"
-      ],
-      "bound_slots": {},
-      "feedback_state_type": null,
-      "raises": [
-        "ValueError"
-      ],
-      "type_vars": [],
-      "inputs": {
-        "mode": {
-          "name": "mode",
-          "type_name": "str",
-          "state": "gradient_mode",
-          "qualifiers": [],
-          "default_value": "'L'",
-          "description": "Color mode (strictly 'L').",
-          "domain": "Pillow",
-          "required": false,
-          "abstract_type": "scalar",
-          "enum_values": [
-            "L"
-          ],
-          "param_kind": "positional",
-          "value_constraints": null,
-          "shape_contract": null
-        }
-      },
-      "outputs": {
-        "output_var": {
-          "name": "output_var",
-          "type_name": "Image",
-          "state": "mode_grayscale",
-          "qualifiers": [],
-          "default_value": null,
-          "description": "Radial grayscale gradient.",
-          "domain": "Pillow",
-          "required": true,
-          "abstract_type": "tensor",
-          "enum_values": null,
-          "param_kind": "positional",
-          "value_constraints": null,
-          "shape_contract": "(256, 256)"
-        }
-      },
-      "preconditions": [],
-      "postconditions": [],
-      "effects": [
-        "procedural_radial_generation"
-      ],
-      "edges": [
-        {
-          "target_cell_id": "PILLOW_IMAGEOPS_COLORIZE",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": "true",
-          "metadata": {},
-          "needs_mining": true
-        }
-      ],
-      "primary_in": "mode",
-      "primary_out": "output_var"
-    },
-    {
-      "cell_id": "PILLOW_IMAGEOPS_EXIF_TRANSPOSE",
-      "stage": 1,
-      "topology_type": "unary",
-      "node_type": "function",
-      "node_role": "transformer",
-      "mutation_type": "pure",
-      "is_context_manager": false,
-      "verified": true,
-      "source_priority": 95,
-      "is_public": true,
-      "docstring": "Transposes the image to match its embedded EXIF camera orientation tag.",
-      "dependencies": [
-        "PIL.ImageOps",
-        "PIL.Image"
-      ],
-      "semantic_tags": [
-        "exif",
-        "orientation",
-        "normalize",
-        "camera"
-      ],
-      "keywords": [
-        "exif",
-        "orientation",
-        "rotate",
-        "camera"
-      ],
-      "code_template": "{output_var} = ImageOps.exif_transpose({image})",
-      "slots": [
-        "output_var",
-        "image"
-      ],
-      "bound_slots": {},
-      "feedback_state_type": null,
-      "raises": [],
-      "type_vars": [],
-      "inputs": {
-        "image": {
-          "name": "image",
-          "type_name": "Image",
-          "state": "mode_rgb",
-          "accepted_states": [
-            "mode_rgb",
-            "mode_rgba",
-            "mode_grayscale"
-          ],
-          "qualifiers": [],
-          "default_value": null,
-          "description": "Loaded image potentially containing orientation metadata.",
-          "domain": "Pillow",
-          "required": true,
-          "abstract_type": "tensor",
-          "enum_values": null,
-          "param_kind": "positional",
-          "value_constraints": null,
-          "shape_contract": null
-        }
-      },
-      "outputs": {
-        "output_var": {
-          "name": "output_var",
-          "type_name": "Image",
-          "state": "mode_rgb",
-          "qualifiers": [],
-          "default_value": null,
-          "description": "Correctly oriented image.",
-          "domain": "Pillow",
-          "required": true,
-          "abstract_type": "tensor",
-          "enum_values": null,
-          "param_kind": "positional",
-          "value_constraints": null,
-          "shape_contract": null
-        }
-      },
-      "preconditions": [],
-      "postconditions": [],
-      "effects": [
-        "normalizes_exif_rotation"
-      ],
-      "edges": [
-        {
-          "target_cell_id": "PILLOW_TRANSFORM_AFFINE",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": "true",
-          "metadata": {},
-          "needs_mining": true
-        }
-      ],
-      "primary_in": "image",
-      "primary_out": "output_var"
-    },
-    {
-      "cell_id": "PILLOW_CONVERT_TO_PALETTE_ADAPTIVE",
-      "stage": 2,
-      "topology_type": "unary",
-      "node_type": "method",
-      "node_role": "transformer",
-      "mutation_type": "pure",
-      "is_context_manager": false,
-      "verified": true,
-      "source_priority": 90,
-      "is_public": true,
-      "docstring": "Converts RGB image to 8-bit indexed palette mode using an adaptive color quantization palette.",
-      "dependencies": [
-        "PIL.Image"
-      ],
-      "semantic_tags": [
-        "convert",
-        "palette",
-        "quantize",
-        "adaptive"
-      ],
-      "keywords": [
-        "palette",
-        "adaptive",
-        "quantize",
-        "indexed"
-      ],
-      "code_template": "{output_var} = {image}.convert('P', palette=Image.Palette.ADAPTIVE, colors={colors})",
-      "slots": [
-        "output_var",
-        "image",
-        "colors"
-      ],
-      "bound_slots": {},
-      "feedback_state_type": null,
-      "raises": [
-        "ValueError"
-      ],
-      "type_vars": [],
-      "inputs": {
-        "image": {
-          "name": "image",
-          "type_name": "Image",
-          "state": "mode_rgb",
-          "accepted_states": [
-            "mode_rgb",
-            "mode_rgba"
-          ],
-          "qualifiers": [],
-          "default_value": null,
-          "description": "Truecolor image.",
-          "domain": "Pillow",
-          "required": true,
-          "abstract_type": "tensor",
-          "enum_values": null,
-          "param_kind": "positional",
-          "value_constraints": null,
-          "shape_contract": null
-        },
-        "colors": {
-          "name": "colors",
-          "type_name": "int",
-          "state": "palette_size",
-          "qualifiers": [],
-          "default_value": "256",
-          "description": "Target number of palette colors (max 256).",
-          "domain": "Pillow",
-          "required": false,
-          "abstract_type": "scalar",
-          "enum_values": null,
-          "param_kind": "keyword",
-          "value_constraints": {
-            "min": 2,
-            "max": 256
-          },
-          "shape_contract": null
-        }
-      },
-      "outputs": {
-        "output_var": {
-          "name": "output_var",
-          "type_name": "Image",
-          "state": "mode_palette",
-          "qualifiers": [],
-          "default_value": null,
-          "description": "Indexed color image.",
-          "domain": "Pillow",
-          "required": true,
-          "abstract_type": "tensor",
-          "enum_values": null,
-          "param_kind": "positional",
-          "value_constraints": null,
-          "shape_contract": "(H, W)"
-        }
-      },
-      "preconditions": [],
-      "postconditions": [
-        {
-          "target": "output_var",
-          "property": "mode",
-          "operator": "==",
-          "value": "P",
-          "expression": "output_var.mode == 'P'",
-          "description": "Output mode is P."
-        }
-      ],
-      "effects": [
-        "color_quantization"
-      ],
-      "edges": [
-        {
-          "target_cell_id": "PILLOW_IMAGE_SAVE_GIF_ANIMATED",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": "true",
-          "metadata": {},
-          "needs_mining": true
-        }
-      ],
-      "primary_in": "image",
-      "primary_out": "output_var"
-    },
-    {
-      "cell_id": "PILLOW_CONVERT_TO_HSV",
-      "stage": 2,
-      "topology_type": "unary",
-      "node_type": "method",
-      "node_role": "transformer",
-      "mutation_type": "pure",
-      "is_context_manager": false,
-      "verified": true,
-      "source_priority": 90,
-      "is_public": true,
-      "docstring": "Converts RGB image to Hue, Saturation, Value (HSV) color space.",
-      "dependencies": [
-        "PIL.Image"
-      ],
-      "semantic_tags": [
-        "convert",
-        "hsv",
-        "color_space"
-      ],
-      "keywords": [
-        "hsv",
-        "hue",
-        "saturation",
-        "value",
-        "convert"
-      ],
-      "code_template": "{output_var} = {image}.convert('HSV')",
-      "slots": [
-        "output_var",
-        "image"
-      ],
-      "bound_slots": {},
-      "feedback_state_type": null,
-      "raises": [
-        "ValueError"
-      ],
-      "type_vars": [],
-      "inputs": {
-        "image": {
-          "name": "image",
-          "type_name": "Image",
-          "state": "mode_rgb",
-          "qualifiers": [],
-          "default_value": null,
-          "description": "Source RGB image.",
-          "domain": "Pillow",
-          "required": true,
-          "abstract_type": "tensor",
-          "enum_values": null,
-          "param_kind": "positional",
-          "value_constraints": null,
-          "shape_contract": "(H, W, 3)"
-        }
-      },
-      "outputs": {
-        "output_var": {
-          "name": "output_var",
-          "type_name": "Image",
-          "state": "mode_hsv",
-          "qualifiers": [],
-          "default_value": null,
-          "description": "Image in HSV space.",
-          "domain": "Pillow",
-          "required": true,
-          "abstract_type": "tensor",
-          "enum_values": null,
-          "param_kind": "positional",
-          "value_constraints": null,
-          "shape_contract": "(H, W, 3)"
-        }
-      },
-      "preconditions": [
-        {
-          "target": "image",
-          "property": "mode",
-          "operator": "==",
-          "value": "RGB",
-          "expression": "image.mode == 'RGB'",
-          "description": "Input must be RGB."
-        }
-      ],
-      "postconditions": [
-        {
-          "target": "output_var",
-          "property": "mode",
-          "operator": "==",
-          "value": "HSV",
-          "expression": "output_var.mode == 'HSV'",
-          "description": "Output is HSV."
-        }
-      ],
-      "effects": [
-        "transforms_color_gamut"
-      ],
-      "edges": [
-        {
-          "target_cell_id": "PILLOW_IMAGE_GETCHANNEL",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": "true",
-          "metadata": {},
-          "needs_mining": true
-        }
-      ],
-      "primary_in": "image",
-      "primary_out": "output_var"
-    },
-    {
-      "cell_id": "PILLOW_CONVERT_TO_LAB",
-      "stage": 2,
-      "topology_type": "unary",
-      "node_type": "method",
-      "node_role": "transformer",
-      "mutation_type": "pure",
-      "is_context_manager": false,
-      "verified": true,
-      "source_priority": 85,
-      "is_public": true,
-      "docstring": "Converts RGB image to perceptual CIE L*a*b* color space.",
-      "dependencies": [
-        "PIL.Image"
-      ],
-      "semantic_tags": [
-        "convert",
-        "lab",
-        "perceptual"
-      ],
-      "keywords": [
-        "lab",
-        "cielab",
-        "perceptual",
-        "color_space"
-      ],
-      "code_template": "{output_var} = {image}.convert('LAB')",
-      "slots": [
-        "output_var",
-        "image"
-      ],
-      "bound_slots": {},
-      "feedback_state_type": null,
-      "raises": [
-        "ValueError"
-      ],
-      "type_vars": [],
-      "inputs": {
-        "image": {
-          "name": "image",
-          "type_name": "Image",
-          "state": "mode_rgb",
-          "qualifiers": [],
-          "default_value": null,
-          "description": "RGB image.",
-          "domain": "Pillow",
-          "required": true,
-          "abstract_type": "tensor",
-          "enum_values": null,
-          "param_kind": "positional",
-          "value_constraints": null,
-          "shape_contract": "(H, W, 3)"
-        }
-      },
-      "outputs": {
-        "output_var": {
-          "name": "output_var",
-          "type_name": "Image",
-          "state": "mode_lab",
-          "qualifiers": [],
-          "default_value": null,
-          "description": "CIE LAB image.",
-          "domain": "Pillow",
-          "required": true,
-          "abstract_type": "tensor",
-          "enum_values": null,
-          "param_kind": "positional",
-          "value_constraints": null,
-          "shape_contract": "(H, W, 3)"
-        }
-      },
-      "preconditions": [],
-      "postconditions": [
-        {
-          "target": "output_var",
-          "property": "mode",
-          "operator": "==",
-          "value": "LAB",
-          "expression": "output_var.mode == 'LAB'",
-          "description": "Output is LAB."
-        }
-      ],
-      "effects": [
-        "transforms_to_lab"
-      ],
-      "edges": [
-        {
-          "target_cell_id": "PILLOW_IMAGE_GETCHANNEL",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": "true",
-          "metadata": {},
-          "needs_mining": true
-        }
-      ],
-      "primary_in": "image",
-      "primary_out": "output_var"
-    },
-    {
-      "cell_id": "PILLOW_CONVERT_TO_INT32",
-      "stage": 2,
-      "topology_type": "unary",
-      "node_type": "method",
-      "node_role": "transformer",
-      "mutation_type": "pure",
-      "is_context_manager": false,
-      "verified": true,
-      "source_priority": 80,
-      "is_public": true,
-      "docstring": "Converts image to 32-bit signed integer pixel mode ('I').",
-      "dependencies": [
-        "PIL.Image"
-      ],
-      "semantic_tags": [
-        "convert",
-        "int32",
-        "depth"
-      ],
-      "keywords": [
-        "int32",
-        "integer",
-        "depth",
-        "mode_i"
-      ],
-      "code_template": "{output_var} = {image}.convert('I')",
-      "slots": [
-        "output_var",
-        "image"
-      ],
-      "bound_slots": {},
-      "feedback_state_type": null,
-      "raises": [
-        "ValueError"
-      ],
-      "type_vars": [],
-      "inputs": {
-        "image": {
-          "name": "image",
-          "type_name": "Image",
-          "state": "mode_grayscale",
-          "accepted_states": [
-            "mode_grayscale",
-            "mode_rgb"
-          ],
-          "qualifiers": [],
-          "default_value": null,
-          "description": "Input image to promote bit depth.",
-          "domain": "Pillow",
-          "required": true,
-          "abstract_type": "tensor",
-          "enum_values": null,
-          "param_kind": "positional",
-          "value_constraints": null,
-          "shape_contract": null
-        }
-      },
-      "outputs": {
-        "output_var": {
-          "name": "output_var",
-          "type_name": "Image",
-          "state": "mode_int32",
-          "qualifiers": [],
-          "default_value": null,
-          "description": "32-bit integer single channel image.",
-          "domain": "Pillow",
-          "required": true,
-          "abstract_type": "tensor",
-          "enum_values": null,
-          "param_kind": "positional",
-          "value_constraints": null,
-          "shape_contract": "(H, W)"
-        }
-      },
-      "preconditions": [],
-      "postconditions": [
-        {
-          "target": "output_var",
-          "property": "mode",
-          "operator": "==",
-          "value": "I",
-          "expression": "output_var.mode == 'I'",
-          "description": "Output mode is I."
-        }
-      ],
-      "effects": [
-        "promotes_precision"
-      ],
-      "edges": [
-        {
-          "target_cell_id": "PILLOW_PILLOW_TO_NDARRAY_GENERIC",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": "true",
-          "metadata": {},
-          "needs_mining": true
-        }
-      ],
-      "primary_in": "image",
-      "primary_out": "output_var"
-    },
-    {
-      "cell_id": "PILLOW_CONVERT_TO_FLOAT32",
-      "stage": 2,
-      "topology_type": "unary",
-      "node_type": "method",
-      "node_role": "transformer",
-      "mutation_type": "pure",
-      "is_context_manager": false,
-      "verified": true,
-      "source_priority": 80,
-      "is_public": true,
-      "docstring": "Converts image to 32-bit IEEE floating-point pixel mode ('F').",
-      "dependencies": [
-        "PIL.Image"
-      ],
-      "semantic_tags": [
-        "convert",
-        "float32",
-        "float"
-      ],
-      "keywords": [
-        "float32",
-        "floating",
-        "depth",
-        "mode_f"
-      ],
-      "code_template": "{output_var} = {image}.convert('F')",
-      "slots": [
-        "output_var",
-        "image"
-      ],
-      "bound_slots": {},
-      "feedback_state_type": null,
-      "raises": [
-        "ValueError"
-      ],
-      "type_vars": [],
-      "inputs": {
-        "image": {
-          "name": "image",
-          "type_name": "Image",
-          "state": "mode_grayscale",
-          "accepted_states": [
-            "mode_grayscale",
-            "mode_int32",
-            "mode_rgb"
-          ],
-          "qualifiers": [],
-          "default_value": null,
-          "description": "Input image.",
-          "domain": "Pillow",
-          "required": true,
-          "abstract_type": "tensor",
-          "enum_values": null,
-          "param_kind": "positional",
-          "value_constraints": null,
-          "shape_contract": null
-        }
-      },
-      "outputs": {
-        "output_var": {
-          "name": "output_var",
-          "type_name": "Image",
-          "state": "mode_float32",
-          "qualifiers": [],
-          "default_value": null,
-          "description": "32-bit floating point image.",
-          "domain": "Pillow",
-          "required": true,
-          "abstract_type": "tensor",
-          "enum_values": null,
-          "param_kind": "positional",
-          "value_constraints": null,
-          "shape_contract": "(H, W)"
-        }
-      },
-      "preconditions": [],
-      "postconditions": [
-        {
-          "target": "output_var",
-          "property": "mode",
-          "operator": "==",
-          "value": "F",
-          "expression": "output_var.mode == 'F'",
-          "description": "Output mode is F."
-        }
-      ],
-      "effects": [
-        "converts_to_floating_point"
-      ],
-      "edges": [
-        {
-          "target_cell_id": "PILLOW_PILLOW_TO_NDARRAY_GENERIC",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": "true",
-          "metadata": {},
-          "needs_mining": true
-        }
-      ],
-      "primary_in": "image",
-      "primary_out": "output_var"
-    },
-    {
-      "cell_id": "PILLOW_PILLOW_TO_NDARRAY_GENERIC",
-      "stage": 2,
-      "topology_type": "unary",
-      "node_type": "function",
-      "node_role": "bridge",
-      "mutation_type": "pure",
-      "is_context_manager": false,
-      "verified": true,
-      "source_priority": 95,
-      "is_public": true,
-      "docstring": "Bridge: Exports any Pillow Image to a generic NumPy ndarray matching underlying bit depth and channel shape.",
-      "dependencies": [
-        "numpy",
-        "PIL.Image"
-      ],
-      "semantic_tags": [
-        "bridge",
-        "numpy",
-        "generic"
-      ],
-      "keywords": [
-        "numpy",
-        "array",
-        "generic",
-        "bridge"
-      ],
-      "code_template": "{output_var} = numpy.asarray({image})",
-      "slots": [
-        "output_var",
-        "image"
-      ],
-      "bound_slots": {},
-      "feedback_state_type": null,
-      "raises": [],
-      "type_vars": [],
-      "inputs": {
-        "image": {
-          "name": "image",
-          "type_name": "Image",
-          "state": "mode_int32",
-          "accepted_states": [
-            "mode_int32",
-            "mode_float32",
-            "mode_palette",
-            "mode_cmyk"
-          ],
-          "qualifiers": [],
-          "default_value": null,
-          "description": "Pillow Image instance of specialized mode.",
-          "domain": "Pillow",
-          "required": true,
-          "abstract_type": "tensor",
-          "enum_values": null,
-          "param_kind": "positional",
-          "value_constraints": null,
-          "shape_contract": null
-        }
-      },
-      "outputs": {
-        "output_var": {
-          "name": "output_var",
-          "type_name": "ndarray",
-          "state": "ndarray_generic",
-          "qualifiers": [],
-          "default_value": null,
-          "description": "Plain numpy array representation.",
-          "domain": "Pillow",
-          "required": true,
-          "abstract_type": "tensor",
-          "enum_values": null,
-          "param_kind": "positional",
-          "value_constraints": null,
-          "shape_contract": null
-        }
-      },
-      "preconditions": [],
-      "postconditions": [],
-      "effects": [
-        "bridges_to_numpy_generic"
-      ],
-      "edges": [],
-      "primary_in": "image",
-      "primary_out": "output_var"
-    },
-    {
-      "cell_id": "PILLOW_NDARRAY_GENERIC_TO_PILLOW",
-      "stage": 1,
-      "topology_type": "unary",
-      "node_type": "function",
-      "node_role": "bridge",
-      "mutation_type": "pure",
-      "is_context_manager": false,
-      "verified": true,
-      "source_priority": 95,
-      "is_public": true,
-      "docstring": "Bridge: Ingests a generic numpy ndarray into a Pillow Image.",
-      "dependencies": [
-        "numpy",
-        "PIL.Image"
-      ],
-      "semantic_tags": [
-        "bridge",
-        "numpy",
-        "fromarray"
-      ],
-      "keywords": [
-        "fromarray",
-        "numpy",
-        "generic",
-        "bridge"
-      ],
-      "code_template": "{output_var} = Image.fromarray({array})",
-      "slots": [
-        "output_var",
-        "array"
-      ],
-      "bound_slots": {},
-      "feedback_state_type": null,
-      "raises": [
-        "ValueError",
-        "TypeError"
-      ],
-      "type_vars": [],
-      "inputs": {
-        "array": {
-          "name": "array",
-          "type_name": "ndarray",
-          "state": "ndarray_generic",
-          "qualifiers": [],
-          "default_value": null,
-          "description": "Generic numpy array.",
-          "domain": "Pillow",
-          "required": true,
-          "abstract_type": "tensor",
-          "enum_values": null,
-          "param_kind": "positional",
-          "value_constraints": null,
-          "shape_contract": null
-        }
-      },
-      "outputs": {
-        "output_var": {
-          "name": "output_var",
-          "type_name": "Image",
-          "state": "mode_rgb",
-          "qualifiers": [],
-          "default_value": null,
-          "description": "Constructed Pillow Image.",
-          "domain": "Pillow",
-          "required": true,
-          "abstract_type": "tensor",
-          "enum_values": null,
-          "param_kind": "positional",
-          "value_constraints": null,
-          "shape_contract": null
-        }
-      },
-      "preconditions": [],
-      "postconditions": [],
-      "effects": [
-        "creates_image_from_generic_array"
-      ],
-      "edges": [
-        {
-          "target_cell_id": "PILLOW_TRANSFORM_AFFINE",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": "true",
-          "metadata": {},
-          "needs_mining": true
-        }
-      ],
-      "primary_in": "array",
-      "primary_out": "output_var"
-    },
-    {
-      "cell_id": "PILLOW_TRANSFORM_AFFINE",
-      "stage": 2,
-      "topology_type": "unary",
-      "node_type": "method",
-      "node_role": "transformer",
-      "mutation_type": "pure",
-      "is_context_manager": false,
-      "verified": true,
-      "source_priority": 90,
-      "is_public": true,
-      "docstring": "Applies an affine transformation matrix (6-tuple) to the image.",
-      "dependencies": [
-        "PIL.Image"
-      ],
-      "semantic_tags": [
-        "transform",
-        "affine",
-        "matrix",
-        "warp"
-      ],
-      "keywords": [
-        "affine",
-        "transform",
-        "matrix",
-        "shear",
-        "scale"
-      ],
-      "code_template": "{output_var} = {image}.transform({size}, Image.Transform.AFFINE, {data})",
-      "slots": [
-        "output_var",
-        "image",
-        "size",
-        "data"
-      ],
-      "bound_slots": {},
-      "feedback_state_type": null,
-      "raises": [
-        "ValueError"
-      ],
-      "type_vars": [],
-      "inputs": {
-        "image": {
-          "name": "image",
-          "type_name": "Image",
-          "state": "mode_rgb",
-          "accepted_states": [
-            "mode_rgb",
-            "mode_rgba",
-            "mode_grayscale"
-          ],
-          "qualifiers": [],
-          "default_value": null,
-          "description": "Input image.",
-          "domain": "Pillow",
-          "required": true,
-          "abstract_type": "tensor",
-          "enum_values": null,
-          "param_kind": "positional",
-          "value_constraints": null,
-          "shape_contract": null
-        },
-        "size": {
-          "name": "size",
-          "type_name": "tuple",
-          "state": "target_dimensions",
-          "qualifiers": [],
-          "default_value": "(256, 256)",
-          "description": "Output dimensions (width, height).",
-          "domain": "Pillow",
-          "required": true,
-          "abstract_type": "collection",
-          "enum_values": null,
-          "param_kind": "positional",
-          "value_constraints": null,
-          "shape_contract": "(2,)"
-        },
-        "data": {
-          "name": "data",
-          "type_name": "tuple",
-          "state": "affine_coefficients",
-          "qualifiers": [],
-          "default_value": "(1.0, 0.0, 0.0, 0.0, 1.0, 0.0)",
-          "description": "Affine coefficients (a, b, c, d, e, f) for transformation mapping.",
-          "domain": "Pillow",
-          "required": true,
-          "abstract_type": "collection",
-          "enum_values": null,
-          "param_kind": "positional",
-          "value_constraints": null,
-          "shape_contract": "(6,)"
-        }
-      },
-      "outputs": {
-        "output_var": {
-          "name": "output_var",
-          "type_name": "Image",
-          "state": "transformed",
-          "qualifiers": [],
-          "default_value": null,
-          "description": "Affine warped image.",
-          "domain": "Pillow",
-          "required": true,
-          "abstract_type": "tensor",
-          "enum_values": null,
-          "param_kind": "positional",
-          "value_constraints": null,
-          "shape_contract": null
-        }
-      },
-      "preconditions": [
-        {
-          "target": "data",
-          "property": "dimensions",
-          "operator": "==",
-          "value": 6,
-          "expression": "len(data) == 6",
-          "description": "Affine data must contain 6 matrix values."
-        }
-      ],
-      "postconditions": [],
-      "effects": [
-        "affine_warp"
-      ],
-      "edges": [
-        {
-          "target_cell_id": "PILLOW_IMAGE_SAVE_WEBP",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": "true",
-          "metadata": {},
-          "needs_mining": true
-        }
-      ],
-      "primary_in": "image",
-      "primary_out": "output_var"
-    },
-    {
-      "cell_id": "PILLOW_TRANSFORM_PERSPECTIVE",
-      "stage": 2,
-      "topology_type": "unary",
-      "node_type": "method",
-      "node_role": "transformer",
-      "mutation_type": "pure",
-      "is_context_manager": false,
-      "verified": true,
-      "source_priority": 90,
-      "is_public": true,
-      "docstring": "Applies a projective perspective transformation using an 8-tuple coefficient vector.",
-      "dependencies": [
-        "PIL.Image"
-      ],
-      "semantic_tags": [
-        "transform",
-        "perspective",
-        "homography",
-        "projective"
-      ],
-      "keywords": [
-        "perspective",
-        "homography",
-        "projective",
-        "warp"
-      ],
-      "code_template": "{output_var} = {image}.transform({size}, Image.Transform.PERSPECTIVE, {data})",
-      "slots": [
-        "output_var",
-        "image",
-        "size",
-        "data"
-      ],
-      "bound_slots": {},
-      "feedback_state_type": null,
-      "raises": [
-        "ValueError"
-      ],
-      "type_vars": [],
-      "inputs": {
-        "image": {
-          "name": "image",
-          "type_name": "Image",
-          "state": "mode_rgb",
-          "accepted_states": [
-            "mode_rgb",
-            "mode_rgba",
-            "mode_grayscale"
-          ],
-          "qualifiers": [],
-          "default_value": null,
-          "description": "Source image.",
-          "domain": "Pillow",
-          "required": true,
-          "abstract_type": "tensor",
-          "enum_values": null,
-          "param_kind": "positional",
-          "value_constraints": null,
-          "shape_contract": null
-        },
-        "size": {
-          "name": "size",
-          "type_name": "tuple",
-          "state": "target_dimensions",
-          "qualifiers": [],
-          "default_value": "(256, 256)",
-          "description": "Target dimensions (width, height).",
-          "domain": "Pillow",
-          "required": true,
-          "abstract_type": "collection",
-          "enum_values": null,
-          "param_kind": "positional",
-          "value_constraints": null,
-          "shape_contract": "(2,)"
-        },
-        "data": {
-          "name": "data",
-          "type_name": "tuple",
-          "state": "perspective_coefficients",
-          "qualifiers": [],
-          "default_value": "(1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0)",
-          "description": "Perspective coefficients (8 values: a, b, c, d, e, f, g, h).",
-          "domain": "Pillow",
-          "required": true,
-          "abstract_type": "collection",
-          "enum_values": null,
-          "param_kind": "positional",
-          "value_constraints": null,
-          "shape_contract": "(8,)"
-        }
-      },
-      "outputs": {
-        "output_var": {
-          "name": "output_var",
-          "type_name": "Image",
-          "state": "transformed",
-          "qualifiers": [],
-          "default_value": null,
-          "description": "Perspective transformed image.",
-          "domain": "Pillow",
-          "required": true,
-          "abstract_type": "tensor",
-          "enum_values": null,
-          "param_kind": "positional",
-          "value_constraints": null,
-          "shape_contract": null
-        }
-      },
-      "preconditions": [
-        {
-          "target": "data",
-          "property": "dimensions",
-          "operator": "==",
-          "value": 8,
-          "expression": "len(data) == 8",
-          "description": "Perspective transform requires 8 coefficients."
-        }
-      ],
-      "postconditions": [],
-      "effects": [
-        "projective_warp"
-      ],
-      "edges": [
-        {
-          "target_cell_id": "PILLOW_IMAGE_SAVE_WEBP",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": "true",
-          "metadata": {},
-          "needs_mining": true
-        }
-      ],
-      "primary_in": "image",
-      "primary_out": "output_var"
-    },
-    {
-      "cell_id": "PILLOW_IMAGEOPS_CONTAIN",
-      "stage": 2,
-      "topology_type": "unary",
-      "node_type": "function",
-      "node_role": "transformer",
-      "mutation_type": "pure",
-      "is_context_manager": false,
-      "verified": true,
-      "source_priority": 90,
-      "is_public": true,
-      "docstring": "Scales image down proportionally so it fits completely within requested boundary.",
-      "dependencies": [
-        "PIL.ImageOps",
-        "PIL.Image"
-      ],
-      "semantic_tags": [
-        "imageops",
-        "contain",
-        "proportional",
-        "scale"
-      ],
-      "keywords": [
-        "contain",
-        "fit",
-        "proportional",
-        "scale"
-      ],
-      "code_template": "{output_var} = ImageOps.contain({image}, {size})",
-      "slots": [
-        "output_var",
-        "image",
-        "size"
-      ],
-      "bound_slots": {},
-      "feedback_state_type": null,
-      "raises": [
-        "ValueError"
-      ],
-      "type_vars": [],
-      "inputs": {
-        "image": {
-          "name": "image",
-          "type_name": "Image",
-          "state": "mode_rgb",
-          "accepted_states": [
-            "mode_rgb",
-            "mode_rgba",
-            "mode_grayscale"
-          ],
-          "qualifiers": [],
-          "default_value": null,
-          "description": "Input image.",
-          "domain": "Pillow",
-          "required": true,
-          "abstract_type": "tensor",
-          "enum_values": null,
-          "param_kind": "positional",
-          "value_constraints": null,
-          "shape_contract": null
-        },
-        "size": {
-          "name": "size",
-          "type_name": "tuple",
-          "state": "bounding_box",
-          "qualifiers": [],
-          "default_value": "(300, 300)",
-          "description": "Maximum boundary (max_w, max_h).",
-          "domain": "Pillow",
-          "required": true,
-          "abstract_type": "collection",
-          "enum_values": null,
-          "param_kind": "positional",
-          "value_constraints": null,
-          "shape_contract": "(2,)"
-        }
-      },
-      "outputs": {
-        "output_var": {
-          "name": "output_var",
-          "type_name": "Image",
-          "state": "resized",
-          "qualifiers": [],
-          "default_value": null,
-          "description": "Contained image maintaining exact aspect ratio.",
-          "domain": "Pillow",
-          "required": true,
-          "abstract_type": "tensor",
-          "enum_values": null,
-          "param_kind": "positional",
-          "value_constraints": null,
-          "shape_contract": null
-        }
-      },
-      "preconditions": [],
-      "postconditions": [],
-      "effects": [
-        "aspect_ratio_preserving_scale"
-      ],
-      "edges": [
-        {
-          "target_cell_id": "PILLOW_IMAGE_SAVE_WEBP",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": "true",
-          "metadata": {},
-          "needs_mining": true
-        }
-      ],
-      "primary_in": "image",
-      "primary_out": "output_var"
-    },
-    {
-      "cell_id": "PILLOW_IMAGEOPS_COVER",
-      "stage": 2,
-      "topology_type": "unary",
-      "node_type": "function",
-      "node_role": "transformer",
-      "mutation_type": "pure",
-      "is_context_manager": false,
-      "verified": true,
-      "source_priority": 90,
-      "is_public": true,
-      "docstring": "Scales image proportionally to completely cover requested boundary.",
-      "dependencies": [
-        "PIL.ImageOps",
-        "PIL.Image"
-      ],
-      "semantic_tags": [
-        "imageops",
-        "cover",
-        "scale"
-      ],
-      "keywords": [
-        "cover",
-        "scale",
-        "proportional"
-      ],
-      "code_template": "{output_var} = ImageOps.cover({image}, {size})",
-      "slots": [
-        "output_var",
-        "image",
-        "size"
-      ],
-      "bound_slots": {},
-      "feedback_state_type": null,
-      "raises": [
-        "ValueError"
-      ],
-      "type_vars": [],
-      "inputs": {
-        "image": {
-          "name": "image",
-          "type_name": "Image",
-          "state": "mode_rgb",
-          "accepted_states": [
-            "mode_rgb",
-            "mode_rgba",
-            "mode_grayscale"
-          ],
-          "qualifiers": [],
-          "default_value": null,
-          "description": "Source image.",
-          "domain": "Pillow",
-          "required": true,
-          "abstract_type": "tensor",
-          "enum_values": null,
-          "param_kind": "positional",
-          "value_constraints": null,
-          "shape_contract": null
-        },
-        "size": {
-          "name": "size",
-          "type_name": "tuple",
-          "state": "target_boundary",
-          "qualifiers": [],
-          "default_value": "(400, 400)",
-          "description": "Minimum boundary dimensions (min_w, min_h).",
-          "domain": "Pillow",
-          "required": true,
-          "abstract_type": "collection",
-          "enum_values": null,
-          "param_kind": "positional",
-          "value_constraints": null,
-          "shape_contract": "(2,)"
-        }
-      },
-      "outputs": {
-        "output_var": {
-          "name": "output_var",
-          "type_name": "Image",
-          "state": "resized",
-          "qualifiers": [],
-          "default_value": null,
-          "description": "Cover-scaled image.",
-          "domain": "Pillow",
-          "required": true,
-          "abstract_type": "tensor",
-          "enum_values": null,
-          "param_kind": "positional",
-          "value_constraints": null,
-          "shape_contract": null
-        }
-      },
-      "preconditions": [],
-      "postconditions": [],
-      "effects": [
-        "cover_scale"
-      ],
-      "edges": [
-        {
-          "target_cell_id": "PILLOW_IMAGE_SAVE_WEBP",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": "true",
-          "metadata": {},
-          "needs_mining": true
-        }
-      ],
-      "primary_in": "image",
-      "primary_out": "output_var"
-    },
-    {
-      "cell_id": "PILLOW_FILTER_CUSTOM_KERNEL",
-      "stage": 2,
-      "topology_type": "unary",
-      "node_type": "method",
-      "node_role": "transformer",
-      "mutation_type": "pure",
-      "is_context_manager": false,
-      "verified": true,
-      "source_priority": 90,
-      "is_public": true,
-      "docstring": "Applies an arbitrary NxN convolution kernel with scale and offset.",
-      "dependencies": [
-        "PIL.ImageFilter",
-        "PIL.Image"
-      ],
-      "semantic_tags": [
-        "filter",
-        "kernel",
-        "convolution",
-        "matrix"
-      ],
-      "keywords": [
-        "kernel",
-        "convolution",
-        "matrix",
-        "custom"
-      ],
-      "code_template": "{output_var} = {image}.filter(ImageFilter.Kernel({size}, {kernel}, scale={scale}, offset={offset}))",
-      "slots": [
-        "output_var",
-        "image",
-        "size",
-        "kernel",
-        "scale",
-        "offset"
-      ],
-      "bound_slots": {},
-      "feedback_state_type": null,
-      "raises": [
-        "ValueError"
-      ],
-      "type_vars": [],
-      "inputs": {
-        "image": {
-          "name": "image",
-          "type_name": "Image",
-          "state": "mode_rgb",
-          "accepted_states": [
-            "mode_rgb",
-            "mode_grayscale"
-          ],
-          "qualifiers": [],
-          "default_value": null,
-          "description": "Image to convolve.",
-          "domain": "Pillow",
-          "required": true,
-          "abstract_type": "tensor",
-          "enum_values": null,
-          "param_kind": "positional",
-          "value_constraints": null,
-          "shape_contract": null
-        },
-        "size": {
-          "name": "size",
-          "type_name": "tuple",
-          "state": "kernel_dimensions",
-          "qualifiers": [],
-          "default_value": "(3, 3)",
-          "description": "Kernel grid shape (3, 3) or (5, 5).",
-          "domain": "Pillow",
-          "required": true,
-          "abstract_type": "collection",
-          "enum_values": null,
-          "param_kind": "positional",
-          "value_constraints": null,
-          "shape_contract": "(2,)"
-        },
-        "kernel": {
-          "name": "kernel",
-          "type_name": "tuple",
-          "state": "kernel_weights",
-          "qualifiers": [],
-          "default_value": "(0, -1, 0, -1, 5, -1, 0, -1, 0)",
-          "description": "Flattened weights sequence matching size product.",
-          "domain": "Pillow",
-          "required": true,
-          "abstract_type": "collection",
-          "enum_values": null,
-          "param_kind": "positional",
-          "value_constraints": null,
-          "shape_contract": null
-        },
-        "scale": {
-          "name": "scale",
-          "type_name": "float",
-          "state": "divisor_scale",
-          "qualifiers": [],
-          "default_value": "1.0",
-          "description": "Divisor applied to post-convolution result.",
-          "domain": "Pillow",
-          "required": false,
-          "abstract_type": "scalar",
-          "enum_values": null,
-          "param_kind": "keyword",
-          "value_constraints": null,
-          "shape_contract": null
-        },
-        "offset": {
-          "name": "offset",
-          "type_name": "float",
-          "state": "bias_offset",
-          "qualifiers": [],
-          "default_value": "0.0",
-          "description": "Constant intensity added to output pixels.",
-          "domain": "Pillow",
-          "required": false,
-          "abstract_type": "scalar",
-          "enum_values": null,
-          "param_kind": "keyword",
-          "value_constraints": null,
-          "shape_contract": null
-        }
-      },
-      "outputs": {
-        "output_var": {
-          "name": "output_var",
-          "type_name": "Image",
-          "state": "filtered_general",
-          "qualifiers": [],
-          "default_value": null,
-          "description": "Custom filtered image.",
-          "domain": "Pillow",
-          "required": true,
-          "abstract_type": "tensor",
-          "enum_values": null,
-          "param_kind": "positional",
-          "value_constraints": null,
-          "shape_contract": null
-        }
-      },
-      "preconditions": [],
-      "postconditions": [],
-      "effects": [
-        "spatial_convolution"
-      ],
-      "edges": [
-        {
-          "target_cell_id": "PILLOW_IMAGE_SAVE_WEBP",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": "true",
-          "metadata": {},
-          "needs_mining": true
-        }
-      ],
-      "primary_in": "image",
-      "primary_out": "output_var"
-    },
-    {
-      "cell_id": "PILLOW_FILTER_SMOOTH",
-      "stage": 2,
-      "topology_type": "unary",
-      "node_type": "method",
-      "node_role": "transformer",
-      "mutation_type": "pure",
-      "is_context_manager": false,
-      "verified": true,
-      "source_priority": 85,
-      "is_public": true,
-      "docstring": "Applies a predefined gentle smoothing filter.",
-      "dependencies": [
-        "PIL.ImageFilter",
-        "PIL.Image"
-      ],
-      "semantic_tags": [
-        "filter",
-        "smooth"
-      ],
-      "keywords": [
-        "smooth",
-        "soften",
-        "filter"
-      ],
-      "code_template": "{output_var} = {image}.filter(ImageFilter.SMOOTH)",
-      "slots": [
-        "output_var",
-        "image"
-      ],
-      "bound_slots": {},
-      "feedback_state_type": null,
-      "raises": [],
-      "type_vars": [],
-      "inputs": {
-        "image": {
-          "name": "image",
-          "type_name": "Image",
-          "state": "mode_rgb",
-          "accepted_states": [
-            "mode_rgb",
-            "mode_rgba",
-            "mode_grayscale"
-          ],
-          "qualifiers": [],
-          "default_value": null,
-          "description": "Target image.",
-          "domain": "Pillow",
-          "required": true,
-          "abstract_type": "tensor",
-          "enum_values": null,
-          "param_kind": "positional",
-          "value_constraints": null,
-          "shape_contract": null
-        }
-      },
-      "outputs": {
-        "output_var": {
-          "name": "output_var",
-          "type_name": "Image",
-          "state": "filtered_blur",
-          "qualifiers": [],
-          "default_value": null,
-          "description": "Smoothed image.",
-          "domain": "Pillow",
-          "required": true,
-          "abstract_type": "tensor",
-          "enum_values": null,
-          "param_kind": "positional",
-          "value_constraints": null,
-          "shape_contract": null
-        }
-      },
-      "preconditions": [],
-      "postconditions": [],
-      "effects": [
-        "gentle_low_pass"
-      ],
-      "edges": [
-        {
-          "target_cell_id": "PILLOW_IMAGE_SAVE_WEBP",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": "true",
-          "metadata": {},
-          "needs_mining": true
-        }
-      ],
-      "primary_in": "image",
-      "primary_out": "output_var"
-    },
-    {
-      "cell_id": "PILLOW_IMAGEOPS_COLORIZE",
-      "stage": 2,
-      "topology_type": "unary",
-      "node_type": "function",
-      "node_role": "transformer",
-      "mutation_type": "pure",
-      "is_context_manager": false,
-      "verified": true,
-      "source_priority": 90,
-      "is_public": true,
-      "docstring": "Colorizes a grayscale image into two-color duotone RGB space.",
-      "dependencies": [
-        "PIL.ImageOps",
-        "PIL.Image"
-      ],
-      "semantic_tags": [
-        "imageops",
-        "colorize",
-        "duotone",
-        "tint"
-      ],
-      "keywords": [
-        "colorize",
-        "duotone",
-        "tint",
-        "false_color"
-      ],
-      "code_template": "{output_var} = ImageOps.colorize({image}, black={black}, white={white})",
-      "slots": [
-        "output_var",
-        "image",
-        "black",
-        "white"
-      ],
-      "bound_slots": {},
-      "feedback_state_type": null,
-      "raises": [
-        "ValueError"
-      ],
-      "type_vars": [],
-      "inputs": {
-        "image": {
-          "name": "image",
-          "type_name": "Image",
-          "state": "mode_grayscale",
-          "qualifiers": [],
-          "default_value": null,
-          "description": "Input grayscale ('L') image.",
-          "domain": "Pillow",
-          "required": true,
-          "abstract_type": "tensor",
-          "enum_values": null,
-          "param_kind": "positional",
-          "value_constraints": null,
-          "shape_contract": "(H, W)"
-        },
-        "black": {
-          "name": "black",
-          "type_name": "tuple",
-          "state": "shadow_color",
-          "qualifiers": [],
-          "default_value": "(0, 0, 128)",
-          "description": "RGB color assigned to black pixels.",
-          "domain": "Pillow",
-          "required": true,
-          "abstract_type": "collection",
-          "enum_values": null,
-          "param_kind": "keyword",
-          "value_constraints": null,
-          "shape_contract": "(3,)"
-        },
-        "white": {
-          "name": "white",
-          "type_name": "tuple",
-          "state": "highlight_color",
-          "qualifiers": [],
-          "default_value": "(255, 255, 0)",
-          "description": "RGB color assigned to white pixels.",
-          "domain": "Pillow",
-          "required": true,
-          "abstract_type": "collection",
-          "enum_values": null,
-          "param_kind": "keyword",
-          "value_constraints": null,
-          "shape_contract": "(3,)"
-        }
-      },
-      "outputs": {
-        "output_var": {
-          "name": "output_var",
-          "type_name": "Image",
-          "state": "mode_rgb",
-          "qualifiers": [],
-          "default_value": null,
-          "description": "Colorized truecolor RGB image.",
-          "domain": "Pillow",
-          "required": true,
-          "abstract_type": "tensor",
-          "enum_values": null,
-          "param_kind": "positional",
-          "value_constraints": null,
-          "shape_contract": "(H, W, 3)"
-        }
-      },
-      "preconditions": [
-        {
-          "target": "image",
-          "property": "mode",
-          "operator": "==",
-          "value": "L",
-          "expression": "image.mode == 'L'",
-          "description": "Colorize requires single-channel grayscale input."
-        }
-      ],
-      "postconditions": [
-        {
-          "target": "output_var",
-          "property": "mode",
-          "operator": "==",
-          "value": "RGB",
-          "expression": "output_var.mode == 'RGB'",
-          "description": "Output is RGB."
-        }
-      ],
-      "effects": [
-        "duotone_gradient_map"
-      ],
-      "edges": [
-        {
-          "target_cell_id": "PILLOW_IMAGE_SAVE_WEBP",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": "true",
-          "metadata": {},
-          "needs_mining": true
-        }
-      ],
-      "primary_in": "image",
-      "primary_out": "output_var"
-    },
-    {
-      "cell_id": "PILLOW_IMAGEOPS_SOLARIZE",
-      "stage": 2,
-      "topology_type": "unary",
-      "node_type": "function",
-      "node_role": "transformer",
-      "mutation_type": "pure",
-      "is_context_manager": false,
-      "verified": true,
-      "source_priority": 85,
-      "is_public": true,
-      "docstring": "Inverts all pixel values above a given threshold, creating a Sabatier solarization effect.",
-      "dependencies": [
-        "PIL.ImageOps",
-        "PIL.Image"
-      ],
-      "semantic_tags": [
-        "imageops",
-        "solarize",
-        "sabatier"
-      ],
-      "keywords": [
-        "solarize",
-        "invert",
-        "threshold",
-        "sabatier"
-      ],
-      "code_template": "{output_var} = ImageOps.solarize({image}, threshold={threshold})",
-      "slots": [
-        "output_var",
-        "image",
-        "threshold"
-      ],
-      "bound_slots": {},
-      "feedback_state_type": null,
-      "raises": [],
-      "type_vars": [],
-      "inputs": {
-        "image": {
-          "name": "image",
-          "type_name": "Image",
-          "state": "mode_rgb",
-          "accepted_states": [
-            "mode_rgb",
-            "mode_grayscale"
-          ],
-          "qualifiers": [],
-          "default_value": null,
-          "description": "Source image.",
-          "domain": "Pillow",
-          "required": true,
-          "abstract_type": "tensor",
-          "enum_values": null,
-          "param_kind": "positional",
-          "value_constraints": null,
-          "shape_contract": null
-        },
-        "threshold": {
-          "name": "threshold",
-          "type_name": "int",
-          "state": "luminance_threshold",
-          "qualifiers": [],
-          "default_value": "128",
-          "description": "Intensity threshold (0-255) above which pixels are inverted.",
-          "domain": "Pillow",
-          "required": false,
-          "abstract_type": "scalar",
-          "enum_values": null,
-          "param_kind": "keyword",
-          "value_constraints": {
-            "min": 0,
-            "max": 255
-          },
-          "shape_contract": null
-        }
-      },
-      "outputs": {
-        "output_var": {
-          "name": "output_var",
-          "type_name": "Image",
-          "state": "enhanced_contrast",
-          "qualifiers": [],
-          "default_value": null,
-          "description": "Solarized image.",
-          "domain": "Pillow",
-          "required": true,
-          "abstract_type": "tensor",
-          "enum_values": null,
-          "param_kind": "positional",
-          "value_constraints": null,
-          "shape_contract": null
-        }
-      },
-      "preconditions": [],
-      "postconditions": [],
-      "effects": [
-        "partial_inversion"
-      ],
-      "edges": [
-        {
-          "target_cell_id": "PILLOW_IMAGE_SAVE_WEBP",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": "true",
-          "metadata": {},
-          "needs_mining": true
-        }
-      ],
-      "primary_in": "image",
-      "primary_out": "output_var"
-    },
-    {
-      "cell_id": "PILLOW_DRAW_ROUNDED_RECTANGLE",
-      "stage": 2,
-      "topology_type": "unary",
-      "node_type": "method",
-      "node_role": "transformer",
-      "mutation_type": "in_place",
-      "is_context_manager": false,
-      "verified": true,
-      "source_priority": 90,
-      "is_public": true,
-      "docstring": "Renders a rounded rectangle with corner radii on the active draw context.",
-      "dependencies": [
-        "PIL.ImageDraw"
-      ],
-      "semantic_tags": [
-        "draw",
-        "rounded_rectangle",
-        "corner_radius"
-      ],
-      "keywords": [
-        "rounded_rectangle",
-        "corners",
-        "radius",
-        "draw"
-      ],
-      "code_template": "{draw}.rounded_rectangle({xy}, radius={radius}, fill={fill}, outline={outline}, width={width})",
-      "slots": [
-        "draw",
-        "xy",
-        "radius",
-        "fill",
-        "outline",
-        "width"
-      ],
-      "bound_slots": {},
-      "feedback_state_type": null,
-      "raises": [
-        "ValueError"
-      ],
-      "type_vars": [],
-      "inputs": {
-        "draw": {
-          "name": "draw",
-          "type_name": "ImageDraw",
-          "state": "draw_context_active",
-          "qualifiers": [],
-          "default_value": null,
-          "description": "ImageDraw instance.",
-          "domain": "Pillow",
-          "required": true,
-          "abstract_type": "collection",
-          "enum_values": null,
-          "param_kind": "positional",
-          "value_constraints": null,
-          "shape_contract": null
-        },
-        "xy": {
-          "name": "xy",
-          "type_name": "tuple",
-          "state": "bounding_box",
-          "qualifiers": [],
-          "default_value": "(20, 20, 180, 100)",
-          "description": "Rectangle bounds (x0, y0, x1, y1).",
-          "domain": "Pillow",
-          "required": true,
-          "abstract_type": "collection",
-          "enum_values": null,
-          "param_kind": "positional",
-          "value_constraints": null,
-          "shape_contract": "(4,)"
-        },
-        "radius": {
-          "name": "radius",
-          "type_name": "int",
-          "state": "corner_radius_px",
-          "qualifiers": [],
-          "default_value": "15",
-          "description": "Corner corner radius in pixels.",
-          "domain": "Pillow",
-          "required": false,
-          "abstract_type": "scalar",
-          "enum_values": null,
-          "param_kind": "keyword",
-          "value_constraints": {
-            "min": 0
-          },
-          "shape_contract": null
-        },
-        "fill": {
-          "name": "fill",
-          "type_name": "tuple",
-          "state": "fill_color",
-          "qualifiers": [],
-          "default_value": "(50, 50, 200)",
-          "description": "Fill color.",
-          "domain": "Pillow",
-          "required": false,
-          "abstract_type": "collection",
-          "enum_values": null,
-          "param_kind": "keyword",
-          "value_constraints": null,
-          "shape_contract": null
-        },
-        "outline": {
-          "name": "outline",
-          "type_name": "tuple",
-          "state": "border_color",
-          "qualifiers": [],
-          "default_value": "(255, 255, 255)",
-          "description": "Border stroke color.",
-          "domain": "Pillow",
-          "required": false,
-          "abstract_type": "collection",
-          "enum_values": null,
-          "param_kind": "keyword",
-          "value_constraints": null,
-          "shape_contract": null
-        },
-        "width": {
-          "name": "width",
-          "type_name": "int",
-          "state": "stroke_width",
-          "qualifiers": [],
-          "default_value": "2",
-          "description": "Border stroke thickness.",
-          "domain": "Pillow",
-          "required": false,
-          "abstract_type": "scalar",
-          "enum_values": null,
-          "param_kind": "keyword",
-          "value_constraints": {
-            "min": 1
-          },
-          "shape_contract": null
-        }
-      },
-      "outputs": {},
-      "preconditions": [],
-      "postconditions": [],
-      "effects": [
-        "renders_rounded_box"
-      ],
-      "edges": [
-        {
-          "target_cell_id": "PILLOW_DRAW_MULTILINE_TEXT",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": "true",
-          "metadata": {},
-          "needs_mining": true
-        }
-      ],
-      "primary_in": "draw",
-      "primary_out": "void"
-    },
-    {
-      "cell_id": "PILLOW_DRAW_MULTILINE_TEXT",
-      "stage": 2,
-      "topology_type": "unary",
-      "node_type": "method",
-      "node_role": "transformer",
-      "mutation_type": "in_place",
-      "is_context_manager": false,
-      "verified": true,
-      "source_priority": 90,
-      "is_public": true,
-      "docstring": "Renders multiline text with line spacing and alignment options.",
-      "dependencies": [
-        "PIL.ImageDraw"
-      ],
-      "semantic_tags": [
-        "draw",
-        "multiline",
-        "typography",
-        "text"
-      ],
-      "keywords": [
-        "text",
-        "multiline",
-        "align",
-        "typography"
-      ],
-      "code_template": "{draw}.multiline_text({xy}, {text}, fill={fill}, spacing={spacing}, align={align})",
-      "slots": [
-        "draw",
-        "xy",
-        "text",
-        "fill",
-        "spacing",
-        "align"
-      ],
-      "bound_slots": {},
-      "feedback_state_type": null,
-      "raises": [
-        "ValueError"
-      ],
-      "type_vars": [],
-      "inputs": {
-        "draw": {
-          "name": "draw",
-          "type_name": "ImageDraw",
-          "state": "draw_context_active",
-          "qualifiers": [],
-          "default_value": null,
-          "description": "Active ImageDraw context.",
-          "domain": "Pillow",
-          "required": true,
-          "abstract_type": "collection",
-          "enum_values": null,
-          "param_kind": "positional",
-          "value_constraints": null,
-          "shape_contract": null
-        },
-        "xy": {
-          "name": "xy",
-          "type_name": "tuple",
-          "state": "text_origin",
-          "qualifiers": [],
-          "default_value": "(10, 10)",
-          "description": "Origin anchor coordinate (x, y).",
-          "domain": "Pillow",
-          "required": true,
-          "abstract_type": "collection",
-          "enum_values": null,
-          "param_kind": "positional",
-          "value_constraints": null,
-          "shape_contract": "(2,)"
-        },
-        "text": {
-          "name": "text",
-          "type_name": "str",
-          "state": "multiline_content",
-          "qualifiers": [],
-          "default_value": "'First Line\\nSecond Line'",
-          "description": "String containing newline characters.",
-          "domain": "Pillow",
-          "required": true,
-          "abstract_type": "scalar",
-          "enum_values": null,
-          "param_kind": "positional",
-          "value_constraints": null,
-          "shape_contract": null
-        },
-        "fill": {
-          "name": "fill",
-          "type_name": "tuple",
-          "state": "color_spec",
-          "qualifiers": [],
-          "default_value": "(255, 255, 255)",
-          "description": "Text glyph color.",
-          "domain": "Pillow",
-          "required": false,
-          "abstract_type": "collection",
-          "enum_values": null,
-          "param_kind": "keyword",
-          "value_constraints": null,
-          "shape_contract": null
-        },
-        "spacing": {
-          "name": "spacing",
-          "type_name": "int",
-          "state": "line_spacing",
-          "qualifiers": [],
-          "default_value": "4",
-          "description": "Extra pixel spacing between text lines.",
-          "domain": "Pillow",
-          "required": false,
-          "abstract_type": "scalar",
-          "enum_values": null,
-          "param_kind": "keyword",
-          "value_constraints": null,
-          "shape_contract": null
-        },
-        "align": {
-          "name": "align",
-          "type_name": "str",
-          "state": "alignment",
-          "qualifiers": [],
-          "default_value": "'left'",
-          "description": "Text alignment relative to bounding column.",
-          "domain": "Pillow",
-          "required": false,
-          "abstract_type": "scalar",
-          "enum_values": [
-            "left",
-            "center",
-            "right"
-          ],
-          "param_kind": "keyword",
-          "value_constraints": null,
-          "shape_contract": null
-        }
-      },
-      "outputs": {},
-      "preconditions": [],
-      "postconditions": [],
-      "effects": [
-        "renders_multiline_text"
-      ],
-      "edges": [],
-      "primary_in": "draw",
-      "primary_out": "void"
-    },
-    {
-      "cell_id": "PILLOW_IMAGE_PASTE",
-      "stage": 2,
-      "topology_type": "binary",
-      "node_type": "method",
-      "node_role": "transformer",
-      "mutation_type": "in_place",
-      "is_context_manager": false,
-      "verified": true,
-      "source_priority": 90,
-      "is_public": true,
-      "docstring": "Pastes another image into this image at the specified upper-left corner box coordinates.",
-      "dependencies": [
-        "PIL.Image"
-      ],
-      "semantic_tags": [
-        "paste",
-        "composite",
-        "in_place"
-      ],
-      "keywords": [
-        "paste",
-        "overlay",
-        "insert",
-        "box"
-      ],
-      "code_template": "{image_dst}.paste({image_src}, box={box})",
-      "slots": [
-        "image_dst",
-        "image_src",
-        "box"
-      ],
-      "bound_slots": {},
-      "feedback_state_type": null,
-      "raises": [
-        "ValueError"
-      ],
-      "type_vars": [],
-      "inputs": {
-        "image_dst": {
-          "name": "image_dst",
-          "type_name": "Image",
-          "state": "mode_rgb",
-          "accepted_states": [
-            "mode_rgb",
-            "mode_rgba"
-          ],
-          "qualifiers": [],
-          "default_value": null,
-          "description": "Base image modified in-place.",
-          "domain": "Pillow",
-          "required": true,
-          "abstract_type": "tensor",
-          "enum_values": null,
-          "param_kind": "positional",
-          "value_constraints": null,
-          "shape_contract": null
-        },
-        "image_src": {
-          "name": "image_src",
-          "type_name": "Image",
-          "state": "mode_rgb",
-          "accepted_states": [
-            "mode_rgb",
-            "mode_rgba"
-          ],
-          "qualifiers": [],
-          "default_value": null,
-          "description": "Source sub-image to insert.",
-          "domain": "Pillow",
-          "required": true,
-          "abstract_type": "tensor",
-          "enum_values": null,
-          "param_kind": "positional",
-          "value_constraints": null,
-          "shape_contract": null
-        },
-        "box": {
-          "name": "box",
-          "type_name": "tuple",
-          "state": "paste_coordinates",
-          "qualifiers": [],
-          "default_value": "(0, 0)",
-          "description": "Destination coordinate (x, y) or boundary tuple (x0, y0, x1, y1).",
-          "domain": "Pillow",
-          "required": false,
-          "abstract_type": "collection",
-          "enum_values": null,
-          "param_kind": "keyword",
-          "value_constraints": null,
-          "shape_contract": null
-        }
-      },
-      "outputs": {},
-      "preconditions": [],
-      "postconditions": [],
-      "effects": [
-        "mutates_image_pixels"
-      ],
-      "edges": [
-        {
-          "target_cell_id": "PILLOW_IMAGE_SAVE_WEBP",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": "true",
-          "metadata": {},
-          "needs_mining": true
-        }
-      ],
-      "primary_in": "image_dst",
-      "primary_out": "void"
-    },
-    {
-      "cell_id": "PILLOW_IMAGE_GETCHANNEL",
-      "stage": 2,
-      "topology_type": "unary",
-      "node_type": "method",
-      "node_role": "transformer",
-      "mutation_type": "pure",
-      "is_context_manager": false,
-      "verified": true,
-      "source_priority": 90,
-      "is_public": true,
-      "docstring": "Extracts a single channel from this image as an 8-bit grayscale ('L') image.",
-      "dependencies": [
-        "PIL.Image"
-      ],
-      "semantic_tags": [
-        "channel",
-        "extract",
-        "band"
-      ],
-      "keywords": [
-        "getchannel",
-        "channel",
-        "band",
-        "extract",
-        "alpha"
-      ],
-      "code_template": "{output_var} = {image}.getchannel({channel})",
-      "slots": [
-        "output_var",
-        "image",
-        "channel"
-      ],
-      "bound_slots": {},
-      "feedback_state_type": null,
-      "raises": [
-        "ValueError"
-      ],
-      "type_vars": [],
-      "inputs": {
-        "image": {
-          "name": "image",
-          "type_name": "Image",
-          "state": "mode_rgb",
-          "accepted_states": [
-            "mode_rgb",
-            "mode_rgba",
-            "mode_hsv",
-            "mode_cmyk"
-          ],
-          "qualifiers": [],
-          "default_value": null,
-          "description": "Multi-channel image.",
-          "domain": "Pillow",
-          "required": true,
-          "abstract_type": "tensor",
-          "enum_values": null,
-          "param_kind": "positional",
-          "value_constraints": null,
-          "shape_contract": null
-        },
-        "channel": {
-          "name": "channel",
-          "type_name": "str",
-          "state": "channel_identifier",
-          "qualifiers": [],
-          "default_value": "'A'",
-          "description": "Channel index int or channel name string (e.g. 'R', 'G', 'B', 'A').",
-          "domain": "Pillow",
-          "required": true,
-          "abstract_type": "scalar",
-          "enum_values": [
-            "R",
-            "G",
-            "B",
-            "A",
-            "H",
-            "S",
-            "V",
-            "C",
-            "M",
-            "Y",
-            "K"
-          ],
-          "param_kind": "positional",
-          "value_constraints": null,
-          "shape_contract": null
-        }
-      },
-      "outputs": {
-        "output_var": {
-          "name": "output_var",
-          "type_name": "Image",
-          "state": "mode_grayscale",
-          "qualifiers": [],
-          "default_value": null,
-          "description": "Isolated single band as grayscale image.",
-          "domain": "Pillow",
-          "required": true,
-          "abstract_type": "tensor",
-          "enum_values": null,
-          "param_kind": "positional",
-          "value_constraints": null,
-          "shape_contract": "(H, W)"
-        }
-      },
-      "preconditions": [],
-      "postconditions": [
-        {
-          "target": "output_var",
-          "property": "mode",
-          "operator": "==",
-          "value": "L",
-          "expression": "output_var.mode == 'L'",
-          "description": "Output is L mode."
-        }
-      ],
-      "effects": [
-        "extracts_single_band"
-      ],
-      "edges": [
-        {
-          "target_cell_id": "PILLOW_IMAGEOPS_COLORIZE",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": "true",
-          "metadata": {},
-          "needs_mining": true
-        }
-      ],
-      "primary_in": "image",
-      "primary_out": "output_var"
-    },
-    {
-      "cell_id": "PILLOW_IMAGECHOPS_ADD",
-      "stage": 2,
-      "topology_type": "binary",
-      "node_type": "function",
-      "node_role": "transformer",
-      "mutation_type": "pure",
-      "is_context_manager": false,
-      "verified": true,
-      "source_priority": 85,
-      "is_public": true,
-      "docstring": "Adds two images pixel-by-pixel with optional scale factor and offset: out = (im1 + im2) / scale + offset.",
-      "dependencies": [
-        "PIL.ImageChops",
-        "PIL.Image"
-      ],
-      "semantic_tags": [
-        "imagechops",
-        "add",
-        "arithmetic"
-      ],
-      "keywords": [
-        "add",
-        "arithmetic",
-        "blend",
-        "composite"
-      ],
-      "code_template": "{output_var} = ImageChops.add({image1}, {image2}, scale={scale}, offset={offset})",
-      "slots": [
-        "output_var",
-        "image1",
-        "image2",
-        "scale",
-        "offset"
-      ],
-      "bound_slots": {},
-      "feedback_state_type": null,
-      "raises": [
-        "ValueError"
-      ],
-      "type_vars": [],
-      "inputs": {
-        "image1": {
-          "name": "image1",
-          "type_name": "Image",
-          "state": "mode_rgb",
-          "qualifiers": [],
-          "default_value": null,
-          "description": "First operand image.",
-          "domain": "Pillow",
-          "required": true,
-          "abstract_type": "tensor",
-          "enum_values": null,
-          "param_kind": "positional",
-          "value_constraints": null,
-          "shape_contract": null
-        },
-        "image2": {
-          "name": "image2",
-          "type_name": "Image",
-          "state": "mode_rgb",
-          "qualifiers": [],
-          "default_value": null,
-          "description": "Second operand image.",
-          "domain": "Pillow",
-          "required": true,
-          "abstract_type": "tensor",
-          "enum_values": null,
-          "param_kind": "positional",
-          "value_constraints": null,
-          "shape_contract": null
-        },
-        "scale": {
-          "name": "scale",
-          "type_name": "float",
-          "state": "arithmetic_scale",
-          "qualifiers": [],
-          "default_value": "1.0",
-          "description": "Divisor scale factor.",
-          "domain": "Pillow",
-          "required": false,
-          "abstract_type": "scalar",
-          "enum_values": null,
-          "param_kind": "keyword",
-          "value_constraints": null,
-          "shape_contract": null
-        },
-        "offset": {
-          "name": "offset",
-          "type_name": "int",
-          "state": "arithmetic_offset",
-          "qualifiers": [],
-          "default_value": "0",
-          "description": "Constant intensity offset.",
-          "domain": "Pillow",
-          "required": false,
-          "abstract_type": "scalar",
-          "enum_values": null,
-          "param_kind": "keyword",
-          "value_constraints": null,
-          "shape_contract": null
-        }
-      },
-      "outputs": {
-        "output_var": {
-          "name": "output_var",
-          "type_name": "Image",
-          "state": "composited",
-          "qualifiers": [],
-          "default_value": null,
-          "description": "Summed image.",
-          "domain": "Pillow",
-          "required": true,
-          "abstract_type": "tensor",
-          "enum_values": null,
-          "param_kind": "positional",
-          "value_constraints": null,
-          "shape_contract": null
-        }
-      },
-      "preconditions": [],
-      "postconditions": [],
-      "effects": [
-        "pixelwise_addition"
-      ],
-      "edges": [
-        {
-          "target_cell_id": "PILLOW_IMAGE_SAVE_WEBP",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": "true",
-          "metadata": {},
-          "needs_mining": true
-        }
-      ],
-      "primary_in": "image1",
-      "primary_out": "output_var"
-    },
-    {
-      "cell_id": "PILLOW_IMAGECHOPS_DIFFERENCE",
-      "stage": 2,
-      "topology_type": "binary",
-      "node_type": "function",
-      "node_role": "transformer",
-      "mutation_type": "pure",
-      "is_context_manager": false,
-      "verified": true,
-      "source_priority": 90,
-      "is_public": true,
-      "docstring": "Computes the absolute pixel difference between two images: out = abs(im1 - im2).",
-      "dependencies": [
-        "PIL.ImageChops",
-        "PIL.Image"
-      ],
-      "semantic_tags": [
-        "imagechops",
-        "difference",
-        "delta",
-        "compare"
-      ],
-      "keywords": [
-        "difference",
-        "diff",
-        "delta",
-        "comparator"
-      ],
-      "code_template": "{output_var} = ImageChops.difference({image1}, {image2})",
-      "slots": [
-        "output_var",
-        "image1",
-        "image2"
-      ],
-      "bound_slots": {},
-      "feedback_state_type": null,
-      "raises": [
-        "ValueError"
-      ],
-      "type_vars": [],
-      "inputs": {
-        "image1": {
-          "name": "image1",
-          "type_name": "Image",
-          "state": "mode_rgb",
-          "qualifiers": [],
-          "default_value": null,
-          "description": "First image.",
-          "domain": "Pillow",
-          "required": true,
-          "abstract_type": "tensor",
-          "enum_values": null,
-          "param_kind": "positional",
-          "value_constraints": null,
-          "shape_contract": null
-        },
-        "image2": {
-          "name": "image2",
-          "type_name": "Image",
-          "state": "mode_rgb",
-          "qualifiers": [],
-          "default_value": null,
-          "description": "Second image to compare against.",
-          "domain": "Pillow",
-          "required": true,
-          "abstract_type": "tensor",
-          "enum_values": null,
-          "param_kind": "positional",
-          "value_constraints": null,
-          "shape_contract": null
-        }
-      },
-      "outputs": {
-        "output_var": {
-          "name": "output_var",
-          "type_name": "Image",
-          "state": "composited",
-          "qualifiers": [],
-          "default_value": null,
-          "description": "Difference delta image.",
-          "domain": "Pillow",
-          "required": true,
-          "abstract_type": "tensor",
-          "enum_values": null,
-          "param_kind": "positional",
-          "value_constraints": null,
-          "shape_contract": null
-        }
-      },
-      "preconditions": [],
-      "postconditions": [],
-      "effects": [
-        "absolute_difference"
-      ],
-      "edges": [
-        {
-          "target_cell_id": "PILLOW_IMAGE_SAVE_WEBP",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": "true",
-          "metadata": {},
-          "needs_mining": true
-        }
-      ],
-      "primary_in": "image1",
-      "primary_out": "output_var"
-    },
-    {
-      "cell_id": "PILLOW_IMAGECHOPS_MULTIPLY",
-      "stage": 2,
-      "topology_type": "binary",
-      "node_type": "function",
-      "node_role": "transformer",
-      "mutation_type": "pure",
-      "is_context_manager": false,
-      "verified": true,
-      "source_priority": 85,
-      "is_public": true,
-      "docstring": "Multiplies two images pixel-by-pixel: out = (im1 * im2) / 255.",
-      "dependencies": [
-        "PIL.ImageChops",
-        "PIL.Image"
-      ],
-      "semantic_tags": [
-        "imagechops",
-        "multiply",
-        "blend"
-      ],
-      "keywords": [
-        "multiply",
-        "blend_mode",
-        "shade",
-        "darken"
-      ],
-      "code_template": "{output_var} = ImageChops.multiply({image1}, {image2})",
-      "slots": [
-        "output_var",
-        "image1",
-        "image2"
-      ],
-      "bound_slots": {},
-      "feedback_state_type": null,
-      "raises": [
-        "ValueError"
-      ],
-      "type_vars": [],
-      "inputs": {
-        "image1": {
-          "name": "image1",
-          "type_name": "Image",
-          "state": "mode_rgb",
-          "qualifiers": [],
-          "default_value": null,
-          "description": "Base layer image.",
-          "domain": "Pillow",
-          "required": true,
-          "abstract_type": "tensor",
-          "enum_values": null,
-          "param_kind": "positional",
-          "value_constraints": null,
-          "shape_contract": null
-        },
-        "image2": {
-          "name": "image2",
-          "type_name": "Image",
-          "state": "mode_rgb",
-          "qualifiers": [],
-          "default_value": null,
-          "description": "Multiply layer image.",
-          "domain": "Pillow",
-          "required": true,
-          "abstract_type": "tensor",
-          "enum_values": null,
-          "param_kind": "positional",
-          "value_constraints": null,
-          "shape_contract": null
-        }
-      },
-      "outputs": {
-        "output_var": {
-          "name": "output_var",
-          "type_name": "Image",
-          "state": "composited",
-          "qualifiers": [],
-          "default_value": null,
-          "description": "Multiplied output image.",
-          "domain": "Pillow",
-          "required": true,
-          "abstract_type": "tensor",
-          "enum_values": null,
-          "param_kind": "positional",
-          "value_constraints": null,
-          "shape_contract": null
-        }
-      },
-      "preconditions": [],
-      "postconditions": [],
-      "effects": [
-        "multiplicative_shading"
-      ],
-      "edges": [
-        {
-          "target_cell_id": "PILLOW_IMAGE_SAVE_WEBP",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": "true",
-          "metadata": {},
-          "needs_mining": true
-        }
-      ],
-      "primary_in": "image1",
-      "primary_out": "output_var"
-    },
-    {
-      "cell_id": "PILLOW_IMAGE_SAVE_WEBP",
-      "stage": 3,
-      "topology_type": "unary",
-      "node_type": "method",
-      "node_role": "sink",
-      "mutation_type": "pure",
-      "is_context_manager": false,
-      "verified": true,
-      "source_priority": 95,
-      "is_public": true,
-      "docstring": "Exports image to WebP format supporting lossy or lossless compression with alpha support.",
-      "dependencies": [
-        "PIL.Image"
-      ],
-      "semantic_tags": [
-        "save",
-        "webp",
-        "export",
-        "compress"
-      ],
-      "keywords": [
-        "save",
-        "webp",
-        "export",
-        "quality",
-        "lossless"
-      ],
-      "code_template": "{image}.save({dest_path}, format='WEBP', quality={quality}, lossless={lossless})",
-      "slots": [
-        "image",
-        "dest_path",
-        "quality",
-        "lossless"
-      ],
-      "bound_slots": {},
-      "feedback_state_type": null,
-      "raises": [
-        "OSError"
-      ],
-      "type_vars": [],
-      "inputs": {
-        "image": {
-          "name": "image",
-          "type_name": "Image",
-          "state": "mode_rgb",
-          "accepted_states": [
-            "mode_rgb",
-            "mode_rgba",
-            "mode_grayscale",
-            "composited",
-            "resized",
-            "transformed",
-            "filtered_general"
-          ],
-          "qualifiers": [],
-          "default_value": null,
-          "description": "Image to encode.",
-          "domain": "Pillow",
-          "required": true,
-          "abstract_type": "tensor",
-          "enum_values": null,
-          "param_kind": "positional",
-          "value_constraints": null,
-          "shape_contract": null
-        },
-        "dest_path": {
-          "name": "dest_path",
-          "type_name": "File[Image, WEBP]",
-          "state": "destination_path",
-          "qualifiers": [],
-          "default_value": null,
-          "description": "Destination .webp filepath.",
-          "domain": "Pillow",
-          "required": true,
-          "abstract_type": "path",
-          "enum_values": null,
-          "param_kind": "positional",
-          "value_constraints": null,
-          "shape_contract": null
-        },
-        "quality": {
-          "name": "quality",
-          "type_name": "int",
-          "state": "webp_quality",
-          "qualifiers": [],
-          "default_value": "80",
-          "description": "WebP compression quality (0-100).",
-          "domain": "Pillow",
-          "required": false,
-          "abstract_type": "scalar",
-          "enum_values": null,
-          "param_kind": "keyword",
-          "value_constraints": {
-            "min": 0,
-            "max": 100
-          },
-          "shape_contract": null
-        },
-        "lossless": {
-          "name": "lossless",
-          "type_name": "bool",
-          "state": "lossless_flag",
-          "qualifiers": [],
-          "default_value": "False",
-          "description": "Whether to use lossless compression.",
-          "domain": "Pillow",
-          "required": false,
-          "abstract_type": "scalar",
-          "enum_values": null,
-          "param_kind": "keyword",
-          "value_constraints": null,
-          "shape_contract": null
-        }
-      },
-      "outputs": {},
-      "preconditions": [],
-      "postconditions": [],
-      "effects": [
-        "writes_webp_file"
-      ],
-      "edges": [],
-      "primary_in": "image",
-      "primary_out": "void",
-      "endable": true
-    },
-    {
-      "cell_id": "PILLOW_IMAGE_SAVE_GIF_ANIMATED",
-      "stage": 3,
-      "topology_type": "unary",
-      "node_type": "method",
-      "node_role": "sink",
-      "mutation_type": "pure",
-      "is_context_manager": false,
-      "verified": true,
-      "source_priority": 90,
-      "is_public": true,
-      "docstring": "Exports sequence of images as an animated multi-frame GIF.",
-      "dependencies": [
-        "PIL.Image"
-      ],
-      "semantic_tags": [
-        "save",
-        "gif",
-        "animation",
-        "multi_frame"
-      ],
-      "keywords": [
-        "gif",
-        "animation",
-        "append_images",
-        "duration",
-        "loop"
-      ],
-      "code_template": "{image}.save({dest_path}, format='GIF', save_all=True, append_images={append_images}, duration={duration}, loop={loop})",
-      "slots": [
-        "image",
-        "dest_path",
-        "append_images",
-        "duration",
-        "loop"
-      ],
-      "bound_slots": {},
-      "feedback_state_type": null,
-      "raises": [
-        "OSError"
-      ],
-      "type_vars": [],
-      "inputs": {
-        "image": {
-          "name": "image",
-          "type_name": "Image",
-          "state": "mode_palette",
-          "accepted_states": [
-            "mode_palette",
-            "mode_rgb",
-            "mode_grayscale"
-          ],
-          "qualifiers": [],
-          "default_value": null,
-          "description": "First frame of the animated sequence.",
-          "domain": "Pillow",
-          "required": true,
-          "abstract_type": "tensor",
-          "enum_values": null,
-          "param_kind": "positional",
-          "value_constraints": null,
-          "shape_contract": null
-        },
-        "dest_path": {
-          "name": "dest_path",
-          "type_name": "File[Image, GIF]",
-          "state": "destination_path",
-          "qualifiers": [],
-          "default_value": null,
-          "description": "Destination .gif path.",
-          "domain": "Pillow",
-          "required": true,
-          "abstract_type": "path",
-          "enum_values": null,
-          "param_kind": "positional",
-          "value_constraints": null,
-          "shape_contract": null
-        },
-        "append_images": {
-          "name": "append_images",
-          "type_name": "List[PILImage]",
-          "state": "subsequent_frames",
-          "qualifiers": [],
-          "default_value": "[]",
-          "description": "List of remaining frame Image instances.",
-          "domain": "Pillow",
-          "required": false,
-          "abstract_type": "collection",
-          "enum_values": null,
-          "param_kind": "keyword",
-          "value_constraints": null,
-          "shape_contract": null
-        },
-        "duration": {
-          "name": "duration",
-          "type_name": "int",
-          "state": "frame_duration_ms",
-          "qualifiers": [],
-          "default_value": "100",
-          "description": "Display time per frame in milliseconds.",
-          "domain": "Pillow",
-          "required": false,
-          "abstract_type": "scalar",
-          "enum_values": null,
-          "param_kind": "keyword",
-          "value_constraints": {
-            "min": 10
-          },
-          "shape_contract": null
-        },
-        "loop": {
-          "name": "loop",
-          "type_name": "int",
-          "state": "loop_count",
-          "qualifiers": [],
-          "default_value": "0",
-          "description": "Number of loops (0 means loop forever).",
-          "domain": "Pillow",
-          "required": false,
-          "abstract_type": "scalar",
-          "enum_values": null,
-          "param_kind": "keyword",
-          "value_constraints": null,
-          "shape_contract": null
-        }
-      },
-      "outputs": {},
-      "preconditions": [],
-      "postconditions": [],
-      "effects": [
-        "writes_animated_gif"
-      ],
-      "edges": [],
-      "primary_in": "image",
-      "primary_out": "void",
-      "endable": true
-    },
-    {
-      "cell_id": "PILLOW_IMAGE_SEEK",
-      "stage": 2,
-      "topology_type": "unary",
-      "node_type": "method",
-      "node_role": "transformer",
-      "mutation_type": "in_place",
-      "is_context_manager": false,
-      "verified": true,
-      "source_priority": 85,
-      "is_public": true,
-      "docstring": "Seeks to the specified frame index in a multi-frame image sequence.",
-      "dependencies": [
-        "PIL.Image"
-      ],
-      "semantic_tags": [
-        "seek",
-        "frame",
-        "multi_frame",
-        "sequence"
-      ],
-      "keywords": [
-        "seek",
-        "frame",
-        "gif",
-        "animation"
-      ],
-      "code_template": "{image}.seek({frame})",
-      "slots": [
-        "image",
-        "frame"
-      ],
-      "bound_slots": {},
-      "feedback_state_type": null,
-      "raises": [
-        "EOFError"
-      ],
-      "type_vars": [],
-      "inputs": {
-        "image": {
-          "name": "image",
-          "type_name": "Image",
-          "state": "multi_frame_stream",
-          "qualifiers": [],
-          "default_value": null,
-          "description": "Multi-frame image container.",
-          "domain": "Pillow",
-          "required": true,
-          "abstract_type": "tensor",
-          "enum_values": null,
-          "param_kind": "positional",
-          "value_constraints": null,
-          "shape_contract": null
-        },
-        "frame": {
-          "name": "frame",
-          "type_name": "int",
-          "state": "frame_index",
-          "qualifiers": [],
-          "default_value": "0",
-          "description": "Target zero-based frame index.",
-          "domain": "Pillow",
-          "required": true,
-          "abstract_type": "scalar",
-          "enum_values": null,
-          "param_kind": "positional",
-          "value_constraints": {
-            "min": 0
-          },
-          "shape_contract": null
-        }
-      },
-      "outputs": {},
-      "preconditions": [],
-      "postconditions": [],
-      "effects": [
-        "advances_frame_pointer"
-      ],
-      "edges": [
-        {
-          "target_cell_id": "PILLOW_IMAGE_TELL",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": "true",
-          "metadata": {},
-          "needs_mining": true
-        }
-      ],
-      "primary_in": "image",
-      "primary_out": "void"
-    },
-    {
-      "cell_id": "PILLOW_IMAGE_TELL",
-      "stage": 2,
-      "topology_type": "unary",
-      "node_type": "method",
-      "node_role": "transformer",
-      "mutation_type": "pure",
-      "is_context_manager": false,
-      "verified": true,
-      "source_priority": 80,
-      "is_public": true,
-      "docstring": "Returns current active frame number in a multi-frame image container.",
-      "dependencies": [
-        "PIL.Image"
-      ],
-      "semantic_tags": [
-        "tell",
-        "frame_index",
-        "inspection"
-      ],
-      "keywords": [
-        "tell",
-        "frame",
-        "current_frame"
-      ],
-      "code_template": "{output_var} = {image}.tell()",
-      "slots": [
-        "output_var",
-        "image"
-      ],
-      "bound_slots": {},
-      "feedback_state_type": null,
-      "raises": [],
-      "type_vars": [],
-      "inputs": {
-        "image": {
-          "name": "image",
-          "type_name": "Image",
-          "state": "multi_frame_stream",
-          "qualifiers": [],
-          "default_value": null,
-          "description": "Multi-frame image container.",
-          "domain": "Pillow",
-          "required": true,
-          "abstract_type": "tensor",
-          "enum_values": null,
-          "param_kind": "positional",
-          "value_constraints": null,
-          "shape_contract": null
-        }
-      },
-      "outputs": {
-        "output_var": {
-          "name": "output_var",
-          "type_name": "int",
-          "state": "active_frame_index",
-          "qualifiers": [],
-          "default_value": null,
-          "description": "Zero-based index of current frame.",
-          "domain": "Pillow",
-          "required": true,
-          "abstract_type": "scalar",
-          "enum_values": null,
-          "param_kind": "positional",
-          "value_constraints": null,
-          "shape_contract": null
-        }
-      },
-      "preconditions": [],
-      "postconditions": [],
-      "effects": [],
-      "edges": [],
-      "primary_in": "image",
-      "primary_out": "output_var"
-    },
-    {
-      "cell_id": "PILLOW_IMAGE_CLOSE",
-      "stage": 3,
-      "topology_type": "unary",
-      "node_type": "method",
-      "node_role": "sink",
-      "mutation_type": "in_place",
-      "is_context_manager": false,
-      "verified": true,
-      "source_priority": 80,
-      "is_public": true,
-      "docstring": "Closes the file pointer and deallocates native resources associated with the image.",
-      "dependencies": [
-        "PIL.Image"
-      ],
-      "semantic_tags": [
-        "cleanup",
-        "close",
-        "dispose",
-        "sink"
-      ],
-      "keywords": [
-        "close",
-        "deallocate",
-        "cleanup",
-        "dispose"
-      ],
-      "code_template": "{image}.close()",
-      "slots": [
-        "image"
-      ],
-      "bound_slots": {},
-      "feedback_state_type": null,
-      "raises": [],
-      "type_vars": [],
-      "inputs": {
-        "image": {
-          "name": "image",
-          "type_name": "Image",
-          "state": "mode_rgb",
-          "accepted_states": [
-            "mode_rgb",
-            "mode_rgba",
-            "mode_grayscale",
-            "mode_palette",
-            "saved"
-          ],
-          "qualifiers": [],
-          "default_value": null,
-          "description": "Image instance to release.",
-          "domain": "Pillow",
-          "required": true,
-          "abstract_type": "tensor",
-          "enum_values": null,
-          "param_kind": "positional",
-          "value_constraints": null,
-          "shape_contract": null
-        }
-      },
-      "outputs": {},
-      "preconditions": [],
-      "postconditions": [],
-      "effects": [
-        "deallocates_buffers",
-        "closes_file_descriptor"
-      ],
-      "edges": [],
-      "primary_in": "image",
-      "primary_out": "void",
-      "endable": true
+      "edges": []
     }
   ],
-  "types": {
-    "PILImage": {
-      "parent": "ndarray",
-      "description": "PIL.Image.Image instance compatible with array-like"
-    },
-    "Image": {
-      "parent": "Modality"
-    },
-    "PNG": {
-      "parent": "ImageFormat"
-    },
-    "JPEG": {
-      "parent": "ImageFormat"
-    },
-    "WEBP": {
-      "parent": "ImageFormat"
-    },
-    "GIF": {
-      "parent": "ImageFormat"
-    },
-    "imageformat": {
-      "parent": "format"
-    }
-  },
   "egress_intent_tokens": [
     "save",
     "export",

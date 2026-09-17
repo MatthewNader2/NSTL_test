@@ -18,6 +18,9 @@ import sys
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Set, Tuple, Union
 
+from log_config import get_logger
+logger = get_logger('signature_introspector')
+
 # Cache for parsed .pyi AST trees to ensure zero performance overhead
 _STUB_CACHE: Dict[str, Optional[ast.Module]] = {}
 
@@ -47,8 +50,8 @@ def _ast_clean_type(node: ast.AST) -> str:
                     inner_res = _ast_clean_type(inner_tree.body)
                     if inner_res and inner_res != "any":
                         return inner_res
-                except Exception:
-                    pass
+                except Exception as e:
+                    logger.debug("suppressed: %s", e, exc_info=False)
             return val
         return str(node.value)
     elif isinstance(node, ast.Subscript):
@@ -104,8 +107,8 @@ def extract_clean_type_name(anno: Any) -> str:
                 return "None"
             if hasattr(origin, "__name__"):
                 return origin.__name__
-    except Exception:
-        pass
+    except Exception as e:
+        logger.debug("suppressed: %s", e, exc_info=False)
 
     s = str(anno).strip()
     while (s.startswith("'") and s.endswith("'")) or (s.startswith('"') and s.endswith('"')):
@@ -123,8 +126,8 @@ def extract_clean_type_name(anno: Any) -> str:
         res = _ast_clean_type(tree.body)
         if res and res != "any":
             return res
-    except Exception:
-        pass
+    except Exception as e:
+        logger.debug("suppressed: %s", e, exc_info=False)
 
     # Safe fallback cleanup
     if s.startswith("ForwardRef(") and s.endswith(")"):
@@ -219,8 +222,8 @@ def infer_abstract_carrier(anno: Any, param_name: str = "") -> Optional[str]:
                         return valid[0]
         if hasattr(anno, "__supertype__"):
             return infer_abstract_carrier(anno.__supertype__)
-    except Exception:
-        pass
+    except Exception as e:
+        logger.debug("suppressed: %s", e, exc_info=False)
 
     # 2. Type-level protocol checks on classes
     if isinstance(anno, type) or inspect.isclass(anno):
@@ -253,8 +256,8 @@ def infer_abstract_carrier(anno: Any, param_name: str = "") -> Optional[str]:
                 return "tensor"
             if issubclass(anno, (collections.abc.Sequence, collections.abc.Mapping, list, tuple, dict, set, frozenset)):
                 return "collection"
-        except Exception:
-            pass
+        except Exception as e:
+            logger.debug("suppressed: %s", e, exc_info=False)
 
     # 3. String-based protocol and category classification
     name = str(getattr(anno, "__name__", anno)).strip()
@@ -340,8 +343,8 @@ def infer_abstract_carrier(anno: Any, param_name: str = "") -> Optional[str]:
                 import importlib
                 m_obj = importlib.import_module(mod_part)
                 resolved_cls = getattr(m_obj, cls_part, None)
-            except Exception:
-                pass
+            except Exception as e:
+                logger.debug("suppressed: %s", e, exc_info=False)
             if resolved_cls is None:
                 mod = sys.modules.get(mod_part)
                 if mod:
@@ -627,7 +630,7 @@ def extract_ast_raises(source: Optional[str]) -> List[str]:
                     elif isinstance(node.exc.func, ast.Attribute):
                         raises.append(node.exc.func.attr)
         return sorted(list(dict.fromkeys(raises)))
-    except Exception:
+    except Exception as e:
         return []
 
 
@@ -658,16 +661,16 @@ def extract_enum_domain(anno: Any, doc: str = "", param_name: str = "") -> Optio
             args = list(typing.get_args(anno))
             if args:
                 return args
-    except Exception:
-        pass
+    except Exception as e:
+        logger.debug("suppressed: %s", e, exc_info=False)
 
     # 2. Inspect enum.Enum class
     import enum
     if inspect.isclass(anno) and issubclass(anno, enum.Enum):
         try:
             return [m.name for m in anno]
-        except Exception:
-            pass
+        except Exception as e:
+            logger.debug("suppressed: %s", e, exc_info=False)
 
     # 3. Inspect string annotation for Literal[...]
     s = str(anno).strip()
@@ -682,8 +685,8 @@ def extract_enum_domain(anno: Any, doc: str = "", param_name: str = "") -> Optio
                         vals = [ast.literal_eval(e) for e in elts if isinstance(e, ast.Constant)]
                         if vals:
                             return vals
-        except Exception:
-            pass
+        except Exception as e:
+            logger.debug("suppressed: %s", e, exc_info=False)
 
     # 4. Docstring inspection for choices: param_name : {a, b, c}
     if doc and param_name:
@@ -769,8 +772,8 @@ def extract_return_specs(ret_anno: Any, doc: str = "") -> List[Tuple[str, str, O
             args = typing.get_args(ret_anno)
             if args and not (len(args) == 2 and args[1] is Ellipsis):
                 tuple_element_types = [extract_clean_type_name(a) for a in args]
-    except Exception:
-        pass
+    except Exception as e:
+        logger.debug("suppressed: %s", e, exc_info=False)
 
     if not tuple_element_types and isinstance(ret_anno, str) and ("tuple[" in ret_anno.lower() or "Tuple[" in ret_anno):
         try:
@@ -784,8 +787,8 @@ def extract_return_specs(ret_anno: Any, doc: str = "") -> List[Tuple[str, str, O
                         elts = [e for e in slice_node.elts if not (isinstance(e, ast.Constant) and e.value is Ellipsis)]
                         if len(elts) > 1:
                             tuple_element_types = [_ast_clean_type(e) for e in elts]
-        except Exception:
-            pass
+        except Exception as e:
+            logger.debug("suppressed: %s", e, exc_info=False)
 
     if tuple_element_types and len(tuple_element_types) > 1:
         results = []
@@ -819,7 +822,7 @@ def _tier1_inspect_signature(target: Any) -> Optional[inspect.Signature]:
         return inspect.signature(unwrapped)
     except (ValueError, TypeError):
         return None
-    except Exception:
+    except Exception as e:
         return None
 
 
@@ -931,7 +934,7 @@ def _get_stub_ast(stub_path: Path) -> Optional[ast.Module]:
         tree = ast.parse(code, filename=path_str)
         _STUB_CACHE[path_str] = tree
         return tree
-    except Exception:
+    except Exception as e:
         _STUB_CACHE[path_str] = None
         return None
 
@@ -1174,7 +1177,7 @@ def _tier4_docstring_signature(
 
         try:
             return inspect.Signature(parameters=parameters, return_annotation=ret_anno)
-        except Exception:
+        except Exception as e:
             return None
 
     return None

@@ -1,3 +1,4 @@
+# STATUS: partially wired / candidate for future removal. Do not expand until usage is confirmed.
 """
 src/macro_harvester.py - Neuro-Symbolic Topological Lattice (NSTL)
 Dynamic Macro Harvesting & Hierarchical Abstraction (Phase 4 / T4.3).

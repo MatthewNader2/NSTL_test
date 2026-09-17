@@ -103,6 +103,7 @@ def _init_worker(paths: list[str]):
             sys.path.insert(0, p)
 
 
+# Security denylist – intentionally engine-side, not domain data.
 _BLOCKED_MODULES = frozenset({
     'subprocess', 'shutil', 'socket', 'ctypes',
     'signal', 'importlib', 'multiprocessing', 'threading', 'http',
@@ -343,7 +344,7 @@ def _evaluate_terminal_intent(
                         elif hasattr(attr_val, "__len__"):
                             try:
                                 candidate = len(attr_val[0]) if len(attr_val) and hasattr(attr_val[0], "__len__") else len(attr_val)
-                            except Exception:
+                            except Exception as e:
                                 continue
                         else:
                             continue
@@ -384,7 +385,7 @@ def _evaluate_terminal_intent(
                     if func:
                         disk_img = func(clean_path)
                         break
-                except Exception:
+                except Exception as e:
                     continue
 
             ingress_img = exec_globals.get(ingress_var) if ingress_var else None
@@ -432,7 +433,7 @@ def _evaluate_terminal_intent(
                     if func:
                         disk_df = func(clean_path)
                         break
-                except Exception:
+                except Exception as e:
                     continue
 
             try:
@@ -522,8 +523,8 @@ def _sandbox_worker_exec(
     if cwd:
         try:
             os.chdir(cwd)
-        except Exception:
-            pass
+        except Exception as e:
+            logger.debug("suppressed: %s", e, exc_info=False)
     stdout_buf = io.StringIO()
     stderr_buf = io.StringIO()
 

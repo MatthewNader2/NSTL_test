@@ -1349,9 +1349,6 @@
         "rust": "let mut {result}: Option<{U}> = None;\nfor _att in 0..{max_retries} {\n    match std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {action}({data}))) {\n        Ok(res) => { {result} = Some(res); break; },\n        Err(_err) => {\n            if _att == {max_retries} - 1 { {result} = Some({fallback}(_err, {data})); }\n            else { std::thread::sleep(std::time::Duration::from_millis(({backoff_sec} * 1000.0 * (1 << _att) as f64) as u64)); }\n        }\n    }\n}\nlet {result} = {result}.unwrap();"
       },
       "docstring": "Resilience Retry Loop: Repeatedly attempts an action up to max_retries with exponential delay, falling back if all attempts fail.",
-      "dependencies": [
-        "time"
-      ],
       "keywords": [
         "retry",
         "backoff",
@@ -1612,5 +1609,52 @@
   "typestates": {
     "domain": "control_flow",
     "states": []
+  },
+  "egress_intent_tokens": [
+    "save",
+    "export",
+    "write",
+    "dump",
+    "persist",
+    "store",
+    "plot",
+    "show",
+    "display"
+  ],
+  "materialization_states": [
+    "destination_written",
+    "filepath_written",
+    "saved",
+    "exported",
+    "written_to_disk"
+  ],
+  "polarity_hints": {
+    "ascending": [
+      "bottom",
+      "lowest",
+      "smallest",
+      "minimum",
+      "min",
+      "worst",
+      "least",
+      "ascending",
+      "asc",
+      "fewest"
+    ],
+    "descending": [
+      "top",
+      "highest",
+      "largest",
+      "biggest",
+      "greatest",
+      "maximum",
+      "max",
+      "best",
+      "most",
+      "descending",
+      "desc",
+      "newest",
+      "latest"
+    ]
   }
 }

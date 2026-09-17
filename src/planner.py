@@ -188,7 +188,7 @@ class LatticePlanner:
             try:
                 from config import settings
                 self.macros_enabled = bool(getattr(settings, "macros_enabled", True))
-            except Exception:
+            except Exception as e:
                 self.macros_enabled = True
         self.current_relevance_map: Dict[str, float] = {}
 
@@ -698,7 +698,7 @@ class LatticePlanner:
 
             # Role-carrier tracking (R2.5):
             # Check role-bearing inputs (e.g. target_input, feature_input, data_input)
-            ROLE_CARRIERS = frozenset({"target_input", "feature_input", "data_input", "model_input"})
+            ROLE_CARRIERS = TypeRegistry.get_instance().get_declared_role_carriers()
             matched_producers: Set[Tuple[int, str]] = set()
 
             for p_name, p_sig in cand.inputs.items():
@@ -1239,7 +1239,7 @@ class LatticePlanner:
         def _sigma_fingerprint(sigma: Substitution) -> str:
             try:
                 return tuple(sorted((k, str(v)) for k, v in sigma.mappings.items()))
-            except Exception:
+            except Exception as e:
                 return ()
 
         def _required_ports_bindable(cand: Cell, prev_path: List[Cell], sigma: Substitution) -> Optional[Substitution]:
@@ -1557,7 +1557,7 @@ class LatticePlanner:
                     if isinstance(res, Success) and not res.is_bottom():
                         chosen_candidate = it
                         break
-                except Exception:
+                except Exception as e:
                     continue
             if chosen_candidate is None and scored_candidates:
                 # Semantic repair stage (Section 3.4): attempt dynamic repair of candidate cells
@@ -1639,7 +1639,7 @@ class LatticePlanner:
             return path
         try:
             groups = ExecutionContext.extract_identifier_groups(prompt)
-        except Exception:
+        except Exception as e:
             return path
         if not groups:
             return path

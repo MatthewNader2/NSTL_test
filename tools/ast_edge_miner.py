@@ -746,8 +746,8 @@ def run_edge_mining() -> Dict[str, Any]:
     for f in target_files:
         p = trees_dir / f
         if not p.exists():
-            # Fall back to new trees/
-            src_p = PROJECT_ROOT / "new trees" / f"{f.split('.')[0]}_v1.1.0_normalized.json"
+            # Fall back to new_trees/
+            src_p = PROJECT_ROOT / "new_trees" / f"{f.split('.')[0]}_v1.1.0_normalized.json"
             if src_p.exists():
                 with open(src_p, "r", encoding="utf-8") as fp:
                     data = json.load(fp)

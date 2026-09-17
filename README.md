@@ -57,14 +57,16 @@ nstl_prototype/
 
 ## Domain Knowledge Trees (`trees/`)
 
-The repository contains 7 verified domain trees with **48,000+** compiled morphisms:
+The repository contains 9 domain trees (~600 verified cells, compiling to morphisms and topological edges after sanitize):
+- **`control_flow.json`**: Control flow and branching primitives.
 - **`cv2.json`**: Computer vision primitives (filtering, color space conversion, edge detection, I/O).
-- **`pandas.json`**: Tabular data manipulation, aggregation, cleaning, and export.
-- **`numpy.json`**: Array algebra, linear algebra, FFT, and tensor transformations.
-- **`scipy.json`**: Scientific computing, interpolation, optimization, signal processing, and statistics.
-- **`sklearn.json`**: Preprocessing, classification, regression, clustering, and model metrics.
+- **`macros.json`**: Reusable macro pipelines and composite operations.
 - **`matplotlib.json`**: Data visualization, figure management, plotting, and image export.
-- **`python_core.json`**: Graph algorithms, data structures, heap operations, and utilities.
+- **`numpy.json`**: Array algebra, linear algebra, FFT, and tensor transformations.
+- **`pandas.json`**: Tabular data manipulation, aggregation, cleaning, and export.
+- **`pillow.json`**: Image processing, format conversions, filters, and drawing.
+- **`seaborn.json`**: Statistical data visualization and theme/palette configuration.
+- **`sklearn.json`**: Preprocessing, classification, regression, clustering, and model metrics.
 
 To compile domain JSONs into the fast query database:
 ```bash

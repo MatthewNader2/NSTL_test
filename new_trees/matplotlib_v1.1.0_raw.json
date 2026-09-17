@@ -219,539 +219,76 @@
     ],
     "transitions": [
       {
-        "from": "axes_initialized",
-        "to": "annotated",
-        "via": "matplotlib_ax_text"
+        "from_state": "empty_figure",
+        "to_state": "axes_initialized",
+        "trigger": "add_subplot",
+        "description": "Instantiate an empty Axes instance within the parent Figure."
       },
       {
-        "from": "axes_initialized",
-        "to": "axes_initialized",
-        "via": "matplotlib_ax_twinx"
+        "from_state": "axes_initialized",
+        "to_state": "line_plotted",
+        "trigger": "plot",
+        "description": "Render continuous line plots onto initialized Axes."
       },
       {
-        "from": "axes_initialized",
-        "to": "axes_initialized",
-        "via": "matplotlib_ax_twiny"
+        "from_state": "axes_initialized",
+        "to_state": "scatter_plotted",
+        "trigger": "scatter",
+        "description": "Render scatter point collections onto initialized Axes."
       },
       {
-        "from": "axes_initialized",
-        "to": "bar_plotted",
-        "via": "matplotlib_ax_bar"
+        "from_state": "axes_initialized",
+        "to_state": "bar_plotted",
+        "trigger": "bar",
+        "description": "Render vertical or horizontal bar geometry onto Axes."
       },
       {
-        "from": "axes_initialized",
-        "to": "bar_plotted",
-        "via": "matplotlib_ax_barh"
+        "from_state": "axes_initialized",
+        "to_state": "hist_plotted",
+        "trigger": "hist",
+        "description": "Compute and draw histogram intervals onto Axes."
       },
       {
-        "from": "axes_initialized",
-        "to": "box_plotted",
-        "via": "matplotlib_ax_boxplot"
+        "from_state": "axes_initialized",
+        "to_state": "image_plotted",
+        "trigger": "imshow",
+        "description": "Rasterize 2D matrix or pixel array onto Axes."
       },
       {
-        "from": "axes_initialized",
-        "to": "contour_plotted",
-        "via": "matplotlib_ax_contour"
+        "from_state": "axes_with_content",
+        "to_state": "styled_axes",
+        "trigger": "style_axes",
+        "description": "Apply limits, scales, grids, or tick configuration."
       },
       {
-        "from": "axes_initialized",
-        "to": "contour_plotted",
-        "via": "matplotlib_ax_contourf"
+        "from_state": "axes_with_content",
+        "to_state": "legend_added",
+        "trigger": "legend",
+        "description": "Construct and overlay a legend container."
       },
       {
-        "from": "axes_initialized",
-        "to": "errorbar_plotted",
-        "via": "matplotlib_ax_errorbar"
+        "from_state": "axes_with_content",
+        "to_state": "colorbar_added",
+        "trigger": "colorbar",
+        "description": "Append scalar colorbar handle to figure."
       },
       {
-        "from": "axes_initialized",
-        "to": "fill_plotted",
-        "via": "matplotlib_ax_fill_between"
+        "from_state": "axes_with_content",
+        "to_state": "tight_layout_applied",
+        "trigger": "tight_layout",
+        "description": "Compute clean padding and pack all subplot coordinates."
       },
       {
-        "from": "axes_initialized",
-        "to": "hist_plotted",
-        "via": "matplotlib_ax_hist"
+        "from_state": "tight_layout_applied",
+        "to_state": "figure_saved",
+        "trigger": "savefig",
+        "description": "Write rendered figure canvas to image file."
       },
       {
-        "from": "axes_initialized",
-        "to": "image_plotted",
-        "via": "matplotlib_ax_imshow"
-      },
-      {
-        "from": "axes_initialized",
-        "to": "image_plotted",
-        "via": "matplotlib_ax_pcolormesh"
-      },
-      {
-        "from": "axes_initialized",
-        "to": "line_plotted",
-        "via": "matplotlib_ax_plot"
-      },
-      {
-        "from": "axes_initialized",
-        "to": "pie_plotted",
-        "via": "matplotlib_ax_pie"
-      },
-      {
-        "from": "axes_initialized",
-        "to": "plot3d_plotted",
-        "via": "matplotlib_ax3d_plot"
-      },
-      {
-        "from": "axes_initialized",
-        "to": "plot3d_plotted",
-        "via": "matplotlib_ax3d_plot_surface"
-      },
-      {
-        "from": "axes_initialized",
-        "to": "plot3d_plotted",
-        "via": "matplotlib_ax3d_scatter"
-      },
-      {
-        "from": "axes_initialized",
-        "to": "scatter_plotted",
-        "via": "matplotlib_ax_scatter"
-      },
-      {
-        "from": "axes_initialized",
-        "to": "stem_plotted",
-        "via": "matplotlib_ax_stem"
-      },
-      {
-        "from": "axes_initialized",
-        "to": "styled_axes",
-        "via": "matplotlib_ax3d_view_init"
-      },
-      {
-        "from": "axes_initialized",
-        "to": "styled_axes",
-        "via": "matplotlib_ax_axhline"
-      },
-      {
-        "from": "axes_initialized",
-        "to": "styled_axes",
-        "via": "matplotlib_ax_axvline"
-      },
-      {
-        "from": "axes_initialized",
-        "to": "styled_axes",
-        "via": "matplotlib_ax_grid"
-      },
-      {
-        "from": "axes_initialized",
-        "to": "styled_axes",
-        "via": "matplotlib_ax_invert_xaxis"
-      },
-      {
-        "from": "axes_initialized",
-        "to": "styled_axes",
-        "via": "matplotlib_ax_invert_yaxis"
-      },
-      {
-        "from": "axes_initialized",
-        "to": "styled_axes",
-        "via": "matplotlib_ax_set_facecolor"
-      },
-      {
-        "from": "axes_initialized",
-        "to": "styled_axes",
-        "via": "matplotlib_ax_set_title"
-      },
-      {
-        "from": "axes_initialized",
-        "to": "styled_axes",
-        "via": "matplotlib_ax_set_xlabel"
-      },
-      {
-        "from": "axes_initialized",
-        "to": "styled_axes",
-        "via": "matplotlib_ax_set_xlim"
-      },
-      {
-        "from": "axes_initialized",
-        "to": "styled_axes",
-        "via": "matplotlib_ax_set_xscale"
-      },
-      {
-        "from": "axes_initialized",
-        "to": "styled_axes",
-        "via": "matplotlib_ax_set_xticklabels"
-      },
-      {
-        "from": "axes_initialized",
-        "to": "styled_axes",
-        "via": "matplotlib_ax_set_xticks"
-      },
-      {
-        "from": "axes_initialized",
-        "to": "styled_axes",
-        "via": "matplotlib_ax_set_ylabel"
-      },
-      {
-        "from": "axes_initialized",
-        "to": "styled_axes",
-        "via": "matplotlib_ax_set_ylim"
-      },
-      {
-        "from": "axes_initialized",
-        "to": "styled_axes",
-        "via": "matplotlib_ax_set_yscale"
-      },
-      {
-        "from": "axes_initialized",
-        "to": "styled_axes",
-        "via": "matplotlib_ax_spine_set_visible"
-      },
-      {
-        "from": "axes_initialized",
-        "to": "styled_axes",
-        "via": "matplotlib_ax_tick_params"
-      },
-      {
-        "from": "axes_initialized",
-        "to": "violin_plotted",
-        "via": "matplotlib_ax_violinplot"
-      },
-      {
-        "from": "axes_with_content",
-        "to": "annotated",
-        "via": "matplotlib_ax_annotate"
-      },
-      {
-        "from": "axes_with_content",
-        "to": "annotated",
-        "via": "matplotlib_ax_text"
-      },
-      {
-        "from": "axes_with_content",
-        "to": "axes_initialized",
-        "via": "matplotlib_ax_twinx"
-      },
-      {
-        "from": "axes_with_content",
-        "to": "axes_initialized",
-        "via": "matplotlib_ax_twiny"
-      },
-      {
-        "from": "axes_with_content",
-        "to": "axes_initialized",
-        "via": "matplotlib_fig_add_axes"
-      },
-      {
-        "from": "axes_with_content",
-        "to": "bar_plotted",
-        "via": "matplotlib_ax_bar"
-      },
-      {
-        "from": "axes_with_content",
-        "to": "bar_plotted",
-        "via": "matplotlib_ax_barh"
-      },
-      {
-        "from": "axes_with_content",
-        "to": "box_plotted",
-        "via": "matplotlib_ax_boxplot"
-      },
-      {
-        "from": "axes_with_content",
-        "to": "contour_plotted",
-        "via": "matplotlib_ax_contour"
-      },
-      {
-        "from": "axes_with_content",
-        "to": "contour_plotted",
-        "via": "matplotlib_ax_contourf"
-      },
-      {
-        "from": "axes_with_content",
-        "to": "errorbar_plotted",
-        "via": "matplotlib_ax_errorbar"
-      },
-      {
-        "from": "axes_with_content",
-        "to": "figure_saved",
-        "via": "matplotlib_fig_savefig"
-      },
-      {
-        "from": "axes_with_content",
-        "to": "fill_plotted",
-        "via": "matplotlib_ax_fill_between"
-      },
-      {
-        "from": "axes_with_content",
-        "to": "hist_plotted",
-        "via": "matplotlib_ax_hist"
-      },
-      {
-        "from": "axes_with_content",
-        "to": "image_plotted",
-        "via": "matplotlib_ax_imshow"
-      },
-      {
-        "from": "axes_with_content",
-        "to": "image_plotted",
-        "via": "matplotlib_ax_pcolormesh"
-      },
-      {
-        "from": "axes_with_content",
-        "to": "legend_added",
-        "via": "matplotlib_ax_legend"
-      },
-      {
-        "from": "axes_with_content",
-        "to": "line_plotted",
-        "via": "matplotlib_ax_plot"
-      },
-      {
-        "from": "axes_with_content",
-        "to": "pie_plotted",
-        "via": "matplotlib_ax_pie"
-      },
-      {
-        "from": "axes_with_content",
-        "to": "plot3d_plotted",
-        "via": "matplotlib_ax3d_plot"
-      },
-      {
-        "from": "axes_with_content",
-        "to": "plot3d_plotted",
-        "via": "matplotlib_ax3d_plot_surface"
-      },
-      {
-        "from": "axes_with_content",
-        "to": "plot3d_plotted",
-        "via": "matplotlib_ax3d_scatter"
-      },
-      {
-        "from": "axes_with_content",
-        "to": "scatter_plotted",
-        "via": "matplotlib_ax_scatter"
-      },
-      {
-        "from": "axes_with_content",
-        "to": "stem_plotted",
-        "via": "matplotlib_ax_stem"
-      },
-      {
-        "from": "axes_with_content",
-        "to": "styled_axes",
-        "via": "matplotlib_ax_axhline"
-      },
-      {
-        "from": "axes_with_content",
-        "to": "styled_axes",
-        "via": "matplotlib_ax_axvline"
-      },
-      {
-        "from": "axes_with_content",
-        "to": "styled_axes",
-        "via": "matplotlib_ax_grid"
-      },
-      {
-        "from": "axes_with_content",
-        "to": "styled_axes",
-        "via": "matplotlib_ax_invert_xaxis"
-      },
-      {
-        "from": "axes_with_content",
-        "to": "styled_axes",
-        "via": "matplotlib_ax_invert_yaxis"
-      },
-      {
-        "from": "axes_with_content",
-        "to": "styled_axes",
-        "via": "matplotlib_ax_set_facecolor"
-      },
-      {
-        "from": "axes_with_content",
-        "to": "styled_axes",
-        "via": "matplotlib_ax_set_title"
-      },
-      {
-        "from": "axes_with_content",
-        "to": "styled_axes",
-        "via": "matplotlib_ax_set_xlabel"
-      },
-      {
-        "from": "axes_with_content",
-        "to": "styled_axes",
-        "via": "matplotlib_ax_set_xlim"
-      },
-      {
-        "from": "axes_with_content",
-        "to": "styled_axes",
-        "via": "matplotlib_ax_set_xscale"
-      },
-      {
-        "from": "axes_with_content",
-        "to": "styled_axes",
-        "via": "matplotlib_ax_set_xticklabels"
-      },
-      {
-        "from": "axes_with_content",
-        "to": "styled_axes",
-        "via": "matplotlib_ax_set_xticks"
-      },
-      {
-        "from": "axes_with_content",
-        "to": "styled_axes",
-        "via": "matplotlib_ax_set_ylabel"
-      },
-      {
-        "from": "axes_with_content",
-        "to": "styled_axes",
-        "via": "matplotlib_ax_set_ylim"
-      },
-      {
-        "from": "axes_with_content",
-        "to": "styled_axes",
-        "via": "matplotlib_ax_set_yscale"
-      },
-      {
-        "from": "axes_with_content",
-        "to": "styled_axes",
-        "via": "matplotlib_ax_spine_set_visible"
-      },
-      {
-        "from": "axes_with_content",
-        "to": "styled_axes",
-        "via": "matplotlib_ax_tick_params"
-      },
-      {
-        "from": "axes_with_content",
-        "to": "tight_layout_applied",
-        "via": "matplotlib_fig_subplots_adjust"
-      },
-      {
-        "from": "axes_with_content",
-        "to": "tight_layout_applied",
-        "via": "matplotlib_fig_tight_layout"
-      },
-      {
-        "from": "axes_with_content",
-        "to": "violin_plotted",
-        "via": "matplotlib_ax_violinplot"
-      },
-      {
-        "from": "colorbar_added",
-        "to": "axes_initialized",
-        "via": "matplotlib_fig_add_subplot"
-      },
-      {
-        "from": "colorbar_added",
-        "to": "colorbar_added",
-        "via": "matplotlib_fig_colorbar"
-      },
-      {
-        "from": "colorbar_added",
-        "to": "empty_figure",
-        "via": "matplotlib_fig_set_facecolor"
-      },
-      {
-        "from": "colorbar_added",
-        "to": "empty_figure",
-        "via": "matplotlib_fig_suptitle"
-      },
-      {
-        "from": "colorbar_added",
-        "to": "figure_saved",
-        "via": "matplotlib_fig_savefig"
-      },
-      {
-        "from": "colorbar_added",
-        "to": "tight_layout_applied",
-        "via": "matplotlib_fig_subplots_adjust"
-      },
-      {
-        "from": "colorbar_added",
-        "to": "tight_layout_applied",
-        "via": "matplotlib_fig_tight_layout"
-      },
-      {
-        "from": "empty_figure",
-        "to": "axes_initialized",
-        "via": "matplotlib_fig_add_axes"
-      },
-      {
-        "from": "empty_figure",
-        "to": "axes_initialized",
-        "via": "matplotlib_fig_add_subplot"
-      },
-      {
-        "from": "empty_figure",
-        "to": "axes_initialized",
-        "via": "matplotlib_fig_add_subplot_3d"
-      },
-      {
-        "from": "empty_figure",
-        "to": "colorbar_added",
-        "via": "matplotlib_fig_colorbar"
-      },
-      {
-        "from": "empty_figure",
-        "to": "empty_figure",
-        "via": "matplotlib_fig_set_facecolor"
-      },
-      {
-        "from": "empty_figure",
-        "to": "empty_figure",
-        "via": "matplotlib_fig_suptitle"
-      },
-      {
-        "from": "empty_figure",
-        "to": "figure_saved",
-        "via": "matplotlib_fig_savefig"
-      },
-      {
-        "from": "empty_figure",
-        "to": "tight_layout_applied",
-        "via": "matplotlib_fig_subplots_adjust"
-      },
-      {
-        "from": "empty_figure",
-        "to": "tight_layout_applied",
-        "via": "matplotlib_fig_tight_layout"
-      },
-      {
-        "from": "plot3d_plotted",
-        "to": "styled_axes",
-        "via": "matplotlib_ax3d_view_init"
-      },
-      {
-        "from": "tight_layout_applied",
-        "to": "axes_initialized",
-        "via": "matplotlib_fig_add_subplot"
-      },
-      {
-        "from": "tight_layout_applied",
-        "to": "colorbar_added",
-        "via": "matplotlib_fig_colorbar"
-      },
-      {
-        "from": "tight_layout_applied",
-        "to": "empty_figure",
-        "via": "matplotlib_fig_set_facecolor"
-      },
-      {
-        "from": "tight_layout_applied",
-        "to": "empty_figure",
-        "via": "matplotlib_fig_suptitle"
-      },
-      {
-        "from": "tight_layout_applied",
-        "to": "figure_saved",
-        "via": "matplotlib_fig_savefig"
-      },
-      {
-        "from": "unregistered",
-        "to": "empty_figure",
-        "via": "matplotlib_plt_figure"
-      },
-      {
-        "from": "unregistered",
-        "to": "empty_figure",
-        "via": "matplotlib_plt_subplots_single"
+        "from_state": "figure_saved",
+        "to_state": "figure_closed",
+        "trigger": "close",
+        "description": "Destroy figure manager and release memory."
       }
     ]
   },
@@ -793,8 +330,8 @@
       "feedback_state_type": null,
       "raises": [],
       "type_vars": [],
-      "inputs": {
-        "figsize": {
+      "inputs": [
+        {
           "name": "figsize",
           "type_name": "tuple",
           "state": "unregistered",
@@ -812,9 +349,9 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
-      "outputs": {
-        "fig": {
+      ],
+      "outputs": [
+        {
           "name": "fig",
           "type_name": "Figure",
           "state": "empty_figure",
@@ -832,7 +369,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        "ax": {
+        {
           "name": "ax",
           "type_name": "Axes",
           "state": "axes_initialized",
@@ -850,7 +387,7 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
+      ],
       "preconditions": [],
       "postconditions": [
         {
@@ -871,32 +408,28 @@
           "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         },
         {
           "target_cell_id": "matplotlib_ax_scatter",
-          "affinity_score": 0.5,
+          "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         },
         {
           "target_cell_id": "matplotlib_ax_bar",
-          "affinity_score": 0.2,
+          "affinity_score": 0.5,
           "score_provenance": "llm_seed",
           "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         },
         {
           "target_cell_id": "matplotlib_ax_hist",
-          "affinity_score": 0.2,
+          "affinity_score": 0.5,
           "score_provenance": "llm_seed",
           "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         }
       ]
     },
@@ -934,8 +467,8 @@
       "feedback_state_type": null,
       "raises": [],
       "type_vars": [],
-      "inputs": {
-        "figsize": {
+      "inputs": [
+        {
           "name": "figsize",
           "type_name": "tuple",
           "state": "unregistered",
@@ -953,7 +486,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        "dpi": {
+        {
           "name": "dpi",
           "type_name": "int",
           "state": "unregistered",
@@ -971,9 +504,9 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
-      "outputs": {
-        "fig": {
+      ],
+      "outputs": [
+        {
           "name": "fig",
           "type_name": "Figure",
           "state": "empty_figure",
@@ -991,7 +524,7 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
+      ],
       "preconditions": [],
       "postconditions": [
         {
@@ -1012,24 +545,21 @@
           "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         },
         {
           "target_cell_id": "matplotlib_fig_add_subplot_3d",
           "affinity_score": 0.5,
           "score_provenance": "llm_seed",
           "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         },
         {
           "target_cell_id": "matplotlib_fig_add_axes",
           "affinity_score": 0.2,
           "score_provenance": "llm_seed",
           "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         }
       ]
     },
@@ -1070,8 +600,8 @@
       "feedback_state_type": null,
       "raises": [],
       "type_vars": [],
-      "inputs": {
-        "fig": {
+      "inputs": [
+        {
           "name": "fig",
           "type_name": "Figure",
           "state": "empty_figure",
@@ -1093,7 +623,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        "nrows": {
+        {
           "name": "nrows",
           "type_name": "int",
           "state": "unregistered",
@@ -1109,7 +639,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        "ncols": {
+        {
           "name": "ncols",
           "type_name": "int",
           "state": "unregistered",
@@ -1125,7 +655,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        "index": {
+        {
           "name": "index",
           "type_name": "int",
           "state": "unregistered",
@@ -1141,9 +671,9 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
-      "outputs": {
-        "ax": {
+      ],
+      "outputs": [
+        {
           "name": "ax",
           "type_name": "Axes",
           "state": "axes_initialized",
@@ -1161,7 +691,7 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
+      ],
       "preconditions": [
         {
           "target": "fig",
@@ -1191,24 +721,21 @@
           "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         },
         {
           "target_cell_id": "matplotlib_ax_scatter",
-          "affinity_score": 0.5,
+          "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         },
         {
           "target_cell_id": "matplotlib_ax_imshow",
-          "affinity_score": 0.2,
+          "affinity_score": 0.5,
           "score_provenance": "llm_seed",
           "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         }
       ]
     },
@@ -1251,8 +778,8 @@
       "feedback_state_type": null,
       "raises": [],
       "type_vars": [],
-      "inputs": {
-        "fig": {
+      "inputs": [
+        {
           "name": "fig",
           "type_name": "Figure",
           "state": "empty_figure",
@@ -1272,7 +799,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        "nrows": {
+        {
           "name": "nrows",
           "type_name": "int",
           "state": "unregistered",
@@ -1288,7 +815,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        "ncols": {
+        {
           "name": "ncols",
           "type_name": "int",
           "state": "unregistered",
@@ -1304,7 +831,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        "index": {
+        {
           "name": "index",
           "type_name": "int",
           "state": "unregistered",
@@ -1320,9 +847,9 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
-      "outputs": {
-        "ax": {
+      ],
+      "outputs": [
+        {
           "name": "ax",
           "type_name": "Axes",
           "state": "axes_initialized",
@@ -1340,7 +867,7 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
+      ],
       "preconditions": [
         {
           "target": "fig",
@@ -1370,24 +897,21 @@
           "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         },
         {
           "target_cell_id": "matplotlib_ax3d_scatter",
-          "affinity_score": 0.5,
+          "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         },
         {
           "target_cell_id": "matplotlib_ax3d_plot",
-          "affinity_score": 0.2,
+          "affinity_score": 0.5,
           "score_provenance": "llm_seed",
           "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         }
       ]
     },
@@ -1426,8 +950,8 @@
       "feedback_state_type": null,
       "raises": [],
       "type_vars": [],
-      "inputs": {
-        "fig": {
+      "inputs": [
+        {
           "name": "fig",
           "type_name": "Figure",
           "state": "empty_figure",
@@ -1448,7 +972,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        "rect": {
+        {
           "name": "rect",
           "type_name": "list",
           "state": "unregistered",
@@ -1464,9 +988,9 @@
           "value_constraints": null,
           "shape_contract": "[4]"
         }
-      },
-      "outputs": {
-        "ax": {
+      ],
+      "outputs": [
+        {
           "name": "ax",
           "type_name": "Axes",
           "state": "axes_initialized",
@@ -1484,7 +1008,7 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
+      ],
       "preconditions": [],
       "postconditions": [
         {
@@ -1505,16 +1029,14 @@
           "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         },
         {
           "target_cell_id": "matplotlib_ax_scatter",
           "affinity_score": 0.5,
           "score_provenance": "llm_seed",
           "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         }
       ]
     },
@@ -1561,8 +1083,8 @@
         "ValueError"
       ],
       "type_vars": [],
-      "inputs": {
-        "ax": {
+      "inputs": [
+        {
           "name": "ax",
           "type_name": "Axes",
           "state": "axes_initialized",
@@ -1583,7 +1105,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        "x": {
+        {
           "name": "x",
           "type_name": "ndarray",
           "state": "unregistered",
@@ -1599,7 +1121,7 @@
           "value_constraints": null,
           "shape_contract": "[N]"
         },
-        "y": {
+        {
           "name": "y",
           "type_name": "ndarray",
           "state": "unregistered",
@@ -1615,7 +1137,7 @@
           "value_constraints": null,
           "shape_contract": "[N]"
         },
-        "color": {
+        {
           "name": "color",
           "type_name": "str",
           "state": "unregistered",
@@ -1633,7 +1155,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        "linestyle": {
+        {
           "name": "linestyle",
           "type_name": "str",
           "state": "unregistered",
@@ -1657,7 +1179,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        "linewidth": {
+        {
           "name": "linewidth",
           "type_name": "float",
           "state": "unregistered",
@@ -1675,9 +1197,9 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
-      "outputs": {
-        "out_ax": {
+      ],
+      "outputs": [
+        {
           "name": "out_ax",
           "type_name": "Axes",
           "state": "line_plotted",
@@ -1695,7 +1217,7 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
+      ],
       "preconditions": [
         {
           "target": "ax",
@@ -1725,32 +1247,28 @@
           "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         },
         {
           "target_cell_id": "matplotlib_ax_set_xlabel",
-          "affinity_score": 0.5,
+          "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         },
         {
           "target_cell_id": "matplotlib_ax_legend",
-          "affinity_score": 0.2,
+          "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         },
         {
           "target_cell_id": "matplotlib_ax_grid",
-          "affinity_score": 0.2,
+          "affinity_score": 0.5,
           "score_provenance": "llm_seed",
           "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         }
       ]
     },
@@ -1795,8 +1313,8 @@
       "feedback_state_type": null,
       "raises": [],
       "type_vars": [],
-      "inputs": {
-        "ax": {
+      "inputs": [
+        {
           "name": "ax",
           "type_name": "Axes",
           "state": "axes_initialized",
@@ -1817,7 +1335,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        "x": {
+        {
           "name": "x",
           "type_name": "ndarray",
           "state": "unregistered",
@@ -1833,7 +1351,7 @@
           "value_constraints": null,
           "shape_contract": "[N]"
         },
-        "y": {
+        {
           "name": "y",
           "type_name": "ndarray",
           "state": "unregistered",
@@ -1849,7 +1367,7 @@
           "value_constraints": null,
           "shape_contract": "[N]"
         },
-        "s": {
+        {
           "name": "s",
           "type_name": "float",
           "state": "unregistered",
@@ -1867,7 +1385,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        "c": {
+        {
           "name": "c",
           "type_name": "str",
           "state": "unregistered",
@@ -1885,7 +1403,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        "marker": {
+        {
           "name": "marker",
           "type_name": "str",
           "state": "unregistered",
@@ -1909,7 +1427,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        "alpha": {
+        {
           "name": "alpha",
           "type_name": "float",
           "state": "unregistered",
@@ -1927,9 +1445,9 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
-      "outputs": {
-        "out_ax": {
+      ],
+      "outputs": [
+        {
           "name": "out_ax",
           "type_name": "Axes",
           "state": "scatter_plotted",
@@ -1947,7 +1465,7 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
+      ],
       "preconditions": [],
       "postconditions": [
         {
@@ -1968,24 +1486,21 @@
           "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         },
         {
           "target_cell_id": "matplotlib_ax_legend",
-          "affinity_score": 0.5,
+          "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         },
         {
           "target_cell_id": "matplotlib_fig_colorbar",
-          "affinity_score": 0.2,
+          "affinity_score": 0.5,
           "score_provenance": "llm_seed",
           "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         }
       ]
     },
@@ -2029,8 +1544,8 @@
       "feedback_state_type": null,
       "raises": [],
       "type_vars": [],
-      "inputs": {
-        "ax": {
+      "inputs": [
+        {
           "name": "ax",
           "type_name": "Axes",
           "state": "axes_initialized",
@@ -2051,7 +1566,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        "x": {
+        {
           "name": "x",
           "type_name": "ndarray",
           "state": "unregistered",
@@ -2067,7 +1582,7 @@
           "value_constraints": null,
           "shape_contract": "[N]"
         },
-        "height": {
+        {
           "name": "height",
           "type_name": "ndarray",
           "state": "unregistered",
@@ -2083,7 +1598,7 @@
           "value_constraints": null,
           "shape_contract": "[N]"
         },
-        "width": {
+        {
           "name": "width",
           "type_name": "float",
           "state": "unregistered",
@@ -2101,7 +1616,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        "color": {
+        {
           "name": "color",
           "type_name": "str",
           "state": "unregistered",
@@ -2119,7 +1634,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        "align": {
+        {
           "name": "align",
           "type_name": "str",
           "state": "unregistered",
@@ -2140,9 +1655,9 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
-      "outputs": {
-        "out_ax": {
+      ],
+      "outputs": [
+        {
           "name": "out_ax",
           "type_name": "Axes",
           "state": "bar_plotted",
@@ -2160,7 +1675,7 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
+      ],
       "preconditions": [],
       "postconditions": [
         {
@@ -2181,16 +1696,14 @@
           "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         },
         {
           "target_cell_id": "matplotlib_ax_set_title",
-          "affinity_score": 0.5,
+          "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         }
       ]
     },
@@ -2234,8 +1747,8 @@
       "feedback_state_type": null,
       "raises": [],
       "type_vars": [],
-      "inputs": {
-        "ax": {
+      "inputs": [
+        {
           "name": "ax",
           "type_name": "Axes",
           "state": "axes_initialized",
@@ -2256,7 +1769,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        "y": {
+        {
           "name": "y",
           "type_name": "ndarray",
           "state": "unregistered",
@@ -2272,7 +1785,7 @@
           "value_constraints": null,
           "shape_contract": "[N]"
         },
-        "width": {
+        {
           "name": "width",
           "type_name": "ndarray",
           "state": "unregistered",
@@ -2288,7 +1801,7 @@
           "value_constraints": null,
           "shape_contract": "[N]"
         },
-        "height": {
+        {
           "name": "height",
           "type_name": "float",
           "state": "unregistered",
@@ -2306,7 +1819,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        "color": {
+        {
           "name": "color",
           "type_name": "str",
           "state": "unregistered",
@@ -2324,7 +1837,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        "align": {
+        {
           "name": "align",
           "type_name": "str",
           "state": "unregistered",
@@ -2345,9 +1858,9 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
-      "outputs": {
-        "out_ax": {
+      ],
+      "outputs": [
+        {
           "name": "out_ax",
           "type_name": "Axes",
           "state": "bar_plotted",
@@ -2365,7 +1878,7 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
+      ],
       "preconditions": [],
       "postconditions": [
         {
@@ -2386,16 +1899,14 @@
           "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         },
         {
           "target_cell_id": "matplotlib_ax_set_title",
-          "affinity_score": 0.5,
+          "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         }
       ]
     },
@@ -2439,8 +1950,8 @@
       "feedback_state_type": null,
       "raises": [],
       "type_vars": [],
-      "inputs": {
-        "ax": {
+      "inputs": [
+        {
           "name": "ax",
           "type_name": "Axes",
           "state": "axes_initialized",
@@ -2461,7 +1972,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        "x": {
+        {
           "name": "x",
           "type_name": "ndarray",
           "state": "unregistered",
@@ -2477,7 +1988,7 @@
           "value_constraints": null,
           "shape_contract": "[N]"
         },
-        "bins": {
+        {
           "name": "bins",
           "type_name": "int",
           "state": "unregistered",
@@ -2495,7 +2006,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        "density": {
+        {
           "name": "density",
           "type_name": "bool",
           "state": "unregistered",
@@ -2513,7 +2024,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        "color": {
+        {
           "name": "color",
           "type_name": "str",
           "state": "unregistered",
@@ -2531,7 +2042,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        "alpha": {
+        {
           "name": "alpha",
           "type_name": "float",
           "state": "unregistered",
@@ -2549,9 +2060,9 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
-      "outputs": {
-        "out_ax": {
+      ],
+      "outputs": [
+        {
           "name": "out_ax",
           "type_name": "Axes",
           "state": "hist_plotted",
@@ -2569,7 +2080,7 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
+      ],
       "preconditions": [],
       "postconditions": [
         {
@@ -2590,24 +2101,21 @@
           "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         },
         {
           "target_cell_id": "matplotlib_ax_set_xlabel",
-          "affinity_score": 0.5,
+          "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         },
         {
           "target_cell_id": "matplotlib_ax_grid",
-          "affinity_score": 0.2,
+          "affinity_score": 0.5,
           "score_provenance": "llm_seed",
           "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         }
       ]
     },
@@ -2649,8 +2157,8 @@
       "feedback_state_type": null,
       "raises": [],
       "type_vars": [],
-      "inputs": {
-        "ax": {
+      "inputs": [
+        {
           "name": "ax",
           "type_name": "Axes",
           "state": "axes_initialized",
@@ -2671,7 +2179,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        "x": {
+        {
           "name": "x",
           "type_name": "ndarray",
           "state": "unregistered",
@@ -2687,7 +2195,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        "vert": {
+        {
           "name": "vert",
           "type_name": "bool",
           "state": "unregistered",
@@ -2705,7 +2213,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        "patch_artist": {
+        {
           "name": "patch_artist",
           "type_name": "bool",
           "state": "unregistered",
@@ -2723,9 +2231,9 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
-      "outputs": {
-        "out_ax": {
+      ],
+      "outputs": [
+        {
           "name": "out_ax",
           "type_name": "Axes",
           "state": "box_plotted",
@@ -2743,7 +2251,7 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
+      ],
       "preconditions": [],
       "postconditions": [
         {
@@ -2764,16 +2272,14 @@
           "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         },
         {
           "target_cell_id": "matplotlib_ax_set_title",
-          "affinity_score": 0.5,
+          "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         }
       ]
     },
@@ -2814,8 +2320,8 @@
       "feedback_state_type": null,
       "raises": [],
       "type_vars": [],
-      "inputs": {
-        "ax": {
+      "inputs": [
+        {
           "name": "ax",
           "type_name": "Axes",
           "state": "axes_initialized",
@@ -2836,7 +2342,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        "dataset": {
+        {
           "name": "dataset",
           "type_name": "ndarray",
           "state": "unregistered",
@@ -2852,7 +2358,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        "showmeans": {
+        {
           "name": "showmeans",
           "type_name": "bool",
           "state": "unregistered",
@@ -2870,7 +2376,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        "showmedians": {
+        {
           "name": "showmedians",
           "type_name": "bool",
           "state": "unregistered",
@@ -2888,9 +2394,9 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
-      "outputs": {
-        "out_ax": {
+      ],
+      "outputs": [
+        {
           "name": "out_ax",
           "type_name": "Axes",
           "state": "violin_plotted",
@@ -2908,7 +2414,7 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
+      ],
       "preconditions": [],
       "postconditions": [
         {
@@ -2929,16 +2435,14 @@
           "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         },
         {
           "target_cell_id": "matplotlib_ax_set_ylabel",
-          "affinity_score": 0.5,
+          "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         }
       ]
     },
@@ -2981,8 +2485,8 @@
       "feedback_state_type": null,
       "raises": [],
       "type_vars": [],
-      "inputs": {
-        "ax": {
+      "inputs": [
+        {
           "name": "ax",
           "type_name": "Axes",
           "state": "axes_initialized",
@@ -3003,7 +2507,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        "x": {
+        {
           "name": "x",
           "type_name": "ndarray",
           "state": "unregistered",
@@ -3019,7 +2523,7 @@
           "value_constraints": null,
           "shape_contract": "[N]"
         },
-        "labels": {
+        {
           "name": "labels",
           "type_name": "list",
           "state": "unregistered",
@@ -3037,7 +2541,7 @@
           "value_constraints": null,
           "shape_contract": "[N]"
         },
-        "autopct": {
+        {
           "name": "autopct",
           "type_name": "str",
           "state": "unregistered",
@@ -3055,7 +2559,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        "startangle": {
+        {
           "name": "startangle",
           "type_name": "float",
           "state": "unregistered",
@@ -3073,9 +2577,9 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
-      "outputs": {
-        "out_ax": {
+      ],
+      "outputs": [
+        {
           "name": "out_ax",
           "type_name": "Axes",
           "state": "pie_plotted",
@@ -3093,7 +2597,7 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
+      ],
       "preconditions": [],
       "postconditions": [
         {
@@ -3114,16 +2618,14 @@
           "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         },
         {
           "target_cell_id": "matplotlib_fig_tight_layout",
           "affinity_score": 0.5,
           "score_provenance": "llm_seed",
           "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         }
       ]
     },
@@ -3167,8 +2669,8 @@
       "feedback_state_type": null,
       "raises": [],
       "type_vars": [],
-      "inputs": {
-        "ax": {
+      "inputs": [
+        {
           "name": "ax",
           "type_name": "Axes",
           "state": "axes_initialized",
@@ -3189,7 +2691,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        "X": {
+        {
           "name": "X",
           "type_name": "ndarray",
           "state": "unregistered",
@@ -3205,7 +2707,7 @@
           "value_constraints": null,
           "shape_contract": "[M, N]"
         },
-        "cmap": {
+        {
           "name": "cmap",
           "type_name": "str",
           "state": "unregistered",
@@ -3230,7 +2732,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        "aspect": {
+        {
           "name": "aspect",
           "type_name": "str",
           "state": "unregistered",
@@ -3251,7 +2753,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        "interpolation": {
+        {
           "name": "interpolation",
           "type_name": "str",
           "state": "unregistered",
@@ -3274,9 +2776,9 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
-      "outputs": {
-        "out_ax": {
+      ],
+      "outputs": [
+        {
           "name": "out_ax",
           "type_name": "Axes",
           "state": "image_plotted",
@@ -3294,7 +2796,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        "mappable": {
+        {
           "name": "mappable",
           "type_name": "Axes",
           "state": "unregistered",
@@ -3310,7 +2812,7 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
+      ],
       "preconditions": [],
       "postconditions": [
         {
@@ -3331,16 +2833,14 @@
           "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         },
         {
           "target_cell_id": "matplotlib_ax_set_title",
-          "affinity_score": 0.5,
+          "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         }
       ]
     },
@@ -3385,8 +2885,8 @@
       "feedback_state_type": null,
       "raises": [],
       "type_vars": [],
-      "inputs": {
-        "ax": {
+      "inputs": [
+        {
           "name": "ax",
           "type_name": "Axes",
           "state": "axes_initialized",
@@ -3407,7 +2907,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        "X": {
+        {
           "name": "X",
           "type_name": "ndarray",
           "state": "unregistered",
@@ -3423,7 +2923,7 @@
           "value_constraints": null,
           "shape_contract": "[M, N]"
         },
-        "Y": {
+        {
           "name": "Y",
           "type_name": "ndarray",
           "state": "unregistered",
@@ -3439,7 +2939,7 @@
           "value_constraints": null,
           "shape_contract": "[M, N]"
         },
-        "C": {
+        {
           "name": "C",
           "type_name": "ndarray",
           "state": "unregistered",
@@ -3455,7 +2955,7 @@
           "value_constraints": null,
           "shape_contract": "[M, N]"
         },
-        "cmap": {
+        {
           "name": "cmap",
           "type_name": "str",
           "state": "unregistered",
@@ -3473,7 +2973,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        "shading": {
+        {
           "name": "shading",
           "type_name": "str",
           "state": "unregistered",
@@ -3496,9 +2996,9 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
-      "outputs": {
-        "out_ax": {
+      ],
+      "outputs": [
+        {
           "name": "out_ax",
           "type_name": "Axes",
           "state": "image_plotted",
@@ -3516,7 +3016,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        "mappable": {
+        {
           "name": "mappable",
           "type_name": "Axes",
           "state": "unregistered",
@@ -3532,7 +3032,7 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
+      ],
       "preconditions": [],
       "postconditions": [
         {
@@ -3553,16 +3053,14 @@
           "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         },
         {
           "target_cell_id": "matplotlib_ax_set_title",
-          "affinity_score": 0.5,
+          "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         }
       ]
     },
@@ -3606,8 +3104,8 @@
       "feedback_state_type": null,
       "raises": [],
       "type_vars": [],
-      "inputs": {
-        "ax": {
+      "inputs": [
+        {
           "name": "ax",
           "type_name": "Axes",
           "state": "axes_initialized",
@@ -3628,7 +3126,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        "X": {
+        {
           "name": "X",
           "type_name": "ndarray",
           "state": "unregistered",
@@ -3644,7 +3142,7 @@
           "value_constraints": null,
           "shape_contract": "[M, N]"
         },
-        "Y": {
+        {
           "name": "Y",
           "type_name": "ndarray",
           "state": "unregistered",
@@ -3660,7 +3158,7 @@
           "value_constraints": null,
           "shape_contract": "[M, N]"
         },
-        "Z": {
+        {
           "name": "Z",
           "type_name": "ndarray",
           "state": "unregistered",
@@ -3676,7 +3174,7 @@
           "value_constraints": null,
           "shape_contract": "[M, N]"
         },
-        "levels": {
+        {
           "name": "levels",
           "type_name": "int",
           "state": "unregistered",
@@ -3694,7 +3192,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        "cmap": {
+        {
           "name": "cmap",
           "type_name": "str",
           "state": "unregistered",
@@ -3712,9 +3210,9 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
-      "outputs": {
-        "out_ax": {
+      ],
+      "outputs": [
+        {
           "name": "out_ax",
           "type_name": "Axes",
           "state": "contour_plotted",
@@ -3732,7 +3230,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        "cs": {
+        {
           "name": "cs",
           "type_name": "Axes",
           "state": "unregistered",
@@ -3748,7 +3246,7 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
+      ],
       "preconditions": [],
       "postconditions": [
         {
@@ -3769,16 +3267,14 @@
           "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         },
         {
           "target_cell_id": "matplotlib_ax_set_title",
-          "affinity_score": 0.5,
+          "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         }
       ]
     },
@@ -3823,8 +3319,8 @@
       "feedback_state_type": null,
       "raises": [],
       "type_vars": [],
-      "inputs": {
-        "ax": {
+      "inputs": [
+        {
           "name": "ax",
           "type_name": "Axes",
           "state": "axes_initialized",
@@ -3845,7 +3341,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        "X": {
+        {
           "name": "X",
           "type_name": "ndarray",
           "state": "unregistered",
@@ -3861,7 +3357,7 @@
           "value_constraints": null,
           "shape_contract": "[M, N]"
         },
-        "Y": {
+        {
           "name": "Y",
           "type_name": "ndarray",
           "state": "unregistered",
@@ -3877,7 +3373,7 @@
           "value_constraints": null,
           "shape_contract": "[M, N]"
         },
-        "Z": {
+        {
           "name": "Z",
           "type_name": "ndarray",
           "state": "unregistered",
@@ -3893,7 +3389,7 @@
           "value_constraints": null,
           "shape_contract": "[M, N]"
         },
-        "levels": {
+        {
           "name": "levels",
           "type_name": "int",
           "state": "unregistered",
@@ -3911,7 +3407,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        "cmap": {
+        {
           "name": "cmap",
           "type_name": "str",
           "state": "unregistered",
@@ -3929,9 +3425,9 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
-      "outputs": {
-        "out_ax": {
+      ],
+      "outputs": [
+        {
           "name": "out_ax",
           "type_name": "Axes",
           "state": "contour_plotted",
@@ -3949,7 +3445,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        "cs": {
+        {
           "name": "cs",
           "type_name": "Axes",
           "state": "unregistered",
@@ -3965,7 +3461,7 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
+      ],
       "preconditions": [],
       "postconditions": [
         {
@@ -3986,16 +3482,14 @@
           "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         },
         {
           "target_cell_id": "matplotlib_ax_set_title",
-          "affinity_score": 0.5,
+          "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         }
       ]
     },
@@ -4039,8 +3533,8 @@
       "feedback_state_type": null,
       "raises": [],
       "type_vars": [],
-      "inputs": {
-        "ax": {
+      "inputs": [
+        {
           "name": "ax",
           "type_name": "Axes",
           "state": "axes_initialized",
@@ -4061,7 +3555,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        "xs": {
+        {
           "name": "xs",
           "type_name": "ndarray",
           "state": "unregistered",
@@ -4077,7 +3571,7 @@
           "value_constraints": null,
           "shape_contract": "[N]"
         },
-        "ys": {
+        {
           "name": "ys",
           "type_name": "ndarray",
           "state": "unregistered",
@@ -4093,7 +3587,7 @@
           "value_constraints": null,
           "shape_contract": "[N]"
         },
-        "zs": {
+        {
           "name": "zs",
           "type_name": "ndarray",
           "state": "unregistered",
@@ -4109,7 +3603,7 @@
           "value_constraints": null,
           "shape_contract": "[N]"
         },
-        "color": {
+        {
           "name": "color",
           "type_name": "str",
           "state": "unregistered",
@@ -4127,9 +3621,9 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
-      "outputs": {
-        "out_ax": {
+      ],
+      "outputs": [
+        {
           "name": "out_ax",
           "type_name": "Axes",
           "state": "plot3d_plotted",
@@ -4147,7 +3641,7 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
+      ],
       "preconditions": [
         {
           "target": "ax",
@@ -4177,16 +3671,14 @@
           "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         },
         {
           "target_cell_id": "matplotlib_ax_set_title",
-          "affinity_score": 0.5,
+          "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         }
       ]
     },
@@ -4230,8 +3722,8 @@
       "feedback_state_type": null,
       "raises": [],
       "type_vars": [],
-      "inputs": {
-        "ax": {
+      "inputs": [
+        {
           "name": "ax",
           "type_name": "Axes",
           "state": "axes_initialized",
@@ -4252,7 +3744,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        "xs": {
+        {
           "name": "xs",
           "type_name": "ndarray",
           "state": "unregistered",
@@ -4268,7 +3760,7 @@
           "value_constraints": null,
           "shape_contract": "[N]"
         },
-        "ys": {
+        {
           "name": "ys",
           "type_name": "ndarray",
           "state": "unregistered",
@@ -4284,7 +3776,7 @@
           "value_constraints": null,
           "shape_contract": "[N]"
         },
-        "zs": {
+        {
           "name": "zs",
           "type_name": "ndarray",
           "state": "unregistered",
@@ -4300,7 +3792,7 @@
           "value_constraints": null,
           "shape_contract": "[N]"
         },
-        "s": {
+        {
           "name": "s",
           "type_name": "float",
           "state": "unregistered",
@@ -4318,7 +3810,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        "c": {
+        {
           "name": "c",
           "type_name": "str",
           "state": "unregistered",
@@ -4336,9 +3828,9 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
-      "outputs": {
-        "out_ax": {
+      ],
+      "outputs": [
+        {
           "name": "out_ax",
           "type_name": "Axes",
           "state": "plot3d_plotted",
@@ -4356,7 +3848,7 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
+      ],
       "preconditions": [
         {
           "target": "ax",
@@ -4386,16 +3878,14 @@
           "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         },
         {
           "target_cell_id": "matplotlib_ax_set_title",
-          "affinity_score": 0.5,
+          "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         }
       ]
     },
@@ -4440,8 +3930,8 @@
       "feedback_state_type": null,
       "raises": [],
       "type_vars": [],
-      "inputs": {
-        "ax": {
+      "inputs": [
+        {
           "name": "ax",
           "type_name": "Axes",
           "state": "axes_initialized",
@@ -4462,7 +3952,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        "X": {
+        {
           "name": "X",
           "type_name": "ndarray",
           "state": "unregistered",
@@ -4478,7 +3968,7 @@
           "value_constraints": null,
           "shape_contract": "[M, N]"
         },
-        "Y": {
+        {
           "name": "Y",
           "type_name": "ndarray",
           "state": "unregistered",
@@ -4494,7 +3984,7 @@
           "value_constraints": null,
           "shape_contract": "[M, N]"
         },
-        "Z": {
+        {
           "name": "Z",
           "type_name": "ndarray",
           "state": "unregistered",
@@ -4510,7 +4000,7 @@
           "value_constraints": null,
           "shape_contract": "[M, N]"
         },
-        "cmap": {
+        {
           "name": "cmap",
           "type_name": "str",
           "state": "unregistered",
@@ -4528,9 +4018,9 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
-      "outputs": {
-        "out_ax": {
+      ],
+      "outputs": [
+        {
           "name": "out_ax",
           "type_name": "Axes",
           "state": "plot3d_plotted",
@@ -4548,7 +4038,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        "surf": {
+        {
           "name": "surf",
           "type_name": "Axes",
           "state": "unregistered",
@@ -4564,7 +4054,7 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
+      ],
       "preconditions": [
         {
           "target": "ax",
@@ -4594,16 +4084,14 @@
           "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         },
         {
           "target_cell_id": "matplotlib_fig_colorbar",
-          "affinity_score": 0.5,
+          "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         }
       ]
     },
@@ -4645,8 +4133,8 @@
       "feedback_state_type": null,
       "raises": [],
       "type_vars": [],
-      "inputs": {
-        "ax": {
+      "inputs": [
+        {
           "name": "ax",
           "type_name": "Axes",
           "state": "plot3d_plotted",
@@ -4667,7 +4155,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        "elev": {
+        {
           "name": "elev",
           "type_name": "float",
           "state": "unregistered",
@@ -4685,7 +4173,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        "azim": {
+        {
           "name": "azim",
           "type_name": "float",
           "state": "unregistered",
@@ -4703,9 +4191,9 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
-      "outputs": {
-        "out_ax": {
+      ],
+      "outputs": [
+        {
           "name": "out_ax",
           "type_name": "Axes",
           "state": "styled_axes",
@@ -4723,7 +4211,7 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
+      ],
       "preconditions": [
         {
           "target": "ax",
@@ -4753,16 +4241,14 @@
           "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         },
         {
           "target_cell_id": "matplotlib_fig_savefig",
           "affinity_score": 0.5,
           "score_provenance": "llm_seed",
           "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         }
       ]
     },
@@ -4806,8 +4292,8 @@
       "feedback_state_type": null,
       "raises": [],
       "type_vars": [],
-      "inputs": {
-        "ax": {
+      "inputs": [
+        {
           "name": "ax",
           "type_name": "Axes",
           "state": "axes_initialized",
@@ -4828,7 +4314,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        "x": {
+        {
           "name": "x",
           "type_name": "ndarray",
           "state": "unregistered",
@@ -4844,7 +4330,7 @@
           "value_constraints": null,
           "shape_contract": "[N]"
         },
-        "y": {
+        {
           "name": "y",
           "type_name": "ndarray",
           "state": "unregistered",
@@ -4860,7 +4346,7 @@
           "value_constraints": null,
           "shape_contract": "[N]"
         },
-        "yerr": {
+        {
           "name": "yerr",
           "type_name": "ndarray",
           "state": "unregistered",
@@ -4878,7 +4364,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        "xerr": {
+        {
           "name": "xerr",
           "type_name": "ndarray",
           "state": "unregistered",
@@ -4896,7 +4382,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        "fmt": {
+        {
           "name": "fmt",
           "type_name": "str",
           "state": "unregistered",
@@ -4914,9 +4400,9 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
-      "outputs": {
-        "out_ax": {
+      ],
+      "outputs": [
+        {
           "name": "out_ax",
           "type_name": "Axes",
           "state": "errorbar_plotted",
@@ -4934,7 +4420,7 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
+      ],
       "preconditions": [],
       "postconditions": [
         {
@@ -4955,16 +4441,14 @@
           "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         },
         {
           "target_cell_id": "matplotlib_ax_legend",
-          "affinity_score": 0.5,
+          "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         }
       ]
     },
@@ -5008,8 +4492,8 @@
       "feedback_state_type": null,
       "raises": [],
       "type_vars": [],
-      "inputs": {
-        "ax": {
+      "inputs": [
+        {
           "name": "ax",
           "type_name": "Axes",
           "state": "axes_initialized",
@@ -5030,7 +4514,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        "x": {
+        {
           "name": "x",
           "type_name": "ndarray",
           "state": "unregistered",
@@ -5046,7 +4530,7 @@
           "value_constraints": null,
           "shape_contract": "[N]"
         },
-        "y1": {
+        {
           "name": "y1",
           "type_name": "ndarray",
           "state": "unregistered",
@@ -5062,7 +4546,7 @@
           "value_constraints": null,
           "shape_contract": "[N]"
         },
-        "y2": {
+        {
           "name": "y2",
           "type_name": "ndarray",
           "state": "unregistered",
@@ -5078,7 +4562,7 @@
           "value_constraints": null,
           "shape_contract": "[N]"
         },
-        "color": {
+        {
           "name": "color",
           "type_name": "str",
           "state": "unregistered",
@@ -5096,7 +4580,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        "alpha": {
+        {
           "name": "alpha",
           "type_name": "float",
           "state": "unregistered",
@@ -5114,9 +4598,9 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
-      "outputs": {
-        "out_ax": {
+      ],
+      "outputs": [
+        {
           "name": "out_ax",
           "type_name": "Axes",
           "state": "fill_plotted",
@@ -5134,7 +4618,7 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
+      ],
       "preconditions": [],
       "postconditions": [
         {
@@ -5155,16 +4639,14 @@
           "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         },
         {
           "target_cell_id": "matplotlib_ax_legend",
-          "affinity_score": 0.5,
+          "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         }
       ]
     },
@@ -5206,8 +4688,8 @@
       "feedback_state_type": null,
       "raises": [],
       "type_vars": [],
-      "inputs": {
-        "ax": {
+      "inputs": [
+        {
           "name": "ax",
           "type_name": "Axes",
           "state": "axes_initialized",
@@ -5228,7 +4710,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        "x": {
+        {
           "name": "x",
           "type_name": "ndarray",
           "state": "unregistered",
@@ -5244,7 +4726,7 @@
           "value_constraints": null,
           "shape_contract": "[N]"
         },
-        "y": {
+        {
           "name": "y",
           "type_name": "ndarray",
           "state": "unregistered",
@@ -5260,7 +4742,7 @@
           "value_constraints": null,
           "shape_contract": "[N]"
         },
-        "linefmt": {
+        {
           "name": "linefmt",
           "type_name": "str",
           "state": "unregistered",
@@ -5278,7 +4760,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        "markerfmt": {
+        {
           "name": "markerfmt",
           "type_name": "str",
           "state": "unregistered",
@@ -5296,9 +4778,9 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
-      "outputs": {
-        "out_ax": {
+      ],
+      "outputs": [
+        {
           "name": "out_ax",
           "type_name": "Axes",
           "state": "stem_plotted",
@@ -5316,7 +4798,7 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
+      ],
       "preconditions": [],
       "postconditions": [
         {
@@ -5337,16 +4819,14 @@
           "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         },
         {
           "target_cell_id": "matplotlib_ax_grid",
           "affinity_score": 0.5,
           "score_provenance": "llm_seed",
           "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         }
       ]
     },
@@ -5389,8 +4869,8 @@
       "feedback_state_type": null,
       "raises": [],
       "type_vars": [],
-      "inputs": {
-        "ax": {
+      "inputs": [
+        {
           "name": "ax",
           "type_name": "Axes",
           "state": "axes_with_content",
@@ -5411,7 +4891,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        "y": {
+        {
           "name": "y",
           "type_name": "float",
           "state": "unregistered",
@@ -5427,7 +4907,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        "color": {
+        {
           "name": "color",
           "type_name": "str",
           "state": "unregistered",
@@ -5445,7 +4925,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        "linestyle": {
+        {
           "name": "linestyle",
           "type_name": "str",
           "state": "unregistered",
@@ -5463,7 +4943,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        "linewidth": {
+        {
           "name": "linewidth",
           "type_name": "float",
           "state": "unregistered",
@@ -5481,9 +4961,9 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
-      "outputs": {
-        "out_ax": {
+      ],
+      "outputs": [
+        {
           "name": "out_ax",
           "type_name": "Axes",
           "state": "styled_axes",
@@ -5501,7 +4981,7 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
+      ],
       "preconditions": [],
       "postconditions": [
         {
@@ -5522,16 +5002,14 @@
           "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         },
         {
           "target_cell_id": "matplotlib_fig_tight_layout",
           "affinity_score": 0.5,
           "score_provenance": "llm_seed",
           "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         }
       ]
     },
@@ -5574,8 +5052,8 @@
       "feedback_state_type": null,
       "raises": [],
       "type_vars": [],
-      "inputs": {
-        "ax": {
+      "inputs": [
+        {
           "name": "ax",
           "type_name": "Axes",
           "state": "axes_with_content",
@@ -5596,7 +5074,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        "x": {
+        {
           "name": "x",
           "type_name": "float",
           "state": "unregistered",
@@ -5612,7 +5090,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        "color": {
+        {
           "name": "color",
           "type_name": "str",
           "state": "unregistered",
@@ -5630,7 +5108,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        "linestyle": {
+        {
           "name": "linestyle",
           "type_name": "str",
           "state": "unregistered",
@@ -5648,7 +5126,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        "linewidth": {
+        {
           "name": "linewidth",
           "type_name": "float",
           "state": "unregistered",
@@ -5666,9 +5144,9 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
-      "outputs": {
-        "out_ax": {
+      ],
+      "outputs": [
+        {
           "name": "out_ax",
           "type_name": "Axes",
           "state": "styled_axes",
@@ -5686,7 +5164,7 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
+      ],
       "preconditions": [],
       "postconditions": [
         {
@@ -5707,16 +5185,14 @@
           "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         },
         {
           "target_cell_id": "matplotlib_fig_tight_layout",
           "affinity_score": 0.5,
           "score_provenance": "llm_seed",
           "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         }
       ]
     },
@@ -5759,8 +5235,8 @@
       "feedback_state_type": null,
       "raises": [],
       "type_vars": [],
-      "inputs": {
-        "ax": {
+      "inputs": [
+        {
           "name": "ax",
           "type_name": "Axes",
           "state": "axes_with_content",
@@ -5780,7 +5256,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        "loc": {
+        {
           "name": "loc",
           "type_name": "str",
           "state": "unregistered",
@@ -5805,7 +5281,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        "fontsize": {
+        {
           "name": "fontsize",
           "type_name": "float",
           "state": "unregistered",
@@ -5823,7 +5299,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        "frameon": {
+        {
           "name": "frameon",
           "type_name": "bool",
           "state": "unregistered",
@@ -5841,9 +5317,9 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
-      "outputs": {
-        "out_ax": {
+      ],
+      "outputs": [
+        {
           "name": "out_ax",
           "type_name": "Axes",
           "state": "legend_added",
@@ -5861,7 +5337,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        "legend": {
+        {
           "name": "legend",
           "type_name": "Axes",
           "state": "unregistered",
@@ -5877,7 +5353,7 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
+      ],
       "preconditions": [],
       "postconditions": [
         {
@@ -5898,16 +5374,14 @@
           "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         },
         {
           "target_cell_id": "matplotlib_fig_savefig",
-          "affinity_score": 0.5,
+          "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         }
       ]
     },
@@ -5950,8 +5424,8 @@
       "feedback_state_type": null,
       "raises": [],
       "type_vars": [],
-      "inputs": {
-        "ax": {
+      "inputs": [
+        {
           "name": "ax",
           "type_name": "Axes",
           "state": "axes_with_content",
@@ -5971,7 +5445,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        "text": {
+        {
           "name": "text",
           "type_name": "str",
           "state": "unregistered",
@@ -5987,7 +5461,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        "xy": {
+        {
           "name": "xy",
           "type_name": "tuple",
           "state": "unregistered",
@@ -6003,7 +5477,7 @@
           "value_constraints": null,
           "shape_contract": "[2]"
         },
-        "xytext": {
+        {
           "name": "xytext",
           "type_name": "tuple",
           "state": "unregistered",
@@ -6021,7 +5495,7 @@
           "value_constraints": null,
           "shape_contract": "[2]"
         },
-        "arrowprops": {
+        {
           "name": "arrowprops",
           "type_name": "dict",
           "state": "unregistered",
@@ -6039,9 +5513,9 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
-      "outputs": {
-        "out_ax": {
+      ],
+      "outputs": [
+        {
           "name": "out_ax",
           "type_name": "Axes",
           "state": "annotated",
@@ -6059,7 +5533,7 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
+      ],
       "preconditions": [],
       "postconditions": [
         {
@@ -6080,16 +5554,14 @@
           "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         },
         {
           "target_cell_id": "matplotlib_fig_savefig",
           "affinity_score": 0.5,
           "score_provenance": "llm_seed",
           "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         }
       ]
     },
@@ -6133,8 +5605,8 @@
       "feedback_state_type": null,
       "raises": [],
       "type_vars": [],
-      "inputs": {
-        "ax": {
+      "inputs": [
+        {
           "name": "ax",
           "type_name": "Axes",
           "state": "axes_with_content",
@@ -6155,7 +5627,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        "x": {
+        {
           "name": "x",
           "type_name": "float",
           "state": "unregistered",
@@ -6171,7 +5643,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        "y": {
+        {
           "name": "y",
           "type_name": "float",
           "state": "unregistered",
@@ -6187,7 +5659,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        "s": {
+        {
           "name": "s",
           "type_name": "str",
           "state": "unregistered",
@@ -6203,7 +5675,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        "fontsize": {
+        {
           "name": "fontsize",
           "type_name": "float",
           "state": "unregistered",
@@ -6221,7 +5693,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        "color": {
+        {
           "name": "color",
           "type_name": "str",
           "state": "unregistered",
@@ -6239,9 +5711,9 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
-      "outputs": {
-        "out_ax": {
+      ],
+      "outputs": [
+        {
           "name": "out_ax",
           "type_name": "Axes",
           "state": "annotated",
@@ -6259,7 +5731,7 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
+      ],
       "preconditions": [],
       "postconditions": [
         {
@@ -6280,16 +5752,14 @@
           "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         },
         {
           "target_cell_id": "matplotlib_fig_savefig",
           "affinity_score": 0.5,
           "score_provenance": "llm_seed",
           "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         }
       ]
     },
@@ -6331,8 +5801,8 @@
       "feedback_state_type": null,
       "raises": [],
       "type_vars": [],
-      "inputs": {
-        "ax": {
+      "inputs": [
+        {
           "name": "ax",
           "type_name": "Axes",
           "state": "axes_with_content",
@@ -6353,7 +5823,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        "label": {
+        {
           "name": "label",
           "type_name": "str",
           "state": "unregistered",
@@ -6369,7 +5839,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        "fontsize": {
+        {
           "name": "fontsize",
           "type_name": "float",
           "state": "unregistered",
@@ -6387,7 +5857,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        "pad": {
+        {
           "name": "pad",
           "type_name": "float",
           "state": "unregistered",
@@ -6405,9 +5875,9 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
-      "outputs": {
-        "out_ax": {
+      ],
+      "outputs": [
+        {
           "name": "out_ax",
           "type_name": "Axes",
           "state": "styled_axes",
@@ -6425,7 +5895,7 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
+      ],
       "preconditions": [],
       "postconditions": [
         {
@@ -6446,24 +5916,21 @@
           "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         },
         {
           "target_cell_id": "matplotlib_ax_set_ylabel",
-          "affinity_score": 0.5,
+          "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         },
         {
           "target_cell_id": "matplotlib_fig_tight_layout",
-          "affinity_score": 0.2,
+          "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         }
       ]
     },
@@ -6505,8 +5972,8 @@
       "feedback_state_type": null,
       "raises": [],
       "type_vars": [],
-      "inputs": {
-        "ax": {
+      "inputs": [
+        {
           "name": "ax",
           "type_name": "Axes",
           "state": "axes_with_content",
@@ -6527,7 +5994,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        "label": {
+        {
           "name": "label",
           "type_name": "str",
           "state": "unregistered",
@@ -6543,7 +6010,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        "fontsize": {
+        {
           "name": "fontsize",
           "type_name": "float",
           "state": "unregistered",
@@ -6561,7 +6028,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        "labelpad": {
+        {
           "name": "labelpad",
           "type_name": "float",
           "state": "unregistered",
@@ -6579,9 +6046,9 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
-      "outputs": {
-        "out_ax": {
+      ],
+      "outputs": [
+        {
           "name": "out_ax",
           "type_name": "Axes",
           "state": "styled_axes",
@@ -6599,7 +6066,7 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
+      ],
       "preconditions": [],
       "postconditions": [
         {
@@ -6620,24 +6087,21 @@
           "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         },
         {
           "target_cell_id": "matplotlib_fig_tight_layout",
-          "affinity_score": 0.5,
+          "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         },
         {
           "target_cell_id": "matplotlib_fig_savefig",
-          "affinity_score": 0.2,
+          "affinity_score": 0.5,
           "score_provenance": "llm_seed",
           "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         }
       ]
     },
@@ -6679,8 +6143,8 @@
       "feedback_state_type": null,
       "raises": [],
       "type_vars": [],
-      "inputs": {
-        "ax": {
+      "inputs": [
+        {
           "name": "ax",
           "type_name": "Axes",
           "state": "axes_with_content",
@@ -6701,7 +6165,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        "label": {
+        {
           "name": "label",
           "type_name": "str",
           "state": "unregistered",
@@ -6717,7 +6181,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        "fontsize": {
+        {
           "name": "fontsize",
           "type_name": "float",
           "state": "unregistered",
@@ -6735,7 +6199,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        "labelpad": {
+        {
           "name": "labelpad",
           "type_name": "float",
           "state": "unregistered",
@@ -6753,9 +6217,9 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
-      "outputs": {
-        "out_ax": {
+      ],
+      "outputs": [
+        {
           "name": "out_ax",
           "type_name": "Axes",
           "state": "styled_axes",
@@ -6773,7 +6237,7 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
+      ],
       "preconditions": [],
       "postconditions": [
         {
@@ -6794,16 +6258,14 @@
           "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         },
         {
           "target_cell_id": "matplotlib_fig_savefig",
-          "affinity_score": 0.5,
+          "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         }
       ]
     },
@@ -6845,8 +6307,8 @@
       "feedback_state_type": null,
       "raises": [],
       "type_vars": [],
-      "inputs": {
-        "ax": {
+      "inputs": [
+        {
           "name": "ax",
           "type_name": "Axes",
           "state": "axes_with_content",
@@ -6867,7 +6329,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        "left": {
+        {
           "name": "left",
           "type_name": "float",
           "state": "unregistered",
@@ -6885,7 +6347,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        "right": {
+        {
           "name": "right",
           "type_name": "float",
           "state": "unregistered",
@@ -6903,9 +6365,9 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
-      "outputs": {
-        "out_ax": {
+      ],
+      "outputs": [
+        {
           "name": "out_ax",
           "type_name": "Axes",
           "state": "styled_axes",
@@ -6923,7 +6385,7 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
+      ],
       "preconditions": [],
       "postconditions": [
         {
@@ -6944,16 +6406,14 @@
           "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         },
         {
           "target_cell_id": "matplotlib_fig_tight_layout",
           "affinity_score": 0.5,
           "score_provenance": "llm_seed",
           "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         }
       ]
     },
@@ -6995,8 +6455,8 @@
       "feedback_state_type": null,
       "raises": [],
       "type_vars": [],
-      "inputs": {
-        "ax": {
+      "inputs": [
+        {
           "name": "ax",
           "type_name": "Axes",
           "state": "axes_with_content",
@@ -7017,7 +6477,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        "bottom": {
+        {
           "name": "bottom",
           "type_name": "float",
           "state": "unregistered",
@@ -7035,7 +6495,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        "top": {
+        {
           "name": "top",
           "type_name": "float",
           "state": "unregistered",
@@ -7053,9 +6513,9 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
-      "outputs": {
-        "out_ax": {
+      ],
+      "outputs": [
+        {
           "name": "out_ax",
           "type_name": "Axes",
           "state": "styled_axes",
@@ -7073,7 +6533,7 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
+      ],
       "preconditions": [],
       "postconditions": [
         {
@@ -7094,16 +6554,14 @@
           "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         },
         {
           "target_cell_id": "matplotlib_fig_savefig",
           "affinity_score": 0.5,
           "score_provenance": "llm_seed",
           "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         }
       ]
     },
@@ -7143,8 +6601,8 @@
       "feedback_state_type": null,
       "raises": [],
       "type_vars": [],
-      "inputs": {
-        "ax": {
+      "inputs": [
+        {
           "name": "ax",
           "type_name": "Axes",
           "state": "axes_with_content",
@@ -7165,7 +6623,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        "value": {
+        {
           "name": "value",
           "type_name": "str",
           "state": "unregistered",
@@ -7186,9 +6644,9 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
-      "outputs": {
-        "out_ax": {
+      ],
+      "outputs": [
+        {
           "name": "out_ax",
           "type_name": "Axes",
           "state": "styled_axes",
@@ -7206,7 +6664,7 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
+      ],
       "preconditions": [],
       "postconditions": [
         {
@@ -7227,16 +6685,14 @@
           "affinity_score": 0.5,
           "score_provenance": "llm_seed",
           "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         },
         {
           "target_cell_id": "matplotlib_fig_tight_layout",
           "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         }
       ]
     },
@@ -7276,8 +6732,8 @@
       "feedback_state_type": null,
       "raises": [],
       "type_vars": [],
-      "inputs": {
-        "ax": {
+      "inputs": [
+        {
           "name": "ax",
           "type_name": "Axes",
           "state": "axes_with_content",
@@ -7298,7 +6754,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        "value": {
+        {
           "name": "value",
           "type_name": "str",
           "state": "unregistered",
@@ -7319,9 +6775,9 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
-      "outputs": {
-        "out_ax": {
+      ],
+      "outputs": [
+        {
           "name": "out_ax",
           "type_name": "Axes",
           "state": "styled_axes",
@@ -7339,7 +6795,7 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
+      ],
       "preconditions": [],
       "postconditions": [
         {
@@ -7360,16 +6816,14 @@
           "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         },
         {
           "target_cell_id": "matplotlib_fig_savefig",
           "affinity_score": 0.5,
           "score_provenance": "llm_seed",
           "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         }
       ]
     },
@@ -7408,8 +6862,8 @@
       "feedback_state_type": null,
       "raises": [],
       "type_vars": [],
-      "inputs": {
-        "ax": {
+      "inputs": [
+        {
           "name": "ax",
           "type_name": "Axes",
           "state": "axes_with_content",
@@ -7430,7 +6884,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        "ticks": {
+        {
           "name": "ticks",
           "type_name": "ndarray",
           "state": "unregistered",
@@ -7446,9 +6900,9 @@
           "value_constraints": null,
           "shape_contract": "[K]"
         }
-      },
-      "outputs": {
-        "out_ax": {
+      ],
+      "outputs": [
+        {
           "name": "out_ax",
           "type_name": "Axes",
           "state": "styled_axes",
@@ -7466,7 +6920,7 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
+      ],
       "preconditions": [],
       "postconditions": [
         {
@@ -7487,16 +6941,14 @@
           "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         },
         {
           "target_cell_id": "matplotlib_fig_tight_layout",
           "affinity_score": 0.5,
           "score_provenance": "llm_seed",
           "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         }
       ]
     },
@@ -7536,8 +6988,8 @@
       "feedback_state_type": null,
       "raises": [],
       "type_vars": [],
-      "inputs": {
-        "ax": {
+      "inputs": [
+        {
           "name": "ax",
           "type_name": "Axes",
           "state": "axes_with_content",
@@ -7558,7 +7010,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        "labels": {
+        {
           "name": "labels",
           "type_name": "list",
           "state": "unregistered",
@@ -7574,7 +7026,7 @@
           "value_constraints": null,
           "shape_contract": "[K]"
         },
-        "rotation": {
+        {
           "name": "rotation",
           "type_name": "float",
           "state": "unregistered",
@@ -7592,9 +7044,9 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
-      "outputs": {
-        "out_ax": {
+      ],
+      "outputs": [
+        {
           "name": "out_ax",
           "type_name": "Axes",
           "state": "styled_axes",
@@ -7612,7 +7064,7 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
+      ],
       "preconditions": [],
       "postconditions": [
         {
@@ -7633,16 +7085,14 @@
           "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         },
         {
           "target_cell_id": "matplotlib_fig_savefig",
           "affinity_score": 0.5,
           "score_provenance": "llm_seed",
           "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         }
       ]
     },
@@ -7685,8 +7135,8 @@
       "feedback_state_type": null,
       "raises": [],
       "type_vars": [],
-      "inputs": {
-        "ax": {
+      "inputs": [
+        {
           "name": "ax",
           "type_name": "Axes",
           "state": "axes_with_content",
@@ -7707,7 +7157,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        "axis": {
+        {
           "name": "axis",
           "type_name": "str",
           "state": "unregistered",
@@ -7729,7 +7179,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        "which": {
+        {
           "name": "which",
           "type_name": "str",
           "state": "unregistered",
@@ -7751,7 +7201,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        "labelsize": {
+        {
           "name": "labelsize",
           "type_name": "float",
           "state": "unregistered",
@@ -7769,7 +7219,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        "rotation": {
+        {
           "name": "rotation",
           "type_name": "float",
           "state": "unregistered",
@@ -7787,9 +7237,9 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
-      "outputs": {
-        "out_ax": {
+      ],
+      "outputs": [
+        {
           "name": "out_ax",
           "type_name": "Axes",
           "state": "styled_axes",
@@ -7807,7 +7257,7 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
+      ],
       "preconditions": [],
       "postconditions": [
         {
@@ -7828,16 +7278,14 @@
           "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         },
         {
           "target_cell_id": "matplotlib_fig_savefig",
           "affinity_score": 0.5,
           "score_provenance": "llm_seed",
           "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         }
       ]
     },
@@ -7879,8 +7327,8 @@
       "feedback_state_type": null,
       "raises": [],
       "type_vars": [],
-      "inputs": {
-        "fig": {
+      "inputs": [
+        {
           "name": "fig",
           "type_name": "Figure",
           "state": "empty_figure",
@@ -7902,7 +7350,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        "mappable": {
+        {
           "name": "mappable",
           "type_name": "Axes",
           "state": "unregistered",
@@ -7918,7 +7366,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        "ax": {
+        {
           "name": "ax",
           "type_name": "Axes",
           "state": "axes_with_content",
@@ -7936,7 +7384,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        "orientation": {
+        {
           "name": "orientation",
           "type_name": "str",
           "state": "unregistered",
@@ -7957,9 +7405,9 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
-      "outputs": {
-        "out_fig": {
+      ],
+      "outputs": [
+        {
           "name": "out_fig",
           "type_name": "Figure",
           "state": "colorbar_added",
@@ -7977,7 +7425,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        "cbar": {
+        {
           "name": "cbar",
           "type_name": "Axes",
           "state": "unregistered",
@@ -7993,7 +7441,7 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
+      ],
       "preconditions": [],
       "postconditions": [
         {
@@ -8014,16 +7462,14 @@
           "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         },
         {
           "target_cell_id": "matplotlib_fig_savefig",
-          "affinity_score": 0.5,
+          "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         }
       ]
     },
@@ -8061,8 +7507,8 @@
       "feedback_state_type": null,
       "raises": [],
       "type_vars": [],
-      "inputs": {
-        "ax": {
+      "inputs": [
+        {
           "name": "ax",
           "type_name": "Axes",
           "state": "axes_with_content",
@@ -8083,9 +7529,9 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
-      "outputs": {
-        "ax2": {
+      ],
+      "outputs": [
+        {
           "name": "ax2",
           "type_name": "Axes",
           "state": "axes_initialized",
@@ -8103,7 +7549,7 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
+      ],
       "preconditions": [],
       "postconditions": [
         {
@@ -8124,16 +7570,14 @@
           "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         },
         {
           "target_cell_id": "matplotlib_ax_set_ylabel",
-          "affinity_score": 0.5,
+          "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         }
       ]
     },
@@ -8171,8 +7615,8 @@
       "feedback_state_type": null,
       "raises": [],
       "type_vars": [],
-      "inputs": {
-        "ax": {
+      "inputs": [
+        {
           "name": "ax",
           "type_name": "Axes",
           "state": "axes_with_content",
@@ -8193,9 +7637,9 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
-      "outputs": {
-        "ax2": {
+      ],
+      "outputs": [
+        {
           "name": "ax2",
           "type_name": "Axes",
           "state": "axes_initialized",
@@ -8213,7 +7657,7 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
+      ],
       "preconditions": [],
       "postconditions": [
         {
@@ -8234,16 +7678,14 @@
           "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         },
         {
           "target_cell_id": "matplotlib_ax_set_xlabel",
-          "affinity_score": 0.5,
+          "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         }
       ]
     },
@@ -8281,8 +7723,8 @@
       "feedback_state_type": null,
       "raises": [],
       "type_vars": [],
-      "inputs": {
-        "ax": {
+      "inputs": [
+        {
           "name": "ax",
           "type_name": "Axes",
           "state": "axes_with_content",
@@ -8303,9 +7745,9 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
-      "outputs": {
-        "out_ax": {
+      ],
+      "outputs": [
+        {
           "name": "out_ax",
           "type_name": "Axes",
           "state": "styled_axes",
@@ -8323,7 +7765,7 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
+      ],
       "preconditions": [],
       "postconditions": [
         {
@@ -8344,16 +7786,14 @@
           "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         },
         {
           "target_cell_id": "matplotlib_fig_savefig",
           "affinity_score": 0.5,
           "score_provenance": "llm_seed",
           "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         }
       ]
     },
@@ -8391,8 +7831,8 @@
       "feedback_state_type": null,
       "raises": [],
       "type_vars": [],
-      "inputs": {
-        "ax": {
+      "inputs": [
+        {
           "name": "ax",
           "type_name": "Axes",
           "state": "axes_with_content",
@@ -8413,9 +7853,9 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
-      "outputs": {
-        "out_ax": {
+      ],
+      "outputs": [
+        {
           "name": "out_ax",
           "type_name": "Axes",
           "state": "styled_axes",
@@ -8433,7 +7873,7 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
+      ],
       "preconditions": [],
       "postconditions": [
         {
@@ -8454,16 +7894,14 @@
           "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         },
         {
           "target_cell_id": "matplotlib_fig_savefig",
           "affinity_score": 0.5,
           "score_provenance": "llm_seed",
           "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         }
       ]
     },
@@ -8506,8 +7944,8 @@
       "feedback_state_type": null,
       "raises": [],
       "type_vars": [],
-      "inputs": {
-        "ax": {
+      "inputs": [
+        {
           "name": "ax",
           "type_name": "Axes",
           "state": "axes_with_content",
@@ -8528,7 +7966,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        "visible": {
+        {
           "name": "visible",
           "type_name": "bool",
           "state": "unregistered",
@@ -8546,7 +7984,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        "which": {
+        {
           "name": "which",
           "type_name": "str",
           "state": "unregistered",
@@ -8568,7 +8006,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        "linestyle": {
+        {
           "name": "linestyle",
           "type_name": "str",
           "state": "unregistered",
@@ -8591,7 +8029,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        "alpha": {
+        {
           "name": "alpha",
           "type_name": "float",
           "state": "unregistered",
@@ -8609,9 +8047,9 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
-      "outputs": {
-        "out_ax": {
+      ],
+      "outputs": [
+        {
           "name": "out_ax",
           "type_name": "Axes",
           "state": "styled_axes",
@@ -8629,7 +8067,7 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
+      ],
       "preconditions": [],
       "postconditions": [
         {
@@ -8650,16 +8088,14 @@
           "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         },
         {
           "target_cell_id": "matplotlib_fig_savefig",
-          "affinity_score": 0.5,
+          "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         }
       ]
     },
@@ -8697,8 +8133,8 @@
       "feedback_state_type": null,
       "raises": [],
       "type_vars": [],
-      "inputs": {
-        "style": {
+      "inputs": [
+        {
           "name": "style",
           "type_name": "str",
           "state": "unregistered",
@@ -8721,8 +8157,8 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
-      "outputs": {},
+      ],
+      "outputs": [],
       "preconditions": [],
       "postconditions": [],
       "effects": [
@@ -8734,16 +8170,14 @@
           "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         },
         {
           "target_cell_id": "matplotlib_plt_figure",
-          "affinity_score": 0.5,
+          "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         }
       ]
     },
@@ -8782,8 +8216,8 @@
       "feedback_state_type": null,
       "raises": [],
       "type_vars": [],
-      "inputs": {
-        "ax": {
+      "inputs": [
+        {
           "name": "ax",
           "type_name": "Axes",
           "state": "axes_with_content",
@@ -8804,7 +8238,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        "color": {
+        {
           "name": "color",
           "type_name": "str",
           "state": "unregistered",
@@ -8820,9 +8254,9 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
-      "outputs": {
-        "out_ax": {
+      ],
+      "outputs": [
+        {
           "name": "out_ax",
           "type_name": "Axes",
           "state": "styled_axes",
@@ -8840,7 +8274,7 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
+      ],
       "preconditions": [],
       "postconditions": [
         {
@@ -8861,8 +8295,7 @@
           "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         }
       ]
     },
@@ -8901,8 +8334,8 @@
       "feedback_state_type": null,
       "raises": [],
       "type_vars": [],
-      "inputs": {
-        "fig": {
+      "inputs": [
+        {
           "name": "fig",
           "type_name": "Figure",
           "state": "empty_figure",
@@ -8924,7 +8357,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        "color": {
+        {
           "name": "color",
           "type_name": "str",
           "state": "unregistered",
@@ -8940,9 +8373,9 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
-      "outputs": {
-        "out_fig": {
+      ],
+      "outputs": [
+        {
           "name": "out_fig",
           "type_name": "Figure",
           "state": "empty_figure",
@@ -8960,7 +8393,7 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
+      ],
       "preconditions": [],
       "postconditions": [
         {
@@ -8981,8 +8414,7 @@
           "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         }
       ]
     },
@@ -9023,8 +8455,8 @@
       "feedback_state_type": null,
       "raises": [],
       "type_vars": [],
-      "inputs": {
-        "ax": {
+      "inputs": [
+        {
           "name": "ax",
           "type_name": "Axes",
           "state": "axes_with_content",
@@ -9045,7 +8477,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        "spine_name": {
+        {
           "name": "spine_name",
           "type_name": "str",
           "state": "unregistered",
@@ -9066,7 +8498,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        "visible": {
+        {
           "name": "visible",
           "type_name": "bool",
           "state": "unregistered",
@@ -9084,9 +8516,9 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
-      "outputs": {
-        "out_ax": {
+      ],
+      "outputs": [
+        {
           "name": "out_ax",
           "type_name": "Axes",
           "state": "styled_axes",
@@ -9104,7 +8536,7 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
+      ],
       "preconditions": [],
       "postconditions": [
         {
@@ -9125,8 +8557,7 @@
           "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         }
       ]
     },
@@ -9167,8 +8598,8 @@
       "feedback_state_type": null,
       "raises": [],
       "type_vars": [],
-      "inputs": {
-        "fig": {
+      "inputs": [
+        {
           "name": "fig",
           "type_name": "Figure",
           "state": "empty_figure",
@@ -9190,7 +8621,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        "t": {
+        {
           "name": "t",
           "type_name": "str",
           "state": "unregistered",
@@ -9206,7 +8637,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        "fontsize": {
+        {
           "name": "fontsize",
           "type_name": "float",
           "state": "unregistered",
@@ -9224,9 +8655,9 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
-      "outputs": {
-        "out_fig": {
+      ],
+      "outputs": [
+        {
           "name": "out_fig",
           "type_name": "Figure",
           "state": "empty_figure",
@@ -9244,7 +8675,7 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
+      ],
       "preconditions": [],
       "postconditions": [
         {
@@ -9265,16 +8696,14 @@
           "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         },
         {
           "target_cell_id": "matplotlib_fig_savefig",
-          "affinity_score": 0.5,
+          "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         }
       ]
     },
@@ -9313,8 +8742,8 @@
       "feedback_state_type": null,
       "raises": [],
       "type_vars": [],
-      "inputs": {
-        "fig": {
+      "inputs": [
+        {
           "name": "fig",
           "type_name": "Figure",
           "state": "axes_with_content",
@@ -9336,7 +8765,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        "pad": {
+        {
           "name": "pad",
           "type_name": "float",
           "state": "unregistered",
@@ -9354,9 +8783,9 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
-      "outputs": {
-        "out_fig": {
+      ],
+      "outputs": [
+        {
           "name": "out_fig",
           "type_name": "Figure",
           "state": "tight_layout_applied",
@@ -9374,7 +8803,7 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
+      ],
       "preconditions": [],
       "postconditions": [
         {
@@ -9395,16 +8824,14 @@
           "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         },
         {
           "target_cell_id": "matplotlib_plt_show",
-          "affinity_score": 0.5,
+          "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         }
       ]
     },
@@ -9449,8 +8876,8 @@
       "feedback_state_type": null,
       "raises": [],
       "type_vars": [],
-      "inputs": {
-        "fig": {
+      "inputs": [
+        {
           "name": "fig",
           "type_name": "Figure",
           "state": "empty_figure",
@@ -9472,7 +8899,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        "left": {
+        {
           "name": "left",
           "type_name": "float",
           "state": "unregistered",
@@ -9490,7 +8917,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        "right": {
+        {
           "name": "right",
           "type_name": "float",
           "state": "unregistered",
@@ -9508,7 +8935,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        "bottom": {
+        {
           "name": "bottom",
           "type_name": "float",
           "state": "unregistered",
@@ -9526,7 +8953,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        "top": {
+        {
           "name": "top",
           "type_name": "float",
           "state": "unregistered",
@@ -9544,7 +8971,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        "wspace": {
+        {
           "name": "wspace",
           "type_name": "float",
           "state": "unregistered",
@@ -9562,7 +8989,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        "hspace": {
+        {
           "name": "hspace",
           "type_name": "float",
           "state": "unregistered",
@@ -9580,9 +9007,9 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
-      "outputs": {
-        "out_fig": {
+      ],
+      "outputs": [
+        {
           "name": "out_fig",
           "type_name": "Figure",
           "state": "tight_layout_applied",
@@ -9600,7 +9027,7 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
+      ],
       "preconditions": [],
       "postconditions": [
         {
@@ -9621,16 +9048,14 @@
           "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         },
         {
           "target_cell_id": "matplotlib_plt_show",
-          "affinity_score": 0.5,
+          "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         }
       ]
     },
@@ -9674,8 +9099,8 @@
         "IOError"
       ],
       "type_vars": [],
-      "inputs": {
-        "fig": {
+      "inputs": [
+        {
           "name": "fig",
           "type_name": "Figure",
           "state": "axes_with_content",
@@ -9698,7 +9123,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        "output_filepath": {
+        {
           "name": "output_filepath",
           "type_name": "str",
           "state": "unregistered",
@@ -9714,7 +9139,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        "dpi": {
+        {
           "name": "dpi",
           "type_name": "int",
           "state": "unregistered",
@@ -9732,7 +9157,7 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        "bbox_inches": {
+        {
           "name": "bbox_inches",
           "type_name": "str",
           "state": "unregistered",
@@ -9753,9 +9178,9 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
-      "outputs": {
-        "out_fig": {
+      ],
+      "outputs": [
+        {
           "name": "out_fig",
           "type_name": "Figure",
           "state": "figure_saved",
@@ -9773,7 +9198,7 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
+      ],
       "preconditions": [
         {
           "target": "fig",
@@ -9803,16 +9228,14 @@
           "affinity_score": 0.5,
           "score_provenance": "llm_seed",
           "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         },
         {
           "target_cell_id": "matplotlib_plt_close",
           "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         }
       ]
     },
@@ -9847,8 +9270,8 @@
       "feedback_state_type": null,
       "raises": [],
       "type_vars": [],
-      "inputs": {},
-      "outputs": {},
+      "inputs": [],
+      "outputs": [],
       "preconditions": [],
       "postconditions": [],
       "effects": [
@@ -9860,8 +9283,7 @@
           "affinity_score": 0.8,
           "score_provenance": "llm_seed",
           "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
+          "metadata": {}
         }
       ]
     },
@@ -9898,8 +9320,8 @@
       "feedback_state_type": null,
       "raises": [],
       "type_vars": [],
-      "inputs": {
-        "fig": {
+      "inputs": [
+        {
           "name": "fig",
           "type_name": "Figure",
           "state": "axes_with_content",
@@ -9922,8 +9344,8 @@
           "value_constraints": null,
           "shape_contract": null
         }
-      },
-      "outputs": {},
+      ],
+      "outputs": [],
       "preconditions": [],
       "postconditions": [],
       "effects": [
@@ -9931,5 +9353,52 @@
       ],
       "edges": []
     }
-  ]
+  ],
+  "egress_intent_tokens": [
+    "save",
+    "export",
+    "write",
+    "dump",
+    "persist",
+    "store",
+    "plot",
+    "show",
+    "display"
+  ],
+  "materialization_states": [
+    "destination_written",
+    "filepath_written",
+    "saved",
+    "exported",
+    "written_to_disk"
+  ],
+  "polarity_hints": {
+    "ascending": [
+      "bottom",
+      "lowest",
+      "smallest",
+      "minimum",
+      "min",
+      "worst",
+      "least",
+      "ascending",
+      "asc",
+      "fewest"
+    ],
+    "descending": [
+      "top",
+      "highest",
+      "largest",
+      "biggest",
+      "greatest",
+      "maximum",
+      "max",
+      "best",
+      "most",
+      "descending",
+      "desc",
+      "newest",
+      "latest"
+    ]
+  }
 }

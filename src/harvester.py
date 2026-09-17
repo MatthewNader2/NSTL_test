@@ -1,4 +1,5 @@
 # src/harvester.py
+# Thin compatibility wrapper. Prefer UniversalHarvester directly.
 """
 src/harvester.py - Neuro-Symbolic Topological Lattice (NSTL)
 Universal Intelligent Harvester.
