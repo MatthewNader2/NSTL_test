@@ -10,9 +10,6 @@ import time
 import json
 import threading
 
-# Force UTF-8 output on Windows to avoid cp1252 encoding errors
-sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', errors='replace')
-sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8', errors='replace')
 import urllib.request
 import urllib.error
 

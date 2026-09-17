@@ -348,7 +348,7 @@ class LocalRAG:
                     chunk = new_or_changed[i:i + chunk_size]
                     texts = [item["text"] for item in chunk]
                     try:
-                        embeddings = ModelManager.get_instance().get_embeddings(texts)
+                        embeddings = ModelManager.get_instance().get_embeddings(texts, mode="document")
                     except torch.cuda.OutOfMemoryError:
                         logger.warning(f"[RAG] CUDA OOM at chunk {i}; flushing VRAM and falling back to micro-batches...")
                         gc.collect()
@@ -357,7 +357,7 @@ class LocalRAG:
                         embeddings = []
                         for sub_idx in range(0, len(texts), 25):
                             sub_texts = texts[sub_idx:sub_idx + 25]
-                            sub_embs = ModelManager.get_instance().get_embeddings(sub_texts)
+                            sub_embs = ModelManager.get_instance().get_embeddings(sub_texts, mode="document")
                             embeddings.extend(sub_embs)
                             del sub_texts
                             del sub_embs
@@ -469,7 +469,7 @@ class LocalRAG:
             cid = cell_dict.get("cell_id", "dynamic_cell")
             text_repr = build_cell_embedding_text(cell_dict, orchestrator=self.orchestrator)
 
-            raw_emb = np.array([ModelManager.get_instance().get_embedding(text_repr)], dtype=np.float32)
+            raw_emb = np.array([ModelManager.get_instance().get_embedding(text_repr, mode="document")], dtype=np.float32)
             norm = np.linalg.norm(raw_emb)
             if norm > 0:
                 raw_emb = raw_emb / norm
@@ -485,7 +485,7 @@ class LocalRAG:
             if self.index is None or self.index.ntotal == 0:
                 return []
     
-            raw_emb = np.array([ModelManager.get_instance().get_embedding(prompt)], dtype=np.float32)
+            raw_emb = np.array([ModelManager.get_instance().get_embedding(prompt, mode="query")], dtype=np.float32)
             norm = np.linalg.norm(raw_emb)
             if norm == 0:
                 return []
@@ -521,7 +521,7 @@ class LocalRAG:
             if self.index is None or self.index.ntotal == 0 or not prompts:
                 return [[] for _ in prompts]
 
-            embeddings = ModelManager.get_instance().get_embeddings(list(prompts))
+            embeddings = ModelManager.get_instance().get_embeddings(list(prompts), mode="query")
             matrix = np.array(embeddings, dtype=np.float32)
             if matrix.ndim != 2 or matrix.shape[0] != len(prompts):
                 return [[] for _ in prompts]

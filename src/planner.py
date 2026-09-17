@@ -133,7 +133,8 @@ def _is_col_projection_port(p_sig: Any) -> bool:
     tname = str(getattr(getattr(p_sig, "signature", p_sig), "type_name", "")).lower()
     if registry.is_subtype(tname, "list") or registry.is_subtype(tname, "sequence"):
         st_tokens = set(CellTokenizer.tokenize_identifier(st))
-        if st_tokens & {"column", "columns", "col", "feature", "features", "projection", "fields"}:
+        proj_tokens = TypeRegistry.get_instance().get_column_projection_tokens()
+        if st_tokens & proj_tokens:
             return True
     return False
 
@@ -161,11 +162,11 @@ def _segment_prompt_clauses(prompt: str) -> List[str]:
     raw_parts = [p.strip() for p in re.split(r'[;]|\b(?:then)\b|,', prompt.strip()) if p.strip()]
     clauses: List[str] = []
     for p in raw_parts:
-        p_toks = CellTokenizer.tokenize_prompt(p) - STOPWORDS
+        p_toks = CellTokenizer.tokenize_prompt(p)
         if not p_toks:
             continue
         if clauses:
-            prev_toks = CellTokenizer.tokenize_prompt(clauses[-1]) - STOPWORDS
+            prev_toks = CellTokenizer.tokenize_prompt(clauses[-1])
             if p_toks.issubset(prev_toks):
                 clauses[-1] = clauses[-1] + ", " + p
                 continue
@@ -373,7 +374,7 @@ class LatticePlanner:
         }
         file_literals = [
             v for kind, v in universal_literals
-            if kind == "file_asset"
+            if kind == "file_asset" or (kind == "quoted_str" and bool(ExecutionContext._PATH_RE.match(str(v))))
         ]
 
         def _has_path_port(cell: Cell) -> bool:
@@ -401,7 +402,7 @@ class LatticePlanner:
                     continue
                 t_name = str(getattr(p_sig.signature, "type_name", "")).lower()
                 if _lattice_is_path_port(p_sig):
-                    if not file_literals:
+                    if not file_literals and getattr(cell, "stage", None) != 1 and not getattr(cell, "is_macro", False) and not isinstance(cell, MacroCell):
                         return False
                     continue
                 is_num = (
@@ -436,32 +437,45 @@ class LatticePlanner:
                 candidate_entries = matching
         else:
             viable_entries = [c for c in candidate_entries if _can_be_entry_source(c)]
-            if file_literals:
-                s1_entries = [c for c in viable_entries if getattr(c, "stage", None) == 1 and _has_path_port(c)]
-                if s1_entries:
-                    first_clause = re.split(r'[,;]|\b(?:and|then)\b', prompt.strip())[0].strip()
-                    clause_tokens = (CellTokenizer.tokenize_prompt(first_clause) if first_clause else set()) - STOPWORDS
-                    if clause_tokens:
-                        matching_s1 = [c for c in s1_entries if len(clause_tokens & (c.token_set - STOPWORDS)) > 0]
-                        if matching_s1:
-                            s1_entries = matching_s1
-                    s1_entries.sort(key=lambda c: (
-                        getattr(c, "source_priority", 100),
-                        -(relevance_map.get(c.cell_id, 0.0) * (1.0 + (len(clause_tokens & (c.token_set - STOPWORDS)) if clause_tokens else 0)))
-                    ))
-                    candidate_entries = s1_entries[:30]
-                else:
-                    viable_entries.sort(key=lambda c: -relevance_map.get(c.cell_id, 0.0))
-                    candidate_entries = viable_entries[:30]
+            first_clause = re.split(r'[,;]|\b(?:and|then)\b', prompt.strip())[0].strip()
+            clause_tokens = CellTokenizer.tokenize_prompt(first_clause) if first_clause else set()
+
+            s1_entries = [
+                c for c in viable_entries
+                if (getattr(c, "stage", None) == 1 or getattr(c, "node_role", "") == "source" or isinstance(c, MacroCell))
+            ]
+            first_clause_file_literals = [
+                v for _, kind, v in ExecutionContext._extract_universal_literals(first_clause)
+                if kind == "file_asset" or (kind == "quoted_str" and bool(ExecutionContext._PATH_RE.match(str(v))))
+            ]
+            if first_clause_file_literals:
+                s1_entries = [c for c in s1_entries if _has_path_port(c)]
+
+            matching_s1 = []
+            if clause_tokens and s1_entries:
+                matching_s1 = [c for c in s1_entries if len(clause_tokens & getattr(c, "identity_tokens", c.token_set)) > 0]
+
+            if matching_s1:
+                matching_s1.sort(key=lambda c: (
+                    getattr(c, "source_priority", 100),
+                    -(relevance_map.get(c.cell_id, 0.0) * (1.0 + len(clause_tokens & getattr(c, "identity_tokens", c.token_set))))
+                ))
+                candidate_entries = matching_s1[:30]
+            elif file_literals and s1_entries:
+                s1_entries.sort(key=lambda c: (
+                    getattr(c, "source_priority", 100),
+                    -relevance_map.get(c.cell_id, 0.0)
+                ))
+                candidate_entries = s1_entries[:30]
             else:
                 viable_entries.sort(key=lambda c: -relevance_map.get(c.cell_id, 0.0))
                 candidate_entries = viable_entries[:30]
 
         # Clauses and tokens for sequential alignment and concept coverage
         clauses = _segment_prompt_clauses(prompt)
-        clause_tokens_list = [(CellTokenizer.tokenize_prompt(cl) - STOPWORDS) for cl in clauses]
+        clause_tokens_list = [CellTokenizer.tokenize_prompt(cl) for cl in clauses]
         clause_tokens_list = [t for t in clause_tokens_list if t]
-        content_prompt_tokens = set().union(*clause_tokens_list) if clause_tokens_list else ((CellTokenizer.tokenize_prompt(prompt) if prompt else set()) - STOPWORDS)
+        content_prompt_tokens = set().union(*clause_tokens_list) if clause_tokens_list else (CellTokenizer.tokenize_prompt(prompt) if prompt else set())
         p_len = max(len(content_prompt_tokens), 1)
         num_clauses = max(len(clause_tokens_list), 1)
 
@@ -516,9 +530,9 @@ class LatticePlanner:
         cell_clause_mass: Dict[str, List[float]] = {}
         cell_covered: Dict[str, Set[int]] = {}
         for c in candidates:
-            c_toks = c.token_set - STOPWORDS
-            id_toks = identity_cache.get(c.cell_id, c_toks)
-            cell_cov_strong[c.cell_id] = content_prompt_tokens & (c_toks & id_toks)
+            c_toks = c.token_set
+            id_toks = getattr(c, "identity_tokens", None) or identity_cache.get(c.cell_id, c_toks)
+            cell_cov_strong[c.cell_id] = content_prompt_tokens & id_toks
             cell_cov_weak[c.cell_id] = content_prompt_tokens & (c_toks - id_toks)
             cell_cov_mass_bonus[c.cell_id] = 10.0 * (
                 sum(idf_of_prompt.get(t, _idf(t)) for t in cell_cov_strong[c.cell_id])
@@ -585,11 +599,9 @@ class LatticePlanner:
                         masses[gi] = max(masses[gi], m)
                     covered |= cell_covered.get(s_id, set())
                     continue
-                s_toks = sub.token_set - STOPWORDS
-                s_id_toks = identity_cache.get(s_id)
-                if s_id_toks is None:
-                    s_id_toks = _identity_tokens(sub)
-                s_strong = content_prompt_tokens & (s_toks & s_id_toks)
+                s_toks = sub.token_set
+                s_id_toks = getattr(sub, "identity_tokens", None) or identity_cache.get(s_id) or _identity_tokens(sub)
+                s_strong = content_prompt_tokens & s_id_toks
                 s_weak = content_prompt_tokens & (s_toks - s_id_toks)
                 strong |= s_strong
                 weak |= s_weak
@@ -1850,20 +1862,20 @@ class LatticePlanner:
             # Dynamic clause targeting: the clause(s) that describe the loop are the
             # ones sharing vocabulary with the loop morphism's DECLARED token set.
             # Zero hardcoded connector/loop keyword lists.
-            parent_toks = getattr(parent_cell, "token_set", set()) - STOPWORDS
+            parent_toks = getattr(parent_cell, "identity_tokens", getattr(parent_cell, "token_set", set()))
             clauses = _segment_prompt_clauses(prompt)
             if clauses and parent_toks:
                 related = [
                     cl for cl in clauses
-                    if (CellTokenizer.tokenize_prompt(cl) - STOPWORDS) & parent_toks
+                    if CellTokenizer.tokenize_prompt(cl) & parent_toks
                 ]
                 slot_clause = " ".join(related)
             else:
                 slot_clause = ""
             target_text = slot_clause.strip() or prompt
-            target_tokens = (CellTokenizer.tokenize_prompt(target_text) if target_text else set()) - STOPWORDS
+            target_tokens = CellTokenizer.tokenize_prompt(target_text) if target_text else set()
             if not target_tokens:
-                target_tokens = (CellTokenizer.tokenize_prompt(prompt) if prompt else set()) - STOPWORDS
+                target_tokens = CellTokenizer.tokenize_prompt(prompt) if prompt else set()
 
             child_candidates = []
             for cand in pool:
@@ -1873,8 +1885,8 @@ class LatticePlanner:
                     u_cand = unify(item_type, p_sig.signature, active_sigma) or unify(p_sig.signature, item_type, active_sigma)
                     if u_cand is not None:
                         rel = relevance_map.get(cand.cell_id, 0.0)
-                        cand_content_toks = cand.token_set - STOPWORDS
-                        tok_ov = len(target_tokens & cand_content_toks)
+                        cand_id_toks = getattr(cand, "identity_tokens", cand.token_set)
+                        tok_ov = len(target_tokens & cand_id_toks)
                         domain_bonus = 0.5 if cand.domain_name and any(c.domain_name == cand.domain_name for c in tunnel) else 0.0
                         score = tok_ov * 1.0 + rel + domain_bonus
                         child_candidates.append((cand, score, u_cand))

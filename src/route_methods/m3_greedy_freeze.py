@@ -49,7 +49,7 @@ class M3GreedyFreezeRouteMethod(RouteMethod):
         if not candidates:
             return [tunnel[0]]
 
-        prompt_tokens = CellTokenizer.tokenize_prompt(prompt) - STOPWORDS
+        prompt_tokens = CellTokenizer.tokenize_prompt(prompt)
         l0_extracted = ExecutionContext._extract_universal_literals(prompt or "") if ctx or prompt else []
         file_literals = [v for _, t, v in l0_extracted if t == "file_asset"]
 
@@ -58,7 +58,7 @@ class M3GreedyFreezeRouteMethod(RouteMethod):
         entry_pool = stage1_cands if stage1_cands else candidates[:5]
 
         def _score_entry(c: Cell) -> float:
-            sc = relevance_map.get(c.cell_id, 0.0) * 5.0 + len(prompt_tokens & c.token_set) * 3.0
+            sc = relevance_map.get(c.cell_id, 0.0) * 5.0 + len(prompt_tokens & getattr(c, "identity_tokens", c.token_set)) * 3.0
             is_path_consumer = any(
                 getattr(p, "abstract_type", None) == "path"
                 or getattr(p, "port_role", None) in ("source_data", "model_sink")
@@ -74,7 +74,7 @@ class M3GreedyFreezeRouteMethod(RouteMethod):
 
         committed_path: List[Cell] = [best_entry]
         visited_ids: Set[str] = {best_entry.cell_id}
-        covered_tokens: Set[str] = set(best_entry.token_set & prompt_tokens)
+        covered_tokens: Set[str] = set(getattr(best_entry, "identity_tokens", best_entry.token_set) & prompt_tokens)
 
         # 2. Greedily commit steps forward
         for step in range(max_transforms + 1):
@@ -97,7 +97,7 @@ class M3GreedyFreezeRouteMethod(RouteMethod):
             def _score_cand(cand: Cell) -> float:
                 rel = relevance_map.get(cand.cell_id, 0.0)
                 aff = self.calculate_edge_affinity(curr, cand, orch)
-                uncovered_toks = (cand.token_set & prompt_tokens) - covered_tokens
+                uncovered_toks = (getattr(cand, "identity_tokens", cand.token_set) & prompt_tokens) - covered_tokens
                 tok_bonus = len(uncovered_toks) * 3.0
                 
                 # Favor stage progression (1 -> 2 -> 3)

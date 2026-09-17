@@ -1,0 +1,124 @@
+{
+  "domain": "_primitives",
+  "version": "1.0.0",
+  "description": "Python language-level computational primitives and universal structural vocabulary. This tree is the single source of truth for all type hierarchy, abstract carriers, and structural constants that the engine previously hardcoded. Adding a new language or runtime requires editing only this file.",
+
+  "types": {
+    "filepath": {"parent": "path"},
+    "filename": {"parent": "path"},
+    "pathname": {"parent": "path"},
+    "pathlike": {"parent": "path"},
+    "path": {"parent": "str"},
+    "uri": {"parent": "str"},
+    "url": {"parent": "str"},
+    "text": {"parent": "str"},
+
+    "int": {"parent": "numeric"},
+    "float": {"parent": "numeric"},
+    "complex": {"parent": "numeric"},
+    "numeric": {"parent": "scalar"},
+    "bool": {"parent": "logical"},
+
+    "list": {"parents": ["object", "collection", "sequence", "array-like"]},
+    "sequence": {"parent": "collection"},
+    "collection": {"parent": "object"},
+    "tuple": {"parents": ["object", "collection", "sequence", "array-like"]},
+    "set": {"parents": ["object", "collection"]},
+    "frozenset": {"parents": ["object", "collection"]},
+    "dict": {"parents": ["object", "collection"]},
+    "mapping": {"parent": "collection"},
+    "map": {"parent": "collection"},
+    "file": {"parents": ["object", "pathlike", "filepath", "path", "str"]},
+
+    "modality": {"parent": "object"},
+    "format": {"parent": "object"},
+
+    "array-like": {"parents": ["tensor", "sequence"]},
+    "tensor": {"parent": "object"},
+    "table": {"parent": "object"},
+    "dataset": {"parent": "object"},
+    "scalar": {"parent": "object"},
+    "logical": {"parent": "object"},
+    "str": {"parent": "object"}
+  },
+
+  "aliases": {
+    "string": "str",
+    "boolean": "bool",
+    "integer": "int",
+    "dictionary": "dict",
+    "number": "numeric",
+    "array_like": "array-like"
+  },
+
+  "type_vars": ["T", "U", "V", "R", "State"],
+
+  "top_types": ["any", "object", "top", "unknown", "*", "\u22a4"],
+
+  "product_constructors": ["tuple", "product", "pair"],
+
+  "advisory_qualifiers": [
+    ["const"], ["scalar"], ["vector"], ["matrix"], ["primary"]
+  ],
+
+  "abstract_carriers": [
+    "array-like", "array_like", "tensor", "table", "collection",
+    "sequence", "matrix", "scalar", "logical", "text", "path",
+    "any", "object", "*", "unknown", "top", "dataset", "numeric"
+  ],
+
+  "abstract_carrier_mapping": {
+    "pathlike": "path",
+    "path": "path",
+    "filepath": "path",
+    "filename": "path",
+    "pathname": "path",
+    "int": "scalar",
+    "float": "scalar",
+    "complex": "scalar",
+    "number": "scalar",
+    "numeric": "scalar",
+    "bool": "logical",
+    "boolean": "logical",
+    "logical": "logical",
+    "str": "text",
+    "bytes": "text",
+    "bytearray": "text",
+    "text": "text",
+    "list": "collection",
+    "tuple": "collection",
+    "set": "collection",
+    "frozenset": "collection",
+    "dict": "collection",
+    "mapping": "collection",
+    "sequence": "collection",
+    "iterable": "collection",
+    "collection": "collection",
+    "queue": "collection",
+    "deque": "collection",
+    "iterator": "collection",
+    "generator": "collection",
+    "buffer": "tensor",
+    "array-like": "tensor",
+    "array_like": "tensor",
+    "ndarray": "tensor",
+    "matrix": "tensor",
+    "tensor": "tensor",
+    "dataframe": "table",
+    "table": "table",
+    "dataset": "table",
+    "scalar": "scalar"
+  },
+
+  "typestates": {
+    "domain": "_primitives",
+    "states": [
+      {"name": "saved", "parent_state": "written_to_disk"},
+      {"name": "written_to_disk", "parent_state": "exported"},
+      {"name": "exported", "parent_state": null},
+      {"name": "default", "parent_state": null}
+    ]
+  },
+
+  "cells": []
+}

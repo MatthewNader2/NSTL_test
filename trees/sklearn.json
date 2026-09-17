@@ -1,6 +1,12 @@
 {
   "domain": "sklearn",
   "version": "1.1.0",
+  "estimator_verbs": [
+    "fit", "predict", "transform", "score", "partial_fit", "fit_transform"
+  ],
+  "data_bearing_roles": [
+    "feature_input", "target_input", "data_input", "model_input", "source_data", "model_sink"
+  ],
   "typestates": {
     "domain": "sklearn",
     "states": [
@@ -1514,7 +1520,8 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": "(n_train_samples, n_features)"
+          "shape_contract": "(n_train_samples, n_features)",
+          "port_role": "feature_input"
         },
         "X_test": {
           "name": "X_test",
@@ -1531,7 +1538,8 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": "(n_test_samples, n_features)"
+          "shape_contract": "(n_test_samples, n_features)",
+          "port_role": "feature_input"
         },
         "y_train": {
           "name": "y_train",
@@ -1548,7 +1556,8 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": "(n_train_samples,)"
+          "shape_contract": "(n_train_samples,)",
+          "port_role": "target_input"
         },
         "y_test": {
           "name": "y_test",
@@ -1565,7 +1574,8 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": "(n_test_samples,)"
+          "shape_contract": "(n_test_samples,)",
+          "port_role": "target_input"
         }
       },
       "preconditions": [

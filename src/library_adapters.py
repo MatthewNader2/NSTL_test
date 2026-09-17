@@ -364,11 +364,11 @@ class LibraryAdapter(abc.ABC):
         # Token-boundary aware: a name matches iff one of its identifier
         # components IS a destination token ("output_path" -> {"output","path"});
         # substrings never match ("df" cannot come from "info", "f" from "offset").
-        dest_tokens = frozenset({
-            "dest", "destination", "output", "out", "file", "filepath",
-            "filename", "path", "uri", "url", "stream", "buf", "buffer",
-            "fp", "target", "writer",
-        })
+        try:
+            from lattice import TypeRegistry
+            dest_tokens = TypeRegistry.get_instance().get_dest_port_tokens()
+        except Exception:
+            dest_tokens = frozenset()
         for p in input_names:
             components = {c for c in re.split(r"[^a-zA-Z0-9]+", str(p).lower()) if c}
             if components & dest_tokens:

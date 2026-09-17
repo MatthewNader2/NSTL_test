@@ -227,28 +227,51 @@ def _validate_template(
     if not code or not code.strip():
         return False, "Empty code template"
 
-    aliases = declared_aliases or set()
-
-    for m in _DOTTED_NAME_RE.finditer(code):
-        token = m.group(1)
-        if f"{{{token}}}" in code:
-            continue
-        unbound = _unbound_dotted_reference(token, aliases)
-        if unbound is not None:
-            return False, (
-                f"Unbound reference '{token}' "
-                f"(prefix '{unbound}' not in declared dependencies)"
-            )
+    if declared_aliases is not None:
+        for m in _DOTTED_NAME_RE.finditer(code):
+            token = m.group(1)
+            if f"{{{token}}}" in code:
+                continue
+            unbound = _unbound_dotted_reference(token, declared_aliases)
+            if unbound is not None:
+                return False, (
+                    f"Unbound reference '{token}' "
+                    f"(prefix '{unbound}' not in declared dependencies)"
+                )
 
     for m in _QUOTED_PATH_RE.finditer(code):
         return False, f"Hardcoded path literal '{m.group(2)}'"
 
     dummy_code = _PLACEHOLDER_SUBST_RE.sub("dummy_var", code)
     try:
-        ast.parse(dummy_code)
-        return True, None
+        parsed_tree = ast.parse(dummy_code)
     except SyntaxError as e:
         return False, f"AST SyntaxError: {e}"
+
+    known_file_exts = {
+        'csv', 'json', 'jpg', 'jpeg', 'png', 'bmp', 'txt', 'db', 'h5', 'hdf5',
+        'pdf', 'md', 'npz', 'pkl', 'pickle', 'feather', 'orc', 'avro', 'yaml', 'yml', 'toml', 'ini', 'parquet'
+    }
+
+    # AST Walk: inspect Attribute nodes for unquoted bare filenames (e.g. data.csv passed as argument)
+    for parent in ast.walk(parsed_tree):
+        for child in ast.iter_child_nodes(parent):
+            if isinstance(child, ast.Attribute):
+                if isinstance(parent, ast.Call) and parent.func is child:
+                    continue
+                if child.attr.lower() in known_file_exts:
+                    if isinstance(child.value, ast.Name):
+                        if child.value.id not in ("pd", "pandas", "np", "numpy", "cv2", "scipy", "sklearn", "plt", "matplotlib"):
+                            return False, f"Bare unquoted filename detected as attribute argument: {child.value.id}.{child.attr}"
+
+            if isinstance(child, ast.Constant) and isinstance(child.value, str):
+                val = child.value.strip()
+                if any(val.lower().endswith(f".{ext}") for ext in known_file_exts):
+                    if not ("{" in val and "}" in val):
+                        if "/" not in val and "\\" not in val and len(val.split(".")) == 2:
+                            return False, f"Hardcoded string filename detected: '{val}' (must use a placeholder)"
+
+    return True, None
 
 
 # --------------------------------------------------------------------------- #

@@ -57,7 +57,7 @@ class M4LLMStepwiseRouteMethod(RouteMethod):
         has_llm = mm.active_profile is not None and mm.can_synthesize()
 
         # 1. Entry Selection
-        prompt_tokens = CellTokenizer.tokenize_prompt(prompt) - STOPWORDS
+        prompt_tokens = CellTokenizer.tokenize_prompt(prompt)
         l0_extracted = ExecutionContext._extract_universal_literals(prompt or "") if ctx or prompt else []
         file_literals = [v for _, t, v in l0_extracted if t == "file_asset"]
 
@@ -65,7 +65,7 @@ class M4LLMStepwiseRouteMethod(RouteMethod):
         entry_pool = stage1_cands if stage1_cands else candidates[:5]
 
         def _score_entry(c: Cell) -> float:
-            sc = relevance_map.get(c.cell_id, 0.0) * 5.0 + len(prompt_tokens & c.token_set) * 3.0
+            sc = relevance_map.get(c.cell_id, 0.0) * 5.0 + len(prompt_tokens & getattr(c, "identity_tokens", c.token_set)) * 3.0
             is_path_consumer = any(
                 getattr(p, "abstract_type", None) == "path"
                 or getattr(p, "port_role", None) in ("source_data", "model_sink")

@@ -6,6 +6,7 @@ Multi-Profile Inference Engine with Aggressive VRAM Recycling.
 from __future__ import annotations
 import gc
 import os
+import re
 import time
 import threading
 from abc import ABC, abstractmethod
@@ -123,11 +124,11 @@ class InferenceProfile(ABC):
         pass
 
     @abstractmethod
-    def get_embedding(self, text: str) -> List[float]:
+    def get_embedding(self, text: str, mode: str = "query") -> List[float]:
         pass
 
-    def get_embeddings(self, texts: List[str]) -> List[List[float]]:
-        return [self.get_embedding(t) for t in texts]
+    def get_embeddings(self, texts: List[str], mode: str = "query") -> List[List[float]]:
+        return [self.get_embedding(t, mode=mode) for t in texts]
 
     @abstractmethod
     def generate_text(self, prompt: str, max_tokens: int = 1024, schema: Optional[dict] = None, system_prompt: Optional[str] = None) -> str:
@@ -245,6 +246,62 @@ def select_optimal_embedder(requested_name: str = "") -> str:
     return best_model
 
 
+def _encode_with_modes(model: Any, texts: List[str], mode: str = "query", batch_size: int = 32, lock: Optional[threading.Lock] = None) -> List[List[float]]:
+    """
+    Robust embedding encoder applying model-specific prompt modes (query vs document)
+    with adaptive fallback across SentenceTransformer models (Jina, Gemma, BGE).
+    """
+    if not texts:
+        return []
+
+    prompt_name = "query" if mode == "query" else "document"
+
+    def _invoke(p_name: Optional[str], task_name: Optional[str], b_size: int):
+        kwargs: Dict[str, Any] = {"convert_to_numpy": True, "batch_size": b_size}
+        if p_name:
+            kwargs["prompt_name"] = p_name
+        if task_name:
+            kwargs["task"] = task_name
+        return model.encode(texts, **kwargs)
+
+    attempts = [
+        (prompt_name, "retrieval"),
+        (prompt_name, None),
+        (None, "retrieval"),
+        (None, None),
+    ]
+
+    for p_name, t_name in attempts:
+        try:
+            if lock is not None:
+                with lock, torch.inference_mode():
+                    res = _invoke(p_name, t_name, batch_size)
+            else:
+                with torch.inference_mode():
+                    res = _invoke(p_name, t_name, batch_size)
+            return res.tolist()
+        except torch.cuda.OutOfMemoryError:
+            gc.collect()
+            if torch.cuda.is_available():
+                torch.cuda.empty_cache()
+            reduced_bs = max(4, batch_size // 4)
+            try:
+                if lock is not None:
+                    with lock, torch.inference_mode():
+                        res = _invoke(p_name, t_name, reduced_bs)
+                else:
+                    with torch.inference_mode():
+                        res = _invoke(p_name, t_name, reduced_bs)
+                return res.tolist()
+            except Exception:
+                continue
+        except Exception:
+            continue
+
+    with torch.inference_mode():
+        return model.encode(texts, convert_to_numpy=True).tolist()
+
+
 class BenchmarkProfile_A(InferenceProfile):
     """Profile A: Embedding Only."""
     def __init__(self):
@@ -263,38 +320,27 @@ class BenchmarkProfile_A(InferenceProfile):
         self.embedder_name = select_optimal_embedder(embedder_name)
         emb_path = os.path.join(MODELS_DIR, "embeddings", self.embedder_name)
         device = HardwareProfiler.get_optimal_device()
+        is_jina = "jina" in self.embedder_name.lower()
+        model_kwargs = {"default_task": "retrieval"} if is_jina else {}
         try:
-            self.model = SentenceTransformer(emb_path, device=device, trust_remote_code=True, model_kwargs={"default_task": "retrieval"})
+            self.model = SentenceTransformer(emb_path, device=device, trust_remote_code=True, model_kwargs=model_kwargs)
         except Exception:
             self.model = SentenceTransformer(emb_path, device=device, trust_remote_code=True)
 
         self._dim = resolve_embedding_dimension(self.model)
         logger.info(f"[PROFILE A] Loaded embedder '{self.embedder_name}' (dim={self._dim}) on {device.upper()}")
 
-    def get_embedding(self, text: str) -> List[float]:
-        with self._lock, torch.inference_mode():
-            try:
-                return self.model.encode([text], convert_to_numpy=True, task="retrieval")[0].tolist()
-            except Exception:
-                return self.model.encode([text], convert_to_numpy=True)[0].tolist()
+    def get_embedding(self, text: str, mode: str = "query") -> List[float]:
+        res = self.get_embeddings([text], mode=mode)
+        return res[0] if res else []
 
-    def get_embeddings(self, texts: List[str]) -> List[List[float]]:
-        if not texts:
+    def get_embeddings(self, texts: List[str], mode: str = "query") -> List[List[float]]:
+        if not texts or self.model is None:
             return []
         device = getattr(self.model, "device", None)
         dev_str = str(device) if device else "cpu"
         batch_size = get_adaptive_batch_size(dev_str)
-        with self._lock, torch.inference_mode():
-            try:
-                return self.model.encode(texts, convert_to_numpy=True, task="retrieval", batch_size=batch_size).tolist()
-            except torch.cuda.OutOfMemoryError:
-                logger.warning("[PROFILE A] CUDA OOM during batch encode; flushing VRAM and downscaling...")
-                gc.collect()
-                if torch.cuda.is_available():
-                    torch.cuda.empty_cache()
-                return self.model.encode(texts, convert_to_numpy=True, task="retrieval", batch_size=max(8, batch_size // 4)).tolist()
-            except Exception:
-                return self.model.encode(texts, convert_to_numpy=True, batch_size=batch_size).tolist()
+        return _encode_with_modes(self.model, texts, mode=mode, batch_size=batch_size, lock=self._lock)
 
     def generate_text(self, prompt: str, max_tokens: int = 1024, schema: Optional[dict] = None, system_prompt: Optional[str] = None) -> str:
         raise RuntimeError("Profile A does not support text generation.")
@@ -336,9 +382,11 @@ class BenchmarkProfile_C(InferenceProfile):
         # 1. Load Embedder
         self.embedder_name = select_optimal_embedder(embedder_name)
         emb_path = os.path.join(MODELS_DIR, "embeddings", self.embedder_name)
+        is_jina = "jina" in self.embedder_name.lower()
+        model_kwargs = {"default_task": "retrieval"} if is_jina else {}
 
         try:
-            self.embedder = SentenceTransformer(emb_path, device=device, trust_remote_code=True, model_kwargs={"default_task": "retrieval"})
+            self.embedder = SentenceTransformer(emb_path, device=device, trust_remote_code=True, model_kwargs=model_kwargs)
         except Exception:
             self.embedder = SentenceTransformer(emb_path, device=device, trust_remote_code=True)
 
@@ -352,48 +400,32 @@ class BenchmarkProfile_C(InferenceProfile):
             if os.path.exists(llm_base_dir):
                 available_llms = sorted([d for d in os.listdir(llm_base_dir) if os.path.isdir(os.path.join(llm_base_dir, d))])
                 if available_llms:
-                    self.llm_name = available_llms[0]
+                    pref = [d for d in available_llms if "1.5b" in d.lower()] or [d for d in available_llms if "0.5b" in d.lower()] or available_llms
+                    self.llm_name = pref[0]
                     llm_dir = os.path.join(llm_base_dir, self.llm_name)
 
         ggufs = [f for f in os.listdir(llm_dir) if f.endswith(".gguf")] if os.path.exists(llm_dir) else []
         if not ggufs:
             raise FileNotFoundError(f"No GGUF model file found in {llm_dir}")
-        model_file = os.path.join(llm_dir, ggufs[0])
+        unified_ggufs = [f for f in ggufs if not re.search(r"-\d{5}-of-\d{5}\.gguf$", f)]
+        chosen_gguf = unified_ggufs[0] if unified_ggufs else ggufs[0]
+        model_file = os.path.join(llm_dir, chosen_gguf)
 
-        gpu_layers = 0
-        if device == "cuda":
-            if any(k in model_file.lower() for k in ("0.5b", "1.5b", "300m", "small", "nano")):
-                gpu_layers = -1
-            else:
-                gpu_layers = 20
-        # Bound context to 2048 to prevent VRAM bloat
+        gpu_layers = -1 if device == "cuda" else 0
         self.llm = Llama(model_path=model_file, n_ctx=settings.llm_context_length, n_gpu_layers=gpu_layers, verbose=False)
-        logger.info(f"[PROFILE C] Loaded Embedder '{self.embedder_name}' + LLM '{self.llm_name}' on {device.upper()}")
+        logger.info(f"[PROFILE C] Loaded Embedder '{self.embedder_name}' + LLM '{self.llm_name}' on {device.upper()} (gpu_layers={gpu_layers})")
 
-    def get_embedding(self, text: str) -> List[float]:
-        with self._lock, torch.inference_mode():
-            try:
-                return self.embedder.encode([text], convert_to_numpy=True, task="retrieval")[0].tolist()
-            except Exception:
-                return self.embedder.encode([text], convert_to_numpy=True)[0].tolist()
+    def get_embedding(self, text: str, mode: str = "query") -> List[float]:
+        res = self.get_embeddings([text], mode=mode)
+        return res[0] if res else []
 
-    def get_embeddings(self, texts: List[str]) -> List[List[float]]:
-        if not texts:
+    def get_embeddings(self, texts: List[str], mode: str = "query") -> List[List[float]]:
+        if not texts or self.embedder is None:
             return []
         device = getattr(self.embedder, "device", None)
         dev_str = str(device) if device else "cpu"
         batch_size = get_adaptive_batch_size(dev_str)
-        with self._lock, torch.inference_mode():
-            try:
-                return self.embedder.encode(texts, convert_to_numpy=True, task="retrieval", batch_size=batch_size).tolist()
-            except torch.cuda.OutOfMemoryError:
-                logger.warning("[PROFILE C] CUDA OOM during batch encode; flushing VRAM and downscaling...")
-                gc.collect()
-                if torch.cuda.is_available():
-                    torch.cuda.empty_cache()
-                return self.embedder.encode(texts, convert_to_numpy=True, task="retrieval", batch_size=max(8, batch_size // 4)).tolist()
-            except Exception:
-                return self.embedder.encode(texts, convert_to_numpy=True, batch_size=batch_size).tolist()
+        return _encode_with_modes(self.embedder, texts, mode=mode, batch_size=batch_size, lock=self._lock)
 
     def generate_text(self, prompt: str, max_tokens: int = 1024, schema: Optional[dict] = None, system_prompt: Optional[str] = None) -> str:
         messages = []
@@ -506,11 +538,11 @@ class ModelManager:
                 self.cleanup()
                 raise e
 
-    def get_embedding(self, text: str) -> List[float]:
-        return self.active_profile.get_embedding(text) if self.active_profile else []
+    def get_embedding(self, text: str, mode: str = "query") -> List[float]:
+        return self.active_profile.get_embedding(text, mode=mode) if self.active_profile else []
 
-    def get_embeddings(self, texts: List[str]) -> List[List[float]]:
-        return self.active_profile.get_embeddings(texts) if self.active_profile else []
+    def get_embeddings(self, texts: List[str], mode: str = "query") -> List[List[float]]:
+        return self.active_profile.get_embeddings(texts, mode=mode) if self.active_profile else []
 
     def generate_text(self, prompt: str, max_tokens: int = 1024, schema: Optional[dict] = None, system_prompt: Optional[str] = None) -> str:
         if not self.active_profile:

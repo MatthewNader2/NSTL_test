@@ -9,8 +9,15 @@ if PROJECT_ROOT not in sys.path:
     sys.path.insert(0, PROJECT_ROOT)
 if os.path.join(PROJECT_ROOT, "src") not in sys.path:
     sys.path.insert(0, os.path.join(PROJECT_ROOT, "src"))
-
-from harvesting.pattern_harvester import CORE_CODE_PATTERNS
+try:
+    from harvesting.pattern_harvester import CORE_CODE_PATTERNS
+except ImportError:
+    try:
+        from lattice import LatticeOrchestrator
+        _orch = LatticeOrchestrator(os.path.join(PROJECT_ROOT, "trees"))
+        CORE_CODE_PATTERNS = [{"cell_id": c.cell_id, "code": c.code_template} for c in _orch.loaded_cells.values()]
+    except Exception:
+        CORE_CODE_PATTERNS = []
 from unification import UnificationGate, ExecutionContext
 from lattice import MicroCell, AlgebraicSignature, PortSignature
 

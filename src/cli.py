@@ -1,6 +1,7 @@
 # src/cli.py
 import argparse
 import ast
+import hashlib
 import json
 import math
 import os
@@ -9,7 +10,7 @@ import sqlite3
 import sys
 import time
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Set, Tuple
+from typing import Any, Dict, List, Optional, Set, Tuple, Union
 
 SRC_DIR = str(Path(__file__).resolve().parent)
 if SRC_DIR not in sys.path:
@@ -86,12 +87,97 @@ def init_sqlite_db(db_path: Path, clean: bool = False) -> sqlite3.Connection:
     cur.execute("CREATE INDEX IF NOT EXISTS idx_role ON nodes(node_role)")
     cur.execute("CREATE INDEX IF NOT EXISTS idx_type ON nodes(node_type)")
     cur.execute("CREATE INDEX IF NOT EXISTS idx_slots ON nodes(slots)")
-    cur.execute("CREATE TABLE IF NOT EXISTS types (type_name TEXT PRIMARY KEY, parent_type TEXT, domain_name TEXT)")
+    cur.execute("CREATE TABLE IF NOT EXISTS types (type_name TEXT, parent_type TEXT, domain_name TEXT, PRIMARY KEY (type_name, parent_type))")
     cur.execute("CREATE TABLE IF NOT EXISTS typestates (state_name TEXT PRIMARY KEY, parent_state TEXT, carrier_type TEXT, properties TEXT, domain_name TEXT)")
     cur.execute("CREATE TABLE IF NOT EXISTS aliases (alias TEXT PRIMARY KEY, canonical TEXT, domain_name TEXT)")
     cur.execute("CREATE TABLE IF NOT EXISTS artifact_readers (category TEXT, module_name TEXT, function_name TEXT, domain_name TEXT, PRIMARY KEY (category, module_name, function_name))")
+    cur.execute("CREATE TABLE IF NOT EXISTS structural_metadata (category TEXT, item TEXT, extra TEXT, domain_name TEXT, PRIMARY KEY (category, item, extra, domain_name))")
+    cur.execute("CREATE TABLE IF NOT EXISTS _compilation_meta (key TEXT PRIMARY KEY, value TEXT, timestamp REAL)")
     conn.commit()
     return conn
+
+
+def compute_trees_fingerprint(trees_dir: Union[str, Path] = "trees") -> str:
+    """Computes a SHA-256 fingerprint over all tree JSON files in the given directory."""
+    td = Path(trees_dir)
+    if not td.exists():
+        return "MISSING"
+    json_files = sorted(td.glob("*.json"))
+    if not json_files:
+        return "EMPTY"
+    h = hashlib.sha256()
+    for jf in json_files:
+        h.update(jf.name.encode("utf-8"))
+        try:
+            stat = jf.stat()
+            h.update(f":{stat.st_size}:{stat.st_mtime_ns}".encode("utf-8"))
+        except OSError:
+            pass
+    return h.hexdigest()
+
+
+def get_stored_fingerprint(db_path: Union[str, Path]) -> Optional[str]:
+    """Retrieves the compilation fingerprint recorded in the SQLite database."""
+    target = Path(db_path)
+    if not target.exists():
+        return None
+    try:
+        conn = sqlite3.connect(str(target))
+        cur = conn.cursor()
+        cur.execute("SELECT value FROM _compilation_meta WHERE key = 'trees_fingerprint'")
+        row = cur.fetchone()
+        conn.close()
+        return row[0] if row else None
+    except Exception:
+        return None
+
+
+def record_trees_fingerprint(db_path: Union[str, Path], fingerprint: str) -> None:
+    """Records the tree compilation fingerprint into the SQLite database."""
+    try:
+        conn = sqlite3.connect(str(db_path))
+        cur = conn.cursor()
+        cur.execute("CREATE TABLE IF NOT EXISTS _compilation_meta (key TEXT PRIMARY KEY, value TEXT, timestamp REAL)")
+        cur.execute("INSERT OR REPLACE INTO _compilation_meta (key, value, timestamp) VALUES ('trees_fingerprint', ?, ?)",
+                    (fingerprint, time.time()))
+        conn.commit()
+        conn.close()
+    except Exception:
+        pass
+
+
+def ensure_lattice_compiled(trees_dir: Union[str, Path] = "trees", db_path: Union[str, Path] = "trees/lattice.db") -> bool:
+    """
+    Ensures that the target SQLite lattice database is strictly up-to-date with domain trees.
+    If the database is missing or domain tree JSON files were added, modified, or removed,
+    automatically compiles the trees into the database without requiring manual user intervention.
+    
+    If trees_dir contains zero trees, compiles a clean empty database with the standard
+    schema, ensuring the engine can boot cleanly with zero domain trees.
+    """
+    trees_path = Path(trees_dir)
+    target_db = Path(db_path)
+    current_fp = compute_trees_fingerprint(trees_path)
+    stored_fp = get_stored_fingerprint(target_db)
+
+    if target_db.exists() and stored_fp is not None and stored_fp == current_fp:
+        return False
+
+    if current_fp == "EMPTY":
+        init_sqlite_db(target_db, clean=True)
+        record_trees_fingerprint(target_db, current_fp)
+        return True
+
+    print(f"[*] Tree update detected in '{trees_path}'. Auto-compiling lattice database '{target_db}'...")
+    compile_args = argparse.Namespace(
+        trees_dir=str(trees_path),
+        output=str(target_db),
+        domains=[],
+        clean=True
+    )
+    cmd_compile(compile_args)
+    record_trees_fingerprint(target_db, current_fp)
+    return True
 
 
 def cmd_compile(args):
@@ -129,11 +215,15 @@ def cmd_compile(args):
                 if isinstance(types_dict, dict):
                     reg = TypeRegistry.get_instance()
                     for t_name, t_meta in types_dict.items():
-                        parent = t_meta.get("parent") if isinstance(t_meta, dict) else str(t_meta)
-                        if parent:
-                            reg.register_type(t_name, parent)
-                            cur.execute("INSERT OR REPLACE INTO types (type_name, parent_type, domain_name) VALUES (?, ?, ?)",
-                                        (str(t_name).strip(), str(parent).strip(), domain))
+                        if isinstance(t_meta, dict):
+                            parents = t_meta.get("parents") or ([t_meta["parent"]] if t_meta.get("parent") else [])
+                        else:
+                            parents = [str(t_meta)]
+                        for parent in parents:
+                            if parent:
+                                reg.register_type(t_name, parent)
+                                cur.execute("INSERT OR REPLACE INTO types (type_name, parent_type, domain_name) VALUES (?, ?, ?)",
+                                            (str(t_name).strip().lower(), str(parent).strip().lower(), domain))
 
                 # Dynamic domain plugin typestate registration
                 ts_data = data.get("typestates") or getattr(tree, "typestates", None)
@@ -155,7 +245,7 @@ def cmd_compile(args):
                 if isinstance(aliases_dict, dict):
                     for a_k, a_v in aliases_dict.items():
                         cur.execute("INSERT OR REPLACE INTO aliases (alias, canonical, domain_name) VALUES (?, ?, ?)",
-                                    (str(a_k).strip(), str(a_v).strip(), domain))
+                                     (str(a_k).strip(), str(a_v).strip(), domain))
 
                 # Dynamic domain plugin artifact readers registration
                 readers_dict = getattr(tree, "artifact_readers", {}) or data.get("artifact_readers", {})
@@ -167,6 +257,48 @@ def cmd_compile(args):
                                 if len(parts) == 2:
                                     cur.execute("INSERT OR REPLACE INTO artifact_readers (category, module_name, function_name, domain_name) VALUES (?, ?, ?, ?)",
                                                 (cat.strip().lower(), parts[0], parts[1], domain))
+
+                # Dynamic structural metadata registration
+                for q in getattr(tree, "advisory_qualifiers", []) or data.get("advisory_qualifiers", []):
+                    cur.execute("INSERT OR REPLACE INTO structural_metadata (category, item, extra, domain_name) VALUES ('advisory_qualifier', ?, '', ?)", (json.dumps(q), domain))
+                for c in getattr(tree, "abstract_carriers", []) or data.get("abstract_carriers", []):
+                    cur.execute("INSERT OR REPLACE INTO structural_metadata (category, item, extra, domain_name) VALUES ('abstract_carrier', ?, '', ?)", (str(c).strip().lower(), domain))
+                for k, v in (getattr(tree, "abstract_carrier_mapping", {}) or data.get("abstract_carrier_mapping", {})).items():
+                    cur.execute("INSERT OR REPLACE INTO structural_metadata (category, item, extra, domain_name) VALUES ('abstract_carrier_mapping', ?, ?, ?)", (str(k).strip().lower(), str(v).strip().lower(), domain))
+                for t in getattr(tree, "dest_port_tokens", []) or data.get("dest_port_tokens", []):
+                    cur.execute("INSERT OR REPLACE INTO structural_metadata (category, item, extra, domain_name) VALUES ('dest_port_token', ?, '', ?)", (str(t).strip().lower(), domain))
+                for r in getattr(tree, "data_bearing_roles", []) or data.get("data_bearing_roles", []):
+                    cur.execute("INSERT OR REPLACE INTO structural_metadata (category, item, extra, domain_name) VALUES ('data_bearing_role', ?, '', ?)", (str(r).strip().lower(), domain))
+                for v in getattr(tree, "estimator_verbs", []) or data.get("estimator_verbs", []):
+                    cur.execute("INSERT OR REPLACE INTO structural_metadata (category, item, extra, domain_name) VALUES ('estimator_verb', ?, '', ?)", (str(v).strip().lower(), domain))
+                for tok in getattr(tree, "column_projection_tokens", []) or data.get("column_projection_tokens", []):
+                    cur.execute("INSERT OR REPLACE INTO structural_metadata (category, item, extra, domain_name) VALUES ('column_projection_token', ?, '', ?)", (str(tok).strip().lower(), domain))
+                for tv in getattr(tree, "type_vars", []) or data.get("type_vars", []):
+                    cur.execute("INSERT OR REPLACE INTO structural_metadata (category, item, extra, domain_name) VALUES ('type_var', ?, '', ?)", (str(tv).strip(), domain))
+                for tt in getattr(tree, "top_types", []) or data.get("top_types", []):
+                    cur.execute("INSERT OR REPLACE INTO structural_metadata (category, item, extra, domain_name) VALUES ('top_type', ?, '', ?)", (str(tt).strip().lower(), domain))
+                top_decl = getattr(tree, "top", None) or data.get("top")
+                if isinstance(top_decl, list):
+                    for tt in top_decl:
+                        cur.execute("INSERT OR REPLACE INTO structural_metadata (category, item, extra, domain_name) VALUES ('top_type', ?, '', ?)", (str(tt).strip().lower(), domain))
+                for pc in getattr(tree, "product_constructors", []) or data.get("product_constructors", []):
+                    cur.execute("INSERT OR REPLACE INTO structural_metadata (category, item, extra, domain_name) VALUES ('product_constructor', ?, '', ?)", (str(pc).strip().lower(), domain))
+                for et in getattr(tree, "egress_intent_tokens", []) or data.get("egress_intent_tokens", []):
+                    cur.execute("INSERT OR REPLACE INTO structural_metadata (category, item, extra, domain_name) VALUES ('egress_intent_token', ?, '', ?)", (str(et).strip().lower(), domain))
+                for ms in getattr(tree, "materialization_states", []) or data.get("materialization_states", []):
+                    cur.execute("INSERT OR REPLACE INTO structural_metadata (category, item, extra, domain_name) VALUES ('materialization_state', ?, '', ?)", (str(ms).strip().lower(), domain))
+                pol_hints = getattr(tree, "polarity_hints", {}) or data.get("polarity_hints", {})
+                if isinstance(pol_hints, dict):
+                    for direction, hints in pol_hints.items():
+                        if isinstance(hints, list):
+                            for h in hints:
+                                cur.execute("INSERT OR REPLACE INTO structural_metadata (category, item, extra, domain_name) VALUES ('polarity_hint', ?, ?, ?)", (str(direction).strip().lower(), str(h).strip().lower(), domain))
+                for pt in getattr(tree, "preposition_triggers", []) or data.get("preposition_triggers", []):
+                    cur.execute("INSERT OR REPLACE INTO structural_metadata (category, item, extra, domain_name) VALUES ('preposition_trigger', ?, '', ?)", (str(pt).strip().lower(), domain))
+                for mk, mv in (getattr(tree, "asset_placeholders", {}) or getattr(tree, "default_asset_placeholders", {}) or data.get("asset_placeholders", {}) or data.get("default_asset_placeholders", {})).items():
+                    cur.execute("INSERT OR REPLACE INTO structural_metadata (category, item, extra, domain_name) VALUES ('asset_placeholder', ?, ?, ?)", (str(mk).strip().lower(), str(mv).strip(), domain))
+                for mk, mv in (getattr(tree, "output_placeholders", {}) or getattr(tree, "default_output_placeholders", {}) or data.get("output_placeholders", {}) or data.get("default_output_placeholders", {})).items():
+                    cur.execute("INSERT OR REPLACE INTO structural_metadata (category, item, extra, domain_name) VALUES ('output_asset_placeholder', ?, ?, ?)", (str(mk).strip().lower(), str(mv).strip(), domain))
             except Exception as e:
                 print(f"[!] Schema validation error in {jf.name}: {e}")
                 cells = []
@@ -207,6 +339,15 @@ def cmd_compile(args):
             deps_json = json.dumps(cell.dependencies)
             kws_json = json.dumps(cell.keywords or cell.semantic_tags)
             verified_val = 1 if cell.source_priority <= 10 else 0
+
+            # Dynamic cell-level type vars and role carriers
+            if hasattr(cell, "type_vars") and cell.type_vars:
+                for tv in cell.type_vars:
+                    cur.execute("INSERT OR REPLACE INTO structural_metadata (category, item, extra, domain_name) VALUES ('type_var', ?, '', ?)", (str(tv).strip(), domain))
+            for p_val in cell.inputs.values():
+                role = getattr(p_val, "port_role", None) or getattr(p_val, "role", None)
+                if role:
+                    cur.execute("INSERT OR REPLACE INTO structural_metadata (category, item, extra, domain_name) VALUES ('role_carrier', ?, '', ?)", (str(role).strip().lower(), domain))
 
             # Priority check: lower source_priority = higher trust (1 = seed, 100 = auto)
             cur.execute("SELECT source_priority FROM nodes WHERE cell_id = ?", (cid,))
@@ -254,6 +395,7 @@ def cmd_compile(args):
 
     conn.commit()
     conn.close()
+    record_trees_fingerprint(out_db, compute_trees_fingerprint(trees_dir))
     print(f"[*] Compilation Complete: {total_compiled} total verified nodes compiled into '{out_db}'.")
 
 
@@ -588,7 +730,7 @@ class PipelineDebugger:
 
         clauses = _segment_prompt_clauses(effective_prompt)
         prompt_tokens = CellTokenizer.tokenize_prompt(effective_prompt)
-        content_tokens = prompt_tokens - STOPWORDS
+        content_tokens = {t for t in prompt_tokens if registry.is_informative_token(t)} if prompt_tokens else set()
         literals = ExecutionContext._extract_universal_literals(effective_prompt)
 
         l0_table = Table(box=box.ROUNDED, expand=True, border_style="dim cyan")
@@ -1179,7 +1321,9 @@ class NSTLInteractiveShell(cmd.Cmd):
             console.print("\n[bold cyan][*] Initializing NSTL Neuro-Symbolic Engine...[/bold cyan]")
         t0 = time.perf_counter()
 
-        self.orchestrator = LatticeOrchestrator()
+        trees_dir = getattr(settings, "trees_dir", Path(db_path).parent)
+        ensure_lattice_compiled(trees_dir=str(trees_dir), db_path=db_path)
+        self.orchestrator = LatticeOrchestrator(trees_directory=str(trees_dir), db_path=db_path)
         self.orchestrator.load_from_database(db_path)
         self.orchestrator.build_topology()
         self.gate = UnificationGate(self.orchestrator)
@@ -1965,6 +2109,7 @@ def cmd_audit(args):
     """Audits lattice topology reachability, disconnected nodes, and cross-tree transitions."""
     db_path = Path(args.db)
     trees_dir = getattr(args, "trees_dir", "trees")
+    ensure_lattice_compiled(trees_dir=trees_dir, db_path=str(db_path))
     print(f"[*] Initializing Lattice Orchestrator from '{db_path}'...")
     orch = LatticeOrchestrator(trees_directory=trees_dir, db_path=str(db_path))
     if db_path.exists():
@@ -2058,6 +2203,8 @@ def cmd_benchmark(args):
         except Exception:
             pass
         os.environ["NSTL_MACROS_ENABLED"] = "1" if args.macros else "0"
+    db_path = getattr(args, "db", "trees/lattice.db")
+    ensure_lattice_compiled(trees_dir="trees", db_path=db_path)
     bench_type = getattr(args, "type", "matrix")
     if bench_type == "reference":
         print("[*] Running 50-Task Empirical Reference Benchmark Bank...")
@@ -2083,6 +2230,7 @@ def cmd_precompute_rag(args):
         from .inference import ModelManager
 
     db_path = Path(args.db)
+    ensure_lattice_compiled(trees_dir=args.trees_dir, db_path=str(db_path))
     if not db_path.exists():
         print(f"[!] Database not found: {db_path}. Please run 'compile' first.")
         return

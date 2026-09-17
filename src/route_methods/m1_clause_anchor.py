@@ -70,7 +70,7 @@ class M1ClauseAnchorRouteMethod(RouteMethod):
 
         # 1. Identify best anchor cell for each clause with stage awareness
         for idx, cl in enumerate(clauses):
-            cl_tokens = CellTokenizer.tokenize_prompt(cl) - STOPWORDS
+            cl_tokens = CellTokenizer.tokenize_prompt(cl)
             if not cl_tokens:
                 continue
 
@@ -85,10 +85,10 @@ class M1ClauseAnchorRouteMethod(RouteMethod):
             best_score = -1.0
 
             for c in pool:
-                c_toks = c.token_set - STOPWORDS
+                c_toks = c.token_set
                 id_toks = getattr(c, "identity_tokens", c_toks)
                 
-                strong_overlap = len(cl_tokens & c_toks & id_toks)
+                strong_overlap = len(cl_tokens & id_toks)
                 weak_overlap = len((cl_tokens & c_toks) - id_toks)
                 rel_score = relevance_map.get(c.cell_id, 0.0)
                 aff_score = self.calculate_edge_affinity(anchors[-1], c, orch) if anchors else 0.0

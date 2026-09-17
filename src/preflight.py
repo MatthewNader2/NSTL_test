@@ -16,31 +16,36 @@ Structural invariants enforced post-binding:
 
 from __future__ import annotations
 import ast
+import re
 from typing import List, Dict, Set, Tuple, Any, Optional
 from dataclasses import dataclass, field
 
 try:
-    from .lattice import UNRESOLVED_PORT
+    from .lattice import UNRESOLVED_PORT, TypeRegistry
 except (ImportError, ValueError):
-    from lattice import UNRESOLVED_PORT
+    from lattice import UNRESOLVED_PORT, TypeRegistry
 
-DATA_BEARING_ROLES: Set[str] = frozenset({
-    "feature_input",
-    "target_input",
-    "data_input",
-    "model_input",
-    "source_data",
-    "model_sink",
-})
+class _DynamicDataBearingRoles(frozenset):
+    """Dynamic data-bearing roles proxy backed by TypeRegistry."""
+    def __contains__(self, item):
+        return str(item).lower() in TypeRegistry.get_instance().get_data_bearing_roles()
+    def __iter__(self):
+        return iter(TypeRegistry.get_instance().get_data_bearing_roles())
+    def __len__(self):
+        return len(TypeRegistry.get_instance().get_data_bearing_roles())
 
-CONVENTIONAL_ESTIMATOR_VERBS: Set[str] = frozenset({
-    "fit",
-    "predict",
-    "transform",
-    "score",
-    "partial_fit",
-    "fit_transform",
-})
+DATA_BEARING_ROLES = _DynamicDataBearingRoles()
+
+class _DynamicConventionalEstimatorVerbs(frozenset):
+    """Dynamic conventional estimator verbs proxy backed by TypeRegistry."""
+    def __contains__(self, item):
+        return str(item).lower() in TypeRegistry.get_instance().get_estimator_verbs()
+    def __iter__(self):
+        return iter(TypeRegistry.get_instance().get_estimator_verbs())
+    def __len__(self):
+        return len(TypeRegistry.get_instance().get_estimator_verbs())
+
+CONVENTIONAL_ESTIMATOR_VERBS = _DynamicConventionalEstimatorVerbs()
 
 
 class PreflightLintError(Exception):
@@ -101,12 +106,12 @@ class PreflightLinter:
                         bound_values_str.add(s_val)
 
             # Check each extracted literal
+            stopwords = TypeRegistry.get_instance().get_stopwords()
             for _, kind, lit_val in extracted_literals:
                 clean_lit = lit_val.strip("'\"")
-                if not clean_lit or clean_lit in waived:
+                if not clean_lit or clean_lit in waived or clean_lit.lower() in stopwords:
                     continue
 
-                # Identifiers and file assets MUST be consumed
                 if kind in ("file_asset", "identifier", "quoted_str"):
                     if clean_lit in seen_consumed_lits:
                         continue
@@ -116,15 +121,19 @@ class PreflightLinter:
                         clean_lit == b or clean_lit in b
                         for b in bound_values_str
                     )
-                    # Check in AST if code_str is provided
+                    # Check in code_str with word boundary matching
                     if not is_consumed and code_str:
-                        is_consumed = clean_lit in code_str
+                        is_consumed = bool(re.search(r'\b' + re.escape(clean_lit) + r'\b', code_str))
 
                     if not is_consumed:
-                        violations.append(
+                        msg = (
                             f"Universal literal '{clean_lit}' (kind: {kind}) extracted from prompt "
                             f"was not consumed by any bound port on the path."
                         )
+                        if kind in ("file_asset", "quoted_str"):
+                            violations.append(msg)
+                        else:
+                            warnings.append(msg)
 
         # ---------------------------------------------------------------------
         # Check 2: No bare None in data-bearing positions

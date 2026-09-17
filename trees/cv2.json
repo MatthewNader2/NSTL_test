@@ -4,6 +4,12 @@
   "aliases": {
     "cv2": "cv2"
   },
+  "asset_placeholders": {
+    "image": "input_image.png"
+  },
+  "output_placeholders": {
+    "image": "output_image.png"
+  },
   "artifact_readers": {
     "image": [
       "cv2.imread"

@@ -327,6 +327,14 @@ def infer_abstract_carrier(anno: Any, param_name: str = "") -> Optional[str]:
             "mapping", "map", "iterable", "iterator", "generator",
             "collection", "queue", "deque"
         ):
+            # Try TypeRegistry mapping first, fall back to "collection"
+            try:
+                from lattice import TypeRegistry
+                mapped = TypeRegistry.get_instance().get_abstract_carrier(base_lower)
+                if mapped:
+                    return mapped
+            except Exception:
+                pass
             return "collection"
         else:
             res = infer_abstract_carrier(base)
@@ -361,25 +369,15 @@ def infer_abstract_carrier(anno: Any, param_name: str = "") -> Optional[str]:
             if res is not None:
                 return res
 
-    # Standard Python language primitives and ABC type names
+    # Query abstract carrier category dynamically from TypeRegistry
     canonical = name.lower()
-    if canonical in ("pathlike", "path", "filepath"):
-        return "path"
-    if canonical in ("int", "float", "complex", "number", "numeric"):
-        return "scalar"
-    if canonical in ("bool", "boolean", "logical"):
-        return "logical"
-    if canonical in ("str", "bytes", "bytearray", "text"):
-        return "text"
-    if (
-        canonical in ("list", "tuple", "set", "frozenset", "dict", "mapping", "sequence", "iterable", "collection")
-        or canonical.startswith(("sequence of", "list of", "tuple of", "dict of", "iterable of", "collection of"))
-    ):
-        return "collection"
-    if canonical in ("buffer",) or canonical.startswith(("array-like", "array_like", "ndarray", "matrix", "tensor")):
-        return "tensor"
-    if canonical.startswith(("dataframe", "table")):
-        return "table"
+    try:
+        from lattice import TypeRegistry
+        mapped = TypeRegistry.get_instance().get_abstract_carrier(canonical)
+        if mapped:
+            return mapped
+    except Exception:
+        pass
 
     return None
 

@@ -264,15 +264,14 @@ class TestDomainAgnosticTreeModularity(unittest.TestCase):
             ]
         }
 
-        # 2. Write tree to a temporary file
-        with tempfile.NamedTemporaryFile("w", suffix=".json", delete=False) as f:
-            json.dump(robotics_tree, f)
-            temp_tree_path = f.name
+        # 2. Write tree to a temporary directory
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            temp_tree_path = os.path.join(tmp_dir, "robotics.json")
+            with open(temp_tree_path, "w") as f:
+                json.dump(robotics_tree, f)
 
-        try:
             # 3. Load tree into a clean LatticeOrchestrator
-            orch = LatticeOrchestrator(trees_directory=tempfile.gettempdir())
-            orch.load_tree_file(temp_tree_path)
+            orch = LatticeOrchestrator(trees_directory=tmp_dir)
 
             self.assertIn("ROBOT_PERCEIVE_ENVIRONMENT", orch.loaded_cells)
             self.assertIn("ROBOT_CALCULATE_GRASP_POSE", orch.loaded_cells)
@@ -303,13 +302,18 @@ class TestDomainAgnosticTreeModularity(unittest.TestCase):
 
             # Verify generated code structure
             self.assertIn("import robotics_sdk as robot", code)
-            self.assertIn("var_1 = robot.perceive(camera=\"cam_0\")", code)
-            self.assertIn("var_2 = robot.plan_grasp(var_1, target=\"cup\")", code)
-            self.assertIn("var_3 = robot.execute(var_2, log_file=\"telemetry.log\")", code)
-
-        finally:
-            if os.path.exists(temp_tree_path):
-                os.remove(temp_tree_path)
+            self.assertTrue(
+                "var_1 = robot.perceive(camera='cam_0')" in code or
+                'var_1 = robot.perceive(camera="cam_0")' in code
+            )
+            self.assertTrue(
+                "var_2 = robot.plan_grasp(var_1, target='cup')" in code or
+                'var_2 = robot.plan_grasp(var_1, target="cup")' in code
+            )
+            self.assertTrue(
+                "var_3 = robot.execute(var_2, log_file='telemetry.log')" in code or
+                'var_3 = robot.execute(var_2, log_file="telemetry.log")' in code
+            )
 
 
 if __name__ == "__main__":

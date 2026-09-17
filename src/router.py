@@ -358,7 +358,7 @@ class LatticeRouter:
         Returns:
           (tunnel_cells, cell_relevance_probabilities)
         """
-        if not prompt or not prompt.strip():
+        if not prompt or not prompt.strip() or len(self.orchestrator.loaded_cells) == 0:
             return [], {}
 
         token_index = getattr(self.orchestrator, "token_index", None)
@@ -472,7 +472,7 @@ class LatticeRouter:
                         relevance_map[cell.cell_id] = max(relevance_map.get(cell.cell_id, 0.0), self.epsilon * 2.0)
 
         if carriers_out or carriers_in:
-            prompt_toks = (CellTokenizer.tokenize_prompt(prompt) if prompt else set()) - STOPWORDS
+            prompt_toks = CellTokenizer.tokenize_prompt(prompt) if prompt else set()
             active_domains = set(c.domain_name for c in final_tunnel if c.domain_name)
             # Carrier-completion augmentation is intentionally TIGHT: only cells in
             # an active domain whose carriers fit the active boundary AND share at
@@ -486,11 +486,11 @@ class LatticeRouter:
                     c_out = getattr(cell.primary_output, "type_name", "")
                     is_s1_src = getattr(cell, "stage", None) == 1 and getattr(cell, "node_role", "") == "source"
                     min_ov = 1 if is_s1_src else 2
-                    tok_ov = len((cell.token_set - STOPWORDS) & prompt_toks)
+                    tok_ov = len(getattr(cell, "identity_tokens", cell.token_set) & prompt_toks)
                     if (c_in in carriers_out or c_out in carriers_in) and tok_ov >= min_ov:
                         augment.append(cell)
             augment.sort(key=lambda c: (
-                len((c.token_set - STOPWORDS) & prompt_toks),
+                len(getattr(c, "identity_tokens", c.token_set) & prompt_toks),
                 relevance_map.get(c.cell_id, 0.0),
                 -getattr(c, "source_priority", 100)
             ), reverse=True)
@@ -546,7 +546,7 @@ class LatticeRouter:
         its constituents). The macro carries no new functionality: downstream,
         UnificationGate expands it back into its micro-cell sequence.
         """
-        prompt_toks = (CellTokenizer.tokenize_prompt(prompt) if prompt else set()) - STOPWORDS
+        prompt_toks = CellTokenizer.tokenize_prompt(prompt) if prompt else set()
         if not prompt_toks:
             return
 
@@ -566,7 +566,7 @@ class LatticeRouter:
         for cell in self.orchestrator.loaded_cells.values():
             if not (isinstance(cell, MacroCell) and getattr(cell, "sub_cells", None)):
                 continue
-            identity_hits = (getattr(cell, "identity_tokens", set()) - STOPWORDS) & prompt_toks
+            identity_hits = getattr(cell, "identity_tokens", set()) & prompt_toks
             if not identity_hits:
                 continue
 

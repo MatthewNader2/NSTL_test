@@ -49,7 +49,7 @@ class M2EndpointAnchorRouteMethod(RouteMethod):
         if not candidates:
             return [tunnel[0]]
 
-        prompt_tokens = CellTokenizer.tokenize_prompt(prompt) - STOPWORDS
+        prompt_tokens = CellTokenizer.tokenize_prompt(prompt)
         l0_extracted = ExecutionContext._extract_universal_literals(prompt or "") if ctx or prompt else []
         file_literals = [v for _, t, v in l0_extracted if t == "file_asset"]
 
@@ -60,7 +60,7 @@ class M2EndpointAnchorRouteMethod(RouteMethod):
         for sc in (source_candidates or candidates[:5]):
             score = (
                 relevance_map.get(sc.cell_id, 0.0) * 5.0
-                + len(prompt_tokens & sc.token_set) * 3.0
+                + len(prompt_tokens & getattr(sc, "identity_tokens", sc.token_set)) * 3.0
             )
             is_path_consumer = any(
                 getattr(p, "abstract_type", None) == "path"
@@ -82,7 +82,7 @@ class M2EndpointAnchorRouteMethod(RouteMethod):
         for snk in (sink_candidates or candidates[-5:]):
             score = (
                 relevance_map.get(snk.cell_id, 0.0) * 5.0
-                + len(prompt_tokens & snk.token_set) * 3.0
+                + len(prompt_tokens & getattr(snk, "identity_tokens", snk.token_set)) * 3.0
                 + (5.0 if best_source and snk.domain_name == best_source.domain_name else 0.0)
             )
             is_path_consumer = any(
@@ -116,7 +116,7 @@ class M2EndpointAnchorRouteMethod(RouteMethod):
                 if self.step_unifies(best_source, t) and self.step_unifies(t, best_sink, prev_path=[best_source, t]):
                     sc = (
                         relevance_map.get(t.cell_id, 0.0) * 5.0
-                        + len(prompt_tokens & t.token_set) * 3.0
+                        + len(prompt_tokens & getattr(t, "identity_tokens", t.token_set)) * 3.0
                         + self.calculate_edge_affinity(best_source, t, orch) * 4.0
                         + self.calculate_edge_affinity(t, best_sink, orch) * 4.0
                         + (3.0 if t.domain_name == best_source.domain_name else 0.0)

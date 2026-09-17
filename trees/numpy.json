@@ -5,6 +5,12 @@
     "np": "numpy",
     "array_like": "array-like"
   },
+  "asset_placeholders": {
+    "array": "input_array.npy"
+  },
+  "output_placeholders": {
+    "array": "output_array.npy"
+  },
   "artifact_readers": {
     "array": [
       "numpy.load"

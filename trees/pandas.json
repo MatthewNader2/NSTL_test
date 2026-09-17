@@ -4,6 +4,15 @@
   "aliases": {
     "pd": "pandas"
   },
+  "column_projection_tokens": [
+    "column", "columns", "col", "feature", "features", "projection", "fields"
+  ],
+  "asset_placeholders": {
+    "table": "input_data.csv"
+  },
+  "output_placeholders": {
+    "table": "output_data.csv"
+  },
   "artifact_readers": {
     "table": [
       "pandas.read_csv"

@@ -86,15 +86,15 @@ class M6HybridAnchorsRouteMethod(RouteMethod):
         clauses = self.segment_prompt_clauses(prompt)
         clause_anchors: List[Cell] = []
         for cl in clauses:
-            cl_tokens = CellTokenizer.tokenize_prompt(cl) - STOPWORDS
+            cl_tokens = CellTokenizer.tokenize_prompt(cl)
             if not cl_tokens:
                 continue
             best_c = None
             best_score = -1.0
             for c in candidates:
-                c_toks = c.token_set - STOPWORDS
+                c_toks = c.token_set
                 id_toks = getattr(c, "identity_tokens", c_toks)
-                strong_overlap = len(cl_tokens & c_toks & id_toks)
+                strong_overlap = len(cl_tokens & id_toks)
                 weak_overlap = len((cl_tokens & c_toks) - id_toks)
                 sc = (strong_overlap * 4.0) + (weak_overlap * 1.5) + (relevance_map.get(c.cell_id, 0.0) * 5.0)
                 if sc > best_score:
