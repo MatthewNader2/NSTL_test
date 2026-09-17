@@ -730,7 +730,8 @@ class PipelineDebugger:
 
         clauses = _segment_prompt_clauses(effective_prompt)
         prompt_tokens = CellTokenizer.tokenize_prompt(effective_prompt)
-        content_tokens = {t for t in prompt_tokens if registry.is_informative_token(t)} if prompt_tokens else set()
+        reg = TypeRegistry.get_instance()
+        content_tokens = {t for t in prompt_tokens if reg.is_informative_token(t)} if prompt_tokens else set()
         literals = ExecutionContext._extract_universal_literals(effective_prompt)
 
         l0_table = Table(box=box.ROUNDED, expand=True, border_style="dim cyan")
