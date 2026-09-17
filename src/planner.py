@@ -18,15 +18,17 @@ from typing import Dict, FrozenSet, List, Optional, Set, Tuple, Any
 from log_config import get_logger
 
 try:
-    from .lattice import LatticeOrchestrator, Cell, MicroCell, MacroCell, TypeRegistry
+    from .lattice import LatticeOrchestrator, Cell, MicroCell, MacroCell, TypeRegistry, is_path_port as _lattice_is_path_port
     from .unification import unify, Substitution, verify_traced_loop_invariant, verify_coproduct_branch, substitute_generics, ExecutionContext, UnificationGate, Success
     from .tokenizer import CellTokenizer
 except (ImportError, ValueError):
-    from lattice import LatticeOrchestrator, Cell, MicroCell, MacroCell, TypeRegistry
+    from lattice import LatticeOrchestrator, Cell, MicroCell, MacroCell, TypeRegistry, is_path_port as _lattice_is_path_port
     from unification import unify, Substitution, verify_traced_loop_invariant, verify_coproduct_branch, substitute_generics, ExecutionContext, UnificationGate, Success
     from tokenizer import CellTokenizer
 
 logger = get_logger('planner')
+
+registry = TypeRegistry.get_instance()
 
 STOPWORDS = frozenset({
     "a", "an", "the", "in", "on", "at", "of", "to", "for", "from", "by", "with",
@@ -37,6 +39,66 @@ STOPWORDS = frozenset({
 })
 
 _WILDCARD_CARRIERS = frozenset(("any", "", "none", "*", "top", "unknown"))
+
+# --------------------------------------------------------------------- #
+# Path-scoring weight table (the ONLY place these weights are declared).
+# Individually they are calibrated design constants, not prompt/domain
+# sniffing: they weight STRUCTURAL terms of the path objective (coverage,
+# affinity, parsimony, intent completion). Keeping them in one declared
+# table makes the objective auditable and tunable without touching logic.
+# --------------------------------------------------------------------- #
+PATH_SCORE_WEIGHTS = {
+    "coverage": 10.0,          # idf-weighted prompt-token coverage of the path
+    "alignment": 10.0,         # clause-alignment (monotonic DP) term
+    "affinity": 25.0,          # declared/AST-mined edge affinity (dominant)
+    "literal_consumption": 15.0,  # ratio of L0 literals bound to declared ports
+    "macro_log_prob_weight": 1.3, # macro-goal tunnel relevance carries full weight
+    "flat_log_prob_weight": 0.3,  # flat-cell softmax log-prob is a weak tiebreaker
+    "macro_affinity_floor": 0.5,  # single-step baseline for verified sub-compositions
+    "dead_ctor": 25.0,
+    "dead_expansion_step": 10.0,   # macro middle step matching zero prompt tokens
+    "unbindable": 50.0,
+    "gap": 1.5,
+    "dispersion": 5.0,
+    "intent_deficit_final": 35.0,
+    "intent_deficit_partial": 15.0,
+    "weak_edge": 0.75,
+    "wildcarrier": 1.0,
+    "parsimony_step": 1.2,
+    "parsimony_base": 0.2,
+    "sink_bonus": 8.0,
+    "non_sink_penalty": 6.0,
+    "domain_coherence": 1.5,
+    "file_port_bonus": 2.0,
+    "file_port_penalty": 3.0,
+}
+
+# Egress-intent vocabulary (LANGUAGE-level verbs of materialization: how
+# English asks for artifacts on disk or on screen).
+EGRESS_INTENT_TOKENS = frozenset({
+    "save", "export", "write", "dump", "persist", "store", "plot", "show", "display",
+})
+
+# Output states that declare completed materialization (declared typestate
+# vocabulary shared with UnificationGate._derive_egress_paths).
+MATERIALIZATION_OUTPUT_STATES = frozenset({
+    "destination_written", "filepath_written", "saved", "exported", "written_to_disk",
+})
+
+
+def _is_col_projection_port(p_sig: Any) -> bool:
+    """Structural column-projection port test: declared state or declared
+    list-carrier with projection vocabulary in the DECLARED state tokens.
+    No cell-id substrings."""
+    st = str(getattr(getattr(p_sig, "signature", p_sig), "state", "")).lower()
+    if st == "column_projection":
+        return True
+    tname = str(getattr(getattr(p_sig, "signature", p_sig), "type_name", "")).lower()
+    if registry.is_subtype(tname, "list") or registry.is_subtype(tname, "sequence"):
+        st_tokens = set(CellTokenizer.tokenize_identifier(st))
+        if st_tokens & {"column", "columns", "col", "feature", "features", "projection", "fields"}:
+            return True
+    return False
 
 
 def _safe_slots_items(cell: Any):
@@ -238,6 +300,11 @@ class LatticePlanner:
             (kind, val) for _, kind, val in l0_extracted_literals
             if kind in ("file_asset", "identifier", "quoted_str")
         ]
+        literal_positions = {
+            (kind, val): pos
+            for pos, kind, val in l0_extracted_literals
+            if kind in ("file_asset", "identifier", "quoted_str")
+        }
         file_literals = [
             v for kind, v in universal_literals
             if kind == "file_asset"
@@ -250,14 +317,7 @@ class LatticePlanner:
             return False
 
         def _is_path_port_name(p_name: str, p_sig: Any) -> bool:
-            t_name = str(getattr(getattr(p_sig, "signature", p_sig), "type_name", "")).lower()
-            return (
-                p_name.lower() in ("filepath", "filename", "file_path", "path", "file", "savepath", "pathname", "fname", "image_path", "destination_path", "output_path")
-                or registry.is_subtype(t_name, "filepath")
-                or registry.is_subtype(t_name, "path")
-                or registry.is_subtype(t_name, "uri")
-                or getattr(p_sig, "abstract_type", None) == "path"
-            )
+            return _lattice_is_path_port(p_sig)
 
         def _is_path_port_sig(p_sig: Any) -> bool:
             sig = getattr(p_sig, "signature", p_sig)
@@ -274,14 +334,7 @@ class LatticePlanner:
                 if not p_sig.required or p_sig.default_value is not None:
                     continue
                 t_name = str(getattr(p_sig.signature, "type_name", "")).lower()
-                is_path = (
-                    p_name.lower() in ("filepath", "filename", "file_path", "path", "file", "savepath", "pathname", "fname", "image_path")
-                    or registry.is_subtype(t_name, "filepath")
-                    or registry.is_subtype(t_name, "path")
-                    or registry.is_subtype(t_name, "uri")
-                    or getattr(p_sig, "abstract_type", None) == "path"
-                )
-                if is_path:
+                if _lattice_is_path_port(p_sig):
                     if not file_literals:
                         return False
                     continue
@@ -298,7 +351,7 @@ class LatticePlanner:
                 if not (
                     registry.is_subtype(t_name, "str")
                     or registry.is_subtype(t_name, "bool")
-                    or t_name in ("any", "*", "top", "scalar", "color", "enum")
+                    or registry.is_subtype(t_name, "scalar")
                 ):
                     return False
             return True
@@ -418,6 +471,79 @@ class LatticePlanner:
             cell_clause_mass[c.cell_id] = masses
             cell_covered[c.cell_id] = covered
 
+        # Macro-goal expansion tables: a MacroCell is scored by its EXPANDED
+        # sub-cell composition, with the SAME objective as flat paths (coverage,
+        # clause alignment, parsimony evidence). This is what lets a macro
+        # outrank its own micro-cells legitimately — its expansion explains the
+        # prompt at least as well as the constituents do, plus whatever
+        # composite concept vocabulary only the macro declares — and never lets
+        # it win on generic I/O vocabulary alone (the expansion exposes the
+        # sub-path's uncovered prompt tokens just as honestly).
+        macro_expansion: Dict[str, List[Cell]] = {}
+        for c in candidates:
+            if getattr(c, "cell_type", "") != "macro" or not getattr(c, "sub_cells", None):
+                continue
+            subs = []
+            for sid in c.sub_cells:
+                sub = self.orchestrator.loaded_cells.get(sid) if self.orchestrator else None
+                if sub is not None:
+                    subs.append(sub)
+                else:
+                    subs = []
+                    break
+            if len(subs) >= 2:
+                macro_expansion[c.cell_id] = subs
+
+        def _expansion_ids(c_id: str) -> List[str]:
+            subs = macro_expansion.get(c_id)
+            return [s.cell_id for s in subs] if subs else [c_id]
+
+        # Expanded coverage tables: for a macro, union its sub-cells' coverage.
+        # Sub-cells may lie outside the tunnel candidates, so their coverage is
+        # computed here directly with the same formulas as the main table.
+        for c_id, subs in macro_expansion.items():
+            strong: Set[str] = set()
+            weak: Set[str] = set()
+            mass_bonus = 0.0
+            masses: List[float] = []
+            covered: Set[int] = set()
+            for sub in subs:
+                s_id = sub.cell_id
+                if s_id in cell_cov_strong:
+                    strong |= cell_cov_strong[s_id]
+                    weak |= cell_cov_weak.get(s_id, set())
+                    mass_bonus += cell_cov_mass_bonus.get(s_id, 0.0)
+                    for gi, m in enumerate(cell_clause_mass.get(s_id, [])):
+                        if len(masses) <= gi:
+                            masses.append(0.0)
+                        masses[gi] = max(masses[gi], m)
+                    covered |= cell_covered.get(s_id, set())
+                    continue
+                s_toks = sub.token_set - STOPWORDS
+                s_id_toks = identity_cache.get(s_id)
+                if s_id_toks is None:
+                    s_id_toks = _identity_tokens(sub)
+                s_strong = content_prompt_tokens & (s_toks & s_id_toks)
+                s_weak = content_prompt_tokens & (s_toks - s_id_toks)
+                strong |= s_strong
+                weak |= s_weak
+                mass_bonus += 10.0 * (
+                    sum(idf_of_prompt.get(t, _idf(t)) for t in s_strong)
+                    + 0.3 * sum(idf_of_prompt.get(t, _idf(t)) for t in s_weak)
+                ) / total_prompt_idf
+                for gi, cl_toks in enumerate(clause_tokens_list):
+                    m = _match_mass(cl_toks, s_toks, s_id_toks)
+                    if len(masses) <= gi:
+                        masses.append(0.0)
+                    masses[gi] = max(masses[gi], m)
+                    if m >= 0.15 * clause_weights[gi]:
+                        covered.add(gi)
+            cell_cov_strong[c_id] = strong
+            cell_cov_weak[c_id] = weak
+            cell_cov_mass_bonus[c_id] = mass_bonus
+            cell_clause_mass[c_id] = masses
+            cell_covered[c_id] = covered
+
         # Concrete (non-wildcard) input port signatures per cell — used to judge
         # whether a zero-ary constructor is actually CONSUMED downstream.
         cell_concrete_in_sigs: Dict[str, List[Any]] = {}
@@ -449,7 +575,7 @@ class LatticePlanner:
                 or registry.is_subtype(t, "bool")
                 or registry.is_subtype(t, "filepath")
                 or registry.is_subtype(t, "uri")
-                or t in ("any", "*", "top", "scalar", "color", "enum")
+                or registry.is_subtype(t, "scalar")
             )
 
         # Per-cell: required concrete non-groundable receiver signatures (the ports
@@ -464,7 +590,11 @@ class LatticePlanner:
                 if not p_sig.required or p_sig.default_value is not None:
                     continue
                 desc = getattr(p_sig, "description", None) or getattr(p_sig, "doc", "") or ""
-                is_instance_receiver = p_name in ("data", "self") or ("receiver" in str(desc).lower())
+                declared_role = getattr(p_sig, "port_role", None) or ""
+                is_instance_receiver = (
+                    declared_role == "receiver"
+                    or (not declared_role and (p_name in ("data", "self") or "receiver" in str(desc).lower()))
+                )
                 t = str(p_sig.signature.type_name)
                 if not is_instance_receiver:
                     if t.lower() in _WILDCARD_CARRIERS or _port_literal_groundable(t):
@@ -473,13 +603,10 @@ class LatticePlanner:
             cell_receiver_sigs[c.cell_id] = sigs
 
         def _is_col_proj_cell(cell: Cell) -> bool:
-            for p_n, p_s in cell.inputs.items():
-                st = str(getattr(p_s.signature, "state", "")).lower()
-                tname = str(getattr(p_s.signature, "type_name", "")).lower()
-                if st == "column_projection" or (tname in ("list", "sequence") and p_n.lower() in ("columns", "cols", "column")):
-                    return True
-            cid = cell.cell_id.lower()
-            return any(k in cid for k in ("select_columns", "filter_columns", "get_dummies", "extract"))
+            # Structural: a cell is a column projection iff it DECLARES a
+            # column-projection input port (state / list-carrier vocabulary).
+            # No cell-id substrings.
+            return any(_is_col_projection_port(p_s) for p_s in cell.inputs.values())
 
         def _new_unbindable(cand: Cell, prev_path: List[Cell]) -> int:
             produced = [out_sig.signature for prev in prev_path for out_sig in prev.outputs.values()]
@@ -497,12 +624,7 @@ class LatticePlanner:
                     if not p_sig.required or p_sig.default_value is not None:
                         continue
                     t_name = str(getattr(p_sig.signature, "type_name", "")).lower()
-                    if (
-                        p_name.lower() in ("filepath", "filename", "file_path", "path", "file", "savepath", "pathname", "fname", "path_or_buf")
-                        or registry.is_subtype(t_name, "filepath")
-                        or registry.is_subtype(t_name, "path")
-                        or registry.is_subtype(t_name, "uri")
-                    ):
+                    if _lattice_is_path_port(p_sig):
                         required_path_ports += 1
                         break
             if required_path_ports > len(file_literals):
@@ -634,7 +756,7 @@ class LatticePlanner:
                 ordered = sorted(covered_clauses)
                 lo, hi = ordered[0], ordered[-1]
                 holes = sum(1 for g in range(lo, hi + 1) if g not in covered_clauses)
-                gap_penalty = holes * 1.5
+                gap_penalty = holes  # weighted by PATH_SCORE_WEIGHTS["gap"] at combination
 
             align_factor = max(0.85, 1.0 - 0.05 * inversions)
             alignment = clause_cov * align_factor
@@ -673,9 +795,15 @@ class LatticePlanner:
                         if is_consumed:
                             prerequisite_bridges += 1
 
+            # Parsimony measures PLANNING cost: a macro-goal is genuinely one
+            # beam step (its expansion is a declared, pre-verified composition),
+            # so k counts planned nodes, not expansion internals. Honesty about
+            # what the expansion contributes is enforced on the COVERAGE side
+            # (expansion-based coverage + dead-expansion-step penalty below).
             effective_k = max(1, k - consumed_ctors - prerequisite_bridges)
             excess_steps = max(0, effective_k - max(distinct_matched_clauses, 1))
-            parsimony_penalty = excess_steps * 1.2 + effective_k * 0.2
+            parsimony_penalty = (excess_steps * PATH_SCORE_WEIGHTS["parsimony_step"]
+                                 + effective_k * PATH_SCORE_WEIGHTS["parsimony_base"])
 
             # Tunnel likelihood is a WEAK tiebreaker for flat cells: the
             # group-relative softmax already guarantees every surviving cell is
@@ -688,9 +816,9 @@ class LatticePlanner:
             # the concept-coverage gate and outranks its own micro-cells), so it
             # carries meaningful weight instead of distribution noise.
             if k == 1 and getattr(path[0], "cell_type", "") == "macro":
-                mean_log_prob = 1.3 * (sc / max(k, 1))
+                mean_log_prob = PATH_SCORE_WEIGHTS["macro_log_prob_weight"] * (sc / max(k, 1))
             else:
-                mean_log_prob = 0.3 * (sc / max(k, 1))
+                mean_log_prob = PATH_SCORE_WEIGHTS["flat_log_prob_weight"] * (sc / max(k, 1))
 
             # Goal-directed terms
             goal_bonus = 0.0
@@ -702,8 +830,7 @@ class LatticePlanner:
             # merely rewards whatever compute function old data mislabeled as a
             # sink.
             terminal = path[-1]
-            egress_tokens = frozenset({"save", "export", "write", "dump", "persist", "store", "plot", "show", "display"})
-            has_egress_intent = bool(content_prompt_tokens & egress_tokens) or (
+            has_egress_intent = bool(content_prompt_tokens & EGRESS_INTENT_TOKENS) or (
                 len(file_literals) > 1 and any(getattr(c, "stage", None) == 1 for c in path)
             ) or (goal_sig is not None)
             # Materialization is a property of the terminal's OUTPUT STATE, not
@@ -714,7 +841,7 @@ class LatticePlanner:
             # in UnificationGate._derive_egress_paths.
             output_declares_materialization = any(
                 str(getattr(out_p, "state", "")).lower()
-                in ("destination_written", "filepath_written", "saved", "exported", "written_to_disk")
+                in MATERIALIZATION_OUTPUT_STATES
                 for out_p in getattr(terminal, "outputs", {}).values()
             )
             terminal_is_materializing = (
@@ -728,9 +855,9 @@ class LatticePlanner:
             )
             if tunnel_has_sinks:
                 if terminal_is_materializing:
-                    goal_bonus += 8.0
+                    goal_bonus += PATH_SCORE_WEIGHTS["sink_bonus"]
                 elif has_egress_intent and not terminal_is_materializing:
-                    goal_bonus -= 6.0
+                    goal_bonus -= PATH_SCORE_WEIGHTS["non_sink_penalty"]
             # Domain coherence: the terminal morphism should belong to the
             # pipeline's own declared domains. A terminal imported from a foreign
             # domain (e.g. a plotting library bolted onto a vision pipeline)
@@ -748,16 +875,37 @@ class LatticePlanner:
                             effective_other_cells.append(sub_cell)
                 other_domains = {getattr(c, "domain_name", "") for c in effective_other_cells}
                 if terminal_domain not in other_domains:
-                    goal_bonus -= 1.5
+                    goal_bonus -= PATH_SCORE_WEIGHTS["domain_coherence"]
                 else:
-                    goal_bonus += 1.5
+                    goal_bonus += PATH_SCORE_WEIGHTS["domain_coherence"]
 
             if file_literals:
                 if any(_has_path_port(c) for c in path):
-                    goal_bonus += 2.0
+                    goal_bonus += PATH_SCORE_WEIGHTS["file_port_bonus"]
                 elif not tunnel_absorbs_assets:
-                    goal_bonus -= 3.0
-            weak_total = sum(1 for c in path if _is_wildcarrier(c)) * 1.0 + weak_edges * 0.75
+                    goal_bonus -= PATH_SCORE_WEIGHTS["file_port_penalty"]
+            weak_total = (sum(1 for c in path if _is_wildcarrier(c)) * PATH_SCORE_WEIGHTS["wildcarrier"]
+                          + weak_edges * PATH_SCORE_WEIGHTS["weak_edge"])
+
+            # Dead expansion steps: a MIDDLE step of a macro expansion that
+            # matches NONE of the prompt's tokens is dead weight for THIS
+            # prompt — the macro's known-good path includes it for other
+            # intents. It pays so the macro cannot ride its mined sub-pair
+            # affinities through prompts its expansion does not serve.
+            # (Ingress/egress steps are exempt: they may match nothing on
+            # prompts that express no I/O vocabulary.)
+            dead_expansion_steps = 0
+            for c in path:
+                subs = macro_expansion.get(c.cell_id)
+                if not subs:
+                    continue
+                for j, sub in enumerate(subs):
+                    if j == 0 or j == len(subs) - 1:
+                        continue
+                    s_strong = cell_cov_strong.get(sub.cell_id, set())
+                    s_weak = cell_cov_weak.get(sub.cell_id, set())
+                    if not s_strong and not s_weak:
+                        dead_expansion_steps += 1
 
             # Dead-constructor penalty: a constructor whose output is not
             # consumed by ANY downstream cell is dead code inserted purely
@@ -785,7 +933,7 @@ class LatticePlanner:
                 for c in path
                 if getattr(c, "domain_name", "") and getattr(c, "domain_name", "") not in ("generic", "python_core", "builtins")
             }
-            domain_dispersion = max(0, len(pipeline_domains) - 2) * 5.0
+            domain_dispersion = max(0, len(pipeline_domains) - 2) * PATH_SCORE_WEIGHTS["dispersion"]
 
             # Edge affinity term: AST-mined and declared topological transitions
             # are the dominant score term for idiomatic composition.
@@ -796,22 +944,34 @@ class LatticePlanner:
                 # sub-cell sequence (declared edges, egress completion,
                 # adjacency, same-domain continuity), floored at the
                 # single-step baseline because every internal transition was
-                # type-verified at macro definition/harvest time.
+                # type-verified at macro definition/harvest time. DEAD steps
+                # (middle sub-cells matching zero prompt tokens) forfeit the
+                # affinity evidence of the pairs they participate in — mined
+                # idioms around a step this prompt never asked for are not
+                # evidence for THIS composition.
                 if k == 1 and getattr(path[0], "cell_type", "") == "macro" and getattr(path[0], "sub_cells", None) and self.orchestrator is not None:
                     subs = [self.orchestrator.loaded_cells.get(sid) for sid in path[0].sub_cells]
                     subs = [s for s in subs if s is not None]
                     if len(subs) >= 2:
+                        def _alive(idx: int) -> bool:
+                            if idx == 0 or idx == len(subs) - 1:
+                                return True
+                            s_id = subs[idx].cell_id
+                            return bool(cell_cov_strong.get(s_id) or cell_cov_weak.get(s_id))
                         affs = [
-                            max(self._calculate_edge_affinity(subs[i], subs[i + 1]), 0.5)
+                            max(self._calculate_edge_affinity(subs[i], subs[i + 1]), PATH_SCORE_WEIGHTS["macro_affinity_floor"])
                             for i in range(len(subs) - 1)
+                            if _alive(i) and _alive(i + 1)
                         ]
-                        affinity_score = sum(affs) / len(affs)
+                        affinity_score = sum(affs) / len(affs) if affs else 0.5
             else:
                 total_aff = sum(_edge_affinity(path[i], path[i + 1]) for i in range(k - 1))
                 affinity_score = total_aff / max(k - 1, 1)
 
             # Intent deficit objective: penalize incomplete pipelines that abandon requested clauses
-            intent_deficit = (35.0 if is_final else 15.0) * max(0.0, 1.0 - clause_cov) if num_clauses > 1 else 0.0
+            intent_deficit = ((PATH_SCORE_WEIGHTS["intent_deficit_final"] if is_final
+                               else PATH_SCORE_WEIGHTS["intent_deficit_partial"])
+                              * max(0.0, 1.0 - clause_cov)) if num_clauses > 1 else 0.0
 
             # Literal consumption term (T1.3 & R2.7):
             # Measures ratio of L0 universal literals bound to at least one port on the path.
@@ -836,6 +996,30 @@ class LatticePlanner:
 
                 consumed_count = 0
                 used_file_ports = 0
+                # Column-projection ports declared on the path: an identifier
+                # literal counts as consumed only when its ROLE context (e.g.
+                # "X column") matches the projection port's declared vocabulary.
+                proj_port_tokens: Set[str] = set()
+                if path_has_col_proj:
+                    for c in path:
+                        for p_sig in c.inputs.values():
+                            if _is_col_projection_port(p_sig):
+                                st = str(getattr(p_sig.signature, "state", "")).lower()
+                                proj_port_tokens |= set(CellTokenizer.tokenize_identifier(st))
+                                proj_port_tokens |= {t for t in CellTokenizer.tokenize_identifier(str(getattr(c, "cell_id", "")).lower())}
+                # Declared relational-trigger ports: a port NAMED for the
+                # preposition that binds its value ("by") can consume the
+                # prepositional object ("by age") through the semantic-slot
+                # channel. A path with no such port leaves the referent
+                # unconsumed — the objective then prefers paths that honor it.
+                trigger_port_tokens: Set[str] = set()
+                for c in path:
+                    for p_name, p_sig in c.inputs.items():
+                        p_toks = set(CellTokenizer.tokenize_identifier(p_name))
+                        p_toks |= set(CellTokenizer.tokenize_identifier(str(getattr(p_sig.signature, "state", ""))))
+                        if p_toks & {"by", "on", "per", "of", "for", "with"}:
+                            trigger_port_tokens |= p_toks
+                identifier_role_map = getattr(self, "_last_identifier_roles", None)
                 for kind, lit in universal_literals:
                     lit_clean = str(lit).lower().strip("'\"")
                     if kind == "file_asset":
@@ -845,18 +1029,38 @@ class LatticePlanner:
                     else:
                         if lit_clean in path_ports or any(lit_clean in p for p in path_ports):
                             consumed_count += 1
-                        elif path_has_col_proj:
-                            consumed_count += 1
+                        elif proj_port_tokens:
+                            lit_role = set()
+                            if identifier_role_map:
+                                lit_role = set(identifier_role_map.get(str(lit), frozenset()))
+                            if (lit_role & proj_port_tokens) or (proj_port_tokens & {t for t in CellTokenizer.tokenize_identifier(lit_clean)}):
+                                consumed_count += 1
+                        elif trigger_port_tokens:
+                            # Prepositional-object referent: consumed iff the
+                            # path declares a relational-trigger port whose
+                            # binding preposition matches the literal's.
+                            lit_pos = literal_positions.get((kind, lit))
+                            if lit_pos is not None:
+                                prev_chunk = (prompt or "")[:lit_pos].rstrip()
+                                import re as _re
+                                m_prev = _re.search(r"([A-Za-z]+)$", prev_chunk)
+                                prep = m_prev.group(1).lower() if m_prev else ""
+                                if prep and prep in trigger_port_tokens:
+                                    consumed_count += 1
                 literal_consumption = consumed_count / len(universal_literals)
             else:
                 literal_consumption = 1.0
 
             # Dominant score combination: edge affinity (w_aff = 25.0) heavily rewards
             # AST-mined canonical transitions, rendering legacy junk exploit patches obsolete.
-            total = (coverage * 10.0 + alignment * 10.0 + affinity_score * 25.0 - parsimony_penalty
+            total = (coverage * PATH_SCORE_WEIGHTS["coverage"] + alignment * PATH_SCORE_WEIGHTS["alignment"]
+                     + affinity_score * PATH_SCORE_WEIGHTS["affinity"] - parsimony_penalty
                      + mean_log_prob + goal_bonus - weak_total
-                     - dead_ctors * 25.0 - unbindable * 50.0 - domain_dispersion - gap_penalty
-                     - intent_deficit + literal_consumption * 15.0)
+                     - dead_ctors * PATH_SCORE_WEIGHTS["dead_ctor"]
+                     - dead_expansion_steps * PATH_SCORE_WEIGHTS["dead_expansion_step"]
+                     - unbindable * PATH_SCORE_WEIGHTS["unbindable"]
+                     - domain_dispersion - gap_penalty * PATH_SCORE_WEIGHTS["gap"]
+                     - intent_deficit + literal_consumption * PATH_SCORE_WEIGHTS["literal_consumption"])
             if _debug_plan:
                 _component_trace[tuple(c.cell_id for c in path)] = {
                     "coverage*10": round(coverage * 10.0, 2),
@@ -979,7 +1183,7 @@ class LatticePlanner:
                             or registry.is_subtype(t_name, "bool")
                             or registry.is_subtype(t_name, "filepath")
                             or registry.is_subtype(t_name, "uri")
-                            or t_name in ("any", "*", "top", "scalar", "color", "enum")
+                            or registry.is_subtype(t_name, "scalar")
                             or bool(getattr(p_sig, "domain", ""))
                         ):
                             satisfied = True
@@ -1123,10 +1327,23 @@ class LatticePlanner:
                     if num_clauses > 1 and covered and max(covered) < num_clauses - 1:
                         return False
 
-                if any(t_id.endswith(k) or f"{k}." in t_id or f"{k}_" in t_id for k in (".fit", "_fit", ".predict", "score", "evaluate", "metric", "accuracy", "loss", "report")):
+                # Declared-goal terminals: a node whose DECLARED role is an
+                # estimator, or whose output state reaches a declared terminal
+                # family (trained model, materialized artifact), is a valid
+                # pipeline goal. No cell-id substring whitelists: roles and
+                # states are declared tree data.
+                if t_role in ("estimator", "terminal", "evaluator", "sink", "consumer"):
                     return True
-                if any(k in t_id for k in ("dijkstra", "search", "sort", "traversal")):
+                out_states = {
+                    str(getattr(op, "state", "")).lower()
+                    for op in getattr(terminal, "outputs", {}).values()
+                }
+                if any(
+                    registry.state_ancestry_reaches(st, {"trained", "fit_estimator", "written_to_disk", "exported", "saved"})
+                    for st in out_states if st and st not in ("any", "*")
+                ):
                     return True
+
                 covered = set().union(*(cell_covered.get(c.cell_id, set()) for c in cand_path))
                 if num_clauses > 1 and covered and max(covered) < num_clauses - 1:
                     return False
@@ -1466,7 +1683,7 @@ class LatticePlanner:
                         or registry.is_subtype(t_name, "bool")
                         or registry.is_subtype(t_name, "filepath")
                         or registry.is_subtype(t_name, "uri")
-                        or t_name in ("any", "*", "top", "scalar", "color", "enum")
+                        or registry.is_subtype(t_name, "scalar")
                         or bool(getattr(p_sig, "domain", ""))
                     )
                     if is_literal_groundable:

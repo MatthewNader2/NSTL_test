@@ -303,7 +303,7 @@ try:
     from lattice import LatticeOrchestrator, Cell, PortSignature, AlgebraicSignature, UNRESOLVED_PORT
     from router import LatticeRouter, HardwareProfiler
     from unification import (
-        UnificationGate, DynamicPlaceholderResolver, UnresolvedPlaceholderError,
+        UnificationGate, UnresolvedPlaceholderError,
         UnificationFailure, ExecutionContext, Substitution, TypeRegistry, unify,
         Success, Failure
     )
@@ -322,7 +322,7 @@ except ImportError:
     from .lattice import LatticeOrchestrator, Cell, PortSignature, AlgebraicSignature, UNRESOLVED_PORT
     from .router import LatticeRouter, HardwareProfiler
     from .unification import (
-        UnificationGate, DynamicPlaceholderResolver, UnresolvedPlaceholderError,
+        UnificationGate, UnresolvedPlaceholderError,
         UnificationFailure, ExecutionContext, Substitution, TypeRegistry, unify,
         Success, Failure
     )
@@ -1139,7 +1139,6 @@ class NSTLInteractiveShell(cmd.Cmd):
         self.orchestrator.build_topology()
         self.gate = UnificationGate(self.orchestrator)
         self.sandbox = GEVRSandbox()
-        self.resolver = DynamicPlaceholderResolver()
 
         node_count = len(self.orchestrator.cells)
         load_time = (time.perf_counter() - t0) * 1000.0

@@ -22,6 +22,20 @@ except (ImportError, ValueError):
     from planner import LatticePlanner
 
 
+def _prompt_has_egress_intent(prompt: str) -> bool:
+    """Declared-egress-vocabulary intent test (see planner.EGRESS_INTENT_TOKENS);
+    a file asset literal also declares materialization intent."""
+    try:
+        from .planner import EGRESS_INTENT_TOKENS
+    except (ImportError, ValueError):
+        from planner import EGRESS_INTENT_TOKENS
+    toks = set(CellTokenizer.tokenize_prompt((prompt or "").lower()))
+    if toks & EGRESS_INTENT_TOKENS:
+        return True
+    literals = ExecutionContext._extract_universal_literals(prompt or "")
+    return any(kind == "file_asset" for _, kind, _ in literals)
+
+
 class M6HybridAnchorsRouteMethod(RouteMethod):
     """
     RouteMethod M6: Flagship Hybrid.
@@ -65,7 +79,7 @@ class M6HybridAnchorsRouteMethod(RouteMethod):
 
         if stage1_cands:
             source_cell = max(stage1_cands, key=lambda c: relevance_map.get(c.cell_id, 0.0))
-        if stage3_cands and (file_literals or any(w in prompt.lower() for w in ("save", "write", "to_", "output"))):
+        if stage3_cands and (file_literals or _prompt_has_egress_intent(prompt)):
             sink_cell = max(stage3_cands, key=lambda c: relevance_map.get(c.cell_id, 0.0))
 
         # 3. Identify Clause-Level Waypoint Anchors

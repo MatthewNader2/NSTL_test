@@ -360,16 +360,20 @@ class LibraryAdapter(abc.ABC):
                 pass
 
         # --- Fallback Mechanism: Parameter Naming Convention ---
-        # Used ONLY when parameters are unannotated, raw 'str', or C-extensions lacking type metadata
-        dest_indicators = (
+        # Used ONLY when parameters are unannotated, raw 'str', or C-extensions lacking type metadata.
+        # Token-boundary aware: a name matches iff one of its identifier
+        # components IS a destination token ("output_path" -> {"output","path"});
+        # substrings never match ("df" cannot come from "info", "f" from "offset").
+        dest_tokens = frozenset({
             "dest", "destination", "output", "out", "file", "filepath",
             "filename", "path", "uri", "url", "stream", "buf", "buffer",
-            "fp", "f", "target", "writer"
-        )
-        return any(
-            any(ind in p.lower() for ind in dest_indicators)
-            for p in input_names
-        )
+            "fp", "target", "writer",
+        })
+        for p in input_names:
+            components = {c for c in re.split(r"[^a-zA-Z0-9]+", str(p).lower()) if c}
+            if components & dest_tokens:
+                return True
+        return False
 
     def is_parameterized(
         self,

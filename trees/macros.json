@@ -3,7 +3,44 @@
   "version": "1.0",
   "typestates": {
     "domain": "macros",
-    "states": []
+    "states": [
+      {
+        "name": "destination_path",
+        "parent_state": "source_identifier",
+        "carrier_type": "str",
+        "description": "Declared by data migration (formerly engine bootstrap state 'destination_path')."
+      },
+      {
+        "name": "file_path",
+        "parent_state": "source_identifier",
+        "carrier_type": "str",
+        "description": "Declared by data migration (formerly engine bootstrap state 'file_path')."
+      },
+      {
+        "name": "limit_count",
+        "parent_state": null,
+        "carrier_type": "int",
+        "description": "Declared by data migration (formerly engine bootstrap state 'limit_count')."
+      },
+      {
+        "name": "order_flag",
+        "parent_state": null,
+        "carrier_type": "bool",
+        "description": "Declared by data migration (formerly engine bootstrap state 'order_flag')."
+      },
+      {
+        "name": "sort_column",
+        "parent_state": null,
+        "carrier_type": "str",
+        "description": "Declared by data migration (formerly engine bootstrap state 'sort_column')."
+      },
+      {
+        "name": "valid_path",
+        "parent_state": "source_identifier",
+        "carrier_type": "str",
+        "description": "Declared by data migration (formerly engine bootstrap state 'valid_path')."
+      }
+    ]
   },
   "types": [],
   "cells": [

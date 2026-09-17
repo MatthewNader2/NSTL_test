@@ -1254,7 +1254,8 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "port_role": "data_input"
         },
         "port_1": {
           "type_name": "str",
@@ -1449,7 +1450,8 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "port_role": "data_input"
         },
         "port_1": {
           "type_name": "str",
@@ -1605,7 +1607,8 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "port_role": "data_input"
         },
         "port_1": {
           "type_name": "str",
@@ -1777,7 +1780,8 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "port_role": "data_input"
         },
         "port_1": {
           "type_name": "str",
@@ -1945,7 +1949,8 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "port_role": "data_input"
         },
         "port_1": {
           "type_name": "str",
@@ -2117,7 +2122,8 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "port_role": "data_input"
         },
         "port_1": {
           "type_name": "str",
@@ -2285,7 +2291,8 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "port_role": "data_input"
         },
         "port_1": {
           "type_name": "str",
@@ -2431,7 +2438,8 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "port_role": "data_input"
         },
         "port_1": {
           "type_name": "str",
@@ -2590,7 +2598,8 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "port_role": "data_input"
         },
         "port_1": {
           "type_name": "str",
@@ -2779,7 +2788,8 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "port_role": "data_input"
         },
         "port_1": {
           "type_name": "str",
@@ -2949,7 +2959,8 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "port_role": "data_input"
         },
         "port_1": {
           "type_name": "str",
@@ -3117,7 +3128,8 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "port_role": "data_input"
         },
         "port_1": {
           "type_name": "str",
@@ -3297,7 +3309,8 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "port_role": "data_input"
         },
         "port_1": {
           "type_name": "str",
@@ -3469,7 +3482,8 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "port_role": "data_input"
         },
         "port_1": {
           "type_name": "str",
@@ -3654,7 +3668,8 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "port_role": "data_input"
         },
         "port_1": {
           "type_name": "str",
@@ -3829,7 +3844,8 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "port_role": "data_input"
         },
         "port_1": {
           "type_name": "str",
@@ -3989,7 +4005,8 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "port_role": "data_input"
         },
         "port_1": {
           "type_name": "str",
@@ -4161,7 +4178,8 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "port_role": "data_input"
         },
         "port_1": {
           "type_name": "str",
@@ -4333,7 +4351,8 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "port_role": "data_input"
         },
         "port_1": {
           "type_name": "str",
@@ -4509,7 +4528,8 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "port_role": "data_input"
         },
         "port_1": {
           "type_name": "str",
@@ -4670,7 +4690,8 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "port_role": "data_input"
         },
         "port_1": {
           "type_name": "str",
@@ -4842,7 +4863,8 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "port_role": "data_input"
         },
         "port_1": {
           "type_name": "str",
@@ -5044,7 +5066,8 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "port_role": "data_input"
         },
         "port_1": {
           "type_name": "str",
@@ -5219,7 +5242,8 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "port_role": "data_input"
         },
         "port_1": {
           "type_name": "str",
@@ -5404,7 +5428,8 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "port_role": "data_input"
         },
         "port_1": {
           "type_name": "str",
@@ -5575,7 +5600,8 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "port_role": "data_input"
         },
         "port_1": {
           "type_name": "bool",
@@ -5762,7 +5788,8 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "port_role": "data_input"
         },
         "port_1": {
           "type_name": "DataFrame",
@@ -5776,7 +5803,8 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "port_role": "data_input"
         },
         "port_2": {
           "type_name": "str",
@@ -5937,7 +5965,8 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "port_role": "data_input"
         },
         "port_1": {
           "type_name": "str",
@@ -6118,7 +6147,8 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "port_role": "data_input"
         },
         "port_1": {
           "type_name": "str",
@@ -6614,7 +6644,8 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "port_role": "data_input"
         },
         "port_1": {
           "type_name": "str",
@@ -7005,7 +7036,8 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "port_role": "data_input"
         },
         "port_1": {
           "type_name": "str",
@@ -7145,7 +7177,8 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "port_role": "data_input"
         },
         "port_1": {
           "type_name": "str",
@@ -7392,7 +7425,8 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "port_role": "data_input"
         },
         "port_1": {
           "type_name": "str",
@@ -7540,7 +7574,8 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "port_role": "data_input"
         },
         "port_1": {
           "type_name": "str",
@@ -7723,7 +7758,8 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "port_role": "data_input"
         },
         "port_1": {
           "type_name": "str",
@@ -7893,7 +7929,8 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "port_role": "data_input"
         },
         "port_1": {
           "type_name": "str",
@@ -8075,7 +8112,8 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "port_role": "data_input"
         },
         "port_1": {
           "type_name": "str",
@@ -8243,7 +8281,8 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "port_role": "data_input"
         },
         "port_1": {
           "type_name": "str",
@@ -8790,7 +8829,8 @@
       ],
       "edges": [],
       "primary_in": "port_0",
-      "primary_out": "void"
+      "primary_out": "void",
+      "endable": true
     },
     {
       "cell_id": "sns_jointgrid_savefig",
@@ -8887,7 +8927,8 @@
       ],
       "edges": [],
       "primary_in": "port_0",
-      "primary_out": "void"
+      "primary_out": "void",
+      "endable": true
     },
     {
       "cell_id": "sns_clustermap_savefig",
@@ -8983,7 +9024,8 @@
       ],
       "edges": [],
       "primary_in": "port_0",
-      "primary_out": "void"
+      "primary_out": "void",
+      "endable": true
     },
     {
       "cell_id": "sns_axes_savefig",
@@ -9100,7 +9142,8 @@
       ],
       "edges": [],
       "primary_in": "port_0",
-      "primary_out": "void"
+      "primary_out": "void",
+      "endable": true
     },
     {
       "cell_id": "sns_bridge_dataframe_to_axes",
@@ -9151,7 +9194,8 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "port_role": "data_input"
         }
       },
       "outputs": {
@@ -9272,7 +9316,8 @@
       "effects": [],
       "edges": [],
       "primary_in": "port_0",
-      "primary_out": "port_0"
+      "primary_out": "port_0",
+      "endable": true
     }
   ],
   "types": {

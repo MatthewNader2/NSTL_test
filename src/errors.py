@@ -104,7 +104,7 @@ class RAGError(NSTLError):
     pass
 
 
-class IndexError(RAGError):
+class RetrievalIndexError(RAGError):
     """FAISS index operation failed."""
     pass
 

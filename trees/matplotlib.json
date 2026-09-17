@@ -1607,7 +1607,8 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": "[N]"
+          "shape_contract": "[N]",
+          "port_role": "feature_input"
         },
         "y": {
           "name": "y",
@@ -1623,7 +1624,8 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": "[N]"
+          "shape_contract": "[N]",
+          "port_role": "target_input"
         },
         "color": {
           "name": "color",
@@ -1843,7 +1845,8 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": "[N]"
+          "shape_contract": "[N]",
+          "port_role": "feature_input"
         },
         "y": {
           "name": "y",
@@ -1859,7 +1862,8 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": "[N]"
+          "shape_contract": "[N]",
+          "port_role": "target_input"
         },
         "s": {
           "name": "s",
@@ -2079,7 +2083,8 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": "[N]"
+          "shape_contract": "[N]",
+          "port_role": "feature_input"
         },
         "height": {
           "name": "height",
@@ -2286,7 +2291,8 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": "[N]"
+          "shape_contract": "[N]",
+          "port_role": "target_input"
         },
         "width": {
           "name": "width",
@@ -2493,7 +2499,8 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": "[N]"
+          "shape_contract": "[N]",
+          "port_role": "feature_input"
         },
         "bins": {
           "name": "bins",
@@ -2705,7 +2712,8 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "port_role": "feature_input"
         },
         "vert": {
           "name": "vert",
@@ -3041,7 +3049,8 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": "[N]"
+          "shape_contract": "[N]",
+          "port_role": "feature_input"
         },
         "labels": {
           "name": "labels",
@@ -3229,7 +3238,8 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": "[M, N]"
+          "shape_contract": "[M, N]",
+          "port_role": "feature_input"
         },
         "cmap": {
           "name": "cmap",
@@ -3449,7 +3459,8 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": "[M, N]"
+          "shape_contract": "[M, N]",
+          "port_role": "feature_input"
         },
         "Y": {
           "name": "Y",
@@ -3465,7 +3476,8 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": "[M, N]"
+          "shape_contract": "[M, N]",
+          "port_role": "target_input"
         },
         "C": {
           "name": "C",
@@ -3672,7 +3684,8 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": "[M, N]"
+          "shape_contract": "[M, N]",
+          "port_role": "feature_input"
         },
         "Y": {
           "name": "Y",
@@ -3688,7 +3701,8 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": "[M, N]"
+          "shape_contract": "[M, N]",
+          "port_role": "target_input"
         },
         "Z": {
           "name": "Z",
@@ -3891,7 +3905,8 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": "[M, N]"
+          "shape_contract": "[M, N]",
+          "port_role": "feature_input"
         },
         "Y": {
           "name": "Y",
@@ -3907,7 +3922,8 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": "[M, N]"
+          "shape_contract": "[M, N]",
+          "port_role": "target_input"
         },
         "Z": {
           "name": "Z",
@@ -4514,7 +4530,8 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": "[M, N]"
+          "shape_contract": "[M, N]",
+          "port_role": "feature_input"
         },
         "Y": {
           "name": "Y",
@@ -4530,7 +4547,8 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": "[M, N]"
+          "shape_contract": "[M, N]",
+          "port_role": "target_input"
         },
         "Z": {
           "name": "Z",
@@ -4884,7 +4902,8 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": "[N]"
+          "shape_contract": "[N]",
+          "port_role": "feature_input"
         },
         "y": {
           "name": "y",
@@ -4900,7 +4919,8 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": "[N]"
+          "shape_contract": "[N]",
+          "port_role": "target_input"
         },
         "yerr": {
           "name": "yerr",
@@ -5088,7 +5108,8 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": "[N]"
+          "shape_contract": "[N]",
+          "port_role": "feature_input"
         },
         "y1": {
           "name": "y1",
@@ -5288,7 +5309,8 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": "[N]"
+          "shape_contract": "[N]",
+          "port_role": "feature_input"
         },
         "y": {
           "name": "y",
@@ -5304,7 +5326,8 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": "[N]"
+          "shape_contract": "[N]",
+          "port_role": "target_input"
         },
         "linefmt": {
           "name": "linefmt",
@@ -5473,7 +5496,8 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "port_role": "target_input"
         },
         "color": {
           "name": "color",
@@ -5660,7 +5684,8 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "port_role": "feature_input"
         },
         "color": {
           "name": "color",
@@ -6225,7 +6250,8 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "port_role": "feature_input"
         },
         "y": {
           "name": "y",
@@ -6241,7 +6267,8 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "port_role": "target_input"
         },
         "s": {
           "name": "s",
@@ -9920,7 +9947,8 @@
         }
       ],
       "primary_in": "fig",
-      "primary_out": "out_fig"
+      "primary_out": "out_fig",
+      "endable": true
     },
     {
       "cell_id": "matplotlib_plt_show",
@@ -9971,7 +9999,8 @@
         }
       ],
       "primary_in": "void",
-      "primary_out": "void"
+      "primary_out": "void",
+      "endable": true
     },
     {
       "cell_id": "matplotlib_plt_close",
@@ -10039,7 +10068,8 @@
       ],
       "edges": [],
       "primary_in": "fig",
-      "primary_out": "void"
+      "primary_out": "void",
+      "endable": true
     }
   ],
   "types": {

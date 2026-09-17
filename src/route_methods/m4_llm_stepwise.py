@@ -130,13 +130,17 @@ class M4LLMStepwiseRouteMethod(RouteMethod):
                         f"Select the single next CELL_ID:"
                     )
                     resp = mm.generate_text(user_prompt, max_tokens=64, system_prompt=sys_prompt).strip()
+                    # Exact-token match only: a candidate id mentioned inside
+                    # another token (prose, prefixes) must not win by substring.
+                    resp_tokens = set(re.findall(r"[A-Za-z0-9_]+", resp.lower()))
                     for c in top_valid:
-                        if c.cell_id.lower() in resp.lower():
+                        if c.cell_id.lower() in resp_tokens:
                             selected_cell = c
                             break
-                    if "finish" in resp.lower():
+                    if "finish" in resp_tokens:
                         break
-                except Exception:
+                except (RuntimeError, ValueError, OSError) as e:
+                    logger.warning(f"[M4] LLM stepwise selection failed: {e}")
                     selected_cell = None
 
             # Structural fallback if LLM is inactive, failed, or unparseable

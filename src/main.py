@@ -91,7 +91,6 @@ class InitRequest(BaseModel):
     llm_model: Optional[str] = Field(default="", description="GGUF LLM model identifier or 'auto'")
     embedder_device: Optional[str] = Field(default="auto", description="Target compute device: cpu, cuda, or auto")
     llm_device: Optional[str] = Field(default="auto", description="Target compute device: cpu, cuda, or auto")
-    trees_storage: Optional[str] = Field(default="ram", description="Lattice storage strategy: ram or disk")
 
 
 class RunRequest(BaseModel):

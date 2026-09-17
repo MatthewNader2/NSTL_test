@@ -30,6 +30,23 @@ except (ImportError, ValueError):
 
 logger = get_logger('lattice')
 
+# Type-variable vocabulary declared by tree signatures (see trees/*.json
+# type_vars and generic carriers such as List[T], List[State]). A type name in
+# this set unifies with any concrete type. Data-driven domains may extend this
+# by declaring the variable in the cell's type_vars field.
+GENERIC_TYPE_VARIABLE_NAMES: FrozenSet[str] = frozenset((
+    "T", "U", "V", "R", "State",
+))
+
+# Qualifiers treated as ADVISORY during consumer-side satisfaction: they
+# denote shape/role refinements (constness, rank, index primacy) that
+# harvest-time producer signatures may legitimately omit. Declared here as
+# documented contract-relaxation data — consumer qualifiers outside this set
+# are hard demands and fail unification when unsatisfied.
+ADVISORY_QUALIFIERS: FrozenSet[Tuple[str, ...]] = frozenset((
+    ("const",), ("scalar",), ("vector",), ("matrix",), ("primary",),
+))
+
 ABSTRACT_CARRIERS: FrozenSet[str] = frozenset((
     "array-like",
     "array_like",
@@ -196,6 +213,8 @@ class TypeRegistry:
         self._parents: Dict[str, Set[str]] = {}
         self._aliases: Dict[str, str] = {}
         self._state_parents: Dict[str, str] = {}
+        self._state_carriers: Dict[str, str] = {}
+        self._state_properties: Dict[str, Dict[str, Any]] = {}
         self._bootstrap_carrier_hierarchy()
         self._bootstrap_state_hierarchy()
         self._bootstrap_plugin_types()
@@ -238,17 +257,14 @@ class TypeRegistry:
         # Tensor / array carriers
         self.register_type("ndarray", "array-like")
         self.register_type("matrix", "array-like")
-        self.register_type("dataframe", "array-like")
-        self.register_type("series", "array-like")
         self.register_type("list", "array-like")
         self.register_type("tuple", "array-like")
         self.register_type("array-like", "tensor")
         self.register_type("array-like", "sequence")
         self.register_type("buffer", "tensor")
-        # Tabular carriers
-        for t in ("dataframe", "series", "dataset"):
-            self.register_type(t, "table")
-            self.register_type(t, "array-like")
+        # NOTE: domain carriers (DataFrame, Series, MatLike, ...) are DECLARED
+        # DATA: each domain tree's `types` block registers them at load time
+        # (see _bootstrap_plugin_types / load_tree_file / load_from_database).
         # Aliases
         for alias, can in (
             ("string", "str"),
@@ -257,69 +273,26 @@ class TypeRegistry:
             ("dictionary", "dict"),
             ("number", "numeric"),
             ("array_like", "array-like"),
-            ("matlike", "tensor"),
         ):
             self.register_alias(alias, can)
 
     def _bootstrap_state_hierarchy(self):
-        """Initializes canonical, universal typestate preorder poset (S, <=)."""
-        # Machine learning features, partitions, and target states
-        self.register_state("split_train_features", "unscaled_features")
-        self.register_state("split_test_features", "unscaled_features")
-        self.register_state("unscaled_features", "feature_matrix")
-        self.register_state("scaled_features", "feature_matrix")
-        self.register_state("imputed_features", "unscaled_features")
-        self.register_state("encoded_features", "unscaled_features")
-        self.register_state("reduced_features", "feature_matrix")
-        self.register_state("feature_matrix", "ndarray_generic")
-
-        self.register_state("split_train_targets", "target_vector")
-        self.register_state("split_test_targets", "target_vector")
-        self.register_state("target_vector", "ndarray_generic")
-
-        # Tabular states
-        self.register_state("series_cleaned", "series_numeric")
-        self.register_state("series_numeric", "series_raw")
-        self.register_state("dataframe_2d_generic", "raw_dataset")
-        self.register_state("cleaned", "raw_dataset")
-        self.register_state("normalized", "cleaned")
-        self.register_state("transformed", "cleaned")
-        self.register_state("deduped", "cleaned")
-        self.register_state("filtered", "cleaned")
-        self.register_state("indexed", "cleaned")
-        self.register_state("numeric_only", "cleaned")
-
-        # Estimator states
-        self.register_state("fit_regressor", "fit_estimator")
-        self.register_state("fit_classifier", "fit_estimator")
-        self.register_state("fit_clusterer", "fit_estimator")
-        self.register_state("fit_transformer", "fit_estimator")
-        self.register_state("fit_estimator", "trained")
-        self.register_state("unfit_estimator", "default")
-
-        # Computer vision states
-        self.register_state("binary", "gray")
-        self.register_state("grayscale", "gray")
-        self.register_state("computed_threshold", "binary")
-        self.register_state("blurred", "gray")
-        self.register_state("edge_map", "gray")
-        self.register_state("dilated", "binary")
-        self.register_state("eroded", "binary")
-        self.register_state("morphology_processed", "binary")
-        self.register_state("contours", "collection")
-
-        # Egress / storage states
+        """
+        Initializes ONLY the universal, domain-agnostic egress typestates.
+        Domain state vocabularies (ML partitions, tabular lifecycles, vision
+        channels, ...) are DECLARED DATA: each domain tree's `typestates`
+        block (JSON) or the compiled database's `typestates` table registers
+        them at load time. Adding a new domain requires zero engine edits.
+        """
+        # Universal egress / storage states (filesystem egress is a property
+        # of the execution environment, not of any domain)
         self.register_state("saved", "written_to_disk")
         self.register_state("figure_saved", "written_to_disk")
         self.register_state("saved_npy", "written_to_disk")
         self.register_state("saved_npz", "written_to_disk")
         self.register_state("written_to_disk", "exported")
-
-        # Path and source identifier states
-        self.register_state("valid_path", "source_identifier")
-        self.register_state("file_path", "source_identifier")
-        self.register_state("file_path_str", "source_identifier")
-        self.register_state("source_path", "source_identifier")
+        self.register_state("exported", None)
+        self.register_state("default", None)
 
     def _bootstrap_plugin_types(self):
         """Dynamically ingests domain plugin types from trees/*.json without engine hardcoding."""
@@ -333,9 +306,13 @@ class TypeRegistry:
                         data = json.load(f)
                     if isinstance(data, dict) and "types" in data and isinstance(data["types"], dict):
                         for t_name, t_meta in data["types"].items():
-                            parent = t_meta.get("parent") if isinstance(t_meta, dict) else str(t_meta)
-                            if parent:
-                                self.register_type(t_name, parent)
+                            if isinstance(t_meta, dict):
+                                parents = t_meta.get("parents") or ([t_meta["parent"]] if t_meta.get("parent") else [])
+                            else:
+                                parents = [str(t_meta)]
+                            for parent in parents:
+                                if parent:
+                                    self.register_type(t_name, parent)
                 except Exception:
                     pass
 
@@ -504,8 +481,15 @@ class TypeRegistry:
                 pass
 
         return False
-    def register_state(self, state: str, parent_state: Optional[str] = None):
-        """Registers a typestate and its optional parent_state."""
+    def register_state(
+        self,
+        state: str,
+        parent_state: Optional[str] = None,
+        carrier_type: Optional[str] = None,
+        properties: Optional[Dict[str, Any]] = None,
+    ):
+        """Registers a typestate with its optional parent_state, declared
+        carrier_type, and verifiable properties (all declared tree data)."""
         s = str(state).strip().lower()
         if not s:
             return
@@ -513,10 +497,44 @@ class TypeRegistry:
             p = str(parent_state).strip().lower()
             if p and p != s:
                 self._state_parents[s] = p
+        if carrier_type:
+            self._state_carriers[s] = str(carrier_type)
+        if properties:
+            self._state_properties.setdefault(s, {}).update(
+                {str(k): v for k, v in properties.items()}
+            )
 
     def get_state_parent(self, state: str) -> Optional[str]:
         """Returns the declared parent_state of a typestate, if any."""
         return self._state_parents.get(str(state).strip().lower())
+
+    def get_state_carrier(self, state: str) -> Optional[str]:
+        """Returns the declared carrier_type of a typestate, if any."""
+        return self._state_carriers.get(str(state).strip().lower())
+
+    def get_state_properties(self, state: str) -> Dict[str, Any]:
+        """Returns the declared verifiable properties of a typestate.
+        Walks the parent chain so refinements inherit base properties."""
+        result: Dict[str, Any] = {}
+        seen: Set[str] = set()
+        curr = str(state).strip().lower()
+        while curr and curr not in seen:
+            seen.add(curr)
+            result.update(self._state_properties.get(curr, {}))
+            curr = self._state_parents.get(curr, "")
+        return result
+
+    def state_ancestry_reaches(self, state: str, ancestors: Set[str]) -> bool:
+        """True iff the state's declared parent chain reaches any of `ancestors`."""
+        target = {a.strip().lower() for a in ancestors}
+        curr = str(state).strip().lower()
+        seen: Set[str] = set()
+        while curr and curr not in seen:
+            if curr in target:
+                return True
+            seen.add(curr)
+            curr = self._state_parents.get(curr, "")
+        return False
 
     def is_state_compatible(
         self,
@@ -579,6 +597,49 @@ def is_subtype(sub: str, parent: str) -> bool:
 
 def canonical_type_name(type_name: str) -> str:
     return TypeRegistry.get_instance().canonical_name(type_name)
+
+
+def is_path_port(port: Any) -> bool:
+    """
+    Single shared predicate for "this port carries a filesystem path asset".
+    Type-driven (declared poset + abstract_type) with a documented naming
+    fallback for trees whose ports are string-typed path parameters.
+    """
+    if port is None:
+        return False
+    registry = TypeRegistry.get_instance()
+    sig = getattr(port, "signature", port)
+    t_name = str(getattr(sig, "type_name", "") or "").lower()
+    abstract_t = str(
+        getattr(port, "abstract_type", "") or getattr(sig, "abstract_type", "") or ""
+    ).lower()
+    if abstract_t == "path":
+        return True
+    if registry.is_subtype(t_name, "filepath") or registry.is_subtype(t_name, "uri"):
+        return True
+    # String-typed ports whose declared state marks them as path carriers
+    # (state names are declared typestate data).
+    state = str(getattr(sig, "state", "") or "").lower()
+    if state and registry.state_ancestry_reaches(state, {"source_identifier"}):
+        return True
+    # Naming fallback for unannotated string ports (single canonical list,
+    # token-boundary aware — shared by planner, unifier and contract builder).
+    name = str(getattr(port, "name", "") or "").lower()
+    if not name:
+        return False
+    name_tokens = set(re.split(r"[_\W]+", name)) - {""}
+    if name_tokens & PATH_PORT_NAME_TOKENS:
+        return True
+    return False
+
+
+# Naming-convention fallback tokens for path ports (used ONLY when the port
+# carries no path type/state declaration). Boundary-split tokens, so
+# e.g. "path_or_buf" matches via {"path", "or", "buf"}.
+PATH_PORT_NAME_TOKENS: FrozenSet[str] = frozenset({
+    "filepath", "filename", "file", "path", "pathname", "fname", "savepath",
+    "destination", "dest",
+})
 
 
 def _clean_abs_carrier(val: Any) -> str:
@@ -685,9 +746,10 @@ class AlgebraicSignature:
         p_tn = (self.type_name or "").strip()
         c_tn = (other_sig.type_name or "").strip()
         is_generic_match = False
-        
-        # 1. Bare type variables (T, U, V, State, Comparable, C, R) universally unify
-        if c_tn in ("T", "U", "V", "State", "Comparable", "C", "R") or p_tn in ("T", "U", "V", "State", "Comparable", "C", "R"):
+
+        # 1. Declared type variables (tree signature vocabulary, see
+        #    GENERIC_TYPE_VARIABLE_NAMES) unify universally.
+        if c_tn in GENERIC_TYPE_VARIABLE_NAMES or p_tn in GENERIC_TYPE_VARIABLE_NAMES:
             is_generic_match = True
         else:
             # 2. Parametric Container / Functor unification (e.g. List[Contour] <-> List[T])
@@ -699,8 +761,8 @@ class AlgebraicSignature:
                 p_ctor, p_inner = m_p.group(1).lower(), m_p.group(2).strip()
                 if c_ctor == p_ctor:
                     if (
-                        c_inner in ("T", "U", "V", "State", "Comparable", "C", "R", "Any", "*")
-                        or p_inner in ("T", "U", "V", "State", "Comparable", "C", "R", "Any", "*")
+                        c_inner in GENERIC_TYPE_VARIABLE_NAMES or c_inner in ("Any", "*")
+                        or p_inner in GENERIC_TYPE_VARIABLE_NAMES or p_inner in ("Any", "*")
                     ):
                         is_generic_match = True
             elif (c_tn.startswith("List[") and p_tn.lower() in ("list", "sequence", "iterable", "collection")) or                  (p_tn.startswith("List[") and c_tn.lower() in ("list", "sequence", "iterable", "collection")):
@@ -727,8 +789,10 @@ class AlgebraicSignature:
 
         # Qualifier satisfaction
         if other_sig.qualifiers and not other_sig.qualifiers.issubset(self.qualifiers):
-            ignorable = {("const",), ("scalar",), ("vector",), ("matrix",), ("primary",)}
-            req = {q for q in other_sig.qualifiers if q not in ignorable}
+            # Advisory qualifiers denote shape/role REFINEMENTS a producer may
+            # legitimately omit (harvesters do not always propagate them);
+            # they are documented contract-relaxation data, not silent demands.
+            req = {q for q in other_sig.qualifiers if q not in ADVISORY_QUALIFIERS}
             if req and not req.issubset(self.qualifiers):
                 return False
 
@@ -949,77 +1013,41 @@ class PortSignature:
 
     @property
     def derived_role(self) -> str:
+        """
+        Role resolution is DECLARED-DATA-FIRST:
+          1. the port's declared `port_role` (tree JSON field),
+          2. the declared typestate ancestry of its state (e.g. a state whose
+             registered parent chain reaches `target_vector` is a target;
+             reaches `feature_matrix` is a feature; reaches `trained`/`fit_estimator`
+             is a model; reaches `source_identifier` is a source asset),
+          3. the declared carrier type (subtype of `Estimator`, table carriers...).
+        No port-name conventions: naming is data, typing is semantics.
+        """
         if self.port_role:
             return self.port_role
 
-        name_lower = self.name.lower()
         state_lower = str(getattr(self.signature, "state", "")).lower()
-        desc_lower = (self.doc or "").lower()
-        qualifiers = {q[0].lower() for q in getattr(self.signature, "qualifiers", []) if q}
+        registry = TypeRegistry.get_instance()
 
-        # Check for feature input
-        if (
-            "feature" in state_lower
-            or "feature" in name_lower
-            or "matrix" in qualifiers
-            or (self.name in ("X", "x") or self.name.startswith(("X_", "x_")))
-            or "matrix" in desc_lower
-        ):
-            return "feature_input"
+        # Declared state ancestry -> role families
+        if state_lower and state_lower not in ("any", "*"):
+            if registry.state_ancestry_reaches(state_lower, {"target_vector", "target", "labels"}):
+                return "target_input"
+            if registry.state_ancestry_reaches(state_lower, {"feature_matrix", "features"}):
+                return "feature_input"
+            if registry.state_ancestry_reaches(state_lower, {"trained", "fit_estimator"}):
+                return "model_input"
+            if registry.state_ancestry_reaches(state_lower, {"source_identifier"}):
+                return "source_data"
+            if "sink" in state_lower or "dest" in state_lower or "dest_identifier" in state_lower:
+                return "model_sink"
 
-        # Check for target input
-        if (
-            "target" in state_lower
-            or "label" in state_lower
-            or "target" in name_lower
-            or "label" in name_lower
-            or "vector" in qualifiers
-            or (self.name == "y" or self.name.startswith("y_"))
-            or "vector" in desc_lower
-        ):
-            return "target_input"
-
-        # Check for model / estimator input
-        if (
-            "model" in name_lower
-            or "estimator" in name_lower
-            or "model" in state_lower
-            or "estimator" in state_lower
-        ):
-            return "model_input"
-
-        # Check for tabular / structural data input
+        # Declared carrier type -> role families
         t_name = self.type_name.lower()
-        if (
-            t_name in ("dataframe", "table", "dataset")
-            or "dataframe" in state_lower
-            or "adjacency" in state_lower
-            or "graph" in state_lower
-            or "data" in state_lower
-            or name_lower in ("df", "dataframe", "data", "graph", "dataset")
-        ):
+        if registry.is_subtype(t_name, "estimator"):
+            return "model_input"
+        if registry.is_subtype(t_name, "table") or registry.is_subtype(t_name, "tensor"):
             return "data_input"
-
-        # Check for source data / file input
-        if (
-            "source" in state_lower
-            or "source" in name_lower
-            or "filepath" in name_lower
-            or name_lower in ("file_path", "filename", "path")
-            or "source_identifier" in state_lower
-        ):
-            return "source_data"
-
-        # Check for model / destination sink
-        if (
-            "sink" in state_lower
-            or "dest" in state_lower
-            or "target_path" in name_lower
-            or "output_path" in name_lower
-            or "savepath" in name_lower
-            or "dest_identifier" in state_lower
-        ):
-            return "model_sink"
 
         return "standard"
 
@@ -1140,13 +1168,14 @@ class Cell(ABC):
         self.bound_slots = dict(bound_slots) if bound_slots else {}
 
         self.preconditions = list(preconditions or kwargs.get("preconditions", []))
-        eff = effects if effects is not None else postconditions
-        if eff is None:
-            eff = kwargs.get("effects", kwargs.get("postconditions", []))
-        self.postconditions = list(eff or [])
-        # Independent copy: effects and postconditions are separate slots and
-        # must never alias the same list object (mutations would cross-leak).
-        self.effects = list(self.postconditions)
+        # Postconditions and effects are separate declared slots. Declared
+        # postconditions WIN; effects may fill in only when postconditions are
+        # absent (some trees declare predicate-style effects only); effects
+        # fall back to postconditions so single-declaration trees populate both.
+        declared_posts = postconditions if postconditions is not None else kwargs.get("postconditions")
+        declared_effects = effects if effects is not None else kwargs.get("effects")
+        self.postconditions = list(declared_posts or declared_effects or [])
+        self.effects = list(declared_effects if declared_effects is not None else self.postconditions)
         self.edges = list(edges or kwargs.get("edges", []))
         self.endable = endable if endable is not None else kwargs.get("endable")
 
@@ -1568,9 +1597,13 @@ class LatticeOrchestrator:
                 if "types" in data and isinstance(data["types"], dict):
                     reg = TypeRegistry.get_instance()
                     for t_name, t_meta in data["types"].items():
-                        parent = t_meta.get("parent") if isinstance(t_meta, dict) else str(t_meta)
-                        if parent:
-                            reg.register_type(t_name, parent)
+                        if isinstance(t_meta, dict):
+                            parents = t_meta.get("parents") or ([t_meta["parent"]] if t_meta.get("parent") else [])
+                        else:
+                            parents = [str(t_meta)]
+                        for parent in parents:
+                            if parent:
+                                reg.register_type(t_name, parent)
                 if "typestates" in data and data["typestates"]:
                     self.typestate_vocabularies[domain] = data["typestates"]
                     ts_info = data["typestates"]
@@ -1581,7 +1614,12 @@ class LatticeOrchestrator:
                             s_name = s.get("name")
                             s_parent = s.get("parent_state")
                             if s_name:
-                                registry.register_state(s_name, s_parent)
+                                registry.register_state(
+                                    s_name,
+                                    s_parent,
+                                    carrier_type=s.get("carrier_type"),
+                                    properties=s.get("properties"),
+                                )
                         elif isinstance(s, str):
                             registry.register_state(s)
 
@@ -1649,7 +1687,12 @@ class LatticeOrchestrator:
             self.load_tree_file(os.path.join(target_dir, fname))
 
     def load_from_database(self, db_path: Optional[str] = None):
-        """Loads nodes from the compiled SQLite database."""
+        """Loads nodes from the compiled SQLite database.
+
+        Falls back loudly to the JSON trees when the database is empty or
+        unreadable — an empty/aborted compile must never silently produce a
+        zero-cell lattice.
+        """
         with self._lock:
             if db_path is not None:
                 self.db_path = db_path
@@ -1668,6 +1711,27 @@ class LatticeOrchestrator:
                     for t_name, p_type in cursor.fetchall():
                         if t_name and p_type:
                             reg.register_type(t_name, p_type)
+
+                # Declared typestate vocabulary (state hierarchy + verifiable
+                # properties) — same data the JSON trees carry in their
+                # `typestates` blocks; persisted here by tools/compile_trees.py.
+                cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='typestates'")
+                if cursor.fetchone():
+                    reg = TypeRegistry.get_instance()
+                    cursor.execute(
+                        "SELECT state_name, parent_state, carrier_type, properties FROM typestates"
+                    )
+                    for s_name, s_parent, s_carrier, s_props_json in cursor.fetchall():
+                        if not s_name:
+                            continue
+                        props: Optional[Dict[str, Any]] = None
+                        if s_props_json:
+                            try:
+                                parsed = json.loads(s_props_json)
+                                props = parsed if isinstance(parsed, dict) else None
+                            except Exception:
+                                props = None
+                        reg.register_state(s_name, s_parent, carrier_type=s_carrier, properties=props)
                 cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name IN ('nodes', 'cells')")
                 tables = [row[0] for row in cursor.fetchall()]
 
@@ -1893,7 +1957,7 @@ class LatticeOrchestrator:
                             keywords=keywords,
                             inputs=inputs,
                             outputs=outputs,
-                            domain_name="data_processing",
+                            domain_name=domain_name or Path(self.db_path).stem.lower(),
                             dependencies=deps,
                             code_template=code or "",
                             verified=True,
@@ -1906,6 +1970,16 @@ class LatticeOrchestrator:
                 logger.info(f"[LATTICE] Loaded {len(self.loaded_cells)} nodes from database.")
             except Exception as e:
                 logger.error(f"[LATTICE] Failed loading database: {e}")
+
+            if not self.loaded_cells:
+                # Empty or failed database compile: NEVER ship a silently-empty
+                # lattice — rebuild from the JSON trees instead.
+                logger.warning(
+                    f"[LATTICE] Database '{self.db_path}' yielded 0 nodes; "
+                    f"falling back to JSON trees in '{self.trees_directory}'."
+                )
+                self.loaded_cells.clear()
+                self.load_all_json_trees()
 
     def build_topology(self):
         """

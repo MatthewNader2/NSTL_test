@@ -45,7 +45,8 @@
         "define",
         "method",
         "procedure"
-      ]
+      ],
+      "effects": []
     },
     {
       "cell_id": "CF_LAMBDA",
@@ -81,7 +82,8 @@
         "lambda",
         "anonymous",
         "inline_function"
-      ]
+      ],
+      "effects": []
     },
     {
       "cell_id": "CF_CLASS_DEF",
@@ -142,7 +144,8 @@
         "object",
         "type",
         "struct"
-      ]
+      ],
+      "effects": []
     },
     {
       "cell_id": "CF_RECURSIVE_FUNC",
@@ -197,7 +200,8 @@
         "recursive",
         "self_referential",
         "fixpoint"
-      ]
+      ],
+      "effects": []
     },
     {
       "cell_id": "CF_DIVIDE_AND_CONQUER",
@@ -258,7 +262,8 @@
         "mergesort",
         "tree",
         "split_combine"
-      ]
+      ],
+      "effects": []
     },
     {
       "cell_id": "CF_COND_CHAIN",
@@ -301,7 +306,8 @@
         "elif",
         "dispatch",
         "cases"
-      ]
+      ],
+      "effects": []
     },
     {
       "cell_id": "CF_NESTED_FOR_EACH",
@@ -350,7 +356,8 @@
         "2d_loop",
         "grid",
         "outer_inner"
-      ]
+      ],
+      "effects": []
     },
     {
       "cell_id": "CF_TOP_K",
@@ -399,7 +406,8 @@
         "max",
         "sort",
         "head"
-      ]
+      ],
+      "effects": []
     },
     {
       "cell_id": "CF_BOTTOM_K",
@@ -445,7 +453,8 @@
         "min",
         "rank",
         "tail"
-      ]
+      ],
+      "effects": []
     },
     {
       "cell_id": "CF_MAP",
@@ -484,7 +493,8 @@
         "each",
         "elementwise",
         "convert"
-      ]
+      ],
+      "effects": []
     },
     {
       "cell_id": "CF_FILTER",
@@ -523,7 +533,8 @@
         "condition",
         "predicate",
         "keep"
-      ]
+      ],
+      "effects": []
     },
     {
       "cell_id": "CF_FLAT_MAP",
@@ -560,7 +571,8 @@
         "flatten",
         "bind",
         "nested"
-      ]
+      ],
+      "effects": []
     },
     {
       "cell_id": "CF_FOLD_REDUCE",
@@ -607,7 +619,8 @@
         "aggregate",
         "sum",
         "combine"
-      ]
+      ],
+      "effects": []
     },
     {
       "cell_id": "CF_ZIP_WITH",
@@ -650,7 +663,8 @@
         "pair",
         "combine",
         "pairwise"
-      ]
+      ],
+      "effects": []
     },
     {
       "cell_id": "CF_FOR_EACH_STATE",
@@ -694,7 +708,8 @@
         "iterate",
         "loop",
         "accumulate"
-      ]
+      ],
+      "effects": []
     },
     {
       "cell_id": "CF_FOR_RANGE_STATE",
@@ -750,7 +765,8 @@
         "step",
         "iteration",
         "loop"
-      ]
+      ],
+      "effects": []
     },
     {
       "cell_id": "CF_FOR_ENUMERATE_MAP",
@@ -792,7 +808,8 @@
         "enumerate",
         "index",
         "indexed_map"
-      ]
+      ],
+      "effects": []
     },
     {
       "cell_id": "CF_WHILE_LOOP",
@@ -837,7 +854,8 @@
         "repeat",
         "converge",
         "iterate"
-      ]
+      ],
+      "effects": []
     },
     {
       "cell_id": "CF_WHILE_BOUNDED",
@@ -885,7 +903,8 @@
         "bounded_while",
         "safe_loop",
         "max_iterations"
-      ]
+      ],
+      "effects": []
     },
     {
       "cell_id": "CF_REPEAT_UNTIL",
@@ -927,7 +946,8 @@
         "repeat",
         "until",
         "do_while"
-      ]
+      ],
+      "effects": []
     },
     {
       "cell_id": "CF_BRANCH_IF_ELSE",
@@ -978,7 +998,8 @@
         "conditional",
         "switch",
         "choose"
-      ]
+      ],
+      "effects": []
     },
     {
       "cell_id": "CF_BRANCH_COND_ELIF",
@@ -1039,7 +1060,8 @@
         "multi_branch",
         "conditional",
         "cases"
-      ]
+      ],
+      "effects": []
     },
     {
       "cell_id": "CF_MATCH_CASE",
@@ -1106,7 +1128,8 @@
         "case",
         "pattern_match",
         "switch"
-      ]
+      ],
+      "effects": []
     },
     {
       "cell_id": "CF_TRY_EXCEPT",
@@ -1159,7 +1182,8 @@
         "safe",
         "exception",
         "handle"
-      ]
+      ],
+      "effects": []
     },
     {
       "cell_id": "CF_TRY_EXCEPT_FINALLY",
@@ -1215,7 +1239,8 @@
         "cleanup",
         "guaranteed",
         "catch"
-      ]
+      ],
+      "effects": []
     },
     {
       "cell_id": "CF_TRY_EXCEPT_ELSE",
@@ -1270,7 +1295,8 @@
         "except",
         "else",
         "success"
-      ]
+      ],
+      "effects": []
     },
     {
       "cell_id": "CF_RETRY_BACKOFF",
@@ -1332,7 +1358,8 @@
         "resilience",
         "attempts",
         "exponential"
-      ]
+      ],
+      "effects": []
     },
     {
       "cell_id": "CF_FIND_FIRST",
@@ -1375,7 +1402,8 @@
         "first",
         "search",
         "match"
-      ]
+      ],
+      "effects": []
     },
     {
       "cell_id": "CF_ALL_SATISFY",
@@ -1411,7 +1439,8 @@
         "all",
         "every",
         "universal"
-      ]
+      ],
+      "effects": []
     },
     {
       "cell_id": "CF_ANY_SATISFY",
@@ -1447,7 +1476,8 @@
         "any",
         "some",
         "exists"
-      ]
+      ],
+      "effects": []
     },
     {
       "cell_id": "CF_PARTITION",
@@ -1486,7 +1516,8 @@
         "partition",
         "split",
         "divide"
-      ]
+      ],
+      "effects": []
     },
     {
       "cell_id": "CF_GUARD",
@@ -1535,7 +1566,8 @@
         "precondition",
         "assert",
         "validate"
-      ]
+      ],
+      "effects": []
     },
     {
       "cell_id": "CF_WITH_CONTEXT",
@@ -1573,7 +1605,12 @@
         "resource",
         "bracket",
         "open"
-      ]
+      ],
+      "effects": []
     }
-  ]
+  ],
+  "typestates": {
+    "domain": "control_flow",
+    "states": []
+  }
 }

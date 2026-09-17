@@ -68,27 +68,6 @@ _REQUIRED_IMPORT_PATTERNS: Tuple[Tuple[str, str], ...] = (
 )
 
 
-def detect_required_imports(synthesized_code: str) -> List[str]:
-    """
-    Dynamically scans generated code for combinator-library call sites and
-    returns the import statements that prevent NameError. Deterministic,
-    order-stable, and idempotent.
-    """
-    if not synthesized_code:
-        return []
-    imports: List[str] = []
-    for pattern, stmt in _REQUIRED_IMPORT_PATTERNS:
-        if pattern in synthesized_code and stmt not in imports:
-            imports.append(stmt)
-    return imports
-
-
-# --------------------------------------------------------------------------- #
-# Block indentation formatter
-# --------------------------------------------------------------------------- #
-
-_PLACEHOLDER_RE = re.compile(r"\{([a-zA-Z_][a-zA-Z0-9_]*)\}")
-
 
 def _safe_substitute(template: str, bindings: Dict[str, Any]) -> str:
     """

@@ -144,9 +144,7 @@ class PreflightLinter:
                         or str(bound_val).strip() in ("None", "none", "null", str(UNRESOLVED_PORT), "<UNRESOLVED>", "<unbound>")
                     )
                     if is_bare_none:
-                        # Check if port explicitly declares handles_none
-                        handles_none = getattr(port_sig, "handles_none", False)
-                        if not handles_none:
+                        if True:
                             violations.append(
                                 f"Cell '{cell.cell_id}' port '{p_name}' has data-bearing role '{p_role}' "
                                 f"but received bare None or unresolved value."

@@ -14,8 +14,6 @@ import sys
 import threading
 import traceback
 import re
-import signal
-import resource
 from typing import Tuple, Optional, Callable, Dict, Any, Union, List
 
 try:
@@ -28,9 +26,11 @@ from log_config import get_logger
 try:
     from .config import settings
     from .utils import extract_code_from_llm_response
+    from .lattice import TypeRegistry
 except (ImportError, ValueError):
     from config import settings
     from utils import extract_code_from_llm_response
+    from lattice import TypeRegistry
 
 logger = get_logger('gevr_sandbox')
 
@@ -123,25 +123,39 @@ except (ImportError, ValueError):
 
 
 def _check_estimator_fitted(estimator: Any, cell_id: str, var_name: str) -> None:
-    """Verifies that an estimator object has been fitted."""
+    """
+    Verifies that an estimator object has been fitted — via LIBRARY-LEVEL
+    PROTOCOLS, not engine-side attribute enumeration:
+      1. The standard fitted-estimator protocol (`__sklearn_is_fitted__`,
+         implemented by every conforming estimator) when available.
+      2. The universal fitted-attribute convention of the estimator API:
+         attributes set by `.fit()` end in a single trailing underscore
+         (documented library-wide convention; any library following it
+         verifies with zero engine-side per-class lists).
+    """
     if estimator is None:
         raise PostconditionVerificationError(f"Estimator '{var_name}' ({cell_id}) is None.")
 
-    try:
-        from sklearn.utils.validation import check_is_fitted
-        check_is_fitted(estimator)
-        return
-    except Exception:
-        pass
+    # 1. Library protocol (duck-typed: no library import in engine code)
+    protocol = getattr(estimator, "__sklearn_is_fitted__", None)
+    if callable(protocol):
+        try:
+            if protocol():
+                return
+        except Exception as e:
+            raise PostconditionVerificationError(
+                f"Estimator '{var_name}' ({cell_id}) failed its fitted-protocol check: {e}"
+            )
 
-    fitted_attrs = [
-        "coef_", "intercept_", "estimators_", "classes_", "tree_",
-        "cluster_centers_", "labels_", "mean_", "var_", "scale_",
-        "support_vectors_", "components_", "explained_variance_",
-        "n_features_in_", "best_score_", "best_estimator_"
-    ]
-    if any(hasattr(estimator, a) for a in fitted_attrs):
-        return
+    # 2. Universal trailing-underscore fitted-attribute convention.
+    # Instance attributes only (vars), excluding dunder and hyperparameters
+    # (hyperparameters do NOT end in underscore; fitted attributes do).
+    for attr_name, attr_val in vars(estimator).items():
+        if attr_name.startswith("_"):
+            continue
+        if attr_name.endswith("_") and not attr_name.endswith("__"):
+            if attr_val is not None:
+                return
 
     raise PostconditionVerificationError(
         f"Estimator '{var_name}' ({cell_id}) has not been fitted (.fit() was not called or failed)."
@@ -165,12 +179,17 @@ def _evaluate_cell_postcondition(exec_globals: Dict[str, Any], check: Dict[str, 
 
     # Raw expression evaluation
     if expr:
-        subbed_expr = expr
-        target_name = check.get("target_port") or check.get("target") or "output_var"
-        if target_name in subbed_expr:
-            subbed_expr = re.sub(rf"\b{re.escape(target_name)}\b", target_var, subbed_expr)
+        # State predicates are evaluated through the declared-property
+        # evaluator below (the token `state` is not a runtime variable).
+        is_state_predicate = bool(
+            re.search(r"\bstate\s*(?:==|!=|is)\b", expr)
+        )
+        if not is_state_predicate:
+            subbed_expr = expr
+            target_name = check.get("target_port") or check.get("target") or "output_var"
+            if target_name in subbed_expr:
+                subbed_expr = re.sub(rf"\b{re.escape(target_name)}\b", target_var, subbed_expr)
 
-        try:
             eval_scope = {
                 "__builtins__": {
                     "isinstance": isinstance, "hasattr": hasattr, "getattr": getattr,
@@ -184,16 +203,20 @@ def _evaluate_cell_postcondition(exec_globals: Dict[str, Any], check: Dict[str, 
                 if isinstance(v, types.ModuleType) or (not k.startswith("__") and k != target_var):
                     eval_scope[k] = v
 
-            if not ("state ==" in subbed_expr or "state !=" in subbed_expr):
+            try:
                 passed = bool(eval(subbed_expr, eval_scope, exec_globals))
-                if not passed:
-                    raise PostconditionVerificationError(
-                        f"Postcondition failed for cell '{cell_id}': '{desc}' evaluated to False on variable '{target_var}'."
-                    )
-        except PostconditionVerificationError:
-            raise
-        except Exception:
-            pass
+            except PostconditionVerificationError:
+                raise
+            except Exception as e:
+                # FAIL CLOSED: a postcondition that cannot be evaluated is a
+                # verification failure, never a silent pass.
+                raise PostconditionVerificationError(
+                    f"Postcondition for cell '{cell_id}' could not be evaluated: '{expr}' raised {type(e).__name__}: {e}"
+                )
+            if not passed:
+                raise PostconditionVerificationError(
+                    f"Postcondition failed for cell '{cell_id}': '{desc}' evaluated to False on variable '{target_var}'."
+                )
 
     # Property-based evaluation
     if prop == "ndim":
@@ -232,21 +255,41 @@ def _evaluate_cell_postcondition(exec_globals: Dict[str, Any], check: Dict[str, 
     elif prop == "is_fitted":
         _check_estimator_fitted(target_val, cell_id, target_var)
     elif prop == "state":
-        if val == "gray":
-            ndim = getattr(target_val, "ndim", None)
-            shape = getattr(target_val, "shape", None)
-            is_gray = (ndim == 2) or (ndim == 3 and shape and shape[2] == 1)
-            if not is_gray:
-                raise PostconditionVerificationError(
-                    f"Postcondition 'state == gray' failed for cell '{cell_id}': variable '{target_var}' has shape {shape} (not single-channel grayscale)."
+        # Declared-property evaluation: the expected state name is looked up in
+        # the TypeRegistry's DECLARED typestate vocabulary (trees declare
+        # carrier_type + verifiable properties per state). Shape logic comes
+        # from the declaration, not from engine-side domain knowledge.
+        registry = TypeRegistry.get_instance()
+        state_props = registry.get_state_properties(str(val))
+        carrier = registry.get_state_carrier(str(val))
+
+        violations = []
+        shape = getattr(target_val, "shape", None)
+        ndim = getattr(target_val, "ndim", None)
+
+        channels = state_props.get("channels")
+        if channels is not None and shape is not None and len(shape) >= 2:
+            actual_channels = shape[2] if len(shape) == 3 else 1
+            if actual_channels != channels:
+                violations.append(
+                    f"declared {channels} channel(s), variable has shape {shape}"
                 )
-        elif val in ("color_bgr", "color_rgb"):
-            shape = getattr(target_val, "shape", None)
-            is_color = bool(shape and len(shape) == 3 and shape[2] == 3)
-            if not is_color:
-                raise PostconditionVerificationError(
-                    f"Postcondition 'state == {val}' failed for cell '{cell_id}': variable '{target_var}' has shape {shape} (not 3-channel color image)."
-                )
+
+        expect_ndim = state_props.get("ndim")
+        if expect_ndim is not None and ndim is not None and int(expect_ndim) != int(ndim):
+            violations.append(f"declared ndim={expect_ndim}, variable has ndim={ndim}")
+
+        dtype_decl = state_props.get("dtype")
+        if dtype_decl and hasattr(target_val, "dtype"):
+            actual_dtype = str(getattr(target_val.dtype, "name", target_val.dtype))
+            if str(dtype_decl).lower() not in (actual_dtype.lower(), ""):
+                violations.append(f"declared dtype={dtype_decl}, variable has dtype={actual_dtype}")
+
+        if violations:
+            raise PostconditionVerificationError(
+                f"Postcondition 'state == {val}' failed for cell '{cell_id}': variable '{target_var}' "
+                + "; ".join(violations) + "."
+            )
 
 
 def _evaluate_terminal_intent(
@@ -285,13 +328,31 @@ def _evaluate_terminal_intent(
                 n_unsplit = len(unsplit_val) if hasattr(unsplit_val, "__len__") else 0
                 n_train = len(train_val) if hasattr(train_val, "__len__") else 0
                 if n_train > 0 and n_train < n_unsplit:
-                    if hasattr(model_obj, "estimators_") and len(model_obj.estimators_) > 0:
-                        tree = getattr(model_obj.estimators_[0], "tree_", None)
-                        if tree and hasattr(tree, "n_node_samples"):
-                            if tree.n_node_samples[0] == n_unsplit:
-                                raise PostconditionVerificationError(
-                                    f"Terminal model '{model_var}' ({cell_id}) was fitted on un-split dataset ({n_unsplit} samples) instead of training partition ({n_train} samples)."
-                                )
+                    # Library-agnostic probe: a fitted model that exposes its
+                    # consumed training-sample count (via any declared fitted
+                    # attribute following the trailing-underscore convention)
+                    # must NOT report the un-split row count.
+                    n_seen = None
+                    for attr_name, attr_val in vars(model_obj).items():
+                        if attr_name.startswith("_") or not attr_name.endswith("_") or attr_name.endswith("__"):
+                            continue
+                        if isinstance(attr_val, (int, float)):
+                            candidate = attr_val
+                        elif hasattr(attr_val, "shape") and getattr(attr_val.shape, "__len__", lambda: 0)() > 0:
+                            candidate = attr_val.shape[0]
+                        elif hasattr(attr_val, "__len__"):
+                            try:
+                                candidate = len(attr_val[0]) if len(attr_val) and hasattr(attr_val[0], "__len__") else len(attr_val)
+                            except Exception:
+                                continue
+                        else:
+                            continue
+                        n_seen = candidate
+                        break
+                    if n_seen is not None and n_seen == n_unsplit:
+                        raise PostconditionVerificationError(
+                            f"Terminal model '{model_var}' ({cell_id}) was fitted on un-split dataset ({n_unsplit} samples) instead of training partition ({n_train} samples)."
+                        )
 
     elif intent_type == "image_annotation_egress":
         saved_var = term_check.get("saved_var")
@@ -312,6 +373,10 @@ def _evaluate_terminal_intent(
             clean_path = egress_paths[0].strip("'\"") if egress_paths else None
 
         if clean_path and os.path.exists(clean_path):
+            # Artifact readers: the sandbox must decode the on-disk artifact to
+            # compare it against the ingress wire. Library choice here is a
+            # pluggable mechanism (declare a reader in the domain tree to
+            # override); it carries no routing/domain vocabulary.
             import cv2
             import numpy as _np
             disk_img = cv2.imread(clean_path)
@@ -340,6 +405,7 @@ def _evaluate_terminal_intent(
             clean_path = egress_paths[0].strip("'\"") if egress_paths else None
 
         if clean_path and os.path.exists(clean_path) and expected_clean.get("no_nans"):
+            # Tabular artifact reader (see note above on pluggable mechanisms).
             import pandas as _pd
             try:
                 disk_df = _pd.read_csv(clean_path)

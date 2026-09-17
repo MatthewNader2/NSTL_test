@@ -350,7 +350,7 @@
       },
       {
         "name": "transformed",
-        "parent_state": null,
+        "parent_state": "cleaned",
         "carrier_type": "Image",
         "description": "Image geometrically transformed (affine, perspective, or mesh).",
         "properties": {
@@ -374,6 +374,12 @@
         "properties": {
           "closed": true
         }
+      },
+      {
+        "name": "destination_path",
+        "parent_state": "source_identifier",
+        "carrier_type": "str",
+        "description": "Declared by data migration (formerly engine bootstrap state 'destination_path')."
       }
     ],
     "transitions": [
@@ -3984,7 +3990,8 @@
       "preconditions": [],
       "postconditions": [],
       "effects": [
-        "extracts_contours"
+        "extracts_contours",
+        "draws_annotation"
       ],
       "edges": [
         {
@@ -6701,7 +6708,8 @@
       ],
       "edges": [],
       "primary_in": "image",
-      "primary_out": "void"
+      "primary_out": "void",
+      "endable": true
     },
     {
       "cell_id": "PILLOW_IMAGE_SAVE_JPEG",
@@ -6817,7 +6825,8 @@
       ],
       "edges": [],
       "primary_in": "image",
-      "primary_out": "void"
+      "primary_out": "void",
+      "endable": true
     },
     {
       "cell_id": "PILLOW_IMAGE_SAVE_PNG",
@@ -6921,7 +6930,8 @@
       ],
       "edges": [],
       "primary_in": "image",
-      "primary_out": "void"
+      "primary_out": "void",
+      "endable": true
     },
     {
       "cell_id": "PILLOW_IMAGE_SHOW",
@@ -7004,7 +7014,8 @@
       ],
       "edges": [],
       "primary_in": "image",
-      "primary_out": "void"
+      "primary_out": "void",
+      "endable": true
     },
     {
       "cell_id": "PILLOW_IMAGE_FROMBYTES",
@@ -10165,7 +10176,8 @@
       ],
       "edges": [],
       "primary_in": "image",
-      "primary_out": "void"
+      "primary_out": "void",
+      "endable": true
     },
     {
       "cell_id": "PILLOW_IMAGE_SAVE_GIF_ANIMATED",
@@ -10301,7 +10313,8 @@
       ],
       "edges": [],
       "primary_in": "image",
-      "primary_out": "void"
+      "primary_out": "void",
+      "endable": true
     },
     {
       "cell_id": "PILLOW_IMAGE_SEEK",
@@ -10537,7 +10550,8 @@
       ],
       "edges": [],
       "primary_in": "image",
-      "primary_out": "void"
+      "primary_out": "void",
+      "endable": true
     }
   ],
   "types": {

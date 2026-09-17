@@ -23,7 +23,7 @@ if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
 from audit_trees import check_template_wiring
-from src.semantic_repair_engine import repair_cell_semantics
+from semantic_repair_engine import repair_cell_semantics
 from src.template_wiring import clean_malformed_template_braces, transform_call_ast_with_flag
 import re
 

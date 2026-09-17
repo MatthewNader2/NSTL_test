@@ -81,5 +81,23 @@ API_PORT = settings.api_port
 CORS_ORIGINS = settings.cors_origins
 SIMILARITY_THRESHOLD = 0.25
 
-def find_llama_server():
+def find_llama_server() -> Optional[Path]:
+    """
+    Locates a llama.cpp server binary, if one is available:
+      1. `llama-server` / `llamafile` on PATH,
+      2. any llama-server binary inside the configured models directory.
+    Returns the executable path or None (an honest result — the caller is
+    expected to degrade gracefully when no server exists).
+    """
+    import shutil
+    for name in ("llama-server", "llamafile", "llama_cpp_server"):
+        found = shutil.which(name)
+        if found:
+            return Path(found)
+    models = settings.models_dir
+    if models and models.exists():
+        for pattern in ("**/llama-server*", "**/llamafile*"):
+            matches = sorted(p for p in models.glob(pattern) if p.is_file() and os.access(p, os.X_OK))
+            if matches:
+                return matches[0]
     return None

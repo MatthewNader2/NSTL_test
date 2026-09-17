@@ -81,7 +81,8 @@ class M5LLMOneShotRouteMethod(RouteMethod):
                         cid_clean = str(cid).strip().lower()
                         if cid_clean in cand_map:
                             proposed_cells.append(cand_map[cid_clean])
-            except Exception:
+            except (ValueError, KeyError, TypeError) as e:
+                logger.warning(f"[M5] LLM one-shot proposal unparseable: {e}")
                 proposed_cells = []
 
         # Fallback to M1 if LLM failed or produced empty list
@@ -108,6 +109,20 @@ class M5LLMOneShotRouteMethod(RouteMethod):
                 bridge = self.find_bridge(curr_c, next_c, candidates, orch)
                 if bridge:
                     validated_chain.append(bridge)
-                validated_chain.append(next_c)
+                    validated_chain.append(next_c)
+                else:
+                    # No bridge found: inserting next_c anyway would knowingly
+                    # ship a type break. Repair honestly via the M1 fallback.
+                    fallback = M1ClauseAnchorRouteMethod(orchestrator=orch)
+                    return fallback.plan(
+                        prompt=prompt,
+                        tunnel=tunnel,
+                        relevance_map=relevance_map,
+                        orchestrator=orch,
+                        ctx=ctx,
+                        start_sig=start_sig,
+                        goal_sig=goal_sig,
+                        max_transforms=max_transforms
+                    )
 
         return validated_chain[:max_transforms + 2]

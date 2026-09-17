@@ -20,19 +20,13 @@ except (ImportError, ValueError):
     from lattice import Cell, MicroCell, MacroCell, LatticeOrchestrator, TypeRegistry
     from unification import unify, Substitution, ExecutionContext
     from tokenizer import CellTokenizer
-    from planner import LatticePlanner
+    from planner import LatticePlanner, STOPWORDS, _WILDCARD_CARRIERS
 
 logger = get_logger("route_methods")
 
-STOPWORDS = frozenset({
-    "a", "an", "the", "in", "on", "at", "of", "to", "for", "from", "by", "with",
-    "and", "or", "as", "is", "are", "was", "were", "be", "been", "it", "its",
-    "them", "they", "their", "this", "that", "these", "those",
-    "make", "sure", "some", "get", "do", "using", "use", "into", "onto",
-    "all", "each", "also", "just", "named", "have", "has", "having"
-})
-
-_WILDCARD_CARRIERS = frozenset(("any", "", "none", "*", "top", "unknown"))
+# STOPWORDS / _WILDCARD_CARRIERS are imported from planner (single source of
+# truth — duplicated vocabularies silently drift and change token filtering
+# between the router, the planner and the route methods).
 
 
 class RouteMethod(ABC):
@@ -174,10 +168,13 @@ class RouteMethod(ABC):
     def segment_prompt_clauses(self, prompt: str) -> List[str]:
         """
         Partitions user prompt into sequential procedural clauses.
+        Delegates to the planner's single LANGUAGE-level segmenter so clause
+        counts agree everywhere (the retired verb-lookahead splitter here used
+        domain vocabulary as split triggers — the planner's segmenter splits
+        only on punctuation/sequencing and merges list continuations).
         """
-        if not prompt:
-            return []
-        pattern = r'[;]|\b(?:then|and then)\b|,\s*|\band (?=(?:convert|drop|save|write|sort|filter|train|fit|predict|clean|read|load|plot|display))\b'
-        raw_clauses = re.split(pattern, prompt, flags=re.IGNORECASE)
-        cleaned = [c.strip() for c in raw_clauses if c.strip()]
-        return cleaned if cleaned else [prompt]
+        try:
+            from .planner import _segment_prompt_clauses
+        except (ImportError, ValueError):
+            from planner import _segment_prompt_clauses
+        return _segment_prompt_clauses(prompt)

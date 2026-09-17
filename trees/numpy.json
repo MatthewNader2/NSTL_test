@@ -166,6 +166,12 @@
         "properties": {
           "format": "buffer"
         }
+      },
+      {
+        "name": "file_path_str",
+        "parent_state": "source_identifier",
+        "carrier_type": "str",
+        "description": "Declared by data migration (formerly engine bootstrap state 'file_path_str')."
       }
     ],
     "transitions": [
@@ -4081,7 +4087,8 @@
           "enum_values": null,
           "param_kind": "standard",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "port_role": "feature_input"
         },
         "y": {
           "type_name": "ndarray",
@@ -4095,7 +4102,8 @@
           "enum_values": null,
           "param_kind": "standard",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "port_role": "target_input"
         }
       },
       "outputs": {
@@ -5003,7 +5011,8 @@
           "enum_values": null,
           "param_kind": "standard",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "port_role": "feature_input"
         }
       },
       "outputs": {
@@ -5087,7 +5096,8 @@
           "enum_values": null,
           "param_kind": "standard",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "port_role": "feature_input"
         }
       },
       "outputs": {
@@ -5171,7 +5181,8 @@
           "enum_values": null,
           "param_kind": "standard",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "port_role": "feature_input"
         }
       },
       "outputs": {
@@ -5256,7 +5267,8 @@
           "enum_values": null,
           "param_kind": "standard",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "port_role": "feature_input"
         }
       },
       "outputs": {
@@ -7723,7 +7735,8 @@
           "enum_values": null,
           "param_kind": "standard",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "port_role": "feature_input"
         },
         "ord": {
           "type_name": "str",
@@ -8883,7 +8896,8 @@
           "enum_values": null,
           "param_kind": "standard",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "port_role": "feature_input"
         },
         "axes": {
           "type_name": "tuple",
@@ -8985,7 +8999,8 @@
           "enum_values": null,
           "param_kind": "standard",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "port_role": "feature_input"
         },
         "axes": {
           "type_name": "tuple",
@@ -9689,7 +9704,8 @@
           "enum_values": null,
           "param_kind": "standard",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "port_role": "feature_input"
         }
       },
       "outputs": {
@@ -10291,7 +10307,8 @@
       "effects": [],
       "edges": [],
       "primary_in": "array",
-      "primary_out": "output_var"
+      "primary_out": "output_var",
+      "endable": true
     },
     {
       "cell_id": "NUMPY_SAVEZ_COMPRESSED",
@@ -10384,7 +10401,8 @@
       "effects": [],
       "edges": [],
       "primary_in": "array",
-      "primary_out": "output_var"
+      "primary_out": "output_var",
+      "endable": true
     },
     {
       "cell_id": "NUMPY_TOBYTES",
@@ -10480,7 +10498,8 @@
       "effects": [],
       "edges": [],
       "primary_in": "array",
-      "primary_out": "output_var"
+      "primary_out": "output_var",
+      "endable": true
     },
     {
       "cell_id": "NUMPY_TOFILE",
@@ -10603,7 +10622,8 @@
       "effects": [],
       "edges": [],
       "primary_in": "array",
-      "primary_out": "output_var"
+      "primary_out": "output_var",
+      "endable": true
     },
     {
       "cell_id": "NUMPY_TOLIST",
@@ -10682,7 +10702,8 @@
       "effects": [],
       "edges": [],
       "primary_in": "array",
-      "primary_out": "output_var"
+      "primary_out": "output_var",
+      "endable": true
     }
   ],
   "types": {

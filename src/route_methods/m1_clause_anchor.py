@@ -19,6 +19,22 @@ except (ImportError, ValueError):
     from unification import unify, ExecutionContext
 
 
+def _clause_has_egress_intent(clause: str) -> bool:
+    """Language-level materialization intent for a clause: declared egress
+    verbs (planner.EGRESS_INTENT_TOKENS) or an explicit file asset literal —
+    the two ways English marks an output destination. No ad-hoc fragment
+    lists ("to_")."""
+    try:
+        from .planner import EGRESS_INTENT_TOKENS
+    except (ImportError, ValueError):
+        from planner import EGRESS_INTENT_TOKENS
+    toks = set(CellTokenizer.tokenize_prompt(clause.lower()))
+    if toks & EGRESS_INTENT_TOKENS:
+        return True
+    literals = ExecutionContext._extract_universal_literals(clause)
+    return any(kind == "file_asset" for _, kind, _ in literals)
+
+
 class M1ClauseAnchorRouteMethod(RouteMethod):
     """
     RouteMethod M1: Clause-Anchored Insertion.
@@ -60,7 +76,7 @@ class M1ClauseAnchorRouteMethod(RouteMethod):
 
             if idx == 0 and len(clauses) > 1:
                 pool = [c for c in candidates if getattr(c, "stage", None) == 1] or candidates
-            elif idx == len(clauses) - 1 and len(clauses) > 1 and any(w in cl.lower() for w in ("save", "write", "to_", "output", "export")):
+            elif idx == len(clauses) - 1 and len(clauses) > 1 and _clause_has_egress_intent(cl):
                 pool = [c for c in candidates if getattr(c, "stage", None) == 3] or candidates
             else:
                 pool = [c for c in candidates if getattr(c, "stage", None) != 1] or candidates

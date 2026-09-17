@@ -6,7 +6,7 @@
     "states": [
       {
         "name": "file_path",
-        "parent_state": null,
+        "parent_state": "source_identifier",
         "carrier_type": "str",
         "description": "Filesystem path pointing to an image or video asset",
         "properties": {
@@ -71,7 +71,7 @@
       },
       {
         "name": "blurred",
-        "parent_state": null,
+        "parent_state": "gray",
         "carrier_type": "ndarray",
         "description": "Spatially smoothed tensor with high-frequency spatial noise attenuated",
         "properties": {
@@ -120,7 +120,7 @@
       },
       {
         "name": "contours",
-        "parent_state": null,
+        "parent_state": "collection",
         "carrier_type": "list",
         "description": "Topological vector sequences representing shape contours",
         "properties": {
@@ -219,6 +219,33 @@
         "description": "Hardware or OS stream resource deallocated",
         "properties": {
           "closed": true
+        }
+      },
+      {
+        "name": "computed_threshold",
+        "parent_state": "binary",
+        "carrier_type": "ndarray",
+        "description": "Declared by data migration (formerly engine bootstrap state 'computed_threshold').",
+        "properties": {
+          "channels": 1
+        }
+      },
+      {
+        "name": "dilated",
+        "parent_state": "binary",
+        "carrier_type": "ndarray",
+        "description": "Declared by data migration (formerly engine bootstrap state 'dilated').",
+        "properties": {
+          "channels": 1
+        }
+      },
+      {
+        "name": "eroded",
+        "parent_state": "binary",
+        "carrier_type": "ndarray",
+        "description": "Declared by data migration (formerly engine bootstrap state 'eroded').",
+        "properties": {
+          "channels": 1
         }
       }
     ],
@@ -1030,7 +1057,8 @@
       ],
       "edges": [],
       "primary_in": "image",
-      "primary_out": "output_var"
+      "primary_out": "output_var",
+      "endable": true
     },
     {
       "cell_id": "CV2_IMSHOW",
@@ -1140,7 +1168,8 @@
         }
       ],
       "primary_in": "image",
-      "primary_out": "void"
+      "primary_out": "void",
+      "endable": true
     },
     {
       "cell_id": "CV2_WAIT_KEY",
@@ -1231,7 +1260,8 @@
         }
       ],
       "primary_in": "delay",
-      "primary_out": "output_var"
+      "primary_out": "output_var",
+      "endable": true
     },
     {
       "cell_id": "CV2_DESTROY_ALL_WINDOWS",
@@ -1274,7 +1304,8 @@
       "effects": [],
       "edges": [],
       "primary_in": "void",
-      "primary_out": "void"
+      "primary_out": "void",
+      "endable": true
     },
     {
       "cell_id": "CV2_CVT_COLOR_BGR2GRAY",
@@ -6206,7 +6237,9 @@
       },
       "preconditions": [],
       "postconditions": [],
-      "effects": [],
+      "effects": [
+        "draws_annotation"
+      ],
       "edges": [
         {
           "target_cell_id": "CV2_IMWRITE",
@@ -8981,7 +9014,9 @@
       },
       "preconditions": [],
       "postconditions": [],
-      "effects": [],
+      "effects": [
+        "draws_annotation"
+      ],
       "edges": [
         {
           "target_cell_id": "CV2_IMWRITE",
@@ -9193,7 +9228,9 @@
       },
       "preconditions": [],
       "postconditions": [],
-      "effects": [],
+      "effects": [
+        "draws_annotation"
+      ],
       "edges": [
         {
           "target_cell_id": "CV2_PUT_TEXT",
@@ -9408,7 +9445,9 @@
       },
       "preconditions": [],
       "postconditions": [],
-      "effects": [],
+      "effects": [
+        "draws_annotation"
+      ],
       "edges": [
         {
           "target_cell_id": "CV2_IMWRITE",
@@ -9863,7 +9902,9 @@
       },
       "preconditions": [],
       "postconditions": [],
-      "effects": [],
+      "effects": [
+        "draws_annotation"
+      ],
       "edges": [
         {
           "target_cell_id": "CV2_IMWRITE",
@@ -11858,7 +11899,9 @@
       },
       "preconditions": [],
       "postconditions": [],
-      "effects": [],
+      "effects": [
+        "draws_annotation"
+      ],
       "edges": [
         {
           "target_cell_id": "CV2_IMWRITE",
@@ -13181,7 +13224,8 @@
         }
       ],
       "primary_in": "cap",
-      "primary_out": "void"
+      "primary_out": "void",
+      "endable": true
     },
     {
       "cell_id": "CV2_VIDEOWRITER_INIT",
@@ -13427,7 +13471,8 @@
         }
       ],
       "primary_in": "image",
-      "primary_out": "void"
+      "primary_out": "void",
+      "endable": true
     },
     {
       "cell_id": "CV2_VIDEOWRITER_RELEASE",
@@ -13486,7 +13531,8 @@
       "effects": [],
       "edges": [],
       "primary_in": "writer",
-      "primary_out": "void"
+      "primary_out": "void",
+      "endable": true
     },
     {
       "cell_id": "CV2_IMENCODE",
@@ -13620,7 +13666,8 @@
         }
       ],
       "primary_in": "image",
-      "primary_out": "retval"
+      "primary_out": "retval",
+      "endable": true
     },
     {
       "cell_id": "CV2_IMDECODE",
@@ -13784,6 +13831,12 @@
     "DMatch": {
       "parent": "object",
       "description": "cv2.DMatch descriptor match"
+    },
+    "MatLike": {
+      "parent": "tensor"
+    },
+    "Color": {
+      "parent": "scalar"
     }
   }
 }

@@ -332,46 +332,6 @@ class LatticeRouter:
         return best_cell
 
 
-    def extract_semantic_intent(self, prompt: str, literals: list) -> dict:
-        """Extract generic feature and target semantic roles from user prompt."""
-        features, target, is_supervised = [], None, False
-        pred_match = re.search(
-            r'(?:train|fit|regress|classify|model)?.*?on\s+([A-Za-z0-9_,\s]+?)\s+to\s+predict\s+([A-Za-z0-9_]+)',
-            prompt, re.IGNORECASE
-        )
-        if pred_match:
-            raw_feats, raw_tgt = pred_match.group(1), pred_match.group(2)
-            target = raw_tgt.strip()
-            features = [
-                f.strip() for f in re.split(r'[, ]+and\s+|[,\s]+', raw_feats)
-                if f.strip() and f.strip().lower() not in ('a', 'the', 'column', 'columns')
-            ]
-            is_supervised = True
-        else:
-            inv_match = re.search(
-                r'\bpredict\s+([A-Za-z0-9_]+)\s+(?:from|using|on)\s+([A-Za-z0-9_,\s]+)',
-                prompt, re.IGNORECASE
-            )
-            if inv_match:
-                target = inv_match.group(1).strip()
-                features = [
-                    f.strip() for f in re.split(r'[, ]+and\s+|[,\s]+', inv_match.group(2))
-                    if f.strip() and f.strip().lower() not in ('a', 'the', 'column', 'columns')
-                ]
-                is_supervised = True
-
-        all_ids = [getattr(l, 'value', str(l)) for l in literals if getattr(l, 'kind', '') == 'identifier']
-        if not features and is_supervised and all_ids:
-            features = [i for i in all_ids if i != target]
-
-        return {
-            'features': features,
-            'target': target,
-            'targets': [target] if target else [],
-            'column_identifiers': all_ids,
-            'is_supervised': is_supervised
-        }
-
     def route(
         self,
         prompt: str,
@@ -526,10 +486,14 @@ class LatticeRouter:
                 tunnel_ids.add(cell.cell_id)
                 relevance_map[cell.cell_id] = max(relevance_map.get(cell.cell_id, 0.0), self.epsilon * 2.0)
 
-        # Macro-goal routing toggle: when disabled, macro-goal cells are
-        # excluded from the tunnel entirely (they are ordinary members of the
-        # token index), restoring the pre-macro routing distribution exactly —
-        # this is what makes --no-macros a clean A/B baseline for benchmarks.
+        # Macro-goal routing toggle: macro-goal cells participate in the
+        # tunnel as ordinary lexical members when enabled; when disabled they
+        # are excluded entirely, restoring the pre-macro routing distribution
+        # exactly (clean A/B baseline for benchmarks). A macro competes on
+        # merit: the planner scores it by its EXPANDED sub-cell composition
+        # with the same objective as flat paths, so a macro outranks its own
+        # micro-cells precisely when its known-good composite path explains
+        # the prompt better than any individual constituent.
         if not self.macros_enabled:
             final_tunnel = [c for c in final_tunnel if not isinstance(c, MacroCell)]
             tunnel_ids = {c.cell_id for c in final_tunnel}
@@ -538,100 +502,7 @@ class LatticeRouter:
                 if not isinstance(self.orchestrator.loaded_cells.get(cid), MacroCell)
             }
 
-        # Macro-goal promotion (Section 3.5): known-good composite paths.
-        # When the prompt is relevant to a MacroCell (a predefined, verified
-        # path over existing micro-cells — no new functionality), the macro
-        # enters the tunnel and scores ABOVE every one of its constituent
-        # micro-cells, sharpening the routing distribution toward the
-        # known-good path. Skipped entirely when macros are disabled.
-        if self.macros_enabled:
-            self._promote_macro_goals(prompt, final_tunnel, tunnel_ids, relevance_map)
-
         return final_tunnel, relevance_map
-
-    def _promote_macro_goals(
-        self,
-        prompt: str,
-        final_tunnel: List[Cell],
-        tunnel_ids: Set[str],
-        relevance_map: Dict[str, float]
-    ) -> None:
-        """
-        Promotes matched MacroCells above their constituent micro-cells.
-
-        A macro is a macro-goal: an empirically verified path over existing
-        micro-cells (synapses forming a known-good macro-path). Promotion is
-        gated by IDF-weighted CONCEPT COVERAGE: the macro's declared identity
-        vocabulary (cell id + keywords) must cover a substantial fraction of
-        the prompt's semantic mass. Generic I/O vocabulary ('csv', 'save')
-        carries near-zero IDF and can therefore never promote a macro on its
-        own — only the macro's composite concept (e.g. ranking, contour
-        annotation) can. This mirrors the planner's idf-weighted coverage
-        philosophy and keeps macros from hijacking prompts they do not express.
-
-        When promoted, the macro's relevance is strictly greater than the
-        maximum relevance of its own micro-cells (the known-good path outranks
-        its constituents). The macro carries no new functionality: downstream,
-        UnificationGate expands it back into its micro-cell sequence.
-        """
-        prompt_toks = (CellTokenizer.tokenize_prompt(prompt) if prompt else set()) - STOPWORDS
-        if not prompt_toks:
-            return
-
-        token_index = getattr(self.orchestrator, "token_index", None) or {}
-        n_cells = max(len(self.orchestrator.loaded_cells), 1)
-
-        def _idf(tok: str) -> float:
-            return math.log(1.0 + (n_cells + 1) / (len(token_index.get(tok, ())) + 1.0))
-
-        prompt_mass = sum(_idf(t) for t in prompt_toks)
-        if prompt_mass <= 0:
-            return
-
-        CONCEPT_COVERAGE_GATE = 0.35  # a macro must own >= 35% of the prompt's semantic mass
-
-        promoted: List[Tuple[float, Cell]] = []
-        for cell in self.orchestrator.loaded_cells.values():
-            if not (isinstance(cell, MacroCell) and getattr(cell, "sub_cells", None)):
-                continue
-            identity_hits = (getattr(cell, "identity_tokens", set()) - STOPWORDS) & prompt_toks
-            if not identity_hits:
-                continue
-
-            idf_mass = sum(_idf(t) for t in identity_hits)
-            concept_coverage = idf_mass / prompt_mass
-            if concept_coverage < CONCEPT_COVERAGE_GATE:
-                continue
-
-            micro_scores = [
-                float(relevance_map.get(sid, 0.0))
-                for sid in cell.sub_cells
-                if sid in relevance_map
-            ]
-            micro_max = max(micro_scores) if micro_scores else 0.0
-
-            # Strictly-above guarantee: the macro outranks its strongest micro
-            # by a margin, scaled by the discriminative concept mass so that a
-            # prompt expressing the macro's concept promotes it decisively.
-            macro_score = max(
-                micro_max * 1.25 + 0.05,
-                float(self.epsilon) * 4.0,
-            ) + 0.15 * idf_mass
-
-            promoted.append((macro_score, cell))
-
-        for macro_score, cell in promoted:
-            if cell.cell_id not in tunnel_ids:
-                final_tunnel.append(cell)
-                tunnel_ids.add(cell.cell_id)
-            if macro_score > relevance_map.get(cell.cell_id, 0.0):
-                relevance_map[cell.cell_id] = macro_score
-
-        if promoted:
-            logger.debug(
-                f"[ROUTER] Macro-goal promotion: "
-                f"{[c.cell_id for _, c in promoted]}"
-            )
 
     def _tunnel_from_groups(
         self,
@@ -732,7 +603,12 @@ class LatticeRouter:
 
         # Dispatch to selected RouteMethod
         method_name = str(route_method or self.default_route_method or "m0").strip().lower()
-        if method_name not in ("m0", "m0_trellis", "trellis", "viterbi"):
+        # Registry-driven dispatch decision (no alias duplication here):
+        # the M0 trellis planner is the in-router baseline; everything else
+        # delegates to its registered RouteMethod class.
+        from route_methods import ROUTE_METHOD_REGISTRY as _ROUTE_REGISTRY
+        _method_cls = _ROUTE_REGISTRY.get(method_name)
+        if _method_cls is not None and _method_cls.__name__ != "M0TrellisRouteMethod":
             try:
                 method = get_route_method(method_name, orchestrator=self.orchestrator)
                 path = method.plan(
@@ -746,7 +622,10 @@ class LatticeRouter:
                     **kwargs
                 )
             except Exception as e:
-                logger.warning(f"[ROUTER] RouteMethod '{method_name}' failed with {e}; falling back to M0 Trellis.")
+                logger.error(
+                    f"[ROUTER] RouteMethod '{method_name}' failed: {e}",
+                    exc_info=True,
+                )
                 path = self.planner.plan(
                     prompt=prompt,
                     tunnel=tunnel_cells,

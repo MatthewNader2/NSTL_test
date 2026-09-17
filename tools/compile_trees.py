@@ -358,7 +358,10 @@ def extract_node_data(node: dict, domain: str) -> tuple:
     return (
         # --- loader contract ---
         node["cell_id"],
-        domain,
+        # Per-cell declared domain wins over the file-level domain: macro-goal
+        # trees (domain "macros") declare their cells' functional domain so
+        # domain-coherence scoring sees the expansion's true home domain.
+        node.get("domain_name") or domain,
         node_type,
         node_role,
         node["stage"],
@@ -441,6 +444,7 @@ def _ensure_schema(conn: sqlite3.Connection) -> None:
     cur = conn.cursor()
     cur.execute(_CREATE_TABLE_SQL)
     cur.execute(_CREATE_TYPES_TABLE_SQL)
+    cur.execute(_CREATE_TYPESTATES_TABLE_SQL)
     existing = {row[1] for row in cur.execute("PRAGMA table_info(nodes)")}
     for col in _COLUMNS:
         if col not in existing:
@@ -453,6 +457,15 @@ _CREATE_TYPES_TABLE_SQL = """
 CREATE TABLE IF NOT EXISTS types (
     type_name   TEXT PRIMARY KEY,
     parent_type TEXT
+);
+"""
+
+_CREATE_TYPESTATES_TABLE_SQL = """
+CREATE TABLE IF NOT EXISTS typestates (
+    state_name   TEXT PRIMARY KEY,
+    parent_state TEXT,
+    carrier_type TEXT,
+    properties   TEXT
 );
 """
 
@@ -502,6 +515,55 @@ def _persist_type_hierarchies(conn: sqlite3.Connection, tree_files: List[Path]) 
     return written
 
 
+def _persist_typestates(conn: sqlite3.Connection, tree_files: List[Path]) -> int:
+    """Persists per-tree ``typestates`` declarations into the ``typestates``
+    table (state hierarchy + declared carrier_type + verifiable properties).
+
+    The loader (LatticeOrchestrator.load_from_database) reads this table to
+    restore the typestate vocabulary in SQLite mode.
+    """
+    cur = conn.cursor()
+    written = 0
+    for path in tree_files:
+        try:
+            with path.open("r", encoding="utf-8") as fh:
+                data = json.load(fh)
+        except (json.JSONDecodeError, OSError):
+            continue
+        if not isinstance(data, dict):
+            continue
+        ts_info = data.get("typestates")
+        states: List[Any] = []
+        if isinstance(ts_info, dict):
+            states = ts_info.get("states", []) or []
+        elif isinstance(ts_info, list):
+            states = ts_info
+        for s in states:
+            if isinstance(s, str):
+                row = (s, None, None, None)
+            elif isinstance(s, dict) and s.get("name"):
+                props = s.get("properties")
+                row = (
+                    str(s["name"]),
+                    s.get("parent_state"),
+                    s.get("carrier_type"),
+                    json.dumps(props, ensure_ascii=False) if props else None,
+                )
+            else:
+                continue
+            cur.execute(
+                "INSERT INTO typestates (state_name, parent_state, carrier_type, properties) "
+                "VALUES (?, ?, ?, ?) "
+                "ON CONFLICT(state_name) DO UPDATE SET "
+                "parent_state=excluded.parent_state, carrier_type=excluded.carrier_type, "
+                "properties=excluded.properties",
+                row,
+            )
+            written += 1
+    conn.commit()
+    return written
+
+
 # --------------------------------------------------------------------------- #
 # Compilation
 # --------------------------------------------------------------------------- #
@@ -530,8 +592,11 @@ def compile_database(
         warnings: List[str] = []
 
         types_written = _persist_type_hierarchies(conn, tree_files)
+        typestates_written = _persist_typestates(conn, tree_files)
         if types_written:
             print(f"[compile_trees] Persisted {types_written} type-hierarchy entrie(s) into the types table.")
+        if typestates_written:
+            print(f"[compile_trees] Persisted {typestates_written} typestate declaration(s) into the typestates table.")
 
         for path in tree_files:
             try:
