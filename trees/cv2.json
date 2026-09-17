@@ -1,6 +1,14 @@
 {
   "domain": "cv2",
   "version": "1.1.0",
+  "aliases": {
+    "cv2": "cv2"
+  },
+  "artifact_readers": {
+    "image": [
+      "cv2.imread"
+    ]
+  },
   "typestates": {
     "domain": "cv2",
     "states": [
@@ -13837,6 +13845,9 @@
     },
     "Color": {
       "parent": "scalar"
+    },
+    "imageformat": {
+      "parent": "format"
     }
   }
 }

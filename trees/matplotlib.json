@@ -1,6 +1,9 @@
 {
   "domain": "matplotlib",
   "version": "1.1.0",
+  "aliases": {
+    "plt": "matplotlib.pyplot"
+  },
   "typestates": {
     "domain": "matplotlib",
     "initial_state": "empty_figure",
@@ -200,7 +203,7 @@
       },
       {
         "name": "figure_saved",
-        "parent_state": null,
+        "parent_state": "written_to_disk",
         "carrier_type": "Figure",
         "description": "Figure that has been serialized and persisted to disk storage.",
         "properties": {
@@ -10092,6 +10095,9 @@
     },
     "SVG": {
       "parent": "Format"
+    },
+    "canvas": {
+      "parent": "object"
     }
   }
 }

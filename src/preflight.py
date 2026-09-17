@@ -209,3 +209,12 @@ class PreflightLinter:
 
         is_valid = len(violations) == 0
         return PreflightLintResult(is_valid=is_valid, violations=violations, warnings=warnings)
+
+    @staticmethod
+    def audit_lattice(orchestrator: Any) -> Optional[Any]:
+        """Runs static reachability, dead-end, and cross-tree auditing on the loaded lattice."""
+        try:
+            from lattice_auditor import LatticeAuditor
+            return LatticeAuditor(orchestrator).audit()
+        except Exception:
+            return None

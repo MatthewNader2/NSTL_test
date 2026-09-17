@@ -30,15 +30,38 @@ logger = get_logger('planner')
 
 registry = TypeRegistry.get_instance()
 
-STOPWORDS = frozenset({
-    "a", "an", "the", "in", "on", "at", "of", "to", "for", "from", "by", "with",
-    "and", "or", "as", "is", "are", "was", "were", "be", "been", "it", "its",
-    "them", "they", "their", "this", "that", "these", "those",
-    "make", "sure", "some", "get", "do", "using", "use", "into", "onto",
-    "all", "each", "also", "just", "named", "have", "has", "having"
-})
+class DynamicStopwords(frozenset):
+    """Dynamic stopword set backed by document-frequency corpus function words."""
+    def __contains__(self, item):
+        return item in TypeRegistry.get_instance().get_function_words()
+    def __iter__(self):
+        return iter(TypeRegistry.get_instance().get_function_words())
+    def __len__(self):
+        return len(TypeRegistry.get_instance().get_function_words())
+    def __sub__(self, other):
+        return TypeRegistry.get_instance().get_function_words() - (set(other) if not isinstance(other, set) else other)
+    def __rsub__(self, other):
+        return set(other) - TypeRegistry.get_instance().get_function_words()
+    def __and__(self, other):
+        return TypeRegistry.get_instance().get_function_words() & (set(other) if not isinstance(other, set) else other)
+    def __rand__(self, other):
+        return (set(other) if not isinstance(other, set) else other) & TypeRegistry.get_instance().get_function_words()
+    def __or__(self, other):
+        return TypeRegistry.get_instance().get_function_words() | (set(other) if not isinstance(other, set) else other)
+    def __ror__(self, other):
+        return (set(other) if not isinstance(other, set) else other) | TypeRegistry.get_instance().get_function_words()
 
-_WILDCARD_CARRIERS = frozenset(("any", "", "none", "*", "top", "unknown"))
+STOPWORDS = DynamicStopwords()
+
+class DynamicWildcardCarriers(frozenset):
+    """Dynamic top/wildcard carrier checker backed by poset and tree declarations."""
+    def __contains__(self, item):
+        s = str(item or "").strip().lower()
+        return not s or s in ("none", "unknown", "*", "top", "any", "object") or TypeRegistry.get_instance().is_declared_top(s)
+    def __iter__(self):
+        return iter(TypeRegistry.get_instance()._declared_top | {"any", "", "none", "*", "top", "unknown"})
+
+_WILDCARD_CARRIERS = DynamicWildcardCarriers()
 
 # --------------------------------------------------------------------- #
 # Path-scoring weight table (the ONLY place these weights are declared).
@@ -73,17 +96,31 @@ PATH_SCORE_WEIGHTS = {
     "file_port_penalty": 3.0,
 }
 
-# Egress-intent vocabulary (LANGUAGE-level verbs of materialization: how
-# English asks for artifacts on disk or on screen).
-EGRESS_INTENT_TOKENS = frozenset({
-    "save", "export", "write", "dump", "persist", "store", "plot", "show", "display",
-})
+class DynamicEgressTokens(frozenset):
+    """Dynamic egress intent verbs harvested from stage-3 sink cells across loaded domain trees."""
+    def __contains__(self, item):
+        return str(item).lower() in TypeRegistry.get_instance().get_egress_tokens()
+    def __iter__(self):
+        return iter(TypeRegistry.get_instance().get_egress_tokens())
+    def __len__(self):
+        return len(TypeRegistry.get_instance().get_egress_tokens())
+    def __and__(self, other):
+        return (set(other) if not isinstance(other, set) else other) & TypeRegistry.get_instance().get_egress_tokens()
+    def __rand__(self, other):
+        return (set(other) if not isinstance(other, set) else other) & TypeRegistry.get_instance().get_egress_tokens()
 
-# Output states that declare completed materialization (declared typestate
-# vocabulary shared with UnificationGate._derive_egress_paths).
-MATERIALIZATION_OUTPUT_STATES = frozenset({
-    "destination_written", "filepath_written", "saved", "exported", "written_to_disk",
-})
+EGRESS_INTENT_TOKENS = DynamicEgressTokens()
+
+class DynamicMaterializationStates(frozenset):
+    """Dynamic materialization states harvested from output typestates of sink cells."""
+    def __contains__(self, item):
+        return str(item).lower() in TypeRegistry.get_instance().get_materialization_states()
+    def __iter__(self):
+        return iter(TypeRegistry.get_instance().get_materialization_states())
+    def __len__(self):
+        return len(TypeRegistry.get_instance().get_materialization_states())
+
+MATERIALIZATION_OUTPUT_STATES = DynamicMaterializationStates()
 
 
 def _is_col_projection_port(p_sig: Any) -> bool:
@@ -142,16 +179,44 @@ class LatticePlanner:
     Operates strictly within the active semantic tunnel T.
     Finds maximum-likelihood type-valid composition paths.
     """
-    def __init__(self, orchestrator: LatticeOrchestrator, rag: Optional[Any] = None):
+    def __init__(self, orchestrator: LatticeOrchestrator, rag: Optional[Any] = None, macros_enabled: Optional[bool] = None):
         self.orchestrator = orchestrator
         self.rag = rag
+        if macros_enabled is not None:
+            self.macros_enabled = bool(macros_enabled)
+        else:
+            try:
+                from config import settings
+                self.macros_enabled = bool(getattr(settings, "macros_enabled", True))
+            except Exception:
+                self.macros_enabled = True
+        self.current_relevance_map: Dict[str, float] = {}
 
     def _calculate_edge_affinity(self, src_cell: Cell, dst_cell: Cell) -> float:
         """
         Calculates empirical edge affinity score between two cells.
         AST-mined edges from real code snippets receive the highest affinity,
-        followed by LLM seed edges and topological reachability.
+        followed by LLM seed edges, synaptic macro reinforcement, and topological reachability.
         """
+        # Synaptic Macro-Goal Edge Reinforcement (Synapses in the Brain):
+        # When macro routing is enabled, a known-good path pre-wired inside an active
+        # macro reinforces the synaptic connection between its constituent micro-cells.
+        if getattr(self, "macros_enabled", True) and hasattr(self.orchestrator, "loaded_cells"):
+            for m in self.orchestrator.loaded_cells.values():
+                if getattr(m, "cell_type", "") == "macro" or getattr(m, "sub_cells", None):
+                    topo = getattr(m, "internal_topology", {}) or {}
+                    is_macro_edge = dst_cell.cell_id in topo.get(src_cell.cell_id, ())
+                    if not is_macro_edge and getattr(m, "sub_cells", None):
+                        subs = m.sub_cells
+                        for i in range(len(subs) - 1):
+                            if subs[i] == src_cell.cell_id and subs[i + 1] == dst_cell.cell_id:
+                                is_macro_edge = True
+                                break
+                    if is_macro_edge:
+                        macro_rel = getattr(self, "current_relevance_map", {}).get(m.cell_id, 0.5)
+                        synaptic_boost = 0.4 * max(macro_rel, 0.5)
+                        return min(1.0, max(0.8, 0.6 + synaptic_boost))
+
         # 1. Forward declared edges on src_cell
         dst_id_lower = dst_cell.cell_id.lower()
         for edge in getattr(src_cell, "edges", []):
@@ -271,6 +336,7 @@ class LatticePlanner:
         - Zero-ary constructor morphisms (node_type 'constructor') are insertable
           mid-chain to complete instance lifecycles (construct -> fit -> score).
         """
+        self.current_relevance_map = dict(relevance_map or {})
         if not tunnel:
             return []
 
@@ -905,6 +971,16 @@ class LatticePlanner:
                     s_strong = cell_cov_strong.get(sub.cell_id, set())
                     s_weak = cell_cov_weak.get(sub.cell_id, set())
                     if not s_strong and not s_weak:
+                        # Prerequisite bridging morphism check: if predecessor cannot directly
+                        # connect to successor without this step, it is an essential type/state bridge.
+                        pred = subs[j - 1]
+                        succ = subs[j + 1]
+                        pred_out = getattr(pred, "primary_output", None)
+                        succ_in = getattr(succ, "primary_input", None)
+                        pred_sig = getattr(pred_out, "signature", pred_out)
+                        succ_sig = getattr(succ_in, "signature", succ_in)
+                        if pred_sig and succ_sig and unify(pred_sig, succ_sig) is None:
+                            continue
                         dead_expansion_steps += 1
 
             # Dead-constructor penalty: a constructor whose output is not
@@ -1093,6 +1169,10 @@ class LatticePlanner:
         candidate_map_lower = {c.cell_id.lower(): c for c in candidates}
 
         def _successors(prev_cell: Cell) -> List[Cell]:
+            if (getattr(prev_cell, "node_role", "") == "macro" or getattr(prev_cell, "cell_type", "") == "macro") and getattr(prev_cell, "endable", False):
+                return []
+            macro_subs = set(getattr(prev_cell, "sub_cells", ()) or ())
+
             out_sig = prev_cell.primary_output.signature if hasattr(prev_cell.primary_output, "signature") else prev_cell.primary_output
             out_t = str(getattr(out_sig, "type_name", ""))
             out_s = str(getattr(out_sig, "state", ""))
@@ -1113,15 +1193,20 @@ class LatticePlanner:
             is_type_var = out_t.isalpha() and len(out_t) == 1 and out_t.isupper()
             if "[" in out_t or is_type_var:
                 for cand in candidates:
+                    if cand.cell_id in macro_subs or prev_cell.cell_id in getattr(cand, "sub_cells", ()):
+                        continue
                     if any(unify(out_sig, p_sig.signature) is not None
                            for p_sig in cand.inputs.values()):
                         acc.setdefault(cand.cell_id, cand)
-                return sorted(list(acc.values()), key=lambda c: _edge_affinity(prev_cell, c), reverse=True)
+                res_cells = [c for c in acc.values() if c.cell_id not in macro_subs and prev_cell.cell_id not in getattr(c, "sub_cells", ())]
+                return sorted(res_cells, key=lambda c: _edge_affinity(prev_cell, c), reverse=True)
 
             for in_t, cell_list in cells_by_in_type.items():
                 if not registry.is_subtype(out_t, in_t):
                     continue
                 for c in cell_list:
+                    if c.cell_id in macro_subs or prev_cell.cell_id in getattr(c, "sub_cells", ()):
+                        continue
                     # Typestate compatibility with accepted_states and parent_state walking
                     if any(registry.is_state_compatible(
                         producer_state=out_s,
@@ -1132,7 +1217,8 @@ class LatticePlanner:
                         producer_parent=getattr(out_sig, "parent_state", None),
                     ) for p_sig in c.inputs.values()):
                         acc.setdefault(c.cell_id, c)
-            return sorted(list(acc.values()), key=lambda c: _edge_affinity(prev_cell, c), reverse=True)
+            res_cells = [c for c in acc.values() if c.cell_id not in macro_subs and prev_cell.cell_id not in getattr(c, "sub_cells", ())]
+            return sorted(res_cells, key=lambda c: _edge_affinity(prev_cell, c), reverse=True)
 
         # Viterbi Trellis: paths of length t = 1 ... T_max
         # Item layout: (path, sigma, cumulative log-prob, weak_edge_count, unbindable_count)
@@ -1473,6 +1559,30 @@ class LatticePlanner:
                         break
                 except Exception:
                     continue
+            if chosen_candidate is None and scored_candidates:
+                # Semantic repair stage (Section 3.4): attempt dynamic repair of candidate cells
+                try:
+                    from semantic_repair_engine import repair_cell_semantics
+                    for it, _ in scored_candidates:
+                        cand_p = it[0]
+                        repaired_cells = []
+                        any_repaired = False
+                        for c in cand_p:
+                            c_dict = c.to_dict() if hasattr(c, "to_dict") else dict(c.__dict__)
+                            if repair_cell_semantics(c_dict, domain=getattr(c, "domain_name", "generic")):
+                                any_repaired = True
+                                repaired_cells.append(Cell.from_dict(c_dict))
+                            else:
+                                repaired_cells.append(c)
+                        if any_repaired:
+                            cand_test = self._expand_identifier_multiplicity(repaired_cells, prompt)
+                            res = gate.unify_pipeline(cand_test, ExecutionContext(prompt=prompt))
+                            if isinstance(res, Success) and not res.is_bottom():
+                                chosen_candidate = (repaired_cells, res.sigma, it[2], it[3], it[4])
+                                break
+                except Exception as e:
+                    logger.debug(f"[PLANNER] Semantic repair pass: {e}")
+
             if chosen_candidate is None:
                 chosen_candidate = scored_candidates[0][0]
             best_candidate = chosen_candidate
@@ -1760,7 +1870,7 @@ class LatticePlanner:
                 if getattr(cand, "stage", None) not in (2, 3):
                     continue
                 for p_name, p_sig in cand.inputs.items():
-                    u_cand = unify(item_type, p_sig.signature, active_sigma)
+                    u_cand = unify(item_type, p_sig.signature, active_sigma) or unify(p_sig.signature, item_type, active_sigma)
                     if u_cand is not None:
                         rel = relevance_map.get(cand.cell_id, 0.0)
                         cand_content_toks = cand.token_set - STOPWORDS

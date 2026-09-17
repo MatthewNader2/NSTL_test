@@ -27,45 +27,23 @@ logger = get_logger('synthesis')
 # --------------------------------------------------------------------------- #
 # Combinator-library detection
 # --------------------------------------------------------------------------- #
-#
-# A synthesized micro-cell may use a stdlib combinator (functools.reduce, etc.)
-# inside its template without declaring the corresponding import in
-# ``dependencies`` — that is the single most common NameError class in
-# LLM-generated bodies. This table is a value-independent safety net: keyed
-# by call-site pattern, valued by the import statement that makes it legal.
-# Extend the table, not the function.
-_REQUIRED_IMPORT_PATTERNS: Tuple[Tuple[str, str], ...] = (
-    ("functools.reduce",     "import functools"),
-    ("functools.partial",    "import functools"),
-    ("functools.lru_cache",  "import functools"),
-    ("functools.cache",      "import functools"),
-    ("itertools.chain",      "import itertools"),
-    ("itertools.groupby",    "import itertools"),
-    ("itertools.product",    "import itertools"),
-    ("itertools.islice",     "import itertools"),
-    ("time.sleep",           "import time"),
-    ("time.perf_counter",    "import time"),
-    ("time.time",            "import time"),
-    ("math.sqrt",            "import math"),
-    ("math.floor",           "import math"),
-    ("math.ceil",            "import math"),
-    ("collections.defaultdict", "import collections"),
-    ("collections.Counter",  "import collections"),
-    ("collections.OrderedDict", "import collections"),
-    ("collections.deque",    "import collections"),
-    ("random.choice",        "import random"),
-    ("random.shuffle",       "import random"),
-    ("random.seed",          "import random"),
-    ("copy.deepcopy",        "import copy"),
-    ("os.path.",             "import os"),
-    ("re.sub",               "import re"),
-    ("re.findall",           "import re"),
-    ("re.search",            "import re"),
-    ("re.match",             "import re"),
-    ("re.compile",           "import re"),
-    ("json.loads",           "import json"),
-    ("json.dumps",           "import json"),
-)
+import importlib
+
+
+def import_stmt_for(qualified_name: str) -> str:
+    """
+    Derives an import statement from a qualified symbol or module name, verified live.
+    Conforms to Section 3.4 of the NSTL paper.
+    """
+    module = qualified_name.rsplit(".", 1)[0] if "." in qualified_name else qualified_name
+    try:
+        importlib.import_module(module)
+    except ImportError:
+        logger.warning("unverifiable import: %s", module)
+    return f"import {module}"
+
+
+_PLACEHOLDER_RE = re.compile(r"\{([a-zA-Z_][a-zA-Z0-9_]*)\}")
 
 
 
@@ -284,7 +262,8 @@ def render_cell(
                     child_sig = getattr(p_sig, "signature", None)
                     if child_sig is not None:
                         try:
-                            if unify(item_type, child_sig, Substitution()) is not None:
+                            if (unify(item_type, child_sig, Substitution()) is not None or
+                                unify(child_sig, item_type, Substitution()) is not None):
                                 child_bindings[p_name] = "_item"
                                 bound = True
                         except Exception:

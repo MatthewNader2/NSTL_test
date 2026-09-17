@@ -1,6 +1,11 @@
 {
   "domain": "Pillow",
   "version": "1.1.0",
+  "artifact_readers": {
+    "image": [
+      "PIL.Image.open"
+    ]
+  },
   "typestates": {
     "domain": "Pillow",
     "states": [
@@ -10573,6 +10578,9 @@
     },
     "GIF": {
       "parent": "ImageFormat"
+    },
+    "imageformat": {
+      "parent": "format"
     }
   }
 }

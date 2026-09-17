@@ -15036,6 +15036,9 @@
     },
     "Transformer": {
       "parent": "Estimator"
+    },
+    "modelformat": {
+      "parent": "format"
     }
   }
 }

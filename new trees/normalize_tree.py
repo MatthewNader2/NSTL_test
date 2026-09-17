@@ -179,6 +179,30 @@ def normalize_port_shapes(tree: Dict[str, Any]) -> List[Tuple[str, str, int]]:
     return fixed
 
 
+def normalize_tree_metadata(tree: Dict[str, Any]) -> None:
+    """Ensures root metadata fields and port roles conform to schema."""
+    if "type_vars" not in tree:
+        tree["type_vars"] = []
+    if "aliases" not in tree:
+        tree["aliases"] = {}
+    if "top_types" not in tree:
+        tree["top_types"] = []
+    if "product_constructors" not in tree:
+        tree["product_constructors"] = []
+
+    # Normalize per-port role / port_role across all cells
+    for cell in tree.get("cells", []):
+        for direction in ("inputs", "outputs"):
+            ports = cell.get(direction)
+            if isinstance(ports, dict):
+                for p_name, p_data in ports.items():
+                    if isinstance(p_data, dict):
+                        role = p_data.get("role") or p_data.get("port_role")
+                        if role:
+                            p_data["role"] = str(role).strip().lower()
+                            p_data["port_role"] = str(role).strip().lower()
+
+
 def validate(tree: Dict[str, Any]) -> Dict[str, Any]:
     report: Dict[str, Any] = {
         "duplicate_cell_ids": [],
@@ -370,6 +394,7 @@ def main():
 
     tree = load_tree(args.input_path)
 
+    normalize_tree_metadata(tree)
     port_fixes = normalize_port_shapes(tree)
     if port_fixes:
         print(f"=== Port Shape Fixes ===\nFixed {len(port_fixes)} cell(s) whose inputs/outputs "

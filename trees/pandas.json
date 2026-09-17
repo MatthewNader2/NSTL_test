@@ -1,6 +1,14 @@
 {
   "domain": "pandas",
   "version": "1.1.0",
+  "aliases": {
+    "pd": "pandas"
+  },
+  "artifact_readers": {
+    "table": [
+      "pandas.read_csv"
+    ]
+  },
   "typestates": {
     "domain": "pandas",
     "states": [
@@ -10824,6 +10832,9 @@
         "table",
         "array-like"
       ]
+    },
+    "tabularformat": {
+      "parent": "format"
     }
   }
 }

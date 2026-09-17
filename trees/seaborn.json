@@ -1,6 +1,9 @@
 {
   "domain": "seaborn",
   "version": "1.1.0",
+  "aliases": {
+    "sns": "seaborn"
+  },
   "typestates": {
     "domain": "seaborn",
     "states": [
@@ -218,7 +221,7 @@
       },
       {
         "name": "figure_saved",
-        "parent_state": null,
+        "parent_state": "written_to_disk",
         "carrier_type": "Axes",
         "description": "The visualization has been exported and persisted to an external file on disk.",
         "properties": {
@@ -9329,6 +9332,9 @@
     },
     "Plot": {
       "parent": "Modality"
+    },
+    "canvas": {
+      "parent": "object"
     }
   }
 }

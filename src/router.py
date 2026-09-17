@@ -97,12 +97,11 @@ class LatticeRouter:
         self.gamma = gamma          # Temperature parameter scaling cosine similarity
         self.epsilon = epsilon      # Cutoff threshold for tunnel inclusion
         self.default_route_method = str(kwargs.get("route_method", "m0")).strip().lower()
-        self.planner = LatticePlanner(orchestrator=self.orchestrator)
         # Macro-goal routing (Section 3.5). Defaults to the global settings
         # value; an explicit kwarg wins. Toggling only affects routers created
         # afterwards unless mutated directly (see CLI `set macros on|off`).
-        self.macros_enabled = bool(kwargs.get("macros_enabled", True))
-        if "macros_enabled" not in kwargs:
+        macros_val = kwargs.get("macros_enabled")
+        if macros_val is None:
             try:
                 from .config import settings as _settings
             except (ImportError, ValueError):
@@ -111,7 +110,21 @@ class LatticeRouter:
                 except Exception:
                     _settings = None
             if _settings is not None:
-                self.macros_enabled = bool(getattr(_settings, "macros_enabled", True))
+                macros_val = getattr(_settings, "macros_enabled", True)
+            else:
+                macros_val = True
+        self._macros_enabled = bool(macros_val)
+        self.planner = LatticePlanner(orchestrator=self.orchestrator, macros_enabled=self._macros_enabled)
+
+    @property
+    def macros_enabled(self) -> bool:
+        return self._macros_enabled
+
+    @macros_enabled.setter
+    def macros_enabled(self, val: bool):
+        self._macros_enabled = bool(val)
+        if hasattr(self, "planner") and self.planner is not None:
+            self.planner.macros_enabled = bool(val)
 
     def _score_clause_lexical_idf(
         self,
@@ -489,11 +502,7 @@ class LatticeRouter:
         # Macro-goal routing toggle: macro-goal cells participate in the
         # tunnel as ordinary lexical members when enabled; when disabled they
         # are excluded entirely, restoring the pre-macro routing distribution
-        # exactly (clean A/B baseline for benchmarks). A macro competes on
-        # merit: the planner scores it by its EXPANDED sub-cell composition
-        # with the same objective as flat paths, so a macro outranks its own
-        # micro-cells precisely when its known-good composite path explains
-        # the prompt better than any individual constituent.
+        # exactly (clean A/B baseline for benchmarks).
         if not self.macros_enabled:
             final_tunnel = [c for c in final_tunnel if not isinstance(c, MacroCell)]
             tunnel_ids = {c.cell_id for c in final_tunnel}
@@ -501,8 +510,100 @@ class LatticeRouter:
                 cid: s for cid, s in relevance_map.items()
                 if not isinstance(self.orchestrator.loaded_cells.get(cid), MacroCell)
             }
+        # Macro-goal promotion (Section 3.5): known-good composite paths.
+        # When the prompt is relevant to a MacroCell (a predefined, verified
+        # path over existing micro-cells — no new functionality), the macro
+        # enters the tunnel and scores ABOVE every one of its constituent
+        # micro-cells, sharpening the routing distribution toward the
+        # known-good path. Skipped entirely when macros are disabled.
+        if self.macros_enabled:
+            self._promote_macro_goals(prompt, final_tunnel, tunnel_ids, relevance_map)
 
         return final_tunnel, relevance_map
+
+    def _promote_macro_goals(
+        self,
+        prompt: str,
+        final_tunnel: List[Cell],
+        tunnel_ids: Set[str],
+        relevance_map: Dict[str, float]
+    ) -> None:
+        """
+        Promotes matched MacroCells above their constituent micro-cells.
+
+        A macro is a macro-goal: an empirically verified path over existing
+        micro-cells (synapses forming a known-good macro-path). Promotion is
+        gated by IDF-weighted CONCEPT COVERAGE: the macro's declared identity
+        vocabulary (cell id + keywords) must cover a substantial fraction of
+        the prompt's semantic mass. Generic I/O vocabulary ('csv', 'save')
+        carries near-zero IDF and can therefore never promote a macro on its
+        own — only the macro's composite concept (e.g. ranking, contour
+        annotation) can. This mirrors the planner's idf-weighted coverage
+        philosophy and keeps macros from hijacking prompts they do not express.
+
+        When promoted, the macro's relevance is strictly greater than the
+        maximum relevance of its own micro-cells (the known-good path outranks
+        its constituents). The macro carries no new functionality: downstream,
+        UnificationGate expands it back into its micro-cell sequence.
+        """
+        prompt_toks = (CellTokenizer.tokenize_prompt(prompt) if prompt else set()) - STOPWORDS
+        if not prompt_toks:
+            return
+
+        token_index = getattr(self.orchestrator, "token_index", None) or {}
+        n_cells = max(len(self.orchestrator.loaded_cells), 1)
+
+        def _idf(tok: str) -> float:
+            return math.log(1.0 + (n_cells + 1) / (len(token_index.get(tok, ())) + 1.0))
+
+        prompt_mass = sum(_idf(t) for t in prompt_toks)
+        if prompt_mass <= 0:
+            return
+
+        CONCEPT_COVERAGE_GATE = 0.35  # a macro must own >= 35% of the prompt's semantic mass
+
+        promoted: List[Tuple[float, Cell]] = []
+        for cell in self.orchestrator.loaded_cells.values():
+            if not (isinstance(cell, MacroCell) and getattr(cell, "sub_cells", None)):
+                continue
+            identity_hits = (getattr(cell, "identity_tokens", set()) - STOPWORDS) & prompt_toks
+            if not identity_hits:
+                continue
+
+            idf_mass = sum(_idf(t) for t in identity_hits)
+            concept_coverage = idf_mass / prompt_mass
+            if concept_coverage < CONCEPT_COVERAGE_GATE:
+                continue
+
+            micro_scores = [
+                float(relevance_map.get(sid, 0.0))
+                for sid in cell.sub_cells
+                if sid in relevance_map
+            ]
+            micro_max = max(micro_scores) if micro_scores else 0.0
+
+            # Strictly-above guarantee: the macro outranks its strongest micro
+            # by a margin, scaled by the discriminative concept mass so that a
+            # prompt expressing the macro's concept promotes it decisively.
+            macro_score = max(
+                micro_max * 1.25 + 0.05,
+                float(self.epsilon) * 4.0,
+            ) + 0.15 * idf_mass
+
+            promoted.append((macro_score, cell))
+
+        for macro_score, cell in promoted:
+            if cell.cell_id not in tunnel_ids:
+                final_tunnel.append(cell)
+                tunnel_ids.add(cell.cell_id)
+            if macro_score > relevance_map.get(cell.cell_id, 0.0):
+                relevance_map[cell.cell_id] = macro_score
+
+        if promoted:
+            logger.debug(
+                f"[ROUTER] Macro-goal promotion: "
+                f"{[c.cell_id for _, c in promoted]}"
+            )
 
     def _tunnel_from_groups(
         self,

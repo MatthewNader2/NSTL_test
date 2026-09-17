@@ -18,9 +18,11 @@ if SRC_DIR not in sys.path:
 try:
     from schema import CellSchema, TreeSchema, PortSchema
     from harvester import IntelligentHarvester
+    from lattice import TypeRegistry
 except ImportError:
     from .schema import CellSchema, TreeSchema, PortSchema
     from .harvester import IntelligentHarvester
+    from .lattice import TypeRegistry
 
 def cmd_harvest(args):
     """Harvest public APIs from a package and merge into trees/{domain}.json."""
@@ -85,6 +87,9 @@ def init_sqlite_db(db_path: Path, clean: bool = False) -> sqlite3.Connection:
     cur.execute("CREATE INDEX IF NOT EXISTS idx_type ON nodes(node_type)")
     cur.execute("CREATE INDEX IF NOT EXISTS idx_slots ON nodes(slots)")
     cur.execute("CREATE TABLE IF NOT EXISTS types (type_name TEXT PRIMARY KEY, parent_type TEXT, domain_name TEXT)")
+    cur.execute("CREATE TABLE IF NOT EXISTS typestates (state_name TEXT PRIMARY KEY, parent_state TEXT, carrier_type TEXT, properties TEXT, domain_name TEXT)")
+    cur.execute("CREATE TABLE IF NOT EXISTS aliases (alias TEXT PRIMARY KEY, canonical TEXT, domain_name TEXT)")
+    cur.execute("CREATE TABLE IF NOT EXISTS artifact_readers (category TEXT, module_name TEXT, function_name TEXT, domain_name TEXT, PRIMARY KEY (category, module_name, function_name))")
     conn.commit()
     return conn
 
@@ -129,6 +134,39 @@ def cmd_compile(args):
                             reg.register_type(t_name, parent)
                             cur.execute("INSERT OR REPLACE INTO types (type_name, parent_type, domain_name) VALUES (?, ?, ?)",
                                         (str(t_name).strip(), str(parent).strip(), domain))
+
+                # Dynamic domain plugin typestate registration
+                ts_data = data.get("typestates") or getattr(tree, "typestates", None)
+                if hasattr(ts_data, "model_dump"):
+                    ts_data = ts_data.model_dump()
+                if ts_data:
+                    states_list = ts_data.get("states", []) if isinstance(ts_data, dict) else (ts_data if isinstance(ts_data, list) else [])
+                    for s_entry in states_list:
+                        if isinstance(s_entry, dict) and "name" in s_entry:
+                            s_name = s_entry["name"]
+                            s_parent = s_entry.get("parent_state")
+                            s_carrier = s_entry.get("carrier_type")
+                            s_props = json.dumps(s_entry.get("properties") or {})
+                            cur.execute("INSERT OR REPLACE INTO typestates (state_name, parent_state, carrier_type, properties, domain_name) VALUES (?, ?, ?, ?, ?)",
+                                        (s_name, s_parent, s_carrier, s_props, domain))
+
+                # Dynamic domain plugin aliases registration
+                aliases_dict = getattr(tree, "aliases", {}) or data.get("aliases", {})
+                if isinstance(aliases_dict, dict):
+                    for a_k, a_v in aliases_dict.items():
+                        cur.execute("INSERT OR REPLACE INTO aliases (alias, canonical, domain_name) VALUES (?, ?, ?)",
+                                    (str(a_k).strip(), str(a_v).strip(), domain))
+
+                # Dynamic domain plugin artifact readers registration
+                readers_dict = getattr(tree, "artifact_readers", {}) or data.get("artifact_readers", {})
+                if isinstance(readers_dict, dict):
+                    for cat, readers in readers_dict.items():
+                        if isinstance(readers, list):
+                            for r in readers:
+                                parts = str(r).replace(":", ".").rsplit(".", 1)
+                                if len(parts) == 2:
+                                    cur.execute("INSERT OR REPLACE INTO artifact_readers (category, module_name, function_name, domain_name) VALUES (?, ?, ?, ?)",
+                                                (cat.strip().lower(), parts[0], parts[1], domain))
             except Exception as e:
                 print(f"[!] Schema validation error in {jf.name}: {e}")
                 cells = []
@@ -160,6 +198,10 @@ def cmd_compile(args):
                 "postconditions": [p.model_dump() if hasattr(p, "model_dump") else p for p in getattr(cell, "postconditions", [])],
                 "effects": [p.model_dump() if hasattr(p, "model_dump") else p for p in getattr(cell, "effects", [])],
                 "edges": [e.model_dump() if hasattr(e, "model_dump") else e for e in getattr(cell, "edges", [])],
+                "sub_cells": getattr(cell, "sub_cells", []),
+                "algorithmic_steps": getattr(cell, "algorithmic_steps", []),
+                "internal_topology": getattr(cell, "internal_topology", {}),
+                "endable": getattr(cell, "endable", None),
             }
             cfg_json = json.dumps(cfg_dict)
             deps_json = json.dumps(cell.dependencies)
@@ -226,7 +268,7 @@ def cmd_validate(args):
     conn = sqlite3.connect(str(db_path))
     cur = conn.cursor()
 
-    cur.execute("SELECT cell_id, domain_name, stage, code, input_type, output_type FROM nodes")
+    cur.execute("SELECT cell_id, domain_name, stage, code, input_type, output_type, configuration_schema, node_type, node_role FROM nodes")
     rows = cur.fetchall()
 
     valid_count = 0
@@ -234,8 +276,17 @@ def cmd_validate(args):
     errors: List[str] = []
 
     for row in rows:
-        cell_id, domain, stage, code, in_t, out_t = row
+        cell_id, domain, stage, code, in_t, out_t, config_str, n_type, n_role = row
         if not code or not code.strip():
+            try:
+                cfg = json.loads(config_str) if config_str else {}
+            except Exception:
+                cfg = {}
+            if n_type == "macro" or n_role == "macro" or cfg.get("node_type") == "macro" or cfg.get("sub_cells"):
+                sub_cells = cfg.get("sub_cells") or []
+                if len(sub_cells) >= 1:
+                    valid_count += 1
+                    continue
             failed_count += 1
             errors.append(f"{cell_id}: Empty code template")
             continue
@@ -2006,6 +2057,13 @@ def cmd_macro(args):
 
 def cmd_benchmark(args):
     """Runs empirical benchmark suite (matrix or reference bank)."""
+    if getattr(args, "macros", None) is not None:
+        try:
+            from config import settings
+            settings.macros_enabled = bool(args.macros)
+        except Exception:
+            pass
+        os.environ["NSTL_MACROS_ENABLED"] = "1" if args.macros else "0"
     bench_type = getattr(args, "type", "matrix")
     if bench_type == "reference":
         print("[*] Running 50-Task Empirical Reference Benchmark Bank...")
@@ -2101,6 +2159,8 @@ def build_parser() -> argparse.ArgumentParser:
     p_bench.add_argument("--output", type=str, default="evaluation_results.json", help="Path to write evaluation results JSON")
     p_bench.add_argument("--db", type=str, default="trees/lattice.db", help="Path to SQLite database")
     p_bench.add_argument("--methods", nargs="*", default=["M0", "M1", "M2", "M3", "M6"], help="Route methods to evaluate in matrix")
+    p_bench.add_argument("--macros", dest="macros", action="store_true", default=None, help="Enable macro-goal routing (known-good composite paths)")
+    p_bench.add_argument("--no-macros", dest="macros", action="store_false", help="Disable macro-goal routing (for A/B benchmarking)")
     p_bench.set_defaults(func=cmd_benchmark)
 
     # precompute-rag

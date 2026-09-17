@@ -42,28 +42,42 @@ U = TypeVar('U')
 
 # English sentence-connective function words (LANGUAGE-level primitives, not
 # domain vocabulary): a capitalized occurrence of one of these mid-prompt is a
-# sentence connective, never a referential identifier.
-_SENTENCE_CONNECTIVES = frozenset({
-    "a", "an", "the", "in", "on", "at", "of", "to", "for", "from", "by", "with",
-    "and", "or", "as", "is", "are", "was", "were", "be", "been", "it", "its",
-    "them", "they", "their", "this", "that", "these", "those",
-    "but", "if", "then", "when", "while", "into", "also", "plus", "using", "use",
-    "not", "no", "do", "does", "did", "can", "could", "should", "would", "will",
-    "sure", "some", "each", "all", "both", "make",
-})
+class DynamicSentenceConnectives(frozenset):
+    """Dynamic sentence connectives backed by TypeRegistry function words."""
+    def __contains__(self, item):
+        return item in TypeRegistry.get_instance().get_function_words()
+    def __iter__(self):
+        return iter(TypeRegistry.get_instance().get_function_words())
+    def __len__(self):
+        return len(TypeRegistry.get_instance().get_function_words())
+    def __sub__(self, other):
+        return TypeRegistry.get_instance().get_function_words() - (set(other) if not isinstance(other, set) else other)
+    def __rsub__(self, other):
+        return set(other) - TypeRegistry.get_instance().get_function_words()
+    def __and__(self, other):
+        return TypeRegistry.get_instance().get_function_words() & (set(other) if not isinstance(other, set) else other)
+    def __rand__(self, other):
+        return (set(other) if not isinstance(other, set) else other) & TypeRegistry.get_instance().get_function_words()
 
-# Ordinal direction lexicon (LANGUAGE-level primitives, not domain vocabulary):
-# how English speakers express ordering polarity for phrases like "top 2 rows
-# by age" (descending) or "bottom 2 rows" (ascending). Used ONLY to resolve
-# declared order/direction flag ports; never for generic booleans.
-_ASCENDING_HINTS = frozenset({
-    "bottom", "lowest", "smallest", "minimum", "min", "worst", "least",
-    "ascending", "asc", "fewest",
-})
-_DESCENDING_HINTS = frozenset({
-    "top", "highest", "largest", "biggest", "greatest", "maximum", "max",
-    "best", "most", "descending", "desc", "newest", "latest",
-})
+_SENTENCE_CONNECTIVES = DynamicSentenceConnectives()
+
+class DynamicPolarityHints(frozenset):
+    """Dynamic ordering polarity hints harvested from domain trees and order flags."""
+    def __init__(self, direction: str):
+        self.direction = direction
+    def __contains__(self, item):
+        return item in TypeRegistry.get_instance().get_polarity_hints(self.direction)
+    def __iter__(self):
+        return iter(TypeRegistry.get_instance().get_polarity_hints(self.direction))
+    def __len__(self):
+        return len(TypeRegistry.get_instance().get_polarity_hints(self.direction))
+    def __and__(self, other):
+        return (set(other) if not isinstance(other, set) else other) & TypeRegistry.get_instance().get_polarity_hints(self.direction)
+    def __rand__(self, other):
+        return (set(other) if not isinstance(other, set) else other) & TypeRegistry.get_instance().get_polarity_hints(self.direction)
+
+_ASCENDING_HINTS = DynamicPolarityHints("ascending")
+_DESCENDING_HINTS = DynamicPolarityHints("descending")
 # Port names/states that carry an ordering polarity (generic, not domain names).
 _ORDER_FLAG_NAMES = frozenset({
     "ascending", "descending", "asc", "desc", "reverse", "order", "order_flag",
@@ -105,6 +119,15 @@ class IdentifierGroup:
         return f"IdentifierGroup(members={[m[1] for m in self.members]}, role={set(self.role_tokens)})"
 
 
+def is_top_symbol(raw: str, registry: Optional[Any] = None) -> bool:
+    s = str(raw).strip()
+    if s in ("⊤", "*"):
+        return True
+    if registry is None:
+        registry = TypeRegistry.get_instance()
+    return registry.is_declared_top(s)
+
+
 TOP_TYPE_SET = {"any", "Any", "*", "top", "⊤", "object", "Object"}
 
 
@@ -121,7 +144,8 @@ class TypeTerm(ABC):
     @classmethod
     def from_string(cls, s: str) -> 'TypeTerm':
         s_clean = str(s).strip()
-        if s_clean in TOP_TYPE_SET:
+        registry = TypeRegistry.get_instance()
+        if is_top_symbol(s_clean, registry):
             return TOP
         if s_clean.startswith("?"):
             return TypeVariable(s_clean[1:])
@@ -133,8 +157,8 @@ class TypeTerm(ABC):
             inner = s_clean[6:-1].strip()
             args = [a.strip() for a in inner.split(",") if a.strip()]
             return UnionTypeTerm(tuple(TypeTerm.from_string(a) for a in args))
-        # Single-letter generic identifiers (T, S, K, V, U, etc.)
-        if len(s_clean) == 1 and s_clean.isupper():
+        # Declared type variables (dynamic registry + uppercase mathematical fallback)
+        if registry.is_type_variable(s_clean):
             return TypeVariable(s_clean)
         # Check for container/generic expressions like Sequence[T], List[MatLike], Dict[K, V]
         if "[" in s_clean and s_clean.endswith("]"):
@@ -600,30 +624,29 @@ def unify(
 def _to_type_term(item: Any) -> TypeTerm:
     if isinstance(item, TypeTerm):
         return item
+    registry = TypeRegistry.get_instance()
     if isinstance(item, AlgebraicSignature):
         cached = getattr(item, "_cached_term", None)
         if cached is not None:
             return cached
-        if item.is_top():
+        t_clean = item.type_name.strip()
+        if item.is_top() or is_top_symbol(t_clean, registry):
             res = TOP
+        elif t_clean.startswith("?") or "|" in t_clean or ("[" in t_clean and t_clean.endswith("]")) or registry.is_type_variable(t_clean):
+            res = TypeTerm.from_string(t_clean)
         else:
-            t_clean = item.type_name.strip()
-            if t_clean.startswith("?") or "|" in t_clean or ("[" in t_clean and t_clean.endswith("]")) or (len(t_clean) == 1 and t_clean.isupper()):
-                res = TypeTerm.from_string(t_clean)
+            canonical = registry.canonical_name(t_clean)
+            if is_top_symbol(canonical, registry):
+                res = TOP
             else:
-                registry = TypeRegistry.get_instance()
-                canonical = registry.canonical_name(t_clean)
-                if canonical.lower() in ("any", "*", "top", "object", "unknown"):
-                    res = TOP
-                else:
-                    res = TypestateTerm(
-                        type_name=canonical,
-                        state=item.state,
-                        qualifiers=item.qualifiers,
-                        abstract_type=getattr(item, "abstract_type", None),
-                        accepted_states=getattr(item, "accepted_states", frozenset()),
-                        parent_state=getattr(item, "parent_state", None),
-                    )
+                res = TypestateTerm(
+                    type_name=canonical,
+                    state=item.state,
+                    qualifiers=item.qualifiers,
+                    abstract_type=getattr(item, "abstract_type", None),
+                    accepted_states=getattr(item, "accepted_states", frozenset()),
+                    parent_state=getattr(item, "parent_state", None),
+                )
         try:
             item._cached_term = res
         except (AttributeError, TypeError):
@@ -631,10 +654,8 @@ def _to_type_term(item: Any) -> TypeTerm:
         return res
     if isinstance(item, PortSignature):
         return _to_type_term(item.signature)
-    registry = TypeRegistry.get_instance()
     if isinstance(item, str):
-        canonical = registry.canonical_name(item)
-        if canonical.lower() in ("any", "*", "top", "object", "unknown"):
+        if is_top_symbol(item, registry):
             return TOP
         return TypeTerm.from_string(item)
     return TOP
@@ -828,6 +849,8 @@ class ExecutionContext:
     Runtime execution scope holding bound variables and literal arguments.
     Operates strictly via algebraic typestates and substitutions with ZERO domain hardcodes.
     """
+    _PATH_RE = re.compile(r"^[\w\-./\\]+(?:\.[A-Za-z0-9]{1,8})?$")
+
     def __init__(self, prompt: str = "", scope: Optional[Dict[str, Any]] = None):
         self._prompt = prompt or ""
         self.scope: Dict[str, Any] = dict(scope or {})
@@ -1185,20 +1208,8 @@ class ExecutionContext:
         if not self.prompt:
             return None
 
-        # Universal grammatical function words in English (pronouns, prepositions, conjunctions, auxiliaries)
-        _FUNCTION_WORDS = {
-            "a", "an", "the", "and", "or", "but", "if", "then", "else", "when",
-            "at", "by", "for", "with", "about", "against", "between", "into",
-            "through", "during", "before", "after", "above", "below", "to", "from",
-            "up", "down", "in", "out", "on", "off", "over", "under", "again",
-            "further", "once", "here", "there", "all", "any", "both",
-            "each", "few", "more", "most", "other", "some", "such", "no", "nor",
-            "not", "only", "own", "same", "so", "than", "too", "very", "can",
-            "will", "just", "should", "now", "it", "its", "this", "that", "these",
-            "those", "i", "me", "my", "we", "us", "our", "you", "your", "he",
-            "him", "his", "she", "her", "they", "them", "their", "what", "which",
-            "who", "whom", "whose"
-        }
+        # Universal grammatical function words derived from registry / corpus
+        _FUNCTION_WORDS = TypeRegistry.get_instance().get_function_words()
 
         # Candidate word tokens from prompt, excluding self-referential collisions, function words, and file assets
         file_assets = {val.lower() for _, kind, val in self.ordered_literals if kind == "file_asset"}
@@ -1273,9 +1284,9 @@ class ExecutionContext:
         # never slot VALUES. No domain operation verbs: file assets are already
         # excluded by kind, and value words come from declared role/state
         # vocabulary via `triggers` above.
-        skip_words = {
+        skip_words = set(TypeRegistry.get_instance().get_function_words()) | {
             "by", "on", "with", "of", "for", "in", "to", "the", "a", "an", "and", "then",
-            "ascending", "descending", "true", "false",
+            "true", "false",
         }
 
         for tr in triggers:
@@ -1613,30 +1624,45 @@ class ExecutionContext:
                 return "src"
             return ""
 
+        is_path = _lattice_is_path_port(port_sig)
+        port_role = str(getattr(port_sig, "port_role", None) or getattr(port_sig, "role", None) or "").strip().lower()
+        is_path_role = port_role in ("path", "file", "filepath", "filename", "pathlike")
+
         def _take_asset(prefer: str) -> Optional[str]:
             fallback: Optional[Tuple[int, str]] = None
+            path_candidates: List[Tuple[int, str]] = []
             for idx, (lit_pos, kind, val) in enumerate(self.ordered_literals):
-                if idx in self.used_indices or kind not in ("file_asset", "quoted_str"):
+                if idx in self.used_indices:
                     continue
-                direction = _asset_direction(lit_pos) if kind == "file_asset" else ""
-                if prefer and direction == prefer:
-                    self.used_indices.add(idx)
-                    return json.dumps(val)
-                if fallback is None and direction != ("dest" if prefer == "src" else "src"):
-                    fallback = (idx, val)
+                is_file_or_quoted = kind in ("file_asset", "quoted_str")
+                matches_path = bool(ExecutionContext._PATH_RE.match(str(val)))
+                if is_file_or_quoted or (is_path_role and matches_path):
+                    direction = _asset_direction(lit_pos) if kind == "file_asset" else ""
+                    if prefer and direction == prefer:
+                        self.used_indices.add(idx)
+                        return json.dumps(val)
+                    if fallback is None and direction != ("dest" if prefer == "src" else "src"):
+                        fallback = (idx, val)
+                    if matches_path:
+                        path_candidates.append((idx, val))
+
+            if is_path_role and len(path_candidates) == 1:
+                idx, val = path_candidates[0]
+                self.used_indices.add(idx)
+                return json.dumps(val)
+
             if fallback is not None:
                 self.used_indices.add(fallback[0])
                 return json.dumps(fallback[1])
             return None
 
-        is_path = _lattice_is_path_port(port_sig)
         allow_str_asset = (
             cell_stage in (1, 3)
             and is_str
             and not _cell_has_path_port()
             and (port_sig.required or cell_stage == 3)
         )
-        if is_path or allow_str_asset:
+        if is_path or is_path_role or allow_str_asset:
             if cell_stage == 3:
                 taken = _take_asset("dest")
             elif cell_stage == 1:
@@ -1976,17 +2002,22 @@ class UnificationGate:
                     best_ov, best_idx = ov, idx
             return clause_token_sets[best_idx] if best_ov > 0 else set()
 
-        def _is_product(v_sig: Any) -> bool:
-            raw = str(getattr(getattr(v_sig, "signature", None), "type_name", "") or "")
-            return "[" in raw and raw.strip().lower().split("[", 1)[0] in ("tuple", "product", "pair")
+        def _is_product(v_sig: Any, registry: Optional[Any] = None) -> bool:
+            if registry is None:
+                registry = TypeRegistry.get_instance()
+            raw = str(getattr(getattr(v_sig, "signature", None), "type_name", "") or getattr(v_sig, "type_name", "") or "")
+            ctor = raw.strip().lower().split("[", 1)[0] if "[" in raw else raw.strip().lower()
+            return registry.is_product_constructor(ctor)
 
-        def _member_candidates(v_sig: Any, v_name: str, port_sig: Any, cell_toks: Set[str]) -> List[Tuple[float, int, Substitution]]:
+        def _member_candidates(v_sig: Any, v_name: str, port_sig: Any, cell_toks: Set[str], registry: Optional[Any] = None) -> List[Tuple[float, int, Substitution]]:
             """Product-elimination candidates: (score, member_index, substitution)."""
             raw = str(getattr(getattr(v_sig, "signature", None), "type_name", "") or "")
             if "[" not in raw or not raw.endswith("]"):
                 return []
+            if registry is None:
+                registry = TypeRegistry.get_instance()
             constructor = raw.split("[", 1)[0].strip().lower()
-            if constructor not in ("tuple", "product", "pair"):
+            if not registry.is_product_constructor(constructor):
                 return []
             inner = raw[raw.index("[") + 1 : -1]
             members: List[str] = []
@@ -2048,15 +2079,25 @@ class UnificationGate:
                     continue
 
                 orch = getattr(self, "orchestrator", None)
+                if orch is None:
+                    try:
+                        from lattice import LatticeOrchestrator
+                        orch = LatticeOrchestrator.get_active_instance()
+                    except (ImportError, ValueError):
+                        try:
+                            from .lattice import LatticeOrchestrator
+                            orch = LatticeOrchestrator.get_active_instance()
+                        except Exception:
+                            orch = None
                 resolved_cache = getattr(c, "_resolved_sub_cells", {}) or {}
                 resolved: List[Cell] = []
                 missing: List[str] = []
                 for sub_item in sub_cells:
                     sub_cell = sub_item if isinstance(sub_item, Cell) else None
                     if sub_cell is None:
-                        sub_cell = orch.loaded_cells.get(sub_item) if orch else None
-                    if sub_cell is None:
                         sub_cell = resolved_cache.get(sub_item)
+                    if sub_cell is None and orch:
+                        sub_cell = orch.loaded_cells.get(sub_item)
                     if sub_cell is None:
                         missing.append(str(sub_item))
                     else:
@@ -2706,7 +2747,114 @@ class UnificationGate:
                 code_lines.append(instantiated)
 
         final_code = "\n".join(code_lines).strip()
+        final_code = self._reconcile_imports(final_code)
         return final_code
+
+    @staticmethod
+    def _reconcile_imports(code: str) -> str:
+        """AST-level alias reconciliation: every Name root used as module/attribute
+        must be bound by an import or local variable in the script; inject missing ones."""
+        if not code or not code.strip():
+            return code
+        try:
+            tree = ast.parse(code)
+        except Exception:
+            return code
+
+        bound: Set[str] = set(dir(__builtins__))
+        for node in ast.walk(tree):
+            if isinstance(node, ast.Import):
+                for a in node.names:
+                    bound.add(a.asname or a.name.split(".")[0])
+            elif isinstance(node, ast.ImportFrom):
+                for a in node.names:
+                    bound.add(a.asname or a.name)
+            elif isinstance(node, ast.Assign):
+                for target in node.targets:
+                    for sub in ast.walk(target):
+                        if isinstance(sub, ast.Name):
+                            bound.add(sub.id)
+            elif isinstance(node, ast.AnnAssign):
+                if node.target:
+                    for sub in ast.walk(node.target):
+                        if isinstance(sub, ast.Name):
+                            bound.add(sub.id)
+            elif isinstance(node, ast.AugAssign):
+                if node.target:
+                    for sub in ast.walk(node.target):
+                        if isinstance(sub, ast.Name):
+                            bound.add(sub.id)
+            elif isinstance(node, ast.NamedExpr):
+                if node.target:
+                    for sub in ast.walk(node.target):
+                        if isinstance(sub, ast.Name):
+                            bound.add(sub.id)
+            elif isinstance(node, (ast.For, ast.AsyncFor)):
+                for sub in ast.walk(node.target):
+                    if isinstance(sub, ast.Name):
+                        bound.add(sub.id)
+            elif isinstance(node, (ast.With, ast.AsyncWith)):
+                for item in node.items:
+                    if item.optional_vars:
+                        for sub in ast.walk(item.optional_vars):
+                            if isinstance(sub, ast.Name):
+                                bound.add(sub.id)
+            elif isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
+                bound.add(node.name)
+                if hasattr(node, "args"):
+                    for arg in node.args.args + getattr(node.args, "kwonlyargs", []) + getattr(node.args, "posonlyargs", []):
+                        bound.add(arg.arg)
+                    if node.args.vararg:
+                        bound.add(node.args.vararg.arg)
+                    if node.args.kwarg:
+                        bound.add(node.args.kwarg.arg)
+            elif isinstance(node, (ast.ListComp, ast.SetComp, ast.DictComp, ast.GeneratorExp)):
+                for gen in node.generators:
+                    for sub in ast.walk(gen.target):
+                        if isinstance(sub, ast.Name):
+                            bound.add(sub.id)
+            elif isinstance(node, ast.ExceptHandler):
+                if node.name:
+                    bound.add(node.name)
+
+        used_roots: Set[str] = set()
+        for node in ast.walk(tree):
+            if isinstance(node, ast.Attribute) and isinstance(node.value, ast.Name):
+                used_roots.add(node.value.id)
+
+        unbound_roots = sorted(used_roots - bound)
+        if not unbound_roots:
+            return code
+
+        registered_aliases = TypeRegistry.get_instance().get_all_aliases()
+        import importlib.util
+        injected: List[str] = []
+        for root in unbound_roots:
+            root_clean = root.strip()
+            root_lower = root_clean.lower()
+            if root_lower in registered_aliases:
+                target_mod = registered_aliases[root_lower]
+                if target_mod == root_clean:
+                    stmt = f"import {root_clean}"
+                else:
+                    stmt = f"import {target_mod} as {root_clean}"
+                if stmt not in injected:
+                    injected.append(stmt)
+            else:
+                try:
+                    spec = importlib.util.find_spec(root_clean)
+                    if spec is not None:
+                        stmt = f"import {root_clean}"
+                        if stmt not in injected:
+                            injected.append(stmt)
+                except Exception:
+                    pass
+
+        if not injected:
+            return code
+
+        header = "\n".join(injected)
+        return header + "\n" + code
 
     def unify_and_emit(self, cells: List[Cell], prompt: str = "") -> str:
         """Main synthesis entrypoint."""

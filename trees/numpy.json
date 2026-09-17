@@ -1,6 +1,15 @@
 {
   "domain": "numpy",
   "version": "1.1.0",
+  "aliases": {
+    "np": "numpy",
+    "array_like": "array-like"
+  },
+  "artifact_readers": {
+    "array": [
+      "numpy.load"
+    ]
+  },
   "typestates": {
     "domain": "numpy",
     "states": [
@@ -142,7 +151,7 @@
       },
       {
         "name": "saved_npy",
-        "parent_state": null,
+        "parent_state": "written_to_disk",
         "carrier_type": "scalar",
         "description": "Persisted binary serialized NPY format on local filesystem",
         "properties": {
@@ -151,7 +160,7 @@
       },
       {
         "name": "saved_npz",
-        "parent_state": null,
+        "parent_state": "written_to_disk",
         "carrier_type": "scalar",
         "description": "Persisted uncompressed or compressed NPZ archive containing multiple arrays",
         "properties": {
@@ -10715,6 +10724,18 @@
     },
     "NPZ": {
       "parent": "ArrayFormat"
+    },
+    "ndarray": {
+      "parent": "array-like"
+    },
+    "matrix": {
+      "parent": "array-like"
+    },
+    "arrayformat": {
+      "parent": "format"
+    },
+    "buffer": {
+      "parent": "tensor"
     }
   }
 }

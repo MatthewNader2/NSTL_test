@@ -373,21 +373,38 @@ def _evaluate_terminal_intent(
             clean_path = egress_paths[0].strip("'\"") if egress_paths else None
 
         if clean_path and os.path.exists(clean_path):
-            # Artifact readers: the sandbox must decode the on-disk artifact to
-            # compare it against the ingress wire. Library choice here is a
-            # pluggable mechanism (declare a reader in the domain tree to
-            # override); it carries no routing/domain vocabulary.
-            import cv2
-            import numpy as _np
-            disk_img = cv2.imread(clean_path)
+            # Artifact readers: pluggable dynamic artifact loading from tree declarations
+            import importlib
+            disk_img = None
+            readers = TypeRegistry.get_instance().get_artifact_readers("image")
+            for mod_name, fn in readers:
+                try:
+                    mod = importlib.import_module(mod_name)
+                    func = getattr(mod, fn, None)
+                    if func:
+                        disk_img = func(clean_path)
+                        break
+                except Exception:
+                    continue
+
             ingress_img = exec_globals.get(ingress_var) if ingress_var else None
 
             if disk_img is not None and ingress_img is not None:
-                if disk_img.shape == ingress_img.shape and _np.array_equal(disk_img, ingress_img):
-                    if annotated_var and annotated_var != ingress_var:
-                        raise PostconditionVerificationError(
-                            f"Egress image '{clean_path}' contains byte-identical raw input image without annotations. Annotation intent was not realized in saved artifact."
-                        )
+                try:
+                    import numpy as _np
+                    has_np = True
+                except ImportError:
+                    has_np = False
+
+                is_identical = False
+                if has_np and hasattr(disk_img, "shape") and hasattr(ingress_img, "shape"):
+                    if disk_img.shape == ingress_img.shape and _np.array_equal(disk_img, ingress_img):
+                        is_identical = True
+
+                if is_identical and annotated_var and annotated_var != ingress_var:
+                    raise PostconditionVerificationError(
+                        f"Egress image '{clean_path}' contains byte-identical raw input image without annotations. Annotation intent was not realized in saved artifact."
+                    )
 
     elif intent_type == "tabular_egress":
         saved_var = term_check.get("saved_var")
@@ -405,14 +422,25 @@ def _evaluate_terminal_intent(
             clean_path = egress_paths[0].strip("'\"") if egress_paths else None
 
         if clean_path and os.path.exists(clean_path) and expected_clean.get("no_nans"):
-            # Tabular artifact reader (see note above on pluggable mechanisms).
-            import pandas as _pd
+            import importlib
+            disk_df = None
+            readers = TypeRegistry.get_instance().get_artifact_readers("table")
+            for mod_name, fn in readers:
+                try:
+                    mod = importlib.import_module(mod_name)
+                    func = getattr(mod, fn, None)
+                    if func:
+                        disk_df = func(clean_path)
+                        break
+                except Exception:
+                    continue
+
             try:
-                disk_df = _pd.read_csv(clean_path)
-                if disk_df.isna().any().any():
-                    raise PostconditionVerificationError(
-                        f"Egress CSV '{clean_path}' contains NaN values; dropna intent was not realized in saved artifact."
-                    )
+                if disk_df is not None and hasattr(disk_df, "isna"):
+                    if disk_df.isna().any().any():
+                        raise PostconditionVerificationError(
+                            f"Egress CSV '{clean_path}' contains NaN values; dropna intent was not realized in saved artifact."
+                        )
             except Exception as e:
                 if isinstance(e, PostconditionVerificationError):
                     raise

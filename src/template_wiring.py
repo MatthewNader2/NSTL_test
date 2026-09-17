@@ -94,16 +94,17 @@ def transform_call_ast_with_flag(code_snippet: str, mod_alias: str, flag_attr: s
 
         return clean_malformed_template_braces(unparsed)
     except Exception:
-        # Fallback: simple token replacement if AST fails
-        if f"{mod_alias}." in cleaned_snippet and "_DEFAULT" in cleaned_snippet:
-            prefix = f"{mod_alias}."
-            idx1 = cleaned_snippet.find(prefix)
-            if idx1 != -1:
-                idx2 = cleaned_snippet.find("_DEFAULT", idx1 + len(prefix))
-                if idx2 != -1:
-                    target = cleaned_snippet[idx1 : idx2 + len("_DEFAULT")]
-                    return cleaned_snippet.replace(target, f"{mod_alias}.{flag_attr}")
         return cleaned_snippet
+
+
+def wire_default_flag(cell: Any, code: str, mod_alias: str) -> str:
+    """Injects default flag attributes via AST without text surgery hacks."""
+    slots = getattr(cell, "slots", {}) if not isinstance(cell, dict) else cell.get("slots", {})
+    tree_meta = getattr(cell, "tree_meta", {}) if not isinstance(cell, dict) else cell.get("tree_meta", {})
+    flag_attr = (slots or {}).get("default_flag_attr") or (tree_meta or {}).get("default_flag_attr")
+    if not flag_attr:
+        return code
+    return transform_call_ast_with_flag(code, mod_alias, str(flag_attr))
 
 
 def repair_wiring_invariant(cell: Dict[str, Any], domain: str = "generic") -> bool:

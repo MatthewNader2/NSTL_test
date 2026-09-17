@@ -65,6 +65,27 @@ class RouteMethod(ABC):
         """
         orch = orchestrator or self.orchestrator
 
+        # Synaptic Macro-Goal Edge Reinforcement (Synapses in the Brain):
+        try:
+            from config import settings
+            macros_enabled = bool(getattr(settings, "macros_enabled", True))
+        except Exception:
+            macros_enabled = True
+
+        if macros_enabled and orch and hasattr(orch, "loaded_cells"):
+            for m in orch.loaded_cells.values():
+                if getattr(m, "cell_type", "") == "macro" or getattr(m, "sub_cells", None):
+                    topo = getattr(m, "internal_topology", {}) or {}
+                    is_macro_edge = dst_cell.cell_id in topo.get(src_cell.cell_id, ())
+                    if not is_macro_edge and getattr(m, "sub_cells", None):
+                        subs = m.sub_cells
+                        for i in range(len(subs) - 1):
+                            if subs[i] == src_cell.cell_id and subs[i + 1] == dst_cell.cell_id:
+                                is_macro_edge = True
+                                break
+                    if is_macro_edge:
+                        return 0.85
+
         # 1. Forward declared edges on src_cell
         dst_id_lower = dst_cell.cell_id.lower()
         for edge in getattr(src_cell, "edges", []):

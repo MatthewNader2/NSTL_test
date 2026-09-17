@@ -1328,9 +1328,6 @@
           "default_value": 0.5,
           "port_role": "literal_parameter"
         },
-        "dependencies": [
-          "time"
-        ],
         "data": {
           "type_name": "T",
           "required": true,
@@ -1338,6 +1335,9 @@
           "default_value": "None"
         }
       },
+      "dependencies": [
+        "time"
+      ],
       "outputs": {
         "result": {
           "type_name": "U"

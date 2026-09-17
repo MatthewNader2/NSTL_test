@@ -149,7 +149,7 @@ class LatticeType:
         return self.constructor.lower() in ("none", "null", "undefined", "bottom", "⊥", "")
 
     def is_top(self) -> bool:
-        return self.constructor.lower() in ("any", "object", "*", "top", "⊤", "unknown")
+        return TypeRegistry.get_instance().is_declared_top(self.constructor)
 
     def is_subtype_of(self, other: "LatticeType", poset_lookup: Callable[[str, str], bool]) -> bool:
         if self.is_bottom() or other.is_bottom():
@@ -215,6 +215,14 @@ class TypeRegistry:
         self._state_parents: Dict[str, str] = {}
         self._state_carriers: Dict[str, str] = {}
         self._state_properties: Dict[str, Dict[str, Any]] = {}
+        self._type_vars: Set[str] = set()
+        self._declared_top: Set[str] = {"top", "any", "object", "unknown", "⊤", "*"}
+        self._product_constructors: Set[str] = {"tuple", "product", "pair"}
+        self._function_words: Optional[FrozenSet[str]] = None
+        self._egress_tokens: Set[str] = set()
+        self._materialization_states: Set[str] = set()
+        self._polarity_hints: Dict[str, Set[str]] = {"ascending": set(), "descending": set()}
+        self._artifact_readers: Dict[str, List[Tuple[str, str]]] = {}
         self._bootstrap_carrier_hierarchy()
         self._bootstrap_state_hierarchy()
         self._bootstrap_plugin_types()
@@ -242,11 +250,6 @@ class TypeRegistry:
         # Modality and Format Base Taxonomy
         self.register_type("modality", "object")
         self.register_type("format", "object")
-        self.register_type("imageformat", "format")
-        self.register_type("tabularformat", "format")
-        self.register_type("arrayformat", "format")
-        self.register_type("modelformat", "format")
-        self.register_type("canvas", "object")
 
         # Collection carriers
         for t in ("list", "tuple", "set", "frozenset", "dict", "mapping", "map"):
@@ -255,24 +258,18 @@ class TypeRegistry:
         self.register_type("list", "sequence")
         self.register_type("tuple", "sequence")
         # Tensor / array carriers
-        self.register_type("ndarray", "array-like")
-        self.register_type("matrix", "array-like")
         self.register_type("list", "array-like")
         self.register_type("tuple", "array-like")
         self.register_type("array-like", "tensor")
         self.register_type("array-like", "sequence")
-        self.register_type("buffer", "tensor")
-        # NOTE: domain carriers (DataFrame, Series, MatLike, ...) are DECLARED
-        # DATA: each domain tree's `types` block registers them at load time
-        # (see _bootstrap_plugin_types / load_tree_file / load_from_database).
-        # Aliases
+
+        # Universal Primitive Aliases (purely linguistic/computational primitives)
         for alias, can in (
             ("string", "str"),
             ("boolean", "bool"),
             ("integer", "int"),
             ("dictionary", "dict"),
             ("number", "numeric"),
-            ("array_like", "array-like"),
         ):
             self.register_alias(alias, can)
 
@@ -287,12 +284,20 @@ class TypeRegistry:
         # Universal egress / storage states (filesystem egress is a property
         # of the execution environment, not of any domain)
         self.register_state("saved", "written_to_disk")
-        self.register_state("figure_saved", "written_to_disk")
-        self.register_state("saved_npy", "written_to_disk")
-        self.register_state("saved_npz", "written_to_disk")
         self.register_state("written_to_disk", "exported")
         self.register_state("exported", None)
         self.register_state("default", None)
+
+    def register_artifact_reader(self, category: str, module_name: str, function_name: str) -> None:
+        cat = category.strip().lower()
+        if cat not in self._artifact_readers:
+            self._artifact_readers[cat] = []
+        entry = (module_name.strip(), function_name.strip())
+        if entry not in self._artifact_readers[cat]:
+            self._artifact_readers[cat].append(entry)
+
+    def get_artifact_readers(self, category: str) -> List[Tuple[str, str]]:
+        return list(self._artifact_readers.get(category.strip().lower(), []))
 
     def _bootstrap_plugin_types(self):
         """Dynamically ingests domain plugin types from trees/*.json without engine hardcoding."""
@@ -304,17 +309,166 @@ class TypeRegistry:
                 try:
                     with open(p, "r", encoding="utf-8") as f:
                         data = json.load(f)
-                    if isinstance(data, dict) and "types" in data and isinstance(data["types"], dict):
-                        for t_name, t_meta in data["types"].items():
-                            if isinstance(t_meta, dict):
-                                parents = t_meta.get("parents") or ([t_meta["parent"]] if t_meta.get("parent") else [])
-                            else:
-                                parents = [str(t_meta)]
-                            for parent in parents:
-                                if parent:
-                                    self.register_type(t_name, parent)
+                    if isinstance(data, dict):
+                        if "types" in data and isinstance(data["types"], dict):
+                            for t_name, t_meta in data["types"].items():
+                                if isinstance(t_meta, dict):
+                                    parents = t_meta.get("parents") or ([t_meta["parent"]] if t_meta.get("parent") else [])
+                                else:
+                                    parents = [str(t_meta)]
+                                for parent in parents:
+                                    if parent:
+                                        self.register_type(t_name, parent)
+                        if "type_vars" in data and isinstance(data["type_vars"], list):
+                            self.register_type_vars(data["type_vars"])
+                        if "aliases" in data and isinstance(data["aliases"], dict):
+                            for a_k, a_v in data["aliases"].items():
+                                self.register_alias(a_k, a_v)
+                        if "top_types" in data and isinstance(data["top_types"], list):
+                            for top_t in data["top_types"]:
+                                self.register_top(top_t)
+                        if "product_constructors" in data and isinstance(data["product_constructors"], list):
+                            for p_ctor in data["product_constructors"]:
+                                self.register_product_constructor(p_ctor)
+                        if "artifact_readers" in data and isinstance(data["artifact_readers"], dict):
+                            for cat, readers in data["artifact_readers"].items():
+                                if isinstance(readers, list):
+                                    for r in readers:
+                                        parts = str(r).replace(":", ".").rsplit(".", 1)
+                                        if len(parts) == 2:
+                                            self.register_artifact_reader(cat, parts[0], parts[1])
+                        if "egress_intent_tokens" in data and isinstance(data["egress_intent_tokens"], list):
+                            self.register_egress_tokens(data["egress_intent_tokens"])
+                        if "polarity_hints" in data and isinstance(data["polarity_hints"], dict):
+                            for d_k, d_v in data["polarity_hints"].items():
+                                self.register_polarity_hints(d_k, d_v)
+                        if "cells" in data and isinstance(data["cells"], list):
+                            for c in data["cells"]:
+                                if isinstance(c, dict) and "type_vars" in c:
+                                    self.register_type_vars(c["type_vars"])
+                        if "typestates" in data:
+                            ts_block = data["typestates"]
+                            states = ts_block.get("states", []) if isinstance(ts_block, dict) else (ts_block if isinstance(ts_block, list) else [])
+                            for s_entry in states:
+                                if isinstance(s_entry, dict) and "name" in s_entry:
+                                    s_name = s_entry["name"]
+                                    s_parent = s_entry.get("parent_state")
+                                    s_carrier = s_entry.get("carrier_type")
+                                    props = s_entry.get("properties") or {}
+                                    self.register_state(s_name, s_parent, carrier_type=s_carrier, properties=props)
                 except Exception:
                     pass
+
+    def register_type_vars(self, names: Any) -> None:
+        for n in names or ():
+            n = str(n).strip()
+            if n:
+                self._type_vars.add(n)
+
+    def is_type_variable(self, name: str) -> bool:
+        n = str(name).strip()
+        if n in self._type_vars:
+            return True
+        return bool(re.fullmatch(r"[A-Z][0-9]*", n))
+
+    def register_top(self, name: str) -> None:
+        n = str(name).strip().lower()
+        if n:
+            self._declared_top.add(n)
+
+    def is_declared_top(self, name: str) -> bool:
+        s = str(name).strip()
+        if s in ("⊤", "*"):
+            return True
+        s_lower = s.lower()
+        if s_lower in self._declared_top:
+            return True
+        can = self.canonical_name(s).lower()
+        if can in self._declared_top:
+            return True
+        return False
+
+    def register_product_constructor(self, ctor: str) -> None:
+        c = str(ctor).strip().lower()
+        if c:
+            self._product_constructors.add(c)
+
+    def is_product_constructor(self, ctor: str) -> bool:
+        c = str(ctor).strip().lower()
+        return c in self._product_constructors
+
+    def derive_function_words(self, corpus_docs: List[str], cutoff: float = 0.5) -> FrozenSet[str]:
+        from collections import Counter
+        df = Counter()
+        docs = [set(CellTokenizer.tokenize_prompt(d)) for d in corpus_docs if d]
+        n = max(len(docs), 1)
+        for toks in docs:
+            df.update(toks)
+        words = frozenset(w for w, c in df.items() if c / n >= cutoff and len(w) >= 2)
+        self._function_words = words
+        return words
+
+    def get_function_words(self) -> FrozenSet[str]:
+        if getattr(self, "_function_words", None) is not None:
+            return self._function_words
+        return frozenset({
+            "a", "an", "the", "and", "or", "but", "if", "then", "else", "when",
+            "at", "by", "for", "with", "about", "against", "between", "into",
+            "through", "during", "before", "after", "above", "below", "to", "from",
+            "up", "down", "in", "out", "on", "off", "over", "under", "again",
+            "further", "once", "here", "there", "all", "any", "both",
+            "each", "few", "more", "most", "other", "some", "such", "no", "nor",
+            "not", "only", "own", "same", "so", "than", "too", "very", "can",
+            "will", "just", "should", "now", "it", "its", "this", "that", "these",
+            "those", "i", "me", "my", "we", "us", "our", "you", "your", "he",
+            "him", "his", "she", "her", "they", "them", "their", "what", "which",
+            "who", "whom", "whose"
+        })
+
+    def register_egress_tokens(self, tokens: Any) -> None:
+        for t in tokens or ():
+            s = str(t).strip().lower()
+            if s and len(s) >= 2:
+                self._egress_tokens.add(s)
+
+    def get_egress_tokens(self) -> FrozenSet[str]:
+        if self._egress_tokens:
+            return frozenset(self._egress_tokens)
+        return frozenset({"save", "export", "write", "dump", "persist", "store", "plot", "show", "display"})
+
+    def register_materialization_states(self, states: Any) -> None:
+        for st in states or ():
+            s = str(st).strip().lower()
+            if s:
+                self._materialization_states.add(s)
+
+    def get_materialization_states(self) -> FrozenSet[str]:
+        if self._materialization_states:
+            return frozenset(self._materialization_states)
+        return frozenset({"destination_written", "filepath_written", "saved", "exported", "written_to_disk"})
+
+    def register_polarity_hints(self, direction: str, hints: Any) -> None:
+        d = str(direction).strip().lower()
+        if d not in self._polarity_hints:
+            self._polarity_hints[d] = set()
+        for h in hints or ():
+            s = str(h).strip().lower()
+            if s and len(s) >= 2:
+                self._polarity_hints[d].add(s)
+
+    def get_polarity_hints(self, direction: str) -> FrozenSet[str]:
+        d = str(direction).strip().lower()
+        hints = self._polarity_hints.get(d)
+        if hints:
+            return frozenset(hints)
+        if d == "ascending":
+            return frozenset({"bottom", "lowest", "smallest", "minimum", "min", "worst", "least", "ascending", "asc", "fewest"})
+        elif d == "descending":
+            return frozenset({"top", "highest", "largest", "biggest", "greatest", "maximum", "max", "best", "most", "descending", "desc", "newest", "latest"})
+        return frozenset()
+
+    def get_all_aliases(self) -> Dict[str, str]:
+        return dict(self._aliases)
 
     @classmethod
     def get_instance(cls) -> TypeRegistry:
@@ -566,20 +720,11 @@ class TypeRegistry:
         p_acc = {str(s).strip().lower() for s in (producer_accepted or []) if str(s).strip()}
         c_acc = {str(s).strip().lower() for s in (consumer_accepted or []) if str(s).strip()}
 
-        # (a) Accept if other_sig.state is in producer's accepted_states (or producer_state in consumer's accepted_states)
-        if c_state in p_acc or p_state in c_acc:
+        # (a) Accept if producer_state is in consumer's accepted_states (or consumer_state in producer's accepted_states)
+        if p_state in c_acc or c_state in p_acc:
             return True
 
-        # (b) Walk parent_state up consumer's declared chain before rejecting
-        visited_c = set()
-        curr_c = str(consumer_parent).strip().lower() if consumer_parent else self.get_state_parent(c_state)
-        while curr_c and curr_c not in visited_c:
-            visited_c.add(curr_c)
-            if curr_c == p_state or curr_c in p_acc:
-                return True
-            curr_c = self.get_state_parent(curr_c)
-
-        # Also walk parent_state up producer's declared chain
+        # (b) Covariant substate compatibility: walk parent_state up producer's declared chain
         visited_p = set()
         curr_p = str(producer_parent).strip().lower() if producer_parent else self.get_state_parent(p_state)
         while curr_p and curr_p not in visited_p:
@@ -602,11 +747,14 @@ def canonical_type_name(type_name: str) -> str:
 def is_path_port(port: Any) -> bool:
     """
     Single shared predicate for "this port carries a filesystem path asset".
-    Type-driven (declared poset + abstract_type) with a documented naming
+    Type-driven (declared poset + abstract_type + declared role) with a documented naming
     fallback for trees whose ports are string-typed path parameters.
     """
     if port is None:
         return False
+    role = str(getattr(port, "port_role", None) or getattr(port, "role", None) or "").strip().lower()
+    if role in ("path", "file", "filepath", "filename", "pathlike"):
+        return True
     registry = TypeRegistry.get_instance()
     sig = getattr(port, "signature", port)
     t_name = str(getattr(sig, "type_name", "") or "").lower()
@@ -698,8 +846,7 @@ class AlgebraicSignature:
         return cls(type_name=type_name, state=state, abstract_type=_clean_abs_carrier(abstract_type), accepted_states=acc, parent_state=p)
 
     def is_top(self) -> bool:
-        canonical = TypeRegistry.get_instance().canonical_name(self.type_name)
-        return canonical.lower() in ("any", "*", "top", "object", "unknown")
+        return TypeRegistry.get_instance().is_declared_top(self.type_name)
 
     def unifies_with(self, other: Any) -> bool:
         """
@@ -747,9 +894,8 @@ class AlgebraicSignature:
         c_tn = (other_sig.type_name or "").strip()
         is_generic_match = False
 
-        # 1. Declared type variables (tree signature vocabulary, see
-        #    GENERIC_TYPE_VARIABLE_NAMES) unify universally.
-        if c_tn in GENERIC_TYPE_VARIABLE_NAMES or p_tn in GENERIC_TYPE_VARIABLE_NAMES:
+        # 1. Declared type variables (dynamic registry vocabulary + syntactic fallback) unify universally.
+        if registry.is_type_variable(c_tn) or registry.is_type_variable(p_tn):
             is_generic_match = True
         else:
             # 2. Parametric Container / Functor unification (e.g. List[Contour] <-> List[T])
@@ -760,12 +906,23 @@ class AlgebraicSignature:
                 c_ctor, c_inner = m_c.group(1).lower(), m_c.group(2).strip()
                 p_ctor, p_inner = m_p.group(1).lower(), m_p.group(2).strip()
                 if c_ctor == p_ctor:
-                    if (
-                        c_inner in GENERIC_TYPE_VARIABLE_NAMES or c_inner in ("Any", "*")
-                        or p_inner in GENERIC_TYPE_VARIABLE_NAMES or p_inner in ("Any", "*")
+                    c_args = [a.strip() for a in c_inner.split(",") if a.strip()]
+                    p_args = [a.strip() for a in p_inner.split(",") if a.strip()]
+                    if len(c_args) == len(p_args) and len(c_args) > 1:
+                        if all(
+                            registry.is_type_variable(ca) or registry.is_declared_top(ca)
+                            or registry.is_type_variable(pa) or registry.is_declared_top(pa)
+                            or registry.is_subtype(pa, ca)
+                            for ca, pa in zip(c_args, p_args)
+                        ):
+                            is_generic_match = True
+                    elif (
+                        registry.is_type_variable(c_inner) or registry.is_declared_top(c_inner)
+                        or registry.is_type_variable(p_inner) or registry.is_declared_top(p_inner)
                     ):
                         is_generic_match = True
-            elif (c_tn.startswith("List[") and p_tn.lower() in ("list", "sequence", "iterable", "collection")) or                  (p_tn.startswith("List[") and c_tn.lower() in ("list", "sequence", "iterable", "collection")):
+            elif (c_tn.startswith("List[") and p_tn.lower() in ("list", "sequence", "iterable", "collection")) or \
+                 (p_tn.startswith("List[") and c_tn.lower() in ("list", "sequence", "iterable", "collection")):
                 is_generic_match = True
 
         # Poset subtyping
@@ -1502,6 +1659,47 @@ class Cell(ABC):
                 return True
         return False
 
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "cell_id": self.cell_id,
+            "stage": self.stage,
+            "keywords": list(self.keywords) if isinstance(self.keywords, (set, list)) else [],
+            "node_type": self.node_type,
+            "node_role": self.node_role,
+            "domain_name": self.domain_name,
+            "dependencies": list(self.dependencies),
+            "code_template": self.code_template,
+            "verified": self.verified,
+            "semantic_tags": list(self.semantic_tags),
+            "docstring": self.docstring,
+            "topology_type": self.topology_type,
+            "slots": self.slots,
+            "inputs": {
+                name: {
+                    "type_name": p.type_name,
+                    "state": p.state,
+                    "required": p.required,
+                    "default_value": p.default_value,
+                    "role": getattr(p, "port_role", None) or getattr(p, "role", None),
+                }
+                for name, p in self.inputs.items()
+            },
+            "outputs": {
+                name: {
+                    "type_name": p.type_name,
+                    "state": p.state,
+                    "required": p.required,
+                }
+                for name, p in self.outputs.items()
+            },
+        }
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> "Cell":
+        is_macro = str(data.get("node_type", "")).lower() in ("macro", "higher_order") or str(data.get("node_role", "")).lower() in ("macro", "higher_order")
+        cell_cls = MacroCell if is_macro else MicroCell
+        return cell_cls(**data)
+
     def __repr__(self) -> str:
         in_str = f"{self.primary_input.type_name}[{self.primary_input.state}]"
         out_str = f"{self.primary_output.type_name}[{self.primary_output.state}]"
@@ -1542,7 +1740,14 @@ class LatticeOrchestrator:
     Maintains nodes V and allows loading/unloading modular knowledge trees.
     An edge (u, v) exists iff u.primary_output unifies with v's accepting input port.
     """
+    _active_instance: Optional["LatticeOrchestrator"] = None
+
+    @classmethod
+    def get_active_instance(cls) -> Optional["LatticeOrchestrator"]:
+        return cls._active_instance
+
     def __init__(self, trees_directory: str = "trees", active_domain: str = "all", db_path: Optional[str] = None):
+        LatticeOrchestrator._active_instance = self
         if not os.path.exists(trees_directory) and os.path.exists("new trees"):
             trees_directory = "new trees"
         self.trees_directory = trees_directory
@@ -1594,8 +1799,31 @@ class LatticeOrchestrator:
             else:
                 domain = data.get("domain", "generic")
                 raw_cells = data.get("cells", [])
+                reg = TypeRegistry.get_instance()
+                if "type_vars" in data and isinstance(data["type_vars"], list):
+                    reg.register_type_vars(data["type_vars"])
+                if "aliases" in data and isinstance(data["aliases"], dict):
+                    for a_k, a_v in data["aliases"].items():
+                        reg.register_alias(a_k, a_v)
+                if "top_types" in data and isinstance(data["top_types"], list):
+                    for top_t in data["top_types"]:
+                        reg.register_top(top_t)
+                if "product_constructors" in data and isinstance(data["product_constructors"], list):
+                    for p_ctor in data["product_constructors"]:
+                        reg.register_product_constructor(p_ctor)
+                if "egress_intent_tokens" in data and isinstance(data["egress_intent_tokens"], list):
+                    reg.register_egress_tokens(data["egress_intent_tokens"])
+                if "polarity_hints" in data and isinstance(data["polarity_hints"], dict):
+                    for d_k, d_v in data["polarity_hints"].items():
+                        reg.register_polarity_hints(d_k, d_v)
+                if "artifact_readers" in data and isinstance(data["artifact_readers"], dict):
+                    for cat, readers in data["artifact_readers"].items():
+                        if isinstance(readers, list):
+                            for r in readers:
+                                parts = str(r).replace(":", ".").rsplit(".", 1)
+                                if len(parts) == 2:
+                                    reg.register_artifact_reader(cat, parts[0], parts[1])
                 if "types" in data and isinstance(data["types"], dict):
-                    reg = TypeRegistry.get_instance()
                     for t_name, t_meta in data["types"].items():
                         if isinstance(t_meta, dict):
                             parents = t_meta.get("parents") or ([t_meta["parent"]] if t_meta.get("parent") else [])
@@ -1607,23 +1835,24 @@ class LatticeOrchestrator:
                 if "typestates" in data and data["typestates"]:
                     self.typestate_vocabularies[domain] = data["typestates"]
                     ts_info = data["typestates"]
-                    registry = TypeRegistry.get_instance()
                     states_list = ts_info.get("states", []) if isinstance(ts_info, dict) else []
                     for s in states_list:
                         if isinstance(s, dict):
                             s_name = s.get("name")
                             s_parent = s.get("parent_state")
                             if s_name:
-                                registry.register_state(
+                                reg.register_state(
                                     s_name,
                                     s_parent,
                                     carrier_type=s.get("carrier_type"),
                                     properties=s.get("properties"),
                                 )
                         elif isinstance(s, str):
-                            registry.register_state(s)
+                            reg.register_state(s)
 
             for c_dict in raw_cells:
+                if isinstance(c_dict, dict) and "type_vars" in c_dict and c_dict["type_vars"]:
+                    TypeRegistry.get_instance().register_type_vars(c_dict["type_vars"])
                 is_macro = (
                     str(c_dict.get("node_type", "")).lower() in ("macro", "higher_order")
                     or str(c_dict.get("node_role", "")).lower() in ("macro", "higher_order")
@@ -1673,18 +1902,29 @@ class LatticeOrchestrator:
             logger.info(f"[LATTICE] Unloaded {len(to_remove)} nodes for domain: {domain}")
 
     def load_all_json_trees(self):
-        """Loads all JSON trees located in trees_directory."""
+        """Loads all JSON trees located in trees_directory and supplemental trees."""
         target_dir = self.trees_directory
-        if not os.path.exists(target_dir):
-            if os.path.exists("new trees"):
-                target_dir = "new trees"
-            else:
-                return
-        all_fnames = [f for f in os.listdir(target_dir) if f.endswith(".json")]
-        normalized_fnames = [f for f in all_fnames if f.endswith("_normalized.json")]
-        target_fnames = normalized_fnames if normalized_fnames else all_fnames
-        for fname in sorted(target_fnames):
-            self.load_tree_file(os.path.join(target_dir, fname))
+        search_dirs = [target_dir]
+        if os.path.basename(os.path.normpath(target_dir)) in ("trees", "new trees"):
+            for candidate in ("trees", "new trees"):
+                cand_path = os.path.normpath(candidate)
+                if os.path.exists(cand_path) and cand_path not in [os.path.normpath(d) for d in search_dirs]:
+                    search_dirs.append(cand_path)
+
+        loaded_domains = set()
+        for s_dir in search_dirs:
+            if not os.path.exists(s_dir):
+                continue
+            all_fnames = [f for f in os.listdir(s_dir) if f.endswith(".json")]
+            normalized_fnames = [f for f in all_fnames if f.endswith("_normalized.json")]
+            target_fnames = normalized_fnames if (normalized_fnames and s_dir == target_dir) else all_fnames
+            for fname in sorted(target_fnames):
+                base_domain = fname.replace("_v1.1.0_normalized.json", "").replace("_normalized.json", "").replace(".json", "")
+                if base_domain in loaded_domains:
+                    continue
+                fpath = os.path.join(s_dir, fname)
+                self.load_tree_file(fpath)
+                loaded_domains.add(base_domain)
 
     def load_from_database(self, db_path: Optional[str] = None):
         """Loads nodes from the compiled SQLite database.
@@ -1732,6 +1972,22 @@ class LatticeOrchestrator:
                             except Exception:
                                 props = None
                         reg.register_state(s_name, s_parent, carrier_type=s_carrier, properties=props)
+
+                cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='aliases'")
+                if cursor.fetchone():
+                    reg = TypeRegistry.get_instance()
+                    cursor.execute("SELECT alias, canonical FROM aliases")
+                    for a_k, a_v in cursor.fetchall():
+                        if a_k and a_v:
+                            reg.register_alias(a_k, a_v)
+
+                cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='artifact_readers'")
+                if cursor.fetchone():
+                    reg = TypeRegistry.get_instance()
+                    cursor.execute("SELECT category, module_name, function_name FROM artifact_readers")
+                    for cat, m_name, f_name in cursor.fetchall():
+                        if cat and m_name and f_name:
+                            reg.register_artifact_reader(cat, m_name, f_name)
                 cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name IN ('nodes', 'cells')")
                 tables = [row[0] for row in cursor.fetchall()]
 
@@ -1991,6 +2247,7 @@ class LatticeOrchestrator:
             self._reverse_adjacency.clear()
             self._token_index.clear()
             self._bridge_cells.clear()
+            self.dynamic_edges.clear()
 
             all_cells = list(self.loaded_cells.values())
             for cell in all_cells:
@@ -2037,6 +2294,90 @@ class LatticeOrchestrator:
                                             if out_sig.unifies_with(in_sig):
                                                 self._adjacency[u.cell_id].append(v.cell_id)
                                                 self._reverse_adjacency[v.cell_id].append(u.cell_id)
+
+            # 3. Macro internal topology synaptic edges (synapses connecting constituent micro-cells)
+            for m in all_cells:
+                if getattr(m, "cell_type", "") == "macro" or getattr(m, "sub_cells", None):
+                    topo = getattr(m, "internal_topology", {}) or {}
+                    for src_id, targets in topo.items():
+                        if src_id in self.loaded_cells:
+                            tgt_list = targets if isinstance(targets, list) else [targets]
+                            for tgt_id in tgt_list:
+                                if tgt_id in self.loaded_cells:
+                                    if tgt_id not in self._adjacency[src_id]:
+                                        self._adjacency[src_id].append(tgt_id)
+                                    if src_id not in self._reverse_adjacency[tgt_id]:
+                                        self._reverse_adjacency[tgt_id].append(src_id)
+                                    self.dynamic_edges[(src_id, tgt_id)] = {
+                                        "affinity_score": 0.9,
+                                        "score_provenance": "macro_synapse",
+                                        "macro_id": m.cell_id
+                                    }
+                    subs = getattr(m, "sub_cells", []) or []
+                    for i in range(len(subs) - 1):
+                        s_u, s_v = subs[i], subs[i + 1]
+                        if s_u in self.loaded_cells and s_v in self.loaded_cells:
+                            if s_v not in self._adjacency[s_u]:
+                                self._adjacency[s_u].append(s_v)
+                            if s_u not in self._reverse_adjacency[s_v]:
+                                self._reverse_adjacency[s_v].append(s_u)
+                            if (s_u, s_v) not in self.dynamic_edges:
+                                self.dynamic_edges[(s_u, s_v)] = {
+                                    "affinity_score": 0.9,
+                                    "score_provenance": "macro_synapse",
+                                    "macro_id": m.cell_id
+                                }
+                    if hasattr(m, "_resolved_sub_cells"):
+                        m._resolved_sub_cells = {
+                            sid: self.loaded_cells[sid]
+                            for sid in (getattr(m, "sub_cells", []) or [])
+                            if sid in self.loaded_cells
+                        }
+
+            # Derive function words dynamically from corpus docs
+            docs = [c.docstring for c in all_cells if getattr(c, "docstring", None)] + [
+                " ".join(c.keywords) for c in all_cells if getattr(c, "keywords", None)
+            ]
+            reg = TypeRegistry.get_instance()
+            if docs:
+                reg.derive_function_words(docs)
+
+            # Harvest egress tokens and materialization states from stage-3/sink cells
+            for c in all_cells:
+                is_egress = getattr(c, "stage", None) == 3 or str(getattr(c, "node_role", "")).lower() == "egress" or str(getattr(c, "mutation_type", "")).lower() in ("io", "sink")
+                if is_egress:
+                    if getattr(c, "keywords", None):
+                        reg.register_egress_tokens(c.keywords)
+                    if getattr(c, "docstring", None):
+                        reg.register_egress_tokens(CellTokenizer.tokenize_prompt(c.docstring))
+                    for p in getattr(c, "outputs", {}).values():
+                        p_st = getattr(getattr(p, "signature", p), "state", None)
+                        if p_st:
+                            reg.register_materialization_states([p_st])
+
+                # Harvest polarity hints from order_flag ports
+                for p_name, p in getattr(c, "inputs", {}).items():
+                    p_st = str(getattr(getattr(p, "signature", p), "state", "")).lower()
+                    p_role = str(getattr(p, "port_role", "") or getattr(p, "role", "")).lower()
+                    p_pol = str(getattr(p, "polarity", "")).lower()
+                    if p_pol in ("ascending", "descending"):
+                        reg.register_polarity_hints(p_pol, [p_name])
+                    if "order" in p_st or "order" in p_role or p_name in ("ascending", "descending"):
+                        desc = getattr(p, "description", "") or ""
+                        if desc:
+                            desc_toks = CellTokenizer.tokenize_prompt(desc)
+                            if "ascending" in desc_toks or "smallest" in desc_toks:
+                                reg.register_polarity_hints("ascending", desc_toks)
+                            if "descending" in desc_toks or "largest" in desc_toks:
+                                reg.register_polarity_hints("descending", desc_toks)
+
+    def audit_topology(self) -> Any:
+        try:
+            from lattice_auditor import LatticeAuditor
+            return LatticeAuditor(self).audit()
+        except Exception as e:
+            logger.debug(f"[LATTICE] Auditor hook: {e}")
+            return None
 
     @property
     def token_index(self) -> Dict[str, List[Cell]]:
