@@ -414,10 +414,17 @@ class LatticePlanner:
             sig = getattr(p_sig, "signature", p_sig)
             return _is_path_port_name(str(getattr(p_sig, "name", "") or ""), sig)
 
-        # Numeric literals extracted from prompt
         numeric_literals = [
             v for _, t, v in ExecutionContext._extract_universal_literals(prompt or "")
             if t in ("numeric", "int", "float", "number")
+        ]
+        quoted_str_literals = [
+            v for kind, v in universal_literals
+            if kind == "quoted_str" and not bool(ExecutionContext._PATH_RE.match(str(v)))
+        ]
+        identifier_literals = [
+            v for kind, v in universal_literals
+            if kind == "identifier"
         ]
 
         def _can_be_entry_source(cell: Cell) -> bool:
@@ -669,15 +676,16 @@ class LatticePlanner:
         # class must be produced somewhere earlier in the path (typically by the
         # class's constructor morphism) or by the environment's start signature.
         # Ports whose declared carrier is literal-groundable are exempt.
-        def _port_literal_groundable(type_name: str) -> bool:
+        def _port_literal_groundable(type_name: str, p_sig: Any = None) -> bool:
             t = type_name.lower()
             return (
-                registry.is_subtype(t, "str")
-                or registry.is_subtype(t, "numeric")
+                (registry.is_subtype(t, "str") and bool(quoted_str_literals or identifier_literals))
+                or (registry.is_subtype(t, "numeric") and bool(numeric_literals))
                 or registry.is_subtype(t, "bool")
                 or registry.is_subtype(t, "filepath")
                 or registry.is_subtype(t, "uri")
-                or registry.is_subtype(t, "scalar")
+                or (registry.is_subtype(t, "scalar") and bool(quoted_str_literals or identifier_literals or numeric_literals))
+                or (p_sig is not None and _is_col_projection_port(p_sig) and bool(identifier_literals or quoted_str_literals))
             )
 
         # Per-cell: required concrete non-groundable receiver signatures (the ports
@@ -699,7 +707,7 @@ class LatticePlanner:
                 )
                 t = str(p_sig.signature.type_name)
                 if not is_instance_receiver:
-                    if t.lower() in _WILDCARD_CARRIERS or _port_literal_groundable(t):
+                    if t.lower() in _WILDCARD_CARRIERS or _port_literal_groundable(t, p_sig):
                         continue
                 sigs.append(p_sig.signature)
             cell_receiver_sigs[c.cell_id] = sigs
@@ -1361,6 +1369,9 @@ class LatticePlanner:
                 cells_by_in_type=cells_by_in_type,
                 candidate_map=candidate_map,
                 candidate_map_lower=candidate_map_lower,
+                identifier_literals=identifier_literals,
+                quoted_str_literals=quoted_str_literals,
+                numeric_literals=numeric_literals,
             )
         else:
             all_valid_paths = self._plan_frontier_dag(
@@ -1375,6 +1386,9 @@ class LatticePlanner:
                 cells_by_in_type=cells_by_in_type,
                 candidate_map=candidate_map,
                 candidate_map_lower=candidate_map_lower,
+                identifier_literals=identifier_literals,
+                quoted_str_literals=quoted_str_literals,
+                numeric_literals=numeric_literals,
             )
 
         # Filter and rank valid composition paths
@@ -1658,10 +1672,34 @@ class LatticePlanner:
                 return False
             if getattr(cell, "node_type", "") == "constructor":
                 return False
+            # Cells that accept collection or column projection inputs consume multiplicity directly
+            for p_sig in cell.inputs.values():
+                t_name = str(p_sig.signature.type_name).lower()
+                if (
+                    _is_col_projection_port(p_sig)
+                    or registry.is_subtype(t_name, "list")
+                    or registry.is_subtype(t_name, "collection")
+                    or registry.is_subtype(t_name, "sequence")
+                    or t_name in ("list", "sequence", "collection")
+                    or getattr(getattr(p_sig, "signature", p_sig), "abstract_type", None) == "collection"
+                ):
+                    state = str(getattr(p_sig.signature, "state", "") or "").lower()
+                    st_tokens = CellTokenizer.tokenize_identifier(state) if state not in ("any", "default", "") else set()
+                    if _is_col_projection_port(p_sig) or bool(role_tokens & st_tokens):
+                        return False
             for p_sig in cell.inputs.values():
                 if not p_sig.required or p_sig.default_value is not None:
                     continue
                 t_name = str(p_sig.signature.type_name).lower()
+                if (
+                    _is_col_projection_port(p_sig)
+                    or registry.is_subtype(t_name, "list")
+                    or registry.is_subtype(t_name, "collection")
+                    or registry.is_subtype(t_name, "sequence")
+                    or t_name in ("list", "sequence", "collection")
+                    or getattr(getattr(p_sig, "signature", p_sig), "abstract_type", None) == "collection"
+                ):
+                    continue
                 strict_str = registry.is_subtype(t_name, "str") and t_name not in ("any", "*", "top", "")
                 state = str(getattr(p_sig.signature, "state", "") or "").lower()
                 role_state = state not in ("any", "default", "") and bool(
@@ -1697,7 +1735,10 @@ class LatticePlanner:
         self,
         prev_path: List[Cell],
         cand: Cell,
-        prev_sigma: Substitution
+        prev_sigma: Substitution,
+        identifier_literals: Sequence[Any] = (),
+        quoted_str_literals: Sequence[Any] = (),
+        numeric_literals: Sequence[Any] = (),
     ) -> Optional[Substitution]:
         """
         Verifies monadic transition from prev_path to cand.
@@ -1794,13 +1835,14 @@ class LatticePlanner:
                     # or the port declares an enum domain for reflection-based grounding.
                     # Zero port-name heuristics: naming is data, typing is semantics.
                     is_literal_groundable = (
-                        registry.is_subtype(t_name, "str")
-                        or registry.is_subtype(t_name, "numeric")
+                        (registry.is_subtype(t_name, "str") and bool(quoted_str_literals or identifier_literals))
+                        or (registry.is_subtype(t_name, "numeric") and bool(numeric_literals))
                         or registry.is_subtype(t_name, "bool")
-                        or registry.is_subtype(t_name, "filepath")
-                        or registry.is_subtype(t_name, "uri")
-                        or registry.is_subtype(t_name, "scalar")
+                        or _lattice_is_path_port(p_sig)
+                        or (registry.is_subtype(t_name, "scalar") and bool(quoted_str_literals or identifier_literals or numeric_literals))
                         or bool(getattr(p_sig, "enum_values", None))
+                        or (getattr(p_sig, "port_role", None) == "functional_operator" or "Callable" in str(getattr(p_sig.signature, "type_name", "")))
+                        or (_is_col_projection_port(p_sig) and bool(identifier_literals or quoted_str_literals))
                     )
                     if is_literal_groundable:
                         satisfied = True
@@ -1823,6 +1865,9 @@ class LatticePlanner:
         cells_by_in_type: Dict[str, List[Cell]],
         candidate_map: Dict[str, Cell],
         candidate_map_lower: Dict[str, Cell],
+        identifier_literals: Sequence[Any] = (),
+        quoted_str_literals: Sequence[Any] = (),
+        numeric_literals: Sequence[Any] = (),
     ) -> List[Tuple[List[Cell], Substitution, float, int, int]]:
         """
         1D Monadic Trellis Baseline Planner.
@@ -1869,13 +1914,14 @@ class LatticePlanner:
                     if not is_instance_receiver:
                         t_name = str(getattr(p_sig.signature, "type_name", "")).lower()
                         if (
-                            registry.is_subtype(t_name, "str")
-                            or registry.is_subtype(t_name, "numeric")
+                            (registry.is_subtype(t_name, "str") and bool(quoted_str_literals or identifier_literals))
+                            or (registry.is_subtype(t_name, "numeric") and bool(numeric_literals))
                             or registry.is_subtype(t_name, "bool")
-                            or registry.is_subtype(t_name, "filepath")
-                            or registry.is_subtype(t_name, "uri")
-                            or registry.is_subtype(t_name, "scalar")
+                            or _lattice_is_path_port(p_sig)
+                            or (registry.is_subtype(t_name, "scalar") and bool(quoted_str_literals or identifier_literals or numeric_literals))
                             or bool(getattr(p_sig, "enum_values", None))
+                            or (getattr(p_sig, "port_role", None) == "functional_operator" or "Callable" in str(getattr(p_sig.signature, "type_name", "")))
+                            or (_is_col_projection_port(p_sig) and bool(identifier_literals or quoted_str_literals))
                         ):
                             satisfied = True
                 if not satisfied:
@@ -1967,7 +2013,12 @@ class LatticePlanner:
                         if pair_key in edge_compat_cache:
                             new_sigma = edge_compat_cache[pair_key]
                         else:
-                            new_sigma = self._verify_transition(prev_path, cand, prev_sigma)
+                            new_sigma = self._verify_transition(
+                                prev_path, cand, prev_sigma,
+                                identifier_literals=identifier_literals,
+                                quoted_str_literals=quoted_str_literals,
+                                numeric_literals=numeric_literals,
+                            )
                             edge_compat_cache[pair_key] = new_sigma
 
                         if new_sigma is None:
@@ -2021,6 +2072,9 @@ class LatticePlanner:
         cells_by_in_type: Dict[str, List[Cell]],
         candidate_map: Dict[str, Cell],
         candidate_map_lower: Dict[str, Cell],
+        identifier_literals: Sequence[Any] = (),
+        quoted_str_literals: Sequence[Any] = (),
+        numeric_literals: Sequence[Any] = (),
     ) -> List[Tuple[List[Cell], Substitution, float, int, int]]:
         """
         Monoidal Category Frontier DAG Planner (Default Approach).
@@ -2116,13 +2170,14 @@ class LatticePlanner:
                     if not is_instance_receiver:
                         t_name = str(getattr(p_sig.signature, "type_name", "")).lower()
                         is_literal_groundable = (
-                            registry.is_subtype(t_name, "str")
-                            or registry.is_subtype(t_name, "numeric")
+                            (registry.is_subtype(t_name, "str") and bool(quoted_str_literals or identifier_literals))
+                            or (registry.is_subtype(t_name, "numeric") and bool(numeric_literals))
                             or registry.is_subtype(t_name, "bool")
-                            or registry.is_subtype(t_name, "filepath")
-                            or registry.is_subtype(t_name, "uri")
-                            or registry.is_subtype(t_name, "scalar")
+                            or _lattice_is_path_port(p_sig)
+                            or (registry.is_subtype(t_name, "scalar") and bool(quoted_str_literals or identifier_literals or numeric_literals))
                             or bool(getattr(p_sig, "enum_values", None))
+                            or (getattr(p_sig, "port_role", None) == "functional_operator" or "Callable" in str(getattr(p_sig.signature, "type_name", "")))
+                            or (_is_col_projection_port(p_sig) and bool(identifier_literals or quoted_str_literals))
                         )
                         if is_literal_groundable:
                             satisfied = True

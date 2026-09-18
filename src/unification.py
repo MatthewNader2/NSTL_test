@@ -1812,12 +1812,20 @@ class ExecutionContext:
         # called" from "what kind of thing goes in it".
         if (cell_stage == 2 or cell_stage is None) and port_sig.required and port_sig.default_value is None:
             _tn = t_name
-            _is_strict_str = registry.is_subtype(_tn, "str") and _tn not in ("any", "*", "top", "")
+            _is_collection = (
+                registry.is_subtype(_tn, "list")
+                or registry.is_subtype(_tn, "collection")
+                or registry.is_subtype(_tn, "sequence")
+                or _tn in ("list", "sequence", "collection")
+                or getattr(port_sig, "abstract_type", None) == "collection"
+                or str(getattr(port_sig, "state", "")).lower() in ("column_projection", "columns", "columns_list", "feature_names")
+            )
+            _is_strict_str = (registry.is_subtype(_tn, "str") or registry.is_subtype(_tn, "scalar")) and _tn not in ("any", "*", "top", "") and not _is_collection
             _state_tokens: Set[str] = set()
             _raw_state = str(getattr(port_sig, "state", "") or "")
             if _raw_state.lower() not in ("any", "default", ""):
                 _state_tokens = CellTokenizer.tokenize_identifier(_raw_state)
-            if _is_strict_str or _state_tokens:
+            if _is_strict_str and (_state_tokens or cell_tokens):
                 _identity_scope: Set[str] = set(cell_tokens or set()) | _state_tokens
                 for idx, (_, kind, val) in enumerate(self.ordered_literals):
                     if idx in self.used_indices or kind != "identifier":

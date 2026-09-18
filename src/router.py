@@ -460,12 +460,6 @@ class LatticeRouter:
         if not candidates_with_scores:
             return [], {}
 
-        # Softmax normalization across the embedding-path candidate pool (the lexical
-        # path already normalized per group in _tunnel_from_groups).
-        if self.internal_rag is not None and self.internal_rag.index is not None:
-            candidates_with_scores = self._tunnel_from_groups([dict(candidates_with_scores)])
-            if not candidates_with_scores:
-                return [], {}
 
         final_tunnel: List[Cell] = [c for c, _ in candidates_with_scores]
         relevance_map = {c.cell_id: s for c, s in candidates_with_scores}
