@@ -248,6 +248,7 @@ class TypeRegistry:
         self._preposition_triggers: Set[str] = set()
         self._asset_placeholders: Dict[str, str] = {}
         self._output_asset_placeholders: Dict[str, str] = {}
+        self._ancestry_cache: Dict[Tuple[str, FrozenSet[str]], bool] = {}
         self._bootstrap_carrier_hierarchy()
         self._bootstrap_state_hierarchy()
         self._bootstrap_plugin_types()
@@ -787,6 +788,8 @@ class TypeRegistry:
             self._state_properties.setdefault(s, {}).update(
                 {str(k): v for k, v in properties.items()}
             )
+        if hasattr(self, "_ancestry_cache") and self._ancestry_cache:
+            self._ancestry_cache.clear()
 
     def get_state_parent(self, state: str) -> Optional[str]:
         """Returns the declared parent_state of a typestate, if any."""
@@ -808,17 +811,31 @@ class TypeRegistry:
             curr = self._state_parents.get(curr, "")
         return result
 
-    def state_ancestry_reaches(self, state: str, ancestors: Set[str]) -> bool:
+    def state_ancestry_reaches(self, state: str, ancestors: Union[Set[str], FrozenSet[str]]) -> bool:
         """True iff the state's declared parent chain reaches any of `ancestors`."""
-        target = {a.strip().lower() for a in ancestors}
         curr = str(state).strip().lower()
+        if not curr:
+            return False
+        anc_frozen = ancestors if isinstance(ancestors, frozenset) else frozenset(a.strip().lower() for a in ancestors)
+        cache_key = (curr, anc_frozen)
+        if hasattr(self, "_ancestry_cache"):
+            cached = self._ancestry_cache.get(cache_key)
+            if cached is not None:
+                return cached
+
+        res = False
         seen: Set[str] = set()
-        while curr and curr not in seen:
-            if curr in target:
-                return True
-            seen.add(curr)
-            curr = self._state_parents.get(curr, "")
-        return False
+        temp_curr = curr
+        while temp_curr and temp_curr not in seen:
+            if temp_curr in anc_frozen:
+                res = True
+                break
+            seen.add(temp_curr)
+            temp_curr = self._state_parents.get(temp_curr, "")
+
+        if hasattr(self, "_ancestry_cache"):
+            self._ancestry_cache[cache_key] = res
+        return res
 
     def is_state_compatible(
         self,
@@ -899,6 +916,19 @@ def is_path_port(port: Any) -> bool:
     """
     if port is None:
         return False
+    cached = getattr(port, "_cached_is_path_port", None)
+    if cached is not None:
+        return cached
+
+    res = _compute_is_path_port(port)
+    try:
+        port._cached_is_path_port = res
+    except (AttributeError, TypeError):
+        pass
+    return res
+
+
+def _compute_is_path_port(port: Any) -> bool:
     role = str(getattr(port, "port_role", None) or getattr(port, "role", None) or "").strip().lower()
     if role in ("path", "file", "filepath", "filename", "pathlike"):
         return True
@@ -1225,7 +1255,8 @@ class PortSignature:
     __slots__ = [
         "name", "signature", "required", "default_value", "doc", "domain",
         "abstract_type", "enum_values", "param_kind", "value_constraints", "shape_contract",
-        "accepted_states", "parent_state", "port_role"
+        "accepted_states", "parent_state", "port_role", "_cached_term", "_cached_col_proj",
+        "_cached_derived_role", "_cached_is_path_port", "_cached_ndim"
     ]
 
     def __init__(
@@ -1334,6 +1365,11 @@ class PortSignature:
         self.required = bool(required)
         self.default_value = default_value
         self.doc = str(doc or "")
+        self._cached_term = None
+        self._cached_col_proj = None
+        self._cached_derived_role = None
+        self._cached_is_path_port = None
+        self._cached_ndim = None
 
     @property
     def type_name(self) -> str:
@@ -1359,33 +1395,40 @@ class PortSignature:
           3. the declared carrier type (subtype of `Estimator`, table carriers...).
         No port-name conventions: naming is data, typing is semantics.
         """
+        if self._cached_derived_role is not None:
+            return self._cached_derived_role
+
         if self.port_role:
+            self._cached_derived_role = self.port_role
             return self.port_role
 
         state_lower = str(getattr(self.signature, "state", "")).lower()
         registry = TypeRegistry.get_instance()
 
         # Declared state ancestry -> role families
+        role = "standard"
         if state_lower and state_lower not in ("any", "*"):
-            if registry.state_ancestry_reaches(state_lower, {"target_vector", "target", "labels"}):
-                return "target_input"
-            if registry.state_ancestry_reaches(state_lower, {"feature_matrix", "features"}):
-                return "feature_input"
-            if registry.state_ancestry_reaches(state_lower, {"trained", "fit_estimator"}):
-                return "model_input"
-            if registry.state_ancestry_reaches(state_lower, {"source_identifier"}):
-                return "source_data"
-            if "sink" in state_lower or "dest" in state_lower or "dest_identifier" in state_lower:
-                return "model_sink"
+            if registry.state_ancestry_reaches(state_lower, frozenset({"target_vector", "target", "labels"})):
+                role = "target_input"
+            elif registry.state_ancestry_reaches(state_lower, frozenset({"feature_matrix", "features"})):
+                role = "feature_input"
+            elif registry.state_ancestry_reaches(state_lower, frozenset({"trained", "fit_estimator"})):
+                role = "model_input"
+            elif registry.state_ancestry_reaches(state_lower, frozenset({"source_identifier"})):
+                role = "source_data"
+            elif "sink" in state_lower or "dest" in state_lower or "dest_identifier" in state_lower:
+                role = "model_sink"
 
-        # Declared carrier type -> role families
-        t_name = self.type_name.lower()
-        if registry.is_subtype(t_name, "estimator"):
-            return "model_input"
-        if registry.is_subtype(t_name, "table") or registry.is_subtype(t_name, "tensor"):
-            return "data_input"
+        if role == "standard":
+            # Declared carrier type -> role families
+            t_name = self.type_name.lower()
+            if registry.is_subtype(t_name, "estimator"):
+                role = "model_input"
+            elif registry.is_subtype(t_name, "table") or registry.is_subtype(t_name, "tensor"):
+                role = "data_input"
 
-        return "standard"
+        self._cached_derived_role = role
+        return role
 
     def is_top(self) -> bool:
         return self.signature.is_top()

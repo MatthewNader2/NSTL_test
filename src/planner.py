@@ -127,16 +127,45 @@ def _is_col_projection_port(p_sig: Any) -> bool:
     """Structural column-projection port test: declared state or declared
     list-carrier with projection vocabulary in the DECLARED state tokens.
     No cell-id substrings."""
+    cached = getattr(p_sig, "_cached_col_proj", None)
+    if cached is not None:
+        return cached
     st = str(getattr(getattr(p_sig, "signature", p_sig), "state", "")).lower()
     if st == "column_projection":
+        try:
+            p_sig._cached_col_proj = True
+        except (AttributeError, TypeError):
+            pass
         return True
     tname = str(getattr(getattr(p_sig, "signature", p_sig), "type_name", "")).lower()
     if registry.is_subtype(tname, "list") or registry.is_subtype(tname, "sequence"):
         st_tokens = set(CellTokenizer.tokenize_identifier(st))
         proj_tokens = TypeRegistry.get_instance().get_column_projection_tokens()
         if st_tokens & proj_tokens:
+            try:
+                p_sig._cached_col_proj = True
+            except (AttributeError, TypeError):
+                pass
             return True
+    try:
+        p_sig._cached_col_proj = False
+    except (AttributeError, TypeError):
+        pass
     return False
+
+
+def _extract_ndim_from_contract(sc: Any) -> Optional[int]:
+    if sc is None:
+        return None
+    if isinstance(sc, dict):
+        val = sc.get("ndim")
+        return int(val) if val is not None else None
+    elif isinstance(sc, str):
+        s = sc.strip()
+        if s.startswith("(") and s.endswith(")"):
+            inner = s[1:-1].strip()
+            return len([p for p in inner.split(",") if p.strip()]) if inner else 0
+    return None
 
 
 def _safe_slots_items(cell: Any):
@@ -206,6 +235,23 @@ class LatticePlanner:
             except Exception as e:
                 self.topology_mode = "frontier"
         self.current_relevance_map: Dict[str, float] = {}
+        self._affinity_cache: Dict[Tuple[str, str], float] = {}
+        self._macro_edges_index: Optional[Dict[Tuple[str, str], List[str]]] = None
+
+    def _build_macro_edges_index(self) -> Dict[Tuple[str, str], List[str]]:
+        index: Dict[Tuple[str, str], List[str]] = {}
+        if getattr(self, "macros_enabled", True) and hasattr(self.orchestrator, "loaded_cells"):
+            for m in self.orchestrator.loaded_cells.values():
+                if getattr(m, "cell_type", "") == "macro" or getattr(m, "sub_cells", None):
+                    topo = getattr(m, "internal_topology", {}) or {}
+                    for src_id, dst_ids in topo.items():
+                        for dst_id in dst_ids:
+                            index.setdefault((src_id, dst_id), []).append(m.cell_id)
+                    subs = getattr(m, "sub_cells", None)
+                    if subs:
+                        for i in range(len(subs) - 1):
+                            index.setdefault((subs[i], subs[i + 1]), []).append(m.cell_id)
+        return index
 
     def _calculate_edge_affinity(self, src_cell: Cell, dst_cell: Cell) -> float:
         """
@@ -213,24 +259,27 @@ class LatticePlanner:
         AST-mined edges from real code snippets receive the highest affinity,
         followed by LLM seed edges, synaptic macro reinforcement, and topological reachability.
         """
+        key = (src_cell.cell_id, dst_cell.cell_id)
+        cached = self._affinity_cache.get(key)
+        if cached is not None:
+            return cached
+
+        res = self._compute_edge_affinity_raw(src_cell, dst_cell)
+        self._affinity_cache[key] = res
+        return res
+
+    def _compute_edge_affinity_raw(self, src_cell: Cell, dst_cell: Cell) -> float:
         # Synaptic Macro-Goal Edge Reinforcement (Synapses in the Brain):
         # When macro routing is enabled, a known-good path pre-wired inside an active
         # macro reinforces the synaptic connection between its constituent micro-cells.
-        if getattr(self, "macros_enabled", True) and hasattr(self.orchestrator, "loaded_cells"):
-            for m in self.orchestrator.loaded_cells.values():
-                if getattr(m, "cell_type", "") == "macro" or getattr(m, "sub_cells", None):
-                    topo = getattr(m, "internal_topology", {}) or {}
-                    is_macro_edge = dst_cell.cell_id in topo.get(src_cell.cell_id, ())
-                    if not is_macro_edge and getattr(m, "sub_cells", None):
-                        subs = m.sub_cells
-                        for i in range(len(subs) - 1):
-                            if subs[i] == src_cell.cell_id and subs[i + 1] == dst_cell.cell_id:
-                                is_macro_edge = True
-                                break
-                    if is_macro_edge:
-                        macro_rel = getattr(self, "current_relevance_map", {}).get(m.cell_id, 0.5)
-                        synaptic_boost = 0.4 * max(macro_rel, 0.5)
-                        return min(1.0, max(0.8, 0.6 + synaptic_boost))
+        if getattr(self, "macros_enabled", True):
+            if self._macro_edges_index is None:
+                self._macro_edges_index = self._build_macro_edges_index()
+            m_ids = self._macro_edges_index.get((src_cell.cell_id, dst_cell.cell_id))
+            if m_ids:
+                macro_rel = max(getattr(self, "current_relevance_map", {}).get(mid, 0.5) for mid in m_ids)
+                synaptic_boost = 0.4 * max(macro_rel, 0.5)
+                return min(1.0, max(0.8, 0.6 + synaptic_boost))
 
         # 1. Forward declared edges on src_cell
         dst_id_lower = dst_cell.cell_id.lower()
@@ -352,6 +401,7 @@ class LatticePlanner:
           mid-chain to complete instance lifecycles (construct -> fit -> score).
         """
         self.current_relevance_map = dict(relevance_map or {})
+        self._affinity_cache.clear()
         if not tunnel:
             return []
 
@@ -808,6 +858,18 @@ class LatticePlanner:
         _path_score_cache: Dict[Tuple[Tuple[str, ...], bool], float] = {}
         _pair_connected_cache: Dict[Tuple[str, str], bool] = {}
 
+        def _cells_connect(c1: Cell, c2: Cell) -> bool:
+            pair = (c1.cell_id, c2.cell_id)
+            can_feed = _pair_connected_cache.get(pair)
+            if can_feed is None:
+                can_feed = any(
+                    unify(out_sig.signature, p_sig.signature) is not None
+                    for out_sig in c1.outputs.values()
+                    for p_sig in c2.inputs.values()
+                )
+                _pair_connected_cache[pair] = can_feed
+            return can_feed
+
         def compute_path_score(item: Tuple[List[Cell], Substitution, float, int, int], is_final: bool = False) -> float:
             path, _, sc, weak_edges, unbindable = item
             path_key = (tuple(c.cell_id for c in path), is_final)
@@ -884,11 +946,7 @@ class LatticePlanner:
             consumed_ctors = sum(
                 1 for i, c in enumerate(path)
                 if getattr(c, "node_type", "") == "constructor"
-                and any(
-                    unify(c.primary_output.signature, p.signature) is not None
-                    for downstream_cell in path[i + 1:]
-                    for p in downstream_cell.inputs.values()
-                )
+                and any(_cells_connect(c, downstream_cell) for downstream_cell in path[i + 1:])
             )
             # Prerequisite bridging morphisms: essential bridges whose predecessor
             # cannot directly connect to its successor without this carrier conversion.
@@ -898,16 +956,9 @@ class LatticePlanner:
                 if not cell_covered.get(c.cell_id):
                     pred = path[i - 1]
                     succ = path[i + 1]
-                    pred_out = pred.primary_output.signature
-                    direct_compat = any(
-                        unify(pred_out, p.signature) is not None
-                        for p in succ.inputs.values()
-                    )
+                    direct_compat = _cells_connect(pred, succ)
                     if not direct_compat:
-                        is_consumed = any(
-                            unify(c.primary_output.signature, p.signature) is not None
-                            for p in succ.inputs.values()
-                        )
+                        is_consumed = _cells_connect(c, succ)
                         if is_consumed:
                             prerequisite_bridges += 1
 
@@ -1042,11 +1093,7 @@ class LatticePlanner:
                     if not is_final and i == len(path) - 1:
                         continue  # newly instantiated constructor at beam tip awaiting downstream receiver
                     out_sig = c.primary_output.signature
-                    consumed = any(
-                        unify(out_sig, p.signature) is not None
-                        for downstream_cell in path[i + 1:]
-                        for p in downstream_cell.inputs.values()
-                    )
+                    consumed = any(_cells_connect(c, downstream_cell) for downstream_cell in path[i + 1:])
                     if not consumed:
                         dead_ctors += 1
 
@@ -1072,19 +1119,7 @@ class LatticePlanner:
                     join_nodes = 0
                     for j in range(1, k):
                         cell_j = path[j]
-                        parents = []
-                        for i in range(j):
-                            pair = (path[i].cell_id, cell_j.cell_id)
-                            can_feed = _pair_connected_cache.get(pair)
-                            if can_feed is None:
-                                can_feed = any(
-                                    unify(out_sig.signature, p_sig.signature) is not None
-                                    for out_sig in path[i].outputs.values()
-                                    for p_sig in cell_j.inputs.values()
-                                )
-                                _pair_connected_cache[pair] = can_feed
-                            if can_feed:
-                                parents.append(path[i])
+                        parents = [path[i] for i in range(j) if _cells_connect(path[i], cell_j)]
                         if len(parents) >= 2:
                             join_nodes += 1
                         if parents:
@@ -2098,18 +2133,20 @@ class LatticePlanner:
             out_sc = getattr(p_out, "shape_contract", None)
             in_sc = getattr(p_in, "shape_contract", None)
             if out_sc and in_sc:
-                def _extract_ndim(sc: Any) -> Optional[int]:
-                    if isinstance(sc, dict):
-                        val = sc.get("ndim")
-                        return int(val) if val is not None else None
-                    elif isinstance(sc, str):
-                        s = sc.strip()
-                        if s.startswith("(") and s.endswith(")"):
-                            inner = s[1:-1].strip()
-                            return len([p for p in inner.split(",") if p.strip()]) if inner else 0
-                    return None
-                o_ndim = _extract_ndim(out_sc)
-                i_ndim = _extract_ndim(in_sc)
+                o_ndim = getattr(p_out, "_cached_ndim", None)
+                if o_ndim is None:
+                    o_ndim = _extract_ndim_from_contract(out_sc)
+                    try:
+                        p_out._cached_ndim = o_ndim
+                    except (AttributeError, TypeError):
+                        pass
+                i_ndim = getattr(p_in, "_cached_ndim", None)
+                if i_ndim is None:
+                    i_ndim = _extract_ndim_from_contract(in_sc)
+                    try:
+                        p_in._cached_ndim = i_ndim
+                    except (AttributeError, TypeError):
+                        pass
                 if o_ndim is not None and i_ndim is not None and o_ndim != i_ndim:
                     return False
             return True
@@ -2291,14 +2328,9 @@ class LatticePlanner:
 
                     new_tuple = (prev_path + [cand], new_sigma, total_sc, step_weak, step_unbind)
                     candidates_for_next.append(new_tuple)
-                    all_valid_paths.append(new_tuple)
 
             if not candidates_for_next:
                 break
-
-            if len(all_valid_paths) > 6000:
-                all_valid_paths.sort(key=lambda x: compute_path_score(x, is_final=False), reverse=True)
-                all_valid_paths = all_valid_paths[:3000]
 
             candidates_for_next.sort(key=lambda x: compute_path_score(x, is_final=False), reverse=True)
             endpoint_counts: Dict[str, int] = {}
@@ -2311,6 +2343,18 @@ class LatticePlanner:
                     if len(next_beam) >= 250:
                         break
             current_beam = next_beam
+
+            # Bounded addition to all_valid_paths: keep top candidates (covers next_beam) + any valid terminal sinks
+            for item in candidates_for_next[:300]:
+                all_valid_paths.append(item)
+            for item in candidates_for_next[300:]:
+                term_cell = item[0][-1]
+                if getattr(term_cell, "stage", None) == 3 or getattr(term_cell, "endable", False) or getattr(term_cell, "is_endable", False):
+                    all_valid_paths.append(item)
+
+            if len(all_valid_paths) > 3000:
+                all_valid_paths.sort(key=lambda x: compute_path_score(x, is_final=False), reverse=True)
+                all_valid_paths = all_valid_paths[:1500]
 
         return all_valid_paths
 

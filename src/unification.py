@@ -626,14 +626,27 @@ def unify(
     return None
 
 
+_ALGEBRAIC_SIG_TERM_CACHE: Dict[AlgebraicSignature, TypeTerm] = {}
+
+
 def _to_type_term(item: Any) -> TypeTerm:
     if isinstance(item, TypeTerm):
         return item
-    registry = TypeRegistry.get_instance()
-    if isinstance(item, AlgebraicSignature):
+    if isinstance(item, PortSignature):
         cached = getattr(item, "_cached_term", None)
         if cached is not None:
             return cached
+        res = _to_type_term(item.signature)
+        try:
+            item._cached_term = res
+        except (AttributeError, TypeError):
+            pass
+        return res
+    if isinstance(item, AlgebraicSignature):
+        cached = _ALGEBRAIC_SIG_TERM_CACHE.get(item)
+        if cached is not None:
+            return cached
+        registry = TypeRegistry.get_instance()
         t_clean = item.type_name.strip()
         if item.is_top() or is_top_symbol(t_clean, registry):
             res = TOP
@@ -652,13 +665,9 @@ def _to_type_term(item: Any) -> TypeTerm:
                     accepted_states=getattr(item, "accepted_states", frozenset()),
                     parent_state=getattr(item, "parent_state", None),
                 )
-        try:
-            item._cached_term = res
-        except (AttributeError, TypeError):
-            pass
+        _ALGEBRAIC_SIG_TERM_CACHE[item] = res
         return res
-    if isinstance(item, PortSignature):
-        return _to_type_term(item.signature)
+    registry = TypeRegistry.get_instance()
     if isinstance(item, str):
         if is_top_symbol(item, registry):
             return TOP

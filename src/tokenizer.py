@@ -16,6 +16,7 @@ intent, or keyword knowledge.
 """
 
 from __future__ import annotations
+import functools
 from typing import Set, FrozenSet, List
 
 
@@ -69,6 +70,7 @@ def _ends_cvc(stem: str) -> bool:
     return not _is_vowel(a)
 
 
+@functools.lru_cache(maxsize=32768)
 def normalize_token(token: str) -> str:
     """
     Universal Porter-class stem for a single lowercase alphabetic token.
@@ -168,6 +170,72 @@ def normalize_token(token: str) -> str:
     return w
 
 
+@functools.lru_cache(maxsize=32768)
+def _tokenize_identifier_cached(identifier: str) -> FrozenSet[str]:
+    clean_id = str(identifier).strip()
+    if not clean_id:
+        return frozenset()
+
+    tokens: Set[str] = set()
+    n = len(clean_id)
+    current_chunk: List[str] = []
+
+    def _emit(chunk: List[str]) -> None:
+        t = "".join(chunk).lower().strip()
+        if len(t) > 1:
+            tokens.add(t)
+            stem = normalize_token(t)
+            if len(stem) > 1:
+                tokens.add(stem)
+
+    # Mathematical character transition state machine:
+    # Boundaries occur at:
+    # 1. Non-alphanumeric punctuation (_, -, ., space, etc.)
+    # 2. Lowercase followed by Uppercase (fooBar -> foo, Bar)
+    # 3. Uppercase followed by Uppercase then Lowercase (HTTPServer -> HTTP, Server)
+    # 4. Letter followed by Digit or Digit followed by Letter
+    for i, ch in enumerate(clean_id):
+        if not ch.isalnum():
+            if current_chunk:
+                _emit(current_chunk)
+                current_chunk = []
+            continue
+
+        if current_chunk:
+            prev = current_chunk[-1]
+            # Lowercase to Uppercase transition
+            if prev.islower() and ch.isupper():
+                _emit(current_chunk)
+                current_chunk = [ch]
+                continue
+            # Uppercase to Uppercase followed by Lowercase (e.g. 'P' in 'HTTPServer' followed by 'e')
+            if prev.isupper() and ch.isupper() and i + 1 < n and clean_id[i + 1].islower():
+                _emit(current_chunk)
+                current_chunk = [ch]
+                continue
+            # Letter to Digit
+            if prev.isalpha() and ch.isdigit():
+                _emit(current_chunk)
+                current_chunk = [ch]
+                continue
+            # Digit to Letter
+            if prev.isdigit() and ch.isalpha():
+                _emit(current_chunk)
+                current_chunk = [ch]
+                continue
+
+        current_chunk.append(ch)
+
+    if current_chunk:
+        _emit(current_chunk)
+
+    clean_full = "".join(c for c in clean_id if c.isalnum() or c in ("_", "-")).lower().strip()
+    if len(clean_full) > 1:
+        tokens.add(clean_full)
+
+    return frozenset(tokens)
+
+
 class CellTokenizer:
     """Tokenizes code identifiers, cell IDs, and user prompts into sub-word tokens without regular expressions."""
 
@@ -180,69 +248,14 @@ class CellTokenizer:
         """
         if not identifier:
             return set()
+        return set(_tokenize_identifier_cached(str(identifier)))
 
-        clean_id = str(identifier).strip()
-        if not clean_id:
-            return set()
-
-        tokens: Set[str] = set()
-        n = len(clean_id)
-        current_chunk: List[str] = []
-
-        def _emit(chunk: List[str]) -> None:
-            t = "".join(chunk).lower().strip()
-            if len(t) > 1:
-                tokens.add(t)
-                stem = normalize_token(t)
-                if len(stem) > 1:
-                    tokens.add(stem)
-
-        # Mathematical character transition state machine:
-        # Boundaries occur at:
-        # 1. Non-alphanumeric punctuation (_, -, ., space, etc.)
-        # 2. Lowercase followed by Uppercase (fooBar -> foo, Bar)
-        # 3. Uppercase followed by Uppercase then Lowercase (HTTPServer -> HTTP, Server)
-        # 4. Letter followed by Digit or Digit followed by Letter
-        for i, ch in enumerate(clean_id):
-            if not ch.isalnum():
-                if current_chunk:
-                    _emit(current_chunk)
-                    current_chunk = []
-                continue
-
-            if current_chunk:
-                prev = current_chunk[-1]
-                # Lowercase to Uppercase transition
-                if prev.islower() and ch.isupper():
-                    _emit(current_chunk)
-                    current_chunk = [ch]
-                    continue
-                # Uppercase to Uppercase followed by Lowercase (e.g. 'P' in 'HTTPServer' followed by 'e')
-                if prev.isupper() and ch.isupper() and i + 1 < n and clean_id[i + 1].islower():
-                    _emit(current_chunk)
-                    current_chunk = [ch]
-                    continue
-                # Letter to Digit
-                if prev.isalpha() and ch.isdigit():
-                    _emit(current_chunk)
-                    current_chunk = [ch]
-                    continue
-                # Digit to Letter
-                if prev.isdigit() and ch.isalpha():
-                    _emit(current_chunk)
-                    current_chunk = [ch]
-                    continue
-
-            current_chunk.append(ch)
-
-        if current_chunk:
-            _emit(current_chunk)
-
-        clean_full = "".join(c for c in clean_id if c.isalnum() or c in ("_", "-")).lower().strip()
-        if len(clean_full) > 1:
-            tokens.add(clean_full)
-
-        return tokens
+    @classmethod
+    def tokenize_identifier_frozen(cls, identifier: str) -> FrozenSet[str]:
+        """Cached immutable variant returning FrozenSet[str]."""
+        if not identifier:
+            return frozenset()
+        return _tokenize_identifier_cached(str(identifier))
 
     @classmethod
     def tokenize_prompt(cls, prompt: str, remove_stopwords: bool = False) -> Set[str]:

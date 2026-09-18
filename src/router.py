@@ -439,21 +439,23 @@ class LatticeRouter:
         if self.internal_rag is not None and self.internal_rag.index is not None:
             query_spans = self._generate_query_spans(prompt.strip())
             dense_scores: Dict[str, float] = {}
-            rag_results = self.internal_rag.get_relevant_context_batch(query_spans, top_k=min(top_k, 100))
+            rag_results = self.internal_rag.get_relevant_context_batch(query_spans, top_k=min(top_k, 25))
             for span_results in rag_results:
                 for item in span_results:
                     cid = item.get("cell_id")
                     sc = float(item.get("score", 0.0))
-                    if cid and (cid not in dense_scores or sc > dense_scores[cid]):
+                    if cid and sc >= 0.25 and (cid not in dense_scores or sc > dense_scores[cid]):
                         dense_scores[cid] = sc
 
             if dense_scores:
+                sorted_dense = sorted(dense_scores.items(), key=lambda x: x[1], reverse=True)[:60]
                 dense_dict: Dict[Cell, float] = {}
-                for cid, sc in dense_scores.items():
+                for cid, sc in sorted_dense:
                     c = self.orchestrator.loaded_cells.get(cid)
                     if c:
                         dense_dict[c] = sc
-                grouped_candidates.append(dense_dict)
+                if dense_dict:
+                    grouped_candidates.append(dense_dict)
 
         candidates_with_scores = self._tunnel_from_groups(grouped_candidates)
 
