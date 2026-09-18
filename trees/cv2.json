@@ -6031,6 +6031,14 @@
       "effects": [],
       "edges": [
         {
+          "target_cell_id": "CV2_TOP_K_CONTOURS",
+          "affinity_score": 1.0,
+          "score_provenance": "ast_mined",
+          "bridging_precondition": "true",
+          "metadata": {},
+          "needs_mining": false
+        },
+        {
           "target_cell_id": "CV2_DRAW_CONTOURS",
           "affinity_score": 0.56,
           "score_provenance": "ast_mined",
@@ -6101,6 +6109,117 @@
       ],
       "primary_in": "image",
       "primary_out": "contours"
+    },
+    {
+      "cell_id": "CV2_TOP_K_CONTOURS",
+      "stage": 2,
+      "topology_type": "sequential",
+      "node_type": "function",
+      "node_role": "transformer",
+      "mutation_type": "pure",
+      "is_context_manager": false,
+      "verified": true,
+      "source_priority": 1,
+      "is_public": true,
+      "docstring": "Sorts contours in descending order of geometric area and selects the top k largest contours.",
+      "dependencies": [
+        "cv2"
+      ],
+      "semantic_tags": [
+        "contours",
+        "sorting",
+        "ranking",
+        "filter"
+      ],
+      "keywords": [
+        "largest",
+        "biggest",
+        "top",
+        "top_k",
+        "sort",
+        "rank",
+        "area",
+        "contours",
+        "descending"
+      ],
+      "code_template": "{output_var} = sorted({contours}, key=cv2.contourArea, reverse=True)[:{k}]",
+      "slots": {
+        "k": 3
+      },
+      "bound_slots": {},
+      "feedback_state_type": null,
+      "raises": [],
+      "type_vars": [],
+      "inputs": {
+        "contours": {
+          "type_name": "List[Contour]",
+          "state": "contours",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Input list of detected contour point arrays.",
+          "domain": "cv2",
+          "required": true,
+          "abstract_type": "collection",
+          "enum_values": null,
+          "param_kind": "standard",
+          "value_constraints": null,
+          "shape_contract": null
+        },
+        "k": {
+          "type_name": "int",
+          "state": "count",
+          "qualifiers": [],
+          "default_value": 3,
+          "description": "Number of top largest contours to retain.",
+          "domain": "cv2",
+          "required": false,
+          "abstract_type": "scalar",
+          "enum_values": null,
+          "param_kind": "standard",
+          "value_constraints": null,
+          "shape_contract": null
+        }
+      },
+      "outputs": {
+        "output_var": {
+          "type_name": "List[Contour]",
+          "state": "contours",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Sorted and sliced top-k largest contours.",
+          "domain": "cv2",
+          "required": true,
+          "abstract_type": "collection",
+          "enum_values": null,
+          "param_kind": "standard",
+          "value_constraints": null,
+          "shape_contract": null
+        }
+      },
+      "preconditions": [],
+      "postconditions": [
+        {
+          "target": "output_var",
+          "property": "state",
+          "operator": "==",
+          "value": "contours",
+          "expression": "state == 'contours'",
+          "description": "Output is contours list."
+        }
+      ],
+      "effects": [],
+      "edges": [
+        {
+          "target_cell_id": "CV2_DRAW_CONTOURS",
+          "affinity_score": 1.0,
+          "score_provenance": "ast_mined",
+          "bridging_precondition": "true",
+          "metadata": {},
+          "needs_mining": false
+        }
+      ],
+      "primary_in": "contours",
+      "primary_out": "output_var"
     },
     {
       "cell_id": "CV2_DRAW_CONTOURS",

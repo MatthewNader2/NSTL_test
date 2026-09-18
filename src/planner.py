@@ -389,12 +389,12 @@ class LatticePlanner:
         l0_extracted_literals = ExecutionContext._extract_universal_literals(prompt or "")
         universal_literals = [
             (kind, val) for _, kind, val in l0_extracted_literals
-            if kind in ("file_asset", "identifier", "quoted_str")
+            if kind in ("file_asset", "identifier", "quoted_str", "numeric")
         ]
         literal_positions = {
             (kind, val): pos
             for pos, kind, val in l0_extracted_literals
-            if kind in ("file_asset", "identifier", "quoted_str")
+            if kind in ("file_asset", "identifier", "quoted_str", "numeric")
         }
         file_literals = [
             v for kind, v in universal_literals
@@ -717,20 +717,21 @@ class LatticePlanner:
                 if not any(unify(prod, p_sig) is not None for prod in produced):
                     count += 1
 
-            # Path port capacity check: required path inputs across the entire pipeline
-            # must not exceed the available file literals from the prompt (unless produced in-pipeline).
+            # Ingress path port capacity check: required external path inputs across the pipeline
+            # must not exceed available file literals from prompt, or 1 default entry source if none declared.
             full_path = prev_path + [cand]
-            required_path_ports = 0
+            required_ingress_path_ports = 0
             for c in full_path:
-                for p_name, p_sig in c.inputs.items():
-                    if not p_sig.required or p_sig.default_value is not None:
-                        continue
-                    t_name = str(getattr(p_sig.signature, "type_name", "")).lower()
-                    if _lattice_is_path_port(p_sig):
-                        required_path_ports += 1
-                        break
-            if required_path_ports > len(file_literals):
-                count += (required_path_ports - len(file_literals))
+                if getattr(c, "stage", None) == 1:
+                    for p_name, p_sig in c.inputs.items():
+                        if not p_sig.required or p_sig.default_value is not None:
+                            continue
+                        if _lattice_is_path_port(p_sig):
+                            required_ingress_path_ports += 1
+                            break
+            max_allowed_ingress = len(file_literals) if file_literals else 1
+            if required_ingress_path_ports > max_allowed_ingress:
+                count += (required_ingress_path_ports - max_allowed_ingress)
 
             # Role-carrier tracking (R2.5):
             # Check role-bearing inputs (e.g. target_input, feature_input, data_input)
@@ -796,9 +797,14 @@ class LatticePlanner:
             return (not has_strong) and has_any
 
         _edge_affinity = self._calculate_edge_affinity
+        _path_score_cache: Dict[Tuple[Tuple[str, ...], bool], float] = {}
+        _pair_connected_cache: Dict[Tuple[str, str], bool] = {}
 
         def compute_path_score(item: Tuple[List[Cell], Substitution, float, int, int], is_final: bool = False) -> float:
             path, _, sc, weak_edges, unbindable = item
+            path_key = (tuple(c.cell_id for c in path), is_final)
+            if path_key in _path_score_cache:
+                return _path_score_cache[path_key]
             k = len(path)
 
             # Prompt token coverage across the composition path:
@@ -1058,14 +1064,19 @@ class LatticePlanner:
                     join_nodes = 0
                     for j in range(1, k):
                         cell_j = path[j]
-                        parents = [
-                            path[i] for i in range(j)
-                            if any(
-                                unify(out_sig.signature, p_sig.signature) is not None
-                                for out_sig in path[i].outputs.values()
-                                for p_sig in cell_j.inputs.values()
-                            )
-                        ]
+                        parents = []
+                        for i in range(j):
+                            pair = (path[i].cell_id, cell_j.cell_id)
+                            can_feed = _pair_connected_cache.get(pair)
+                            if can_feed is None:
+                                can_feed = any(
+                                    unify(out_sig.signature, p_sig.signature) is not None
+                                    for out_sig in path[i].outputs.values()
+                                    for p_sig in cell_j.inputs.values()
+                                )
+                                _pair_connected_cache[pair] = can_feed
+                            if can_feed:
+                                parents.append(path[i])
                         if len(parents) >= 2:
                             join_nodes += 1
                         if parents:
@@ -1154,6 +1165,57 @@ class LatticePlanner:
                         if used_file_ports < path_file_ports:
                             consumed_count += 1
                             used_file_ports += 1
+                    elif kind == "numeric":
+                        lit_pos = literal_positions.get((kind, lit))
+                        pre_mod: Set[str] = set()
+                        if lit_pos is not None:
+                            prev_chunk = (prompt or "")[:lit_pos].rstrip()
+                            prev_words = re.findall(r"[A-Za-z0-9_]+", prev_chunk)
+                            if prev_words:
+                                w = prev_words[-1].lower()
+                                if w in ("the", "a", "an", "of", "to", "in", "with", "at", "by") and len(prev_words) >= 2:
+                                    w_prev = prev_words[-2].lower()
+                                    if w_prev not in ("the", "a", "an", "and", "or"):
+                                        pre_mod |= set(CellTokenizer.tokenize_identifier(w_prev))
+                                if w not in ("the", "a", "an", "and", "or"):
+                                    pre_mod |= set(CellTokenizer.tokenize_identifier(w))
+
+                        num_port_matched = False
+                        path_has_num_port = False
+                        for c in path:
+                            for p_name, p_sig in c.inputs.items():
+                                t_name = str(getattr(p_sig.signature, "type_name", "")).lower()
+                                is_num = (
+                                    registry.is_subtype(t_name, "numeric")
+                                    or registry.is_subtype(t_name, "int")
+                                    or registry.is_subtype(t_name, "float")
+                                    or t_name in ("int", "float", "number", "dim_size")
+                                )
+                                if not is_num:
+                                    continue
+                                path_has_num_port = True
+                                port_ev: Set[str] = set()
+                                port_ev |= set(CellTokenizer.tokenize_identifier(p_name.lower()))
+                                st = str(getattr(p_sig.signature, "state", "") or "").lower()
+                                if st:
+                                    port_ev |= set(CellTokenizer.tokenize_identifier(st))
+                                doc = str(getattr(p_sig, "doc", "") or getattr(p_sig, "description", "") or "").lower()
+                                if doc:
+                                    port_ev |= set(CellTokenizer.tokenize_identifier(doc))
+                                for kw in getattr(c, "keywords", []):
+                                    port_ev |= set(CellTokenizer.tokenize_identifier(str(kw).lower()))
+                                if pre_mod and (port_ev & pre_mod):
+                                    num_port_matched = True
+                                    break
+                            if num_port_matched:
+                                break
+
+                        if pre_mod:
+                            if num_port_matched:
+                                consumed_count += 1
+                        else:
+                            if path_has_num_port:
+                                consumed_count += 1
                     else:
                         if lit_clean in path_ports or any(lit_clean in p for p in path_ports):
                             consumed_count += 1
@@ -1170,8 +1232,7 @@ class LatticePlanner:
                             lit_pos = literal_positions.get((kind, lit))
                             if lit_pos is not None:
                                 prev_chunk = (prompt or "")[:lit_pos].rstrip()
-                                import re as _re
-                                m_prev = _re.search(r"([A-Za-z]+)$", prev_chunk)
+                                m_prev = re.search(r"([A-Za-z]+)$", prev_chunk)
                                 prep = m_prev.group(1).lower() if m_prev else ""
                                 if prep and prep in trigger_port_tokens:
                                     consumed_count += 1
@@ -1203,6 +1264,7 @@ class LatticePlanner:
                     "intent_deficit": round(-intent_deficit, 2),
                     "literal*15": round(literal_consumption * 15.0, 2),
                 }
+            _path_score_cache[path_key] = total
             return total
 
         # Type-gated adjacency: index candidates by the DECLARED input carrier they
@@ -1485,7 +1547,8 @@ class LatticePlanner:
                         dbg_covd |= cell_covered.get(c.cell_id, set())
                     dbg_align_w = sum(clause_weights[i] for i in dbg_covd) / total_clause_weight
                     dbg_mlb = 0.3 * (dbg_sc / max(dbg_k, 1))
-                    print(f"  {s:.3f} cov={dbg_cov:.2f} alignW={dbg_align_w:.2f} k={dbg_k} weak={dbg_weak} unbind={dbg_unbind} mlb={dbg_mlb:.2f}  {' -> '.join(ids)}", file=_sys.stderr)
+                    comps = _component_trace.get(tuple(ids), {})
+                    print(f"  {s:.3f} cov={dbg_cov:.2f} alignW={dbg_align_w:.2f} k={dbg_k} weak={dbg_weak} unbind={dbg_unbind} mlb={dbg_mlb:.2f} comps={comps}  {' -> '.join(ids)}", file=_sys.stderr)
             # The acceptance gate must share this planner's orchestrator so that
             # macro-goal cells can resolve their string sub-cell ids during
             # pre-unification expansion (otherwise macros stay unexpanded here
@@ -2075,7 +2138,11 @@ class LatticePlanner:
             return (sub, bound_parents, is_join)
 
         # Precompute candidate successors from any cell
+        _cell_succ_cache: Dict[str, List[Cell]] = {}
         def _cell_successors(cell: Cell) -> List[Cell]:
+            if cell.cell_id in _cell_succ_cache:
+                return _cell_succ_cache[cell.cell_id]
+
             out_sig = cell.primary_output.signature if hasattr(cell.primary_output, "signature") else cell.primary_output
             out_t = str(getattr(out_sig, "type_name", ""))
             out_s = str(getattr(out_sig, "state", ""))
@@ -2093,7 +2160,9 @@ class LatticePlanner:
                 for cand in candidates:
                     if any(unify(out_sig, p_sig.signature) is not None for p_sig in cand.inputs.values()):
                         acc.setdefault(cand.cell_id, cand)
-                return list(acc.values())
+                res = list(acc.values())
+                _cell_succ_cache[cell.cell_id] = res
+                return res
 
             for in_t, cell_list in cells_by_in_type.items():
                 if not registry.is_subtype(out_t, in_t):
@@ -2108,7 +2177,9 @@ class LatticePlanner:
                         producer_parent=getattr(out_sig, "parent_state", None),
                     ) for p_sig in c.inputs.values()):
                         acc.setdefault(c.cell_id, c)
-            return list(acc.values())
+            res = list(acc.values())
+            _cell_succ_cache[cell.cell_id] = res
+            return res
 
         # Step t = 2 ... max_steps
         for step in range(2, max_steps + 1):

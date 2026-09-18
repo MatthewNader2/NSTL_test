@@ -1623,18 +1623,47 @@ class ExecutionContext:
                 if idx in self.used_indices or kind != "numeric":
                     continue
                 if not port_sig.required:
+                    # Clause-bounded context: restrict evidence to the clause enclosing the literal
+                    spans = []
+                    last = 0
+                    for m in re.finditer(r'[,;]|\b(?:and|then)\b', self.prompt):
+                        spans.append((last, m.start()))
+                        last = m.end()
+                    spans.append((last, len(self.prompt)))
+                    clause_chunk = self.prompt
+                    for s_start, s_end in spans:
+                        if s_start <= lit_pos <= s_end:
+                            clause_chunk = self.prompt[s_start:s_end]
+                            break
+
+                    context_toks = {
+                        t for t in CellTokenizer.tokenize_prompt(clause_chunk)
+                    }
+
+                    # A port with declared discrete enum_values is a categorical flag, not a continuous/count scalar.
+                    # It must only bind if the port name itself is explicitly spoken in the context clause.
+                    if getattr(port_sig, "enum_values", None):
+                        port_ident_toks = {t.lower() for t in CellTokenizer.tokenize_identifier(port_sig.name)}
+                        if port_sig.name:
+                            port_ident_toks.add(port_sig.name.lower())
+                        if not (context_toks & port_ident_toks):
+                            continue
+
                     evidence = set()
-                    if cell_tokens:
-                        evidence |= {t.lower() for t in cell_tokens}
                     evidence |= {t.lower() for t in CellTokenizer.tokenize_identifier(port_sig.name)}
+                    if port_sig.name:
+                        evidence.add(port_sig.name.lower())
                     _st = str(getattr(port_sig, "state", "") or "")
                     if _st.lower() not in ("any", "default", ""):
                         evidence |= {t.lower() for t in CellTokenizer.tokenize_identifier(_st)}
-                    context_toks = {
-                        t for t in CellTokenizer.tokenize_prompt(
-                            self.prompt[max(0, lit_pos - 40): lit_pos + 40]
-                        )
-                    }
+                    _desc = str(getattr(port_sig, "description", "") or getattr(port_sig, "doc", "") or "")
+                    if _desc:
+                        evidence |= {t.lower() for t in CellTokenizer.tokenize_prompt(_desc)}
+
+                    # Only fall back to cell-wide identity tokens if the port itself lacks specific descriptive vocabulary
+                    if not evidence and cell_tokens:
+                        evidence |= {t.lower() for t in cell_tokens}
+
                     if not (context_toks & evidence):
                         continue
                 self.used_indices.add(idx)
