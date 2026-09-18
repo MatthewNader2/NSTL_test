@@ -1120,7 +1120,16 @@ class PipelineDebugger:
         sandbox_res = {"success": False, "error": "Execution skipped"}
         sandbox_dt = 0.0
 
-        if final_code and execute_sandbox:
+        if not execute_sandbox:
+            sandbox_res = {"success": True, "skipped": True}
+            sb_badge = "[bold yellow]⚡ BYPASSED (Execution Disabled)[/bold yellow]"
+            border_col = "yellow"
+            sb_summary = [
+                f"[cyan]Status:[/cyan] {sb_badge}",
+                f"[cyan]Notice:[/cyan] Physical sandbox verification bypassed to eliminate latency."
+            ]
+            c.print(Panel("\n".join(sb_summary), title=f"[bold {border_col}]⚡ LAYER 4: GEVR Sandbox Execution & Verification[/bold {border_col}]", border_style=border_col))
+        elif final_code:
             has_unresolved = bool(getattr(ctx, "unresolved_ports", None))
             if not lint_valid or has_unresolved:
                 reasons = []
@@ -1296,7 +1305,8 @@ class NSTLInteractiveShell(cmd.Cmd):
         no_exec: bool = False,
         route_method: Optional[str] = None,
         no_lint: bool = False,
-        macros: Optional[bool] = None
+        macros: Optional[bool] = None,
+        topology: Optional[str] = None
     ):
         super().__init__()
         self.db_path = db_path
@@ -1310,13 +1320,19 @@ class NSTLInteractiveShell(cmd.Cmd):
         self.history: List[Dict[str, Any]] = []
         self.debug: bool = debug
         self.interactive: bool = interactive
-        self.no_exec: bool = no_exec
+        self.no_lint: bool = no_lint
+        self.no_exec: bool = no_exec or not getattr(settings, "sandbox_enabled", True)
 
         # Macro-goal routing toggle: apply the CLI flag to the global settings
         # BEFORE any LatticeRouter is constructed (routers snapshot the setting).
         if macros is not None:
             settings.macros_enabled = bool(macros)
         self.macros_enabled = settings.macros_enabled
+
+        # Topology mode: "frontier" (default) or "linear" (ablation baseline)
+        if topology is not None:
+            settings.topology_mode = str(topology).lower()
+        self.topology_mode = getattr(settings, "topology_mode", "frontier")
 
         if interactive:
             console.print("\n[bold cyan][*] Initializing NSTL Neuro-Symbolic Engine...[/bold cyan]")
@@ -1364,7 +1380,9 @@ class NSTLInteractiveShell(cmd.Cmd):
         db_nodes = f"[cyan]Nodes:[/cyan] {len(self.orchestrator.cells):,} in {len(domains)} domains"
         dbg_text = "[bold green]ON (Verbose)[/bold green]" if self.debug else "[dim]OFF[/dim]"
         method_text = f"[bold yellow]{self.route_method or 'M0 (Default)'}[/bold yellow]"
-        dev_info = f"[cyan]Method:[/cyan] {method_text} | [cyan]Device:[/cyan] {self.device.upper()} | [cyan]Debug:[/cyan] {dbg_text}"
+        topo_mode = getattr(self, "topology_mode", "frontier")
+        topo_badge = "[bold green]Frontier (DAG)[/bold green]" if topo_mode == "frontier" else "[bold yellow]Linear (1D)[/bold yellow]"
+        dev_info = f"[cyan]Method:[/cyan] {method_text} | [cyan]Topology:[/cyan] {topo_badge}\n[cyan]Device:[/cyan] {self.device.upper()} | [cyan]Debug:[/cyan] {dbg_text}"
         hardware_text = f"{db_nodes}\n{dev_info}"
 
         header_table.add_row(prof_text, models_text, hardware_text)
@@ -1373,7 +1391,7 @@ class NSTLInteractiveShell(cmd.Cmd):
         title_text = Text("🧬 NSTL NEURO-SYMBOLIC TOPOLOGICAL LATTICE STUDIO", justify="center", style="bold white on blue")
         quick_shortcuts = Text(
             "Quick Layers: [1] 0:Symbolic  [2] A:Embedder  [3] C:Neuro-Symbolic  [4] D:Routing  [5] E:Translator\n"
-            "Commands: /profile <0|A|C|D|E> | /method <M0-M6> | /audit | /macro | /debug [on|off] | /status | /new | /clear | /exit",
+            "Commands: /profile <0|A|C|D|E> | /method <M0-M6> | /topology <frontier|linear> | /audit | /macro | /debug [on|off] | /sandbox [on|off] | /status | /new | /clear | /exit",
             justify="center",
             style="dim cyan"
         )
@@ -1442,6 +1460,46 @@ class NSTLInteractiveShell(cmd.Cmd):
         status_str = "[bold green]ENABLED (full layer-by-layer diagnostics)[/bold green]" if self.debug else "[dim]DISABLED[/dim]"
         console.print(f"\n[*] Debug Mode: {status_str}\n")
         self._update_prompt()
+
+    def do_sandbox(self, arg: str):
+        """Toggle GEVR sandbox execution. Usage: /sandbox [on|off]"""
+        arg = arg.strip().lower().lstrip("/")
+        if arg.startswith("sandbox"):
+            arg = arg[7:].strip()
+        if not arg:
+            self.no_exec = not self.no_exec
+        elif arg in ("1", "true", "on", "yes", "enable", "enabled"):
+            self.no_exec = False
+        elif arg in ("0", "false", "off", "no", "disable", "disabled"):
+            self.no_exec = True
+        else:
+            status = "DISABLED" if self.no_exec else "ENABLED"
+            console.print(f"[yellow]Usage: /sandbox [on|off] (currently {status})[/yellow]")
+            return
+
+        status_str = "[bold green]ENABLED[/bold green]" if not self.no_exec else "[bold yellow]DISABLED (bypassed for speed)[/bold yellow]"
+        console.print(f"\n[*] GEVR Sandbox: {status_str}\n")
+
+    def do_topology(self, arg: str):
+        """Switch topological planning approach. Usage: /topology <frontier|linear>"""
+        arg = arg.strip().lower().lstrip("/")
+        if arg.startswith("topology"):
+            arg = arg[8:].strip()
+        if arg in ("frontier", "dag", "monoidal", "multi"):
+            self.topology_mode = "frontier"
+        elif arg in ("linear", "1d", "trellis", "sequential", "baseline"):
+            self.topology_mode = "linear"
+        elif not arg:
+            self.topology_mode = "linear" if self.topology_mode == "frontier" else "frontier"
+        else:
+            console.print(f"[yellow]Usage: /topology <frontier|linear> (currently {self.topology_mode.upper()})[/yellow]")
+            return
+
+        settings.topology_mode = self.topology_mode
+        if hasattr(self, "router") and self.router and hasattr(self.router, "planner"):
+            self.router.planner.topology_mode = self.topology_mode
+        mode_str = "[bold green]Frontier DAG (Multi-Carrier Monoidal Category)[/bold green]" if self.topology_mode == "frontier" else "[bold yellow]Linear Trellis (1D Monadic Baseline)[/bold yellow]"
+        console.print(f"\n[*] Planning Topology: {mode_str}\n")
 
     def _switch_profile(self, profile: str, embedder: str = "", llm: str = "", device: str = "auto", verbose: bool = True) -> bool:
         p = profile.strip().upper()
@@ -1859,7 +1917,7 @@ class NSTLInteractiveShell(cmd.Cmd):
                 console=console,
                 route_method=query_method
             )
-            res = debugger.run(prompt, execute_sandbox=True, timeout=5.0)
+            res = debugger.run(prompt, execute_sandbox=not self.no_exec, timeout=5.0)
             self.history.append({
                 "prompt": prompt,
                 "profile": self.active_profile,
@@ -2071,7 +2129,8 @@ def cmd_shell(args):
         interactive=True,
         route_method=getattr(args, "route_method", None),
         no_lint=getattr(args, "no_lint", False),
-        macros=getattr(args, "macros", None)
+        macros=getattr(args, "macros", None),
+        topology=getattr(args, "topology", None)
     )
     shell.cmdloop()
 
@@ -2101,7 +2160,8 @@ def cmd_run(args):
         no_exec=getattr(args, "no_exec", False),
         route_method=getattr(args, "route_method", None),
         no_lint=getattr(args, "no_lint", False),
-        macros=getattr(args, "macros", None)
+        macros=getattr(args, "macros", None),
+        topology=getattr(args, "topology", None)
     )
     shell.default(f"{prompt} --debug" if debug_mode else prompt)
 
@@ -2204,6 +2264,13 @@ def cmd_benchmark(args):
         except Exception:
             pass
         os.environ["NSTL_MACROS_ENABLED"] = "1" if args.macros else "0"
+    if getattr(args, "topology", None) is not None:
+        try:
+            from config import settings
+            settings.topology_mode = str(args.topology).lower()
+        except Exception:
+            pass
+        os.environ["NSTL_TOPOLOGY_MODE"] = str(args.topology).lower()
     db_path = getattr(args, "db", "trees/lattice.db")
     ensure_lattice_compiled(trees_dir="trees", db_path=db_path)
     bench_type = getattr(args, "type", "matrix")
@@ -2304,6 +2371,7 @@ def build_parser() -> argparse.ArgumentParser:
     p_bench.add_argument("--methods", nargs="*", default=["M0", "M1", "M2", "M3", "M6"], help="Route methods to evaluate in matrix")
     p_bench.add_argument("--macros", dest="macros", action="store_true", default=None, help="Enable macro-goal routing (known-good composite paths)")
     p_bench.add_argument("--no-macros", dest="macros", action="store_false", help="Disable macro-goal routing (for A/B benchmarking)")
+    p_bench.add_argument("--topology", choices=["frontier", "linear"], default=None, help="Topological planning approach ('frontier' for Multi-Carrier DAG or 'linear' for 1D Sequential Trellis)")
     p_bench.set_defaults(func=cmd_benchmark)
 
     # precompute-rag
@@ -2327,6 +2395,7 @@ def build_parser() -> argparse.ArgumentParser:
     p_run.add_argument("--no-exec", action="store_true", help="Skip GEVR sandbox execution")
     p_run.add_argument("--macros", dest="macros", action="store_true", default=None, help="Enable macro-goal routing (known-good composite paths)")
     p_run.add_argument("--no-macros", dest="macros", action="store_false", help="Disable macro-goal routing (for A/B benchmarking)")
+    p_run.add_argument("--topology", choices=["frontier", "linear"], default=None, help="Topological planning approach ('frontier' for Multi-Carrier DAG or 'linear' for 1D Sequential Trellis)")
     p_run.set_defaults(func=cmd_run)
 
     # shell
@@ -2341,6 +2410,7 @@ def build_parser() -> argparse.ArgumentParser:
     p_shell.add_argument("--debug", "-d", action="store_true", help="Launch studio with debug mode enabled")
     p_shell.add_argument("--macros", dest="macros", action="store_true", default=None, help="Enable macro-goal routing (known-good composite paths)")
     p_shell.add_argument("--no-macros", dest="macros", action="store_false", help="Disable macro-goal routing (for A/B benchmarking)")
+    p_shell.add_argument("--topology", choices=["frontier", "linear"], default=None, help="Topological planning approach ('frontier' for Multi-Carrier DAG or 'linear' for 1D Sequential Trellis)")
     p_shell.set_defaults(func=cmd_shell)
 
     return parser

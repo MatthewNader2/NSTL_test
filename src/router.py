@@ -114,7 +114,26 @@ class LatticeRouter:
             else:
                 macros_val = True
         self._macros_enabled = bool(macros_val)
-        self.planner = LatticePlanner(orchestrator=self.orchestrator, macros_enabled=self._macros_enabled)
+
+        topo_val = kwargs.get("topology_mode")
+        if topo_val is None:
+            try:
+                from .config import settings as _settings
+            except (ImportError, ValueError):
+                try:
+                    from config import settings as _settings
+                except Exception:
+                    _settings = None
+            if _settings is not None:
+                topo_val = getattr(_settings, "topology_mode", "frontier")
+            else:
+                topo_val = "frontier"
+        self._topology_mode = str(topo_val).lower()
+        self.planner = LatticePlanner(
+            orchestrator=self.orchestrator,
+            macros_enabled=self._macros_enabled,
+            topology_mode=self._topology_mode
+        )
 
     @property
     def macros_enabled(self) -> bool:
@@ -125,6 +144,16 @@ class LatticeRouter:
         self._macros_enabled = bool(val)
         if hasattr(self, "planner") and self.planner is not None:
             self.planner.macros_enabled = bool(val)
+
+    @property
+    def topology_mode(self) -> str:
+        return getattr(self.planner, "topology_mode", getattr(self, "_topology_mode", "frontier"))
+
+    @topology_mode.setter
+    def topology_mode(self, val: str):
+        self._topology_mode = str(val).lower()
+        if hasattr(self, "planner") and self.planner is not None:
+            self.planner.topology_mode = self._topology_mode
 
     def _score_clause_lexical_idf(
         self,
@@ -598,6 +627,18 @@ class LatticeRouter:
                 tunnel_ids.add(cell.cell_id)
             if macro_score > relevance_map.get(cell.cell_id, 0.0):
                 relevance_map[cell.cell_id] = macro_score
+
+            # Synaptic micro-cell promotion: bring constituent micro-cells into the tunnel
+            # with boosted relevance so they participate in routing and allow intermediate nodes
+            # (such as ranking, slicing, or custom filtering) to be spliced in the middle.
+            for sid in getattr(cell, "sub_cells", []):
+                micro_cell = self.orchestrator.loaded_cells.get(sid)
+                if micro_cell:
+                    if sid not in tunnel_ids:
+                        final_tunnel.append(micro_cell)
+                        tunnel_ids.add(sid)
+                    boosted_score = max(relevance_map.get(sid, 0.0), macro_score * 0.75)
+                    relevance_map[sid] = boosted_score
 
         if promoted:
             logger.debug(

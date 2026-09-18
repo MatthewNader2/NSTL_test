@@ -4636,7 +4636,7 @@
         "bimodal",
         "histogram"
       ],
-      "code_template": "{ret}, {output_var} = cv2.threshold({src}, 0, {maxval}, cv2.THRESH_BINARY + cv2.THRESH_OTSU)",
+      "code_template": "{ret}, {output_var} = cv2.threshold({src}, 0, {maxval}, cv2.THRESH_BINARY | cv2.THRESH_OTSU)",
       "slots": {
         "maxval": 255.0
       },

@@ -180,7 +180,13 @@ class LatticePlanner:
     Operates strictly within the active semantic tunnel T.
     Finds maximum-likelihood type-valid composition paths.
     """
-    def __init__(self, orchestrator: LatticeOrchestrator, rag: Optional[Any] = None, macros_enabled: Optional[bool] = None):
+    def __init__(
+        self,
+        orchestrator: LatticeOrchestrator,
+        rag: Optional[Any] = None,
+        macros_enabled: Optional[bool] = None,
+        topology_mode: Optional[str] = None
+    ):
         self.orchestrator = orchestrator
         self.rag = rag
         if macros_enabled is not None:
@@ -191,6 +197,14 @@ class LatticePlanner:
                 self.macros_enabled = bool(getattr(settings, "macros_enabled", True))
             except Exception as e:
                 self.macros_enabled = True
+        if topology_mode is not None:
+            self.topology_mode = str(topology_mode).lower()
+        else:
+            try:
+                from config import settings
+                self.topology_mode = str(getattr(settings, "topology_mode", "frontier")).lower()
+            except Exception as e:
+                self.topology_mode = "frontier"
         self.current_relevance_map: Dict[str, float] = {}
 
     def _calculate_edge_affinity(self, src_cell: Cell, dst_cell: Cell) -> float:
@@ -345,8 +359,18 @@ class LatticePlanner:
         if len(tunnel) == 1:
             return [tunnel[0]]
 
-        # Candidate pool excluding constants
-        candidates = [c for c in tunnel if getattr(c, "node_type", "") != "constant"]
+        # Candidate pool excluding constants and atomic macro shortcuts
+        # (Macro cells act as synaptic priors that boost micro-cells and edge affinities,
+        # but do not preempt multi-cell compositions as monolithic 1-step black boxes).
+        candidates = [
+            c for c in tunnel
+            if getattr(c, "node_type", "") != "constant"
+            and getattr(c, "cell_type", "") != "macro"
+            and not getattr(c, "is_macro", False)
+            and not isinstance(c, MacroCell)
+        ]
+        if not candidates:
+            candidates = [c for c in tunnel if getattr(c, "node_type", "") != "constant"]
         if not candidates:
             return [tunnel[0]]
 
@@ -1025,36 +1049,52 @@ class LatticePlanner:
 
             # Edge affinity term: AST-mined and declared topological transitions
             # are the dominant score term for idiomatic composition.
-            if k <= 1:
-                affinity_score = 0.5
-                # A single macro-goal cell embodies a verified internal
-                # composition: it earns the affinity evidence of its own
-                # sub-cell sequence (declared edges, egress completion,
-                # adjacency, same-domain continuity), floored at the
-                # single-step baseline because every internal transition was
-                # type-verified at macro definition/harvest time. DEAD steps
-                # (middle sub-cells matching zero prompt tokens) forfeit the
-                # affinity evidence of the pairs they participate in — mined
-                # idioms around a step this prompt never asked for are not
-                # evidence for THIS composition.
-                if k == 1 and getattr(path[0], "cell_type", "") == "macro" and getattr(path[0], "sub_cells", None) and self.orchestrator is not None:
-                    subs = [self.orchestrator.loaded_cells.get(sid) for sid in path[0].sub_cells]
-                    subs = [s for s in subs if s is not None]
-                    if len(subs) >= 2:
-                        def _alive(idx: int) -> bool:
-                            if idx == 0 or idx == len(subs) - 1:
-                                return True
-                            s_id = subs[idx].cell_id
-                            return bool(cell_cov_strong.get(s_id) or cell_cov_weak.get(s_id))
-                        affs = [
-                            max(self._calculate_edge_affinity(subs[i], subs[i + 1]), PATH_SCORE_WEIGHTS["macro_affinity_floor"])
-                            for i in range(len(subs) - 1)
-                            if _alive(i) and _alive(i + 1)
+            join_bonus = 0.0
+            if getattr(self, "topology_mode", "frontier") == "frontier":
+                if k <= 1:
+                    affinity_score = 0.5
+                else:
+                    dag_affs = []
+                    join_nodes = 0
+                    for j in range(1, k):
+                        cell_j = path[j]
+                        parents = [
+                            path[i] for i in range(j)
+                            if any(
+                                unify(out_sig.signature, p_sig.signature) is not None
+                                for out_sig in path[i].outputs.values()
+                                for p_sig in cell_j.inputs.values()
+                            )
                         ]
-                        affinity_score = sum(affs) / len(affs) if affs else 0.5
+                        if len(parents) >= 2:
+                            join_nodes += 1
+                        if parents:
+                            dag_affs.append(max(_edge_affinity(p, cell_j) for p in parents))
+                        else:
+                            dag_affs.append(_edge_affinity(path[j - 1], cell_j))
+                    affinity_score = sum(dag_affs) / max(len(dag_affs), 1)
+                    join_bonus = join_nodes * 3.0
             else:
-                total_aff = sum(_edge_affinity(path[i], path[i + 1]) for i in range(k - 1))
-                affinity_score = total_aff / max(k - 1, 1)
+                if k <= 1:
+                    affinity_score = 0.5
+                    if k == 1 and getattr(path[0], "cell_type", "") == "macro" and getattr(path[0], "sub_cells", None) and self.orchestrator is not None:
+                        subs = [self.orchestrator.loaded_cells.get(sid) for sid in path[0].sub_cells]
+                        subs = [s for s in subs if s is not None]
+                        if len(subs) >= 2:
+                            def _alive(idx: int) -> bool:
+                                if idx == 0 or idx == len(subs) - 1:
+                                    return True
+                                s_id = subs[idx].cell_id
+                                return bool(cell_cov_strong.get(s_id) or cell_cov_weak.get(s_id))
+                            affs = [
+                                max(self._calculate_edge_affinity(subs[i], subs[i + 1]), PATH_SCORE_WEIGHTS["macro_affinity_floor"])
+                                for i in range(len(subs) - 1)
+                                if _alive(i) and _alive(i + 1)
+                            ]
+                            affinity_score = sum(affs) / len(affs) if affs else 0.5
+                else:
+                    total_aff = sum(_edge_affinity(path[i], path[i + 1]) for i in range(k - 1))
+                    affinity_score = total_aff / max(k - 1, 1)
 
             # Intent deficit objective: penalize incomplete pipelines that abandon requested clauses
             intent_deficit = ((PATH_SCORE_WEIGHTS["intent_deficit_final"] if is_final
@@ -1142,7 +1182,7 @@ class LatticePlanner:
             # Dominant score combination: edge affinity (w_aff = 25.0) heavily rewards
             # AST-mined canonical transitions, rendering legacy junk exploit patches obsolete.
             total = (coverage * PATH_SCORE_WEIGHTS["coverage"] + alignment * PATH_SCORE_WEIGHTS["alignment"]
-                     + affinity_score * PATH_SCORE_WEIGHTS["affinity"] - parsimony_penalty
+                     + affinity_score * PATH_SCORE_WEIGHTS["affinity"] + join_bonus - parsimony_penalty
                      + mean_log_prob + goal_bonus - weak_total
                      - dead_ctors * PATH_SCORE_WEIGHTS["dead_ctor"]
                      - dead_expansion_steps * PATH_SCORE_WEIGHTS["dead_expansion_step"]
@@ -1154,6 +1194,7 @@ class LatticePlanner:
                     "coverage*10": round(coverage * 10.0, 2),
                     "alignment*10": round(alignment * 10.0, 2),
                     "affinity*25": round(affinity_score * 25.0, 2),
+                    "join_bonus": round(join_bonus, 2),
                     "parsimony": round(-parsimony_penalty, 2),
                     "log_prob": round(mean_log_prob, 2),
                     "goal_bonus": round(goal_bonus, 2),
@@ -1232,63 +1273,6 @@ class LatticePlanner:
             res_cells = [c for c in acc.values() if c.cell_id not in macro_subs and prev_cell.cell_id not in getattr(c, "sub_cells", ())]
             return sorted(res_cells, key=lambda c: _edge_affinity(prev_cell, c), reverse=True)
 
-        # Viterbi Trellis: paths of length t = 1 ... T_max
-        # Item layout: (path, sigma, cumulative log-prob, weak_edge_count, unbindable_count)
-        all_valid_paths: List[Tuple[List[Cell], Substitution, float, int, int]] = []
-
-        # Step t = 1: Initialize beam
-        current_beam: List[Tuple[List[Cell], Substitution, float, int, int]] = []
-        for entry in candidate_entries:
-            sc = log_probs.get(entry.cell_id, -10.0)
-            p_tuple = ([entry], Substitution(), sc, 0, _new_unbindable(entry, []))
-            current_beam.append(p_tuple)
-            all_valid_paths.append(p_tuple)
-
-        # Edge compatibility cache: signature-level gate results are sigma-invariant
-        # for ground signatures; cell-pair results are cached per (pair, sigma fingerprint).
-        edge_compat_cache: Dict[Tuple[str, str, str], Optional[Substitution]] = {}
-
-        def _sigma_fingerprint(sigma: Substitution) -> str:
-            try:
-                return tuple(sorted((k, str(v)) for k, v in sigma.mappings.items()))
-            except Exception as e:
-                return ()
-
-        def _required_ports_bindable(cand: Cell, prev_path: List[Cell], sigma: Substitution) -> Optional[Substitution]:
-            """All required ports must be wire-satisfiable from the path or literal-groundable."""
-            sub = sigma
-            for p_name, p_sig in cand.inputs.items():
-                if not p_sig.required or p_sig.default_value is not None:
-                    continue
-                satisfied = False
-                for earlier_cell in reversed(prev_path):
-                    for out_name, out_sig in earlier_cell.outputs.items():
-                        s_wire = unify(out_sig.signature, p_sig.signature, sub)
-                        if s_wire is not None:
-                            sub = s_wire
-                            satisfied = True
-                            break
-                    if satisfied:
-                        break
-                if not satisfied:
-                    desc = getattr(p_sig, "description", None) or getattr(p_sig, "doc", "") or ""
-                    is_instance_receiver = p_name in ("data", "self") or ("receiver" in str(desc).lower())
-                    if not is_instance_receiver:
-                        t_name = str(getattr(p_sig.signature, "type_name", "")).lower()
-                        if (
-                            registry.is_subtype(t_name, "str")
-                            or registry.is_subtype(t_name, "numeric")
-                            or registry.is_subtype(t_name, "bool")
-                            or registry.is_subtype(t_name, "filepath")
-                            or registry.is_subtype(t_name, "uri")
-                            or registry.is_subtype(t_name, "scalar")
-                            or bool(getattr(p_sig, "domain", ""))
-                        ):
-                            satisfied = True
-                if not satisfied:
-                    return None
-            return sub
-
         # Zero-ary constructor morphisms: insertable after ANY cell (they consume
         # no incoming wire), completing instance lifecycles (construct -> fit).
         zero_ary_ctors = [
@@ -1297,92 +1281,39 @@ class LatticePlanner:
             and not any(p.required for p in c.inputs.values())
         ]
 
-        # Sequential Trellis extensions for t = 2 ... max_steps
         max_steps = max(2, min(8, max_transforms + 2))
-        for step in range(2, max_steps + 1):
-            candidates_for_next: List[Tuple[List[Cell], Substitution, float, int, int]] = []
 
-            for prev_path, prev_sigma, prev_score, prev_weak, prev_unbind in current_beam:
-                prev_cell = prev_path[-1]
-
-                # Terminal morphisms (Stage 3) cannot have outgoing arrows unless they have slots
-                if getattr(prev_cell, "stage", None) == 3 and not getattr(prev_cell, "slots", None):
-                    continue
-
-                prev_path_ids = {c.cell_id for c in prev_path}
-
-                successor_cells = _successors(prev_cell)
-                seen_ids = {c.cell_id for c in successor_cells}
-                for ctor in zero_ary_ctors:
-                    if ctor.cell_id not in seen_ids:
-                        successor_cells.append(ctor)
-                        seen_ids.add(ctor.cell_id)
-
-                for cand in successor_cells:
-                    # Acyclic: cell cannot repeat in pipeline
-                    if cand.cell_id in prev_path_ids:
-                        continue
-
-                    cand_node_type = getattr(cand, "node_type", "")
-                    cand_stage = getattr(cand, "stage", None)
-
-                    # Zero-ary constructor morphisms: insertable mid-chain, consume
-                    # no incoming wire; every required port must still be bindable.
-                    if cand_node_type == "constructor":
-                        new_sigma = _required_ports_bindable(cand, prev_path, prev_sigma)
-                        if new_sigma is None:
-                            continue
-                    else:
-                        # Stage 1 cells cannot be appended as intermediate transitions
-                        if cand_stage == 1:
-                            continue
-
-                        # Monadic Unification Gate: edge exists iff unify(tau_out, tau_in, sigma) != bottom
-                        prev_out_sigs = tuple(sorted((out_sig.signature.type_name, str(getattr(out_sig.signature, "state", "any"))) for c in prev_path for out_sig in c.outputs.values()))
-                        pair_key = (prev_cell.cell_id, cand.cell_id, _sigma_fingerprint(prev_sigma), prev_out_sigs)
-                        if pair_key in edge_compat_cache:
-                            new_sigma = edge_compat_cache[pair_key]
-                        else:
-                            new_sigma = self._verify_transition(prev_path, cand, prev_sigma)
-                            edge_compat_cache[pair_key] = new_sigma
-
-                        if new_sigma is None:
-                            continue
-
-                    cand_unbind = _new_unbindable(cand, prev_path)
-                    if cand_unbind > 0:
-                        continue
-
-                    cand_sc = log_probs.get(cand.cell_id, -10.0)
-                    total_sc = prev_score + cand_sc
-                    step_weak = prev_weak + (
-                        1 if (cand_node_type != "constructor" and _edge_is_weak(prev_cell, cand)) else 0
-                    )
-                    step_unbind = prev_unbind + cand_unbind
-                    new_tuple = (prev_path + [cand], new_sigma, total_sc, step_weak, step_unbind)
-                    candidates_for_next.append(new_tuple)
-                    all_valid_paths.append(new_tuple)
-
-            if not candidates_for_next:
-                break
-
-            # Bound the trellis memory: keep the strongest half of discovered paths
-            if len(all_valid_paths) > 6000:
-                all_valid_paths.sort(key=lambda x: compute_path_score(x, is_final=False), reverse=True)
-                all_valid_paths = all_valid_paths[:3000]
-
-            # Beam pruning with endpoint diversity (max 5 per endpoint, beam width 250)
-            candidates_for_next.sort(key=lambda x: compute_path_score(x, is_final=False), reverse=True)
-            endpoint_counts: Dict[str, int] = {}
-            next_beam = []
-            for item in candidates_for_next:
-                endpoint = item[0][-1].cell_id
-                if endpoint_counts.get(endpoint, 0) < 5:
-                    next_beam.append(item)
-                    endpoint_counts[endpoint] = endpoint_counts.get(endpoint, 0) + 1
-                    if len(next_beam) >= 250:
-                        break
-            current_beam = next_beam
+        # Planning approach dispatch:
+        # 1. "linear": 1D Monadic Trellis baseline (sequential list approach)
+        # 2. "frontier": Multi-Carrier Monoidal Frontier DAG (default approach)
+        if getattr(self, "topology_mode", "frontier") == "linear":
+            all_valid_paths = self._plan_linear_trellis(
+                candidate_entries=candidate_entries,
+                candidates=candidates,
+                log_probs=log_probs,
+                max_steps=max_steps,
+                zero_ary_ctors=zero_ary_ctors,
+                _new_unbindable=_new_unbindable,
+                compute_path_score=compute_path_score,
+                _edge_is_weak=_edge_is_weak,
+                cells_by_in_type=cells_by_in_type,
+                candidate_map=candidate_map,
+                candidate_map_lower=candidate_map_lower,
+            )
+        else:
+            all_valid_paths = self._plan_frontier_dag(
+                candidate_entries=candidate_entries,
+                candidates=candidates,
+                log_probs=log_probs,
+                max_steps=max_steps,
+                zero_ary_ctors=zero_ary_ctors,
+                _new_unbindable=_new_unbindable,
+                compute_path_score=compute_path_score,
+                _edge_is_weak=_edge_is_weak,
+                cells_by_in_type=cells_by_in_type,
+                candidate_map=candidate_map,
+                candidate_map_lower=candidate_map_lower,
+            )
 
         # Filter and rank valid composition paths
         if all_valid_paths:
@@ -1806,7 +1737,7 @@ class LatticePlanner:
                         or registry.is_subtype(t_name, "filepath")
                         or registry.is_subtype(t_name, "uri")
                         or registry.is_subtype(t_name, "scalar")
-                        or bool(getattr(p_sig, "domain", ""))
+                        or bool(getattr(p_sig, "enum_values", None))
                     )
                     if is_literal_groundable:
                         satisfied = True
@@ -1815,6 +1746,447 @@ class LatticePlanner:
                 return None
 
         return sub
+
+    def _plan_linear_trellis(
+        self,
+        candidate_entries: List[Cell],
+        candidates: List[Cell],
+        log_probs: Dict[str, float],
+        max_steps: int,
+        zero_ary_ctors: List[Cell],
+        _new_unbindable: Any,
+        compute_path_score: Any,
+        _edge_is_weak: Any,
+        cells_by_in_type: Dict[str, List[Cell]],
+        candidate_map: Dict[str, Cell],
+        candidate_map_lower: Dict[str, Cell],
+    ) -> List[Tuple[List[Cell], Substitution, float, int, int]]:
+        """
+        1D Monadic Trellis Baseline Planner.
+        Standard sequential list approach where transitions branch from prev_cell.primary_output.
+        Preserved as an ablation baseline for comparative benchmarks.
+        """
+        registry = TypeRegistry.get_instance()
+        all_valid_paths: List[Tuple[List[Cell], Substitution, float, int, int]] = []
+
+        # Step t = 1: Initialize beam
+        current_beam: List[Tuple[List[Cell], Substitution, float, int, int]] = []
+        for entry in candidate_entries:
+            sc = log_probs.get(entry.cell_id, -10.0)
+            p_tuple = ([entry], Substitution(), sc, 0, _new_unbindable(entry, []))
+            current_beam.append(p_tuple)
+            all_valid_paths.append(p_tuple)
+
+        edge_compat_cache: Dict[Tuple[str, str, Any, Any], Optional[Substitution]] = {}
+
+        def _sigma_fingerprint(sigma: Substitution) -> Any:
+            try:
+                return tuple(sorted((k, str(v)) for k, v in sigma.mappings.items()))
+            except Exception:
+                return ()
+
+        def _required_ports_bindable(cand: Cell, prev_path: List[Cell], sigma: Substitution) -> Optional[Substitution]:
+            sub = sigma
+            for p_name, p_sig in cand.inputs.items():
+                if not p_sig.required or p_sig.default_value is not None:
+                    continue
+                satisfied = False
+                for earlier_cell in reversed(prev_path):
+                    for out_name, out_sig in earlier_cell.outputs.items():
+                        s_wire = unify(out_sig.signature, p_sig.signature, sub)
+                        if s_wire is not None:
+                            sub = s_wire
+                            satisfied = True
+                            break
+                    if satisfied:
+                        break
+                if not satisfied:
+                    desc = getattr(p_sig, "description", None) or getattr(p_sig, "doc", "") or ""
+                    is_instance_receiver = p_name in ("data", "self") or ("receiver" in str(desc).lower())
+                    if not is_instance_receiver:
+                        t_name = str(getattr(p_sig.signature, "type_name", "")).lower()
+                        if (
+                            registry.is_subtype(t_name, "str")
+                            or registry.is_subtype(t_name, "numeric")
+                            or registry.is_subtype(t_name, "bool")
+                            or registry.is_subtype(t_name, "filepath")
+                            or registry.is_subtype(t_name, "uri")
+                            or registry.is_subtype(t_name, "scalar")
+                            or bool(getattr(p_sig, "enum_values", None))
+                        ):
+                            satisfied = True
+                if not satisfied:
+                    return None
+            return sub
+
+        def _successors(prev_cell: Cell) -> List[Cell]:
+            if (getattr(prev_cell, "node_role", "") == "macro" or getattr(prev_cell, "cell_type", "") == "macro") and getattr(prev_cell, "endable", False):
+                return []
+            macro_subs = set(getattr(prev_cell, "sub_cells", ()) or ())
+
+            out_sig = prev_cell.primary_output.signature if hasattr(prev_cell.primary_output, "signature") else prev_cell.primary_output
+            out_t = str(getattr(out_sig, "type_name", ""))
+            out_s = str(getattr(out_sig, "state", ""))
+
+            acc: Dict[str, Cell] = {}
+
+            for edge in getattr(prev_cell, "edges", []):
+                tgt_id = edge.get("target_cell_id") if isinstance(edge, dict) else getattr(edge, "target_cell_id", None)
+                if tgt_id:
+                    tgt_cell = candidate_map.get(tgt_id) or candidate_map_lower.get(str(tgt_id).lower())
+                    if tgt_cell:
+                        acc.setdefault(tgt_cell.cell_id, tgt_cell)
+
+            is_type_var = out_t.isalpha() and len(out_t) == 1 and out_t.isupper()
+            if "[" in out_t or is_type_var:
+                for cand in candidates:
+                    if cand.cell_id in macro_subs or prev_cell.cell_id in getattr(cand, "sub_cells", ()):
+                        continue
+                    if any(unify(out_sig, p_sig.signature) is not None
+                           for p_sig in cand.inputs.values()):
+                        acc.setdefault(cand.cell_id, cand)
+                res_cells = [c for c in acc.values() if c.cell_id not in macro_subs and prev_cell.cell_id not in getattr(c, "sub_cells", ())]
+                return sorted(res_cells, key=lambda c: self._calculate_edge_affinity(prev_cell, c), reverse=True)
+
+            for in_t, cell_list in cells_by_in_type.items():
+                if not registry.is_subtype(out_t, in_t):
+                    continue
+                for c in cell_list:
+                    if c.cell_id in macro_subs or prev_cell.cell_id in getattr(c, "sub_cells", ()):
+                        continue
+                    if any(registry.is_state_compatible(
+                        producer_state=out_s,
+                        consumer_state=getattr(p_sig.signature, "state", "any"),
+                        producer_accepted=getattr(out_sig, "accepted_states", frozenset()),
+                        consumer_accepted=getattr(p_sig.signature, "accepted_states", frozenset()),
+                        consumer_parent=getattr(p_sig.signature, "parent_state", None),
+                        producer_parent=getattr(out_sig, "parent_state", None),
+                    ) for p_sig in c.inputs.values()):
+                        acc.setdefault(c.cell_id, c)
+            res_cells = [c for c in acc.values() if c.cell_id not in macro_subs and prev_cell.cell_id not in getattr(c, "sub_cells", ())]
+            return sorted(res_cells, key=lambda c: self._calculate_edge_affinity(prev_cell, c), reverse=True)
+
+        for step in range(2, max_steps + 1):
+            candidates_for_next: List[Tuple[List[Cell], Substitution, float, int, int]] = []
+
+            for prev_path, prev_sigma, prev_score, prev_weak, prev_unbind in current_beam:
+                prev_cell = prev_path[-1]
+
+                if getattr(prev_cell, "stage", None) == 3 and not getattr(prev_cell, "slots", None):
+                    continue
+
+                prev_path_ids = {c.cell_id for c in prev_path}
+
+                successor_cells = _successors(prev_cell)
+                seen_ids = {c.cell_id for c in successor_cells}
+                for ctor in zero_ary_ctors:
+                    if ctor.cell_id not in seen_ids:
+                        successor_cells.append(ctor)
+                        seen_ids.add(ctor.cell_id)
+
+                for cand in successor_cells:
+                    if cand.cell_id in prev_path_ids:
+                        continue
+
+                    cand_node_type = getattr(cand, "node_type", "")
+                    cand_stage = getattr(cand, "stage", None)
+
+                    if cand_node_type == "constructor":
+                        new_sigma = _required_ports_bindable(cand, prev_path, prev_sigma)
+                        if new_sigma is None:
+                            continue
+                    else:
+                        if cand_stage == 1:
+                            continue
+
+                        prev_out_sigs = tuple(sorted((out_sig.signature.type_name, str(getattr(out_sig.signature, "state", "any"))) for c in prev_path for out_sig in c.outputs.values()))
+                        pair_key = (prev_cell.cell_id, cand.cell_id, _sigma_fingerprint(prev_sigma), prev_out_sigs)
+                        if pair_key in edge_compat_cache:
+                            new_sigma = edge_compat_cache[pair_key]
+                        else:
+                            new_sigma = self._verify_transition(prev_path, cand, prev_sigma)
+                            edge_compat_cache[pair_key] = new_sigma
+
+                        if new_sigma is None:
+                            continue
+
+                    cand_unbind = _new_unbindable(cand, prev_path)
+                    if cand_unbind > 0:
+                        continue
+
+                    cand_sc = log_probs.get(cand.cell_id, -10.0)
+                    total_sc = prev_score + cand_sc
+                    step_weak = prev_weak + (
+                        1 if (cand_node_type != "constructor" and _edge_is_weak(prev_cell, cand)) else 0
+                    )
+                    step_unbind = prev_unbind + cand_unbind
+                    new_tuple = (prev_path + [cand], new_sigma, total_sc, step_weak, step_unbind)
+                    candidates_for_next.append(new_tuple)
+                    all_valid_paths.append(new_tuple)
+
+            if not candidates_for_next:
+                break
+
+            if len(all_valid_paths) > 6000:
+                all_valid_paths.sort(key=lambda x: compute_path_score(x, is_final=False), reverse=True)
+                all_valid_paths = all_valid_paths[:3000]
+
+            candidates_for_next.sort(key=lambda x: compute_path_score(x, is_final=False), reverse=True)
+            endpoint_counts: Dict[str, int] = {}
+            next_beam = []
+            for item in candidates_for_next:
+                endpoint = item[0][-1].cell_id
+                if endpoint_counts.get(endpoint, 0) < 5:
+                    next_beam.append(item)
+                    endpoint_counts[endpoint] = endpoint_counts.get(endpoint, 0) + 1
+                    if len(next_beam) >= 250:
+                        break
+            current_beam = next_beam
+
+        return all_valid_paths
+
+    def _plan_frontier_dag(
+        self,
+        candidate_entries: List[Cell],
+        candidates: List[Cell],
+        log_probs: Dict[str, float],
+        max_steps: int,
+        zero_ary_ctors: List[Cell],
+        _new_unbindable: Any,
+        compute_path_score: Any,
+        _edge_is_weak: Any,
+        cells_by_in_type: Dict[str, List[Cell]],
+        candidate_map: Dict[str, Cell],
+        candidate_map_lower: Dict[str, Cell],
+    ) -> List[Tuple[List[Cell], Substitution, float, int, int]]:
+        """
+        Monoidal Category Frontier DAG Planner (Default Approach).
+        Maintains an active multi-carrier frontier F over candidate paths in the category C.
+        Candidate extensions are verified against all available active output wires in F(P).
+        Fork-join / convergent morphisms (nabla) consuming >= 2 distinct ancestor carriers
+        are naturally synthesized and rewarded with a multi-carrier join bonus.
+        """
+        registry = TypeRegistry.get_instance()
+        all_valid_paths: List[Tuple[List[Cell], Substitution, float, int, int]] = []
+
+        # Step t = 1: Initialize beam with entry sources
+        current_beam: List[Tuple[List[Cell], Substitution, float, int, int]] = []
+        for entry in candidate_entries:
+            sc = log_probs.get(entry.cell_id, -10.0)
+            p_tuple = ([entry], Substitution(), sc, 0, _new_unbindable(entry, []))
+            current_beam.append(p_tuple)
+            all_valid_paths.append(p_tuple)
+
+        def _shape_compatible(p_out: Any, p_in: Any) -> bool:
+            out_sc = getattr(p_out, "shape_contract", None)
+            in_sc = getattr(p_in, "shape_contract", None)
+            if out_sc and in_sc:
+                def _extract_ndim(sc: Any) -> Optional[int]:
+                    if isinstance(sc, dict):
+                        val = sc.get("ndim")
+                        return int(val) if val is not None else None
+                    elif isinstance(sc, str):
+                        s = sc.strip()
+                        if s.startswith("(") and s.endswith(")"):
+                            inner = s[1:-1].strip()
+                            return len([p for p in inner.split(",") if p.strip()]) if inner else 0
+                    return None
+                o_ndim = _extract_ndim(out_sc)
+                i_ndim = _extract_ndim(in_sc)
+                if o_ndim is not None and i_ndim is not None and o_ndim != i_ndim:
+                    return False
+            return True
+
+        def _verify_frontier_step(
+            prev_path: List[Cell],
+            cand: Cell,
+            prev_sigma: Substitution
+        ) -> Optional[Tuple[Substitution, Set[str], bool]]:
+            sub = prev_sigma
+            bound_parents: Set[str] = set()
+            bound_input_ports: Set[str] = set()
+
+            # 1. Check primary input first if present
+            cand_prim_in = getattr(cand, "primary_input", None)
+            if cand_prim_in is not None:
+                p_name = getattr(cand_prim_in, "name", "input")
+                p_sig = cand_prim_in
+                for earlier_cell in reversed(prev_path):
+                    for out_name, out_sig in earlier_cell.outputs.items():
+                        if not _shape_compatible(out_sig, p_sig):
+                            continue
+                        s_wire = unify(out_sig.signature, p_sig.signature, sub)
+                        if s_wire is not None:
+                            sub = s_wire
+                            bound_parents.add(earlier_cell.cell_id)
+                            bound_input_ports.add(p_name)
+                            break
+                    if p_name in bound_input_ports:
+                        break
+
+            # 2. Check all remaining inputs of cand
+            for p_name, p_sig in cand.inputs.items():
+                if p_name in bound_input_ports:
+                    continue
+
+                satisfied = False
+                for earlier_cell in reversed(prev_path):
+                    for out_name, out_sig in earlier_cell.outputs.items():
+                        if not _shape_compatible(out_sig, p_sig):
+                            continue
+                        s_wire = unify(out_sig.signature, p_sig.signature, sub)
+                        if s_wire is not None:
+                            sub = s_wire
+                            bound_parents.add(earlier_cell.cell_id)
+                            bound_input_ports.add(p_name)
+                            satisfied = True
+                            break
+                    if satisfied:
+                        break
+
+                if not satisfied:
+                    if not p_sig.required or p_sig.default_value is not None:
+                        continue
+
+                    desc = getattr(p_sig, "description", None) or getattr(p_sig, "doc", "") or ""
+                    is_instance_receiver = p_name in ("data", "self") or ("receiver" in str(desc).lower())
+                    if not is_instance_receiver:
+                        t_name = str(getattr(p_sig.signature, "type_name", "")).lower()
+                        is_literal_groundable = (
+                            registry.is_subtype(t_name, "str")
+                            or registry.is_subtype(t_name, "numeric")
+                            or registry.is_subtype(t_name, "bool")
+                            or registry.is_subtype(t_name, "filepath")
+                            or registry.is_subtype(t_name, "uri")
+                            or registry.is_subtype(t_name, "scalar")
+                            or bool(getattr(p_sig, "enum_values", None))
+                        )
+                        if is_literal_groundable:
+                            satisfied = True
+
+                    if not satisfied:
+                        return None
+
+            cand_node_type = getattr(cand, "node_type", "")
+            if cand_node_type != "constructor" and not bound_parents:
+                return None
+
+            is_join = len(bound_parents) >= 2
+            return (sub, bound_parents, is_join)
+
+        # Precompute candidate successors from any cell
+        def _cell_successors(cell: Cell) -> List[Cell]:
+            out_sig = cell.primary_output.signature if hasattr(cell.primary_output, "signature") else cell.primary_output
+            out_t = str(getattr(out_sig, "type_name", ""))
+            out_s = str(getattr(out_sig, "state", ""))
+
+            acc: Dict[str, Cell] = {}
+            for edge in getattr(cell, "edges", []):
+                tgt_id = edge.get("target_cell_id") if isinstance(edge, dict) else getattr(edge, "target_cell_id", None)
+                if tgt_id:
+                    tgt_cell = candidate_map.get(tgt_id) or candidate_map_lower.get(str(tgt_id).lower())
+                    if tgt_cell:
+                        acc.setdefault(tgt_cell.cell_id, tgt_cell)
+
+            is_type_var = out_t.isalpha() and len(out_t) == 1 and out_t.isupper()
+            if "[" in out_t or is_type_var:
+                for cand in candidates:
+                    if any(unify(out_sig, p_sig.signature) is not None for p_sig in cand.inputs.values()):
+                        acc.setdefault(cand.cell_id, cand)
+                return list(acc.values())
+
+            for in_t, cell_list in cells_by_in_type.items():
+                if not registry.is_subtype(out_t, in_t):
+                    continue
+                for c in cell_list:
+                    if any(registry.is_state_compatible(
+                        producer_state=out_s,
+                        consumer_state=getattr(p_sig.signature, "state", "any"),
+                        producer_accepted=getattr(out_sig, "accepted_states", frozenset()),
+                        consumer_accepted=getattr(p_sig.signature, "accepted_states", frozenset()),
+                        consumer_parent=getattr(p_sig.signature, "parent_state", None),
+                        producer_parent=getattr(out_sig, "parent_state", None),
+                    ) for p_sig in c.inputs.values()):
+                        acc.setdefault(c.cell_id, c)
+            return list(acc.values())
+
+        # Step t = 2 ... max_steps
+        for step in range(2, max_steps + 1):
+            candidates_for_next: List[Tuple[List[Cell], Substitution, float, int, int]] = []
+
+            for prev_path, prev_sigma, prev_score, prev_weak, prev_unbind in current_beam:
+                prev_cell = prev_path[-1]
+
+                # Terminal check: stage 3 sinks without slots conclude the path
+                if getattr(prev_cell, "stage", None) == 3 and not getattr(prev_cell, "slots", None):
+                    continue
+
+                prev_path_ids = {c.cell_id for c in prev_path}
+
+                successor_candidates: List[Cell] = []
+                seen_succ_ids: Set[str] = set()
+
+                for path_cell in prev_path:
+                    for succ in _cell_successors(path_cell):
+                        if succ.cell_id not in seen_succ_ids and succ.cell_id not in prev_path_ids:
+                            successor_candidates.append(succ)
+                            seen_succ_ids.add(succ.cell_id)
+
+                for ctor in zero_ary_ctors:
+                    if ctor.cell_id not in seen_succ_ids and ctor.cell_id not in prev_path_ids:
+                        successor_candidates.append(ctor)
+                        seen_succ_ids.add(ctor.cell_id)
+
+                for cand in successor_candidates:
+                    if cand.cell_id in prev_path_ids:
+                        continue
+
+                    cand_stage = getattr(cand, "stage", None)
+                    if cand_stage == 1:
+                        continue
+
+                    v_res = _verify_frontier_step(prev_path, cand, prev_sigma)
+                    if v_res is None:
+                        continue
+
+                    new_sigma, bound_parents, is_join = v_res
+
+                    cand_unbind = _new_unbindable(cand, prev_path)
+                    if cand_unbind > 0:
+                        continue
+
+                    cand_sc = log_probs.get(cand.cell_id, -10.0)
+                    total_sc = prev_score + cand_sc
+                    cand_node_type = getattr(cand, "node_type", "")
+                    step_weak = prev_weak + (
+                        1 if (cand_node_type != "constructor" and _edge_is_weak(prev_cell, cand)) else 0
+                    )
+                    step_unbind = prev_unbind + cand_unbind
+
+                    new_tuple = (prev_path + [cand], new_sigma, total_sc, step_weak, step_unbind)
+                    candidates_for_next.append(new_tuple)
+                    all_valid_paths.append(new_tuple)
+
+            if not candidates_for_next:
+                break
+
+            if len(all_valid_paths) > 6000:
+                all_valid_paths.sort(key=lambda x: compute_path_score(x, is_final=False), reverse=True)
+                all_valid_paths = all_valid_paths[:3000]
+
+            candidates_for_next.sort(key=lambda x: compute_path_score(x, is_final=False), reverse=True)
+            endpoint_counts: Dict[str, int] = {}
+            next_beam = []
+            for item in candidates_for_next:
+                endpoint = item[0][-1].cell_id
+                if endpoint_counts.get(endpoint, 0) < 5:
+                    next_beam.append(item)
+                    endpoint_counts[endpoint] = endpoint_counts.get(endpoint, 0) + 1
+                    if len(next_beam) >= 250:
+                        break
+            current_beam = next_beam
+
+        return all_valid_paths
 
     def plan_sublattice(
         self,

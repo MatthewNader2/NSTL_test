@@ -29,6 +29,7 @@ class NSTLSettings(BaseSettings):
     api_port: int = 58102
 
     # Sandbox
+    sandbox_enabled: bool = False
     sandbox_timeout: float = 5.0
     sandbox_workers: int = 2
     sandbox_max_memory_mb: int = 1024
@@ -45,6 +46,10 @@ class NSTLSettings(BaseSettings):
     # them. Toggleable for A/B benchmarking via the CLI (--macros/--no-macros),
     # the interactive shell (`set macros on|off`), or the NSTL_MACROS env var.
     macros_enabled: bool = True
+
+    # Topology planning approach: "frontier" (Multi-Carrier Monoidal Frontier DAG, default)
+    # or "linear" (1D Monadic Trellis baseline for comparative ablation benchmarks).
+    topology_mode: str = "frontier"
 
     def model_post_init(self, __context) -> None:
         """Resolve default paths relative to project_root after construction."""
