@@ -124,5 +124,7 @@ class M5LLMOneShotRouteMethod(RouteMethod):
                         goal_sig=goal_sig,
                         max_transforms=max_transforms
                     )
-
-        return validated_chain[:max_transforms + 2]
+        clauses = self.segment_prompt_clauses(prompt)
+        num_clauses = len(clauses) if clauses else 1
+        dynamic_cap = max(max_transforms + 2, num_clauses + 3)
+        return validated_chain[:min(16, dynamic_cap)]

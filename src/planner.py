@@ -80,11 +80,12 @@ PATH_SCORE_WEIGHTS = {
     "macro_affinity_floor": 0.5,  # single-step baseline for verified sub-compositions
     "dead_ctor": 25.0,
     "dead_expansion_step": 10.0,   # macro middle step matching zero prompt tokens
+    "dead_output": 12.0,           # unconsumed intermediate transform outputs
     "unbindable": 50.0,
     "gap": 1.5,
     "dispersion": 5.0,
-    "intent_deficit_final": 35.0,
-    "intent_deficit_partial": 15.0,
+    "intent_deficit_final": 80.0,
+    "intent_deficit_partial": 25.0,
     "weak_edge": 0.75,
     "wildcarrier": 1.0,
     "parsimony_step": 1.2,
@@ -303,12 +304,17 @@ class LatticePlanner:
         # 3. Stage 2 -> Stage 3 Egress Completion:
         # A data transformer transitioning to a matching Stage 3 sink in the same domain
         # represents a canonical pipeline conclusion (e.g. dropna -> to_csv, canny -> imwrite).
+        # Gated on prompt relevance so unrequested transforms (e.g. CV2_CANNY) cannot win
+        # solely on canonical sink adjacency without prompt coverage.
         src_stage = getattr(src_cell, "stage", None)
         dst_stage = getattr(dst_cell, "stage", None)
         src_domain = getattr(src_cell, "domain_name", "")
         dst_domain = getattr(dst_cell, "domain_name", "")
         if src_stage == 2 and dst_stage == 3 and src_domain and dst_domain and src_domain == dst_domain:
-            return 0.75
+            rel_map = getattr(self, "current_relevance_map", None) or {}
+            if not rel_map or rel_map.get(src_cell.cell_id, 0.0) > 0.0:
+                return 0.75
+            return 0.10
 
         # 4. Topological reachability in orchestrator if built
         adj = getattr(self.orchestrator, "_adjacency", None) or getattr(self.orchestrator, "adjacency", None)
@@ -856,6 +862,7 @@ class LatticePlanner:
 
         _edge_affinity = self._calculate_edge_affinity
         _path_score_cache: Dict[Tuple[Tuple[str, ...], bool], float] = {}
+        _path_state_cache: Dict[Tuple[str, ...], Dict[str, Any]] = {}
         _pair_connected_cache: Dict[Tuple[str, str], bool] = {}
 
         def _cells_connect(c1: Cell, c2: Cell) -> bool:
@@ -872,60 +879,118 @@ class LatticePlanner:
 
         def compute_path_score(item: Tuple[List[Cell], Substitution, float, int, int], is_final: bool = False) -> float:
             path, _, sc, weak_edges, unbindable = item
-            path_key = (tuple(c.cell_id for c in path), is_final)
+            path_ids = tuple(c.cell_id for c in path)
+            path_key = (path_ids, is_final)
             if path_key in _path_score_cache:
                 return _path_score_cache[path_key]
             k = len(path)
 
-            # Prompt token coverage across the composition path:
-            # Edge affinity dominates path ranking, so token coverage cleanly
-            # reflects path coverage without artificial multi-count clamps.
-            strong_tokens: Set[str] = set()
-            weak_tokens: Set[str] = set()
-            for c in path:
-                strong_tokens |= cell_cov_strong.get(c.cell_id, set())
-                weak_tokens |= cell_cov_weak.get(c.cell_id, set())
+            # Incremental score state: reuse cached prefix state rather than
+            # rescanning the full path prefix for every beam candidate.
+            st = _path_state_cache.get(path_ids)
+            if st is not None:
+                strong_tokens = st["strong_tokens"]
+                weak_tokens = st["weak_tokens"]
+                covered_clauses = st["covered_clauses"]
+                inversions = st["inversions"]
+                dag_affs = st["dag_affs"]
+                join_nodes = st["join_nodes"]
+            elif k > 1 and path_ids[:-1] in _path_state_cache:
+                prev_st = _path_state_cache[path_ids[:-1]]
+                new_c = path[-1]
+                strong_tokens = prev_st["strong_tokens"] | cell_cov_strong.get(new_c.cell_id, set())
+                weak_tokens = prev_st["weak_tokens"] | cell_cov_weak.get(new_c.cell_id, set())
+                covered_clauses = prev_st["covered_clauses"] | cell_covered.get(new_c.cell_id, set())
+
+                masses = cell_clause_mass.get(new_c.cell_id, [])
+                dp = prev_st["dp"]
+                inversions = prev_st["inversions"]
+                if masses:
+                    max_m = max(masses)
+                    if max_m > 0:
+                        cands = {g for g, m in enumerate(masses) if m >= 0.10 * max_m and m > 0}
+                        if cands:
+                            if dp is None:
+                                dp = {g: 0 for g in cands}
+                                inversions = 0
+                            else:
+                                next_dp = {g: min(dp[prev_g] + (1 if prev_g > g else 0) for prev_g in dp) for g in cands}
+                                inversions = min(next_dp.values())
+                                dp = next_dp
+
+                parents = [path[i] for i in range(k - 1) if _cells_connect(path[i], new_c)]
+                new_join = (1 if len(parents) >= 2 else 0)
+                join_nodes = prev_st["join_nodes"] + new_join
+                new_aff = max(_edge_affinity(p, new_c) for p in parents) if parents else _edge_affinity(path[-2], new_c)
+                dag_affs = prev_st["dag_affs"] + [new_aff]
+
+                st = {
+                    "strong_tokens": strong_tokens,
+                    "weak_tokens": weak_tokens,
+                    "covered_clauses": covered_clauses,
+                    "dp": dp,
+                    "inversions": inversions,
+                    "dag_affs": dag_affs,
+                    "join_nodes": join_nodes,
+                }
+                _path_state_cache[path_ids] = st
+            else:
+                strong_tokens = set()
+                weak_tokens = set()
+                covered_clauses = set()
+                steps_candidate_clauses = []
+                for c in path:
+                    strong_tokens |= cell_cov_strong.get(c.cell_id, set())
+                    weak_tokens |= cell_cov_weak.get(c.cell_id, set())
+                    covered_clauses |= cell_covered.get(c.cell_id, set())
+                    masses = cell_clause_mass.get(c.cell_id, [])
+                    if masses:
+                        max_m = max(masses)
+                        if max_m > 0:
+                            cands = {g for g, m in enumerate(masses) if m >= 0.10 * max_m and m > 0}
+                            if cands:
+                                steps_candidate_clauses.append(cands)
+
+                inversions = 0
+                dp = None
+                if steps_candidate_clauses:
+                    dp = {g: 0 for g in steps_candidate_clauses[0]}
+                    for step_cands in steps_candidate_clauses[1:]:
+                        next_dp = {g: min(dp[prev_g] + (1 if prev_g > g else 0) for prev_g in dp) for g in step_cands}
+                        dp = next_dp
+                    inversions = min(dp.values())
+
+                dag_affs = []
+                join_nodes = 0
+                for j in range(1, k):
+                    cell_j = path[j]
+                    parents = [path[i] for i in range(j) if _cells_connect(path[i], cell_j)]
+                    if len(parents) >= 2:
+                        join_nodes += 1
+                    if parents:
+                        dag_affs.append(max(_edge_affinity(p, cell_j) for p in parents))
+                    else:
+                        dag_affs.append(_edge_affinity(path[j - 1], cell_j))
+
+                st = {
+                    "strong_tokens": strong_tokens,
+                    "weak_tokens": weak_tokens,
+                    "covered_clauses": covered_clauses,
+                    "dp": dp,
+                    "inversions": inversions,
+                    "dag_affs": dag_affs,
+                    "join_nodes": join_nodes,
+                }
+                _path_state_cache[path_ids] = st
+
             coverage = (
                 sum(idf_of_prompt.get(t, _idf(t)) for t in strong_tokens)
                 + 0.5 * sum(idf_of_prompt.get(t, _idf(t)) for t in (weak_tokens - strong_tokens))
             ) / total_prompt_idf
 
-            # Clause coverage is a SET relation: a cell whose declared vocabulary
-            # intersects several clauses covers all of them (a partitioning cell
-            # covers both the 'train' and the 'test/allocate' clause), while the
-            # monotonic best-match chain preserves sequential ordering.
-            # Clause coverage and monotonic alignment:
-            # A cell covering multiple clauses (e.g. train_test_split covering both
-            # data partitioning and training preparation) can validly align with any
-            # clause where it holds significant mass. Monotonic alignment DP finds the
-            # assignment of cells to candidate clauses that minimizes sequence inversions.
-            covered_clauses: Set[int] = set()
-            steps_candidate_clauses: List[Set[int]] = []
-            for c in path:
-                covered_clauses |= cell_covered.get(c.cell_id, set())
-                masses = cell_clause_mass.get(c.cell_id, [])
-                if not masses:
-                    continue
-                max_m = max(masses)
-                if max_m <= 0:
-                    continue
-                cands = {g for g, m in enumerate(masses) if m >= 0.10 * max_m and m > 0}
-                if cands:
-                    steps_candidate_clauses.append(cands)
-
             distinct_matched_clauses = len(covered_clauses)
             matched_clause_weight = sum(clause_weights[i] for i in covered_clauses)
             clause_cov = matched_clause_weight / total_clause_weight
-
-            inversions = 0
-            if len(steps_candidate_clauses) >= 2:
-                dp = {g: 0 for g in steps_candidate_clauses[0]}
-                for step_cands in steps_candidate_clauses[1:]:
-                    next_dp = {}
-                    for g in step_cands:
-                        next_dp[g] = min(dp[prev_g] + (1 if prev_g > g else 0) for prev_g in dp)
-                    dp = next_dp
-                inversions = min(dp.values())
             # Structural hole: an UNCOVERED clause sandwiched between covered ones
             # means the path skipped an intermediate intent stage — the connector
             # between two satisfied sub-goals is missing.
@@ -1097,6 +1162,21 @@ class LatticePlanner:
                     if not consumed:
                         dead_ctors += 1
 
+            # Dead-output penalty (D5): for every non-terminal step i < k - 1,
+            # if the cell produces outputs and is not a stage-3 egress/sink,
+            # check if its output is consumed by ANY downstream step j > i.
+            dead_outputs = 0
+            for i in range(k - 1):
+                c = path[i]
+                c_stage = getattr(c, "stage", None)
+                if c_stage == 3 or getattr(c, "node_role", "") == "sink" or not c.outputs:
+                    continue
+                if not is_final and i == k - 1:
+                    continue
+                consumed = any(_cells_connect(c, downstream_cell) for downstream_cell in path[i + 1:])
+                if not consumed:
+                    dead_outputs += 1
+
             # Domain dispersion: pipelines should be domain-coherent. While 1 or 2
             # cooperating domains (e.g. pandas + sklearn) are common, gratuitous domain
             # hopping (e.g. inserting cv2 or nltk into tabular data pipelines) pays
@@ -1115,19 +1195,8 @@ class LatticePlanner:
                 if k <= 1:
                     affinity_score = 0.5
                 else:
-                    dag_affs = []
-                    join_nodes = 0
-                    for j in range(1, k):
-                        cell_j = path[j]
-                        parents = [path[i] for i in range(j) if _cells_connect(path[i], cell_j)]
-                        if len(parents) >= 2:
-                            join_nodes += 1
-                        if parents:
-                            dag_affs.append(max(_edge_affinity(p, cell_j) for p in parents))
-                        else:
-                            dag_affs.append(_edge_affinity(path[j - 1], cell_j))
                     affinity_score = sum(dag_affs) / max(len(dag_affs), 1)
-                    join_bonus = join_nodes * 3.0
+                    join_bonus = min(9.0, join_nodes * 3.0)
             else:
                 if k <= 1:
                     affinity_score = 0.5
@@ -1283,13 +1352,21 @@ class LatticePlanner:
             else:
                 literal_consumption = 1.0
 
-            # Dominant score combination: edge affinity (w_aff = 25.0) heavily rewards
-            # AST-mined canonical transitions, rendering legacy junk exploit patches obsolete.
+            # Coverage-as-gate: structural affinity (affinity + join_bonus) is gated
+            # by prompt clause coverage so affinity cannot buy back dropped clauses.
+            structural_affinity = affinity_score * PATH_SCORE_WEIGHTS["affinity"] + join_bonus
+            if num_clauses > 1:
+                cov_gate = clause_cov if is_final else max(0.35, clause_cov)
+                effective_affinity = structural_affinity * cov_gate
+            else:
+                effective_affinity = structural_affinity
+
             total = (coverage * PATH_SCORE_WEIGHTS["coverage"] + alignment * PATH_SCORE_WEIGHTS["alignment"]
-                     + affinity_score * PATH_SCORE_WEIGHTS["affinity"] + join_bonus - parsimony_penalty
+                     + effective_affinity - parsimony_penalty
                      + mean_log_prob + goal_bonus - weak_total
                      - dead_ctors * PATH_SCORE_WEIGHTS["dead_ctor"]
                      - dead_expansion_steps * PATH_SCORE_WEIGHTS["dead_expansion_step"]
+                     - dead_outputs * PATH_SCORE_WEIGHTS["dead_output"]
                      - unbindable * PATH_SCORE_WEIGHTS["unbindable"]
                      - domain_dispersion - gap_penalty * PATH_SCORE_WEIGHTS["gap"]
                      - intent_deficit + literal_consumption * PATH_SCORE_WEIGHTS["literal_consumption"])
@@ -1304,6 +1381,7 @@ class LatticePlanner:
                     "goal_bonus": round(goal_bonus, 2),
                     "weak": round(-weak_total, 2),
                     "gap": round(-gap_penalty, 2),
+                    "dead_output": round(-dead_outputs * PATH_SCORE_WEIGHTS["dead_output"], 2),
                     "intent_deficit": round(-intent_deficit, 2),
                     "literal*15": round(literal_consumption * 15.0, 2),
                 }
@@ -1386,7 +1464,9 @@ class LatticePlanner:
             and not any(p.required for p in c.inputs.values())
         ]
 
-        max_steps = max(2, min(8, max_transforms + 2))
+        # Dynamic step budget: derive cap from prompt complexity (num_clauses) + slack
+        dynamic_cap = max(max_transforms + 2, num_clauses + 3)
+        max_steps = max(2, min(16, dynamic_cap))
 
         # Planning approach dispatch:
         # 1. "linear": 1D Monadic Trellis baseline (sequential list approach)
@@ -1665,6 +1745,13 @@ class LatticePlanner:
                             if sub_plan:
                                 cell.bound_slots[slot_name] = sub_plan
 
+            # Attach matched clause index to cells for unification literal scoping (D8)
+            for cell in best_path:
+                if getattr(cell, "matched_clause_idx", None) is None and cell.cell_id in cell_clause_mass:
+                    masses = cell_clause_mass[cell.cell_id]
+                    if masses and max(masses) > 0.0:
+                        cell.matched_clause_idx = max(range(len(masses)), key=lambda idx: masses[idx])
+
             return best_path
 
         # Step 4: Bounded MCTS Fallback (Section 3.4) if Trellis was disconnected
@@ -1872,11 +1959,11 @@ class LatticePlanner:
                     is_literal_groundable = (
                         (registry.is_subtype(t_name, "str") and bool(quoted_str_literals or identifier_literals))
                         or (registry.is_subtype(t_name, "numeric") and bool(numeric_literals))
-                        or registry.is_subtype(t_name, "bool")
+                        or (registry.is_subtype(t_name, "bool") and any(str(lit).strip().lower() in ("true", "false") for lit in (list(identifier_literals or ()) + list(quoted_str_literals or ()))))
                         or _lattice_is_path_port(p_sig)
                         or (registry.is_subtype(t_name, "scalar") and bool(quoted_str_literals or identifier_literals or numeric_literals))
                         or bool(getattr(p_sig, "enum_values", None))
-                        or (getattr(p_sig, "port_role", None) == "functional_operator" or "Callable" in str(getattr(p_sig.signature, "type_name", "")))
+                        or (bool(getattr(cand, "slots", None) and (p_name in cand.slots or getattr(p_sig, "port_role", None) == "functional_operator")))
                         or (_is_col_projection_port(p_sig) and bool(identifier_literals or quoted_str_literals))
                     )
                     if is_literal_groundable:
@@ -1951,11 +2038,11 @@ class LatticePlanner:
                         if (
                             (registry.is_subtype(t_name, "str") and bool(quoted_str_literals or identifier_literals))
                             or (registry.is_subtype(t_name, "numeric") and bool(numeric_literals))
-                            or registry.is_subtype(t_name, "bool")
+                            or (registry.is_subtype(t_name, "bool") and any(str(lit).strip().lower() in ("true", "false") for lit in (list(identifier_literals or ()) + list(quoted_str_literals or ()))))
                             or _lattice_is_path_port(p_sig)
                             or (registry.is_subtype(t_name, "scalar") and bool(quoted_str_literals or identifier_literals or numeric_literals))
                             or bool(getattr(p_sig, "enum_values", None))
-                            or (getattr(p_sig, "port_role", None) == "functional_operator" or "Callable" in str(getattr(p_sig.signature, "type_name", "")))
+                            or (bool(getattr(cand, "slots", None) and (p_name in cand.slots or getattr(p_sig, "port_role", None) == "functional_operator")))
                             or (_is_col_projection_port(p_sig) and bool(identifier_literals or quoted_str_literals))
                         ):
                             satisfied = True
@@ -2209,11 +2296,11 @@ class LatticePlanner:
                         is_literal_groundable = (
                             (registry.is_subtype(t_name, "str") and bool(quoted_str_literals or identifier_literals))
                             or (registry.is_subtype(t_name, "numeric") and bool(numeric_literals))
-                            or registry.is_subtype(t_name, "bool")
+                            or (registry.is_subtype(t_name, "bool") and any(str(lit).strip().lower() in ("true", "false") for lit in (list(identifier_literals or ()) + list(quoted_str_literals or ()))))
                             or _lattice_is_path_port(p_sig)
                             or (registry.is_subtype(t_name, "scalar") and bool(quoted_str_literals or identifier_literals or numeric_literals))
                             or bool(getattr(p_sig, "enum_values", None))
-                            or (getattr(p_sig, "port_role", None) == "functional_operator" or "Callable" in str(getattr(p_sig.signature, "type_name", "")))
+                            or (bool(getattr(cand, "slots", None) and (p_name in cand.slots or getattr(p_sig, "port_role", None) == "functional_operator")))
                             or (_is_col_projection_port(p_sig) and bool(identifier_literals or quoted_str_literals))
                         )
                         if is_literal_groundable:
@@ -2280,8 +2367,15 @@ class LatticePlanner:
             for prev_path, prev_sigma, prev_score, prev_weak, prev_unbind in current_beam:
                 prev_cell = prev_path[-1]
 
-                # Terminal check: stage 3 sinks without slots conclude the path
-                if getattr(prev_cell, "stage", None) == 3 and not getattr(prev_cell, "slots", None):
+                # Terminal check (D5): stage 3 sinks conclude the path.
+                # If prev_path already contains any stage-3 sink without sublattice slots,
+                # do not extend it.
+                has_terminal_sink = any(
+                    (getattr(c, "stage", None) == 3 or getattr(c, "node_role", "") == "sink")
+                    and not (isinstance(getattr(c, "slots", None), dict) and bool(c.slots))
+                    for c in prev_path
+                )
+                if has_terminal_sink:
                     continue
 
                 prev_path_ids = {c.cell_id for c in prev_path}
@@ -2314,6 +2408,19 @@ class LatticePlanner:
 
                     new_sigma, bound_parents, is_join = v_res
 
+                    # Step canonicalization: prune permuted orderings of independent commuting steps.
+                    # If cand does not consume prev_cell and cand.cell_id < prev_cell.cell_id,
+                    # and cand was already eligible to attach to prev_path[:-1], cand should have
+                    # preceded prev_cell. Prune the non-canonical permutation.
+                    if (
+                        len(prev_path) >= 1
+                        and prev_cell.cell_id not in bound_parents
+                        and cand.cell_id < prev_cell.cell_id
+                        and not _cells_connect(prev_cell, cand)
+                    ):
+                        if not prev_path[:-1] or _verify_frontier_step(prev_path[:-1], cand, prev_sigma) is not None:
+                            continue
+
                     cand_unbind = _new_unbindable(cand, prev_path)
                     if cand_unbind > 0:
                         continue
@@ -2326,7 +2433,9 @@ class LatticePlanner:
                     )
                     step_unbind = prev_unbind + cand_unbind
 
-                    new_tuple = (prev_path + [cand], new_sigma, total_sc, step_weak, step_unbind)
+                    cand_to_add = cand.clone() if hasattr(cand, "clone") else copy.copy(cand)
+                    cand_to_add.bound_parent_ids = set(bound_parents)
+                    new_tuple = (prev_path + [cand_to_add], new_sigma, total_sc, step_weak, step_unbind)
                     candidates_for_next.append(new_tuple)
 
             if not candidates_for_next:

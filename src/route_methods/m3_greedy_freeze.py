@@ -76,8 +76,12 @@ class M3GreedyFreezeRouteMethod(RouteMethod):
         visited_ids: Set[str] = {best_entry.cell_id}
         covered_tokens: Set[str] = set(getattr(best_entry, "identity_tokens", best_entry.token_set) & prompt_tokens)
 
+        clauses = self.segment_prompt_clauses(prompt)
+        num_clauses = len(clauses) if clauses else 1
+        max_steps = max(2, min(16, max(max_transforms + 2, num_clauses + 3)))
+
         # 2. Greedily commit steps forward
-        for step in range(max_transforms + 1):
+        for step in range(max_steps):
             curr = committed_path[-1]
 
             # Terminal condition: Stage 3 reached
@@ -96,7 +100,7 @@ class M3GreedyFreezeRouteMethod(RouteMethod):
             # Score each candidate greedily
             def _score_cand(cand: Cell) -> float:
                 rel = relevance_map.get(cand.cell_id, 0.0)
-                aff = self.calculate_edge_affinity(curr, cand, orch)
+                aff = self.calculate_edge_affinity(curr, cand, orch, relevance_map=relevance_map)
                 uncovered_toks = (getattr(cand, "identity_tokens", cand.token_set) & prompt_tokens) - covered_tokens
                 tok_bonus = len(uncovered_toks) * 3.0
                 

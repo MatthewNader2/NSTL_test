@@ -91,7 +91,7 @@ class M1ClauseAnchorRouteMethod(RouteMethod):
                 strong_overlap = len(cl_tokens & id_toks)
                 weak_overlap = len((cl_tokens & c_toks) - id_toks)
                 rel_score = relevance_map.get(c.cell_id, 0.0)
-                aff_score = self.calculate_edge_affinity(anchors[-1], c, orch) if anchors else 0.0
+                aff_score = self.calculate_edge_affinity(anchors[-1], c, orch, relevance_map=relevance_map) if anchors else 0.0
                 unif_bonus = 5.0 if (anchors and self.step_unifies(anchors[-1], c)) else 0.0
                 domain_bonus = 2.0 if (anchors and c.domain_name == anchors[-1].domain_name) else 0.0
 
@@ -143,7 +143,7 @@ class M1ClauseAnchorRouteMethod(RouteMethod):
                 best_s_score = -1.0
                 for s in sinks:
                     if self.step_unifies(last_cell, s, prev_path=routed_path):
-                        sc = relevance_map.get(s.cell_id, 0.0) + self.calculate_edge_affinity(last_cell, s, orch)
+                        sc = relevance_map.get(s.cell_id, 0.0) + self.calculate_edge_affinity(last_cell, s, orch, relevance_map=relevance_map)
                         if sc > best_s_score:
                             best_s_score = sc
                             best_sink = s
@@ -170,4 +170,5 @@ class M1ClauseAnchorRouteMethod(RouteMethod):
             except Exception:
                 pass
 
-        return routed_path[:max_transforms + 2]
+        dynamic_cap = max(max_transforms + 2, len(clauses) + 3)
+        return routed_path[:min(16, dynamic_cap)]

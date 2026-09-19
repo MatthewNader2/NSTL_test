@@ -554,6 +554,43 @@ def _is_environmental_error(error_msg: str) -> bool:
     return any(marker in error_msg for marker in _ENVIRONMENTAL_ERROR_MARKERS)
 
 
+def _statically_evaluate_contract(final_code: str, contract: Any) -> List[str]:
+    """
+    Evaluates VerificationContract postconditions and terminal intent statically
+    when physical sandbox execution is bypassed. Returns a list of violation descriptions.
+    """
+    if not contract:
+        return []
+    violations: List[str] = []
+
+    term_checks = getattr(contract, "terminal_checks", []) or []
+    if isinstance(contract, dict):
+        term_checks = contract.get("terminal_checks", [])
+
+    for term_check in term_checks:
+        intent_type = term_check.get("type")
+        cell_id = term_check.get("cell_id", "terminal_node")
+        if intent_type == "model_fit_split":
+            model_var = term_check.get("model_var")
+            feature_var = term_check.get("feature_var")
+            expected_train_var = term_check.get("expected_train_feature_var")
+            if expected_train_var and feature_var and feature_var != expected_train_var:
+                violations.append(
+                    f"Terminal model '{model_var}' ({cell_id}) was fitted on '{feature_var}' instead of split training partition '{expected_train_var}'"
+                )
+        elif intent_type == "image_annotation_egress":
+            saved_var = term_check.get("saved_var")
+            annotated_var = term_check.get("annotated_var")
+            ingress_var = term_check.get("ingress_var")
+            if annotated_var and ingress_var and saved_var:
+                if saved_var == ingress_var and annotated_var != ingress_var:
+                    violations.append(
+                        f"Terminal node '{cell_id}' saved unannotated raw input image '{ingress_var}' instead of annotated image '{annotated_var}'"
+                    )
+
+    return violations
+
+
 def _collect_template_api_names(templates) -> Set[str]:
     """Collects attribute/method names referenced by verified cell templates via AST."""
     names: Set[str] = set()
@@ -805,9 +842,11 @@ class PipelineDebugger:
         c.print(Panel(summary_text, title=f"[bold yellow]⚡ LAYER 1: Semantic Tunneling & Scoring ({route_dt:.2f}ms)[/bold yellow]", border_style="yellow"))
 
         if ranked_candidates:
+            scores_are_prob = all(0.0 <= float(relevance_map.get(cl.cell_id, 0.0)) <= 1.0 for cl in ranked_candidates[:15])
+            score_col_title = "Score / P(v|x)" if scores_are_prob else "Score / Priority"
             cand_table = Table(title=f"🎯 Top Scoring Nodes in Semantic Tunnel (Displaying top {min(15, len(ranked_candidates))} of {len(ranked_candidates):,})", box=box.ROUNDED, expand=True, border_style="yellow")
             cand_table.add_column("#", style="dim", width=4)
-            cand_table.add_column("Score / P(v|x)", style="bold yellow", width=14)
+            cand_table.add_column(score_col_title, style="bold yellow", width=14)
             cand_table.add_column("Cell ID", style="bold cyan", ratio=3)
             cand_table.add_column("Domain", style="magenta", width=12)
             cand_table.add_column("Stage", style="white", width=11)
@@ -819,7 +858,10 @@ class PipelineDebugger:
             for idx, cl in enumerate(ranked_candidates[:display_limit], 1):
                 sc = float(relevance_map.get(cl.cell_id, 0.0))
                 sc_color = "bold green" if sc >= 0.5 else ("bold yellow" if sc >= 0.1 else "white")
-                sc_str = f"[{sc_color}]{sc:.4f} ({sc*100:.1f}%)[/{sc_color}]"
+                if scores_are_prob:
+                    sc_str = f"[{sc_color}]{sc:.4f} ({sc*100:.1f}%)[/{sc_color}]"
+                else:
+                    sc_str = f"[{sc_color}]{sc:.4f}[/{sc_color}]"
 
                 stage_name = {1: "1: Ingress", 2: "2: Transform", 3: "3: Egress"}.get(cl.stage, str(cl.stage))
                 in_sig = f"{getattr(cl.primary_input, 'type_name', 'any')} [{getattr(cl.primary_input, 'state', 'any')}]"
@@ -1111,7 +1153,7 @@ class PipelineDebugger:
                         lint_msg = "[bold green]✓ All structural contracts and port binding constraints satisfied.[/bold green]"
                         if lint_res.warnings:
                             lint_msg += "\n[yellow]Warnings:[/yellow]\n" + "\n".join(f"  • {w}" for w in lint_res.warnings)
-                        c.print(Panel(lint_msg, title="[bold green]✓ Pre-Flight Static Validator Passed[/bold green]", border_style="green"))
+                        c.print(Panel(lint_msg, title="[bold green]✓ Pre-Flight Static Validator Passed (Type Contracts Verified - Sandbox Disabled)[/bold green]", border_style="green"))
                     c.print("")
 
         # =================================================================
@@ -1121,13 +1163,26 @@ class PipelineDebugger:
         sandbox_dt = 0.0
 
         if not execute_sandbox:
-            sandbox_res = {"success": True, "skipped": True}
-            sb_badge = "[bold yellow]⚡ BYPASSED (Execution Disabled)[/bold yellow]"
-            border_col = "yellow"
-            sb_summary = [
-                f"[cyan]Status:[/cyan] {sb_badge}",
-                f"[cyan]Notice:[/cyan] Physical sandbox verification bypassed to eliminate latency."
-            ]
+            v_contract = getattr(self.gate, "last_verification_contract", None)
+            static_violations = _statically_evaluate_contract(final_code, v_contract)
+            if static_violations:
+                err_msg = f"Static verification contract violated: {'; '.join(static_violations)}"
+                sandbox_res = {"success": False, "verified": False, "skipped": True, "error": err_msg}
+                sb_badge = "[bold red]✗ CONTRACT VIOLATION (Static Verification Failed)[/bold red]"
+                border_col = "red"
+                sb_summary = [
+                    f"[cyan]Status:[/cyan] {sb_badge}",
+                    f"[red]Violations:[/red] {'; '.join(static_violations)}",
+                    f"[yellow]Notice:[/yellow] Physical sandbox was bypassed, but static contract verification failed."
+                ]
+            else:
+                sandbox_res = {"success": None, "skipped": True, "verified": bool(v_contract)}
+                sb_badge = "[bold yellow]⚡ BYPASSED (Execution Disabled)[/bold yellow]"
+                border_col = "yellow"
+                sb_summary = [
+                    f"[cyan]Status:[/cyan] {sb_badge}",
+                    f"[cyan]Notice:[/cyan] Physical sandbox verification bypassed to eliminate latency."
+                ]
             c.print(Panel("\n".join(sb_summary), title=f"[bold {border_col}]⚡ LAYER 4: GEVR Sandbox Execution & Verification[/bold {border_col}]", border_style=border_col))
         elif final_code:
             has_unresolved = bool(getattr(ctx, "unresolved_ports", None))
@@ -1230,7 +1285,8 @@ class PipelineDebugger:
                             c.print(f"  [bold green][✓] Repair accepted. Re-executing in sandbox... ({rep_dt:.1f}ms)[/bold green]")
                             final_code = repaired_code
                             repaired = True
-                            sandbox_res = self.sandbox.execute(final_code, timeout=timeout, egress_paths=dest_paths)
+                            v_contract = getattr(self.gate, "last_verification_contract", None)
+                            sandbox_res = self.sandbox.execute(final_code, timeout=timeout, egress_paths=dest_paths, verification_spec=v_contract)
                             c.print(f"  [bold]Post-Repair Result:[/bold] {'[green]PASSED[/green]' if sandbox_res.get('success') else '[red]FAILED[/red]'}\n")
                     else:
                         c.print(f"  [yellow][!] LLM could not produce an alternative repair ({rep_dt:.1f}ms).[/yellow]\n")
@@ -1292,6 +1348,10 @@ class NSTLInteractiveShell(cmd.Cmd):
     """
 
     prompt = "\033[1;36mNSTL [Profile 0: Symbolic]\033[0m > "
+
+    def emptyline(self):
+        """Do nothing on empty line (prevents re-running lastcmd)."""
+        pass
 
     def __init__(
         self,
@@ -2002,7 +2062,12 @@ class NSTLInteractiveShell(cmd.Cmd):
         v_contract = getattr(self.gate, "last_verification_contract", None)
 
         if getattr(self, "no_exec", False):
-            sandbox_res = {"success": True, "skipped": True}
+            static_violations = _statically_evaluate_contract(final_code, v_contract)
+            if static_violations:
+                err_msg = f"Static verification contract violated: {'; '.join(static_violations)}"
+                sandbox_res = {"success": False, "verified": False, "skipped": True, "error": err_msg}
+            else:
+                sandbox_res = {"success": None, "skipped": True, "verified": bool(v_contract)}
             sandbox_dt = 0.0
         else:
             sandbox_res = self.sandbox.execute(final_code, timeout=5.0, egress_paths=dest_paths, verification_spec=v_contract)

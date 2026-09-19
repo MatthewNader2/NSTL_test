@@ -529,8 +529,7 @@ def _persist_type_hierarchies(conn: sqlite3.Connection, tree_files: List[Path]) 
 
         for name, parent in entries:
             cur.execute(
-                "INSERT INTO types (type_name, parent_type) VALUES (?, ?) "
-                "ON CONFLICT(type_name) DO UPDATE SET parent_type=excluded.parent_type",
+                "INSERT OR REPLACE INTO types (type_name, parent_type) VALUES (?, ?)",
                 (name, parent),
             )
             written += 1

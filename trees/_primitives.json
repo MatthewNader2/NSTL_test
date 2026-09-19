@@ -54,6 +54,7 @@
   "type_vars": ["T", "U", "V", "R", "State"],
 
   "top_types": ["any", "object", "top", "unknown", "*", "\u22a4"],
+  "top_states": ["any", "*", "unregistered", "unknown", "top", "\u22a4"],
 
   "product_constructors": ["tuple", "product", "pair"],
 

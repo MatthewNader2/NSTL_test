@@ -146,7 +146,9 @@ class M6HybridAnchorsRouteMethod(RouteMethod):
                 bindings.append((c, dict(test_ctx.variables)))
             lint_res = PreflightLinter.lint(bindings, prompt=prompt)
             if lint_res.is_valid:
-                return bridged_path[:max_transforms + 2]
+                num_clauses = len(clauses) if clauses else 1
+                dynamic_cap = max(max_transforms + 2, num_clauses + 3)
+                return bridged_path[:min(16, dynamic_cap)]
         except Exception:
             pass
 
@@ -164,4 +166,6 @@ class M6HybridAnchorsRouteMethod(RouteMethod):
             if m0_path:
                 return m0_path
 
-        return bridged_path[:max_transforms + 2]
+        num_clauses = len(clauses) if clauses else 1
+        dynamic_cap = max(max_transforms + 2, num_clauses + 3)
+        return bridged_path[:min(16, dynamic_cap)]

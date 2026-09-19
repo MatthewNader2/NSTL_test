@@ -57,7 +57,13 @@ class RouteMethod(ABC):
         """
         pass
 
-    def calculate_edge_affinity(self, src_cell: Cell, dst_cell: Cell, orchestrator: Optional[LatticeOrchestrator] = None) -> float:
+    def calculate_edge_affinity(
+        self,
+        src_cell: Cell,
+        dst_cell: Cell,
+        orchestrator: Optional[LatticeOrchestrator] = None,
+        relevance_map: Optional[Dict[str, float]] = None
+    ) -> float:
         """
         Calculates empirical edge affinity score between two cells.
         AST-mined edges from real code snippets receive the highest affinity,
@@ -111,7 +117,10 @@ class RouteMethod(ABC):
         src_domain = getattr(src_cell, "domain_name", "")
         dst_domain = getattr(dst_cell, "domain_name", "")
         if src_stage == 2 and dst_stage == 3 and src_domain and dst_domain and src_domain == dst_domain:
-            return 0.75
+            # A.2 Fix: Gate the +0.75 egress completion bonus on src_cell having positive prompt relevance
+            rel_map = relevance_map if relevance_map is not None else getattr(self, "relevance_map", None)
+            if rel_map is None or rel_map.get(src_cell.cell_id, 0.0) > 0.0:
+                return 0.75
 
         # 4. Topological reachability in orchestrator if built
         if orch:

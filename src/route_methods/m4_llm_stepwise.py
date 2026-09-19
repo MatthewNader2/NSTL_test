@@ -11,12 +11,12 @@ from typing import Dict, List, Optional, Set, Tuple, Any
 from .base import RouteMethod, STOPWORDS
 
 try:
-    from ..lattice import Cell, LatticeOrchestrator
+    from ..lattice import Cell, LatticeOrchestrator, TypeRegistry
     from ..tokenizer import CellTokenizer
     from ..unification import unify, ExecutionContext
     from ..inference import ModelManager
 except (ImportError, ValueError):
-    from lattice import Cell, LatticeOrchestrator
+    from lattice import Cell, LatticeOrchestrator, TypeRegistry
     from tokenizer import CellTokenizer
     from unification import unify, ExecutionContext
     from inference import ModelManager
@@ -82,22 +82,79 @@ class M4LLMStepwiseRouteMethod(RouteMethod):
         path: List[Cell] = [best_entry]
         visited_ids: Set[str] = {best_entry.cell_id}
 
+        clauses = self.segment_prompt_clauses(prompt)
+        num_clauses = len(clauses) if clauses else 1
+        dynamic_cap = max(max_transforms + 2, num_clauses + 3)
+        max_steps = max(2, min(16, dynamic_cap))
+
+        registry = TypeRegistry.get_instance()
+
+        # Declared Task Polarity: detect regression vs classification intent
+        reg_tokens = {"regression", "regressor", "continuous"}
+        cls_tokens = {"classification", "classifier", "categorical", "discrete"}
+        has_reg_intent = bool(prompt_tokens & reg_tokens) and not bool(prompt_tokens & cls_tokens)
+        has_cls_intent = bool(prompt_tokens & cls_tokens) and not bool(prompt_tokens & reg_tokens)
+
+        def _covered_clauses_count(p_cells: List[Cell]) -> int:
+            covered = 0
+            for cl in clauses:
+                cl_toks = CellTokenizer.tokenize_prompt(cl)
+                if any(len(cl_toks & getattr(c, "identity_tokens", c.token_set)) > 0 for c in p_cells):
+                    covered += 1
+            return covered
+
+        prev_cov = _covered_clauses_count(path)
+        stall_count = 0
+
         # 2. Step-wise continuation loop
-        for step in range(max_transforms + 1):
+        for step in range(max_steps):
             curr = path[-1]
             if getattr(curr, "stage", None) == 3 and len(path) > 1:
                 break
 
-            valid_next = [
-                c for c in candidates
-                if c.cell_id not in visited_ids and self.step_unifies(curr, c, prev_path=path)
-            ]
+            # Sinks without sublattice slots conclude the path (D5)
+            if any(
+                (getattr(c, "stage", None) == 3 or getattr(c, "node_role", "") == "sink")
+                and not (isinstance(getattr(c, "slots", None), dict) and bool(c.slots))
+                for c in path
+            ):
+                break
+
+            curr_out_st = str(getattr(curr.primary_output, "state", "")).lower()
+            curr_props = registry.get_state_properties(curr_out_st)
+            is_curr_prediction = bool(curr_props.get("is_prediction")) or curr_out_st in (
+                "predicted_values", "predicted_labels", "predicted_probabilities"
+            )
+
+            valid_next = []
+            for c in candidates:
+                if c.cell_id in visited_ids:
+                    continue
+                if not self.step_unifies(curr, c, prev_path=path):
+                    continue
+
+                cand_out_st = str(getattr(c.primary_output, "state", "")).lower()
+                # 1. Declared Task Polarity Check
+                if has_reg_intent:
+                    if cand_out_st in ("predicted_labels", "cluster_labels") or "label" in cand_out_st:
+                        continue
+                elif has_cls_intent:
+                    if cand_out_st == "predicted_values":
+                        continue
+
+                # 2. Forbid Fitting on Predictions: Estimator cannot consume prediction outputs
+                is_cand_estimator = getattr(c, "node_role", "") in ("estimator", "model") or "fit" in c.cell_id.lower()
+                if is_curr_prediction and is_cand_estimator:
+                    continue
+
+                valid_next.append(c)
+
             if not valid_next:
                 break
 
             def _score_next(cand: Cell) -> float:
                 rel = relevance_map.get(cand.cell_id, 0.0)
-                aff = self.calculate_edge_affinity(curr, cand, orch)
+                aff = self.calculate_edge_affinity(curr, cand, orch, relevance_map=relevance_map)
                 tok_bonus = len(cand.token_set & prompt_tokens) * 3.0
                 cand_stage = getattr(cand, "stage", 2) or 2
                 is_path_consumer = any(
@@ -149,5 +206,15 @@ class M4LLMStepwiseRouteMethod(RouteMethod):
 
             path.append(selected_cell)
             visited_ids.add(selected_cell.cell_id)
+
+            # 3. Coverage Stall Termination: terminate if coverage does not increase for 2 consecutive steps
+            new_cov = _covered_clauses_count(path)
+            if new_cov > prev_cov:
+                prev_cov = new_cov
+                stall_count = 0
+            else:
+                stall_count += 1
+                if stall_count >= 2:
+                    break
 
         return path

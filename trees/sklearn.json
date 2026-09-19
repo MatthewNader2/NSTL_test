@@ -6431,7 +6431,7 @@
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
           "shape_contract": "(n_samples,)",
-          "port_role": "target_input"
+          "port_role": "prediction_input"
         }
       },
       "outputs": {
@@ -6590,7 +6590,7 @@
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
           "shape_contract": "(n_samples,)",
-          "port_role": "target_input"
+          "port_role": "prediction_input"
         },
         "average": {
           "name": "average",
@@ -7037,7 +7037,7 @@
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
           "shape_contract": "(n_samples,)",
-          "port_role": "target_input"
+          "port_role": "prediction_input"
         }
       },
       "outputs": {
@@ -7182,7 +7182,7 @@
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
           "shape_contract": "(n_samples,)",
-          "port_role": "target_input"
+          "port_role": "prediction_input"
         }
       },
       "outputs": {
@@ -14509,7 +14509,7 @@
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
           "shape_contract": "(n_samples,)",
-          "port_role": "target_input"
+          "port_role": "prediction_input"
         }
       },
       "outputs": {

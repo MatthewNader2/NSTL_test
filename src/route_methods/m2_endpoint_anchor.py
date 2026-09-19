@@ -117,8 +117,8 @@ class M2EndpointAnchorRouteMethod(RouteMethod):
                     sc = (
                         relevance_map.get(t.cell_id, 0.0) * 5.0
                         + len(prompt_tokens & getattr(t, "identity_tokens", t.token_set)) * 3.0
-                        + self.calculate_edge_affinity(best_source, t, orch) * 4.0
-                        + self.calculate_edge_affinity(t, best_sink, orch) * 4.0
+                        + self.calculate_edge_affinity(best_source, t, orch, relevance_map=relevance_map) * 4.0
+                        + self.calculate_edge_affinity(t, best_sink, orch, relevance_map=relevance_map) * 4.0
                         + (3.0 if t.domain_name == best_source.domain_name else 0.0)
                     )
                     if sc > best_mid_score:
@@ -141,9 +141,9 @@ class M2EndpointAnchorRouteMethod(RouteMethod):
                             relevance_map.get(t1.cell_id, 0.0) * 5.0
                             + relevance_map.get(t2.cell_id, 0.0) * 5.0
                             + len(prompt_tokens & (t1.token_set | t2.token_set)) * 3.0
-                            + self.calculate_edge_affinity(best_source, t1, orch) * 3.0
-                            + self.calculate_edge_affinity(t1, t2, orch) * 3.0
-                            + self.calculate_edge_affinity(t2, best_sink, orch) * 3.0
+                            + self.calculate_edge_affinity(best_source, t1, orch, relevance_map=relevance_map) * 3.0
+                            + self.calculate_edge_affinity(t1, t2, orch, relevance_map=relevance_map) * 3.0
+                            + self.calculate_edge_affinity(t2, best_sink, orch, relevance_map=relevance_map) * 3.0
                         )
                         if sc > best_pair_score:
                             best_pair_score = sc
@@ -158,13 +158,16 @@ class M2EndpointAnchorRouteMethod(RouteMethod):
         # Fallback forward chaining
         path = [best_source]
         curr = best_source
-        for _ in range(max_transforms):
+        clauses = self.segment_prompt_clauses(prompt)
+        num_clauses = len(clauses) if clauses else 1
+        max_steps = max(2, min(16, max(max_transforms + 2, num_clauses + 3)))
+        for _ in range(max_steps):
             valid_next = [c for c in candidates if c.cell_id != curr.cell_id and self.step_unifies(curr, c)]
             if not valid_next:
                 break
             # Sort by relevance + edge affinity
             valid_next.sort(
-                key=lambda c: relevance_map.get(c.cell_id, 0.0) + self.calculate_edge_affinity(curr, c, orch),
+                key=lambda c: relevance_map.get(c.cell_id, 0.0) + self.calculate_edge_affinity(curr, c, orch, relevance_map=relevance_map),
                 reverse=True
             )
             nxt = valid_next[0]

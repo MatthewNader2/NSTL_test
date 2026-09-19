@@ -13,6 +13,7 @@ import ast
 import sys
 import re
 import json
+import math
 import functools
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
@@ -887,6 +888,10 @@ class ExecutionContext:
         self.unresolved_ports: List[Tuple[str, str]] = []
         self.unbindable_count: int = 0
         self.ordered_literals: List[Tuple[int, str, str]] = self._extract_universal_literals(self._prompt)
+        # D8: Map each literal to its prompt clause index
+        self.literal_clause_map: Dict[int, int] = self._build_literal_clause_map(self._prompt, self.ordered_literals)
+        self.target_literals: Set[str] = set()
+        self.current_cell_clause_idx: Optional[int] = None
         # Bare-identifier role map: char position -> stemmed role context tokens
         # (e.g. pos(X) -> {"column"}). Drives role-conditioned identifier binding
         # and for-each multiplicity detection.
@@ -904,6 +909,8 @@ class ExecutionContext:
         self.used_indices = set()
         self.consumed_tokens = set()
         self.consumed_members = set()
+        self.target_literals = set()
+        self.current_cell_clause_idx = None
         self.unresolved_ports = []
         self.unbindable_count = 0
         self.var_counter = 0
@@ -920,10 +927,36 @@ class ExecutionContext:
         new_ctx.used_indices = set(self.used_indices)
         new_ctx.consumed_tokens = set(self.consumed_tokens)
         new_ctx.consumed_members = set(self.consumed_members)
+        new_ctx.target_literals = set(self.target_literals)
+        new_ctx.current_cell_clause_idx = self.current_cell_clause_idx
+        new_ctx.literal_clause_map = dict(self.literal_clause_map)
         new_ctx.unresolved_ports = list(self.unresolved_ports)
         new_ctx.unbindable_count = self.unbindable_count
         new_ctx.var_counter = self.var_counter
         return new_ctx
+
+    @staticmethod
+    def _build_literal_clause_map(prompt: str, literals: List[Tuple[int, str, str]]) -> Dict[int, int]:
+        """Maps each literal index to its originating prompt clause index."""
+        if not prompt or not literals:
+            return {}
+        raw_spans = []
+        for m in re.finditer(r'[^;,\n]+', prompt):
+            s, e = m.start(), m.end()
+            if prompt[s:e].strip():
+                raw_spans.append((s, e))
+        if not raw_spans:
+            raw_spans = [(0, len(prompt))]
+
+        lit_map = {}
+        for idx, (pos, kind, val) in enumerate(literals):
+            c_idx = 0
+            for i, (s, e) in enumerate(raw_spans):
+                if s <= pos <= e:
+                    c_idx = i
+                    break
+            lit_map[idx] = c_idx
+        return lit_map
 
     @property
     def source_files(self) -> List[str]:
@@ -1094,7 +1127,17 @@ class ExecutionContext:
 
         # Order strictly by character position in prompt
         spans.sort(key=lambda x: x[0])
-        return spans
+
+        # D8: Deduplicate identical literals (removes duplicated column names e.g. [X,Y,Z,X,Y,Z])
+        seen = set()
+        deduped_spans: List[Tuple[int, str, str]] = []
+        for pos, kind, val in spans:
+            key = (kind, str(val).strip().lower())
+            if key in seen:
+                continue
+            seen.add(key)
+            deduped_spans.append((pos, kind, val))
+        return deduped_spans
 
     @staticmethod
     def _is_bare_identifier_token(w: str) -> bool:
@@ -1673,8 +1716,38 @@ class ExecutionContext:
                     if not evidence and cell_tokens:
                         evidence |= {t.lower() for t in cell_tokens}
 
-                    if not (context_toks & evidence):
+                    intersecting = context_toks & evidence
+                    if not intersecting:
                         continue
+
+                    # Prompt-clause IDF weighting:
+                    # A word that appears in the port's boilerplate description or in multiple prompt clauses
+                    # is non-discriminative background vocabulary (e.g. 'contour' in a contour detection prompt).
+                    # An optional numeric port must only bind if the intersection with context contains
+                    # discriminative evidence (high clause IDF or specific port identifier match).
+                    all_clause_toks = [
+                        {t.lower() for t in CellTokenizer.tokenize_prompt(self.prompt[s:e])}
+                        for s, e in spans if self.prompt[s:e].strip()
+                    ]
+                    num_clauses = len(all_clause_toks)
+                    if num_clauses > 1:
+                        port_ident_toks = {t.lower() for t in CellTokenizer.tokenize_identifier(port_sig.name)}
+                        if port_sig.name:
+                            port_ident_toks.add(port_sig.name.lower())
+
+                        discriminative_mass = 0.0
+                        has_discriminative_hit = False
+                        for tok in intersecting:
+                            df = sum(1 for c_toks in all_clause_toks if tok in c_toks)
+                            idf = math.log(1.0 + (num_clauses + 1.0) / (df + 1.0))
+                            is_ident = tok in port_ident_toks
+                            # High-IDF token (local to 1 clause) or specific port identity token
+                            if df == 1 or (is_ident and df <= max(1, num_clauses // 2)):
+                                discriminative_mass += idf * (1.5 if is_ident else 1.0)
+                                has_discriminative_hit = True
+
+                        if not has_discriminative_hit or discriminative_mass < 0.5:
+                            continue
                 self.used_indices.add(idx)
                 return val
 
@@ -1864,12 +1937,27 @@ class ExecutionContext:
 
             matched_indices = []
             matched_vals = []
-            for idx, (_, kind, val) in enumerate(self.ordered_literals):
-                if idx in self.used_indices:
-                    continue
-                if kind in ("identifier", "quoted_str"):
-                    role_tokens = self.identifier_roles.get(self.ordered_literals[idx][0], frozenset())
-                    if (role_tokens and (role_tokens & _identity_scope)) or _raw_state == "column_projection":
+            cell_clause = getattr(self, "current_cell_clause_idx", None)
+            lit_clause_map = getattr(self, "literal_clause_map", {})
+            target_lits = getattr(self, "target_literals", set())
+
+            all_available = [
+                idx for idx, (_, kind, val) in enumerate(self.ordered_literals)
+                if idx not in self.used_indices and kind in ("identifier", "quoted_str")
+                and str(val).lower() not in self.consumed_tokens
+                and str(val).lower() not in target_lits
+            ]
+            if cell_clause is not None and lit_clause_map:
+                clause_cands = [idx for idx in all_available if lit_clause_map.get(idx) == cell_clause]
+                cands_to_check = clause_cands if clause_cands else all_available
+            else:
+                cands_to_check = all_available
+
+            for idx in cands_to_check:
+                _, kind, val = self.ordered_literals[idx]
+                role_tokens = self.identifier_roles.get(self.ordered_literals[idx][0], frozenset())
+                if (role_tokens and (role_tokens & _identity_scope)) or _raw_state == "column_projection":
+                    if val not in matched_vals:
                         matched_indices.append(idx)
                         matched_vals.append(val)
 
@@ -2253,8 +2341,24 @@ class UnificationGate:
                     changed = True
             cells = expanded_cells
 
+        # Pre-scan pipeline for target-input ports to prevent target column from bleeding into feature projection
+        has_target_port = any(
+            any(getattr(p, "port_role", None) == "target_input" or getattr(p, "derived_role", "") == "target_input"
+                for p in c.inputs.values())
+            for c in cells
+        )
+        if has_target_port:
+            unconsumed_ids = [
+                val for _, kind, val in getattr(ctx, "ordered_literals", [])
+                if kind in ("identifier", "quoted_str") and str(val).lower() not in ctx.consumed_tokens
+            ]
+            if unconsumed_ids:
+                target_col_name = unconsumed_ids[-1]
+                ctx.target_literals.add(str(target_col_name).lower())
+
         # Process each cell in sequence
         for idx, cell in enumerate(cells):
+            ctx.current_cell_clause_idx = getattr(cell, "matched_clause_idx", None)
             # For-each replicas (multiplicity expansion): a replica RE-CONSUMES
             # its receiver from the environment's in-scope variables (e.g. the
             # source DataFrame) instead of the previous wire, and its reference
@@ -2262,10 +2366,16 @@ class UnificationGate:
             # consumes no incoming wire, exactly like a zero-ary constructor.
             is_replica = bool(getattr(cell, "replica_of", None))
             cell_bindings: Dict[str, str] = {}
-            var_counter += 1
-            ctx.var_counter = var_counter
-            current_out_var = f"var_{var_counter}"
-            cell_bindings["output_var"] = current_out_var
+            current_out_var = None
+            if len(cell.outputs) == 1:
+                var_counter += 1
+                ctx.var_counter = var_counter
+                current_out_var = f"var_{var_counter}"
+                cell_bindings["output_var"] = current_out_var
+            elif len(cell.outputs) > 1:
+                # Multi-output variables will be allocated per-port
+                pass
+            # For len(cell.outputs) == 0 (void output like save/show): no output_var allocated
             ctx.consumed_tokens.update(t.lower() for t in cell.token_set)
 
             is_zero_ary = (
@@ -2446,14 +2556,19 @@ class UnificationGate:
                 )
                 if not p_sig.required and is_data_carrier:
                     scoped_var = None
+                    planned_parents = getattr(cell, "bound_parent_ids", set())
+                    candidate_vars = []
                     for v_name, (v_sig, _) in reversed(list(ctx.variables.items())):
                         if _is_product(v_sig) or v_name in cell_bindings.values():
                             continue
                         u_v = unify(v_sig.signature, concrete_sig.signature, accumulated_sigma)
                         if u_v is not None:
-                            scoped_var = v_name
-                            accumulated_sigma = u_v
-                            break
+                            prod_cell = ctx.var_sources.get(v_name)
+                            is_planned = bool(prod_cell and prod_cell.cell_id in planned_parents)
+                            candidate_vars.append((is_planned, v_name, u_v))
+                    if candidate_vars:
+                        candidate_vars.sort(key=lambda x: x[0], reverse=True)
+                        _, scoped_var, accumulated_sigma = candidate_vars[0]
                     if scoped_var is not None:
                         cell_bindings[p_name] = scoped_var
                         continue
@@ -2543,6 +2658,8 @@ class UnificationGate:
                     v for v in cell_bindings.values() if isinstance(v, str)
                 }
                 scoped_var = None
+                planned_parents = getattr(cell, "bound_parent_ids", set())
+                candidate_vars = []
                 for v_name, (v_sig, _) in reversed(list(ctx.variables.items())):
                     # Heterogeneous products project member-wise; the whole container
                     # is never wired into a single data port.
@@ -2552,9 +2669,14 @@ class UnificationGate:
                         continue
                     u_v = unify(v_sig.signature, concrete_sig.signature, accumulated_sigma)
                     if u_v is not None:
-                        scoped_var = v_name
-                        accumulated_sigma = u_v
-                        break
+                        prod_cell = ctx.var_sources.get(v_name)
+                        is_planned = bool(prod_cell and prod_cell.cell_id in planned_parents)
+                        candidate_vars.append((is_planned, v_name, u_v))
+
+                if candidate_vars:
+                    # D6 Fix: Planned parent variables take absolute priority over arbitrary recency
+                    candidate_vars.sort(key=lambda x: x[0], reverse=True)
+                    _, scoped_var, accumulated_sigma = candidate_vars[0]
 
                 if scoped_var is not None:
                     cell_bindings[p_name] = scoped_var
@@ -2658,7 +2780,7 @@ class UnificationGate:
                 producer_var = prim_var if prim_var is not None else (first_out_var or current_out_var)
                 if "output_var" not in cell.outputs:
                     cell_bindings["output_var"] = producer_var
-            else:
+            elif len(cell.outputs) == 1:
                 # Single output cell
                 concrete_out = substitute_generics(cell.primary_output, accumulated_sigma)
                 # If the cell performs in-place mutation on a receiver, alias the output
@@ -2684,8 +2806,13 @@ class UnificationGate:
                 if cell.primary_output and cell.primary_output.name:
                     cell_bindings[cell.primary_output.name] = current_out_var
 
-                ctx.declare_variable(current_out_var, concrete_out, current_out_var, cell=cell)
-                producer_var = current_out_var
+                if current_out_var is not None:
+                    ctx.declare_variable(current_out_var, concrete_out, current_out_var, cell=cell)
+                    producer_var = current_out_var
+            else:
+                # Void output cell (outputs: {}) - e.g. .show(), .save() returning None.
+                # Do not advance counter, do not declare phantom variables, and do not overwrite producer_var.
+                pass
 
             pipeline_bindings.append((cell, cell_bindings))
 
@@ -2933,6 +3060,7 @@ class UnificationGate:
 
         final_code = "\n".join(code_lines).strip()
         final_code = self._reconcile_imports(final_code)
+        self._verify_emitted_ast_liveness(final_code)
         return final_code
 
     @staticmethod
@@ -3040,6 +3168,188 @@ class UnificationGate:
 
         header = "\n".join(injected)
         return header + "\n" + code
+
+    @staticmethod
+    def _verify_emitted_ast_liveness(code: str) -> None:
+        """AST-level dataflow liveness validation: every variable loaded in the script
+        must have been previously assigned, imported, or present in builtins.
+        Catches undefined variables (e.g. var_7, var_3) before code emission."""
+        if not code or not code.strip():
+            return
+        try:
+            tree = ast.parse(code)
+        except Exception as e:
+            raise EmissionLivenessError(f"Emitted code has invalid syntax: {e}") from e
+
+        import builtins
+        global_scope: Set[str] = set(dir(builtins))
+        global_scope.update({
+            "__file__", "__name__", "__doc__", "__package__",
+            "__spec__", "__path__", "__loader__", "__annotations__"
+        })
+
+        class ScopeChecker(ast.NodeVisitor):
+            def __init__(self):
+                self.scopes: List[Set[str]] = [set(global_scope)]
+                self.undefined: List[Tuple[str, int]] = []
+
+            def _is_bound(self, name: str) -> bool:
+                return any(name in scope for scope in reversed(self.scopes))
+
+            def _bind(self, name: str) -> None:
+                self.scopes[-1].add(name)
+
+            def _extract_targets(self, target_node, target_set: Set[str]):
+                for n in ast.walk(target_node):
+                    if isinstance(n, ast.Name):
+                        target_set.add(n.id)
+
+            def visit_Import(self, node: ast.Import):
+                for alias in node.names:
+                    self._bind(alias.asname or alias.name.split(".")[0])
+
+            def visit_ImportFrom(self, node: ast.ImportFrom):
+                for alias in node.names:
+                    if alias.name != "*":
+                        self._bind(alias.asname or alias.name)
+
+            def visit_FunctionDef(self, node: ast.FunctionDef):
+                self._bind(node.name)
+                for dec in node.decorator_list:
+                    self.visit(dec)
+                func_scope: Set[str] = set()
+                all_args = getattr(node.args, "posonlyargs", []) + node.args.args + getattr(node.args, "kwonlyargs", [])
+                for arg in all_args:
+                    func_scope.add(arg.arg)
+                if node.args.vararg:
+                    func_scope.add(node.args.vararg.arg)
+                if node.args.kwarg:
+                    func_scope.add(node.args.kwarg.arg)
+                self.scopes.append(func_scope)
+                for stmt in node.body:
+                    self.visit(stmt)
+                self.scopes.pop()
+
+            def visit_AsyncFunctionDef(self, node: ast.AsyncFunctionDef):
+                self.visit_FunctionDef(node)
+
+            def visit_ClassDef(self, node: ast.ClassDef):
+                self._bind(node.name)
+                for dec in node.decorator_list:
+                    self.visit(dec)
+                for base in node.bases:
+                    self.visit(base)
+                for kw in node.keywords:
+                    self.visit(kw)
+                class_scope: Set[str] = set()
+                self.scopes.append(class_scope)
+                for stmt in node.body:
+                    self.visit(stmt)
+                self.scopes.pop()
+
+            def visit_Lambda(self, node: ast.Lambda):
+                lam_scope: Set[str] = set()
+                all_args = getattr(node.args, "posonlyargs", []) + node.args.args + getattr(node.args, "kwonlyargs", [])
+                for arg in all_args:
+                    lam_scope.add(arg.arg)
+                if node.args.vararg:
+                    lam_scope.add(node.args.vararg.arg)
+                if node.args.kwarg:
+                    lam_scope.add(node.args.kwarg.arg)
+                self.scopes.append(lam_scope)
+                self.visit(node.body)
+                self.scopes.pop()
+
+            def visit_ListComp(self, node):
+                self._visit_comp(node)
+
+            def visit_SetComp(self, node):
+                self._visit_comp(node)
+
+            def visit_DictComp(self, node):
+                self._visit_comp(node)
+
+            def visit_GeneratorExp(self, node):
+                self._visit_comp(node)
+
+            def _visit_comp(self, node):
+                comp_scope: Set[str] = set()
+                self.scopes.append(comp_scope)
+                for gen in node.generators:
+                    self.visit(gen.iter)
+                    self._extract_targets(gen.target, comp_scope)
+                    for if_expr in gen.ifs:
+                        self.visit(if_expr)
+                if isinstance(node, ast.DictComp):
+                    self.visit(node.key)
+                    self.visit(node.value)
+                else:
+                    self.visit(node.elt)
+                self.scopes.pop()
+
+            def visit_Assign(self, node: ast.Assign):
+                self.visit(node.value)
+                for target in node.targets:
+                    self._extract_targets(target, self.scopes[-1])
+
+            def visit_AnnAssign(self, node: ast.AnnAssign):
+                if node.value:
+                    self.visit(node.value)
+                if node.target:
+                    self._extract_targets(node.target, self.scopes[-1])
+
+            def visit_AugAssign(self, node: ast.AugAssign):
+                self.visit(node.target)
+                self.visit(node.value)
+
+            def visit_NamedExpr(self, node: ast.NamedExpr):
+                self.visit(node.value)
+                self._extract_targets(node.target, self.scopes[-1])
+
+            def visit_For(self, node: ast.For):
+                self.visit(node.iter)
+                self._extract_targets(node.target, self.scopes[-1])
+                for stmt in node.body:
+                    self.visit(stmt)
+                for stmt in node.orelse:
+                    self.visit(stmt)
+
+            def visit_AsyncFor(self, node: ast.AsyncFor):
+                self.visit_For(node)
+
+            def visit_With(self, node: ast.With):
+                for item in node.items:
+                    self.visit(item.context_expr)
+                    if item.optional_vars:
+                        self._extract_targets(item.optional_vars, self.scopes[-1])
+                for stmt in node.body:
+                    self.visit(stmt)
+
+            def visit_AsyncWith(self, node: ast.AsyncWith):
+                self.visit_With(node)
+
+            def visit_ExceptHandler(self, node: ast.ExceptHandler):
+                if node.type:
+                    self.visit(node.type)
+                if node.name:
+                    self._bind(node.name)
+                for stmt in node.body:
+                    self.visit(stmt)
+
+            def visit_Name(self, node: ast.Name):
+                if isinstance(node.ctx, ast.Load):
+                    if not self._is_bound(node.id):
+                        self.undefined.append((node.id, getattr(node, "lineno", 0)))
+                elif isinstance(node.ctx, ast.Store):
+                    self._bind(node.id)
+
+        checker = ScopeChecker()
+        checker.visit(tree)
+        if checker.undefined:
+            details = [f"'{name}' (line {line})" for name, line in checker.undefined]
+            raise EmissionLivenessError(
+                f"AST liveness check failed: undefined variables loaded before definition: {', '.join(details)}"
+            )
 
     def unify_and_emit(self, cells: List[Cell], prompt: str = "") -> str:
         """Main synthesis entrypoint."""
@@ -3359,6 +3669,11 @@ class UnificationFailure(Exception):
 
 class UnresolvedPlaceholderError(UnificationFailure):
     """Raised when a placeholder cannot be resolved."""
+    pass
+
+
+class EmissionLivenessError(UnificationFailure):
+    """Raised when emitted code references variables that have not been defined or imported."""
     pass
 
 

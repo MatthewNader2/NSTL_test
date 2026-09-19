@@ -1,0 +1,573 @@
+{
+  "domain": "builtins",
+  "version": "1.0.0",
+  "description": "Standard Python built-in functions, primitive collection transformers, and predicate constructor morphisms for NSTL.",
+  "types": [
+    {"name": "collection", "parent": "object"},
+    {"name": "sequence", "parent": "collection"},
+    {"name": "list", "parent": "sequence"},
+    {"name": "tuple", "parent": "sequence"},
+    {"name": "set", "parent": "collection"},
+    {"name": "dict", "parent": "collection"},
+    {"name": "scalar", "parent": "object"},
+    {"name": "numeric", "parent": "scalar"},
+    {"name": "int", "parent": "numeric"},
+    {"name": "float", "parent": "numeric"},
+    {"name": "bool", "parent": "logical"},
+    {"name": "logical", "parent": "object"},
+    {"name": "str", "parent": "object"}
+  ],
+  "cells": [
+    {
+      "cell_id": "PY_LEN",
+      "stage": 2,
+      "domain_name": "builtins",
+      "node_type": "function",
+      "node_role": "transformer",
+      "docstring": "Returns the number of items in a collection or sequence.",
+      "keywords": ["len", "length", "count", "size", "elements", "contours", "items", "number"],
+      "inputs": {
+        "data": {
+          "type_name": "collection",
+          "abstract_type": "collection",
+          "required": true,
+          "port_role": "data_input",
+          "description": "Container or sequence to measure."
+        }
+      },
+      "outputs": {
+        "result": {
+          "type_name": "int",
+          "state": "count",
+          "abstract_type": "scalar",
+          "description": "Number of elements in the container."
+        }
+      },
+      "code_template": "{result} = len({data})",
+      "primary_in": "data",
+      "primary_out": "result"
+    },
+    {
+      "cell_id": "PY_MIN",
+      "stage": 2,
+      "domain_name": "builtins",
+      "node_type": "function",
+      "node_role": "transformer",
+      "docstring": "Returns the smallest item in an iterable or collection.",
+      "keywords": ["min", "minimum", "smallest", "least", "lowest"],
+      "inputs": {
+        "data": {
+          "type_name": "collection",
+          "abstract_type": "collection",
+          "required": true,
+          "port_role": "data_input",
+          "description": "Iterable of elements to compare."
+        }
+      },
+      "outputs": {
+        "result": {
+          "type_name": "scalar",
+          "state": "extremum",
+          "abstract_type": "scalar",
+          "description": "Smallest element."
+        }
+      },
+      "code_template": "{result} = min({data})",
+      "primary_in": "data",
+      "primary_out": "result"
+    },
+    {
+      "cell_id": "PY_MAX",
+      "stage": 2,
+      "domain_name": "builtins",
+      "node_type": "function",
+      "node_role": "transformer",
+      "docstring": "Returns the largest item in an iterable or collection.",
+      "keywords": ["max", "maximum", "largest", "greatest", "highest"],
+      "inputs": {
+        "data": {
+          "type_name": "collection",
+          "abstract_type": "collection",
+          "required": true,
+          "port_role": "data_input",
+          "description": "Iterable of elements to compare."
+        }
+      },
+      "outputs": {
+        "result": {
+          "type_name": "scalar",
+          "state": "extremum",
+          "abstract_type": "scalar",
+          "description": "Largest element."
+        }
+      },
+      "code_template": "{result} = max({data})",
+      "primary_in": "data",
+      "primary_out": "result"
+    },
+    {
+      "cell_id": "PY_SUM",
+      "stage": 2,
+      "domain_name": "builtins",
+      "node_type": "function",
+      "node_role": "transformer",
+      "docstring": "Returns the sum of all items in an iterable.",
+      "keywords": ["sum", "total", "add"],
+      "inputs": {
+        "data": {
+          "type_name": "collection",
+          "abstract_type": "collection",
+          "required": true,
+          "port_role": "data_input",
+          "description": "Iterable of numbers to sum."
+        }
+      },
+      "outputs": {
+        "result": {
+          "type_name": "numeric",
+          "state": "accum",
+          "abstract_type": "scalar",
+          "description": "Total sum."
+        }
+      },
+      "code_template": "{result} = sum({data})",
+      "primary_in": "data",
+      "primary_out": "result"
+    },
+    {
+      "cell_id": "PY_ABS",
+      "stage": 2,
+      "domain_name": "builtins",
+      "node_type": "function",
+      "node_role": "transformer",
+      "docstring": "Returns the absolute value of a number.",
+      "keywords": ["abs", "absolute", "magnitude"],
+      "inputs": {
+        "data": {
+          "type_name": "numeric",
+          "abstract_type": "scalar",
+          "required": true,
+          "port_role": "data_input",
+          "description": "Numeric value."
+        }
+      },
+      "outputs": {
+        "result": {
+          "type_name": "numeric",
+          "abstract_type": "scalar",
+          "description": "Absolute value."
+        }
+      },
+      "code_template": "{result} = abs({data})",
+      "primary_in": "data",
+      "primary_out": "result"
+    },
+    {
+      "cell_id": "PY_ROUND",
+      "stage": 2,
+      "domain_name": "builtins",
+      "node_type": "function",
+      "node_role": "transformer",
+      "docstring": "Rounds a number to a given precision in decimal digits.",
+      "keywords": ["round", "precision", "decimal"],
+      "inputs": {
+        "data": {
+          "type_name": "numeric",
+          "abstract_type": "scalar",
+          "required": true,
+          "port_role": "data_input",
+          "description": "Numeric value to round."
+        },
+        "ndigits": {
+          "type_name": "int",
+          "abstract_type": "scalar",
+          "required": false,
+          "default_value": 0,
+          "description": "Number of decimal places."
+        }
+      },
+      "outputs": {
+        "result": {
+          "type_name": "numeric",
+          "abstract_type": "scalar",
+          "description": "Rounded value."
+        }
+      },
+      "code_template": "{result} = round({data}, {ndigits})",
+      "primary_in": "data",
+      "primary_out": "result"
+    },
+    {
+      "cell_id": "PY_RANGE",
+      "stage": 2,
+      "domain_name": "builtins",
+      "node_type": "constructor",
+      "node_role": "constructor",
+      "docstring": "Generates a list of integers from 0 up to stop.",
+      "keywords": ["range", "indices", "sequence", "numbers"],
+      "inputs": {
+        "stop": {
+          "type_name": "int",
+          "abstract_type": "scalar",
+          "required": true,
+          "port_role": "data_input",
+          "description": "Upper bound integer."
+        }
+      },
+      "outputs": {
+        "result": {
+          "type_name": "list",
+          "abstract_type": "collection",
+          "description": "List of integers."
+        }
+      },
+      "code_template": "{result} = list(range({stop}))",
+      "primary_in": "stop",
+      "primary_out": "result"
+    },
+    {
+      "cell_id": "PY_INT",
+      "stage": 2,
+      "domain_name": "builtins",
+      "node_type": "function",
+      "node_role": "transformer",
+      "docstring": "Converts a number or string to an integer.",
+      "keywords": ["int", "integer", "convert", "cast"],
+      "inputs": {
+        "data": {
+          "type_name": "any",
+          "required": true,
+          "port_role": "data_input"
+        }
+      },
+      "outputs": {
+        "result": {
+          "type_name": "int",
+          "abstract_type": "scalar"
+        }
+      },
+      "code_template": "{result} = int({data})",
+      "primary_in": "data",
+      "primary_out": "result"
+    },
+    {
+      "cell_id": "PY_FLOAT",
+      "stage": 2,
+      "domain_name": "builtins",
+      "node_type": "function",
+      "node_role": "transformer",
+      "docstring": "Converts a number or string to a floating point number.",
+      "keywords": ["float", "decimal", "convert", "cast"],
+      "inputs": {
+        "data": {
+          "type_name": "any",
+          "required": true,
+          "port_role": "data_input"
+        }
+      },
+      "outputs": {
+        "result": {
+          "type_name": "float",
+          "abstract_type": "scalar"
+        }
+      },
+      "code_template": "{result} = float({data})",
+      "primary_in": "data",
+      "primary_out": "result"
+    },
+    {
+      "cell_id": "PY_STR",
+      "stage": 2,
+      "domain_name": "builtins",
+      "node_type": "function",
+      "node_role": "transformer",
+      "docstring": "Converts an object into a string representation.",
+      "keywords": ["str", "string", "text", "convert", "format"],
+      "inputs": {
+        "data": {
+          "type_name": "any",
+          "required": true,
+          "port_role": "data_input"
+        }
+      },
+      "outputs": {
+        "result": {
+          "type_name": "str",
+          "abstract_type": "text"
+        }
+      },
+      "code_template": "{result} = str({data})",
+      "primary_in": "data",
+      "primary_out": "result"
+    },
+    {
+      "cell_id": "PY_BOOL",
+      "stage": 2,
+      "domain_name": "builtins",
+      "node_type": "function",
+      "node_role": "transformer",
+      "docstring": "Converts a value to a boolean.",
+      "keywords": ["bool", "boolean", "truthy"],
+      "inputs": {
+        "data": {
+          "type_name": "any",
+          "required": true,
+          "port_role": "data_input"
+        }
+      },
+      "outputs": {
+        "result": {
+          "type_name": "bool",
+          "state": "condition",
+          "abstract_type": "logical"
+        }
+      },
+      "code_template": "{result} = bool({data})",
+      "primary_in": "data",
+      "primary_out": "result"
+    },
+    {
+      "cell_id": "PY_LIST",
+      "stage": 2,
+      "domain_name": "builtins",
+      "node_type": "function",
+      "node_role": "transformer",
+      "docstring": "Converts an iterable into a list.",
+      "keywords": ["list", "to_list", "convert", "sequence"],
+      "inputs": {
+        "data": {
+          "type_name": "collection",
+          "abstract_type": "collection",
+          "required": true,
+          "port_role": "data_input"
+        }
+      },
+      "outputs": {
+        "result": {
+          "type_name": "list",
+          "abstract_type": "collection"
+        }
+      },
+      "code_template": "{result} = list({data})",
+      "primary_in": "data",
+      "primary_out": "result"
+    },
+    {
+      "cell_id": "PY_SET",
+      "stage": 2,
+      "domain_name": "builtins",
+      "node_type": "function",
+      "node_role": "transformer",
+      "docstring": "Converts an iterable into a set.",
+      "keywords": ["set", "unique", "distinct"],
+      "inputs": {
+        "data": {
+          "type_name": "collection",
+          "abstract_type": "collection",
+          "required": true,
+          "port_role": "data_input"
+        }
+      },
+      "outputs": {
+        "result": {
+          "type_name": "set",
+          "abstract_type": "collection"
+        }
+      },
+      "code_template": "{result} = set({data})",
+      "primary_in": "data",
+      "primary_out": "result"
+    },
+    {
+      "cell_id": "PY_IS_EMPTY",
+      "stage": 2,
+      "domain_name": "builtins",
+      "node_type": "function",
+      "node_role": "predicate",
+      "docstring": "Checks whether a container or collection has length 0 (if 0 items / no elements found).",
+      "keywords": ["empty", "zero", "none", "no", "if_0", "0", "contours", "found"],
+      "inputs": {
+        "data": {
+          "type_name": "collection",
+          "abstract_type": "collection",
+          "required": true,
+          "port_role": "data_input",
+          "description": "Collection to check for zero length."
+        }
+      },
+      "outputs": {
+        "condition": {
+          "type_name": "bool",
+          "state": "condition",
+          "abstract_type": "logical",
+          "description": "True if len(data) == 0, False otherwise."
+        }
+      },
+      "code_template": "{condition} = (len({data}) == 0)",
+      "primary_in": "data",
+      "primary_out": "condition"
+    },
+    {
+      "cell_id": "PY_IS_NOT_EMPTY",
+      "stage": 2,
+      "domain_name": "builtins",
+      "node_type": "function",
+      "node_role": "predicate",
+      "docstring": "Checks whether a container or collection has more than 0 items (non-empty).",
+      "keywords": ["nonempty", "found", "any", "exists"],
+      "inputs": {
+        "data": {
+          "type_name": "collection",
+          "abstract_type": "collection",
+          "required": true,
+          "port_role": "data_input"
+        }
+      },
+      "outputs": {
+        "condition": {
+          "type_name": "bool",
+          "state": "condition",
+          "abstract_type": "logical"
+        }
+      },
+      "code_template": "{condition} = (len({data}) > 0)",
+      "primary_in": "data",
+      "primary_out": "condition"
+    },
+    {
+      "cell_id": "PY_COMPARE_EQ",
+      "stage": 2,
+      "domain_name": "builtins",
+      "node_type": "function",
+      "node_role": "predicate",
+      "docstring": "Evaluates whether two values are equal (a == b). Returns boolean condition.",
+      "keywords": ["equal", "equals", "same", "zero", "0", "match", "is"],
+      "inputs": {
+        "a": {
+          "type_name": "any",
+          "required": true,
+          "port_role": "data_input",
+          "description": "First operand."
+        },
+        "b": {
+          "type_name": "any",
+          "required": false,
+          "default_value": 0,
+          "port_role": "literal_parameter",
+          "description": "Second operand (defaults to 0)."
+        }
+      },
+      "outputs": {
+        "condition": {
+          "type_name": "bool",
+          "state": "condition",
+          "abstract_type": "logical",
+          "description": "Boolean test condition."
+        }
+      },
+      "code_template": "{condition} = ({a} == {b})",
+      "primary_in": "a",
+      "primary_out": "condition"
+    },
+    {
+      "cell_id": "PY_COMPARE_NE",
+      "stage": 2,
+      "domain_name": "builtins",
+      "node_type": "function",
+      "node_role": "predicate",
+      "docstring": "Evaluates whether a != b. Returns boolean condition.",
+      "keywords": ["not_equal", "different", "nonzero"],
+      "inputs": {
+        "a": {
+          "type_name": "any",
+          "required": true,
+          "port_role": "data_input"
+        },
+        "b": {
+          "type_name": "any",
+          "required": false,
+          "default_value": 0,
+          "port_role": "literal_parameter"
+        }
+      },
+      "outputs": {
+        "condition": {
+          "type_name": "bool",
+          "state": "condition",
+          "abstract_type": "logical"
+        }
+      },
+      "code_template": "{condition} = ({a} != {b})",
+      "primary_in": "a",
+      "primary_out": "condition"
+    },
+    {
+      "cell_id": "PY_COMPARE_GT",
+      "stage": 2,
+      "domain_name": "builtins",
+      "node_type": "function",
+      "node_role": "predicate",
+      "docstring": "Evaluates whether a > b. Returns boolean condition.",
+      "keywords": ["greater", "more", "above", "exceeds"],
+      "inputs": {
+        "a": {
+          "type_name": "numeric",
+          "abstract_type": "scalar",
+          "required": true,
+          "port_role": "data_input"
+        },
+        "b": {
+          "type_name": "numeric",
+          "abstract_type": "scalar",
+          "required": false,
+          "default_value": 0,
+          "port_role": "literal_parameter"
+        }
+      },
+      "outputs": {
+        "condition": {
+          "type_name": "bool",
+          "state": "condition",
+          "abstract_type": "logical"
+        }
+      },
+      "code_template": "{condition} = ({a} > {b})",
+      "primary_in": "a",
+      "primary_out": "condition"
+    },
+    {
+      "cell_id": "PY_COMPARE_LT",
+      "stage": 2,
+      "domain_name": "builtins",
+      "node_type": "function",
+      "node_role": "predicate",
+      "docstring": "Evaluates whether a < b. Returns boolean condition.",
+      "keywords": ["less", "fewer", "below", "under"],
+      "inputs": {
+        "a": {
+          "type_name": "numeric",
+          "abstract_type": "scalar",
+          "required": true,
+          "port_role": "data_input"
+        },
+        "b": {
+          "type_name": "numeric",
+          "abstract_type": "scalar",
+          "required": false,
+          "default_value": 0,
+          "port_role": "literal_parameter"
+        }
+      },
+      "outputs": {
+        "condition": {
+          "type_name": "bool",
+          "state": "condition",
+          "abstract_type": "logical"
+        }
+      },
+      "code_template": "{condition} = ({a} < {b})",
+      "primary_in": "a",
+      "primary_out": "condition"
+    }
+  ]
+}

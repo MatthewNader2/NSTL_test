@@ -134,6 +134,7 @@ class LatticeRouter:
             macros_enabled=self._macros_enabled,
             topology_mode=self._topology_mode
         )
+        self.priority_map: Dict[str, float] = {}
 
     @property
     def macros_enabled(self) -> bool:
@@ -544,6 +545,10 @@ class LatticeRouter:
         if self.macros_enabled:
             self._promote_macro_goals(prompt, final_tunnel, tunnel_ids, relevance_map)
 
+        for cid, s in relevance_map.items():
+            if cid not in self.priority_map:
+                self.priority_map[cid] = s
+
         return final_tunnel, relevance_map
 
     def _promote_macro_goals(
@@ -608,21 +613,25 @@ class LatticeRouter:
             micro_max = max(micro_scores) if micro_scores else 0.0
 
             # Strictly-above guarantee: the macro outranks its strongest micro
-            # by a margin, scaled by the discriminative concept mass so that a
-            # prompt expressing the macro's concept promotes it decisively.
-            macro_score = max(
+            # by a margin, scaled by the discriminative concept mass.
+            # D2 Fix: We compute an unbounded priority score for priority_map,
+            # but calibrate relevance_map so it remains strictly in [0.0, 1.0].
+            raw_priority = max(
                 micro_max * 1.25 + 0.05,
                 float(self.epsilon) * 4.0,
             ) + 0.15 * idf_mass
 
-            promoted.append((macro_score, cell))
+            calibrated_macro_rel = min(1.0, max(micro_max * 1.1 + 0.02, 0.1))
 
-        for macro_score, cell in promoted:
+            promoted.append((raw_priority, calibrated_macro_rel, cell))
+
+        for raw_priority, calibrated_rel, cell in promoted:
             if cell.cell_id not in tunnel_ids:
                 final_tunnel.append(cell)
                 tunnel_ids.add(cell.cell_id)
-            if macro_score > relevance_map.get(cell.cell_id, 0.0):
-                relevance_map[cell.cell_id] = macro_score
+            if calibrated_rel > relevance_map.get(cell.cell_id, 0.0):
+                relevance_map[cell.cell_id] = calibrated_rel
+            self.priority_map[cell.cell_id] = max(self.priority_map.get(cell.cell_id, 0.0), raw_priority)
 
             # Synaptic micro-cell promotion: bring constituent micro-cells into the tunnel
             # with boosted relevance so they participate in routing and allow intermediate nodes
@@ -633,8 +642,9 @@ class LatticeRouter:
                     if sid not in tunnel_ids:
                         final_tunnel.append(micro_cell)
                         tunnel_ids.add(sid)
-                    boosted_score = max(relevance_map.get(sid, 0.0), macro_score * 0.75)
+                    boosted_score = min(1.0, max(relevance_map.get(sid, 0.0), calibrated_rel * 0.85))
                     relevance_map[sid] = boosted_score
+                    self.priority_map[sid] = max(self.priority_map.get(sid, 0.0), raw_priority * 0.85)
 
         if promoted:
             logger.debug(
@@ -668,8 +678,12 @@ class LatticeRouter:
             exp_scores = np.exp(shifted)
             probs = exp_scores / np.sum(exp_scores)
             max_prob = float(np.max(probs))
-            for (cell, _), p in zip(items, probs):
-                if p < tau * max_prob:
+            # Within-group ranking calibration: prevent small groups (e.g. 1-2 items)
+            # from dominating cross-group maxima artificially due to small partition size
+            group_size_factor = min(1.0, (len(items) / 5.0) ** 0.5)
+            calibrated_probs = probs * group_size_factor
+            for (cell, _), p in zip(items, calibrated_probs):
+                if p < tau * max_prob * group_size_factor:
                     continue
                 cid = cell.cell_id
                 prev = relevance.get(cid)

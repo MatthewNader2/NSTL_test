@@ -9,6 +9,7 @@ Conforms strictly to Sections 3.1-3.2 of the NSTL paper:
 """
 
 from __future__ import annotations
+import copy
 import functools
 import json
 import os
@@ -230,6 +231,7 @@ class TypeRegistry:
         self._state_properties: Dict[str, Dict[str, Any]] = {}
         self._type_vars: Set[str] = set()
         self._declared_top: Set[str] = set()
+        self._declared_top_states: Set[str] = set()
         self._product_constructors: Set[str] = set()
         self._function_words: Optional[FrozenSet[str]] = None
         self._egress_tokens: Set[str] = set()
@@ -302,6 +304,9 @@ class TypeRegistry:
                         if "top_types" in data and isinstance(data["top_types"], list):
                             for top_t in data["top_types"]:
                                 self.register_top(top_t)
+                        if "top_states" in data and isinstance(data["top_states"], list):
+                            for top_s in data["top_states"]:
+                                self.register_top_state(top_s)
                         if "product_constructors" in data and isinstance(data["product_constructors"], list):
                             for p_ctor in data["product_constructors"]:
                                 self.register_product_constructor(p_ctor)
@@ -396,6 +401,17 @@ class TypeRegistry:
         if can in self._declared_top:
             return True
         return False
+
+    def register_top_state(self, name: str) -> None:
+        n = str(name).strip().lower()
+        if n:
+            self._declared_top_states.add(n)
+
+    def is_declared_top_state(self, name: str) -> bool:
+        s = str(name).strip()
+        if s in ("⊤", "*", "any"):
+            return True
+        return s.lower() in self._declared_top_states
 
     def register_product_constructor(self, ctor: str) -> None:
         c = str(ctor).strip().lower()
@@ -858,7 +874,12 @@ class TypeRegistry:
         p_state = str(producer_state or "any").strip().lower()
         c_state = str(consumer_state or "any").strip().lower()
 
-        if p_state in ("any", "*") or c_state in ("any", "*"):
+        if (
+            p_state in ("any", "*")
+            or c_state in ("any", "*")
+            or self.is_declared_top_state(p_state)
+            or self.is_declared_top_state(c_state)
+        ):
             return True
 
         if p_state == c_state:
@@ -1463,7 +1484,7 @@ class Cell(ABC):
         "mutation_type", "is_context_manager", "raises", "type_vars",
         "preconditions", "postconditions", "effects", "edges", "endable",
         "_primary_input", "_primary_output", "_token_set", "_token_count",
-        "_identity_tokens"
+        "_identity_tokens", "bound_parent_ids", "matched_clause_idx"
     ]
 
     def __init__(
@@ -1564,6 +1585,8 @@ class Cell(ABC):
         # original cells.
         self.replica_of: Optional[str] = None
         self.replica_role: Optional[str] = None
+        self.bound_parent_ids: Optional[Set[str]] = None
+        self.matched_clause_idx: Optional[int] = None
 
         self._primary_input = None
         self._primary_output = None
@@ -1930,6 +1953,16 @@ class Cell(ABC):
         cell_cls = MacroCell if is_macro else MicroCell
         return cell_cls(**data)
 
+    def clone(self) -> "Cell":
+        c = copy.copy(self)
+        if self.bound_slots:
+            c.bound_slots = {k: list(v) for k, v in self.bound_slots.items()}
+        if self.metadata_tags:
+            c.metadata_tags = dict(self.metadata_tags)
+        if self.bound_parent_ids:
+            c.bound_parent_ids = set(self.bound_parent_ids)
+        return c
+
     def __repr__(self) -> str:
         in_str = f"{self.primary_input.type_name}[{self.primary_input.state}]"
         out_str = f"{self.primary_output.type_name}[{self.primary_output.state}]"
@@ -2038,6 +2071,9 @@ class LatticeOrchestrator:
                 if "top_types" in data and isinstance(data["top_types"], list):
                     for top_t in data["top_types"]:
                         reg.register_top(top_t)
+                if "top_states" in data and isinstance(data["top_states"], list):
+                    for top_s in data["top_states"]:
+                        reg.register_top_state(top_s)
                 if "product_constructors" in data and isinstance(data["product_constructors"], list):
                     for p_ctor in data["product_constructors"]:
                         reg.register_product_constructor(p_ctor)

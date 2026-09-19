@@ -986,7 +986,7 @@
         }
       },
       "code_templates": {
-        "python": "{result} = {on_true}({data}) if {condition} else {on_false}({data})",
+        "python": "{result} = ({on_true})({data}) if {condition} else ({on_false})({data})",
         "cpp": "{U} {result} = ({condition}) ? {on_true}({data}) : {on_false}({data});",
         "rust": "let {result}: {U} = if {condition} { {on_true}({data}) } else { {on_false}({data}) };"
       },
@@ -1050,7 +1050,7 @@
         }
       },
       "code_templates": {
-        "python": "if {cond_1}:\n    {result} = {branch_1}({data})\nelif {cond_2}:\n    {result} = {branch_2}({data})\nelse:\n    {result} = {default_branch}({data})",
+        "python": "if {cond_1}:\n    {result} = ({branch_1})({data})\nelif {cond_2}:\n    {result} = ({branch_2})({data})\nelse:\n    {result} = ({default_branch})({data})",
         "cpp": "{U} {result};\nif ({cond_1}) {\n    {result} = {branch_1}({data});\n} else if ({cond_2}) {\n    {result} = {branch_2}({data});\n} else {\n    {result} = {default_branch}({data});\n}",
         "rust": "let {result}: {U} = if {cond_1} {\n    {branch_1}({data})\n} else if {cond_2} {\n    {branch_2}({data})\n} else {\n    {default_branch}({data})\n};"
       },

@@ -10753,6 +10753,13 @@
         "port_0": {
           "type_name": "DataFrame",
           "state": "cleaned",
+          "accepted_states": [
+            "raw",
+            "cleaned",
+            "filtered",
+            "indexed",
+            "dataframe_2d_generic"
+          ],
           "qualifiers": [],
           "default_value": null,
           "description": "Source DataFrame.",
