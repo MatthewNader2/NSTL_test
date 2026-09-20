@@ -1527,6 +1527,18 @@
             "transition_probability": 0.0476
           },
           "needs_mining": false
+        },
+        {
+          "target_cell_id": "PD_DATAFRAME_PROJECT_TO_NUMPY",
+          "affinity_score": 0.85,
+          "score_provenance": "ast_mined",
+          "bridging_precondition": "true",
+          "metadata": {
+            "co_occurrences": 5,
+            "producer_occurrences": 21,
+            "transition_probability": 0.238
+          },
+          "needs_mining": false
         }
       ],
       "primary_in": "port_0",
@@ -7043,6 +7055,18 @@
             "transition_probability": 1.0
           },
           "needs_mining": false
+        },
+        {
+          "target_cell_id": "PD_DATAFRAME_PROJECT_TO_NUMPY",
+          "affinity_score": 1.0,
+          "score_provenance": "ast_mined",
+          "bridging_precondition": "true",
+          "metadata": {
+            "co_occurrences": 5,
+            "producer_occurrences": 5,
+            "transition_probability": 1.0
+          },
+          "needs_mining": false
         }
       ],
       "primary_in": "port_0",
@@ -10737,7 +10761,7 @@
       "mutation_type": "pure",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 100,
+      "source_priority": 1,
       "is_public": true,
       "endable": false,
       "docstring": "Project the given columns of a DataFrame and convert them to a NumPy ndarray. Composes column projection with the array bridge so feature selection for supervised tasks is expressed by declared lattice morphisms rather than engine-side special cases.",
@@ -10799,7 +10823,8 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "port_role": "feature_input"
         }
       },
       "slots": [
@@ -10809,7 +10834,44 @@
       ],
       "bound_slots": {},
       "code_template": "{output_var} = {df}[{columns}].to_numpy()",
-      "edges": [],
+      "edges": [
+        {
+          "target_cell_id": "sklearn.model_selection.train_test_split",
+          "affinity_score": 0.68,
+          "score_provenance": "ast_mined",
+          "bridging_precondition": "true",
+          "metadata": {
+            "co_occurrences": 18,
+            "producer_occurrences": 43,
+            "transition_probability": 0.4186
+          },
+          "needs_mining": false
+        },
+        {
+          "target_cell_id": "sklearn.preprocessing.StandardScaler.fit_transform",
+          "affinity_score": 0.578,
+          "score_provenance": "ast_mined",
+          "bridging_precondition": "true",
+          "metadata": {
+            "co_occurrences": 12,
+            "producer_occurrences": 43,
+            "transition_probability": 0.279
+          },
+          "needs_mining": false
+        },
+        {
+          "target_cell_id": "sklearn.preprocessing.MinMaxScaler.fit_transform",
+          "affinity_score": 0.578,
+          "score_provenance": "ast_mined",
+          "bridging_precondition": "true",
+          "metadata": {
+            "co_occurrences": 10,
+            "producer_occurrences": 43,
+            "transition_probability": 0.233
+          },
+          "needs_mining": false
+        }
+      ],
       "preconditions": [],
       "postconditions": [],
       "effects": [],

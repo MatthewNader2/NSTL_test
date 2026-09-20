@@ -58,6 +58,10 @@
 
   "product_constructors": ["tuple", "product", "pair"],
 
+  "sentence_connectives": ["and", "or", "to", "for", "with", "as", "by", "into", "from", "on", "in", "of", "the", "a", "an", "is", "at", "then"],
+  "preposition_triggers": ["by", "with", "on", "using", "via", "over", "along", "across"],
+  "column_projection_tokens": ["column", "columns", "select", "project", "feature", "features", "target", "predict", "training"],
+
   "advisory_qualifiers": [
     ["const"], ["scalar"], ["vector"], ["matrix"], ["primary"]
   ],

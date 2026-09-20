@@ -15,11 +15,13 @@ try:
     from ..tokenizer import CellTokenizer
     from ..unification import unify, ExecutionContext
     from ..inference import ModelManager
+    from ..planner import _is_terminal_sink_cell
 except (ImportError, ValueError):
     from lattice import Cell, LatticeOrchestrator, TypeRegistry
     from tokenizer import CellTokenizer
     from unification import unify, ExecutionContext
     from inference import ModelManager
+    from planner import _is_terminal_sink_cell
 
 
 class M4LLMStepwiseRouteMethod(RouteMethod):
@@ -113,11 +115,7 @@ class M4LLMStepwiseRouteMethod(RouteMethod):
                 break
 
             # Sinks without sublattice slots conclude the path (D5)
-            if any(
-                (getattr(c, "stage", None) == 3 or getattr(c, "node_role", "") == "sink")
-                and not (isinstance(getattr(c, "slots", None), dict) and bool(c.slots))
-                for c in path
-            ):
+            if any(_is_terminal_sink_cell(c) for c in path):
                 break
 
             curr_out_st = str(getattr(curr.primary_output, "state", "")).lower()

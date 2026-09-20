@@ -248,6 +248,7 @@ class TypeRegistry:
         self._column_projection_tokens: Set[str] = set()
         self._stopwords: Set[str] = set()
         self._preposition_triggers: Set[str] = set()
+        self._sentence_connectives: Set[str] = set()
         self._asset_placeholders: Dict[str, str] = {}
         self._output_asset_placeholders: Dict[str, str] = {}
         self._ancestry_cache: Dict[Tuple[str, FrozenSet[str]], bool] = {}
@@ -362,6 +363,8 @@ class TypeRegistry:
                             self.register_stopwords(data["stopwords"])
                         if "preposition_triggers" in data and isinstance(data["preposition_triggers"], list):
                             self.register_preposition_triggers(data["preposition_triggers"])
+                        if "sentence_connectives" in data and isinstance(data["sentence_connectives"], list):
+                            self.register_sentence_connectives(data["sentence_connectives"])
                         if "asset_placeholders" in data and isinstance(data["asset_placeholders"], dict):
                             self.register_asset_placeholders(data["asset_placeholders"])
                         if "default_asset_placeholders" in data and isinstance(data["default_asset_placeholders"], dict):
@@ -595,6 +598,21 @@ class TypeRegistry:
 
     def get_preposition_triggers(self) -> FrozenSet[str]:
         return frozenset(self._preposition_triggers)
+
+    # --- Sentence connectives (data-driven from tree declarations) ---
+    def register_sentence_connectives(self, connectives: Any) -> None:
+        for c in connectives or ():
+            s = str(c).strip().lower()
+            if s:
+                self._sentence_connectives.add(s)
+
+    def get_sentence_connectives(self) -> FrozenSet[str]:
+        if self._sentence_connectives:
+            return frozenset(self._sentence_connectives)
+        fw = self.get_function_words()
+        if fw:
+            return fw
+        return frozenset({"and", "or", "to", "for", "with", "as", "by", "into", "from", "on", "in", "of", "the", "a", "an", "is", "at", "then"})
 
     # --- Default asset placeholders (data-driven from tree declarations) ---
     def register_asset_placeholders(self, placeholders: Dict[str, str]) -> None:
@@ -1483,6 +1501,7 @@ class Cell(ABC):
         "replica_of", "replica_role",
         "mutation_type", "is_context_manager", "raises", "type_vars",
         "preconditions", "postconditions", "effects", "edges", "endable",
+        "primary_in", "primary_out",
         "_primary_input", "_primary_output", "_token_set", "_token_count",
         "_identity_tokens", "bound_parent_ids", "matched_clause_idx"
     ]
@@ -1523,6 +1542,8 @@ class Cell(ABC):
         effects: Optional[List[Any]] = None,
         edges: Optional[List[Any]] = None,
         endable: Optional[bool] = None,
+        primary_in: Optional[str] = None,
+        primary_out: Optional[str] = None,
         **kwargs
     ):
         self.cell_id = cell_id
@@ -1578,6 +1599,8 @@ class Cell(ABC):
         self.effects = list(declared_effects if declared_effects is not None else self.postconditions)
         self.edges = list(edges or kwargs.get("edges", []))
         self.endable = endable if endable is not None else kwargs.get("endable")
+        self.primary_in = primary_in if primary_in is not None else kwargs.get("primary_in")
+        self.primary_out = primary_out if primary_out is not None else kwargs.get("primary_out")
 
         # For-each multiplicity expansion: a replica is a runtime copy of a
         # planned cell that re-consumes its receiver from the environment and
@@ -1761,6 +1784,8 @@ class Cell(ABC):
             except (ImportError, ValueError):
                 from tokenizer import CellTokenizer
             toks = CellTokenizer.tokenize_cell(self.cell_id, self.keywords)
+            if getattr(self, "domain_name", None) and self.domain_name != "generic":
+                toks.update(CellTokenizer.tokenize_identifier(self.domain_name))
             if self.docstring:
                 toks.update(CellTokenizer.tokenize_prompt(self.docstring))
             for p in self.inputs:
@@ -1785,6 +1810,8 @@ class Cell(ABC):
             except (ImportError, ValueError):
                 from tokenizer import CellTokenizer
             toks = CellTokenizer.tokenize_cell(self.cell_id, self.keywords)
+            if getattr(self, "domain_name", None) and self.domain_name != "generic":
+                toks.update(CellTokenizer.tokenize_identifier(self.domain_name))
             for p in self.inputs:
                 toks.update(CellTokenizer.tokenize_identifier(p))
             for p in self.outputs:
@@ -1833,6 +1860,11 @@ class Cell(ABC):
             self._primary_input = res
             return res
 
+        if self.primary_in and self.primary_in in self.inputs:
+            res = self.inputs[self.primary_in]
+            self._primary_input = res
+            return res
+
         registry = TypeRegistry.get_instance()
 
         def _is_data_carrier(p: PortSignature) -> bool:
@@ -1876,6 +1908,11 @@ class Cell(ABC):
 
         if not self.outputs:
             res = PortSignature("output_data", AlgebraicSignature("any", "any"))
+            self._primary_output = res
+            return res
+
+        if self.primary_out and self.primary_out in self.outputs:
+            res = self.outputs[self.primary_out]
             self._primary_output = res
             return res
 
@@ -2178,6 +2215,8 @@ class LatticeOrchestrator:
                     effects=c_dict.get("effects", []),
                     edges=c_dict.get("edges", []),
                     endable=c_dict.get("endable"),
+                    primary_in=c_dict.get("primary_in"),
+                    primary_out=c_dict.get("primary_out"),
                     sub_cells=c_dict.get("sub_cells", []),
                     algorithmic_steps=c_dict.get("algorithmic_steps", []),
                     internal_topology=c_dict.get("internal_topology", {}),
@@ -2323,6 +2362,8 @@ class LatticeOrchestrator:
                             reg.register_stopwords([item])
                         elif cat == 'preposition_trigger':
                             reg.register_preposition_triggers([item])
+                        elif cat == 'sentence_connective':
+                            reg.register_sentence_connectives([item])
                         elif cat == 'asset_placeholder':
                             reg.register_asset_placeholders({item: extra})
                         elif cat == 'output_asset_placeholder':
@@ -2487,6 +2528,8 @@ class LatticeOrchestrator:
                             effects=cfg.get("effects", []),
                             edges=cfg.get("edges", []),
                             endable=cfg.get("endable"),
+                            primary_in=cfg.get("primary_in"),
+                            primary_out=cfg.get("primary_out"),
                             sub_cells=cfg.get("sub_cells", []),
                             algorithmic_steps=cfg.get("algorithmic_steps", []),
                             internal_topology=cfg.get("internal_topology", {}),
@@ -2560,7 +2603,9 @@ class LatticeOrchestrator:
                             dependencies=deps,
                             code_template=code or "",
                             verified=True,
-                            endable=cfg.get("endable")
+                            endable=cfg.get("endable"),
+                            primary_in=cfg.get("primary_in"),
+                            primary_out=cfg.get("primary_out")
                         )
                         if cell.is_public_morphism:
                             self.loaded_cells[cell.cell_id] = cell

@@ -295,6 +295,8 @@ def cmd_compile(args):
                                 cur.execute("INSERT OR REPLACE INTO structural_metadata (category, item, extra, domain_name) VALUES ('polarity_hint', ?, ?, ?)", (str(direction).strip().lower(), str(h).strip().lower(), domain))
                 for pt in getattr(tree, "preposition_triggers", []) or data.get("preposition_triggers", []):
                     cur.execute("INSERT OR REPLACE INTO structural_metadata (category, item, extra, domain_name) VALUES ('preposition_trigger', ?, '', ?)", (str(pt).strip().lower(), domain))
+                for sc in getattr(tree, "sentence_connectives", []) or data.get("sentence_connectives", []):
+                    cur.execute("INSERT OR REPLACE INTO structural_metadata (category, item, extra, domain_name) VALUES ('sentence_connective', ?, '', ?)", (str(sc).strip().lower(), domain))
                 for mk, mv in (getattr(tree, "asset_placeholders", {}) or getattr(tree, "default_asset_placeholders", {}) or data.get("asset_placeholders", {}) or data.get("default_asset_placeholders", {})).items():
                     cur.execute("INSERT OR REPLACE INTO structural_metadata (category, item, extra, domain_name) VALUES ('asset_placeholder', ?, ?, ?)", (str(mk).strip().lower(), str(mv).strip(), domain))
                 for mk, mv in (getattr(tree, "output_placeholders", {}) or getattr(tree, "default_output_placeholders", {}) or data.get("output_placeholders", {}) or data.get("default_output_placeholders", {})).items():
@@ -334,6 +336,8 @@ def cmd_compile(args):
                 "algorithmic_steps": getattr(cell, "algorithmic_steps", []),
                 "internal_topology": getattr(cell, "internal_topology", {}),
                 "endable": getattr(cell, "endable", None),
+                "primary_in": getattr(cell, "primary_in", None),
+                "primary_out": getattr(cell, "primary_out", None),
             }
             cfg_json = json.dumps(cfg_dict)
             deps_json = json.dumps(cell.dependencies)

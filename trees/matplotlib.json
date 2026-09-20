@@ -1558,14 +1558,10 @@
         "linewidth",
         "color"
       ],
-      "code_template": "{ax}.plot({x}, {y}, color={color}, linestyle={linestyle}, linewidth={linewidth})\n{out_ax} = {ax}",
+      "code_template": "{ax}.plot({y})\n{out_ax} = {ax}",
       "slots": [
         "ax",
-        "x",
         "y",
-        "color",
-        "linestyle",
-        "linewidth",
         "out_ax"
       ],
       "bound_slots": {},
@@ -1596,23 +1592,6 @@
           "value_constraints": null,
           "shape_contract": null
         },
-        "x": {
-          "name": "x",
-          "type_name": "ndarray",
-          "state": "unregistered",
-          "accepted_states": null,
-          "qualifiers": [],
-          "default_value": null,
-          "description": "Horizontal abscissa data values.",
-          "domain": "matplotlib",
-          "required": true,
-          "abstract_type": "tensor",
-          "enum_values": null,
-          "param_kind": "positional_or_keyword",
-          "value_constraints": null,
-          "shape_contract": "[N]",
-          "port_role": "feature_input"
-        },
         "y": {
           "name": "y",
           "type_name": "ndarray",
@@ -1628,80 +1607,20 @@
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
           "shape_contract": "[N]",
-          "port_role": "target_input"
-        },
-        "color": {
-          "name": "color",
-          "type_name": "str",
-          "state": "unregistered",
-          "accepted_states": null,
-          "qualifiers": [
-            "optional"
-          ],
-          "default_value": "'#1f77b4'",
-          "description": "Line color hex code or standard name.",
-          "domain": "matplotlib",
-          "required": false,
-          "abstract_type": "scalar",
-          "enum_values": null,
-          "param_kind": "keyword_only",
-          "value_constraints": null,
-          "shape_contract": null
-        },
-        "linestyle": {
-          "name": "linestyle",
-          "type_name": "str",
-          "state": "unregistered",
-          "accepted_states": null,
-          "qualifiers": [
-            "optional"
-          ],
-          "default_value": "'-'",
-          "description": "Line style pattern.",
-          "domain": "matplotlib",
-          "required": false,
-          "abstract_type": "scalar",
-          "enum_values": [
-            "'-'",
-            "'--'",
-            "'-.'",
-            "':'",
-            "'none'"
-          ],
-          "param_kind": "keyword_only",
-          "value_constraints": null,
-          "shape_contract": null
-        },
-        "linewidth": {
-          "name": "linewidth",
-          "type_name": "float",
-          "state": "unregistered",
-          "accepted_states": null,
-          "qualifiers": [
-            "optional"
-          ],
-          "default_value": "1.5",
-          "description": "Stroke width in points.",
-          "domain": "matplotlib",
-          "required": false,
-          "abstract_type": "scalar",
-          "enum_values": null,
-          "param_kind": "keyword_only",
-          "value_constraints": null,
-          "shape_contract": null
+          "port_role": "feature_input"
         }
       },
       "outputs": {
         "out_ax": {
           "name": "out_ax",
           "type_name": "Axes",
-          "state": "line_plotted",
+          "state": "axes_with_content",
           "accepted_states": null,
           "qualifiers": [
             "primary"
           ],
           "default_value": null,
-          "description": "Axes mutated with rendered line2D handles.",
+          "description": "Axes with plotted line artist.",
           "domain": "matplotlib",
           "required": true,
           "abstract_type": "plot_handle",
@@ -1723,10 +1642,9 @@
       ],
       "postconditions": [
         {
-          "target": "out_ax",
-          "property": "state",
-          "operator": "==",
-          "value": "line_plotted",
+          "variable": "out_ax",
+          "state": "axes_with_content",
+          "predicate": "has_lines",
           "expression": "len(out_ax.lines) > 0",
           "description": "Line2D element added into axes."
         }
@@ -1768,7 +1686,7 @@
           "needs_mining": true
         }
       ],
-      "primary_in": "x",
+      "primary_in": "y",
       "primary_out": "out_ax"
     },
     {

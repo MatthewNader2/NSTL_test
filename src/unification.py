@@ -44,21 +44,21 @@ U = TypeVar('U')
 # English sentence-connective function words (LANGUAGE-level primitives, not
 # domain vocabulary): a capitalized occurrence of one of these mid-prompt is a
 class DynamicSentenceConnectives(frozenset):
-    """Dynamic sentence connectives backed by TypeRegistry function words."""
+    """Dynamic sentence connectives backed by TypeRegistry declared connectives."""
     def __contains__(self, item):
-        return item in TypeRegistry.get_instance().get_function_words()
+        return item in TypeRegistry.get_instance().get_sentence_connectives()
     def __iter__(self):
-        return iter(TypeRegistry.get_instance().get_function_words())
+        return iter(TypeRegistry.get_instance().get_sentence_connectives())
     def __len__(self):
-        return len(TypeRegistry.get_instance().get_function_words())
+        return len(TypeRegistry.get_instance().get_sentence_connectives())
     def __sub__(self, other):
-        return TypeRegistry.get_instance().get_function_words() - (set(other) if not isinstance(other, set) else other)
+        return TypeRegistry.get_instance().get_sentence_connectives() - (set(other) if not isinstance(other, set) else other)
     def __rsub__(self, other):
-        return set(other) - TypeRegistry.get_instance().get_function_words()
+        return set(other) - TypeRegistry.get_instance().get_sentence_connectives()
     def __and__(self, other):
-        return TypeRegistry.get_instance().get_function_words() & (set(other) if not isinstance(other, set) else other)
+        return TypeRegistry.get_instance().get_sentence_connectives() & (set(other) if not isinstance(other, set) else other)
     def __rand__(self, other):
-        return (set(other) if not isinstance(other, set) else other) & TypeRegistry.get_instance().get_function_words()
+        return (set(other) if not isinstance(other, set) else other) & TypeRegistry.get_instance().get_sentence_connectives()
 
 _SENTENCE_CONNECTIVES = DynamicSentenceConnectives()
 
@@ -1031,7 +1031,13 @@ class ExecutionContext:
                     j += 1
                 if j < n and prompt[j] == quote_char:
                     val = prompt[i + 1:j]
-                    spans.append((i, "quoted_str", val))
+                    is_file = "/" in val or "\\" in val or (
+                        "." in val and not val.startswith(".") and not val.endswith(".")
+                        and val.rsplit(".", 1)[1].isalnum() and not val.rsplit(".", 1)[1].isdigit()
+                        and len(val.rsplit(".", 1)[1]) <= 8
+                    )
+                    kind = "file_asset" if is_file else "quoted_str"
+                    spans.append((i, kind, val))
                     i = j + 1
                     continue
             i += 1
@@ -1223,40 +1229,60 @@ class ExecutionContext:
         for c_idx, (pos, w) in enumerate(cleaned):
             if c_idx == 0:
                 continue
-            if any(s <= pos <= e for s, e in quoted_ranges):
-                continue
-            if "." in w or "/" in w:
+            clean_tok = w.strip("'\"")
+            if "." in clean_tok or "/" in clean_tok or "\\" in clean_tok:
                 continue
             try:
-                float(w)
+                float(clean_tok)
                 continue
             except ValueError:
                 pass
-            if ExecutionContext._is_bare_identifier_token(w):
+            is_quoted = any(s <= pos <= e for s, e in quoted_ranges)
+            if is_quoted:
+                if len(clean_tok) >= 1 and clean_tok.lower() not in _SENTENCE_CONNECTIVES:
+                    idents.append((c_idx, pos, clean_tok))
+            elif ExecutionContext._is_bare_identifier_token(w):
                 idents.append((c_idx, pos, w))
 
         if not idents:
             return []
 
         def _stem_ctx(word: str) -> str:
-            wl = word.lower()
+            wl = word.lower().strip("'\"")
             if wl in _SENTENCE_CONNECTIVES or len(wl) < 2:
                 return ""
             st = normalize_token(wl)
             return st if len(st) >= 2 else ""
 
-        # Role assignment: prefer the FOLLOWING context word ("X column"),
-        # else the PRECEDING one ("columns X"). Identifiers sharing the same
-        # role stem join one group; roleless identifiers form singleton groups
-        # (they can still bind, but never drive multiplicity).
+        # Role assignment: prefer following context word ("X column") or forward connective ("X as target"),
+        # else preceding context word ("columns X") or backward coordination run ("columns X and Y").
         groups: Dict[str, List[Tuple[int, str]]] = {}
         order: List[str] = []
+        ident_indices = {c_idx for c_idx, _, _ in idents}
         for c_idx, pos, w in idents:
             role = ""
-            if c_idx + 1 < len(cleaned):
-                role = _stem_ctx(cleaned[c_idx + 1][1])
-            if not role and c_idx > 0:
-                role = _stem_ctx(cleaned[c_idx - 1][1])
+            # Forward check: look ahead for role words (e.g. "X column" or "X as target")
+            for step in range(1, 4):
+                if c_idx + step < len(cleaned):
+                    if c_idx + step in ident_indices:
+                        continue
+                    cand = _stem_ctx(cleaned[c_idx + step][1])
+                    if cand:
+                        role = cand
+                        break
+            # Backward check: look back across connectives, commas, and other identifiers in coordination run
+            if not role:
+                k = c_idx - 1
+                while k >= 0:
+                    if k not in ident_indices:
+                        cand = _stem_ctx(cleaned[k][1])
+                        if cand:
+                            role = cand
+                            break
+                        raw_prev = cleaned[k][1].strip("'\"").lower()
+                        if raw_prev not in _SENTENCE_CONNECTIVES and cleaned[k][1] not in (",", ";"):
+                            break
+                    k -= 1
             key = role
             if key not in groups:
                 groups[key] = []
@@ -1281,6 +1307,8 @@ class ExecutionContext:
         return role_map
 
     def declare_variable(self, name: str, port_sig: Union[PortSignature, AlgebraicSignature, Any], expr: str = "", cell: Optional[Any] = None):
+        if not name:
+            return
         if isinstance(port_sig, AlgebraicSignature):
             port_sig = PortSignature(name=name, signature=port_sig)
         elif not isinstance(port_sig, PortSignature):
@@ -1535,8 +1563,8 @@ class ExecutionContext:
           numeric ports. `cell_inputs` enables the cross-port guard that prevents
           auxiliary str ports from stealing file assets on cells that own a path port.
         """
-        p_name = port_sig.name.lower()
-        t_name = port_sig.type_name.lower()
+        p_name = (port_sig.name or "").lower() if port_sig and getattr(port_sig, "name", None) else ""
+        t_name = (port_sig.type_name or "").lower() if port_sig and getattr(port_sig, "type_name", None) else ""
 
         def _cell_has_path_port() -> bool:
             if not cell_inputs:
@@ -1760,11 +1788,14 @@ class ExecutionContext:
         _port_state = str(getattr(port_sig, "state", "")).lower()
         _registry = TypeRegistry.get_instance()
         _is_str_port = _registry.is_subtype(str(getattr(port_sig, "type_name", "")).lower(), "str")
-        if _port_state in ("expr", "condition", "filter_condition") or (
-            _is_str_port and cell_stage == 2
-        ):
+        if _port_state in ("expr", "condition", "filter_condition"):
             for idx, (_, kind, val) in enumerate(self.ordered_literals):
                 if idx not in self.used_indices and kind in ("expr", "quoted_str"):
+                    self.used_indices.add(idx)
+                    return json.dumps(val)
+        elif _is_str_port and cell_stage == 2 and port_sig.required:
+            for idx, (_, kind, val) in enumerate(self.ordered_literals):
+                if idx not in self.used_indices and kind == "expr":
                     self.used_indices.add(idx)
                     return json.dumps(val)
 
@@ -1879,11 +1910,46 @@ class ExecutionContext:
 
         # 6. Stage 2 Morphism: Operational Parameter Extraction
         if (cell_stage == 2 or cell_stage is None) and is_str:
-            # A. Check for unconsumed quoted string argument in prompt (excluding file assets)
-            for idx, (_, kind, val) in enumerate(self.ordered_literals):
-                if idx not in self.used_indices and kind == "quoted_str":
-                    self.used_indices.add(idx)
-                    return json.dumps(val)
+            enum_vals = {str(e).strip().lower() for e in port_sig.enum_values} if getattr(port_sig, "enum_values", None) else None
+            p_state = str(getattr(port_sig, "state", "") or "").lower()
+            p_role = str(getattr(port_sig, "port_role", "") or getattr(port_sig, "derived_role", "") or "").lower()
+            is_col_port = (
+                p_role in ("column_projection", "columns", "target_input")
+                or p_state in ("column_projection", "columns", "feature_names", "column_name", "target_name")
+            )
+
+            # Check unconsumed literals for operational parameter candidates
+            for idx, (lit_pos, kind, val) in enumerate(self.ordered_literals):
+                if idx in self.used_indices:
+                    continue
+                if kind not in ("quoted_str", "identifier"):
+                    continue
+                # Exclude file assets from operational parameters
+                if ExecutionContext._PATH_RE.match(str(val)) or ("." in str(val) and not str(val).replace(".", "").replace("-", "").isdigit()):
+                    continue
+                # Enforce enum constraints if declared
+                if enum_vals is not None:
+                    if str(val).strip().lower() not in enum_vals:
+                        continue
+                # Column & target protection: non-column parameter ports must not steal data columns
+                roles = self.identifier_roles.get(lit_pos, frozenset())
+                is_data_col = (str(val).lower() in self.target_literals or "column" in roles or "target" in roles)
+                if is_data_col and not is_col_port:
+                    continue
+                # Optional parameters without explicit enum match require lexical evidence
+                if not port_sig.required and enum_vals is None:
+                    port_ident_toks = {t.lower() for t in CellTokenizer.tokenize_identifier(port_sig.name)} if port_sig.name else set()
+                    _desc = str(getattr(port_sig, "description", "") or getattr(port_sig, "doc", "") or "")
+                    evidence = set(port_ident_toks)
+                    if _desc:
+                        evidence |= {t.lower() for t in CellTokenizer.tokenize_prompt(_desc)}
+                    if cell_tokens:
+                        evidence |= {t.lower() for t in cell_tokens}
+                    clause_toks = {t.lower() for t in CellTokenizer.tokenize_prompt(self.prompt)}
+                    if not (evidence & clause_toks) and not (port_ident_toks and any(tok in self.prompt.lower() for tok in port_ident_toks)):
+                        continue
+                self.used_indices.add(idx)
+                return json.dumps(val)
 
         # 6b. Referential identifier grounding (role-conditioned).
         # Bare identifiers (X, Y, Z — the way humans name columns/fields in
@@ -1930,10 +1996,8 @@ class ExecutionContext:
         if (cell_stage == 2 or cell_stage is None) and is_collection:
             _raw_state = str(getattr(port_sig, "state", "") or "")
             _state_tokens = CellTokenizer.tokenize_identifier(_raw_state) if _raw_state.lower() not in ("any", "default", "") else set()
-            # Identity scope is exactly the cell's DECLARED vocabulary (identity
-            # tokens + declared state tokens). No unconditional vocabulary
-            # injection: if "column" affinity matters, the tree declares it.
-            _identity_scope: Set[str] = set(cell_tokens or set()) | _state_tokens
+            _proj_tokens = TypeRegistry.get_instance().get_column_projection_tokens()
+            _identity_scope: Set[str] = set(cell_tokens or set()) | _state_tokens | _proj_tokens
 
             matched_indices = []
             matched_vals = []
@@ -2378,9 +2442,19 @@ class UnificationGate:
             # For len(cell.outputs) == 0 (void output like save/show): no output_var allocated
             ctx.consumed_tokens.update(t.lower() for t in cell.token_set)
 
+            def _is_zero_ary_generator(c: Cell) -> bool:
+                if not c.outputs or getattr(c, "stage", None) == 3 or str(getattr(c, "node_role", "")).lower() == "sink":
+                    return False
+                if any(_lattice_is_path_port(p) for p in c.inputs.values()):
+                    return False
+                for p in c.inputs.values():
+                    if p.required and p.default_value is None:
+                        return False
+                return True
+
             is_zero_ary = (
                 getattr(cell, "node_type", "") == "constructor"
-                and not any(p.required for p in cell.inputs.values())
+                or _is_zero_ary_generator(cell)
             )
 
             # 1. If not the first cell, verify monadic transition from preceding cell.
@@ -2467,7 +2541,8 @@ class UnificationGate:
 
                         # Token overlap
                         v_toks = set(CellTokenizer.tokenize_identifier((getattr(v_sig, "name", "") or "").lower()))
-                        v_toks.update(CellTokenizer.tokenize_identifier(v_name.lower()))
+                        if v_name:
+                            v_toks.update(CellTokenizer.tokenize_identifier(str(v_name).lower()))
                         if v_state:
                             v_toks.update(v_state.split("_"))
                         src_cell = getattr(ctx, "var_sources", {}).get(v_name)
@@ -2479,8 +2554,8 @@ class UnificationGate:
 
                         candidates.append((score, p_name, p, v_name))
 
-                # Deterministic greedy assignment
-                candidates.sort(key=lambda item: item[0], reverse=True)
+                # Deterministic greedy assignment with recency tie-breaking (active wire in frontier)
+                candidates.sort(key=lambda item: (item[0], avail_vars.index(item[3])), reverse=True)
                 assigned_ports = set()
                 assigned_vars = set()
                 best_assign = {}
@@ -2556,7 +2631,7 @@ class UnificationGate:
                 )
                 if not p_sig.required and is_data_carrier:
                     scoped_var = None
-                    planned_parents = getattr(cell, "bound_parent_ids", set())
+                    planned_parents = getattr(cell, "bound_parent_ids", None) or set()
                     candidate_vars = []
                     for v_name, (v_sig, _) in reversed(list(ctx.variables.items())):
                         if _is_product(v_sig) or v_name in cell_bindings.values():
@@ -2658,7 +2733,7 @@ class UnificationGate:
                     v for v in cell_bindings.values() if isinstance(v, str)
                 }
                 scoped_var = None
-                planned_parents = getattr(cell, "bound_parent_ids", set())
+                planned_parents = getattr(cell, "bound_parent_ids", None) or set()
                 candidate_vars = []
                 for v_name, (v_sig, _) in reversed(list(ctx.variables.items())):
                     # Heterogeneous products project member-wise; the whole container
@@ -2763,13 +2838,11 @@ class UnificationGate:
                 prim_out = cell.primary_output
                 prim_var = None
                 for idx_out, (out_name, out_sig) in enumerate(cell.outputs.items()):
+                    var_counter += 1
+                    ctx.var_counter = var_counter
+                    out_var = f"var_{var_counter}"
                     if idx_out == 0:
-                        out_var = current_out_var
                         first_out_var = out_var
-                    else:
-                        var_counter += 1
-                        ctx.var_counter = var_counter
-                        out_var = f"var_{var_counter}"
                     cell_bindings[out_name] = out_var
 
                     concrete_out = substitute_generics(out_sig, accumulated_sigma)
@@ -3060,7 +3133,25 @@ class UnificationGate:
 
         final_code = "\n".join(code_lines).strip()
         final_code = self._reconcile_imports(final_code)
-        self._verify_emitted_ast_liveness(final_code)
+        prior_vars: Set[str] = set()
+        if ctx is not None:
+            if hasattr(ctx, "scope") and isinstance(ctx.scope, dict):
+                prior_vars.update(ctx.scope.keys())
+            if hasattr(ctx, "scope_variables") and isinstance(ctx.scope_variables, dict):
+                prior_vars.update(ctx.scope_variables.keys())
+            if hasattr(ctx, "variables") and isinstance(ctx.variables, dict):
+                produced_vars: Set[str] = set()
+                for cell, bindings in pipeline_bindings:
+                    if isinstance(bindings, dict):
+                        outputs = getattr(cell, "outputs", {})
+                        if isinstance(outputs, dict):
+                            for out_name in outputs.keys():
+                                if out_name in bindings and isinstance(bindings[out_name], str):
+                                    produced_vars.add(bindings[out_name])
+                for v_name in ctx.variables.keys():
+                    if v_name not in produced_vars:
+                        prior_vars.add(v_name)
+        self._verify_emitted_ast_liveness(final_code, initial_scope=prior_vars)
         return final_code
 
     @staticmethod
@@ -3170,7 +3261,7 @@ class UnificationGate:
         return header + "\n" + code
 
     @staticmethod
-    def _verify_emitted_ast_liveness(code: str) -> None:
+    def _verify_emitted_ast_liveness(code: str, initial_scope: Optional[Set[str]] = None) -> None:
         """AST-level dataflow liveness validation: every variable loaded in the script
         must have been previously assigned, imported, or present in builtins.
         Catches undefined variables (e.g. var_7, var_3) before code emission."""
@@ -3187,6 +3278,8 @@ class UnificationGate:
             "__file__", "__name__", "__doc__", "__package__",
             "__spec__", "__path__", "__loader__", "__annotations__"
         })
+        if initial_scope:
+            global_scope.update(initial_scope)
 
         class ScopeChecker(ast.NodeVisitor):
             def __init__(self):

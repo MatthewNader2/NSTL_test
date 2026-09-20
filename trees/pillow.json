@@ -25,7 +25,7 @@
       },
       {
         "name": "color_bgr",
-        "parent_state": "ndarray_generic",
+        "parent_state": "nd_tensor",
         "carrier_type": "ndarray",
         "description": "A 3-channel 8-bit numpy array in BGR channel order.",
         "properties": {
@@ -36,7 +36,7 @@
       },
       {
         "name": "color_rgb",
-        "parent_state": "ndarray_generic",
+        "parent_state": "nd_tensor",
         "carrier_type": "ndarray",
         "description": "A 3-channel 8-bit numpy array in RGB channel order.",
         "properties": {
@@ -47,7 +47,7 @@
       },
       {
         "name": "gray",
-        "parent_state": "ndarray_generic",
+        "parent_state": "nd_tensor",
         "carrier_type": "ndarray",
         "description": "A single-channel 8-bit intensity numpy array.",
         "properties": {

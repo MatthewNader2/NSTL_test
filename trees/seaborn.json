@@ -27,8 +27,8 @@
       },
       {
         "name": "color_bgr",
-        "parent_state": null,
-        "carrier_type": "Axes",
+        "parent_state": "nd_tensor",
+        "carrier_type": "ndarray",
         "description": "A 3-channel 8-bit array in BGR channel order.",
         "properties": {
           "is_interchange": true
@@ -36,8 +36,8 @@
       },
       {
         "name": "color_rgb",
-        "parent_state": null,
-        "carrier_type": "Axes",
+        "parent_state": "nd_tensor",
+        "carrier_type": "ndarray",
         "description": "A 3-channel 8-bit array in RGB channel order.",
         "properties": {
           "is_interchange": true
@@ -45,8 +45,8 @@
       },
       {
         "name": "gray",
-        "parent_state": null,
-        "carrier_type": "Axes",
+        "parent_state": "nd_tensor",
+        "carrier_type": "ndarray",
         "description": "A single-channel 8-bit intensity array.",
         "properties": {
           "is_interchange": true

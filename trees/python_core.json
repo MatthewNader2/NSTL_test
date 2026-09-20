@@ -1,0 +1,129 @@
+{
+  "domain": "python_core",
+  "version": "1.0.0",
+  "description": "Standard Python algorithmic morphisms and data structure utilities.",
+  "types": [
+    {"name": "dict", "parent": "collection"},
+    {"name": "list", "parent": "sequence"},
+    {"name": "int", "parent": "numeric"},
+    {"name": "str", "parent": "object"}
+  ],
+  "cells": [
+    {
+      "cell_id": "PYTHON_DIJKSTRA_ALGORITHM",
+      "stage": 2,
+      "domain_name": "python_core",
+      "node_type": "function",
+      "node_role": "transformation",
+      "docstring": "Dijkstra shortest path algorithm on graph adjacency dictionary.",
+      "keywords": [
+        "algorithm", "dijkstra", "shortest_path", "shortest", "path",
+        "graph", "distances", "heapq", "bfs", "dfs", "traversal", "search"
+      ],
+      "inputs": {
+        "graph": {
+          "type_name": "dict",
+          "state": "adjacency_dict",
+          "required": false,
+          "default_value": "{'A': {'B': 1, 'C': 4}, 'B': {'C': 2, 'D': 5}, 'C': {'D': 1}, 'D': {}}",
+          "port_role": "data_input"
+        },
+        "start": {
+          "type_name": "str",
+          "state": "source_node",
+          "required": false,
+          "default_value": "'A'",
+          "port_role": "literal_parameter"
+        }
+      },
+      "outputs": {
+        "output_data": {
+          "type_name": "dict",
+          "state": "distances",
+          "required": true
+        }
+      },
+      "code_template": "import heapq\n\ndef dijkstra(graph, start):\n    distances = {node: float(\"inf\") for node in graph}\n    distances[start] = 0\n    pq = [(0, start)]\n    while pq:\n        curr_dist, curr_node = heapq.heappop(pq)\n        if curr_dist > distances[curr_node]:\n            continue\n        for neighbor, weight in graph.get(curr_node, {}).items():\n            dist = curr_dist + weight\n            if dist < distances[neighbor]:\n                distances[neighbor] = dist\n                heapq.heappush(pq, (dist, neighbor))\n    return distances\n\n{output_var} = dijkstra({graph}, {start})",
+      "primary_in": "graph",
+      "primary_out": "output_data",
+      "dependencies": ["import heapq"],
+      "verified": 1,
+      "source_priority": 10
+    },
+    {
+      "cell_id": "PYTHON_BINARY_SEARCH_SORT",
+      "stage": 2,
+      "domain_name": "python_core",
+      "node_type": "function",
+      "node_role": "transformation",
+      "docstring": "Binary search on a sorted list.",
+      "keywords": [
+        "algorithm", "binary_search", "binary", "search",
+        "sorted", "list", "sort", "lookup"
+      ],
+      "inputs": {
+        "data": {
+          "type_name": "list",
+          "state": "sorted_list",
+          "required": false,
+          "default_value": "[1, 3, 5, 7, 9]",
+          "port_role": "data_input"
+        },
+        "target": {
+          "type_name": "int",
+          "state": "query",
+          "required": false,
+          "default_value": "5",
+          "port_role": "literal_parameter"
+        }
+      },
+      "outputs": {
+        "output_data": {
+          "type_name": "int",
+          "state": "index",
+          "required": true
+        }
+      },
+      "code_template": "def binary_search(arr, target):\n    low, high = 0, len(arr) - 1\n    while low <= high:\n        mid = (low + high) // 2\n        if arr[mid] == target:\n            return mid\n        elif arr[mid] < target:\n            low = mid + 1\n        else:\n            high = mid - 1\n    return -1\n\n{output_var} = binary_search({data}, {target})",
+      "primary_in": "data",
+      "primary_out": "output_data",
+      "dependencies": [],
+      "verified": 1,
+      "source_priority": 10
+    },
+    {
+      "cell_id": "PYTHON_MERGE_SORT_ALGORITHM",
+      "stage": 2,
+      "domain_name": "python_core",
+      "node_type": "function",
+      "node_role": "transformation",
+      "docstring": "Merge sort algorithm on a list.",
+      "keywords": [
+        "algorithm", "merge_sort", "merge", "sort",
+        "sorting", "list", "divide_and_conquer"
+      ],
+      "inputs": {
+        "data": {
+          "type_name": "list",
+          "state": "raw_list",
+          "required": false,
+          "default_value": "[5, 2, 8, 1, 9]",
+          "port_role": "data_input"
+        }
+      },
+      "outputs": {
+        "output_data": {
+          "type_name": "list",
+          "state": "sorted_list",
+          "required": true
+        }
+      },
+      "code_template": "def merge_sort(arr):\n    if len(arr) <= 1:\n        return arr\n    mid = len(arr) // 2\n    left = merge_sort(arr[:mid])\n    right = merge_sort(arr[mid:])\n    res = []\n    i = j = 0\n    while i < len(left) and j < len(right):\n        if left[i] <= right[j]:\n            res.append(left[i])\n            i += 1\n        else:\n            res.append(right[j])\n            j += 1\n    res.extend(left[i:])\n    res.extend(right[j:])\n    return res\n\n{output_var} = merge_sort({data})",
+      "primary_in": "data",
+      "primary_out": "output_data",
+      "dependencies": [],
+      "verified": 1,
+      "source_priority": 10
+    }
+  ]
+}

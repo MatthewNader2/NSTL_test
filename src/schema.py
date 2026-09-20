@@ -173,6 +173,8 @@ class CellSchema(BaseModel):
     raises: List[str] = Field(default_factory=list)
     type_vars: List[str] = Field(default_factory=list)
     endable: Optional[bool] = None
+    primary_in: Optional[str] = None
+    primary_out: Optional[str] = None
 
     # --- Macro Node Pipeline (synaptic goals) ---
     sub_cells: List[str] = Field(default_factory=list)
@@ -291,6 +293,8 @@ class CellSchema(BaseModel):
     def primary_input(self) -> Optional[PortSchema]:
         if not self.inputs:
             return None
+        if self.primary_in and self.primary_in in self.inputs:
+            return self.inputs[self.primary_in]
         required = [p for p in self.inputs.values() if p.required]
         if required:
             non_scalar = [p for p in required if (p.abstract_type or "").lower() not in ("scalar", "text", "path", "logical")]
@@ -301,6 +305,8 @@ class CellSchema(BaseModel):
     def primary_output(self) -> Optional[PortSchema]:
         if not self.outputs:
             return None
+        if self.primary_out and self.primary_out in self.outputs:
+            return self.outputs[self.primary_out]
         return next(iter(self.outputs.values()))
 
     @field_validator("code_template", mode="before")

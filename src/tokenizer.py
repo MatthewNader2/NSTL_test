@@ -188,6 +188,18 @@ def _tokenize_identifier_cached(identifier: str) -> FrozenSet[str]:
             if len(stem) > 1:
                 tokens.add(stem)
 
+    # Extract punctuation-delimited segments (e.g. 'cv2' and 'imread' in 'CV2_IMREAD')
+    seg: List[str] = []
+    for ch in clean_id:
+        if ch.isalnum():
+            seg.append(ch)
+        else:
+            if seg:
+                _emit(seg)
+                seg = []
+    if seg:
+        _emit(seg)
+
     # Mathematical character transition state machine:
     # Boundaries occur at:
     # 1. Non-alphanumeric punctuation (_, -, ., space, etc.)
@@ -293,10 +305,10 @@ class CellTokenizer:
                     if len(stem) > 1:
                         tokens.add(stem)
 
-        # Also extract camel-case and dotted/underscored identifier sub-words
+        # Also extract camel-case, dotted/underscored, and alphanumeric identifier sub-words
         for raw_word in prompt.split():
             clean_w = raw_word.strip(",;.:!?()[]{}\"'")
-            if any(c.isupper() for c in clean_w) or '_' in clean_w or '.' in clean_w:
+            if any(c.isupper() for c in clean_w) or '_' in clean_w or '.' in clean_w or any(c.isdigit() for c in clean_w):
                 sub_toks = cls.tokenize_identifier(clean_w)
                 tokens.update(sub_toks)
 

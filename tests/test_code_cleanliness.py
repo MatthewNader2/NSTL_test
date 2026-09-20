@@ -133,7 +133,10 @@ class TestCodeCleanliness(unittest.TestCase):
             cell_id="PANDAS_SAVE_PREDICTIONS",
             stage=3,
             keywords={"save", "to_csv"},
-            inputs={"output_filename": PortSignature(name="output_filename", signature=AlgebraicSignature("str", "dest_identifier"))},
+            inputs={
+                "input_var": PortSignature(name="input_var", signature=AlgebraicSignature("ndarray", "predictions")),
+                "output_filename": PortSignature(name="output_filename", signature=AlgebraicSignature("str", "dest_identifier"))
+            },
             outputs={"output_var": PortSignature(name="output_var", signature=AlgebraicSignature("str", "filepath_written"))},
             domain_name="machine_learning",
             code_template=(

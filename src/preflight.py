@@ -121,9 +121,11 @@ class PreflightLinter:
                         clean_lit == b or clean_lit in b
                         for b in bound_values_str
                     )
-                    # Check in code_str with word boundary matching
+                    # Check in code_str with word boundary matching or identifier sub-token matching
                     if not is_consumed and code_str:
-                        is_consumed = bool(re.search(r'\b' + re.escape(clean_lit) + r'\b', code_str))
+                        is_consumed = bool(re.search(r'\b' + re.escape(clean_lit) + r'\b', code_str)) or (
+                            clean_lit.upper() in {t.upper() for t in re.findall(r'[a-zA-Z]+|[0-9]+', code_str)}
+                        )
 
                     if not is_consumed:
                         msg = (

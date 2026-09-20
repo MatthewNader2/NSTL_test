@@ -4553,7 +4553,8 @@
           "state": "scaled_features",
           "accepted_states": [
             "ndarray_generic",
-            "dataframe_2d_generic"
+            "dataframe_2d_generic",
+            "split_train_features"
           ],
           "qualifiers": [
             "matrix"
@@ -12120,7 +12121,8 @@
           "state": "scaled_features",
           "accepted_states": [
             "ndarray_generic",
-            "dataframe_2d_generic"
+            "dataframe_2d_generic",
+            "split_train_features"
           ],
           "qualifiers": [
             "matrix"

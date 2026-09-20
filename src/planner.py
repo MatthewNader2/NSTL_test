@@ -20,11 +20,11 @@ from log_config import get_logger
 try:
     from .lattice import LatticeOrchestrator, Cell, MicroCell, MacroCell, TypeRegistry, is_path_port as _lattice_is_path_port
     from .unification import unify, Substitution, verify_traced_loop_invariant, verify_coproduct_branch, substitute_generics, ExecutionContext, UnificationGate, Success
-    from .tokenizer import CellTokenizer
+    from .tokenizer import CellTokenizer, normalize_token
 except (ImportError, ValueError):
     from lattice import LatticeOrchestrator, Cell, MicroCell, MacroCell, TypeRegistry, is_path_port as _lattice_is_path_port
     from unification import unify, Substitution, verify_traced_loop_invariant, verify_coproduct_branch, substitute_generics, ExecutionContext, UnificationGate, Success
-    from tokenizer import CellTokenizer
+    from tokenizer import CellTokenizer, normalize_token
 
 logger = get_logger('planner')
 
@@ -139,7 +139,7 @@ def _is_col_projection_port(p_sig: Any) -> bool:
             pass
         return True
     tname = str(getattr(getattr(p_sig, "signature", p_sig), "type_name", "")).lower()
-    if registry.is_subtype(tname, "list") or registry.is_subtype(tname, "sequence"):
+    if (registry.is_subtype(tname, "list") or registry.is_subtype(tname, "sequence")) and not (registry.is_subtype(tname, "ndarray") or registry.is_subtype(tname, "tensor") or registry.is_subtype(tname, "matrix")):
         st_tokens = set(CellTokenizer.tokenize_identifier(st))
         proj_tokens = TypeRegistry.get_instance().get_column_projection_tokens()
         if st_tokens & proj_tokens:
@@ -153,6 +153,27 @@ def _is_col_projection_port(p_sig: Any) -> bool:
     except (AttributeError, TypeError):
         pass
     return False
+
+
+def _is_table_groundable_target_port(
+    p_sig: Any,
+    prev_path: List[Cell],
+    quoted_str_literals: Sequence[Any] = (),
+    identifier_literals: Sequence[Any] = ()
+) -> bool:
+    p_role = getattr(p_sig, "port_role", None) or getattr(p_sig, "derived_role", "")
+    if not p_role and hasattr(p_sig, "derive_port_role"):
+        p_role = p_sig.derive_port_role()
+    if p_role != "target_input":
+        return False
+    if not (quoted_str_literals or identifier_literals):
+        return False
+    reg = TypeRegistry.get_instance()
+    return any(
+        reg.is_subtype(str(getattr(out_s.signature, "type_name", "")).lower(), "table")
+        for prev_c in prev_path
+        for out_s in prev_c.outputs.values()
+    )
 
 
 def _extract_ndim_from_contract(sc: Any) -> Optional[int]:
@@ -176,6 +197,58 @@ def _safe_slots_items(cell: Any):
     elif isinstance(s, (list, tuple, set)):
         return [(item, {}) for item in s]
     return []
+
+
+def _is_terminal_sink_cell(cell: Any) -> bool:
+    """
+    Determines if a cell is a terminal sink concluding the execution path (D5).
+    Stage 3 cells, sinks, and evaluators terminate the path unless the node is a macro
+    with declared sub-cells/sub-lattices to be planned.
+    Ordinary micro-cells with template placeholder slots never extend further.
+    """
+    is_sink = (
+        getattr(cell, "stage", None) == 3
+        or getattr(cell, "node_role", "") in ("sink", "evaluator")
+    )
+    if not is_sink:
+        return False
+    # If it is a macro with declared sub-cells, it has internal sub-lattices to plan
+    if getattr(cell, "cell_type", "") == "macro" or getattr(cell, "node_role", "") == "macro":
+        if getattr(cell, "sub_cells", None):
+            return False
+    top = getattr(cell, "topology_type", "sequential")
+    if top not in ("sequential", "linear", "atomic", None):
+        return False
+    return True
+
+
+def _is_port_role_compatible(p_out: Any, p_in: Any) -> bool:
+    """
+    Role-level semantic compatibility check (D2/D3):
+    Ensures prediction inputs are satisfied by prediction outputs, not ground-truth targets,
+    and ground-truth target inputs are not satisfied by predictions.
+    """
+    in_role = getattr(p_in, "port_role", None) or getattr(p_in, "derived_role", "")
+    out_role = getattr(p_out, "port_role", None) or getattr(p_out, "derived_role", "")
+    if in_role == "prediction_input":
+        if out_role == "target_input":
+            return False
+        out_state = str(getattr(getattr(p_out, "signature", None), "state", "")).lower()
+        if not ("predict" in out_state or out_role == "prediction_output"):
+            registry = TypeRegistry.get_instance()
+            props = registry.get_state_properties(out_state)
+            if not bool(props.get("is_prediction")):
+                return False
+    elif in_role == "target_input":
+        if out_role == "prediction_output":
+            return False
+        out_state = str(getattr(getattr(p_out, "signature", None), "state", "")).lower()
+        if "predict" in out_state:
+            registry = TypeRegistry.get_instance()
+            props = registry.get_state_properties(out_state)
+            if bool(props.get("is_prediction")):
+                return False
+    return True
 
 
 
@@ -238,6 +311,23 @@ class LatticePlanner:
         self.current_relevance_map: Dict[str, float] = {}
         self._affinity_cache: Dict[Tuple[str, str], float] = {}
         self._macro_edges_index: Optional[Dict[Tuple[str, str], List[str]]] = None
+        self._cells_connect_cache: Dict[Tuple[str, str], bool] = {}
+
+    def _cells_connect(self, c1: Cell, c2: Cell) -> bool:
+        """Evaluates whether any output of c1 can unify with any input of c2."""
+        pair = (c1.cell_id, c2.cell_id)
+        can_feed = self._cells_connect_cache.get(pair)
+        if can_feed is None:
+            can_feed = any(
+                unify(
+                    out_sig.signature if hasattr(out_sig, "signature") else out_sig,
+                    p_sig.signature if hasattr(p_sig, "signature") else p_sig,
+                ) is not None
+                for out_sig in c1.outputs.values()
+                for p_sig in c2.inputs.values()
+            )
+            self._cells_connect_cache[pair] = can_feed
+        return can_feed
 
     def _build_macro_edges_index(self) -> Dict[Tuple[str, str], List[str]]:
         index: Dict[Tuple[str, str], List[str]] = {}
@@ -278,9 +368,11 @@ class LatticePlanner:
                 self._macro_edges_index = self._build_macro_edges_index()
             m_ids = self._macro_edges_index.get((src_cell.cell_id, dst_cell.cell_id))
             if m_ids:
-                macro_rel = max(getattr(self, "current_relevance_map", {}).get(mid, 0.5) for mid in m_ids)
-                synaptic_boost = 0.4 * max(macro_rel, 0.5)
-                return min(1.0, max(0.8, 0.6 + synaptic_boost))
+                rel_map = getattr(self, "current_relevance_map", {}) or {}
+                macro_rel = max(rel_map.get(mid, 0.0) for mid in m_ids)
+                if macro_rel > 0.1:
+                    synaptic_boost = 0.4 * macro_rel
+                    return min(1.0, max(0.8, 0.6 + synaptic_boost))
 
         # 1. Forward declared edges on src_cell
         dst_id_lower = dst_cell.cell_id.lower()
@@ -439,6 +531,7 @@ class LatticePlanner:
         # Set NSTL_DEBUG_PLAN=1 to dump the ranked candidate paths after planning.
         _debug_plan = os.environ.get("NSTL_DEBUG_PLAN", "") in ("1", "true", "True", "on")
         _component_trace: Dict[Tuple[str, ...], Dict[str, float]] = {}
+        self._component_trace = _component_trace
 
         # ---- Goal-directed objective data (all derived from DECLARED structure) ----
         registry = TypeRegistry.get_instance()
@@ -452,6 +545,8 @@ class LatticePlanner:
             for pos, kind, val in l0_extracted_literals
             if kind in ("file_asset", "identifier", "quoted_str", "numeric")
         }
+        identifier_role_map = ExecutionContext._build_identifier_role_map(prompt or "")
+        self._last_identifier_roles = identifier_role_map
         file_literals = [
             v for kind, v in universal_literals
             if kind == "file_asset" or (kind == "quoted_str" and bool(ExecutionContext._PATH_RE.match(str(v))))
@@ -557,6 +652,23 @@ class LatticePlanner:
             else:
                 viable_entries.sort(key=lambda c: -relevance_map.get(c.cell_id, 0.0))
                 candidate_entries = viable_entries[:30]
+
+            # Augment with self-contained cells (all inputs optional/defaulted)
+            # regardless of stage. These are functionally zero-ary generators
+            # that produce output without upstream data and should be eligible
+            # entry points when they have high relevance to the prompt.
+            entry_ids = {c.cell_id for c in candidate_entries}
+            self_contained_entries = [
+                c for c in viable_entries
+                if c.cell_id not in entry_ids
+                and relevance_map.get(c.cell_id, 0.0) > 0.3
+                and all(
+                    not p.required or p.default_value is not None
+                    for p in c.inputs.values()
+                )
+            ]
+            if self_contained_entries:
+                candidate_entries = list(candidate_entries) + self_contained_entries
 
         # Clauses and tokens for sequential alignment and concept coverage
         clauses = _segment_prompt_clauses(prompt)
@@ -774,10 +886,15 @@ class LatticePlanner:
             # No cell-id substrings.
             return any(_is_col_projection_port(p_s) for p_s in cell.inputs.values())
 
+        def _is_table_groundable_target(p_sig: Any, prev_path: List[Cell]) -> bool:
+            return _is_table_groundable_target_port(p_sig, prev_path, quoted_str_literals, identifier_literals)
+
         def _new_unbindable(cand: Cell, prev_path: List[Cell]) -> int:
             produced = [out_sig.signature for prev in prev_path for out_sig in prev.outputs.values()]
             count = 0
             for p_sig in cell_receiver_sigs.get(cand.cell_id, ()):
+                if _is_table_groundable_target(p_sig, prev_path):
+                    continue
                 if not any(unify(prod, p_sig) is not None for prod in produced):
                     count += 1
 
@@ -838,7 +955,8 @@ class LatticePlanner:
                         )
                         if not already_penalized:
                             if p_role == "target_input":
-                                count += 1
+                                if not _is_table_groundable_target(p_sig, prev_path):
+                                    count += 1
                             elif not p_sig.required:
                                 if p_name in getattr(cand, "slots", []) and f"{{{p_name}}}" in getattr(cand, "code_template", ""):
                                     count += 1
@@ -863,19 +981,7 @@ class LatticePlanner:
         _edge_affinity = self._calculate_edge_affinity
         _path_score_cache: Dict[Tuple[Tuple[str, ...], bool], float] = {}
         _path_state_cache: Dict[Tuple[str, ...], Dict[str, Any]] = {}
-        _pair_connected_cache: Dict[Tuple[str, str], bool] = {}
-
-        def _cells_connect(c1: Cell, c2: Cell) -> bool:
-            pair = (c1.cell_id, c2.cell_id)
-            can_feed = _pair_connected_cache.get(pair)
-            if can_feed is None:
-                can_feed = any(
-                    unify(out_sig.signature, p_sig.signature) is not None
-                    for out_sig in c1.outputs.values()
-                    for p_sig in c2.inputs.values()
-                )
-                _pair_connected_cache[pair] = can_feed
-            return can_feed
+        _cells_connect = self._cells_connect
 
         def compute_path_score(item: Tuple[List[Cell], Substitution, float, int, int], is_final: bool = False) -> float:
             path, _, sc, weak_edges, unbindable = item
@@ -919,9 +1025,18 @@ class LatticePlanner:
                                 dp = next_dp
 
                 parents = [path[i] for i in range(k - 1) if _cells_connect(path[i], new_c)]
-                new_join = (1 if len(parents) >= 2 else 0)
+                bound_p = getattr(new_c, "bound_parent_ids", None)
+                if bound_p is not None:
+                    is_real_join = len(bound_p) >= 2
+                    actual_parents = [p for p in parents if p.cell_id in bound_p]
+                else:
+                    is_real_join = len(parents) >= 2 and len(getattr(new_c, "inputs", {})) >= 2
+                    actual_parents = parents
+                is_justified = is_real_join and (bool(cell_covered.get(new_c.cell_id)) or relevance_map.get(new_c.cell_id, 0.0) >= 0.05)
+                new_join = (1 if is_justified else 0)
                 join_nodes = prev_st["join_nodes"] + new_join
-                new_aff = max(_edge_affinity(p, new_c) for p in parents) if parents else _edge_affinity(path[-2], new_c)
+                aff_parents = actual_parents or parents
+                new_aff = max(_edge_affinity(p, new_c) for p in aff_parents) if aff_parents else _edge_affinity(path[-2], new_c)
                 dag_affs = prev_st["dag_affs"] + [new_aff]
 
                 st = {
@@ -965,10 +1080,19 @@ class LatticePlanner:
                 for j in range(1, k):
                     cell_j = path[j]
                     parents = [path[i] for i in range(j) if _cells_connect(path[i], cell_j)]
-                    if len(parents) >= 2:
+                    bound_p = getattr(cell_j, "bound_parent_ids", None)
+                    if bound_p is not None:
+                        is_real_join = len(bound_p) >= 2
+                        actual_parents = [p for p in parents if p.cell_id in bound_p]
+                    else:
+                        is_real_join = len(parents) >= 2 and len(getattr(cell_j, "inputs", {})) >= 2
+                        actual_parents = parents
+                    is_justified = is_real_join and (bool(cell_covered.get(cell_j.cell_id)) or relevance_map.get(cell_j.cell_id, 0.0) >= 0.05)
+                    if is_justified:
                         join_nodes += 1
-                    if parents:
-                        dag_affs.append(max(_edge_affinity(p, cell_j) for p in parents))
+                    aff_parents = actual_parents or parents
+                    if aff_parents:
+                        dag_affs.append(max(_edge_affinity(p, cell_j) for p in aff_parents))
                     else:
                         dag_affs.append(_edge_affinity(path[j - 1], cell_j))
 
@@ -1105,11 +1229,12 @@ class LatticePlanner:
                         sub_cell = self.orchestrator.loaded_cells.get(sid)
                         if sub_cell is not None:
                             effective_other_cells.append(sub_cell)
-                other_domains = {getattr(c, "domain_name", "") for c in effective_other_cells}
-                if terminal_domain not in other_domains:
-                    goal_bonus -= PATH_SCORE_WEIGHTS["domain_coherence"]
-                else:
-                    goal_bonus += PATH_SCORE_WEIGHTS["domain_coherence"]
+                if effective_other_cells:
+                    other_domains = {getattr(c, "domain_name", "") for c in effective_other_cells}
+                    if terminal_domain not in other_domains:
+                        goal_bonus -= PATH_SCORE_WEIGHTS["domain_coherence"]
+                    else:
+                        goal_bonus += PATH_SCORE_WEIGHTS["domain_coherence"]
 
             if file_literals:
                 if any(_has_path_port(c) for c in path):
@@ -1166,16 +1291,23 @@ class LatticePlanner:
             # if the cell produces outputs and is not a stage-3 egress/sink,
             # check if its output is consumed by ANY downstream step j > i.
             dead_outputs = 0
-            for i in range(k - 1):
-                c = path[i]
-                c_stage = getattr(c, "stage", None)
-                if c_stage == 3 or getattr(c, "node_role", "") == "sink" or not c.outputs:
-                    continue
-                if not is_final and i == k - 1:
-                    continue
-                consumed = any(_cells_connect(c, downstream_cell) for downstream_cell in path[i + 1:])
-                if not consumed:
-                    dead_outputs += 1
+            if is_final:
+                for i in range(k - 1):
+                    c = path[i]
+                    c_stage = getattr(c, "stage", None)
+                    if c_stage == 3 or getattr(c, "node_role", "") == "sink" or not c.outputs:
+                        continue
+                    consumed = (
+                        any(c.cell_id in (getattr(downstream_cell, "bound_parent_ids", None) or ()) for downstream_cell in path[i + 1:])
+                        or any(_cells_connect(c, downstream_cell) for downstream_cell in path[i + 1:] if getattr(downstream_cell, "bound_parent_ids", None) is None)
+                        or any(
+                            _is_terminal_sink_cell(downstream_cell)
+                            and getattr(downstream_cell, "domain_name", "") == getattr(c, "domain_name", "")
+                            for downstream_cell in path[i + 1:]
+                        )
+                    )
+                    if not consumed:
+                        dead_outputs += 1
 
             # Domain dispersion: pipelines should be domain-coherent. While 1 or 2
             # cooperating domains (e.g. pandas + sklearn) are common, gratuitous domain
@@ -1196,7 +1328,7 @@ class LatticePlanner:
                     affinity_score = 0.5
                 else:
                     affinity_score = sum(dag_affs) / max(len(dag_affs), 1)
-                    join_bonus = min(9.0, join_nodes * 3.0)
+                    join_bonus = min(4.0, join_nodes * 1.0)
             else:
                 if k <= 1:
                     affinity_score = 0.5
@@ -1258,6 +1390,9 @@ class LatticePlanner:
                                 st = str(getattr(p_sig.signature, "state", "")).lower()
                                 proj_port_tokens |= set(CellTokenizer.tokenize_identifier(st))
                                 proj_port_tokens |= {t for t in CellTokenizer.tokenize_identifier(str(getattr(c, "cell_id", "")).lower())}
+                    raw_proj_tokens = TypeRegistry.get_instance().get_column_projection_tokens()
+                    proj_port_tokens |= set(raw_proj_tokens)
+                    proj_port_tokens |= {normalize_token(t) for t in raw_proj_tokens}
                 # Declared relational-trigger ports: a port NAMED for the
                 # preposition that binds its value ("by") can consume the
                 # prepositional object ("by age") through the semantic-slot
@@ -1270,6 +1405,10 @@ class LatticePlanner:
                         p_toks |= set(CellTokenizer.tokenize_identifier(str(getattr(p_sig.signature, "state", ""))))
                         if p_toks & {"by", "on", "per", "of", "for", "with"}:
                             trigger_port_tokens |= p_toks
+                path_has_target = any(
+                    (getattr(p, "port_role", "") == "target_input" or getattr(p, "derived_role", "") == "target_input")
+                    for c in path for p in c.inputs.values()
+                )
                 identifier_role_map = getattr(self, "_last_identifier_roles", None)
                 for kind, lit in universal_literals:
                     lit_clean = str(lit).lower().strip("'\"")
@@ -1331,23 +1470,27 @@ class LatticePlanner:
                     else:
                         if lit_clean in path_ports or any(lit_clean in p for p in path_ports):
                             consumed_count += 1
-                        elif proj_port_tokens:
-                            lit_role = set()
-                            if identifier_role_map:
-                                lit_role = set(identifier_role_map.get(str(lit), frozenset()))
-                            if (lit_role & proj_port_tokens) or (proj_port_tokens & {t for t in CellTokenizer.tokenize_identifier(lit_clean)}):
-                                consumed_count += 1
-                        elif trigger_port_tokens:
-                            # Prepositional-object referent: consumed iff the
-                            # path declares a relational-trigger port whose
-                            # binding preposition matches the literal's.
+                        else:
                             lit_pos = literal_positions.get((kind, lit))
-                            if lit_pos is not None:
-                                prev_chunk = (prompt or "")[:lit_pos].rstrip()
-                                m_prev = re.search(r"([A-Za-z]+)$", prev_chunk)
-                                prep = m_prev.group(1).lower() if m_prev else ""
-                                if prep and prep in trigger_port_tokens:
-                                    consumed_count += 1
+                            lit_roles = set(identifier_role_map.get(lit_pos, frozenset())) if (identifier_role_map and lit_pos is not None) else set()
+                            stemmed_lit_roles = {normalize_token(r) for r in lit_roles} | lit_roles
+                            if proj_port_tokens and (
+                                (stemmed_lit_roles & proj_port_tokens)
+                                or (proj_port_tokens & {t for t in CellTokenizer.tokenize_identifier(lit_clean)})
+                            ):
+                                consumed_count += 1
+                            elif path_has_target and (stemmed_lit_roles & {"target", "predict", "response", "label"}):
+                                consumed_count += 1
+                            elif trigger_port_tokens:
+                                # Prepositional-object referent: consumed iff the
+                                # path declares a relational-trigger port whose
+                                # binding preposition matches the literal's.
+                                if lit_pos is not None:
+                                    prev_chunk = (prompt or "")[:lit_pos].rstrip()
+                                    m_prev = re.search(r"([A-Za-z]+)$", prev_chunk)
+                                    prep = m_prev.group(1).lower() if m_prev else ""
+                                    if prep and prep in trigger_port_tokens:
+                                        consumed_count += 1
                 literal_consumption = consumed_count / len(universal_literals)
             else:
                 literal_consumption = 1.0
@@ -1359,7 +1502,11 @@ class LatticePlanner:
                 cov_gate = clause_cov if is_final else max(0.35, clause_cov)
                 effective_affinity = structural_affinity * cov_gate
             else:
-                effective_affinity = structural_affinity
+                # Single-clause prompt: gate affinity when coverage is very low.
+                # A path covering < 30% of tokens should not dominate purely on
+                # structural affinity from declared edges.
+                cov_gate = max(coverage, 0.3) if coverage < 0.3 else 1.0
+                effective_affinity = structural_affinity * cov_gate
 
             total = (coverage * PATH_SCORE_WEIGHTS["coverage"] + alignment * PATH_SCORE_WEIGHTS["alignment"]
                      + effective_affinity - parsimony_penalty
@@ -1396,10 +1543,16 @@ class LatticePlanner:
         cells_by_in_type: Dict[str, List[Cell]] = {}
         distinct_in_states: Dict[str, Set[str]] = {}
         for cand in candidates:
-            for p_name, p_sig in cand.inputs.items():
-                t_key = str(getattr(p_sig.signature, "type_name", ""))
+            if not cand.inputs:
+                p_sig = cand.primary_input
+                t_key = str(getattr(p_sig.signature, "type_name", "any"))
                 cells_by_in_type.setdefault(t_key, []).append(cand)
-                distinct_in_states.setdefault(t_key, set()).add(str(getattr(p_sig.signature, "state", "")))
+                distinct_in_states.setdefault(t_key, set()).add(str(getattr(p_sig.signature, "state", "any")))
+            else:
+                for p_name, p_sig in cand.inputs.items():
+                    t_key = str(getattr(p_sig.signature, "type_name", ""))
+                    cells_by_in_type.setdefault(t_key, []).append(cand)
+                    distinct_in_states.setdefault(t_key, set()).add(str(getattr(p_sig.signature, "state", "")))
 
         candidate_map = {c.cell_id: c for c in candidates}
         candidate_map_lower = {c.cell_id.lower(): c for c in candidates}
@@ -1431,8 +1584,9 @@ class LatticePlanner:
                 for cand in candidates:
                     if cand.cell_id in macro_subs or prev_cell.cell_id in getattr(cand, "sub_cells", ()):
                         continue
+                    cand_in_ports = list(cand.inputs.values()) if cand.inputs else [cand.primary_input]
                     if any(unify(out_sig, p_sig.signature) is not None
-                           for p_sig in cand.inputs.values()):
+                           for p_sig in cand_in_ports):
                         acc.setdefault(cand.cell_id, cand)
                 res_cells = [c for c in acc.values() if c.cell_id not in macro_subs and prev_cell.cell_id not in getattr(c, "sub_cells", ())]
                 return sorted(res_cells, key=lambda c: _edge_affinity(prev_cell, c), reverse=True)
@@ -1444,6 +1598,7 @@ class LatticePlanner:
                     if c.cell_id in macro_subs or prev_cell.cell_id in getattr(c, "sub_cells", ()):
                         continue
                     # Typestate compatibility with accepted_states and parent_state walking
+                    cand_in_ports = list(c.inputs.values()) if c.inputs else [c.primary_input]
                     if any(registry.is_state_compatible(
                         producer_state=out_s,
                         consumer_state=getattr(p_sig.signature, "state", "any"),
@@ -1451,17 +1606,40 @@ class LatticePlanner:
                         consumer_accepted=getattr(p_sig.signature, "accepted_states", frozenset()),
                         consumer_parent=getattr(p_sig.signature, "parent_state", None),
                         producer_parent=getattr(out_sig, "parent_state", None),
-                    ) for p_sig in c.inputs.values()):
+                    ) for p_sig in cand_in_ports):
                         acc.setdefault(c.cell_id, c)
             res_cells = [c for c in acc.values() if c.cell_id not in macro_subs and prev_cell.cell_id not in getattr(c, "sub_cells", ())]
             return sorted(res_cells, key=lambda c: _edge_affinity(prev_cell, c), reverse=True)
 
-        # Zero-ary constructor morphisms: insertable after ANY cell (they consume
-        # no incoming wire), completing instance lifecycles (construct -> fit).
+        # Zero-ary generator morphisms: insertable after ANY cell (they consume
+        # no incoming wire), introducing new carriers to the frontier (e.g. constructors, figure/canvas).
+        def _is_zero_ary_generator(c: Cell) -> bool:
+            if not c.outputs or getattr(c, "stage", None) == 3 or str(getattr(c, "node_role", "")).lower() == "sink":
+                return False
+            if any(_lattice_is_path_port(p) for p in c.inputs.values()):
+                return False
+            for p in c.inputs.values():
+                if p.required and p.default_value is None:
+                    return False
+            # Stage 1 cells are ingress entry sources; only canvas/figure/handle initializers
+            # or constructors can be inserted as mid-pipeline generators.
+            if getattr(c, "stage", None) == 1:
+                out_abstracts = {
+                    str(getattr(op, "abstract_type", "")).lower()
+                    for op in c.outputs.values()
+                }
+                out_types = {
+                    str(getattr(op, "type_name", "")).lower()
+                    for op in c.outputs.values()
+                }
+                is_handle = any(t in ("figure", "axes", "plot_handle", "canvas") for t in (out_abstracts | out_types))
+                if not is_handle and getattr(c, "node_type", "") != "constructor":
+                    return False
+            return True
+
         zero_ary_ctors = [
             c for c in candidates
-            if getattr(c, "node_type", "") == "constructor"
-            and not any(p.required for p in c.inputs.values())
+            if getattr(c, "node_type", "") == "constructor" or _is_zero_ary_generator(c)
         ]
 
         # Dynamic step budget: derive cap from prompt complexity (num_clauses) + slack
@@ -1487,6 +1665,7 @@ class LatticePlanner:
                 identifier_literals=identifier_literals,
                 quoted_str_literals=quoted_str_literals,
                 numeric_literals=numeric_literals,
+                cell_clause_mass=cell_clause_mass,
             )
         else:
             all_valid_paths = self._plan_frontier_dag(
@@ -1504,6 +1683,7 @@ class LatticePlanner:
                 identifier_literals=identifier_literals,
                 quoted_str_literals=quoted_str_literals,
                 numeric_literals=numeric_literals,
+                cell_clause_mass=cell_clause_mass,
             )
 
         # Filter and rank valid composition paths
@@ -1893,6 +2073,8 @@ class LatticePlanner:
             return None
 
         def _shape_compatible(p_out: Any, p_in: Any) -> bool:
+            if not _is_port_role_compatible(p_out, p_in):
+                return False
             out_sc = getattr(p_out, "shape_contract", None)
             in_sc = getattr(p_in, "shape_contract", None)
             if out_sc and in_sc:
@@ -1963,7 +2145,7 @@ class LatticePlanner:
                         or _lattice_is_path_port(p_sig)
                         or (registry.is_subtype(t_name, "scalar") and bool(quoted_str_literals or identifier_literals or numeric_literals))
                         or bool(getattr(p_sig, "enum_values", None))
-                        or (bool(getattr(cand, "slots", None) and (p_name in cand.slots or getattr(p_sig, "port_role", None) == "functional_operator")))
+                        or (getattr(p_sig, "port_role", None) == "functional_operator" or ((getattr(cand, "cell_type", "") == "macro" or getattr(cand, "node_role", "") == "macro") and p_name in getattr(cand, "slots", {})))
                         or (_is_col_projection_port(p_sig) and bool(identifier_literals or quoted_str_literals))
                     )
                     if is_literal_groundable:
@@ -1990,6 +2172,7 @@ class LatticePlanner:
         identifier_literals: Sequence[Any] = (),
         quoted_str_literals: Sequence[Any] = (),
         numeric_literals: Sequence[Any] = (),
+        cell_clause_mass: Optional[Dict[str, List[float]]] = None,
     ) -> List[Tuple[List[Cell], Substitution, float, int, int]]:
         """
         1D Monadic Trellis Baseline Planner.
@@ -2042,7 +2225,7 @@ class LatticePlanner:
                             or _lattice_is_path_port(p_sig)
                             or (registry.is_subtype(t_name, "scalar") and bool(quoted_str_literals or identifier_literals or numeric_literals))
                             or bool(getattr(p_sig, "enum_values", None))
-                            or (bool(getattr(cand, "slots", None) and (p_name in cand.slots or getattr(p_sig, "port_role", None) == "functional_operator")))
+                            or (getattr(p_sig, "port_role", None) == "functional_operator" or ((getattr(cand, "cell_type", "") == "macro" or getattr(cand, "node_role", "") == "macro") and p_name in getattr(cand, "slots", {})))
                             or (_is_col_projection_port(p_sig) and bool(identifier_literals or quoted_str_literals))
                         ):
                             satisfied = True
@@ -2103,31 +2286,33 @@ class LatticePlanner:
             for prev_path, prev_sigma, prev_score, prev_weak, prev_unbind in current_beam:
                 prev_cell = prev_path[-1]
 
-                if getattr(prev_cell, "stage", None) == 3 and not getattr(prev_cell, "slots", None):
+                if _is_terminal_sink_cell(prev_cell):
                     continue
 
-                prev_path_ids = {c.cell_id for c in prev_path}
+                prev_path_ids = {c.cell_id.lower() for c in prev_path}
 
                 successor_cells = _successors(prev_cell)
-                seen_ids = {c.cell_id for c in successor_cells}
+                seen_ids = {c.cell_id.lower() for c in successor_cells}
                 for ctor in zero_ary_ctors:
-                    if ctor.cell_id not in seen_ids:
+                    if ctor.cell_id.lower() not in seen_ids:
                         successor_cells.append(ctor)
-                        seen_ids.add(ctor.cell_id)
+                        seen_ids.add(ctor.cell_id.lower())
 
                 for cand in successor_cells:
-                    if cand.cell_id in prev_path_ids:
+                    if cand.cell_id.lower() in prev_path_ids:
                         continue
 
                     cand_node_type = getattr(cand, "node_type", "")
                     cand_stage = getattr(cand, "stage", None)
 
-                    if cand_node_type == "constructor":
+                    if cand_node_type == "constructor" or cand in zero_ary_ctors:
                         new_sigma = _required_ports_bindable(cand, prev_path, prev_sigma)
                         if new_sigma is None:
                             continue
+                    elif _is_terminal_sink_cell(cand) and not any(p.required for p in cand.inputs.values()):
+                        new_sigma = prev_sigma
                     else:
-                        if cand_stage == 1:
+                        if cand_stage == 1 and cand not in zero_ary_ctors:
                             continue
 
                         prev_out_sigs = tuple(sorted((out_sig.signature.type_name, str(getattr(out_sig.signature, "state", "any"))) for c in prev_path for out_sig in c.outputs.values()))
@@ -2153,7 +2338,7 @@ class LatticePlanner:
                     cand_sc = log_probs.get(cand.cell_id, -10.0)
                     total_sc = prev_score + cand_sc
                     step_weak = prev_weak + (
-                        1 if (cand_node_type != "constructor" and _edge_is_weak(prev_cell, cand)) else 0
+                        1 if (cand_node_type != "constructor" and cand not in zero_ary_ctors and not _is_terminal_sink_cell(cand) and _edge_is_weak(prev_cell, cand)) else 0
                     )
                     step_unbind = prev_unbind + cand_unbind
                     new_tuple = (prev_path + [cand], new_sigma, total_sc, step_weak, step_unbind)
@@ -2197,6 +2382,7 @@ class LatticePlanner:
         identifier_literals: Sequence[Any] = (),
         quoted_str_literals: Sequence[Any] = (),
         numeric_literals: Sequence[Any] = (),
+        cell_clause_mass: Optional[Dict[str, List[float]]] = None,
     ) -> List[Tuple[List[Cell], Substitution, float, int, int]]:
         """
         Monoidal Category Frontier DAG Planner (Default Approach).
@@ -2206,6 +2392,7 @@ class LatticePlanner:
         are naturally synthesized and rewarded with a multi-carrier join bonus.
         """
         registry = TypeRegistry.get_instance()
+        _cells_connect = self._cells_connect
         all_valid_paths: List[Tuple[List[Cell], Substitution, float, int, int]] = []
 
         # Step t = 1: Initialize beam with entry sources
@@ -2217,6 +2404,8 @@ class LatticePlanner:
             all_valid_paths.append(p_tuple)
 
         def _shape_compatible(p_out: Any, p_in: Any) -> bool:
+            if not _is_port_role_compatible(p_out, p_in):
+                return False
             out_sc = getattr(p_out, "shape_contract", None)
             in_sc = getattr(p_in, "shape_contract", None)
             if out_sc and in_sc:
@@ -2293,25 +2482,39 @@ class LatticePlanner:
                     is_instance_receiver = p_name in ("data", "self") or ("receiver" in str(desc).lower())
                     if not is_instance_receiver:
                         t_name = str(getattr(p_sig.signature, "type_name", "")).lower()
-                        is_literal_groundable = (
-                            (registry.is_subtype(t_name, "str") and bool(quoted_str_literals or identifier_literals))
-                            or (registry.is_subtype(t_name, "numeric") and bool(numeric_literals))
-                            or (registry.is_subtype(t_name, "bool") and any(str(lit).strip().lower() in ("true", "false") for lit in (list(identifier_literals or ()) + list(quoted_str_literals or ()))))
-                            or _lattice_is_path_port(p_sig)
-                            or (registry.is_subtype(t_name, "scalar") and bool(quoted_str_literals or identifier_literals or numeric_literals))
-                            or bool(getattr(p_sig, "enum_values", None))
-                            or (bool(getattr(cand, "slots", None) and (p_name in cand.slots or getattr(p_sig, "port_role", None) == "functional_operator")))
-                            or (_is_col_projection_port(p_sig) and bool(identifier_literals or quoted_str_literals))
-                        )
-                        if is_literal_groundable:
+                        if _is_table_groundable_target_port(p_sig, prev_path, quoted_str_literals, identifier_literals):
                             satisfied = True
+                            for earlier_cell in reversed(prev_path):
+                                for out_s in earlier_cell.outputs.values():
+                                    if registry.is_subtype(str(getattr(out_s.signature, "type_name", "")).lower(), "table"):
+                                        bound_parents.add(earlier_cell.cell_id)
+                                        bound_input_ports.add(p_name)
+                                        break
+                                if p_name in bound_input_ports:
+                                    break
+                        else:
+                            is_literal_groundable = (
+                                (registry.is_subtype(t_name, "str") and bool(quoted_str_literals or identifier_literals))
+                                or (registry.is_subtype(t_name, "numeric") and bool(numeric_literals))
+                                or (registry.is_subtype(t_name, "bool") and any(str(lit).strip().lower() in ("true", "false") for lit in (list(identifier_literals or ()) + list(quoted_str_literals or ()))))
+                                or _lattice_is_path_port(p_sig)
+                                or (registry.is_subtype(t_name, "scalar") and bool(quoted_str_literals or identifier_literals or numeric_literals))
+                                or bool(getattr(p_sig, "enum_values", None))
+                                or (getattr(p_sig, "port_role", None) == "functional_operator" or ((getattr(cand, "cell_type", "") == "macro" or getattr(cand, "node_role", "") == "macro") and p_name in getattr(cand, "slots", {})))
+                                or (_is_col_projection_port(p_sig) and bool(identifier_literals or quoted_str_literals))
+                            )
+                            if is_literal_groundable:
+                                satisfied = True
 
                     if not satisfied:
                         return None
 
             cand_node_type = getattr(cand, "node_type", "")
-            if cand_node_type != "constructor" and not bound_parents:
-                return None
+            if cand_node_type != "constructor" and cand not in zero_ary_ctors and not bound_parents:
+                if _is_terminal_sink_cell(cand) and not any(p.required for p in cand.inputs.values()):
+                    bound_parents.add(prev_path[-1].cell_id)
+                else:
+                    return None
 
             is_join = len(bound_parents) >= 2
             return (sub, bound_parents, is_join)
@@ -2337,7 +2540,8 @@ class LatticePlanner:
             is_type_var = out_t.isalpha() and len(out_t) == 1 and out_t.isupper()
             if "[" in out_t or is_type_var:
                 for cand in candidates:
-                    if any(unify(out_sig, p_sig.signature) is not None for p_sig in cand.inputs.values()):
+                    cand_in_ports = list(cand.inputs.values()) if cand.inputs else [cand.primary_input]
+                    if any(unify(out_sig, p_sig.signature) is not None for p_sig in cand_in_ports):
                         acc.setdefault(cand.cell_id, cand)
                 res = list(acc.values())
                 _cell_succ_cache[cell.cell_id] = res
@@ -2347,6 +2551,7 @@ class LatticePlanner:
                 if not registry.is_subtype(out_t, in_t):
                     continue
                 for c in cell_list:
+                    cand_in_ports = list(c.inputs.values()) if c.inputs else [c.primary_input]
                     if any(registry.is_state_compatible(
                         producer_state=out_s,
                         consumer_state=getattr(p_sig.signature, "state", "any"),
@@ -2354,7 +2559,7 @@ class LatticePlanner:
                         consumer_accepted=getattr(p_sig.signature, "accepted_states", frozenset()),
                         consumer_parent=getattr(p_sig.signature, "parent_state", None),
                         producer_parent=getattr(out_sig, "parent_state", None),
-                    ) for p_sig in c.inputs.values()):
+                    ) for p_sig in cand_in_ports):
                         acc.setdefault(c.cell_id, c)
             res = list(acc.values())
             _cell_succ_cache[cell.cell_id] = res
@@ -2370,36 +2575,34 @@ class LatticePlanner:
                 # Terminal check (D5): stage 3 sinks conclude the path.
                 # If prev_path already contains any stage-3 sink without sublattice slots,
                 # do not extend it.
-                has_terminal_sink = any(
-                    (getattr(c, "stage", None) == 3 or getattr(c, "node_role", "") == "sink")
-                    and not (isinstance(getattr(c, "slots", None), dict) and bool(c.slots))
-                    for c in prev_path
-                )
+                has_terminal_sink = any(_is_terminal_sink_cell(c) for c in prev_path)
                 if has_terminal_sink:
                     continue
 
-                prev_path_ids = {c.cell_id for c in prev_path}
+                prev_path_ids = {c.cell_id.lower() for c in prev_path}
 
                 successor_candidates: List[Cell] = []
                 seen_succ_ids: Set[str] = set()
 
                 for path_cell in prev_path:
                     for succ in _cell_successors(path_cell):
-                        if succ.cell_id not in seen_succ_ids and succ.cell_id not in prev_path_ids:
+                        succ_low = succ.cell_id.lower()
+                        if succ_low not in seen_succ_ids and succ_low not in prev_path_ids:
                             successor_candidates.append(succ)
-                            seen_succ_ids.add(succ.cell_id)
+                            seen_succ_ids.add(succ_low)
 
                 for ctor in zero_ary_ctors:
-                    if ctor.cell_id not in seen_succ_ids and ctor.cell_id not in prev_path_ids:
+                    ctor_low = ctor.cell_id.lower()
+                    if ctor_low not in seen_succ_ids and ctor_low not in prev_path_ids:
                         successor_candidates.append(ctor)
-                        seen_succ_ids.add(ctor.cell_id)
+                        seen_succ_ids.add(ctor_low)
 
                 for cand in successor_candidates:
-                    if cand.cell_id in prev_path_ids:
+                    if cand.cell_id.lower() in prev_path_ids:
                         continue
 
                     cand_stage = getattr(cand, "stage", None)
-                    if cand_stage == 1:
+                    if cand_stage == 1 and cand not in zero_ary_ctors:
                         continue
 
                     v_res = _verify_frontier_step(prev_path, cand, prev_sigma)
@@ -2411,15 +2614,20 @@ class LatticePlanner:
                     # Step canonicalization: prune permuted orderings of independent commuting steps.
                     # If cand does not consume prev_cell and cand.cell_id < prev_cell.cell_id,
                     # and cand was already eligible to attach to prev_path[:-1], cand should have
-                    # preceded prev_cell. Prune the non-canonical permutation.
+                    # preceded prev_cell. Prune the non-canonical permutation, respecting prompt clause ordering.
                     if (
                         len(prev_path) >= 1
                         and prev_cell.cell_id not in bound_parents
                         and cand.cell_id < prev_cell.cell_id
                         and not _cells_connect(prev_cell, cand)
                     ):
-                        if not prev_path[:-1] or _verify_frontier_step(prev_path[:-1], cand, prev_sigma) is not None:
-                            continue
+                        prev_m = cell_clause_mass.get(prev_cell.cell_id, []) if cell_clause_mass else []
+                        cand_m = cell_clause_mass.get(cand.cell_id, []) if cell_clause_mass else []
+                        prev_cl = max(range(len(prev_m)), key=lambda i: prev_m[i]) if prev_m and max(prev_m) > 0 else 0
+                        cand_cl = max(range(len(cand_m)), key=lambda i: cand_m[i]) if cand_m and max(cand_m) > 0 else 0
+                        if cand_cl <= prev_cl:
+                            if not prev_path[:-1] or _verify_frontier_step(prev_path[:-1], cand, prev_sigma) is not None:
+                                continue
 
                     cand_unbind = _new_unbindable(cand, prev_path)
                     if cand_unbind > 0:
@@ -2429,7 +2637,7 @@ class LatticePlanner:
                     total_sc = prev_score + cand_sc
                     cand_node_type = getattr(cand, "node_type", "")
                     step_weak = prev_weak + (
-                        1 if (cand_node_type != "constructor" and _edge_is_weak(prev_cell, cand)) else 0
+                        1 if (cand_node_type != "constructor" and cand not in zero_ary_ctors and not _is_terminal_sink_cell(cand) and _edge_is_weak(prev_cell, cand)) else 0
                     )
                     step_unbind = prev_unbind + cand_unbind
 

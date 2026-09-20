@@ -30,7 +30,7 @@
       },
       {
         "name": "color_bgr",
-        "parent_state": null,
+        "parent_state": "nd_tensor",
         "carrier_type": "ndarray",
         "description": "Standard 3-channel OpenCV 8-bit unsigned integer array in Blue-Green-Red order",
         "properties": {
@@ -41,7 +41,7 @@
       },
       {
         "name": "color_rgb",
-        "parent_state": null,
+        "parent_state": "nd_tensor",
         "carrier_type": "ndarray",
         "description": "Standard 3-channel array in Red-Green-Blue order",
         "properties": {
@@ -52,7 +52,7 @@
       },
       {
         "name": "gray",
-        "parent_state": null,
+        "parent_state": "nd_tensor",
         "carrier_type": "ndarray",
         "description": "Single-channel intensity image (grayscale)",
         "properties": {
@@ -714,6 +714,18 @@
         }
       ],
       "edges": [
+        {
+          "target_cell_id": "CV2_CVT_COLOR_BGR2RGB",
+          "affinity_score": 0.689,
+          "score_provenance": "ast_mined",
+          "bridging_precondition": "true",
+          "metadata": {
+            "co_occurrences": 20,
+            "producer_occurrences": 46,
+            "transition_probability": 0.4348
+          },
+          "needs_mining": false
+        },
         {
           "target_cell_id": "CV2_CVT_COLOR_BGR2GRAY",
           "affinity_score": 0.689,
@@ -1765,6 +1777,8 @@
         "matplotlib"
       ],
       "keywords": [
+        "bgr",
+        "convert",
         "rgb",
         "bgr2rgb",
         "swap",
