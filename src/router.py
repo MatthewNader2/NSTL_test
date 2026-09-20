@@ -37,6 +37,16 @@ except (ImportError, ValueError):
 logger = get_logger('router')
 
 
+def _extract_id(item):
+    if hasattr(item, "cell_id"):
+        return item.cell_id
+    if isinstance(item, (tuple, list)):
+        for x in item:
+            if hasattr(x, "cell_id"):
+                return x.cell_id
+    return str(item)
+
+
 class IdiomSubgraph:
     """
     Candidate workflow idiom / subgraph in the lattice, discovered via Stage 1 retrieval.
@@ -292,7 +302,7 @@ class LatticeRouter:
                                     aff1 = e1.get("affinity_score", 0.5) if e1 else 0.5
                                     e2 = next((e for e in getattr(mid_cell, "edges", []) if e.get("target_cell_id") == cand.cell_id), None)
                                     aff2 = e2.get("affinity_score", 0.5) if e2 else 0.5
-                                    
+
                                     chain_edges.append((curr_node.cell_id, mid_id, aff1))
                                     chain_edges.append((mid_id, cand.cell_id, aff2))
                                     if mid_cell not in chain_cells:
@@ -363,7 +373,7 @@ class LatticeRouter:
             is_root = 1.0 if internal_in_deg[cid] == 0 else 0.0
             is_stage1 = 1.5 if getattr(cell, "stage", 2) == 1 else 0.0
             is_source = 1.0 if getattr(cell, "node_role", "") == "source" else 0.0
-            
+
             # Nodes with no required input ports receive initiation bonus
             no_req_inputs = 1.0 if not any(getattr(p, "required", True) for p in getattr(cell, "inputs", {}).values()) else 0.0
 
@@ -544,12 +554,42 @@ class LatticeRouter:
         # known-good path. Skipped entirely when macros are disabled.
         if self.macros_enabled:
             self._promote_macro_goals(prompt, final_tunnel, tunnel_ids, relevance_map)
+        final_tunnel = self._prune_tunnel_stratified(final_tunnel, relevance_map)
 
         for cid, s in relevance_map.items():
             if cid not in self.priority_map:
                 self.priority_map[cid] = s
 
         return final_tunnel, relevance_map
+
+    
+    def _prune_tunnel_stratified(self, tunnel_cells, relevance_map, max_s1=12, max_s2=38, max_s3=8):
+        """Stratifies candidates by stage while preserving all promoted domain bridges."""
+        def _stage_num(c):
+            st = getattr(c, 'stage', -1)
+            if isinstance(st, int):
+                return st
+            st_str = str(st).strip().upper()
+            if st_str in ('1', 'S1', 'INGRESS'): return 1
+            if st_str in ('2', 'S2', 'TRANSFORM'): return 2
+            if st_str in ('3', 'S3', 'EGRESS', 'SINK'): return 3
+            return 0
+
+        # Always protect nodes that have high relevance or were promoted (>= 0.05)
+        protected_ids = {c.cell_id for c in tunnel_cells if relevance_map.get(c.cell_id, 0.0) >= 0.05}
+
+        s1 = [c for c in tunnel_cells if _stage_num(c) == 1]
+        s2 = [c for c in tunnel_cells if _stage_num(c) == 2]
+        s3 = [c for c in tunnel_cells if _stage_num(c) == 3]
+
+        s1_sorted = sorted(s1, key=lambda c: relevance_map.get(c.cell_id, 0.0), reverse=True)[:max_s1]
+        s2_sorted = sorted(s2, key=lambda c: relevance_map.get(c.cell_id, 0.0), reverse=True)[:max_s2]
+        s3_sorted = sorted(s3, key=lambda c: relevance_map.get(c.cell_id, 0.0), reverse=True)[:max_s3]
+
+        # Union of stratified top-k + all protected domain bridges
+        keep_ids = {c.cell_id for c in s1_sorted + s2_sorted + s3_sorted} | protected_ids
+        pruned = [c for c in tunnel_cells if c.cell_id in keep_ids]
+        return pruned if pruned else tunnel_cells
 
     def _promote_macro_goals(
         self,
@@ -649,7 +689,7 @@ class LatticeRouter:
         if promoted:
             logger.debug(
                 f"[ROUTER] Macro-goal promotion: "
-                f"{[c.cell_id for _, c in promoted]}"
+                f"{[_extract_id(c) for c in promoted]}"
             )
 
     def _tunnel_from_groups(
@@ -893,4 +933,3 @@ def log_coverage_gap(prompt: str, domain_guess: str = "", score: float = 0.0, no
             "node_id": node_id,
             "timestamp": time.time()
         }) + "\n")
-

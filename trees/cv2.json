@@ -5377,7 +5377,10 @@
           "value_constraints": null,
           "shape_contract": {
             "ndim": 2
-          }
+          },
+          "type": "Optional[ndarray]",
+          "role": "parameter",
+          "default": "None"
         },
         "iterations": {
           "type_name": "int",
@@ -5524,7 +5527,10 @@
           "value_constraints": null,
           "shape_contract": {
             "ndim": 2
-          }
+          },
+          "type": "Optional[ndarray]",
+          "role": "parameter",
+          "default": "None"
         },
         "iterations": {
           "type_name": "int",

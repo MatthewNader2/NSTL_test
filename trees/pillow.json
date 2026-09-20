@@ -3712,7 +3712,10 @@
         }
       ],
       "primary_in": "image",
-      "primary_out": "output_var"
+      "primary_out": "output_var",
+      "imports": [
+        "from PIL import ImageFilter"
+      ]
     },
     {
       "cell_id": "PILLOW_FILTER_BOX_BLUR",
@@ -3825,7 +3828,10 @@
         }
       ],
       "primary_in": "image",
-      "primary_out": "output_var"
+      "primary_out": "output_var",
+      "imports": [
+        "from PIL import ImageFilter"
+      ]
     },
     {
       "cell_id": "PILLOW_FILTER_FIND_EDGES",
@@ -3917,7 +3923,10 @@
         }
       ],
       "primary_in": "image",
-      "primary_out": "output_var"
+      "primary_out": "output_var",
+      "imports": [
+        "from PIL import ImageFilter"
+      ]
     },
     {
       "cell_id": "PILLOW_FILTER_CONTOUR",
@@ -4009,7 +4018,10 @@
         }
       ],
       "primary_in": "image",
-      "primary_out": "output_var"
+      "primary_out": "output_var",
+      "imports": [
+        "from PIL import ImageFilter"
+      ]
     },
     {
       "cell_id": "PILLOW_FILTER_SHARPEN",
@@ -4100,7 +4112,10 @@
         }
       ],
       "primary_in": "image",
-      "primary_out": "output_var"
+      "primary_out": "output_var",
+      "imports": [
+        "from PIL import ImageFilter"
+      ]
     },
     {
       "cell_id": "PILLOW_FILTER_UNSHARP_MASK",
@@ -4242,7 +4257,10 @@
         }
       ],
       "primary_in": "image",
-      "primary_out": "output_var"
+      "primary_out": "output_var",
+      "imports": [
+        "from PIL import ImageFilter"
+      ]
     },
     {
       "cell_id": "PILLOW_FILTER_MEDIAN",
@@ -4363,7 +4381,10 @@
         }
       ],
       "primary_in": "image",
-      "primary_out": "output_var"
+      "primary_out": "output_var",
+      "imports": [
+        "from PIL import ImageFilter"
+      ]
     },
     {
       "cell_id": "PILLOW_ENHANCE_CONTRAST",
@@ -8813,7 +8834,10 @@
         }
       ],
       "primary_in": "image",
-      "primary_out": "output_var"
+      "primary_out": "output_var",
+      "imports": [
+        "from PIL import ImageFilter"
+      ]
     },
     {
       "cell_id": "PILLOW_FILTER_SMOOTH",
@@ -8904,7 +8928,10 @@
         }
       ],
       "primary_in": "image",
-      "primary_out": "output_var"
+      "primary_out": "output_var",
+      "imports": [
+        "from PIL import ImageFilter"
+      ]
     },
     {
       "cell_id": "PILLOW_IMAGEOPS_COLORIZE",

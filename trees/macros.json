@@ -45,6 +45,37 @@
   "types": [],
   "cells": [
     {
+      "cell_id": "MACRO_CV2_IMSHOW_BLOCK",
+      "domain": "cv2",
+      "stage": 3,
+      "role": "sink",
+      "doc": "Displays an image in an OpenCV GUI window, waits for keypress, and closes window.",
+      "inputs": {
+        "image": {
+          "type_name": "ndarray",
+          "type": "ndarray",
+          "role": "data_input",
+          "required": true
+        },
+        "winname": {
+          "type_name": "str",
+          "type": "str",
+          "role": "parameter",
+          "required": false,
+          "default": "\"Result\""
+        },
+        "delay": {
+          "type_name": "int",
+          "type": "int",
+          "role": "parameter",
+          "required": false,
+          "default": 0
+        }
+      },
+      "outputs": {},
+      "template": "cv2.imshow({winname}, {image})\ncv2.waitKey({delay})\ncv2.destroyAllWindows()"
+    },
+    {
       "cell_id": "MACRO_PANDAS_TOP_N_BY_COLUMN",
       "stage": 1,
       "topology_type": "sequential",
