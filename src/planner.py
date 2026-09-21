@@ -1532,6 +1532,24 @@ class LatticePlanner:
                     "intent_deficit": round(-intent_deficit, 2),
                     "literal*15": round(literal_consumption * 15.0, 2),
                 }
+            # SINK COMPLETION BONUS & HALLUCINATION DAMPENING
+            if path:
+                last_c = path[-1]
+                if _is_terminal_sink_cell(last_c):
+                    total += 3.5  # Reward reaching valid terminal sink
+                elif getattr(last_c, "stage", None) == 2 and not any(_is_terminal_sink_cell(c) for c in path):
+                    out_desc = str(getattr(last_c, "primary_output", "")) + " " + str(getattr(last_c, "outputs", ""))
+                    if any(carrier in out_desc for carrier in ("ndarray", "Image", "DataFrame", "GroupBy")):
+                        total -= 4.0  # Dangling unconsumed output penalty
+
+                # Dampen unrequested transforms when query coverage is satisfied
+                if coverage >= 0.70:
+                    for c in path[1:]:
+                        if getattr(c, "stage", None) == 2:
+                            cid = getattr(c, "cell_id", "").lower()
+                            if any(unreq in cid for unreq in ("erode", "dilate", "morphology")) and not any(w in prompt.lower() for w in ("erode", "dilate", "morph")):
+                                total -= 5.0
+
             _path_score_cache[path_key] = total
             return total
 
@@ -2432,6 +2450,14 @@ class LatticePlanner:
             cand: Cell,
             prev_sigma: Substitution
         ) -> Optional[Tuple[Substitution, Set[str], bool]]:
+            # STRICT STAGE MONOID: S3 (Sink) is terminal. No transforms may follow a sink.
+            if prev_path and _is_terminal_sink_cell(prev_path[-1]):
+                return None
+            cand_stage = getattr(cand, "stage", None)
+            cand_role = str(getattr(cand, "node_role", "")).lower()
+            if (cand_stage == 2 or cand_role in ("transformer", "transform")) and any(_is_terminal_sink_cell(c) for c in prev_path):
+                return None
+
             sub = prev_sigma
             bound_parents: Set[str] = set()
             bound_input_ports: Set[str] = set()

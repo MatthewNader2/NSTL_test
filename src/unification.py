@@ -3064,7 +3064,8 @@ class UnificationGate:
         # Collect dependencies recursively
         deps: List[str] = []
         def collect_deps(c: Cell):
-            for dep in c.dependencies:
+            all_deps = list(getattr(c, "dependencies", [])) + list(getattr(c, "imports", []))
+            for dep in all_deps:
                 dep_clean = dep.strip()
                 if not dep_clean:
                     continue

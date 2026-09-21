@@ -3604,6 +3604,7 @@
       "is_public": true,
       "docstring": "Applies Gaussian blur convolution filter with adjustable radius.",
       "dependencies": [
+        "from PIL import ImageFilter",
         "PIL.ImageFilter",
         "PIL.Image"
       ],
@@ -3730,6 +3731,7 @@
       "is_public": true,
       "docstring": "Applies Box blur filter where each pixel is set to the average value of its surrounding box.",
       "dependencies": [
+        "from PIL import ImageFilter",
         "PIL.ImageFilter",
         "PIL.Image"
       ],
@@ -3846,6 +3848,7 @@
       "is_public": true,
       "docstring": "Applies a predefined edge-finding kernel highlighting boundaries within the image.",
       "dependencies": [
+        "from PIL import ImageFilter",
         "PIL.ImageFilter",
         "PIL.Image"
       ],
@@ -3941,6 +3944,7 @@
       "is_public": true,
       "docstring": "Applies a predefined contour filter extracting outline boundaries.",
       "dependencies": [
+        "from PIL import ImageFilter",
         "PIL.ImageFilter",
         "PIL.Image"
       ],
@@ -4036,6 +4040,7 @@
       "is_public": true,
       "docstring": "Applies a predefined sharpening convolution filter.",
       "dependencies": [
+        "from PIL import ImageFilter",
         "PIL.ImageFilter",
         "PIL.Image"
       ],
@@ -4130,6 +4135,7 @@
       "is_public": true,
       "docstring": "Applies an unsharp mask filter to sharpen fine details without boosting noise.",
       "dependencies": [
+        "from PIL import ImageFilter",
         "PIL.ImageFilter",
         "PIL.Image"
       ],
@@ -4275,6 +4281,7 @@
       "is_public": true,
       "docstring": "Applies a median filter for salt-and-pepper noise reduction.",
       "dependencies": [
+        "from PIL import ImageFilter",
         "PIL.ImageFilter",
         "PIL.Image"
       ],
@@ -8690,6 +8697,7 @@
       "is_public": true,
       "docstring": "Applies an arbitrary NxN convolution kernel with scale and offset.",
       "dependencies": [
+        "from PIL import ImageFilter",
         "PIL.ImageFilter",
         "PIL.Image"
       ],
@@ -8852,6 +8860,7 @@
       "is_public": true,
       "docstring": "Applies a predefined gentle smoothing filter.",
       "dependencies": [
+        "from PIL import ImageFilter",
         "PIL.ImageFilter",
         "PIL.Image"
       ],
