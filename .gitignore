@@ -91,3 +91,58 @@ temp_ultra_run.py
 
 *.patch
 *.bak*
+
+
+# Excluded modules and UI
+android_app/
+frontend/
+frontend_dist/
+packaging/
+reports/
+tests/
+scratch/
+new_trees/
+"new trees"/
+
+# Temporary test/debug scripts and reports
+apply_fixes.py
+inspect_code.py
+run_phase0_smoke.py
+test_report.md
+evaluation_results.json
+data.csv
+
+
+# Excluded modules, UI, and test suites
+frontend/
+frontend_dist/
+packaging/
+reports/
+tests/
+scratch/
+new_trees/
+"new trees"/
+
+# Temporary inspection/test scripts & reports
+apply_fixes.py
+inspect_code.py
+run_phase0_smoke.py
+test_report.md
+
+
+# Offline tools & non-essential scripts
+tools/
+scripts/mount_drive.py
+scripts/download_icon.py
+scripts/check_coverage.py
+scripts/check_procs.py
+scripts/view_log.py
+scripts/bundle_code.py
+scripts/trigger*.py
+
+# Root orphans & evaluation modules
+universal_harvester.py
+pytest.ini
+src/eval_metrics.py
+src/eval_runner.py
+src/lattice_auditor.py
