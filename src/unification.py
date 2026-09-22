@@ -1099,6 +1099,16 @@ class ExecutionContext:
             except ValueError:
                 pass
 
+            # Dimension patterns: NxM, NxN (e.g. "100x100", "5x5", "3x3")
+            # These are compound tokens that fail float() but contain numeric
+            # dimension values that must be available for shape/size ports.
+            _dim_m = re.match(r'^(\d+)[xX×](\d+)$', w)
+            if _dim_m:
+                spans.append((pos, "numeric", _dim_m.group(1)))
+                if _dim_m.group(1) != _dim_m.group(2):
+                    spans.append((pos + len(_dim_m.group(1)) + 1, "numeric", _dim_m.group(2)))
+                continue
+
             # Bare referential identifiers: the way humans name columns, fields
             # and variables in prose WITHOUT quoting them ("normalize X column").
             # Structural orthography only: a short, capitalized, alphanumeric
@@ -1832,6 +1842,11 @@ class ExecutionContext:
                     if str(val).lower() not in {str(e).lower() for e in port_sig.enum_values}:
                         continue
                 is_file_or_quoted = kind in ("file_asset", "quoted_str")
+                # Guard: a single-character quoted_str with no path separator
+                # or extension is structurally a label/column name, never a
+                # file path. Prevent path ports from stealing column literals.
+                if kind == "quoted_str" and len(str(val)) <= 1:
+                    is_file_or_quoted = False
                 matches_path = bool(ExecutionContext._PATH_RE.match(str(val)))
                 if is_file_or_quoted or (is_path_role and matches_path):
                     direction = _asset_direction(lit_pos) if kind == "file_asset" else ""
