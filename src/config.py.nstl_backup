@@ -1,4 +1,3 @@
-import os
 """
 src/config.py - Centralized Configuration for NSTL
 Uses Pydantic BaseSettings for validated, type-safe configuration with .env file support.
@@ -51,12 +50,6 @@ class NSTLSettings(BaseSettings):
     # Topology planning approach: "frontier" (Multi-Carrier Monoidal Frontier DAG, default)
     # or "linear" (1D Monadic Trellis baseline for comparative ablation benchmarks).
     topology_mode: str = "frontier"
-    # (apply_fixes_v7) IR compiler is opt-out; no-ops in Profile 0/A.
-    use_ir_compiler: bool = False
-    # (apply_fixes_v10) when True, refuse to emit if no path meets
-    # the coverage floor (best-effort fallback disabled).
-    require_coverage_floor: bool = False
-    planner_config: Optional[Path] = None
 
     def model_post_init(self, __context) -> None:
         """Resolve default paths relative to project_root after construction."""
@@ -68,12 +61,6 @@ class NSTLSettings(BaseSettings):
             self.logs_dir = self.project_root / "logs"
         if self.models_dir is None:
             self.models_dir = self.project_root / "models"
-        if getattr(self, "planner_config", None) is None:
-            for _cand in (self.project_root / "config" / "planner.yaml",
-                          self.project_root / "config" / "planner.json"):
-                if _cand.exists():
-                    self.planner_config = _cand
-                    break
 
     @property
     def cors_origins(self) -> List[str]:

@@ -22,14 +22,14 @@ from log_config import get_logger
 try:
     from .lattice import LatticeOrchestrator, Cell, MacroCell
     from .internal_rag import LocalRAG
-    from .planner import LatticePlanner, STOPWORDS, _segment_prompt_clauses
+    from .planner import LatticePlanner, STOPWORDS
     from .tokenizer import CellTokenizer
     from .inference import ModelManager
     from .route_methods import get_route_method, RouteMethod
 except (ImportError, ValueError):
     from lattice import LatticeOrchestrator, Cell, MacroCell
     from internal_rag import LocalRAG
-    from planner import LatticePlanner, STOPWORDS, _segment_prompt_clauses
+    from planner import LatticePlanner, STOPWORDS
     from tokenizer import CellTokenizer
     from inference import ModelManager
     from route_methods import get_route_method, RouteMethod
@@ -144,20 +144,6 @@ class LatticeRouter:
             macros_enabled=self._macros_enabled,
             topology_mode=self._topology_mode
         )
-        # (apply_fixes_v7) IR compiler hook
-        try:
-            from config import settings as _s
-            self._use_ir_compiler = bool(getattr(_s, "use_ir_compiler", True))
-        except Exception:
-            self._use_ir_compiler = True
-        self._ir_compiler = None
-        if self._use_ir_compiler:
-            try:
-                from ir_compiler import IRCompiler
-                self._ir_compiler = IRCompiler(self.orchestrator)
-            except Exception as _e:
-                logger.warning("IR compiler unavailable: %s", _e)
-        self._last_ir_steps = 0
         self.priority_map: Dict[str, float] = {}
 
     @property
@@ -414,27 +400,12 @@ class LatticeRouter:
         """
         if not prompt or not prompt.strip() or len(self.orchestrator.loaded_cells) == 0:
             return [], {}
-        # (apply_fixes_v7) IR compilation drives semantic clause count.
-        num_semantic_clauses = 0
-        if getattr(self, "_use_ir_compiler", False) and self._ir_compiler is not None:
-            try:
-                _ir = self._ir_compiler.compile(prompt)
-                if _ir is not None:
-                    ops = " ".join(s.get("op", "") for s in _ir.steps)
-                    libs = " ".join(_ir.libraries)
-                    prompt = (prompt + " " + ops + " " + libs).strip()
-                    num_semantic_clauses = len(_ir.steps)
-                    self._last_ir_steps = num_semantic_clauses
-            except Exception as _e:
-                logger.debug("[IR] augmentation failed: %s", _e)
 
         token_index = getattr(self.orchestrator, "token_index", None)
         N = len(self.orchestrator.loaded_cells)
 
         # Decompose prompt into constituent clauses (sub-goals)
-        clauses = _segment_prompt_clauses(prompt)
-        if not num_semantic_clauses:
-            num_semantic_clauses = len(clauses)
+        clauses = [c.strip() for c in re.split(r'[,;]|\b(?:and|then)\b', prompt.strip()) if c.strip()]
         search_texts = [prompt.strip()] + [c for c in clauses if c != prompt.strip()]
         first_clause = clauses[0] if clauses else prompt.strip()
 
@@ -583,10 +554,7 @@ class LatticeRouter:
         # known-good path. Skipped entirely when macros are disabled.
         if self.macros_enabled:
             self._promote_macro_goals(prompt, final_tunnel, tunnel_ids, relevance_map)
-        final_tunnel = self._prune_tunnel_stratified(
-            final_tunnel, relevance_map,
-            num_semantic_clauses=num_semantic_clauses,
-        )
+        final_tunnel = self._prune_tunnel_stratified(final_tunnel, relevance_map)
 
         for cid, s in relevance_map.items():
             if cid not in self.priority_map:
@@ -595,32 +563,33 @@ class LatticeRouter:
         return final_tunnel, relevance_map
 
     
-    def _prune_tunnel_stratified(self, tunnel_cells, relevance_map,
-                                 num_semantic_clauses: int = 1,
-                                 max_s1=None, max_s2=None, max_s3=None):
-        """(apply_fixes_v7) Stratified pruning; caps scale with task size."""
-        n = max(int(num_semantic_clauses or 1), 1)
-        max_s1 = max_s1 if max_s1 is not None else max(12, n * 2)
-        max_s2 = max_s2 if max_s2 is not None else max(38, n * 6)
-        max_s3 = max_s3 if max_s3 is not None else max(8,  n * 2)
-
+    def _prune_tunnel_stratified(self, tunnel_cells, relevance_map, max_s1=12, max_s2=38, max_s3=8):
+        """Stratifies candidates by stage while preserving all promoted domain bridges."""
         def _stage_num(c):
             st = getattr(c, 'stage', -1)
-            if isinstance(st, int): return st
+            if isinstance(st, int):
+                return st
             st_str = str(st).strip().upper()
-            return 1 if st_str in ('1', 'S1', 'INGRESS') else (
-                   2 if st_str in ('2', 'S2', 'TRANSFORM') else (
-                   3 if st_str in ('3', 'S3', 'EGRESS', 'SINK') else 0))
+            if st_str in ('1', 'S1', 'INGRESS'): return 1
+            if st_str in ('2', 'S2', 'TRANSFORM'): return 2
+            if st_str in ('3', 'S3', 'EGRESS', 'SINK'): return 3
+            return 0
 
+        # Always protect nodes that have high relevance or were promoted (>= 0.05)
         protected_ids = {c.cell_id for c in tunnel_cells if relevance_map.get(c.cell_id, 0.0) >= 0.05}
-        s1 = sorted([c for c in tunnel_cells if _stage_num(c) == 1],
-                    key=lambda c: relevance_map.get(c.cell_id, 0.0), reverse=True)[:max_s1]
-        s2 = sorted([c for c in tunnel_cells if _stage_num(c) == 2],
-                    key=lambda c: relevance_map.get(c.cell_id, 0.0), reverse=True)[:max_s2]
-        s3 = sorted([c for c in tunnel_cells if _stage_num(c) == 3],
-                    key=lambda c: relevance_map.get(c.cell_id, 0.0), reverse=True)[:max_s3]
-        keep_ids = {c.cell_id for c in s1 + s2 + s3} | protected_ids
-        return [c for c in tunnel_cells if c.cell_id in keep_ids] or tunnel_cells
+
+        s1 = [c for c in tunnel_cells if _stage_num(c) == 1]
+        s2 = [c for c in tunnel_cells if _stage_num(c) == 2]
+        s3 = [c for c in tunnel_cells if _stage_num(c) == 3]
+
+        s1_sorted = sorted(s1, key=lambda c: relevance_map.get(c.cell_id, 0.0), reverse=True)[:max_s1]
+        s2_sorted = sorted(s2, key=lambda c: relevance_map.get(c.cell_id, 0.0), reverse=True)[:max_s2]
+        s3_sorted = sorted(s3, key=lambda c: relevance_map.get(c.cell_id, 0.0), reverse=True)[:max_s3]
+
+        # Union of stratified top-k + all protected domain bridges
+        keep_ids = {c.cell_id for c in s1_sorted + s2_sorted + s3_sorted} | protected_ids
+        pruned = [c for c in tunnel_cells if c.cell_id in keep_ids]
+        return pruned if pruned else tunnel_cells
 
     def _promote_macro_goals(
         self,

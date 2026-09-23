@@ -5,7 +5,13 @@
     "pd": "pandas"
   },
   "column_projection_tokens": [
-    "column", "columns", "col", "feature", "features", "projection", "fields"
+    "column",
+    "columns",
+    "col",
+    "feature",
+    "features",
+    "projection",
+    "fields"
   ],
   "asset_placeholders": {
     "table": "input_data.csv"
@@ -288,6 +294,18 @@
         "parent_state": "source_identifier",
         "carrier_type": "str",
         "description": "Declared by data migration (formerly engine bootstrap state 'valid_path')."
+      },
+      {
+        "name": "tabular",
+        "parent_state": "raw",
+        "carrier_type": "DataFrame",
+        "description": "Tabular DataFrame reconstituted from an ndarray and column projection headers.",
+        "properties": {
+          "has_nans": false,
+          "is_deduped": false,
+          "is_indexed": false,
+          "numeric_only": false
+        }
       }
     ],
     "transitions": [
@@ -1390,6 +1408,56 @@
         "from": "windowed",
         "to": "ndarray_generic",
         "via": "PANDAS_DATAFRAME_TO_NUMPY"
+      },
+      {
+        "from": "raw",
+        "to": "aggregated",
+        "via": "PD_CORR"
+      },
+      {
+        "from": "cleaned",
+        "to": "aggregated",
+        "via": "PD_CORR"
+      },
+      {
+        "from": "numeric_only",
+        "to": "aggregated",
+        "via": "PD_CORR"
+      },
+      {
+        "from": "cleaned",
+        "to": "aggregated",
+        "via": "PD_COV"
+      },
+      {
+        "from": "numeric_only",
+        "to": "aggregated",
+        "via": "PD_COV"
+      },
+      {
+        "from": "cleaned",
+        "to": "series_numeric",
+        "via": "PD_MEDIAN"
+      },
+      {
+        "from": "ndarray_generic",
+        "to": "tabular",
+        "via": "PANDAS_DATAFRAME_FROM_ARRAY"
+      },
+      {
+        "from": "tabular",
+        "to": "cleaned",
+        "via": "PD_DROPNA"
+      },
+      {
+        "from": "tabular",
+        "to": "written_to_disk",
+        "via": "PD_TO_CSV"
+      },
+      {
+        "from": "tabular",
+        "to": "ndarray_generic",
+        "via": "PANDAS_DATAFRAME_TO_NUMPY"
       }
     ],
     "initial_state": "raw",
@@ -2137,7 +2205,8 @@
             "raw",
             "cleaned",
             "indexed",
-            "filtered"
+            "filtered",
+            "tabular"
           ],
           "qualifiers": [],
           "default_value": null,
@@ -9518,7 +9587,8 @@
             "raw",
             "deduped",
             "filtered",
-            "windowed"
+            "windowed",
+            "tabular"
           ],
           "qualifiers": [],
           "default_value": null,
@@ -9934,7 +10004,8 @@
             "numeric_only",
             "aggregated",
             "pivoted",
-            "dataframe_2d_generic"
+            "dataframe_2d_generic",
+            "tabular"
           ],
           "qualifiers": [],
           "default_value": null,
@@ -10878,6 +10949,518 @@
       "type_vars": [],
       "raises": [],
       "domain_name": "pandas"
+    },
+    {
+      "cell_id": "PD_CORR",
+      "stage": 2,
+      "topology_type": "sequential",
+      "node_type": "method",
+      "node_role": "transformer",
+      "mutation_type": "pure",
+      "is_context_manager": false,
+      "verified": true,
+      "source_priority": 1,
+      "is_public": true,
+      "docstring": "Compute pairwise correlation of columns, excluding NA/null values.",
+      "dependencies": [
+        "pandas as pd"
+      ],
+      "semantic_tags": [
+        "correlation",
+        "statistics",
+        "matrix"
+      ],
+      "keywords": [
+        "corr",
+        "correlation",
+        "pearson",
+        "spearman"
+      ],
+      "code_template": "{output_var} = {df}.corr(method={method}, min_periods={min_periods}, numeric_only={numeric_only})",
+      "slots": [
+        "output_var",
+        "df",
+        "method",
+        "min_periods",
+        "numeric_only"
+      ],
+      "bound_slots": {},
+      "feedback_state_type": null,
+      "raises": [
+        "ValueError"
+      ],
+      "type_vars": [],
+      "inputs": {
+        "port_0": {
+          "type_name": "DataFrame",
+          "state": "cleaned",
+          "accepted_states": [
+            "raw",
+            "cleaned",
+            "numeric_only",
+            "deduped",
+            "dataframe_2d_generic"
+          ],
+          "qualifiers": [],
+          "default_value": null,
+          "description": "DataFrame for pairwise correlations",
+          "domain": "pandas",
+          "required": true,
+          "abstract_type": "table",
+          "enum_values": null,
+          "param_kind": "positional_or_keyword",
+          "value_constraints": null,
+          "shape_contract": null,
+          "port_role": "data_input"
+        },
+        "port_1": {
+          "type_name": "str",
+          "state": "method_type",
+          "qualifiers": [],
+          "default_value": "'pearson'",
+          "description": "Correlation method ('pearson', 'kendall', 'spearman')",
+          "domain": "pandas",
+          "required": false,
+          "abstract_type": "scalar",
+          "enum_values": [
+            "pearson",
+            "kendall",
+            "spearman"
+          ],
+          "param_kind": "keyword_only",
+          "value_constraints": null,
+          "shape_contract": null
+        },
+        "port_2": {
+          "type_name": "int",
+          "state": "min_observations",
+          "qualifiers": [],
+          "default_value": "1",
+          "description": "Minimum observations required per pair",
+          "domain": "pandas",
+          "required": false,
+          "abstract_type": "scalar",
+          "enum_values": null,
+          "param_kind": "keyword_only",
+          "value_constraints": null,
+          "shape_contract": null
+        },
+        "port_3": {
+          "type_name": "bool",
+          "state": "numeric_only_flag",
+          "qualifiers": [],
+          "default_value": "True",
+          "description": "Include only float, int or boolean data",
+          "domain": "pandas",
+          "required": false,
+          "abstract_type": "scalar",
+          "enum_values": [
+            "True",
+            "False"
+          ],
+          "param_kind": "keyword_only",
+          "value_constraints": null,
+          "shape_contract": null
+        }
+      },
+      "outputs": {
+        "port_0": {
+          "type_name": "DataFrame",
+          "state": "aggregated",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Pairwise correlation matrix DataFrame",
+          "domain": "pandas",
+          "required": true,
+          "abstract_type": "table",
+          "enum_values": null,
+          "param_kind": "positional_or_keyword",
+          "value_constraints": null,
+          "shape_contract": null
+        }
+      },
+      "preconditions": [],
+      "postconditions": [],
+      "effects": [],
+      "edges": [
+        {
+          "target_cell_id": "PANDAS_DATAFRAME_TO_NUMPY",
+          "affinity_score": 0.8,
+          "score_provenance": "llm_seed",
+          "bridging_precondition": "true",
+          "metadata": {},
+          "needs_mining": true
+        }
+      ],
+      "primary_in": "port_0",
+      "primary_out": "port_0"
+    },
+    {
+      "cell_id": "PD_COV",
+      "stage": 2,
+      "topology_type": "sequential",
+      "node_type": "method",
+      "node_role": "transformer",
+      "mutation_type": "pure",
+      "is_context_manager": false,
+      "verified": true,
+      "source_priority": 1,
+      "is_public": true,
+      "docstring": "Compute pairwise covariance of columns, excluding NA/null values.",
+      "dependencies": [
+        "pandas as pd"
+      ],
+      "semantic_tags": [
+        "covariance",
+        "statistics",
+        "matrix"
+      ],
+      "keywords": [
+        "cov",
+        "covariance"
+      ],
+      "code_template": "{output_var} = {df}.cov(min_periods={min_periods}, numeric_only={numeric_only})",
+      "slots": [
+        "output_var",
+        "df",
+        "min_periods",
+        "numeric_only"
+      ],
+      "bound_slots": {},
+      "feedback_state_type": null,
+      "raises": [
+        "ValueError"
+      ],
+      "type_vars": [],
+      "inputs": {
+        "port_0": {
+          "type_name": "DataFrame",
+          "state": "cleaned",
+          "accepted_states": [
+            "raw",
+            "cleaned",
+            "numeric_only",
+            "deduped"
+          ],
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Source DataFrame",
+          "domain": "pandas",
+          "required": true,
+          "abstract_type": "table",
+          "enum_values": null,
+          "param_kind": "positional_or_keyword",
+          "value_constraints": null,
+          "shape_contract": null,
+          "port_role": "data_input"
+        },
+        "port_1": {
+          "type_name": "int",
+          "state": "min_observations",
+          "qualifiers": [],
+          "default_value": "None",
+          "description": "Minimum observations required per pair",
+          "domain": "pandas",
+          "required": false,
+          "abstract_type": "scalar",
+          "enum_values": null,
+          "param_kind": "keyword_only",
+          "value_constraints": null,
+          "shape_contract": null
+        },
+        "port_2": {
+          "type_name": "bool",
+          "state": "numeric_only_flag",
+          "qualifiers": [],
+          "default_value": "True",
+          "description": "Include only numeric columns",
+          "domain": "pandas",
+          "required": false,
+          "abstract_type": "scalar",
+          "enum_values": [
+            "True",
+            "False"
+          ],
+          "param_kind": "keyword_only",
+          "value_constraints": null,
+          "shape_contract": null
+        }
+      },
+      "outputs": {
+        "port_0": {
+          "type_name": "DataFrame",
+          "state": "aggregated",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Pairwise covariance matrix DataFrame",
+          "domain": "pandas",
+          "required": true,
+          "abstract_type": "table",
+          "enum_values": null,
+          "param_kind": "positional_or_keyword",
+          "value_constraints": null,
+          "shape_contract": null
+        }
+      },
+      "preconditions": [],
+      "postconditions": [],
+      "effects": [],
+      "edges": [],
+      "primary_in": "port_0",
+      "primary_out": "port_0"
+    },
+    {
+      "cell_id": "PD_MEDIAN",
+      "stage": 2,
+      "topology_type": "sequential",
+      "node_type": "method",
+      "node_role": "transformer",
+      "mutation_type": "pure",
+      "is_context_manager": false,
+      "verified": true,
+      "source_priority": 1,
+      "is_public": true,
+      "docstring": "Return the median of values over the requested axis.",
+      "dependencies": [
+        "pandas as pd"
+      ],
+      "semantic_tags": [
+        "reduction",
+        "median",
+        "statistics"
+      ],
+      "keywords": [
+        "median",
+        "percentile_50"
+      ],
+      "code_template": "{output_var} = {df}.median(axis={axis}, numeric_only={numeric_only})",
+      "slots": [
+        "output_var",
+        "df",
+        "axis",
+        "numeric_only"
+      ],
+      "bound_slots": {},
+      "feedback_state_type": null,
+      "raises": [],
+      "type_vars": [],
+      "inputs": {
+        "port_0": {
+          "type_name": "DataFrame",
+          "state": "cleaned",
+          "accepted_states": [
+            "raw",
+            "cleaned",
+            "numeric_only",
+            "deduped"
+          ],
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Input DataFrame",
+          "domain": "pandas",
+          "required": true,
+          "abstract_type": "table",
+          "enum_values": null,
+          "param_kind": "positional_or_keyword",
+          "value_constraints": null,
+          "shape_contract": null,
+          "port_role": "data_input"
+        },
+        "port_1": {
+          "type_name": "int",
+          "state": "axis_param",
+          "qualifiers": [],
+          "default_value": "0",
+          "description": "0 for rows, 1 for columns",
+          "domain": "pandas",
+          "required": false,
+          "abstract_type": "scalar",
+          "enum_values": [
+            "0",
+            "1"
+          ],
+          "param_kind": "keyword_only",
+          "value_constraints": null,
+          "shape_contract": null
+        },
+        "port_2": {
+          "type_name": "bool",
+          "state": "numeric_only_flag",
+          "qualifiers": [],
+          "default_value": "True",
+          "description": "Include only numeric dtypes",
+          "domain": "pandas",
+          "required": false,
+          "abstract_type": "scalar",
+          "enum_values": [
+            "True",
+            "False"
+          ],
+          "param_kind": "keyword_only",
+          "value_constraints": null,
+          "shape_contract": null
+        }
+      },
+      "outputs": {
+        "port_0": {
+          "type_name": "Series",
+          "state": "series_numeric",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Series containing column medians",
+          "domain": "pandas",
+          "required": true,
+          "abstract_type": "sequence",
+          "enum_values": null,
+          "param_kind": "positional_or_keyword",
+          "value_constraints": null,
+          "shape_contract": null
+        }
+      },
+      "preconditions": [],
+      "postconditions": [],
+      "effects": [],
+      "edges": [],
+      "primary_in": "port_0",
+      "primary_out": "port_0"
+    },
+    {
+      "cell_id": "PANDAS_DATAFRAME_FROM_ARRAY",
+      "stage": 2,
+      "topology_type": "sequential",
+      "node_type": "function",
+      "node_role": "transform",
+      "domain_name": "pandas",
+      "mutation_type": "pure",
+      "is_context_manager": false,
+      "verified": true,
+      "source_priority": 1,
+      "is_public": true,
+      "endable": false,
+      "docstring": "Construct a DataFrame by reshaping an ndarray to match the column count of the provided projection headers.",
+      "dependencies": [
+        "pandas as pd"
+      ],
+      "semantic_tags": [
+        "dataframe",
+        "constructor",
+        "bridge",
+        "interchange",
+        "reshape",
+        "array_bridge"
+      ],
+      "keywords": [
+        "dataframe",
+        "from array",
+        "columns",
+        "reshape",
+        "from_numpy",
+        "matrix_to_dataframe"
+      ],
+      "code_template": "{output_var} = pd.DataFrame({data}.reshape(-1, len({columns})), columns={columns})",
+      "slots": [
+        "output_var",
+        "data",
+        "columns"
+      ],
+      "bound_slots": {},
+      "feedback_state_type": null,
+      "raises": [
+        "ValueError"
+      ],
+      "type_vars": [],
+      "inputs": {
+        "data": {
+          "type_name": "ndarray",
+          "state": "ndarray_generic",
+          "accepted_states": [
+            "ndarray_generic",
+            "1d_vector",
+            "2d_matrix",
+            "nd_tensor"
+          ],
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Source numerical array to reshape and wrap into a DataFrame.",
+          "domain": "pandas",
+          "required": true,
+          "abstract_type": "tensor",
+          "enum_values": null,
+          "param_kind": "positional_or_keyword",
+          "value_constraints": null,
+          "shape_contract": null,
+          "port_role": "data_input"
+        },
+        "columns": {
+          "type_name": "List[str]",
+          "state": "column_projection",
+          "accepted_states": [
+            "column_projection",
+            "column_list"
+          ],
+          "qualifiers": [],
+          "default_value": null,
+          "description": "List of column name strings defining width and feature projection.",
+          "domain": "pandas",
+          "required": true,
+          "abstract_type": "collection",
+          "enum_values": null,
+          "param_kind": "positional_or_keyword",
+          "value_constraints": null,
+          "shape_contract": null,
+          "port_role": "column_projection"
+        }
+      },
+      "outputs": {
+        "output_var": {
+          "type_name": "DataFrame",
+          "state": "tabular",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Constructed DataFrame structured according to projected column labels.",
+          "domain": "pandas",
+          "required": true,
+          "abstract_type": "table",
+          "enum_values": null,
+          "param_kind": "positional_or_keyword",
+          "value_constraints": null,
+          "shape_contract": null
+        }
+      },
+      "preconditions": [],
+      "postconditions": [
+        {
+          "target": "output_var",
+          "property": "is_null",
+          "operator": "==",
+          "value": false,
+          "expression": "output_var is not None",
+          "description": "Constructed DataFrame must not be None."
+        }
+      ],
+      "effects": [
+        "allocates_memory"
+      ],
+      "edges": [
+        {
+          "target_cell_id": "PANDAS_DATAFRAME_TO_NUMPY",
+          "affinity_score": 0.8,
+          "score_provenance": "llm_seed",
+          "bridging_precondition": "true",
+          "metadata": {},
+          "needs_mining": true
+        },
+        {
+          "target_cell_id": "PD_TO_CSV",
+          "affinity_score": 0.8,
+          "score_provenance": "llm_seed",
+          "bridging_precondition": "true",
+          "metadata": {},
+          "needs_mining": true
+        }
+      ],
+      "primary_in": "data",
+      "primary_out": "output_var"
     }
   ],
   "types": {

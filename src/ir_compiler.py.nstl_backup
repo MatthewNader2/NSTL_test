@@ -1,0 +1,117 @@
+"""
+ir_compiler.py (apply_fixes_v7) — Prompt -> typed IR via the local LLM.
+Runs whenever an LLM object is present; returns None in Profile 0/A.
+"""
+from __future__ import annotations
+import json, re
+from dataclasses import dataclass, field
+from typing import Any, Dict, List, Optional
+
+from log_config import get_logger
+try:
+    from .inference import ModelManager
+except (ImportError, ValueError):
+    from inference import ModelManager
+
+logger = get_logger("ir_compiler")
+
+IR_SCHEMA = {
+    "type": "object",
+    "required": ["steps"],
+    "properties": {
+        "libraries": {"type": "array", "items": {"type": "string"}},
+        "steps": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "required": ["op"],
+                "properties": {
+                    "op":      {"type": "string"},
+                    "params":  {"type": "object"},
+                    "library": {"type": "string"},
+                },
+            },
+        },
+        "literals": {"type": "object"},
+    },
+}
+
+PROMPT_TEMPLATE = """\
+You are a semantic compiler. Convert the user request into a typed IR.
+
+Allowed `op` values (from the loaded tree vocabulary):
+{vocab}
+
+Allowed libraries: {libs}
+
+Rules:
+- One `op` per semantic action. Do NOT split on commas inside lists.
+- Do NOT invent ops outside the vocabulary.
+- Extract EVERY literal into `literals`.
+- Return ONLY JSON.
+
+User prompt:
+{prompt}
+"""
+
+@dataclass
+class IR:
+    steps: List[Dict[str, Any]]
+    literals: Dict[str, int] = field(default_factory=dict)
+    libraries: List[str] = field(default_factory=list)
+    raw: str = ""
+
+    @classmethod
+    def parse(cls, text: str) -> "IR":
+        m = re.search(r"\{.*\}", text, re.DOTALL)
+        if not m:
+            raise ValueError("IR compiler: no JSON in output")
+        data = json.loads(m.group(0))
+        return cls(
+            steps=data.get("steps", []),
+            literals={str(k): int(v) for k, v in (data.get("literals") or {}).items()},
+            libraries=list(data.get("libraries") or []),
+            raw=text,
+        )
+
+    def validate(self, vocab: set) -> List[str]:
+        return [f"step {i}: unknown op {s.get('op')!r}"
+                for i, s in enumerate(self.steps) if s.get("op") not in vocab]
+
+class IRCompiler:
+    def __init__(self, orchestrator):
+        self.orchestrator = orchestrator
+        self.vocab = self._derive_vocab()
+        self.libs  = self._derive_libs()
+
+    def _derive_vocab(self) -> set:
+        out = set()
+        for c in self.orchestrator.loaded_cells.values():
+            for tag in getattr(c, "semantic_tags", []) or []:
+                tag = str(tag).strip().lower()
+                if len(tag) > 2 and " " not in tag: out.add(tag)
+            for kw in getattr(c, "keywords", []) or []:
+                kw = str(kw).strip().lower()
+                if len(kw) > 2 and " " not in kw: out.add(kw)
+        return out or {"read", "transform", "filter", "aggregate", "plot", "save"}
+
+    def _derive_libs(self) -> list:
+        return sorted({c.domain_name for c in self.orchestrator.loaded_cells.values()
+                       if getattr(c, "domain_name", None)})
+
+    def compile(self, prompt: str) -> Optional[IR]:
+        mm = ModelManager.get_instance()
+        prof = getattr(mm, "profile", None)
+        if prof is None: return None
+        if getattr(prof, "llm", None) is None: return None
+        msg = PROMPT_TEMPLATE.format(
+            vocab=sorted(self.vocab)[:200], libs=sorted(self.libs), prompt=prompt)
+        try:
+            raw = mm.generate_text(msg, max_tokens=1024, schema=IR_SCHEMA)
+            ir = IR.parse(raw)
+            errs = ir.validate(self.vocab)
+            if errs: logger.warning("[IR] vocab violations: %s", errs)
+            return ir
+        except Exception as e:
+            logger.warning("[IR] compilation failed: %s", e)
+            return None

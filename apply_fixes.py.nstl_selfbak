@@ -1,0 +1,921 @@
+#!/usr/bin/env python3
+"""
+apply_fixes_v6.py — NSTL comprehensive fixes. Correct AST indentation.
+Supersedes v3/v4/v5. Applies to a CLEAN source tree.
+"""
+from __future__ import annotations
+import ast, re, shutil, sys, textwrap
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parent
+SRC  = ROOT / "src"
+if not SRC.is_dir():
+    sys.exit(f"expected src/ next to this script; got {SRC}")
+
+# ---------------------------------------------------------------------------
+class _Txn:
+    def __init__(self): self._staged: dict = {}
+    def stage(self, p, t): self._staged[p] = t
+    def staged(self): return dict(self._staged)
+    def commit(self):
+        for p, t in self._staged.items():
+            if p.exists():
+                b = p.with_suffix(p.suffix + ".nstl_backup")
+                if not b.exists(): shutil.copy2(p, b)
+            p.write_text(t, encoding="utf-8")
+    def rollback(self): self._staged.clear()
+
+def _find_target(tree, name, cls_name=None):
+    if cls_name is None:
+        for n in tree.body:
+            if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef)) and n.name == name:
+                return n
+    else:
+        for cls in tree.body:
+            if isinstance(cls, ast.ClassDef) and cls.name == cls_name:
+                for m in cls.body:
+                    if isinstance(m, (ast.FunctionDef, ast.AsyncFunctionDef)) and m.name == name:
+                        return m
+    return None
+
+def _replace_named(text, name, new_body, cls_name=None):
+    """Replace a function/method. new_body is DEDENTED, starts with 'def'/'@decorator'.
+    Re-indents to match target's leading whitespace. Preserves original decorators
+    if new_body has none."""
+    try: tree = ast.parse(text)
+    except SyntaxError as e:
+        return text, False, f"parse error: {e}"
+    target = _find_target(tree, name, cls_name)
+    if target is None:
+        return text, False, f"not found: {name}"
+    start = target.lineno - 1
+    if not new_body.lstrip().startswith("@"):
+        for d in target.decorator_list:
+            dl = d.lineno - 1
+            if dl < start: start = dl
+    end = target.end_lineno
+    lines = text.splitlines(keepends=True)
+    orig_first = lines[start]
+    orig_indent = orig_first[:len(orig_first) - len(orig_first.lstrip())]
+    dedented = textwrap.dedent(new_body).lstrip("\n")
+    reindented = textwrap.indent(dedented, orig_indent)
+    if not reindented.endswith("\n"): reindented += "\n"
+    return "".join(lines[:start]) + reindented + "".join(lines[end:]), True, "ok"
+
+def _insert_before_named(text, anchor_name, block, cls_name=None):
+    try: tree = ast.parse(text)
+    except SyntaxError: return text, False
+    target = _find_target(tree, anchor_name, cls_name)
+    if target is None: return text, False
+    start = target.lineno - 1
+    for d in target.decorator_list:
+        dl = d.lineno - 1
+        if dl < start: start = dl
+    lines = text.splitlines(keepends=True)
+    return "".join(lines[:start]) + block.rstrip("\n") + "\n\n" + "".join(lines[start:]), True
+
+def _insert_after_line(text, substring, block):
+    lines = text.splitlines(keepends=True)
+    for i, ln in enumerate(lines):
+        if substring in ln:
+            return "".join(lines[:i+1]) + block.rstrip("\n") + "\n" + "".join(lines[i+1:]), True
+    return text, False
+
+def _literal_replace(text, old, new, label):
+    if old not in text:
+        print(f"  [skip] {label}"); return text
+    print(f"  [ok]   {label}")
+    return text.replace(old, new, 1)
+
+# ===========================================================================
+# tokenizer.py
+# ===========================================================================
+ALIAS_HELPERS = '''
+# (apply_fixes_v6) Alias expansion. Tree JSON declares aliases; tokenizer
+# expands tokens both ways so ``pd_dataframe_init`` matches "pandas".
+_ALIASES: dict = {}
+_ALIASES_REV: dict = {}
+
+def register_aliases(mapping: dict) -> None:
+    global _ALIASES, _ALIASES_REV
+    clean = {str(k).strip().lower(): str(v).strip().lower()
+             for k, v in (mapping or {}).items() if k and v}
+    if clean == _ALIASES: return
+    _ALIASES = clean
+    rev: dict = {}
+    for k, v in _ALIASES.items():
+        rev.setdefault(v, set()).add(k)
+    _ALIASES_REV = rev
+    try: _tokenize_identifier_cached.cache_clear()
+    except Exception: pass
+
+def _expand_aliases(tokens):
+    if not _ALIASES or not tokens: return tokens
+    out = set(tokens)
+    for t in tokens:
+        c = _ALIASES.get(t)
+        if c: out.add(c)
+        r = _ALIASES_REV.get(t)
+        if r: out.update(r)
+    return out
+'''.strip()
+
+IDENT_CACHE_SRC = '''
+def _tokenize_identifier_cached(identifier: str) -> FrozenSet[str]:
+    clean = str(identifier).strip()
+    if not clean: return frozenset()
+    tokens: Set[str] = set()
+    def _emit(chunk):
+        t = "".join(chunk).lower().strip()
+        if len(t) > 1:
+            tokens.add(t)
+            s = normalize_token(t)
+            if len(s) > 1: tokens.add(s)
+    seg, chunk = [], []
+    for ch in clean:
+        if ch.isalnum(): seg.append(ch)
+        elif seg: _emit(seg); seg = []
+    if seg: _emit(seg)
+    n = len(clean)
+    for i, ch in enumerate(clean):
+        if not ch.isalnum():
+            if chunk: _emit(chunk); chunk = []
+            continue
+        if chunk:
+            p = chunk[-1]
+            if (p.islower() and ch.isupper()) or (p.isupper() and ch.isupper() and i + 1 < n and clean[i + 1].islower()) or (p.isalpha() and ch.isdigit()) or (p.isdigit() and ch.isalpha()):
+                _emit(chunk); chunk = [ch]; continue
+        chunk.append(ch)
+    if chunk: _emit(chunk)
+    full = "".join(c for c in clean if c.isalnum() or c in ("_", "-")).lower().strip()
+    if len(full) > 1: tokens.add(full)
+    if _ALIASES:  # (apply_fixes_v6)
+        tokens = _expand_aliases(tokens)
+    return frozenset(tokens)
+'''.strip()
+
+TOKENIZE_PROMPT_SRC = '''
+@classmethod
+def tokenize_prompt(cls, prompt: str, remove_stopwords: bool = False) -> Set[str]:
+    if not prompt: return set()
+    tokens: Set[str] = set()
+    cur = []
+    for ch in prompt.lower():
+        if ch.isalnum() or ch == '_': cur.append(ch)
+        else:
+            if cur:
+                w = "".join(cur)
+                if len(w) > 1 and (w[0].isalpha() or w[0] == '_'):
+                    tokens.add(w)
+                    if w.isalpha():
+                        s = normalize_token(w)
+                        if len(s) > 1: tokens.add(s)
+                cur = []
+    if cur:
+        w = "".join(cur)
+        if len(w) > 1 and (w[0].isalpha() or w[0] == '_'):
+            tokens.add(w)
+            if w.isalpha():
+                s = normalize_token(w)
+                if len(s) > 1: tokens.add(s)
+    for raw in prompt.split():
+        cw = raw.strip(",;.:!?()[]{}\\'\\"")
+        if any(c.isupper() for c in cw) or '_' in cw or '.' in cw or any(c.isdigit() for c in cw):
+            tokens.update(cls.tokenize_identifier(cw))
+    if _ALIASES:  # (apply_fixes_v6)
+        tokens = _expand_aliases(tokens)
+    return tokens
+'''.strip()
+
+def fix_tokenizer(txn):
+    p = SRC / "tokenizer.py"
+    if not p.exists(): print("  [miss] tokenizer.py"); return False
+    t = p.read_text(encoding="utf-8")
+
+    if "_ALIASES: dict = {}" not in t:
+        t2, ok = _insert_before_named(t, "_tokenize_identifier_cached", ALIAS_HELPERS)
+        if ok:
+            t = t2; print("  [ok]   tokenizer.py: inserted alias helpers")
+        else:
+            print("  [warn] tokenizer.py: cannot locate _tokenize_identifier_cached")
+            return False
+    else:
+        print("  [skip] tokenizer.py: alias helpers present")
+
+    t2, ok, why = _replace_named(t, "_tokenize_identifier_cached", IDENT_CACHE_SRC)
+    if ok: t = t2; print("  [ok]   tokenizer.py: _tokenize_identifier_cached rewritten")
+    else:   print(f"  [warn] tokenizer.py: {why}")
+
+    t2, ok, why = _replace_named(t, "tokenize_prompt", TOKENIZE_PROMPT_SRC, cls_name="CellTokenizer")
+    if ok: t = t2; print("  [ok]   tokenizer.py: tokenize_prompt rewritten")
+    else:   print(f"  [warn] tokenizer.py: {why}")
+
+    txn.stage(p, t)
+    return True
+
+# ===========================================================================
+# lattice.py
+# ===========================================================================
+REGISTER_ALIAS_SRC = '''
+def register_alias(self, alias: str, canonical: str):
+    self._aliases[alias.strip().lower()] = canonical.strip()
+    # (apply_fixes_v6) propagate to tokenizer
+    try:
+        from .tokenizer import register_aliases as _ra
+    except ImportError:
+        try: from tokenizer import register_aliases as _ra
+        except ImportError: _ra = None
+    if _ra is not None:
+        try: _ra(self._aliases)
+        except Exception: pass
+'''.strip()
+
+IDENTITY_TOKENS_SRC = '''
+@property
+def identity_tokens(self) -> Set[str]:
+    if self._identity_tokens is None:
+        toks = CellTokenizer.tokenize_cell(self.cell_id, self.keywords)
+        # (apply_fixes_v6) RC4 — identity is operation-only.
+        if getattr(self, "domain_name", None) and self.domain_name != "generic":
+            dom_toks = CellTokenizer.tokenize_identifier(self.domain_name)
+            toks = toks - dom_toks
+        try:
+            aliases = TypeRegistry.get_instance().get_all_aliases()
+        except Exception:
+            aliases = {}
+        if aliases:
+            toks = toks - {t for t in toks if t in aliases}
+        for p in self.inputs: toks.update(CellTokenizer.tokenize_identifier(p))
+        for p in self.outputs: toks.update(CellTokenizer.tokenize_identifier(p))
+        self._identity_tokens = toks
+    return self._identity_tokens
+'''.strip()
+
+ENUM_FIELD_BLOCK = '''        # (apply_fixes_v6) P6 — configurable enum-citation triggers
+        self._enum_citation_triggers: Set[str] = set()'''
+
+ENUM_METHODS = '''
+def register_enum_citation_triggers(self, triggers) -> None:
+    for t in triggers or ():
+        s = str(t).strip().lower()
+        if len(s) >= 2: self._enum_citation_triggers.add(s)
+
+def get_enum_citation_triggers(self) -> FrozenSet[str]:
+    return frozenset(self._enum_citation_triggers)
+'''.strip()
+
+def fix_lattice(txn):
+    p = SRC / "lattice.py"
+    if not p.exists(): print("  [miss] lattice.py"); return False
+    t = p.read_text(encoding="utf-8")
+
+    t2, ok, why = _replace_named(t, "register_alias", REGISTER_ALIAS_SRC, cls_name="TypeRegistry")
+    if ok: t = t2; print("  [ok]   lattice.py: register_alias rewired")
+    else:   print(f"  [warn] lattice.py: register_alias: {why}")
+
+    t2, ok, why = _replace_named(t, "identity_tokens", IDENTITY_TOKENS_SRC, cls_name="Cell")
+    if ok: t = t2; print("  [ok]   lattice.py: identity_tokens (RC4)")
+    else:   print(f"  [warn] lattice.py: identity_tokens: {why}")
+
+    if "_enum_citation_triggers" not in t:
+        anchor = "        self._ancestry_cache: Dict[Tuple[str, FrozenSet[str]], bool] = {}"
+        if anchor in t:
+            t = t.replace(anchor, anchor + "\n" + ENUM_FIELD_BLOCK, 1)
+            print("  [ok]   lattice.py: _enum_citation_triggers field")
+        else:
+            print("  [warn] lattice.py: _ancestry_cache anchor not found")
+
+        t2, ok = _insert_before_named(t, "register_alias", ENUM_METHODS, cls_name="TypeRegistry")
+        if ok:
+            t = t2; print("  [ok]   lattice.py: register/get enum_citation_triggers")
+        else:
+            print("  [warn] lattice.py: could not insert enum methods")
+    else:
+        print("  [skip] lattice.py: enum triggers present")
+
+    txn.stage(p, t)
+    return True
+
+# ===========================================================================
+# router.py
+# ===========================================================================
+PRUNE_SRC = '''
+def _prune_tunnel_stratified(self, tunnel_cells, relevance_map,
+                             num_semantic_clauses: int = 1,
+                             max_s1=None, max_s2=None, max_s3=None):
+    """(apply_fixes_v6) Stratified pruning; caps scale with task size."""
+    n = max(int(num_semantic_clauses or 1), 1)
+    max_s1 = max_s1 if max_s1 is not None else max(12, n * 2)
+    max_s2 = max_s2 if max_s2 is not None else max(38, n * 6)
+    max_s3 = max_s3 if max_s3 is not None else max(8,  n * 2)
+
+    def _stage_num(c):
+        st = getattr(c, 'stage', -1)
+        if isinstance(st, int): return st
+        st_str = str(st).strip().upper()
+        return 1 if st_str in ('1', 'S1', 'INGRESS') else (
+               2 if st_str in ('2', 'S2', 'TRANSFORM') else (
+               3 if st_str in ('3', 'S3', 'EGRESS', 'SINK') else 0))
+
+    protected_ids = {c.cell_id for c in tunnel_cells if relevance_map.get(c.cell_id, 0.0) >= 0.05}
+    s1 = sorted([c for c in tunnel_cells if _stage_num(c) == 1],
+                key=lambda c: relevance_map.get(c.cell_id, 0.0), reverse=True)[:max_s1]
+    s2 = sorted([c for c in tunnel_cells if _stage_num(c) == 2],
+                key=lambda c: relevance_map.get(c.cell_id, 0.0), reverse=True)[:max_s2]
+    s3 = sorted([c for c in tunnel_cells if _stage_num(c) == 3],
+                key=lambda c: relevance_map.get(c.cell_id, 0.0), reverse=True)[:max_s3]
+    keep_ids = {c.cell_id for c in s1 + s2 + s3} | protected_ids
+    return [c for c in tunnel_cells if c.cell_id in keep_ids] or tunnel_cells
+'''.strip()
+
+IR_HOOK_BLOCK = '''        # (apply_fixes_v6) IR compiler hook
+        try:
+            from config import settings as _s
+            self._use_ir_compiler = bool(getattr(_s, "use_ir_compiler", True))
+        except Exception:
+            self._use_ir_compiler = True
+        self._ir_compiler = None
+        if self._use_ir_compiler:
+            try:
+                from ir_compiler import IRCompiler
+                self._ir_compiler = IRCompiler(self.orchestrator)
+            except Exception as _e:
+                logger.warning("IR compiler unavailable: %s", _e)
+        self._last_ir_steps = 0'''
+
+ROUTE_IR_BLOCK = '''        # (apply_fixes_v6) IR compilation drives semantic clause count.
+        num_semantic_clauses = 0
+        if getattr(self, "_use_ir_compiler", False) and self._ir_compiler is not None:
+            try:
+                _ir = self._ir_compiler.compile(prompt)
+                if _ir is not None:
+                    ops = " ".join(s.get("op", "") for s in _ir.steps)
+                    libs = " ".join(_ir.libraries)
+                    prompt = (prompt + " " + ops + " " + libs).strip()
+                    num_semantic_clauses = len(_ir.steps)
+                    self._last_ir_steps = num_semantic_clauses
+            except Exception as _e:
+                logger.debug("[IR] augmentation failed: %s", _e)'''
+
+def fix_router(txn):
+    p = SRC / "router.py"
+    if not p.exists(): print("  [miss] router.py"); return False
+    t = p.read_text(encoding="utf-8")
+
+    if "_segment_prompt_clauses" not in t:
+        t = t.replace("from .planner import LatticePlanner, STOPWORDS\n",
+                      "from .planner import LatticePlanner, STOPWORDS, _segment_prompt_clauses\n", 1)
+        t = t.replace("from planner import LatticePlanner, STOPWORDS\n",
+                      "from planner import LatticePlanner, STOPWORDS, _segment_prompt_clauses\n", 1)
+        print("  [ok]   router.py: import _segment_prompt_clauses")
+
+    if "_ir_compiler = None" not in t:
+        m = re.search(r"(self\.planner\s*=\s*LatticePlanner\([^\)]*\)\s*\n)", t)
+        if m:
+            t = t[:m.end()] + IR_HOOK_BLOCK + "\n" + t[m.end():]
+            print("  [ok]   router.py: IR hook in __init__")
+
+    if "num_semantic_clauses = 0" not in t:
+        try: tree = ast.parse(t)
+        except SyntaxError: tree = None
+        if tree:
+            route_m = None
+            for cls in tree.body:
+                if isinstance(cls, ast.ClassDef) and cls.name == "LatticeRouter":
+                    for m in cls.body:
+                        if isinstance(m, ast.FunctionDef) and m.name == "route":
+                            route_m = m; break
+                    break
+            if route_m:
+                first_if = next((s for s in route_m.body if isinstance(s, ast.If)), None)
+                if first_if:
+                    lines = t.splitlines(keepends=True)
+                    t = "".join(lines[:first_if.end_lineno]) + ROUTE_IR_BLOCK + "\n" + "".join(lines[first_if.end_lineno:])
+                    print("  [ok]   router.py: route() IR block")
+
+    t = _literal_replace(
+        t,
+        "        clauses = [c.strip() for c in re.split(r'[,;]|\\b(?:and|then)\\b', prompt.strip()) if c.strip()]\n",
+        "        clauses = _segment_prompt_clauses(prompt)\n        if not num_semantic_clauses:\n            num_semantic_clauses = len(clauses)\n",
+        "router.py: shared segmenter",
+    )
+    t = _literal_replace(
+        t,
+        "        final_tunnel = self._prune_tunnel_stratified(final_tunnel, relevance_map)",
+        "        final_tunnel = self._prune_tunnel_stratified(\n            final_tunnel, relevance_map,\n            num_semantic_clauses=num_semantic_clauses,\n        )",
+        "router.py: pass num_semantic_clauses",
+    )
+
+    t2, ok, why = _replace_named(t, "_prune_tunnel_stratified", PRUNE_SRC, cls_name="LatticeRouter")
+    if ok: t = t2; print("  [ok]   router.py: _prune_tunnel_stratified (RC3)")
+    else:   print(f"  [warn] router.py: prune: {why}")
+
+    txn.stage(p, t)
+    return True
+
+# ===========================================================================
+# config.py
+# ===========================================================================
+def fix_config(txn):
+    p = SRC / "config.py"
+    if not p.exists(): print("  [miss] config.py"); return False
+    t = p.read_text(encoding="utf-8")
+
+    if not re.search(r"^\s*import\s+os\s*$", t.split("\n\n", 1)[0], re.MULTILINE):
+        t = "import os\n" + t
+        print("  [ok]   config.py: import os")
+
+    if "use_ir_compiler" not in t:
+        anchor = '    topology_mode: str = "frontier"'
+        block = ('    # (apply_fixes_v6) IR compiler is opt-out; no-ops in Profile 0/A.\n'
+                 '    use_ir_compiler: bool = True\n'
+                 '    planner_config: Optional[Path] = None')
+        if anchor in t:
+            t = t.replace(anchor, anchor + "\n" + block, 1)
+            print("  [ok]   config.py: use_ir_compiler + planner_config")
+
+    if "planner_config" in t and "self.planner_config is None" not in t:
+        anchor = '            self.models_dir = self.project_root / "models"'
+        block = ('        if getattr(self, "planner_config", None) is None:\n'
+                 '            for _cand in (self.project_root / "config" / "planner.yaml",\n'
+                 '                          self.project_root / "config" / "planner.json"):\n'
+                 '                if _cand.exists():\n'
+                 '                    self.planner_config = _cand\n'
+                 '                    break')
+        if anchor in t:
+            t = t.replace(anchor, anchor + "\n" + block, 1)
+            print("  [ok]   config.py: planner_config default")
+
+    txn.stage(p, t)
+    return True
+
+# ===========================================================================
+# ir_compiler.py (module-level, no re-indent needed)
+# ===========================================================================
+IR_SRC = '''"""
+ir_compiler.py (apply_fixes_v6) — Prompt -> typed IR via the local LLM.
+Runs whenever an LLM object is present; returns None in Profile 0/A.
+"""
+from __future__ import annotations
+import json, re
+from dataclasses import dataclass, field
+from typing import Any, Dict, List, Optional
+
+from log_config import get_logger
+try:
+    from .inference import ModelManager
+except (ImportError, ValueError):
+    from inference import ModelManager
+
+logger = get_logger("ir_compiler")
+
+IR_SCHEMA = {
+    "type": "object",
+    "required": ["steps"],
+    "properties": {
+        "libraries": {"type": "array", "items": {"type": "string"}},
+        "steps": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "required": ["op"],
+                "properties": {
+                    "op":      {"type": "string"},
+                    "params":  {"type": "object"},
+                    "library": {"type": "string"},
+                },
+            },
+        },
+        "literals": {"type": "object"},
+    },
+}
+
+PROMPT_TEMPLATE = """\\
+You are a semantic compiler. Convert the user request into a typed IR.
+
+Allowed `op` values (from the loaded tree vocabulary):
+{vocab}
+
+Allowed libraries: {libs}
+
+Rules:
+- One `op` per semantic action. Do NOT split on commas inside lists.
+- Do NOT invent ops outside the vocabulary.
+- Extract EVERY literal into `literals`.
+- Return ONLY JSON.
+
+User prompt:
+{prompt}
+"""
+
+@dataclass
+class IR:
+    steps: List[Dict[str, Any]]
+    literals: Dict[str, int] = field(default_factory=dict)
+    libraries: List[str] = field(default_factory=list)
+    raw: str = ""
+
+    @classmethod
+    def parse(cls, text: str) -> "IR":
+        m = re.search(r"\\{.*\\}", text, re.DOTALL)
+        if not m:
+            raise ValueError("IR compiler: no JSON in output")
+        data = json.loads(m.group(0))
+        return cls(
+            steps=data.get("steps", []),
+            literals={str(k): int(v) for k, v in (data.get("literals") or {}).items()},
+            libraries=list(data.get("libraries") or []),
+            raw=text,
+        )
+
+    def validate(self, vocab: set) -> List[str]:
+        return [f"step {i}: unknown op {s.get('op')!r}"
+                for i, s in enumerate(self.steps) if s.get("op") not in vocab]
+
+class IRCompiler:
+    def __init__(self, orchestrator):
+        self.orchestrator = orchestrator
+        self.vocab = self._derive_vocab()
+        self.libs  = self._derive_libs()
+
+    def _derive_vocab(self) -> set:
+        out = set()
+        for c in self.orchestrator.loaded_cells.values():
+            for tag in getattr(c, "semantic_tags", []) or []:
+                tag = str(tag).strip().lower()
+                if len(tag) > 2 and " " not in tag: out.add(tag)
+            for kw in getattr(c, "keywords", []) or []:
+                kw = str(kw).strip().lower()
+                if len(kw) > 2 and " " not in kw: out.add(kw)
+        return out or {"read", "transform", "filter", "aggregate", "plot", "save"}
+
+    def _derive_libs(self) -> list:
+        return sorted({c.domain_name for c in self.orchestrator.loaded_cells.values()
+                       if getattr(c, "domain_name", None)})
+
+    def compile(self, prompt: str) -> Optional[IR]:
+        mm = ModelManager.get_instance()
+        prof = getattr(mm, "profile", None)
+        if prof is None: return None
+        if getattr(prof, "llm", None) is None: return None
+        msg = PROMPT_TEMPLATE.format(
+            vocab=sorted(self.vocab)[:200], libs=sorted(self.libs), prompt=prompt)
+        try:
+            raw = mm.generate_text(msg, max_tokens=1024, schema=IR_SCHEMA)
+            ir = IR.parse(raw)
+            errs = ir.validate(self.vocab)
+            if errs: logger.warning("[IR] vocab violations: %s", errs)
+            return ir
+        except Exception as e:
+            logger.warning("[IR] compilation failed: %s", e)
+            return None
+'''
+
+def fix_ir_compiler(txn):
+    txn.stage(SRC / "ir_compiler.py", IR_SRC)
+    print("  [ok]   ir_compiler.py written")
+
+# ===========================================================================
+# P4 — M4/M5
+# ===========================================================================
+M4_SRC = '''from __future__ import annotations
+import re
+from typing import Dict, List, Optional, Set, Any
+from .base import RouteMethod
+from lattice import Cell, LatticeOrchestrator, TypeRegistry
+from tokenizer import CellTokenizer
+from unification import ExecutionContext
+from inference import ModelManager
+from planner import _is_terminal_sink_cell
+
+def _ir_filter(candidates, ir_step):
+    """(apply_fixes_v6) Constrain candidates to those matching an IR step."""
+    if not ir_step: return candidates
+    op  = str(ir_step.get("op", "")).strip().lower()
+    lib = str(ir_step.get("library", "")).strip().lower()
+    if not op and not lib: return candidates
+    matched = []
+    for c in candidates:
+        cid = c.cell_id.lower()
+        dom = (getattr(c, "domain_name", "") or "").lower()
+        toks = set(str(k).lower() for k in getattr(c, "keywords", []) or [])
+        toks |= set(str(k).lower() for k in getattr(c, "semantic_tags", []) or [])
+        op_hit = (not op) or (op in cid) or any(op in t for t in toks)
+        lib_hit = (not lib) or (lib in dom) or (lib in cid)
+        if op_hit and lib_hit: matched.append(c)
+    return matched or candidates
+
+class M4LLMStepwiseRouteMethod(RouteMethod):
+    name = "m4_llm_stepwise"
+
+    def plan(self, prompt, tunnel, relevance_map, orchestrator=None, ctx=None,
+             start_sig=None, goal_sig=None, max_transforms=6, **kwargs):
+        orch = orchestrator or self.orchestrator
+        if not tunnel: return []
+        if len(tunnel) == 1: return [tunnel[0]]
+        candidates = [c for c in tunnel if getattr(c, "node_type", "") != "constant"] or [tunnel[0]]
+        mm = ModelManager.get_instance()
+        has_llm = mm.profile is not None and getattr(mm.profile, "llm", None) is not None
+
+        ir_steps = []
+        if has_llm:
+            try:
+                from ir_compiler import IRCompiler
+                compiler = getattr(self, "_cached_ir", None) or IRCompiler(orch)
+                self._cached_ir = compiler
+                ir = compiler.compile(prompt)
+                if ir is not None: ir_steps = list(ir.steps)
+            except Exception: ir_steps = []
+
+        prompt_tokens = CellTokenizer.tokenize_prompt(prompt)
+        file_literals = [v for _, t, v in (ExecutionContext._extract_universal_literals(prompt or "") if ctx or prompt else []) if t == "file_asset"]
+        def _is_pc(c):
+            return any(getattr(p, "abstract_type", None) == "path"
+                       or getattr(p, "port_role", None) in ("source_data", "model_sink")
+                       or getattr(p.signature, "abstract_type", None) == "path"
+                       for p in c.inputs.values())
+        entry_pool = [c for c in candidates if getattr(c, "stage", None) == 1] or candidates[:5]
+        best_entry = max(entry_pool,
+                         key=lambda c: relevance_map.get(c.cell_id, 0.0) * 5.0
+                         + len(prompt_tokens & getattr(c, "identity_tokens", c.token_set)) * 3.0
+                         + (5.0 if file_literals and _is_pc(c) else 0.0))
+
+        path, visited = [best_entry], {best_entry.cell_id}
+        clauses = self.segment_prompt_clauses(prompt)
+        max_steps = max(2, min(16, max(max_transforms + 2, (len(clauses) if clauses else 1) + 3)))
+
+        has_reg = bool(prompt_tokens & {"regression", "regressor", "continuous"}) and not bool(prompt_tokens & {"classification", "classifier"})
+        has_cls = bool(prompt_tokens & {"classification", "classifier"}) and not bool(prompt_tokens & {"regression", "regressor"})
+
+        def _cov_cnt(pc):
+            return sum(1 for cl in clauses
+                       if any(len(CellTokenizer.tokenize_prompt(cl) & getattr(c, "identity_tokens", c.token_set)) > 0
+                              for c in pc))
+        prev_cov, stall = _cov_cnt(path), 0
+
+        for step_idx in range(max_steps):
+            curr = path[-1]
+            if (getattr(curr, "stage", None) == 3 and len(path) > 1) or any(_is_terminal_sink_cell(c) for c in path):
+                break
+            curr_out_st = str(getattr(curr.primary_output, "state", "")).lower()
+            is_pred = bool(TypeRegistry.get_instance().get_state_properties(curr_out_st).get("is_prediction")) or curr_out_st.startswith("predicted_")
+
+            valid = []
+            for c in candidates:
+                if c.cell_id in visited or not self.step_unifies(curr, c, prev_path=path): continue
+                c_out = str(getattr(c.primary_output, "state", "")).lower()
+                if has_reg and ("label" in c_out or c_out == "predicted_labels"): continue
+                if has_cls and c_out == "predicted_values": continue
+                if is_pred and (getattr(c, "node_role", "") in ("estimator", "model") or "fit" in c.cell_id.lower()): continue
+                valid.append(c)
+            if not valid: break
+
+            if ir_steps and step_idx < len(ir_steps):
+                filtered = _ir_filter(valid, ir_steps[step_idx])
+                if filtered: valid = filtered
+
+            valid.sort(key=lambda c: relevance_map.get(c.cell_id, 0.0) * 10.0
+                       + self.calculate_edge_affinity(curr, c, orch, relevance_map=relevance_map) * 5.0
+                       + len(c.token_set & prompt_tokens) * 3.0, reverse=True)
+            top_valid = valid[:5]
+            selected = None
+            if has_llm:
+                try:
+                    summary = "\\n".join(f"- {c.cell_id}" for c in top_valid)
+                    ir_hint = ""
+                    if ir_steps and step_idx < len(ir_steps):
+                        s = ir_steps[step_idx]
+                        ir_hint = f"\\nTarget op: {s.get('op','')} (library: {s.get('library','')})"
+                    resp = mm.generate_text(
+                        f"Intent: {prompt}\\nPipeline: {[c.cell_id for c in path]}{ir_hint}\\nCandidates:\\n{summary}\\nSelect next CELL_ID:",
+                        max_tokens=64,
+                        system_prompt="Output ONLY the exact cell ID from the candidate list, or FINISH.",
+                    ).strip()
+                    toks = set(re.findall(r"[A-Za-z0-9_]+", resp.lower()))
+                    if "finish" in toks: break
+                    selected = next((c for c in top_valid if c.cell_id.lower() in toks), None)
+                except Exception:
+                    selected = None
+            selected = selected or top_valid[0]
+            path.append(selected); visited.add(selected.cell_id)
+            new_cov = _cov_cnt(path)
+            if new_cov > prev_cov: prev_cov, stall = new_cov, 0
+            else:
+                stall += 1
+                if stall >= 2: break
+        return path
+'''
+
+M5_SRC = '''from __future__ import annotations
+import json, re
+from typing import Dict, List, Optional, Any
+from .base import RouteMethod
+from .m1_clause_anchor import M1ClauseAnchorRouteMethod
+from lattice import Cell, LatticeOrchestrator
+from unification import ExecutionContext
+from inference import ModelManager
+
+def _ir_filter_m5(candidates, ir_step):
+    if not ir_step: return candidates
+    op  = str(ir_step.get("op", "")).strip().lower()
+    lib = str(ir_step.get("library", "")).strip().lower()
+    if not op and not lib: return candidates
+    out = []
+    for c in candidates:
+        cid = c.cell_id.lower(); dom = (getattr(c, "domain_name", "") or "").lower()
+        toks = set(str(k).lower() for k in getattr(c, "keywords", []) or [])
+        toks |= set(str(k).lower() for k in getattr(c, "semantic_tags", []) or [])
+        if (not op or op in cid or any(op in t for t in toks)) and (not lib or lib in dom or lib in cid):
+            out.append(c)
+    return out or candidates
+
+class M5LLMOneShotRouteMethod(RouteMethod):
+    name = "m5_llm_oneshot"
+
+    def plan(self, prompt, tunnel, relevance_map, orchestrator=None, ctx=None,
+             start_sig=None, goal_sig=None, max_transforms=6, **kwargs):
+        orch = orchestrator or self.orchestrator
+        if not tunnel: return []
+        if len(tunnel) == 1: return [tunnel[0]]
+        candidates = [c for c in tunnel if getattr(c, "node_type", "") != "constant"] or [tunnel[0]]
+        cand_map = {c.cell_id.lower(): c for c in candidates}
+        mm = ModelManager.get_instance()
+        has_llm = mm.profile is not None and getattr(mm.profile, "llm", None) is not None
+
+        proposed = []
+        if has_llm:
+            try:
+                from ir_compiler import IRCompiler
+                compiler = getattr(self, "_cached_ir", None) or IRCompiler(orch)
+                self._cached_ir = compiler
+                ir = compiler.compile(prompt)
+                if ir is not None and ir.steps:
+                    for step in ir.steps:
+                        pool = _ir_filter_m5(candidates, step)
+                        pool.sort(key=lambda c: relevance_map.get(c.cell_id, 0.0) * 5.0, reverse=True)
+                        if pool and (not proposed or pool[0].cell_id != proposed[-1].cell_id):
+                            proposed.append(pool[0])
+            except Exception:
+                proposed = []
+
+        if not proposed and has_llm:
+            try:
+                top_str = "\\n".join(f"- {c.cell_id}" for c in sorted(candidates, key=lambda c: relevance_map.get(c.cell_id, 0.0), reverse=True)[:20])
+                resp = mm.generate_text(f"Intent: {prompt}\\nCells:\\n{top_str}\\nReturn JSON list of cell IDs in order:", max_tokens=128, system_prompt="Output ONLY a JSON list.").strip()
+                m = re.search(r"\\[.*?\\]", resp, re.DOTALL)
+                if m:
+                    for cid in json.loads(m.group(0)):
+                        if str(cid).strip().lower() in cand_map: proposed.append(cand_map[str(cid).strip().lower()])
+            except Exception:
+                proposed = []
+
+        if not proposed:
+            return M1ClauseAnchorRouteMethod(orchestrator=orch).plan(
+                prompt, tunnel, relevance_map, orchestrator=orch, ctx=ctx,
+                start_sig=start_sig, goal_sig=goal_sig, max_transforms=max_transforms)
+
+        chain = [proposed[0]]
+        for nxt in proposed[1:]:
+            curr = chain[-1]
+            if self.step_unifies(curr, nxt): chain.append(nxt)
+            else:
+                bridge = self.find_bridge(curr, nxt, candidates, orch)
+                if bridge: chain.extend([bridge, nxt])
+                else: return M1ClauseAnchorRouteMethod(orchestrator=orch).plan(
+                    prompt, tunnel, relevance_map, orchestrator=orch, ctx=ctx,
+                    start_sig=start_sig, goal_sig=goal_sig, max_transforms=max_transforms)
+        return chain[:min(16, max(max_transforms + 2, 4))]
+'''
+
+def fix_m4_m5(txn):
+    for fname, src in (("m4_llm_stepwise.py", M4_SRC), ("m5_llm_oneshot.py", M5_SRC)):
+        p = SRC / "route_methods" / fname
+        if p.parent.exists():
+            txn.stage(p, src)
+            print(f"  [ok]   route_methods/{fname} rewritten")
+    return True
+
+# ===========================================================================
+# P5 — planner weight loader
+# ===========================================================================
+WEIGHT_LOADER = '''
+def _apply_planner_config():
+    import os as _os, json as _json
+    try:
+        from .config import settings as _settings
+    except ImportError:
+        try: from config import settings as _settings
+        except ImportError: return
+    cfg = getattr(_settings, "planner_config", None)
+    if not cfg: return
+    p = str(cfg)
+    if not _os.path.exists(p): return
+    data = None
+    try:
+        if p.endswith(".json"):
+            with open(p, "r", encoding="utf-8") as f: data = _json.load(f)
+        else:
+            try: import yaml
+            except ImportError: return
+            with open(p, "r", encoding="utf-8") as f: data = yaml.safe_load(f)
+    except Exception: return
+    if not isinstance(data, dict): return
+    for k, v in (data.get("path_weights") or {}).items():
+        if k in PATH_SCORE_WEIGHTS:
+            try: PATH_SCORE_WEIGHTS[k] = float(v)
+            except (TypeError, ValueError): pass
+
+try: _apply_planner_config()
+except Exception: pass
+'''.strip()
+
+def fix_planner(txn):
+    p = SRC / "planner.py"
+    if not p.exists(): print("  [miss] planner.py"); return False
+    t = p.read_text(encoding="utf-8")
+    if "_apply_planner_config" in t:
+        print("  [skip] planner.py: weight loader present")
+        txn.stage(p, t); return True
+    m = re.search(r"PATH_SCORE_WEIGHTS\s*=\s*\{.*?\n\}\s*\n", t, re.DOTALL)
+    if not m:
+        print("  [warn] planner.py: PATH_SCORE_WEIGHTS anchor not found")
+        txn.stage(p, t); return True
+    t = t[:m.end()] + "\n" + WEIGHT_LOADER + "\n" + t[m.end():]
+    print("  [ok]   planner.py: weight loader (P5)")
+    txn.stage(p, t)
+    return True
+
+# ===========================================================================
+# P6 — enum-citation triggers
+# ===========================================================================
+def fix_library_adapters(txn):
+    p = SRC / "library_adapters.py"
+    if not p.exists(): print("  [miss] library_adapters.py"); return False
+    t = p.read_text(encoding="utf-8")
+    if "apply_fixes_v6" in t:
+        print("  [skip] library_adapters.py already patched")
+        txn.stage(p, t); return True
+
+    lines = t.splitlines(keepends=True)
+    target_idx = None
+    for i, ln in enumerate(lines):
+        if "for enum_ident in re.findall" in ln:
+            target_idx = i; break
+    if target_idx is None:
+        print("  [warn] library_adapters.py: enum loop not found")
+        txn.stage(p, t); return True
+
+    target_line = lines[target_idx]
+    indent = target_line[:len(target_line) - len(target_line.lstrip())]
+    new_block = (
+        f'{indent}# (apply_fixes_v6) P6 — triggers configurable from tree JSON\n'
+        f'{indent}try:\n'
+        f'{indent}    from lattice import TypeRegistry as _TR\n'
+        f'{indent}    _trig = _TR.get_instance().get_enum_citation_triggers()\n'
+        f'{indent}except Exception:\n'
+        f'{indent}    _trig = frozenset()\n'
+        f'{indent}if not _trig:\n'
+        f'{indent}    _trig = frozenset({{"see", "values in", "one of"}})\n'
+        f'{indent}_pat = "|".join(re.escape(x) for x in sorted(_trig, key=len, reverse=True))\n'
+        f'{indent}for enum_ident in re.findall(rf"(?:{{_pat}})\\s+#?(?:[A-Za-z_]\\w*::)*([A-Za-z_]\\w*)", p_desc, re.IGNORECASE):\n'
+    )
+    lines[target_idx] = new_block
+    t = "".join(lines)
+    print("  [ok]   library_adapters.py: P6 enum triggers")
+    txn.stage(p, t)
+    return True
+
+# ===========================================================================
+# main
+# ===========================================================================
+def _sanity(txn):
+    for p, text in txn.staged().items():
+        if p.suffix != ".py": continue
+        try: ast.parse(text)
+        except SyntaxError as e:
+            print(f"  [FAIL] {p.name}: {e}"); return False
+    return True
+
+def main():
+    print("[NSTL/v6] applying...")
+    txn = _Txn()
+    ok = True
+    ok &= fix_config(txn)
+    ok &= fix_tokenizer(txn)
+    ok &= fix_lattice(txn)
+    ok &= fix_router(txn)
+    ok &= fix_ir_compiler(txn)
+    ok &= fix_m4_m5(txn)
+    ok &= fix_planner(txn)
+    ok &= fix_library_adapters(txn)
+    if ok and not _sanity(txn): ok = False
+    if not ok:
+        print("\n[NSTL/v6] failed; NOT writing.")
+        txn.rollback()
+        return 1
+    txn.commit()
+    print("\n[NSTL/v6] done. Backups: *.nstl_backup")
+    return 0
+
+if __name__ == "__main__":
+    sys.exit(main())

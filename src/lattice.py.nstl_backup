@@ -252,8 +252,6 @@ class TypeRegistry:
         self._asset_placeholders: Dict[str, str] = {}
         self._output_asset_placeholders: Dict[str, str] = {}
         self._ancestry_cache: Dict[Tuple[str, FrozenSet[str]], bool] = {}
-        # (apply_fixes_v7) P6 — configurable enum-citation triggers
-        self._enum_citation_triggers: Set[str] = set()
         self._bootstrap_carrier_hierarchy()
         self._bootstrap_state_hierarchy()
         self._bootstrap_plugin_types()
@@ -678,25 +676,8 @@ class TypeRegistry:
         except AttributeError:
             pass
 
-    def register_enum_citation_triggers(self, triggers) -> None:
-        for t in triggers or ():
-            s = str(t).strip().lower()
-            if len(s) >= 2: self._enum_citation_triggers.add(s)
-
-    def get_enum_citation_triggers(self) -> FrozenSet[str]:
-        return frozenset(self._enum_citation_triggers)
-
     def register_alias(self, alias: str, canonical: str):
         self._aliases[alias.strip().lower()] = canonical.strip()
-        # (apply_fixes_v7) propagate to tokenizer
-        try:
-            from .tokenizer import register_aliases as _ra
-        except ImportError:
-            try: from tokenizer import register_aliases as _ra
-            except ImportError: _ra = None
-        if _ra is not None:
-            try: _ra(self._aliases)
-            except Exception: pass
 
     def canonical_name(self, type_name: str) -> str:
         if not type_name:
@@ -1817,20 +1798,24 @@ class Cell(ABC):
 
     @property
     def identity_tokens(self) -> Set[str]:
+        """
+        The cell's IDENTITY vocabulary: tokens derived from its identifier and
+        declared keywords only (never from docstring prose). Identity matches
+        carry full retrieval mass; prose matches are damped by the router and
+        planner so descriptive vocabulary cannot outrank another cell's name.
+        """
         if self._identity_tokens is None:
-            toks = CellTokenizer.tokenize_cell(self.cell_id, self.keywords)
-            # (apply_fixes_v7) RC4 — identity is operation-only; strip namespace.
-            if getattr(self, "domain_name", None) and self.domain_name != "generic":
-                dom_toks = CellTokenizer.tokenize_identifier(self.domain_name)
-                toks = toks - dom_toks
             try:
-                aliases = TypeRegistry.get_instance().get_all_aliases()
-            except Exception:
-                aliases = {}
-            if aliases:
-                toks = toks - {t for t in toks if t in aliases}
-            for p in self.inputs: toks.update(CellTokenizer.tokenize_identifier(p))
-            for p in self.outputs: toks.update(CellTokenizer.tokenize_identifier(p))
+                from .tokenizer import CellTokenizer
+            except (ImportError, ValueError):
+                from tokenizer import CellTokenizer
+            toks = CellTokenizer.tokenize_cell(self.cell_id, self.keywords)
+            if getattr(self, "domain_name", None) and self.domain_name != "generic":
+                toks.update(CellTokenizer.tokenize_identifier(self.domain_name))
+            for p in self.inputs:
+                toks.update(CellTokenizer.tokenize_identifier(p))
+            for p in self.outputs:
+                toks.update(CellTokenizer.tokenize_identifier(p))
             self._identity_tokens = toks
         return self._identity_tokens
 

@@ -392,91 +392,47 @@ class LatticePlanner:
     # ============================================================
     def _literal_consumption_of(self, path, universal_literals,
                                 numeric_literals, quoted_str_literals, identifier_literals):
-        """(apply_fixes_v16) Fraction of prompt literals with a home on this path.
+        """Fraction of prompt literals with a home on this path.
 
-        Match channels, in order of specificity:
-          - exact port name           (always)
-          - substring in port name    (only when the literal is >= 3 chars)
-          - token in any cell_id      (covers 'numpy', 'standardscaler', ...)
-          - token in any domain name  (covers 'sklearn', 'pandas', ...)
-          - has a column_projection port on path  (consumes the whole
-            bracketed list of quoted strings at once — R, G, B)
-        Short-string substring matches are rejected: `'r' in 'array'` is a
-        coincidence, not a signal.
+        (apply_fixes_v14) A column_projection port consumes the whole bracketed
+        list of quoted strings at once — not by substring match on single chars.
         """
         if not universal_literals:
             return 1.0
-
-        port_tokens = set()
-        cell_id_tokens = set()
-        domain_tokens = set()
+        path_ports = set()
         has_col_proj = False
         has_numeric_port = False
-
         try:
             reg = TypeRegistry.get_instance()
         except Exception:
             reg = None
-
-        def _tokens(s):
-            s = str(s).lower()
-            out = {s}
-            for part in re.split(r"[^a-z0-9]+", s):
-                if part:
-                    out.add(part)
-            return out
-
-        def _port_match(lc, port):
-            if lc == port:
-                return True
-            if len(lc) >= 3 and lc in port:
-                return True
-            return False
-
-        def _identifier_match(lc):
-            if any(_port_match(lc, p) for p in port_tokens):
-                return True
-            if any(_port_match(lc, c) for c in cell_id_tokens):
-                return True
-            if any(_port_match(lc, d) for d in domain_tokens):
-                return True
-            return False
-
         for c in path:
-            cid = getattr(c, "cell_id", "") or ""
-            cell_id_tokens |= _tokens(cid)
-            dom = getattr(c, "domain_name", "") or ""
-            if dom:
-                domain_tokens |= _tokens(dom)
             for pn, ps in c.inputs.items():
-                port_tokens.add(pn.lower())
+                path_ports.add(pn.lower())
                 r = (getattr(ps, "port_role", None) or getattr(ps, "derived_role", "") or "").lower()
                 if r:
-                    port_tokens.add(r)
+                    path_ports.add(r)
                 tn = str(getattr(ps.signature, "type_name", "")).lower()
                 if r == "column_projection" or "list" in tn or "sequence" in tn:
                     has_col_proj = True
                 if reg is not None and reg.is_subtype(tn, "numeric"):
                     has_numeric_port = True
             for sk in getattr(c, "bound_slots", {}).keys():
-                port_tokens.add(sk.lower())
-
+                path_ports.add(sk.lower())
         consumed = 0
         for kind, lit in universal_literals:
             lc = str(lit).lower().strip("'\"")
             if kind == "file_asset":
-                if any(("path" in p) or ("file" in p) for p in port_tokens):
+                if any(("path" in p) or ("file" in p) for p in path_ports):
                     consumed += 1
             elif kind == "numeric":
                 if numeric_literals and has_numeric_port:
                     consumed += 1
             elif kind == "quoted_str":
-                if has_col_proj:
-                    consumed += 1
-                elif any(_port_match(lc, p) for p in port_tokens):
+                if has_col_proj or any(lc in p or lc == p for p in path_ports):
                     consumed += 1
             else:
-                if _identifier_match(lc):
+                if any(lc in p or lc == p for p in path_ports):
                     consumed += 1
         return consumed / max(len(universal_literals), 1)
 

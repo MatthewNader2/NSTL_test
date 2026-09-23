@@ -170,64 +170,81 @@ def normalize_token(token: str) -> str:
     return w
 
 
-# (apply_fixes_v7) Alias expansion. Tree JSON declares aliases; tokenizer
-# expands them in both directions.
-_ALIASES: dict = {}
-_ALIASES_REV: dict = {}
-
-def register_aliases(mapping: dict) -> None:
-    global _ALIASES, _ALIASES_REV
-    clean = {str(k).strip().lower(): str(v).strip().lower()
-             for k, v in (mapping or {}).items() if k and v}
-    if clean == _ALIASES: return
-    _ALIASES = clean
-    rev: dict = {}
-    for k, v in _ALIASES.items():
-        rev.setdefault(v, set()).add(k)
-    _ALIASES_REV = rev
-    try: _tokenize_identifier_cached.cache_clear()
-    except Exception: pass
-
-def _expand_aliases(tokens):
-    if not _ALIASES or not tokens: return tokens
-    out = set(tokens)
-    for t in tokens:
-        c = _ALIASES.get(t)
-        if c: out.add(c)
-        r = _ALIASES_REV.get(t)
-        if r: out.update(r)
-    return out
-
+@functools.lru_cache(maxsize=32768)
 def _tokenize_identifier_cached(identifier: str) -> FrozenSet[str]:
-    clean = str(identifier).strip()
-    if not clean: return frozenset()
-    tokens = set()
-    def _emit(chunk):
+    clean_id = str(identifier).strip()
+    if not clean_id:
+        return frozenset()
+
+    tokens: Set[str] = set()
+    n = len(clean_id)
+    current_chunk: List[str] = []
+
+    def _emit(chunk: List[str]) -> None:
         t = "".join(chunk).lower().strip()
         if len(t) > 1:
             tokens.add(t)
-            s = normalize_token(t)
-            if len(s) > 1: tokens.add(s)
-    seg, chunk = [], []
-    for ch in clean:
-        if ch.isalnum(): seg.append(ch)
-        elif seg: _emit(seg); seg = []
-    if seg: _emit(seg)
-    n = len(clean)
-    for i, ch in enumerate(clean):
+            stem = normalize_token(t)
+            if len(stem) > 1:
+                tokens.add(stem)
+
+    # Extract punctuation-delimited segments (e.g. 'cv2' and 'imread' in 'CV2_IMREAD')
+    seg: List[str] = []
+    for ch in clean_id:
+        if ch.isalnum():
+            seg.append(ch)
+        else:
+            if seg:
+                _emit(seg)
+                seg = []
+    if seg:
+        _emit(seg)
+
+    # Mathematical character transition state machine:
+    # Boundaries occur at:
+    # 1. Non-alphanumeric punctuation (_, -, ., space, etc.)
+    # 2. Lowercase followed by Uppercase (fooBar -> foo, Bar)
+    # 3. Uppercase followed by Uppercase then Lowercase (HTTPServer -> HTTP, Server)
+    # 4. Letter followed by Digit or Digit followed by Letter
+    for i, ch in enumerate(clean_id):
         if not ch.isalnum():
-            if chunk: _emit(chunk); chunk = []
+            if current_chunk:
+                _emit(current_chunk)
+                current_chunk = []
             continue
-        if chunk:
-            p = chunk[-1]
-            if (p.islower() and ch.isupper()) or (p.isupper() and ch.isupper() and i + 1 < n and clean[i + 1].islower()) or (p.isalpha() and ch.isdigit()) or (p.isdigit() and ch.isalpha()):
-                _emit(chunk); chunk = [ch]; continue
-        chunk.append(ch)
-    if chunk: _emit(chunk)
-    full = "".join(c for c in clean if c.isalnum() or c in ("_", "-")).lower().strip()
-    if len(full) > 1: tokens.add(full)
-    if _ALIASES:  # (apply_fixes_v7)
-        tokens = _expand_aliases(tokens)
+
+        if current_chunk:
+            prev = current_chunk[-1]
+            # Lowercase to Uppercase transition
+            if prev.islower() and ch.isupper():
+                _emit(current_chunk)
+                current_chunk = [ch]
+                continue
+            # Uppercase to Uppercase followed by Lowercase (e.g. 'P' in 'HTTPServer' followed by 'e')
+            if prev.isupper() and ch.isupper() and i + 1 < n and clean_id[i + 1].islower():
+                _emit(current_chunk)
+                current_chunk = [ch]
+                continue
+            # Letter to Digit
+            if prev.isalpha() and ch.isdigit():
+                _emit(current_chunk)
+                current_chunk = [ch]
+                continue
+            # Digit to Letter
+            if prev.isdigit() and ch.isalpha():
+                _emit(current_chunk)
+                current_chunk = [ch]
+                continue
+
+        current_chunk.append(ch)
+
+    if current_chunk:
+        _emit(current_chunk)
+
+    clean_full = "".join(c for c in clean_id if c.isalnum() or c in ("_", "-")).lower().strip()
+    if len(clean_full) > 1:
+        tokens.add(clean_full)
+
     return frozenset(tokens)
 
 
@@ -254,33 +271,47 @@ class CellTokenizer:
 
     @classmethod
     def tokenize_prompt(cls, prompt: str, remove_stopwords: bool = False) -> Set[str]:
-        if not prompt: return set()
-        tokens = set()
-        cur = []
+        """
+        Tokenizes user natural language prompts using word-boundary segmentation.
+        Zero regular expressions: scans alphanumeric sequences. Each word token is
+        paired with its morphological stem (symmetric with identifier tokenization).
+        """
+        if not prompt:
+            return set()
+
+        tokens: Set[str] = set()
+        current_word: List[str] = []
+
         for ch in prompt.lower():
-            if ch.isalnum() or ch == '_': cur.append(ch)
+            if ch.isalnum() or ch == '_':
+                current_word.append(ch)
             else:
-                if cur:
-                    w = "".join(cur)
+                if current_word:
+                    w = "".join(current_word)
                     if len(w) > 1 and (w[0].isalpha() or w[0] == '_'):
                         tokens.add(w)
                         if w.isalpha():
-                            s = normalize_token(w)
-                            if len(s) > 1: tokens.add(s)
-                    cur = []
-        if cur:
-            w = "".join(cur)
+                            stem = normalize_token(w)
+                            if len(stem) > 1:
+                                tokens.add(stem)
+                    current_word = []
+
+        if current_word:
+            w = "".join(current_word)
             if len(w) > 1 and (w[0].isalpha() or w[0] == '_'):
                 tokens.add(w)
                 if w.isalpha():
-                    s = normalize_token(w)
-                    if len(s) > 1: tokens.add(s)
-        for raw in prompt.split():
-            cw = raw.strip(",;.:!?()[]{}\'\"")
-            if any(c.isupper() for c in cw) or '_' in cw or '.' in cw or any(c.isdigit() for c in cw):
-                tokens.update(cls.tokenize_identifier(cw))
-        if _ALIASES:  # (apply_fixes_v7)
-            tokens = _expand_aliases(tokens)
+                    stem = normalize_token(w)
+                    if len(stem) > 1:
+                        tokens.add(stem)
+
+        # Also extract camel-case, dotted/underscored, and alphanumeric identifier sub-words
+        for raw_word in prompt.split():
+            clean_w = raw_word.strip(",;.:!?()[]{}\"'")
+            if any(c.isupper() for c in clean_w) or '_' in clean_w or '.' in clean_w or any(c.isdigit() for c in clean_w):
+                sub_toks = cls.tokenize_identifier(clean_w)
+                tokens.update(sub_toks)
+
         return tokens
 
     @classmethod

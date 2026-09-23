@@ -225,16 +225,7 @@ class LibraryAdapter(abc.ABC):
                     p_desc = m.group(0)
 
             if p_desc:
-                # (apply_fixes_v7) P6 — triggers configurable from tree JSON
-                try:
-                    from lattice import TypeRegistry as _TR
-                    _trig = _TR.get_instance().get_enum_citation_triggers()
-                except Exception:
-                    _trig = frozenset()
-                if not _trig:
-                    _trig = frozenset({"see", "values in", "one of"})
-                _pat = "|".join(re.escape(x) for x in sorted(_trig, key=len, reverse=True))
-                citations = re.findall(rf"(?:{_pat})\s+#?(?:[A-Za-z_]\w*::)*([A-Za-z_]\w+)", p_desc, re.IGNORECASE)
+                citations = re.findall(r"(?:see|values\s+in|one\s+of)\s+#?(?:[A-Za-z_]\w*::)*([A-Za-z_]\w+)", p_desc, re.IGNORECASE)
                 for enum_ident in citations:
                     if len(enum_ident) < 3 or enum_ident.lower() in ("the", "see", "for", "and", "one", "all", "none", "true", "false", "list"):
                         continue

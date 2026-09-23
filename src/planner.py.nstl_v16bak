@@ -392,24 +392,20 @@ class LatticePlanner:
     # ============================================================
     def _literal_consumption_of(self, path, universal_literals,
                                 numeric_literals, quoted_str_literals, identifier_literals):
-        """(apply_fixes_v16) Fraction of prompt literals with a home on this path.
+        """Fraction of prompt literals with a home on this path.
 
-        Match channels, in order of specificity:
-          - exact port name           (always)
-          - substring in port name    (only when the literal is >= 3 chars)
-          - token in any cell_id      (covers 'numpy', 'standardscaler', ...)
-          - token in any domain name  (covers 'sklearn', 'pandas', ...)
-          - has a column_projection port on path  (consumes the whole
-            bracketed list of quoted strings at once — R, G, B)
-        Short-string substring matches are rejected: `'r' in 'array'` is a
-        coincidence, not a signal.
+        (apply_fixes_v15) Three match channels:
+          1. port names / port roles  (e.g. 'columns', 'filepath', 'file')
+          2. cell_id tokens           (e.g. 'numpy' -> NUMPY_CORRCOEF)
+          3. domain names             (e.g. 'sklearn' -> sklearn domain)
+        column_projection ports consume the whole quoted-string list at once.
         """
         if not universal_literals:
             return 1.0
 
-        port_tokens = set()
-        cell_id_tokens = set()
-        domain_tokens = set()
+        port_tokens = set()          # port names + roles, lowercased
+        cell_id_tokens = set()       # all tokens from cell_id, lowercased
+        domain_tokens = set()        # domain names, lowercased
         has_col_proj = False
         has_numeric_port = False
 
@@ -418,36 +414,21 @@ class LatticePlanner:
         except Exception:
             reg = None
 
-        def _tokens(s):
-            s = str(s).lower()
-            out = {s}
-            for part in re.split(r"[^a-z0-9]+", s):
-                if part:
-                    out.add(part)
+        def _tok_split(s):
+            import re as _re
+            out = set()
+            for part in _re.split(r"[^A-Za-z0-9]+", s.lower()):
+                if part: out.add(part)
+            # also whole-string checks via substring later
+            out.add(s.lower())
             return out
-
-        def _port_match(lc, port):
-            if lc == port:
-                return True
-            if len(lc) >= 3 and lc in port:
-                return True
-            return False
-
-        def _identifier_match(lc):
-            if any(_port_match(lc, p) for p in port_tokens):
-                return True
-            if any(_port_match(lc, c) for c in cell_id_tokens):
-                return True
-            if any(_port_match(lc, d) for d in domain_tokens):
-                return True
-            return False
 
         for c in path:
             cid = getattr(c, "cell_id", "") or ""
-            cell_id_tokens |= _tokens(cid)
+            cell_id_tokens.update(_tok_split(cid))
             dom = getattr(c, "domain_name", "") or ""
             if dom:
-                domain_tokens |= _tokens(dom)
+                domain_tokens.add(dom.lower())
             for pn, ps in c.inputs.items():
                 port_tokens.add(pn.lower())
                 r = (getattr(ps, "port_role", None) or getattr(ps, "derived_role", "") or "").lower()
@@ -461,6 +442,15 @@ class LatticePlanner:
             for sk in getattr(c, "bound_slots", {}).keys():
                 port_tokens.add(sk.lower())
 
+        def _matches_identifier(lc):
+            if any(lc in p or lc == p for p in port_tokens):
+                return True
+            if any(lc in c or lc == c for c in cell_id_tokens):
+                return True
+            if any(lc in d or lc == d for d in domain_tokens):
+                return True
+            return False
+
         consumed = 0
         for kind, lit in universal_literals:
             lc = str(lit).lower().strip("'\"")
@@ -471,12 +461,10 @@ class LatticePlanner:
                 if numeric_literals and has_numeric_port:
                     consumed += 1
             elif kind == "quoted_str":
-                if has_col_proj:
+                if has_col_proj or any(lc in p or lc == p for p in port_tokens):
                     consumed += 1
-                elif any(_port_match(lc, p) for p in port_tokens):
-                    consumed += 1
-            else:
-                if _identifier_match(lc):
+            else:  # identifier
+                if _matches_identifier(lc):
                     consumed += 1
         return consumed / max(len(universal_literals), 1)
 

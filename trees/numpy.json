@@ -949,6 +949,71 @@
         "from": "transposed",
         "to": "exported_buffer",
         "via": "NUMPY_TOLIST"
+      },
+      {
+        "from": "1d_vector",
+        "to": "2d_matrix",
+        "via": "NUMPY_CORRCOEF"
+      },
+      {
+        "from": "2d_matrix",
+        "to": "2d_matrix",
+        "via": "NUMPY_CORRCOEF"
+      },
+      {
+        "from": "nd_tensor",
+        "to": "2d_matrix",
+        "via": "NUMPY_CORRCOEF"
+      },
+      {
+        "from": "ndarray_generic",
+        "to": "2d_matrix",
+        "via": "NUMPY_CORRCOEF"
+      },
+      {
+        "from": "1d_vector",
+        "to": "2d_matrix",
+        "via": "NUMPY_COV"
+      },
+      {
+        "from": "2d_matrix",
+        "to": "2d_matrix",
+        "via": "NUMPY_COV"
+      },
+      {
+        "from": "nd_tensor",
+        "to": "2d_matrix",
+        "via": "NUMPY_COV"
+      },
+      {
+        "from": "ndarray_generic",
+        "to": "2d_matrix",
+        "via": "NUMPY_COV"
+      },
+      {
+        "from": "nd_tensor",
+        "to": "nd_tensor",
+        "via": "NUMPY_MEDIAN"
+      },
+      {
+        "from": "nd_tensor",
+        "to": "nd_tensor",
+        "via": "NUMPY_PERCENTILE"
+      },
+      {
+        "from": "1d_vector",
+        "to": "2d_matrix",
+        "via": "NUMPY_RESHAPE_NCOL"
+      },
+      {
+        "from": "nd_tensor",
+        "to": "2d_matrix",
+        "via": "NUMPY_RESHAPE_NCOL"
+      },
+      {
+        "from": "ndarray_generic",
+        "to": "2d_matrix",
+        "via": "NUMPY_RESHAPE_NCOL"
       }
     ],
     "initial_state": "1d_vector",
@@ -2463,7 +2528,7 @@
           "needs_mining": true
         }
       ],
-      "primary_in": "m",
+      "primary_in": "n",
       "primary_out": "output_var"
     },
     {
@@ -10494,7 +10559,7 @@
       },
       "outputs": {
         "output_var": {
-          "type_name": "str",
+          "type_name": "bytes",
           "state": "exported_buffer",
           "qualifiers": [],
           "default_value": null,
@@ -10698,7 +10763,7 @@
       },
       "outputs": {
         "output_var": {
-          "type_name": "tuple",
+          "type_name": "list",
           "state": "exported_buffer",
           "qualifiers": [],
           "default_value": null,
@@ -10719,6 +10784,592 @@
       "primary_in": "array",
       "primary_out": "output_var",
       "endable": true
+    },
+    {
+      "cell_id": "NUMPY_CORRCOEF",
+      "stage": 2,
+      "topology_type": "sequential",
+      "node_type": "function",
+      "node_role": "transformer",
+      "mutation_type": "pure",
+      "is_context_manager": false,
+      "verified": true,
+      "source_priority": 1,
+      "is_public": true,
+      "docstring": "Return Pearson product-moment correlation coefficients matrix.",
+      "dependencies": [
+        "numpy as np"
+      ],
+      "semantic_tags": [
+        "statistics",
+        "correlation",
+        "matrix"
+      ],
+      "keywords": [
+        "corrcoef",
+        "pearson",
+        "correlation"
+      ],
+      "code_template": "{output_var} = np.corrcoef({x}, y={y}, rowvar={rowvar})",
+      "slots": {
+        "y": "None",
+        "rowvar": "True"
+      },
+      "bound_slots": {},
+      "feedback_state_type": null,
+      "raises": [
+        "ValueError"
+      ],
+      "type_vars": [],
+      "inputs": {
+        "x": {
+          "type_name": "ndarray",
+          "state": "nd_tensor",
+          "accepted_states": [
+            "nd_tensor",
+            "1d_vector",
+            "2d_matrix",
+            "ndarray_generic"
+          ],
+          "qualifiers": [],
+          "default_value": null,
+          "description": "1-D or 2-D array containing variables and observations",
+          "domain": "numpy",
+          "required": true,
+          "abstract_type": "tensor",
+          "enum_values": null,
+          "param_kind": "standard",
+          "value_constraints": null,
+          "shape_contract": null,
+          "port_role": "feature_input"
+        },
+        "y": {
+          "type_name": "ndarray",
+          "state": "nd_tensor",
+          "accepted_states": [
+            "nd_tensor",
+            "1d_vector",
+            "2d_matrix",
+            "ndarray_generic"
+          ],
+          "qualifiers": [],
+          "default_value": "None",
+          "description": "Additional variables and observations",
+          "domain": "numpy",
+          "required": false,
+          "abstract_type": "tensor",
+          "enum_values": null,
+          "param_kind": "keyword_only",
+          "value_constraints": null,
+          "shape_contract": null
+        },
+        "rowvar": {
+          "type_name": "bool",
+          "state": "flag",
+          "qualifiers": [],
+          "default_value": "True",
+          "description": "If True, rows are variables and columns are observations",
+          "domain": "numpy",
+          "required": false,
+          "abstract_type": "scalar",
+          "enum_values": null,
+          "param_kind": "keyword_only",
+          "value_constraints": null,
+          "shape_contract": null
+        }
+      },
+      "outputs": {
+        "output_var": {
+          "type_name": "ndarray",
+          "state": "2d_matrix",
+          "qualifiers": [
+            "matrix"
+          ],
+          "default_value": null,
+          "description": "Correlation matrix",
+          "domain": "numpy",
+          "required": true,
+          "abstract_type": "matrix",
+          "enum_values": null,
+          "param_kind": "standard",
+          "value_constraints": null,
+          "shape_contract": null
+        }
+      },
+      "preconditions": [],
+      "postconditions": [
+        {
+          "target": "output_var",
+          "property": "ndim",
+          "operator": "==",
+          "value": 2,
+          "expression": "output_var.ndim == 2",
+          "description": "Output is always a 2D correlation matrix"
+        }
+      ],
+      "effects": [],
+      "edges": [],
+      "primary_in": "x",
+      "primary_out": "output_var"
+    },
+    {
+      "cell_id": "NUMPY_COV",
+      "stage": 2,
+      "topology_type": "sequential",
+      "node_type": "function",
+      "node_role": "transformer",
+      "mutation_type": "pure",
+      "is_context_manager": false,
+      "verified": true,
+      "source_priority": 1,
+      "is_public": true,
+      "docstring": "Estimate a covariance matrix, given data and weights.",
+      "dependencies": [
+        "numpy as np"
+      ],
+      "semantic_tags": [
+        "statistics",
+        "covariance",
+        "matrix"
+      ],
+      "keywords": [
+        "cov",
+        "covariance"
+      ],
+      "code_template": "{output_var} = np.cov({m}, y={y}, rowvar={rowvar})",
+      "slots": {
+        "y": "None",
+        "rowvar": "True"
+      },
+      "bound_slots": {},
+      "feedback_state_type": null,
+      "raises": [
+        "ValueError"
+      ],
+      "type_vars": [],
+      "inputs": {
+        "m": {
+          "type_name": "ndarray",
+          "state": "nd_tensor",
+          "accepted_states": [
+            "nd_tensor",
+            "1d_vector",
+            "2d_matrix",
+            "ndarray_generic"
+          ],
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Array containing variables and observations",
+          "domain": "numpy",
+          "required": true,
+          "abstract_type": "tensor",
+          "enum_values": null,
+          "param_kind": "standard",
+          "value_constraints": null,
+          "shape_contract": null,
+          "port_role": "feature_input"
+        },
+        "y": {
+          "type_name": "ndarray",
+          "state": "nd_tensor",
+          "accepted_states": [
+            "nd_tensor",
+            "1d_vector",
+            "2d_matrix",
+            "ndarray_generic"
+          ],
+          "qualifiers": [],
+          "default_value": "None",
+          "description": "Optional additional variables",
+          "domain": "numpy",
+          "required": false,
+          "abstract_type": "tensor",
+          "enum_values": null,
+          "param_kind": "keyword_only",
+          "value_constraints": null,
+          "shape_contract": null
+        },
+        "rowvar": {
+          "type_name": "bool",
+          "state": "flag",
+          "qualifiers": [],
+          "default_value": "True",
+          "description": "If True, rows are variables and columns observations",
+          "domain": "numpy",
+          "required": false,
+          "abstract_type": "scalar",
+          "enum_values": null,
+          "param_kind": "keyword_only",
+          "value_constraints": null,
+          "shape_contract": null
+        }
+      },
+      "outputs": {
+        "output_var": {
+          "type_name": "ndarray",
+          "state": "2d_matrix",
+          "qualifiers": [
+            "matrix"
+          ],
+          "default_value": null,
+          "description": "Covariance matrix",
+          "domain": "numpy",
+          "required": true,
+          "abstract_type": "matrix",
+          "enum_values": null,
+          "param_kind": "standard",
+          "value_constraints": null,
+          "shape_contract": null
+        }
+      },
+      "preconditions": [],
+      "postconditions": [],
+      "effects": [],
+      "edges": [],
+      "primary_in": "m",
+      "primary_out": "output_var"
+    },
+    {
+      "cell_id": "NUMPY_MEDIAN",
+      "stage": 2,
+      "topology_type": "sequential",
+      "node_type": "function",
+      "node_role": "transformer",
+      "mutation_type": "pure",
+      "is_context_manager": false,
+      "verified": true,
+      "source_priority": 1,
+      "is_public": true,
+      "docstring": "Compute the median along the specified axis.",
+      "dependencies": [
+        "numpy as np"
+      ],
+      "semantic_tags": [
+        "reduction",
+        "median",
+        "statistics"
+      ],
+      "keywords": [
+        "median",
+        "percentile_50"
+      ],
+      "code_template": "{output_var} = np.median({array}, axis={axis}, keepdims={keepdims})",
+      "slots": {
+        "axis": "None",
+        "keepdims": "False"
+      },
+      "bound_slots": {},
+      "feedback_state_type": null,
+      "raises": [
+        "ValueError"
+      ],
+      "type_vars": [],
+      "inputs": {
+        "array": {
+          "type_name": "ndarray",
+          "state": "nd_tensor",
+          "accepted_states": [
+            "nd_tensor",
+            "1d_vector",
+            "2d_matrix",
+            "ndarray_generic"
+          ],
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Array to compute median over",
+          "domain": "numpy",
+          "required": true,
+          "abstract_type": "tensor",
+          "enum_values": null,
+          "param_kind": "standard",
+          "value_constraints": null,
+          "shape_contract": null
+        },
+        "axis": {
+          "type_name": "int",
+          "state": "axis_spec",
+          "qualifiers": [],
+          "default_value": "None",
+          "description": "Axis along which median is computed",
+          "domain": "numpy",
+          "required": false,
+          "abstract_type": "scalar",
+          "enum_values": null,
+          "param_kind": "keyword_only",
+          "value_constraints": null,
+          "shape_contract": null
+        },
+        "keepdims": {
+          "type_name": "bool",
+          "state": "flag",
+          "qualifiers": [],
+          "default_value": "False",
+          "description": "Keep reduced dimension",
+          "domain": "numpy",
+          "required": false,
+          "abstract_type": "scalar",
+          "enum_values": null,
+          "param_kind": "keyword_only",
+          "value_constraints": null,
+          "shape_contract": null
+        }
+      },
+      "outputs": {
+        "output_var": {
+          "type_name": "ndarray",
+          "state": "nd_tensor",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Median values",
+          "domain": "numpy",
+          "required": true,
+          "abstract_type": "tensor",
+          "enum_values": null,
+          "param_kind": "standard",
+          "value_constraints": null,
+          "shape_contract": null
+        }
+      },
+      "preconditions": [],
+      "postconditions": [],
+      "effects": [],
+      "edges": [],
+      "primary_in": "array",
+      "primary_out": "output_var"
+    },
+    {
+      "cell_id": "NUMPY_PERCENTILE",
+      "stage": 2,
+      "topology_type": "sequential",
+      "node_type": "function",
+      "node_role": "transformer",
+      "mutation_type": "pure",
+      "is_context_manager": false,
+      "verified": true,
+      "source_priority": 1,
+      "is_public": true,
+      "docstring": "Compute the q-th percentile of data along the specified axis.",
+      "dependencies": [
+        "numpy as np"
+      ],
+      "semantic_tags": [
+        "reduction",
+        "percentile",
+        "quantile"
+      ],
+      "keywords": [
+        "percentile",
+        "quantile"
+      ],
+      "code_template": "{output_var} = np.percentile({a}, q={q}, axis={axis}, keepdims={keepdims})",
+      "slots": {
+        "axis": "None",
+        "keepdims": "False"
+      },
+      "bound_slots": {},
+      "feedback_state_type": null,
+      "raises": [
+        "ValueError"
+      ],
+      "type_vars": [],
+      "inputs": {
+        "a": {
+          "type_name": "ndarray",
+          "state": "nd_tensor",
+          "accepted_states": [
+            "nd_tensor",
+            "1d_vector",
+            "2d_matrix",
+            "ndarray_generic"
+          ],
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Input array",
+          "domain": "numpy",
+          "required": true,
+          "abstract_type": "tensor",
+          "enum_values": null,
+          "param_kind": "standard",
+          "value_constraints": null,
+          "shape_contract": null
+        },
+        "q": {
+          "type_name": "float",
+          "state": "bound_scalar",
+          "qualifiers": [],
+          "default_value": "50.0",
+          "description": "Percentile between 0 and 100",
+          "domain": "numpy",
+          "required": true,
+          "abstract_type": "scalar",
+          "enum_values": null,
+          "param_kind": "keyword_only",
+          "value_constraints": {
+            "min": 0.0,
+            "max": 100.0
+          },
+          "shape_contract": null
+        },
+        "axis": {
+          "type_name": "int",
+          "state": "axis_spec",
+          "qualifiers": [],
+          "default_value": "None",
+          "description": "Axis along which percentiles are computed",
+          "domain": "numpy",
+          "required": false,
+          "abstract_type": "scalar",
+          "enum_values": null,
+          "param_kind": "keyword_only",
+          "value_constraints": null,
+          "shape_contract": null
+        },
+        "keepdims": {
+          "type_name": "bool",
+          "state": "flag",
+          "qualifiers": [],
+          "default_value": "False",
+          "description": "Retain reduced dimensions",
+          "domain": "numpy",
+          "required": false,
+          "abstract_type": "scalar",
+          "enum_values": null,
+          "param_kind": "keyword_only",
+          "value_constraints": null,
+          "shape_contract": null
+        }
+      },
+      "outputs": {
+        "output_var": {
+          "type_name": "ndarray",
+          "state": "nd_tensor",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Computed percentile tensor",
+          "domain": "numpy",
+          "required": true,
+          "abstract_type": "tensor",
+          "enum_values": null,
+          "param_kind": "standard",
+          "value_constraints": null,
+          "shape_contract": null
+        }
+      },
+      "preconditions": [],
+      "postconditions": [],
+      "effects": [],
+      "edges": [],
+      "primary_in": "a",
+      "primary_out": "output_var"
+    },
+    {
+      "cell_id": "NUMPY_RESHAPE_NCOL",
+      "stage": 2,
+      "topology_type": "sequential",
+      "node_type": "function",
+      "node_role": "transform",
+      "domain_name": "numpy",
+      "mutation_type": "pure",
+      "is_context_manager": false,
+      "verified": true,
+      "source_priority": 1,
+      "is_public": true,
+      "docstring": "Reshape an array into 2D with dynamic row count and specified column count.",
+      "dependencies": [
+        "numpy as np"
+      ],
+      "semantic_tags": [
+        "transform",
+        "shape",
+        "matrix",
+        "reshape"
+      ],
+      "keywords": [
+        "reshape",
+        "columns",
+        "wide",
+        "flatten columns"
+      ],
+      "code_template": "{output_var} = {array}.reshape(-1, {n_columns})",
+      "slots": {},
+      "bound_slots": {},
+      "feedback_state_type": null,
+      "raises": [
+        "ValueError"
+      ],
+      "type_vars": [],
+      "inputs": {
+        "array": {
+          "type_name": "ndarray",
+          "state": "ndarray_generic",
+          "accepted_states": [
+            "ndarray_generic",
+            "1d_vector",
+            "2d_matrix",
+            "nd_tensor"
+          ],
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Source array to reshape",
+          "domain": "numpy",
+          "required": true,
+          "abstract_type": "tensor",
+          "enum_values": null,
+          "param_kind": "standard",
+          "value_constraints": null,
+          "shape_contract": null
+        },
+        "n_columns": {
+          "type_name": "int",
+          "state": "dim_size",
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Number of columns for 2D reshaping",
+          "domain": "numpy",
+          "required": true,
+          "abstract_type": "scalar",
+          "enum_values": null,
+          "param_kind": "standard",
+          "value_constraints": {
+            "min": 1
+          },
+          "shape_contract": null,
+          "port_role": "dim_size"
+        }
+      },
+      "outputs": {
+        "output_var": {
+          "type_name": "ndarray",
+          "state": "2d_matrix",
+          "qualifiers": [
+            "matrix"
+          ],
+          "default_value": null,
+          "description": "Reshaped 2D matrix of shape (-1, n_columns)",
+          "domain": "numpy",
+          "required": true,
+          "abstract_type": "matrix",
+          "enum_values": null,
+          "param_kind": "standard",
+          "value_constraints": null,
+          "shape_contract": null
+        }
+      },
+      "preconditions": [],
+      "postconditions": [
+        {
+          "target": "output_var",
+          "property": "ndim",
+          "operator": "==",
+          "value": 2,
+          "expression": "output_var.ndim == 2",
+          "description": "Dimensionality must be strictly 2"
+        }
+      ],
+      "effects": [],
+      "edges": [],
+      "primary_in": "array",
+      "primary_out": "output_var"
     }
   ],
   "types": {
