@@ -12,9 +12,10 @@ Architecture:
 
 from __future__ import annotations
 import ast
+import collections
 import inspect
-import re
 import sys
+import typing
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Set, Tuple, Union
 
@@ -24,14 +25,29 @@ logger = get_logger('signature_introspector')
 # Cache for parsed .pyi AST trees to ensure zero performance overhead
 _STUB_CACHE: Dict[str, Optional[ast.Module]] = {}
 
-# Clean regex for return arrows: supports '->', '-->', '--->'
-_ARROW_RE = re.compile(r"\s*-+>\s*")
 
-# Regex for callable signature header in docstrings
-_DOC_SIG_RE = re.compile(
-    r"^\s*(?:[a-zA-Z0-9_]+\.)*([a-zA-Z0-9_]+)\s*\((.*?)\)(?:\s*-+>\s*(.*))?",
-    re.MULTILINE
-)
+def _find_docstring_signatures(doc: str) -> List[Tuple[str, str, Optional[str]]]:
+    """Finds (fn_name, raw_params, raw_return) from docstring signature headers without regex."""
+    results = []
+    for line in doc.splitlines():
+        line = line.strip()
+        if "(" not in line or ")" not in line:
+            continue
+        lparen = line.find("(")
+        before = line[:lparen].strip()
+        fn_name = before.split(".")[-1].strip()
+        if not fn_name.isidentifier():
+            continue
+        rparen = line.rfind(")")
+        raw_params = line[lparen + 1 : rparen].strip()
+        after = line[rparen + 1 :].strip()
+        raw_return = None
+        if "->" in after:
+            raw_return = after.split("->", 1)[1].strip()
+        elif "-->" in after:
+            raw_return = after.split("-->", 1)[1].strip()
+        results.append((fn_name, raw_params, raw_return))
+    return results
 
 
 def _ast_clean_type(node: ast.AST) -> str:
@@ -398,152 +414,231 @@ def extract_param_kind(param: inspect.Parameter) -> str:
 def extract_docstring_params(doc: str) -> Dict[str, Dict[str, Any]]:
     """
     Parses standard NumPy, Google, and Sphinx docstrings to extract documented parameter
-    types and descriptions when runtime annotations are empty or generic.
+    types and descriptions when runtime annotations are empty or generic. Zero regex.
     """
     params: Dict[str, Dict[str, Any]] = {}
     if not doc:
         return params
 
-    # 1. NumPy style: Parameters\n----------\nx : int, optional\n    desc
-    np_match = re.search(
-        r"Parameters\s*\n\s*-+\s*\n(.*?)(?:\n\s*\n\s*[A-Z]|\n\s*Returns|\n\s*Raises|\n\s*Yields|\n\s*See Also|\Z)",
-        doc,
-        re.DOTALL,
-    )
-    if np_match:
-        content = np_match.group(1)
-        cur_name = None
-        cur_type = ""
-        cur_desc: List[str] = []
-        base_indent = None
-        for line in content.splitlines():
-            stripped = line.strip()
-            if not stripped:
-                continue
-            m = re.match(r"^(\s*)(\*{0,2}[a-zA-Z_]\w*)\s*:\s*(.*?)$", line)
-            indent_len = len(m.group(1)) if m else 0
-            if m and (base_indent is None or indent_len <= base_indent):
+    lines = doc.splitlines()
+
+    # 1. NumPy style: Parameters\n----------
+    in_np_params = False
+    cur_name = None
+    cur_type = ""
+    cur_desc: List[str] = []
+    base_indent = None
+    for line in lines:
+        stripped = line.strip()
+        if stripped in ("Parameters", "Parameters:"):
+            in_np_params = True
+            continue
+        if in_np_params and stripped.startswith(("---", "===")):
+            continue
+        if in_np_params:
+            if stripped in ("Returns", "Raises", "Yields", "See Also", "Examples") or (stripped and stripped[0].isupper() and not line.startswith(" ") and ":" not in stripped):
                 if cur_name:
                     params[cur_name] = {"type": cur_type, "desc": " ".join(cur_desc)}
-                cur_name = m.group(2).strip().lstrip("*")
-                raw_type = m.group(3).strip()
-                cur_type = re.sub(r",?\s*default\s*=.*$", "", raw_type, flags=re.IGNORECASE)
-                cur_type = re.sub(r",?\s*optional\b.*$", "", cur_type, flags=re.IGNORECASE).strip()
-                cur_desc = []
-                base_indent = indent_len
-            elif cur_name:
-                cur_desc.append(stripped)
-        if cur_name:
-            params[cur_name] = {"type": cur_type, "desc": " ".join(cur_desc)}
-
-    # 2. Google style: Args:\n    x (int): desc
-    g_match = re.search(
-        r"Args:\s*\n(.*?)(?:\n\s*\n\s*[A-Z]|\n\s*Returns|\n\s*Raises|\n\s*Yields|\Z)",
-        doc,
-        re.DOTALL,
-    )
-    if g_match:
-        content = g_match.group(1)
-        cur_name = None
-        cur_type = ""
-        cur_desc = []
-        base_indent = None
-        for line in content.splitlines():
-            stripped = line.strip()
+                    cur_name = None
+                in_np_params = False
+                continue
             if not stripped:
                 continue
-            m = re.match(r"^(\s*)([a-zA-Z_]\w*)\s*(?:\(([^)]+)\))?\s*:\s*(.*)$", line)
-            indent_len = len(m.group(1)) if m else 0
-            if m and (base_indent is None or indent_len <= base_indent):
+            indent_len = len(line) - len(line.lstrip(" "))
+            if ":" in line:
+                lhs, _, rhs = line.partition(":")
+                candidate = lhs.strip().lstrip("*")
+                if candidate.isidentifier() and (base_indent is None or indent_len <= base_indent):
+                    if cur_name:
+                        params[cur_name] = {"type": cur_type, "desc": " ".join(cur_desc)}
+                    cur_name = candidate
+                    cur_type = rhs.strip()
+                    for sep in (", default", " default", ", optional", " optional"):
+                        if sep in cur_type.lower():
+                            cur_type = cur_type[:cur_type.lower().find(sep)].strip()
+                    cur_desc = []
+                    base_indent = indent_len
+                    continue
+            if cur_name:
+                cur_desc.append(stripped)
+    if cur_name:
+        params[cur_name] = {"type": cur_type, "desc": " ".join(cur_desc)}
+
+    # 2. Google style: Args:
+    in_g_args = False
+    cur_name = None
+    cur_type = ""
+    cur_desc = []
+    base_indent = None
+    for line in lines:
+        stripped = line.strip()
+        if stripped in ("Args:", "Args", "Arguments:", "Arguments"):
+            in_g_args = True
+            continue
+        if in_g_args:
+            if stripped in ("Returns:", "Returns", "Raises:", "Raises", "Yields:", "Yields") or (stripped and stripped[0].isupper() and not line.startswith(" ")):
                 if cur_name and cur_name not in params:
                     params[cur_name] = {"type": cur_type, "desc": " ".join(cur_desc)}
-                cur_name = m.group(2).strip()
-                cur_type = m.group(3).strip() if m.group(3) else ""
-                first_desc = m.group(4).strip()
-                cur_desc = [first_desc] if first_desc else []
-                base_indent = indent_len
-            elif cur_name:
+                    cur_name = None
+                in_g_args = False
+                continue
+            if not stripped:
+                continue
+            indent_len = len(line) - len(line.lstrip(" "))
+            if ":" in line:
+                lhs, _, rhs = line.partition(":")
+                lhs_clean = lhs.strip()
+                pname = lhs_clean
+                ptype = ""
+                if "(" in lhs_clean and lhs_clean.endswith(")"):
+                    pname, _, ptype = lhs_clean[:-1].partition("(")
+                    pname = pname.strip()
+                    ptype = ptype.strip()
+                if pname.isidentifier() and (base_indent is None or indent_len <= base_indent):
+                    if cur_name and cur_name not in params:
+                        params[cur_name] = {"type": cur_type, "desc": " ".join(cur_desc)}
+                    cur_name = pname
+                    cur_type = ptype
+                    cur_desc = [rhs.strip()] if rhs.strip() else []
+                    base_indent = indent_len
+                    continue
+            if cur_name:
                 cur_desc.append(stripped)
-        if cur_name and cur_name not in params:
-            params[cur_name] = {"type": cur_type, "desc": " ".join(cur_desc)}
+    if cur_name and cur_name not in params:
+        params[cur_name] = {"type": cur_type, "desc": " ".join(cur_desc)}
 
-    # 3. Sphinx style: :param type name: desc  OR  :type name: type
-    for m in re.finditer(r":param\s+(?:([a-zA-Z_]\w*)\s+)?([a-zA-Z_]\w*)\s*:\s*([^\n]+)", doc):
-        t = m.group(1) or ""
-        name = m.group(2)
-        desc = m.group(3).strip()
-        if name not in params:
-            params[name] = {"type": t, "desc": desc}
-        elif t and not params[name]["type"]:
-            params[name]["type"] = t
-
-    for m in re.finditer(r":type\s+([a-zA-Z_]\w*)\s*:\s*([^\n]+)", doc):
-        name = m.group(1)
-        t = m.group(2).strip()
-        if name in params and not params[name]["type"]:
-            params[name]["type"] = t
-        elif name not in params:
-            params[name] = {"type": t, "desc": ""}
+    # 3. Sphinx style: :param type name: desc OR :type name: type
+    for line in lines:
+        stripped = line.strip()
+        if stripped.startswith(":param "):
+            body = stripped[len(":param "):]
+            if ":" in body:
+                decl, _, desc = body.partition(":")
+                toks = decl.strip().split()
+                if len(toks) == 1:
+                    t, name = "", toks[0]
+                elif len(toks) >= 2:
+                    t, name = toks[0], toks[1]
+                else:
+                    continue
+                if name not in params:
+                    params[name] = {"type": t, "desc": desc.strip()}
+                elif t and not params[name]["type"]:
+                    params[name]["type"] = t
+        elif stripped.startswith(":type "):
+            body = stripped[len(":type "):]
+            if ":" in body:
+                name, _, t = body.partition(":")
+                name = name.strip()
+                t = t.strip()
+                if name in params and not params[name]["type"]:
+                    params[name]["type"] = t
+                elif name not in params:
+                    params[name] = {"type": t, "desc": ""}
 
     # 4. Doxygen / Javadoc style: @param name (optional type) desc
-    for m in re.finditer(r"@param\s+([a-zA-Z_]\w*)\s*(?:\(([^)]+)\)\s*)?([^\n]+)", doc):
-        name = m.group(1)
-        t = m.group(2) or ""
-        desc = m.group(3).strip()
-        if name not in params:
-            params[name] = {"type": t, "desc": desc}
-        elif t and not params[name]["type"]:
-            params[name]["type"] = t
+    for line in lines:
+        stripped = line.strip()
+        if stripped.startswith("@param "):
+            body = stripped[len("@param "):].strip()
+            toks = body.split(maxsplit=2)
+            if toks:
+                name = toks[0]
+                t = ""
+                desc = ""
+                if len(toks) >= 2:
+                    if toks[1].startswith("(") and toks[1].endswith(")"):
+                        t = toks[1][1:-1]
+                        desc = toks[2] if len(toks) >= 3 else ""
+                    else:
+                        desc = " ".join(toks[1:])
+                if name not in params:
+                    params[name] = {"type": t, "desc": desc.strip()}
+                elif t and not params[name]["type"]:
+                    params[name]["type"] = t
 
     return params
 
 
 def extract_param_constraints(text: str) -> Optional[Dict[str, Any]]:
-    """Extracts numerical intervals, inequalities, and invariants from parameter docstrings."""
+    """Extracts numerical intervals, inequalities, and invariants from parameter docstrings. Zero regex."""
     if not text:
         return None
     constraints: Dict[str, Any] = {}
 
     # Intervals: [a, b], (a, b], [a, b), (a, b)
-    m_int = re.search(r"([\[\(])\s*(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)\s*([\]\)])", text)
-    if m_int:
-        left_bracket, min_val, max_val, right_bracket = m_int.groups()
-        constraints["min"] = float(min_val) if "." in min_val else int(min_val)
-        constraints["max"] = float(max_val) if "." in max_val else int(max_val)
-        if left_bracket == "[" and right_bracket == "]":
-            constraints["interval"] = "closed"
-        elif left_bracket == "(" and right_bracket == "]":
-            constraints["interval"] = "left_open"
-        elif left_bracket == "[" and right_bracket == ")":
-            constraints["interval"] = "right_open"
-        else:
-            constraints["interval"] = "open"
+    for lb in ("[", "("):
+        if lb in text:
+            idx_lb = text.find(lb)
+            for rb in ("]", ")"):
+                idx_rb = text.find(rb, idx_lb)
+                if idx_rb != -1 and "," in text[idx_lb + 1 : idx_rb]:
+                    inner = text[idx_lb + 1 : idx_rb]
+                    parts = inner.split(",")
+                    if len(parts) == 2:
+                        p1 = parts[0].strip()
+                        p2 = parts[1].strip()
+                        try:
+                            v1 = float(p1) if "." in p1 else int(p1)
+                            v2 = float(p2) if "." in p2 else int(p2)
+                            constraints["min"] = v1
+                            constraints["max"] = v2
+                            if lb == "[" and rb == "]":
+                                constraints["interval"] = "closed"
+                            elif lb == "(" and rb == "]":
+                                constraints["interval"] = "left_open"
+                            elif lb == "[" and rb == ")":
+                                constraints["interval"] = "right_open"
+                            else:
+                                constraints["interval"] = "open"
+                            break
+                        except ValueError:
+                            pass
+            if "interval" in constraints:
+                break
 
     # Inequalities
+    def _extract_num_after(s: str, prefix: str) -> Optional[Union[int, float]]:
+        if prefix not in s:
+            return None
+        after = s.split(prefix, 1)[1].strip()
+        num_str = []
+        for ch in after:
+            if ch.isdigit() or ch in (".", "-"):
+                num_str.append(ch)
+            else:
+                break
+        res = "".join(num_str)
+        if not res or res == "-":
+            return None
+        try:
+            return float(res) if "." in res else int(res)
+        except ValueError:
+            return None
+
     if "min" not in constraints and "min_exclusive" not in constraints:
-        m_gte = re.search(r">=\s*(-?\d+(?:\.\d+)?)", text)
-        if m_gte:
-            v = m_gte.group(1)
-            constraints["min"] = float(v) if "." in v else int(v)
-        elif re.search(r">\s*(-?\d+(?:\.\d+)?)", text):
-            m_gt = re.search(r">\s*(-?\d+(?:\.\d+)?)", text)
-            v = m_gt.group(1)
-            constraints["min_exclusive"] = float(v) if "." in v else int(v)
+        v_gte = _extract_num_after(text, ">=")
+        if v_gte is not None:
+            constraints["min"] = v_gte
+        else:
+            v_gt = _extract_num_after(text, ">")
+            if v_gt is not None:
+                constraints["min_exclusive"] = v_gt
 
     if "max" not in constraints and "max_exclusive" not in constraints:
-        m_lte = re.search(r"<=\s*(-?\d+(?:\.\d+)?)", text)
-        if m_lte:
-            v = m_lte.group(1)
-            constraints["max"] = float(v) if "." in v else int(v)
-        elif re.search(r"<\s*(-?\d+(?:\.\d+)?)", text):
-            m_lt = re.search(r"<\s*(-?\d+(?:\.\d+)?)", text)
-            v = m_lt.group(1)
-            constraints["max_exclusive"] = float(v) if "." in v else int(v)
+        v_lte = _extract_num_after(text, "<=")
+        if v_lte is not None:
+            constraints["max"] = v_lte
+        else:
+            v_lt = _extract_num_after(text, "<")
+            if v_lt is not None:
+                constraints["max_exclusive"] = v_lt
 
     # Parity
-    if re.search(r"\bodd\b", text, re.IGNORECASE):
+    words = text.lower().split()
+    if "odd" in words:
         constraints["parity"] = "odd"
-    elif re.search(r"\beven\b", text, re.IGNORECASE):
+    elif "even" in words:
         constraints["parity"] = "even"
 
     # Positive / non-negative keywords
@@ -556,58 +651,48 @@ def extract_param_constraints(text: str) -> Optional[Dict[str, Any]]:
 
 
 def extract_shape_contract(text: str) -> Optional[Dict[str, Any]]:
-    """Extracts expected rank / ndim tensor contracts from types or docstrings."""
+    """Extracts expected rank / ndim tensor contracts from types or docstrings. Zero regex."""
     if not text:
         return None
     shape: Dict[str, Any] = {}
-    m_ndim = re.search(r"\b([1-9]\d*)\s*-?\s*d(?:imensional)?\b", text, re.IGNORECASE)
-    if m_ndim:
-        shape["ndim"] = int(m_ndim.group(1))
+    for tok in text.lower().replace("-", " ").split():
+        if tok.endswith("d") and tok[:-1].isdigit():
+            shape["ndim"] = int(tok[:-1])
+            break
+        elif tok.endswith("dimensional") and tok[:-len("dimensional")].isdigit():
+            shape["ndim"] = int(tok[:-len("dimensional")])
+            break
     return shape or None
 
 
 def extract_docstring_raises(doc: str) -> List[str]:
-    """Extracts declared exception types from standard docstrings."""
+    """Extracts declared exception types from standard docstrings. Zero regex."""
     if not doc:
         return []
     raises: List[str] = []
-
-    # 1. NumPy style: Raises\n------\nExceptionName\n    desc
-    np_match = re.search(
-        r"Raises\s*\n\s*-+\s*\n(.*?)(?:\n\s*\n\s*[A-Z]|\n\s*Returns|\n\s*Yields|\n\s*See Also|\Z)",
-        doc,
-        re.DOTALL,
-    )
-    if np_match:
-        content = np_match.group(1)
-        base_indent = None
-        for line in content.splitlines():
-            stripped = line.strip()
-            if not stripped:
+    lines = doc.splitlines()
+    in_raises = False
+    for line in lines:
+        stripped = line.strip()
+        if not stripped:
+            continue
+        if stripped in ("Raises", "Raises:") or stripped.startswith("Raises\n") or stripped.startswith("Raises:"):
+            in_raises = True
+            continue
+        if in_raises and stripped.startswith(("---", "===")):
+            continue
+        if in_raises:
+            if stripped.startswith(("Returns", "Returns:", "Yields", "Yields:", "See Also", "Examples")):
+                in_raises = False
                 continue
-            indent_len = len(line) - len(line.lstrip(" "))
-            if base_indent is None:
-                base_indent = indent_len
-            if indent_len <= base_indent:
-                exc = stripped.split()[0].rstrip(":,")
-                if exc.isidentifier() and exc[0].isupper():
-                    raises.append(exc)
-
-    # 2. Google style: Raises:\n    ExceptionName: desc
-    g_match = re.search(
-        r"Raises:\s*\n((?:\s+[A-Za-z_]\w*:[^\n]*\n*)+)",
-        doc,
-    )
-    if g_match:
-        for exc in re.findall(r"^\s+([A-Za-z_]\w*):", g_match.group(1), re.MULTILINE):
-            if exc.isidentifier() and exc not in ("Args", "Raises", "Returns"):
+            first_word = stripped.split()[0].rstrip(":,")
+            if first_word.isidentifier() and first_word[0].isupper() and first_word not in ("Args", "Raises", "Returns"):
+                raises.append(first_word)
+        if stripped.startswith((":raises ", ":raise ")):
+            after = stripped.split(maxsplit=1)[1]
+            exc = after.split()[0].rstrip(":")
+            if exc.isidentifier() and exc[0].isupper():
                 raises.append(exc)
-
-    # 3. Sphinx style: :raises ExceptionName: desc
-    for exc in re.findall(r":raises?\s+([A-Za-z_]\w*):", doc):
-        if exc.isidentifier():
-            raises.append(exc)
-
     return list(dict.fromkeys(raises))
 
 
@@ -688,79 +773,78 @@ def extract_enum_domain(anno: Any, doc: str = "", param_name: str = "") -> Optio
 
     # 4. Docstring inspection for choices: param_name : {a, b, c}
     if doc and param_name:
-        pattern = rf"{re.escape(param_name)}\s*:[^{{\n]*\{{([^}}\n]+)\}}"
-        m = re.search(pattern, doc, re.IGNORECASE)
-        if m:
-            raw_choices = m.group(1).split(",")
-            cleaned = [c.strip().strip("'\"") for c in raw_choices if c.strip().strip("'\"")]
-            if cleaned:
-                return cleaned
+        for line in doc.splitlines():
+            if param_name in line and ":" in line and "{" in line and "}" in line:
+                idx_l = line.find("{")
+                idx_r = line.find("}", idx_l)
+                if idx_r != -1:
+                    raw_choices = line[idx_l + 1 : idx_r].split(",")
+                    cleaned = [c.strip().strip("'\"") for c in raw_choices if c.strip().strip("'\"")]
+                    if cleaned:
+                        return cleaned
 
     return None
 
 
 def extract_docstring_returns(doc: str) -> List[Tuple[str, str, Optional[str]]]:
-    """Extracts return specifications from standard docstrings (NumPy, Google, Sphinx)."""
+    """Extracts return specifications from standard docstrings (NumPy, Google, Sphinx). Zero regex."""
     if not doc:
         return []
-    # 1. NumPy / SciPy format
-    m_sec = re.search(r"(?:Returns?|Yields?)\s*\n\s*[-=~]+\s*\n(.*?)(?:\n\s*\n\s*[A-Z][a-zA-Z0-9_ ]+|\Z)", doc, re.DOTALL)
-    if m_sec:
-        sec_text = m_sec.group(1)
-        items = re.findall(r"^\s*([a-zA-Z0-9_]+)\s*:\s*([a-zA-Z0-9_.]+(?:\[[^\]]+\])?)", sec_text, re.MULTILINE)
-        if items:
-            valid = []
-            for name, type_str in items:
-                clean_t = extract_clean_type_name(type_str)
+    lines = doc.splitlines()
+    in_returns = False
+    for line in lines:
+        stripped = line.strip()
+        if not stripped:
+            continue
+        if stripped in ("Returns", "Yields", "Returns:", "Yields:"):
+            in_returns = True
+            continue
+        if in_returns and stripped.startswith(("---", "===")):
+            continue
+        if in_returns:
+            if stripped.startswith(("Raises", "Args", "See Also", "Notes", "Examples")):
+                in_returns = False
+                continue
+            if ":" in stripped:
+                lhs, _, rhs = stripped.partition(":")
+                lhs = lhs.strip()
+                rhs = rhs.strip()
+                if lhs.isidentifier() and rhs:
+                    clean_t = extract_clean_type_name(rhs.split()[0])
+                    if clean_t and clean_t.lower() not in ("none", "nonetype", "void"):
+                        return [(lhs, clean_t, infer_abstract_carrier(clean_t))]
+            else:
+                first_tok = stripped.split()[0]
+                clean_t = extract_clean_type_name(first_tok)
+                if clean_t and clean_t.lower() not in ("none", "nonetype", "void", "notes", "references", "see", "examples"):
+                    return [("output_data", clean_t, infer_abstract_carrier(clean_t))]
+        if stripped.startswith((":rtype:", ":return:", ":returns:")):
+            after = stripped.split(":", 2)[2].strip()
+            if after:
+                clean_t = extract_clean_type_name(after.split()[0])
                 if clean_t and clean_t.lower() not in ("none", "nonetype", "void"):
-                    valid.append((name, clean_t, infer_abstract_carrier(clean_t)))
-            if valid:
-                return valid
-        m_single = re.search(r"^\s*([a-zA-Z0-9_.]+(?:\[[^\]]+\])?)", sec_text, re.MULTILINE)
-        if m_single:
-            t = m_single.group(1).strip()
-            clean_t = extract_clean_type_name(t)
-            if clean_t and clean_t.lower() not in ("none", "nonetype", "void", "notes", "references", "see", "examples"):
-                return [("output_data", clean_t, infer_abstract_carrier(clean_t))]
-
-    # 2. Google docstring format
-    m_google = re.search(r"(?:Returns?|Yields?):\s*\n\s*(?:(?:[a-zA-Z0-9_,\s]+)\s*:\s*)?([a-zA-Z0-9_.]+(?:\[[^\]]+\])?)", doc, re.MULTILINE)
-    if m_google:
-        t = m_google.group(1).strip()
-        clean_t = extract_clean_type_name(t)
-        if clean_t and clean_t.lower() not in ("none", "nonetype", "void"):
-            return [("output_data", clean_t, infer_abstract_carrier(clean_t))]
-
-    # 3. Sphinx / Epydoc format
-    m_sphinx = re.search(r":(?:rtype|return|returns):\s*([a-zA-Z0-9_.]+(?:\[[^\]]+\])?)", doc, re.MULTILINE)
-    if m_sphinx:
-        t = m_sphinx.group(1).strip()
-        clean_t = extract_clean_type_name(t)
-        if clean_t and clean_t.lower() not in ("none", "nonetype", "void"):
-            return [("output_data", clean_t, infer_abstract_carrier(clean_t))]
-
+                    return [("output_data", clean_t, infer_abstract_carrier(clean_t))]
     return []
 
 
 def extract_return_specs(ret_anno: Any, doc: str = "") -> List[Tuple[str, str, Optional[str]]]:
     """
     Extracts return port specifications: List[(port_name, type_name, abstract_type)].
-    Handles both single returns and multi-return tuples / docstring unpacking.
+    Handles both single returns and multi-return tuples / docstring unpacking. Zero regex.
     """
     first_line = doc.splitlines()[0] if doc else ""
     doc_out_names: Optional[List[str]] = None
 
-    m_arrow = re.search(r"->\s*([a-zA-Z0-9_,\s]+)$", first_line)
-    if m_arrow:
-        parts = [p.strip() for p in m_arrow.group(1).split(",") if p.strip()]
+    if "->" in first_line:
+        ret_part = first_line.split("->", 1)[1].strip()
+        parts = [p.strip() for p in ret_part.split(",") if p.strip()]
         if len(parts) > 1 and all(p.isidentifier() for p in parts):
             doc_out_names = parts
-    if not doc_out_names:
-        m_assign = re.search(r"^\s*([a-zA-Z0-9_,\s]+)\s*=\s*[a-zA-Z0-9_.]+\(", first_line)
-        if m_assign:
-            parts = [p.strip() for p in m_assign.group(1).split(",") if p.strip()]
-            if len(parts) > 1 and all(p.isidentifier() for p in parts):
-                doc_out_names = parts
+    elif "=" in first_line and "(" in first_line:
+        lhs = first_line.split("=", 1)[0].strip()
+        parts = [p.strip() for p in lhs.split(",") if p.strip()]
+        if len(parts) > 1 and all(p.isidentifier() for p in parts):
+            doc_out_names = parts
 
     tuple_element_types: List[str] = []
     try:
@@ -1138,13 +1222,9 @@ def _tier4_docstring_signature(
     if parent_cls_name and callable_name.upper() == "INIT":
         target_names.add(parent_cls_name.lower())
 
-    for match in _DOC_SIG_RE.finditer(doc):
-        fn_name = match.group(1).lower()
-        if fn_name not in target_names:
+    for fn_name, raw_params, raw_return in _find_docstring_signatures(doc):
+        if fn_name.lower() not in target_names:
             continue
-
-        raw_params = match.group(2).strip()
-        raw_return = match.group(3)
 
         parsed_params = _unroll_bracketed_parameters(raw_params)
         parameters: List[inspect.Parameter] = []

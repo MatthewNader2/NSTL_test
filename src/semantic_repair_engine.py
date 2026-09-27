@@ -24,16 +24,18 @@ from __future__ import annotations
 
 import ast
 import importlib
-import re
 from typing import Any, Dict, List, Optional, Tuple
+
+try:
+    from utils import extract_template_placeholders
+except ImportError:
+    from .utils import extract_template_placeholders
 
 from signature_introspector import resolve_signature
 from template_wiring import (
     clean_malformed_template_braces,
     repair_wiring_invariant,
 )
-
-_PLACEHOLDER_RE = re.compile(r"\{([a-zA-Z_][a-zA-Z0-9_]*)\}")
 
 
 def parse_call_expression(template: str) -> Optional[Tuple[str, List[str], Dict[str, str]]]:
@@ -50,12 +52,22 @@ def parse_call_expression(template: str) -> Optional[Tuple[str, List[str], Dict[
 
     # Strip a leading assignment: "{output_var} = <rhs>" / "a, b = <rhs>"
     text = template.strip()
-    m = re.match(r"^(?:\{[a-zA-Z_][a-zA-Z0-9_]*\}(?:\s*,\s*\{[a-zA-Z_][a-zA-Z0-9_]*\})*)\s*=\s*(.+)$", text, re.DOTALL)
-    rhs = m.group(1).strip() if m else text
+    if "=" in text and "==" not in text and "!=" not in text and "<=" not in text and ">=" not in text:
+        lhs, sep, candidate_rhs = text.partition("=")
+        lhs = lhs.strip()
+        lhs_parts = [p.strip() for p in lhs.split(",")]
+        if all(p.startswith("{") and p.endswith("}") and p[1:-1].isidentifier() for p in lhs_parts):
+            rhs = candidate_rhs.strip()
+        else:
+            rhs = text
+    else:
+        rhs = text
 
     # Replace placeholders with valid identifiers so ast.parse succeeds.
-    synthetic = {"_nstl_ph_{}".format(name) for name in _PLACEHOLDER_RE.findall(rhs)}
-    ast_ready = _PLACEHOLDER_RE.sub(lambda mm: f"_nstl_ph_{mm.group(1)}", rhs)
+    rhs_placeholders = extract_template_placeholders(rhs)
+    ast_ready = rhs
+    for name in rhs_placeholders:
+        ast_ready = ast_ready.replace(f"{{{name}}}", f"_nstl_ph_{name}")
     try:
         tree = ast.parse(ast_ready, mode="eval")
     except SyntaxError:
@@ -111,7 +123,7 @@ def parse_call_expression(template: str) -> Optional[Tuple[str, List[str], Dict[
         name = _ph_name(kw.value)
         keywords[kw.arg] = name if name is not None else (ast.unparse(kw.value) if kw.value is not None else "")
 
-    if not synthetic and not positional and not keywords:
+    if not rhs_placeholders and not positional and not keywords:
         return None
     return func_expr, positional, keywords
 
@@ -224,8 +236,17 @@ def validate_and_reconstruct_call(
         if r not in final_positional:
             final_positional.append(r)
 
-    args_src = ", ".join(f"{{{a}}}" if _PLACEHOLDER_RE.fullmatch(a or "") else a for a in final_positional if a)
-    kw_src = ", ".join(f"{k}={{{v}}}" if _PLACEHOLDER_RE.fullmatch(v or "") else f"{k}={v}" for k, v in kept_kwargs.items())
+    def _format_token(tok: str) -> str:
+        if not tok:
+            return ""
+        if tok.startswith("{") and tok.endswith("}"):
+            return tok
+        if tok.isidentifier() and not (tok.startswith("'") or tok.startswith('"')):
+            return f"{{{tok}}}"
+        return tok
+
+    args_src = ", ".join(_format_token(a) for a in final_positional if a)
+    kw_src = ", ".join(f"{k}={_format_token(v)}" for k, v in kept_kwargs.items())
     call_src = f"{func_expr}({', '.join(x for x in (args_src, kw_src) if x)})"
     return call_src
 

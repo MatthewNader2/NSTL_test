@@ -37,7 +37,7 @@ class NSTLSettings(BaseSettings):
     sandbox_max_cpu_seconds: int = 5
 
     # Inference
-    llm_context_length: int = 2048
+    llm_context_length: int = 4096
     llm_temperature: float = 0.1
     llm_top_p: float = 0.95
 
@@ -56,6 +56,8 @@ class NSTLSettings(BaseSettings):
     # (apply_fixes_v10) when True, refuse to emit if no path meets
     # the coverage floor (best-effort fallback disabled).
     require_coverage_floor: bool = False
+    # Dev Mode: When True, enables on-demand self-expanding MicroCell synthesis and RAG boosting
+    dev_mode: bool = False
     planner_config: Optional[Path] = None
 
     def model_post_init(self, __context) -> None:

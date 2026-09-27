@@ -6,13 +6,88 @@ Extracts common patterns to eliminate code duplication.
 from __future__ import annotations
 import ast
 import json
-from typing import Any, Dict, Optional, Set
+import string
+from typing import Any, Dict, List, Optional, Set, Tuple
 try:
     from log_config import get_logger
 except ImportError:
     from .log_config import get_logger
 
 logger = get_logger('utils')
+
+# Translation table mapping all ASCII punctuation (except underscore) to spaces for fast tokenization
+_PUNCT_EXCEPT_UNDERSCORE = "".join(c for c in string.punctuation if c != "_")
+_DELIM_TRANS = str.maketrans({c: " " for c in _PUNCT_EXCEPT_UNDERSCORE})
+
+
+def extract_template_placeholders(template: str) -> List[str]:
+    """Extracts valid Python identifier placeholder names from a code template without regex."""
+    if not template or "{" not in template:
+        return []
+    placeholders: List[str] = []
+    i = 0
+    n = len(template)
+    while i < n:
+        if template[i] == "{":
+            j = template.find("}", i + 1)
+            if j != -1:
+                inner = template[i + 1:j]
+                if inner.isidentifier():
+                    placeholders.append(inner)
+                i = j + 1
+                continue
+        i += 1
+    return placeholders
+
+
+def safe_substitute_template(template: str, bindings: Dict[str, Any]) -> str:
+    """Substitutes placeholders with bindings, preserving dict literals and syntax.
+    
+    Leaves non-identifier braces (like {"a": 1}) and unbound placeholders untouched.
+    Zero regular expressions.
+    """
+    if not template or "{" not in template:
+        return template
+    res = []
+    i = 0
+    n = len(template)
+    while i < n:
+        if template[i] == "{":
+            j = template.find("}", i + 1)
+            if j != -1:
+                inner = template[i + 1:j]
+                if inner.isidentifier() and inner in bindings and bindings[inner] is not None:
+                    res.append(str(bindings[inner]))
+                    i = j + 1
+                    continue
+        res.append(template[i])
+        i += 1
+    return "".join(res)
+
+
+def tokenize_alphanumeric(text: str, min_len: int = 2) -> List[str]:
+    """Tokenizes text into lowercase alphanumeric + underscore tokens without regex.
+    
+    Uses fast C-level string translation table.
+    """
+    if not text:
+        return []
+    cleaned = text.lower().translate(_DELIM_TRANS)
+    return [t for t in cleaned.split() if len(t) >= min_len]
+
+
+def is_split_gguf_shard(filename: str) -> bool:
+    """Checks whether a GGUF filename corresponds to a split shard (e.g. model-00001-of-00005.gguf).
+    
+    Zero regular expressions.
+    """
+    if not (filename.endswith(".gguf") and "-of-" in filename):
+        return False
+    stem = filename[:-5]
+    parts = stem.rsplit("-", 2)
+    if len(parts) >= 3 and parts[-2] == "of":
+        return parts[-3].isdigit() and parts[-1].isdigit()
+    return False
 
 
 def extract_json_from_llm(raw: str) -> Optional[Dict[str, Any]]:
@@ -42,24 +117,52 @@ def extract_json_from_llm(raw: str) -> Optional[Dict[str, Any]]:
     except json.JSONDecodeError:
         pass
     
-    # Attempt 2: Find the outermost balanced braces
-    depth = 0
-    start_idx = None
-    for i, ch in enumerate(text):
-        if ch == '{':
-            if depth == 0:
-                start_idx = i
-            depth += 1
-        elif ch == '}':
-            depth -= 1
-            if depth == 0 and start_idx is not None:
-                try:
-                    return json.loads(text[start_idx:i + 1])
-                except json.JSONDecodeError:
-                    start_idx = None  # Try next top-level block
+    # Attempt 2: Balanced-brace state machine respecting string quotes and escapes
+    n = len(text)
+    start = 0
+    while start < n:
+        brace_pos = text.find("{", start)
+        if brace_pos == -1:
+            break
+            
+        depth = 0
+        in_string = False
+        escape = False
+        
+        for idx in range(brace_pos, n):
+            ch = text[idx]
+            if escape:
+                escape = False
+                continue
+            if ch == "\\":
+                escape = True
+                continue
+            if ch == '"':
+                in_string = not in_string
+                continue
+            if in_string:
+                continue
+                
+            if ch == "{":
+                depth += 1
+            elif ch == "}":
+                depth -= 1
+                if depth == 0:
+                    candidate = text[brace_pos:idx + 1]
+                    try:
+                        parsed = json.loads(candidate)
+                        if isinstance(parsed, dict):
+                            return parsed
+                    except (json.JSONDecodeError, UnicodeDecodeError):
+                        break
+        start = brace_pos + 1
     
     logger.warning(f"[UTILS] Failed to extract JSON from LLM output ({len(text)} chars)")
     return None
+
+
+# Alias for backward compatibility across modules
+extract_json_object = extract_json_from_llm
 
 
 def validate_code_template(template: str) -> bool:
@@ -71,20 +174,7 @@ def validate_code_template(template: str) -> bool:
     if not template or not template.strip():
         return False
     
-    placeholders: Set[str] = set()
-    i = 0
-    n = len(template)
-    while i < n:
-        if template[i] == "{" and i + 1 < n:
-            end = template.find("}", i + 1)
-            if end != -1:
-                inner = template[i + 1 : end]
-                if inner.isidentifier():
-                    placeholders.add(inner)
-                i = end + 1
-                continue
-        i += 1
-
+    placeholders = set(extract_template_placeholders(template))
     test_code = template
     for ph in placeholders:
         test_code = test_code.replace(f"{{{ph}}}", f"_ph_{ph}")

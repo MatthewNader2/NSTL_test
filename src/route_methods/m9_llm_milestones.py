@@ -1,0 +1,331 @@
+"""
+src/route_methods/m9_llm_milestones.py - Neuro-Symbolic Topological Lattice (NSTL)
+
+M9: LLM Milestone Anchor & Topological Pathfinder.
+
+Unlike M7 (which asks the LLM to output every single node including intermediate
+adapters in one call) and M8 (which steps one node at a time):
+
+M9 decomposes the problem into two distinct phases:
+1. Milestone Extraction (LLM):
+   The LLM inspects the prompt and candidate operations (with their full
+   typed signatures) and decides ONLY the core "must-have" operations
+   (e.g., data loader, feature transformer, estimator/model, exporter/plot)
+   in chronological workflow order. It does not need to worry about low-level
+   carrier conversions or intermediate adapter/bridge cells.
+
+2. Topological Path Synthesis (Robinson Unification & Multi-Hop Bridging):
+   NSTL connects consecutive milestone pairs (M_i -> M_{i+1}) using:
+   - Direct edge if step_unifies(M_i, M_{i+1})
+   - 1-step bridge cell via find_bridge(M_i, M_{i+1})
+   - Multi-step BFS search through the candidate lattice if a 2-hop adapter
+     is required to align types/carriers.
+
+If any gap between milestones cannot be bridged, or if no LLM is loaded,
+it gracefully falls back to M1 (clause-anchor).
+"""
+from __future__ import annotations
+import json
+from collections import deque
+from typing import Dict, List, Optional, Any, Set
+
+from .base import RouteMethod
+from .m1_clause_anchor import M1ClauseAnchorRouteMethod
+from lattice import Cell, LatticeOrchestrator
+from unification import ExecutionContext
+from inference import ModelManager
+
+try:
+    from utils import extract_json_object
+except ImportError:
+    from ..utils import extract_json_object
+
+try:
+    from node_resolver import DynamicNodeResolver
+except (ImportError, ValueError):
+    try:
+        from ..node_resolver import DynamicNodeResolver
+    except (ImportError, ValueError):
+        DynamicNodeResolver = None
+
+MAX_SHOWN_CANDIDATES = 25
+
+MILESTONE_SCHEMA = {
+    "type": "object",
+    "required": ["milestones"],
+    "properties": {
+        "milestones": {
+            "type": "array",
+            "items": {"type": "string"},
+            "minItems": 3,
+            "maxItems": 14,
+            "description": "Ordered list of essential, must-have cell IDs"
+        },
+    },
+}
+
+SYSTEM_PROMPT_MILESTONES = (
+    "You are an expert pipeline architect. You are given a user request and a list "
+    "of available typed operations (cells). Each cell has an ID, domain, stage, "
+    "input ports with types, and output ports with types.\n"
+    "Identify the essential MUST-HAVE operations (milestones) required to fulfill "
+    "ALL steps of the request from start to finish.\n"
+    "- When operations apply to distinct columns or variables (e.g. normalizing column X, calculating mean of column Y, "
+    "and combining X and Y), include column selection and transformation cells for EACH branch so both branches exist in the pipeline.\n"
+    "- NEVER select multiple redundant alternatives for the same step "
+    "(e.g. choose either dropna or imputer, NOT both; choose either normalize or standardscaler, NOT both; "
+    "choose either add or sum, NOT both).\n"
+    "- Do NOT include intermediate adapters or bridge cells -- only the primary operations "
+    "in their proper chronological execution order.\n"
+    "Respond with ONLY a JSON object of the form: "
+    "{\"milestones\": [\"CELL_ID\", \"CELL_ID\", ...]}. No prose, no markdown."
+)
+
+
+def _fmt_port_sig(p: Any) -> str:
+    sig = getattr(p, "signature", None)
+    tn = str(getattr(sig, "type_name", "") or getattr(p, "abstract_type", "") or "any")
+    st = str(getattr(sig, "state", "") or "")
+    return f"{tn}[{st}]" if st and st not in ("any", "none") else tn
+
+
+def _format_cell_signature(cell: Cell) -> str:
+    req_in = [f"{n}:{_fmt_port_sig(p)}" for n, p in cell.inputs.items() if getattr(p, "required", False)]
+    opt_in = [f"{n}:{_fmt_port_sig(p)}?" for n, p in cell.inputs.items() if not getattr(p, "required", False)]
+    outs = [f"{n}:{_fmt_port_sig(p)}" for n, p in cell.outputs.items()]
+    in_str = ", ".join(req_in + opt_in) or "none"
+    out_str = ", ".join(outs) or "none"
+    dom = getattr(cell, "domain_name", "") or "?"
+    stage = getattr(cell, "stage", "?")
+    doc = getattr(cell, "docstring", "") or ""
+    summary = doc.split(".")[0].strip() if doc else ""
+    desc_str = f" ({summary})" if summary else ""
+    return f"{cell.cell_id} [{dom} s{stage}]{desc_str} in({in_str}) -> out({out_str})"
+
+
+def _parse_milestones(raw_text: str) -> List[str]:
+    if not raw_text:
+        return []
+    data = extract_json_object(raw_text)
+    if data and isinstance(data.get("milestones"), list):
+        return [str(x).strip() for x in data["milestones"] if str(x).strip()]
+    return []
+
+
+class M9LLMMilestonePathfinderRouteMethod(RouteMethod):
+    name = "m9_llm_milestones"
+
+    def _find_bfs_path(
+        self,
+        src: Cell,
+        dst: Cell,
+        candidate_pool: List[Cell],
+        max_hops: int = 3,
+        prev_path: Optional[List[Cell]] = None
+    ) -> Optional[List[Cell]]:
+        """
+        Searches for a short unifying path from src to dst through candidate_pool.
+        Returns the intermediate nodes [B1, B2, ...] excluding src and dst.
+        """
+        base_scope = prev_path if prev_path else [src]
+        queue = deque([(src, [])])
+        visited: Set[str] = {src.cell_id}
+
+        while queue:
+            curr, intermediates = queue.popleft()
+            if len(intermediates) >= max_hops:
+                continue
+
+            current_scope = base_scope + intermediates
+            for cand in candidate_pool:
+                if cand.cell_id == dst.cell_id:
+                    if self.step_unifies(curr, dst, prev_path=current_scope):
+                        return intermediates
+                    continue
+
+                if cand.cell_id in visited or getattr(cand, "stage", None) == 1:
+                    continue
+                if getattr(cand, "role", "") == "combinator" or cand.cell_id.startswith("CF_") or getattr(cand, "domain_name", "") == "control_flow":
+                    continue
+
+                if self.step_unifies(curr, cand, prev_path=current_scope):
+                    visited.add(cand.cell_id)
+                    # Check if cand can directly reach dst
+                    if self.step_unifies(cand, dst, prev_path=current_scope + [cand]):
+                        return intermediates + [cand]
+                    queue.append((cand, intermediates + [cand]))
+
+        return None
+
+    def plan(
+        self,
+        prompt: str,
+        tunnel: List[Cell],
+        relevance_map: Dict[str, float],
+        orchestrator: Optional[LatticeOrchestrator] = None,
+        ctx: Optional[ExecutionContext] = None,
+        start_sig: Optional[Any] = None,
+        goal_sig: Optional[Any] = None,
+        max_transforms: int = 6,
+        **kwargs
+    ) -> List[Cell]:
+        self._current_prompt = prompt
+        orch = orchestrator or self.orchestrator
+        if not tunnel:
+            return []
+        if len(tunnel) == 1:
+            return [tunnel[0]]
+
+        candidates = [c for c in tunnel if getattr(c, "node_type", "") != "constant"] or [tunnel[0]]
+        mm = ModelManager.get_instance()
+        has_llm = mm.profile is not None and getattr(mm.profile, "llm", None) is not None
+
+        def _fallback():
+            return M1ClauseAnchorRouteMethod(orchestrator=orch).plan(
+                prompt, tunnel, relevance_map, orchestrator=orch, ctx=ctx,
+                start_sig=start_sig, goal_sig=goal_sig, max_transforms=max_transforms,
+            )
+
+        if not has_llm:
+            return _fallback()
+
+        shown = self.select_stratified_candidates(prompt, candidates, relevance_map, orchestrator=orch, max_shown=MAX_SHOWN_CANDIDATES)
+        cand_map = {c.cell_id.lower(): c for c in shown}
+
+        # Phase 1: Milestone Identification
+        sig_block = "\n".join(f"- {_format_cell_signature(c)}" for c in shown)
+        user_msg = f"Request: {prompt}\n\nAvailable operations:\n{sig_block}"
+
+        try:
+            raw = mm.generate_text(
+                user_msg, max_tokens=512, schema=MILESTONE_SCHEMA, system_prompt=SYSTEM_PROMPT_MILESTONES
+            )
+        except Exception:
+            return _fallback()
+
+        milestone_ids = _parse_milestones(raw)
+        milestones: List[Cell] = []
+        for mid in milestone_ids:
+            c = cand_map.get(mid.strip().lower())
+            if c is None:
+                try:
+                    from node_resolver import DynamicNodeResolver
+                    c = DynamicNodeResolver.resolve_node(
+                        raw_id=mid,
+                        prompt=prompt,
+                        orchestrator=orch,
+                        rag=kwargs.get("rag"),
+                    )
+                    if c is not None:
+                        cand_map[c.cell_id.lower()] = c
+                        candidates.append(c)
+                except Exception:
+                    c = None
+            if c is not None and (not milestones or milestones[-1].cell_id != c.cell_id):
+                milestones.append(c)
+
+        if not milestones:
+            return _fallback()
+
+        # Phase 2: Topological Path Synthesis between Milestones
+        chain: List[Cell] = [milestones[0]]
+
+        for target in milestones[1:]:
+            curr = chain[-1]
+            if curr.cell_id == target.cell_id:
+                continue
+
+            # 1. Direct edge
+            if self.step_unifies(curr, target, prev_path=chain) or self.step_unifies_dag(target, chain, ctx=ctx):
+                chain.append(target)
+                continue
+
+            # 2. 1-Step Bridge
+            bridge = self.find_bridge(curr, target, candidates, orch, prev_path=chain)
+            if not bridge and orch and hasattr(orch, "loaded_cells"):
+                bridge = self.find_bridge(curr, target, list(orch.loaded_cells.values()), orch, prev_path=chain)
+            if bridge:
+                chain.extend([bridge, target])
+                continue
+
+            # 2b. Multi-carrier / DAG branch check: can target unify or bridge from an earlier ancestor in chain?
+            connected = False
+            for anc in reversed(chain[:-1]):
+                if self.step_unifies(anc, target, prev_path=chain) or self.step_unifies_dag(target, chain, ctx=ctx):
+                    chain.append(target)
+                    connected = True
+                    break
+                b_anc = self.find_bridge(anc, target, candidates, orch, prev_path=chain)
+                if not b_anc and orch and hasattr(orch, "loaded_cells"):
+                    b_anc = self.find_bridge(anc, target, list(orch.loaded_cells.values()), orch, prev_path=chain)
+                if b_anc:
+                    chain.extend([b_anc, target])
+                    connected = True
+                    break
+            if connected:
+                continue
+
+            # 3. Multi-Hop BFS Bridge (up to 2 intermediate nodes)
+            bfs_intermediates = self._find_bfs_path(curr, target, candidates, max_hops=2, prev_path=chain)
+            if bfs_intermediates is not None:
+                chain.extend(bfs_intermediates + [target])
+                continue
+
+            # 4. On-demand dynamic adapter synthesis (Dev Mode)
+            try:
+                from node_resolver import DynamicNodeResolver
+                dyn_bridge = DynamicNodeResolver.synthesize_adapter(curr, target, orch, rag=kwargs.get("rag"))
+                if dyn_bridge and self.step_unifies(curr, dyn_bridge, prev_path=chain) and self.step_unifies(dyn_bridge, target, prev_path=chain + [dyn_bridge]):
+                    chain.extend([dyn_bridge, target])
+                    continue
+            except Exception:
+                pass
+
+            # If milestone cannot be connected, skip it and continue attempting subsequent milestones
+            continue
+
+        # Final verification: verify all consecutive pairs
+        if len(chain) > 1:
+            verified = [chain[0]]
+            for nxt in chain[1:]:
+                c_prev = verified[-1]
+                if self.step_unifies(c_prev, nxt, prev_path=verified) or self.step_unifies_dag(nxt, verified, ctx=ctx):
+                    verified.append(nxt)
+                else:
+                    brg = self.find_bridge(c_prev, nxt, candidates, orch, prev_path=verified)
+                    if not brg and orch and hasattr(orch, "loaded_cells"):
+                        brg = self.find_bridge(c_prev, nxt, list(orch.loaded_cells.values()), orch, prev_path=verified)
+                    if brg:
+                        verified.extend([brg, nxt])
+                    else:
+                        # DAG branch check: can nxt unify or bridge from any ancestor in verified?
+                        anc_ok = False
+                        for anc in reversed(verified[:-1]):
+                            if self.step_unifies(anc, nxt, prev_path=verified) or self.step_unifies_dag(nxt, verified, ctx=ctx):
+                                verified.append(nxt)
+                                anc_ok = True
+                                break
+                            b_anc = self.find_bridge(anc, nxt, candidates, orch, prev_path=verified)
+                            if not b_anc and orch and hasattr(orch, "loaded_cells"):
+                                b_anc = self.find_bridge(anc, nxt, list(orch.loaded_cells.values()), orch, prev_path=verified)
+                            if b_anc:
+                                verified.extend([b_anc, nxt])
+                                anc_ok = True
+                                break
+                        if not anc_ok:
+                            try:
+                                from node_resolver import DynamicNodeResolver
+                                dyn_brg = DynamicNodeResolver.synthesize_adapter(c_prev, nxt, orch, rag=kwargs.get("rag"))
+                                if dyn_brg and self.step_unifies(c_prev, dyn_brg, prev_path=verified) and self.step_unifies(dyn_brg, nxt, prev_path=verified + [dyn_brg]):
+                                    verified.extend([dyn_brg, nxt])
+                                else:
+                                    continue
+                            except Exception:
+                                continue
+            chain = verified
+
+        if len(chain) < 2:
+            return _fallback()
+
+        self.tag_cells_with_clause_indices(chain, prompt)
+        return chain[:min(20, max(max_transforms + 4, 6))]

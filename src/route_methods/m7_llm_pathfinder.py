@@ -1,0 +1,230 @@
+"""
+src/route_methods/m7_llm_pathfinder.py - Neuro-Symbolic Topological Lattice (NSTL)
+
+M7: LLM Full-Context Pathfinder.
+
+Unlike M4 (one cell at a time, from a 5-candidate shortlist, names only) and
+M5 (a same-shape one-shot call, names only, tried only as a last resort),
+M7 gives the model the full prompt AND the full RAG-retrieved candidate set
+WITH each cell's real input/output type signature, in one call, and asks it
+to reason out the entire ordered path itself -- the way a human engineer
+reading the node list would. The embedder still does the retrieval (the
+`tunnel` argument, already narrowed by LatticeRouter.route()); the LLM is
+the one deciding how those retrieved nodes chain together to satisfy the
+prompt. Nothing here is domain-specific: the candidate list, and every
+op/type name in it, comes entirely from whatever trees are loaded.
+
+The proposed order is never trusted blindly -- each consecutive pair is
+re-verified with the same Robinson-unification machinery (step_unifies /
+find_bridge) every other route method already uses, and a 1-step bridge
+cell is inserted automatically where the model's ordering has a type gap
+it didn't (or couldn't) resolve itself.
+
+Falls back to M1 (clause-anchor) when no LLM is loaded, the model's output
+doesn't parse, or none of the proposed cell IDs are in the shown candidate
+set.
+"""
+from __future__ import annotations
+from typing import Dict, List, Optional, Any
+
+from .base import RouteMethod
+from .m1_clause_anchor import M1ClauseAnchorRouteMethod
+from lattice import Cell, LatticeOrchestrator
+from unification import ExecutionContext
+from inference import ModelManager
+
+try:
+    from utils import extract_json_object
+except ImportError:
+    from ..utils import extract_json_object
+
+try:
+    from node_resolver import DynamicNodeResolver
+except (ImportError, ValueError):
+    try:
+        from ..node_resolver import DynamicNodeResolver
+    except (ImportError, ValueError):
+        DynamicNodeResolver = None
+
+# How many candidate cells (by relevance) get shown to the model. Keeps the
+# prompt within a small local model's context window regardless of how wide
+# the retrieved tunnel is; ordering by relevance_map means truncation drops
+# the least-relevant cells first, not an arbitrary prefix.
+MAX_SHOWN_CANDIDATES = 25
+
+PATH_SCHEMA = {
+    "type": "object",
+    "required": ["path"],
+    "properties": {
+        "path": {
+            "type": "array",
+            "items": {"type": "string"},
+            "minItems": 3,
+            "maxItems": 14,
+        },
+    },
+}
+
+SYSTEM_PROMPT = (
+    "You are a pipeline planner. You are given a user request and a list "
+    "of available operations (cells). Each line shows a cell ID, domain, "
+    "description, and typed input/output ports.\n"
+    "Select an ordered sequence of cell IDs from the available list "
+    "that completely fulfills ALL steps of the user request from start to finish:\n"
+    "- Select operations for each distinct step in the request "
+    "(e.g., loading/reading, cleaning/preprocessing, column selection, transformation/normalization, "
+    "aggregation/statistical calculation, combining/adding parallel branches, mathematical/spectral analysis).\n"
+    "- When operations apply to distinct columns or variables (e.g. normalizing column X, calculating mean of column Y, "
+    "and combining X and Y), select column extraction and transformation cells for EACH branch so both branches exist in the pipeline.\n"
+    "- NEVER select multiple redundant alternatives for the same step "
+    "(e.g. choose either dropna or imputer, NOT both; choose either normalize or standardscaler, NOT both).\n"
+    "- Chain transformations in logical execution order from input data source to final output.\n"
+    "Respond with ONLY a JSON object: {\"path\": [\"CELL_ID\", ...]}"
+)
+
+
+def _fmt_port_sig(p: Any) -> str:
+    sig = getattr(p, "signature", None)
+    tn = str(getattr(sig, "type_name", "") or getattr(p, "abstract_type", "") or "any")
+    st = str(getattr(sig, "state", "") or "")
+    return f"{tn}[{st}]" if st and st not in ("any", "none") else tn
+
+
+def _format_cell_signature(cell: Cell) -> str:
+    """One compact, type-bearing line per cell with short summary."""
+    req_in = [f"{n}:{_fmt_port_sig(p)}" for n, p in cell.inputs.items() if getattr(p, "required", False)]
+    opt_in = [f"{n}:{_fmt_port_sig(p)}?" for n, p in cell.inputs.items() if not getattr(p, "required", False)]
+    outs = [f"{n}:{_fmt_port_sig(p)}" for n, p in cell.outputs.items()]
+    in_str = ", ".join(req_in + opt_in) or "none"
+    out_str = ", ".join(outs) or "none"
+    dom = getattr(cell, "domain_name", "") or "?"
+    stage = getattr(cell, "stage", "?")
+    doc = getattr(cell, "docstring", "") or ""
+    summary = doc.split(".")[0].strip() if doc else ""
+    desc_str = f" ({summary})" if summary else ""
+    return f"{cell.cell_id} [{dom} s{stage}]{desc_str} in({in_str}) -> out({out_str})"
+
+
+def _parse_proposed_path(raw_text: str) -> List[str]:
+    if not raw_text:
+        return []
+    data = extract_json_object(raw_text)
+    if data and isinstance(data.get("path"), list):
+        return [str(x).strip() for x in data["path"] if str(x).strip()]
+    return []
+
+
+class M7LLMPathfinderRouteMethod(RouteMethod):
+    name = "m7_llm_pathfinder"
+
+    def plan(self, prompt, tunnel, relevance_map, orchestrator=None, ctx=None,
+             start_sig=None, goal_sig=None, max_transforms=6, **kwargs):
+        self._current_prompt = prompt
+        orch = orchestrator or self.orchestrator
+        if not tunnel:
+            return []
+        if len(tunnel) == 1:
+            return [tunnel[0]]
+
+        candidates = [c for c in tunnel if getattr(c, "node_type", "") != "constant"] or [tunnel[0]]
+        mm = ModelManager.get_instance()
+        has_llm = mm.profile is not None and getattr(mm.profile, "llm", None) is not None
+
+        def _fallback():
+            return M1ClauseAnchorRouteMethod(orchestrator=orch).plan(
+                prompt, tunnel, relevance_map, orchestrator=orch, ctx=ctx,
+                start_sig=start_sig, goal_sig=goal_sig, max_transforms=max_transforms,
+            )
+
+        if not has_llm:
+            return _fallback()
+
+        shown = self.select_stratified_candidates(prompt, candidates, relevance_map, orchestrator=orch, max_shown=MAX_SHOWN_CANDIDATES)
+        cand_map = {c.cell_id.lower(): c for c in shown}
+
+        sig_block = "\n".join(f"- {_format_cell_signature(c)}" for c in shown)
+        user_msg = f"Request: {prompt}\n\nAvailable operations:\n{sig_block}"
+
+        try:
+            raw = mm.generate_text(
+                user_msg, max_tokens=768, schema=PATH_SCHEMA, system_prompt=SYSTEM_PROMPT,
+            )
+        except Exception:
+            return _fallback()
+
+        raw_ids = _parse_proposed_path(raw)
+        proposed: List[Cell] = []
+        for cid in raw_ids:
+            c = cand_map.get(cid.strip().lower())
+            if c is None:
+                try:
+                    from node_resolver import DynamicNodeResolver
+                    c = DynamicNodeResolver.resolve_node(
+                        raw_id=cid,
+                        prompt=prompt,
+                        orchestrator=orch,
+                        rag=kwargs.get("rag"),
+                    )
+                    if c is not None:
+                        cand_map[c.cell_id.lower()] = c
+                        candidates.append(c)
+                except Exception:
+                    c = None
+            if c is not None and (not proposed or proposed[-1].cell_id != c.cell_id):
+                proposed.append(c)
+
+        if not proposed:
+            return _fallback()
+
+        # Re-verify the model's proposed order against real type unification
+        # rather than trusting it -- same machinery every other route method
+        # uses, so a model that got the order slightly wrong still yields a
+        # type-sound pipeline (or a bridge cell fills the gap) instead of
+        # unification failing downstream.
+        chain = [proposed[0]]
+        for nxt in proposed[1:]:
+            curr = chain[-1]
+            if self.step_unifies(curr, nxt, prev_path=chain) or self.step_unifies_dag(nxt, chain, ctx=ctx):
+                chain.append(nxt)
+                continue
+            bridge = self.find_bridge(curr, nxt, candidates, orch, prev_path=chain)
+            if not bridge and orch and hasattr(orch, "loaded_cells"):
+                bridge = self.find_bridge(curr, nxt, list(orch.loaded_cells.values()), orch, prev_path=chain)
+            if bridge:
+                chain.extend([bridge, nxt])
+                continue
+
+            # Multi-carrier / DAG branch check: can nxt directly unify or bridge from an earlier ancestor in chain?
+            connected_ancestor = False
+            for anc in reversed(chain[:-1]):
+                if self.step_unifies(anc, nxt, prev_path=chain) or self.step_unifies_dag(nxt, chain, ctx=ctx):
+                    chain.append(nxt)
+                    connected_ancestor = True
+                    break
+                b_anc = self.find_bridge(anc, nxt, candidates, orch, prev_path=chain)
+                if not b_anc and orch and hasattr(orch, "loaded_cells"):
+                    b_anc = self.find_bridge(anc, nxt, list(orch.loaded_cells.values()), orch, prev_path=chain)
+                if b_anc:
+                    chain.extend([b_anc, nxt])
+                    connected_ancestor = True
+                    break
+            if connected_ancestor:
+                continue
+
+            try:
+                from node_resolver import DynamicNodeResolver
+                dyn_bridge = DynamicNodeResolver.synthesize_adapter(curr, nxt, orch, rag=kwargs.get("rag"))
+                if dyn_bridge and self.step_unifies(curr, dyn_bridge, prev_path=chain) and self.step_unifies(dyn_bridge, nxt, prev_path=chain + [dyn_bridge]):
+                    chain.extend([dyn_bridge, nxt])
+                    continue
+            except Exception:
+                pass
+            # If next node cannot be bridged, do not truncate early! Continue attempting remaining nodes
+            continue
+
+        if len(chain) < 2:
+            return _fallback()
+
+        self.tag_cells_with_clause_indices(chain, prompt)
+        return chain[:min(20, max(max_transforms + 4, 6))]
+

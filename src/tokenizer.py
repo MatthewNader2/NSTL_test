@@ -290,3 +290,164 @@ class CellTokenizer:
         for kw in keywords:
             tokens.update(cls.tokenize_identifier(kw))
         return tokens
+
+    @classmethod
+    def split_prompt_clauses(cls, prompt: str) -> List[str]:
+        """
+        Splits a prompt into logical action clauses without breaking inside quotes,
+        brackets, filter expressions (e.g. 'x > 10 and y < 20'), or compound nouns.
+        Deterministic, syntax-aware, zero external dependencies.
+        """
+        if not prompt or not prompt.strip():
+            return []
+
+        text = prompt.strip()
+        # 1. Mask quoted strings and bracketed expressions
+        protected = []
+        i = 0
+        n = len(text)
+        while i < n:
+            ch = text[i]
+            if ch in ("'", '"'):
+                j = i + 1
+                while j < n and text[j] != ch:
+                    if text[j] == '\\':
+                        j += 1
+                    j += 1
+                if j < n:
+                    protected.append((i, j + 1))
+                    i = j + 1
+                    continue
+            elif ch in ('(', '['):
+                closing = ')' if ch == '(' else ']'
+                depth = 1
+                j = i + 1
+                while j < n and depth > 0:
+                    if text[j] == ch:
+                        depth += 1
+                    elif text[j] == closing:
+                        depth -= 1
+                    j += 1
+                protected.append((i, j))
+                i = j
+                continue
+            i += 1
+
+        def _is_inside_protected(idx: int) -> bool:
+            return any(s <= idx < e for s, e in protected)
+
+        # 2. Tokenize words with positions
+        raw_words = []
+        cur = []
+        w_start = None
+        for idx, ch in enumerate(text):
+            if not ch.isspace():
+                if w_start is None:
+                    w_start = idx
+                cur.append(ch)
+            else:
+                if cur:
+                    raw_words.append((w_start, idx, "".join(cur)))
+                    cur = []
+                    w_start = None
+        if cur and w_start is not None:
+            raw_words.append((w_start, len(text), "".join(cur)))
+
+        # Resolve target operation verbs dynamically from TypeRegistry
+        try:
+            from .lattice import TypeRegistry
+        except (ImportError, ValueError):
+            try:
+                from lattice import TypeRegistry
+            except (ImportError, ValueError):
+                TypeRegistry = None
+
+        reg = TypeRegistry.get_instance() if TypeRegistry is not None else None
+        if reg is not None:
+            op_verbs = (
+                reg.get_operation_tokens()
+                | reg.get_estimator_verbs()
+                | reg.get_egress_tokens()
+            )
+        else:
+            op_verbs = set()
+
+        universal_verbs = frozenset({
+            "train", "fit", "evaluate", "plot", "save", "predict", "scale",
+            "normalize", "clean", "drop", "export", "write", "visualize", "split",
+            "calculate", "compute", "perform", "execute", "apply", "run", "do",
+            "load", "read", "filter", "select", "project", "store", "assign"
+        })
+        target_verbs = op_verbs | universal_verbs
+
+        # 3. Detect clause boundaries
+        split_positions = set()
+        for idx, (s, e, w) in enumerate(raw_words):
+            if _is_inside_protected(s) and _is_inside_protected(e - 1):
+                continue
+            clean = w.strip(".,;:!?")
+            clean_lower = clean.lower()
+
+            if ";" in w and not (_is_inside_protected(s) and _is_inside_protected(e - 1)):
+                split_positions.add(e)
+                continue
+
+            if w.endswith(".") and idx + 1 < len(raw_words) and not (_is_inside_protected(s) and _is_inside_protected(e - 1)):
+                next_w = raw_words[idx + 1][2]
+                if next_w and next_w[0].isupper():
+                    split_positions.add(e)
+                    continue
+
+            if clean_lower in ("then", "next", "afterwards"):
+                split_positions.add(s)
+                continue
+
+            if clean_lower == "and":
+                in_filter = False
+                for back in range(max(0, idx - 4), idx):
+                    bw = raw_words[back][2].lower()
+                    if any(op in bw for op in (">", "<", "==", "!=", ">=", "<=")):
+                        in_filter = True
+                        break
+                    if bw in ("where", "between", "filter"):
+                        in_filter = True
+                        break
+                if not in_filter:
+                    prev_ends_comma = idx > 0 and raw_words[idx - 1][2].endswith(",")
+                    next_word = raw_words[idx + 1][2].lower().strip(".,;:") if idx + 1 < len(raw_words) else ""
+                    if prev_ends_comma or next_word in target_verbs:
+                        split_positions.add(s)
+                        continue
+
+            if w.endswith(",") and idx + 1 < len(raw_words):
+                next_word = raw_words[idx + 1][2].lower().strip(".,;:")
+                if next_word in target_verbs or next_word in ("then", "next", "afterwards"):
+                    split_positions.add(e)
+                    continue
+
+        if not split_positions:
+            return [text]
+
+        sorted_splits = sorted(list(split_positions))
+        clauses = []
+        last_pos = 0
+        for pos in sorted_splits:
+            chunk = text[last_pos:pos].strip(" ,;:\n\t")
+            if chunk.lower().startswith("and "):
+                chunk = chunk[4:].strip(" ,;:\n\t")
+            if chunk.lower().startswith("then "):
+                chunk = chunk[5:].strip(" ,;:\n\t")
+            if chunk:
+                clauses.append(chunk)
+            last_pos = pos
+
+        tail = text[last_pos:].strip(" ,;:\n\t")
+        if tail.lower().startswith("and "):
+            tail = tail[4:].strip(" ,;:\n\t")
+        if tail.lower().startswith("then "):
+            tail = tail[5:].strip(" ,;:\n\t")
+        if tail:
+            clauses.append(tail)
+
+        return clauses if clauses else [text]
+

@@ -1,5 +1,5 @@
 from __future__ import annotations
-import json, re
+import json
 from typing import Dict, List, Optional, Any
 from .base import RouteMethod
 from .m1_clause_anchor import M1ClauseAnchorRouteMethod
@@ -56,9 +56,16 @@ class M5LLMOneShotRouteMethod(RouteMethod):
             try:
                 top_str = "\n".join(f"- {c.cell_id}" for c in sorted(candidates, key=lambda c: relevance_map.get(c.cell_id, 0.0), reverse=True)[:20])
                 resp = mm.generate_text(f"Intent: {prompt}\nCells:\n{top_str}\nReturn JSON list of cell IDs in order:", max_tokens=128, system_prompt="Output ONLY a JSON list.").strip()
-                m = re.search(r"\[.*?\]", resp, re.DOTALL)
-                if m:
-                    for cid in json.loads(m.group(0)):
+                parsed_list = None
+                if "[" in resp and "]" in resp:
+                    lbracket = resp.find("[")
+                    rbracket = resp.rfind("]")
+                    try:
+                        parsed_list = json.loads(resp[lbracket : rbracket + 1])
+                    except Exception:
+                        pass
+                if isinstance(parsed_list, list):
+                    for cid in parsed_list:
                         if str(cid).strip().lower() in cand_map: proposed.append(cand_map[str(cid).strip().lower()])
             except Exception:
                 proposed = []

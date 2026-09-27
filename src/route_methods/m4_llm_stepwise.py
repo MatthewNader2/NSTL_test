@@ -1,5 +1,4 @@
 from __future__ import annotations
-import re
 from typing import Dict, List, Optional, Set, Any
 from .base import RouteMethod
 from lattice import Cell, LatticeOrchestrator, TypeRegistry
@@ -7,6 +6,10 @@ from tokenizer import CellTokenizer
 from unification import ExecutionContext
 from inference import ModelManager
 from planner import _is_terminal_sink_cell
+try:
+    from utils import tokenize_alphanumeric
+except ImportError:
+    from ..utils import tokenize_alphanumeric
 
 
 def _ir_filter(candidates, ir_step):
@@ -63,7 +66,22 @@ class M4LLMStepwiseRouteMethod(RouteMethod):
                          + (5.0 if file_literals and _is_pc(c) else 0.0))
 
         path, visited = [best_entry], {best_entry.cell_id}
-        clauses = self.segment_prompt_clauses(prompt)
+        # Prefer the model-compiled IR steps as the clause set -- they came
+        # from a model that actually read the prompt, not a punctuation
+        # split of it. Fall back to the regex/vocabulary segmenter only when
+        # no LLM is loaded or IR compilation produced nothing usable.
+        if ir_steps:
+            clauses = [
+                " ".join(
+                    w for w in (
+                        str(s.get("op", "")).strip(),
+                        str(s.get("library", "")).strip(),
+                    ) if w
+                )
+                for s in ir_steps
+            ] or self.segment_prompt_clauses(prompt)
+        else:
+            clauses = self.segment_prompt_clauses(prompt)
         max_steps = max(2, min(16, max(max_transforms + 2, (len(clauses) if clauses else 1) + 3)))
 
         has_reg = bool(prompt_tokens & {"regression", "regressor", "continuous"}) and not bool(prompt_tokens & {"classification", "classifier"})
@@ -113,7 +131,7 @@ class M4LLMStepwiseRouteMethod(RouteMethod):
                         max_tokens=64,
                         system_prompt="Output ONLY the exact cell ID from the candidate list, or FINISH.",
                     ).strip()
-                    toks = set(re.findall(r"[A-Za-z0-9_]+", resp.lower()))
+                    toks = set(tokenize_alphanumeric(resp))
                     if "finish" in toks: break
                     selected = next((c for c in top_valid if c.cell_id.lower() in toks), None)
                 except Exception:

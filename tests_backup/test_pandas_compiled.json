@@ -1,0 +1,126 @@
+{
+  "domain_name": "Pandas_Data_Engineering",
+  "version": "1.0.0",
+  "description": "Auto-compiled from test_pandas_ast.py",
+  "cells": [
+    {
+      "cell_id": "PANDAS_READ_CSV",
+      "type": "micro",
+      "stage": 1,
+      "keywords": [
+        "csv",
+        "read",
+        "file",
+        "ingest",
+        "load",
+        "comma",
+        "tabular"
+      ],
+      "inputs": {
+        "type_name": "str",
+        "state": "source_identifier"
+      },
+      "outputs": {
+        "type_name": "DataFrame",
+        "state": "raw_dataframe"
+      },
+      "domain_implementations": {
+        "Python_Core": {
+          "code": "import pandas as pd\n{output_var} = pd.read_csv({input_var})",
+          "dependencies": [
+            "pandas"
+          ]
+        }
+      }
+    },
+    {
+      "cell_id": "PANDAS_READ_JSON",
+      "type": "micro",
+      "stage": 1,
+      "keywords": [
+        "json",
+        "read",
+        "file",
+        "ingest",
+        "nested",
+        "load"
+      ],
+      "inputs": {
+        "type_name": "str",
+        "state": "source_identifier"
+      },
+      "outputs": {
+        "type_name": "DataFrame",
+        "state": "raw_dataframe"
+      },
+      "domain_implementations": {
+        "Python_Core": {
+          "code": "import pandas as pd\n{output_var} = pd.read_json({input_var})",
+          "dependencies": [
+            "pandas"
+          ]
+        }
+      }
+    },
+    {
+      "cell_id": "PANDAS_READ_EXCEL",
+      "type": "micro",
+      "stage": 1,
+      "keywords": [
+        "excel",
+        "xlsx",
+        "read",
+        "spreadsheet",
+        "ingest",
+        "xls"
+      ],
+      "inputs": {
+        "type_name": "str",
+        "state": "source_identifier"
+      },
+      "outputs": {
+        "type_name": "DataFrame",
+        "state": "raw_dataframe"
+      },
+      "domain_implementations": {
+        "Python_Core": {
+          "code": "import pandas as pd\nimport openpyxl\n{output_var} = pd.read_excel({input_var})",
+          "dependencies": [
+            "pandas",
+            "openpyxl"
+          ]
+        }
+      }
+    },
+    {
+      "cell_id": "PANDAS_READ_PARQUET",
+      "type": "micro",
+      "stage": 1,
+      "keywords": [
+        "parquet",
+        "read",
+        "columnar",
+        "binary",
+        "arrow",
+        "load"
+      ],
+      "inputs": {
+        "type_name": "str",
+        "state": "source_identifier"
+      },
+      "outputs": {
+        "type_name": "DataFrame",
+        "state": "raw_dataframe"
+      },
+      "domain_implementations": {
+        "Python_Core": {
+          "code": "import pandas as pd\nimport pyarrow\n{output_var} = pd.read_parquet({input_var})",
+          "dependencies": [
+            "pandas",
+            "pyarrow"
+          ]
+        }
+      }
+    }
+  ]
+}

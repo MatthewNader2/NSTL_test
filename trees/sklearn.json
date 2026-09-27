@@ -2222,9 +2222,11 @@
         "scale",
         "standardize",
         "mean",
-        "variance"
+        "variance",
+        "normalize",
+        "zscore"
       ],
-      "code_template": "{output_var} = StandardScaler().fit_transform({X})",
+      "code_template": "{output_var} = StandardScaler().fit_transform(getattr({X}, 'values', {X}).reshape(-1, 1)).flatten() if getattr({X}, 'ndim', 2) == 1 else StandardScaler().fit_transform({X})",
       "slots": [
         "output_var",
         "X"

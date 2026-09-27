@@ -13,7 +13,6 @@ import os
 import sys
 import threading
 import traceback
-import re
 from typing import Tuple, Optional, Callable, Dict, Any, Union, List
 
 try:
@@ -118,9 +117,9 @@ def _restricted_import(name, *args, **kwargs):
     return __builtins__.__import__(name, *args, **kwargs) if hasattr(__builtins__, '__import__') else __import__(name, *args, **kwargs)
 
 try:
-    from .errors import DataflowExecutionError, ArtifactMaterializationError, PostconditionVerificationError
+    from .errors import DataflowExecutionError, ArtifactMaterializationError, PostconditionVerificationError, SandboxSecurityError
 except (ImportError, ValueError):
-    from errors import DataflowExecutionError, ArtifactMaterializationError, PostconditionVerificationError
+    from errors import DataflowExecutionError, ArtifactMaterializationError, PostconditionVerificationError, SandboxSecurityError
 
 
 def _check_estimator_fitted(estimator: Any, cell_id: str, var_name: str) -> None:
@@ -182,14 +181,22 @@ def _evaluate_cell_postcondition(exec_globals: Dict[str, Any], check: Dict[str, 
     if expr:
         # State predicates are evaluated through the declared-property
         # evaluator below (the token `state` is not a runtime variable).
-        is_state_predicate = bool(
-            re.search(r"\bstate\s*(?:==|!=|is)\b", expr)
-        )
+        is_state_predicate = any(tok in expr for tok in ("state ==", "state !=", "state is ", "state is not "))
         if not is_state_predicate:
             subbed_expr = expr
             target_name = check.get("target_port") or check.get("target") or "output_var"
             if target_name in subbed_expr:
-                subbed_expr = re.sub(rf"\b{re.escape(target_name)}\b", target_var, subbed_expr)
+                try:
+                    parsed_expr = ast.parse(subbed_expr, mode="eval")
+                    class _NameReplacer(ast.NodeTransformer):
+                        def visit_Name(self, node):
+                            if node.id == target_name:
+                                return ast.copy_location(ast.Name(id=target_var, ctx=node.ctx), node)
+                            return node
+                    subbed_expr = ast.unparse(_NameReplacer().visit(parsed_expr))
+                except Exception:
+                    tokens = subbed_expr.split()
+                    subbed_expr = " ".join(target_var if t == target_name else t for t in tokens)
 
             eval_scope = {
                 "__builtins__": {
@@ -605,7 +612,13 @@ def _sandbox_worker_exec(
                 "error": ""
             }
         except Exception as e:
-            is_extrinsic = isinstance(e, (FileNotFoundError, ConnectionError, TimeoutError, ModuleNotFoundError))
+            root_exc = e
+            while getattr(root_exc, "__cause__", None) is not None:
+                root_exc = root_exc.__cause__
+            is_extrinsic = (
+                isinstance(e, (OSError, ImportError, ConnectionError, TimeoutError, SandboxSecurityError))
+                or isinstance(root_exc, (OSError, ImportError, ConnectionError, TimeoutError, SandboxSecurityError))
+            )
             err_msg = f"{type(e).__name__}: {e}" if isinstance(e, (DataflowExecutionError, ArtifactMaterializationError, PostconditionVerificationError)) else traceback.format_exc()
             return {
                 "success": False,

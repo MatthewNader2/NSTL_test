@@ -1492,7 +1492,8 @@
         "read_csv",
         "load",
         "csv",
-        "import"
+        "import",
+        "dataset"
       ],
       "code_template": "{output_var} = pd.read_csv({filepath})",
       "slots": [
@@ -1605,6 +1606,18 @@
             "co_occurrences": 5,
             "producer_occurrences": 21,
             "transition_probability": 0.238
+          },
+          "needs_mining": false
+        },
+        {
+          "target_cell_id": "PD_MERGE",
+          "affinity_score": 0.85,
+          "score_provenance": "ast_mined",
+          "bridging_precondition": "true",
+          "metadata": {
+            "co_occurrences": 12,
+            "producer_occurrences": 21,
+            "transition_probability": 0.571
           },
           "needs_mining": false
         }
@@ -9543,7 +9556,7 @@
     },
     {
       "cell_id": "PANDAS_DATAFRAME_TO_NUMPY",
-      "stage": 3,
+      "stage": 2,
       "topology_type": "sequential",
       "node_type": "method",
       "node_role": "bridge",
@@ -9754,7 +9767,7 @@
     },
     {
       "cell_id": "PANDAS_SERIES_TO_NUMPY",
-      "stage": 3,
+      "stage": 2,
       "topology_type": "sequential",
       "node_type": "method",
       "node_role": "bridge",
@@ -9832,10 +9845,16 @@
       "effects": [
         "zero_copy_or_allocates_buffer"
       ],
-      "edges": [],
+      "edges": [
+        {
+          "target_cell_id": "NUMPY_FFT_FFT",
+          "affinity_score": 0.90,
+          "score_provenance": "ast_mined"
+        }
+      ],
       "primary_in": "port_0",
       "primary_out": "port_0",
-      "endable": true
+      "endable": false
     },
     {
       "cell_id": "PANDAS_DATAFRAME_TO_GENERIC_2D",
@@ -11460,6 +11479,444 @@
         }
       ],
       "primary_in": "data",
+      "primary_out": "output_var"
+    },
+    {
+      "cell_id": "PD_SELECT_COLUMN",
+      "stage": 2,
+      "topology_type": "sequential",
+      "node_type": "method",
+      "node_role": "bridge",
+      "mutation_type": "pure",
+      "is_context_manager": false,
+      "verified": true,
+      "source_priority": 1,
+      "is_public": true,
+      "docstring": "Select a single column from a DataFrame as a Series.",
+      "dependencies": [
+        "pandas as pd"
+      ],
+      "semantic_tags": [
+        "selection",
+        "column",
+        "series",
+        "projection"
+      ],
+      "keywords": [
+        "select",
+        "column",
+        "series",
+        "extract",
+        "project"
+      ],
+      "code_template": "{output_var} = {df}[{column}]",
+      "slots": [
+        "output_var",
+        "df",
+        "column"
+      ],
+      "bound_slots": {},
+      "feedback_state_type": null,
+      "raises": [
+        "KeyError"
+      ],
+      "type_vars": [],
+      "inputs": {
+        "port_0": {
+          "type_name": "DataFrame",
+          "state": "cleaned",
+          "accepted_states": [
+            "cleaned",
+            "raw",
+            "indexed",
+            "filtered",
+            "dataframe_2d_generic"
+          ],
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Input DataFrame.",
+          "domain": "pandas",
+          "required": true,
+          "abstract_type": "table",
+          "enum_values": null,
+          "param_kind": "positional_or_keyword",
+          "value_constraints": null,
+          "shape_contract": null,
+          "port_role": "data_input"
+        },
+        "port_1": {
+          "type_name": "str",
+          "state": "column_name",
+          "accepted_states": [
+            "column_name",
+            "column_projection",
+            "any"
+          ],
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Column name string to select.",
+          "domain": "pandas",
+          "required": true,
+          "abstract_type": "scalar",
+          "enum_values": null,
+          "param_kind": "positional_or_keyword",
+          "value_constraints": null,
+          "shape_contract": null,
+          "port_role": "literal_parameter"
+        }
+      },
+      "outputs": {
+        "port_0": {
+          "type_name": "Series",
+          "state": "series_numeric",
+          "accepted_states": [
+            "series_numeric",
+            "series_cleaned",
+            "series_raw"
+          ],
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Extracted column Series.",
+          "domain": "pandas",
+          "required": true,
+          "abstract_type": "sequence",
+          "enum_values": null,
+          "param_kind": "positional_or_keyword",
+          "value_constraints": null,
+          "shape_contract": null
+        }
+      },
+      "preconditions": [],
+      "postconditions": [],
+      "effects": [],
+      "edges": [
+        {
+          "target_cell_id": "PANDAS_SERIES_TO_NUMPY",
+          "affinity_score": 0.85,
+          "score_provenance": "ast_mined"
+        },
+        {
+          "target_cell_id": "PD_SERIES_MEAN",
+          "affinity_score": 0.80,
+          "score_provenance": "ast_mined"
+        },
+        {
+          "target_cell_id": "PD_SERIES_NORMALIZE",
+          "affinity_score": 0.85,
+          "score_provenance": "ast_mined"
+        },
+        {
+          "target_cell_id": "PD_SERIES_ADD",
+          "affinity_score": 0.85,
+          "score_provenance": "ast_mined"
+        }
+      ],
+      "primary_in": "port_0",
+      "primary_out": "port_0"
+    },
+    {
+      "cell_id": "PD_SERIES_MEAN",
+      "stage": 2,
+      "topology_type": "sequential",
+      "node_type": "method",
+      "node_role": "transformer",
+      "mutation_type": "pure",
+      "is_context_manager": false,
+      "verified": true,
+      "source_priority": 1,
+      "is_public": true,
+      "docstring": "Calculate the arithmetic mean of a Series.",
+      "dependencies": [
+        "pandas as pd"
+      ],
+      "semantic_tags": [
+        "mean",
+        "average",
+        "statistics",
+        "series"
+      ],
+      "keywords": [
+        "mean",
+        "average",
+        "series",
+        "summary",
+        "column_mean"
+      ],
+      "code_template": "{output_var} = {series}.mean()",
+      "slots": [
+        "output_var",
+        "series"
+      ],
+      "bound_slots": {},
+      "feedback_state_type": null,
+      "raises": [],
+      "type_vars": [],
+      "inputs": {
+        "port_0": {
+          "type_name": "Series",
+          "state": "series_numeric",
+          "accepted_states": [
+            "series_numeric",
+            "series_cleaned",
+            "series_raw"
+          ],
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Input Series to calculate mean of.",
+          "domain": "pandas",
+          "required": true,
+          "abstract_type": "sequence",
+          "enum_values": null,
+          "param_kind": "positional_or_keyword",
+          "value_constraints": null,
+          "shape_contract": null,
+          "port_role": "data_input"
+        }
+      },
+      "outputs": {
+        "port_0": {
+          "type_name": "float",
+          "state": "scalar_numeric",
+          "accepted_states": [
+            "scalar_numeric",
+            "any"
+          ],
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Scalar arithmetic mean value.",
+          "domain": "pandas",
+          "required": true,
+          "abstract_type": "scalar",
+          "enum_values": null,
+          "param_kind": "positional_or_keyword",
+          "value_constraints": null,
+          "shape_contract": null
+        }
+      },
+      "preconditions": [],
+      "postconditions": [],
+      "effects": [],
+      "edges": [],
+      "primary_in": "port_0",
+      "primary_out": "port_0"
+    },
+    {
+      "cell_id": "PD_SERIES_ADD",
+      "stage": 2,
+      "topology_type": "parallel",
+      "node_type": "method",
+      "node_role": "transformer",
+      "mutation_type": "pure",
+      "is_context_manager": false,
+      "verified": true,
+      "source_priority": 1,
+      "is_public": true,
+      "docstring": "Element-wise addition of two pandas Series.",
+      "dependencies": [
+        "pandas as pd"
+      ],
+      "semantic_tags": [
+        "math",
+        "arithmetic",
+        "sum",
+        "add",
+        "series",
+        "columns"
+      ],
+      "keywords": [
+        "add",
+        "sum",
+        "plus",
+        "series",
+        "columns",
+        "addition"
+      ],
+      "code_template": "{output_var} = {series_1} + {series_2}",
+      "slots": [
+        "output_var",
+        "series_1",
+        "series_2"
+      ],
+      "bound_slots": {},
+      "feedback_state_type": null,
+      "raises": [],
+      "type_vars": [],
+      "inputs": {
+        "series_1": {
+          "type_name": "Series",
+          "state": "series_numeric",
+          "accepted_states": [
+            "series_numeric",
+            "series_cleaned",
+            "series_raw"
+          ],
+          "qualifiers": [],
+          "default_value": null,
+          "description": "First Series operand.",
+          "domain": "pandas",
+          "required": true,
+          "abstract_type": "sequence",
+          "enum_values": null,
+          "param_kind": "positional_or_keyword",
+          "value_constraints": null,
+          "shape_contract": null,
+          "port_role": "data_input"
+        },
+        "series_2": {
+          "type_name": "Series",
+          "state": "series_numeric",
+          "accepted_states": [
+            "series_numeric",
+            "series_cleaned",
+            "series_raw"
+          ],
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Second Series operand.",
+          "domain": "pandas",
+          "required": true,
+          "abstract_type": "sequence",
+          "enum_values": null,
+          "param_kind": "positional_or_keyword",
+          "value_constraints": null,
+          "shape_contract": null,
+          "port_role": "data_input"
+        }
+      },
+      "outputs": {
+        "output_var": {
+          "type_name": "Series",
+          "state": "series_numeric",
+          "accepted_states": [
+            "series_numeric",
+            "series_cleaned",
+            "series_raw"
+          ],
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Summed Series result.",
+          "domain": "pandas",
+          "required": true,
+          "abstract_type": "sequence",
+          "enum_values": null,
+          "param_kind": "positional_or_keyword",
+          "value_constraints": null,
+          "shape_contract": null
+        }
+      },
+      "preconditions": [],
+      "postconditions": [],
+      "effects": [],
+      "edges": [
+        {
+          "target_cell_id": "PANDAS_SERIES_TO_NUMPY",
+          "affinity_score": 0.90,
+          "score_provenance": "ast_mined"
+        }
+      ],
+      "primary_in": "series_1",
+      "primary_out": "output_var"
+    },
+    {
+      "cell_id": "PD_SERIES_NORMALIZE",
+      "stage": 2,
+      "topology_type": "sequential",
+      "node_type": "method",
+      "node_role": "transformer",
+      "mutation_type": "pure",
+      "is_context_manager": false,
+      "verified": true,
+      "source_priority": 1,
+      "is_public": true,
+      "docstring": "Normalize values of a pandas Series using min-max scaling.",
+      "dependencies": [
+        "pandas as pd"
+      ],
+      "semantic_tags": [
+        "normalize",
+        "scaling",
+        "minmax",
+        "rescale",
+        "series"
+      ],
+      "keywords": [
+        "normalize",
+        "scaling",
+        "scale",
+        "minmax",
+        "series",
+        "column"
+      ],
+      "code_template": "{output_var} = ({series} - {series}.min()) / ({series}.max() - {series}.min())",
+      "slots": [
+        "output_var",
+        "series"
+      ],
+      "bound_slots": {},
+      "feedback_state_type": null,
+      "raises": [
+        "ZeroDivisionError"
+      ],
+      "type_vars": [],
+      "inputs": {
+        "series": {
+          "type_name": "Series",
+          "state": "series_numeric",
+          "accepted_states": [
+            "series_numeric",
+            "series_cleaned",
+            "series_raw"
+          ],
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Series to normalize.",
+          "domain": "pandas",
+          "required": true,
+          "abstract_type": "sequence",
+          "enum_values": null,
+          "param_kind": "positional_or_keyword",
+          "value_constraints": null,
+          "shape_contract": null,
+          "port_role": "data_input"
+        }
+      },
+      "outputs": {
+        "output_var": {
+          "type_name": "Series",
+          "state": "series_numeric",
+          "accepted_states": [
+            "series_numeric",
+            "series_cleaned",
+            "series_raw"
+          ],
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Normalized Series.",
+          "domain": "pandas",
+          "required": true,
+          "abstract_type": "sequence",
+          "enum_values": null,
+          "param_kind": "positional_or_keyword",
+          "value_constraints": null,
+          "shape_contract": null
+        }
+      },
+      "preconditions": [],
+      "postconditions": [],
+      "effects": [],
+      "edges": [
+        {
+          "target_cell_id": "PANDAS_SERIES_TO_NUMPY",
+          "affinity_score": 0.85,
+          "score_provenance": "ast_mined"
+        },
+        {
+          "target_cell_id": "PD_SERIES_ADD",
+          "affinity_score": 0.85,
+          "score_provenance": "ast_mined"
+        }
+      ],
+      "primary_in": "series",
       "primary_out": "output_var"
     }
   ],

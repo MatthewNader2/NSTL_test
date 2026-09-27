@@ -5,7 +5,6 @@ import hashlib
 import json
 import math
 import os
-import re
 import sqlite3
 import sys
 import time
@@ -301,6 +300,10 @@ def cmd_compile(args):
                     cur.execute("INSERT OR REPLACE INTO structural_metadata (category, item, extra, domain_name) VALUES ('asset_placeholder', ?, ?, ?)", (str(mk).strip().lower(), str(mv).strip(), domain))
                 for mk, mv in (getattr(tree, "output_placeholders", {}) or getattr(tree, "default_output_placeholders", {}) or data.get("output_placeholders", {}) or data.get("default_output_placeholders", {})).items():
                     cur.execute("INSERT OR REPLACE INTO structural_metadata (category, item, extra, domain_name) VALUES ('output_asset_placeholder', ?, ?, ?)", (str(mk).strip().lower(), str(mv).strip(), domain))
+                for av in getattr(tree, "action_verbs", []) or data.get("action_verbs", []):
+                    cur.execute("INSERT OR REPLACE INTO structural_metadata (category, item, extra, domain_name) VALUES ('action_verb', ?, '', ?)", (str(av).strip().lower(), domain))
+                for ot in getattr(tree, "operation_tokens", []) or data.get("operation_tokens", []):
+                    cur.execute("INSERT OR REPLACE INTO structural_metadata (category, item, extra, domain_name) VALUES ('operation_token', ?, '', ?)", (str(ot).strip().lower(), domain))
             except Exception as e:
                 print(f"[!] Schema validation error in {jf.name}: {e}")
                 cells = []
@@ -539,23 +542,31 @@ except ImportError:
 console = Console()
 
 
-_ENVIRONMENTAL_ERROR_MARKERS = (
-    "FileNotFoundError", "PermissionError", "IsADirectoryError",
-    "ModuleNotFoundError", "ConnectionError", "TimeoutError",
-    "No such file or directory",
-)
-
-
-def _is_environmental_error(error_msg: str) -> bool:
+def _is_environmental_error(error_msg: str, sandbox_res: Optional[Dict[str, Any]] = None) -> bool:
     """
     Classifies a sandbox failure as environmental (missing input asset, missing
-    module, OS/IO conditions) rather than a defect in the synthesized code.
-    Repairing code cannot create the user's data file, so these failures are
-    reported honestly instead of triggering the LLM repair cycle.
+    module, OS/IO conditions, sandbox security boundary) rather than a defect in the synthesized code.
+    Grounds against Python's native exception hierarchy and sandbox result telemetry.
     """
+    if sandbox_res and sandbox_res.get("extrinsic", False):
+        return True
     if not error_msg:
         return False
-    return any(marker in error_msg for marker in _ENVIRONMENTAL_ERROR_MARKERS)
+
+    extrinsic_type_names = {
+        cls.__name__ for cls in (
+            OSError, ImportError, ModuleNotFoundError, ConnectionError, TimeoutError
+        )
+    }
+    extrinsic_type_names.update(c.__name__ for c in OSError.__subclasses__())
+    extrinsic_type_names.add("SandboxSecurityError")
+
+    lines = [l.strip() for l in error_msg.strip().splitlines() if l.strip()]
+    for line in reversed(lines):
+        token = line.split(":")[0].strip()
+        if token in extrinsic_type_names:
+            return True
+    return False
 
 
 def _statically_evaluate_contract(final_code: str, contract: Any) -> List[str]:
@@ -1370,7 +1381,8 @@ class NSTLInteractiveShell(cmd.Cmd):
         route_method: Optional[str] = None,
         no_lint: bool = False,
         macros: Optional[bool] = None,
-        topology: Optional[str] = None
+        topology: Optional[str] = None,
+        dev: Optional[bool] = None
     ):
         super().__init__()
         self.db_path = db_path
@@ -1392,6 +1404,11 @@ class NSTLInteractiveShell(cmd.Cmd):
         if macros is not None:
             settings.macros_enabled = bool(macros)
         self.macros_enabled = settings.macros_enabled
+
+        # Dev Mode toggle
+        if dev is not None:
+            settings.dev_mode = bool(dev)
+        self.dev_mode = settings.dev_mode
 
         # Topology mode: "frontier" (default) or "linear" (ablation baseline)
         if topology is not None:
@@ -1443,7 +1460,14 @@ class NSTLInteractiveShell(cmd.Cmd):
         # Hardware & DB info
         db_nodes = f"[cyan]Nodes:[/cyan] {len(self.orchestrator.cells):,} in {len(domains)} domains"
         dbg_text = "[bold green]ON (Verbose)[/bold green]" if self.debug else "[dim]OFF[/dim]"
-        method_text = f"[bold yellow]{self.route_method or 'M0 (Default)'}[/bold yellow]"
+        # Show the method that will ACTUALLY run, not a hardcoded "M0" label.
+        # When the person hasn't picked one with /method, the router itself
+        # now resolves the effective default (m4 when the loaded profile can
+        # synthesize with a model, m0 otherwise) -- read that back rather
+        # than assuming m0, so a loaded, usable LLM is never shown as idle
+        # when it is in fact driving this run.
+        _resolved_method = self.route_method or str(getattr(self.router, "default_route_method", "m0")).upper()
+        method_text = f"[bold yellow]{_resolved_method}{' (Default)' if not self.route_method else ''}[/bold yellow]"
         topo_mode = getattr(self, "topology_mode", "frontier")
         topo_badge = "[bold green]Frontier (DAG)[/bold green]" if topo_mode == "frontier" else "[bold yellow]Linear (1D)[/bold yellow]"
         dev_info = f"[cyan]Method:[/cyan] {method_text} | [cyan]Topology:[/cyan] {topo_badge}\n[cyan]Device:[/cyan] {self.device.upper()} | [cyan]Debug:[/cyan] {dbg_text}"
@@ -1454,8 +1478,8 @@ class NSTLInteractiveShell(cmd.Cmd):
         # Title Banner Panel
         title_text = Text("🧬 NSTL NEURO-SYMBOLIC TOPOLOGICAL LATTICE STUDIO", justify="center", style="bold white on blue")
         quick_shortcuts = Text(
-            "Quick Layers: [1] 0:Symbolic  [2] A:Embedder  [3] C:Neuro-Symbolic  [4] D:Routing  [5] E:Translator\n"
-            "Commands: /profile <0|A|C|D|E> | /method <M0-M6> | /topology <frontier|linear> | /audit | /macro | /debug [on|off] | /sandbox [on|off] | /status | /new | /clear | /exit",
+            "Quick Layers: [1] 0:Symbolic  [2] A:Embedder  [3] C:Neuro-Symbolic  [4] D:Routing  [5] E:Translator  [6] S:Semantic-Compiler\n"
+            "Commands: /profile <0|A|C|D|E|S> | /method <M0-M9> | /topology <frontier|linear> | /audit | /macro | /debug [on|off] | /sandbox [on|off] | /status | /new | /clear | /exit",
             justify="center",
             style="dim cyan"
         )
@@ -1482,6 +1506,8 @@ class NSTLInteractiveShell(cmd.Cmd):
             return "Profile D (Routing-Only Benchmark)"
         elif prof_u == "E":
             return "Profile E (Translator Pass + Neuro-Symbolic)"
+        elif prof_u == "S":
+            return "Profile S (Structured Semantic Compiler)"
         return f"Profile {prof_u}"
 
     def _get_profile_description(self, prof: str) -> str:
@@ -1496,6 +1522,8 @@ class NSTLInteractiveShell(cmd.Cmd):
             return "LLM-guided path search without full code synthesis."
         elif prof_u == "E":
             return "2-stage pipeline: conversational prompt -> canonical translator."
+        elif prof_u == "S":
+            return "Typed Intent & Schema Compiler pass + Neuro-Symbolic synthesis."
         return ""
 
     def _update_prompt(self):
@@ -1576,8 +1604,8 @@ class NSTLInteractiveShell(cmd.Cmd):
                 console.print(f"[bold green][✓] Switched to {self._format_profile_name(self.active_profile)}[/bold green]\n")
             return True
 
-        if p not in ("A", "C", "D", "E"):
-            console.print(f"[bold red][!] Unknown profile '{profile}'. Valid options: 0 (Symbolic), A, C, D, E.[/bold red]")
+        if p not in ("A", "C", "D", "E", "S"):
+            console.print(f"[bold red][!] Unknown profile '{profile}'. Valid options: 0 (Symbolic), A, C, D, E, S.[/bold red]")
             return False
 
         # Determine default model names dynamically based on cache coverage
@@ -1594,14 +1622,15 @@ class NSTLInteractiveShell(cmd.Cmd):
             mm.initialize_profile(
                 profile_type=p,
                 embedder_name=emb_choice,
-                llm_name=llm_choice if p in ("C", "D", "E") else ""
+                llm_name=llm_choice if p in ("C", "D", "E", "S") else ""
             )
             self.embedder_name = emb_choice
-            self.llm_name = llm_choice if p in ("C", "D", "E") else ""
+            self.llm_name = llm_choice if p in ("C", "D", "E", "S") else ""
 
             if verbose:
                 console.print(f"[*] Indexing FAISS vector space for {len(self.orchestrator.cells):,} nodes...")
             self.rag = LocalRAG(trees_dir="trees", orchestrator=self.orchestrator)
+            self.orchestrator.rag = self.rag
             self.router = LatticeRouter(self.orchestrator, internal_rag=self.rag, default_route_method=self.route_method)
 
             self.active_profile = p
@@ -1623,7 +1652,7 @@ class NSTLInteractiveShell(cmd.Cmd):
             return False
 
     def do_profile(self, arg: str):
-        """Switch active inference profile. Usage: profile <0|A|C|D|E>"""
+        """Switch active inference profile. Usage: profile <0|A|C|D|E|S>"""
         arg = arg.strip().lstrip("/")
         if arg.lower().startswith("profile"):
             arg = arg[7:].strip()
@@ -1639,6 +1668,7 @@ class NSTLInteractiveShell(cmd.Cmd):
             table.add_row("C", "Profile C (Neuro-Symbolic LLM)", "~500 ms–2 s", "Full hybrid: Embedder + Local GGUF LLM slot-filling + Sandbox repair")
             table.add_row("D", "Profile D (Routing Benchmark)", "~200–500 ms", "LLM-guided path search without code generation")
             table.add_row("E", "Profile E (Translator Pass)", "~1–2 s", "Two-stage: Query Translator pass + Neuro-Symbolic synthesis")
+            table.add_row("S", "Profile S (Semantic Compiler)", "~1–2 s", "Typed Intent & Schema Compiler pass + Neuro-Symbolic synthesis")
 
             console.print(table)
             console.print(f"\nActive Profile: [bold yellow]{self._format_profile_name(self.active_profile)}[/bold yellow]\n")
@@ -1722,8 +1752,90 @@ class NSTLInteractiveShell(cmd.Cmd):
                 self.debug = not self.debug
             console.print(f"[green][*] Debug mode set to {'ON' if self.debug else 'OFF'}.[/green]")
             self._update_prompt()
+        elif key in ("dev", "dev_mode", "devmode"):
+            if val.lower() in ("1", "true", "on", "yes", "enable", "enabled"):
+                enabled = True
+            elif val.lower() in ("0", "false", "off", "no", "disable", "disabled"):
+                enabled = False
+            else:
+                enabled = not settings.dev_mode
+            settings.dev_mode = enabled
+            console.print(f"[green][*] Dev mode (self-expanding dynamic node synthesis) set to {'ON' if enabled else 'OFF'}.[/green]")
         else:
-            console.print(f"[bold red][!] Unknown parameter '{key}'. Supported: embedder, llm, device, macros, debug.[/bold red]")
+            console.print(f"[bold red][!] Unknown parameter '{key}'. Supported: embedder, llm, device, macros, dev, debug.[/bold red]")
+
+    def do_dev(self, arg: str):
+        """Toggle or set Dev Mode. Usage: dev [on|off] or /dev [on|off]"""
+        val = arg.strip().lower()
+        if val in ("1", "true", "on", "yes", "enable", "enabled"):
+            enabled = True
+        elif val in ("0", "false", "off", "no", "disable", "disabled"):
+            enabled = False
+        else:
+            enabled = not settings.dev_mode
+        settings.dev_mode = enabled
+        console.print(
+            f"[green][*] Dev mode set to {'ON' if enabled else 'OFF'}. "
+            f"Dynamic node synthesis is {'ENABLED' if enabled else 'DISABLED'}.[/green]"
+        )
+
+    def do_review(self, arg: str):
+        """Inspect, promote, or discard synthesized dev cells. Usage: review [list|promote <id>|discard <id>]"""
+        parts = arg.strip().split()
+        subcmd = parts[0].lower() if parts else "list"
+        target_id = parts[1].strip() if len(parts) > 1 else ""
+
+        try:
+            from node_resolver import DynamicNodeResolver
+        except ImportError:
+            console.print("[red][!] DynamicNodeResolver not available.[/red]")
+            return
+
+        if subcmd == "list" or not subcmd:
+            cells = DynamicNodeResolver.list_unreviewed_cells()
+            if not cells:
+                console.print("\n[green][*] No unreviewed dev cells pending review.[/green]\n")
+                return
+            console.print(f"\n[bold cyan]Pending Dev Mode Cells ({len(cells)} total):[/bold cyan]")
+            table = Table(box=box.ROUNDED, show_header=True, header_style="bold magenta")
+            table.add_column("Cell ID", style="bold yellow")
+            table.add_column("Domain", style="cyan")
+            table.add_column("Stage", justify="center")
+            table.add_column("Role", style="green")
+            table.add_column("Usage (Pass/Fail)", justify="center")
+            table.add_column("Score Mult", justify="center")
+            table.add_column("Reviewed", justify="center")
+            for c in cells:
+                cid = c.get("cell_id", "?")
+                dom = c.get("domain_name", "generic")
+                stg = str(c.get("stage", 2))
+                role = c.get("node_role", "transform")
+                usage = f"{c.get('success_count', 0)} / {c.get('fail_count', 0)}"
+                mult = f"{c.get('provisional_score_mult', 0.70):.2f}x"
+                rev = "[green]YES[/green]" if c.get("reviewed") else "[yellow]NO[/yellow]"
+                table.add_row(cid, dom, stg, role, usage, mult, rev)
+            console.print(table)
+            console.print("[dim]Use 'review promote <cell_id>' to promote or 'review discard <cell_id>' to delete.[/dim]\n")
+        elif subcmd == "promote":
+            if not target_id:
+                console.print("[yellow]Usage: review promote <cell_id>[/yellow]")
+                return
+            ok = DynamicNodeResolver.promote_cell(target_id, self.orchestrator, self.rag)
+            if ok:
+                console.print(f"[bold green][✓] Cell '{target_id}' promoted to reviewed status (score multiplier 1.0x).[/bold green]")
+            else:
+                console.print(f"[bold red][!] Could not find cell '{target_id}' in dev unreviewed catalog.[/bold red]")
+        elif subcmd == "discard":
+            if not target_id:
+                console.print("[yellow]Usage: review discard <cell_id>[/yellow]")
+                return
+            ok = DynamicNodeResolver.discard_cell(target_id, self.orchestrator)
+            if ok:
+                console.print(f"[bold yellow][✓] Cell '{target_id}' discarded and removed from dev catalog.[/bold yellow]")
+            else:
+                console.print(f"[bold red][!] Could not find cell '{target_id}' in dev unreviewed catalog.[/bold red]")
+        else:
+            console.print("[yellow]Usage: review [list|promote <id>|discard <id>][/yellow]")
 
     def do_status(self, arg: str):
         """Display real-time system status and active configuration."""
@@ -1776,11 +1888,11 @@ class NSTLInteractiveShell(cmd.Cmd):
         console.print("")
 
     def do_method(self, arg: str):
-        """Set or view active RouteMethod algorithm (M0-M6). Usage: /method [M0|M1|M2|M3|M4|M5|M6]"""
+        """Set or view active RouteMethod algorithm (M0-M9). Usage: /method [M0|M1|M2|M3|M4|M5|M6|M7|M8|M9]"""
         raw_arg = arg.strip()
         clean = raw_arg.lower()
         if not clean:
-            curr = self.route_method or "M0"
+            curr = self.route_method or str(getattr(self.router, "default_route_method", "m0")).upper()
             console.print(f"\n[cyan]Active RouteMethod:[/cyan] [bold yellow]{curr}[/bold yellow]")
             console.print("[cyan]Available Methods:[/cyan]")
             methods_summary = [
@@ -1791,16 +1903,19 @@ class NSTLInteractiveShell(cmd.Cmd):
                 ("M4", "m4_llm_stepwise", "LLM Stepwise Transition Oracle"),
                 ("M5", "m5_llm_oneshot", "LLM One-Shot Topological Alignment"),
                 ("M6", "m6_hybrid_anchors", "Hybrid Clause & Dynamic Routing"),
+                ("M7", "m7_llm_pathfinder", "LLM Full-Context Pathfinder (prompt + typed candidate nodes -> whole path)"),
+                ("M8", "m8_llm_stepwise", "LLM Stepwise Edge Pathfinder (per-node with visible transition edges)"),
+                ("M9", "m9_llm_milestones", "LLM Milestone Anchor & Topological Pathfinder (must-have nodes -> spliced paths)"),
             ]
             for m_tag, m_alias, m_desc in methods_summary:
-                is_active = (self.route_method and self.route_method.upper().startswith(m_tag)) or (not self.route_method and m_tag == "M0")
+                is_active = (self.route_method and self.route_method.upper().startswith(m_tag)) or (not self.route_method and m_tag == curr.upper())
                 prefix = "➔ " if is_active else "  "
                 console.print(f"  {prefix}[bold cyan]{m_tag}[/bold cyan] ({m_alias}): {m_desc}")
             console.print("")
             return
 
         if clean not in ROUTE_METHOD_REGISTRY:
-            console.print(f"[bold red][!] Unknown route method '{raw_arg}'. Valid: m0..m6, {', '.join(list(ROUTE_METHOD_REGISTRY.keys())[:7])}[/bold red]")
+            console.print(f"[bold red][!] Unknown route method '{raw_arg}'. Valid: m0..m9, {', '.join(list(ROUTE_METHOD_REGISTRY.keys())[:10])}[/bold red]")
             return
 
         m_cls = ROUTE_METHOD_REGISTRY[clean]
@@ -1942,6 +2057,12 @@ class NSTLInteractiveShell(cmd.Cmd):
             elif cmd_name in ("debug", "dbg"):
                 self.do_debug(cmd_arg)
                 return
+            elif cmd_name in ("dev", "dev_mode", "devmode"):
+                self.do_dev(cmd_arg)
+                return
+            elif cmd_name in ("review", "rev"):
+                self.do_review(cmd_arg)
+                return
             elif cmd_name in ("help", "h", "?"):
                 self.do_help(cmd_arg)
                 return
@@ -1950,10 +2071,13 @@ class NSTLInteractiveShell(cmd.Cmd):
 
         # Check for query-level flags
         query_method = self.route_method
-        for m in ("M0", "M1", "M2", "M3", "M4", "M5", "M6"):
+        for m in ("M0", "M1", "M2", "M3", "M4", "M5", "M6", "M7", "M8", "M9"):
             for flag in (f"--method {m}", f"--route-method {m}", f"-m {m}", f"--method={m}", f"--route-method={m}"):
-                if flag.lower() in prompt.lower():
-                    prompt = re.sub(re.escape(flag), "", prompt, flags=re.IGNORECASE).strip()
+                low_p = prompt.lower()
+                f_low = flag.lower()
+                pos = low_p.find(f_low)
+                if pos != -1:
+                    prompt = (prompt[:pos] + prompt[pos + len(flag):]).strip()
                     query_method = m
                     break
 
@@ -1999,9 +2123,10 @@ class NSTLInteractiveShell(cmd.Cmd):
         t_total_start = time.perf_counter()
         prof = self.active_profile.upper()
 
-        # Step 1: Optional Translator Pass (Profile E)
+        # Step 1: Optional Translator Pass (Profile E) or Semantic Compiler (Profile S)
         effective_prompt = prompt
         t_trans = 0.0
+        intent_data = None
         if prof == "E":
             mm = ModelManager.get_instance()
             if mm.profile and mm.has_translator_pass():
@@ -2018,6 +2143,19 @@ class NSTLInteractiveShell(cmd.Cmd):
                 effective_prompt = effective_prompt.strip().strip('`').strip()
                 t_trans = (time.perf_counter() - t0_trans) * 1000.0
                 console.print(f"[bold magenta][Translator Pass ({t_trans:.1f}ms)][/bold magenta] [italic]{effective_prompt}[/italic]")
+        elif prof == "S":
+            mm = ModelManager.get_instance()
+            if mm.profile and mm.has_semantic_compiler():
+                t0_trans = time.perf_counter()
+                intent_data = mm.compile_semantic_intent(prompt)
+                effective_prompt = intent_data.get("effective_prompt") or prompt
+                t_trans = (time.perf_counter() - t0_trans) * 1000.0
+                task_str = intent_data.get("task", "generic")
+                tgt_col = intent_data.get("target_column", "")
+                tgt_info = f" | Target: {tgt_col}" if tgt_col else ""
+                console.print(f"[bold magenta][Profile S Compiler ({t_trans:.1f}ms)][/bold magenta] Task: {task_str}{tgt_info}")
+                if intent_data.get("hyperparameters"):
+                    console.print(f"  [dim]Extracted Params: {intent_data['hyperparameters']}[/dim]")
 
         # Step 2: Routing via LatticeRouter
         t_route_start = time.perf_counter()
@@ -2035,7 +2173,7 @@ class NSTLInteractiveShell(cmd.Cmd):
         # Step 3: Synthesis & Code Generation
         t_synth_start = time.perf_counter()
         try:
-            final_code = self.gate.unify_and_emit(cells, prompt)
+            final_code = self.gate.unify_and_emit(cells, prompt, intent_data=intent_data)
         except (UnresolvedPlaceholderError, UnificationFailure) as e:
             console.print(f"\n[bold red][!] Could not synthesize code for: '{prompt}'[/bold red]")
             console.print(f"[red]    {e}[/red]\n")
@@ -2106,6 +2244,15 @@ class NSTLInteractiveShell(cmd.Cmd):
                             sandbox_res = self.sandbox.execute(final_code, timeout=5.0, egress_paths=dest_paths, verification_spec=v_contract)
                     rep_dt = (time.perf_counter() - t_rep_start) * 1000.0
                     console.print(f"  [bold green][✓] Repair cycle completed ({rep_dt:.1f}ms).[/bold green]")
+
+        # Track usage for confidence promotion on dev cells
+        try:
+            from node_resolver import DynamicNodeResolver
+            is_succ = bool(sandbox_res.get("success", False))
+            for c in (cells or []):
+                DynamicNodeResolver.record_cell_usage(getattr(c, "cell_id", ""), success=is_succ)
+        except Exception:
+            pass
 
         total_dt = (time.perf_counter() - t_total_start) * 1000.0
 
@@ -2199,7 +2346,8 @@ def cmd_shell(args):
         route_method=getattr(args, "route_method", None),
         no_lint=getattr(args, "no_lint", False),
         macros=getattr(args, "macros", None),
-        topology=getattr(args, "topology", None)
+        topology=getattr(args, "topology", None),
+        dev=getattr(args, "dev", None)
     )
     shell.cmdloop()
 
@@ -2230,7 +2378,8 @@ def cmd_run(args):
         route_method=getattr(args, "route_method", None),
         no_lint=getattr(args, "no_lint", False),
         macros=getattr(args, "macros", None),
-        topology=getattr(args, "topology", None)
+        topology=getattr(args, "topology", None),
+        dev=getattr(args, "dev", None)
     )
     shell.default(f"{prompt} --debug" if debug_mode else prompt)
 
@@ -2437,9 +2586,10 @@ def build_parser() -> argparse.ArgumentParser:
     p_bench.add_argument("--type", choices=["reference", "matrix"], default="matrix", help="Benchmark type to run (default: matrix)")
     p_bench.add_argument("--output", type=str, default="evaluation_results.json", help="Path to write evaluation results JSON")
     p_bench.add_argument("--db", type=str, default="trees/lattice.db", help="Path to SQLite database")
-    p_bench.add_argument("--methods", nargs="*", default=["M0", "M1", "M2", "M3", "M6"], help="Route methods to evaluate in matrix")
+    p_bench.add_argument("--methods", nargs="*", default=["M0", "M1", "M2", "M3", "M6", "M7", "M8", "M9"], help="Route methods to evaluate in matrix")
     p_bench.add_argument("--macros", dest="macros", action="store_true", default=None, help="Enable macro-goal routing (known-good composite paths)")
     p_bench.add_argument("--no-macros", dest="macros", action="store_false", help="Disable macro-goal routing (for A/B benchmarking)")
+    p_bench.add_argument("--dev", action="store_true", default=False, help="Enable Dev Mode (self-expanding dynamic node synthesis)")
     p_bench.add_argument("--topology", choices=["frontier", "linear"], default=None, help="Topological planning approach ('frontier' for Multi-Carrier DAG or 'linear' for 1D Sequential Trellis)")
     p_bench.set_defaults(func=cmd_benchmark)
 
@@ -2456,7 +2606,8 @@ def build_parser() -> argparse.ArgumentParser:
     p_run.add_argument("--debug", "-d", action="store_true", help="Enable verbose debug output across all pipeline layers")
     p_run.add_argument("--db", type=str, default="trees/lattice.db", help="Path to SQLite database")
     p_run.add_argument("--profile", type=str, default="0", help="Inference profile (0=Symbolic, A=Embedder, C=Neuro-Symbolic, D, E)")
-    p_run.add_argument("--route-method", "-m", type=str, default=None, choices=["M0", "M1", "M2", "M3", "M4", "M5", "M6"], help="Routing method algorithm (default: M0 Trellis)")
+    p_run.add_argument("--route-method", "-m", type=str, default=None, choices=["M0", "M1", "M2", "M3", "M4", "M5", "M6", "M7", "M8", "M9"], help="Routing method algorithm (default: M0 Trellis)")
+    p_run.add_argument("--dev", action="store_true", default=False, help="Enable Dev Mode (self-expanding dynamic node synthesis)")
     p_run.add_argument("--no-lint", action="store_true", help="Skip static pre-flight linter")
     p_run.add_argument("--embedder", type=str, default="", help="Embedding model name (e.g. jina-embeddings-v5-text-nano)")
     p_run.add_argument("--llm", type=str, default="", help="LLM model name (e.g. qwen2.5-coder-0.5b-instruct)")
@@ -2471,7 +2622,8 @@ def build_parser() -> argparse.ArgumentParser:
     p_shell = subparsers.add_parser("shell", help="Launch real-time interactive synthesis TUI studio")
     p_shell.add_argument("--db", type=str, default="trees/lattice.db", help="Path to SQLite database")
     p_shell.add_argument("--profile", type=str, default="0", help="Initial inference profile (0=Symbolic/Instant, A=Embedder, C=Neuro-Symbolic LLM, D, E)")
-    p_shell.add_argument("--route-method", "-m", type=str, default=None, choices=["M0", "M1", "M2", "M3", "M4", "M5", "M6"], help="Initial routing method algorithm (default: M0)")
+    p_shell.add_argument("--route-method", "-m", type=str, default=None, choices=["M0", "M1", "M2", "M3", "M4", "M5", "M6", "M7", "M8", "M9"], help="Initial routing method algorithm (default: M0)")
+    p_shell.add_argument("--dev", action="store_true", default=False, help="Launch studio with Dev Mode enabled")
     p_shell.add_argument("--no-lint", action="store_true", help="Skip static pre-flight linter")
     p_shell.add_argument("--embedder", type=str, default="", help="Embedding model name (e.g. jina-embeddings-v5-text-nano)")
     p_shell.add_argument("--llm", type=str, default="", help="LLM model name (e.g. qwen2.5-coder-0.5b-instruct)")

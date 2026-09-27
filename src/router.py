@@ -12,7 +12,6 @@ Contains ZERO keyword-sniffing regexes, ZERO manual score boosts, and ZERO domai
 
 from __future__ import annotations
 import math
-import re
 from typing import Optional, List, Dict, Set, Tuple, Any
 from collections import defaultdict
 
@@ -106,7 +105,28 @@ class LatticeRouter:
         self.internal_rag = internal_rag or rag_engine
         self.gamma = gamma          # Temperature parameter scaling cosine similarity
         self.epsilon = epsilon      # Cutoff threshold for tunnel inclusion
-        self.default_route_method = str(kwargs.get("route_method", "m0")).strip().lower()
+        # Accept both the current kwarg name (`default_route_method`, used by
+        # every call site) and the legacy name (`route_method`) that this
+        # line used to read exclusively -- the mismatch meant a caller's
+        # explicit default_route_method=... was silently dropped into
+        # **kwargs and never read, always falling back to "m0" regardless of
+        # what was requested. An explicit method still wins; when neither is
+        # given, prefer an LLM-driven default (m4) over the pure-symbolic
+        # trellis (m0) whenever the active model profile actually has a
+        # usable generation model -- there is no reason to fall back to
+        # regex/heuristic-only routing when a model capable of reading the
+        # prompt is already loaded. Profiles that intentionally have no
+        # usable LLM (0, A) or that intentionally disable synthesis for
+        # ablation purposes (e.g. a routing-only benchmark profile) report
+        # can_synthesize() == False and are unaffected.
+        _explicit_method = kwargs.get("default_route_method", kwargs.get("route_method"))
+        if _explicit_method:
+            self.default_route_method = str(_explicit_method).strip().lower()
+        else:
+            try:
+                self.default_route_method = "m4" if ModelManager.get_instance().can_synthesize() else "m0"
+            except Exception:
+                self.default_route_method = "m0"
         # Macro-goal routing (Section 3.5). Defaults to the global settings
         # value; an explicit kwarg wins. Toggling only affects routers created
         # afterwards unless mutated directly (see CLI `set macros on|off`).
@@ -284,49 +304,56 @@ class LatticeRouter:
                 for c_idx in range(1, len(clauses)):
                     next_seeds = clause_matches[c_idx]
                     found_next = False
-                    curr_out = [e.get("target_cell_id") for e in getattr(curr_node, "edges", [])]
-                    adj_out = self.orchestrator._adjacency.get(curr_node.cell_id, [])
-
-                    # 1. Direct edge check
-                    for cand, cand_sc in next_seeds[:6]:
-                        if cand.cell_id in curr_out or cand.cell_id in adj_out:
-                            edge_rec = next((e for e in getattr(curr_node, "edges", []) if e.get("target_cell_id") == cand.cell_id), None)
-                            aff = edge_rec.get("affinity_score", 0.5) if edge_rec else 0.5
-                            chain_edges.append((curr_node.cell_id, cand.cell_id, aff))
-                            if cand not in chain_cells:
-                                chain_cells.append(cand)
-                            covered.add(c_idx)
-                            total_lex += cand_sc
-                            curr_node = cand
-                            found_next = True
+                    # 1. Direct edge check across DAG history in chain_cells
+                    for anc in reversed(chain_cells):
+                        anc_out = [e.get("target_cell_id") for e in getattr(anc, "edges", [])]
+                        anc_adj = self.orchestrator._adjacency.get(anc.cell_id, [])
+                        for cand, cand_sc in next_seeds[:6]:
+                            if cand.cell_id in anc_out or cand.cell_id in anc_adj:
+                                edge_rec = next((e for e in getattr(anc, "edges", []) if e.get("target_cell_id") == cand.cell_id), None)
+                                aff = edge_rec.get("affinity_score", 0.5) if edge_rec else 0.5
+                                chain_edges.append((anc.cell_id, cand.cell_id, aff))
+                                if cand not in chain_cells:
+                                    chain_cells.append(cand)
+                                covered.add(c_idx)
+                                total_lex += cand_sc
+                                curr_node = cand
+                                found_next = True
+                                break
+                        if found_next:
                             break
 
-                    # 2. 1-hop bridge transition check
+                    # 2. 1-hop bridge transition check across DAG history
                     if not found_next:
-                        mid_candidates = curr_out[:6] if curr_out else adj_out[:6]
-                        for mid_id in mid_candidates:
-                            mid_cell = self.orchestrator.loaded_cells.get(mid_id)
-                            if not mid_cell:
-                                continue
-                            mid_out = [e.get("target_cell_id") for e in getattr(mid_cell, "edges", [])]
-                            mid_adj = self.orchestrator._adjacency.get(mid_id, [])
-                            for cand, cand_sc in next_seeds[:6]:
-                                if cand.cell_id in mid_out or cand.cell_id in mid_adj:
-                                    e1 = next((e for e in getattr(curr_node, "edges", []) if e.get("target_cell_id") == mid_id), None)
-                                    aff1 = e1.get("affinity_score", 0.5) if e1 else 0.5
-                                    e2 = next((e for e in getattr(mid_cell, "edges", []) if e.get("target_cell_id") == cand.cell_id), None)
-                                    aff2 = e2.get("affinity_score", 0.5) if e2 else 0.5
+                        for anc in reversed(chain_cells):
+                            anc_out = [e.get("target_cell_id") for e in getattr(anc, "edges", [])]
+                            anc_adj = self.orchestrator._adjacency.get(anc.cell_id, [])
+                            mid_candidates = anc_out[:6] if anc_out else anc_adj[:6]
+                            for mid_id in mid_candidates:
+                                mid_cell = self.orchestrator.loaded_cells.get(mid_id)
+                                if not mid_cell:
+                                    continue
+                                mid_out = [e.get("target_cell_id") for e in getattr(mid_cell, "edges", [])]
+                                mid_adj = self.orchestrator._adjacency.get(mid_id, [])
+                                for cand, cand_sc in next_seeds[:6]:
+                                    if cand.cell_id in mid_out or cand.cell_id in mid_adj:
+                                        e1 = next((e for e in getattr(anc, "edges", []) if e.get("target_cell_id") == mid_id), None)
+                                        aff1 = e1.get("affinity_score", 0.5) if e1 else 0.5
+                                        e2 = next((e for e in getattr(mid_cell, "edges", []) if e.get("target_cell_id") == cand.cell_id), None)
+                                        aff2 = e2.get("affinity_score", 0.5) if e2 else 0.5
 
-                                    chain_edges.append((curr_node.cell_id, mid_id, aff1))
-                                    chain_edges.append((mid_id, cand.cell_id, aff2))
-                                    if mid_cell not in chain_cells:
-                                        chain_cells.append(mid_cell)
-                                    if cand not in chain_cells:
-                                        chain_cells.append(cand)
-                                    covered.add(c_idx)
-                                    total_lex += cand_sc
-                                    curr_node = cand
-                                    found_next = True
+                                        chain_edges.append((anc.cell_id, mid_id, aff1))
+                                        chain_edges.append((mid_id, cand.cell_id, aff2))
+                                        if mid_cell not in chain_cells:
+                                            chain_cells.append(mid_cell)
+                                        if cand not in chain_cells:
+                                            chain_cells.append(cand)
+                                        covered.add(c_idx)
+                                        total_lex += cand_sc
+                                        curr_node = cand
+                                        found_next = True
+                                        break
+                                if found_next:
                                     break
                             if found_next:
                                 break
@@ -414,28 +441,56 @@ class LatticeRouter:
         """
         if not prompt or not prompt.strip() or len(self.orchestrator.loaded_cells) == 0:
             return [], {}
-        # (apply_fixes_v7) IR compilation drives semantic clause count.
+
+        # IR compilation: when the loaded model successfully compiles the
+        # prompt into a typed IR, that IR -- not a regex/punctuation split of
+        # the raw text -- is the source of truth for the pipeline's semantic
+        # clauses. The IR was produced by a model that actually read the
+        # prompt; the previous approach ran the LLM IR compiler ONLY to
+        # bump a clause *count* and to stuff its op/library words into the
+        # embedding query text, then still regex-segmented that mutated
+        # text for the actual clauses used everywhere else (search_texts,
+        # first_clause, idiom discovery). That defeated the point of having
+        # an IR at all. Here, a successfully compiled IR with >=1 step
+        # supplies the clauses directly (one per step); the embedding text
+        # itself is left untouched. The regex/punctuation segmenter is kept
+        # ONLY as the fallback for when no model is loaded or IR compilation
+        # did not produce anything usable.
         num_semantic_clauses = 0
+        ir_clauses: List[str] = []
         if getattr(self, "_use_ir_compiler", False) and self._ir_compiler is not None:
             try:
                 _ir = self._ir_compiler.compile(prompt)
-                if _ir is not None:
-                    ops = " ".join(s.get("op", "") for s in _ir.steps)
-                    libs = " ".join(_ir.libraries)
-                    prompt = (prompt + " " + ops + " " + libs).strip()
+                if _ir is not None and _ir.steps:
+                    for s in _ir.steps:
+                        op = str(s.get("op", "")).strip()
+                        lib = str(s.get("library", "")).strip()
+                        params = s.get("params") or {}
+                        param_words = " ".join(
+                            str(v) for v in params.values()
+                            if isinstance(v, (str, int, float)) and str(v).strip()
+                        )
+                        piece = " ".join(w for w in (op, lib, param_words) if w).strip()
+                        if piece:
+                            ir_clauses.append(piece)
                     num_semantic_clauses = len(_ir.steps)
                     self._last_ir_steps = num_semantic_clauses
             except Exception as _e:
-                logger.debug("[IR] augmentation failed: %s", _e)
+                logger.debug("[IR] compilation failed: %s", _e)
 
         token_index = getattr(self.orchestrator, "token_index", None)
         N = len(self.orchestrator.loaded_cells)
 
-        # Decompose prompt into constituent clauses (sub-goals)
-        clauses = _segment_prompt_clauses(prompt)
+        # Decompose prompt into constituent clauses (sub-goals). Prefer the
+        # model-compiled IR steps; fall back to the punctuation/vocabulary
+        # segmenter only when no IR was available.
+        clauses = ir_clauses if ir_clauses else _segment_prompt_clauses(prompt)
         if not num_semantic_clauses:
             num_semantic_clauses = len(clauses)
         search_texts = [prompt.strip()] + [c for c in clauses if c != prompt.strip()]
+        for q in self._generate_query_spans(prompt.strip()):
+            if q not in search_texts:
+                search_texts.append(q)
         first_clause = clauses[0] if clauses else prompt.strip()
 
         # Step 1: Stage 1 Idiom / Subgraph Discovery
@@ -454,12 +509,6 @@ class LatticeRouter:
             if not clause_scores:
                 continue
 
-            # Boost cells belonging to top candidate idioms and entry nodes
-            for idiom in candidate_idioms[:3]:
-                for c in idiom.cells:
-                    boost = 1.5 if c == idiom.entry_node else 1.2
-                    clause_scores[c] = clause_scores.get(c, 0.0) * boost + (0.5 if c == idiom.entry_node else 0.2)
-
             kept = sorted(clause_scores.items(), key=lambda x: x[1], reverse=True)[:100]
             grouped_candidates.append(dict(kept))
 
@@ -477,7 +526,8 @@ class LatticeRouter:
 
         # Step 4: Optional dense vector blending from edge-context embeddings
         if self.internal_rag is not None and self.internal_rag.index is not None:
-            query_spans = self._generate_query_spans(prompt.strip())
+            clause_spans = [c.strip() for c in search_texts if c and c.strip()]
+            query_spans = clause_spans + [q for q in self._generate_query_spans(prompt.strip()) if q not in clause_spans]
             dense_scores: Dict[str, float] = {}
             rag_results = self.internal_rag.get_relevant_context_batch(query_spans, top_k=min(top_k, 25))
             for span_results in rag_results:
@@ -619,7 +669,8 @@ class LatticeRouter:
                     key=lambda c: relevance_map.get(c.cell_id, 0.0), reverse=True)[:max_s2]
         s3 = sorted([c for c in tunnel_cells if _stage_num(c) == 3],
                     key=lambda c: relevance_map.get(c.cell_id, 0.0), reverse=True)[:max_s3]
-        keep_ids = {c.cell_id for c in s1 + s2 + s3} | protected_ids
+        bridge_ids = {c.cell_id for c in tunnel_cells if getattr(c, "node_role", "") == "bridge" or getattr(c, "node_type", "") == "tunnel"}
+        keep_ids = {c.cell_id for c in s1 + s2 + s3} | protected_ids | bridge_ids
         return [c for c in tunnel_cells if c.cell_id in keep_ids] or tunnel_cells
 
     def _promote_macro_goals(
@@ -749,17 +800,20 @@ class LatticeRouter:
             exp_scores = np.exp(shifted)
             probs = exp_scores / np.sum(exp_scores)
             max_prob = float(np.max(probs))
-            # Within-group ranking calibration: prevent small groups (e.g. 1-2 items)
-            # from dominating cross-group maxima artificially due to small partition size
             group_size_factor = min(1.0, (len(items) / 5.0) ** 0.5)
             calibrated_probs = probs * group_size_factor
-            for (cell, _), p in zip(items, calibrated_probs):
-                if p < tau * max_prob * group_size_factor:
+            cutoff = tau * max_prob * group_size_factor
+            sorted_indices = np.argsort(raw_scores)[::-1]
+            top_indices = set(sorted_indices[:8])
+
+            for i, ((cell, _), p) in enumerate(zip(items, calibrated_probs)):
+                if p < cutoff and i not in top_indices:
                     continue
+                effective_p = max(float(p), float(cutoff)) if i in top_indices else float(p)
                 cid = cell.cell_id
                 prev = relevance.get(cid)
-                if prev is None or float(p) > prev[1]:
-                    relevance[cid] = (cell, float(p))
+                if prev is None or effective_p > prev[1]:
+                    relevance[cid] = (cell, effective_p)
 
         ranked = sorted(relevance.values(), key=lambda x: x[1], reverse=True)
         return ranked
@@ -768,34 +822,57 @@ class LatticeRouter:
     def _generate_query_spans(text: str) -> List[str]:
         """
         Generates continuous sliding semantic window queries across the prompt.
-        Multi-scale representation: zero linguistic connectors (no 'then'), zero regex.
-        The span count is bounded: retrieval quality saturates while query latency
-        stays independent of prompt length.
+        Multi-scale representation: decomposes compound sentences and spans across
+        the entire prompt uniformly so trailing and embedded operations are never truncated.
         """
         tokens = text.strip().split()
         if len(tokens) <= 3:
             return [text.strip()]
 
         queries = [text.strip()]
+
+        # 1. Include decomposed clauses and sub-actions
+        clauses = _segment_prompt_clauses(text)
+        for cl in clauses:
+            cl_clean = cl.strip(" ,.;:")
+            if cl_clean and cl_clean not in queries:
+                queries.append(cl_clean)
+            # Decompose compound phrases on prepositions / conjunctions without regex
+            delims = {"on the", "on", "using", "with", "via", "into", "from", "then", "and", "of the", "of", "to", "for", "by", "in"}
+            words = cl.split()
+            current_chunk = []
+            for w in words:
+                cw = w.lower().strip(" ,.;:'\"")
+                if cw in delims:
+                    if current_chunk:
+                        sp_clean = " ".join(current_chunk).strip(" ,.;:'\"")
+                        if len(sp_clean) >= 2 and sp_clean not in queries:
+                            queries.append(sp_clean)
+                        current_chunk = []
+                else:
+                    current_chunk.append(w)
+            if current_chunk:
+                sp_clean = " ".join(current_chunk).strip(" ,.;:'\"")
+                if len(sp_clean) >= 2 and sp_clean not in queries:
+                    queries.append(sp_clean)
+
+        # 2. Sliding multi-scale windows spanning uniformly across the full prompt
         n = len(tokens)
-        for window_size in (2, 3, max(3, n // 2)):
+        for window_size in (2, 3, 4):
             if window_size >= n:
                 continue
-            step = max(1, window_size // 2)
+            step = max(1, (n - window_size) // 8)
             for i in range(0, n - window_size + 1, step):
-                sub_q = " ".join(tokens[i : i + window_size]).strip()
+                sub_q = " ".join(tokens[i : i + window_size]).strip(" ,.;:")
                 if sub_q and sub_q not in queries:
                     queries.append(sub_q)
 
-        tail_q = " ".join(tokens[max(0, n - 3) :]).strip()
+        tail_q = " ".join(tokens[max(0, n - 3) :]).strip(" ,.;:")
         if tail_q and tail_q not in queries:
             queries.append(tail_q)
 
-        # Bound the retrieval fan-out: the full prompt and the tail always stay;
-        # intermediate windows are truncated deterministically.
-        if len(queries) > 15:
-            queries = queries[:15] + [tail_q] if tail_q not in queries[:15] else queries[:15]
-        return queries
+        # Bound retrieval fan-out at 35 queries max
+        return queries[:35]
 
     def plan_path(
         self,
@@ -842,6 +919,7 @@ class LatticeRouter:
                     ctx=ctx,
                     start_sig=start_sig,
                     goal_sig=goal_sig,
+                    rag=kwargs.get("rag", self.internal_rag),
                     **kwargs
                 )
             except Exception as e:

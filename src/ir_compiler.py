@@ -7,15 +7,17 @@ Robust JSON extraction:
   - Retries once with a corrective prompt on parse failure.
 """
 from __future__ import annotations
-import json, re
+import json
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional
 
 from log_config import get_logger
 try:
     from .inference import ModelManager
+    from .utils import extract_json_object
 except (ImportError, ValueError):
     from inference import ModelManager
+    from utils import extract_json_object
 
 logger = get_logger("ir_compiler")
 
@@ -70,53 +72,16 @@ User prompt:
 
 def _extract_json_object(text: str) -> Optional[dict]:
     """Return the first balanced JSON object found in ``text``.
-    Ignores markdown fences and surrounding prose. Respects strings."""
-    if not text:
-        return None
-    # strip code fences
-    t = re.sub(r"```(?:json)?\s*", "", text)
-    t = t.replace("```", "")
-    i = 0
-    while True:
-        start = t.find("{", i)
-        if start < 0:
-            return None
-        depth = 0
-        in_str = False
-        esc = False
-        for j in range(start, len(t)):
-            ch = t[j]
-            if esc:
-                esc = False
-                continue
-            if ch == "\\":
-                esc = True
-                continue
-            if ch == '"':
-                in_str = not in_str
-                continue
-            if in_str:
-                continue
-            if ch == "{":
-                depth += 1
-            elif ch == "}":
-                depth -= 1
-                if depth == 0:
-                    candidate = t[start:j + 1]
-                    try:
-                        return json.loads(candidate)
-                    except json.JSONDecodeError:
-                        # advance past this start
-                        i = start + 1
-                        break
-        else:
-            return None
+    Ignores markdown fences and surrounding prose. Respects strings.
+    Zero regular expressions.
+    """
+    return extract_json_object(text)
 
 
 @dataclass
 class IR:
     steps: List[Dict[str, Any]]
-    literals: Dict[str, int] = field(default_factory=dict)
+    literals: Dict[str, Any] = field(default_factory=dict)
     libraries: List[str] = field(default_factory=list)
     raw: str = ""
 
@@ -125,9 +90,14 @@ class IR:
         data = _extract_json_object(text)
         if data is None:
             raise ValueError("IR compiler: no valid JSON object in output")
+        # Literal values are whatever the model extracted -- file paths,
+        # column names, decimals, counts. Forcing every value through
+        # int() made parsing fail (and burn the one corrective retry) on
+        # any prompt whose literals weren't all plain integers, which is
+        # most prompts; keep the model's own JSON types instead.
         return cls(
             steps=data.get("steps", []),
-            literals={str(k): int(v) for k, v in (data.get("literals") or {}).items()},
+            literals=dict(data.get("literals") or {}),
             libraries=list(data.get("libraries") or []),
             raw=text,
         )

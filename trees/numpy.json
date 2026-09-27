@@ -4663,7 +4663,7 @@
     {
       "cell_id": "NUMPY_ADD",
       "stage": 2,
-      "topology_type": "sequential",
+      "topology_type": "parallel",
       "node_type": "function",
       "node_role": "transformer",
       "mutation_type": "pure",
@@ -4698,6 +4698,14 @@
         "x1": {
           "type_name": "ndarray",
           "state": "nd_tensor",
+          "accepted_states": [
+            "nd_tensor",
+            "ndarray_generic",
+            "1d_vector",
+            "2d_matrix",
+            "scaled_features",
+            "unscaled_features"
+          ],
           "qualifiers": [],
           "default_value": null,
           "description": "First operand array",
@@ -4712,6 +4720,14 @@
         "x2": {
           "type_name": "ndarray",
           "state": "nd_tensor",
+          "accepted_states": [
+            "nd_tensor",
+            "ndarray_generic",
+            "1d_vector",
+            "2d_matrix",
+            "scaled_features",
+            "unscaled_features"
+          ],
           "qualifiers": [],
           "default_value": null,
           "description": "Second operand array (broadcast compatible)",
@@ -4744,6 +4760,11 @@
       "postconditions": [],
       "effects": [],
       "edges": [
+        {
+          "target_cell_id": "NUMPY_FFT_FFT",
+          "affinity_score": 0.90,
+          "score_provenance": "ast_mined"
+        },
         {
           "target_cell_id": "NUMPY_SUM_AXIS",
           "affinity_score": 0.8,
@@ -8118,7 +8139,8 @@
           "state": "nd_tensor",
           "accepted_states": [
             "nd_tensor",
-            "1d_vector"
+            "1d_vector",
+            "ndarray_generic"
           ],
           "qualifiers": [],
           "default_value": null,

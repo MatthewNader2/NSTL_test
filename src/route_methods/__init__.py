@@ -13,6 +13,9 @@ from .m3_greedy_freeze import M3GreedyFreezeRouteMethod
 from .m4_llm_stepwise import M4LLMStepwiseRouteMethod
 from .m5_llm_oneshot import M5LLMOneShotRouteMethod
 from .m6_hybrid_anchors import M6HybridAnchorsRouteMethod
+from .m7_llm_pathfinder import M7LLMPathfinderRouteMethod
+from .m8_llm_stepwise import M8LLMStepwisePathfinderRouteMethod
+from .m9_llm_milestones import M9LLMMilestonePathfinderRouteMethod
 
 ROUTE_METHOD_REGISTRY: Dict[str, Type[RouteMethod]] = {
     "m0": M0TrellisRouteMethod,
@@ -47,6 +50,20 @@ ROUTE_METHOD_REGISTRY: Dict[str, Type[RouteMethod]] = {
     "m6_hybrid_anchors": M6HybridAnchorsRouteMethod,
     "hybrid": M6HybridAnchorsRouteMethod,
     "hybrid_anchors": M6HybridAnchorsRouteMethod,
+
+    "m7": M7LLMPathfinderRouteMethod,
+    "m7_llm_pathfinder": M7LLMPathfinderRouteMethod,
+    "pathfinder": M7LLMPathfinderRouteMethod,
+    "llm_pathfinder": M7LLMPathfinderRouteMethod,
+
+    "m8": M8LLMStepwisePathfinderRouteMethod,
+    "m8_llm_stepwise": M8LLMStepwisePathfinderRouteMethod,
+    "stepwise_pathfinder": M8LLMStepwisePathfinderRouteMethod,
+
+    "m9": M9LLMMilestonePathfinderRouteMethod,
+    "m9_llm_milestones": M9LLMMilestonePathfinderRouteMethod,
+    "milestone_pathfinder": M9LLMMilestonePathfinderRouteMethod,
+    "milestones": M9LLMMilestonePathfinderRouteMethod,
 }
 
 
@@ -72,6 +89,9 @@ __all__ = [
     "M4LLMStepwiseRouteMethod",
     "M5LLMOneShotRouteMethod",
     "M6HybridAnchorsRouteMethod",
+    "M7LLMPathfinderRouteMethod",
+    "M8LLMStepwisePathfinderRouteMethod",
+    "M9LLMMilestonePathfinderRouteMethod",
     "ROUTE_METHOD_REGISTRY",
     "get_route_method",
 ]

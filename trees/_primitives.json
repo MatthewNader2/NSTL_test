@@ -61,6 +61,11 @@
   "sentence_connectives": ["and", "or", "to", "for", "with", "as", "by", "into", "from", "on", "in", "of", "the", "a", "an", "is", "at", "then"],
   "preposition_triggers": ["by", "with", "on", "using", "via", "over", "along", "across"],
   "column_projection_tokens": ["column", "columns", "select", "project", "feature", "features", "target", "predict", "training"],
+  "dest_port_tokens": ["target", "sink", "output", "result", "results", "variable", "variables", "destination", "into", "as", "to", "in"],
+  "source_port_tokens": ["from", "source", "input", "src", "in", "reading", "read", "load", "loading"],
+  "data_bearing_roles": ["feature", "features", "target", "predict", "column", "columns", "attribute", "attributes", "axis", "by", "variable"],
+  "egress_intent_tokens": ["save", "export", "write", "dump", "persist", "store", "plot", "show", "display"],
+  "action_verbs": ["calculate", "compute", "perform", "evaluate", "execute", "apply", "run", "do"],
 
   "advisory_qualifiers": [
     ["const"], ["scalar"], ["vector"], ["matrix"], ["primary"]

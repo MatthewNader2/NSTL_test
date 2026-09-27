@@ -6,8 +6,9 @@ Dynamic MicroCell Synthesizer: Grounded in Live API Documentation.
 from __future__ import annotations
 import ast
 import json
+import ast
+import json
 import os
-import re
 import textwrap
 from typing import Dict, Any, List, Optional, Tuple
 from log_config import get_logger
@@ -15,11 +16,23 @@ from log_config import get_logger
 try:
     from .external_rag import LiveDocFetcher
     from .inference import ModelManager
-    from .utils import extract_json_from_llm, validate_code_template, extract_code_from_llm_response
+    from .utils import (
+        extract_json_from_llm,
+        validate_code_template,
+        extract_code_from_llm_response,
+        safe_substitute_template,
+        extract_template_placeholders,
+    )
 except (ImportError, ValueError):
     from external_rag import LiveDocFetcher
     from inference import ModelManager
-    from utils import extract_json_from_llm, validate_code_template, extract_code_from_llm_response
+    from utils import (
+        extract_json_from_llm,
+        validate_code_template,
+        extract_code_from_llm_response,
+        safe_substitute_template,
+        extract_template_placeholders,
+    )
 
 logger = get_logger('synthesis')
 
@@ -43,28 +56,12 @@ def import_stmt_for(qualified_name: str) -> str:
     return f"import {module}"
 
 
-_PLACEHOLDER_RE = re.compile(r"\{([a-zA-Z_][a-zA-Z0-9_]*)\}")
-
-
-
 def _safe_substitute(template: str, bindings: Dict[str, Any]) -> str:
     """
     Placeholder substitution that ONLY touches ``{identifier}`` spans.
-
-    ``str.format`` interprets every ``{...}`` in the template as a field,
-    which crashes on legitimate Python syntax like dict literals
-    (``{"a": 1}``), f-strings (``f"{x}"``), set comprehensions, and
-    format specs. Regex substitution leaves those untouched and only
-    replaces identifiers we actually have a binding for; unresolved
-    identifiers pass through verbatim.
+    Uses zero-regex safe_substitute_template.
     """
-    def _lookup(match: "re.Match[str]") -> str:
-        name = match.group(1)
-        if name in bindings and bindings[name] is not None:
-            return str(bindings[name])
-        return match.group(0)
-
-    return _PLACEHOLDER_RE.sub(_lookup, template)
+    return safe_substitute_template(template, bindings)
 
 
 # --------------------------------------------------------------------------- #
@@ -314,25 +311,28 @@ def render_cell(
 
     for slot_name, slot_code in slot_rendered.items():
         placeholder = f"{{{slot_name}}}"
-        match = re.search(rf"^([ \t]*)\{{{slot_name}\}}", rendered, flags=re.MULTILINE)
-        if match:
-            base_indent = match.group(1) or "    "
-            indented_slot = "\n".join(
-                (base_indent + line if line.strip() else line)
-                for line in slot_code.splitlines()
-            )
-            rendered = rendered.replace(match.group(0), indented_slot)
-        elif placeholder in rendered:
-            indented_slot = "\n".join(
-                ("    " + line if line.strip() else line)
-                for line in slot_code.splitlines()
-            )
+        if placeholder not in rendered:
+            continue
+        base_indent = "    "
+        found_target = None
+        for line in rendered.splitlines():
+            stripped = line.lstrip(" \t")
+            if stripped.startswith(placeholder):
+                base_indent = line[:len(line) - len(stripped)]
+                found_target = base_indent + placeholder
+                break
+
+        indented_slot = "\n".join(
+            (base_indent + line if line.strip() else line)
+            for line in slot_code.splitlines()
+        )
+        if found_target and found_target in rendered:
+            rendered = rendered.replace(found_target, indented_slot)
+        else:
             rendered = rendered.replace(placeholder, indented_slot)
 
-    # Instantiate remaining placeholders using bindings
-    for k, v in bindings.items():
-        if v is not None:
-            rendered = rendered.replace(f"{{{k}}}", str(v))
+    # Instantiate remaining placeholders using bindings safely
+    rendered = safe_substitute_template(rendered, bindings)
 
     # Apply base indent_level
     if indent_level > 0:

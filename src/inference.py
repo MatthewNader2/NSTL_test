@@ -5,12 +5,17 @@ Multi-Profile Inference Engine with Aggressive VRAM Recycling.
 
 from __future__ import annotations
 import gc
+import json
 import os
-import re
 import time
 import threading
 from abc import ABC, abstractmethod
 from typing import List, Optional, Dict, Any
+
+try:
+    from utils import is_split_gguf_shard
+except ImportError:
+    from .utils import is_split_gguf_shard
 
 import numpy as np
 
@@ -407,7 +412,7 @@ class BenchmarkProfile_C(InferenceProfile):
         ggufs = [f for f in os.listdir(llm_dir) if f.endswith(".gguf")] if os.path.exists(llm_dir) else []
         if not ggufs:
             raise FileNotFoundError(f"No GGUF model file found in {llm_dir}")
-        unified_ggufs = [f for f in ggufs if not re.search(r"-\d{5}-of-\d{5}\.gguf$", f)]
+        unified_ggufs = [f for f in ggufs if not is_split_gguf_shard(f)]
         chosen_gguf = unified_ggufs[0] if unified_ggufs else ggufs[0]
         model_file = os.path.join(llm_dir, chosen_gguf)
 
@@ -455,6 +460,56 @@ class BenchmarkProfile_C(InferenceProfile):
             logger.error(f"[FEEDBACK CHECK ERROR] {e}")
             return failing_code
 
+    def has_semantic_compiler(self) -> bool:
+        return self.llm is not None
+
+    def compile_semantic_intent(self, prompt: str) -> Dict[str, Any]:
+        """Extracts structured intent, schema targets, parameters, and hyperparameters using the LLM."""
+        schema = {
+            "type": "object",
+            "properties": {
+                "task": {"type": "string"},
+                "domain": {"type": "string"},
+                "source_files": {"type": "array", "items": {"type": "string"}},
+                "dest_files": {"type": "array", "items": {"type": "string"}},
+                "target_column": {"type": "string"},
+                "columns": {"type": "array", "items": {"type": "string"}},
+                "by_column": {"type": "string"},
+                "hyperparameters": {"type": "object"},
+                "operations": {"type": "array", "items": {"type": "string"}},
+                "slots": {"type": "object"},
+                "effective_prompt": {"type": "string"},
+            }
+        }
+        system_prompt = (
+            "You are a structured compiler for data science pipelines. Given a user request, "
+            "extract the exact task (classification/regression/clustering/processing), domain (tabular/vision/nlp/generic), "
+            "input source files, destination/output files, target column (if predicting/supervising), feature columns, "
+            "grouping/sorting columns (by_column), numerical/boolean hyperparameters (e.g. ascending, n_estimators), "
+            "requested operations in order, and slot variable mappings. "
+            "Output ONLY valid JSON."
+        )
+        try:
+            raw = self.generate_text(prompt, max_tokens=384, schema=schema, system_prompt=system_prompt)
+            data = json.loads(raw)
+            if isinstance(data, dict):
+                return data
+        except Exception as e:
+            logger.debug(f"[LLM] Semantic intent compilation fallback: {e}")
+        return {
+            "task": "generic",
+            "domain": "generic",
+            "source_files": [],
+            "dest_files": [],
+            "target_column": "",
+            "columns": [],
+            "by_column": "",
+            "hyperparameters": {},
+            "operations": [],
+            "slots": {},
+            "effective_prompt": prompt,
+        }
+
     @property
     def embedding_dimension(self) -> int:
         return self._dim
@@ -468,6 +523,14 @@ class BenchmarkProfile_D(BenchmarkProfile_C):
 class BenchmarkProfile_E(BenchmarkProfile_C):
     def has_translator_pass(self) -> bool:
         return True
+
+
+class BenchmarkProfile_S(BenchmarkProfile_C):
+    """Profile S: Structured Semantic Compiler Profile.
+    Performs a typed Intent & Schema Compilation pass before routing,
+    grounding domain, task, schemas, targets, hyperparameters, and sinks.
+    """
+    pass
 
 
 class ModelManager:
@@ -527,6 +590,8 @@ class ModelManager:
                 prof = BenchmarkProfile_D()
             elif p_type == "E":
                 prof = BenchmarkProfile_E()
+            elif p_type == "S":
+                prof = BenchmarkProfile_S()
             else:
                 raise ValueError(f"Unknown profile type: {profile_type}")
 
@@ -557,6 +622,14 @@ class ModelManager:
 
     def has_translator_pass(self) -> bool:
         return self.active_profile.has_translator_pass() if self.active_profile else False
+
+    def has_semantic_compiler(self) -> bool:
+        return getattr(self.active_profile, "has_semantic_compiler", lambda: False)() if self.active_profile else False
+
+    def compile_semantic_intent(self, prompt: str) -> Dict[str, Any]:
+        if self.active_profile and hasattr(self.active_profile, "compile_semantic_intent"):
+            return self.active_profile.compile_semantic_intent(prompt)
+        return {"effective_prompt": prompt}
 
     def feedback_check(self, failing_code: str, traceback_error: str) -> str:
         return self.active_profile.feedback_check(failing_code, traceback_error) if self.active_profile else failing_code

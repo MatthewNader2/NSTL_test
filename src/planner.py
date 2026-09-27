@@ -12,7 +12,6 @@ from __future__ import annotations
 import copy
 import math
 import os
-import re
 from typing import Dict, FrozenSet, List, Optional, Set, Tuple, Any
 
 from log_config import get_logger
@@ -21,39 +20,44 @@ try:
     from .lattice import LatticeOrchestrator, Cell, MicroCell, MacroCell, TypeRegistry, is_path_port as _lattice_is_path_port
     from .unification import unify, Substitution, verify_traced_loop_invariant, verify_coproduct_branch, substitute_generics, ExecutionContext, UnificationGate, Success
     from .tokenizer import CellTokenizer, normalize_token
+    from .utils import tokenize_alphanumeric
 except (ImportError, ValueError):
     from lattice import LatticeOrchestrator, Cell, MicroCell, MacroCell, TypeRegistry, is_path_port as _lattice_is_path_port
     from unification import unify, Substitution, verify_traced_loop_invariant, verify_coproduct_branch, substitute_generics, ExecutionContext, UnificationGate, Success
     from tokenizer import CellTokenizer, normalize_token
+    from utils import tokenize_alphanumeric
 
 logger = get_logger('planner')
 
 registry = TypeRegistry.get_instance()
 
-class DynamicStopwords(frozenset):
-    """Dynamic stopword set backed by document-frequency corpus function words."""
+class DynamicStopwords:
+    """Dynamic stopword set backed by document-frequency corpus function words and sentence connectives."""
+    def _words(self):
+        reg = TypeRegistry.get_instance()
+        return reg.get_function_words() | reg.get_sentence_connectives()
     def __contains__(self, item):
-        return item in TypeRegistry.get_instance().get_function_words()
+        return item in self._words()
     def __iter__(self):
-        return iter(TypeRegistry.get_instance().get_function_words())
+        return iter(self._words())
     def __len__(self):
-        return len(TypeRegistry.get_instance().get_function_words())
+        return len(self._words())
     def __sub__(self, other):
-        return TypeRegistry.get_instance().get_function_words() - (set(other) if not isinstance(other, set) else other)
+        return self._words() - (set(other) if not isinstance(other, set) else other)
     def __rsub__(self, other):
-        return set(other) - TypeRegistry.get_instance().get_function_words()
+        return set(other) - self._words()
     def __and__(self, other):
-        return TypeRegistry.get_instance().get_function_words() & (set(other) if not isinstance(other, set) else other)
+        return self._words() & (set(other) if not isinstance(other, set) else other)
     def __rand__(self, other):
-        return (set(other) if not isinstance(other, set) else other) & TypeRegistry.get_instance().get_function_words()
+        return (set(other) if not isinstance(other, set) else other) & self._words()
     def __or__(self, other):
-        return TypeRegistry.get_instance().get_function_words() | (set(other) if not isinstance(other, set) else other)
+        return self._words() | (set(other) if not isinstance(other, set) else other)
     def __ror__(self, other):
-        return (set(other) if not isinstance(other, set) else other) | TypeRegistry.get_instance().get_function_words()
+        return (set(other) if not isinstance(other, set) else other) | self._words()
 
 STOPWORDS = DynamicStopwords()
 
-class DynamicWildcardCarriers(frozenset):
+class DynamicWildcardCarriers:
     """Dynamic top/wildcard carrier checker backed by poset and tree declarations."""
     def __contains__(self, item):
         s = str(item or "").strip().lower()
@@ -307,11 +311,36 @@ def _segment_prompt_clauses(prompt: str) -> List[str]:
         if seg: parts.append(seg)
 
     merged: List[str] = []
+    def _is_sink_directive(text: str) -> bool:
+        toks = [t.lower() for t in tokenize_alphanumeric(text)]
+        if not toks:
+            return False
+        if toks[0] == "and":
+            toks = toks[1:]
+        if not toks:
+            return False
+        try:
+            reg = TypeRegistry.get_instance()
+            egress_words = reg.get_egress_tokens() | {"store", "save", "make", "assign", "put", "output", "dump"}
+        except Exception:
+            egress_words = {"store", "save", "make", "assign", "put", "output", "dump"}
+        prep_words = {"in", "into", "to", "as"}
+        if toks[0] not in egress_words:
+            return False
+        if not any(t in prep_words for t in toks[1:]):
+            return False
+        return len(toks) <= 7
+
     for p in parts:
         p_clean = p.strip()
         if not p_clean: continue
         p_toks = CellTokenizer.tokenize_prompt(p_clean)
         if not p_toks: continue
+        if merged and _is_sink_directive(p_clean):
+            if ExecutionContext._extract_target_sink(p_clean):
+                continue
+            merged[-1] = merged[-1] + ", " + p_clean
+            continue
         if merged and p_toks.issubset(CellTokenizer.tokenize_prompt(merged[-1])):
             merged[-1] = merged[-1] + ", " + p_clean
             continue
@@ -386,6 +415,27 @@ class LatticePlanner:
         self._macro_edges_index: Optional[Dict[Tuple[str, str], List[str]]] = None
         self._cells_connect_cache: Dict[Tuple[str, str], bool] = {}
 
+    def _get_lattice_op_tokens(self) -> Set[str]:
+        if not hasattr(self, "_cached_op_tokens") or self._cached_op_tokens is None:
+            op_toks = set()
+            if self.orchestrator and hasattr(self.orchestrator, "loaded_cells"):
+                for c in self.orchestrator.loaded_cells.values():
+                    if getattr(c, "stage", None) in (2, 3) or getattr(c, "node_role", "") in ("transformer", "estimator", "evaluator", "sink"):
+                        cid_toks = CellTokenizer.tokenize_identifier(c.cell_id)
+                        for t in cid_toks:
+                            if len(t) >= 2 and t.lower() not in ("pandas", "numpy", "sklearn", "scipy", "statsmodels", "torch", "cv2", "seaborn", "sns", "plt", "matplotlib"):
+                                op_toks.add(t.lower())
+                        for kw in getattr(c, "keywords", ()) or ():
+                            for t in CellTokenizer.tokenize_identifier(str(kw)):
+                                if len(t) >= 2:
+                                    op_toks.add(t.lower())
+                        for tag in getattr(c, "semantic_tags", ()) or ():
+                            for t in CellTokenizer.tokenize_identifier(str(tag)):
+                                if len(t) >= 2:
+                                    op_toks.add(t.lower())
+            self._cached_op_tokens = op_toks
+        return self._cached_op_tokens
+
     # ============================================================
     # HARD CONSTRAINTS (apply_fixes_v8) — coverage and literals are
     # reject-level, not soft penalties.
@@ -407,6 +457,8 @@ class LatticePlanner:
         if not universal_literals:
             return 1.0
 
+        op_toks = self._get_lattice_op_tokens()
+
         port_tokens = set()
         cell_id_tokens = set()
         domain_tokens = set()
@@ -421,7 +473,7 @@ class LatticePlanner:
         def _tokens(s):
             s = str(s).lower()
             out = {s}
-            for part in re.split(r"[^a-z0-9]+", s):
+            for part in tokenize_alphanumeric(s):
                 if part:
                     out.add(part)
             return out
@@ -460,13 +512,34 @@ class LatticePlanner:
                     has_numeric_port = True
             for sk in getattr(c, "bound_slots", {}).keys():
                 port_tokens.add(sk.lower())
+            for sl in getattr(c, "slots", []):
+                port_tokens.add(str(sl).lower())
 
         consumed = 0
+        path_ingress_file_ports = sum(
+            1 for c in path if getattr(c, "stage", None) == 1 or getattr(c, "node_role", "") == "source"
+            for p in c.inputs.values() if p.required and p.default_value is None and _lattice_is_path_port(p)
+        )
+        path_egress_file_ports = sum(
+            1 for c in path if getattr(c, "stage", None) == 3 or getattr(c, "node_role", "") == "sink"
+            for p in c.inputs.values() if p.required and p.default_value is None and _lattice_is_path_port(p)
+        )
+        path_col_key_slots = sum(
+            1 for c in path for s in (list(c.inputs.keys()) + list(getattr(c, "slots", [])))
+            if s in ("on", "by", "column", "columns", "key", "subset")
+        )
+        used_ing_ports = 0
+        used_egr_ports = 0
+        used_col_keys = 0
         for kind, lit in universal_literals:
             lc = str(lit).lower().strip("'\"")
             if kind == "file_asset":
-                if any(("path" in p) or ("file" in p) for p in port_tokens):
+                if used_ing_ports < path_ingress_file_ports:
                     consumed += 1
+                    used_ing_ports += 1
+                elif used_egr_ports < path_egress_file_ports:
+                    consumed += 1
+                    used_egr_ports += 1
             elif kind == "numeric":
                 if numeric_literals and has_numeric_port:
                     consumed += 1
@@ -475,9 +548,15 @@ class LatticePlanner:
                     consumed += 1
                 elif any(_port_match(lc, p) for p in port_tokens):
                     consumed += 1
+                elif used_col_keys < path_col_key_slots:
+                    consumed += 1
+                    used_col_keys += 1
             else:
                 if _identifier_match(lc):
                     consumed += 1
+                elif lc not in op_toks and used_col_keys < path_col_key_slots:
+                    consumed += 1
+                    used_col_keys += 1
         return consumed / max(len(universal_literals), 1)
 
     def _clause_coverage_of(self, path, clause_tokens_list):
@@ -620,6 +699,30 @@ class LatticePlanner:
                 return 0.75
             return 0.10
 
+        # Multi-carrier convergent join affinity:
+        # When dst_cell is a multi-carrier join transformer (e.g. PD_MERGE, PD_CONCAT)
+        # in the same domain as src_cell and consumes src_cell's output carrier:
+        is_join_node = (
+            getattr(dst_cell, "topology_type", "") in ("monoidal_product", "convergent", "fork_join")
+            or len(getattr(dst_cell, "inputs", {})) >= 2
+        )
+        if is_join_node and src_domain and dst_domain and src_domain == dst_domain:
+            rel_map = getattr(self, "current_relevance_map", None) or {}
+            if not rel_map or rel_map.get(dst_cell.cell_id, 0.0) > 0.0:
+                return 0.85
+
+        # Cross-domain bridge morphism continuity:
+        # Explicit declared bridge morphisms (e.g. PD_DATAFRAME_PROJECT_TO_NUMPY)
+        # exist specifically to bridge across domains into downstream consumers.
+        src_tags = set(getattr(src_cell, "semantic_tags", []) or [])
+        is_bridge = (
+            "array_bridge" in src_tags
+            or "bridge" in src_tags
+            or "bridge" in getattr(src_cell, "cell_id", "").lower()
+        )
+        if is_bridge and src_domain and dst_domain and src_domain != dst_domain:
+            return 0.80
+
         # 4. Topological reachability in orchestrator if built
         adj = getattr(self.orchestrator, "_adjacency", None) or getattr(self.orchestrator, "adjacency", None)
         if adj and dst_cell.cell_id in adj.get(src_cell.cell_id, ()):
@@ -748,20 +851,33 @@ class LatticePlanner:
         # ---- Goal-directed objective data (all derived from DECLARED structure) ----
         registry = TypeRegistry.get_instance()
         l0_extracted_literals = ExecutionContext._extract_universal_literals(prompt or "")
+        target_sink = ExecutionContext._extract_target_sink(prompt or "")
         universal_literals = [
             (kind, val) for _, kind, val in l0_extracted_literals
             if kind in ("file_asset", "identifier", "quoted_str", "numeric")
+            and not (kind == "identifier" and target_sink and str(val).lower() == target_sink.lower())
         ]
         literal_positions = {
             (kind, val): pos
             for pos, kind, val in l0_extracted_literals
             if kind in ("file_asset", "identifier", "quoted_str", "numeric")
+            and not (kind == "identifier" and target_sink and str(val).lower() == target_sink.lower())
         }
         identifier_role_map = ExecutionContext._build_identifier_role_map(prompt or "")
         self._last_identifier_roles = identifier_role_map
         file_literals = [
             v for kind, v in universal_literals
-            if kind == "file_asset" or (kind == "quoted_str" and bool(ExecutionContext._PATH_RE.match(str(v))))
+            if kind == "file_asset" or (kind == "quoted_str" and ExecutionContext._is_path_string(str(v)))
+        ]
+        dest_file_literals = [
+            val for pos, kind, val in l0_extracted_literals
+            if (kind == "file_asset" or (kind == "quoted_str" and ExecutionContext._is_path_string(str(val))))
+            and ExecutionContext._asset_direction(prompt or "", pos) == "dest"
+        ]
+        src_file_literals = [
+            val for pos, kind, val in l0_extracted_literals
+            if (kind == "file_asset" or (kind == "quoted_str" and ExecutionContext._is_path_string(str(val))))
+            and ExecutionContext._asset_direction(prompt or "", pos) != "dest"
         ]
 
         def _has_path_port(cell: Cell) -> bool:
@@ -783,7 +899,7 @@ class LatticePlanner:
         ]
         quoted_str_literals = [
             v for kind, v in universal_literals
-            if kind == "quoted_str" and not bool(ExecutionContext._PATH_RE.match(str(v)))
+            if kind == "quoted_str" and not ExecutionContext._is_path_string(str(v))
         ]
         identifier_literals = [
             v for kind, v in universal_literals
@@ -831,7 +947,8 @@ class LatticePlanner:
                 candidate_entries = matching
         else:
             viable_entries = [c for c in candidate_entries if _can_be_entry_source(c)]
-            first_clause = re.split(r'[,;]|\b(?:and|then)\b', prompt.strip())[0].strip()
+            clauses = CellTokenizer.split_prompt_clauses(prompt)
+            first_clause = clauses[0].strip() if clauses else prompt.strip()
             clause_tokens = CellTokenizer.tokenize_prompt(first_clause) if first_clause else set()
 
             s1_entries = [
@@ -840,7 +957,7 @@ class LatticePlanner:
             ]
             first_clause_file_literals = [
                 v for _, kind, v in ExecutionContext._extract_universal_literals(first_clause)
-                if kind == "file_asset" or (kind == "quoted_str" and bool(ExecutionContext._PATH_RE.match(str(v))))
+                if kind == "file_asset" or (kind == "quoted_str" and ExecutionContext._is_path_string(str(v)))
             ]
             if first_clause_file_literals:
                 s1_entries = [c for c in s1_entries if _has_path_port(c)]
@@ -884,11 +1001,16 @@ class LatticePlanner:
 
         # Clauses and tokens for sequential alignment and concept coverage
         clauses = _segment_prompt_clauses(prompt)
-        clause_tokens_list = [CellTokenizer.tokenize_prompt(cl) for cl in clauses]
+        clause_tokens_list = [CellTokenizer.tokenize_prompt(cl) - set(STOPWORDS) for cl in clauses]
         clause_tokens_list = [t for t in clause_tokens_list if t]
         content_prompt_tokens = set().union(*clause_tokens_list) if clause_tokens_list else (CellTokenizer.tokenize_prompt(prompt) if prompt else set())
         p_len = max(len(content_prompt_tokens), 1)
         num_clauses = max(len(clause_tokens_list), 1)
+        has_prompt_egress_intent = (
+            (bool(content_prompt_tokens & EGRESS_INTENT_TOKENS) and not target_sink)
+            or bool(dest_file_literals)
+            or (goal_sig is not None)
+        )
 
         # Corpus-derived IDF over prompt tokens (df from the lattice token index).
         # Used to weight coverage and clause alignment: generic tokens ('data',
@@ -917,11 +1039,43 @@ class LatticePlanner:
             toks = CellTokenizer.tokenize_identifier(cell.cell_id)
             for kw in getattr(cell, "keywords", ()) or ():
                 toks.update(CellTokenizer.tokenize_identifier(kw))
+            for p in list(cell.inputs.values()) + list(cell.outputs.values()):
+                sig = getattr(p, "signature", p)
+                tn = str(getattr(sig, "type_name", "") or "")
+                if tn and tn.lower() not in ("any", "scalar", "object"):
+                    toks.update(CellTokenizer.tokenize_identifier(tn))
             return toks
 
         identity_cache: Dict[str, Set[str]] = {}
         for c in candidates:
             identity_cache[c.cell_id] = _identity_tokens(c)
+
+        # Extract syntactic prepositional operand dependencies:
+        # e.g., "perform FFT on the sum" -> operand is "sum", operator is "fft".
+        # In execution order, operand "sum" must execute BEFORE "fft".
+        operand_dependencies: List[Tuple[Set[str], Set[str]]] = []
+        _non_op_tokens = (
+            set(STOPWORDS)
+            | set(getattr(self.orchestrator, "type_registry", TypeRegistry.get_instance()).get_column_projection_tokens())
+            | {"dataset", "data", "file", "path", "result", "results", "value", "values"}
+        )
+        prompt_words = [w.lower().strip("'\",.;:()[]{}") for w in tokenize_alphanumeric(prompt or "", min_len=1)]
+        for p_idx in range(1, len(prompt_words) - 1):
+            prep = prompt_words[p_idx]
+            if prep in ("on", "of", "to", "for"):
+                head_w = prompt_words[p_idx - 1]
+                op_idx = p_idx + 1
+                while op_idx < len(prompt_words) and prompt_words[op_idx] in ("the", "a", "an", "their", "its"):
+                    op_idx += 1
+                if op_idx < len(prompt_words):
+                    op_w = prompt_words[op_idx]
+                    if head_w and op_w and head_w != op_w and head_w not in _non_op_tokens and op_w not in _non_op_tokens:
+                        head_toks = CellTokenizer.tokenize_identifier(head_w)
+                        op_toks = CellTokenizer.tokenize_identifier(op_w)
+                        head_cells = {c.cell_id for c in candidates if head_toks & identity_cache.get(c.cell_id, set())}
+                        op_cells = {c.cell_id for c in candidates if op_toks & identity_cache.get(c.cell_id, set())}
+                        if head_cells and op_cells:
+                            operand_dependencies.append((op_cells, head_cells))
 
         def _match_mass(cl_toks: Set[str], c_toks: Set[str], id_toks: Set[str]) -> float:
             strong = sum(idf_of_prompt.get(t, _idf(t)) for t in (cl_toks & (c_toks & id_toks)))
@@ -940,11 +1094,18 @@ class LatticePlanner:
         cell_cov_mass_bonus: Dict[str, float] = {}
         cell_clause_mass: Dict[str, List[float]] = {}
         cell_covered: Dict[str, Set[int]] = {}
+        literal_prompt_tokens: Set[str] = set()
+        for _, kind, val in l0_extracted_literals:
+            for tok in CellTokenizer.tokenize_identifier(str(val)):
+                if tok and tok.lower() not in ("csv", "json", "parquet", "tsv", "txt"):
+                    literal_prompt_tokens.add(tok)
+        non_literal_prompt_tokens = content_prompt_tokens - literal_prompt_tokens - set(STOPWORDS)
+
         for c in candidates:
             c_toks = c.token_set
             id_toks = getattr(c, "identity_tokens", None) or identity_cache.get(c.cell_id, c_toks)
             cell_cov_strong[c.cell_id] = content_prompt_tokens & id_toks
-            cell_cov_weak[c.cell_id] = content_prompt_tokens & (c_toks - id_toks)
+            cell_cov_weak[c.cell_id] = non_literal_prompt_tokens & (c_toks - id_toks)
             cell_cov_mass_bonus[c.cell_id] = 10.0 * (
                 sum(idf_of_prompt.get(t, _idf(t)) for t in cell_cov_strong[c.cell_id])
                 + 0.3 * sum(idf_of_prompt.get(t, _idf(t)) for t in cell_cov_weak[c.cell_id])
@@ -1110,21 +1271,29 @@ class LatticePlanner:
                 if not any(unify(prod, p_sig) is not None for prod in produced):
                     count += 1
 
-            # Ingress path port capacity check: required external path inputs across the pipeline
-            # must not exceed available file literals from prompt, or 1 default entry source if none declared.
+            # Path port capacity checks: required external path inputs across the pipeline
+            # must not exceed available source file literals (for ingress) or dest file literals (for egress).
             full_path = prev_path + [cand]
             required_ingress_path_ports = 0
+            required_egress_path_ports = 0
             for c in full_path:
-                if getattr(c, "stage", None) == 1:
-                    for p_name, p_sig in c.inputs.items():
-                        if not p_sig.required or p_sig.default_value is not None:
-                            continue
-                        if _lattice_is_path_port(p_sig):
+                is_ing = getattr(c, "stage", None) == 1 or getattr(c, "node_role", "") == "source"
+                is_egr = getattr(c, "stage", None) == 3 or getattr(c, "node_role", "") == "sink"
+                for p_name, p_sig in c.inputs.items():
+                    if not p_sig.required or p_sig.default_value is not None:
+                        continue
+                    if _lattice_is_path_port(p_sig):
+                        if is_ing:
                             required_ingress_path_ports += 1
                             break
-            max_allowed_ingress = len(file_literals) if file_literals else 1
+                        elif is_egr:
+                            required_egress_path_ports += 1
+                            break
+            max_allowed_ingress = len(src_file_literals) if src_file_literals else (len(file_literals) if file_literals else 1)
             if required_ingress_path_ports > max_allowed_ingress:
                 count += (required_ingress_path_ports - max_allowed_ingress)
+            if required_egress_path_ports > len(dest_file_literals):
+                count += (required_egress_path_ports - len(dest_file_literals))
 
             # Role-carrier tracking (R2.5):
             # Check role-bearing inputs (e.g. target_input, feature_input, data_input)
@@ -1247,9 +1416,16 @@ class LatticePlanner:
                 is_justified = is_real_join and (bool(cell_covered.get(new_c.cell_id)) or relevance_map.get(new_c.cell_id, 0.0) >= 0.05)
                 new_join = (1 if is_justified else 0)
                 join_nodes = prev_st["join_nodes"] + new_join
+                is_new_ingress = (getattr(new_c, "stage", None) == 1 and getattr(new_c, "node_type", "") != "constructor")
                 aff_parents = actual_parents or parents
-                new_aff = max(_edge_affinity(p, new_c) for p in aff_parents) if aff_parents else _edge_affinity(path[-2], new_c)
-                dag_affs = prev_st["dag_affs"] + [new_aff]
+                if aff_parents:
+                    new_aff = max(_edge_affinity(p, new_c) for p in aff_parents)
+                    dag_affs = prev_st["dag_affs"] + [new_aff]
+                elif not is_new_ingress:
+                    new_aff = _edge_affinity(path[-2], new_c)
+                    dag_affs = prev_st["dag_affs"] + [new_aff]
+                else:
+                    dag_affs = prev_st["dag_affs"]
 
                 st = {
                     "strong_tokens": strong_tokens,
@@ -1302,10 +1478,11 @@ class LatticePlanner:
                     is_justified = is_real_join and (bool(cell_covered.get(cell_j.cell_id)) or relevance_map.get(cell_j.cell_id, 0.0) >= 0.05)
                     if is_justified:
                         join_nodes += 1
+                    is_j_ingress = (getattr(cell_j, "stage", None) == 1 and getattr(cell_j, "node_type", "") != "constructor")
                     aff_parents = actual_parents or parents
                     if aff_parents:
                         dag_affs.append(max(_edge_affinity(p, cell_j) for p in aff_parents))
-                    else:
+                    elif not is_j_ingress:
                         dag_affs.append(_edge_affinity(path[j - 1], cell_j))
 
                 st = {
@@ -1337,7 +1514,20 @@ class LatticePlanner:
                 holes = sum(1 for g in range(lo, hi + 1) if g not in covered_clauses)
                 gap_penalty = holes  # weighted by PATH_SCORE_WEIGHTS["gap"] at combination
 
-            align_factor = max(0.85, 1.0 - 0.05 * inversions)
+            operand_inversions = 0
+            if operand_dependencies:
+                path_cids = [c.cell_id for c in path]
+                for op_cands, head_cands in operand_dependencies:
+                    head_indices = [idx for idx, cid in enumerate(path_cids) if cid in head_cands]
+                    op_indices = [idx for idx, cid in enumerate(path_cids) if cid in op_cands]
+                    if head_indices and op_indices:
+                        min_head = min(head_indices)
+                        max_op = max(op_indices)
+                        if min_head < max_op:
+                            operand_inversions += 1
+
+            total_inversions = inversions + operand_inversions * 2
+            align_factor = max(0.85, 1.0 - 0.05 * total_inversions)
             alignment = clause_cov * align_factor
 
             # Parsimony: every step must pay for itself. A per-step cost makes
@@ -1398,9 +1588,12 @@ class LatticePlanner:
             # merely rewards whatever compute function old data mislabeled as a
             # sink.
             terminal = path[-1]
-            has_egress_intent = bool(content_prompt_tokens & EGRESS_INTENT_TOKENS) or (
-                len(file_literals) > 1 and any(getattr(c, "stage", None) == 1 for c in path)
-            ) or (goal_sig is not None)
+            has_file_dest = bool(dest_file_literals) and any(getattr(c, "stage", None) == 1 for c in path)
+            has_egress_intent = (
+                (bool(content_prompt_tokens & EGRESS_INTENT_TOKENS) and not target_sink)
+                or has_file_dest
+                or (goal_sig is not None)
+            )
             # Materialization is a property of the terminal's OUTPUT STATE, not
             # merely of its stage field: composite macro-goal cells inherit the
             # stage of their first (ingress) sub-cell, yet their output declares
@@ -1443,10 +1636,17 @@ class LatticePlanner:
                             effective_other_cells.append(sub_cell)
                 if effective_other_cells:
                     other_domains = {getattr(c, "domain_name", "") for c in effective_other_cells}
-                    if terminal_domain not in other_domains:
-                        goal_bonus -= PATH_SCORE_WEIGHTS["domain_coherence"]
-                    else:
+                    pred_cell = effective_other_cells[-1]
+                    pred_tags = set(getattr(pred_cell, "semantic_tags", []) or [])
+                    is_bridge = (
+                        "array_bridge" in pred_tags
+                        or "bridge" in pred_tags
+                        or "bridge" in getattr(pred_cell, "cell_id", "").lower()
+                    )
+                    if is_bridge or terminal_domain in other_domains:
                         goal_bonus += PATH_SCORE_WEIGHTS["domain_coherence"]
+                    else:
+                        goal_bonus -= PATH_SCORE_WEIGHTS["domain_coherence"]
 
             if file_literals:
                 if any(_has_path_port(c) for c in path):
@@ -1540,7 +1740,7 @@ class LatticePlanner:
                     affinity_score = 0.5
                 else:
                     affinity_score = sum(dag_affs) / max(len(dag_affs), 1)
-                    join_bonus = min(4.0, join_nodes * 1.0)
+                    join_bonus = min(6.0, join_nodes * 3.0)
             else:
                 if k <= 1:
                     affinity_score = 0.5
@@ -1572,25 +1772,29 @@ class LatticePlanner:
             # Measures ratio of L0 universal literals bound to at least one port on the path.
             if universal_literals:
                 path_ports = set()
-                path_file_ports = 0
+                path_ingress_file_ports = 0
+                path_egress_file_ports = 0
                 path_has_col_proj = any(_is_col_proj_cell(c) for c in path)
                 for c in path:
+                    is_ing = getattr(c, "stage", None) == 1 or getattr(c, "node_role", "") == "source"
+                    is_egr = getattr(c, "stage", None) == 3 or getattr(c, "node_role", "") == "sink"
                     for p_name, p_sig in c.inputs.items():
                         path_ports.add(p_name.lower())
                         role = getattr(p_sig, "port_role", None) or getattr(p_sig, "derived_role", "")
                         if role:
                             path_ports.add(role.lower())
-                        # Count each declared required path port: a cell (or a
-                        # composite macro-goal with separate ingest/egress path
-                        # ports) can absorb as many file literals as it declares
-                        # destinations for.
+                        # Count declared required path ports by stage (ingress vs egress)
                         if p_sig.required and p_sig.default_value is None and _is_path_port_sig(p_sig):
-                            path_file_ports += 1
+                            if is_ing:
+                                path_ingress_file_ports += 1
+                            elif is_egr:
+                                path_egress_file_ports += 1
                     for s_k in getattr(c, "bound_slots", {}).keys():
                         path_ports.add(s_k.lower())
 
                 consumed_count = 0
-                used_file_ports = 0
+                used_ingress_file_ports = 0
+                used_egress_file_ports = 0
                 # Column-projection ports declared on the path: an identifier
                 # literal counts as consumed only when its ROLE context (e.g.
                 # "X column") matches the projection port's declared vocabulary.
@@ -1625,15 +1829,22 @@ class LatticePlanner:
                 for kind, lit in universal_literals:
                     lit_clean = str(lit).lower().strip("'\"")
                     if kind == "file_asset":
-                        if used_file_ports < path_file_ports:
-                            consumed_count += 1
-                            used_file_ports += 1
+                        lit_pos = literal_positions.get((kind, lit), 0)
+                        lit_dir = ExecutionContext._asset_direction(prompt or "", lit_pos)
+                        if lit_dir == "dest":
+                            if used_egress_file_ports < path_egress_file_ports:
+                                consumed_count += 1
+                                used_egress_file_ports += 1
+                        else:
+                            if used_ingress_file_ports < path_ingress_file_ports:
+                                consumed_count += 1
+                                used_ingress_file_ports += 1
                     elif kind == "numeric":
                         lit_pos = literal_positions.get((kind, lit))
                         pre_mod: Set[str] = set()
                         if lit_pos is not None:
                             prev_chunk = (prompt or "")[:lit_pos].rstrip()
-                            prev_words = re.findall(r"[A-Za-z0-9_]+", prev_chunk)
+                            prev_words = tokenize_alphanumeric(prev_chunk)
                             if prev_words:
                                 w = prev_words[-1].lower()
                                 if w in ("the", "a", "an", "of", "to", "in", "with", "at", "by") and len(prev_words) >= 2:
@@ -1699,8 +1910,15 @@ class LatticePlanner:
                                 # binding preposition matches the literal's.
                                 if lit_pos is not None:
                                     prev_chunk = (prompt or "")[:lit_pos].rstrip()
-                                    m_prev = re.search(r"([A-Za-z]+)$", prev_chunk)
-                                    prep = m_prev.group(1).lower() if m_prev else ""
+                                    words = prev_chunk.split()
+                                    last_word = words[-1].strip(".,!?:;'\"") if words else ""
+                                    trailing_letters = []
+                                    for ch in reversed(last_word):
+                                        if ch.isalpha():
+                                            trailing_letters.append(ch)
+                                        else:
+                                            break
+                                    prep = "".join(reversed(trailing_letters)).lower()
                                     if prep and prep in trigger_port_tokens:
                                         consumed_count += 1
                 literal_consumption = consumed_count / len(universal_literals)
@@ -1715,9 +1933,10 @@ class LatticePlanner:
                 effective_affinity = structural_affinity * cov_gate
             else:
                 # Single-clause prompt: gate affinity when coverage is very low.
-                # A path covering < 30% of tokens should not dominate purely on
+                # A path covering < 30% of tokens (and not grounding literals) should not dominate purely on
                 # structural affinity from declared edges.
-                cov_gate = max(coverage, 0.3) if coverage < 0.3 else 1.0
+                combined_cov = max(coverage, literal_consumption) if universal_literals else coverage
+                cov_gate = max(combined_cov, 0.3) if combined_cov < 0.3 else 1.0
                 effective_affinity = structural_affinity * cov_gate
 
             total = (coverage * PATH_SCORE_WEIGHTS["coverage"] + alignment * PATH_SCORE_WEIGHTS["alignment"]
@@ -1728,6 +1947,7 @@ class LatticePlanner:
                      - dead_outputs * PATH_SCORE_WEIGHTS["dead_output"]
                      - unbindable * PATH_SCORE_WEIGHTS["unbindable"]
                      - domain_dispersion - gap_penalty * PATH_SCORE_WEIGHTS["gap"]
+                     - operand_inversions * 8.0
                      - intent_deficit + literal_consumption * PATH_SCORE_WEIGHTS["literal_consumption"])
             if _debug_plan:
                 _component_trace[tuple(c.cell_id for c in path)] = {
@@ -1740,6 +1960,7 @@ class LatticePlanner:
                     "goal_bonus": round(goal_bonus, 2),
                     "weak": round(-weak_total, 2),
                     "gap": round(-gap_penalty, 2),
+                    "op_inversions": round(-operand_inversions * 8.0, 2),
                     "dead_output": round(-dead_outputs * PATH_SCORE_WEIGHTS["dead_output"], 2),
                     "intent_deficit": round(-intent_deficit, 2),
                     "literal*15": round(literal_consumption * 15.0, 2),
@@ -1747,20 +1968,32 @@ class LatticePlanner:
             # SINK COMPLETION BONUS & HALLUCINATION DAMPENING
             if path:
                 last_c = path[-1]
-                if _is_terminal_sink_cell(last_c):
-                    total += 3.5  # Reward reaching valid terminal sink
-                elif getattr(last_c, "stage", None) == 2 and not any(_is_terminal_sink_cell(c) for c in path):
-                    out_desc = str(getattr(last_c, "primary_output", "")) + " " + str(getattr(last_c, "outputs", ""))
-                    if any(carrier in out_desc for carrier in ("ndarray", "Image", "DataFrame", "GroupBy")):
-                        total -= 4.0  # Dangling unconsumed output penalty
+                if has_egress_intent:
+                    if _is_terminal_sink_cell(last_c):
+                        total += 3.5  # Reward reaching valid terminal sink
+                    elif getattr(last_c, "stage", None) == 2 and not any(_is_terminal_sink_cell(c) for c in path):
+                        reg = TypeRegistry.get_instance()
+                        has_dangling_carrier = False
+                        p_out = getattr(last_c, "primary_output", None)
+                        if p_out:
+                            t_name = str(getattr(p_out, "type_name", "")).lower()
+                            if reg.is_subtype(t_name, "table") or reg.is_subtype(t_name, "tensor") or reg.is_subtype(t_name, "image") or reg.is_subtype(t_name, "collection"):
+                                has_dangling_carrier = True
+                        if not has_dangling_carrier:
+                            out_desc = str(getattr(last_c, "primary_output", "")) + " " + str(getattr(last_c, "outputs", ""))
+                            if any(carrier.lower() in out_desc.lower() for carrier in ("ndarray", "image", "dataframe", "groupby", "table", "tensor")):
+                                has_dangling_carrier = True
+                        if has_dangling_carrier:
+                            total -= 4.0  # Dangling unconsumed output penalty
 
                 # Dampen unrequested transforms when query coverage is satisfied
                 if coverage >= 0.70:
+                    prompt_toks = CellTokenizer.tokenize_prompt(prompt)
                     for c in path[1:]:
                         if getattr(c, "stage", None) == 2:
-                            cid = getattr(c, "cell_id", "").lower()
-                            if any(unreq in cid for unreq in ("erode", "dilate", "morphology")) and not any(w in prompt.lower() for w in ("erode", "dilate", "morph")):
-                                total -= 5.0
+                            c_toks = getattr(c, "identity_tokens", getattr(c, "token_set", set()))
+                            if c_toks and not (c_toks & prompt_toks):
+                                total -= 3.0
 
             # (apply_fixes_v11) coverage-as-multiplier: a path that drops most
             # of the user's clauses must not be rescued by goal_bonus or
@@ -1882,6 +2115,53 @@ class LatticePlanner:
         dynamic_cap = max(max_transforms + 2, num_clauses + 3)
         max_steps = max(2, min(16, dynamic_cap))
 
+        # Valid terminal boundary filter (Endable Nodes):
+        def _is_valid_terminal(cand_path: List[Cell]) -> bool:
+            terminal = cand_path[-1]
+            if getattr(terminal, "endable", None) is True:
+                return True
+            if getattr(terminal, "is_endable", False):
+                covered = set().union(*(cell_covered.get(c.cell_id, set()) for c in cand_path))
+                if num_clauses > 1 and covered and max(covered) < num_clauses - 1:
+                    if getattr(terminal, "stage", None) != 3:
+                        return False
+                return True
+            t_stage = getattr(terminal, "stage", None)
+            if t_stage == 3:
+                return True
+            t_id = terminal.cell_id.lower()
+            t_role = getattr(terminal, "node_role", "")
+            is_transformer = (t_role == "transformer" or t_id.endswith(".transform") or t_id.endswith(".fit_transform"))
+            if is_transformer:
+                covered = set().union(*(cell_covered.get(c.cell_id, set()) for c in cand_path))
+                if num_clauses > 1 and covered and max(covered) < num_clauses - 1:
+                    return False
+
+            # If target_sink is declared (e.g. 'store results into Z'), the pipeline's
+            # in-memory result is assigned to target_sink. Any node producing a carrier
+            # that covers the terminal clause is a valid terminal.
+            if target_sink and (getattr(terminal, "primary_output", None) or getattr(terminal, "outputs", None)):
+                covered = set().union(*(cell_covered.get(c.cell_id, set()) for c in cand_path))
+                if num_clauses <= 1 or not covered or max(covered) >= num_clauses - 1:
+                    return True
+
+            if t_role in ("estimator", "terminal", "evaluator", "sink", "consumer"):
+                return True
+            out_states = {
+                str(getattr(op, "state", "")).lower()
+                for op in getattr(terminal, "outputs", {}).values()
+            }
+            if any(
+                registry.state_ancestry_reaches(st, {"trained", "fit_estimator", "written_to_disk", "exported", "saved"})
+                for st in out_states if st and st not in ("any", "*")
+            ):
+                return True
+
+            covered = set().union(*(cell_covered.get(c.cell_id, set()) for c in cand_path))
+            if num_clauses > 1 and covered and max(covered) < num_clauses - 1:
+                return False
+            return True
+
         # Planning approach dispatch:
         # 1. "linear": 1D Monadic Trellis baseline (sequential list approach)
         # 2. "frontier": Multi-Carrier Monoidal Frontier DAG (default approach)
@@ -1920,6 +2200,11 @@ class LatticePlanner:
                 quoted_str_literals=quoted_str_literals,
                 numeric_literals=numeric_literals,
                 cell_clause_mass=cell_clause_mass,
+                file_asset_literals=file_literals,
+                dest_file_literals=dest_file_literals,
+                has_egress_intent=has_prompt_egress_intent,
+                target_sink=target_sink,
+                is_valid_terminal=_is_valid_terminal,
             )
 
         # Filter and rank valid composition paths
@@ -1940,58 +2225,17 @@ class LatticePlanner:
                     valid_candidates = matching_goals
 
             # 2. Valid terminal boundary filter (Endable Nodes):
-            # A pipeline cannot terminate at an intermediate data transformer (Stage 2)
-            # if the prompt contains downstream unfulfilled action clauses.
-            def _is_valid_terminal(cand_path: List[Cell]) -> bool:
-                terminal = cand_path[-1]
-                if getattr(terminal, "endable", None) is True:
-                    return True
-                if getattr(terminal, "is_endable", False):
-                    covered = set().union(*(cell_covered.get(c.cell_id, set()) for c in cand_path))
-                    if num_clauses > 1 and covered and max(covered) < num_clauses - 1:
-                        if getattr(terminal, "stage", None) != 3:
-                            return False
-                    return True
-                t_stage = getattr(terminal, "stage", None)
-                if t_stage == 3:
-                    return True
-                t_id = terminal.cell_id.lower()
-                t_role = getattr(terminal, "node_role", "")
-                is_transformer = (t_role == "transformer" or t_id.endswith(".transform") or t_id.endswith(".fit_transform"))
-                if is_transformer:
-                    covered = set().union(*(cell_covered.get(c.cell_id, set()) for c in cand_path))
-                    if num_clauses > 1 and covered and max(covered) < num_clauses - 1:
-                        return False
-
-                # Declared-goal terminals: a node whose DECLARED role is an
-                # estimator, or whose output state reaches a declared terminal
-                # family (trained model, materialized artifact), is a valid
-                # pipeline goal. No cell-id substring whitelists: roles and
-                # states are declared tree data.
-                if t_role in ("estimator", "terminal", "evaluator", "sink", "consumer"):
-                    return True
-                out_states = {
-                    str(getattr(op, "state", "")).lower()
-                    for op in getattr(terminal, "outputs", {}).values()
-                }
-                if any(
-                    registry.state_ancestry_reaches(st, {"trained", "fit_estimator", "written_to_disk", "exported", "saved"})
-                    for st in out_states if st and st not in ("any", "*")
-                ):
-                    return True
-
-                covered = set().union(*(cell_covered.get(c.cell_id, set()) for c in cand_path))
-                if num_clauses > 1 and covered and max(covered) < num_clauses - 1:
-                    return False
-                return True
-
             endable_candidates = [item for item in valid_candidates if _is_valid_terminal(item[0])]
             if endable_candidates:
                 valid_candidates = endable_candidates
 
             # === HARD CONSTRAINTS (apply_fixes_v8) ===
             _uc = ExecutionContext._extract_universal_literals(prompt or "")
-            _ul = [(k, v) for _, k, v in _uc if k in ("file_asset", "identifier", "quoted_str", "numeric")]
+            _ul = [
+                (k, v) for _, k, v in _uc
+                if k in ("file_asset", "identifier", "quoted_str", "numeric")
+                and not (k == "identifier" and target_sink and str(v).lower() == target_sink.lower())
+            ]
             _nl = [v for k, v in _ul if k == "numeric"]
             _ql = [v for k, v in _ul if k == "quoted_str"]
             _il = [v for k, v in _ul if k == "identifier"]
@@ -2349,6 +2593,25 @@ class LatticePlanner:
                     bound_in = p_name
                     break
 
+        # 2b. Multi-Carrier Scope Fallback: if prev_cell did not connect, check earlier ancestors in prev_path (DAG fork/branch)
+        if sub is None and len(prev_path) > 1:
+            req_ports = [(k, v) for k, v in cand.inputs.items() if v.required]
+            candidate_ports = req_ports if req_ports else list(cand.inputs.items())
+            for ancestor in reversed(prev_path[:-1]):
+                for out_name, out_sig in ancestor.outputs.items():
+                    for p_name, p_sig in candidate_ports:
+                        if not _shape_compatible(out_sig, p_sig):
+                            continue
+                        s_try = unify(out_sig.signature, p_sig.signature, prev_sigma)
+                        if s_try is not None:
+                            sub = s_try
+                            bound_in = p_name
+                            break
+                    if sub is not None:
+                        break
+                if sub is not None:
+                    break
+
         if sub is None:
             return None
 
@@ -2361,7 +2624,7 @@ class LatticePlanner:
                 continue
 
             satisfied = False
-            for earlier_cell in reversed(prev_path[:-1]):
+            for earlier_cell in reversed(prev_path):
                 for out_name, out_sig in earlier_cell.outputs.items():
                     if not _shape_compatible(out_sig, p_sig):
                         continue
@@ -2385,7 +2648,8 @@ class LatticePlanner:
                     # or the port declares an enum domain for reflection-based grounding.
                     # Zero port-name heuristics: naming is data, typing is semantics.
                     is_literal_groundable = (
-                        (registry.is_subtype(t_name, "str") and bool(quoted_str_literals or identifier_literals))
+                        (getattr(p_sig, "port_role", None) in ("literal_parameter", "config", "hyperparameter"))
+                        or (registry.is_subtype(t_name, "str") and bool(quoted_str_literals or identifier_literals))
                         or (registry.is_subtype(t_name, "numeric") and bool(numeric_literals))
                         or (registry.is_subtype(t_name, "bool") and any(str(lit).strip().lower() in ("true", "false") for lit in (list(identifier_literals or ()) + list(quoted_str_literals or ()))))
                         or _lattice_is_path_port(p_sig)
@@ -2465,7 +2729,8 @@ class LatticePlanner:
                     if not is_instance_receiver:
                         t_name = str(getattr(p_sig.signature, "type_name", "")).lower()
                         if (
-                            (registry.is_subtype(t_name, "str") and bool(quoted_str_literals or identifier_literals))
+                            (getattr(p_sig, "port_role", None) in ("literal_parameter", "config", "hyperparameter"))
+                            or (registry.is_subtype(t_name, "str") and bool(quoted_str_literals or identifier_literals))
                             or (registry.is_subtype(t_name, "numeric") and bool(numeric_literals))
                             or (registry.is_subtype(t_name, "bool") and any(str(lit).strip().lower() in ("true", "false") for lit in (list(identifier_literals or ()) + list(quoted_str_literals or ()))))
                             or _lattice_is_path_port(p_sig)
@@ -2629,6 +2894,11 @@ class LatticePlanner:
         quoted_str_literals: Sequence[Any] = (),
         numeric_literals: Sequence[Any] = (),
         cell_clause_mass: Optional[Dict[str, List[float]]] = None,
+        file_asset_literals: Sequence[Any] = (),
+        dest_file_literals: Sequence[Any] = (),
+        has_egress_intent: bool = False,
+        target_sink: Optional[str] = None,
+        is_valid_terminal: Optional[Any] = None,
     ) -> List[Tuple[List[Cell], Substitution, float, int, int]]:
         """
         Monoidal Category Frontier DAG Planner (Default Approach).
@@ -2647,7 +2917,8 @@ class LatticePlanner:
             sc = log_probs.get(entry.cell_id, -10.0)
             p_tuple = ([entry], Substitution(), sc, 0, _new_unbindable(entry, []))
             current_beam.append(p_tuple)
-            all_valid_paths.append(p_tuple)
+            if is_valid_terminal is None or is_valid_terminal([entry]):
+                all_valid_paths.append(p_tuple)
 
         def _shape_compatible(p_out: Any, p_in: Any) -> bool:
             if not _is_port_role_compatible(p_out, p_in):
@@ -2685,6 +2956,18 @@ class LatticePlanner:
             cand_role = str(getattr(cand, "node_role", "")).lower()
             if (cand_stage == 2 or cand_role in ("transformer", "transform")) and any(_is_terminal_sink_cell(c) for c in prev_path):
                 return None
+
+            # Terminal sink guard: when cand is a terminal sink, ensure egress intent exists
+            # and that any required destination path ports can be bound.
+            if _is_terminal_sink_cell(cand):
+                has_req_path = any(
+                    p.required and p.default_value is None and _lattice_is_path_port(p)
+                    for p in cand.inputs.values()
+                )
+                if has_req_path and not dest_file_literals:
+                    return None
+                if not has_egress_intent and not target_sink:
+                    return None
 
             sub = prev_sigma
             bound_parents: Set[str] = set()
@@ -2748,7 +3031,8 @@ class LatticePlanner:
                                     break
                         else:
                             is_literal_groundable = (
-                                (registry.is_subtype(t_name, "str") and bool(quoted_str_literals or identifier_literals))
+                                (getattr(p_sig, "port_role", None) in ("literal_parameter", "config", "hyperparameter"))
+                                or (registry.is_subtype(t_name, "str") and bool(quoted_str_literals or identifier_literals))
                                 or (registry.is_subtype(t_name, "numeric") and bool(numeric_literals))
                                 or (registry.is_subtype(t_name, "bool") and any(str(lit).strip().lower() in ("true", "false") for lit in (list(identifier_literals or ()) + list(quoted_str_literals or ()))))
                                 or _lattice_is_path_port(p_sig)
@@ -2767,6 +3051,8 @@ class LatticePlanner:
             if cand_node_type != "constructor" and cand not in zero_ary_ctors and not bound_parents:
                 if _is_terminal_sink_cell(cand) and not any(p.required for p in cand.inputs.values()):
                     bound_parents.add(prev_path[-1].cell_id)
+                elif getattr(cand, "stage", None) == 1:
+                    pass
                 else:
                     return None
 
@@ -2851,12 +3137,26 @@ class LatticePlanner:
                         successor_candidates.append(ctor)
                         seen_succ_ids.add(ctor_low)
 
-                for cand in successor_candidates:
-                    if cand.cell_id.lower() in prev_path_ids:
-                        continue
+                num_ingress = sum(
+                    1 for c in prev_path
+                    if getattr(c, "stage", None) == 1 and getattr(c, "node_type", "") != "constructor"
+                )
+                if num_ingress < len(file_asset_literals):
+                    for entry in candidate_entries:
+                        entry_low = entry.cell_id.lower()
+                        if entry_low not in seen_succ_ids:
+                            successor_candidates.append(entry)
+                            seen_succ_ids.add(entry_low)
 
+                for cand in successor_candidates:
                     cand_stage = getattr(cand, "stage", None)
-                    if cand_stage == 1 and cand not in zero_ary_ctors:
+                    is_ingress = (cand_stage == 1 and cand not in zero_ary_ctors)
+
+                    if cand.cell_id.lower() in prev_path_ids:
+                        if not (is_ingress and num_ingress < len(file_asset_literals)):
+                            continue
+
+                    if is_ingress and num_ingress >= len(file_asset_literals):
                         continue
 
                     v_res = _verify_frontier_step(prev_path, cand, prev_sigma)
@@ -2874,6 +3174,7 @@ class LatticePlanner:
                         and prev_cell.cell_id not in bound_parents
                         and cand.cell_id < prev_cell.cell_id
                         and not _cells_connect(prev_cell, cand)
+                        and not is_ingress
                     ):
                         prev_m = cell_clause_mass.get(prev_cell.cell_id, []) if cell_clause_mass else []
                         cand_m = cell_clause_mass.get(cand.cell_id, []) if cell_clause_mass else []
@@ -2902,31 +3203,53 @@ class LatticePlanner:
 
             if not candidates_for_next:
                 break
-
             candidates_for_next.sort(key=lambda x: compute_path_score(x, is_final=False), reverse=True)
-            endpoint_counts: Dict[str, int] = {}
-            next_beam = []
+            by_endpoint: Dict[str, List[Any]] = {}
             for item in candidates_for_next:
-                endpoint = item[0][-1].cell_id
-                if endpoint_counts.get(endpoint, 0) < 5:
+                ep = item[0][-1].cell_id
+                by_endpoint.setdefault(ep, []).append(item)
+
+            next_beam = []
+            sorted_endpoints = sorted(
+                by_endpoint.keys(),
+                key=lambda ep: compute_path_score(by_endpoint[ep][0], is_final=False),
+                reverse=True,
+            )
+            # Round 1: Top candidates for each reachable endpoint (up to 2 per endpoint to preserve diverse prefixes)
+            for ep in sorted_endpoints:
+                for item in by_endpoint[ep][:2]:
                     next_beam.append(item)
-                    endpoint_counts[endpoint] = endpoint_counts.get(endpoint, 0) + 1
-                    if len(next_beam) >= 250:
+
+            # Round 2: Fill remaining beam capacity (up to 120) with secondary candidates
+            for ep in sorted_endpoints:
+                for item in by_endpoint[ep][2:]:
+                    if len(next_beam) >= 120:
                         break
+                    next_beam.append(item)
+                if len(next_beam) >= 120:
+                    break
             current_beam = next_beam
 
-            # Bounded addition to all_valid_paths: keep top candidates (covers next_beam) + any valid terminal sinks
-            for item in candidates_for_next[:300]:
-                all_valid_paths.append(item)
-            for item in candidates_for_next[300:]:
+            # Valid completed paths addition:
+            for item in candidates_for_next:
                 term_cell = item[0][-1]
-                if getattr(term_cell, "stage", None) == 3 or getattr(term_cell, "endable", False) or getattr(term_cell, "is_endable", False):
-                    all_valid_paths.append(item)
+                if is_valid_terminal is not None:
+                    if is_valid_terminal(item[0]):
+                        all_valid_paths.append(item)
+                else:
+                    if (
+                        getattr(term_cell, "stage", None) == 3
+                        or getattr(term_cell, "endable", False)
+                        or getattr(term_cell, "is_endable", False)
+                    ):
+                        all_valid_paths.append(item)
 
-            if len(all_valid_paths) > 3000:
-                all_valid_paths.sort(key=lambda x: compute_path_score(x, is_final=False), reverse=True)
-                all_valid_paths = all_valid_paths[:1500]
+            if len(all_valid_paths) > 2000:
+                all_valid_paths.sort(key=lambda x: compute_path_score(x, is_final=True), reverse=True)
+                all_valid_paths = all_valid_paths[:1000]
 
+        if not all_valid_paths:
+            all_valid_paths = list(current_beam)
         return all_valid_paths
 
     def plan_sublattice(

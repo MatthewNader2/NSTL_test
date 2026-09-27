@@ -18,10 +18,14 @@ import importlib
 import inspect
 import os
 import pkgutil
-import re
 import sys
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Set, Tuple
+
+try:
+    from utils import tokenize_alphanumeric
+except ImportError:
+    from .utils import tokenize_alphanumeric
 
 try:
     from log_config import get_logger
@@ -219,10 +223,10 @@ class LibraryAdapter(abc.ABC):
             if param_name in doc_params:
                 p_desc = doc_params[param_name].get("desc", "")
             else:
-                p_esc = re.escape(param_name)
-                m = re.search(rf"(?:@param\s+|:param\s+.*?\s+|^\s*){p_esc}\b[^\n]*\n?([^\n]*)", doc, re.MULTILINE)
-                if m:
-                    p_desc = m.group(0)
+                for line in doc.splitlines():
+                    if param_name in line:
+                        p_desc = line.strip()
+                        break
 
             if p_desc:
                 # (apply_fixes_v7) P6 — triggers configurable from tree JSON
@@ -233,8 +237,15 @@ class LibraryAdapter(abc.ABC):
                     _trig = frozenset()
                 if not _trig:
                     _trig = frozenset({"see", "values in", "one of"})
-                _pat = "|".join(re.escape(x) for x in sorted(_trig, key=len, reverse=True))
-                citations = re.findall(rf"(?:{_pat})\s+#?(?:[A-Za-z_]\w*::)*([A-Za-z_]\w+)", p_desc, re.IGNORECASE)
+                citations = []
+                p_desc_low = p_desc.lower()
+                for trig in _trig:
+                    if trig in p_desc_low:
+                        idx = p_desc_low.find(trig) + len(trig)
+                        after = p_desc[idx:].lstrip(" :#")
+                        toks = tokenize_alphanumeric(after)
+                        if toks:
+                            citations.append(toks[0])
                 for enum_ident in citations:
                     if len(enum_ident) < 3 or enum_ident.lower() in ("the", "see", "for", "and", "one", "all", "none", "true", "false", "list"):
                         continue
@@ -246,7 +257,11 @@ class LibraryAdapter(abc.ABC):
                             constants = [attr for attr in dir(enum_obj) if attr.isupper() and not attr.startswith("_")]
                             if constants:
                                 return constants
-                    clean_name = re.sub(r"(?:Flags|Types?|Codes?)$", "", enum_ident, flags=re.IGNORECASE)
+                    clean_name = enum_ident
+                    for suffix in ("flags", "types", "type", "codes", "code"):
+                        if clean_name.lower().endswith(suffix):
+                            clean_name = clean_name[:-len(suffix)]
+                            break
                     pfx = f"{clean_name.upper()}_"
                     matches = [attr for attr in dir(target_mod) if attr.startswith(pfx)]
                     if matches:
@@ -379,7 +394,7 @@ class LibraryAdapter(abc.ABC):
         except Exception:
             dest_tokens = frozenset()
         for p in input_names:
-            components = {c for c in re.split(r"[^a-zA-Z0-9]+", str(p).lower()) if c}
+            components = {c for c in tokenize_alphanumeric(str(p).lower()) if c}
             if components & dest_tokens:
                 return True
         return False

@@ -16,14 +16,15 @@ Structural invariants enforced post-binding:
 
 from __future__ import annotations
 import ast
-import re
 from typing import List, Dict, Set, Tuple, Any, Optional
 from dataclasses import dataclass, field
 
 try:
     from .lattice import UNRESOLVED_PORT, TypeRegistry
+    from .unification import ExecutionContext
 except (ImportError, ValueError):
     from lattice import UNRESOLVED_PORT, TypeRegistry
+    from unification import ExecutionContext
 
 class _DynamicDataBearingRoles(frozenset):
     """Dynamic data-bearing roles proxy backed by TypeRegistry."""
@@ -121,18 +122,41 @@ class PreflightLinter:
                         clean_lit == b or clean_lit in b
                         for b in bound_values_str
                     )
-                    # Check in code_str with word boundary matching or identifier sub-token matching
+                    # Check in code_str using AST inspection (constants, subscripts, call args)
                     if not is_consumed and code_str:
-                        is_consumed = bool(re.search(r'\b' + re.escape(clean_lit) + r'\b', code_str)) or (
-                            clean_lit.upper() in {t.upper() for t in re.findall(r'[a-zA-Z]+|[0-9]+', code_str)}
-                        )
+                        try:
+                            tree = ast.parse(code_str)
+                            clean_lower = clean_lit.lower()
+                            for node in ast.walk(tree):
+                                if isinstance(node, ast.Constant):
+                                    val_str = str(node.value).lower()
+                                    if val_str == clean_lower or clean_lower in val_str:
+                                        is_consumed = True
+                                        break
+                                elif isinstance(node, ast.Name):
+                                    if node.id.lower() == clean_lower:
+                                        is_consumed = True
+                                        break
+                                elif isinstance(node, ast.keyword):
+                                    if node.arg and node.arg.lower() == clean_lower:
+                                        is_consumed = True
+                                        break
+                        except SyntaxError:
+                            violations.append("Synthesized code failed static AST parsing (SyntaxError).")
+                            is_consumed = False
+                        except Exception:
+                            is_consumed = False
 
                     if not is_consumed:
                         msg = (
                             f"Universal literal '{clean_lit}' (kind: {kind}) extracted from prompt "
                             f"was not consumed by any bound port on the path."
                         )
-                        if kind in ("file_asset", "quoted_str"):
+                        is_path_like = (
+                            kind == "file_asset"
+                            or (kind == "quoted_str" and ExecutionContext._is_path_string(clean_lit))
+                        )
+                        if is_path_like:
                             violations.append(msg)
                         else:
                             warnings.append(msg)

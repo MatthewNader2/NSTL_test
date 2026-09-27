@@ -12,6 +12,11 @@ import pickle
 import threading
 from typing import Optional, Dict, Any, List, Tuple
 
+try:
+    from utils import tokenize_alphanumeric
+except ImportError:
+    from .utils import tokenize_alphanumeric
+
 if "PYTORCH_CUDA_ALLOC_CONF" not in os.environ:
     os.environ["PYTORCH_CUDA_ALLOC_CONF"] = "expandable_segments:True"
 
@@ -201,6 +206,86 @@ def build_cell_embedding_text(cell: Any, orchestrator: Optional[Any] = None) -> 
     return " | ".join(parts) if parts else cid
 
 
+class _BM25Index:
+    """Fast lexical BM25 token index for hybrid retrieval and keyword grounding."""
+    def __init__(self, k1: float = 1.5, b: float = 0.75):
+        self.k1 = k1
+        self.b = b
+        self.doc_lens: Dict[int, int] = {}
+        self.avg_dl: float = 1.0
+        self.df: Dict[str, int] = {}
+        self.tf: Dict[int, Dict[str, int]] = {}
+        self.num_docs: int = 0
+
+    def index_schemas(self, id_to_schema: Dict[int, Dict[str, Any]]) -> None:
+        self.num_docs = len(id_to_schema)
+        if self.num_docs == 0:
+            return
+        total_len = 0
+        self.doc_lens.clear()
+        self.df.clear()
+        self.tf.clear()
+
+        for idx, schema in id_to_schema.items():
+            cid = str(schema.get("cell_id", "") or "")
+            doc = str(schema.get("docstring", "") or "")
+            domain = str(schema.get("domain", "") or "")
+            role = str(schema.get("node_role", "") or "")
+            keywords = " ".join(schema.get("keywords", []) or [])
+            text = f"{cid} {cid.replace('_', ' ')} {doc} {domain} {role} {keywords}"
+            tokens = tokenize_alphanumeric(text, min_len=1)
+            self.doc_lens[idx] = len(tokens)
+            total_len += len(tokens)
+            term_counts: Dict[str, int] = {}
+            for t in tokens:
+                term_counts[t] = term_counts.get(t, 0) + 1
+            self.tf[idx] = term_counts
+            for term in term_counts:
+                self.df[term] = self.df.get(term, 0) + 1
+
+        self.avg_dl = max(1.0, total_len / float(self.num_docs))
+
+    def add_document(self, doc_id: int, schema: Dict[str, Any]) -> None:
+        cid = str(schema.get("cell_id", "") or "")
+        doc = str(schema.get("docstring", "") or "")
+        domain = str(schema.get("domain", "") or "")
+        role = str(schema.get("node_role", "") or "")
+        keywords = " ".join(schema.get("keywords", []) or [])
+        text = f"{cid} {cid.replace('_', ' ')} {doc} {domain} {role} {keywords}"
+        tokens = tokenize_alphanumeric(text, min_len=1)
+        self.doc_lens[doc_id] = len(tokens)
+        self.num_docs += 1
+        term_counts: Dict[str, int] = {}
+        for t in tokens:
+            term_counts[t] = term_counts.get(t, 0) + 1
+        self.tf[doc_id] = term_counts
+        for term in term_counts:
+            self.df[term] = self.df.get(term, 0) + 1
+        total_len = sum(self.doc_lens.values())
+        self.avg_dl = max(1.0, total_len / float(self.num_docs))
+
+    def score_query(self, query: str) -> Dict[int, float]:
+        import math
+        tokens = tokenize_alphanumeric(query, min_len=3)
+        if not tokens or self.num_docs == 0:
+            return {}
+        scores: Dict[int, float] = {}
+        for token in tokens:
+            doc_freq = self.df.get(token, 0)
+            if doc_freq == 0:
+                continue
+            idf = math.log(1.0 + (self.num_docs - doc_freq + 0.5) / (doc_freq + 0.5))
+            for idx, counts in self.tf.items():
+                freq = counts.get(token, 0)
+                if freq == 0:
+                    continue
+                dl = self.doc_lens.get(idx, self.avg_dl)
+                num = freq * (self.k1 + 1.0)
+                denom = freq + self.k1 * (1.0 - self.b + self.b * (dl / self.avg_dl))
+                scores[idx] = scores.get(idx, 0.0) + idf * (num / denom)
+        return scores
+
+
 class LocalRAG:
     """
     Maintains a dense vector index over all lattice cells for sub-millisecond
@@ -226,6 +311,8 @@ class LocalRAG:
         self.index: Optional[faiss.IndexFlatIP] = None
         self.id_to_schema: Dict[int, Dict[str, Any]] = {}
         self.cell_cache: Dict[str, Dict[str, Any]] = {}
+        self.bm25_index = _BM25Index()
+        self.cell_boosts: Dict[str, float] = {}
         self._lock = threading.RLock()
 
         self.build_index()
@@ -404,6 +491,7 @@ class LocalRAG:
 
             self.index = faiss.IndexFlatIP(self.dimension)
             self.index.add(matrix)
+            self.bm25_index.index_schemas(self.id_to_schema)
             logger.info(f"[RAG] FAISS Index ready with {self.index.ntotal} vectors.")
             self._persist_index()
 
@@ -428,6 +516,7 @@ class LocalRAG:
             self.index = index
             self.id_to_schema = id_to_schema
             self.dimension = index.d
+            self.bm25_index.index_schemas(self.id_to_schema)
             logger.info(f"[RAG] Restored persisted FAISS index ({index.ntotal} vectors) from {faiss_path}.")
             return True
         except Exception as e:
@@ -477,7 +566,174 @@ class LocalRAG:
             self.index.add(raw_emb)
             new_idx = len(self.id_to_schema)
             self.id_to_schema[new_idx] = cell_dict
+            self.bm25_index.index_schemas(self.id_to_schema)
             logger.info(f"[RAG] Dynamically indexed synthesized cell: {cid}")
+
+    def boost_cell(self, cell_id: str, boost: float = 1.5) -> None:
+        """Modifies relevance score multiplier for cell_id so it ranks higher in RAG."""
+        with self._lock:
+            cid = str(cell_id).strip().lower()
+            prev = self.cell_boosts.get(cid, 1.0)
+            self.cell_boosts[cid] = prev * boost
+            logger.info(f"[RAG] Boosted cell '{cell_id}' score multiplier from {prev:.2f} to {self.cell_boosts[cid]:.2f}")
+
+    def register_dynamic_cell(
+        self,
+        cell_dict: Dict[str, Any],
+        reviewed: bool = False,
+        provisional_score_mult: float = 0.70
+    ) -> None:
+        """
+        Dynamically indexes a newly synthesized cell into FAISS + BM25,
+        marking review state and applying provisional score multiplier.
+        """
+        cid = str(cell_dict.get("cell_id", "dynamic_cell")).strip()
+        cell_dict["reviewed"] = reviewed
+        cell_dict["provisional_score_mult"] = provisional_score_mult
+
+        with self._lock:
+            if not reviewed:
+                self.cell_boosts[cid.lower()] = provisional_score_mult
+            self.add_dynamic_cell(cell_dict)
+            logger.info(
+                f"[RAG] Registered dynamic cell '{cid}' (reviewed={reviewed}, "
+                f"provisional_multiplier={provisional_score_mult})"
+            )
+
+    def _blend_dense_and_lexical(
+        self,
+        prompt: str,
+        dense_results: List[Tuple[float, int]],
+        top_k: int = 25
+    ) -> List[Dict[str, Any]]:
+        """
+        Combines dense vector similarity scores with BM25 lexical keyword matches
+        using Reciprocal Rank Fusion (RRF), task-affinity scoring, and domain alignment.
+        """
+        prompt_tokens = set(tokenize_alphanumeric(prompt, min_len=1))
+        has_reg = bool(prompt_tokens & {"regression", "regressor", "continuous", "forecast"}) and not bool(prompt_tokens & {"classification", "classifier"})
+        has_cls = bool(prompt_tokens & {"classification", "classifier", "churn", "fraud", "sentiment", "spam", "detect", "categorize", "categor"}) and not bool(prompt_tokens & {"regression", "regressor"})
+        has_plot = bool(prompt_tokens & {"plot", "visualize", "chart", "figure", "histogram", "scatter"})
+        has_save = bool(prompt_tokens & {"save", "export", "write", "to_csv", "to_json"})
+
+        # Negation handling without regex: "without plotting", "do not save", etc.
+        if prompt_tokens & {"without", "no", "not", "dont"}:
+            words = prompt.lower().split()
+            for idx, w in enumerate(words):
+                clean_w = w.strip(".,!?:;")
+                if clean_w in ("without", "no", "not", "don't"):
+                    window = set(x.strip(".,!?:;") for x in words[idx+1:idx+4])
+                    if window & {"plot", "chart", "visual", "figure", "plots"}:
+                        has_plot = False
+                    if window & {"save", "export", "write"}:
+                        has_save = False
+
+        target_domain = ""
+        # Intent grounding from active model profile if available
+        try:
+            try:
+                from .inference import ModelManager
+            except (ImportError, ValueError):
+                from inference import ModelManager
+            mm = ModelManager.get_instance()
+            if mm.has_semantic_compiler():
+                intent_info = mm.compile_semantic_intent(prompt)
+                task = str(intent_info.get("task", "")).lower()
+                target_domain = str(intent_info.get("domain", "")).lower()
+                ops = [str(o).lower() for o in intent_info.get("operations", [])]
+                if "regres" in task:
+                    has_reg = True
+                    has_cls = False
+                elif "classif" in task:
+                    has_cls = True
+                    has_reg = False
+                if any("plot" in o or "visual" in o for o in ops):
+                    has_plot = True
+                if any("save" in o or "export" in o or "write" in o for o in ops):
+                    has_save = True
+        except Exception:
+            pass
+
+        # Lexical scores from BM25
+        bm25_scores = self.bm25_index.score_query(prompt)
+        sorted_bm25 = sorted(bm25_scores.items(), key=lambda kv: kv[1], reverse=True)
+        bm25_rank_map = {idx: rank + 1 for rank, (idx, _) in enumerate(sorted_bm25)}
+
+        # Dense rank map
+        dense_rank_map = {idx: rank + 1 for rank, (dist, idx) in enumerate(dense_results) if idx != -1 and idx in self.id_to_schema}
+
+        # Candidate universe: union of top dense and top BM25
+        candidates_set = set(dense_rank_map.keys()) | set(list(bm25_rank_map.keys())[:top_k * 2])
+        if not candidates_set:
+            return []
+
+        fused: List[Tuple[float, int, float]] = []
+        for idx in candidates_set:
+            if idx not in self.id_to_schema:
+                continue
+            schema = self.id_to_schema[idx]
+            cid = str(schema.get("cell_id", "") or "").lower()
+            role = str(schema.get("node_role", "") or "").lower()
+            stage = schema.get("stage")
+
+            d_rank = dense_rank_map.get(idx, 100)
+            b_rank = bm25_rank_map.get(idx, 100)
+
+            # Reciprocal Rank Fusion
+            rrf = (1.0 / (60.0 + d_rank)) + (1.2 / (60.0 + b_rank))
+
+            # Disentangled intent & task modifiers
+            multiplier = 1.0
+            if has_reg:
+                if "classifier" in cid or "classification" in cid:
+                    multiplier *= 0.3
+                elif "regressor" in cid or "regression" in cid:
+                    multiplier *= 1.4
+            elif has_cls:
+                if "regressor" in cid or "regression" in cid:
+                    multiplier *= 0.3
+                elif "classifier" in cid or "classification" in cid:
+                    multiplier *= 1.4
+
+            if has_plot and (stage == 3 or role == "sink") and any(w in cid for w in ("plot", "chart", "figure", "hist", "scatter")):
+                multiplier *= 1.3
+            if has_save and (stage == 3 or role == "sink") and any(w in cid for w in ("save", "write", "export", "csv", "json")):
+                multiplier *= 1.3
+
+            # Domain-clustering alignment
+            if target_domain and target_domain not in ("generic", ""):
+                cell_dom = str(schema.get("domain", "") or schema.get("domain_name", "")).lower()
+                if cell_dom == target_domain or cell_dom in target_domain or target_domain in cell_dom:
+                    multiplier *= 1.3
+                elif cell_dom not in ("generic", "builtins", "") and not any(k in cell_dom for k in ("generic", "builtins")):
+                    multiplier *= 0.7
+
+            # Dynamic cell boost and provisional unreviewed discount
+            multiplier *= self.cell_boosts.get(cid, 1.0)
+
+            final_score = rrf * multiplier
+            dense_score = next((d for d, i in dense_results if i == idx), 0.0)
+            fused.append((final_score, idx, dense_score))
+
+        fused.sort(key=lambda x: x[0], reverse=True)
+
+        results: List[Dict[str, Any]] = []
+        for score, idx, dense_sc in fused[:top_k]:
+            schema = self.id_to_schema[idx]
+            cid = schema.get("cell_id", "")
+            # Scale score nicely for downstream consumers expecting cosine scale [0..1]
+            norm_score = max(0.1, min(1.0, dense_sc if dense_sc > 0.05 else 0.4 + score * 15.0))
+            results.append({
+                "cell_id": cid,
+                "score": float(norm_score),
+                "rrf_score": float(score),
+                "schema": schema,
+                "domain": schema.get("domain", "generic"),
+                "primary_input": schema.get("primary_input", "any"),
+                "primary_output": schema.get("primary_output", "any"),
+                "text": f"ID: {cid} | In: {schema.get('primary_input', 'any')} -> Out: {schema.get('primary_output', 'any')} | Domain: {schema.get('domain', 'generic')}"
+            })
+        return results
 
     def get_relevant_context(self, prompt: str, top_k: int = 25) -> List[Dict[str, Any]]:
         """Retrieves structured context list for the top-k most semantically aligned cells."""
@@ -491,31 +747,15 @@ class LocalRAG:
                 return []
             raw_emb = raw_emb / norm
     
-            search_k = min(top_k, self.index.ntotal)
+            search_k = min(top_k * 2, self.index.ntotal)
             distances, indices = self.index.search(raw_emb, search_k)
-    
-            results: List[Dict[str, Any]] = []
-            for dist, idx in zip(distances[0], indices[0]):
-                if idx == -1 or idx not in self.id_to_schema:
-                    continue
-                schema = self.id_to_schema[idx]
-                cid = schema.get("cell_id", "")
-                results.append({
-                    "cell_id": cid,
-                    "score": float(dist),
-                    "schema": schema,
-                    "domain": schema.get("domain", "generic"),
-                    "primary_input": schema.get("primary_input", "any"),
-                    "primary_output": schema.get("primary_output", "any"),
-                    "text": f"ID: {cid} | In: {schema.get('primary_input', 'any')} -> Out: {schema.get('primary_output', 'any')} | Domain: {schema.get('domain', 'generic')}"
-                })
-            return results
+            dense_pairs = list(zip(distances[0], indices[0]))
+            return self._blend_dense_and_lexical(prompt, dense_pairs, top_k=top_k)
 
     def get_relevant_context_batch(self, prompts: List[str], top_k: int = 25) -> List[List[Dict[str, Any]]]:
         """
         Batched retrieval: embeds ALL query spans in a single model call, then
-        performs one FAISS search per vector. Cuts per-query model overhead from
-        O(spans) model invocations to O(1).
+        performs one FAISS search per vector with BM25 hybrid fusion.
         """
         with self._lock:
             if self.index is None or self.index.ntotal == 0 or not prompts:
@@ -529,27 +769,13 @@ class LocalRAG:
             norms = np.where(norms == 0, 1.0, norms)
             matrix = matrix / norms
 
-            search_k = min(top_k, self.index.ntotal)
+            search_k = min(top_k * 2, self.index.ntotal)
             distances, indices = self.index.search(matrix, search_k)
 
             batch_results: List[List[Dict[str, Any]]] = []
-            for row_d, row_i in zip(distances, indices):
-                results: List[Dict[str, Any]] = []
-                for dist, idx in zip(row_d, row_i):
-                    if idx == -1 or idx not in self.id_to_schema:
-                        continue
-                    schema = self.id_to_schema[idx]
-                    cid = schema.get("cell_id", "")
-                    results.append({
-                        "cell_id": cid,
-                        "score": float(dist),
-                        "schema": schema,
-                        "domain": schema.get("domain", "generic"),
-                        "primary_input": schema.get("primary_input", "any"),
-                        "primary_output": schema.get("primary_output", "any"),
-                        "text": f"ID: {cid} | In: {schema.get('primary_input', 'any')} -> Out: {schema.get('primary_output', 'any')} | Domain: {schema.get('domain', 'generic')}"
-                    })
-                batch_results.append(results)
+            for p, row_d, row_i in zip(prompts, distances, indices):
+                dense_pairs = list(zip(row_d, row_i))
+                batch_results.append(self._blend_dense_and_lexical(p, dense_pairs, top_k=top_k))
             return batch_results
 
     def format_context_for_prompt(self, context_items: List[Dict[str, Any]]) -> str:

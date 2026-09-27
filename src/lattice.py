@@ -13,10 +13,13 @@ import copy
 import functools
 import json
 import os
-import re
 import sqlite3
 import sys
 import threading
+try:
+    from utils import tokenize_alphanumeric, extract_template_placeholders
+except ImportError:
+    from .utils import tokenize_alphanumeric, extract_template_placeholders
 from abc import ABC
 from collections import deque
 from dataclasses import dataclass, field
@@ -243,6 +246,7 @@ class TypeRegistry:
         self._abstract_carriers: Set[str] = set()
         self._abstract_carrier_mapping: Dict[str, str] = {}
         self._dest_port_tokens: Set[str] = set()
+        self._source_port_tokens: Set[str] = set()
         self._data_bearing_roles: Set[str] = set()
         self._estimator_verbs: Set[str] = set()
         self._column_projection_tokens: Set[str] = set()
@@ -251,6 +255,7 @@ class TypeRegistry:
         self._sentence_connectives: Set[str] = set()
         self._asset_placeholders: Dict[str, str] = {}
         self._output_asset_placeholders: Dict[str, str] = {}
+        self._operation_tokens: Set[str] = set()
         self._ancestry_cache: Dict[Tuple[str, FrozenSet[str]], bool] = {}
         # (apply_fixes_v7) P6 — configurable enum-citation triggers
         self._enum_citation_triggers: Set[str] = set()
@@ -355,6 +360,8 @@ class TypeRegistry:
                             self.register_abstract_carrier_mapping(data["abstract_carrier_mapping"])
                         if "dest_port_tokens" in data and isinstance(data["dest_port_tokens"], list):
                             self.register_dest_port_tokens(data["dest_port_tokens"])
+                        if "source_port_tokens" in data and isinstance(data["source_port_tokens"], list):
+                            self.register_source_port_tokens(data["source_port_tokens"])
                         if "data_bearing_roles" in data and isinstance(data["data_bearing_roles"], list):
                             self.register_data_bearing_roles(data["data_bearing_roles"])
                         if "estimator_verbs" in data and isinstance(data["estimator_verbs"], list):
@@ -375,6 +382,10 @@ class TypeRegistry:
                             self.register_output_asset_placeholders(data["output_placeholders"])
                         if "default_output_placeholders" in data and isinstance(data["default_output_placeholders"], dict):
                             self.register_output_asset_placeholders(data["default_output_placeholders"])
+                        if "action_verbs" in data and isinstance(data["action_verbs"], list):
+                            self.register_operation_tokens(data["action_verbs"])
+                        if "operation_tokens" in data and isinstance(data["operation_tokens"], list):
+                            self.register_operation_tokens(data["operation_tokens"])
                 except Exception as e:
                     logger.debug("suppressed: %s", e, exc_info=False)
 
@@ -388,7 +399,7 @@ class TypeRegistry:
         n = str(name).strip()
         if n in self._type_vars:
             return True
-        return bool(re.fullmatch(r"[A-Z][0-9]*", n))
+        return len(n) > 0 and n[0].isupper() and n[0].isalpha() and (len(n) == 1 or n[1:].isdigit())
 
     def register_top(self, name: str) -> None:
         n = str(name).strip().lower()
@@ -416,7 +427,10 @@ class TypeRegistry:
         s = str(name).strip()
         if s in ("⊤", "*", "any"):
             return True
-        return s.lower() in self._declared_top_states
+        sl = s.lower()
+        if sl in self._declared_top_states or sl.endswith("_generic") or sl.startswith("generic_") or sl == "generic":
+            return True
+        return False
 
     def register_product_constructor(self, ctor: str) -> None:
         c = str(ctor).strip().lower()
@@ -456,9 +470,10 @@ class TypeRegistry:
         return True
 
     def register_egress_tokens(self, tokens: Any) -> None:
+        fw = getattr(self, "_function_words", None) or set()
         for t in tokens or ():
             s = str(t).strip().lower()
-            if s and len(s) >= 2:
+            if s and len(s) >= 2 and s not in fw:
                 self._egress_tokens.add(s)
 
     def get_egress_tokens(self) -> FrozenSet[str]:
@@ -530,6 +545,17 @@ class TypeRegistry:
         for k, v in (mapping or {}).items():
             self._abstract_carrier_mapping[str(k).strip().lower()] = str(v).strip().lower()
 
+    def get_registered_types(self) -> FrozenSet[str]:
+        """Returns all dynamically registered type names, aliases, typestates, and abstract carriers."""
+        return frozenset(
+            {k.lower() for k in self._parents.keys()}
+            | {k.lower() for k in self._aliases.keys()}
+            | {k.lower() for k in self._abstract_carriers}
+            | {k.lower() for k in self._state_parents.keys()}
+            | {k.lower() for k in self._declared_top}
+            | {k.lower() for k in self._declared_top_states}
+        )
+
     def get_abstract_carrier(self, type_name: str) -> Optional[str]:
         """Returns the abstract carrier category for a type name, or None."""
         key = str(type_name).strip().lower()
@@ -553,6 +579,16 @@ class TypeRegistry:
 
     def get_dest_port_tokens(self) -> FrozenSet[str]:
         return frozenset(self._dest_port_tokens)
+
+    # --- Source port tokens (data-driven from tree declarations) ---
+    def register_source_port_tokens(self, tokens: Any) -> None:
+        for t in tokens or ():
+            s = str(t).strip().lower()
+            if s:
+                self._source_port_tokens.add(s)
+
+    def get_source_port_tokens(self) -> FrozenSet[str]:
+        return frozenset(self._source_port_tokens)
 
     # --- Data-bearing roles (data-driven from tree declarations) ---
     def register_data_bearing_roles(self, roles: Any) -> None:
@@ -615,6 +651,19 @@ class TypeRegistry:
         if fw:
             return fw
         return frozenset({"and", "or", "to", "for", "with", "as", "by", "into", "from", "on", "in", "of", "the", "a", "an", "is", "at", "then"})
+
+    # --- Operation / algorithm tokens (data-driven from tree cell declarations) ---
+    def register_operation_tokens(self, tokens: Any) -> None:
+        for t in tokens or ():
+            s = str(t).strip().lower()
+            if s and len(s) >= 2:
+                self._operation_tokens.add(s)
+
+    def get_operation_tokens(self) -> FrozenSet[str]:
+        return frozenset(self._operation_tokens)
+
+    def is_operation_token(self, token: str) -> bool:
+        return str(token).strip().lower() in self._operation_tokens
 
     # --- Default asset placeholders (data-driven from tree declarations) ---
     def register_asset_placeholders(self, placeholders: Dict[str, str]) -> None:
@@ -914,7 +963,6 @@ class TypeRegistry:
         if (
             p_state in ("any", "*")
             or c_state in ("any", "*")
-            or self.is_declared_top_state(p_state)
             or self.is_declared_top_state(c_state)
         ):
             return True
@@ -928,6 +976,11 @@ class TypeRegistry:
         # (a) Accept if producer_state is in consumer's accepted_states (or consumer_state in producer's accepted_states)
         if p_state in c_acc or c_state in p_acc:
             return True
+
+        # Producer is top/generic: can satisfy base states directly under it
+        if self.is_declared_top_state(p_state):
+            if self.get_state_parent(c_state) == p_state:
+                return True
 
         # (b) Covariant substate compatibility: walk parent_state up producer's declared chain
         visited_p = set()
@@ -1017,7 +1070,7 @@ def _compute_is_path_port(port: Any) -> bool:
     name = str(getattr(port, "name", "") or "").lower()
     if not name:
         return False
-    name_tokens = set(re.split(r"[_\W]+", name)) - {""}
+    name_tokens = set(tokenize_alphanumeric(name, min_len=1))
     if name_tokens & PATH_PORT_NAME_TOKENS:
         return True
     return False
@@ -1147,13 +1200,18 @@ class AlgebraicSignature:
         if registry.is_type_variable(c_tn) or registry.is_type_variable(p_tn):
             is_generic_match = True
         else:
-            # 2. Parametric Container / Functor unification (e.g. List[Contour] <-> List[T])
-            import re
-            m_c = re.match(r"^(\w+)\[(.*)\]$", c_tn)
-            m_p = re.match(r"^(\w+)\[(.*)\]$", p_tn)
+            # 2. Parametric Container / Functor unification (e.g. List[Contour] <-> List[T]) without regex
+            def _parse_container(tn: str) -> Optional[Tuple[str, str]]:
+                if tn.endswith("]") and "[" in tn:
+                    ctor, _, inner = tn[:-1].partition("[")
+                    if ctor.isidentifier():
+                        return ctor.lower(), inner.strip()
+                return None
+            m_c = _parse_container(c_tn)
+            m_p = _parse_container(p_tn)
             if m_c and m_p:
-                c_ctor, c_inner = m_c.group(1).lower(), m_c.group(2).strip()
-                p_ctor, p_inner = m_p.group(1).lower(), m_p.group(2).strip()
+                c_ctor, c_inner = m_c
+                p_ctor, p_inner = m_p
                 if c_ctor == p_ctor:
                     c_args = [a.strip() for a in c_inner.split(",") if a.strip()]
                     p_args = [a.strip() for a in p_inner.split(",") if a.strip()]
@@ -1640,20 +1698,43 @@ class Cell(ABC):
         elif isinstance(slots, dict):
             slot_names_list = list(slots.keys())
 
-        m_assign = re.match(r'^\s*(\{.+?\})\s*=\s*(.+)$', code_template)
-        if m_assign:
-            lhs_matches = re.findall(r'\{([a-zA-Z0-9_]+)\}', m_assign.group(1))
-            lhs_outs = set(lhs_matches)
+        lhs_outs = {"output_var"}
+        lhs_matches = []
+        def _find_top_level_assign(tpl: str) -> Optional[int]:
+            depth = 0
+            in_quote = None
+            for i, ch in enumerate(tpl):
+                if ch in ("'", '"'):
+                    if in_quote == ch:
+                        in_quote = None
+                    elif in_quote is None:
+                        in_quote = ch
+                elif in_quote is None:
+                    if ch in ("(", "[", "{"):
+                        depth += 1
+                    elif ch in (")", "]", "}"):
+                        depth -= 1
+                    elif ch == "=" and depth == 0:
+                        prev_ch = tpl[i - 1] if i > 0 else ""
+                        next_ch = tpl[i + 1] if i + 1 < len(tpl) else ""
+                        if prev_ch not in ("=", "!", "<", ">") and next_ch != "=":
+                            return i
+            return None
+
+        eq_idx = _find_top_level_assign(code_template)
+        if eq_idx is not None:
+            lhs = code_template[:eq_idx]
+            rhs = code_template[eq_idx + 1:]
+            lhs_matches = extract_template_placeholders(lhs)
+            lhs_outs.update(lhs_matches)
+            rhs_placeholders = extract_template_placeholders(rhs)
         else:
-            lhs_matches = []
-            lhs_outs = set()
-        lhs_outs.add("output_var")
+            rhs_placeholders = extract_template_placeholders(code_template)
+
         in_slots_derived = [s for s in slot_names_list if s not in lhs_outs]
         if not in_slots_derived and code_template:
-            rhs = m_assign.group(2) if m_assign else code_template
-            rhs_matches = re.findall(r'\{([a-zA-Z0-9_]+)\}', rhs)
             seen_m = set()
-            in_slots_derived = [m for m in rhs_matches if not (m in seen_m or seen_m.add(m))]
+            in_slots_derived = [m for m in rhs_placeholders if not (m in seen_m or seen_m.add(m))]
 
         # Normalize inputs into Dict[str, PortSignature]
         if isinstance(inputs, list):
@@ -2078,6 +2159,11 @@ class LatticeOrchestrator:
         self._lock = threading.RLock()
 
         if os.path.exists(self.db_path):
+            try:
+                from cli import ensure_lattice_compiled
+                ensure_lattice_compiled(self.trees_directory, self.db_path)
+            except Exception:
+                pass
             self.load_from_database(self.db_path)
         else:
             self.load_all_json_trees()
@@ -2193,6 +2279,10 @@ class LatticeOrchestrator:
                     reg.register_output_asset_placeholders(data["output_placeholders"])
                 if "default_output_placeholders" in data and isinstance(data["default_output_placeholders"], dict):
                     reg.register_output_asset_placeholders(data["default_output_placeholders"])
+                if "action_verbs" in data and isinstance(data["action_verbs"], list):
+                    reg.register_operation_tokens(data["action_verbs"])
+                if "operation_tokens" in data and isinstance(data["operation_tokens"], list):
+                    reg.register_operation_tokens(data["operation_tokens"])
 
             for c_dict in raw_cells:
                 if isinstance(c_dict, dict) and "type_vars" in c_dict and c_dict["type_vars"]:
@@ -2246,6 +2336,62 @@ class LatticeOrchestrator:
             for cid in to_remove:
                 del self.loaded_cells[cid]
             logger.info(f"[LATTICE] Unloaded {len(to_remove)} nodes for domain: {domain}")
+
+    def register_cell(self, cell_or_dict: Union[Cell, Dict[str, Any]], domain: Optional[str] = None) -> Cell:
+        """
+        Dynamically registers a new Cell or cell dictionary into the active orchestrator,
+        updates the type registry, and rebuilds topology so the node can participate in routing.
+        """
+        with self._lock:
+            if isinstance(cell_or_dict, Cell):
+                cell = cell_or_dict
+            else:
+                c_dict = cell_or_dict
+                if isinstance(c_dict, dict) and "type_vars" in c_dict and c_dict["type_vars"]:
+                    TypeRegistry.get_instance().register_type_vars(c_dict["type_vars"])
+                is_macro = (
+                    str(c_dict.get("node_type", "")).lower() in ("macro", "higher_order")
+                    or str(c_dict.get("node_role", "")).lower() in ("macro", "higher_order")
+                    or str(c_dict.get("node_type", "")).lower().startswith("macro_")
+                    or str(c_dict.get("node_role", "")).lower().startswith("macro_")
+                )
+                cell_cls = MacroCell if is_macro else MicroCell
+                cell = cell_cls(
+                    cell_id=c_dict.get("cell_id"),
+                    stage=c_dict.get("stage", 2),
+                    keywords=c_dict.get("keywords", []),
+                    inputs=c_dict.get("inputs", {}),
+                    outputs=c_dict.get("outputs", {}),
+                    domain_name=c_dict.get("domain_name") or domain or "generic",
+                    node_type=c_dict.get("node_type", "function"),
+                    node_role=c_dict.get("node_role", "function"),
+                    slots=c_dict.get("slots", {}),
+                    dependencies=c_dict.get("dependencies", []),
+                    code_template=c_dict.get("code_template", ""),
+                    verified=c_dict.get("verified", False),
+                    semantic_tags=c_dict.get("semantic_tags", []),
+                    docstring=c_dict.get("docstring", ""),
+                    source_priority=c_dict.get("source_priority", 100),
+                    is_public=bool(c_dict.get("is_public", True)),
+                    mutation_type=c_dict.get("mutation_type", "pure"),
+                    is_context_manager=bool(c_dict.get("is_context_manager", False)),
+                    raises=c_dict.get("raises", []),
+                    type_vars=c_dict.get("type_vars", []),
+                    preconditions=c_dict.get("preconditions", []),
+                    postconditions=c_dict.get("postconditions", []),
+                    effects=c_dict.get("effects", []),
+                    edges=c_dict.get("edges", []),
+                    endable=c_dict.get("endable"),
+                    primary_in=c_dict.get("primary_in"),
+                    primary_out=c_dict.get("primary_out"),
+                    sub_cells=c_dict.get("sub_cells", []),
+                    algorithmic_steps=c_dict.get("algorithmic_steps", []),
+                    internal_topology=c_dict.get("internal_topology", {}),
+                )
+            self.loaded_cells[cell.cell_id] = cell
+            self.build_topology()
+            logger.info(f"[LATTICE] Dynamically registered cell: {cell.cell_id} (domain: {cell.domain_name})")
+            return cell
 
     def load_all_json_trees(self):
         """Loads all JSON trees located in trees_directory and supplemental trees."""
@@ -2383,6 +2529,8 @@ class LatticeOrchestrator:
                             reg.register_asset_placeholders({item: extra})
                         elif cat == 'output_asset_placeholder':
                             reg.register_output_asset_placeholders({item: extra})
+                        elif cat in ('action_verb', 'operation_token'):
+                            reg.register_operation_tokens([item])
 
                 cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name IN ('nodes', 'cells')")
                 tables = [row[0] for row in cursor.fetchall()]
@@ -2745,14 +2893,24 @@ class LatticeOrchestrator:
             if docs:
                 reg.derive_function_words(docs)
 
+            # Register operation tokens derived from loaded cell keywords and identifiers
+            for c in all_cells:
+                if getattr(c, "keywords", None):
+                    for kw in c.keywords:
+                        reg.register_operation_tokens(CellTokenizer.tokenize_identifier(str(kw)))
+                reg.register_operation_tokens(CellTokenizer.tokenize_identifier(c.cell_id))
+
             # Harvest egress tokens and materialization states from stage-3/sink cells
             for c in all_cells:
                 is_egress = getattr(c, "stage", None) == 3 or str(getattr(c, "node_role", "")).lower() == "egress" or str(getattr(c, "mutation_type", "")).lower() in ("io", "sink")
                 if is_egress:
                     if getattr(c, "keywords", None):
-                        reg.register_egress_tokens(c.keywords)
-                    if getattr(c, "docstring", None):
-                        reg.register_egress_tokens(CellTokenizer.tokenize_prompt(c.docstring))
+                        src_toks = reg.get_source_port_tokens()
+                        valid_kw = [
+                            kw for kw in c.keywords
+                            if kw not in src_toks and kw not in ("csv", "tsv", "json", "parquet", "excel", "file", "path", "data", "df", "table", "image", "array")
+                        ]
+                        reg.register_egress_tokens(valid_kw)
                     for p in getattr(c, "outputs", {}).values():
                         p_st = getattr(getattr(p, "signature", p), "state", None)
                         if p_st:

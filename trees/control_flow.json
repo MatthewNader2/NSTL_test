@@ -207,7 +207,7 @@
       "cell_id": "CF_DIVIDE_AND_CONQUER",
       "stage": 2,
       "role": "combinator",
-      "doc": "Branching Divide-and-Conquer Recursion: Recursively partitions a problem into subproblems, evaluates them recursively, and combines results (e.g. MergeSort, QuadTree, Tree Traversal).",
+      "doc": "Branching Divide-and-Conquer Recursion: Recursively partitions a problem into subproblems, evaluates them recursively, and combines subproblem outputs (e.g. MergeSort, QuadTree, Tree Traversal).",
       "inputs": {
         "fn_name": {
           "type_name": "str",
@@ -256,7 +256,7 @@
         "cpp": "std::function<{R}({T})> {fn_name} = [&](const {T}& _x) -> {R} {\n    if ({base_predicate}(_x)) return {base_action}(_x);\n    auto _subs = {split_fn}(_x);\n    std::vector<{R}> _sub_results;\n    for (const auto& _s : _subs) _sub_results.push_back({fn_name}(_s));\n    return {combine_fn}(_x, _sub_results);\n};\n{R} {result} = {fn_name}({data});",
         "rust": "fn {fn_name}(x: &{T}) -> {R} {\n    if {base_predicate}(x) { return {base_action}(x); }\n    let subs = {split_fn}(x);\n    let sub_results: Vec<{R}> = subs.iter().map(|s| {fn_name}(s)).collect();\n    {combine_fn}(x, sub_results)\n}\nlet {result} = {fn_name}(&{data});"
       },
-      "docstring": "Branching Divide-and-Conquer Recursion: Recursively partitions a problem into subproblems, evaluates them recursively, and combines results (e.g. MergeSort, QuadTree, Tree Traversal).",
+      "docstring": "Branching Divide-and-Conquer Recursion: Recursively partitions a problem into subproblems, evaluates them recursively, and combines subproblem outputs (e.g. MergeSort, QuadTree, Tree Traversal).",
       "keywords": [
         "divide_and_conquer",
         "mergesort",

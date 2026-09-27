@@ -2,7 +2,6 @@
 from typing import Dict, List, Optional, Literal, Any, Union
 from pydantic import BaseModel, Field, field_validator, ConfigDict
 import ast
-import re
 
 class ConditionPredicate(BaseModel):
     """
@@ -25,27 +24,36 @@ class ConditionPredicate(BaseModel):
             return v
         if isinstance(v, str):
             expr = v.strip()
-            match = re.match(r"^([a-zA-Z_][a-zA-Z0-9_\.]*)\s*(==|!=|>=|<=|>|<|in|is)\s*(.+)$", expr)
-            if match:
-                prop = match.group(1)
-                op = match.group(2)
-                val_raw = match.group(3).strip()
-                val: Any = val_raw
-                if val_raw.lower() == "true":
-                    val = True
-                elif val_raw.lower() == "false":
-                    val = False
-                elif (val_raw.startswith("'") and val_raw.endswith("'")) or (val_raw.startswith('"') and val_raw.endswith('"')):
-                    val = val_raw[1:-1]
-                else:
-                    try:
-                        val = int(val_raw)
-                    except ValueError:
+            ops = ["==", "!=", ">=", "<=", ">", "<", " in ", " is "]
+            found_op = None
+            found_idx = -1
+            for candidate_op in ops:
+                idx = expr.find(candidate_op)
+                if idx != -1:
+                    if found_op is None or idx < found_idx or (idx == found_idx and len(candidate_op) > len(found_op)):
+                        found_op = candidate_op
+                        found_idx = idx
+            if found_op is not None:
+                prop = expr[:found_idx].strip()
+                val_raw = expr[found_idx + len(found_op):].strip()
+                op = found_op.strip()
+                if prop and all(part.isidentifier() for part in prop.split(".")) and val_raw:
+                    val: Any = val_raw
+                    if val_raw.lower() == "true":
+                        val = True
+                    elif val_raw.lower() == "false":
+                        val = False
+                    elif (val_raw.startswith("'") and val_raw.endswith("'")) or (val_raw.startswith('"') and val_raw.endswith('"')):
+                        val = val_raw[1:-1]
+                    else:
                         try:
-                            val = float(val_raw)
+                            val = int(val_raw)
                         except ValueError:
-                            pass
-                return cls(property=prop, operator=op, value=val, expression=expr)
+                            try:
+                                val = float(val_raw)
+                            except ValueError:
+                                pass
+                    return cls(property=prop, operator=op, value=val, expression=expr)
             return cls(expression=expr)
         if isinstance(v, dict):
             if "property" in v or "operator" in v or "expression" in v or "target" in v:
