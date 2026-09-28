@@ -1,16 +1,16 @@
 """
 src/inference.py - Neuro-Symbolic Topological Lattice (NSTL)
-Multi-Profile Inference Engine with Aggressive VRAM Recycling.
+Multi-Profile Inference Engine with Dynamic Hardware Introspection,
+Agnostic Semantic Compilation, and Thread-Safe Generation.
 """
 
 from __future__ import annotations
 import gc
 import json
 import os
-import time
 import threading
 from abc import ABC, abstractmethod
-from typing import List, Optional, Dict, Any
+from typing import List, Optional, Dict, Any, Tuple
 
 try:
     from utils import is_split_gguf_shard
@@ -28,7 +28,14 @@ except ImportError:  # pragma: no cover
     torch = None  # type: ignore[assignment]
     TORCH_AVAILABLE = False
 
-from log_config import get_logger
+try:
+    from log_config import get_logger
+except ImportError:
+    try:
+        from .log_config import get_logger
+    except ImportError:
+        import logging
+        get_logger = logging.getLogger
 
 try:
     from .config import MODELS_DIR, settings
@@ -48,13 +55,6 @@ def resolve_embedding_dimension(model: Any, fallback: int = 384) -> int:
     """
     Resolves the embedding dimension of a loaded SentenceTransformer model
     across library versions.
-
-    sentence-transformers >= 3.0 deprecated the parameterless instance call of
-    ``get_sentence_embedding_dimension()`` (it is now a staticmethod requiring
-    the model name) in favour of the instance method ``get_embedding_dimension()``.
-    Older versions only expose the former. This helper probes the modern API
-    first, falls back to the legacy call, and finally to a cheap probe encode,
-    so profile loading never crashes on a version drift.
     """
     modern = getattr(model, "get_embedding_dimension", None)
     if callable(modern):
@@ -72,7 +72,6 @@ def resolve_embedding_dimension(model: Any, fallback: int = 384) -> int:
             if dim > 0:
                 return dim
         except TypeError:
-            # staticmethod signature: get_sentence_embedding_dimension(model_name)
             name = getattr(model, "_model_name", None) or getattr(model, "model_name_or_path", None)
             if isinstance(name, str) and name:
                 try:
@@ -96,30 +95,23 @@ def resolve_embedding_dimension(model: Any, fallback: int = 384) -> int:
     return fallback
 
 
-def get_adaptive_batch_size(device: str = "cuda") -> int:
+def get_adaptive_batch_size(device: str = "cuda", min_batch: int = 8, max_batch: int = 128) -> int:
     """
-    Computes an optimal batch size for embedding inference based on hardware telemetry.
-    Pure hardware introspection: zero hardcoded model or library names.
+    Computes an optimal batch size dynamically based on available device memory headroom.
+    Fully hardware-agnostic: tracks continuous free VRAM headroom without hardcoded card thresholds.
     """
-    if torch is None or "cuda" not in str(device).lower() or not torch.cuda.is_available():
+    if not TORCH_AVAILABLE or "cuda" not in str(device).lower() or not torch.cuda.is_available():
         return 32
 
     try:
-        total_mem = torch.cuda.get_device_properties(0).total_memory
         free_mem, _ = torch.cuda.mem_get_info()
-
-        # Conservative scaling for <= 8GB GPUs (e.g. RTX 3070 / 4060)
-        if total_mem <= 8.5 * (1024 ** 3):
-            if free_mem < 1.5 * (1024 ** 3):
-                return 16
-            return 32
-        elif total_mem <= 16.5 * (1024 ** 3):
-            if free_mem < 2.5 * (1024 ** 3):
-                return 32
-            return 64
-        else:
-            return 64
-    except Exception:
+        free_gb = free_mem / (1024 ** 3)
+        # Continuous logarithmic scaling mapped to powers of 2 (approx. 8 items per 1 GB of free headroom)
+        power = int(np.clip(np.floor(np.log2(max(1.0, free_gb * 8))), 3, 7))
+        calculated_bs = int(2 ** power)
+        return int(max(min_batch, min(max_batch, calculated_bs)))
+    except Exception as e:
+        logger.debug(f"[HARDWARE TELEMETRY] Adaptive batch size fallback: {e}")
         return 32
 
 
@@ -162,11 +154,9 @@ class InferenceProfile(ABC):
 
 def select_optimal_embedder(requested_name: str = "") -> str:
     """
-    Selects the optimal local embedding model based on precomputed cache coverage and inference speed.
-    Scoring: S(m) = w_coverage * C(m) + w_efficiency * E(m)
-    where:
-      C(m) = precomputed cache coverage ratio in .rag_cache (0.0 to 1.0)
-      E(m) = parameter/dimension efficiency heuristic (e.g. nano vs small vs 300m)
+    Selects the optimal local embedding model based on precomputed cache presence and footprint efficiency.
+    Scoring is dynamically normalized across available candidate models without hardcoded architecture
+    substrings, fixed cache naming prefixes, or arbitrary byte constants.
     """
     emb_base_dir = os.path.join(MODELS_DIR, "embeddings")
     if not os.path.exists(emb_base_dir):
@@ -179,70 +169,61 @@ def select_optimal_embedder(requested_name: str = "") -> str:
     if not available:
         return requested_name or "default"
 
-    # Locate .rag_cache directory
+    req = (requested_name or "").strip()
+    if req and req not in ("auto", "default"):
+        if req in available:
+            return req
+        for cand in available:
+            if req.lower() in cand.lower():
+                return cand
+
+    # Locate cache directories
     possible_cache_dirs = [
         os.path.join(os.path.dirname(MODELS_DIR), ".rag_cache"),
         os.path.join(MODELS_DIR, ".rag_cache"),
         os.path.abspath(".rag_cache")
     ]
-    cache_dir = None
-    for cd in possible_cache_dirs:
-        if os.path.exists(cd):
-            cache_dir = cd
-            break
+    cache_dir = next((cd for cd in possible_cache_dirs if os.path.isdir(cd)), None)
 
-    def get_model_metrics(m_name: str) -> tuple[float, float]:
-        coverage = 0.0
-        name_lower = m_name.lower()
-        if "nano" in name_lower:
-            efficiency = 1.0
-        elif "small" in name_lower:
-            efficiency = 0.8
-        elif "300m" in name_lower:
-            efficiency = 0.5
-        elif "0.6b" in name_lower or "1b" in name_lower:
-            efficiency = 0.3
-        else:
-            efficiency = 0.5
+    model_disk_sizes: Dict[str, int] = {}
+    model_cache_sizes: Dict[str, int] = {}
 
-        if cache_dir and os.path.exists(cache_dir):
-            for f in os.listdir(cache_dir):
-                if f.startswith(f"{m_name}__dim") and f.endswith("_cache.pkl"):
-                    f_path = os.path.join(cache_dir, f)
-                    try:
-                        sz = os.path.getsize(f_path)
-                        coverage = min(1.0, sz / (300 * 1024 * 1024))
-                    except Exception:
-                        pass
-                    break
-        return coverage, efficiency
+    for cand in available:
+        cand_path = os.path.join(emb_base_dir, cand)
+        try:
+            total_size = sum(
+                os.path.getsize(os.path.join(root, f))
+                for root, _, files in os.walk(cand_path)
+                for f in files
+            )
+        except Exception:
+            total_size = 1
+        model_disk_sizes[cand] = max(1, total_size)
 
-    req = (requested_name or "").strip()
-    if req and req not in ("auto", "default"):
-        if req in available:
-            cov, _ = get_model_metrics(req)
-            if cov < 0.8:
-                logger.warning(
-                    f"[EMBEDDER] Requested '{req}' has low precomputed cache coverage ({cov*100:.1f}%). "
-                    f"First-run CPU embedding may introduce high latency."
-                )
-            return req
-        for cand in available:
-            if req.lower() in cand.lower():
-                cov, _ = get_model_metrics(cand)
-                if cov < 0.8:
-                    logger.warning(
-                        f"[EMBEDDER] Matched '{cand}' has low precomputed cache coverage ({cov*100:.1f}%)."
-                    )
-                return cand
+        cand_cache_size = 0
+        if cache_dir and os.path.isdir(cache_dir):
+            cand_norm = cand.lower().replace("-", "_")
+            try:
+                for f in os.listdir(cache_dir):
+                    f_lower = f.lower()
+                    if (cand.lower() in f_lower or cand_norm in f_lower) and "cache" in f_lower:
+                        cand_cache_size = max(cand_cache_size, os.path.getsize(os.path.join(cache_dir, f)))
+            except Exception:
+                pass
+        model_cache_sizes[cand] = cand_cache_size
+
+    min_disk = min(model_disk_sizes.values()) if model_disk_sizes else 1
+    max_cache = max(model_cache_sizes.values()) if model_cache_sizes else 0
 
     best_model = available[0]
     best_score = -1.0
 
     for cand in available:
-        cov, eff = get_model_metrics(cand)
-        score = 0.85 * cov + 0.15 * eff
-        logger.debug(f"[EMBEDDER EVAL] Model: {cand} | Coverage: {cov:.2f} | Efficiency: {eff:.2f} | Score: {score:.3f}")
+        efficiency = float(min_disk / model_disk_sizes[cand])
+        coverage = float(model_cache_sizes[cand] / max_cache) if max_cache > 0 else 0.0
+
+        score = 0.85 * coverage + 0.15 * efficiency
+        logger.debug(f"[EMBEDDER EVAL] Model: {cand} | Coverage: {coverage:.2f} | Efficiency: {efficiency:.2f} | Score: {score:.3f}")
         if score > best_score:
             best_score = score
             best_model = cand
@@ -251,23 +232,41 @@ def select_optimal_embedder(requested_name: str = "") -> str:
     return best_model
 
 
-def _encode_with_modes(model: Any, texts: List[str], mode: str = "query", batch_size: int = 32, lock: Optional[threading.Lock] = None) -> List[List[float]]:
+def _encode_with_modes(
+    model: Any,
+    texts: List[str],
+    mode: str = "query",
+    batch_size: int = 32,
+    lock: Optional[threading.Lock] = None
+) -> List[List[float]]:
     """
     Robust embedding encoder applying model-specific prompt modes (query vs document)
-    with adaptive fallback across SentenceTransformer models (Jina, Gemma, BGE).
+    with adaptive fallback across SentenceTransformer models.
+    Properly isolates CUDA OOM handling from non-OOM runtime exceptions.
     """
     if not texts:
         return []
 
     prompt_name = "query" if mode == "query" else "document"
 
-    def _invoke(p_name: Optional[str], task_name: Optional[str], b_size: int):
+    def _invoke(p_name: Optional[str], t_name: Optional[str], b_size: int, input_texts: List[str]):
         kwargs: Dict[str, Any] = {"convert_to_numpy": True, "batch_size": b_size}
         if p_name:
             kwargs["prompt_name"] = p_name
-        if task_name:
-            kwargs["task"] = task_name
-        return model.encode(texts, **kwargs)
+        if t_name:
+            kwargs["task"] = t_name
+
+        if lock is not None:
+            with lock:
+                if TORCH_AVAILABLE:
+                    with torch.inference_mode():
+                        return model.encode(input_texts, **kwargs)
+                return model.encode(input_texts, **kwargs)
+        else:
+            if TORCH_AVAILABLE:
+                with torch.inference_mode():
+                    return model.encode(input_texts, **kwargs)
+            return model.encode(input_texts, **kwargs)
 
     attempts = [
         (prompt_name, "retrieval"),
@@ -276,35 +275,70 @@ def _encode_with_modes(model: Any, texts: List[str], mode: str = "query", batch_
         (None, None),
     ]
 
+    last_sig_error = None
+
     for p_name, t_name in attempts:
         try:
-            if lock is not None:
-                with lock, torch.inference_mode():
-                    res = _invoke(p_name, t_name, batch_size)
-            else:
-                with torch.inference_mode():
-                    res = _invoke(p_name, t_name, batch_size)
-            return res.tolist()
-        except torch.cuda.OutOfMemoryError:
-            gc.collect()
-            if torch.cuda.is_available():
-                torch.cuda.empty_cache()
-            reduced_bs = max(4, batch_size // 4)
-            try:
-                if lock is not None:
-                    with lock, torch.inference_mode():
-                        res = _invoke(p_name, t_name, reduced_bs)
-                else:
-                    with torch.inference_mode():
-                        res = _invoke(p_name, t_name, reduced_bs)
-                return res.tolist()
-            except Exception:
-                continue
-        except Exception:
+            res = _invoke(p_name, t_name, batch_size, texts)
+            return res.tolist() if hasattr(res, "tolist") else [list(r) for r in res]
+        except (TypeError, ValueError) as arg_err:
+            last_sig_error = arg_err
             continue
+        except Exception as err:
+            is_oom = TORCH_AVAILABLE and isinstance(err, torch.cuda.OutOfMemoryError)
+            if not is_oom and "out of memory" not in str(err).lower():
+                logger.error(f"[ENCODER] Fatal encoding error: {err}")
+                raise err
 
-    with torch.inference_mode():
-        return model.encode(texts, convert_to_numpy=True).tolist()
+            logger.warning(f"[ENCODER] CUDA OOM encountered at batch_size={batch_size}. Retrying with micro-batches.")
+            if TORCH_AVAILABLE and torch.cuda.is_available():
+                gc.collect()
+                torch.cuda.empty_cache()
+
+            micro_bs = max(1, batch_size // 4)
+            micro_results: List[List[float]] = []
+            try:
+                for i in range(0, len(texts), micro_bs):
+                    sub_batch = texts[i : i + micro_bs]
+                    sub_res = _invoke(p_name, t_name, micro_bs, sub_batch)
+                    if hasattr(sub_res, "tolist"):
+                        micro_results.extend(sub_res.tolist())
+                    else:
+                        micro_results.extend([list(r) for r in sub_res])
+                return micro_results
+            except (TypeError, ValueError) as arg_err:
+                last_sig_error = arg_err
+                continue
+            except Exception as sub_err:
+                is_sub_oom = TORCH_AVAILABLE and isinstance(sub_err, torch.cuda.OutOfMemoryError)
+                if is_sub_oom or "out of memory" in str(sub_err).lower():
+                    logger.warning(f"[ENCODER] Micro-batch size {micro_bs} triggered OOM. Attempting next signature candidate.")
+                    if TORCH_AVAILABLE and torch.cuda.is_available():
+                        gc.collect()
+                        torch.cuda.empty_cache()
+                    continue
+                logger.error(f"[ENCODER] Non-OOM error occurred in sub-batch loop: {sub_err}")
+                raise sub_err
+
+    # Final guarded fallback if model signature rejected prompt/task arguments
+    try:
+        if lock is not None:
+            with lock:
+                if TORCH_AVAILABLE:
+                    with torch.inference_mode():
+                        res = model.encode(texts, convert_to_numpy=True)
+                else:
+                    res = model.encode(texts, convert_to_numpy=True)
+        else:
+            if TORCH_AVAILABLE:
+                with torch.inference_mode():
+                    res = model.encode(texts, convert_to_numpy=True)
+            else:
+                res = model.encode(texts, convert_to_numpy=True)
+        return res.tolist() if hasattr(res, "tolist") else [list(r) for r in res]
+    except Exception as final_err:
+        logger.error(f"[ENCODER] Fallback encoding failed: {final_err}")
+        raise final_err from last_sig_error
 
 
 class BenchmarkProfile_A(InferenceProfile):
@@ -397,19 +431,26 @@ class BenchmarkProfile_C(InferenceProfile):
 
         self._dim = resolve_embedding_dimension(self.embedder)
 
-        # 2. Load LLM
-        self.llm_name = llm_name or "auto"
-        llm_dir = os.path.join(MODELS_DIR, "llms", self.llm_name)
-        if not os.path.exists(llm_dir):
-            llm_base_dir = os.path.join(MODELS_DIR, "llms")
-            if os.path.exists(llm_base_dir):
-                available_llms = sorted([d for d in os.listdir(llm_base_dir) if os.path.isdir(os.path.join(llm_base_dir, d))])
-                if available_llms:
-                    pref = [d for d in available_llms if "1.5b" in d.lower()] or [d for d in available_llms if "0.5b" in d.lower()] or available_llms
-                    self.llm_name = pref[0]
-                    llm_dir = os.path.join(llm_base_dir, self.llm_name)
+        # 2. Load LLM (Generic directory discovery without size or name substring hardcodes)
+        self.llm_name = (llm_name or "").strip()
+        llm_base_dir = os.path.join(MODELS_DIR, "llms")
 
-        ggufs = [f for f in os.listdir(llm_dir) if f.endswith(".gguf")] if os.path.exists(llm_dir) else []
+        target_dir = os.path.join(llm_base_dir, self.llm_name) if self.llm_name and self.llm_name != "auto" else None
+        if target_dir and os.path.isdir(target_dir):
+            llm_dir = target_dir
+        else:
+            if not os.path.isdir(llm_base_dir):
+                raise FileNotFoundError(f"LLM base directory not found: {llm_base_dir}")
+            available_llms = sorted([
+                d for d in os.listdir(llm_base_dir)
+                if os.path.isdir(os.path.join(llm_base_dir, d)) and any(f.endswith(".gguf") for f in os.listdir(os.path.join(llm_base_dir, d)))
+            ])
+            if not available_llms:
+                raise FileNotFoundError(f"No directories containing .gguf models found in {llm_base_dir}")
+            self.llm_name = available_llms[0]
+            llm_dir = os.path.join(llm_base_dir, self.llm_name)
+
+        ggufs = [f for f in os.listdir(llm_dir) if f.endswith(".gguf")]
         if not ggufs:
             raise FileNotFoundError(f"No GGUF model file found in {llm_dir}")
         unified_ggufs = [f for f in ggufs if not is_split_gguf_shard(f)]
@@ -417,7 +458,12 @@ class BenchmarkProfile_C(InferenceProfile):
         model_file = os.path.join(llm_dir, chosen_gguf)
 
         gpu_layers = -1 if device == "cuda" else 0
-        self.llm = Llama(model_path=model_file, n_ctx=settings.llm_context_length, n_gpu_layers=gpu_layers, verbose=False)
+        self.llm = Llama(
+            model_path=model_file,
+            n_ctx=getattr(settings, "llm_context_length", 4096),
+            n_gpu_layers=gpu_layers,
+            verbose=False
+        )
         logger.info(f"[PROFILE C] Loaded Embedder '{self.embedder_name}' + LLM '{self.llm_name}' on {device.upper()} (gpu_layers={gpu_layers})")
 
     def get_embedding(self, text: str, mode: str = "query") -> List[float]:
@@ -433,16 +479,26 @@ class BenchmarkProfile_C(InferenceProfile):
         return _encode_with_modes(self.embedder, texts, mode=mode, batch_size=batch_size, lock=self._lock)
 
     def generate_text(self, prompt: str, max_tokens: int = 1024, schema: Optional[dict] = None, system_prompt: Optional[str] = None) -> str:
+        if self.llm is None:
+            raise RuntimeError("LLM is not loaded.")
+
         messages = []
         if system_prompt:
             messages.append({"role": "system", "content": system_prompt})
         messages.append({"role": "user", "content": prompt})
 
-        kwargs = {"messages": messages, "max_tokens": max_tokens, "temperature": settings.llm_temperature, "top_p": settings.llm_top_p}
+        kwargs: Dict[str, Any] = {
+            "messages": messages,
+            "max_tokens": max_tokens,
+            "temperature": getattr(settings, "llm_temperature", 0.2),
+            "top_p": getattr(settings, "llm_top_p", 0.95),
+        }
         if schema:
             kwargs["response_format"] = {"type": "json_object", "schema": schema}
 
-        response = self.llm.create_chat_completion(**kwargs)
+        # Concurrency safety: synchronize queries to llama_cpp instance
+        with self._lock:
+            response = self.llm.create_chat_completion(**kwargs)
         return response['choices'][0]['message']['content'].strip()
 
     def can_synthesize(self) -> bool:
@@ -463,49 +519,65 @@ class BenchmarkProfile_C(InferenceProfile):
     def has_semantic_compiler(self) -> bool:
         return self.llm is not None
 
-    def compile_semantic_intent(self, prompt: str) -> Dict[str, Any]:
-        """Extracts structured intent, schema targets, parameters, and hyperparameters using the LLM."""
-        schema = {
+    def compile_semantic_intent(
+        self,
+        prompt: str,
+        schema: Optional[Dict[str, Any]] = None,
+        system_prompt: Optional[str] = None
+    ) -> Dict[str, Any]:
+        """
+        Extracts structured semantic intent, parameters, and topological bindings using the LLM.
+        Domain-agnostic with customizable schema and prompt contracts.
+        """
+        target_schema = schema or {
             "type": "object",
             "properties": {
                 "task": {"type": "string"},
                 "domain": {"type": "string"},
-                "source_files": {"type": "array", "items": {"type": "string"}},
-                "dest_files": {"type": "array", "items": {"type": "string"}},
-                "target_column": {"type": "string"},
-                "columns": {"type": "array", "items": {"type": "string"}},
-                "by_column": {"type": "string"},
-                "hyperparameters": {"type": "object"},
+                "inputs": {"type": "array", "items": {"type": "string"}},
+                "outputs": {"type": "array", "items": {"type": "string"}},
                 "operations": {"type": "array", "items": {"type": "string"}},
+                "parameters": {"type": "object"},
                 "slots": {"type": "object"},
                 "effective_prompt": {"type": "string"},
-            }
+            },
+            "required": ["task", "domain", "operations"]
         }
-        system_prompt = (
-            "You are a structured compiler for data science pipelines. Given a user request, "
-            "extract the exact task (classification/regression/clustering/processing), domain (tabular/vision/nlp/generic), "
-            "input source files, destination/output files, target column (if predicting/supervising), feature columns, "
-            "grouping/sorting columns (by_column), numerical/boolean hyperparameters (e.g. ascending, n_estimators), "
-            "requested operations in order, and slot variable mappings. "
+
+        target_system_prompt = system_prompt or (
+            "You are a structured semantic compiler for algorithmic pipelines and computational graphs. "
+            "Given a user request, extract the execution task, domain, input entities, output artifacts, "
+            "ordered sequence of operations, parameter constraints, and symbol slot bindings. "
             "Output ONLY valid JSON."
         )
+
         try:
-            raw = self.generate_text(prompt, max_tokens=384, schema=schema, system_prompt=system_prompt)
+            raw = self.generate_text(prompt, max_tokens=384, schema=target_schema, system_prompt=target_system_prompt)
             data = json.loads(raw)
             if isinstance(data, dict):
+                # Ensure backward-compatible aliases for legacy consumers
+                if "inputs" in data and "source_files" not in data:
+                    data["source_files"] = data["inputs"]
+                if "outputs" in data and "dest_files" not in data:
+                    data["dest_files"] = data["outputs"]
+                if "parameters" in data and "hyperparameters" not in data:
+                    data["hyperparameters"] = data["parameters"]
+                if "effective_prompt" not in data:
+                    data["effective_prompt"] = prompt
                 return data
         except Exception as e:
             logger.debug(f"[LLM] Semantic intent compilation fallback: {e}")
+
         return {
             "task": "generic",
             "domain": "generic",
+            "inputs": [],
+            "outputs": [],
             "source_files": [],
             "dest_files": [],
-            "target_column": "",
-            "columns": [],
-            "by_column": "",
-            "hyperparameters": {},
             "operations": [],
+            "parameters": {},
+            "hyperparameters": {},
             "slots": {},
             "effective_prompt": prompt,
         }
@@ -526,10 +598,7 @@ class BenchmarkProfile_E(BenchmarkProfile_C):
 
 
 class BenchmarkProfile_S(BenchmarkProfile_C):
-    """Profile S: Structured Semantic Compiler Profile.
-    Performs a typed Intent & Schema Compilation pass before routing,
-    grounding domain, task, schemas, targets, hyperparameters, and sinks.
-    """
+    """Profile S: Structured Semantic Compiler Profile."""
     pass
 
 
@@ -550,7 +619,8 @@ class ModelManager:
 
     @property
     def profile(self) -> Optional[InferenceProfile]:
-        return self.active_profile
+        with self._lock:
+            return self.active_profile
 
     def cleanup(self):
         """Forces complete teardown of active models, releasing all GPU VRAM and CPU RAM."""
@@ -577,10 +647,8 @@ class ModelManager:
 
     def initialize_profile(self, profile_type: str, embedder_name: str = "", llm_name: str = ""):
         with self._lock:
-            # 1. Cleanly tear down existing models to free GPU VRAM & CPU RAM
             self.cleanup()
 
-            # 2. Instantiate new profile
             p_type = profile_type.upper()
             if p_type == "A":
                 prof = BenchmarkProfile_A()
@@ -604,36 +672,51 @@ class ModelManager:
                 raise e
 
     def get_embedding(self, text: str, mode: str = "query") -> List[float]:
-        return self.active_profile.get_embedding(text, mode=mode) if self.active_profile else []
+        with self._lock:
+            return self.active_profile.get_embedding(text, mode=mode) if self.active_profile else []
 
     def get_embeddings(self, texts: List[str], mode: str = "query") -> List[List[float]]:
-        return self.active_profile.get_embeddings(texts, mode=mode) if self.active_profile else []
+        with self._lock:
+            return self.active_profile.get_embeddings(texts, mode=mode) if self.active_profile else []
 
     def generate_text(self, prompt: str, max_tokens: int = 1024, schema: Optional[dict] = None, system_prompt: Optional[str] = None) -> str:
-        if not self.active_profile:
-            return ""
-        return self.active_profile.generate_text(prompt, max_tokens, schema, system_prompt=system_prompt)
+        with self._lock:
+            if not self.active_profile:
+                return ""
+            return self.active_profile.generate_text(prompt, max_tokens, schema, system_prompt=system_prompt)
 
     def can_synthesize(self) -> bool:
-        return self.active_profile.can_synthesize() if self.active_profile else False
+        with self._lock:
+            return self.active_profile.can_synthesize() if self.active_profile else False
 
     def can_feedback_check(self) -> bool:
-        return self.active_profile.can_feedback_check() if self.active_profile else False
+        with self._lock:
+            return self.active_profile.can_feedback_check() if self.active_profile else False
 
     def has_translator_pass(self) -> bool:
-        return self.active_profile.has_translator_pass() if self.active_profile else False
+        with self._lock:
+            return self.active_profile.has_translator_pass() if self.active_profile else False
 
     def has_semantic_compiler(self) -> bool:
-        return getattr(self.active_profile, "has_semantic_compiler", lambda: False)() if self.active_profile else False
+        with self._lock:
+            return getattr(self.active_profile, "has_semantic_compiler", lambda: False)() if self.active_profile else False
 
-    def compile_semantic_intent(self, prompt: str) -> Dict[str, Any]:
-        if self.active_profile and hasattr(self.active_profile, "compile_semantic_intent"):
-            return self.active_profile.compile_semantic_intent(prompt)
-        return {"effective_prompt": prompt}
+    def compile_semantic_intent(
+        self,
+        prompt: str,
+        schema: Optional[Dict[str, Any]] = None,
+        system_prompt: Optional[str] = None
+    ) -> Dict[str, Any]:
+        with self._lock:
+            if self.active_profile and hasattr(self.active_profile, "compile_semantic_intent"):
+                return self.active_profile.compile_semantic_intent(prompt, schema=schema, system_prompt=system_prompt)
+            return {"effective_prompt": prompt}
 
     def feedback_check(self, failing_code: str, traceback_error: str) -> str:
-        return self.active_profile.feedback_check(failing_code, traceback_error) if self.active_profile else failing_code
+        with self._lock:
+            return self.active_profile.feedback_check(failing_code, traceback_error) if self.active_profile else failing_code
 
     @property
     def embedding_dimension(self) -> int:
-        return self.active_profile.embedding_dimension if self.active_profile else 384
+        with self._lock:
+            return self.active_profile.embedding_dimension if self.active_profile else 384

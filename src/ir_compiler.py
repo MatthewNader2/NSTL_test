@@ -1,5 +1,5 @@
 """
-ir_compiler.py (apply_fixes_v9) — Prompt -> typed IR via the local LLM.
+ir_compiler.py — Prompt -> typed IR via the local LLM.
 
 Robust JSON extraction:
   - Balanced-brace scanner (respects strings and escapes).
@@ -7,11 +7,13 @@ Robust JSON extraction:
   - Retries once with a corrective prompt on parse failure.
 """
 from __future__ import annotations
+
 import json
 from dataclasses import dataclass, field
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Set
 
 from log_config import get_logger
+
 try:
     from .inference import ModelManager
     from .utils import extract_json_object
@@ -71,10 +73,7 @@ User prompt:
 
 
 def _extract_json_object(text: str) -> Optional[dict]:
-    """Return the first balanced JSON object found in ``text``.
-    Ignores markdown fences and surrounding prose. Respects strings.
-    Zero regular expressions.
-    """
+    """Return the first balanced JSON object found in ``text``."""
     return extract_json_object(text)
 
 
@@ -90,11 +89,6 @@ class IR:
         data = _extract_json_object(text)
         if data is None:
             raise ValueError("IR compiler: no valid JSON object in output")
-        # Literal values are whatever the model extracted -- file paths,
-        # column names, decimals, counts. Forcing every value through
-        # int() made parsing fail (and burn the one corrective retry) on
-        # any prompt whose literals weren't all plain integers, which is
-        # most prompts; keep the model's own JSON types instead.
         return cls(
             steps=data.get("steps", []),
             literals=dict(data.get("literals") or {}),
@@ -102,7 +96,7 @@ class IR:
             raw=text,
         )
 
-    def validate(self, vocab: set) -> List[str]:
+    def validate(self, vocab: Set[str]) -> List[str]:
         errs = []
         for i, s in enumerate(self.steps):
             op = str(s.get("op", "")).strip().lower().replace("-", "_").replace(" ", "_")
@@ -119,72 +113,116 @@ class IR:
 class IRCompiler:
     def __init__(self, orchestrator):
         self.orchestrator = orchestrator
-        self.vocab = self._derive_vocab()
-        self.libs  = self._derive_libs()
+        self.vocab: Set[str] = self._derive_vocab()
+        self.libs: List[str] = self._derive_libs()
 
-    def _derive_vocab(self) -> set:
-        out = set()
-        for c in self.orchestrator.loaded_cells.values():
-            cid = c.cell_id.lower()
-            dom = (getattr(c, "domain_name", "") or "").lower()
-            # op-name from cell_id tail (domain-stripped)
-            if dom and cid.startswith(dom + "_"):
-                tail = cid[len(dom) + 1:]
-            elif "." in cid:
-                tail = cid.split(".")[-1]
+    def _derive_vocab(self) -> Set[str]:
+        """Derives available operations dynamically from loaded cells or orchestrator configuration."""
+        out: Set[str] = set()
+        loaded = getattr(self.orchestrator, "loaded_cells", {}) or {}
+
+        for c in loaded.values():
+            # 1. Prefer explicit operation identifiers if exposed on the cell
+            op_cand = (
+                getattr(c, "op_name", None)
+                or getattr(c, "operation", None)
+                or getattr(c, "callable_name", None)
+            )
+            if op_cand:
+                tail = str(op_cand).strip().lower()
             else:
+                cid = str(getattr(c, "cell_id", "")).lower()
+                dom = str(getattr(c, "domain_name", "") or "").lower()
+
+                # Strip domain prefix across multiple possible delimiters (_, ., :, /, -)
                 tail = cid
-            if 3 <= len(tail) <= 40 and " " not in tail and not tail.isdigit():
+                if dom and tail.startswith(dom):
+                    remainder = tail[len(dom):]
+                    if remainder and remainder[0] in ("_", ".", ":", "/", "-"):
+                        tail = remainder.lstrip("_.:/-")
+
+                # If still delimited by hierarchical paths, take the terminal operation name
+                for delim in (":", "/", "."):
+                    if delim in tail:
+                        tail = tail.split(delim)[-1]
+
+            if 2 <= len(tail) <= 60 and " " not in tail and not tail.isdigit():
                 out.add(tail)
+
+            # Extract semantic annotations and keywords
             for src in (getattr(c, "keywords", []) or [],
                         getattr(c, "semantic_tags", []) or []):
                 for kw in src:
                     k = str(kw).strip().lower()
-                    if 3 < len(k) < 25 and " " not in k and not k.isdigit():
+                    if 2 < len(k) < 40 and " " not in k and not k.isdigit():
                         out.add(k)
-        return out or {"read", "transform", "filter", "aggregate", "plot", "save"}
 
-    def _derive_libs(self) -> list:
-        return sorted({c.domain_name for c in self.orchestrator.loaded_cells.values()
-                       if getattr(c, "domain_name", None)})
+        if not out:
+            # Fall back to orchestrator-level configured operation vocabulary if present
+            orch_vocab = (
+                getattr(self.orchestrator, "default_vocab", None)
+                or getattr(self.orchestrator, "allowed_ops", None)
+            )
+            if orch_vocab:
+                return set(orch_vocab)
 
-    def _vocab_for_prompt(self) -> str:
-        # shortest entries first — they're the semantic ops; long
-        # qualified names blow the token budget.
-        entries = sorted(self.vocab, key=lambda v: (len(v), v))[:200]
-        return ", ".join(entries)
+        return out
+
+    def _derive_libs(self) -> List[str]:
+        loaded = getattr(self.orchestrator, "loaded_cells", {}) or {}
+        return sorted({
+            c.domain_name for c in loaded.values()
+            if getattr(c, "domain_name", None)
+        })
+
+    def _vocab_for_prompt(self, max_entries: int = 300) -> str:
+        """
+        Formats vocabulary for the LLM prompt.
+        Avoids length-based sorting to ensure long, descriptive operation names
+        (e.g., singular_value_decomposition) are not dropped.
+        """
+        if not self.vocab:
+            return "(dynamically infer based on prompt and library context)"
+
+        entries = sorted(self.vocab)
+        if len(entries) <= max_entries:
+            return ", ".join(entries)
+
+        # Balanced uniform sampling across the sorted vocabulary if exceeding max entries
+        step = max(1, len(entries) // max_entries)
+        sampled = entries[::step][:max_entries]
+        return ", ".join(sampled)
 
     def compile(self, prompt: str) -> Optional[IR]:
         mm = ModelManager.get_instance()
         prof = getattr(mm, "profile", None)
-        if prof is None:
+        if prof is None or getattr(prof, "llm", None) is None:
             return None
-        if getattr(prof, "llm", None) is None:
-            return None
+
         vocab_str = self._vocab_for_prompt()
         libs_str = ", ".join(sorted(self.libs))
         msg = PROMPT_TEMPLATE.format(vocab=vocab_str, libs=libs_str, prompt=prompt)
+
         try:
             raw = mm.generate_text(msg, max_tokens=768, schema=IR_SCHEMA)
             ir = IR.parse(raw)
             errs = ir.validate(self.vocab)
             if errs:
                 logger.debug("[IR] vocab strict-miss: %s", errs)
-            # (apply_fixes_v10) always show the compiled IR
-            import os as _os
-            if _os.environ.get("NSTL_IR_LOG", "1") not in ("0", "false", "False"):
-                _ops = [s.get('op','?') + '/' + str(s.get('library','?')) for s in ir.steps]
-                print(f"[IR] compiled {len(ir.steps)} steps: {_ops}")
-                if ir.literals:
-                    print(f"[IR] literals: {ir.literals}")
+
+            _ops = [s.get('op', '?') + '/' + str(s.get('library', '?')) for s in ir.steps]
+            logger.info("[IR] compiled %d steps: %s", len(ir.steps), _ops)
+            if ir.literals:
+                logger.info("[IR] literals: %s", ir.literals)
             return ir
         except Exception as e1:
             logger.debug("[IR] first attempt failed: %s", e1)
-            # One corrective retry
+            # Corrective retry
             try:
                 raw2 = mm.generate_text(
                     RETRY_TEMPLATE.format(prompt=prompt),
-                    max_tokens=768, schema=IR_SCHEMA,
+                    max_tokens=768,
+                    schema=IR_SCHEMA,
                 )
                 ir = IR.parse(raw2)
                 logger.info("[IR] corrective retry succeeded")

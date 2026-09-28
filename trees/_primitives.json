@@ -2,46 +2,153 @@
   "domain": "_primitives",
   "version": "1.0.0",
   "description": "Python language-level computational primitives and universal structural vocabulary. This tree is the single source of truth for all type hierarchy, abstract carriers, and structural constants that the engine previously hardcoded. Adding a new language or runtime requires editing only this file.",
-
   "types": {
-    "filepath": {"parent": "path"},
-    "filename": {"parent": "path"},
-    "pathname": {"parent": "path"},
-    "pathlike": {"parent": "path"},
-    "path": {"parent": "str"},
-    "uri": {"parent": "str"},
-    "url": {"parent": "str"},
-    "text": {"parent": "str"},
-
-    "int": {"parent": "numeric"},
-    "float": {"parent": "numeric"},
-    "complex": {"parent": "numeric"},
-    "numeric": {"parent": "scalar"},
-    "bool": {"parent": "logical"},
-
-    "list": {"parents": ["object", "collection", "sequence", "array-like"]},
-    "sequence": {"parent": "collection"},
-    "collection": {"parent": "object"},
-    "tuple": {"parents": ["object", "collection", "sequence", "array-like"]},
-    "set": {"parents": ["object", "collection"]},
-    "frozenset": {"parents": ["object", "collection"]},
-    "dict": {"parents": ["object", "collection"]},
-    "mapping": {"parent": "collection"},
-    "map": {"parent": "collection"},
-    "file": {"parents": ["object", "pathlike", "filepath", "path", "str"]},
-
-    "modality": {"parent": "object"},
-    "format": {"parent": "object"},
-
-    "array-like": {"parents": ["tensor", "sequence"]},
-    "tensor": {"parent": "object"},
-    "table": {"parent": "object"},
-    "dataset": {"parent": "object"},
-    "scalar": {"parent": "object"},
-    "logical": {"parent": "object"},
-    "str": {"parent": "object"}
+    "filepath": {
+      "parent": "path"
+    },
+    "filename": {
+      "parent": "path"
+    },
+    "pathname": {
+      "parent": "path"
+    },
+    "pathlike": {
+      "parent": "path"
+    },
+    "path": {
+      "parent": "str"
+    },
+    "uri": {
+      "parent": "str"
+    },
+    "url": {
+      "parent": "str"
+    },
+    "text": {
+      "parent": "str"
+    },
+    "int": {
+      "parent": "numeric"
+    },
+    "float": {
+      "parent": "numeric"
+    },
+    "complex": {
+      "parent": "numeric"
+    },
+    "numeric": {
+      "parent": "scalar"
+    },
+    "bool": {
+      "parent": "logical"
+    },
+    "list": {
+      "parents": [
+        "object",
+        "collection",
+        "sequence",
+        "array-like"
+      ]
+    },
+    "sequence": {
+      "parent": "collection"
+    },
+    "collection": {
+      "parent": "object"
+    },
+    "tuple": {
+      "parents": [
+        "object",
+        "collection",
+        "sequence",
+        "array-like"
+      ]
+    },
+    "set": {
+      "parents": [
+        "object",
+        "collection"
+      ]
+    },
+    "frozenset": {
+      "parents": [
+        "object",
+        "collection"
+      ]
+    },
+    "dict": {
+      "parents": [
+        "object",
+        "collection"
+      ]
+    },
+    "mapping": {
+      "parent": "collection"
+    },
+    "map": {
+      "parent": "collection"
+    },
+    "file": {
+      "parents": [
+        "object",
+        "pathlike",
+        "filepath",
+        "path",
+        "str"
+      ]
+    },
+    "modality": {
+      "parent": "object"
+    },
+    "format": {
+      "parent": "object"
+    },
+    "array-like": {
+      "parents": [
+        "tensor",
+        "sequence"
+      ]
+    },
+    "tensor": {
+      "parent": "object"
+    },
+    "table": {
+      "parent": "object"
+    },
+    "dataset": {
+      "parent": "object"
+    },
+    "scalar": {
+      "parent": "object"
+    },
+    "logical": {
+      "parent": "object"
+    },
+    "str": {
+      "parent": "object"
+    },
+    "Callable": {
+      "parent": "object"
+    },
+    "ContextManager": {
+      "parent": "object"
+    },
+    "Comparable": {
+      "parent": "object"
+    },
+    "Exception": {
+      "parent": "object"
+    },
+    "Series": {
+      "parents": [
+        "collection",
+        "sequence"
+      ]
+    },
+    "series": {
+      "parent": "collection"
+    }
   },
-
   "aliases": {
     "string": "str",
     "boolean": "bool",
@@ -50,33 +157,171 @@
     "number": "numeric",
     "array_like": "array-like"
   },
-
-  "type_vars": ["T", "U", "V", "R", "State"],
-
-  "top_types": ["any", "object", "top", "unknown", "*", "\u22a4"],
-  "top_states": ["any", "*", "unregistered", "unknown", "top", "\u22a4"],
-
-  "product_constructors": ["tuple", "product", "pair"],
-
-  "sentence_connectives": ["and", "or", "to", "for", "with", "as", "by", "into", "from", "on", "in", "of", "the", "a", "an", "is", "at", "then"],
-  "preposition_triggers": ["by", "with", "on", "using", "via", "over", "along", "across"],
-  "column_projection_tokens": ["column", "columns", "select", "project", "feature", "features", "target", "predict", "training"],
-  "dest_port_tokens": ["target", "sink", "output", "result", "results", "variable", "variables", "destination", "into", "as", "to", "in"],
-  "source_port_tokens": ["from", "source", "input", "src", "in", "reading", "read", "load", "loading"],
-  "data_bearing_roles": ["feature", "features", "target", "predict", "column", "columns", "attribute", "attributes", "axis", "by", "variable"],
-  "egress_intent_tokens": ["save", "export", "write", "dump", "persist", "store", "plot", "show", "display"],
-  "action_verbs": ["calculate", "compute", "perform", "evaluate", "execute", "apply", "run", "do"],
-
+  "type_vars": [
+    "T",
+    "U",
+    "V",
+    "R",
+    "State"
+  ],
+  "top_types": [
+    "any",
+    "object",
+    "top",
+    "unknown",
+    "*",
+    "\u22a4"
+  ],
+  "top_states": [
+    "any",
+    "*",
+    "unregistered",
+    "unknown",
+    "top",
+    "\u22a4"
+  ],
+  "product_constructors": [
+    "tuple",
+    "product",
+    "pair"
+  ],
+  "sentence_connectives": [
+    "and",
+    "or",
+    "to",
+    "for",
+    "with",
+    "as",
+    "by",
+    "into",
+    "from",
+    "on",
+    "in",
+    "of",
+    "the",
+    "a",
+    "an",
+    "is",
+    "at",
+    "then"
+  ],
+  "preposition_triggers": [
+    "by",
+    "with",
+    "on",
+    "using",
+    "via",
+    "over",
+    "along",
+    "across"
+  ],
+  "column_projection_tokens": [
+    "column",
+    "columns",
+    "select",
+    "project",
+    "feature",
+    "features",
+    "target",
+    "predict",
+    "training"
+  ],
+  "dest_port_tokens": [
+    "target",
+    "sink",
+    "output",
+    "result",
+    "results",
+    "variable",
+    "variables",
+    "destination",
+    "into",
+    "as",
+    "to",
+    "in"
+  ],
+  "source_port_tokens": [
+    "from",
+    "source",
+    "input",
+    "src",
+    "in",
+    "reading",
+    "read",
+    "load",
+    "loading"
+  ],
+  "data_bearing_roles": [
+    "feature",
+    "features",
+    "target",
+    "predict",
+    "column",
+    "columns",
+    "attribute",
+    "attributes",
+    "axis",
+    "by",
+    "variable"
+  ],
+  "egress_intent_tokens": [
+    "save",
+    "export",
+    "write",
+    "dump",
+    "persist",
+    "store",
+    "plot",
+    "show",
+    "display"
+  ],
+  "action_verbs": [
+    "calculate",
+    "compute",
+    "perform",
+    "evaluate",
+    "execute",
+    "apply",
+    "run",
+    "do"
+  ],
   "advisory_qualifiers": [
-    ["const"], ["scalar"], ["vector"], ["matrix"], ["primary"]
+    [
+      "const"
+    ],
+    [
+      "scalar"
+    ],
+    [
+      "vector"
+    ],
+    [
+      "matrix"
+    ],
+    [
+      "primary"
+    ]
   ],
-
   "abstract_carriers": [
-    "array-like", "array_like", "tensor", "table", "collection",
-    "sequence", "matrix", "scalar", "logical", "text", "path",
-    "any", "object", "*", "unknown", "top", "dataset", "numeric"
+    "array-like",
+    "array_like",
+    "tensor",
+    "table",
+    "collection",
+    "sequence",
+    "matrix",
+    "scalar",
+    "logical",
+    "text",
+    "path",
+    "any",
+    "object",
+    "*",
+    "unknown",
+    "top",
+    "dataset",
+    "numeric"
   ],
-
   "abstract_carrier_mapping": {
     "pathlike": "path",
     "path": "path",
@@ -117,18 +362,153 @@
     "dataframe": "table",
     "table": "table",
     "dataset": "table",
-    "scalar": "scalar"
+    "scalar": "scalar",
+    "series": "collection",
+    "Series": "collection"
   },
-
   "typestates": {
     "domain": "_primitives",
     "states": [
-      {"name": "saved", "parent_state": "written_to_disk"},
-      {"name": "written_to_disk", "parent_state": "exported"},
-      {"name": "exported", "parent_state": null},
-      {"name": "default", "parent_state": null}
+      {
+        "name": "source_identifier",
+        "parent_state": null,
+        "carrier_type": "str"
+      },
+      {
+        "name": "saved",
+        "parent_state": "written_to_disk"
+      },
+      {
+        "name": "written_to_disk",
+        "parent_state": "exported"
+      },
+      {
+        "name": "exported",
+        "parent_state": null
+      },
+      {
+        "name": "default",
+        "parent_state": null
+      }
     ]
   },
-
-  "cells": []
+  "cells": [],
+  "identifier_root_states": [
+    "source_identifier"
+  ],
+  "path_port_tokens": [
+    "path",
+    "filepath",
+    "pathlike",
+    "filename",
+    "pathname",
+    "uri",
+    "url",
+    "file"
+  ],
+  "top_level_carriers": [
+    "array-like",
+    "tensor",
+    "table",
+    "collection",
+    "sequence",
+    "scalar",
+    "logical",
+    "text",
+    "path"
+  ],
+  "state_role_ancestors": {
+    "source_data": [
+      "source_identifier",
+      "raw_dataset",
+      "unopened"
+    ],
+    "feature_input": [
+      "raw",
+      "cleaned",
+      "ndarray_generic",
+      "dataframe_2d_generic",
+      "scaled_features"
+    ],
+    "target_input": [
+      "split_train_targets",
+      "split_test_targets"
+    ],
+    "model_sink": [
+      "fit_estimator",
+      "fitted_estimator",
+      "saved_model"
+    ],
+    "egress": [
+      "saved",
+      "written_to_disk",
+      "exported",
+      "figure_saved"
+    ]
+  },
+  "state_role_markers": {
+    "source_data": [
+      "source",
+      "raw",
+      "input",
+      "unopened",
+      "valid_path",
+      "file_path"
+    ],
+    "target_input": [
+      "target",
+      "label"
+    ],
+    "model_sink": [
+      "fit_",
+      "fitted_",
+      "saved_model"
+    ],
+    "egress": [
+      "saved",
+      "exported",
+      "written",
+      "disk"
+    ]
+  },
+  "carrier_roles": {
+    "source_data": [
+      "path",
+      "file",
+      "filepath",
+      "uri"
+    ],
+    "feature_input": [
+      "ndarray",
+      "dataframe",
+      "tensor",
+      "table",
+      "series"
+    ],
+    "model_input": [
+      "estimator",
+      "baseestimator",
+      "classifier",
+      "regressor",
+      "pipeline"
+    ]
+  },
+  "egress_exclusion_tokens": [
+    "from",
+    "source",
+    "input",
+    "src",
+    "load",
+    "loading",
+    "read",
+    "reading"
+  ],
+  "enum_citation_triggers": [
+    "see",
+    "values in",
+    "one of",
+    "choices are",
+    "must be one of",
+    "refer to"
+  ]
 }

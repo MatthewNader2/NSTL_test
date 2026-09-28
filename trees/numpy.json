@@ -1062,7 +1062,7 @@
       "type_vars": [],
       "inputs": {
         "data": {
-          "type_name": "ndarray",
+          "type_name": "array-like",
           "state": "ndarray_generic",
           "accepted_states": [
             "ndarray_generic"
@@ -1185,7 +1185,7 @@
       "type_vars": [],
       "inputs": {
         "a": {
-          "type_name": "ndarray",
+          "type_name": "array-like",
           "state": "ndarray_generic",
           "accepted_states": [
             "ndarray_generic"
@@ -4762,7 +4762,7 @@
       "edges": [
         {
           "target_cell_id": "NUMPY_FFT_FFT",
-          "affinity_score": 0.90,
+          "affinity_score": 0.9,
           "score_provenance": "ast_mined"
         },
         {

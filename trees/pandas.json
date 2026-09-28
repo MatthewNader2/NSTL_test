@@ -2005,7 +2005,7 @@
     },
     {
       "cell_id": "PD_DATAFRAME_INIT",
-      "stage": 1,
+      "stage": 2,
       "topology_type": "sequential",
       "node_type": "function",
       "node_role": "source",
@@ -2090,7 +2090,7 @@
     },
     {
       "cell_id": "PD_SERIES_INIT",
-      "stage": 1,
+      "stage": 2,
       "topology_type": "sequential",
       "node_type": "function",
       "node_role": "source",
@@ -9848,7 +9848,7 @@
       "edges": [
         {
           "target_cell_id": "NUMPY_FFT_FFT",
-          "affinity_score": 0.90,
+          "affinity_score": 0.9,
           "score_provenance": "ast_mined"
         }
       ],
@@ -10024,7 +10024,8 @@
             "aggregated",
             "pivoted",
             "dataframe_2d_generic",
-            "tabular"
+            "tabular",
+            "filtered"
           ],
           "qualifiers": [],
           "default_value": null,
@@ -10147,7 +10148,8 @@
             "deduped",
             "numeric_only",
             "dataframe_2d_generic",
-            "aggregated"
+            "aggregated",
+            "filtered"
           ],
           "qualifiers": [],
           "default_value": null,
@@ -10268,7 +10270,8 @@
             "raw",
             "deduped",
             "aggregated",
-            "pivoted"
+            "pivoted",
+            "filtered"
           ],
           "qualifiers": [],
           "default_value": null,
@@ -10392,7 +10395,8 @@
             "cleaned",
             "raw",
             "aggregated",
-            "pivoted"
+            "pivoted",
+            "filtered"
           ],
           "qualifiers": [],
           "default_value": null,
@@ -10666,7 +10670,8 @@
             "raw",
             "deduped",
             "numeric_only",
-            "dataframe_2d_generic"
+            "dataframe_2d_generic",
+            "filtered"
           ],
           "qualifiers": [],
           "default_value": null,
@@ -11597,7 +11602,7 @@
         },
         {
           "target_cell_id": "PD_SERIES_MEAN",
-          "affinity_score": 0.80,
+          "affinity_score": 0.8,
           "score_provenance": "ast_mined"
         },
         {
@@ -11810,7 +11815,7 @@
       "edges": [
         {
           "target_cell_id": "PANDAS_SERIES_TO_NUMPY",
-          "affinity_score": 0.90,
+          "affinity_score": 0.9,
           "score_provenance": "ast_mined"
         }
       ],

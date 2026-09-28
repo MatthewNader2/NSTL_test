@@ -1,7 +1,8 @@
 # src/schema.py
 from typing import Dict, List, Optional, Literal, Any, Union
-from pydantic import BaseModel, Field, field_validator, ConfigDict
+from pydantic import BaseModel, Field, field_validator, model_validator, ConfigDict
 import ast
+
 
 class ConditionPredicate(BaseModel):
     """
@@ -22,47 +23,74 @@ class ConditionPredicate(BaseModel):
     def from_any(cls, v: Any) -> "ConditionPredicate":
         if isinstance(v, ConditionPredicate):
             return v
+
         if isinstance(v, str):
             expr = v.strip()
-            ops = ["==", "!=", ">=", "<=", ">", "<", " in ", " is "]
-            found_op = None
-            found_idx = -1
-            for candidate_op in ops:
-                idx = expr.find(candidate_op)
-                if idx != -1:
-                    if found_op is None or idx < found_idx or (idx == found_idx and len(candidate_op) > len(found_op)):
-                        found_op = candidate_op
-                        found_idx = idx
-            if found_op is not None:
-                prop = expr[:found_idx].strip()
-                val_raw = expr[found_idx + len(found_op):].strip()
-                op = found_op.strip()
-                if prop and all(part.isidentifier() for part in prop.split(".")) and val_raw:
-                    val: Any = val_raw
-                    if val_raw.lower() == "true":
-                        val = True
-                    elif val_raw.lower() == "false":
-                        val = False
-                    elif (val_raw.startswith("'") and val_raw.endswith("'")) or (val_raw.startswith('"') and val_raw.endswith('"')):
-                        val = val_raw[1:-1]
-                    else:
+            if not expr:
+                return cls(expression=expr)
+
+            # Robust AST-based parsing.  Compound expressions are preserved as
+            # `expression` instead of being silently truncated at the first operator.
+            try:
+                tree = ast.parse(expr, mode="eval")
+            except SyntaxError:
+                return cls(expression=expr)
+
+            body = tree.body
+            if isinstance(body, ast.Compare) and len(body.ops) == 1 and len(body.comparators) == 1:
+                op_map = {
+                    ast.Eq: "==",
+                    ast.NotEq: "!=",
+                    ast.Gt: ">",
+                    ast.GtE: ">=",
+                    ast.Lt: "<",
+                    ast.LtE: "<=",
+                    ast.In: "in",
+                    ast.NotIn: "not in",
+                    ast.Is: "is",
+                    ast.IsNot: "is not",
+                }
+                op = op_map.get(type(body.ops[0]))
+                if op:
+                    left = body.left
+                    try:
+                        prop = ast.unparse(left)
+                    except Exception:
+                        prop = None
+                    if prop and all(part.isidentifier() for part in prop.split(".")):
+                        right = body.comparators[0]
                         try:
-                            val = int(val_raw)
-                        except ValueError:
+                            val = ast.literal_eval(right)
+                        except Exception:
                             try:
-                                val = float(val_raw)
-                            except ValueError:
-                                pass
-                    return cls(property=prop, operator=op, value=val, expression=expr)
+                                val = ast.unparse(right)
+                            except Exception:
+                                val = None
+                        return cls(
+                            property=prop,
+                            operator=op,
+                            value=val,
+                            expression=expr,
+                        )
+
+            # Compound / complex expressions are retained intact.
             return cls(expression=expr)
+
         if isinstance(v, dict):
             if "property" in v or "operator" in v or "expression" in v or "target" in v:
                 return cls(**v)
             items = list(v.items())
             if len(items) == 1:
                 return cls(property=items[0][0], operator="==", value=items[0][1])
-            return cls(property=items[0][0], operator="==", value=items[0][1], description=str(v))
+            return cls(
+                property=items[0][0],
+                operator="==",
+                value=items[0][1],
+                description=str(v),
+            )
+
         return cls(description=str(v))
+
 
 class EdgeSchema(BaseModel):
     """
@@ -85,15 +113,17 @@ class EdgeSchema(BaseModel):
             return ConditionPredicate.from_any(v)
         return v
 
+
 class TypestateDefinition(BaseModel):
     """Declarative typestate specification within a domain."""
     model_config = ConfigDict(extra="ignore")
 
-    name: str                                  # e.g. "color", "gray", "raw", "unfit"
-    parent_state: Optional[str] = None         # For state hierarchy / subtyping
-    carrier_type: Optional[str] = None         # e.g. "ndarray", "DataFrame", "BaseEstimator"
+    name: str
+    parent_state: Optional[str] = None
+    carrier_type: Optional[str] = None
     description: Optional[str] = None
-    properties: Dict[str, Any] = Field(default_factory=dict) # e.g. {"channels": 1}
+    properties: Dict[str, Any] = Field(default_factory=dict)
+
 
 class TypestateVocabularySchema(BaseModel):
     """Domain-level typestate vocabulary and state transitions."""
@@ -101,9 +131,10 @@ class TypestateVocabularySchema(BaseModel):
 
     domain: str
     states: List[Union[str, TypestateDefinition]] = Field(default_factory=list)
-    transitions: List[Dict[str, Any]] = Field(default_factory=list) # optional e.g. [{"from": "color", "to": "gray", "via": "cvtColor"}]
+    transitions: List[Dict[str, Any]] = Field(default_factory=list)
     initial_state: Optional[str] = None
     terminal_states: List[str] = Field(default_factory=list)
+
 
 class PortSchema(BaseModel):
     model_config = ConfigDict(extra="ignore")
@@ -119,12 +150,12 @@ class PortSchema(BaseModel):
     required: bool = True
     abstract_type: Optional[str] = None
     enum_values: Optional[List[Any]] = None
-    param_kind: Optional[str] = "standard"  # "positional_only", "keyword_only", "var_positional", "var_keyword", "standard"
-    value_constraints: Optional[Dict[str, Any]] = None  # e.g. {"min": 0, "max": 1, "interval": "[0, 1]"}
-    shape_contract: Optional[Union[Dict[str, Any], str]] = None  # e.g. {"ndim": 2} or "(n_samples, n_features)"
-    port_role: Optional[str] = None  # e.g. "feature_input", "target_input", "model_input", "data_input", "source_data", "model_sink"
-    role: Optional[str] = None  # alias for port_role (e.g. "path", "file")
-    polarity: Optional[str] = None  # e.g. "ascending", "descending"
+    param_kind: Optional[str] = "standard"
+    value_constraints: Optional[Dict[str, Any]] = None
+    shape_contract: Optional[Union[Dict[str, Any], str]] = None
+    port_role: Optional[str] = None
+    role: Optional[str] = None
+    polarity: Optional[str] = None
 
     def model_post_init(self, __context: Any) -> None:
         if self.role and not self.port_role:
@@ -149,34 +180,41 @@ class PortSchema(BaseModel):
             return None
         return v_str
 
+
 class CellSchema(BaseModel):
     model_config = ConfigDict(extra="ignore")
 
     cell_id: str
-    stage: Literal[0, 1, 2, 3] = 2
+
+    # Stage 0 was never defined downstream.  Only 1, 2, 3 are valid.
+    stage: Literal[1, 2, 3] = 2
+
     inputs: Dict[str, PortSchema] = Field(default_factory=dict)
     outputs: Dict[str, PortSchema] = Field(default_factory=dict)
-    topology_type: str = "sequential"  # "sequential", "monoidal_product", "coproduct_branch", "traced_loop"
+    topology_type: str = "sequential"
     slots: Union[Dict[str, Any], List[str]] = Field(default_factory=list)
     feedback_state_type: Optional[str] = None
     bound_slots: Dict[str, Any] = Field(default_factory=dict)
     code_template: str = ""
     code_templates: Dict[str, str] = Field(default_factory=dict)
     dependencies: List[str] = Field(default_factory=list)
+
+    # Canonical semantic fields.
     semantic_tags: List[str] = Field(default_factory=list)
-    keywords: List[str] = Field(default_factory=list)
+    keywords: List[str] = Field(default_factory=list)  # alias for semantic_tags
     docstring: Optional[str] = ""
-    doc: Optional[str] = None
-    enrichment_source: Optional[str] = None   # "docs" | "llm" | None (curated/native)
-    enriched_at: Optional[str] = None         # ISO8601 timestamp, set when enrichment_source is set
+    doc: Optional[str] = None  # alias for docstring
+
+    enrichment_source: Optional[str] = None
+    enriched_at: Optional[str] = None
     domain_name: Optional[str] = None
     node_type: Optional[str] = "function"
     node_role: Optional[str] = "function"
-    role: Optional[str] = None
+    role: Optional[str] = None  # alias for node_role
     verified: bool = True
-    source_priority: int = 100  # 1 = curated seed, 100 = auto-harvested
+    source_priority: int = 100
     is_public: bool = True
-    mutation_type: str = "pure"  # "pure" | "in_place"
+    mutation_type: str = "pure"
     is_context_manager: bool = False
     raises: List[str] = Field(default_factory=list)
     type_vars: List[str] = Field(default_factory=list)
@@ -184,16 +222,70 @@ class CellSchema(BaseModel):
     primary_in: Optional[str] = None
     primary_out: Optional[str] = None
 
-    # --- Macro Node Pipeline (synaptic goals) ---
+    # --- Macro Node Pipeline ---
     sub_cells: List[str] = Field(default_factory=list)
     internal_topology: Dict[str, List[str]] = Field(default_factory=dict)
     algorithmic_steps: List[str] = Field(default_factory=list)
 
-    # --- Semantic IR Extensions (Phase 1) ---
+    # --- Semantic IR Extensions ---
     preconditions: List[Union[ConditionPredicate, str, Dict[str, Any]]] = Field(default_factory=list)
     postconditions: List[Union[ConditionPredicate, str, Dict[str, Any]]] = Field(default_factory=list)
-    effects: List[Union[ConditionPredicate, str, Dict[str, Any]]] = Field(default_factory=list)
+    effects: List[Union[ConditionPredicate, str, Dict[str, Any]]] = Field(default_factory=list)  # alias for postconditions
     edges: List[Union[EdgeSchema, Dict[str, Any]]] = Field(default_factory=list)
+
+    @model_validator(mode="before")
+    @classmethod
+    def normalize_aliases_and_stage(cls, data: Any) -> Any:
+        if not isinstance(data, dict):
+            return data
+
+        d = dict(data)
+
+        # doc -> docstring
+        if "doc" in d:
+            if not d.get("docstring"):
+                d["docstring"] = d.pop("doc")
+            else:
+                d.pop("doc", None)
+
+        # keywords -> semantic_tags
+        if "keywords" in d:
+            kw = d.pop("keywords") or []
+            st = d.get("semantic_tags") or []
+            if not st:
+                d["semantic_tags"] = kw
+            else:
+                d["semantic_tags"] = list(dict.fromkeys(list(st) + list(kw)))
+
+        # role -> node_role
+        if "role" in d:
+            if not d.get("node_role"):
+                d["node_role"] = d.pop("role")
+            else:
+                d.pop("role", None)
+
+        # effects -> postconditions
+        if "effects" in d:
+            ef = d.pop("effects") or []
+            pc = d.get("postconditions") or []
+            if not pc:
+                d["postconditions"] = ef
+            elif isinstance(pc, list) and isinstance(ef, list):
+                d["postconditions"] = list(pc) + list(ef)
+
+        # Stage 0 is invalid.
+        if "stage" in d:
+            v = d["stage"]
+            if v is None:
+                d["stage"] = 2
+            elif isinstance(v, str) and v.isdigit():
+                d["stage"] = int(v)
+            if d.get("stage") == 0:
+                raise ValueError("Stage 0 is undefined; valid stages are 1, 2, 3")
+            if d.get("stage") not in (1, 2, 3):
+                raise ValueError("Stage must be one of 1, 2, 3")
+
+        return d
 
     @field_validator("inputs", mode="before")
     @classmethod
@@ -209,15 +301,21 @@ class CellSchema(BaseModel):
 
     def model_post_init(self, __context: Any) -> None:
         if not self.code_template and self.code_templates:
-            self.code_template = self.code_templates.get("python", next(iter(self.code_templates.values()), ""))
+            self.code_template = self.code_templates.get(
+                "python", next(iter(self.code_templates.values()), "")
+            )
         if self.doc and not self.docstring:
             self.docstring = self.doc
+        if self.docstring and not self.doc:
+            self.doc = self.docstring
         if self.role and not self.node_role:
             self.node_role = self.role
+        if self.node_role and not self.role:
+            self.role = self.node_role
         if self.sub_cells and (not self.node_type or self.node_type == "function"):
             self.node_type = "macro"
             self.node_role = "macro"
-        # Synchronize effects and postconditions if one is set but not the other
+            self.role = "macro"
         if self.postconditions and not self.effects:
             self.effects = list(self.postconditions)
         elif self.effects and not self.postconditions:
@@ -236,13 +334,17 @@ class CellSchema(BaseModel):
             res = []
             for item in v:
                 if isinstance(item, (str, dict, ConditionPredicate)):
-                    res.append(ConditionPredicate.from_any(item) if not isinstance(item, ConditionPredicate) else item)
+                    res.append(
+                        ConditionPredicate.from_any(item)
+                        if not isinstance(item, ConditionPredicate)
+                        else item
+                    )
                 else:
                     res.append(item)
             return res
         return [ConditionPredicate.from_any(v)]
 
-    @field_validator("postconditions", "effects", mode="before")
+    @field_validator("postconditions", mode="before")
     @classmethod
     def normalize_conditions_list(cls, v: Any) -> List[Any]:
         if v is None:
@@ -255,7 +357,11 @@ class CellSchema(BaseModel):
             res = []
             for item in v:
                 if isinstance(item, (str, dict, ConditionPredicate)):
-                    res.append(ConditionPredicate.from_any(item) if not isinstance(item, ConditionPredicate) else item)
+                    res.append(
+                        ConditionPredicate.from_any(item)
+                        if not isinstance(item, ConditionPredicate)
+                        else item
+                    )
                 else:
                     res.append(item)
             return res
@@ -305,7 +411,11 @@ class CellSchema(BaseModel):
             return self.inputs[self.primary_in]
         required = [p for p in self.inputs.values() if p.required]
         if required:
-            non_scalar = [p for p in required if (p.abstract_type or "").lower() not in ("scalar", "text", "path", "logical")]
+            non_scalar = [
+                p
+                for p in required
+                if (p.abstract_type or "").lower() not in ("scalar", "text", "path", "logical")
+            ]
             return non_scalar[0] if non_scalar else required[0]
         return next(iter(self.inputs.values()))
 
@@ -325,8 +435,7 @@ class CellSchema(BaseModel):
         v_str = str(v)
         if not v_str.strip():
             return v_str
-        # Dry-run AST parse with dummy variables to ensure syntactically valid Python
-        # Use unique placeholder names to avoid false positive validation
+
         seen: Dict[str, str] = {}
         res = []
         i = 0
@@ -345,12 +454,14 @@ class CellSchema(BaseModel):
                         continue
             res.append(v_str[i])
             i += 1
+
         dummy_code = "".join(res)
         try:
             ast.parse(dummy_code)
         except SyntaxError as e:
             raise ValueError(f"Invalid code_template syntax: {v_str}. Error: {e}")
         return v_str
+
 
 class TreeSchema(BaseModel):
     model_config = ConfigDict(extra="ignore")

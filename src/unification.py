@@ -10,10 +10,13 @@ Conforms strictly to Section 3.2 of the NSTL paper:
 
 from __future__ import annotations
 import ast
+import collections
 import sys
 import json
 import math
 import keyword
+import threading
+import warnings
 import functools
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
@@ -438,7 +441,18 @@ def occurs_check(
     return False
 
 
-_UNIFY_BASE_CACHE: Dict[Tuple[TypeTerm, TypeTerm], Optional[Substitution]] = {}
+_UNIFY_CACHE_MAX = 4096
+_UNIFY_CACHE_LOCK = threading.Lock()
+_UNIFY_BASE_CACHE: collections.OrderedDict[Tuple[TypeTerm, TypeTerm], Optional[Substitution]] = collections.OrderedDict()
+
+
+def _unify_cache_put(key: Tuple[TypeTerm, TypeTerm], value: Optional[Substitution]) -> None:
+    """Thread-safe, bounded write to _UNIFY_BASE_CACHE."""
+    with _UNIFY_CACHE_LOCK:
+        _UNIFY_BASE_CACHE[key] = value
+        if len(_UNIFY_BASE_CACHE) > _UNIFY_CACHE_MAX:
+            _UNIFY_BASE_CACHE.popitem(last=False)
+
 
 def unify(
     term1: Union[TypeTerm, AlgebraicSignature, str],
@@ -456,9 +470,10 @@ def unify(
     is_ground_query = (sigma is None or not sigma.mappings)
     if is_ground_query:
         cache_key = (t1, t2)
-        if cache_key in _UNIFY_BASE_CACHE:
-            cached = _UNIFY_BASE_CACHE[cache_key]
-            return Substitution(cached.mappings) if cached is not None else None
+        with _UNIFY_CACHE_LOCK:
+            if cache_key in _UNIFY_BASE_CACHE:
+                cached = _UNIFY_BASE_CACHE[cache_key]
+                return Substitution(cached.mappings) if cached is not None else None
 
     sub = Substitution(sigma.mappings if sigma else {})
 
@@ -468,32 +483,32 @@ def unify(
     # 1. Identity or Universal Top (Top unifies with any type term)
     if t1 == t2 or isinstance(t2, TopType) or isinstance(t1, TopType):
         if is_ground_query:
-            _UNIFY_BASE_CACHE[cache_key] = sub
+            _unify_cache_put(cache_key, sub)
         return sub
 
     # 2. Variable binding (Robinson first-order unification with occurs check)
     if isinstance(t1, TypeVariable):
         if isinstance(t2, TypeVariable) and t1.var_name == t2.var_name:
             if is_ground_query:
-                _UNIFY_BASE_CACHE[cache_key] = sub
+                _unify_cache_put(cache_key, sub)
             return sub
         if occurs_check(t1.var_name, t2, sub):
             if is_ground_query:
-                _UNIFY_BASE_CACHE[cache_key] = None
+                _unify_cache_put(cache_key, None)
             return None  # Occurs check failure -> bottom
         sub.bind(t1.var_name, t2)
         if is_ground_query:
-            _UNIFY_BASE_CACHE[cache_key] = sub
+            _unify_cache_put(cache_key, sub)
         return sub
 
     if isinstance(t2, TypeVariable):
         if occurs_check(t2.var_name, t1, sub):
             if is_ground_query:
-                _UNIFY_BASE_CACHE[cache_key] = None
+                _unify_cache_put(cache_key, None)
             return None  # Occurs check failure -> bottom
         sub.bind(t2.var_name, t1)
         if is_ground_query:
-            _UNIFY_BASE_CACHE[cache_key] = sub
+            _unify_cache_put(cache_key, sub)
         return sub
 
     # 2.3. Coproduct / Union unification (canonical injection)
@@ -502,10 +517,10 @@ def unify(
             sub_alt = unify(alt, t2, sub)
             if sub_alt is not None:
                 if is_ground_query:
-                    _UNIFY_BASE_CACHE[cache_key] = sub_alt
+                    _unify_cache_put(cache_key, sub_alt)
                 return sub_alt
         if is_ground_query:
-            _UNIFY_BASE_CACHE[cache_key] = None
+            _unify_cache_put(cache_key, None)
         return None
 
     if isinstance(t2, UnionTypeTerm):
@@ -513,10 +528,10 @@ def unify(
             sub_alt = unify(t1, alt, sub)
             if sub_alt is not None:
                 if is_ground_query:
-                    _UNIFY_BASE_CACHE[cache_key] = sub_alt
+                    _unify_cache_put(cache_key, sub_alt)
                 return sub_alt
         if is_ground_query:
-            _UNIFY_BASE_CACHE[cache_key] = None
+            _unify_cache_put(cache_key, None)
         return None
 
     # 2.5. Generic container unification (covariant structural unification)
@@ -530,13 +545,13 @@ def unify(
                 sub = unify(a1, a2, sub)
                 if sub is None:
                     if is_ground_query:
-                        _UNIFY_BASE_CACHE[cache_key] = None
+                        _unify_cache_put(cache_key, None)
                     return None
             if is_ground_query:
-                _UNIFY_BASE_CACHE[cache_key] = sub
+                _unify_cache_put(cache_key, sub)
             return sub
         if is_ground_query:
-            _UNIFY_BASE_CACHE[cache_key] = None
+            _unify_cache_put(cache_key, None)
         return None
 
     # Raw type fallback: List[Contour] satisfies unparameterized List
@@ -545,7 +560,7 @@ def unify(
         target_name = t2.type_name if isinstance(t2, TypestateTerm) else t2.name
         if registry.is_subtype(t1.constructor, target_name):
             if is_ground_query:
-                _UNIFY_BASE_CACHE[cache_key] = sub
+                _unify_cache_put(cache_key, sub)
             return sub
 
     # Sound parameter demand: untyped list satisfies GenericTypeTerm ONLY IF parameters are type variables
@@ -558,10 +573,10 @@ def unify(
                     if isinstance(arg, TypeVariable) and arg.var_name not in sub.mappings:
                         sub.bind(arg.var_name, TOP)
                 if is_ground_query:
-                    _UNIFY_BASE_CACHE[cache_key] = sub
+                    _unify_cache_put(cache_key, sub)
                 return sub
             if is_ground_query:
-                _UNIFY_BASE_CACHE[cache_key] = None
+                _unify_cache_put(cache_key, None)
             return None
 
     # 3. Typestate term unification
@@ -577,7 +592,7 @@ def unify(
             producer_parent=t1.parent_state,
         ):
             if is_ground_query:
-                _UNIFY_BASE_CACHE[cache_key] = None
+                _unify_cache_put(cache_key, None)
             return None  # State mismatch -> bottom
 
         # Qualifier subset check
@@ -586,7 +601,7 @@ def unify(
             req = {q for q in t2.qualifiers if q not in ignorable}
             if req and not req.issubset(t1.qualifiers):
                 if is_ground_query:
-                    _UNIFY_BASE_CACHE[cache_key] = None
+                    _unify_cache_put(cache_key, None)
                 return None
 
         # Check if type_names contain generic definitions
@@ -610,11 +625,11 @@ def unify(
                 pass
             else:
                 if is_ground_query:
-                    _UNIFY_BASE_CACHE[cache_key] = None
+                    _unify_cache_put(cache_key, None)
                 return None  # Type mismatch -> bottom
 
         if is_ground_query:
-            _UNIFY_BASE_CACHE[cache_key] = sub
+            _unify_cache_put(cache_key, sub)
         return sub
 
     # 4. Atomic type unification
@@ -622,10 +637,10 @@ def unify(
         registry = TypeRegistry.get_instance()
         if registry.is_subtype(t1.name, t2.name):
             if is_ground_query:
-                _UNIFY_BASE_CACHE[cache_key] = sub
+                _unify_cache_put(cache_key, sub)
             return sub
         if is_ground_query:
-            _UNIFY_BASE_CACHE[cache_key] = None
+            _unify_cache_put(cache_key, None)
         return None
 
     # 5. Mixed Atomic and Typestate unification
@@ -633,24 +648,24 @@ def unify(
         registry = TypeRegistry.get_instance()
         if registry.is_subtype(t1.name, t2.type_name):
             if is_ground_query:
-                _UNIFY_BASE_CACHE[cache_key] = sub
+                _unify_cache_put(cache_key, sub)
             return sub
         if is_ground_query:
-            _UNIFY_BASE_CACHE[cache_key] = None
+            _unify_cache_put(cache_key, None)
         return None
 
     if isinstance(t1, TypestateTerm) and isinstance(t2, AtomicType):
         registry = TypeRegistry.get_instance()
         if registry.is_subtype(t1.type_name, t2.name):
             if is_ground_query:
-                _UNIFY_BASE_CACHE[cache_key] = sub
+                _unify_cache_put(cache_key, sub)
             return sub
         if is_ground_query:
-            _UNIFY_BASE_CACHE[cache_key] = None
+            _unify_cache_put(cache_key, None)
         return None
 
     if is_ground_query:
-        _UNIFY_BASE_CACHE[cache_key] = None
+        _unify_cache_put(cache_key, None)
     return None
 
 

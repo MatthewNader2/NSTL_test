@@ -19,9 +19,12 @@ Dynamic Node Resolution and Self-Expanding Architecture:
 from __future__ import annotations
 
 import ast
+import contextlib
 import json
 import logging
 import os
+import sys
+import threading
 from pathlib import Path
 from typing import Dict, Any, Optional, Union, List, Tuple
 
@@ -41,6 +44,94 @@ except ImportError:
     LocalRAG = None
 
 logger = logging.getLogger("nstl.node_resolver")
+
+_STORAGE_LOCK = threading.RLock()
+
+
+@contextlib.contextmanager
+def _sync_dev_storage(trees_dir: Path, shared: bool = False):
+    """
+    Acquires an in-process re-entrant lock and cross-process operating system
+    file lock on the dev storage lockfile to prevent race conditions and corruption
+    across multi-threaded and multi-worker execution environments.
+    """
+    dev_dir = trees_dir / "dev_unreviewed"
+    dev_dir.mkdir(parents=True, exist_ok=True)
+    lock_file_path = dev_dir / ".dev_cells.lock"
+    dev_file = dev_dir / "dev_cells.json"
+
+    with _STORAGE_LOCK:
+        lock_fd = None
+        locked = False
+        try:
+            try:
+                lock_fd = os.open(str(lock_file_path), os.O_CREAT | os.O_RDWR)
+                if sys.platform != "win32":
+                    import fcntl
+                    lock_op = fcntl.LOCK_SH if shared else fcntl.LOCK_EX
+                    fcntl.flock(lock_fd, lock_op)
+                    locked = True
+                else:
+                    import msvcrt
+                    if os.path.getsize(str(lock_file_path)) == 0:
+                        os.write(lock_fd, b"\0")
+                    os.lseek(lock_fd, 0, os.SEEK_SET)
+                    msvcrt.locking(lock_fd, msvcrt.LK_LOCK, 1)
+                    locked = True
+            except Exception as lock_err:
+                logger.debug(f"[Resolver] OS file lock unavailable or failed: {lock_err}")
+
+            yield dev_file
+        finally:
+            if lock_fd is not None:
+                if locked:
+                    try:
+                        if sys.platform != "win32":
+                            import fcntl
+                            fcntl.flock(lock_fd, fcntl.LOCK_UN)
+                        else:
+                            import msvcrt
+                            os.lseek(lock_fd, 0, os.SEEK_SET)
+                            msvcrt.locking(lock_fd, msvcrt.LK_UNLCK, 1)
+                    except Exception:
+                        pass
+                try:
+                    os.close(lock_fd)
+                except Exception:
+                    pass
+
+
+def _read_cells(dev_file: Path) -> List[Dict[str, Any]]:
+    """Reads cells from disk assuming synchronization lock is held."""
+    if not dev_file.exists():
+        return []
+    try:
+        with open(dev_file, "r", encoding="utf-8") as f:
+            data = json.load(f)
+            return data if isinstance(data, list) else []
+    except Exception as e:
+        logger.warning(f"[Resolver] Failed to parse JSON from {dev_file}: {e}")
+        return []
+
+
+def _write_cells_atomic(dev_file: Path, cells: List[Dict[str, Any]]) -> None:
+    """Atomically commits updated cells to disk using atomic filesystem replacement."""
+    dev_file.parent.mkdir(parents=True, exist_ok=True)
+    temp_file = dev_file.with_name(f"{dev_file.name}.{os.getpid()}.{threading.get_ident()}.tmp")
+    try:
+        with open(temp_file, "w", encoding="utf-8") as f:
+            json.dump(cells, f, indent=2)
+            f.flush()
+            os.fsync(f.fileno())
+        os.replace(temp_file, dev_file)
+    except Exception:
+        if temp_file.exists():
+            try:
+                temp_file.unlink()
+            except Exception:
+                pass
+        raise
+
 
 CELL_SYNTHESIS_SCHEMA = {
     "type": "object",
@@ -62,15 +153,15 @@ SYSTEM_PROMPT_SYNTHESIS = (
     "You are an expert compiler and runtime engineer for the Neuro-Symbolic Topological Lattice (NSTL).\n"
     "Your task is to synthesize a valid typed MicroCell definition for a missing operation requested by a pipeline.\n"
     "The cell must adhere strictly to the NSTL schema:\n"
-    "- cell_id: snake_case identifier (e.g. 'clean_text', 'resize_image', 'train_xgboost')\n"
-    "- stage: 1 (source/reader), 2 (transform/compute/model), or 3 (sink/writer/plot)\n"
-    "- domain_name: string (e.g. 'tabular', 'vision', 'audio', 'nlp', 'generic')\n"
+    "- cell_id: lowercase snake_case functional identifier representing the operation (e.g. '<verb>_<noun>')\n"
+    "- stage: integer stage index (1: source/reader/ingest, 2: transform/compute/model, 3: sink/writer/output)\n"
+    "- domain_name: string identifier denoting the operational domain or subsystem\n"
     "- node_role: 'source', 'transform', 'estimator', 'evaluator', 'bridge', or 'sink'\n"
     "- inputs: dict mapping input port names to {'type_name': str, 'state': str, 'required': bool}\n"
     "- outputs: dict mapping output port names to {'type_name': str, 'state': str}\n"
-    "- code_template: valid Python statement or expression snippet using standard ports\n"
+    "- code_template: valid Python statement or expression snippet using standard port variable names\n"
     "- docstring: concise description of the operation\n"
-    "- dependencies: list of import package names\n"
+    "- dependencies: list of required import package names\n"
     "Output ONLY a valid JSON object matching the schema. No markdown formatting, no commentary."
 )
 
@@ -81,8 +172,131 @@ def _safe_extract_json(raw_text: str) -> Optional[Dict[str, Any]]:
     return extract_json_object(raw_text)
 
 
-def _generate_mock_code_probe(code_template: str, inputs: dict, outputs: dict, dependencies: list) -> str:
-    """Generates a self-contained execution probe for dry-run verification in GEVRSandbox.
+def _create_mock_input_code(var_name: str, type_name: str, domain_name: str = "") -> str:
+    """
+    Generates domain-agnostic mock value instantiation code supporting diverse modalities
+    including tabular, text/nlp, vision, audio, graph, bioinformatics, and tensors.
+    """
+    t = type_name.lower().strip()
+    d = domain_name.lower().strip()
+
+    # Estimator / Model / Pipeline objects
+    if any(k in t for k in ("model", "estimator", "classifier", "regressor", "pipeline")):
+        return (
+            f"class _MockModel_{var_name}:\n"
+            f"    def fit(self, *a, **k): return self\n"
+            f"    def predict(self, *a, **k): return [0, 1]\n"
+            f"    def transform(self, *a, **k): return a[0] if a else []\n"
+            f"    def evaluate(self, *a, **k): return {{'metric': 1.0}}\n"
+            f"{var_name} = _MockModel_{var_name}()"
+        )
+
+    # Tabular / Structured DataFrames (checked before generic frame)
+    if "dataframe" in t or "table" in t:
+        return (
+            f"try:\n"
+            f"    import pandas as pd\n"
+            f"    {var_name} = pd.DataFrame({{'a': [1.0, 2.0, 3.0], 'b': [4, 5, 6], 'target': [0, 1, 0]}})\n"
+            f"except ImportError:\n"
+            f"    {var_name} = {{'a': [1, 2], 'b': [3, 4]}}"
+        )
+    if "series" in t or "column" in t:
+        return (
+            f"try:\n"
+            f"    import pandas as pd\n"
+            f"    {var_name} = pd.Series([1.0, 2.0, 3.0])\n"
+            f"except ImportError:\n"
+            f"    {var_name} = [1.0, 2.0, 3.0]"
+        )
+
+    # Bioinformatics / Genomics / Sequences
+    if "bio" in d or any(k in t for k in ("dna", "rna", "fasta", "fastq", "nucleotide", "genome", "protein")):
+        return f"{var_name} = 'ATGCGATCGATCGATC'"
+
+    # Audio / Acoustics / Signals
+    if "audio" in d or any(k in t for k in ("audio", "waveform", "sound", "spectrogram", "acoustic", "sample_rate")):
+        return (
+            f"try:\n"
+            f"    import numpy as np\n"
+            f"    {var_name} = np.zeros(16000, dtype=np.float32)\n"
+            f"except ImportError:\n"
+            f"    {var_name} = [0.0] * 100"
+        )
+
+    # NLP / Language / Text / Tokens
+    if any(k in t for k in ("tokens", "vocabulary", "token_ids")):
+        return f"{var_name} = ['sample', 'token', 'sequence']"
+    if "nlp" in d or any(k in t for k in ("text", "document", "corpus", "sentence", "prompt", "transcription", "utterance")):
+        return f"{var_name} = 'Sample textual data for natural language pipeline verification.'"
+
+    # Graph / Network Topologies
+    if "graph" in d or any(k in t for k in ("graph", "network", "adjacency", "edge_list")):
+        return (
+            f"try:\n"
+            f"    import networkx as nx\n"
+            f"    {var_name} = nx.path_graph(5)\n"
+            f"except ImportError:\n"
+            f"    {var_name} = {{'nodes': [0, 1, 2], 'edges': [(0, 1), (1, 2)]}}"
+        )
+
+    # Vision / Image / Video
+    if "vision" in d or any(k in t for k in ("image", "img", "video_frame", "rgb", "bgr", "pixel")) or (t == "frame"):
+        return (
+            f"try:\n"
+            f"    import numpy as np\n"
+            f"    {var_name} = np.zeros((10, 10, 3), dtype=np.uint8)\n"
+            f"except ImportError:\n"
+            f"    {var_name} = [[[0]*3]*10]*10"
+        )
+
+    # Tensors / Vectors / Embeddings / Matrices
+    if "embedding" in t or "vector" in t:
+        return (
+            f"try:\n"
+            f"    import numpy as np\n"
+            f"    {var_name} = np.ones(64, dtype=np.float32)\n"
+            f"except ImportError:\n"
+            f"    {var_name} = [0.1] * 64"
+        )
+    if any(k in t for k in ("matrix", "ndarray", "tensor")):
+        return (
+            f"try:\n"
+            f"    import numpy as np\n"
+            f"    {var_name} = np.zeros((4, 4), dtype=np.float32)\n"
+            f"except ImportError:\n"
+            f"    {var_name} = [[0.0]*4]*4"
+        )
+
+    # Standard Primitives
+    if "dict" in t or "map" in t or "record" in t:
+        return f"{var_name} = {{'id': 1, 'value': 42.0, 'name': 'test'}}"
+    if "int" in t:
+        return f"{var_name} = 10"
+    if "float" in t:
+        return f"{var_name} = 1.0"
+    if "bool" in t:
+        return f"{var_name} = True"
+    if "bytes" in t:
+        return f"{var_name} = b'test_payload'"
+    if "path" in t or "file" in t or "url" in t:
+        return f"{var_name} = 'dummy_input_file.dat'"
+    if "str" in t or "string" in t:
+        return f"{var_name} = 'sample_string'"
+
+    # Generic collection fallback
+    return f"{var_name} = [1, 2, 3]"
+
+
+def _generate_mock_code_probe(
+    code_template: str,
+    inputs: dict,
+    outputs: dict,
+    dependencies: list,
+    domain_name: str = "",
+) -> str:
+    """
+    Generates a self-contained execution probe for dry-run verification in GEVRSandbox.
+    Constructs domain-appropriate mock variables across diverse modalities.
     Zero regular expressions.
     """
     lines = ["import sys, os"]
@@ -99,24 +313,7 @@ def _generate_mock_code_probe(code_template: str, inputs: dict, outputs: dict, d
         elif hasattr(p_info, "type_name"):
             type_name = str(p_info.type_name).lower()
 
-        if "dataframe" in type_name or "table" in type_name:
-            lines.append(f"try:\n    import pandas as pd\n    {var_name} = pd.DataFrame({{'a': [1.0, 2.0, 3.0], 'b': [4, 5, 6], 'target': [0, 1, 0]}})\nexcept ImportError:\n    {var_name} = {{'a': [1, 2], 'b': [3, 4]}}")
-        elif "series" in type_name:
-            lines.append(f"try:\n    import pandas as pd\n    {var_name} = pd.Series([1.0, 2.0, 3.0])\nexcept ImportError:\n    {var_name} = [1.0, 2.0, 3.0]")
-        elif "ndarray" in type_name or "image" in type_name or "matrix" in type_name or "tensor" in type_name:
-            lines.append(f"try:\n    import numpy as np\n    {var_name} = np.zeros((10, 10, 3), dtype=np.uint8)\nexcept ImportError:\n    {var_name} = [[[0]*3]*10]*10")
-        elif "dict" in type_name:
-            lines.append(f"{var_name} = {{'col1': [1, 2], 'col2': [3, 4]}}")
-        elif "int" in type_name:
-            lines.append(f"{var_name} = 10")
-        elif "float" in type_name:
-            lines.append(f"{var_name} = 1.0")
-        elif "bool" in type_name:
-            lines.append(f"{var_name} = True")
-        elif "str" in type_name or "path" in type_name or "file" in type_name:
-            lines.append(f"{var_name} = 'dummy_test.csv'")
-        else:
-            lines.append(f"{var_name} = [1, 2, 3]")
+        lines.append(_create_mock_input_code(var_name, type_name, domain_name))
         mock_vars[p_name] = var_name
 
     bindings = dict(mock_vars)
@@ -210,10 +407,11 @@ class DynamicNodeResolver:
             logger.warning("[Resolver] Dev Mode active but model cannot synthesize text.")
             return None
 
+        target_domain = domain_hint or getattr(orchestrator, "active_domain", "generic") or "generic"
         user_req = (
             f"User Pipeline Request: {prompt}\n"
             f"Requested Missing Operation: {clean_id}\n"
-            f"Target Domain Hint: {domain_hint or getattr(orchestrator, 'active_domain', 'generic') or 'generic'}\n\n"
+            f"Target Domain Hint: {target_domain}\n\n"
             f"Synthesize the complete MicroCell JSON schema for this operation."
         )
 
@@ -240,7 +438,7 @@ class DynamicNodeResolver:
         outputs = cell_data.get("outputs") or {}
         stage = int(cell_data.get("stage") or 2)
         node_role = str(cell_data.get("node_role") or "transform").lower()
-        domain = str(cell_data.get("domain_name") or domain_hint or "generic")
+        domain = str(cell_data.get("domain_name") or target_domain)
         dependencies = cell_data.get("dependencies") or []
 
         # AST Validation: verify code_template contains syntactically valid Python
@@ -251,12 +449,12 @@ class DynamicNodeResolver:
                 )
                 return None
 
-        # Recommendation 1: GEVR Sandbox Dry-Run Verification Gate with 1-turn repair
+        # GEVR Sandbox Dry-Run Verification Gate with 1-turn repair
         dry_run_verified = False
         try:
             from gevr_sandbox import GEVRSandbox
             sandbox = GEVRSandbox()
-            probe = _generate_mock_code_probe(code_template, inputs, outputs, dependencies)
+            probe = _generate_mock_code_probe(code_template, inputs, outputs, dependencies, domain_name=domain)
             res = sandbox.execute(probe, timeout=2.0)
             if res.get("success"):
                 dry_run_verified = True
@@ -267,7 +465,7 @@ class DynamicNodeResolver:
                 )
                 repaired = mm.feedback_check(code_template, err_msg)
                 if repaired and repaired != code_template and validate_code_template(repaired):
-                    probe2 = _generate_mock_code_probe(repaired, inputs, outputs, dependencies)
+                    probe2 = _generate_mock_code_probe(repaired, inputs, outputs, dependencies, domain_name=domain)
                     res2 = sandbox.execute(probe2, timeout=2.0)
                     if res2.get("success"):
                         code_template = repaired
@@ -282,7 +480,6 @@ class DynamicNodeResolver:
         except Exception as e:
             logger.debug(f"[Resolver] Sandbox dry run skipped: {e}")
 
-        # Build clean schema dict tagged as provisional/unreviewed
         clean_schema: Dict[str, Any] = {
             "cell_id": cell_id,
             "stage": stage,
@@ -334,7 +531,7 @@ class DynamicNodeResolver:
         dev_mode: Optional[bool] = None,
     ) -> Optional[Cell]:
         """
-        Recommendation 3: Synthesizes a minimal 1-step converter/adapter cell on demand
+        Synthesizes a minimal 1-step converter/adapter cell on demand
         when src_cell output cannot directly unify with dst_cell input and no bridge cell exists.
         """
         is_dev = dev_mode if dev_mode is not None else getattr(settings, "dev_mode", False)
@@ -372,39 +569,38 @@ class DynamicNodeResolver:
     @classmethod
     def record_cell_usage(cls, cell_id: str, success: bool = True) -> None:
         """
-        Recommendation 2: Tracks cell usage in successful executions and handles
-        confidence promotion from provisional (0.70x) to established (1.0x).
+        Tracks cell usage in successful executions and handles confidence promotion
+        from provisional (0.70x) to established (1.0x).
+        Thread and process synchronized with atomic file replacement.
         """
         try:
             trees_dir = Path(settings.trees_dir) if settings.trees_dir else Path("trees")
-            dev_file = trees_dir / "dev_unreviewed" / "dev_cells.json"
-            if not dev_file.exists():
-                return
-            with open(dev_file, "r", encoding="utf-8") as f:
-                cells = json.load(f)
-            if not isinstance(cells, list):
-                return
+            with _sync_dev_storage(trees_dir, shared=False) as dev_file:
+                if not dev_file.exists():
+                    return
+                cells = _read_cells(dev_file)
+                if not cells:
+                    return
 
-            updated = False
-            for c in cells:
-                if c.get("cell_id", "").lower() == str(cell_id).lower():
-                    if success:
-                        c["success_count"] = c.get("success_count", 0) + 1
-                    else:
-                        c["fail_count"] = c.get("fail_count", 0) + 1
+                updated = False
+                for c in cells:
+                    if c.get("cell_id", "").lower() == str(cell_id).lower():
+                        if success:
+                            c["success_count"] = c.get("success_count", 0) + 1
+                        else:
+                            c["fail_count"] = c.get("fail_count", 0) + 1
 
-                    sc = c.get("success_count", 0)
-                    if sc >= 5:
-                        c["reviewed"] = True
-                        c["provisional_score_mult"] = 1.0
-                    elif sc >= 3:
-                        c["provisional_score_mult"] = 0.90
-                    updated = True
-                    break
+                        sc = c.get("success_count", 0)
+                        if sc >= 5:
+                            c["reviewed"] = True
+                            c["provisional_score_mult"] = 1.0
+                        elif sc >= 3:
+                            c["provisional_score_mult"] = 0.90
+                        updated = True
+                        break
 
-            if updated:
-                with open(dev_file, "w", encoding="utf-8") as f:
-                    json.dump(cells, f, indent=2)
+                if updated:
+                    _write_cells_atomic(dev_file, cells)
         except Exception as e:
             logger.debug(f"[Resolver] Could not record cell usage for '{cell_id}': {e}")
 
@@ -412,13 +608,9 @@ class DynamicNodeResolver:
     def list_unreviewed_cells(cls) -> List[Dict[str, Any]]:
         """Returns all dev cells currently stored in dev_unreviewed/dev_cells.json."""
         trees_dir = Path(settings.trees_dir) if settings.trees_dir else Path("trees")
-        dev_file = trees_dir / "dev_unreviewed" / "dev_cells.json"
-        if not dev_file.exists():
-            return []
         try:
-            with open(dev_file, "r", encoding="utf-8") as f:
-                data = json.load(f)
-                return data if isinstance(data, list) else []
+            with _sync_dev_storage(trees_dir, shared=True) as dev_file:
+                return _read_cells(dev_file)
         except Exception:
             return []
 
@@ -431,23 +623,23 @@ class DynamicNodeResolver:
     ) -> bool:
         """Promotes an unreviewed dev cell to fully reviewed status with 1.0 score multiplier."""
         trees_dir = Path(settings.trees_dir) if settings.trees_dir else Path("trees")
-        dev_file = trees_dir / "dev_unreviewed" / "dev_cells.json"
-        if not dev_file.exists():
-            return False
         try:
-            with open(dev_file, "r", encoding="utf-8") as f:
-                cells = json.load(f)
             found = False
-            for c in cells:
-                if c.get("cell_id", "").lower() == str(cell_id).lower():
-                    c["reviewed"] = True
-                    c["verified"] = True
-                    c["provisional_score_mult"] = 1.0
-                    found = True
-                    break
+            with _sync_dev_storage(trees_dir, shared=False) as dev_file:
+                if not dev_file.exists():
+                    return False
+                cells = _read_cells(dev_file)
+                for c in cells:
+                    if c.get("cell_id", "").lower() == str(cell_id).lower():
+                        c["reviewed"] = True
+                        c["verified"] = True
+                        c["provisional_score_mult"] = 1.0
+                        found = True
+                        break
+                if found:
+                    _write_cells_atomic(dev_file, cells)
+
             if found:
-                with open(dev_file, "w", encoding="utf-8") as f:
-                    json.dump(cells, f, indent=2)
                 if rag is not None and hasattr(rag, "cell_boosts"):
                     rag.cell_boosts[str(cell_id).lower()] = 1.0
                 return True
@@ -463,15 +655,14 @@ class DynamicNodeResolver:
     ) -> bool:
         """Removes a dev cell from unreviewed list and live orchestrator."""
         trees_dir = Path(settings.trees_dir) if settings.trees_dir else Path("trees")
-        dev_file = trees_dir / "dev_unreviewed" / "dev_cells.json"
-        if not dev_file.exists():
-            return False
         try:
-            with open(dev_file, "r", encoding="utf-8") as f:
-                cells = json.load(f)
-            new_cells = [c for c in cells if c.get("cell_id", "").lower() != str(cell_id).lower()]
-            with open(dev_file, "w", encoding="utf-8") as f:
-                json.dump(new_cells, f, indent=2)
+            with _sync_dev_storage(trees_dir, shared=False) as dev_file:
+                if not dev_file.exists():
+                    return False
+                cells = _read_cells(dev_file)
+                new_cells = [c for c in cells if c.get("cell_id", "").lower() != str(cell_id).lower()]
+                _write_cells_atomic(dev_file, new_cells)
+
             if orchestrator and cell_id in orchestrator.loaded_cells:
                 del orchestrator.loaded_cells[cell_id]
                 orchestrator.build_topology()
@@ -485,29 +676,16 @@ class DynamicNodeResolver:
         Saves the synthesized cell into an isolated dev file:
         trees/dev_unreviewed/dev_cells.json.
         Completely non-destructive to existing production trees.
+        Fully synchronized across processes and threads with atomic filesystem replacement.
         """
         try:
             trees_dir = Path(settings.trees_dir) if settings.trees_dir else Path("trees")
-            dev_dir = trees_dir / "dev_unreviewed"
-            dev_dir.mkdir(parents=True, exist_ok=True)
-            dev_file = dev_dir / "dev_cells.json"
-
-            existing: List[Dict[str, Any]] = []
-            if dev_file.exists():
-                try:
-                    with open(dev_file, "r", encoding="utf-8") as f:
-                        data = json.load(f)
-                        if isinstance(data, list):
-                            existing = data
-                except Exception:
-                    existing = []
-
-            cid = cell_schema.get("cell_id")
-            existing = [c for c in existing if c.get("cell_id") != cid]
-            existing.append(cell_schema)
-
-            with open(dev_file, "w", encoding="utf-8") as f:
-                json.dump(existing, f, indent=2)
+            with _sync_dev_storage(trees_dir, shared=False) as dev_file:
+                existing = _read_cells(dev_file)
+                cid = cell_schema.get("cell_id")
+                existing = [c for c in existing if c.get("cell_id") != cid]
+                existing.append(cell_schema)
+                _write_cells_atomic(dev_file, existing)
 
             logger.info(f"[Resolver] Persisted unreviewed dev cell to {dev_file}")
         except Exception as e:

@@ -1,15 +1,11 @@
-# src/harvester.py
-# Thin compatibility wrapper. Prefer UniversalHarvester directly.
 """
 src/harvester.py - Neuro-Symbolic Topological Lattice (NSTL)
-Universal Intelligent Harvester.
-Grounds all API harvesting in category-theoretic reflection via UniversalHarvester.
-Contains ZERO hardcoded domain lists or heuristic keyword matching.
+Universal Harvester Module.
+Eliminates redundant subclass shims and delegates category-theoretic reflection
+directly to UniversalHarvester using native domain_name resolution.
 """
 
-import sys
-from pathlib import Path
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Optional
 
 try:
     from schema import CellSchema, PortSchema, TreeSchema
@@ -18,14 +14,20 @@ except ImportError:
     from .schema import CellSchema, PortSchema, TreeSchema
     from .universal_harvester import UniversalHarvester
 
+# Direct alias: UniversalHarvester natively manages domain_name and package introspection.
+IntelligentHarvester = UniversalHarvester
 
-class IntelligentHarvester(UniversalHarvester):
-    """
-    Universal library harvester delegating purely to category-theoretic UniversalHarvester reflection.
-    Fully domain-agnostic, zero hardcoded word lists.
-    """
+# Ensure backward-compatible property access if legacy callers query .domain
+if not hasattr(UniversalHarvester, "domain"):
+    UniversalHarvester.domain = property(  # type: ignore[attr-defined]
+        lambda self: getattr(self, "domain_name", ""),
+        lambda self, val: setattr(self, "domain_name", val),
+    )
 
-    def __init__(self, domain: str, package_name: Optional[str] = None):
-        super().__init__(domain_name=domain, package_name=package_name)
-        self.domain = domain
-
+__all__ = [
+    "CellSchema",
+    "PortSchema",
+    "TreeSchema",
+    "UniversalHarvester",
+    "IntelligentHarvester",
+]

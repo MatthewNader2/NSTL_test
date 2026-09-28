@@ -9150,7 +9150,7 @@
     },
     {
       "cell_id": "sns_bridge_dataframe_to_axes",
-      "stage": 1,
+      "stage": 2,
       "topology_type": "source",
       "node_type": "function",
       "node_role": "bridge",

@@ -1,15 +1,21 @@
 # src/cli.py
 import argparse
 import ast
+import cmd
+import glob
 import hashlib
+import io
 import json
 import math
 import os
+import shutil
 import sqlite3
 import sys
 import time
+import tokenize
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Set, Tuple, Union
+from typing import Any, Callable, Dict, List, Optional, Set, Tuple, Union
 
 SRC_DIR = str(Path(__file__).resolve().parent)
 if SRC_DIR not in sys.path:
@@ -23,472 +29,6 @@ except ImportError:
     from .schema import CellSchema, TreeSchema, PortSchema
     from .harvester import IntelligentHarvester
     from .lattice import TypeRegistry
-
-def cmd_harvest(args):
-    """Harvest public APIs from a package and merge into trees/{domain}.json."""
-    domain = args.domain or args.package
-    package = args.package
-    trees_dir = Path(args.trees_dir)
-    trees_dir.mkdir(parents=True, exist_ok=True)
-    out_file = trees_dir / f"{domain}.json"
-
-    print(f"[*] Initializing Intelligent Harvester for package '{package}' (domain: '{domain}')...")
-    harvester = IntelligentHarvester(domain=domain, package_name=package)
-    tree = harvester.harvest_and_save(out_file)
-    print(f"[+] Harvested {len(tree.cells)} function cells from '{package}'.")
-    print(f"[+] Merged and saved into '{out_file}'.")
-
-
-def init_sqlite_db(db_path: Path, clean: bool = False) -> sqlite3.Connection:
-    """Initializes standard NSTL SQLite schema without destroying existing data unless clean=True."""
-    if clean and db_path.exists():
-        os.remove(db_path)
-    db_path.parent.mkdir(parents=True, exist_ok=True)
-
-    conn = sqlite3.connect(str(db_path))
-    cur = conn.cursor()
-    cur.execute("""
-        CREATE TABLE IF NOT EXISTS nodes (
-            cell_id              TEXT PRIMARY KEY,
-            domain_name          TEXT,
-            node_type            TEXT,
-            node_role            TEXT DEFAULT 'function',
-            stage                INTEGER,
-            keywords             TEXT,
-            input_type           TEXT,
-            input_state          TEXT,
-            output_type          TEXT,
-            output_state         TEXT,
-            code                 TEXT,
-            dependencies         TEXT,
-            configuration_schema TEXT,
-            slots                TEXT DEFAULT '{}',
-            verified             INTEGER DEFAULT 0,
-            docstring            TEXT DEFAULT '',
-            enrichment_source    TEXT DEFAULT NULL,
-            enriched_at          TEXT DEFAULT NULL,
-            source_provenance    TEXT DEFAULT 'unknown',
-            source_priority      INTEGER DEFAULT 100
-        )
-    """)
-    # Check if slots column exists for existing databases
-    cur.execute("PRAGMA table_info(nodes)")
-    existing_cols = {row[1] for row in cur.fetchall()}
-    if "slots" not in existing_cols:
-        try:
-            cur.execute("ALTER TABLE nodes ADD COLUMN slots TEXT DEFAULT '{}'")
-        except Exception:
-            pass
-
-    cur.execute("CREATE INDEX IF NOT EXISTS idx_input ON nodes(input_type, input_state)")
-    cur.execute("CREATE INDEX IF NOT EXISTS idx_output ON nodes(output_type, output_state)")
-    cur.execute("CREATE INDEX IF NOT EXISTS idx_domain ON nodes(domain_name)")
-    cur.execute("CREATE INDEX IF NOT EXISTS idx_role ON nodes(node_role)")
-    cur.execute("CREATE INDEX IF NOT EXISTS idx_type ON nodes(node_type)")
-    cur.execute("CREATE INDEX IF NOT EXISTS idx_slots ON nodes(slots)")
-    cur.execute("CREATE TABLE IF NOT EXISTS types (type_name TEXT, parent_type TEXT, domain_name TEXT, PRIMARY KEY (type_name, parent_type))")
-    cur.execute("CREATE TABLE IF NOT EXISTS typestates (state_name TEXT PRIMARY KEY, parent_state TEXT, carrier_type TEXT, properties TEXT, domain_name TEXT)")
-    cur.execute("CREATE TABLE IF NOT EXISTS aliases (alias TEXT PRIMARY KEY, canonical TEXT, domain_name TEXT)")
-    cur.execute("CREATE TABLE IF NOT EXISTS artifact_readers (category TEXT, module_name TEXT, function_name TEXT, domain_name TEXT, PRIMARY KEY (category, module_name, function_name))")
-    cur.execute("CREATE TABLE IF NOT EXISTS structural_metadata (category TEXT, item TEXT, extra TEXT, domain_name TEXT, PRIMARY KEY (category, item, extra, domain_name))")
-    cur.execute("CREATE TABLE IF NOT EXISTS _compilation_meta (key TEXT PRIMARY KEY, value TEXT, timestamp REAL)")
-    conn.commit()
-    return conn
-
-
-def compute_trees_fingerprint(trees_dir: Union[str, Path] = "trees") -> str:
-    """Computes a SHA-256 fingerprint over all tree JSON files in the given directory."""
-    td = Path(trees_dir)
-    if not td.exists():
-        return "MISSING"
-    json_files = sorted(td.glob("*.json"))
-    if not json_files:
-        return "EMPTY"
-    h = hashlib.sha256()
-    for jf in json_files:
-        h.update(jf.name.encode("utf-8"))
-        try:
-            stat = jf.stat()
-            h.update(f":{stat.st_size}:{stat.st_mtime_ns}".encode("utf-8"))
-        except OSError:
-            pass
-    return h.hexdigest()
-
-
-def get_stored_fingerprint(db_path: Union[str, Path]) -> Optional[str]:
-    """Retrieves the compilation fingerprint recorded in the SQLite database."""
-    target = Path(db_path)
-    if not target.exists():
-        return None
-    try:
-        conn = sqlite3.connect(str(target))
-        cur = conn.cursor()
-        cur.execute("SELECT value FROM _compilation_meta WHERE key = 'trees_fingerprint'")
-        row = cur.fetchone()
-        conn.close()
-        return row[0] if row else None
-    except Exception:
-        return None
-
-
-def record_trees_fingerprint(db_path: Union[str, Path], fingerprint: str) -> None:
-    """Records the tree compilation fingerprint into the SQLite database."""
-    try:
-        conn = sqlite3.connect(str(db_path))
-        cur = conn.cursor()
-        cur.execute("CREATE TABLE IF NOT EXISTS _compilation_meta (key TEXT PRIMARY KEY, value TEXT, timestamp REAL)")
-        cur.execute("INSERT OR REPLACE INTO _compilation_meta (key, value, timestamp) VALUES ('trees_fingerprint', ?, ?)",
-                    (fingerprint, time.time()))
-        conn.commit()
-        conn.close()
-    except Exception:
-        pass
-
-
-def ensure_lattice_compiled(trees_dir: Union[str, Path] = "trees", db_path: Union[str, Path] = "trees/lattice.db") -> bool:
-    """
-    Ensures that the target SQLite lattice database is strictly up-to-date with domain trees.
-    If the database is missing or domain tree JSON files were added, modified, or removed,
-    automatically compiles the trees into the database without requiring manual user intervention.
-    
-    If trees_dir contains zero trees, compiles a clean empty database with the standard
-    schema, ensuring the engine can boot cleanly with zero domain trees.
-    """
-    trees_path = Path(trees_dir)
-    target_db = Path(db_path)
-    current_fp = compute_trees_fingerprint(trees_path)
-    stored_fp = get_stored_fingerprint(target_db)
-
-    if target_db.exists() and stored_fp is not None and stored_fp == current_fp:
-        return False
-
-    if current_fp == "EMPTY":
-        init_sqlite_db(target_db, clean=True)
-        record_trees_fingerprint(target_db, current_fp)
-        return True
-
-    print(f"[*] Tree update detected in '{trees_path}'. Auto-compiling lattice database '{target_db}'...")
-    compile_args = argparse.Namespace(
-        trees_dir=str(trees_path),
-        output=str(target_db),
-        domains=[],
-        clean=True
-    )
-    cmd_compile(compile_args)
-    record_trees_fingerprint(target_db, current_fp)
-    return True
-
-
-def cmd_compile(args):
-    """Compiles all trees/*.json domain files into a target SQLite database."""
-    trees_dir = Path(args.trees_dir)
-    out_db = Path(args.output)
-    domain_filter = args.domains
-
-    json_files = sorted(trees_dir.glob("*.json"))
-    if domain_filter:
-        json_files = [f for f in json_files if f.stem in domain_filter or any(d in f.stem for d in domain_filter)]
-
-    print(f"[*] Compiling {len(json_files)} domain JSON files from '{trees_dir}' into '{out_db}'...")
-    conn = init_sqlite_db(out_db, clean=getattr(args, "clean", False))
-    cur = conn.cursor()
-
-    total_compiled = 0
-    stats: Dict[str, int] = {}
-
-    for jf in json_files:
-        try:
-            with open(jf, "r", encoding="utf-8") as f:
-                data = json.load(f)
-        except Exception as e:
-            print(f"[!] Failed to read {jf.name}: {e}")
-            continue
-
-        if isinstance(data, dict) and "cells" in data:
-            try:
-                tree = TreeSchema(**data)
-                cells = tree.cells
-                domain = tree.domain
-                # Dynamic domain plugin type registration
-                types_dict = getattr(tree, "types", {}) or data.get("types", {})
-                if isinstance(types_dict, dict):
-                    reg = TypeRegistry.get_instance()
-                    for t_name, t_meta in types_dict.items():
-                        if isinstance(t_meta, dict):
-                            parents = t_meta.get("parents") or ([t_meta["parent"]] if t_meta.get("parent") else [])
-                        else:
-                            parents = [str(t_meta)]
-                        for parent in parents:
-                            if parent:
-                                reg.register_type(t_name, parent)
-                                cur.execute("INSERT OR REPLACE INTO types (type_name, parent_type, domain_name) VALUES (?, ?, ?)",
-                                            (str(t_name).strip().lower(), str(parent).strip().lower(), domain))
-
-                # Dynamic domain plugin typestate registration
-                ts_data = data.get("typestates") or getattr(tree, "typestates", None)
-                if hasattr(ts_data, "model_dump"):
-                    ts_data = ts_data.model_dump()
-                if ts_data:
-                    states_list = ts_data.get("states", []) if isinstance(ts_data, dict) else (ts_data if isinstance(ts_data, list) else [])
-                    for s_entry in states_list:
-                        if isinstance(s_entry, dict) and "name" in s_entry:
-                            s_name = s_entry["name"]
-                            s_parent = s_entry.get("parent_state")
-                            s_carrier = s_entry.get("carrier_type")
-                            s_props = json.dumps(s_entry.get("properties") or {})
-                            cur.execute("INSERT OR REPLACE INTO typestates (state_name, parent_state, carrier_type, properties, domain_name) VALUES (?, ?, ?, ?, ?)",
-                                        (s_name, s_parent, s_carrier, s_props, domain))
-
-                # Dynamic domain plugin aliases registration
-                aliases_dict = getattr(tree, "aliases", {}) or data.get("aliases", {})
-                if isinstance(aliases_dict, dict):
-                    for a_k, a_v in aliases_dict.items():
-                        cur.execute("INSERT OR REPLACE INTO aliases (alias, canonical, domain_name) VALUES (?, ?, ?)",
-                                     (str(a_k).strip(), str(a_v).strip(), domain))
-
-                # Dynamic domain plugin artifact readers registration
-                readers_dict = getattr(tree, "artifact_readers", {}) or data.get("artifact_readers", {})
-                if isinstance(readers_dict, dict):
-                    for cat, readers in readers_dict.items():
-                        if isinstance(readers, list):
-                            for r in readers:
-                                parts = str(r).replace(":", ".").rsplit(".", 1)
-                                if len(parts) == 2:
-                                    cur.execute("INSERT OR REPLACE INTO artifact_readers (category, module_name, function_name, domain_name) VALUES (?, ?, ?, ?)",
-                                                (cat.strip().lower(), parts[0], parts[1], domain))
-
-                # Dynamic structural metadata registration
-                for q in getattr(tree, "advisory_qualifiers", []) or data.get("advisory_qualifiers", []):
-                    cur.execute("INSERT OR REPLACE INTO structural_metadata (category, item, extra, domain_name) VALUES ('advisory_qualifier', ?, '', ?)", (json.dumps(q), domain))
-                for c in getattr(tree, "abstract_carriers", []) or data.get("abstract_carriers", []):
-                    cur.execute("INSERT OR REPLACE INTO structural_metadata (category, item, extra, domain_name) VALUES ('abstract_carrier', ?, '', ?)", (str(c).strip().lower(), domain))
-                for k, v in (getattr(tree, "abstract_carrier_mapping", {}) or data.get("abstract_carrier_mapping", {})).items():
-                    cur.execute("INSERT OR REPLACE INTO structural_metadata (category, item, extra, domain_name) VALUES ('abstract_carrier_mapping', ?, ?, ?)", (str(k).strip().lower(), str(v).strip().lower(), domain))
-                for t in getattr(tree, "dest_port_tokens", []) or data.get("dest_port_tokens", []):
-                    cur.execute("INSERT OR REPLACE INTO structural_metadata (category, item, extra, domain_name) VALUES ('dest_port_token', ?, '', ?)", (str(t).strip().lower(), domain))
-                for r in getattr(tree, "data_bearing_roles", []) or data.get("data_bearing_roles", []):
-                    cur.execute("INSERT OR REPLACE INTO structural_metadata (category, item, extra, domain_name) VALUES ('data_bearing_role', ?, '', ?)", (str(r).strip().lower(), domain))
-                for v in getattr(tree, "estimator_verbs", []) or data.get("estimator_verbs", []):
-                    cur.execute("INSERT OR REPLACE INTO structural_metadata (category, item, extra, domain_name) VALUES ('estimator_verb', ?, '', ?)", (str(v).strip().lower(), domain))
-                for tok in getattr(tree, "column_projection_tokens", []) or data.get("column_projection_tokens", []):
-                    cur.execute("INSERT OR REPLACE INTO structural_metadata (category, item, extra, domain_name) VALUES ('column_projection_token', ?, '', ?)", (str(tok).strip().lower(), domain))
-                for tv in getattr(tree, "type_vars", []) or data.get("type_vars", []):
-                    cur.execute("INSERT OR REPLACE INTO structural_metadata (category, item, extra, domain_name) VALUES ('type_var', ?, '', ?)", (str(tv).strip(), domain))
-                for tt in getattr(tree, "top_types", []) or data.get("top_types", []):
-                    cur.execute("INSERT OR REPLACE INTO structural_metadata (category, item, extra, domain_name) VALUES ('top_type', ?, '', ?)", (str(tt).strip().lower(), domain))
-                top_decl = getattr(tree, "top", None) or data.get("top")
-                if isinstance(top_decl, list):
-                    for tt in top_decl:
-                        cur.execute("INSERT OR REPLACE INTO structural_metadata (category, item, extra, domain_name) VALUES ('top_type', ?, '', ?)", (str(tt).strip().lower(), domain))
-                for pc in getattr(tree, "product_constructors", []) or data.get("product_constructors", []):
-                    cur.execute("INSERT OR REPLACE INTO structural_metadata (category, item, extra, domain_name) VALUES ('product_constructor', ?, '', ?)", (str(pc).strip().lower(), domain))
-                for et in getattr(tree, "egress_intent_tokens", []) or data.get("egress_intent_tokens", []):
-                    cur.execute("INSERT OR REPLACE INTO structural_metadata (category, item, extra, domain_name) VALUES ('egress_intent_token', ?, '', ?)", (str(et).strip().lower(), domain))
-                for ms in getattr(tree, "materialization_states", []) or data.get("materialization_states", []):
-                    cur.execute("INSERT OR REPLACE INTO structural_metadata (category, item, extra, domain_name) VALUES ('materialization_state', ?, '', ?)", (str(ms).strip().lower(), domain))
-                pol_hints = getattr(tree, "polarity_hints", {}) or data.get("polarity_hints", {})
-                if isinstance(pol_hints, dict):
-                    for direction, hints in pol_hints.items():
-                        if isinstance(hints, list):
-                            for h in hints:
-                                cur.execute("INSERT OR REPLACE INTO structural_metadata (category, item, extra, domain_name) VALUES ('polarity_hint', ?, ?, ?)", (str(direction).strip().lower(), str(h).strip().lower(), domain))
-                for pt in getattr(tree, "preposition_triggers", []) or data.get("preposition_triggers", []):
-                    cur.execute("INSERT OR REPLACE INTO structural_metadata (category, item, extra, domain_name) VALUES ('preposition_trigger', ?, '', ?)", (str(pt).strip().lower(), domain))
-                for sc in getattr(tree, "sentence_connectives", []) or data.get("sentence_connectives", []):
-                    cur.execute("INSERT OR REPLACE INTO structural_metadata (category, item, extra, domain_name) VALUES ('sentence_connective', ?, '', ?)", (str(sc).strip().lower(), domain))
-                for mk, mv in (getattr(tree, "asset_placeholders", {}) or getattr(tree, "default_asset_placeholders", {}) or data.get("asset_placeholders", {}) or data.get("default_asset_placeholders", {})).items():
-                    cur.execute("INSERT OR REPLACE INTO structural_metadata (category, item, extra, domain_name) VALUES ('asset_placeholder', ?, ?, ?)", (str(mk).strip().lower(), str(mv).strip(), domain))
-                for mk, mv in (getattr(tree, "output_placeholders", {}) or getattr(tree, "default_output_placeholders", {}) or data.get("output_placeholders", {}) or data.get("default_output_placeholders", {})).items():
-                    cur.execute("INSERT OR REPLACE INTO structural_metadata (category, item, extra, domain_name) VALUES ('output_asset_placeholder', ?, ?, ?)", (str(mk).strip().lower(), str(mv).strip(), domain))
-                for av in getattr(tree, "action_verbs", []) or data.get("action_verbs", []):
-                    cur.execute("INSERT OR REPLACE INTO structural_metadata (category, item, extra, domain_name) VALUES ('action_verb', ?, '', ?)", (str(av).strip().lower(), domain))
-                for ot in getattr(tree, "operation_tokens", []) or data.get("operation_tokens", []):
-                    cur.execute("INSERT OR REPLACE INTO structural_metadata (category, item, extra, domain_name) VALUES ('operation_token', ?, '', ?)", (str(ot).strip().lower(), domain))
-            except Exception as e:
-                print(f"[!] Schema validation error in {jf.name}: {e}")
-                cells = []
-                domain = jf.stem
-        elif isinstance(data, list):
-            cells = [CellSchema(**c) for c in data if isinstance(c, dict) and "cell_id" in c]
-            domain = jf.stem.replace("_tree", "").replace("_seeds", "")
-        else:
-            continue
-
-        count = 0
-        for cell in cells:
-            cid = cell.cell_id.strip().upper()
-            primary_in = cell.primary_input
-            primary_out = cell.primary_output
-
-            in_type = primary_in.type_name if primary_in and getattr(primary_in, "type_name", None) and str(primary_in.type_name).lower() not in ("none", "null", "undefined") else None
-            in_state = primary_in.state if primary_in and getattr(primary_in, "state", None) and str(primary_in.state).lower() not in ("none", "null", "undefined") else None
-            out_type = primary_out.type_name if primary_out and getattr(primary_out, "type_name", None) and str(primary_out.type_name).lower() not in ("none", "null", "undefined") else None
-            out_state = primary_out.state if primary_out and getattr(primary_out, "state", None) and str(primary_out.state).lower() not in ("none", "null", "undefined") else None
-
-            cfg_dict = {
-                "inputs": {k: v.model_dump() for k, v in cell.inputs.items()},
-                "outputs": {k: v.model_dump() for k, v in cell.outputs.items()},
-                "slots": getattr(cell, "slots", {}),
-                "topology_type": getattr(cell, "topology_type", "sequential"),
-                "feedback_state_type": getattr(cell, "feedback_state_type", None),
-                "preconditions": [p.model_dump() if hasattr(p, "model_dump") else p for p in getattr(cell, "preconditions", [])],
-                "postconditions": [p.model_dump() if hasattr(p, "model_dump") else p for p in getattr(cell, "postconditions", [])],
-                "effects": [p.model_dump() if hasattr(p, "model_dump") else p for p in getattr(cell, "effects", [])],
-                "edges": [e.model_dump() if hasattr(e, "model_dump") else e for e in getattr(cell, "edges", [])],
-                "sub_cells": getattr(cell, "sub_cells", []),
-                "algorithmic_steps": getattr(cell, "algorithmic_steps", []),
-                "internal_topology": getattr(cell, "internal_topology", {}),
-                "endable": getattr(cell, "endable", None),
-                "primary_in": getattr(cell, "primary_in", None),
-                "primary_out": getattr(cell, "primary_out", None),
-            }
-            cfg_json = json.dumps(cfg_dict)
-            deps_json = json.dumps(cell.dependencies)
-            kws_json = json.dumps(cell.keywords or cell.semantic_tags)
-            verified_val = 1 if cell.source_priority <= 10 else 0
-
-            # Dynamic cell-level type vars and role carriers
-            if hasattr(cell, "type_vars") and cell.type_vars:
-                for tv in cell.type_vars:
-                    cur.execute("INSERT OR REPLACE INTO structural_metadata (category, item, extra, domain_name) VALUES ('type_var', ?, '', ?)", (str(tv).strip(), domain))
-            for p_val in cell.inputs.values():
-                role = getattr(p_val, "port_role", None) or getattr(p_val, "role", None)
-                if role:
-                    cur.execute("INSERT OR REPLACE INTO structural_metadata (category, item, extra, domain_name) VALUES ('role_carrier', ?, '', ?)", (str(role).strip().lower(), domain))
-
-            # Priority check: lower source_priority = higher trust (1 = seed, 100 = auto)
-            cur.execute("SELECT source_priority FROM nodes WHERE cell_id = ?", (cid,))
-            row = cur.fetchone()
-            if row and row[0] < cell.source_priority:
-                continue
-
-            slots_dict = getattr(cell, "slots", {}) or {}
-            slots_json = json.dumps(slots_dict)
-
-            cur.execute("""
-                INSERT OR REPLACE INTO nodes
-                (cell_id, domain_name, node_type, node_role, stage, keywords,
-                 input_type, input_state, output_type, output_state, code,
-                 dependencies, configuration_schema, slots, verified, docstring,
-                 enrichment_source, enriched_at, source_provenance, source_priority)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            """, (
-                cid,
-                cell.domain_name or domain,
-                cell.node_type or "function",
-                cell.node_role or "function",
-                cell.stage,
-                kws_json,
-                in_type,
-                in_state,
-                out_type,
-                out_state,
-                cell.code_template,
-                deps_json,
-                cfg_json,
-                slots_json,
-                verified_val,
-                cell.docstring or "",
-                getattr(cell, "enrichment_source", None),
-                getattr(cell, "enriched_at", None),
-                jf.name,
-                cell.source_priority
-            ))
-            count += 1
-            total_compiled += 1
-
-        stats[domain] = count
-        print(f"  [+] Domain '{domain}': compiled {count} nodes ({jf.name})")
-
-    conn.commit()
-    conn.close()
-    record_trees_fingerprint(out_db, compute_trees_fingerprint(trees_dir))
-    print(f"[*] Compilation Complete: {total_compiled} total verified nodes compiled into '{out_db}'.")
-
-
-def cmd_validate(args):
-    """Performs dry-run AST validation and integrity verification on all nodes in SQLite."""
-    db_path = Path(args.db)
-    if not db_path.exists():
-        print(f"[!] Database file '{db_path}' does not exist!")
-        sys.exit(1)
-
-    print(f"[*] Validating SQLite Database '{db_path}'...")
-    conn = sqlite3.connect(str(db_path))
-    cur = conn.cursor()
-
-    cur.execute("SELECT cell_id, domain_name, stage, code, input_type, output_type, configuration_schema, node_type, node_role FROM nodes")
-    rows = cur.fetchall()
-
-    valid_count = 0
-    failed_count = 0
-    errors: List[str] = []
-
-    for row in rows:
-        cell_id, domain, stage, code, in_t, out_t, config_str, n_type, n_role = row
-        if not code or not code.strip():
-            try:
-                cfg = json.loads(config_str) if config_str else {}
-            except Exception:
-                cfg = {}
-            if n_type == "macro" or n_role == "macro" or cfg.get("node_type") == "macro" or cfg.get("sub_cells"):
-                sub_cells = cfg.get("sub_cells") or []
-                if len(sub_cells) >= 1:
-                    valid_count += 1
-                    continue
-            failed_count += 1
-            errors.append(f"{cell_id}: Empty code template")
-            continue
-
-        # Replace all {placeholders} with dummy variables for AST dry-run
-        seen: Dict[str, str] = {}
-        res = []
-        i = 0
-        n = len(code)
-        while i < n:
-            if code[i] == "{" and i + 1 < n:
-                end = code.find("}", i + 1)
-                if end != -1:
-                    inner = code[i + 1 : end]
-                    if inner.isidentifier():
-                        key = f"{{{inner}}}"
-                        if key not in seen:
-                            seen[key] = f"_ph_{len(seen)}"
-                        res.append(seen[key])
-                        i = end + 1
-                        continue
-            res.append(code[i])
-            i += 1
-        dummy_code = "".join(res)
-        try:
-            ast.parse(dummy_code)
-            valid_count += 1
-        except SyntaxError as e:
-            failed_count += 1
-            errors.append(f"{cell_id}: AST Syntax Error: {e}")
-
-    conn.close()
-
-    print(f"\n==================================================")
-    print(f" VALIDATION RESULTS FOR: {db_path.name}")
-    print(f"==================================================")
-    print(f" Total Nodes Checked : {len(rows)}")
-    print(f" Syntactically Valid : {valid_count}")
-    print(f" Failed Nodes        : {failed_count}")
-    print(f" Success Rate        : {(valid_count / len(rows) * 100):.2f}%" if rows else "0.00%")
-
-    if errors:
-        print("\n[!] Top Errors:")
-        for err in errors[:10]:
-            print(f"  - {err}")
-        sys.exit(1)
-    else:
-        print("\n✅ All nodes in database passed 100% AST dry-run validation!")
-
-
-import cmd
-import glob
-import shutil
 
 from rich.console import Console
 from rich.panel import Panel
@@ -538,16 +78,636 @@ except ImportError:
     from .macro_harvester import MacroHarvester
     from .route_methods import ROUTE_METHOD_REGISTRY, get_route_method
 
-
 console = Console()
 
+# =====================================================================
+# Constants & Defaults
+# =====================================================================
+DEFAULT_SANDBOX_TIMEOUT: float = getattr(settings, "sandbox_timeout", 5.0)
+HIGH_TRUST_PRIORITY_THRESHOLD: int = getattr(settings, "verified_priority_threshold", 10)
+DEFAULT_TRANSLATOR_PROMPT: str = (
+    "You are a precise technical translator. Rewrite the user request as ONE "
+    "comma-separated pipeline sentence: first the input source with its asset "
+    "name, then each transform verb with its arguments in order, then the "
+    "destination. Use only words from the request. Output ONLY the sentence, "
+    "no headers, no lists, no formatting."
+)
 
+
+def get_translator_prompt(orchestrator: Optional[Any] = None) -> str:
+    """Retrieves domain-adapted or configured system prompt for query translation."""
+    if orchestrator and hasattr(orchestrator, "translator_prompt") and orchestrator.translator_prompt:
+        return orchestrator.translator_prompt
+    if hasattr(settings, "translator_prompt") and settings.translator_prompt:
+        return settings.translator_prompt
+    return DEFAULT_TRANSLATOR_PROMPT
+
+
+def sanitize_placeholders_for_ast(code: str) -> str:
+    """
+    Replaces unquoted template placeholders '{identifier}' with valid dummy identifiers
+    for AST dry-run parsing, without corrupting string literals, f-strings, or comments.
+    """
+    if not code or not code.strip():
+        return code
+
+    try:
+        tokens = list(tokenize.generate_tokens(io.StringIO(code).readline))
+    except (tokenize.TokenError, IndentationError):
+        # Fallback if tokenizer encounters unclosed delimiters before substitution
+        import re
+        return re.sub(r'(?<!["\'])\{([a-zA-Z_]\w*)\}(?!["\'])', r'__ph_\1', code)
+
+    new_tokens: List[tokenize.TokenInfo] = []
+    seen: Dict[str, str] = {}
+    i = 0
+    n = len(tokens)
+
+    while i < n:
+        if (
+            i + 2 < n
+            and tokens[i].type == tokenize.OP and tokens[i].string == "{"
+            and tokens[i + 1].type == tokenize.NAME and tokens[i + 1].string.isidentifier()
+            and tokens[i + 2].type == tokenize.OP and tokens[i + 2].string == "}"
+        ):
+            ph_name = tokens[i + 1].string
+            if ph_name not in seen:
+                seen[ph_name] = f"_ph_{len(seen)}"
+            dummy_id = seen[ph_name]
+
+            new_tokens.append(tokenize.TokenInfo(
+                tokenize.NAME, dummy_id, tokens[i].start, tokens[i + 2].end, tokens[i].line
+            ))
+            i += 3
+        else:
+            new_tokens.append(tokens[i])
+            i += 1
+
+    try:
+        return tokenize.untokenize(new_tokens)
+    except Exception:
+        import re
+        return re.sub(r'(?<!["\'])\{([a-zA-Z_]\w*)\}(?!["\'])', r'__ph_\1', code)
+
+
+# =====================================================================
+# Extensible Contract Evaluation Registry
+# =====================================================================
+ContractEvaluator = Callable[[Dict[str, Any], str], Optional[str]]
+CONTRACT_RULE_REGISTRY: Dict[str, ContractEvaluator] = {}
+
+
+def register_contract_rule(rule_type: str):
+    """Decorator to register verification contract evaluation rules."""
+    def decorator(fn: ContractEvaluator):
+        CONTRACT_RULE_REGISTRY[rule_type] = fn
+        return fn
+    return decorator
+
+
+@register_contract_rule("model_fit_split")
+def _eval_model_fit_split(check: Dict[str, Any], code: str) -> Optional[str]:
+    expected = check.get("expected_train_feature_var")
+    actual = check.get("feature_var")
+    model = check.get("model_var")
+    cid = check.get("cell_id", "terminal_node")
+    if expected and actual and actual != expected:
+        return f"Terminal model '{model}' ({cid}) was fitted on '{actual}' instead of split training partition '{expected}'"
+    return None
+
+
+@register_contract_rule("image_annotation_egress")
+def _eval_annotation_egress(check: Dict[str, Any], code: str) -> Optional[str]:
+    saved = check.get("saved_var")
+    annotated = check.get("annotated_var")
+    ingress = check.get("ingress_var")
+    cid = check.get("cell_id", "terminal_node")
+    if saved and annotated and ingress and saved == ingress and annotated != ingress:
+        return f"Terminal node '{cid}' saved unannotated raw input image '{ingress}' instead of annotated image '{annotated}'"
+    return None
+
+
+def _statically_evaluate_contract(final_code: str, contract: Any) -> List[str]:
+    """
+    Evaluates VerificationContract postconditions and terminal intent statically
+    via the extensible contract rule registry.
+    """
+    if not contract:
+        return []
+    violations: List[str] = []
+
+    term_checks = getattr(contract, "terminal_checks", []) or []
+    if isinstance(contract, dict):
+        term_checks = contract.get("terminal_checks", [])
+
+    for term_check in term_checks:
+        intent_type = term_check.get("type")
+        evaluator = CONTRACT_RULE_REGISTRY.get(intent_type)
+        if evaluator:
+            err = evaluator(term_check, final_code)
+            if err:
+                violations.append(err)
+        elif "expected_var" in term_check and "actual_var" in term_check:
+            if term_check.get("actual_var") != term_check.get("expected_var"):
+                violations.append(
+                    f"Terminal check '{intent_type}' failed: expected {term_check.get('expected_var')}, got {term_check.get('actual_var')}"
+                )
+
+    return violations
+
+
+def _get_score_color(score: float, epsilon: float = 0.001) -> str:
+    """Computes color coding based on dynamic router confidence tiers."""
+    if score >= 0.5:
+        return "bold green"
+    elif score >= max(0.1, epsilon * 10):
+        return "bold yellow"
+    return "white"
+
+
+# =====================================================================
+# Database & Compilation Subsystem
+# =====================================================================
+def cmd_harvest(args):
+    """Harvest public APIs from a package and merge into trees/{domain}.json."""
+    domain = args.domain or args.package
+    package = args.package
+    trees_dir = Path(args.trees_dir)
+    trees_dir.mkdir(parents=True, exist_ok=True)
+    out_file = trees_dir / f"{domain}.json"
+
+    print(f"[*] Initializing Intelligent Harvester for package '{package}' (domain: '{domain}')...")
+    harvester = IntelligentHarvester(domain=domain, package_name=package)
+    tree = harvester.harvest_and_save(out_file)
+    print(f"[+] Harvested {len(tree.cells)} function cells from '{package}'.")
+    print(f"[+] Merged and saved into '{out_file}'.")
+
+
+def init_sqlite_db(db_path: Path, clean: bool = False) -> sqlite3.Connection:
+    """Initializes standard NSTL SQLite schema without destroying existing data unless clean=True."""
+    if clean and db_path.exists():
+        os.remove(db_path)
+    db_path.parent.mkdir(parents=True, exist_ok=True)
+
+    conn = sqlite3.connect(str(db_path))
+    cur = conn.cursor()
+    cur.execute("PRAGMA journal_mode = WAL;")
+    cur.execute("PRAGMA synchronous = NORMAL;")
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS nodes (
+            cell_id              TEXT PRIMARY KEY,
+            domain_name          TEXT,
+            node_type            TEXT,
+            node_role            TEXT DEFAULT 'function',
+            stage                INTEGER,
+            keywords             TEXT,
+            input_type           TEXT,
+            input_state          TEXT,
+            output_type          TEXT,
+            output_state         TEXT,
+            code                 TEXT,
+            dependencies         TEXT,
+            configuration_schema TEXT,
+            slots                TEXT DEFAULT '{}',
+            verified             INTEGER DEFAULT 0,
+            docstring            TEXT DEFAULT '',
+            enrichment_source    TEXT DEFAULT NULL,
+            enriched_at          TEXT DEFAULT NULL,
+            source_provenance    TEXT DEFAULT 'unknown',
+            source_priority      INTEGER DEFAULT 100
+        )
+    """)
+    cur.execute("PRAGMA table_info(nodes)")
+    existing_cols = {row[1] for row in cur.fetchall()}
+    if "slots" not in existing_cols:
+        try:
+            cur.execute("ALTER TABLE nodes ADD COLUMN slots TEXT DEFAULT '{}'")
+        except Exception:
+            pass
+
+    cur.execute("CREATE INDEX IF NOT EXISTS idx_input ON nodes(input_type, input_state)")
+    cur.execute("CREATE INDEX IF NOT EXISTS idx_output ON nodes(output_type, output_state)")
+    cur.execute("CREATE INDEX IF NOT EXISTS idx_domain ON nodes(domain_name)")
+    cur.execute("CREATE INDEX IF NOT EXISTS idx_role ON nodes(node_role)")
+    cur.execute("CREATE INDEX IF NOT EXISTS idx_type ON nodes(node_type)")
+    cur.execute("CREATE INDEX IF NOT EXISTS idx_slots ON nodes(slots)")
+    cur.execute("CREATE TABLE IF NOT EXISTS types (type_name TEXT, parent_type TEXT, domain_name TEXT, PRIMARY KEY (type_name, parent_type))")
+    cur.execute("CREATE TABLE IF NOT EXISTS typestates (state_name TEXT PRIMARY KEY, parent_state TEXT, carrier_type TEXT, properties TEXT, domain_name TEXT)")
+    cur.execute("CREATE TABLE IF NOT EXISTS aliases (alias TEXT PRIMARY KEY, canonical TEXT, domain_name TEXT)")
+    cur.execute("CREATE TABLE IF NOT EXISTS artifact_readers (category TEXT, module_name TEXT, function_name TEXT, domain_name TEXT, PRIMARY KEY (category, module_name, function_name))")
+    cur.execute("CREATE TABLE IF NOT EXISTS structural_metadata (category TEXT, item TEXT, extra TEXT, domain_name TEXT, PRIMARY KEY (category, item, extra, domain_name))")
+    cur.execute("CREATE TABLE IF NOT EXISTS _compilation_meta (key TEXT PRIMARY KEY, value TEXT, timestamp REAL)")
+    conn.commit()
+    return conn
+
+
+def compute_trees_fingerprint(trees_dir: Union[str, Path] = "trees") -> str:
+    """Computes a fast SHA-256 fingerprint over all tree JSON files in the directory."""
+    td = Path(trees_dir)
+    if not td.exists():
+        return "MISSING"
+    try:
+        entries = sorted([e for e in os.scandir(td) if e.is_file() and e.name.endswith(".json")], key=lambda x: x.name)
+    except OSError:
+        return "MISSING"
+
+    if not entries:
+        return "EMPTY"
+
+    h = hashlib.sha256()
+    for entry in entries:
+        h.update(entry.name.encode("utf-8"))
+        try:
+            stat = entry.stat()
+            h.update(f":{stat.st_size}:{stat.st_mtime_ns}".encode("utf-8"))
+        except OSError:
+            pass
+    return h.hexdigest()
+
+
+def get_stored_fingerprint(db_path: Union[str, Path]) -> Optional[str]:
+    """Retrieves the compilation fingerprint recorded in the SQLite database."""
+    target = Path(db_path)
+    if not target.exists():
+        return None
+    try:
+        conn = sqlite3.connect(str(target))
+        cur = conn.cursor()
+        cur.execute("SELECT value FROM _compilation_meta WHERE key = 'trees_fingerprint'")
+        row = cur.fetchone()
+        conn.close()
+        return row[0] if row else None
+    except Exception:
+        return None
+
+
+def record_trees_fingerprint(db_path: Union[str, Path], fingerprint: str) -> None:
+    """Records the tree compilation fingerprint into the SQLite database."""
+    try:
+        conn = sqlite3.connect(str(db_path))
+        cur = conn.cursor()
+        cur.execute("CREATE TABLE IF NOT EXISTS _compilation_meta (key TEXT PRIMARY KEY, value TEXT, timestamp REAL)")
+        cur.execute("INSERT OR REPLACE INTO _compilation_meta (key, value, timestamp) VALUES ('trees_fingerprint', ?, ?)",
+                    (fingerprint, time.time()))
+        conn.commit()
+        conn.close()
+    except Exception:
+        pass
+
+
+def ensure_lattice_compiled(trees_dir: Union[str, Path] = "trees", db_path: Union[str, Path] = "trees/lattice.db") -> bool:
+    """
+    Ensures target SQLite database is up-to-date with domain trees.
+    Performs fast O(1) directory mtime checks on startup to eliminate stat storm bottlenecks.
+    """
+    trees_path = Path(trees_dir)
+    target_db = Path(db_path)
+
+    if target_db.exists():
+        try:
+            db_mtime = target_db.stat().st_mtime_ns
+            dir_mtime = trees_path.stat().st_mtime_ns
+            if db_mtime >= dir_mtime:
+                stored_fp = get_stored_fingerprint(target_db)
+                if stored_fp is not None:
+                    entries = [e for e in os.scandir(trees_path) if e.is_file() and e.name.endswith(".json")]
+                    if not entries and stored_fp == "EMPTY":
+                        return False
+                    if entries and all(e.stat().st_mtime_ns <= db_mtime for e in entries):
+                        return False
+        except OSError:
+            pass
+
+    current_fp = compute_trees_fingerprint(trees_path)
+    stored_fp = get_stored_fingerprint(target_db)
+
+    if target_db.exists() and stored_fp is not None and stored_fp == current_fp:
+        return False
+
+    if current_fp == "EMPTY":
+        init_sqlite_db(target_db, clean=True)
+        record_trees_fingerprint(target_db, current_fp)
+        return True
+
+    print(f"[*] Tree update detected in '{trees_path}'. Auto-compiling lattice database '{target_db}'...")
+    compile_args = argparse.Namespace(
+        trees_dir=str(trees_path),
+        output=str(target_db),
+        domains=[],
+        clean=True
+    )
+    cmd_compile(compile_args)
+    record_trees_fingerprint(target_db, current_fp)
+    return True
+
+
+def _load_tree_file(jf: Path) -> Tuple[Optional[TreeSchema], Optional[Dict[str, Any]], Optional[List[CellSchema]], str, str]:
+    """Worker helper to parse and validate domain JSON trees concurrently."""
+    try:
+        with open(jf, "r", encoding="utf-8") as f:
+            data = json.load(f)
+    except Exception as e:
+        print(f"[!] Failed to read {jf.name}: {e}")
+        return None, None, None, jf.stem, jf.name
+
+    if isinstance(data, dict) and "cells" in data:
+        try:
+            tree = TreeSchema(**data)
+            return tree, data, tree.cells, tree.domain, jf.name
+        except Exception as e:
+            print(f"[!] Schema validation error in {jf.name}: {e}")
+            return None, data, [], jf.stem, jf.name
+    elif isinstance(data, list):
+        cells = [CellSchema(**c) for c in data if isinstance(c, dict) and "cell_id" in c]
+        domain = jf.stem.replace("_tree", "").replace("_seeds", "")
+        return None, None, cells, domain, jf.name
+    return None, None, None, jf.stem, jf.name
+
+
+def cmd_compile(args):
+    """Compiles all trees/*.json domain files into a target SQLite database with batched I/O."""
+    trees_dir = Path(args.trees_dir)
+    out_db = Path(args.output)
+    domain_filter = args.domains
+
+    json_files = sorted(trees_dir.glob("*.json"))
+    if domain_filter:
+        json_files = [f for f in json_files if f.stem in domain_filter or any(d in f.stem for d in domain_filter)]
+
+    print(f"[*] Compiling {len(json_files)} domain JSON files from '{trees_dir}' into '{out_db}'...")
+    conn = init_sqlite_db(out_db, clean=getattr(args, "clean", False))
+    cur = conn.cursor()
+
+    with ThreadPoolExecutor() as executor:
+        loaded_trees = list(executor.map(_load_tree_file, json_files))
+
+    total_compiled = 0
+    stats: Dict[str, int] = {}
+    node_rows: List[Tuple] = []
+
+    for tree, data, cells, domain, fname in loaded_trees:
+        if cells is None:
+            continue
+
+        if tree and data:
+            types_dict = getattr(tree, "types", {}) or data.get("types", {})
+            if isinstance(types_dict, dict):
+                reg = TypeRegistry.get_instance()
+                for t_name, t_meta in types_dict.items():
+                    if isinstance(t_meta, dict):
+                        parents = t_meta.get("parents") or ([t_meta["parent"]] if t_meta.get("parent") else [])
+                    else:
+                        parents = [str(t_meta)]
+                    for parent in parents:
+                        if parent:
+                            reg.register_type(t_name, parent)
+                            cur.execute(
+                                "INSERT OR REPLACE INTO types (type_name, parent_type, domain_name) VALUES (?, ?, ?)",
+                                (str(t_name).strip().lower(), str(parent).strip().lower(), domain)
+                            )
+
+            ts_data = data.get("typestates") or getattr(tree, "typestates", None)
+            if hasattr(ts_data, "model_dump"):
+                ts_data = ts_data.model_dump()
+            if ts_data:
+                states_list = ts_data.get("states", []) if isinstance(ts_data, dict) else (ts_data if isinstance(ts_data, list) else [])
+                for s_entry in states_list:
+                    if isinstance(s_entry, dict) and "name" in s_entry:
+                        s_name = s_entry["name"]
+                        s_parent = s_entry.get("parent_state")
+                        s_carrier = s_entry.get("carrier_type")
+                        s_props = json.dumps(s_entry.get("properties") or {})
+                        cur.execute(
+                            "INSERT OR REPLACE INTO typestates (state_name, parent_state, carrier_type, properties, domain_name) VALUES (?, ?, ?, ?, ?)",
+                            (s_name, s_parent, s_carrier, s_props, domain)
+                        )
+
+            aliases_dict = getattr(tree, "aliases", {}) or data.get("aliases", {})
+            if isinstance(aliases_dict, dict):
+                for a_k, a_v in aliases_dict.items():
+                    cur.execute(
+                        "INSERT OR REPLACE INTO aliases (alias, canonical, domain_name) VALUES (?, ?, ?)",
+                        (str(a_k).strip(), str(a_v).strip(), domain)
+                    )
+
+            readers_dict = getattr(tree, "artifact_readers", {}) or data.get("artifact_readers", {})
+            if isinstance(readers_dict, dict):
+                for cat, readers in readers_dict.items():
+                    if isinstance(readers, list):
+                        for r in readers:
+                            parts = str(r).replace(":", ".").rsplit(".", 1)
+                            if len(parts) == 2:
+                                cur.execute(
+                                    "INSERT OR REPLACE INTO artifact_readers (category, module_name, function_name, domain_name) VALUES (?, ?, ?, ?)",
+                                    (cat.strip().lower(), parts[0], parts[1], domain)
+                                )
+
+            # Structural Metadata
+            for q in getattr(tree, "advisory_qualifiers", []) or data.get("advisory_qualifiers", []):
+                cur.execute("INSERT OR REPLACE INTO structural_metadata (category, item, extra, domain_name) VALUES ('advisory_qualifier', ?, '', ?)", (json.dumps(q), domain))
+            for c in getattr(tree, "abstract_carriers", []) or data.get("abstract_carriers", []):
+                cur.execute("INSERT OR REPLACE INTO structural_metadata (category, item, extra, domain_name) VALUES ('abstract_carrier', ?, '', ?)", (str(c).strip().lower(), domain))
+            for k, v in (getattr(tree, "abstract_carrier_mapping", {}) or data.get("abstract_carrier_mapping", {})).items():
+                cur.execute("INSERT OR REPLACE INTO structural_metadata (category, item, extra, domain_name) VALUES ('abstract_carrier_mapping', ?, ?, ?)", (str(k).strip().lower(), str(v).strip().lower(), domain))
+            for t in getattr(tree, "dest_port_tokens", []) or data.get("dest_port_tokens", []):
+                cur.execute("INSERT OR REPLACE INTO structural_metadata (category, item, extra, domain_name) VALUES ('dest_port_token', ?, '', ?)", (str(t).strip().lower(), domain))
+            for r in getattr(tree, "data_bearing_roles", []) or data.get("data_bearing_roles", []):
+                cur.execute("INSERT OR REPLACE INTO structural_metadata (category, item, extra, domain_name) VALUES ('data_bearing_role', ?, '', ?)", (str(r).strip().lower(), domain))
+            for v in getattr(tree, "estimator_verbs", []) or data.get("estimator_verbs", []):
+                cur.execute("INSERT OR REPLACE INTO structural_metadata (category, item, extra, domain_name) VALUES ('estimator_verb', ?, '', ?)", (str(v).strip().lower(), domain))
+            for tok in getattr(tree, "column_projection_tokens", []) or data.get("column_projection_tokens", []):
+                cur.execute("INSERT OR REPLACE INTO structural_metadata (category, item, extra, domain_name) VALUES ('column_projection_token', ?, '', ?)", (str(tok).strip().lower(), domain))
+            for tv in getattr(tree, "type_vars", []) or data.get("type_vars", []):
+                cur.execute("INSERT OR REPLACE INTO structural_metadata (category, item, extra, domain_name) VALUES ('type_var', ?, '', ?)", (str(tv).strip(), domain))
+            for tt in getattr(tree, "top_types", []) or data.get("top_types", []):
+                cur.execute("INSERT OR REPLACE INTO structural_metadata (category, item, extra, domain_name) VALUES ('top_type', ?, '', ?)", (str(tt).strip().lower(), domain))
+            top_decl = getattr(tree, "top", None) or data.get("top")
+            if isinstance(top_decl, list):
+                for tt in top_decl:
+                    cur.execute("INSERT OR REPLACE INTO structural_metadata (category, item, extra, domain_name) VALUES ('top_type', ?, '', ?)", (str(tt).strip().lower(), domain))
+            for pc in getattr(tree, "product_constructors", []) or data.get("product_constructors", []):
+                cur.execute("INSERT OR REPLACE INTO structural_metadata (category, item, extra, domain_name) VALUES ('product_constructor', ?, '', ?)", (str(pc).strip().lower(), domain))
+            for et in getattr(tree, "egress_intent_tokens", []) or data.get("egress_intent_tokens", []):
+                cur.execute("INSERT OR REPLACE INTO structural_metadata (category, item, extra, domain_name) VALUES ('egress_intent_token', ?, '', ?)", (str(et).strip().lower(), domain))
+            for ms in getattr(tree, "materialization_states", []) or data.get("materialization_states", []):
+                cur.execute("INSERT OR REPLACE INTO structural_metadata (category, item, extra, domain_name) VALUES ('materialization_state', ?, '', ?)", (str(ms).strip().lower(), domain))
+            pol_hints = getattr(tree, "polarity_hints", {}) or data.get("polarity_hints", {})
+            if isinstance(pol_hints, dict):
+                for direction, hints in pol_hints.items():
+                    if isinstance(hints, list):
+                        for h in hints:
+                            cur.execute("INSERT OR REPLACE INTO structural_metadata (category, item, extra, domain_name) VALUES ('polarity_hint', ?, ?, ?)", (str(direction).strip().lower(), str(h).strip().lower(), domain))
+            for pt in getattr(tree, "preposition_triggers", []) or data.get("preposition_triggers", []):
+                cur.execute("INSERT OR REPLACE INTO structural_metadata (category, item, extra, domain_name) VALUES ('preposition_trigger', ?, '', ?)", (str(pt).strip().lower(), domain))
+            for sc in getattr(tree, "sentence_connectives", []) or data.get("sentence_connectives", []):
+                cur.execute("INSERT OR REPLACE INTO structural_metadata (category, item, extra, domain_name) VALUES ('sentence_connective', ?, '', ?)", (str(sc).strip().lower(), domain))
+            for mk, mv in (getattr(tree, "asset_placeholders", {}) or getattr(tree, "default_asset_placeholders", {}) or data.get("asset_placeholders", {}) or data.get("default_asset_placeholders", {})).items():
+                cur.execute("INSERT OR REPLACE INTO structural_metadata (category, item, extra, domain_name) VALUES ('asset_placeholder', ?, ?, ?)", (str(mk).strip().lower(), str(mv).strip(), domain))
+            for mk, mv in (getattr(tree, "output_placeholders", {}) or getattr(tree, "default_output_placeholders", {}) or data.get("output_placeholders", {}) or data.get("default_output_placeholders", {})).items():
+                cur.execute("INSERT OR REPLACE INTO structural_metadata (category, item, extra, domain_name) VALUES ('output_asset_placeholder', ?, ?, ?)", (str(mk).strip().lower(), str(mv).strip(), domain))
+            for av in getattr(tree, "action_verbs", []) or data.get("action_verbs", []):
+                cur.execute("INSERT OR REPLACE INTO structural_metadata (category, item, extra, domain_name) VALUES ('action_verb', ?, '', ?)", (str(av).strip().lower(), domain))
+            for ot in getattr(tree, "operation_tokens", []) or data.get("operation_tokens", []):
+                cur.execute("INSERT OR REPLACE INTO structural_metadata (category, item, extra, domain_name) VALUES ('operation_token', ?, '', ?)", (str(ot).strip().lower(), domain))
+
+        count = 0
+        for cell in cells:
+            cid = cell.cell_id.strip().upper()
+            primary_in = cell.primary_input
+            primary_out = cell.primary_output
+
+            in_type = primary_in.type_name if primary_in and getattr(primary_in, "type_name", None) and str(primary_in.type_name).lower() not in ("none", "null", "undefined") else None
+            in_state = primary_in.state if primary_in and getattr(primary_in, "state", None) and str(primary_in.state).lower() not in ("none", "null", "undefined") else None
+            out_type = primary_out.type_name if primary_out and getattr(primary_out, "type_name", None) and str(primary_out.type_name).lower() not in ("none", "null", "undefined") else None
+            out_state = primary_out.state if primary_out and getattr(primary_out, "state", None) and str(primary_out.state).lower() not in ("none", "null", "undefined") else None
+
+            cfg_dict = {
+                "inputs": {k: v.model_dump() for k, v in cell.inputs.items()},
+                "outputs": {k: v.model_dump() for k, v in cell.outputs.items()},
+                "slots": getattr(cell, "slots", {}),
+                "topology_type": getattr(cell, "topology_type", "sequential"),
+                "feedback_state_type": getattr(cell, "feedback_state_type", None),
+                "preconditions": [p.model_dump() if hasattr(p, "model_dump") else p for p in getattr(cell, "preconditions", [])],
+                "postconditions": [p.model_dump() if hasattr(p, "model_dump") else p for p in getattr(cell, "postconditions", [])],
+                "effects": [p.model_dump() if hasattr(p, "model_dump") else p for p in getattr(cell, "effects", [])],
+                "edges": [e.model_dump() if hasattr(e, "model_dump") else e for e in getattr(cell, "edges", [])],
+                "sub_cells": getattr(cell, "sub_cells", []),
+                "algorithmic_steps": getattr(cell, "algorithmic_steps", []),
+                "internal_topology": getattr(cell, "internal_topology", {}),
+                "endable": getattr(cell, "endable", None),
+                "primary_in": getattr(cell, "primary_in", None),
+                "primary_out": getattr(cell, "primary_out", None),
+            }
+            cfg_json = json.dumps(cfg_dict)
+            deps_json = json.dumps(cell.dependencies)
+            kws_json = json.dumps(cell.keywords or cell.semantic_tags)
+            verified_val = 1 if cell.source_priority <= HIGH_TRUST_PRIORITY_THRESHOLD else 0
+
+            if hasattr(cell, "type_vars") and cell.type_vars:
+                for tv in cell.type_vars:
+                    cur.execute("INSERT OR REPLACE INTO structural_metadata (category, item, extra, domain_name) VALUES ('type_var', ?, '', ?)", (str(tv).strip(), domain))
+            for p_val in cell.inputs.values():
+                role = getattr(p_val, "port_role", None) or getattr(p_val, "role", None)
+                if role:
+                    cur.execute("INSERT OR REPLACE INTO structural_metadata (category, item, extra, domain_name) VALUES ('role_carrier', ?, '', ?)", (str(role).strip().lower(), domain))
+
+            cur.execute("SELECT source_priority FROM nodes WHERE cell_id = ?", (cid,))
+            row = cur.fetchone()
+            if row and row[0] < cell.source_priority:
+                continue
+
+            slots_dict = getattr(cell, "slots", {}) or {}
+            slots_json = json.dumps(slots_dict)
+
+            node_rows.append((
+                cid,
+                cell.domain_name or domain,
+                cell.node_type or "function",
+                cell.node_role or "function",
+                cell.stage,
+                kws_json,
+                in_type,
+                in_state,
+                out_type,
+                out_state,
+                cell.code_template,
+                deps_json,
+                cfg_json,
+                slots_json,
+                verified_val,
+                cell.docstring or "",
+                getattr(cell, "enrichment_source", None),
+                getattr(cell, "enriched_at", None),
+                fname,
+                cell.source_priority
+            ))
+            count += 1
+            total_compiled += 1
+
+        stats[domain] = count
+        print(f"  [+] Domain '{domain}': compiled {count} nodes ({fname})")
+
+    cur.executemany("""
+        INSERT OR REPLACE INTO nodes
+        (cell_id, domain_name, node_type, node_role, stage, keywords,
+         input_type, input_state, output_type, output_state, code,
+         dependencies, configuration_schema, slots, verified, docstring,
+         enrichment_source, enriched_at, source_provenance, source_priority)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    """, node_rows)
+
+    conn.commit()
+    conn.close()
+    record_trees_fingerprint(out_db, compute_trees_fingerprint(trees_dir))
+    print(f"[*] Compilation Complete: {total_compiled} total verified nodes compiled into '{out_db}'.")
+
+
+def cmd_validate(args):
+    """Performs dry-run AST validation and integrity verification on all nodes in SQLite."""
+    db_path = Path(args.db)
+    if not db_path.exists():
+        print(f"[!] Database file '{db_path}' does not exist!")
+        sys.exit(1)
+
+    print(f"[*] Validating SQLite Database '{db_path}'...")
+    conn = sqlite3.connect(str(db_path))
+    cur = conn.cursor()
+
+    cur.execute("SELECT cell_id, domain_name, stage, code, input_type, output_type, configuration_schema, node_type, node_role FROM nodes")
+    rows = cur.fetchall()
+
+    valid_count = 0
+    failed_count = 0
+    errors: List[str] = []
+
+    for row in rows:
+        cell_id, domain, stage, code, in_t, out_t, config_str, n_type, n_role = row
+        if not code or not code.strip():
+            try:
+                cfg = json.loads(config_str) if config_str else {}
+            except Exception:
+                cfg = {}
+            if n_type == "macro" or n_role == "macro" or cfg.get("node_type") == "macro" or cfg.get("sub_cells"):
+                sub_cells = cfg.get("sub_cells") or []
+                if len(sub_cells) >= 1:
+                    valid_count += 1
+                    continue
+            failed_count += 1
+            errors.append(f"{cell_id}: Empty code template")
+            continue
+
+        dummy_code = sanitize_placeholders_for_ast(code)
+        try:
+            ast.parse(dummy_code)
+            valid_count += 1
+        except SyntaxError as e:
+            failed_count += 1
+            errors.append(f"{cell_id}: AST Syntax Error: {e}")
+
+    conn.close()
+
+    print(f"\n==================================================")
+    print(f" VALIDATION RESULTS FOR: {db_path.name}")
+    print(f"==================================================")
+    print(f" Total Nodes Checked : {len(rows)}")
+    print(f" Syntactically Valid : {valid_count}")
+    print(f" Failed Nodes        : {failed_count}")
+    print(f" Success Rate        : {(valid_count / len(rows) * 100):.2f}%" if rows else "0.00%")
+
+    if errors:
+        print("\n[!] Top Errors:")
+        for err in errors[:10]:
+            print(f"  - {err}")
+        sys.exit(1)
+    else:
+        print("\n✅ All nodes in database passed 100% AST dry-run validation!")
+
+
+# =====================================================================
+# AST & Sandbox Utility Helpers
+# =====================================================================
 def _is_environmental_error(error_msg: str, sandbox_res: Optional[Dict[str, Any]] = None) -> bool:
-    """
-    Classifies a sandbox failure as environmental (missing input asset, missing
-    module, OS/IO conditions, sandbox security boundary) rather than a defect in the synthesized code.
-    Grounds against Python's native exception hierarchy and sandbox result telemetry.
-    """
+    """Classifies a sandbox failure as environmental rather than a defect in synthesized code."""
     if sandbox_res and sandbox_res.get("extrinsic", False):
         return True
     if not error_msg:
@@ -569,66 +729,13 @@ def _is_environmental_error(error_msg: str, sandbox_res: Optional[Dict[str, Any]
     return False
 
 
-def _statically_evaluate_contract(final_code: str, contract: Any) -> List[str]:
-    """
-    Evaluates VerificationContract postconditions and terminal intent statically
-    when physical sandbox execution is bypassed. Returns a list of violation descriptions.
-    """
-    if not contract:
-        return []
-    violations: List[str] = []
-
-    term_checks = getattr(contract, "terminal_checks", []) or []
-    if isinstance(contract, dict):
-        term_checks = contract.get("terminal_checks", [])
-
-    for term_check in term_checks:
-        intent_type = term_check.get("type")
-        cell_id = term_check.get("cell_id", "terminal_node")
-        if intent_type == "model_fit_split":
-            model_var = term_check.get("model_var")
-            feature_var = term_check.get("feature_var")
-            expected_train_var = term_check.get("expected_train_feature_var")
-            if expected_train_var and feature_var and feature_var != expected_train_var:
-                violations.append(
-                    f"Terminal model '{model_var}' ({cell_id}) was fitted on '{feature_var}' instead of split training partition '{expected_train_var}'"
-                )
-        elif intent_type == "image_annotation_egress":
-            saved_var = term_check.get("saved_var")
-            annotated_var = term_check.get("annotated_var")
-            ingress_var = term_check.get("ingress_var")
-            if annotated_var and ingress_var and saved_var:
-                if saved_var == ingress_var and annotated_var != ingress_var:
-                    violations.append(
-                        f"Terminal node '{cell_id}' saved unannotated raw input image '{ingress_var}' instead of annotated image '{annotated_var}'"
-                    )
-
-    return violations
-
-
 def _collect_template_api_names(templates) -> Set[str]:
     """Collects attribute/method names referenced by verified cell templates via AST."""
     names: Set[str] = set()
     for tmpl in templates:
         if not tmpl:
             continue
-        # Substitute placeholders with plain identifiers for a parseable AST
-        safe = tmpl
-        out = []
-        i = 0
-        while i < len(safe):
-            ch = safe[i]
-            if ch == "{":
-                j = safe.find("}", i + 1)
-                if j == -1:
-                    break
-                inner = safe[i + 1: j]
-                out.append("_" + ("".join(c if c.isalnum() else "_" for c in inner) or "ph"))
-                i = j + 1
-                continue
-            out.append(ch)
-            i += 1
-        code = "".join(out)
+        code = sanitize_placeholders_for_ast(tmpl)
         try:
             tree = ast.parse(code)
         except SyntaxError:
@@ -640,12 +747,7 @@ def _collect_template_api_names(templates) -> Set[str]:
 
 
 def _unknown_api_references(repaired_code: str, original_code: str, cells) -> Set[str]:
-    """
-    Returns attribute names referenced by the repaired code that (a) were not in
-    the original code and (b) appear in no verified lattice cell template.
-    Guards the GEVR repair cycle against hallucinated API calls (e.g. calling
-    .get_metrics() on a tuple).
-    """
+    """Returns attribute names referenced by repaired code absent from original code and lattice."""
     def _attrs(code: str) -> Set[str]:
         try:
             tree = ast.parse(code)
@@ -680,19 +782,12 @@ def _get_available_llms() -> List[str]:
         ])
     return []
 
+
+# =====================================================================
+# Pipeline Diagnostics & Tracer
+# =====================================================================
 class PipelineDebugger:
-    """
-    Diagnostic tracer and rich visualizer for NSTL pipeline layers.
-    Inspects and displays:
-      - Header: Engine & hardware environment
-      - Layer 0: Query Translator / Intent Decomposition
-      - Layer 1: Semantic Tunneling & Top-Scoring Candidates (Router)
-      - Layer 2: Topological Planning & Trellis Viterbi (Planner)
-      - Layer 3: Type-Monadic Unification & AST Code Synthesis (Gate)
-      - Layer 4: GEVR Sandbox Execution & Egress Verification
-      - Layer 5: Self-Repair Cycle (if triggered in Profile C/E)
-      - Layer 6: End-to-End Latency & Diagnostic Root Cause Analysis
-    """
+    """Diagnostic tracer and rich visualizer for NSTL pipeline layers."""
 
     def __init__(
         self,
@@ -722,16 +817,13 @@ class PipelineDebugger:
         self,
         prompt: str,
         execute_sandbox: bool = True,
-        timeout: float = 5.0
+        timeout: float = DEFAULT_SANDBOX_TIMEOUT
     ) -> Dict[str, Any]:
         c = self.console
         t_total_start = time.perf_counter()
         prof = self.active_profile.upper()
         prompt_clean = prompt.strip()
 
-        # =================================================================
-        # HEADER: Debug Session Banner
-        # =================================================================
         header_table = Table(box=box.SIMPLE_HEAD, expand=True, border_style="cyan")
         header_table.add_column("Profile", style="bold yellow")
         header_table.add_column("Embedder", style="magenta")
@@ -758,10 +850,7 @@ class PipelineDebugger:
             padding=(0, 1)
         ))
 
-        # =================================================================
         # LAYER 0: Query Intent & Pre-Processing
-        # =================================================================
-        t0_trans = time.perf_counter()
         effective_prompt = prompt_clean
         t_trans = 0.0
 
@@ -769,13 +858,7 @@ class PipelineDebugger:
             mm = ModelManager.get_instance()
             if mm.profile and mm.has_translator_pass():
                 t0_t = time.perf_counter()
-                trans_system = (
-                    "You are a precise technical translator. Rewrite the user request as ONE "
-                    "comma-separated pipeline sentence: first the input source with its asset "
-                    "name, then each transform verb with its arguments in order, then the "
-                    "destination. Use only words from the request. Output ONLY the sentence, "
-                    "no headers, no lists, no formatting."
-                )
+                trans_system = get_translator_prompt(self.orchestrator)
                 effective_prompt = mm.generate_text(prompt_clean, max_tokens=128, system_prompt=trans_system)
                 effective_prompt = effective_prompt.strip().strip('`').strip()
                 t_trans = (time.perf_counter() - t0_t) * 1000.0
@@ -808,9 +891,7 @@ class PipelineDebugger:
 
         c.print(Panel(l0_table, title="[bold cyan]⚡ LAYER 0: Query Intent & Pre-Processing[/bold cyan]", border_style="cyan"))
 
-        # =================================================================
         # LAYER 1: Semantic Tunneling & Scoring (Router)
-        # =================================================================
         t_route_0 = time.perf_counter()
         is_rag = (self.router.internal_rag is not None and getattr(self.router.internal_rag, "index", None) is not None)
         engine_desc = "Dense Vector Embeddings via LocalRAG (FAISS)" if is_rag else "Lexical Token Coverage with IDF Poset Index"
@@ -872,7 +953,7 @@ class PipelineDebugger:
             display_limit = 15
             for idx, cl in enumerate(ranked_candidates[:display_limit], 1):
                 sc = float(relevance_map.get(cl.cell_id, 0.0))
-                sc_color = "bold green" if sc >= 0.5 else ("bold yellow" if sc >= 0.1 else "white")
+                sc_color = _get_score_color(sc, epsilon=epsilon)
                 if scores_are_prob:
                     sc_str = f"[{sc_color}]{sc:.4f} ({sc*100:.1f}%)[/{sc_color}]"
                 else:
@@ -898,9 +979,7 @@ class PipelineDebugger:
         else:
             c.print("[bold red][!] Empty tunnel: No nodes cleared the relevance cutoff threshold.[/bold red]\n")
 
-        # =================================================================
         # LAYER 2: Topological Planning & Trellis Viterbi (Planner)
-        # =================================================================
         t_plan_0 = time.perf_counter()
         os.environ["NSTL_DEBUG_PLAN"] = "1"
         try:
@@ -988,7 +1067,7 @@ class PipelineDebugger:
                 diag_table.add_row(
                     "Semantic Tunnel Population",
                     "[red]EMPTY (0)[/red]",
-                    f"No candidate nodes met the relevance threshold (epsilon={epsilon}). Rephrase or provide package hints."
+                    f"No candidate nodes met relevance threshold (epsilon={epsilon}). Rephrase or provide package hints."
                 )
             else:
                 diag_table.add_row(
@@ -1002,7 +1081,7 @@ class PipelineDebugger:
                 diag_table.add_row(
                     "Stage 1 Ingress/Source Nodes",
                     "[red]MISSING (0)[/red]",
-                    "No data ingestion nodes (e.g. read_csv, imread, load) found in tunnel. Pipelines must begin with Stage 1."
+                    "No data ingestion nodes found in tunnel. Pipelines must begin with Stage 1."
                 )
             else:
                 entry_ids = ", ".join(cl.cell_id for cl in entries[:4])
@@ -1017,7 +1096,7 @@ class PipelineDebugger:
                 diag_table.add_row(
                     "Stage 3 Egress/Sink Nodes",
                     "[yellow]NONE[/yellow]",
-                    "Prompt contains literals/destinations, but no terminal sinks (e.g. to_csv, imwrite) were retrieved."
+                    "Prompt contains literals/destinations, but no terminal sinks were retrieved."
                 )
             elif sinks:
                 sink_ids = ", ".join(cl.cell_id for cl in sinks[:4])
@@ -1034,15 +1113,13 @@ class PipelineDebugger:
                 diag_table.add_row(
                     "Carrier Compatibility",
                     "[yellow]INSPECT[/yellow]",
-                    f"Entry outputs: {entry_out_types} vs Transform inputs: {transform_in_types}. If carriers are disjoint and no bridge morphism exists, composition cannot proceed."
+                    f"Entry outputs: {entry_out_types} vs Transform inputs: {transform_in_types}."
                 )
 
             c.print(diag_table)
             c.print("")
 
-        # =================================================================
         # LAYER 3: Type-Monadic Unification & AST Synthesis
-        # =================================================================
         final_code = ""
         dest_paths = None
         pipeline_bindings = None
@@ -1152,7 +1229,6 @@ class PipelineDebugger:
                     c.print(Panel(syntax_code, title="[bold green]✨ Synthesized Python Code[/bold green]", border_style="green", padding=(0, 1)))
                     c.print("")
 
-                # Static Pre-Flight Linting Diagnostics
                 lint_valid = True
                 if pipeline_bindings:
                     lint_res = PreflightLinter.lint(pipeline_bindings, prompt=prompt, code_str=final_code)
@@ -1171,9 +1247,7 @@ class PipelineDebugger:
                         c.print(Panel(lint_msg, title="[bold green]✓ Pre-Flight Static Validator Passed (Type Contracts Verified - Sandbox Disabled)[/bold green]", border_style="green"))
                     c.print("")
 
-        # =================================================================
-        # LAYER 4: GEVR Sandbox Execution & Egress Verification
-        # =================================================================
+        # LAYER 4: GEVR Sandbox Execution & Verification
         sandbox_res = {"success": False, "error": "Execution skipped"}
         sandbox_dt = 0.0
 
@@ -1271,9 +1345,7 @@ class PipelineDebugger:
                     ))
             c.print("")
 
-        # =================================================================
         # LAYER 5: Self-Repair Cycle (Profile C/E)
-        # =================================================================
         rep_dt = 0.0
         repaired = False
         if final_code and not sandbox_res.get("success", False) and prof in ("C", "E"):
@@ -1306,9 +1378,7 @@ class PipelineDebugger:
                     else:
                         c.print(f"  [yellow][!] LLM could not produce an alternative repair ({rep_dt:.1f}ms).[/yellow]\n")
 
-        # =================================================================
         # LAYER 6: Performance & Latency Breakdown
-        # =================================================================
         total_dt = (time.perf_counter() - t_total_start) * 1000.0
 
         perf_table = Table(title="⏱️ End-to-End Pipeline Latency Breakdown", box=box.ROUNDED, expand=True, border_style="cyan")
@@ -1355,6 +1425,9 @@ class PipelineDebugger:
         }
 
 
+# =====================================================================
+# Interactive TUI Shell
+# =====================================================================
 class NSTLInteractiveShell(cmd.Cmd):
     """
     Rich Terminal User Interface (TUI) Studio for NSTL Neuro-Symbolic Synthesis.
@@ -1382,7 +1455,8 @@ class NSTLInteractiveShell(cmd.Cmd):
         no_lint: bool = False,
         macros: Optional[bool] = None,
         topology: Optional[str] = None,
-        dev: Optional[bool] = None
+        dev: Optional[bool] = None,
+        timeout: float = DEFAULT_SANDBOX_TIMEOUT
     ):
         super().__init__()
         self.db_path = db_path
@@ -1391,26 +1465,22 @@ class NSTLInteractiveShell(cmd.Cmd):
         self.llm_name = llm
         self.active_profile = "0"
         self.route_method = route_method.upper() if route_method else None
-        self.no_lint = no_lint
+        self.no_lint: bool = bool(no_lint)
         self.rag: Optional[LocalRAG] = None
         self.history: List[Dict[str, Any]] = []
         self.debug: bool = debug
         self.interactive: bool = interactive
-        self.no_lint: bool = no_lint
         self.no_exec: bool = no_exec or not getattr(settings, "sandbox_enabled", True)
+        self.timeout: float = timeout
 
-        # Macro-goal routing toggle: apply the CLI flag to the global settings
-        # BEFORE any LatticeRouter is constructed (routers snapshot the setting).
         if macros is not None:
             settings.macros_enabled = bool(macros)
         self.macros_enabled = settings.macros_enabled
 
-        # Dev Mode toggle
         if dev is not None:
             settings.dev_mode = bool(dev)
         self.dev_mode = settings.dev_mode
 
-        # Topology mode: "frontier" (default) or "linear" (ablation baseline)
         if topology is not None:
             settings.topology_mode = str(topology).lower()
         self.topology_mode = getattr(settings, "topology_mode", "frontier")
@@ -1432,7 +1502,6 @@ class NSTLInteractiveShell(cmd.Cmd):
         if interactive:
             console.print(f"[bold green][✓] Lattice Graph Loaded: {node_count:,} verified nodes ({load_time:.1f}ms)[/bold green]\n")
 
-        # Initialize requested profile
         self._switch_profile(initial_profile, embedder=embedder, llm=llm, device=device, verbose=False)
         if interactive:
             self._render_dashboard()
@@ -1443,29 +1512,18 @@ class NSTLInteractiveShell(cmd.Cmd):
         prof_name = self._format_profile_name(self.active_profile)
         prof_desc = self._get_profile_description(self.active_profile)
 
-        # Main Header Table
         header_table = Table(box=box.ROUNDED, expand=True, border_style="cyan")
         header_table.add_column("⚡ Layer Profile", style="bold yellow", ratio=3)
         header_table.add_column("🧠 Neural Models", style="bold magenta", ratio=3)
         header_table.add_column("📊 Topology & Hardware", style="bold green", ratio=3)
 
-        # Profile info
         prof_text = f"[bold white]{prof_name}[/bold white]\n[dim]{prof_desc}[/dim]"
-
-        # Models info
         emb_text = f"[cyan]Embedder:[/cyan] {self.embedder_name or '[dim]None (Bypassed)[/dim]'}"
         llm_text = f"[cyan]LLM (GGUF):[/cyan] {self.llm_name or '[dim]None (Bypassed)[/dim]'}"
         models_text = f"{emb_text}\n{llm_text}"
 
-        # Hardware & DB info
         db_nodes = f"[cyan]Nodes:[/cyan] {len(self.orchestrator.cells):,} in {len(domains)} domains"
         dbg_text = "[bold green]ON (Verbose)[/bold green]" if self.debug else "[dim]OFF[/dim]"
-        # Show the method that will ACTUALLY run, not a hardcoded "M0" label.
-        # When the person hasn't picked one with /method, the router itself
-        # now resolves the effective default (m4 when the loaded profile can
-        # synthesize with a model, m0 otherwise) -- read that back rather
-        # than assuming m0, so a loaded, usable LLM is never shown as idle
-        # when it is in fact driving this run.
         _resolved_method = self.route_method or str(getattr(self.router, "default_route_method", "m0")).upper()
         method_text = f"[bold yellow]{_resolved_method}{' (Default)' if not self.route_method else ''}[/bold yellow]"
         topo_mode = getattr(self, "topology_mode", "frontier")
@@ -1475,7 +1533,6 @@ class NSTLInteractiveShell(cmd.Cmd):
 
         header_table.add_row(prof_text, models_text, hardware_text)
 
-        # Title Banner Panel
         title_text = Text("🧬 NSTL NEURO-SYMBOLIC TOPOLOGICAL LATTICE STUDIO", justify="center", style="bold white on blue")
         quick_shortcuts = Text(
             "Quick Layers: [1] 0:Symbolic  [2] A:Embedder  [3] C:Neuro-Symbolic  [4] D:Routing  [5] E:Translator  [6] S:Semantic-Compiler\n"
@@ -1535,7 +1592,7 @@ class NSTLInteractiveShell(cmd.Cmd):
         self.prompt = f"\033[1;36mNSTL [Profile {prof_label}{method_label}]\033[0m{dbg_label} > "
 
     def do_debug(self, arg: str):
-        """Toggle or configure debug mode across all pipeline layers. Usage: debug [on|off] or /debug [on|off]"""
+        """Toggle or configure debug mode across all pipeline layers. Usage: /debug [on|off]"""
         arg = arg.strip().lower().lstrip("/")
         if arg.startswith("debug"):
             arg = arg[5:].strip()
@@ -1608,7 +1665,6 @@ class NSTLInteractiveShell(cmd.Cmd):
             console.print(f"[bold red][!] Unknown profile '{profile}'. Valid options: 0 (Symbolic), A, C, D, E, S.[/bold red]")
             return False
 
-        # Determine default model names dynamically based on cache coverage
         available_llm = _get_available_llms()
         emb_choice = select_optimal_embedder(embedder or self.embedder_name or "auto")
         llm_choice = llm or self.llm_name or (available_llm[0] if available_llm else "qwen2.5-coder-0.5b-instruct")
@@ -1638,6 +1694,7 @@ class NSTLInteractiveShell(cmd.Cmd):
             dt = (time.perf_counter() - t0) * 1000.0
             if verbose:
                 console.print(f"[bold green][✓] {self._format_profile_name(p)} ready ({dt:.1f}ms).[/bold green]\n")
+            return True
         except Exception as e:
             console.print(f"[bold red][!] Failed to load Profile {p}: {e}[/bold red]")
             console.print("[yellow][*] Reverting to Profile 0 (Pure Symbolic)...[/yellow]")
@@ -1663,7 +1720,7 @@ class NSTLInteractiveShell(cmd.Cmd):
             table.add_column("Target Latency", style="bold green")
             table.add_column("Role in NSTL Paper / Architecture", style="dim")
 
-            table.add_row("0 / symbolic", "Profile 0 (Pure Symbolic)", "< 15 ms", "Deterministic A* graph search (Baseline layer, zero neural models)")
+            table.add_row("0 / symbolic", "Profile 0 (Pure Symbolic)", "< 15 ms", "Deterministic A* graph search (zero neural models)")
             table.add_row("A", "Profile A (Dense Embeddings RAG)", "~50–100 ms", "Vector embeddings (SentenceTransformer / FAISS HNSW search)")
             table.add_row("C", "Profile C (Neuro-Symbolic LLM)", "~500 ms–2 s", "Full hybrid: Embedder + Local GGUF LLM slot-filling + Sandbox repair")
             table.add_row("D", "Profile D (Routing Benchmark)", "~200–500 ms", "LLM-guided path search without code generation")
@@ -1705,13 +1762,13 @@ class NSTLInteractiveShell(cmd.Cmd):
         console.print("[dim]Use `set embedder <name>` or `set llm <name>` to activate a specific model.[/dim]\n")
 
     def do_set(self, arg: str):
-        """Configure models or hardware device. Usage: set <embedder|llm|device|macros|debug> <value>"""
+        """Configure models or hardware device. Usage: set <embedder|llm|device|macros|debug|timeout> <value>"""
         arg = arg.strip().lstrip("/")
         if arg.lower().startswith("set"):
             arg = arg[3:].strip()
         parts = arg.split(maxsplit=1)
         if len(parts) < 2:
-            console.print("[yellow]Usage: set <embedder|llm|device|macros|debug> <value>[/yellow]")
+            console.print("[yellow]Usage: set <embedder|llm|device|macros|debug|timeout> <value>[/yellow]")
             return
         key, val = parts[0].lower(), parts[1].strip()
 
@@ -1731,41 +1788,32 @@ class NSTLInteractiveShell(cmd.Cmd):
             if self.active_profile != "0":
                 self._switch_profile(self.active_profile, device=val)
         elif key in ("macros", "macro", "macro_goals"):
-            if val.lower() in ("1", "true", "on", "yes", "enable", "enabled"):
-                enabled = True
-            elif val.lower() in ("0", "false", "off", "no", "disable", "disabled"):
-                enabled = False
-            else:
-                enabled = not settings.macros_enabled
+            enabled = val.lower() in ("1", "true", "on", "yes", "enable", "enabled")
             settings.macros_enabled = enabled
             self.macros_enabled = enabled
-            # Live routers snapshot the setting at construction — update them too.
             if getattr(self, "router", None) is not None:
                 self.router.macros_enabled = enabled
             console.print(f"[green][*] Macro-goal routing set to {'ON' if enabled else 'OFF'}.[/green]")
         elif key in ("debug", "dbg"):
-            if val.lower() in ("1", "true", "on", "yes", "enable", "enabled"):
-                self.debug = True
-            elif val.lower() in ("0", "false", "off", "no", "disable", "disabled"):
-                self.debug = False
-            else:
-                self.debug = not self.debug
+            enabled = val.lower() in ("1", "true", "on", "yes", "enable", "enabled")
+            self.debug = enabled
             console.print(f"[green][*] Debug mode set to {'ON' if self.debug else 'OFF'}.[/green]")
             self._update_prompt()
+        elif key in ("timeout", "sandbox_timeout"):
+            try:
+                self.timeout = float(val)
+                console.print(f"[green][*] Sandbox execution timeout set to {self.timeout:.1f}s.[/green]")
+            except ValueError:
+                console.print(f"[bold red][!] Invalid timeout value '{val}'. Must be a number.[/bold red]")
         elif key in ("dev", "dev_mode", "devmode"):
-            if val.lower() in ("1", "true", "on", "yes", "enable", "enabled"):
-                enabled = True
-            elif val.lower() in ("0", "false", "off", "no", "disable", "disabled"):
-                enabled = False
-            else:
-                enabled = not settings.dev_mode
+            enabled = val.lower() in ("1", "true", "on", "yes", "enable", "enabled")
             settings.dev_mode = enabled
-            console.print(f"[green][*] Dev mode (self-expanding dynamic node synthesis) set to {'ON' if enabled else 'OFF'}.[/green]")
+            console.print(f"[green][*] Dev mode set to {'ON' if enabled else 'OFF'}.[/green]")
         else:
-            console.print(f"[bold red][!] Unknown parameter '{key}'. Supported: embedder, llm, device, macros, dev, debug.[/bold red]")
+            console.print(f"[bold red][!] Unknown parameter '{key}'. Supported: embedder, llm, device, macros, dev, debug, timeout.[/bold red]")
 
     def do_dev(self, arg: str):
-        """Toggle or set Dev Mode. Usage: dev [on|off] or /dev [on|off]"""
+        """Toggle or set Dev Mode. Usage: /dev [on|off]"""
         val = arg.strip().lower()
         if val in ("1", "true", "on", "yes", "enable", "enabled"):
             enabled = True
@@ -1888,7 +1936,7 @@ class NSTLInteractiveShell(cmd.Cmd):
         console.print("")
 
     def do_method(self, arg: str):
-        """Set or view active RouteMethod algorithm (M0-M9). Usage: /method [M0|M1|M2|M3|M4|M5|M6|M7|M8|M9]"""
+        """Set or view active RouteMethod algorithm (M0-M9). Usage: /method [M0-M9]"""
         raw_arg = arg.strip()
         clean = raw_arg.lower()
         if not clean:
@@ -1903,9 +1951,9 @@ class NSTLInteractiveShell(cmd.Cmd):
                 ("M4", "m4_llm_stepwise", "LLM Stepwise Transition Oracle"),
                 ("M5", "m5_llm_oneshot", "LLM One-Shot Topological Alignment"),
                 ("M6", "m6_hybrid_anchors", "Hybrid Clause & Dynamic Routing"),
-                ("M7", "m7_llm_pathfinder", "LLM Full-Context Pathfinder (prompt + typed candidate nodes -> whole path)"),
-                ("M8", "m8_llm_stepwise", "LLM Stepwise Edge Pathfinder (per-node with visible transition edges)"),
-                ("M9", "m9_llm_milestones", "LLM Milestone Anchor & Topological Pathfinder (must-have nodes -> spliced paths)"),
+                ("M7", "m7_llm_pathfinder", "LLM Full-Context Pathfinder"),
+                ("M8", "m8_llm_stepwise", "LLM Stepwise Edge Pathfinder"),
+                ("M9", "m9_llm_milestones", "LLM Milestone Anchor & Topological Pathfinder"),
             ]
             for m_tag, m_alias, m_desc in methods_summary:
                 is_active = (self.route_method and self.route_method.upper().startswith(m_tag)) or (not self.route_method and m_tag == curr.upper())
@@ -2000,7 +2048,6 @@ class NSTLInteractiveShell(cmd.Cmd):
         if not prompt:
             return
 
-        # Handle quick numeric shortcuts for profiles (1 to 5)
         if prompt == "1":
             self._switch_profile("0")
             return
@@ -2017,7 +2064,6 @@ class NSTLInteractiveShell(cmd.Cmd):
             self._switch_profile("E")
             return
 
-        # Handle slash commands
         if prompt.startswith("/"):
             cmd_part = prompt[1:].strip()
             parts = cmd_part.split(maxsplit=1)
@@ -2069,7 +2115,6 @@ class NSTLInteractiveShell(cmd.Cmd):
             elif cmd_name in ("exit", "quit", "q"):
                 return self.do_exit(cmd_arg)
 
-        # Check for query-level flags
         query_method = self.route_method
         for m in ("M0", "M1", "M2", "M3", "M4", "M5", "M6", "M7", "M8", "M9"):
             for flag in (f"--method {m}", f"--route-method {m}", f"-m {m}", f"--method={m}", f"--route-method={m}"):
@@ -2086,7 +2131,6 @@ class NSTLInteractiveShell(cmd.Cmd):
             prompt = prompt.replace("--no-lint", "").strip()
             query_no_lint = True
 
-        # Check for query-level or shell-level debug flag
         query_debug = self.debug
         if "--debug" in prompt:
             prompt = prompt.replace("--debug", "").strip()
@@ -2105,7 +2149,7 @@ class NSTLInteractiveShell(cmd.Cmd):
                 console=console,
                 route_method=query_method
             )
-            res = debugger.run(prompt, execute_sandbox=not self.no_exec, timeout=5.0)
+            res = debugger.run(prompt, execute_sandbox=not self.no_exec, timeout=self.timeout)
             self.history.append({
                 "prompt": prompt,
                 "profile": self.active_profile,
@@ -2131,15 +2175,8 @@ class NSTLInteractiveShell(cmd.Cmd):
             mm = ModelManager.get_instance()
             if mm.profile and mm.has_translator_pass():
                 t0_trans = time.perf_counter()
-                trans_system = (
-                    "You are a precise technical translator. Rewrite the user request as ONE "
-                    "comma-separated pipeline sentence: first the input source with its asset "
-                    "name, then each transform verb with its arguments in order, then the "
-                    "destination. Use only words from the request. Output ONLY the sentence, "
-                    "no headers, no lists, no formatting."
-                )
+                trans_system = get_translator_prompt(self.orchestrator)
                 effective_prompt = mm.generate_text(prompt, max_tokens=128, system_prompt=trans_system)
-                # The translator output is free text: strip wrapper fences if present.
                 effective_prompt = effective_prompt.strip().strip('`').strip()
                 t_trans = (time.perf_counter() - t0_trans) * 1000.0
                 console.print(f"[bold magenta][Translator Pass ({t_trans:.1f}ms)][/bold magenta] [italic]{effective_prompt}[/italic]")
@@ -2212,7 +2249,7 @@ class NSTLInteractiveShell(cmd.Cmd):
                 sandbox_res = {"success": None, "skipped": True, "verified": bool(v_contract)}
             sandbox_dt = 0.0
         else:
-            sandbox_res = self.sandbox.execute(final_code, timeout=5.0, egress_paths=dest_paths, verification_spec=v_contract)
+            sandbox_res = self.sandbox.execute(final_code, timeout=self.timeout, egress_paths=dest_paths, verification_spec=v_contract)
             sandbox_dt = (time.perf_counter() - t_exec_start) * 1000.0
 
         repaired = False
@@ -2241,11 +2278,10 @@ class NSTLInteractiveShell(cmd.Cmd):
                         else:
                             final_code = repaired_code
                             repaired = True
-                            sandbox_res = self.sandbox.execute(final_code, timeout=5.0, egress_paths=dest_paths, verification_spec=v_contract)
+                            sandbox_res = self.sandbox.execute(final_code, timeout=self.timeout, egress_paths=dest_paths, verification_spec=v_contract)
                     rep_dt = (time.perf_counter() - t_rep_start) * 1000.0
                     console.print(f"  [bold green][✓] Repair cycle completed ({rep_dt:.1f}ms).[/bold green]")
 
-        # Track usage for confidence promotion on dev cells
         try:
             from node_resolver import DynamicNodeResolver
             is_succ = bool(sandbox_res.get("success", False))
@@ -2256,7 +2292,6 @@ class NSTLInteractiveShell(cmd.Cmd):
 
         total_dt = (time.perf_counter() - t_total_start) * 1000.0
 
-        # Output code in a styled Syntax box
         syntax_code = Syntax(final_code, "python", theme="monokai", line_numbers=True)
         code_panel = Panel(
             syntax_code,
@@ -2266,7 +2301,6 @@ class NSTLInteractiveShell(cmd.Cmd):
         )
         console.print(code_panel)
 
-        # Report Latency Metrics Bar with RouteMethod and Attribution
         method_name = query_method or getattr(self.router, "default_route_method", "M0") or "M0"
         attribution = getattr(self.gate, "last_attribution", "path")
         timing_elements = [
@@ -2280,7 +2314,6 @@ class NSTLInteractiveShell(cmd.Cmd):
         timing_elements.append(f"[bold yellow]Total: {total_dt:.2f}ms[/bold yellow]")
         timing_elements.append(f"[dim]Attr: {attribution}[/dim]")
 
-        # Report Sandbox Execution Status
         if sandbox_res.get("skipped", False):
             sb_badge = "[bold yellow]↷ SKIPPED (--no-exec)[/bold yellow]"
             sb_status = "SKIPPED"
@@ -2301,7 +2334,6 @@ class NSTLInteractiveShell(cmd.Cmd):
         console.print(metrics_panel)
         console.print("")
 
-        # Record in history
         self.history.append({
             "prompt": prompt,
             "profile": self.active_profile,
@@ -2333,6 +2365,9 @@ class NSTLInteractiveShell(cmd.Cmd):
         return self.do_exit(line)
 
 
+# =====================================================================
+# CLI Command Entrypoints
+# =====================================================================
 def cmd_shell(args):
     """Launches the full interactive Rich TUI studio."""
     shell = NSTLInteractiveShell(
@@ -2343,17 +2378,19 @@ def cmd_shell(args):
         device=getattr(args, "device", "auto"),
         debug=getattr(args, "debug", False),
         interactive=True,
+        no_exec=getattr(args, "no_exec", False),
         route_method=getattr(args, "route_method", None),
         no_lint=getattr(args, "no_lint", False),
         macros=getattr(args, "macros", None),
         topology=getattr(args, "topology", None),
-        dev=getattr(args, "dev", None)
+        dev=getattr(args, "dev", None),
+        timeout=getattr(args, "timeout", DEFAULT_SANDBOX_TIMEOUT)
     )
     shell.cmdloop()
 
 
 def cmd_run(args):
-    """Executes a single prompt synthesis directly from CLI, optionally with --debug."""
+    """Executes a single prompt synthesis directly from CLI."""
     db_path = getattr(args, "db", "trees/lattice.db")
     profile = getattr(args, "profile", "0")
     embedder = getattr(args, "embedder", "")
@@ -2379,7 +2416,8 @@ def cmd_run(args):
         no_lint=getattr(args, "no_lint", False),
         macros=getattr(args, "macros", None),
         topology=getattr(args, "topology", None),
-        dev=getattr(args, "dev", None)
+        dev=getattr(args, "dev", None),
+        timeout=getattr(args, "timeout", DEFAULT_SANDBOX_TIMEOUT)
     )
     shell.default(f"{prompt} --debug" if debug_mode else prompt)
 
@@ -2498,7 +2536,7 @@ def cmd_benchmark(args):
         ret = pytest.main(["-s", "tests/test_reference_benchmark_bank.py"])
         sys.exit(ret)
     else:
-        print("[*] Running NSTL Phase 5 Evaluation Matrix (RouteMethods M0-M6)...")
+        print("[*] Running NSTL Phase 5 Evaluation Matrix (RouteMethods M0-M9)...")
         import pytest
         ret = pytest.main(["-s", "tests/test_evaluation_matrix.py"])
         sys.exit(ret)
@@ -2538,119 +2576,113 @@ def cmd_precompute_rag(args):
         ModelManager.get_instance().cleanup()
 
 
+# =====================================================================
+# Argument Parser Construction
+# =====================================================================
 def build_parser() -> argparse.ArgumentParser:
     """Constructs the CLI argument parser with all subcommands and global debug flags."""
     parser = argparse.ArgumentParser(prog="python -m src.cli", description="NSTL Toolchain CLI & Interactive Studio")
     parser.add_argument("--debug", "-d", action="store_true", help="Enable verbose debug mode across all pipeline layers")
     subparsers = parser.add_subparsers(dest="command", required=False)
 
-    # harvest
     p_harvest = subparsers.add_parser("harvest", help="Harvest API primitives into single-file domain JSON")
     p_harvest.add_argument("package", type=str, help="Python package name to harvest")
     p_harvest.add_argument("--domain", type=str, default=None, help="Target domain name (defaults to package name)")
     p_harvest.add_argument("--trees-dir", type=str, default="trees", help="Directory for domain tree JSON files")
     p_harvest.set_defaults(func=cmd_harvest)
 
-    # compile
     p_compile = subparsers.add_parser("compile", help="Compile single-file domain JSONs into SQLite database")
     p_compile.add_argument("--trees-dir", type=str, default="trees", help="Directory containing domain JSON files")
     p_compile.add_argument("--output", type=str, default="trees/lattice.db", help="Target SQLite DB path")
     p_compile.add_argument("--domains", nargs="*", default=None, help="Optional domain filter")
-    p_compile.add_argument("--clean", action="store_true", help="Purge target database before compiling (default: non-destructive upsert)")
+    p_compile.add_argument("--clean", action="store_true", help="Purge target database before compiling")
     p_compile.set_defaults(func=cmd_compile)
 
-    # validate
     p_validate = subparsers.add_parser("validate", help="Validate AST syntax and schema of all nodes in SQLite")
     p_validate.add_argument("--db", type=str, default="trees/lattice.db", help="Path to SQLite database")
     p_validate.set_defaults(func=cmd_validate)
 
-    # audit
     p_audit = subparsers.add_parser("audit", help="Audit lattice graph connectivity, reachability, and cross-tree bridges")
     p_audit.add_argument("--db", type=str, default="trees/lattice.db", help="Path to SQLite database")
     p_audit.add_argument("--trees-dir", type=str, default="trees", help="Directory for domain tree JSON files")
     p_audit.add_argument("--output", "-o", type=str, default="", help="Optional JSON path to save audit report")
     p_audit.set_defaults(func=cmd_audit)
 
-    # macro
     p_macro = subparsers.add_parser("macro", help="Harvest and register a composite MacroCell from constituent micro-cells")
-    p_macro.add_argument("cells", nargs="+", help="Sequence of cell IDs composing the macro (e.g. PD_READ_CSV PD_DROPNA)")
-    p_macro.add_argument("--id", type=str, default="", help="Custom macro cell ID (e.g. MACRO_LOAD_AND_CLEAN)")
+    p_macro.add_argument("cells", nargs="+", help="Sequence of cell IDs composing the macro")
+    p_macro.add_argument("--id", type=str, default="", help="Custom macro cell ID")
     p_macro.add_argument("--domain", type=str, default="", help="Domain name for the macro")
     p_macro.add_argument("--doc", type=str, default="", help="Docstring/description for the macro")
     p_macro.add_argument("--db", type=str, default="trees/lattice.db", help="Path to SQLite database")
     p_macro.add_argument("--trees-dir", type=str, default="trees", help="Directory for domain tree JSON files")
     p_macro.set_defaults(func=cmd_macro)
 
-    # benchmark
-    p_bench = subparsers.add_parser("benchmark", help="Run NSTL empirical benchmarks (reference 50-task bank or RouteMethods matrix)")
-    p_bench.add_argument("--type", choices=["reference", "matrix"], default="matrix", help="Benchmark type to run (default: matrix)")
+    p_bench = subparsers.add_parser("benchmark", help="Run NSTL empirical benchmarks")
+    p_bench.add_argument("--type", choices=["reference", "matrix"], default="matrix", help="Benchmark type (default: matrix)")
     p_bench.add_argument("--output", type=str, default="evaluation_results.json", help="Path to write evaluation results JSON")
     p_bench.add_argument("--db", type=str, default="trees/lattice.db", help="Path to SQLite database")
-    p_bench.add_argument("--methods", nargs="*", default=["M0", "M1", "M2", "M3", "M6", "M7", "M8", "M9"], help="Route methods to evaluate in matrix")
-    p_bench.add_argument("--macros", dest="macros", action="store_true", default=None, help="Enable macro-goal routing (known-good composite paths)")
-    p_bench.add_argument("--no-macros", dest="macros", action="store_false", help="Disable macro-goal routing (for A/B benchmarking)")
-    p_bench.add_argument("--dev", action="store_true", default=False, help="Enable Dev Mode (self-expanding dynamic node synthesis)")
-    p_bench.add_argument("--topology", choices=["frontier", "linear"], default=None, help="Topological planning approach ('frontier' for Multi-Carrier DAG or 'linear' for 1D Sequential Trellis)")
+    p_bench.add_argument("--methods", nargs="*", default=["M0", "M1", "M2", "M3", "M6", "M7", "M8", "M9"], help="Route methods to evaluate")
+    p_bench.add_argument("--macros", dest="macros", action="store_true", default=None, help="Enable macro-goal routing")
+    p_bench.add_argument("--no-macros", dest="macros", action="store_false", help="Disable macro-goal routing")
+    p_bench.add_argument("--dev", action="store_true", default=False, help="Enable Dev Mode")
+    p_bench.add_argument("--topology", choices=["frontier", "linear"], default=None, help="Topological planning approach")
     p_bench.set_defaults(func=cmd_benchmark)
 
-    # precompute-rag
     p_precompute = subparsers.add_parser("precompute-rag", help="Precompute FAISS dense embeddings into .rag_cache/")
     p_precompute.add_argument("--db", type=str, default="trees/lattice.db", help="Path to SQLite database")
     p_precompute.add_argument("--trees-dir", type=str, default="trees", help="Directory for domain tree JSON files")
-    p_precompute.add_argument("--embedder", type=str, default="", help="Embedding model name (e.g. jina-embeddings-v5-text-nano)")
+    p_precompute.add_argument("--embedder", type=str, default="", help="Embedding model name")
     p_precompute.set_defaults(func=cmd_precompute_rag)
 
-    # run
     p_run = subparsers.add_parser("run", help="Synthesize code for a natural language prompt directly from CLI")
     p_run.add_argument("prompt", type=str, help="Natural language pipeline specification")
     p_run.add_argument("--debug", "-d", action="store_true", help="Enable verbose debug output across all pipeline layers")
     p_run.add_argument("--db", type=str, default="trees/lattice.db", help="Path to SQLite database")
     p_run.add_argument("--profile", type=str, default="0", help="Inference profile (0=Symbolic, A=Embedder, C=Neuro-Symbolic, D, E)")
-    p_run.add_argument("--route-method", "-m", type=str, default=None, choices=["M0", "M1", "M2", "M3", "M4", "M5", "M6", "M7", "M8", "M9"], help="Routing method algorithm (default: M0 Trellis)")
-    p_run.add_argument("--dev", action="store_true", default=False, help="Enable Dev Mode (self-expanding dynamic node synthesis)")
+    p_run.add_argument("--route-method", "-m", type=str, default=None, choices=["M0", "M1", "M2", "M3", "M4", "M5", "M6", "M7", "M8", "M9"], help="Routing method algorithm")
+    p_run.add_argument("--dev", action="store_true", default=False, help="Enable Dev Mode")
     p_run.add_argument("--no-lint", action="store_true", help="Skip static pre-flight linter")
-    p_run.add_argument("--embedder", type=str, default="", help="Embedding model name (e.g. jina-embeddings-v5-text-nano)")
-    p_run.add_argument("--llm", type=str, default="", help="LLM model name (e.g. qwen2.5-coder-0.5b-instruct)")
+    p_run.add_argument("--embedder", type=str, default="", help="Embedding model name")
+    p_run.add_argument("--llm", type=str, default="", help="LLM model name")
     p_run.add_argument("--device", type=str, default="auto", choices=["auto", "cpu", "cuda"], help="Compute device")
     p_run.add_argument("--no-exec", action="store_true", help="Skip GEVR sandbox execution")
-    p_run.add_argument("--macros", dest="macros", action="store_true", default=None, help="Enable macro-goal routing (known-good composite paths)")
-    p_run.add_argument("--no-macros", dest="macros", action="store_false", help="Disable macro-goal routing (for A/B benchmarking)")
-    p_run.add_argument("--topology", choices=["frontier", "linear"], default=None, help="Topological planning approach ('frontier' for Multi-Carrier DAG or 'linear' for 1D Sequential Trellis)")
+    p_run.add_argument("--timeout", type=float, default=DEFAULT_SANDBOX_TIMEOUT, help="Sandbox execution timeout in seconds")
+    p_run.add_argument("--macros", dest="macros", action="store_true", default=None, help="Enable macro-goal routing")
+    p_run.add_argument("--no-macros", dest="macros", action="store_false", help="Disable macro-goal routing")
+    p_run.add_argument("--topology", choices=["frontier", "linear"], default=None, help="Topological planning approach")
     p_run.set_defaults(func=cmd_run)
 
-    # shell
     p_shell = subparsers.add_parser("shell", help="Launch real-time interactive synthesis TUI studio")
     p_shell.add_argument("--db", type=str, default="trees/lattice.db", help="Path to SQLite database")
-    p_shell.add_argument("--profile", type=str, default="0", help="Initial inference profile (0=Symbolic/Instant, A=Embedder, C=Neuro-Symbolic LLM, D, E)")
-    p_shell.add_argument("--route-method", "-m", type=str, default=None, choices=["M0", "M1", "M2", "M3", "M4", "M5", "M6", "M7", "M8", "M9"], help="Initial routing method algorithm (default: M0)")
+    p_shell.add_argument("--profile", type=str, default="0", help="Initial inference profile")
+    p_shell.add_argument("--route-method", "-m", type=str, default=None, choices=["M0", "M1", "M2", "M3", "M4", "M5", "M6", "M7", "M8", "M9"], help="Initial routing method")
     p_shell.add_argument("--dev", action="store_true", default=False, help="Launch studio with Dev Mode enabled")
     p_shell.add_argument("--no-lint", action="store_true", help="Skip static pre-flight linter")
-    p_shell.add_argument("--embedder", type=str, default="", help="Embedding model name (e.g. jina-embeddings-v5-text-nano)")
-    p_shell.add_argument("--llm", type=str, default="", help="LLM model name (e.g. qwen2.5-coder-0.5b-instruct)")
+    p_shell.add_argument("--embedder", type=str, default="", help="Embedding model name")
+    p_shell.add_argument("--llm", type=str, default="", help="LLM model name")
     p_shell.add_argument("--device", type=str, default="auto", choices=["auto", "cpu", "cuda"], help="Compute device")
     p_shell.add_argument("--debug", "-d", action="store_true", help="Launch studio with debug mode enabled")
-    p_shell.add_argument("--macros", dest="macros", action="store_true", default=None, help="Enable macro-goal routing (known-good composite paths)")
-    p_shell.add_argument("--no-macros", dest="macros", action="store_false", help="Disable macro-goal routing (for A/B benchmarking)")
-    p_shell.add_argument("--topology", choices=["frontier", "linear"], default=None, help="Topological planning approach ('frontier' for Multi-Carrier DAG or 'linear' for 1D Sequential Trellis)")
+    p_shell.add_argument("--no-exec", action="store_true", help="Skip GEVR sandbox execution")
+    p_shell.add_argument("--timeout", type=float, default=DEFAULT_SANDBOX_TIMEOUT, help="Sandbox execution timeout in seconds")
+    p_shell.add_argument("--macros", dest="macros", action="store_true", default=None, help="Enable macro-goal routing")
+    p_shell.add_argument("--no-macros", dest="macros", action="store_false", help="Disable macro-goal routing")
+    p_shell.add_argument("--topology", choices=["frontier", "linear"], default=None, help="Topological planning approach")
     p_shell.set_defaults(func=cmd_shell)
 
     return parser
 
 
 def main():
-    # If invoked without arguments (e.g. `python3 nstl_cli.py` or `python3 src/cli.py`), launch TUI Studio directly
     if len(sys.argv) == 1:
         shell = NSTLInteractiveShell()
         shell.cmdloop()
         return
 
-    # If invoked with only --debug, launch TUI studio directly with debug=True
     if len(sys.argv) == 2 and sys.argv[1] in ("--debug", "-d"):
         shell = NSTLInteractiveShell(debug=True)
         shell.cmdloop()
         return
 
-    # Pre-process arguments to support direct prompt or top-level --debug
     known_cmds = {"harvest", "compile", "validate", "audit", "macro", "benchmark", "precompute-rag", "shell", "run", "-h", "--help"}
     if len(sys.argv) > 1 and sys.argv[1] not in known_cmds:
         if sys.argv[1] in ("--debug", "-d") and len(sys.argv) > 2 and sys.argv[2] not in known_cmds:
@@ -2661,12 +2693,11 @@ def main():
             sys.argv.insert(1, "run")
 
     parser = build_parser()
-
     args = parser.parse_args()
+
     if hasattr(args, "func"):
         args.func(args)
     else:
-        # Default to interactive shell
         cmd_shell(argparse.Namespace(
             db="trees/lattice.db",
             profile="0",
@@ -2674,9 +2705,13 @@ def main():
             llm="",
             device="auto",
             debug=getattr(args, "debug", False),
+            no_exec=False,
             route_method=None,
             no_lint=False,
-            macros=None
+            macros=None,
+            topology=None,
+            dev=None,
+            timeout=DEFAULT_SANDBOX_TIMEOUT
         ))
 
 

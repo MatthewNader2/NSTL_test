@@ -5,14 +5,15 @@ Domain-Agnostic Sub-Word and Identifier Tokenizer.
 Deterministic, mathematically formal character-level transition scanner.
 Zero regular expressions.
 
-Includes a universal Porter-class suffix-stripping normalizer implemented as a
-pure character-transition state machine (no regex, no lexicons, no domain
-tables). The normalizer is applied IDENTICALLY to prompt tokens and identifier
-tokens, so morphological variants ("testing"/"test", "training"/"train",
-"regression"/"regressor", "normalized"/"normalize") collapse to the same
-token regardless of which side of the match they appear on. This is a
-language-level algorithm, not a domain vocabulary: it contains zero library,
-intent, or keyword knowledge.
+Morphological normalization is provided by an OPT-IN English Porter-class
+suffix stripper. It is applied IDENTICALLY to prompt tokens and identifier
+tokens when enabled, so English morphological variants ("testing"/"test",
+"training"/"train", "regression"/"regressor", "normalized"/"normalize")
+collapse to the same token. The stemmer is (a) gated by the module-level
+`ENABLE_ENGLISH_STEMMING` flag and (b) applied only to purely ASCII-alphabetic
+tokens. Non-Latin scripts and any token containing digits or symbols pass
+through unchanged. This is an English-language heuristic, not a universal
+normalizer; disabling the flag yields a purely character-level tokenizer.
 """
 
 from __future__ import annotations
@@ -20,11 +21,30 @@ import functools
 from typing import Set, FrozenSet, List
 
 
+# --------------------------------------------------------------------------- #
+# Opt-in English morphological normalizer
+# --------------------------------------------------------------------------- #
+
+#: Set to False to disable English Porter-class stemming entirely. When
+#: disabled, tokens are emitted verbatim (lowercased) with no suffix stripping.
+ENABLE_ENGLISH_STEMMING: bool = True
+
+
 _VOWELS = frozenset("aeiou")
 
 
 def _is_vowel(ch: str) -> bool:
     return ch.lower() in _VOWELS
+
+
+def _is_ascii_alpha_token(s: str) -> bool:
+    """True iff every character of `s` is an ASCII letter (a-z / A-Z)."""
+    if not s:
+        return False
+    for c in s:
+        if not (c.isascii() and c.isalpha()):
+            return False
+    return True
 
 
 def _measure(stem: str) -> int:
@@ -73,17 +93,28 @@ def _ends_cvc(stem: str) -> bool:
 @functools.lru_cache(maxsize=32768)
 def normalize_token(token: str) -> str:
     """
-    Universal Porter-class stem for a single lowercase alphabetic token.
+    Opt-in English Porter-class stem. Applied ONLY to ASCII-alphabetic tokens
+    when `ENABLE_ENGLISH_STEMMING` is True. All other tokens (non-Latin scripts,
+    digits, symbols, mixed identifiers) are returned lowercased but unchanged.
+
     Deterministic state machine over suffix transitions; zero regex, zero
-    lexicons. Words of length <= 2 are returned unchanged.
+    lexicons. Tokens of length <= 2 are returned unchanged.
     """
     w = token.strip().lower()
-    if not w.isalpha() or len(w) <= 2:
+    if len(w) <= 2:
+        return w
+
+    # Gate 1: global opt-in.
+    if not ENABLE_ENGLISH_STEMMING:
+        return w
+
+    # Gate 2: English suffix rules only apply to ASCII-alphabetic tokens.
+    if not _is_ascii_alpha_token(w):
         return w
 
     # ---------- Step 1a: plurals ----------
     if w.endswith("sses") or w.endswith("ies"):
-        w = w[:-2] if w.endswith("sses") else w[:-2]
+        w = w[:-2]
     elif w.endswith("ss"):
         pass
     elif w.endswith("s") and len(w) > 3 and not w.endswith("us") and not w.endswith("is"):
@@ -175,59 +206,94 @@ def normalize_token(token: str) -> str:
 _ALIASES: dict = {}
 _ALIASES_REV: dict = {}
 
+
 def register_aliases(mapping: dict) -> None:
     global _ALIASES, _ALIASES_REV
-    clean = {str(k).strip().lower(): str(v).strip().lower()
-             for k, v in (mapping or {}).items() if k and v}
-    if clean == _ALIASES: return
+    clean = {
+        str(k).strip().lower(): str(v).strip().lower()
+        for k, v in (mapping or {}).items()
+        if k and v
+    }
+    if clean == _ALIASES:
+        return
     _ALIASES = clean
     rev: dict = {}
     for k, v in _ALIASES.items():
         rev.setdefault(v, set()).add(k)
     _ALIASES_REV = rev
-    try: _tokenize_identifier_cached.cache_clear()
-    except Exception: pass
+    try:
+        _tokenize_identifier_cached.cache_clear()
+    except Exception:
+        pass
+
 
 def _expand_aliases(tokens):
-    if not _ALIASES or not tokens: return tokens
+    if not _ALIASES or not tokens:
+        return tokens
     out = set(tokens)
     for t in tokens:
         c = _ALIASES.get(t)
-        if c: out.add(c)
+        if c:
+            out.add(c)
         r = _ALIASES_REV.get(t)
-        if r: out.update(r)
+        if r:
+            out.update(r)
     return out
+
 
 def _tokenize_identifier_cached(identifier: str) -> FrozenSet[str]:
     clean = str(identifier).strip()
-    if not clean: return frozenset()
+    if not clean:
+        return frozenset()
     tokens = set()
+
     def _emit(chunk):
         t = "".join(chunk).lower().strip()
         if len(t) > 1:
             tokens.add(t)
             s = normalize_token(t)
-            if len(s) > 1: tokens.add(s)
+            if len(s) > 1:
+                tokens.add(s)
+
     seg, chunk = [], []
     for ch in clean:
-        if ch.isalnum(): seg.append(ch)
-        elif seg: _emit(seg); seg = []
-    if seg: _emit(seg)
+        if ch.isalnum():
+            seg.append(ch)
+        elif seg:
+            _emit(seg)
+            seg = []
+    if seg:
+        _emit(seg)
+
     n = len(clean)
     for i, ch in enumerate(clean):
         if not ch.isalnum():
-            if chunk: _emit(chunk); chunk = []
+            if chunk:
+                _emit(chunk)
+                chunk = []
             continue
         if chunk:
             p = chunk[-1]
-            if (p.islower() and ch.isupper()) or (p.isupper() and ch.isupper() and i + 1 < n and clean[i + 1].islower()) or (p.isalpha() and ch.isdigit()) or (p.isdigit() and ch.isalpha()):
-                _emit(chunk); chunk = [ch]; continue
+            if (
+                (p.islower() and ch.isupper())
+                or (p.isupper() and ch.isupper() and i + 1 < n and clean[i + 1].islower())
+                or (p.isalpha() and ch.isdigit())
+                or (p.isdigit() and ch.isalpha())
+            ):
+                _emit(chunk)
+                chunk = [ch]
+                continue
         chunk.append(ch)
-    if chunk: _emit(chunk)
+    if chunk:
+        _emit(chunk)
+
     full = "".join(c for c in clean if c.isalnum() or c in ("_", "-")).lower().strip()
-    if len(full) > 1: tokens.add(full)
+    if len(full) > 1:
+        tokens.add(full)
+
     if _ALIASES:  # (apply_fixes_v7)
         tokens = _expand_aliases(tokens)
+
     return frozenset(tokens)
 
 
@@ -239,7 +305,8 @@ class CellTokenizer:
         """
         Splits camelCase, snake_case, kebab-case, and dotted identifiers into distinct sub-tokens
         using a deterministic character-level transition scanner. Each emitted token is paired
-        with its morphological stem so cross-side variant matches succeed symmetrically.
+        with its morphological stem (when the English stemmer is enabled) so cross-side variant
+        matches succeed symmetrically.
         """
         if not identifier:
             return set()
@@ -254,11 +321,13 @@ class CellTokenizer:
 
     @classmethod
     def tokenize_prompt(cls, prompt: str, remove_stopwords: bool = False) -> Set[str]:
-        if not prompt: return set()
+        if not prompt:
+            return set()
         tokens = set()
         cur = []
         for ch in prompt.lower():
-            if ch.isalnum() or ch == '_': cur.append(ch)
+            if ch.isalnum() or ch == '_':
+                cur.append(ch)
             else:
                 if cur:
                     w = "".join(cur)
@@ -266,7 +335,8 @@ class CellTokenizer:
                         tokens.add(w)
                         if w.isalpha():
                             s = normalize_token(w)
-                            if len(s) > 1: tokens.add(s)
+                            if len(s) > 1:
+                                tokens.add(s)
                     cur = []
         if cur:
             w = "".join(cur)
@@ -274,7 +344,8 @@ class CellTokenizer:
                 tokens.add(w)
                 if w.isalpha():
                     s = normalize_token(w)
-                    if len(s) > 1: tokens.add(s)
+                    if len(s) > 1:
+                        tokens.add(s)
         for raw in prompt.split():
             cw = raw.strip(",;.:!?()[]{}\'\"")
             if any(c.isupper() for c in cw) or '_' in cw or '.' in cw or any(c.isdigit() for c in cw):
@@ -297,6 +368,11 @@ class CellTokenizer:
         Splits a prompt into logical action clauses without breaking inside quotes,
         brackets, filter expressions (e.g. 'x > 10 and y < 20'), or compound nouns.
         Deterministic, syntax-aware, zero external dependencies.
+
+        Verb-anchored splits are driven EXCLUSIVELY by the TypeRegistry operation
+        token pools; there is no hardcoded data-science verb list. When the
+        TypeRegistry is unavailable, only punctuation-based and connective-word
+        splits apply.
         """
         if not prompt or not prompt.strip():
             return []
@@ -353,7 +429,7 @@ class CellTokenizer:
         if cur and w_start is not None:
             raw_words.append((w_start, len(text), "".join(cur)))
 
-        # Resolve target operation verbs dynamically from TypeRegistry
+        # Resolve target operation verbs dynamically from TypeRegistry.
         try:
             from .lattice import TypeRegistry
         except (ImportError, ValueError):
@@ -364,21 +440,13 @@ class CellTokenizer:
 
         reg = TypeRegistry.get_instance() if TypeRegistry is not None else None
         if reg is not None:
-            op_verbs = (
+            target_verbs = (
                 reg.get_operation_tokens()
                 | reg.get_estimator_verbs()
                 | reg.get_egress_tokens()
             )
         else:
-            op_verbs = set()
-
-        universal_verbs = frozenset({
-            "train", "fit", "evaluate", "plot", "save", "predict", "scale",
-            "normalize", "clean", "drop", "export", "write", "visualize", "split",
-            "calculate", "compute", "perform", "execute", "apply", "run", "do",
-            "load", "read", "filter", "select", "project", "store", "assign"
-        })
-        target_verbs = op_verbs | universal_verbs
+            target_verbs = set()
 
         # 3. Detect clause boundaries
         split_positions = set()
@@ -414,7 +482,10 @@ class CellTokenizer:
                         break
                 if not in_filter:
                     prev_ends_comma = idx > 0 and raw_words[idx - 1][2].endswith(",")
-                    next_word = raw_words[idx + 1][2].lower().strip(".,;:") if idx + 1 < len(raw_words) else ""
+                    next_word = (
+                        raw_words[idx + 1][2].lower().strip(".,;:")
+                        if idx + 1 < len(raw_words) else ""
+                    )
                     if prev_ends_comma or next_word in target_verbs:
                         split_positions.add(s)
                         continue
@@ -450,4 +521,3 @@ class CellTokenizer:
             clauses.append(tail)
 
         return clauses if clauses else [text]
-

@@ -216,6 +216,18 @@ class LatticeType:
             s += f"{{{', '.join(self.qualifiers)}}}"
         return s
 
+_SUBTYPE_CACHE_MAX = 16384
+
+
+def _locked(fn):
+    """Run a TypeRegistry method while holding the registry's re-entrant lock."""
+    @functools.wraps(fn)
+    def wrapper(self, *args, **kwargs):
+        with self._lock:
+            return fn(self, *args, **kwargs)
+    return wrapper
+
+
 class TypeRegistry:
     """
     Dynamic Poset Type Hierarchy (T, <=).
@@ -259,6 +271,18 @@ class TypeRegistry:
         self._ancestry_cache: Dict[Tuple[str, FrozenSet[str]], bool] = {}
         # (apply_fixes_v7) P6 — configurable enum-citation triggers
         self._enum_citation_triggers: Set[str] = set()
+        # Data-driven structural vocabulary (declared in tree JSON; empty by default)
+        self._top_level_carriers: Set[str] = set()
+        self._path_port_tokens: Set[str] = set()
+        self._state_role_ancestors: Dict[str, FrozenSet[str]] = {}
+        self._state_role_markers: Dict[str, Tuple[str, ...]] = {}
+        self._carrier_roles: Dict[str, Tuple[str, ...]] = {}
+        self._identifier_root_states: Set[str] = set()
+        self._egress_exclusion_tokens: Set[str] = set()
+        # Subtype memo: per-instance, invalidated by bumping a generation counter
+        # so a result computed against a stale poset can never be cached.
+        self._subtype_cache: Dict[Tuple[Any, Any], bool] = {}
+        self._generation: int = 0
         self._bootstrap_carrier_hierarchy()
         self._bootstrap_state_hierarchy()
         self._bootstrap_plugin_types()
@@ -273,6 +297,7 @@ class TypeRegistry:
         are declared in trees/_primitives.json.  Loaded by _bootstrap_plugin_types()."""
         pass
 
+    @_locked
     def register_artifact_reader(self, category: str, module_name: str, function_name: str) -> None:
         cat = category.strip().lower()
         if cat not in self._artifact_readers:
@@ -284,6 +309,7 @@ class TypeRegistry:
     def get_artifact_readers(self, category: str) -> List[Tuple[str, str]]:
         return list(self._artifact_readers.get(category.strip().lower(), []))
 
+    @_locked
     def _bootstrap_plugin_types(self):
         """Dynamically ingests domain plugin types from trees/*.json without engine hardcoding."""
         import glob, json
@@ -295,6 +321,21 @@ class TypeRegistry:
                     with open(p, "r", encoding="utf-8") as f:
                         data = json.load(f)
                     if isinstance(data, dict):
+                        # Structural declarations first so they govern this file's own types.
+                        if isinstance(data.get("top_level_carriers"), list):
+                            self.register_top_level_carriers(data["top_level_carriers"])
+                        if isinstance(data.get("path_port_tokens"), list):
+                            self.register_path_port_tokens(data["path_port_tokens"])
+                        if isinstance(data.get("state_role_ancestors"), dict):
+                            self.register_state_role_ancestors(data["state_role_ancestors"])
+                        if isinstance(data.get("state_role_markers"), dict):
+                            self.register_state_role_markers(data["state_role_markers"])
+                        if isinstance(data.get("carrier_roles"), dict):
+                            self.register_carrier_roles(data["carrier_roles"])
+                        if isinstance(data.get("identifier_root_states"), list):
+                            self.register_identifier_root_states(data["identifier_root_states"])
+                        if isinstance(data.get("egress_exclusion_tokens"), list):
+                            self.register_egress_exclusion_tokens(data["egress_exclusion_tokens"])
                         if "types" in data and isinstance(data["types"], dict):
                             for t_name, t_meta in data["types"].items():
                                 if isinstance(t_meta, dict):
@@ -389,6 +430,99 @@ class TypeRegistry:
                 except Exception as e:
                     logger.debug("suppressed: %s", e, exc_info=False)
 
+    @_locked
+    # --- Cache invalidation -------------------------------------------------
+    def _invalidate_caches(self) -> None:
+        """Drop every derived cache. Bumping the generation makes any in-flight
+        computation refuse to store its (possibly stale) result."""
+        with self._lock:
+            self._generation += 1
+            self._subtype_cache.clear()
+            self._ancestry_cache.clear()
+
+    # --- Data-driven structural vocabulary ----------------------------------
+    @_locked
+    def register_top_level_carriers(self, names: Any) -> None:
+        """Declare mutually-disjoint root carriers (distinct roots never subsume each other)."""
+        for n in names or ():
+            s_ = str(n).strip().lower()
+            if s_:
+                self._top_level_carriers.add(s_)
+
+    def get_top_level_carriers(self) -> FrozenSet[str]:
+        return frozenset(self._top_level_carriers)
+
+    @_locked
+    def register_path_port_tokens(self, tokens: Any) -> None:
+        """Roles / abstract types / carrier types / type names that mark a filesystem-path port."""
+        for t in tokens or ():
+            s_ = str(t).strip().lower()
+            if s_:
+                self._path_port_tokens.add(s_)
+
+    def get_path_port_tokens(self) -> FrozenSet[str]:
+        return frozenset(self._path_port_tokens)
+
+    @_locked
+    def register_state_role_ancestors(self, mapping: Dict[str, Any]) -> None:
+        """role -> typestate ancestors whose descendants take that role (declaration order = priority)."""
+        for role, ancestors in (mapping or {}).items():
+            r = str(role).strip().lower()
+            if not r:
+                continue
+            anc = frozenset(str(a).strip().lower() for a in (ancestors or ()) if str(a).strip())
+            if anc:
+                self._state_role_ancestors[r] = self._state_role_ancestors.get(r, frozenset()) | anc
+        self._invalidate_caches()
+
+    def get_state_role_ancestors(self) -> Dict[str, FrozenSet[str]]:
+        return dict(self._state_role_ancestors)
+
+    @_locked
+    def register_state_role_markers(self, mapping: Dict[str, Any]) -> None:
+        """role -> substrings that, when present in a state name, assign that role."""
+        for role, markers in (mapping or {}).items():
+            r = str(role).strip().lower()
+            ms = tuple(str(m).strip().lower() for m in (markers or ()) if str(m).strip())
+            if r and ms:
+                self._state_role_markers[r] = tuple(dict.fromkeys(self._state_role_markers.get(r, ()) + ms))
+
+    def get_state_role_markers(self) -> Dict[str, Tuple[str, ...]]:
+        return dict(self._state_role_markers)
+
+    @_locked
+    def register_carrier_roles(self, mapping: Dict[str, Any]) -> None:
+        """role -> carrier types (poset ancestors) that imply that role."""
+        for role, carriers in (mapping or {}).items():
+            r = str(role).strip().lower()
+            cs = tuple(str(c).strip().lower() for c in (carriers or ()) if str(c).strip())
+            if r and cs:
+                self._carrier_roles[r] = tuple(dict.fromkeys(self._carrier_roles.get(r, ()) + cs))
+
+    def get_carrier_roles(self) -> Dict[str, Tuple[str, ...]]:
+        return dict(self._carrier_roles)
+
+    @_locked
+    def register_identifier_root_states(self, states: Any) -> None:
+        """Root typestates whose descendants are mutually compatible (asset-identifier families)."""
+        for st in states or ():
+            s_ = str(st).strip().lower()
+            if s_:
+                self._identifier_root_states.add(s_)
+
+    def get_identifier_root_states(self) -> FrozenSet[str]:
+        return frozenset(self._identifier_root_states)
+
+    @_locked
+    def register_egress_exclusion_tokens(self, tokens: Any) -> None:
+        for t in tokens or ():
+            s_ = str(t).strip().lower()
+            if s_:
+                self._egress_exclusion_tokens.add(s_)
+
+    def get_egress_exclusion_tokens(self) -> FrozenSet[str]:
+        return frozenset(self._egress_exclusion_tokens)
+
     def register_type_vars(self, names: Any) -> None:
         for n in names or ():
             n = str(n).strip()
@@ -401,10 +535,12 @@ class TypeRegistry:
             return True
         return len(n) > 0 and n[0].isupper() and n[0].isalpha() and (len(n) == 1 or n[1:].isdigit())
 
+    @_locked
     def register_top(self, name: str) -> None:
         n = str(name).strip().lower()
         if n:
             self._declared_top.add(n)
+            self._invalidate_caches()
 
     def is_declared_top(self, name: str) -> bool:
         s = str(name).strip()
@@ -418,6 +554,7 @@ class TypeRegistry:
             return True
         return False
 
+    @_locked
     def register_top_state(self, name: str) -> None:
         n = str(name).strip().lower()
         if n:
@@ -432,6 +569,7 @@ class TypeRegistry:
             return True
         return False
 
+    @_locked
     def register_product_constructor(self, ctor: str) -> None:
         c = str(ctor).strip().lower()
         if c:
@@ -441,6 +579,7 @@ class TypeRegistry:
         c = str(ctor).strip().lower()
         return c in self._product_constructors
 
+    @_locked
     def derive_function_words(self, corpus_docs: List[str], cutoff: float = 0.5) -> FrozenSet[str]:
         from collections import Counter
         df = Counter()
@@ -469,6 +608,7 @@ class TypeRegistry:
             return False
         return True
 
+    @_locked
     def register_egress_tokens(self, tokens: Any) -> None:
         fw = getattr(self, "_function_words", None) or set()
         for t in tokens or ():
@@ -479,6 +619,7 @@ class TypeRegistry:
     def get_egress_tokens(self) -> FrozenSet[str]:
         return frozenset(self._egress_tokens)
 
+    @_locked
     def register_materialization_states(self, states: Any) -> None:
         for st in states or ():
             s = str(st).strip().lower()
@@ -488,6 +629,7 @@ class TypeRegistry:
     def get_materialization_states(self) -> FrozenSet[str]:
         return frozenset(self._materialization_states)
 
+    @_locked
     def register_polarity_hints(self, direction: str, hints: Any) -> None:
         d = str(direction).strip().lower()
         if d not in self._polarity_hints:
@@ -506,6 +648,7 @@ class TypeRegistry:
         # during load. Until trees register them, return empty.
         return frozenset(getattr(self, "_role_carriers", set()))
 
+    @_locked
     def register_role_carrier(self, role: str) -> None:
         if not hasattr(self, "_role_carriers"):
             self._role_carriers = set()
@@ -517,6 +660,7 @@ class TypeRegistry:
         return dict(self._aliases)
 
     # --- Advisory qualifiers (data-driven from tree declarations) ---
+    @_locked
     def register_advisory_qualifiers(self, qualifiers: Any) -> None:
         for q in qualifiers or ():
             if isinstance(q, (list, tuple)):
@@ -528,6 +672,7 @@ class TypeRegistry:
         return frozenset(self._advisory_qualifiers)
 
     # --- Abstract carriers (data-driven from tree declarations) ---
+    @_locked
     def register_abstract_carriers(self, carriers: Any) -> None:
         for c in carriers or ():
             s = str(c).strip().lower()
@@ -541,6 +686,7 @@ class TypeRegistry:
         return str(name).strip().lower() in self._abstract_carriers
 
     # --- Abstract carrier mapping (type name -> abstract category) ---
+    @_locked
     def register_abstract_carrier_mapping(self, mapping: Dict[str, str]) -> None:
         for k, v in (mapping or {}).items():
             self._abstract_carrier_mapping[str(k).strip().lower()] = str(v).strip().lower()
@@ -562,15 +708,18 @@ class TypeRegistry:
         result = self._abstract_carrier_mapping.get(key)
         if result:
             return result
-        # Check startswith patterns for composite names like "dataframe_cleaned"
-        for prefix in ("sequence of", "list of", "tuple of", "dict of",
-                        "iterable of", "collection of", "array-like", "array_like",
-                        "ndarray", "matrix", "tensor", "dataframe", "table"):
-            if key.startswith(prefix):
-                return self._abstract_carrier_mapping.get(prefix.split()[0] if " " in prefix else prefix)
+        # Composite names ("dataframe_cleaned", "sequence of int"): match on any declared
+        # mapping key at a word/underscore boundary, longest key first. No built-in vocabulary.
+        mapping = dict(self._abstract_carrier_mapping)
+        for prefix in sorted(mapping, key=len, reverse=True):
+            if prefix and key.startswith(prefix):
+                rest = key[len(prefix):]
+                if not rest or not rest[0].isalnum():
+                    return mapping[prefix]
         return None
 
     # --- Destination port tokens (data-driven from tree declarations) ---
+    @_locked
     def register_dest_port_tokens(self, tokens: Any) -> None:
         for t in tokens or ():
             s = str(t).strip().lower()
@@ -581,6 +730,7 @@ class TypeRegistry:
         return frozenset(self._dest_port_tokens)
 
     # --- Source port tokens (data-driven from tree declarations) ---
+    @_locked
     def register_source_port_tokens(self, tokens: Any) -> None:
         for t in tokens or ():
             s = str(t).strip().lower()
@@ -591,6 +741,7 @@ class TypeRegistry:
         return frozenset(self._source_port_tokens)
 
     # --- Data-bearing roles (data-driven from tree declarations) ---
+    @_locked
     def register_data_bearing_roles(self, roles: Any) -> None:
         for r in roles or ():
             s = str(r).strip().lower()
@@ -601,6 +752,7 @@ class TypeRegistry:
         return frozenset(self._data_bearing_roles)
 
     # --- Estimator verbs (data-driven from tree declarations) ---
+    @_locked
     def register_estimator_verbs(self, verbs: Any) -> None:
         for v in verbs or ():
             s = str(v).strip().lower()
@@ -611,6 +763,7 @@ class TypeRegistry:
         return frozenset(self._estimator_verbs)
 
     # --- Column projection tokens (data-driven from tree declarations) ---
+    @_locked
     def register_column_projection_tokens(self, tokens: Any) -> None:
         for t in tokens or ():
             s = str(t).strip().lower()
@@ -621,6 +774,7 @@ class TypeRegistry:
         return frozenset(self._column_projection_tokens)
 
     # --- Stopwords (deprecated: zero hardcoded stopwords, empty by default) ---
+    @_locked
     def register_stopwords(self, words: Any) -> None:
         pass
 
@@ -628,6 +782,7 @@ class TypeRegistry:
         return frozenset()
 
     # --- Preposition triggers (data-driven from tree declarations) ---
+    @_locked
     def register_preposition_triggers(self, triggers: Any) -> None:
         for t in triggers or ():
             s = str(t).strip().lower()
@@ -638,6 +793,7 @@ class TypeRegistry:
         return frozenset(self._preposition_triggers)
 
     # --- Sentence connectives (data-driven from tree declarations) ---
+    @_locked
     def register_sentence_connectives(self, connectives: Any) -> None:
         for c in connectives or ():
             s = str(c).strip().lower()
@@ -653,6 +809,7 @@ class TypeRegistry:
         return frozenset({"and", "or", "to", "for", "with", "as", "by", "into", "from", "on", "in", "of", "the", "a", "an", "is", "at", "then"})
 
     # --- Operation / algorithm tokens (data-driven from tree cell declarations) ---
+    @_locked
     def register_operation_tokens(self, tokens: Any) -> None:
         for t in tokens or ():
             s = str(t).strip().lower()
@@ -666,6 +823,7 @@ class TypeRegistry:
         return str(token).strip().lower() in self._operation_tokens
 
     # --- Default asset placeholders (data-driven from tree declarations) ---
+    @_locked
     def register_asset_placeholders(self, placeholders: Dict[str, str]) -> None:
         for k, v in (placeholders or {}).items():
             self._asset_placeholders[str(k).strip().lower()] = str(v).strip()
@@ -676,6 +834,7 @@ class TypeRegistry:
             return self._asset_placeholders[k]
         return self._asset_placeholders.get("default", default)
 
+    @_locked
     def register_output_asset_placeholders(self, placeholders: Dict[str, str]) -> None:
         for k, v in (placeholders or {}).items():
             self._output_asset_placeholders[str(k).strip().lower()] = str(v).strip()
@@ -702,31 +861,31 @@ class TypeRegistry:
     def poset(self) -> Dict[str, Set[str]]:
         return self._parents
 
+    @_locked
     def register_type(self, type_name: str, super_type: Optional[str] = None):
         """Registers a type and optionally declares its supertype in the poset."""
         name = str(type_name).strip().lower()
         if not name or name in ("none", "null"):
             return
-        if name not in self._parents:
-            self._parents[name] = set()
-        if super_type:
-            super_name = str(super_type).strip().lower()
-            if super_name and super_name != name and super_name not in ("none", "null"):
-                # Poset invariant: Distinct top-level carriers never subsume each other
-                top_level_carriers = {"scalar", "collection", "tensor", "table", "logical", "str"}
-                if name in top_level_carriers and super_name in top_level_carriers:
-                    return
-                # Prevent cycles in the poset
-                if self.is_subtype(super_name, name):
-                    return
-                if super_name not in self._parents:
-                    self._parents[super_name] = set()
-                self._parents[name].add(super_name)
         try:
-            self.is_subtype.cache_clear()
-        except AttributeError:
-            pass
+            if name not in self._parents:
+                self._parents[name] = set()
+            if super_type:
+                super_name = str(super_type).strip().lower()
+                if super_name and super_name != name and super_name not in ("none", "null"):
+                    # Poset invariant: declared distinct top-level carriers never subsume each other
+                    if name in self._top_level_carriers and super_name in self._top_level_carriers:
+                        return
+                    # Prevent cycles in the poset (uncached: state is mid-mutation)
+                    if self._compute_is_subtype(super_name, name):
+                        return
+                    if super_name not in self._parents:
+                        self._parents[super_name] = set()
+                    self._parents[name].add(super_name)
+        finally:
+            self._invalidate_caches()
 
+    @_locked
     def register_enum_citation_triggers(self, triggers) -> None:
         for t in triggers or ():
             s = str(t).strip().lower()
@@ -735,8 +894,10 @@ class TypeRegistry:
     def get_enum_citation_triggers(self) -> FrozenSet[str]:
         return frozenset(self._enum_citation_triggers)
 
+    @_locked
     def register_alias(self, alias: str, canonical: str):
         self._aliases[alias.strip().lower()] = canonical.strip()
+        self._invalidate_caches()  # canonical_name() feeds every subtype query
         # (apply_fixes_v7) propagate to tokenizer
         try:
             from .tokenizer import register_aliases as _ra
@@ -744,7 +905,7 @@ class TypeRegistry:
             try: from tokenizer import register_aliases as _ra
             except ImportError: _ra = None
         if _ra is not None:
-            try: _ra(self._aliases)
+            try: _ra(dict(self._aliases))  # snapshot, never the live dict
             except Exception: pass
 
     def canonical_name(self, type_name: str) -> str:
@@ -796,8 +957,23 @@ class TypeRegistry:
                     continue
         return None
 
-    @functools.lru_cache(maxsize=16384)
     def is_subtype(self, sub: str, super_: str) -> bool:
+        """Memoised poset query. The cache is per-instance and generation-guarded:
+        a result computed while a mutation was in flight is returned but never stored."""
+        key = (sub, super_)
+        hit = self._subtype_cache.get(key)
+        if hit is not None:
+            return hit
+        gen = self._generation
+        result = self._compute_is_subtype(sub, super_)
+        with self._lock:
+            if gen == self._generation:
+                if len(self._subtype_cache) >= _SUBTYPE_CACHE_MAX:
+                    self._subtype_cache.clear()
+                self._subtype_cache[key] = result
+        return result
+
+    def _compute_is_subtype(self, sub: str, super_: str) -> bool:
         """
         Computes poset partial order: returns True iff sub <= super_.
         Supports recursive structural generic subtyping for terms F[tau_1, ..., tau_n].
@@ -853,7 +1029,7 @@ class TypeRegistry:
                 if curr == super_key or curr == super_l:
                     return True
                 visited.add(curr)
-                for parent in self._parents.get(curr, []):
+                for parent in tuple(self._parents.get(curr, ())):  # snapshot: safe vs concurrent register_type
                     p_l = parent.lower()
                     if p_l not in visited:
                         queue.append(p_l)
@@ -868,6 +1044,8 @@ class TypeRegistry:
                 pass
 
         return False
+
+    @_locked
     def register_state(
         self,
         state: str,
@@ -890,8 +1068,7 @@ class TypeRegistry:
             self._state_properties.setdefault(s, {}).update(
                 {str(k): v for k, v in properties.items()}
             )
-        if hasattr(self, "_ancestry_cache") and self._ancestry_cache:
-            self._ancestry_cache.clear()
+        self._invalidate_caches()
 
     def get_state_parent(self, state: str) -> Optional[str]:
         """Returns the declared parent_state of a typestate, if any."""
@@ -913,6 +1090,7 @@ class TypeRegistry:
             curr = self._state_parents.get(curr, "")
         return result
 
+    @_locked
     def state_ancestry_reaches(self, state: str, ancestors: Union[Set[str], FrozenSet[str]]) -> bool:
         """True iff the state's declared parent chain reaches any of `ancestors`."""
         curr = str(state).strip().lower()
@@ -1005,10 +1183,18 @@ class TypeRegistry:
 
         root_p = _get_root_state(p_state)
         root_c = _get_root_state(c_state)
-        if root_p and root_p == root_c and root_p in ("source_identifier", "dest_identifier", "filepath_written"):
+        if root_p and root_p == root_c and root_p in self._identifier_root_states:
             return True
 
         return False
+
+
+
+def _legacy_cache_clear() -> None:
+    TypeRegistry.get_instance()._invalidate_caches()
+
+# Back-compat: callers used to do `registry.is_subtype.cache_clear()` (functools.lru_cache API).
+TypeRegistry.is_subtype.cache_clear = _legacy_cache_clear
 
 
 def is_subtype(sub: str, parent: str) -> bool:
@@ -1040,33 +1226,32 @@ def is_path_port(port: Any) -> bool:
 
 
 def _compute_is_path_port(port: Any) -> bool:
-    role = str(getattr(port, "port_role", None) or getattr(port, "role", None) or "").strip().lower()
-    if role in ("path", "file", "filepath", "filename", "pathlike"):
-        return True
     registry = TypeRegistry.get_instance()
+    path_tokens = registry.get_path_port_tokens()   # declared in tree JSON: `path_port_tokens`
+    role = str(getattr(port, "port_role", None) or getattr(port, "role", None) or "").strip().lower()
+    if role and role in path_tokens:
+        return True
     sig = getattr(port, "signature", port)
     t_name = str(getattr(sig, "type_name", "") or "").lower()
     abstract_t = str(
         getattr(port, "abstract_type", "") or getattr(sig, "abstract_type", "") or ""
     ).lower()
-    if abstract_t == "path":
+    if abstract_t and abstract_t in path_tokens:
         return True
-    if registry.is_subtype(t_name, "filepath") or registry.is_subtype(t_name, "uri"):
+    if t_name and any(registry.is_subtype(t_name, tok) for tok in path_tokens):
         return True
-    # String-typed ports whose declared state marks them as path carriers
-    # (state names are declared typestate data).
+    # String-typed ports whose declared state descends from a declared source-asset state.
     state = str(getattr(sig, "state", "") or "").lower()
-    if state and registry.state_ancestry_reaches(state, {"source_identifier"}):
+    source_ancestors = registry.get_state_role_ancestors().get("source_data")
+    if state and source_ancestors and registry.state_ancestry_reaches(state, source_ancestors):
         return True
-    # Consult registry aliases and carrier type
     aliases = registry.get_all_aliases()
-    if t_name in aliases and aliases[t_name] in ("path", "filepath", "filename", "pathlike"):
+    if t_name in aliases and str(aliases[t_name]).lower() in path_tokens:
         return True
     c_type = str(getattr(sig, "carrier_type", "") or getattr(port, "carrier_type", "") or "").lower()
-    if c_type in ("path", "filepath", "filename", "pathlike"):
+    if c_type and c_type in path_tokens:
         return True
-    # Naming fallback for unannotated string ports (single canonical list,
-    # token-boundary aware — shared by planner, unifier and contract builder).
+    # Naming fallback for unannotated string ports (declared `dest_port_tokens`).
     name = str(getattr(port, "name", "") or "").lower()
     if not name:
         return False
@@ -1328,9 +1513,26 @@ class CaseInsensitiveDict(dict):
         if actual is not None:
             return super().__getitem__(actual)
         return default
-        if args:
-            return args[0]
-        raise KeyError(key)
+
+    def pop(self, key, *args):
+        actual = self._resolve_key(key)
+        if actual is None:
+            if args:
+                return args[0]
+            raise KeyError(key)
+        self._lower_map.pop(str(actual).lower(), None)
+        return super().pop(actual)
+
+    def setdefault(self, key, default=None):
+        actual = self._resolve_key(key)
+        if actual is not None:
+            return super().__getitem__(actual)
+        self[key] = default
+        return default
+
+    def update(self, *args, **kwargs):
+        for k, v in dict(*args, **kwargs).items():
+            self[k] = v
 
     def clear(self):
         super().clear()
@@ -1504,11 +1706,9 @@ class PortSignature:
         """
         Role resolution is DECLARED-DATA-FIRST:
           1. the port's declared `port_role` (tree JSON field),
-          2. the declared typestate ancestry of its state (e.g. a state whose
-             registered parent chain reaches `target_vector` is a target;
-             reaches `feature_matrix` is a feature; reaches `trained`/`fit_estimator`
-             is a model; reaches `source_identifier` is a source asset),
-          3. the declared carrier type (subtype of `Estimator`, table carriers...).
+          2. the declared typestate ancestry of its state, per the tree-declared
+             `state_role_ancestors` map (role -> ancestor states),
+          3. the declared carrier type, per the tree-declared `carrier_roles` map.
         No port-name conventions: naming is data, typing is semantics.
         """
         if self._cached_derived_role is not None:
@@ -1521,27 +1721,26 @@ class PortSignature:
         state_lower = str(getattr(self.signature, "state", "")).lower()
         registry = TypeRegistry.get_instance()
 
-        # Declared state ancestry -> role families
+        # Declared state ancestry -> role families (tree JSON: `state_role_ancestors`,
+        # `state_role_markers`, `carrier_roles`; earlier declarations win).
         role = "standard"
         if state_lower and state_lower not in ("any", "*"):
-            if registry.state_ancestry_reaches(state_lower, frozenset({"target_vector", "target", "labels"})):
-                role = "target_input"
-            elif registry.state_ancestry_reaches(state_lower, frozenset({"feature_matrix", "features"})):
-                role = "feature_input"
-            elif registry.state_ancestry_reaches(state_lower, frozenset({"trained", "fit_estimator"})):
-                role = "model_input"
-            elif registry.state_ancestry_reaches(state_lower, frozenset({"source_identifier"})):
-                role = "source_data"
-            elif "sink" in state_lower or "dest" in state_lower or "dest_identifier" in state_lower:
-                role = "model_sink"
+            for role_name, ancestors in registry.get_state_role_ancestors().items():
+                if registry.state_ancestry_reaches(state_lower, ancestors):
+                    role = role_name
+                    break
+            else:
+                for role_name, markers in registry.get_state_role_markers().items():
+                    if any(m in state_lower for m in markers):
+                        role = role_name
+                        break
 
         if role == "standard":
-            # Declared carrier type -> role families
             t_name = self.type_name.lower()
-            if registry.is_subtype(t_name, "estimator"):
-                role = "model_input"
-            elif registry.is_subtype(t_name, "table") or registry.is_subtype(t_name, "tensor"):
-                role = "data_input"
+            for role_name, carriers in registry.get_carrier_roles().items():
+                if any(registry.is_subtype(t_name, c) for c in carriers):
+                    role = role_name
+                    break
 
         self._cached_derived_role = role
         return role
@@ -1625,7 +1824,7 @@ class Cell(ABC):
     ):
         self.cell_id = cell_id
         self.stage = stage
-        self.keywords = set(str(k).lower() for k in keywords if len(str(k)) >= 3) if keywords else set()
+        self.keywords = {t for t in (str(k).strip().lower() for k in keywords) if t} if keywords else set()
         self.cell_type = cell_type
         self.domain_name = domain_name
         self.node_type = node_type
@@ -2038,7 +2237,7 @@ class Cell(ABC):
         return False
 
     def to_dict(self) -> Dict[str, Any]:
-        return {
+        d: Dict[str, Any] = {
             "cell_id": self.cell_id,
             "stage": self.stage,
             "keywords": list(self.keywords) if isinstance(self.keywords, (set, list)) else [],
@@ -2906,9 +3105,10 @@ class LatticeOrchestrator:
                 if is_egress:
                     if getattr(c, "keywords", None):
                         src_toks = reg.get_source_port_tokens()
+                        excl_toks = reg.get_egress_exclusion_tokens()
                         valid_kw = [
                             kw for kw in c.keywords
-                            if kw not in src_toks and kw not in ("csv", "tsv", "json", "parquet", "excel", "file", "path", "data", "df", "table", "image", "array")
+                            if kw not in src_toks and kw not in excl_toks
                         ]
                         reg.register_egress_tokens(valid_kw)
                     for p in getattr(c, "outputs", {}).values():

@@ -3,27 +3,13 @@ src/semantic_repair_engine.py
 
 General dynamic semantic validation and repair engine for NSTL cells.
 Contains ZERO hardcoded library checks or cell-name checks.
-
-Given ANY cell in ANY tree:
-1. Dynamically resolves the runtime callable invoked in `code_template`.
-2. Validates the call against the ground truth signature contract (inspect /
-   stubs / docstrings via signature_introspector.resolve_signature).
-3. Discards spurious keyword arguments that do not belong to the callable.
-4. Restores missing required positional parameters as template placeholders.
-5. Synchronizes `inputs` with template placeholders (wiring invariant).
-
-NOTE: this module previously imported three helpers
-(`parse_call_expression`, `resolve_callable_from_expr`,
-`validate_and_reconstruct_call`) that never existed anywhere in the
-repository, so importing it always raised ImportError and the "Phase-2
-semantic repair" feature was dead on arrival. This implementation wires the
-promised behavior onto the real introspector API.
 """
 
 from __future__ import annotations
 
 import ast
 import importlib
+import inspect
 from typing import Any, Dict, List, Optional, Tuple
 
 try:
@@ -38,48 +24,67 @@ from template_wiring import (
 )
 
 
-def parse_call_expression(template: str) -> Optional[Tuple[str, List[str], Dict[str, str]]]:
+def parse_call_expression(
+    template: str,
+) -> Optional[Tuple[str, List[str], Dict[str, str], Optional[str]]]:
     """
-    Parses the single call expression on the RHS of a code template.
+    Parses the single call expression in a code template.
 
-    Template placeholders ({output_var}, {df}, ...) are substituted with
-    syntactically valid identifiers before AST parsing, then the call's
-    argument NAMES (positional placeholders / keyword names) are returned:
-    (func_expr, positional_arg_names, keyword_arg_names).
+    Returns:
+        (func_expr, positional_arg_names, keyword_arg_names, lhs)
+
+    `lhs` is the original assignment target if the template contains an
+    assignment, otherwise None.  This allows callers to preserve multi-target
+    assignments and void/sink calls without forcibly injecting `{output_var} =`.
     """
     if not template or "{" not in template:
         return None
 
-    # Strip a leading assignment: "{output_var} = <rhs>" / "a, b = <rhs>"
     text = template.strip()
-    if "=" in text and "==" not in text and "!=" not in text and "<=" not in text and ">=" not in text:
-        lhs, sep, candidate_rhs = text.partition("=")
-        lhs = lhs.strip()
-        lhs_parts = [p.strip() for p in lhs.split(",")]
-        if all(p.startswith("{") and p.endswith("}") and p[1:-1].isidentifier() for p in lhs_parts):
-            rhs = candidate_rhs.strip()
-        else:
-            rhs = text
-    else:
-        rhs = text
 
-    # Replace placeholders with valid identifiers so ast.parse succeeds.
-    rhs_placeholders = extract_template_placeholders(rhs)
-    ast_ready = rhs
-    for name in rhs_placeholders:
-        ast_ready = ast_ready.replace(f"{{{name}}}", f"_nstl_ph_{name}")
+    # Substitute placeholders with valid identifiers so AST parsing succeeds.
+    placeholders = extract_template_placeholders(text)
+    ast_ready = text
+    ph_map: Dict[str, str] = {}
+    for name in placeholders:
+        ast_name = f"_nstl_ph_{name}"
+        ast_ready = ast_ready.replace(f"{{{name}}}", ast_name)
+        ph_map[ast_name] = name
+
+    # Try expression first (e.g. "func({x})" or "obj.method({x})").
+    # If that fails, parse as a statement and extract the RHS of an assignment.
     try:
         tree = ast.parse(ast_ready, mode="eval")
+        rhs_node = tree.body
+        lhs_node = None
     except SyntaxError:
+        try:
+            tree = ast.parse(ast_ready, mode="exec")
+        except SyntaxError:
+            return None
+
+        rhs_node = None
+        lhs_node = None
+        for node in tree.body:
+            if isinstance(node, ast.Assign):
+                lhs_node = node.targets[0] if node.targets else None
+                rhs_node = node.value
+                break
+            if isinstance(node, ast.AnnAssign):
+                lhs_node = node.target
+                rhs_node = node.value
+                break
+            if isinstance(node, ast.Expr):
+                rhs_node = node.value
+                break
+        if rhs_node is None:
+            return None
+
+    if not isinstance(rhs_node, ast.Call):
         return None
 
-    call = tree.body
-    while isinstance(call, ast.Attribute):
-        call = call.value  # unwrap chained attributes to the base call
-    if not isinstance(call, ast.Call):
-        return None
+    call = rhs_node
 
-    # Recover the dotted callee expression from the AST.
     def _unparse_name(node: ast.AST) -> Optional[str]:
         if isinstance(node, ast.Name):
             return node.id
@@ -93,39 +98,57 @@ def parse_call_expression(template: str) -> Optional[Tuple[str, List[str], Dict[
     func_expr = _unparse_name(call.func)
     if not func_expr:
         return None
+
     # Method calls on data carriers ({df}.head(...), {img}.resize(...)) have a
-    # placeholder as their root: there is no static callable to resolve against,
-    # so repair skips them gracefully.
+    # placeholder as their root: there is no static callable to resolve against.
     if func_expr.startswith("_nstl_ph_"):
         return None
 
+    def _restore_placeholders(s: str) -> str:
+        for ast_name, orig in ph_map.items():
+            s = s.replace(ast_name, f"{{{orig}}}")
+        return s
+
     def _ph_name(node: ast.AST) -> Optional[str]:
         if isinstance(node, ast.Name) and node.id.startswith("_nstl_ph_"):
-            return node.id[len("_nstl_ph_"):]
+            return ph_map.get(node.id, node.id[len("_nstl_ph_") :])
         return None
 
     positional: List[str] = []
     for arg in call.args:
         name = _ph_name(arg)
-        if name is None:
-            # A concrete (non-placeholder) argument: keep its source text.
+        if name is not None:
+            positional.append(name)
+        else:
             try:
                 positional.append(ast.unparse(arg))
             except Exception:
                 positional.append("")
-        else:
-            positional.append(name)
 
     keywords: Dict[str, str] = {}
     for kw in call.keywords:
         if kw.arg is None:
             continue
         name = _ph_name(kw.value)
-        keywords[kw.arg] = name if name is not None else (ast.unparse(kw.value) if kw.value is not None else "")
+        if name is not None:
+            keywords[kw.arg] = name
+        else:
+            try:
+                keywords[kw.arg] = ast.unparse(kw.value) if kw.value is not None else ""
+            except Exception:
+                keywords[kw.arg] = ""
 
-    if not rhs_placeholders and not positional and not keywords:
+    lhs: Optional[str] = None
+    if lhs_node is not None:
+        try:
+            lhs = _restore_placeholders(ast.unparse(lhs_node))
+        except Exception:
+            lhs = None
+
+    if not placeholders and not positional and not keywords:
         return None
-    return func_expr, positional, keywords
+
+    return func_expr, positional, keywords, lhs
 
 
 def resolve_callable_from_expr(func_expr: str, dependencies: Optional[List[str]] = None):
@@ -136,42 +159,74 @@ def resolve_callable_from_expr(func_expr: str, dependencies: Optional[List[str]]
     """
     if not func_expr:
         return None
-    root, _, rest = func_expr.partition(".")
 
+    root, _, rest = func_expr.partition(".")
     candidate_modules: List[str] = []
+
     for dep in dependencies or []:
-        dep_clean = str(dep).strip()
-        if dep_clean.startswith(("import ", "from ")):
-            dep_clean = dep_clean.replace("import ", "").replace("from ", "").split(" as ")[0].strip()
-        base = dep_clean.split(".")[0].split(" ")[0]
-        if not base:
-            continue
-        if base == root:
-            # 'pandas as pd' style alias declared by this cell
-            candidate_modules.append(dep_clean.replace(" as ", " ").split()[-1])
-        else:
-            candidate_modules.append(base)
+        dep_str = str(dep).strip()
+
+        if dep_str.startswith("import "):
+            rest_dep = dep_str[len("import ") :].strip()
+            for part in rest_dep.split(","):
+                part = part.strip()
+                if not part:
+                    continue
+                if " as " in part:
+                    mod_name, alias = [x.strip() for x in part.split(" as ", 1)]
+                else:
+                    mod_name = part
+                    alias = part.split(".")[0]
+                if alias == root:
+                    candidate_modules.append(mod_name)
+
+        elif dep_str.startswith("from "):
+            rest_dep = dep_str[len("from ") :].strip()
+            if " import " in rest_dep:
+                mod_name, imports = rest_dep.split(" import ", 1)
+                for part in imports.split(","):
+                    part = part.strip()
+                    if not part:
+                        continue
+                    if " as " in part:
+                        name, alias = [x.strip() for x in part.split(" as ", 1)]
+                    else:
+                        name = part
+                        alias = part
+                    if alias == root:
+                        candidate_modules.append(f"{mod_name.strip()}.{name}")
+
+    candidate_modules.append(root)
 
     attr_chain = rest.split(".") if rest else []
+
     for mod_name in candidate_modules:
         try:
-            mod = importlib.import_module(mod_name)
+            if "." in mod_name:
+                mod_part, _, first_attr = mod_name.partition(".")
+                mod = importlib.import_module(mod_part)
+                obj = getattr(mod, first_attr, None)
+                if obj is None:
+                    continue
+            else:
+                obj = importlib.import_module(mod_name)
+
+            if not rest and root == mod_name.split(".")[0]:
+                return obj
+
+            ok = True
+            for attr in attr_chain:
+                nxt = getattr(obj, attr, None)
+                if nxt is None:
+                    ok = False
+                    break
+                obj = nxt
+
+            if ok and callable(obj):
+                return obj
         except Exception:
             continue
-        obj = mod
-        resolved_path = mod_name
-        if not rest and root == mod_name.split(".")[0]:
-            return mod
-        ok = True
-        for attr in attr_chain:
-            nxt = getattr(obj, attr, None)
-            if nxt is None:
-                ok = False
-                break
-            obj = nxt
-            resolved_path += f".{attr}"
-        if ok and callable(obj):
-            return obj
+
     # Last resort: the expression's own root module name.
     try:
         obj = importlib.import_module(root)
@@ -182,6 +237,23 @@ def resolve_callable_from_expr(func_expr: str, dependencies: Optional[List[str]]
         return obj if callable(obj) else None
     except Exception:
         return None
+
+
+def _format_token(tok: str) -> str:
+    if not tok:
+        return ""
+    if tok.startswith("{") and tok.endswith("}"):
+        return tok
+    if tok.isidentifier():
+        return f"{{{tok}}}"
+    return tok
+
+
+def _format_call(func_expr: str, positional: List[str], keywords: Dict[str, str]) -> str:
+    args_src = ", ".join(_format_token(a) for a in positional if a)
+    kw_src = ", ".join(f"{k}={_format_token(v)}" for k, v in keywords.items())
+    call_src = f"{func_expr}({', '.join(x for x in (args_src, kw_src) if x)})"
+    return call_src
 
 
 def validate_and_reconstruct_call(
@@ -196,59 +268,67 @@ def validate_and_reconstruct_call(
       - keyword arguments not accepted by the callable are dropped,
       - required positional parameters missing from the call are restored as
         fresh placeholders ({param_name}),
-      - positional placeholders are preserved in declared order.
+      - supplied positional placeholders are preserved in declared order.
     """
     sig = resolve_signature(func_obj)
-    params: Dict[str, Any] = {}
-    if isinstance(sig, dict):
-        params = sig.get("parameters", {}) or {}
-    else:
-        params = sig or {}
+    if sig is None:
+        return _format_call(func_expr, raw_args, raw_kwargs)
 
-    accepts_kwargs = bool(params.get("**kwargs")) if isinstance(params, dict) else False
-    param_names = [p for p in (params.keys() if isinstance(params, dict) else []) if not str(p).startswith("*")]
+    params = sig.parameters
+    accepts_kwargs = any(
+        p.kind == inspect.Parameter.VAR_KEYWORD for p in params.values()
+    )
+    accepted_kw = {
+        name
+        for name, p in params.items()
+        if p.kind
+        in (
+            inspect.Parameter.POSITIONAL_OR_KEYWORD,
+            inspect.Parameter.KEYWORD_ONLY,
+        )
+    }
 
-    # 1. Drop spurious keyword arguments (not accepted by the callable).
+    # 1. Drop spurious keyword arguments.
     kept_kwargs: Dict[str, str] = {}
     for k, v in raw_kwargs.items():
-        if accepts_kwargs or k in param_names or not param_names:
+        if accepts_kwargs or k in accepted_kw or not accepted_kw:
             kept_kwargs[k] = v
 
     # 2. Restore missing required positional parameters as placeholders.
-    supplied = list(raw_args) + list(kept_kwargs.keys())
-    restored: List[str] = []
-    for p_name in param_names:
-        if len(restored) + len(supplied) >= len(param_names) and supplied:
-            break
-        meta = params.get(p_name, {}) if isinstance(params, dict) else {}
-        required = True
-        if isinstance(meta, dict):
-            required = bool(meta.get("required", True)) and meta.get("default_value") is None and meta.get("default") is None
-        if p_name in supplied:
+    pos_params = [
+        p
+        for p in params.values()
+        if p.kind
+        in (
+            inspect.Parameter.POSITIONAL_ONLY,
+            inspect.Parameter.POSITIONAL_OR_KEYWORD,
+        )
+    ]
+    supplied_count = min(len(raw_args), len(pos_params))
+    restored_positional: List[str] = []
+
+    for idx, p in enumerate(pos_params):
+        if idx < supplied_count:
             continue
-        if required:
-            restored.append(p_name)
+        if p.name in kept_kwargs:
+            continue
+        if p.default is inspect.Parameter.empty:
+            restored_positional.append(p.name)
         else:
-            break  # first optional gap ends positional restoration
-    # 3. Preserve supplied positional order ahead of restored params.
-    final_positional = list(raw_args)
-    for r in restored:
-        if r not in final_positional:
-            final_positional.append(r)
+            # First optional positional gap ends restoration.
+            break
 
-    def _format_token(tok: str) -> str:
-        if not tok:
-            return ""
-        if tok.startswith("{") and tok.endswith("}"):
-            return tok
-        if tok.isidentifier() and not (tok.startswith("'") or tok.startswith('"')):
-            return f"{{{tok}}}"
-        return tok
+    # 3. Restore missing required keyword-only parameters.
+    for p in params.values():
+        if p.kind == inspect.Parameter.KEYWORD_ONLY and p.default is inspect.Parameter.empty:
+            if p.name not in kept_kwargs:
+                kept_kwargs[p.name] = p.name
 
-    args_src = ", ".join(_format_token(a) for a in final_positional if a)
-    kw_src = ", ".join(f"{k}={_format_token(v)}" for k, v in kept_kwargs.items())
-    call_src = f"{func_expr}({', '.join(x for x in (args_src, kw_src) if x)})"
-    return call_src
+    final_positional = list(raw_args) + [
+        r for r in restored_positional if r not in raw_args
+    ]
+
+    return _format_call(func_expr, final_positional, kept_kwargs)
 
 
 def repair_cell_semantics(cell: Dict[str, Any], domain: str = "generic") -> bool:
@@ -265,12 +345,20 @@ def repair_cell_semantics(cell: Dict[str, Any], domain: str = "generic") -> bool
 
     call_info = parse_call_expression(tmpl)
     if call_info:
-        func_expr, raw_args, raw_kwargs = call_info
+        func_expr, raw_args, raw_kwargs, lhs = call_info
         func_obj = resolve_callable_from_expr(func_expr, cell.get("dependencies"))
 
         if func_obj is not None and callable(func_obj):
-            reconstructed = validate_and_reconstruct_call(func_obj, func_expr, raw_args, raw_kwargs)
-            new_tmpl = f"{{output_var}} = {reconstructed}"
+            reconstructed = validate_and_reconstruct_call(
+                func_obj, func_expr, raw_args, raw_kwargs
+            )
+
+            # Preserve the original assignment target if one existed.
+            # Never force `{output_var} =` onto void/sink calls or multi-assignments.
+            if lhs:
+                new_tmpl = f"{lhs} = {reconstructed}"
+            else:
+                new_tmpl = reconstructed
 
             if new_tmpl != tmpl:
                 cell["code_template"] = clean_malformed_template_braces(new_tmpl)

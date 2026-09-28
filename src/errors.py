@@ -2,26 +2,35 @@
 src/errors.py - NSTL Structured Error Hierarchy
 Provides typed exceptions for clear error propagation instead of silent `except: pass`.
 """
+from typing import Any, Dict, Optional
 
 
 class NSTLError(Exception):
-    """Base exception for all NSTL errors."""
-    pass
+    """Base exception for all NSTL errors with structured metadata support."""
+
+    def __init__(
+        self,
+        message: str = "",
+        details: Optional[Dict[str, Any]] = None,
+        *args: Any,
+    ) -> None:
+        self.message = message or self.__doc__ or self.__class__.__name__
+        self.details = details or {}
+        super().__init__(self.message, *args)
+
+    def __str__(self) -> str:
+        if self.details:
+            details_str = ", ".join(f"{k}={v!r}" for k, v in self.details.items())
+            return f"{self.message} ({details_str})"
+        return self.message
+
+    def __repr__(self) -> str:
+        return f"{self.__class__.__name__}(message={self.message!r}, details={self.details!r})"
 
 
 # === Routing Errors ===
 class RoutingError(NSTLError):
     """Failed to find a valid path through the lattice."""
-    pass
-
-
-class NoPathFoundError(RoutingError):
-    """A* search exhausted all candidates without reaching the goal."""
-    pass
-
-
-class InsufficientCandidatesError(RoutingError):
-    """Too few candidates to form a viable path."""
     pass
 
 
@@ -104,22 +113,63 @@ class RAGError(NSTLError):
     pass
 
 
-class RetrievalIndexError(RAGError):
-    """FAISS index operation failed."""
-    pass
-
-
-class FetchError(RAGError):
-    """External documentation fetch failed."""
-    pass
-
-
 # === Configuration Errors ===
 class ConfigurationError(NSTLError):
     """Configuration validation failed."""
     pass
 
 
+# === Lattice Errors ===
 class LatticeError(NSTLError):
     """Lattice database or topology operation failed."""
     pass
+
+
+# Backward compatibility mapping for disconnected/deprecated exceptions
+_DEPRECATED_EXCEPTIONS: Dict[str, type] = {
+    "InsufficientCandidatesError": RoutingError,
+    "NoPathFoundError": RoutingError,
+    "FetchError": RAGError,
+    "RetrievalIndexError": RAGError,
+}
+
+
+def __getattr__(name: str) -> Any:
+    """Resolve unraised/deprecated exceptions with a warning to preserve legacy import contracts."""
+    if name in _DEPRECATED_EXCEPTIONS:
+        import warnings
+
+        target = _DEPRECATED_EXCEPTIONS[name]
+        warnings.warn(
+            f"'{name}' is deprecated and disconnected from the runtime pipeline; "
+            f"use or catch '{target.__name__}' instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        return type(name, (target,), {
+            "__doc__": f"Deprecated alias for {target.__name__} (disconnected from runtime pipeline).",
+        })
+    raise AttributeError(f"module '{__name__}' has no attribute '{name}'")
+
+
+__all__ = [
+    "NSTLError",
+    "RoutingError",
+    "SynthesisError",
+    "UnificationError",
+    "PlaceholderResolutionError",
+    "TemplateValidationError",
+    "ExecutionError",
+    "SandboxTimeoutError",
+    "SandboxSecurityError",
+    "DataflowExecutionError",
+    "ArtifactMaterializationError",
+    "PostconditionVerificationError",
+    "ModelError",
+    "ModelNotLoadedError",
+    "EmbeddingError",
+    "LLMInferenceError",
+    "RAGError",
+    "ConfigurationError",
+    "LatticeError",
+]

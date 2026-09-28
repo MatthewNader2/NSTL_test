@@ -9,8 +9,6 @@ multi-profile engine initialization, program synthesis, and benchmark automation
 from __future__ import annotations
 import os
 import asyncio
-import platform
-import resource
 import sys
 import time
 import threading
@@ -18,11 +16,16 @@ from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Optional, Dict, Any, List, Union
 
+try:
+    import resource
+except ImportError:
+    resource = None
+
 SRC_DIR = str(Path(__file__).resolve().parent)
 if SRC_DIR not in sys.path:
     sys.path.insert(0, SRC_DIR)
 
-from fastapi import FastAPI, HTTPException, status
+from fastapi import FastAPI, HTTPException, Query, status
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
@@ -62,24 +65,60 @@ _active_embedder: str = "none"
 _active_llm: str = "none"
 _engine_ready: bool = False
 _engine_lock = threading.Lock()
+_benchmark_lock = threading.Lock()
 _start_time = time.time()
 _benchmark_active: bool = False
 
 
+def _get_process_memory_mb() -> float:
+    """
+    Resolves current process Resident Set Size (RSS) memory in megabytes across
+    platforms agnostically without hardcoded operating system multipliers.
+    """
+    try:
+        import psutil
+        return round(psutil.Process(os.getpid()).memory_info().rss / (1024.0 * 1024.0), 2)
+    except Exception:
+        pass
+
+    # Generic POSIX procfs fallback
+    try:
+        with open("/proc/self/statm", "r") as f:
+            pages = int(f.read().split()[1])
+            page_size = os.sysconf("SC_PAGE_SIZE")
+            return round((pages * page_size) / (1024.0 * 1024.0), 2)
+    except Exception:
+        pass
+
+    # resource module fallback for POSIX environments where psutil is unavailable
+    if resource is not None:
+        try:
+            raw_rss = float(resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
+            scale = 1.0 / (1024.0 * 1024.0) if sys.platform.startswith("darwin") else 1.0 / 1024.0
+            return round(raw_rss * scale, 2)
+        except Exception:
+            pass
+
+    return 0.0
+
+
 def _ensure_base_engine_loaded():
-    """Initializes the base SQLite lattice orchestrator, gate, and sandbox."""
+    """Initializes the base SQLite lattice orchestrator, gate, and sandbox with thread synchronization."""
     global _orchestrator, _gate, _sandbox, _router
     if _orchestrator is None:
-        logger.info(f"[*] Preloading NSTL Lattice Database from '{DB_PATH}'...")
-        t0 = time.perf_counter()
-        _orchestrator = LatticeOrchestrator()
-        _orchestrator.load_from_database(DB_PATH)
-        _orchestrator.build_topology()
-        _gate = UnificationGate(orchestrator=_orchestrator)
-        _sandbox = GEVRSandbox()
-        _router = LatticeRouter(orchestrator=_orchestrator, internal_rag=None)
-        elapsed = (time.perf_counter() - t0) * 1000
-        logger.info(f"[✓] Base Lattice ready with {len(_orchestrator.loaded_cells)} nodes loaded in {elapsed:.1f}ms.")
+        with _engine_lock:
+            if _orchestrator is None:
+                logger.info(f"[*] Preloading NSTL Lattice Database from '{DB_PATH}'...")
+                t0 = time.perf_counter()
+                orch = LatticeOrchestrator()
+                orch.load_from_database(DB_PATH)
+                orch.build_topology()
+                _orchestrator = orch
+                _gate = UnificationGate(orchestrator=_orchestrator)
+                _sandbox = GEVRSandbox()
+                _router = LatticeRouter(orchestrator=_orchestrator, internal_rag=None)
+                elapsed = (time.perf_counter() - t0) * 1000
+                logger.info(f"[✓] Base Lattice ready with {len(_orchestrator.loaded_cells)} nodes loaded in {elapsed:.1f}ms.")
 
 
 # =====================================================================
@@ -183,6 +222,7 @@ def initialize_engine(
             _active_llm = "none"
             _internal_rag = None
             _router = LatticeRouter(orchestrator=_orchestrator, internal_rag=None)
+            _gate = UnificationGate(orchestrator=_orchestrator)
             _engine_ready = True
             logger.info("[✓] NSTL Engine configured for Profile 0 (Pure Symbolic).")
             return {
@@ -202,7 +242,6 @@ def initialize_engine(
         HardwareProfiler.set_config(embedder_device=emb_dev, llm_device=llm_dev)
         actual_device = HardwareProfiler.get_optimal_device()
 
-        # Select optimal embedder dynamically
         optimal_emb = select_optimal_embedder(emb_m or "auto")
         _active_embedder = optimal_emb
 
@@ -214,9 +253,9 @@ def initialize_engine(
         )
         _active_llm = llm_m or getattr(mm.active_profile, "llm_name", "none")
 
-        # Build / attach LocalRAG with precomputed embeddings
         _internal_rag = LocalRAG(trees_dir=str(settings.trees_dir), orchestrator=_orchestrator)
         _router = LatticeRouter(orchestrator=_orchestrator, internal_rag=_internal_rag)
+        _gate = UnificationGate(orchestrator=_orchestrator)
         _active_profile = p_norm
         _engine_ready = True
 
@@ -234,6 +273,8 @@ def initialize_engine(
 def run_prompt(request: Union[RunRequest, Dict[str, Any], str]) -> RunResponse:
     """
     Executes end-to-end program synthesis for a natural language prompt.
+    Thread-safe: instantiates a request-scoped UnificationGate to guarantee that concurrent
+    synthesis threads do not overwrite pipeline bindings, egress paths, or context.
     """
     _ensure_base_engine_loaded()
     if not _engine_ready:
@@ -275,18 +316,19 @@ def run_prompt(request: Union[RunRequest, Dict[str, Any], str]) -> RunResponse:
             sandbox_result={"success": False, "error": f"No valid path found through lattice for prompt: {prompt}"}
         )
 
-    # 2. Synthesis & Unification
+    # 2. Synthesis & Unification (Request-isolated gate instance eliminates race conditions)
     t_synth_0 = time.perf_counter()
-    code = _gate.unify_and_emit(cells, prompt)
+    local_gate = UnificationGate(orchestrator=_orchestrator)
+    code = local_gate.unify_and_emit(cells, prompt)
     synth_dt = (time.perf_counter() - t_synth_0) * 1000.0
     total_dt = (time.perf_counter() - t_start) * 1000.0
 
-    # 3. Optional Sandbox Verification — egress destinations are derived by the
-    # unification gate from the verified pipeline bindings (single source of truth).
+    # 3. Optional Sandbox Verification (Egress paths read from local request-isolated gate)
     sandbox_result = None
     if exec_sandbox:
-        dest_paths = _gate.get_egress_paths() or None
-        sandbox_result = _sandbox.execute(code, timeout=timeout, egress_paths=dest_paths)
+        dest_paths = local_gate.get_egress_paths() or None
+        sandbox = _sandbox if _sandbox is not None else GEVRSandbox()
+        sandbox_result = sandbox.execute(code, timeout=timeout, egress_paths=dest_paths)
 
     path_ids = [c.cell_id for c in cells]
     return RunResponse(
@@ -359,20 +401,16 @@ async def get_status():
 @app.get("/api/health", response_model=HealthResponse, tags=["Monitoring"])
 @app.get("/health", response_model=HealthResponse, tags=["Monitoring"])
 async def health_check():
-    """System health check reporting uptime, node count, and memory footprint."""
+    """System health check reporting uptime, node count, and cross-platform memory footprint."""
     uptime = time.time() - _start_time
     nodes_count = len(_orchestrator.loaded_cells) if _orchestrator else 0
-    try:
-        import psutil
-        rss_bytes = psutil.Process(os.getpid()).memory_info().rss
-    except ImportError:
-        rss_bytes = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss * (1 if platform.system() == 'Darwin' else 1024)
+    rss_mb = _get_process_memory_mb()
 
     return HealthResponse(
         status="healthy",
         nodes_count=nodes_count,
         uptime_seconds=round(uptime, 2),
-        memory_rss_mb=round(rss_bytes / 1024 / 1024, 2)
+        memory_rss_mb=rss_mb
     )
 
 
@@ -425,14 +463,22 @@ async def get_models():
 
 
 @app.get("/api/cells", tags=["Metadata"])
-async def get_cells(limit: int = 1000):
-    """Returns cell node metadata for Three.js graph visualization."""
+async def get_cells(
+    limit: Optional[int] = Query(
+        default=getattr(settings, "default_cells_limit", None),
+        description="Maximum number of cells to return. If omitted or <= 0, returns all cells without arbitrary truncation."
+    )
+):
+    """Returns cell node metadata for Three.js graph visualization without hardcoded domain limits."""
     _ensure_base_engine_loaded()
     if not _orchestrator:
-        return {"cells": []}
+        return {"cells": [], "total": 0}
+
+    all_cells = list(_orchestrator.loaded_cells.values())
+    selected_cells = all_cells[:limit] if (limit is not None and limit > 0) else all_cells
 
     cells_out = []
-    for c in list(_orchestrator.loaded_cells.values())[:limit]:
+    for c in selected_cells:
         in_sig = getattr(c, "primary_input", None)
         out_sig = getattr(c, "primary_output", None)
         cells_out.append({
@@ -443,13 +489,16 @@ async def get_cells(limit: int = 1000):
             "output_type": out_sig.type_name if out_sig else "any",
             "verified": getattr(c, "verified", False)
         })
-    return {"cells": cells_out, "total": len(_orchestrator.loaded_cells)}
+    return {"cells": cells_out, "total": len(all_cells)}
 
 
 @app.get("/domains", response_model=DomainsResponse, tags=["Metadata"])
 async def get_domains():
     """Returns domain distribution across the active lattice."""
     _ensure_base_engine_loaded()
+    if not _orchestrator:
+        return DomainsResponse(domains={}, total_domains=0, total_nodes=0)
+
     domain_stats: Dict[str, Dict[str, int]] = {}
 
     for cell in _orchestrator.loaded_cells.values():
@@ -474,16 +523,19 @@ async def get_domains():
 
 @app.post("/api/benchmark/toggle", tags=["Benchmark"])
 async def toggle_benchmark():
-    """Toggles active benchmark runner state."""
+    """Toggles active benchmark runner state with thread synchronization."""
     global _benchmark_active
-    _benchmark_active = not _benchmark_active
-    return {"benchmark_active": _benchmark_active}
+    with _benchmark_lock:
+        _benchmark_active = not _benchmark_active
+        current_state = _benchmark_active
+    return {"benchmark_active": current_state}
 
 
 @app.get("/api/benchmark/status", tags=["Benchmark"])
 async def get_benchmark_status():
     """Returns current benchmark execution state."""
-    return {"benchmark_active": _benchmark_active}
+    with _benchmark_lock:
+        return {"benchmark_active": _benchmark_active}
 
 
 # =====================================================================

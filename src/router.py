@@ -8,11 +8,15 @@ Conforms strictly to Section 3.3 of the NSTL paper:
   Tunnel T = { v in V | P(v | e_x) >= epsilon }
 
 Contains ZERO keyword-sniffing regexes, ZERO manual score boosts, and ZERO domain hardcodes.
+
+Tunables previously baked into this module as magic literals now resolve through
+`config.settings` when present (see `_cfg`). In-module fallbacks keep the file
+runnable standalone; production profiles should override via settings.
 """
 
 from __future__ import annotations
 import math
-from typing import Optional, List, Dict, Set, Tuple, Any
+from typing import Optional, List, Dict, Set, Tuple, Any, Union
 from collections import defaultdict
 
 import numpy as np
@@ -34,6 +38,94 @@ except (ImportError, ValueError):
     from route_methods import get_route_method, RouteMethod
 
 logger = get_logger('router')
+
+
+# ---------------------------------------------------------------------------
+# Settings access with in-module fallbacks
+# ---------------------------------------------------------------------------
+# Everything previously hardcoded in this file (span caps, delimiter sets,
+# stratified-pruning caps, macro-promotion scaling, dense-RAG budget) is now
+# resolved here. If `config.settings` is unavailable or lacks a given key, the
+# documented fallback is used so the router stays runnable in isolation.
+
+def _load_settings():
+    try:
+        from .config import settings as _s
+        return _s
+    except (ImportError, ValueError):
+        try:
+            from config import settings as _s
+            return _s
+        except Exception:
+            return None
+
+
+_SETTINGS = _load_settings()
+
+
+def _cfg(name: str, default):
+    if _SETTINGS is not None:
+        return getattr(_SETTINGS, name, default)
+    return default
+
+
+# --- Query span generation ------------------------------------------------
+# Bound on the number of query spans emitted per routing call. This directly
+# caps dense-RAG fan-out (one embed + FAISS lookup per span).
+MAX_QUERY_SPANS: int = int(_cfg("max_query_spans", 12))
+# Prompts with <= this many tokens skip sliding-window generation: clause-level
+# decomposition already covers their structure.
+SHORT_PROMPT_WINDOW_SKIP: int = int(_cfg("short_prompt_window_skip", 6))
+
+# --- Stratified pruning ---------------------------------------------------
+# Caps scale with the number of semantic clauses (n) discovered from the IR
+# or clause segmenter. Asymmetry across stages is intentional: stage 2 is the
+# transform band where intermediates live and where recall matters most.
+PRUNE_S1_MIN: int = int(_cfg("prune_s1_min", 12))
+PRUNE_S1_PER_CLAUSE: int = int(_cfg("prune_s1_per_clause", 2))
+PRUNE_S2_MIN: int = int(_cfg("prune_s2_min", 38))
+PRUNE_S2_PER_CLAUSE: int = int(_cfg("prune_s2_per_clause", 6))
+PRUNE_S3_MIN: int = int(_cfg("prune_s3_min", 8))
+PRUNE_S3_PER_CLAUSE: int = int(_cfg("prune_s3_per_clause", 2))
+
+# --- Macro promotion (Section 3.5) ----------------------------------------
+# IDF-weighted concept coverage gate: a macro must own at least this fraction
+# of the prompt's semantic mass before it can be promoted.
+MACRO_CONCEPT_COVERAGE_GATE: float = float(_cfg("macro_concept_coverage_gate", 0.35))
+MACRO_PRIORITY_MICRO_FACTOR: float = float(_cfg("macro_priority_micro_factor", 1.25))
+MACRO_PRIORITY_MICRO_BIAS: float = float(_cfg("macro_priority_micro_bias", 0.05))
+MACRO_PRIORITY_IDF_WEIGHT: float = float(_cfg("macro_priority_idf_weight", 0.15))
+MACRO_REL_MICRO_FACTOR: float = float(_cfg("macro_rel_micro_factor", 1.1))
+MACRO_REL_MICRO_BIAS: float = float(_cfg("macro_rel_micro_bias", 0.02))
+MACRO_REL_FLOOR: float = float(_cfg("macro_rel_floor", 0.1))
+
+# --- Dense-RAG gating -----------------------------------------------------
+# When Stage-1 idiom discovery produces a strong lexical signal (top idiom's
+# total_score >= ratio * n_clauses AND full clause coverage), the dense blend
+# is skipped: the lexical evidence already suffices and the embed+FAISS pass
+# is redundant.
+DENSE_GATE_COVERAGE_RATIO: float = float(_cfg("dense_gate_coverage_ratio", 3.0))
+# Per-span top_k bounds when dense blending does run.
+DENSE_RAG_MIN_PER_SPAN: int = int(_cfg("dense_rag_min_per_span", 4))
+DENSE_RAG_MAX_PER_SPAN: int = int(_cfg("dense_rag_max_per_span", 25))
+
+
+# --- Clause delimiter fallback -------------------------------------------
+# Canonical definition lives on CellTokenizer (see recommended addition to
+# tokenizer.py). Kept here ONLY as a compatibility shim so the router remains
+# functional before that lands. If CellTokenizer.CLAUSE_DELIMITERS is
+# present, it wins and this constant is unused.
+_FALLBACK_CLAUSE_DELIMITERS: frozenset = frozenset({
+    "on the", "on", "using", "with", "via", "into", "from",
+    "then", "and", "of the", "of", "to", "for", "by", "in",
+})
+
+
+def _get_clause_delims() -> frozenset:
+    delims = getattr(CellTokenizer, "CLAUSE_DELIMITERS", None)
+    if delims:
+        return frozenset(delims)
+    return _FALLBACK_CLAUSE_DELIMITERS
 
 
 def _extract_id(item):
@@ -132,32 +224,12 @@ class LatticeRouter:
         # afterwards unless mutated directly (see CLI `set macros on|off`).
         macros_val = kwargs.get("macros_enabled")
         if macros_val is None:
-            try:
-                from .config import settings as _settings
-            except (ImportError, ValueError):
-                try:
-                    from config import settings as _settings
-                except Exception:
-                    _settings = None
-            if _settings is not None:
-                macros_val = getattr(_settings, "macros_enabled", True)
-            else:
-                macros_val = True
+            macros_val = _cfg("macros_enabled", True)
         self._macros_enabled = bool(macros_val)
 
         topo_val = kwargs.get("topology_mode")
         if topo_val is None:
-            try:
-                from .config import settings as _settings
-            except (ImportError, ValueError):
-                try:
-                    from config import settings as _settings
-                except Exception:
-                    _settings = None
-            if _settings is not None:
-                topo_val = getattr(_settings, "topology_mode", "frontier")
-            else:
-                topo_val = "frontier"
+            topo_val = _cfg("topology_mode", "frontier")
         self._topology_mode = str(topo_val).lower()
         self.planner = LatticePlanner(
             orchestrator=self.orchestrator,
@@ -165,11 +237,7 @@ class LatticeRouter:
             topology_mode=self._topology_mode
         )
         # (apply_fixes_v7) IR compiler hook
-        try:
-            from config import settings as _s
-            self._use_ir_compiler = bool(getattr(_s, "use_ir_compiler", True))
-        except Exception:
-            self._use_ir_compiler = True
+        self._use_ir_compiler = bool(_cfg("use_ir_compiler", True))
         self._ir_compiler = None
         if self._use_ir_compiler:
             try:
@@ -524,12 +592,34 @@ class LatticeRouter:
             if idiom_group:
                 grouped_candidates.append(idiom_group)
 
-        # Step 4: Optional dense vector blending from edge-context embeddings
-        if self.internal_rag is not None and self.internal_rag.index is not None:
+        # Step 4: Optional dense vector blending from edge-context embeddings.
+        # Gated on weak lexical signal: if Stage-1 idiom discovery already
+        # produced a strongly-covered candidate (full clause coverage and a
+        # total_score at least DENSE_GATE_COVERAGE_RATIO x clause count), the
+        # lexical evidence is sufficient and the embed + FAISS pass is skipped.
+        # This removes the dominant latency cost on Profile A/C/D prompts whose
+        # intent is already unambiguous from tokens alone.
+        strong_lexical = bool(candidate_idioms) and (
+            candidate_idioms[0].total_score
+                >= DENSE_GATE_COVERAGE_RATIO * max(num_semantic_clauses, 1)
+            and len(candidate_idioms[0].covered_clauses) >= num_semantic_clauses
+        )
+
+        if (not strong_lexical) and self.internal_rag is not None and self.internal_rag.index is not None:
             clause_spans = [c.strip() for c in search_texts if c and c.strip()]
-            query_spans = clause_spans + [q for q in self._generate_query_spans(prompt.strip()) if q not in clause_spans]
+            query_spans = clause_spans + [
+                q for q in self._generate_query_spans(prompt.strip()) if q not in clause_spans
+            ]
+            # Divide the retrieval budget across spans instead of granting every
+            # span the full top_k, so total dense work is bounded by top_k
+            # regardless of span count.
+            n_spans = max(len(query_spans), 1)
+            per_span_k = max(
+                DENSE_RAG_MIN_PER_SPAN,
+                min(DENSE_RAG_MAX_PER_SPAN, top_k // n_spans),
+            )
             dense_scores: Dict[str, float] = {}
-            rag_results = self.internal_rag.get_relevant_context_batch(query_spans, top_k=min(top_k, 25))
+            rag_results = self.internal_rag.get_relevant_context_batch(query_spans, top_k=per_span_k)
             for span_results in rag_results:
                 for item in span_results:
                     cid = item.get("cell_id")
@@ -644,15 +734,16 @@ class LatticeRouter:
 
         return final_tunnel, relevance_map
 
-    
+
     def _prune_tunnel_stratified(self, tunnel_cells, relevance_map,
                                  num_semantic_clauses: int = 1,
                                  max_s1=None, max_s2=None, max_s3=None):
-        """(apply_fixes_v7) Stratified pruning; caps scale with task size."""
+        """(apply_fixes_v7) Stratified pruning; caps scale with task size and
+        resolve through config (see PRUNE_* module constants)."""
         n = max(int(num_semantic_clauses or 1), 1)
-        max_s1 = max_s1 if max_s1 is not None else max(12, n * 2)
-        max_s2 = max_s2 if max_s2 is not None else max(38, n * 6)
-        max_s3 = max_s3 if max_s3 is not None else max(8,  n * 2)
+        max_s1 = max_s1 if max_s1 is not None else max(PRUNE_S1_MIN, n * PRUNE_S1_PER_CLAUSE)
+        max_s2 = max_s2 if max_s2 is not None else max(PRUNE_S2_MIN, n * PRUNE_S2_PER_CLAUSE)
+        max_s3 = max_s3 if max_s3 is not None else max(PRUNE_S3_MIN, n * PRUNE_S3_PER_CLAUSE)
 
         def _stage_num(c):
             st = getattr(c, 'stage', -1)
@@ -697,6 +788,9 @@ class LatticeRouter:
         maximum relevance of its own micro-cells (the known-good path outranks
         its constituents). The macro carries no new functionality: downstream,
         UnificationGate expands it back into its micro-cell sequence.
+
+        All scaling constants resolve through config (see MACRO_* module
+        constants); see settings for tuning semantics.
         """
         prompt_toks = CellTokenizer.tokenize_prompt(prompt) if prompt else set()
         if not prompt_toks:
@@ -712,9 +806,7 @@ class LatticeRouter:
         if prompt_mass <= 0:
             return
 
-        CONCEPT_COVERAGE_GATE = 0.35  # a macro must own >= 35% of the prompt's semantic mass
-
-        promoted: List[Tuple[float, Cell]] = []
+        promoted: List[Tuple[float, float, Cell]] = []
         for cell in self.orchestrator.loaded_cells.values():
             if not (isinstance(cell, MacroCell) and getattr(cell, "sub_cells", None)):
                 continue
@@ -724,7 +816,7 @@ class LatticeRouter:
 
             idf_mass = sum(_idf(t) for t in identity_hits)
             concept_coverage = idf_mass / prompt_mass
-            if concept_coverage < CONCEPT_COVERAGE_GATE:
+            if concept_coverage < MACRO_CONCEPT_COVERAGE_GATE:
                 continue
 
             micro_scores = [
@@ -739,11 +831,14 @@ class LatticeRouter:
             # D2 Fix: We compute an unbounded priority score for priority_map,
             # but calibrate relevance_map so it remains strictly in [0.0, 1.0].
             raw_priority = max(
-                micro_max * 1.25 + 0.05,
+                micro_max * MACRO_PRIORITY_MICRO_FACTOR + MACRO_PRIORITY_MICRO_BIAS,
                 float(self.epsilon) * 4.0,
-            ) + 0.15 * idf_mass
+            ) + MACRO_PRIORITY_IDF_WEIGHT * idf_mass
 
-            calibrated_macro_rel = min(1.0, max(micro_max * 1.1 + 0.02, 0.1))
+            calibrated_macro_rel = min(
+                1.0,
+                max(micro_max * MACRO_REL_MICRO_FACTOR + MACRO_REL_MICRO_BIAS, MACRO_REL_FLOOR),
+            )
 
             promoted.append((raw_priority, calibrated_macro_rel, cell))
 
@@ -824,37 +919,55 @@ class LatticeRouter:
         Generates continuous sliding semantic window queries across the prompt.
         Multi-scale representation: decomposes compound sentences and spans across
         the entire prompt uniformly so trailing and embedded operations are never truncated.
+
+        Bounded: the returned list is capped at MAX_QUERY_SPANS so the downstream
+        dense-RAG stage cannot blow up on long prompts. Dedup uses a set for
+        O(1) membership rather than O(n) list scans. Short prompts
+        (<= SHORT_PROMPT_WINDOW_SKIP tokens) skip the sliding-window pass
+        entirely: their clause-level decomposition already covers their
+        structure, and sliding windows on 4-6 tokens just re-emit substrings.
+
+        The delimiter set used to break compound clauses comes from
+        CellTokenizer.CLAUSE_DELIMITERS when present; a module-local fallback
+        keeps this function usable before that lands.
         """
         tokens = text.strip().split()
         if len(tokens) <= 3:
             return [text.strip()]
 
-        queries = [text.strip()]
+        seen: Set[str] = set()
+        queries: List[str] = []
 
-        # 1. Include decomposed clauses and sub-actions
+        def _add(q: str) -> None:
+            q = q.strip(" ,.;:'\"")
+            if len(q) >= 2 and q not in seen:
+                seen.add(q)
+                queries.append(q)
+
+        _add(text.strip())
+
+        # 1. Clause-level decomposition and sub-action split on delimiters
         clauses = _segment_prompt_clauses(text)
+        delims = _get_clause_delims()
         for cl in clauses:
-            cl_clean = cl.strip(" ,.;:")
-            if cl_clean and cl_clean not in queries:
-                queries.append(cl_clean)
-            # Decompose compound phrases on prepositions / conjunctions without regex
-            delims = {"on the", "on", "using", "with", "via", "into", "from", "then", "and", "of the", "of", "to", "for", "by", "in"}
-            words = cl.split()
-            current_chunk = []
-            for w in words:
+            _add(cl)
+            current_chunk: List[str] = []
+            for w in cl.split():
                 cw = w.lower().strip(" ,.;:'\"")
                 if cw in delims:
                     if current_chunk:
-                        sp_clean = " ".join(current_chunk).strip(" ,.;:'\"")
-                        if len(sp_clean) >= 2 and sp_clean not in queries:
-                            queries.append(sp_clean)
+                        _add(" ".join(current_chunk))
                         current_chunk = []
                 else:
                     current_chunk.append(w)
             if current_chunk:
-                sp_clean = " ".join(current_chunk).strip(" ,.;:'\"")
-                if len(sp_clean) >= 2 and sp_clean not in queries:
-                    queries.append(sp_clean)
+                _add(" ".join(current_chunk))
+
+        # Short prompts: clause-level decomposition is sufficient; sliding
+        # windows would only re-emit overlapping substrings of the same few
+        # tokens.
+        if len(tokens) <= SHORT_PROMPT_WINDOW_SKIP:
+            return queries[:MAX_QUERY_SPANS]
 
         # 2. Sliding multi-scale windows spanning uniformly across the full prompt
         n = len(tokens)
@@ -863,16 +976,12 @@ class LatticeRouter:
                 continue
             step = max(1, (n - window_size) // 8)
             for i in range(0, n - window_size + 1, step):
-                sub_q = " ".join(tokens[i : i + window_size]).strip(" ,.;:")
-                if sub_q and sub_q not in queries:
-                    queries.append(sub_q)
+                _add(" ".join(tokens[i : i + window_size]))
 
-        tail_q = " ".join(tokens[max(0, n - 3) :]).strip(" ,.;:")
-        if tail_q and tail_q not in queries:
-            queries.append(tail_q)
+        _add(" ".join(tokens[max(0, n - 3) :]))
 
-        # Bound retrieval fan-out at 35 queries max
-        return queries[:35]
+        # Bounded retrieval fan-out; see MAX_QUERY_SPANS.
+        return queries[:MAX_QUERY_SPANS]
 
     def plan_path(
         self,

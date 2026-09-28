@@ -1,137 +1,360 @@
-# STATUS: partially wired / candidate for future removal. Do not expand until usage is confirmed.
 """
-src/external_rag.py - Neuro-Symbolic Topological Lattice (NSTL)
-Documentation Fetchers for Live API Grounding at Synthesis Time.
+src/external_rag.py
+Active, domain-agnostic asynchronous retrieval module for API documentation,
+package metadata, and code context synthesis.
 """
 
 from __future__ import annotations
+
+import abc
+import asyncio
 import json
-import sys
-import importlib
-import urllib.request
+import logging
+import re
+import urllib.error
 import urllib.parse
-from abc import ABC, abstractmethod
-from log_config import get_logger
+import urllib.request
+from dataclasses import dataclass, field
+from datetime import datetime, timedelta
+from typing import Any, Callable, Dict, List, Optional, Pattern
 
-logger = get_logger('external_rag')
+logger = logging.getLogger(__name__)
 
 
-class LiveDocFetcher(ABC):
-    @abstractmethod
-    def fetch(self, query: str) -> str:
+# ============================================================================
+# Data Models & Cache
+# ============================================================================
+
+@dataclass(frozen=True)
+class RAGResponse:
+    """Represents normalized documentation or schema retrieved externally."""
+    source: str
+    identifier: str
+    content: str
+    metadata: Dict[str, Any] = field(default_factory=dict)
+    timestamp: datetime = field(default_factory=datetime.utcnow)
+    success: bool = True
+    error_message: Optional[str] = None
+
+
+class TTLCache:
+    """Thread-safe and async-safe in-memory cache with time-to-live expiration."""
+
+    def __init__(self, ttl_seconds: int = 3600, max_entries: int = 1024):
+        self._ttl = timedelta(seconds=ttl_seconds)
+        self._max_entries = max_entries
+        self._cache: Dict[str, tuple[datetime, RAGResponse]] = {}
+        self._lock = asyncio.Lock()
+
+    async def get(self, key: str) -> Optional[RAGResponse]:
+        async with self._lock:
+            if key not in self._cache:
+                return None
+            inserted_at, response = self._cache[key]
+            if datetime.utcnow() - inserted_at > self._ttl:
+                del self._cache[key]
+                return None
+            return response
+
+    async def set(self, key: str, value: RAGResponse) -> None:
+        async with self._lock:
+            if len(self._cache) >= self._max_entries:
+                # Evict oldest entry
+                oldest_key = min(self._cache, key=lambda k: self._cache[k][0])
+                del self._cache[oldest_key]
+            self._cache[key] = (datetime.utcnow(), value)
+
+
+# ============================================================================
+# Abstract Base Fetcher
+# ============================================================================
+
+class BaseFetcher(abc.ABC):
+    """Abstract interface for external documentation and package fetchers."""
+
+    def __init__(self, timeout: float = 5.0, user_agent: str = "GEVR-Synthesis-RAG/2.0"):
+        self.timeout = timeout
+        self.user_agent = user_agent
+
+    @abc.abstractmethod
+    async def fetch(self, query: str, context: Optional[Dict[str, Any]] = None) -> RAGResponse:
+        """Asynchronously retrieve documentation or symbol metadata."""
         pass
 
+    async def _http_get(self, url: str, headers: Optional[Dict[str, str]] = None) -> str:
+        """Asynchronous HTTP GET wrapper offloaded from the event loop."""
+        req_headers = {"User-Agent": self.user_agent}
+        if headers:
+            req_headers.update(headers)
 
-class PyPiFetcher(LiveDocFetcher):
-    def fetch(self, package_name: str) -> str:
-        clean_name = package_name.split(':')[0].strip().lower().replace('_', '-')
-        encoded_name = urllib.parse.quote(clean_name)
-        url = f"https://pypi.org/pypi/{encoded_name}/json"
-        try:
-            req = urllib.request.Request(url, headers={'User-Agent': 'NSTL-LiveDocFetcher/2.0'})
-            with urllib.request.urlopen(req, timeout=5.0) as response:
-                data = json.loads(response.read().decode())
-                info = data.get("info", {})
-                desc = info.get("description", "") or info.get("summary", "")
-                return desc[:2500]
-        except Exception as e:
-            logger.warning(f"[PYPI FETCHER] Could not fetch docs for '{package_name}': {e}")
-            return ""
+        req = urllib.request.Request(url, headers=req_headers)
+
+        def _blocking_call() -> str:
+            with urllib.request.urlopen(req, timeout=self.timeout) as response:
+                charset = response.headers.get_content_charset() or "utf-8"
+                return response.read().decode(charset, errors="replace")
+
+        return await asyncio.to_thread(_blocking_call)
 
 
-class CratesIoFetcher(LiveDocFetcher):
-    def fetch(self, crate_name: str) -> str:
-        clean_name = urllib.parse.quote(crate_name.split(':')[0].strip().lower(), safe='')
-        url = f"https://crates.io/api/v1/crates/{clean_name}/readme"
-        try:
-            req = urllib.request.Request(url, headers={'User-Agent': 'NSTL-LiveDocFetcher/2.0'})
-            with urllib.request.urlopen(req, timeout=5.0) as response:
-                return response.read().decode('utf-8', errors='ignore')[:2500]
-        except Exception as e:
-            logger.warning(f"[CRATES FETCHER] Could not fetch docs for '{crate_name}': {e}")
-            return ""
+# ============================================================================
+# Domain-Agnostic Fetcher Implementations
+# ============================================================================
 
-
-class DuckDuckGoFetcher(LiveDocFetcher):
-    """Queries DuckDuckGo Instant Answer API (JSON, no scraping)."""
-    def fetch(self, query: str) -> str:
-        encoded = urllib.parse.quote(f"{query} python")
-        url = f"https://api.duckduckgo.com/?q={encoded}&format=json&no_html=1&skip_disambig=1"
-        try:
-            req = urllib.request.Request(url, headers={'User-Agent': 'NSTL-LiveDocFetcher/2.0'})
-            with urllib.request.urlopen(req, timeout=5.0) as response:
-                data = json.loads(response.read().decode())
-                # Try AbstractText (summary), then RelatedTopics
-                abstract = data.get("AbstractText", "")
-                if abstract:
-                    return abstract[:2500]
-                topics = data.get("RelatedTopics", [])
-                parts = []
-                for topic in topics[:5]:
-                    if isinstance(topic, dict) and "Text" in topic:
-                        parts.append(topic["Text"])
-                return "\n".join(parts)[:2500] if parts else ""
-        except Exception as e:
-            logger.warning(f"[DDG FETCHER] API query failed for '{query}': {e}")
-            return ""
-
-
-import importlib
-import inspect
-
-
-class IntrospectionFetcher(LiveDocFetcher):
+class PackageRegistryFetcher(BaseFetcher):
     """
-    Introspects installed Python modules directly using inspect.getdoc() and inspect.signature().
-    Zero network latency, 100% grounded and deterministic.
+    Domain-agnostic fetcher for ecosystem registries (PyPI, Crates.io, NPM, etc.).
+    Configurable via endpoint templates and response extraction callbacks.
     """
-    def fetch(self, query: str) -> str:
-        clean_q = query.strip().lower().replace(" ", "_")
-        tokens = [t for t in query.strip().lower().split() if len(t) > 2]
 
-        # Dynamically discover candidate modules from query tokens, sys.modules, and standard libraries
-        candidate_modules: list[str] = []
-        seen = set()
+    def __init__(
+        self,
+        name: str,
+        url_template: str,
+        extractor: Callable[[str], str],
+        timeout: float = 5.0,
+        headers: Optional[Dict[str, str]] = None,
+    ):
+        super().__init__(timeout=timeout)
+        self.name = name
+        self.url_template = url_template
+        self.extractor = extractor
+        self.custom_headers = headers or {}
 
-        for t in query.replace(".", " ").replace("/", " ").split():
-            t_clean = t.strip()
-            if t_clean.isidentifier() and t_clean not in seen:
-                seen.add(t_clean)
-                candidate_modules.append(t_clean)
+    async def fetch(self, query: str, context: Optional[Dict[str, Any]] = None) -> RAGResponse:
+        clean_name = urllib.parse.quote(query.strip())
+        target_url = self.url_template.format(name=clean_name)
 
-        for m in list(sys.modules.keys()):
-            if "." not in m and not m.startswith("_") and m not in seen:
-                seen.add(m)
-                candidate_modules.append(m)
+        try:
+            raw_data = await self._http_get(target_url, headers=self.custom_headers)
+            extracted_doc = self.extractor(raw_data)
+            return RAGResponse(
+                source=self.name,
+                identifier=query,
+                content=extracted_doc,
+                metadata={"url": target_url},
+                success=True,
+            )
+        except Exception as exc:
+            logger.warning(f"[{self.name}] Failed to fetch package metadata for '{query}': {exc}")
+            return RAGResponse(
+                source=self.name,
+                identifier=query,
+                content="",
+                success=False,
+                error_message=str(exc),
+            )
 
-        for mod_name in candidate_modules:
+
+class WebSearchFetcher(BaseFetcher):
+    """
+    Domain-agnostic web documentation fetcher.
+    Avoids hardcoding specific ecosystems, allowing query construction via context templates.
+    """
+
+    HTML_TAG_CLEANER: Pattern = re.compile(r"<[^>]+>")
+
+    def __init__(
+        self,
+        endpoint_url: str = "https://html.duckduckgo.com/html/",
+        default_query_template: str = "{query}",
+        timeout: float = 6.0,
+    ):
+        super().__init__(timeout=timeout)
+        self.endpoint_url = endpoint_url
+        self.default_query_template = default_query_template
+
+    async def fetch(self, query: str, context: Optional[Dict[str, Any]] = None) -> RAGResponse:
+        context = context or {}
+        template = context.get("query_template", self.default_query_template)
+        qualifier = context.get("qualifier", "")
+        formatted_query = template.format(query=query, qualifier=qualifier).strip()
+
+        encoded_query = urllib.parse.urlencode({"q": formatted_query})
+        target_url = f"{self.endpoint_url}?{encoded_query}"
+
+        try:
+            html = await self._http_get(target_url)
+            snippets = self._extract_snippets(html)
+            return RAGResponse(
+                source="WebSearchFetcher",
+                identifier=query,
+                content="\n".join(snippets),
+                metadata={"formatted_query": formatted_query, "url": target_url},
+                success=True,
+            )
+        except Exception as exc:
+            logger.error(f"[WebSearchFetcher] Query '{formatted_query}' failed: {exc}")
+            return RAGResponse(
+                source="WebSearchFetcher",
+                identifier=query,
+                content="",
+                success=False,
+                error_message=str(exc),
+            )
+
+    @classmethod
+    def _extract_snippets(cls, html: str, max_snippets: int = 5) -> List[str]:
+        """Extract plain-text result snippets from search HTML without external dependencies."""
+        snippets: List[str] = []
+        pattern = re.compile(r'class="result__snippet[^"]*">(.*?)</a>', re.DOTALL | re.IGNORECASE)
+        matches = pattern.findall(html)
+        for match in matches[:max_snippets]:
+            clean_text = cls.HTML_TAG_CLEANER.sub("", match).strip()
+            if clean_text:
+                snippets.append(clean_text)
+        return snippets
+
+
+class IntrospectionFetcher(BaseFetcher):
+    """
+    Introspects local runtime environments and symbol tables without assuming ecosystem.
+    Useful for fallback introspection when internet access is unavailable or disabled.
+    """
+
+    async def fetch(self, query: str, context: Optional[Dict[str, Any]] = None) -> RAGResponse:
+        def _introspect() -> str:
+            import importlib
+            import inspect
+
             try:
-                mod = sys.modules.get(mod_name) or importlib.import_module(mod_name)
-            except Exception:
-                continue
+                mod_name, *sub = query.split(".", 1)
+                mod = importlib.import_module(mod_name)
+                target = getattr(mod, sub[0]) if sub else mod
+                doc = inspect.getdoc(target) or ""
+                sig = ""
+                try:
+                    sig = str(inspect.signature(target))
+                except Exception:
+                    pass
+                return f"Signature: {sig}\n\nDocumentation:\n{doc}"
+            except Exception as e:
+                return f"Introspection unavailable: {e}"
 
-            # Check direct attribute match
-            for attr in dir(mod):
-                if attr.startswith("_"):
-                    continue
-                attr_lower = attr.lower()
-                if clean_q == attr_lower or any(t == attr_lower for t in tokens):
-                    obj = getattr(mod, attr, None)
-                    if obj is not None:
-                        doc = inspect.getdoc(obj) or f"{mod_name}.{attr}"
-                        try:
-                            sig = str(inspect.signature(obj))
-                        except Exception:
-                            sig = "()"
-                        return f"Signature: {mod_name}.{attr}{sig}\n\nDocumentation:\n{doc[:1500]}"
-
-        # Fallback to PyPi search if introspection yields nothing
-        return PyPiFetcher().fetch(query)
+        content = await asyncio.to_thread(_introspect)
+        return RAGResponse(
+            source="LocalIntrospection",
+            identifier=query,
+            content=content,
+            success=not content.startswith("Introspection unavailable"),
+        )
 
 
-class FetcherFactory:
-    @staticmethod
-    def get_fetcher(domain_context: str) -> LiveDocFetcher:
-        if "Rust" in domain_context:
-            return CratesIoFetcher()
-        return IntrospectionFetcher()
+# ============================================================================
+# Dynamic Registry & Factory
+# ============================================================================
+
+class FetcherRegistry:
+    """Registry maintaining domain-specific and global fetchers."""
+
+    def __init__(self):
+        self._fetchers: Dict[str, BaseFetcher] = {}
+        self._default_fetcher: BaseFetcher = IntrospectionFetcher()
+        self._cache = TTLCache()
+
+    def register(self, domain_key: str, fetcher: BaseFetcher) -> None:
+        """Register a fetcher for a domain identifier (e.g. 'python', 'rust', 'npm')."""
+        self._fetchers[domain_key.lower()] = fetcher
+
+    def set_default(self, fetcher: BaseFetcher) -> None:
+        self._default_fetcher = fetcher
+
+    def resolve(self, domain_context: Optional[str] = None) -> BaseFetcher:
+        """Resolve the appropriate fetcher based on context without hardcoded string branching."""
+        if domain_context:
+            domain_key = domain_context.strip().lower()
+            if domain_key in self._fetchers:
+                return self._fetchers[domain_key]
+        return self._default_fetcher
+
+    async def fetch(
+        self,
+        query: str,
+        domain_context: Optional[str] = None,
+        context: Optional[Dict[str, Any]] = None,
+    ) -> RAGResponse:
+        """Cached dispatch fetcher."""
+        cache_key = f"{domain_context or 'default'}:{query}"
+        cached = await self._cache.get(cache_key)
+        if cached:
+            return cached
+
+        fetcher = self.resolve(domain_context)
+        response = await fetcher.fetch(query, context=context)
+
+        if response.success:
+            await self._cache.set(cache_key, response)
+
+        return response
+
+
+# ============================================================================
+# Default Registry Configuration
+# ============================================================================
+
+def create_default_registry() -> FetcherRegistry:
+    """Instantiate a registry populated with agnostic ecosystem parsers."""
+    registry = FetcherRegistry()
+
+    # PyPI / Python Provider
+    def _pypi_extractor(raw_json: str) -> str:
+        data = json.loads(raw_json)
+        info = data.get("info", {})
+        summary = info.get("summary", "")
+        description = info.get("description", "")
+        return f"{summary}\n\n{description[:2000]}"
+
+    registry.register(
+        "python",
+        PackageRegistryFetcher(
+            name="PyPI",
+            url_template="https://pypi.org/pypi/{name}/json",
+            extractor=_pypi_extractor,
+        ),
+    )
+
+    # Crates.io / Rust Provider
+    def _crates_extractor(raw_json: str) -> str:
+        data = json.loads(raw_json)
+        crate = data.get("crate", {})
+        return crate.get("description", "")
+
+    registry.register(
+        "rust",
+        PackageRegistryFetcher(
+            name="CratesIo",
+            url_template="https://crates.io/api/v1/crates/{name}",
+            extractor=_crates_extractor,
+            headers={"User-Agent": "GEVR-Synthesis-RAG/2.0 (crates-io-fetcher)"},
+        ),
+    )
+
+    # Generic Web Search Provider
+    registry.register("web", WebSearchFetcher())
+
+    # Fallback Local Introspector
+    registry.set_default(IntrospectionFetcher())
+
+    return registry
+
+
+# Module-level shared registry
+default_registry = create_default_registry()
+
+
+def fetch_docs_sync(
+    query: str, domain_context: Optional[str] = None, context: Optional[Dict[str, Any]] = None
+) -> RAGResponse:
+    """Synchronous interface for environments lacking active async loops."""
+    try:
+        loop = asyncio.get_running_loop()
+    except RuntimeError:
+        loop = None
+
+    if loop and loop.is_running():
+        # Running inside existing event loop
+        return asyncio.run_coroutine_threadsafe(
+            default_registry.fetch(query, domain_context, context), loop
+        ).result()
+    else:
+        return asyncio.run(default_registry.fetch(query, domain_context, context))

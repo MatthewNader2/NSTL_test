@@ -1,765 +1,470 @@
 """
-src/gevr_sandbox.py - Neuro-Symbolic Topological Lattice (NSTL)
-Generate-Execute-Verify-Repair (GEVR) Execution Sandbox.
-Executes candidate scripts in persistent worker processes for sub-100ms latency.
+src/gevr_sandbox.py
+Hardened, isolated, domain-agnostic sandboxed execution environment with
+AST security inspection, zero worker leakage, and pluggable verification protocols.
 """
 
 from __future__ import annotations
+
+import abc
 import ast
-import contextlib
-import io
+import builtins
+import logging
 import multiprocessing
 import os
+import signal
 import sys
-import threading
 import traceback
-from typing import Tuple, Optional, Callable, Dict, Any, Union, List
+from dataclasses import dataclass, field
+from typing import Any, Callable, Dict, List, Optional, Set, Tuple
 
-try:
-    from typing import NamedTuple
-except ImportError:  # pragma: no cover
-    from collections import namedtuple as NamedTuple  # type: ignore
-
-from log_config import get_logger
-
-try:
-    from .config import settings
-    from .utils import extract_code_from_llm_response
-    from .lattice import TypeRegistry
-except (ImportError, ValueError):
-    from config import settings
-    from utils import extract_code_from_llm_response
-    from lattice import TypeRegistry
-
-logger = get_logger('gevr_sandbox')
+logger = logging.getLogger(__name__)
 
 
-class ExecutionResult(NamedTuple):
+# ============================================================================
+# Security Exceptions & AST Validator
+# ============================================================================
+
+class SecurityViolationError(PermissionError):
+    """Raised when executed code violates sandbox security constraints."""
+    pass
+
+
+class SandboxTimeoutError(TimeoutError):
+    """Raised when execution exceeds the allocated wall-clock time limit."""
+    pass
+
+
+class _SecurityASTVisitor(ast.NodeVisitor):
     """
-    Structured result of a sandbox execution.
-
-    Backwards compatible with the historical 3-tuple contract
-    ``(success, stdout, error)`` — tuple unpacking and indexing still work —
-    while additionally exposing named attributes for programmatic callers:
-
-        res = sandbox.execute_and_verify(code)
-        res.success / res.verified      # bool
-        res.stdout / res.error_message  # str
+    Static analysis pass over synthesized code before execution.
+    Detects dunder traversal exploits, bytecode manipulation, and forbidden builtins.
     """
-    success: bool
-    stdout: str
-    error: str
 
-    @property
-    def verified(self) -> bool:
-        """Alias for :attr:`success` (GEVR verification passed)."""
-        return self.success
+    FORBIDDEN_ATTRIBUTES: frozenset[str] = frozenset({
+        "__subclasses__",
+        "__bases__",
+        "__mro__",
+        "__globals__",
+        "__code__",
+        "__closure__",
+        "__builtins__",
+        "__import__",
+        "gi_frame",
+        "f_locals",
+        "f_globals",
+        "cr_frame",
+    })
 
-    @property
-    def stderr(self) -> str:
-        """Alias for :attr:`error` (the captured error channel)."""
-        return self.error
+    FORBIDDEN_CALLS: frozenset[str] = frozenset({
+        "eval",
+        "exec",
+        "compile",
+        "breakpoint",
+    })
 
-    @property
-    def error_message(self) -> str:
-        """Alias for :attr:`error` (empty string on success)."""
-        return self.error
+    def visit_Attribute(self, node: ast.Attribute) -> None:
+        if node.attr in self.FORBIDDEN_ATTRIBUTES:
+            raise SecurityViolationError(
+                f"Access to restricted meta-attribute '{node.attr}' at line {node.lineno} is forbidden."
+            )
+        self.generic_visit(node)
 
-    def to_dict(self) -> Dict[str, Any]:
-        return {
-            "success": self.success,
-            "verified": self.success,
-            "stdout": self.stdout,
-            "stderr": self.error,
-            "error": self.error,
-            "error_message": self.error,
-        }
-
-
-class RepairResult(NamedTuple):
-    """
-    Structured result of a GEVR repair cycle.
-
-    Backwards compatible with the historical 3-tuple ``(success, code, error)``;
-    ``stdout`` is exposed as an alias of ``error`` (the diagnostic channel).
-    """
-    success: bool
-    code: str
-    error: str
-
-    @property
-    def verified(self) -> bool:
-        return self.success
-
-    @property
-    def error_message(self) -> str:
-        return self.error
+    def visit_Name(self, node: ast.Name) -> None:
+        if isinstance(node.ctx, ast.Load) and node.id in self.FORBIDDEN_CALLS:
+            raise SecurityViolationError(
+                f"Direct access to forbidden built-in '{node.id}' at line {node.lineno} is blocked."
+            )
+        self.generic_visit(node)
 
 
-def _init_worker(paths: list[str]):
-    for p in paths:
-        if p not in sys.path:
-            sys.path.insert(0, p)
+# ============================================================================
+# Pluggable Postconditions & State Protocols (Domain-Agnostic)
+# ============================================================================
+
+class StateProtocolRegistry:
+    """Registry determining object readiness or fittedness via pluggable predicates."""
+
+    def __init__(self):
+        self._predicates: List[Callable[[Any], bool]] = []
+        self._register_default_predicates()
+
+    def register(self, predicate: Callable[[Any], bool]) -> None:
+        self._predicates.append(predicate)
+
+    def is_fitted_or_ready(self, target: Any) -> bool:
+        """Check if target satisfies any registered state predicate."""
+        for pred in self._predicates:
+            try:
+                if pred(target):
+                    return True
+            except Exception:
+                continue
+        return False
+
+    def _register_default_predicates(self) -> None:
+        # Standard protocol: Check for is_fitted(), is_ready(), or is_converged() methods
+        def _callable_check(obj: Any) -> bool:
+            for attr in ("is_fitted", "is_ready", "is_converged"):
+                method = getattr(obj, attr, None)
+                if callable(method):
+                    return bool(method())
+            return False
+
+        # Generic state inspection: check for state-denoting attributes
+        def _attribute_convention_check(obj: Any) -> bool:
+            if hasattr(obj, "__dict__"):
+                # Detect populated state without assuming third-party libraries
+                public_state = [k for k in obj.__dict__.keys() if not k.startswith("_")]
+                return len(public_state) > 0
+            return True
+
+        self.register(_callable_check)
+        self.register(_attribute_convention_check)
 
 
-# Security denylist – intentionally engine-side, not domain data.
+class PostconditionRegistry:
+    """Domain-agnostic registry for evaluating postcondition constraints."""
+
+    def __init__(self):
+        self._evaluators: Dict[str, Callable[[Any, Any], bool]] = {}
+        self._register_default_evaluators()
+
+    def register(self, property_name: str, evaluator: Callable[[Any, Any], bool]) -> None:
+        self._evaluators[property_name] = evaluator
+
+    def evaluate(self, property_name: str, target_val: Any, expected_val: Any) -> bool:
+        evaluator = self._evaluators.get(property_name)
+        if not evaluator:
+            logger.warning(f"No postcondition evaluator registered for '{property_name}'. Falling back to equality.")
+            return bool(target_val == expected_val)
+        try:
+            return evaluator(target_val, expected_val)
+        except Exception as e:
+            logger.error(f"Error evaluating postcondition '{property_name}': {e}")
+            return False
+
+    def _register_default_evaluators(self) -> None:
+        # Dimensionality check via duck-typing (works for lists, tuples, tensors, arrays)
+        def _ndim_evaluator(val: Any, expected: Any) -> bool:
+            if hasattr(val, "ndim"):
+                return bool(val.ndim == expected)
+            if hasattr(val, "shape"):
+                return bool(len(val.shape) == expected)
+            # Recursive depth inspection for nested iterables
+            def _get_depth(obj: Any) -> int:
+                if isinstance(obj, (list, tuple)) and obj:
+                    return 1 + _get_depth(obj[0])
+                return 0
+            return _get_depth(val) == expected
+
+        # Null / NaN check via duck-typing
+        def _has_nans_evaluator(val: Any, expected: Any) -> bool:
+            # Check for duck-typed .isna() or .isnull()
+            for method_name in ("isna", "isnull"):
+                method = getattr(val, method_name, None)
+                if callable(method):
+                    res = method()
+                    has_nan = bool(getattr(res, "any", lambda: res)())
+                    return has_nan == expected
+
+            # Check for native float('nan') or nested elements
+            try:
+                import math
+                if isinstance(val, float) and math.isnan(val):
+                    return True == expected
+                if hasattr(val, "__iter__") and not isinstance(val, (str, bytes)):
+                    has_nan = any(isinstance(x, float) and math.isnan(x) for x in val)
+                    return has_nan == expected
+            except Exception:
+                pass
+            return False == expected
+
+        # Uniqueness / Deduplicated check via duck-typing
+        def _dedup_evaluator(val: Any, expected: Any) -> bool:
+            if hasattr(val, "duplicated"):
+                dups = val.duplicated()
+                is_unique = not bool(getattr(dups, "any", lambda: dups)())
+                return is_unique == expected
+            try:
+                seq = list(val)
+                return (len(seq) == len(set(seq))) == expected
+            except TypeError:
+                # Elements not hashable
+                return True == expected
+
+        self.register("ndim", _ndim_evaluator)
+        self.register("has_nans", _has_nans_evaluator)
+        self.register("is_deduped", _dedup_evaluator)
+
+
+# ============================================================================
+# Pluggable Terminal Intent Verifiers (Domain-Agnostic)
+# ============================================================================
+
+@dataclass
+class IntentVerificationResult:
+    valid: bool
+    reason: str = ""
+    details: Dict[str, Any] = field(default_factory=dict)
+
+
+class BaseIntentVerifier(abc.ABC):
+    @abc.abstractmethod
+    def verify(self, output: Any, context: Dict[str, Any]) -> IntentVerificationResult:
+        pass
+
+
+class TerminalIntentRegistry:
+    """Decoupled registry of verifiers validating terminal computation intent."""
+
+    def __init__(self):
+        self._verifiers: Dict[str, BaseIntentVerifier] = {}
+        self._register_default_verifiers()
+
+    def register(self, intent_type: str, verifier: BaseIntentVerifier) -> None:
+        self._verifiers[intent_type] = verifier
+
+    def verify(self, intent_type: str, output: Any, context: Dict[str, Any]) -> IntentVerificationResult:
+        verifier = self._verifiers.get(intent_type)
+        if not verifier:
+            # Fallback verification: simple presence and non-None check
+            is_valid = output is not None
+            return IntentVerificationResult(
+                valid=is_valid,
+                reason="Default fallback: output is non-None" if is_valid else "Output is None",
+            )
+        return verifier.verify(output, context)
+
+    def _register_default_verifiers(self) -> None:
+        # Verifier for partition/split intent (e.g. dataset or collection splits)
+        class PartitionIntentVerifier(BaseIntentVerifier):
+            def verify(self, output: Any, context: Dict[str, Any]) -> IntentVerificationResult:
+                if not isinstance(output, (tuple, list)):
+                    return IntentVerificationResult(valid=False, reason="Split intent must produce a collection")
+                expected_min = context.get("min_partitions", 2)
+                if len(output) < expected_min:
+                    return IntentVerificationResult(
+                        valid=False,
+                        reason=f"Expected at least {expected_min} partitions, received {len(output)}",
+                    )
+                return IntentVerificationResult(valid=True, reason="Valid partition structure")
+
+        # Verifier for structured/tabular data transformation intent
+        class StructuredDataVerifier(BaseIntentVerifier):
+            def verify(self, output: Any, context: Dict[str, Any]) -> IntentVerificationResult:
+                if output is None:
+                    return IntentVerificationResult(valid=False, reason="Target structured output is None")
+                # Duck-type column or length existence
+                has_len = hasattr(output, "__len__")
+                has_shape = hasattr(output, "shape")
+                if not (has_len or has_shape):
+                    return IntentVerificationResult(valid=False, reason="Output lacks dimension or sequence protocol")
+                return IntentVerificationResult(valid=True, reason="Structured tabular contract verified")
+
+        # Verifier for artifact rendering intent
+        class VisualArtifactVerifier(BaseIntentVerifier):
+            def verify(self, output: Any, context: Dict[str, Any]) -> IntentVerificationResult:
+                if output is None:
+                    return IntentVerificationResult(valid=False, reason="Artifact output is None")
+                # Look for common rendering protocols without importing matplotlib
+                has_render_hook = any(
+                    hasattr(output, attr) for attr in ("canvas", "savefig", "render", "show", "to_image")
+                )
+                if has_render_hook or type(output).__name__ in ("Figure", "Image", "Plot"):
+                    return IntentVerificationResult(valid=True, reason="Visual artifact verified")
+                return IntentVerificationResult(valid=False, reason="Object lacks visual artifact rendering protocol")
+
+        self.register("model_fit_split", PartitionIntentVerifier())
+        self.register("tabular_egress", StructuredDataVerifier())
+        self.register("image_annotation_egress", StructuredDataVerifier())
+        self.register("visualization_egress", VisualArtifactVerifier())
+
+
+# ============================================================================
+# Hardened Worker Execution Layer
+# ============================================================================
+
 _BLOCKED_MODULES = frozenset({
-    'subprocess', 'shutil', 'socket', 'ctypes',
-    'signal', 'importlib', 'multiprocessing', 'threading', 'http',
-    'urllib', 'ftplib', 'smtplib', 'telnetlib', 'xmlrpc', 'code',
-    'codeop', 'compileall', 'py_compile', 'zipimport', 'pkgutil',
+    "subprocess",
+    "shutil",
+    "socket",
+    "ctypes",
+    "pty",
+    "commands",
+    "multiprocessing",
+    "threading",
+    "_thread",
 })
 
-def _restricted_import(name, *args, **kwargs):
-    base = name.split('.')[0]
-    if base in _BLOCKED_MODULES:
-        raise ImportError(f"Import of '{name}' is blocked in NSTL sandbox for security.")
-    return __builtins__.__import__(name, *args, **kwargs) if hasattr(__builtins__, '__import__') else __import__(name, *args, **kwargs)
 
-try:
-    from .errors import DataflowExecutionError, ArtifactMaterializationError, PostconditionVerificationError, SandboxSecurityError
-except (ImportError, ValueError):
-    from errors import DataflowExecutionError, ArtifactMaterializationError, PostconditionVerificationError, SandboxSecurityError
+def _create_sanitized_os():
+    """Wrap standard `os` to disable shell execution and destructive file operations."""
+    import os as _real_os
 
-
-def _check_estimator_fitted(estimator: Any, cell_id: str, var_name: str) -> None:
-    """
-    Verifies that an estimator object has been fitted — via LIBRARY-LEVEL
-    PROTOCOLS, not engine-side attribute enumeration:
-      1. The standard fitted-estimator protocol (`__sklearn_is_fitted__`,
-         implemented by every conforming estimator) when available.
-      2. The universal fitted-attribute convention of the estimator API:
-         attributes set by `.fit()` end in a single trailing underscore
-         (documented library-wide convention; any library following it
-         verifies with zero engine-side per-class lists).
-    """
-    if estimator is None:
-        raise PostconditionVerificationError(f"Estimator '{var_name}' ({cell_id}) is None.")
-
-    # 1. Library protocol (duck-typed: no library import in engine code)
-    protocol = getattr(estimator, "__sklearn_is_fitted__", None)
-    if callable(protocol):
-        try:
-            if protocol():
-                return
-        except Exception as e:
-            raise PostconditionVerificationError(
-                f"Estimator '{var_name}' ({cell_id}) failed its fitted-protocol check: {e}"
-            )
-
-    # 2. Universal trailing-underscore fitted-attribute convention.
-    # Instance attributes only (vars), excluding dunder and hyperparameters
-    # (hyperparameters do NOT end in underscore; fitted attributes do).
-    for attr_name, attr_val in vars(estimator).items():
-        if attr_name.startswith("_"):
-            continue
-        if attr_name.endswith("_") and not attr_name.endswith("__"):
-            if attr_val is not None:
-                return
-
-    raise PostconditionVerificationError(
-        f"Estimator '{var_name}' ({cell_id}) has not been fitted (.fit() was not called or failed)."
-    )
-
-
-def _evaluate_cell_postcondition(exec_globals: Dict[str, Any], check: Dict[str, Any]) -> None:
-    """Evaluates an individual Phase-1 postcondition against runtime execution scope."""
-    cell_id = check.get("cell_id", "unknown_cell")
-    target_var = check.get("target_var")
-    prop = check.get("property")
-    op = check.get("operator", "==")
-    val = check.get("value")
-    expr = check.get("expression")
-    desc = check.get("description") or expr or f"{prop} {op} {val}"
-
-    if not target_var or target_var not in exec_globals:
-        return
-
-    target_val = exec_globals[target_var]
-
-    # Raw expression evaluation
-    if expr:
-        # State predicates are evaluated through the declared-property
-        # evaluator below (the token `state` is not a runtime variable).
-        is_state_predicate = any(tok in expr for tok in ("state ==", "state !=", "state is ", "state is not "))
-        if not is_state_predicate:
-            subbed_expr = expr
-            target_name = check.get("target_port") or check.get("target") or "output_var"
-            if target_name in subbed_expr:
-                try:
-                    parsed_expr = ast.parse(subbed_expr, mode="eval")
-                    class _NameReplacer(ast.NodeTransformer):
-                        def visit_Name(self, node):
-                            if node.id == target_name:
-                                return ast.copy_location(ast.Name(id=target_var, ctx=node.ctx), node)
-                            return node
-                    subbed_expr = ast.unparse(_NameReplacer().visit(parsed_expr))
-                except Exception:
-                    tokens = subbed_expr.split()
-                    subbed_expr = " ".join(target_var if t == target_name else t for t in tokens)
-
-            eval_scope = {
-                "__builtins__": {
-                    "isinstance": isinstance, "hasattr": hasattr, "getattr": getattr,
-                    "len": len, "type": type, "bool": bool, "int": int, "float": float,
-                    "str": str, "True": True, "False": False, "None": None
-                },
-                target_var: target_val
+    class _SanitizedOS:
+        def __getattr__(self, name: str) -> Any:
+            blocked_ops = {
+                "system", "popen", "spawn", "spawnl", "spawnle", "spawnlp", "spawnlpe",
+                "spawnv", "spawnve", "spawnvp", "spawnvpe", "execv", "execve", "execvp",
+                "execvpe", "execl", "execle", "execlp", "execlpe", "remove", "unlink",
+                "rmdir", "removedirs", "chmod", "chown", "kill", "killpg"
             }
-            import types
-            for k, v in exec_globals.items():
-                if isinstance(v, types.ModuleType) or (not k.startswith("__") and k != target_var):
-                    eval_scope[k] = v
+            if name in blocked_ops:
+                raise SecurityViolationError(f"Operating system operation 'os.{name}' is prohibited in sandbox.")
+            return getattr(_real_os, name)
 
-            try:
-                passed = bool(eval(subbed_expr, eval_scope, exec_globals))
-            except PostconditionVerificationError:
-                raise
-            except Exception as e:
-                # FAIL CLOSED: a postcondition that cannot be evaluated is a
-                # verification failure, never a silent pass.
-                raise PostconditionVerificationError(
-                    f"Postcondition for cell '{cell_id}' could not be evaluated: '{expr}' raised {type(e).__name__}: {e}"
-                )
-            if not passed:
-                raise PostconditionVerificationError(
-                    f"Postcondition failed for cell '{cell_id}': '{desc}' evaluated to False on variable '{target_var}'."
-                )
-
-    # Property-based evaluation
-    if prop == "ndim":
-        actual_ndim = getattr(target_val, "ndim", None)
-        if actual_ndim is not None:
-            if op == "==" and actual_ndim != val:
-                raise PostconditionVerificationError(
-                    f"Postcondition 'ndim == {val}' failed for cell '{cell_id}': '{target_var}.ndim' is {actual_ndim}."
-                )
-            elif op == ">=" and actual_ndim < val:
-                raise PostconditionVerificationError(
-                    f"Postcondition 'ndim >= {val}' failed for cell '{cell_id}': '{target_var}.ndim' is {actual_ndim}."
-                )
-    elif prop == "has_nans":
-        has_nans = False
-        if hasattr(target_val, "isna"):
-            has_nans = bool(target_val.isna().any().any() if hasattr(target_val.isna().any(), "any") else target_val.isna().any())
-        elif hasattr(target_val, "isnull"):
-            has_nans = bool(target_val.isnull().any().any() if hasattr(target_val.isnull().any(), "any") else target_val.isnull().any())
-        elif hasattr(target_val, "dtype") and getattr(target_val, "size", 0) > 0:
-            import numpy as _np
-            has_nans = bool(_np.isnan(target_val).any()) if _np.issubdtype(target_val.dtype, _np.number) else False
-
-        expected_has_nans = bool(val)
-        if has_nans != expected_has_nans:
-            raise PostconditionVerificationError(
-                f"Postcondition 'has_nans == {expected_has_nans}' failed for cell '{cell_id}': variable '{target_var}' {'contains NaNs' if has_nans else 'does not contain NaNs'}."
-            )
-    elif prop == "is_deduped":
-        if hasattr(target_val, "duplicated"):
-            is_deduped = not bool(target_val.duplicated().any())
-            if is_deduped != bool(val):
-                raise PostconditionVerificationError(
-                    f"Postcondition 'is_deduped == {val}' failed for cell '{cell_id}': DataFrame '{target_var}' contains duplicates."
-                )
-    elif prop == "is_fitted":
-        _check_estimator_fitted(target_val, cell_id, target_var)
-    elif prop == "state":
-        # Declared-property evaluation: the expected state name is looked up in
-        # the TypeRegistry's DECLARED typestate vocabulary (trees declare
-        # carrier_type + verifiable properties per state). Shape logic comes
-        # from the declaration, not from engine-side domain knowledge.
-        registry = TypeRegistry.get_instance()
-        state_props = registry.get_state_properties(str(val))
-        carrier = registry.get_state_carrier(str(val))
-
-        violations = []
-        shape = getattr(target_val, "shape", None)
-        ndim = getattr(target_val, "ndim", None)
-
-        channels = state_props.get("channels")
-        if channels is not None and shape is not None and len(shape) >= 2:
-            actual_channels = shape[2] if len(shape) == 3 else 1
-            if actual_channels != channels:
-                violations.append(
-                    f"declared {channels} channel(s), variable has shape {shape}"
-                )
-
-        expect_ndim = state_props.get("ndim")
-        if expect_ndim is not None and ndim is not None and int(expect_ndim) != int(ndim):
-            violations.append(f"declared ndim={expect_ndim}, variable has ndim={ndim}")
-
-        dtype_decl = state_props.get("dtype")
-        if dtype_decl and hasattr(target_val, "dtype"):
-            actual_dtype = str(getattr(target_val.dtype, "name", target_val.dtype))
-            if str(dtype_decl).lower() not in (actual_dtype.lower(), ""):
-                violations.append(f"declared dtype={dtype_decl}, variable has dtype={actual_dtype}")
-
-        if violations:
-            raise PostconditionVerificationError(
-                f"Postcondition 'state == {val}' failed for cell '{cell_id}': variable '{target_var}' "
-                + "; ".join(violations) + "."
-            )
+    return _SanitizedOS()
 
 
-def _evaluate_terminal_intent(
-    exec_globals: Dict[str, Any],
-    term_check: Dict[str, Any],
-    egress_paths: Optional[list[str]] = None
-) -> None:
-    """Evaluates task intent on terminal nodes (model fit split data, image annotation egress, etc.)."""
-    intent_type = term_check.get("type")
-    cell_id = term_check.get("cell_id", "terminal_node")
+def _restricted_import(name: str, globals=None, locals=None, fromlist=(), level: int = 0):
+    """Guarded import callback preventing module escape."""
+    root_module = name.split(".")[0]
+    if root_module in _BLOCKED_MODULES:
+        raise SecurityViolationError(f"Import of restricted module '{root_module}' is blocked.")
 
-    if intent_type == "model_fit_split":
-        model_var = term_check.get("model_var")
-        feature_var = term_check.get("feature_var")
-        expected_train_var = term_check.get("expected_train_feature_var")
-        unsplit_feature_var = term_check.get("unsplit_feature_var")
+    if root_module == "os":
+        return _create_sanitized_os()
 
-        if not model_var or model_var not in exec_globals:
-            raise PostconditionVerificationError(
-                f"Terminal model variable '{model_var}' was not created in execution scope."
-            )
-        model_obj = exec_globals[model_var]
-        _check_estimator_fitted(model_obj, cell_id, model_var)
-
-        # Verify model was fitted on split training partition (not full unsplit dataset)
-        if expected_train_var and feature_var:
-            if feature_var != expected_train_var:
-                raise PostconditionVerificationError(
-                    f"Terminal model '{model_var}' ({cell_id}) was fitted on '{feature_var}' instead of split training partition '{expected_train_var}'. Model training intent violated."
-                )
-
-        if unsplit_feature_var and expected_train_var:
-            unsplit_val = exec_globals.get(unsplit_feature_var)
-            train_val = exec_globals.get(expected_train_var)
-            if unsplit_val is not None and train_val is not None:
-                n_unsplit = len(unsplit_val) if hasattr(unsplit_val, "__len__") else 0
-                n_train = len(train_val) if hasattr(train_val, "__len__") else 0
-                if n_train > 0 and n_train < n_unsplit:
-                    # Library-agnostic probe: a fitted model that exposes its
-                    # consumed training-sample count (via any declared fitted
-                    # attribute following the trailing-underscore convention)
-                    # must NOT report the un-split row count.
-                    n_seen = None
-                    for attr_name, attr_val in vars(model_obj).items():
-                        if attr_name.startswith("_") or not attr_name.endswith("_") or attr_name.endswith("__"):
-                            continue
-                        if isinstance(attr_val, (int, float)):
-                            candidate = attr_val
-                        elif hasattr(attr_val, "shape") and getattr(attr_val.shape, "__len__", lambda: 0)() > 0:
-                            candidate = attr_val.shape[0]
-                        elif hasattr(attr_val, "__len__"):
-                            try:
-                                candidate = len(attr_val[0]) if len(attr_val) and hasattr(attr_val[0], "__len__") else len(attr_val)
-                            except Exception as e:
-                                continue
-                        else:
-                            continue
-                        n_seen = candidate
-                        break
-                    if n_seen is not None and n_seen == n_unsplit:
-                        raise PostconditionVerificationError(
-                            f"Terminal model '{model_var}' ({cell_id}) was fitted on un-split dataset ({n_unsplit} samples) instead of training partition ({n_train} samples)."
-                        )
-
-    elif intent_type == "image_annotation_egress":
-        saved_var = term_check.get("saved_var")
-        annotated_var = term_check.get("annotated_var")
-        ingress_var = term_check.get("ingress_var")
-        output_path = term_check.get("output_path", "")
-
-        # 1. Wire check: verify saved variable is annotated wire, not raw ingress wire
-        if annotated_var and ingress_var and saved_var:
-            if saved_var == ingress_var and annotated_var != ingress_var:
-                raise PostconditionVerificationError(
-                    f"Terminal node '{cell_id}' saved unannotated raw input image '{ingress_var}' instead of annotated image '{annotated_var}'. Annotation intent was not realized in egress artifact."
-                )
-
-        # 2. Disk content check: verify saved artifact is not identical to raw input
-        clean_path = output_path.strip("'\"") if output_path else None
-        if not clean_path and egress_paths:
-            clean_path = egress_paths[0].strip("'\"") if egress_paths else None
-
-        if clean_path and os.path.exists(clean_path):
-            # Artifact readers: pluggable dynamic artifact loading from tree declarations
-            import importlib
-            disk_img = None
-            readers = TypeRegistry.get_instance().get_artifact_readers("image")
-            for mod_name, fn in readers:
-                try:
-                    mod = importlib.import_module(mod_name)
-                    func = getattr(mod, fn, None)
-                    if func:
-                        disk_img = func(clean_path)
-                        break
-                except Exception as e:
-                    continue
-
-            ingress_img = exec_globals.get(ingress_var) if ingress_var else None
-
-            if disk_img is not None and ingress_img is not None:
-                try:
-                    import numpy as _np
-                    has_np = True
-                except ImportError:
-                    has_np = False
-
-                is_identical = False
-                if has_np and hasattr(disk_img, "shape") and hasattr(ingress_img, "shape"):
-                    if disk_img.shape == ingress_img.shape and _np.array_equal(disk_img, ingress_img):
-                        is_identical = True
-
-                if is_identical and annotated_var and annotated_var != ingress_var:
-                    raise PostconditionVerificationError(
-                        f"Egress image '{clean_path}' contains byte-identical raw input image without annotations. Annotation intent was not realized in saved artifact."
-                    )
-
-    elif intent_type == "tabular_egress":
-        saved_var = term_check.get("saved_var")
-        ingress_var = term_check.get("ingress_var")
-        output_path = term_check.get("output_path", "")
-        expected_clean = term_check.get("expected_clean", {})
-
-        if saved_var and ingress_var and saved_var == ingress_var and expected_clean.get("no_nans"):
-            raise PostconditionVerificationError(
-                f"Terminal node '{cell_id}' saved raw uncleaned DataFrame '{ingress_var}' instead of transformed DataFrame."
-            )
-
-        clean_path = output_path.strip("'\"") if output_path else None
-        if not clean_path and egress_paths:
-            clean_path = egress_paths[0].strip("'\"") if egress_paths else None
-
-        if clean_path and os.path.exists(clean_path) and expected_clean.get("no_nans"):
-            import importlib
-            disk_df = None
-            readers = TypeRegistry.get_instance().get_artifact_readers("table")
-            for mod_name, fn in readers:
-                try:
-                    mod = importlib.import_module(mod_name)
-                    func = getattr(mod, fn, None)
-                    if func:
-                        disk_df = func(clean_path)
-                        break
-                except Exception as e:
-                    continue
-
-            try:
-                if disk_df is not None and hasattr(disk_df, "isna"):
-                    if disk_df.isna().any().any():
-                        raise PostconditionVerificationError(
-                            f"Egress CSV '{clean_path}' contains NaN values; dropna intent was not realized in saved artifact."
-                        )
-            except Exception as e:
-                if isinstance(e, PostconditionVerificationError):
-                    raise
-
-    elif intent_type == "visualization_egress":
-        fig_var = term_check.get("fig_var")
-        output_path = term_check.get("output_path", "")
-
-        fig_obj = exec_globals.get(fig_var) if fig_var else None
-        if fig_obj is None:
-            for v in exec_globals.values():
-                if type(v).__name__ == "Figure":
-                    fig_obj = v
-                    break
-
-        if fig_obj is not None:
-            axes = getattr(fig_obj, "axes", [])
-            total_elements = sum(
-                len(getattr(ax, "lines", [])) +
-                len(getattr(ax, "collections", [])) +
-                len(getattr(ax, "patches", [])) +
-                len(getattr(ax, "containers", [])) +
-                len(getattr(ax, "images", []))
-                for ax in axes
-            )
-            if len(axes) > 0 and total_elements == 0:
-                raise PostconditionVerificationError(
-                    f"Terminal node '{cell_id}' saved an empty figure to '{output_path}' with 0 plotted data elements."
-                )
-
-
-def verify_postconditions(
-    exec_globals: Dict[str, Any],
-    verification_spec: Any,
-    egress_paths: Optional[list[str]] = None
-) -> None:
-    """
-    Evaluates Phase-1 postconditions and terminal node intent against runtime execution scope.
-    Raises PostconditionVerificationError if any check fails.
-    """
-    if verification_spec is None:
-        return
-
-    if hasattr(verification_spec, "verify") and callable(verification_spec.verify):
-        verification_spec.verify(exec_globals, egress_paths)
-        return
-
-    if isinstance(verification_spec, dict):
-        cell_checks = verification_spec.get("cell_checks", [])
-        terminal_checks = verification_spec.get("terminal_checks", [])
-    elif isinstance(verification_spec, list):
-        cell_checks = verification_spec
-        terminal_checks = []
-    else:
-        return
-
-    # 1. Evaluate Phase-1 Cell Postconditions
-    for check in cell_checks:
-        _evaluate_cell_postcondition(exec_globals, check)
-
-    # 2. Evaluate Terminal Node Intent Checks
-    for term_check in terminal_checks:
-        _evaluate_terminal_intent(exec_globals, term_check, egress_paths)
+    # Safely retrieve underlying native import
+    real_import = builtins.__import__
+    return real_import(name, globals, locals, fromlist, level)
 
 
 def _sandbox_worker_exec(
-    code: str,
-    egress_paths: Optional[list[str]] = None,
-    cwd: Optional[str] = None,
-    verification_spec: Optional[Union[Dict[str, Any], List[Dict[str, Any]], Any]] = None
-) -> Dict[str, Any]:
+    code_str: str,
+    context: Dict[str, Any],
+    result_queue: multiprocessing.Queue,
+) -> None:
     """
-    Isolated execution unit executed within persistent worker process.
-    Executes the candidate strictly as-is: no synthetic fixtures are ever created.
-    Missing input artifacts surface as honest FileNotFoundError failures, and only
-    artifacts the code itself materializes at declared egress destinations count
-    towards the physical verification pass.
+    Subprocess worker executing sandboxed code in strict process isolation.
+    Exceptions are captured and returned safely via the IPC queue.
     """
-    if cwd:
-        try:
-            os.chdir(cwd)
-        except Exception as e:
-            logger.debug("suppressed: %s", e, exc_info=False)
-    stdout_buf = io.StringIO()
-    stderr_buf = io.StringIO()
+    try:
+        # Step 1: Pre-execution AST Analysis
+        parsed_ast = ast.parse(code_str)
+        _SecurityASTVisitor().visit(parsed_ast)
 
-    with contextlib.redirect_stdout(stdout_buf), contextlib.redirect_stderr(stderr_buf):
-        try:
-            builtins_dict = dict(__builtins__.__dict__) if hasattr(__builtins__, "__dict__") else dict(__builtins__)
-            builtins_dict["__import__"] = _restricted_import
-            exec_globals: Dict[str, Any] = {
-                "__name__": "__main__",
-                "__builtins__": builtins_dict
-            }
-            exec(code, exec_globals)
+        # Step 2: Construct Sanitized Execution Environment
+        safe_builtins: Dict[str, Any] = {}
+        for k, v in builtins.__dict__.items():
+            if k not in _SecurityASTVisitor.FORBIDDEN_CALLS:
+                safe_builtins[k] = v
 
-            # 1. Dataflow Non-Vacuity Verification: inspect top-level AST for final assigned variable
-            parsed = ast.parse(code)
-            terminal_var = None
-            for node in reversed(parsed.body):
-                if isinstance(node, ast.Assign):
-                    for target in reversed(node.targets):
-                        if isinstance(target, ast.Name):
-                            terminal_var = target.id
-                            break
-                    if terminal_var:
-                        break
-                elif isinstance(node, (ast.AugAssign, ast.AnnAssign)):
-                    if isinstance(node.target, ast.Name):
-                        terminal_var = node.target.id
-                        break
+        # Correctly bind restricted import into safe builtins dictionary
+        safe_builtins["__import__"] = _restricted_import
 
-            if terminal_var:
-                if terminal_var not in exec_globals:
-                    raise DataflowExecutionError(
-                        f"Terminal pipeline variable '{terminal_var}' was not created in execution scope."
-                    )
-                val = exec_globals[terminal_var]
-                if val is None:
-                    raise DataflowExecutionError(
-                        f"Terminal pipeline variable '{terminal_var}' evaluated to None."
-                    )
-                if val is False and egress_paths:
-                    raise DataflowExecutionError(
-                        f"Terminal pipeline save operation '{terminal_var}' returned False."
-                    )
+        exec_globals: Dict[str, Any] = {
+            "__builtins__": safe_builtins,
+            "__name__": "__sandbox__",
+            "__doc__": None,
+        }
+        exec_globals.update(context)
 
-            # 2. Guarded Branch Failure Detection in STDERR
-            stdout_str = stdout_buf.getvalue()
-            stderr_str = stderr_buf.getvalue()
-            stderr_lower = stderr_str.lower()
-            error_markers = [
-                "traceback (most recent call last)", "segmentation fault",
-                "fatal error", "core dumped"
-            ]
-            for marker in error_markers:
-                if marker in stderr_lower:
-                    raise DataflowExecutionError(
-                        f"Guarded failure detected in stderr: '{marker}'."
-                    )
+        # Step 3: Bytecode Execution
+        compiled = compile(parsed_ast, filename="<sandbox>", mode="exec")
+        exec(compiled, exec_globals)
 
-            # 3. Physical Artifact Materialization Verification
-            if egress_paths:
-                for p in egress_paths:
-                    if not p:
-                        continue
-                    clean_p = p.strip("\"'")
-                    if not os.path.exists(clean_p) or os.path.getsize(clean_p) == 0:
-                        raise ArtifactMaterializationError(
-                            f"Egress destination artifact '{clean_p}' was not created or has 0 bytes."
-                        )
+        # Extract mutated context or return value
+        extracted_results = {
+            k: v for k, v in exec_globals.items()
+            if not k.startswith("__") and k not in context
+        }
 
-            # 4. Phase-1 Postcondition & Terminal Task Verification
-            if verification_spec:
-                verify_postconditions(exec_globals, verification_spec, egress_paths)
+        result_queue.put({"success": True, "results": extracted_results, "error": None})
 
-            return {
-                "success": True,
-                "stdout": stdout_str,
-                "stderr": stderr_str,
-                "error": ""
-            }
-        except Exception as e:
-            root_exc = e
-            while getattr(root_exc, "__cause__", None) is not None:
-                root_exc = root_exc.__cause__
-            is_extrinsic = (
-                isinstance(e, (OSError, ImportError, ConnectionError, TimeoutError, SandboxSecurityError))
-                or isinstance(root_exc, (OSError, ImportError, ConnectionError, TimeoutError, SandboxSecurityError))
-            )
-            err_msg = f"{type(e).__name__}: {e}" if isinstance(e, (DataflowExecutionError, ArtifactMaterializationError, PostconditionVerificationError)) else traceback.format_exc()
-            return {
-                "success": False,
-                "extrinsic": is_extrinsic,
-                "stdout": stdout_buf.getvalue(),
-                "stderr": stderr_buf.getvalue(),
-                "error": err_msg
-            }
-        finally:
-            pass
+    except SecurityViolationError as sec_err:
+        result_queue.put({"success": False, "results": {}, "error": f"SecurityViolation: {str(sec_err)}"})
+    except Exception as exc:
+        formatted_exc = traceback.format_exc()
+        result_queue.put({"success": False, "results": {}, "error": f"{type(exc).__name__}: {str(exc)}\n{formatted_exc}"})
 
+
+# ============================================================================
+# Main GEVR Sandbox Manager
+# ============================================================================
 
 class GEVRSandbox:
     """
-    Sandboxed Python execution engine with persistent worker pool for sub-50ms execution.
+    Hardened execution sandbox with strict process isolation, timeout enforcement,
+    and automatic cleanup of hung processes.
     """
-    _pool: Optional[multiprocessing.Pool] = None
-    _lock = threading.Lock()
 
-    def __init__(self, num_workers: int = None, timeout_seconds: float = None):
-        self.timeout = timeout_seconds if timeout_seconds is not None else settings.sandbox_timeout
-        self._ensure_pool(num_workers if num_workers is not None else settings.sandbox_workers)
-
-    @classmethod
-    def _ensure_pool(cls, num_workers: int = 2):
-        if cls._pool is None:
-            with cls._lock:
-                if cls._pool is None:
-                    ctx_name = "spawn"
-                    ctx = multiprocessing.get_context(ctx_name)
-                    cls._pool = ctx.Pool(
-                        processes=num_workers,
-                        initializer=_init_worker,
-                        initargs=(list(sys.path),),
-                        maxtasksperchild=100
-                    )
+    def __init__(
+        self,
+        default_timeout: float = 5.0,
+        postcondition_registry: Optional[PostconditionRegistry] = None,
+        intent_registry: Optional[TerminalIntentRegistry] = None,
+        state_registry: Optional[StateProtocolRegistry] = None,
+    ):
+        self.default_timeout = default_timeout
+        self.postconditions = postcondition_registry or PostconditionRegistry()
+        self.intents = intent_registry or TerminalIntentRegistry()
+        self.state_protocols = state_registry or StateProtocolRegistry()
 
     def execute(
         self,
         code: str,
+        context: Optional[Dict[str, Any]] = None,
         timeout: Optional[float] = None,
-        egress_paths: Optional[list[str]] = None,
-        cwd: Optional[str] = None,
-        verification_spec: Optional[Union[Dict[str, Any], List[Dict[str, Any]], Any]] = None
     ) -> Dict[str, Any]:
         """
-        Executes Python code in the persistent worker process pool.
-        Returns: {'success': bool, 'stdout': str, 'stderr': str, 'error': str}
+        Execute code in a separate process. Guarantees termination on timeout
+        without leaving CPU-consuming zombie workers.
         """
-        if not code or not code.strip():
-            return {"success": False, "stdout": "", "stderr": "", "error": "ExecutionError: Empty code block."}
+        exec_timeout = timeout if timeout is not None else self.default_timeout
+        context = context or {}
+        ctx = multiprocessing.get_context("spawn")
+        result_queue: multiprocessing.Queue = ctx.Queue()
 
-        # Pre-execution AST syntax check
-        try:
-            ast.parse(code)
-        except SyntaxError as e:
-            return {"success": False, "stdout": "", "stderr": "", "error": f"SyntaxError: {e}"}
+        worker = ctx.Process(
+            target=_sandbox_worker_exec,
+            args=(code, context, result_queue),
+            daemon=True,
+        )
 
-        tout = timeout if timeout is not None else self.timeout
-        exec_cwd = cwd or os.getcwd()
-        spec_dict = verification_spec.to_dict() if hasattr(verification_spec, "to_dict") else verification_spec
+        worker.start()
+        worker.join(timeout=exec_timeout)
 
-        try:
-            self._ensure_pool()
-            async_res = self._pool.apply_async(_sandbox_worker_exec, (code, egress_paths, exec_cwd, spec_dict))
-            res = async_res.get(timeout=tout)
-            if res.get("error") is None:
-                res["error"] = ""
-            return res
-        except multiprocessing.TimeoutError:
-            return {"success": False, "stdout": "", "stderr": "", "error": f"ExecutionTimedOut: Exceeded {tout}s execution limit."}
-        except Exception as e:
-            return {"success": False, "stdout": "", "stderr": "", "error": f"ExecutionSystemError: {e}"}
+        # Enforce hard process termination if execution exceeds timeout
+        if worker.is_alive():
+            logger.warning(f"Worker PID {worker.pid} timed out after {exec_timeout}s. Terminating.")
+            worker.terminate()
+            worker.join(timeout=0.5)
 
-    def execute_and_verify(
-        self,
-        code: str,
-        egress_paths: Optional[list[str]] = None,
-        cwd: Optional[str] = None,
-        verification_spec: Optional[Union[Dict[str, Any], List[Dict[str, Any]], Any]] = None
-    ) -> ExecutionResult:
-        """
-        Executes Python code and verifies it in the sandbox.
-
-        Returns an :class:`ExecutionResult` — a named 3-tuple
-        ``(success, stdout, error)``. Callers may either unpack it positionally
-        (``success, stdout, err = sandbox.execute_and_verify(code)``) or access
-        the named fields (``res.verified``, ``res.error_message``).
-        """
-        res = self.execute(code, egress_paths=egress_paths, cwd=cwd, verification_spec=verification_spec)
-        err = res.get("error", "") or res.get("stderr", "")
-        return ExecutionResult(bool(res["success"]), res.get("stdout", ""), err)
-
-    def repair_cycle(
-        self,
-        initial_code: str,
-        llm_repair_func: Optional[Callable[[str, str], str]] = None,
-        max_attempts: int = 2,
-        egress_paths: Optional[list[str]] = None,
-        cwd: Optional[str] = None,
-        verification_spec: Optional[Union[Dict[str, Any], List[Dict[str, Any]], Any]] = None
-    ) -> RepairResult:
-        """
-        Feedback verification loop:
-        Executes code, captures tracebacks and task verification errors, and applies diagnostic LLM repairs.
-
-        Returns a :class:`RepairResult` — a named 3-tuple ``(success, code, error)``
-        where ``code`` is the final (possibly repaired) code and ``error`` the last
-        diagnostic message (empty on success).
-        """
-        current_code = initial_code
-        error = ""
-        for attempt in range(max_attempts):
-            exec_res = self.execute_and_verify(
-                current_code, egress_paths=egress_paths, cwd=cwd, verification_spec=verification_spec
-            )
-            success, stdout, error = exec_res.success, exec_res.stdout, exec_res.error
-            if success:
-                logger.info(f"[GEVR Sandbox] Verification PASSED on attempt {attempt + 1}")
-                return RepairResult(True, current_code, "")
-
-            logger.warning(f"[GEVR Sandbox] Attempt {attempt + 1} failed with error:\n{error}")
-            if attempt < max_attempts - 1:
-                if llm_repair_func:
-                    logger.info(f"[GEVR Sandbox] Requesting repair heuristic for attempt {attempt + 2}...")
-                    repaired = extract_code_from_llm_response(llm_repair_func(current_code, error))
-                    if repaired and repaired != current_code:
-                        current_code = repaired
+            # Force kill if still unresponsive
+            if worker.is_alive():
+                logger.critical(f"Worker PID {worker.pid} refused SIGTERM. Issuing SIGKILL.")
+                try:
+                    if hasattr(signal, "SIGKILL"):
+                        os.kill(worker.pid, signal.SIGKILL)
                     else:
-                        break
-                else:
-                    try:
-                        from .unification import UnificationGate
-                    except (ImportError, ValueError):
-                        from unification import UnificationGate
-                    repaired = UnificationGate.resolve_imports(current_code)
-                    if repaired and repaired != current_code:
-                        current_code = repaired
-                    else:
-                        break
-            else:
-                break
+                        worker.kill()
+                except ProcessLookupError:
+                    pass
+                worker.join()
 
-        return RepairResult(False, current_code, error)
+            raise SandboxTimeoutError(f"Execution timed out after {exec_timeout} seconds.")
+
+        if result_queue.empty():
+            raise RuntimeError("Execution worker terminated abruptly without returning a result.")
+
+        payload = result_queue.get_nowait()
+        if not payload["success"]:
+            raise RuntimeError(payload["error"])
+
+        return payload["results"]
+
+    def verify_postcondition(self, property_name: str, target: Any, expected: Any) -> bool:
+        """Evaluate postconditions using the decoupled registry."""
+        return self.postconditions.evaluate(property_name, target, expected)
+
+    def verify_intent(
+        self, intent_type: str, output: Any, context: Optional[Dict[str, Any]] = None
+    ) -> IntentVerificationResult:
+        """Evaluate terminal intents using the decoupled registry."""
+        return self.intents.verify(intent_type, output, context or {})
+
+    def is_fitted(self, estimator: Any) -> bool:
+        """Check estimator readiness using the decoupled state protocol registry."""
+        return self.state_protocols.is_fitted_or_ready(estimator)

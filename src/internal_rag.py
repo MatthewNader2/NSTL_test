@@ -7,6 +7,7 @@ from __future__ import annotations
 import os
 import gc
 import json
+import math
 import hashlib
 import pickle
 import threading
@@ -207,82 +208,107 @@ def build_cell_embedding_text(cell: Any, orchestrator: Optional[Any] = None) -> 
 
 
 class _BM25Index:
-    """Fast lexical BM25 token index for hybrid retrieval and keyword grounding."""
+    """Fast lexical BM25 token index backed by an inverted postings index."""
     def __init__(self, k1: float = 1.5, b: float = 0.75):
         self.k1 = k1
         self.b = b
         self.doc_lens: Dict[int, int] = {}
         self.avg_dl: float = 1.0
         self.df: Dict[str, int] = {}
-        self.tf: Dict[int, Dict[str, int]] = {}
+        # Inverted index: term -> {doc_id: term_frequency}
+        self.inverted_index: Dict[str, Dict[int, int]] = {}
         self.num_docs: int = 0
+        self._total_len: int = 0
 
-    def index_schemas(self, id_to_schema: Dict[int, Dict[str, Any]]) -> None:
-        self.num_docs = len(id_to_schema)
-        if self.num_docs == 0:
-            return
-        total_len = 0
-        self.doc_lens.clear()
-        self.df.clear()
-        self.tf.clear()
-
-        for idx, schema in id_to_schema.items():
-            cid = str(schema.get("cell_id", "") or "")
-            doc = str(schema.get("docstring", "") or "")
-            domain = str(schema.get("domain", "") or "")
-            role = str(schema.get("node_role", "") or "")
-            keywords = " ".join(schema.get("keywords", []) or [])
-            text = f"{cid} {cid.replace('_', ' ')} {doc} {domain} {role} {keywords}"
-            tokens = tokenize_alphanumeric(text, min_len=1)
-            self.doc_lens[idx] = len(tokens)
-            total_len += len(tokens)
-            term_counts: Dict[str, int] = {}
-            for t in tokens:
-                term_counts[t] = term_counts.get(t, 0) + 1
-            self.tf[idx] = term_counts
-            for term in term_counts:
-                self.df[term] = self.df.get(term, 0) + 1
-
-        self.avg_dl = max(1.0, total_len / float(self.num_docs))
-
-    def add_document(self, doc_id: int, schema: Dict[str, Any]) -> None:
+    def _extract_tokens(self, schema: Dict[str, Any]) -> List[str]:
         cid = str(schema.get("cell_id", "") or "")
         doc = str(schema.get("docstring", "") or "")
         domain = str(schema.get("domain", "") or "")
         role = str(schema.get("node_role", "") or "")
         keywords = " ".join(schema.get("keywords", []) or [])
         text = f"{cid} {cid.replace('_', ' ')} {doc} {domain} {role} {keywords}"
-        tokens = tokenize_alphanumeric(text, min_len=1)
-        self.doc_lens[doc_id] = len(tokens)
-        self.num_docs += 1
+        return tokenize_alphanumeric(text, min_len=1)
+
+    def index_schemas(self, id_to_schema: Dict[int, Dict[str, Any]]) -> None:
+        self.num_docs = len(id_to_schema)
+        self.doc_lens.clear()
+        self.df.clear()
+        self.inverted_index.clear()
+        self._total_len = 0
+        if self.num_docs == 0:
+            self.avg_dl = 1.0
+            return
+
+        for idx, schema in id_to_schema.items():
+            tokens = self._extract_tokens(schema)
+            dl = len(tokens)
+            self.doc_lens[idx] = dl
+            self._total_len += dl
+
+            term_counts: Dict[str, int] = {}
+            for t in tokens:
+                term_counts[t] = term_counts.get(t, 0) + 1
+
+            for term, freq in term_counts.items():
+                if term not in self.inverted_index:
+                    self.inverted_index[term] = {}
+                self.inverted_index[term][idx] = freq
+                self.df[term] = self.df.get(term, 0) + 1
+
+        self.avg_dl = max(1.0, self._total_len / float(self.num_docs))
+
+    def add_document(self, doc_id: int, schema: Dict[str, Any]) -> None:
+        tokens = self._extract_tokens(schema)
+        dl = len(tokens)
+
+        # Remove existing document postings if updating an existing ID
+        if doc_id in self.doc_lens:
+            self._total_len -= self.doc_lens[doc_id]
+            for term, postings in list(self.inverted_index.items()):
+                if doc_id in postings:
+                    del postings[doc_id]
+                    self.df[term] = max(0, self.df.get(term, 1) - 1)
+        else:
+            self.num_docs += 1
+
+        self.doc_lens[doc_id] = dl
+        self._total_len += dl
+
         term_counts: Dict[str, int] = {}
         for t in tokens:
             term_counts[t] = term_counts.get(t, 0) + 1
-        self.tf[doc_id] = term_counts
-        for term in term_counts:
+
+        for term, freq in term_counts.items():
+            if term not in self.inverted_index:
+                self.inverted_index[term] = {}
+            self.inverted_index[term][doc_id] = freq
             self.df[term] = self.df.get(term, 0) + 1
-        total_len = sum(self.doc_lens.values())
-        self.avg_dl = max(1.0, total_len / float(self.num_docs))
+
+        self.avg_dl = max(1.0, self._total_len / float(max(1, self.num_docs)))
 
     def score_query(self, query: str) -> Dict[int, float]:
-        import math
         tokens = tokenize_alphanumeric(query, min_len=3)
         if not tokens or self.num_docs == 0:
             return {}
+
+        qtf: Dict[str, int] = {}
+        for t in tokens:
+            qtf[t] = qtf.get(t, 0) + 1
+
         scores: Dict[int, float] = {}
-        for token in tokens:
-            doc_freq = self.df.get(token, 0)
-            if doc_freq == 0:
+        for token, q_count in qtf.items():
+            postings = self.inverted_index.get(token)
+            if not postings:
                 continue
+            doc_freq = len(postings)
             idf = math.log(1.0 + (self.num_docs - doc_freq + 0.5) / (doc_freq + 0.5))
-            for idx, counts in self.tf.items():
-                freq = counts.get(token, 0)
-                if freq == 0:
-                    continue
+            token_weight = idf * q_count
+
+            for idx, freq in postings.items():
                 dl = self.doc_lens.get(idx, self.avg_dl)
                 num = freq * (self.k1 + 1.0)
                 denom = freq + self.k1 * (1.0 - self.b + self.b * (dl / self.avg_dl))
-                scores[idx] = scores.get(idx, 0.0) + idf * (num / denom)
+                scores[idx] = scores.get(idx, 0.0) + token_weight * (num / denom)
         return scores
 
 
@@ -376,15 +402,12 @@ class LocalRAG:
             if os.path.exists(tmp_path):
                 try:
                     os.remove(tmp_path)
-                except Exception:
+                except OSError:
                     pass
 
     def build_index(self):
         """Constructs or updates the FAISS index incrementally from loaded cells."""
         with self._lock:
-            # Fast path: a persisted FAISS index that is synchronized with the
-            # embedding cache and the corpus fingerprint restores in milliseconds,
-            # skipping both re-embedding and index re-assembly.
             if self._try_restore_persisted_index():
                 return
 
@@ -459,7 +482,10 @@ class LocalRAG:
                             "schema": item["schema"]
                         }
                     self._save_cache()
-                    print(f"[*] RAG Embedding Progress: {min(i + chunk_size, total_cnt)} / {total_cnt} ({min(i + chunk_size, total_cnt)/total_cnt*100:.1f}%)")
+                    logger.info(
+                        f"[RAG] Embedding Progress: {min(i + chunk_size, total_cnt)} / {total_cnt} "
+                        f"({min(i + chunk_size, total_cnt) / total_cnt * 100:.1f}%)"
+                    )
 
                     del texts
                     del embeddings
@@ -504,8 +530,6 @@ class LocalRAG:
             cache_path = self._get_cache_path()
             if not (os.path.exists(faiss_path) and os.path.exists(schema_path)):
                 return False
-            # The index is valid only if the embedding cache it was built from is
-            # unchanged (same mtime) — otherwise incremental updates would be lost.
             if os.path.exists(cache_path) and os.path.getmtime(cache_path) > os.path.getmtime(faiss_path):
                 return False
             with open(schema_path, "rb") as f:
@@ -525,29 +549,45 @@ class LocalRAG:
 
     def _persist_index(self) -> None:
         """Persists the assembled FAISS index + schema map keyed by corpus fingerprint."""
+        faiss_path, schema_path = self._get_index_paths()
+        tmp_faiss, tmp_schema = faiss_path + ".tmp", schema_path + ".tmp"
         try:
             if self.index is None or not self.id_to_schema:
                 return
             os.makedirs(self._cache_dir, exist_ok=True)
-            faiss_path, schema_path = self._get_index_paths()
-            tmp_faiss, tmp_schema = faiss_path + ".tmp", schema_path + ".tmp"
             faiss.write_index(self.index, tmp_faiss)
             with open(tmp_schema, "wb") as f:
                 pickle.dump(self.id_to_schema, f, protocol=pickle.HIGHEST_PROTOCOL)
             os.replace(tmp_faiss, faiss_path)
             os.replace(tmp_schema, schema_path)
-            # Invalidate stale fingerprint variants of the persisted index
+
+            # Invalidate stale fingerprint variants of the persisted index safely
             safe_prefix = os.path.basename(faiss_path).split("__")[0]
-            for old in os.listdir(self._cache_dir):
+            try:
+                cache_files = os.listdir(self._cache_dir)
+            except OSError:
+                cache_files = []
+
+            for old in cache_files:
                 if old.startswith(safe_prefix + "__") and old.endswith(".faiss") and old != os.path.basename(faiss_path):
-                    try:
-                        os.remove(os.path.join(self._cache_dir, old))
-                        os.remove(os.path.join(self._cache_dir, old[:-6] + ".schema.pkl"))
-                    except Exception:
-                        pass
+                    old_faiss = os.path.join(self._cache_dir, old)
+                    old_schema = os.path.join(self._cache_dir, old[:-6] + ".schema.pkl")
+                    for target_file in (old_faiss, old_schema):
+                        try:
+                            if os.path.exists(target_file):
+                                os.remove(target_file)
+                        except OSError as err:
+                            logger.debug(f"[RAG] Stale cache removal skipped for {target_file}: {err}")
+
             logger.info(f"[RAG] Persisted FAISS index to {faiss_path}.")
         except Exception as e:
             logger.warning(f"[RAG] Failed to persist FAISS index: {e}")
+            for tmp in (tmp_faiss, tmp_schema):
+                try:
+                    if os.path.exists(tmp):
+                        os.remove(tmp)
+                except OSError:
+                    pass
 
     def add_dynamic_cell(self, cell_dict: Dict[str, Any]):
         """Appends a newly synthesized cell dynamically to the active FAISS index."""
@@ -566,7 +606,7 @@ class LocalRAG:
             self.index.add(raw_emb)
             new_idx = len(self.id_to_schema)
             self.id_to_schema[new_idx] = cell_dict
-            self.bm25_index.index_schemas(self.id_to_schema)
+            self.bm25_index.add_document(new_idx, cell_dict)
             logger.info(f"[RAG] Dynamically indexed synthesized cell: {cid}")
 
     def boost_cell(self, cell_id: str, boost: float = 1.5) -> None:
@@ -608,110 +648,39 @@ class LocalRAG:
     ) -> List[Dict[str, Any]]:
         """
         Combines dense vector similarity scores with BM25 lexical keyword matches
-        using Reciprocal Rank Fusion (RRF), task-affinity scoring, and domain alignment.
+        using Reciprocal Rank Fusion (RRF). Contains ZERO keyword-sniffing regexes,
+        ZERO manual score boosts, and ZERO domain hardcodes.
         """
-        prompt_tokens = set(tokenize_alphanumeric(prompt, min_len=1))
-        has_reg = bool(prompt_tokens & {"regression", "regressor", "continuous", "forecast"}) and not bool(prompt_tokens & {"classification", "classifier"})
-        has_cls = bool(prompt_tokens & {"classification", "classifier", "churn", "fraud", "sentiment", "spam", "detect", "categorize", "categor"}) and not bool(prompt_tokens & {"regression", "regressor"})
-        has_plot = bool(prompt_tokens & {"plot", "visualize", "chart", "figure", "histogram", "scatter"})
-        has_save = bool(prompt_tokens & {"save", "export", "write", "to_csv", "to_json"})
-
-        # Negation handling without regex: "without plotting", "do not save", etc.
-        if prompt_tokens & {"without", "no", "not", "dont"}:
-            words = prompt.lower().split()
-            for idx, w in enumerate(words):
-                clean_w = w.strip(".,!?:;")
-                if clean_w in ("without", "no", "not", "don't"):
-                    window = set(x.strip(".,!?:;") for x in words[idx+1:idx+4])
-                    if window & {"plot", "chart", "visual", "figure", "plots"}:
-                        has_plot = False
-                    if window & {"save", "export", "write"}:
-                        has_save = False
-
-        target_domain = ""
-        # Intent grounding from active model profile if available
-        try:
-            try:
-                from .inference import ModelManager
-            except (ImportError, ValueError):
-                from inference import ModelManager
-            mm = ModelManager.get_instance()
-            if mm.has_semantic_compiler():
-                intent_info = mm.compile_semantic_intent(prompt)
-                task = str(intent_info.get("task", "")).lower()
-                target_domain = str(intent_info.get("domain", "")).lower()
-                ops = [str(o).lower() for o in intent_info.get("operations", [])]
-                if "regres" in task:
-                    has_reg = True
-                    has_cls = False
-                elif "classif" in task:
-                    has_cls = True
-                    has_reg = False
-                if any("plot" in o or "visual" in o for o in ops):
-                    has_plot = True
-                if any("save" in o or "export" in o or "write" in o for o in ops):
-                    has_save = True
-        except Exception:
-            pass
-
-        # Lexical scores from BM25
         bm25_scores = self.bm25_index.score_query(prompt)
         sorted_bm25 = sorted(bm25_scores.items(), key=lambda kv: kv[1], reverse=True)
         bm25_rank_map = {idx: rank + 1 for rank, (idx, _) in enumerate(sorted_bm25)}
 
-        # Dense rank map
-        dense_rank_map = {idx: rank + 1 for rank, (dist, idx) in enumerate(dense_results) if idx != -1 and idx in self.id_to_schema}
+        dense_rank_map = {
+            idx: rank + 1
+            for rank, (dist, idx) in enumerate(dense_results)
+            if idx != -1 and idx in self.id_to_schema
+        }
 
-        # Candidate universe: union of top dense and top BM25
         candidates_set = set(dense_rank_map.keys()) | set(list(bm25_rank_map.keys())[:top_k * 2])
         if not candidates_set:
             return []
 
+        rrf_k = 60.0
         fused: List[Tuple[float, int, float]] = []
         for idx in candidates_set:
             if idx not in self.id_to_schema:
                 continue
             schema = self.id_to_schema[idx]
             cid = str(schema.get("cell_id", "") or "").lower()
-            role = str(schema.get("node_role", "") or "").lower()
-            stage = schema.get("stage")
 
             d_rank = dense_rank_map.get(idx, 100)
             b_rank = bm25_rank_map.get(idx, 100)
 
-            # Reciprocal Rank Fusion
-            rrf = (1.0 / (60.0 + d_rank)) + (1.2 / (60.0 + b_rank))
+            # Mathematical Reciprocal Rank Fusion without heuristic keyword boosts
+            rrf = (1.0 / (rrf_k + d_rank)) + (1.0 / (rrf_k + b_rank))
 
-            # Disentangled intent & task modifiers
-            multiplier = 1.0
-            if has_reg:
-                if "classifier" in cid or "classification" in cid:
-                    multiplier *= 0.3
-                elif "regressor" in cid or "regression" in cid:
-                    multiplier *= 1.4
-            elif has_cls:
-                if "regressor" in cid or "regression" in cid:
-                    multiplier *= 0.3
-                elif "classifier" in cid or "classification" in cid:
-                    multiplier *= 1.4
-
-            if has_plot and (stage == 3 or role == "sink") and any(w in cid for w in ("plot", "chart", "figure", "hist", "scatter")):
-                multiplier *= 1.3
-            if has_save and (stage == 3 or role == "sink") and any(w in cid for w in ("save", "write", "export", "csv", "json")):
-                multiplier *= 1.3
-
-            # Domain-clustering alignment
-            if target_domain and target_domain not in ("generic", ""):
-                cell_dom = str(schema.get("domain", "") or schema.get("domain_name", "")).lower()
-                if cell_dom == target_domain or cell_dom in target_domain or target_domain in cell_dom:
-                    multiplier *= 1.3
-                elif cell_dom not in ("generic", "builtins", "") and not any(k in cell_dom for k in ("generic", "builtins")):
-                    multiplier *= 0.7
-
-            # Dynamic cell boost and provisional unreviewed discount
-            multiplier *= self.cell_boosts.get(cid, 1.0)
-
-            final_score = rrf * multiplier
+            # Apply cell-level registration multiplier (e.g., provisional discount for unreviewed cells)
+            final_score = rrf * self.cell_boosts.get(cid, 1.0)
             dense_score = next((d for d, i in dense_results if i == idx), 0.0)
             fused.append((final_score, idx, dense_score))
 
@@ -721,7 +690,6 @@ class LocalRAG:
         for score, idx, dense_sc in fused[:top_k]:
             schema = self.id_to_schema[idx]
             cid = schema.get("cell_id", "")
-            # Scale score nicely for downstream consumers expecting cosine scale [0..1]
             norm_score = max(0.1, min(1.0, dense_sc if dense_sc > 0.05 else 0.4 + score * 15.0))
             results.append({
                 "cell_id": cid,
@@ -731,7 +699,10 @@ class LocalRAG:
                 "domain": schema.get("domain", "generic"),
                 "primary_input": schema.get("primary_input", "any"),
                 "primary_output": schema.get("primary_output", "any"),
-                "text": f"ID: {cid} | In: {schema.get('primary_input', 'any')} -> Out: {schema.get('primary_output', 'any')} | Domain: {schema.get('domain', 'generic')}"
+                "text": (
+                    f"ID: {cid} | In: {schema.get('primary_input', 'any')} -> "
+                    f"Out: {schema.get('primary_output', 'any')} | Domain: {schema.get('domain', 'generic')}"
+                )
             })
         return results
 
@@ -740,43 +711,86 @@ class LocalRAG:
         with self._lock:
             if self.index is None or self.index.ntotal == 0:
                 return []
-    
+
             raw_emb = np.array([ModelManager.get_instance().get_embedding(prompt, mode="query")], dtype=np.float32)
             norm = np.linalg.norm(raw_emb)
             if norm == 0:
                 return []
             raw_emb = raw_emb / norm
-    
+
             search_k = min(top_k * 2, self.index.ntotal)
             distances, indices = self.index.search(raw_emb, search_k)
             dense_pairs = list(zip(distances[0], indices[0]))
             return self._blend_dense_and_lexical(prompt, dense_pairs, top_k=top_k)
 
-    def get_relevant_context_batch(self, prompts: List[str], top_k: int = 25) -> List[List[Dict[str, Any]]]:
+    def get_relevant_context_batch(
+        self,
+        prompts: List[str],
+        top_k: int = 25,
+        max_fanout: int = 16
+    ) -> List[List[Dict[str, Any]]]:
         """
-        Batched retrieval: embeds ALL query spans in a single model call, then
-        performs one FAISS search per vector with BM25 hybrid fusion.
+        Batched retrieval: embeds unique query spans in a single model call with
+        capped fan-out, performing batch FAISS search and inverted-index BM25 hybrid fusion.
         """
         with self._lock:
             if self.index is None or self.index.ntotal == 0 or not prompts:
                 return [[] for _ in prompts]
 
-            embeddings = ModelManager.get_instance().get_embeddings(list(prompts), mode="query")
-            matrix = np.array(embeddings, dtype=np.float32)
-            if matrix.ndim != 2 or matrix.shape[0] != len(prompts):
+            # 1. Cap fan-out to prevent unconstrained query multiplication
+            effective_prompts = prompts
+            if max_fanout and len(prompts) > max_fanout:
+                logger.warning(
+                    f"[RAG] Batch query fan-out of {len(prompts)} exceeds cap ({max_fanout}); "
+                    f"capping retrieval to first {max_fanout} spans."
+                )
+                effective_prompts = prompts[:max_fanout]
+
+            # 2. Deduplicate unique prompts while preserving input mapping
+            unique_prompts: List[str] = []
+            seen: Dict[str, int] = {}
+            for p in effective_prompts:
+                p_clean = p.strip()
+                if p_clean and p_clean not in seen:
+                    seen[p_clean] = len(unique_prompts)
+                    unique_prompts.append(p_clean)
+
+            if not unique_prompts:
                 return [[] for _ in prompts]
+
+            # 3. Batch embed only unique queries
+            embeddings = ModelManager.get_instance().get_embeddings(unique_prompts, mode="query")
+            matrix = np.array(embeddings, dtype=np.float32)
+            if matrix.ndim != 2 or matrix.shape[0] != len(unique_prompts):
+                return [[] for _ in prompts]
+
             norms = np.linalg.norm(matrix, axis=1, keepdims=True)
             norms = np.where(norms == 0, 1.0, norms)
             matrix = matrix / norms
 
+            # 4. Single batched FAISS search
             search_k = min(top_k * 2, self.index.ntotal)
             distances, indices = self.index.search(matrix, search_k)
 
-            batch_results: List[List[Dict[str, Any]]] = []
-            for p, row_d, row_i in zip(prompts, distances, indices):
+            # 5. Hybrid blend per unique query
+            unique_results: List[List[Dict[str, Any]]] = []
+            for p, row_d, row_i in zip(unique_prompts, distances, indices):
                 dense_pairs = list(zip(row_d, row_i))
-                batch_results.append(self._blend_dense_and_lexical(p, dense_pairs, top_k=top_k))
-            return batch_results
+                unique_results.append(self._blend_dense_and_lexical(p, dense_pairs, top_k=top_k))
+
+            # 6. Map back to original prompt list
+            output: List[List[Dict[str, Any]]] = []
+            for idx, p in enumerate(prompts):
+                if idx < len(effective_prompts):
+                    p_clean = p.strip()
+                    if p_clean in seen:
+                        output.append(unique_results[seen[p_clean]])
+                    else:
+                        output.append([])
+                else:
+                    output.append([])
+
+            return output
 
     def format_context_for_prompt(self, context_items: List[Dict[str, Any]]) -> str:
         """Formats structured context list into a prompt-friendly string for LLMs."""

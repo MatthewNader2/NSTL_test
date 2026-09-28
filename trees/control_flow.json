@@ -6,7 +6,6 @@
     {
       "cell_id": "CF_FUNCTION_DEF",
       "stage": 2,
-      "role": "combinator",
       "doc": "Lambda Abstraction / Morphism Definition: Encapsulates a parameterized sub-pipeline into a named, reusable Callable function with explicit signature and scope.",
       "inputs": {
         "fn_name": {
@@ -46,12 +45,15 @@
         "method",
         "procedure"
       ],
-      "effects": []
+      "effects": [],
+      "code_template": "def {fn_name}({arg_names}):\n    return {body_pipeline}({arg_names})\n{function_handle} = {fn_name}",
+      "node_role": "combinator",
+      "primary_in": "body_pipeline",
+      "primary_out": "function_handle"
     },
     {
       "cell_id": "CF_LAMBDA",
       "stage": 2,
-      "role": "combinator",
       "doc": "Anonymous Curried Morphism: Constructs an inline anonymous lambda closure mapping bound arguments to an expression.",
       "inputs": {
         "arg_names": {
@@ -83,12 +85,15 @@
         "anonymous",
         "inline_function"
       ],
-      "effects": []
+      "effects": [],
+      "code_template": "{closure} = lambda {arg_names}: {expression}({arg_names})",
+      "node_role": "combinator",
+      "primary_in": "expression",
+      "primary_out": "closure"
     },
     {
       "cell_id": "CF_CLASS_DEF",
       "stage": 2,
-      "role": "combinator",
       "doc": "Object Coalgebra Encapsulation: Defines a class state machine bundling internal typestate fields and member method morphisms.",
       "inputs": {
         "class_name": {
@@ -145,12 +150,15 @@
         "type",
         "struct"
       ],
-      "effects": []
+      "effects": [],
+      "code_template": "class {class_name}:\n    def __init__(self, {init_params}):\n        {init_assignments}\n    def {method_name}(self, {method_params}):\n        return {method_body}(self, {method_params})\n{class_handle} = {class_name}",
+      "node_role": "combinator",
+      "primary_in": "class_name",
+      "primary_out": "class_handle"
     },
     {
       "cell_id": "CF_RECURSIVE_FUNC",
       "stage": 2,
-      "role": "combinator",
       "doc": "Structural Recursion (Fixpoint Operator): Defines a self-referential recursive morphism with base predicate, base action, and inductive recursive step.",
       "inputs": {
         "fn_name": {
@@ -201,12 +209,15 @@
         "self_referential",
         "fixpoint"
       ],
-      "effects": []
+      "effects": [],
+      "code_template": "def {fn_name}(_x):\n    if {base_predicate}(_x):\n        return {base_action}(_x)\n    return {step_action}(_x, {fn_name})\n{result} = {fn_name}({data})",
+      "node_role": "combinator",
+      "primary_in": "data",
+      "primary_out": "result"
     },
     {
       "cell_id": "CF_DIVIDE_AND_CONQUER",
       "stage": 2,
-      "role": "combinator",
       "doc": "Branching Divide-and-Conquer Recursion: Recursively partitions a problem into subproblems, evaluates them recursively, and combines subproblem outputs (e.g. MergeSort, QuadTree, Tree Traversal).",
       "inputs": {
         "fn_name": {
@@ -263,12 +274,15 @@
         "tree",
         "split_combine"
       ],
-      "effects": []
+      "effects": [],
+      "code_template": "def {fn_name}(_x):\n    if {base_predicate}(_x):\n        return {base_action}(_x)\n    _subs = {split_fn}(_x)\n    _sub_results = [{fn_name}(_sub) for _sub in _subs]\n    return {combine_fn}(_x, _sub_results)\n{result} = {fn_name}({data})",
+      "node_role": "combinator",
+      "primary_in": "data",
+      "primary_out": "result"
     },
     {
       "cell_id": "CF_COND_CHAIN",
       "stage": 2,
-      "role": "combinator",
       "doc": "Arbitrary N-Ary Conditional Dispatcher (if / elif ... / elif / else): Evaluates an ordered list of (predicate, action) pairs sequentially until one matches, falling back to default.",
       "inputs": {
         "branch_table": {
@@ -307,12 +321,15 @@
         "dispatch",
         "cases"
       ],
-      "effects": []
+      "effects": [],
+      "code_template": "_matched = False\nfor _pred, _act in {branch_table}:\n    if _pred({data}):\n        {result} = _act({data})\n        _matched = True\n        break\nif not _matched:\n    {result} = {default_action}({data})",
+      "node_role": "combinator",
+      "primary_in": "data",
+      "primary_out": "result"
     },
     {
       "cell_id": "CF_NESTED_FOR_EACH",
       "stage": 2,
-      "role": "combinator",
       "doc": "Hierarchical 2D Nested Iteration: Evaluates a loop inside a loop across outer and inner collections, threading an accumulated state forward across all coordinate points.",
       "inputs": {
         "outer_collection": {
@@ -357,12 +374,15 @@
         "grid",
         "outer_inner"
       ],
-      "effects": []
+      "effects": [],
+      "code_template": "{final_state} = {init_state}\nfor _outer in {outer_collection}:\n    for _inner in {inner_generator}(_outer):\n        {final_state} = {body_fn}(_outer, _inner, {final_state})",
+      "node_role": "combinator",
+      "primary_in": "outer_collection",
+      "primary_out": "final_state"
     },
     {
       "cell_id": "CF_TOP_K",
       "stage": 2,
-      "role": "combinator",
       "doc": "Ranked slice morphism: Sorts a collection in descending order via an extracted scalar key projection function and extracts the top K elements (e.g. largest K contours).",
       "inputs": {
         "collection": {
@@ -407,12 +427,15 @@
         "sort",
         "head"
       ],
-      "effects": []
+      "effects": [],
+      "code_template": "{output_collection} = sorted({collection}, key={key_fn}, reverse=True)[:{k}]",
+      "node_role": "combinator",
+      "primary_in": "collection",
+      "primary_out": "output_collection"
     },
     {
       "cell_id": "CF_BOTTOM_K",
       "stage": 2,
-      "role": "combinator",
       "doc": "Ranked bottom slice morphism: Sorts a collection in ascending order via an extracted scalar key projection function and extracts the smallest K elements.",
       "inputs": {
         "collection": {
@@ -454,12 +477,15 @@
         "rank",
         "tail"
       ],
-      "effects": []
+      "effects": [],
+      "code_template": "{output_collection} = sorted({collection}, key={key_fn}, reverse=False)[:{k}]",
+      "node_role": "combinator",
+      "primary_in": "collection",
+      "primary_out": "output_collection"
     },
     {
       "cell_id": "CF_MAP",
       "stage": 2,
-      "role": "combinator",
       "doc": "Element-wise Functor morphism: Applies a unary transformation to every element of a collection [T] -> [U].",
       "inputs": {
         "collection": {
@@ -494,12 +520,15 @@
         "elementwise",
         "convert"
       ],
-      "effects": []
+      "effects": [],
+      "code_template": "{output_collection} = [{transform}(item) for item in {collection}]",
+      "node_role": "combinator",
+      "primary_in": "collection",
+      "primary_out": "output_collection"
     },
     {
       "cell_id": "CF_FILTER",
       "stage": 2,
-      "role": "combinator",
       "doc": "Predicate Selection Sub-collection morphism: Filters elements of a collection matching a boolean predicate function.",
       "inputs": {
         "collection": {
@@ -534,12 +563,15 @@
         "predicate",
         "keep"
       ],
-      "effects": []
+      "effects": [],
+      "code_template": "{output_collection} = [item for item in {collection} if {predicate}(item)]",
+      "node_role": "combinator",
+      "primary_in": "collection",
+      "primary_out": "output_collection"
     },
     {
       "cell_id": "CF_FLAT_MAP",
       "stage": 2,
-      "role": "combinator",
       "doc": "Monadic Bind morphism: Maps each element to a collection and flattens the resulting collections into a single one-dimensional list.",
       "inputs": {
         "collection": {
@@ -572,12 +604,15 @@
         "bind",
         "nested"
       ],
-      "effects": []
+      "effects": [],
+      "code_template": "{output_collection} = [elem for sublist in ({transform}(item) for item in {collection}) for elem in sublist]",
+      "node_role": "combinator",
+      "primary_in": "collection",
+      "primary_out": "output_collection"
     },
     {
       "cell_id": "CF_FOLD_REDUCE",
       "stage": 2,
-      "role": "combinator",
       "doc": "Catamorphism / Accumulator morphism: Iteratively applies a binary associative operator over a collection, folding it into a single accumulated State value.",
       "inputs": {
         "collection": {
@@ -620,12 +655,15 @@
         "sum",
         "combine"
       ],
-      "effects": []
+      "effects": [],
+      "code_template": "import functools\n{accumulated_state} = functools.reduce({accumulator}, {collection}, {initial})",
+      "node_role": "combinator",
+      "primary_in": "collection",
+      "primary_out": "accumulated_state"
     },
     {
       "cell_id": "CF_ZIP_WITH",
       "stage": 2,
-      "role": "combinator",
       "doc": "Applicative Zipper morphism: Pairs elements from two lists, applying a binary zipper function to produce a unified list.",
       "inputs": {
         "collection_a": {
@@ -664,12 +702,15 @@
         "combine",
         "pairwise"
       ],
-      "effects": []
+      "effects": [],
+      "code_template": "{output_collection} = [{zipper}(a, b) for a, b in zip({collection_a}, {collection_b})]",
+      "node_role": "combinator",
+      "primary_in": "collection_a",
+      "primary_out": "output_collection"
     },
     {
       "cell_id": "CF_FOR_EACH_STATE",
       "stage": 2,
-      "role": "combinator",
       "doc": "Iterative State-Threading Loop: Sequentially iterates through a collection, feeding each element and threading the accumulated State forward.",
       "inputs": {
         "collection": {
@@ -709,12 +750,15 @@
         "loop",
         "accumulate"
       ],
-      "effects": []
+      "effects": [],
+      "code_template": "{final_state} = {init_state}\nfor _item in {collection}:\n    {final_state} = {body_fn}(_item, {final_state})",
+      "node_role": "combinator",
+      "primary_in": "collection",
+      "primary_out": "final_state"
     },
     {
       "cell_id": "CF_FOR_RANGE_STATE",
       "stage": 2,
-      "role": "combinator",
       "doc": "Bounded Index Range Loop: Executes a counted loop over [start, stop) with step, threading state through each iteration.",
       "inputs": {
         "start": {
@@ -766,12 +810,15 @@
         "iteration",
         "loop"
       ],
-      "effects": []
+      "effects": [],
+      "code_template": "{final_state} = {init_state}\nfor _idx in range({start}, {stop}, {step}):\n    {final_state} = {body_fn}(_idx, {final_state})",
+      "node_role": "combinator",
+      "primary_in": "init_state",
+      "primary_out": "final_state"
     },
     {
       "cell_id": "CF_FOR_ENUMERATE_MAP",
       "stage": 2,
-      "role": "combinator",
       "doc": "Indexed Enumeration Map: Transforms each element alongside its integer index (idx, item) into an updated collection.",
       "inputs": {
         "collection": {
@@ -809,12 +856,15 @@
         "index",
         "indexed_map"
       ],
-      "effects": []
+      "effects": [],
+      "code_template": "{output_collection} = [{transform}(idx, item) for idx, item in enumerate({collection}, start={start_index})]",
+      "node_role": "combinator",
+      "primary_in": "collection",
+      "primary_out": "output_collection"
     },
     {
       "cell_id": "CF_WHILE_LOOP",
       "stage": 2,
-      "role": "combinator",
       "doc": "Inductive Fixpoint Monad: Continuously computes State -> State as long as cond_fn(State) remains true.",
       "inputs": {
         "init_state": {
@@ -855,12 +905,15 @@
         "converge",
         "iterate"
       ],
-      "effects": []
+      "effects": [],
+      "code_template": "{final_state} = {init_state}\nwhile {cond_fn}({final_state}):\n    {final_state} = {body_fn}({final_state})",
+      "node_role": "combinator",
+      "primary_in": "init_state",
+      "primary_out": "final_state"
     },
     {
       "cell_id": "CF_WHILE_BOUNDED",
       "stage": 2,
-      "role": "combinator",
       "doc": "Safe Bounded Fixpoint Loop: Evaluates State -> State while cond_fn(State) is true, with a strict max_iters bound to guarantee termination.",
       "inputs": {
         "init_state": {
@@ -904,12 +957,15 @@
         "safe_loop",
         "max_iterations"
       ],
-      "effects": []
+      "effects": [],
+      "code_template": "{final_state} = {init_state}\n_iter_count = 0\nwhile {cond_fn}({final_state}) and _iter_count < {max_iters}:\n    {final_state} = {body_fn}({final_state})\n    _iter_count += 1",
+      "node_role": "combinator",
+      "primary_in": "init_state",
+      "primary_out": "final_state"
     },
     {
       "cell_id": "CF_REPEAT_UNTIL",
       "stage": 2,
-      "role": "combinator",
       "doc": "Post-Condition Inductive Loop (do-while): Executes body_fn at least once, repeating until until_cond_fn(State) is true.",
       "inputs": {
         "init_state": {
@@ -947,12 +1003,15 @@
         "until",
         "do_while"
       ],
-      "effects": []
+      "effects": [],
+      "code_template": "{final_state} = {init_state}\nwhile True:\n    {final_state} = {body_fn}({final_state})\n    if {until_cond_fn}({final_state}):\n        break",
+      "node_role": "combinator",
+      "primary_in": "init_state",
+      "primary_out": "final_state"
     },
     {
       "cell_id": "CF_BRANCH_IF_ELSE",
       "stage": 2,
-      "role": "combinator",
       "doc": "Coproduct / Sum Eliminator: Dispatches computation to either on_true or on_false based on a boolean condition flag.",
       "inputs": {
         "condition": {
@@ -999,12 +1058,15 @@
         "switch",
         "choose"
       ],
-      "effects": []
+      "effects": [],
+      "code_template": "{result} = ({on_true})({data}) if {condition} else ({on_false})({data})",
+      "node_role": "combinator",
+      "primary_in": "data",
+      "primary_out": "result"
     },
     {
       "cell_id": "CF_BRANCH_COND_ELIF",
       "stage": 2,
-      "role": "combinator",
       "doc": "Chained Conditional Dispatcher (if / elif / else): Evaluates primary and secondary boolean conditions sequentially to dispatch the corresponding operator.",
       "inputs": {
         "cond_1": {
@@ -1061,12 +1123,15 @@
         "conditional",
         "cases"
       ],
-      "effects": []
+      "effects": [],
+      "code_template": "if {cond_1}:\n    {result} = ({branch_1})({data})\nelif {cond_2}:\n    {result} = ({branch_2})({data})\nelse:\n    {result} = ({default_branch})({data})",
+      "node_role": "combinator",
+      "primary_in": "data",
+      "primary_out": "result"
     },
     {
       "cell_id": "CF_MATCH_CASE",
       "stage": 2,
-      "role": "combinator",
       "doc": "Structural Pattern Matching / Switch: Dispatches against discrete discriminator values with a wildcard default fallback.",
       "inputs": {
         "discriminator": {
@@ -1129,12 +1194,15 @@
         "pattern_match",
         "switch"
       ],
-      "effects": []
+      "effects": [],
+      "code_template": "match {discriminator}:\n    case _val if _val == {case_a_val}:\n        {result} = {action_a}({data})\n    case _val if _val == {case_b_val}:\n        {result} = {action_b}({data})\n    case _:\n        {result} = {default_action}({data})",
+      "node_role": "combinator",
+      "primary_in": "data",
+      "primary_out": "result"
     },
     {
       "cell_id": "CF_TRY_EXCEPT",
       "stage": 2,
-      "role": "combinator",
       "doc": "Error Trap / Either Monad morphism: Safely evaluates an action, catching specific runtime exceptions and executing a fallback handler.",
       "inputs": {
         "action": {
@@ -1183,12 +1251,15 @@
         "exception",
         "handle"
       ],
-      "effects": []
+      "effects": [],
+      "code_template": "try:\n    {result} = {action}({data})\nexcept {exception_type} as _err:\n    {result} = {fallback}(_err, {data})",
+      "node_role": "combinator",
+      "primary_in": "data",
+      "primary_out": "result"
     },
     {
       "cell_id": "CF_TRY_EXCEPT_FINALLY",
       "stage": 2,
-      "role": "combinator",
       "doc": "Guaranteed Cleanup Trap: Wraps action execution with exception recovery and a guaranteed finalizer hook executed under all conditions.",
       "inputs": {
         "action": {
@@ -1240,12 +1311,15 @@
         "guaranteed",
         "catch"
       ],
-      "effects": []
+      "effects": [],
+      "code_template": "try:\n    {result} = {action}({data})\nexcept {exception_type} as _err:\n    {result} = {fallback}(_err, {data})\nfinally:\n    {finalizer}({data})",
+      "node_role": "combinator",
+      "primary_in": "data",
+      "primary_out": "result"
     },
     {
       "cell_id": "CF_TRY_EXCEPT_ELSE",
       "stage": 2,
-      "role": "combinator",
       "doc": "Branching Error Guard: Executes success_continuation solely if action completes with no exceptions; otherwise triggers fallback.",
       "inputs": {
         "action": {
@@ -1296,12 +1370,15 @@
         "else",
         "success"
       ],
-      "effects": []
+      "effects": [],
+      "code_template": "try:\n    _res = {action}({data})\nexcept {exception_type} as _err:\n    {result} = {fallback}(_err, {data})\nelse:\n    {result} = {success_continuation}(_res)",
+      "node_role": "combinator",
+      "primary_in": "data",
+      "primary_out": "result"
     },
     {
       "cell_id": "CF_RETRY_BACKOFF",
       "stage": 2,
-      "role": "combinator",
       "doc": "Resilience Retry Loop: Repeatedly attempts an action up to max_retries with exponential delay, falling back if all attempts fail.",
       "inputs": {
         "action": {
@@ -1356,12 +1433,15 @@
         "attempts",
         "exponential"
       ],
-      "effects": []
+      "effects": [],
+      "code_template": "import time\nfor _attempt in range({max_retries}):\n    try:\n        {result} = {action}({data})\n        break\n    except Exception as _err:\n        if _attempt == {max_retries} - 1:\n            {result} = {fallback}(_err, {data})\n        else:\n            time.sleep({backoff_sec} * (2 ** _attempt))",
+      "node_role": "combinator",
+      "primary_in": "data",
+      "primary_out": "result"
     },
     {
       "cell_id": "CF_FIND_FIRST",
       "stage": 2,
-      "role": "combinator",
       "doc": "Short-Circuit Search: Traverses a collection and returns the first element satisfying a predicate, or default_val if no match is found.",
       "inputs": {
         "collection": {
@@ -1400,12 +1480,15 @@
         "search",
         "match"
       ],
-      "effects": []
+      "effects": [],
+      "code_template": "{result} = next((item for item in {collection} if {predicate}(item)), {default_val})",
+      "node_role": "combinator",
+      "primary_in": "collection",
+      "primary_out": "result"
     },
     {
       "cell_id": "CF_ALL_SATISFY",
       "stage": 2,
-      "role": "combinator",
       "doc": "Universal Quantifier: Checks whether all elements of a collection satisfy a boolean predicate.",
       "inputs": {
         "collection": {
@@ -1437,12 +1520,15 @@
         "every",
         "universal"
       ],
-      "effects": []
+      "effects": [],
+      "code_template": "{all_match} = all({predicate}(item) for item in {collection})",
+      "node_role": "combinator",
+      "primary_in": "collection",
+      "primary_out": "all_match"
     },
     {
       "cell_id": "CF_ANY_SATISFY",
       "stage": 2,
-      "role": "combinator",
       "doc": "Existential Quantifier: Checks whether at least one element of a collection satisfies a boolean predicate.",
       "inputs": {
         "collection": {
@@ -1474,12 +1560,15 @@
         "some",
         "exists"
       ],
-      "effects": []
+      "effects": [],
+      "code_template": "{any_match} = any({predicate}(item) for item in {collection})",
+      "node_role": "combinator",
+      "primary_in": "collection",
+      "primary_out": "any_match"
     },
     {
       "cell_id": "CF_PARTITION",
       "stage": 2,
-      "role": "combinator",
       "doc": "Predicate Partition Morphism: Divides a collection into two complementary sub-collections: (satisfied, unsatisfied).",
       "inputs": {
         "collection": {
@@ -1514,12 +1603,15 @@
         "split",
         "divide"
       ],
-      "effects": []
+      "effects": [],
+      "code_template": "{true_collection}, {false_collection} = ([x for x in {collection} if {predicate}(x)], [x for x in {collection} if not {predicate}(x)])",
+      "node_role": "combinator",
+      "primary_in": "collection",
+      "primary_out": "true_collection"
     },
     {
       "cell_id": "CF_GUARD",
       "stage": 2,
-      "role": "combinator",
       "doc": "Precondition Guard Clause: Asserts a boolean condition holds; if false, immediately yields fallback_val without evaluating action.",
       "inputs": {
         "condition": {
@@ -1564,12 +1656,15 @@
         "assert",
         "validate"
       ],
-      "effects": []
+      "effects": [],
+      "code_template": "{result} = {action}({data}) if {condition} else {fallback_val}",
+      "node_role": "combinator",
+      "primary_in": "data",
+      "primary_out": "result"
     },
     {
       "cell_id": "CF_WITH_CONTEXT",
       "stage": 2,
-      "role": "combinator",
       "doc": "Bracket / RAII Context Manager: Acquires a managed resource, securely runs body_fn within the active context, and guarantees deterministic release.",
       "inputs": {
         "context_manager": {
@@ -1603,7 +1698,11 @@
         "bracket",
         "open"
       ],
-      "effects": []
+      "effects": [],
+      "code_template": "with {context_manager} as _ctx:\n    {result} = {body_fn}(_ctx)",
+      "node_role": "combinator",
+      "primary_in": "context_manager",
+      "primary_out": "result"
     }
   ],
   "typestates": {

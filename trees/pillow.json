@@ -2475,7 +2475,7 @@
     },
     {
       "cell_id": "PILLOW_FROM_NDARRAY_BGR",
-      "stage": 1,
+      "stage": 2,
       "topology_type": "unary",
       "node_type": "function",
       "node_role": "bridge",
@@ -2594,7 +2594,7 @@
     },
     {
       "cell_id": "PILLOW_FROM_NDARRAY_GRAY",
-      "stage": 1,
+      "stage": 2,
       "topology_type": "unary",
       "node_type": "function",
       "node_role": "bridge",
@@ -7388,7 +7388,7 @@
     },
     {
       "cell_id": "PILLOW_IMAGEOPS_EXIF_TRANSPOSE",
-      "stage": 1,
+      "stage": 2,
       "topology_type": "unary",
       "node_type": "function",
       "node_role": "transformer",
@@ -8100,7 +8100,7 @@
     },
     {
       "cell_id": "PILLOW_NDARRAY_GENERIC_TO_PILLOW",
-      "stage": 1,
+      "stage": 2,
       "topology_type": "unary",
       "node_type": "function",
       "node_role": "bridge",
@@ -10665,5 +10665,11 @@
       "newest",
       "latest"
     ]
+  },
+  "asset_placeholders": {
+    "image": "input_image.png"
+  },
+  "output_placeholders": {
+    "image": "output_image.png"
   }
 }

@@ -2,10 +2,20 @@
   "domain": "sklearn",
   "version": "1.1.0",
   "estimator_verbs": [
-    "fit", "predict", "transform", "score", "partial_fit", "fit_transform"
+    "fit",
+    "predict",
+    "transform",
+    "score",
+    "partial_fit",
+    "fit_transform"
   ],
   "data_bearing_roles": [
-    "feature_input", "target_input", "data_input", "model_input", "source_data", "model_sink"
+    "feature_input",
+    "target_input",
+    "data_input",
+    "model_input",
+    "source_data",
+    "model_sink"
   ],
   "typestates": {
     "domain": "sklearn",
@@ -1391,7 +1401,7 @@
       "is_public": true,
       "docstring": "Split arrays or matrices into random train and test subsets.",
       "dependencies": [
-        "sklearn.model_selection"
+        "from sklearn.model_selection import train_test_split"
       ],
       "semantic_tags": [
         "sampling",
@@ -1795,7 +1805,7 @@
       "is_public": true,
       "docstring": "Load and return the classic Iris multi-class toy dataset.",
       "dependencies": [
-        "sklearn.datasets"
+        "from sklearn.datasets import load_iris"
       ],
       "semantic_tags": [
         "ingestion",
@@ -1893,7 +1903,7 @@
       "is_public": true,
       "docstring": "Generate a random n-class classification problem.",
       "dependencies": [
-        "sklearn.datasets"
+        "from sklearn.datasets import make_classification"
       ],
       "semantic_tags": [
         "synthetic",
@@ -2052,7 +2062,7 @@
       "is_public": true,
       "docstring": "Generate a random regression problem.",
       "dependencies": [
-        "sklearn.datasets"
+        "from sklearn.datasets import make_regression"
       ],
       "semantic_tags": [
         "synthetic",
@@ -2211,7 +2221,7 @@
       "is_public": true,
       "docstring": "Fit StandardScaler to data, then transform it by removing the mean and scaling to unit variance.",
       "dependencies": [
-        "sklearn.preprocessing"
+        "from sklearn.preprocessing import StandardScaler"
       ],
       "semantic_tags": [
         "standardization",
@@ -2457,7 +2467,7 @@
       "is_public": true,
       "docstring": "Transform features by scaling each feature to a given range, typically [0, 1].",
       "dependencies": [
-        "sklearn.preprocessing"
+        "from sklearn.preprocessing import MinMaxScaler"
       ],
       "semantic_tags": [
         "normalization",
@@ -2585,7 +2595,7 @@
       "is_public": true,
       "docstring": "Scale features using statistics that are robust to outliers using the interquartile range (IQR).",
       "dependencies": [
-        "sklearn.preprocessing"
+        "from sklearn.preprocessing import RobustScaler"
       ],
       "semantic_tags": [
         "robust",
@@ -2713,7 +2723,7 @@
       "is_public": true,
       "docstring": "Univariate imputer for completing missing values with simple statistics.",
       "dependencies": [
-        "sklearn.impute"
+        "from sklearn.impute import SimpleImputer"
       ],
       "semantic_tags": [
         "imputation",
@@ -2864,7 +2874,7 @@
       "is_public": true,
       "docstring": "Encode categorical features as a one-hot numeric array.",
       "dependencies": [
-        "sklearn.preprocessing"
+        "from sklearn.preprocessing import OneHotEncoder"
       ],
       "semantic_tags": [
         "encoding",
@@ -2980,7 +2990,7 @@
       "is_public": true,
       "docstring": "Generate polynomial and interaction feature matrices.",
       "dependencies": [
-        "sklearn.preprocessing"
+        "from sklearn.preprocessing import PolynomialFeatures"
       ],
       "semantic_tags": [
         "feature_engineering",
@@ -3116,7 +3126,7 @@
       "is_public": true,
       "docstring": "Linear dimensionality reduction using Singular Value Decomposition of the data to project it to a lower dimensional space.",
       "dependencies": [
-        "sklearn.decomposition"
+        "from sklearn.decomposition import PCA"
       ],
       "semantic_tags": [
         "pca",
@@ -3272,7 +3282,7 @@
       "is_public": true,
       "docstring": "Dimensionality reduction using truncated SVD (aka LSA), capable of processing sparse matrices without centering.",
       "dependencies": [
-        "sklearn.decomposition"
+        "from sklearn.decomposition import TruncatedSVD"
       ],
       "semantic_tags": [
         "svd",
@@ -3409,7 +3419,7 @@
       "is_public": true,
       "docstring": "Select features according to the k highest univariate statistical scores.",
       "dependencies": [
-        "sklearn.feature_selection"
+        "from sklearn.feature_selection import SelectKBest"
       ],
       "semantic_tags": [
         "selection",
@@ -3580,7 +3590,7 @@
       "is_public": true,
       "docstring": "Fit a logistic regression classification model according to the given training data.",
       "dependencies": [
-        "sklearn.linear_model"
+        "from sklearn.linear_model import LogisticRegression"
       ],
       "semantic_tags": [
         "linear_model",
@@ -3799,7 +3809,7 @@
       "is_public": true,
       "docstring": "Predict class labels for samples in X using the trained logistic regression model.",
       "dependencies": [
-        "sklearn.linear_model"
+        "from sklearn.linear_model import LogisticRegression"
       ],
       "semantic_tags": [
         "inference",
@@ -3968,7 +3978,7 @@
       "is_public": true,
       "docstring": "Probability estimates for all classes.",
       "dependencies": [
-        "sklearn.linear_model"
+        "from sklearn.linear_model import LogisticRegression"
       ],
       "semantic_tags": [
         "inference",
@@ -4101,7 +4111,7 @@
       "is_public": true,
       "docstring": "Build a forest of trees from the training set (X, y).",
       "dependencies": [
-        "sklearn.ensemble"
+        "from sklearn.ensemble import RandomForestClassifier"
       ],
       "semantic_tags": [
         "ensemble",
@@ -4328,7 +4338,7 @@
       "is_public": true,
       "docstring": "Fit the C-Support Vector Classification model according to the given training data.",
       "dependencies": [
-        "sklearn.svm"
+        "from sklearn.svm import SVC"
       ],
       "semantic_tags": [
         "svm",
@@ -4524,7 +4534,7 @@
       "is_public": true,
       "docstring": "Fit ordinary least squares linear regression model.",
       "dependencies": [
-        "sklearn.linear_model"
+        "from sklearn.linear_model import LinearRegression"
       ],
       "semantic_tags": [
         "linear_model",
@@ -4668,7 +4678,7 @@
       "is_public": true,
       "docstring": "Predict using the linear model.",
       "dependencies": [
-        "sklearn.linear_model"
+        "from sklearn.linear_model import LinearRegression"
       ],
       "semantic_tags": [
         "inference",
@@ -4816,7 +4826,7 @@
       "is_public": true,
       "docstring": "Linear least squares with l2 regularization.",
       "dependencies": [
-        "sklearn.linear_model"
+        "from sklearn.linear_model import Ridge"
       ],
       "semantic_tags": [
         "linear_model",
@@ -4989,7 +4999,7 @@
       "is_public": true,
       "docstring": "Linear Model trained with L1 prior as regularizer (aka the Lasso).",
       "dependencies": [
-        "sklearn.linear_model"
+        "from sklearn.linear_model import Lasso"
       ],
       "semantic_tags": [
         "linear_model",
@@ -5150,7 +5160,7 @@
       "is_public": true,
       "docstring": "A random forest regressor fitted to empirical continuous data.",
       "dependencies": [
-        "sklearn.ensemble"
+        "from sklearn.ensemble import RandomForestRegressor"
       ],
       "semantic_tags": [
         "ensemble",
@@ -5329,7 +5339,7 @@
       "is_public": true,
       "docstring": "Compute k-means clustering.",
       "dependencies": [
-        "sklearn.cluster"
+        "from sklearn.cluster import KMeans"
       ],
       "semantic_tags": [
         "clustering",
@@ -5498,7 +5508,7 @@
       "is_public": true,
       "docstring": "Compute cluster centers and predict cluster index for each sample.",
       "dependencies": [
-        "sklearn.cluster"
+        "from sklearn.cluster import KMeans"
       ],
       "semantic_tags": [
         "clustering",
@@ -5651,7 +5661,7 @@
       "is_public": true,
       "docstring": "Perform DBSCAN clustering from vector array and return cluster labels.",
       "dependencies": [
-        "sklearn.cluster"
+        "from sklearn.cluster import DBSCAN"
       ],
       "semantic_tags": [
         "clustering",
@@ -5812,7 +5822,7 @@
       "is_public": true,
       "docstring": "Fit the composite transformation pipeline and the final estimator.",
       "dependencies": [
-        "sklearn.pipeline"
+        "from sklearn.pipeline import Pipeline"
       ],
       "semantic_tags": [
         "pipeline",
@@ -5978,7 +5988,7 @@
       "is_public": true,
       "docstring": "Exhaustive search over specified parameter values for an estimator.",
       "dependencies": [
-        "sklearn.model_selection"
+        "from sklearn.model_selection import GridSearchCV"
       ],
       "semantic_tags": [
         "hyperparameter_tuning",
@@ -6183,7 +6193,7 @@
       "is_public": true,
       "docstring": "Evaluate a score by cross-validation.",
       "dependencies": [
-        "sklearn.model_selection"
+        "from sklearn.model_selection import cross_val_score"
       ],
       "semantic_tags": [
         "validation",
@@ -6367,7 +6377,7 @@
       "is_public": true,
       "docstring": "Accuracy classification score.",
       "dependencies": [
-        "sklearn.metrics"
+        "from sklearn.metrics import accuracy_score"
       ],
       "semantic_tags": [
         "metrics",
@@ -6525,7 +6535,7 @@
       "is_public": true,
       "docstring": "Compute the F1 score, also known as balanced F-score or F-measure.",
       "dependencies": [
-        "sklearn.metrics"
+        "from sklearn.metrics import f1_score"
       ],
       "semantic_tags": [
         "metrics",
@@ -6694,7 +6704,7 @@
       "is_public": true,
       "docstring": "Compute confusion matrix to evaluate the accuracy of a classification.",
       "dependencies": [
-        "sklearn.metrics"
+        "from sklearn.metrics import confusion_matrix"
       ],
       "semantic_tags": [
         "metrics",
@@ -6838,7 +6848,7 @@
       "is_public": true,
       "docstring": "Compute Area Under the Receiver Operating Characteristic Curve (ROC AUC) from prediction scores.",
       "dependencies": [
-        "sklearn.metrics"
+        "from sklearn.metrics import roc_auc_score"
       ],
       "semantic_tags": [
         "metrics",
@@ -6972,7 +6982,7 @@
       "is_public": true,
       "docstring": "Mean squared error regression loss.",
       "dependencies": [
-        "sklearn.metrics"
+        "from sklearn.metrics import mean_squared_error"
       ],
       "semantic_tags": [
         "metrics",
@@ -7118,7 +7128,7 @@
       "is_public": true,
       "docstring": "R^2 (coefficient of determination) regression score function.",
       "dependencies": [
-        "sklearn.metrics"
+        "from sklearn.metrics import r2_score"
       ],
       "semantic_tags": [
         "metrics",
@@ -7248,7 +7258,7 @@
       "is_public": true,
       "docstring": "Compute the mean Silhouette Coefficient of all samples.",
       "dependencies": [
-        "sklearn.metrics"
+        "from sklearn.metrics import silhouette_score"
       ],
       "semantic_tags": [
         "metrics",
@@ -7381,7 +7391,7 @@
       "is_public": true,
       "docstring": "Persist an arbitrary scikit-learn estimator or pipeline into a file.",
       "dependencies": [
-        "joblib"
+        "import joblib"
       ],
       "semantic_tags": [
         "persistence",
@@ -7492,7 +7502,7 @@
       "is_public": true,
       "docstring": "Reconstruct a serialized scikit-learn estimator or pipeline from disk.",
       "dependencies": [
-        "joblib"
+        "import joblib"
       ],
       "semantic_tags": [
         "deserialization",
@@ -7608,7 +7618,7 @@
       "is_public": true,
       "docstring": "Load and return the wine multi-class classification dataset.",
       "dependencies": [
-        "sklearn.datasets"
+        "from sklearn.datasets import load_wine"
       ],
       "semantic_tags": [
         "ingestion",
@@ -7722,7 +7732,7 @@
       "is_public": true,
       "docstring": "Load and return the Wisconsin breast cancer diagnostic binary classification dataset.",
       "dependencies": [
-        "sklearn.datasets"
+        "from sklearn.datasets import load_breast_cancer"
       ],
       "semantic_tags": [
         "ingestion",
@@ -7828,7 +7838,7 @@
       "is_public": true,
       "docstring": "Load and return the digits 8x8 pixel classification dataset.",
       "dependencies": [
-        "sklearn.datasets"
+        "from sklearn.datasets import load_digits"
       ],
       "semantic_tags": [
         "ingestion",
@@ -7934,7 +7944,7 @@
       "is_public": true,
       "docstring": "Generate isotropic Gaussian blobs for clustering benchmarks.",
       "dependencies": [
-        "sklearn.datasets"
+        "from sklearn.datasets import make_blobs"
       ],
       "semantic_tags": [
         "synthetic",
@@ -8101,7 +8111,7 @@
       "is_public": true,
       "docstring": "K-Folds cross-validator generating indices to split data into train/test sets.",
       "dependencies": [
-        "sklearn.model_selection"
+        "from sklearn.model_selection import KFold"
       ],
       "semantic_tags": [
         "cross_validation",
@@ -8261,7 +8271,7 @@
       "is_public": true,
       "docstring": "Stratified K-Folds cross-validator providing train/test indices with preserved class label ratios.",
       "dependencies": [
-        "sklearn.model_selection"
+        "from sklearn.model_selection import StratifiedKFold"
       ],
       "semantic_tags": [
         "cross_validation",
@@ -8419,7 +8429,7 @@
       "is_public": true,
       "docstring": "Perform standardization by centering and scaling using already fitted scaler parameters.",
       "dependencies": [
-        "sklearn.preprocessing"
+        "from sklearn.preprocessing import StandardScaler"
       ],
       "semantic_tags": [
         "standardization",
@@ -8570,7 +8580,7 @@
       "is_public": true,
       "docstring": "Scale each feature by its maximum absolute value, ideal for sparse data.",
       "dependencies": [
-        "sklearn.preprocessing"
+        "from sklearn.preprocessing import MaxAbsScaler"
       ],
       "semantic_tags": [
         "scaling",
@@ -8685,7 +8695,7 @@
       "is_public": true,
       "docstring": "Normalize samples individually to unit norm (vector row normalization).",
       "dependencies": [
-        "sklearn.preprocessing"
+        "from sklearn.preprocessing import Normalizer"
       ],
       "semantic_tags": [
         "unit_norm",
@@ -8823,7 +8833,7 @@
       "is_public": true,
       "docstring": "Transform features using quantiles information to map to a uniform or normal distribution.",
       "dependencies": [
-        "sklearn.preprocessing"
+        "from sklearn.preprocessing import QuantileTransformer"
       ],
       "semantic_tags": [
         "non-linear",
@@ -8977,7 +8987,7 @@
       "is_public": true,
       "docstring": "Apply a power transform featurewise to make data more Gaussian-like (Yeo-Johnson or Box-Cox).",
       "dependencies": [
-        "sklearn.preprocessing"
+        "from sklearn.preprocessing import PowerTransformer"
       ],
       "semantic_tags": [
         "variance_stabilization",
@@ -9114,7 +9124,7 @@
       "is_public": true,
       "docstring": "Encode categorical features as an integer array.",
       "dependencies": [
-        "sklearn.preprocessing"
+        "from sklearn.preprocessing import OrdinalEncoder"
       ],
       "semantic_tags": [
         "encoding",
@@ -9230,7 +9240,7 @@
       "is_public": true,
       "docstring": "Encode target labels with value between 0 and n_classes-1.",
       "dependencies": [
-        "sklearn.preprocessing"
+        "from sklearn.preprocessing import LabelEncoder"
       ],
       "semantic_tags": [
         "target_encoding",
@@ -9345,7 +9355,7 @@
       "is_public": true,
       "docstring": "Imputation for completing missing values using k-Nearest Neighbors.",
       "dependencies": [
-        "sklearn.impute"
+        "from sklearn.impute import KNNImputer"
       ],
       "semantic_tags": [
         "imputation",
@@ -9481,7 +9491,7 @@
       "is_public": true,
       "docstring": "Construct a transformer from an arbitrary callable Python function.",
       "dependencies": [
-        "sklearn.preprocessing"
+        "from sklearn.preprocessing import FunctionTransformer"
       ],
       "semantic_tags": [
         "custom_transform",
@@ -9615,7 +9625,7 @@
       "is_public": true,
       "docstring": "Convert a collection of raw documents to a matrix of TF-IDF features.",
       "dependencies": [
-        "sklearn.feature_extraction.text"
+        "from sklearn.feature_extraction.text import TfidfVectorizer"
       ],
       "semantic_tags": [
         "nlp",
@@ -9747,7 +9757,7 @@
       "is_public": true,
       "docstring": "Apply dimensionality reduction to X using already fitted PCA principal components.",
       "dependencies": [
-        "sklearn.decomposition"
+        "from sklearn.decomposition import PCA"
       ],
       "semantic_tags": [
         "pca",
@@ -9882,7 +9892,7 @@
       "is_public": true,
       "docstring": "Incremental principal components analysis (IPCA) for out-of-core streaming or memory-constrained data.",
       "dependencies": [
-        "sklearn.decomposition"
+        "from sklearn.decomposition import IncrementalPCA"
       ],
       "semantic_tags": [
         "pca",
@@ -10039,7 +10049,7 @@
       "is_public": true,
       "docstring": "Fast algorithm for Independent Component Analysis (unmixing independent non-Gaussian signals).",
       "dependencies": [
-        "sklearn.decomposition"
+        "from sklearn.decomposition import FastICA"
       ],
       "semantic_tags": [
         "ica",
@@ -10193,7 +10203,7 @@
       "is_public": true,
       "docstring": "Non-Negative Matrix Factorization (NMF) for non-negative data representations.",
       "dependencies": [
-        "sklearn.decomposition"
+        "from sklearn.decomposition import NMF"
       ],
       "semantic_tags": [
         "nmf",
@@ -10348,7 +10358,7 @@
       "is_public": true,
       "docstring": "Linear Discriminant Analysis: supervised dimensionality reduction projecting to maximize class separability.",
       "dependencies": [
-        "sklearn.discriminant_analysis"
+        "from sklearn.discriminant_analysis import LinearDiscriminantAnalysis"
       ],
       "semantic_tags": [
         "lda",
@@ -10507,7 +10517,7 @@
       "is_public": true,
       "docstring": "t-Distributed Stochastic Neighbor Embedding for non-linear manifold visualization.",
       "dependencies": [
-        "sklearn.manifold"
+        "from sklearn.manifold import TSNE"
       ],
       "semantic_tags": [
         "tsne",
@@ -10683,7 +10693,7 @@
       "is_public": true,
       "docstring": "Feature selector that removes all low-variance features exceeding threshold.",
       "dependencies": [
-        "sklearn.feature_selection"
+        "from sklearn.feature_selection import VarianceThreshold"
       ],
       "semantic_tags": [
         "feature_selection",
@@ -10818,7 +10828,7 @@
       "is_public": true,
       "docstring": "Feature ranking with recursive feature elimination (RFE).",
       "dependencies": [
-        "sklearn.feature_selection"
+        "from sklearn.feature_selection import RFE"
       ],
       "semantic_tags": [
         "rfe",
@@ -10996,7 +11006,7 @@
       "is_public": true,
       "docstring": "Build a decision tree classifier from the training set (X, y).",
       "dependencies": [
-        "sklearn.tree"
+        "from sklearn.tree import DecisionTreeClassifier"
       ],
       "semantic_tags": [
         "tree",
@@ -11183,7 +11193,7 @@
       "is_public": true,
       "docstring": "Fit Gradient Boosting for classification trees via staged pseudo-residual fitting.",
       "dependencies": [
-        "sklearn.ensemble"
+        "from sklearn.ensemble import GradientBoostingClassifier"
       ],
       "semantic_tags": [
         "boosting",
@@ -11386,7 +11396,7 @@
       "is_public": true,
       "docstring": "Fit the k-nearest neighbors classifier from the training dataset.",
       "dependencies": [
-        "sklearn.neighbors"
+        "from sklearn.neighbors import KNeighborsClassifier"
       ],
       "semantic_tags": [
         "knn",
@@ -11547,7 +11557,7 @@
       "is_public": true,
       "docstring": "Fit Gaussian Naive Bayes according to training data.",
       "dependencies": [
-        "sklearn.naive_bayes"
+        "from sklearn.naive_bayes import GaussianNB"
       ],
       "semantic_tags": [
         "naive_bayes",
@@ -11688,7 +11698,7 @@
       "is_public": true,
       "docstring": "Linear classifiers (SVM, logistic regression) with SGD training.",
       "dependencies": [
-        "sklearn.linear_model"
+        "from sklearn.linear_model import SGDClassifier"
       ],
       "semantic_tags": [
         "sgd",
@@ -11891,7 +11901,7 @@
       "is_public": true,
       "docstring": "Fit Multi-layer Perceptron classifier model using backpropagation.",
       "dependencies": [
-        "sklearn.neural_network"
+        "from sklearn.neural_network import MLPClassifier"
       ],
       "semantic_tags": [
         "neural_network",
@@ -12089,7 +12099,7 @@
       "is_public": true,
       "docstring": "Build a decision tree regressor from the training set (X, y).",
       "dependencies": [
-        "sklearn.tree"
+        "from sklearn.tree import DecisionTreeRegressor"
       ],
       "semantic_tags": [
         "tree",
@@ -12268,7 +12278,7 @@
       "is_public": true,
       "docstring": "Fit Gradient Boosting for regression across sequential weak learner stages.",
       "dependencies": [
-        "sklearn.ensemble"
+        "from sklearn.ensemble import GradientBoostingRegressor"
       ],
       "semantic_tags": [
         "boosting",
@@ -12466,7 +12476,7 @@
       "is_public": true,
       "docstring": "Linear regression with combined L1 and L2 priors as regularizer.",
       "dependencies": [
-        "sklearn.linear_model"
+        "from sklearn.linear_model import ElasticNet"
       ],
       "semantic_tags": [
         "elasticnet",
@@ -12666,7 +12676,7 @@
       "is_public": true,
       "docstring": "Fit Epsilon-Support Vector Regression model according to given training data.",
       "dependencies": [
-        "sklearn.svm"
+        "from sklearn.svm import SVR"
       ],
       "semantic_tags": [
         "svr",
@@ -12850,7 +12860,7 @@
       "is_public": true,
       "docstring": "Fit k-nearest neighbors regression model.",
       "dependencies": [
-        "sklearn.neighbors"
+        "from sklearn.neighbors import KNeighborsRegressor"
       ],
       "semantic_tags": [
         "knn",
@@ -13010,7 +13020,7 @@
       "is_public": true,
       "docstring": "Fit hierarchical agglomerative clustering from features and return cluster labels.",
       "dependencies": [
-        "sklearn.cluster"
+        "from sklearn.cluster import AgglomerativeClustering"
       ],
       "semantic_tags": [
         "clustering",
@@ -13155,7 +13165,7 @@
       "is_public": true,
       "docstring": "Fit Gaussian mixture model and predict cluster labels for instances using Expectation-Maximization.",
       "dependencies": [
-        "sklearn.mixture"
+        "from sklearn.mixture import GaussianMixture"
       ],
       "semantic_tags": [
         "clustering",
@@ -13319,7 +13329,7 @@
       "is_public": true,
       "docstring": "Apply clustering to a projection of the normalized Laplacian.",
       "dependencies": [
-        "sklearn.cluster"
+        "from sklearn.cluster import SpectralClustering"
       ],
       "semantic_tags": [
         "clustering",
@@ -13474,7 +13484,7 @@
       "is_public": true,
       "docstring": "Applies transformers to columns of an array or pandas DataFrame.",
       "dependencies": [
-        "sklearn.compose"
+        "from sklearn.compose import ColumnTransformer"
       ],
       "semantic_tags": [
         "column_transform",
@@ -13608,7 +13618,7 @@
       "is_public": true,
       "docstring": "Randomized search on hyperparameters across sampled configurations.",
       "dependencies": [
-        "sklearn.model_selection"
+        "from sklearn.model_selection import RandomizedSearchCV"
       ],
       "semantic_tags": [
         "hyperparameter_tuning",
@@ -13851,7 +13861,7 @@
       "is_public": true,
       "docstring": "Evaluate metric(s) by cross-validation and record fit/score times.",
       "dependencies": [
-        "sklearn.model_selection"
+        "from sklearn.model_selection import cross_validate"
       ],
       "semantic_tags": [
         "validation",
@@ -14012,7 +14022,7 @@
       "is_public": true,
       "docstring": "Compute the precision (positive predictive value) ratio tp / (tp + fp).",
       "dependencies": [
-        "sklearn.metrics"
+        "from sklearn.metrics import precision_score"
       ],
       "semantic_tags": [
         "metrics",
@@ -14168,7 +14178,7 @@
       "is_public": true,
       "docstring": "Compute the recall (sensitivity) ratio tp / (tp + fn).",
       "dependencies": [
-        "sklearn.metrics"
+        "from sklearn.metrics import recall_score"
       ],
       "semantic_tags": [
         "metrics",
@@ -14324,7 +14334,7 @@
       "is_public": true,
       "docstring": "Build a text report showing the main classification metrics (precision, recall, f1-score, support).",
       "dependencies": [
-        "sklearn.metrics"
+        "from sklearn.metrics import classification_report"
       ],
       "semantic_tags": [
         "metrics",
@@ -14445,7 +14455,7 @@
       "is_public": true,
       "docstring": "Mean absolute error regression loss.",
       "dependencies": [
-        "sklearn.metrics"
+        "from sklearn.metrics import mean_absolute_error"
       ],
       "semantic_tags": [
         "metrics",
@@ -14578,7 +14588,7 @@
       "is_public": true,
       "docstring": "Compute the Calinski and Harabasz score (Variance Ratio Criterion).",
       "dependencies": [
-        "sklearn.metrics"
+        "from sklearn.metrics import calinski_harabasz_score"
       ],
       "semantic_tags": [
         "metrics",
@@ -14709,7 +14719,7 @@
       "is_public": true,
       "docstring": "Compute the Davies-Bouldin score (lower is better).",
       "dependencies": [
-        "sklearn.metrics"
+        "from sklearn.metrics import davies_bouldin_score"
       ],
       "semantic_tags": [
         "metrics",
@@ -14840,7 +14850,7 @@
       "is_public": true,
       "docstring": "Serialize a scikit-learn model object to an open file stream using standard pickle.",
       "dependencies": [
-        "pickle"
+        "import pickle"
       ],
       "semantic_tags": [
         "persistence",
@@ -14938,7 +14948,7 @@
       "is_public": true,
       "docstring": "Deserialize a scikit-learn model object hierarchy from an open file stream using pickle.",
       "dependencies": [
-        "pickle"
+        "import pickle"
       ],
       "semantic_tags": [
         "deserialization",

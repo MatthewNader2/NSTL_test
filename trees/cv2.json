@@ -2166,7 +2166,7 @@
       "inputs": {
         "src": {
           "type_name": "ndarray",
-          "state": "BGR",
+          "state": "color_bgr",
           "qualifiers": [
             [
               "cv2",
@@ -2260,7 +2260,7 @@
       "outputs": {
         "output_var": {
           "type_name": "ndarray",
-          "state": "resized",
+          "state": "color_bgr",
           "qualifiers": [
             [
               "cv2",
@@ -2377,7 +2377,7 @@
       "inputs": {
         "src": {
           "type_name": "ndarray",
-          "state": "BGR",
+          "state": "color_bgr",
           "qualifiers": [
             [
               "cv2",
@@ -2462,7 +2462,7 @@
       "outputs": {
         "output_var": {
           "type_name": "ndarray",
-          "state": "warped",
+          "state": "color_bgr",
           "qualifiers": [
             [
               "cv2",
@@ -2703,7 +2703,7 @@
       "inputs": {
         "src": {
           "type_name": "ndarray",
-          "state": "BGR",
+          "state": "color_bgr",
           "qualifiers": [
             [
               "cv2",
@@ -2788,7 +2788,7 @@
       "outputs": {
         "output_var": {
           "type_name": "ndarray",
-          "state": "warped",
+          "state": "color_bgr",
           "qualifiers": [
             [
               "cv2",
@@ -3038,7 +3038,7 @@
       "inputs": {
         "src": {
           "type_name": "ndarray",
-          "state": "BGR",
+          "state": "color_bgr",
           "qualifiers": [
             [
               "cv2",
@@ -3077,7 +3077,7 @@
       "outputs": {
         "output_var": {
           "type_name": "ndarray",
-          "state": "BGR",
+          "state": "color_bgr",
           "qualifiers": [
             [
               "cv2",
@@ -3403,7 +3403,7 @@
       "inputs": {
         "src": {
           "type_name": "ndarray",
-          "state": "BGR",
+          "state": "color_bgr",
           "qualifiers": [
             [
               "cv2",
@@ -3543,7 +3543,7 @@
       "inputs": {
         "src": {
           "type_name": "ndarray",
-          "state": "BGR",
+          "state": "color_bgr",
           "qualifiers": [
             [
               "cv2",
@@ -3690,7 +3690,7 @@
       "inputs": {
         "src": {
           "type_name": "ndarray",
-          "state": "BGR",
+          "state": "color_bgr",
           "qualifiers": [
             [
               "cv2",
@@ -3750,7 +3750,7 @@
       "outputs": {
         "output_var": {
           "type_name": "ndarray",
-          "state": "BGR",
+          "state": "color_bgr",
           "qualifiers": [
             [
               "cv2",
@@ -5014,7 +5014,7 @@
       "inputs": {
         "src": {
           "type_name": "ndarray",
-          "state": "HSV",
+          "state": "hsv",
           "qualifiers": [
             [
               "cv2",
@@ -7186,7 +7186,7 @@
       "inputs": {
         "array": {
           "type_name": "ndarray",
-          "state": "BINARY",
+          "state": "binary",
           "qualifiers": [],
           "default_value": null,
           "description": "Raster image or 2D point set array.",
@@ -7276,7 +7276,7 @@
       "inputs": {
         "src1": {
           "type_name": "ndarray",
-          "state": "BGR",
+          "state": "color_bgr",
           "qualifiers": [
             [
               "cv2",
@@ -7295,7 +7295,7 @@
         },
         "src2": {
           "type_name": "ndarray",
-          "state": "BGR",
+          "state": "color_bgr",
           "qualifiers": [
             [
               "cv2",
@@ -7316,7 +7316,7 @@
       "outputs": {
         "output_var": {
           "type_name": "ndarray",
-          "state": "BGR",
+          "state": "color_bgr",
           "qualifiers": [
             [
               "cv2",
@@ -7386,7 +7386,7 @@
       "inputs": {
         "src1": {
           "type_name": "ndarray",
-          "state": "BGR",
+          "state": "color_bgr",
           "qualifiers": [
             [
               "cv2",
@@ -7405,7 +7405,7 @@
         },
         "src2": {
           "type_name": "ndarray",
-          "state": "BGR",
+          "state": "color_bgr",
           "qualifiers": [
             [
               "cv2",
@@ -7426,7 +7426,7 @@
       "outputs": {
         "output_var": {
           "type_name": "ndarray",
-          "state": "BGR",
+          "state": "color_bgr",
           "qualifiers": [
             [
               "cv2",
@@ -7494,7 +7494,7 @@
       "inputs": {
         "src1": {
           "type_name": "ndarray",
-          "state": "BGR",
+          "state": "color_bgr",
           "qualifiers": [
             [
               "cv2",
@@ -7527,7 +7527,7 @@
         },
         "src2": {
           "type_name": "ndarray",
-          "state": "BGR",
+          "state": "color_bgr",
           "qualifiers": [
             [
               "cv2",
@@ -7576,7 +7576,7 @@
       "outputs": {
         "output_var": {
           "type_name": "ndarray",
-          "state": "BGR",
+          "state": "color_bgr",
           "qualifiers": [
             [
               "cv2",
@@ -7664,7 +7664,7 @@
       "inputs": {
         "src1": {
           "type_name": "ndarray",
-          "state": "BGR",
+          "state": "color_bgr",
           "qualifiers": [
             [
               "cv2",
@@ -7683,7 +7683,7 @@
         },
         "src2": {
           "type_name": "ndarray",
-          "state": "BGR",
+          "state": "color_bgr",
           "qualifiers": [
             [
               "cv2",
@@ -7723,7 +7723,7 @@
       "outputs": {
         "output_var": {
           "type_name": "ndarray",
-          "state": "BGR",
+          "state": "color_bgr",
           "qualifiers": [
             [
               "cv2",
@@ -7800,7 +7800,7 @@
       "inputs": {
         "src1": {
           "type_name": "ndarray",
-          "state": "BGR",
+          "state": "color_bgr",
           "qualifiers": [
             [
               "cv2",
@@ -7819,7 +7819,7 @@
         },
         "src2": {
           "type_name": "ndarray",
-          "state": "BGR",
+          "state": "color_bgr",
           "qualifiers": [
             [
               "cv2",
@@ -7854,7 +7854,7 @@
       "outputs": {
         "output_var": {
           "type_name": "ndarray",
-          "state": "BGR",
+          "state": "color_bgr",
           "qualifiers": [
             [
               "cv2",
@@ -7919,7 +7919,7 @@
       "inputs": {
         "src": {
           "type_name": "ndarray",
-          "state": "BGR",
+          "state": "color_bgr",
           "qualifiers": [
             [
               "cv2",
@@ -7954,7 +7954,7 @@
       "outputs": {
         "output_var": {
           "type_name": "ndarray",
-          "state": "BGR",
+          "state": "color_bgr",
           "qualifiers": [
             [
               "cv2",
@@ -8038,7 +8038,7 @@
       "inputs": {
         "src1": {
           "type_name": "ndarray",
-          "state": "BGR",
+          "state": "color_bgr",
           "qualifiers": [
             [
               "cv2",
@@ -8057,7 +8057,7 @@
         },
         "src2": {
           "type_name": "ndarray",
-          "state": "BGR",
+          "state": "color_bgr",
           "qualifiers": [
             [
               "cv2",
@@ -8078,7 +8078,7 @@
       "outputs": {
         "output_var": {
           "type_name": "ndarray",
-          "state": "BGR",
+          "state": "color_bgr",
           "qualifiers": [
             [
               "cv2",
@@ -8151,7 +8151,7 @@
       "inputs": {
         "src": {
           "type_name": "ndarray",
-          "state": "BGR",
+          "state": "color_bgr",
           "qualifiers": [
             [
               "cv2",
@@ -8272,7 +8272,7 @@
       "outputs": {
         "output_var": {
           "type_name": "ndarray",
-          "state": "BGR",
+          "state": "color_bgr",
           "qualifiers": [
             [
               "cv2",
@@ -8358,7 +8358,7 @@
       "inputs": {
         "images": {
           "type_name": "ndarray",
-          "state": "BGR",
+          "state": "color_bgr",
           "qualifiers": [
             [
               "cv2",
@@ -8632,7 +8632,7 @@
       "inputs": {
         "src": {
           "type_name": "ndarray",
-          "state": "BGR",
+          "state": "color_bgr",
           "qualifiers": [],
           "default_value": null,
           "description": "Input matrix.",
@@ -8646,7 +8646,7 @@
         },
         "dst": {
           "type_name": "ndarray",
-          "state": "BGR",
+          "state": "color_bgr",
           "qualifiers": [],
           "default_value": null,
           "description": "Destination array of matching size.",
@@ -8714,7 +8714,7 @@
       "outputs": {
         "output_var": {
           "type_name": "ndarray",
-          "state": "BGR",
+          "state": "color_bgr",
           "qualifiers": [],
           "default_value": null,
           "description": "Normalized array.",
@@ -10118,7 +10118,7 @@
       "inputs": {
         "img": {
           "type_name": "ndarray",
-          "state": "BGR",
+          "state": "color_bgr",
           "qualifiers": [
             [
               "cv2",
@@ -10194,7 +10194,7 @@
       "outputs": {
         "output_var": {
           "type_name": "ndarray",
-          "state": "BGR",
+          "state": "color_bgr",
           "qualifiers": [
             [
               "cv2",
@@ -11934,7 +11934,7 @@
       "inputs": {
         "image": {
           "type_name": "ndarray",
-          "state": "BGR",
+          "state": "color_bgr",
           "qualifiers": [
             [
               "cv2",
@@ -11967,7 +11967,7 @@
         },
         "out_image": {
           "type_name": "ndarray",
-          "state": "BGR",
+          "state": "color_bgr",
           "qualifiers": [
             [
               "cv2",
@@ -12109,7 +12109,7 @@
       "inputs": {
         "img1": {
           "type_name": "ndarray",
-          "state": "BGR",
+          "state": "color_bgr",
           "qualifiers": [
             [
               "cv2",
@@ -12142,7 +12142,7 @@
         },
         "img2": {
           "type_name": "ndarray",
-          "state": "BGR",
+          "state": "color_bgr",
           "qualifiers": [
             [
               "cv2",
@@ -12189,7 +12189,7 @@
         },
         "out_img": {
           "type_name": "ndarray",
-          "state": "BGR",
+          "state": "color_bgr",
           "qualifiers": [
             [
               "cv2",
@@ -12298,7 +12298,7 @@
       "inputs": {
         "src": {
           "type_name": "ndarray",
-          "state": "BGR",
+          "state": "color_bgr",
           "qualifiers": [
             [
               "cv2",
@@ -12425,7 +12425,7 @@
       "outputs": {
         "output_var": {
           "type_name": "ndarray",
-          "state": "BGR",
+          "state": "color_bgr",
           "qualifiers": [
             [
               "cv2",
@@ -12492,7 +12492,7 @@
       "inputs": {
         "src": {
           "type_name": "ndarray",
-          "state": "GRAY",
+          "state": "gray",
           "qualifiers": [],
           "default_value": null,
           "description": "Input floating-point or integer array (e.g. Sobel derivative matrix).",
@@ -12770,7 +12770,7 @@
       "inputs": {
         "src": {
           "type_name": "ndarray",
-          "state": "BGR",
+          "state": "color_bgr",
           "qualifiers": [
             [
               "cv2",
@@ -12854,7 +12854,7 @@
       "outputs": {
         "output_var": {
           "type_name": "ndarray",
-          "state": "BGR",
+          "state": "color_bgr",
           "qualifiers": [
             [
               "cv2",
@@ -13748,7 +13748,7 @@
         },
         "image": {
           "type_name": "ndarray",
-          "state": "BGR",
+          "state": "color_bgr",
           "qualifiers": [
             [
               "cv2",
