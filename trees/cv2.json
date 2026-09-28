@@ -14041,5 +14041,67 @@
       "newest",
       "latest"
     ]
-  }
+  },
+  "semantic_flag_patterns": [
+    {
+      "keywords": [
+        "hsv"
+      ],
+      "flag": "is_hsv",
+      "value": true,
+      "extras": {}
+    },
+    {
+      "keywords": [
+        "rgb"
+      ],
+      "flag": "is_rgb",
+      "value": true,
+      "extras": {}
+    },
+    {
+      "keywords": [
+        "gray",
+        "grayscale",
+        "grey"
+      ],
+      "flag": "is_grayscale",
+      "value": true,
+      "extras": {}
+    }
+  ],
+  "enum_constant_rules": [
+    {
+      "placeholder_names": [
+        "code",
+        "color_code",
+        "conversion_code"
+      ],
+      "module_attribute_prefix": "COLOR_",
+      "format_flags": {
+        "is_hsv": "HSV",
+        "is_rgb": "RGB",
+        "is_grayscale": "GRAY"
+      },
+      "default_format": "GRAY"
+    }
+  ],
+  "mock_fixtures": [
+    {
+      "match_type_tokens": [
+        "image",
+        "img",
+        "video_frame",
+        "rgb",
+        "bgr",
+        "pixel",
+        "frame"
+      ],
+      "match_domain_tokens": [
+        "cv2",
+        "vision"
+      ],
+      "template": "try:\n    import numpy as np\n    {var_name} = np.zeros((10, 10, 3), dtype=np.uint8)\nexcept ImportError:\n    {var_name} = [[[0] * 3] * 10] * 10"
+    }
+  ]
 }

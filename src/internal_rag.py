@@ -690,10 +690,18 @@ class LocalRAG:
         for score, idx, dense_sc in fused[:top_k]:
             schema = self.id_to_schema[idx]
             cid = schema.get("cell_id", "")
-            norm_score = max(0.1, min(1.0, dense_sc if dense_sc > 0.05 else 0.4 + score * 15.0))
+            # Honest score reporting: `score` is the REAL dense cosine
+            # similarity when an embedding score exists, and 0.0 otherwise.
+            # Lexical-only candidates keep their ranking position through the
+            # RRF fusion (see `rrf_score`) but are never assigned a
+            # manufactured "vector confidence" — dense evidence and lexical
+            # evidence remain separately observable downstream.
+            has_dense_evidence = dense_sc is not None and dense_sc > 0.05
+            norm_score = max(0.0, min(1.0, float(dense_sc))) if has_dense_evidence else 0.0
             results.append({
                 "cell_id": cid,
                 "score": float(norm_score),
+                "score_source": "dense_cosine" if has_dense_evidence else "rrf_rank",
                 "rrf_score": float(score),
                 "schema": schema,
                 "domain": schema.get("domain", "generic"),

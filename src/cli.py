@@ -86,11 +86,13 @@ console = Console()
 DEFAULT_SANDBOX_TIMEOUT: float = getattr(settings, "sandbox_timeout", 5.0)
 HIGH_TRUST_PRIORITY_THRESHOLD: int = getattr(settings, "verified_priority_threshold", 10)
 DEFAULT_TRANSLATOR_PROMPT: str = (
-    "You are a precise technical translator. Rewrite the user request as ONE "
-    "comma-separated pipeline sentence: first the input source with its asset "
-    "name, then each transform verb with its arguments in order, then the "
-    "destination. Use only words from the request. Output ONLY the sentence, "
-    "no headers, no lists, no formatting."
+    "You are a precise technical translator. Rewrite the user request as a "
+    "minimal, unambiguous pipeline specification that preserves every "
+    "operation, its arguments, and their requested execution order. Keep the "
+    "natural clause boundaries of the request — one operation per clause — "
+    "without adding, merging, or reordering steps. Use only words from the "
+    "request. Output ONLY the specification, no headers, no lists, no "
+    "formatting."
 )
 
 
@@ -1129,6 +1131,15 @@ class PipelineDebugger:
         if cells:
             t_synth_0 = time.perf_counter()
             ctx = ExecutionContext(prompt=prompt_clean)
+            # Profile S (Semantic Compiler): the typed IR's extracted literals
+            # are injected into the execution context's declared parameters so
+            # the Unification Gate binds arguments deterministically from the
+            # STRUCTURED compiler output instead of re-scanning the prompt.
+            ir_literals = getattr(getattr(self, "router", None), "last_ir_literals", None) or {}
+            if isinstance(ir_literals, dict) and ir_literals:
+                for lit_key, lit_val in ir_literals.items():
+                    if lit_key and lit_key not in ctx.parameters:
+                        ctx.parameters[str(lit_key)] = lit_val
             try:
                 unify_res = self.gate.unify_pipeline(cells, ctx)
             except Exception as exc:
@@ -1287,7 +1298,7 @@ class PipelineDebugger:
             else:
                 t_exec_start = time.perf_counter()
                 v_contract = getattr(self.gate, "last_verification_contract", None)
-                sandbox_res = self.sandbox.execute(final_code, timeout=timeout, egress_paths=dest_paths, verification_spec=v_contract)
+                sandbox_res = self.sandbox.execute(final_code, timeout=timeout, egress_paths=dest_paths, verification_spec=v_contract, runtime_aliases=getattr(self.gate, 'last_runtime_aliases', None))
                 sandbox_dt = (time.perf_counter() - t_exec_start) * 1000.0
 
             sb_success = sandbox_res.get("success", False)
@@ -1373,7 +1384,7 @@ class PipelineDebugger:
                             final_code = repaired_code
                             repaired = True
                             v_contract = getattr(self.gate, "last_verification_contract", None)
-                            sandbox_res = self.sandbox.execute(final_code, timeout=timeout, egress_paths=dest_paths, verification_spec=v_contract)
+                            sandbox_res = self.sandbox.execute(final_code, timeout=timeout, egress_paths=dest_paths, verification_spec=v_contract, runtime_aliases=getattr(self.gate, 'last_runtime_aliases', None))
                             c.print(f"  [bold]Post-Repair Result:[/bold] {'[green]PASSED[/green]' if sandbox_res.get('success') else '[red]FAILED[/red]'}\n")
                     else:
                         c.print(f"  [yellow][!] LLM could not produce an alternative repair ({rep_dt:.1f}ms).[/yellow]\n")
@@ -2249,7 +2260,7 @@ class NSTLInteractiveShell(cmd.Cmd):
                 sandbox_res = {"success": None, "skipped": True, "verified": bool(v_contract)}
             sandbox_dt = 0.0
         else:
-            sandbox_res = self.sandbox.execute(final_code, timeout=self.timeout, egress_paths=dest_paths, verification_spec=v_contract)
+            sandbox_res = self.sandbox.execute(final_code, timeout=self.timeout, egress_paths=dest_paths, verification_spec=v_contract, runtime_aliases=getattr(self.gate, 'last_runtime_aliases', None))
             sandbox_dt = (time.perf_counter() - t_exec_start) * 1000.0
 
         repaired = False
@@ -2278,7 +2289,7 @@ class NSTLInteractiveShell(cmd.Cmd):
                         else:
                             final_code = repaired_code
                             repaired = True
-                            sandbox_res = self.sandbox.execute(final_code, timeout=self.timeout, egress_paths=dest_paths, verification_spec=v_contract)
+                            sandbox_res = self.sandbox.execute(final_code, timeout=self.timeout, egress_paths=dest_paths, verification_spec=v_contract, runtime_aliases=getattr(self.gate, 'last_runtime_aliases', None))
                     rep_dt = (time.perf_counter() - t_rep_start) * 1000.0
                     console.print(f"  [bold green][✓] Repair cycle completed ({rep_dt:.1f}ms).[/bold green]")
 

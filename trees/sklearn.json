@@ -15111,5 +15111,20 @@
       "newest",
       "latest"
     ]
-  }
+  },
+  "mock_fixtures": [
+    {
+      "match_type_tokens": [
+        "model",
+        "estimator",
+        "classifier",
+        "regressor",
+        "pipeline"
+      ],
+      "match_domain_tokens": [
+        "sklearn"
+      ],
+      "template": "class _MockModel_{var_name}:\n    def fit(self, *a, **k): return self\n    def predict(self, *a, **k): return [0, 1]\n    def transform(self, *a, **k): return a[0] if a else []\n    def evaluate(self, *a, **k): return {'metric': 1.0}\n{var_name} = _MockModel_{var_name}()"
+    }
+  ]
 }

@@ -271,6 +271,17 @@ class TypeRegistry:
         self._ancestry_cache: Dict[Tuple[str, FrozenSet[str]], bool] = {}
         # (apply_fixes_v7) P6 — configurable enum-citation triggers
         self._enum_citation_triggers: Set[str] = set()
+        # Data-driven extension registries (declared ONLY in tree JSON; empty by
+        # default so the engine core never carries domain information):
+        #   semantic_flag_patterns  — keyword->flag observers for slot extraction
+        #   enum_constant_rules     — placeholder->module-constant grounding rules
+        #   mock_fixtures           — probe fixtures for sandbox dry-runs
+        #   port_name_type_hints    — declared port-name/affix -> type_name hints
+        self._semantic_flag_patterns: List[Dict[str, Any]] = []
+        self._enum_constant_rules: List[Dict[str, Any]] = []
+        self._mock_fixtures: List[Dict[str, Any]] = []
+        self._port_name_type_hints: Dict[str, str] = {}
+        self._port_name_morphology_hints: List[Dict[str, str]] = []
         # Data-driven structural vocabulary (declared in tree JSON; empty by default)
         self._top_level_carriers: Set[str] = set()
         self._path_port_tokens: Set[str] = set()
@@ -311,12 +322,40 @@ class TypeRegistry:
 
     @_locked
     def _bootstrap_plugin_types(self):
-        """Dynamically ingests domain plugin types from trees/*.json without engine hardcoding."""
+        """Dynamically ingests domain plugin types from trees/*.json without engine hardcoding.
+
+        Tree discovery is cwd-independent: in addition to the relative search
+        dirs, it resolves the trees directory next to the package root and the
+        configured settings.trees_dir, so registry declarations (fixtures,
+        flag patterns, polarity hints, port hints, ...) are available in every
+        session — including ones that only load the compiled SQLite lattice.
+        """
         import glob, json
-        for s_dir in TREE_SEARCH_DIRS:
-            if not os.path.exists(s_dir):
+        search_dirs: List[str] = list(TREE_SEARCH_DIRS)
+        # Repo-root relative (this file lives in <root>/src).
+        try:
+            root_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+            for rel in TREE_SEARCH_DIRS:
+                search_dirs.append(os.path.join(root_dir, rel))
+        except Exception:
+            pass
+        # Config-resolved trees directory.
+        try:
+            try:
+                from .config import settings as _settings
+            except (ImportError, ValueError):
+                from config import settings as _settings
+            if getattr(_settings, "trees_dir", None):
+                search_dirs.append(str(_settings.trees_dir))
+        except Exception:
+            pass
+
+        seen_dirs: Set[str] = set()
+        for s_dir in search_dirs:
+            if not s_dir or s_dir in seen_dirs or not os.path.isdir(s_dir):
                 continue
-            for p in sorted(glob.glob(f"{s_dir}/*.json")):
+            seen_dirs.add(s_dir)
+            for p in sorted(glob.glob(os.path.join(s_dir, "*.json"))):
                 try:
                     with open(p, "r", encoding="utf-8") as f:
                         data = json.load(f)
@@ -427,6 +466,18 @@ class TypeRegistry:
                             self.register_operation_tokens(data["action_verbs"])
                         if "operation_tokens" in data and isinstance(data["operation_tokens"], list):
                             self.register_operation_tokens(data["operation_tokens"])
+                        # Data-driven extension registries (domain data lives in
+                        # trees, never in engine code)
+                        if "semantic_flag_patterns" in data and isinstance(data["semantic_flag_patterns"], list):
+                            self.register_semantic_flag_patterns(data["semantic_flag_patterns"])
+                        if "enum_constant_rules" in data and isinstance(data["enum_constant_rules"], list):
+                            self.register_enum_constant_rules(data["enum_constant_rules"])
+                        if "mock_fixtures" in data and isinstance(data["mock_fixtures"], list):
+                            self.register_mock_fixtures(data["mock_fixtures"])
+                        if "port_name_type_hints" in data and isinstance(data["port_name_type_hints"], dict):
+                            self.register_port_name_type_hints(data["port_name_type_hints"])
+                        if "port_name_morphology_hints" in data and isinstance(data["port_name_morphology_hints"], list):
+                            self.register_port_name_morphology_hints(data["port_name_morphology_hints"])
                 except Exception as e:
                     logger.debug("suppressed: %s", e, exc_info=False)
 
@@ -893,6 +944,137 @@ class TypeRegistry:
 
     def get_enum_citation_triggers(self) -> FrozenSet[str]:
         return frozenset(self._enum_citation_triggers)
+
+    # ---------------------------------------------------------------------
+    # Data-driven extension registries (all populated from trees/*.json)
+    # ---------------------------------------------------------------------
+
+    @_locked
+    def register_semantic_flag_patterns(self, patterns: Any) -> None:
+        """Registers declared keyword->flag observation patterns (data, not code)."""
+        for p in patterns or ():
+            if isinstance(p, dict) and p.get("keywords") and p.get("flag"):
+                self._semantic_flag_patterns.append({
+                    "keywords": frozenset(str(k).lower() for k in p["keywords"]),
+                    "flag": str(p["flag"]),
+                    "value": p.get("value", True),
+                    "extras": dict(p.get("extras") or {}),
+                })
+
+    def get_semantic_flag_patterns(self) -> List[Dict[str, Any]]:
+        return list(self._semantic_flag_patterns)
+
+    @_locked
+    def register_enum_constant_rules(self, rules: Any) -> None:
+        """Registers declared placeholder->module-constant grounding rules."""
+        for r in rules or ():
+            if isinstance(r, dict) and r.get("placeholder_names"):
+                self._enum_constant_rules.append({
+                    "placeholder_names": frozenset(str(n).lower() for n in r["placeholder_names"]),
+                    "module_attribute_prefix": str(r.get("module_attribute_prefix", "")),
+                    "format_flags": dict(r.get("format_flags") or {}),
+                    "default_format": str(r.get("default_format", "")),
+                })
+
+    def get_enum_constant_rules(self) -> List[Dict[str, Any]]:
+        return list(self._enum_constant_rules)
+
+    @_locked
+    def register_mock_fixtures(self, fixtures: Any) -> None:
+        """Registers declared dry-run probe fixtures keyed by type/domain tokens."""
+        for f in fixtures or ():
+            if isinstance(f, dict) and f.get("template"):
+                self._mock_fixtures.append({
+                    "match_type_tokens": frozenset(str(t).lower() for t in (f.get("match_type_tokens") or ())),
+                    "match_domain_tokens": frozenset(str(d).lower() for d in (f.get("match_domain_tokens") or ())),
+                    "template": str(f["template"]),
+                })
+
+    def get_mock_fixtures(self) -> List[Dict[str, Any]]:
+        return list(self._mock_fixtures)
+
+    @staticmethod
+    def _name_parts(value: str) -> Set[str]:
+        """Splits a type/domain name into alphanumeric word parts (zero regex)."""
+        parts: Set[str] = set()
+        buf: List[str] = []
+        for ch in str(value or "").lower():
+            if ch.isalnum() or ch == "_":
+                buf.append(ch)
+            elif buf:
+                parts.add("".join(buf).strip("_"))
+                buf = []
+        if buf:
+            parts.add("".join(buf).strip("_"))
+        return {p for p in parts if p}
+
+    def find_mock_fixture(self, type_name: str, domain_name: str = "") -> Optional[str]:
+        """Returns the declared fixture template for a type/domain pair, or None.
+
+        Matching is DECLARED-vocabulary only and part-based: a fixture token
+        matches when its word parts are all present in the candidate name's
+        word parts (e.g. declared token `sample_rate` matches type
+        `sample_rate` or `audio.sample_rate`; declared token `frame` does NOT
+        match `dataframe`, whose single part is `dataframe`).
+        """
+        t_parts = self._name_parts(type_name)
+        d_parts = self._name_parts(domain_name)
+        if not t_parts and not d_parts:
+            return None
+        for fixture in self._mock_fixtures:
+            tt = fixture["match_type_tokens"]
+            dt = fixture["match_domain_tokens"]
+
+            def _hits(tokens: FrozenSet[str], parts: Set[str]) -> bool:
+                for tok in tokens:
+                    tok_parts = self._name_parts(tok)
+                    if tok_parts and tok_parts.issubset(parts):
+                        return True
+                return False
+
+            type_hit = _hits(tt, t_parts)
+            domain_hit = _hits(dt, d_parts) or _hits(dt, t_parts)
+            if type_hit or domain_hit:
+                return fixture["template"]
+        return None
+
+    @_locked
+    def register_port_name_type_hints(self, hints: Any) -> None:
+        """Registers declared exact port-name -> type_name hints (data, not code)."""
+        if isinstance(hints, dict):
+            for name, t_name in hints.items():
+                n = str(name).strip().lower()
+                if n and t_name:
+                    self._port_name_type_hints[n] = str(t_name)
+
+    @_locked
+    def register_port_name_morphology_hints(self, hints: Any) -> None:
+        """Registers declared affix (prefix/suffix) -> type_name hints."""
+        for h in hints or ():
+            if isinstance(h, dict) and h.get("token") and h.get("type_name"):
+                self._port_name_morphology_hints.append({
+                    "affix": str(h.get("affix", "suffix")).lower(),
+                    "token": str(h["token"]).lower(),
+                    "type_name": str(h["type_name"]),
+                })
+
+    def lookup_port_name_type(self, param_name: str) -> Optional[str]:
+        """Resolves a port name against DECLARED hints from trees. Returns None
+        when no tree declared anything for this name — callers then fall back to
+        the structural default ("any"), never to engine-side guessing."""
+        name = str(param_name or "").strip().lower()
+        if not name:
+            return None
+        exact = self._port_name_type_hints.get(name)
+        if exact:
+            return exact
+        for hint in self._port_name_morphology_hints:
+            token = hint["token"]
+            if hint["affix"] == "prefix" and name.startswith(token) and len(name) > len(token):
+                return hint["type_name"]
+            if hint["affix"] == "suffix" and name.endswith(token) and len(name) > len(token):
+                return hint["type_name"]
+        return None
 
     @_locked
     def register_alias(self, alias: str, canonical: str):
@@ -2482,6 +2664,17 @@ class LatticeOrchestrator:
                     reg.register_operation_tokens(data["action_verbs"])
                 if "operation_tokens" in data and isinstance(data["operation_tokens"], list):
                     reg.register_operation_tokens(data["operation_tokens"])
+                # Data-driven extension registries (domain data lives in trees)
+                if "semantic_flag_patterns" in data and isinstance(data["semantic_flag_patterns"], list):
+                    reg.register_semantic_flag_patterns(data["semantic_flag_patterns"])
+                if "enum_constant_rules" in data and isinstance(data["enum_constant_rules"], list):
+                    reg.register_enum_constant_rules(data["enum_constant_rules"])
+                if "mock_fixtures" in data and isinstance(data["mock_fixtures"], list):
+                    reg.register_mock_fixtures(data["mock_fixtures"])
+                if "port_name_type_hints" in data and isinstance(data["port_name_type_hints"], dict):
+                    reg.register_port_name_type_hints(data["port_name_type_hints"])
+                if "port_name_morphology_hints" in data and isinstance(data["port_name_morphology_hints"], list):
+                    reg.register_port_name_morphology_hints(data["port_name_morphology_hints"])
 
             for c_dict in raw_cells:
                 if isinstance(c_dict, dict) and "type_vars" in c_dict and c_dict["type_vars"]:

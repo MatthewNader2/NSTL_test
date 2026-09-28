@@ -64,7 +64,10 @@ _active_profile: str = "0"
 _active_embedder: str = "none"
 _active_llm: str = "none"
 _engine_ready: bool = False
-_engine_lock = threading.Lock()
+# Reentrant: initialize_engine holds this lock across its body and calls
+# _ensure_base_engine_loaded(), which re-acquires it. A plain Lock deadlocked
+# Profile-0 initialization here (thread acquire-vs-itself).
+_engine_lock = threading.RLock()
 _benchmark_lock = threading.Lock()
 _start_time = time.time()
 _benchmark_active: bool = False
@@ -319,7 +322,11 @@ def run_prompt(request: Union[RunRequest, Dict[str, Any], str]) -> RunResponse:
     # 2. Synthesis & Unification (Request-isolated gate instance eliminates race conditions)
     t_synth_0 = time.perf_counter()
     local_gate = UnificationGate(orchestrator=_orchestrator)
-    code = local_gate.unify_and_emit(cells, prompt)
+    # Profile S: forward the structured IR literals (when the router compiled
+    # a typed IR) into the unification context as declared parameters.
+    ir_literals = getattr(_router, "last_ir_literals", None) or {}
+    intent_payload = {"parameters": dict(ir_literals)} if isinstance(ir_literals, dict) and ir_literals else None
+    code = local_gate.unify_and_emit(cells, prompt, intent_data=intent_payload)
     synth_dt = (time.perf_counter() - t_synth_0) * 1000.0
     total_dt = (time.perf_counter() - t_start) * 1000.0
 
@@ -328,7 +335,13 @@ def run_prompt(request: Union[RunRequest, Dict[str, Any], str]) -> RunResponse:
     if exec_sandbox:
         dest_paths = local_gate.get_egress_paths() or None
         sandbox = _sandbox if _sandbox is not None else GEVRSandbox()
-        sandbox_result = sandbox.execute(code, timeout=timeout, egress_paths=dest_paths)
+        sandbox_result = sandbox.execute(
+            code,
+            timeout=timeout,
+            egress_paths=dest_paths,
+            verification_spec=getattr(local_gate, "last_verification_contract", None),
+            runtime_aliases=local_gate.get_runtime_aliases(),
+        )
 
     path_ids = [c.cell_id for c in cells]
     return RunResponse(

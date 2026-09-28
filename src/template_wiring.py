@@ -45,66 +45,18 @@ def extract_placeholders(template: str) -> List[str]:
 
 
 # --------------------------------------------------------------------------- #
-# Type inference
+# Type resolution — DECLARED schemas only (Solution 2)
 # --------------------------------------------------------------------------- #
-
-# Name shapes that strongly indicate a scalar / container / callable type.
-# These are STRATIFIED HEURISTICS over identifier morphology, not domain
-# vocabulary. They are intentionally small and conservative; unknown names
-# resolve to "any".
-_INT_NAMES: Set[str] = {
-    "n", "k", "count", "size", "length", "len", "num", "number",
-    "index", "idx", "position", "pos", "iteration", "iter",
-    "epoch", "epochs", "batch", "batch_size", "seed",
-    "top_k", "max_iter", "n_iter", "num_iter", "depth", "width",
-    "degree", "rank", "order", "level", "step", "steps", "stride",
-}
-
-_FLOAT_NAMES: Set[str] = {
-    "rate", "alpha", "beta", "gamma", "lambda_", "threshold", "thresh",
-    "eps", "epsilon", "lr", "learning_rate", "ratio", "weight",
-    "score", "prob", "probability", "p", "momentum", "decay",
-    "temperature", "scale", "factor", "tolerance", "tol", "epsilon_",
-}
-
-_BOOL_NAMES: Set[str] = {
-    "flag", "verbose", "enabled", "enable", "debug", "shuffle",
-    "dropna", "drop_na", "normalize", "normalized", "fit_intercept",
-    "copy", "inplace", "in_place", "use_gpu", "cuda", "parallel",
-    "strict", "optional", "required", "sorted", "reverse", "ascending",
-    "descending", "closed", "unique", "drop", "keep",
-}
-
-_STR_NAMES: Set[str] = {
-    "path", "filepath", "file_path", "filename", "file_name",
-    "dir", "directory", "folder", "name", "label", "text",
-    "message", "msg", "pattern", "column", "col", "key", "tag",
-    "title", "description", "desc", "url", "uri", "format",
-    "encoding", "mode", "kind", "type", "strategy", "method",
-    "separator", "sep", "delimiter", "delim", "prefix", "suffix",
-    "regex", "template", "symbol",
-}
-
-_DATAFRAME_NAMES: Set[str] = {
-    "data", "df", "dataset", "frame", "table", "rows", "records",
-    "corpus", "documents",
-}
-
-_ARRAY_NAMES: Set[str] = {
-    "arr", "array", "values", "val", "vec", "vector", "tensor",
-    "x", "y", "z", "xs", "ys", "samples", "features", "labels",
-    "series", "matrix", "mat", "embedding", "embeddings",
-}
-
-_MODEL_NAMES: Set[str] = {
-    "model", "estimator", "clf", "classifier", "regressor",
-    "net", "network", "pipeline", "transformer", "encoder", "decoder",
-}
-
-_CALLABLE_NAMES: Set[str] = {
-    "func", "fn", "callback", "callable", "predicate", "transform",
-    "mapper", "reducer", "comparator", "key_func", "key_fn",
-}
+# The engine never guesses a port type from a parameter name. Resolution
+# order for a template placeholder:
+#   1. The cell's DECLARED input port type (CellSchema.inputs / PortSchema.
+#      type_name) — the typed-lattice source of truth.
+#   2. Port-name hints DECLARED in tree JSON (`port_name_type_hints` /
+#      `port_name_morphology_hints`), harvested by TypeRegistry. Domain
+#      authors extend typing by adding data to their tree — never by
+#      patching engine code.
+#   3. The structural default "any".
+# Zero hardcoded name dictionaries live in the engine.
 
 _PREFIXES: tuple = ("input_", "in_", "arg_", "param_")
 _SUFFIXES: tuple = ("_input", "_in", "_arg", "_param", "_value", "_val")
@@ -123,48 +75,68 @@ def _canonicalize_param_name(param_name: str) -> str:
     return name
 
 
+def _registry():
+    try:
+        from .lattice import TypeRegistry
+    except (ImportError, ValueError):
+        try:
+            from lattice import TypeRegistry
+        except Exception:
+            return None
+    try:
+        return TypeRegistry.get_instance()
+    except Exception:
+        return None
+
+
+def resolve_placeholder_type(cell: Any, placeholder: str) -> str:
+    """
+    Returns the DECLARED type of a template placeholder port.
+    Reads the port schema off the cell itself; falls back to tree-declared
+    name hints, then to the structural default "any". No lexical guessing.
+    """
+    inputs = getattr(cell, "inputs", None)
+    if isinstance(cell, dict):
+        inputs = cell.get("inputs", inputs)
+    if isinstance(inputs, dict):
+        port = inputs.get(placeholder)
+        if port is not None:
+            t_name = (
+                port.get("type_name") if isinstance(port, dict)
+                else getattr(port, "type_name", None)
+            )
+            if t_name:
+                return str(t_name)
+    return infer_port_type(placeholder)
+
+
 def infer_port_type(param_name: str, domain: str = "generic") -> str:
     """
-    Infers the canonical type_name for a given parameter name using
-    identifier-shape heuristics. Unknown names resolve to "any".
+    Resolves a port name to its declared type_name using ONLY declared data:
+    exact-name hints and affix morphology hints harvested from trees via the
+    TypeRegistry. Unknown names resolve to "any" — the engine contains no
+    name-to-type vocabulary of its own.
     """
     if not param_name:
         return "any"
-    name = _canonicalize_param_name(param_name)
-    if not name:
-        return "any"
-
-    if name in _INT_NAMES:
-        return "int"
-    if name in _FLOAT_NAMES:
-        return "float"
-    if name in _BOOL_NAMES:
-        return "bool"
-    if name in _STR_NAMES:
-        return "str"
-    if name in _DATAFRAME_NAMES:
-        return "DataFrame"
-    if name in _ARRAY_NAMES:
-        return "array"
-    if name in _MODEL_NAMES:
-        return "model"
-    if name in _CALLABLE_NAMES:
-        return "callable"
-
-    # Morphological hints: prefixes that strongly indicate a type family.
-    if name.endswith("_path") or name.endswith("_file") or name.endswith("_name"):
-        return "str"
-    if name.endswith("_count") or name.endswith("_size") or name.endswith("_num"):
-        return "int"
-    if name.endswith("_flag") or name.startswith("is_") or name.startswith("has_") or name.startswith("use_"):
-        return "bool"
-    if name.startswith("num_") or name.startswith("n_"):
-        return "int"
-    if name.endswith("_list") or name.endswith("_arr") or name.endswith("_array"):
-        return "array"
-    if name.endswith("_df") or name.startswith("df_"):
-        return "DataFrame"
-
+    reg = _registry()
+    if reg is not None:
+        try:
+            declared = reg.lookup_port_name_type(str(param_name))
+            if declared:
+                return declared
+        except Exception:
+            pass
+        # Also try the canonicalized name (strip input_/arg_/_value etc.) so
+        # tree hints can be written against the semantic port name.
+        canonical = _canonicalize_param_name(str(param_name))
+        if canonical and canonical != str(param_name).strip().lower():
+            try:
+                declared = reg.lookup_port_name_type(canonical)
+                if declared:
+                    return declared
+            except Exception:
+                pass
     return "any"
 
 

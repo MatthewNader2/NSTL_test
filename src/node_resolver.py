@@ -174,116 +174,24 @@ def _safe_extract_json(raw_text: str) -> Optional[Dict[str, Any]]:
 
 def _create_mock_input_code(var_name: str, type_name: str, domain_name: str = "") -> str:
     """
-    Generates domain-agnostic mock value instantiation code supporting diverse modalities
-    including tabular, text/nlp, vision, audio, graph, bioinformatics, and tensors.
+    Generates a dry-run mock instantiation for a port.
+
+    Domain knowledge lives in the pluggable trees, not here: fixtures are
+    harvested from trees/*.json (`mock_fixtures` declarations) via the
+    TypeRegistry, so adding a tree for domain X teaches the engine how to
+    construct X's carriers without any engine change. Only the final,
+    domain-neutral collection fallback remains in engine code.
     """
-    t = type_name.lower().strip()
-    d = domain_name.lower().strip()
+    try:
+        from lattice import TypeRegistry
+        fixture = TypeRegistry.get_instance().find_mock_fixture(type_name, domain_name)
+    except Exception:
+        fixture = None
+    if fixture:
+        return fixture.replace("{var_name}", var_name)
 
-    # Estimator / Model / Pipeline objects
-    if any(k in t for k in ("model", "estimator", "classifier", "regressor", "pipeline")):
-        return (
-            f"class _MockModel_{var_name}:\n"
-            f"    def fit(self, *a, **k): return self\n"
-            f"    def predict(self, *a, **k): return [0, 1]\n"
-            f"    def transform(self, *a, **k): return a[0] if a else []\n"
-            f"    def evaluate(self, *a, **k): return {{'metric': 1.0}}\n"
-            f"{var_name} = _MockModel_{var_name}()"
-        )
-
-    # Tabular / Structured DataFrames (checked before generic frame)
-    if "dataframe" in t or "table" in t:
-        return (
-            f"try:\n"
-            f"    import pandas as pd\n"
-            f"    {var_name} = pd.DataFrame({{'a': [1.0, 2.0, 3.0], 'b': [4, 5, 6], 'target': [0, 1, 0]}})\n"
-            f"except ImportError:\n"
-            f"    {var_name} = {{'a': [1, 2], 'b': [3, 4]}}"
-        )
-    if "series" in t or "column" in t:
-        return (
-            f"try:\n"
-            f"    import pandas as pd\n"
-            f"    {var_name} = pd.Series([1.0, 2.0, 3.0])\n"
-            f"except ImportError:\n"
-            f"    {var_name} = [1.0, 2.0, 3.0]"
-        )
-
-    # Bioinformatics / Genomics / Sequences
-    if "bio" in d or any(k in t for k in ("dna", "rna", "fasta", "fastq", "nucleotide", "genome", "protein")):
-        return f"{var_name} = 'ATGCGATCGATCGATC'"
-
-    # Audio / Acoustics / Signals
-    if "audio" in d or any(k in t for k in ("audio", "waveform", "sound", "spectrogram", "acoustic", "sample_rate")):
-        return (
-            f"try:\n"
-            f"    import numpy as np\n"
-            f"    {var_name} = np.zeros(16000, dtype=np.float32)\n"
-            f"except ImportError:\n"
-            f"    {var_name} = [0.0] * 100"
-        )
-
-    # NLP / Language / Text / Tokens
-    if any(k in t for k in ("tokens", "vocabulary", "token_ids")):
-        return f"{var_name} = ['sample', 'token', 'sequence']"
-    if "nlp" in d or any(k in t for k in ("text", "document", "corpus", "sentence", "prompt", "transcription", "utterance")):
-        return f"{var_name} = 'Sample textual data for natural language pipeline verification.'"
-
-    # Graph / Network Topologies
-    if "graph" in d or any(k in t for k in ("graph", "network", "adjacency", "edge_list")):
-        return (
-            f"try:\n"
-            f"    import networkx as nx\n"
-            f"    {var_name} = nx.path_graph(5)\n"
-            f"except ImportError:\n"
-            f"    {var_name} = {{'nodes': [0, 1, 2], 'edges': [(0, 1), (1, 2)]}}"
-        )
-
-    # Vision / Image / Video
-    if "vision" in d or any(k in t for k in ("image", "img", "video_frame", "rgb", "bgr", "pixel")) or (t == "frame"):
-        return (
-            f"try:\n"
-            f"    import numpy as np\n"
-            f"    {var_name} = np.zeros((10, 10, 3), dtype=np.uint8)\n"
-            f"except ImportError:\n"
-            f"    {var_name} = [[[0]*3]*10]*10"
-        )
-
-    # Tensors / Vectors / Embeddings / Matrices
-    if "embedding" in t or "vector" in t:
-        return (
-            f"try:\n"
-            f"    import numpy as np\n"
-            f"    {var_name} = np.ones(64, dtype=np.float32)\n"
-            f"except ImportError:\n"
-            f"    {var_name} = [0.1] * 64"
-        )
-    if any(k in t for k in ("matrix", "ndarray", "tensor")):
-        return (
-            f"try:\n"
-            f"    import numpy as np\n"
-            f"    {var_name} = np.zeros((4, 4), dtype=np.float32)\n"
-            f"except ImportError:\n"
-            f"    {var_name} = [[0.0]*4]*4"
-        )
-
-    # Standard Primitives
-    if "dict" in t or "map" in t or "record" in t:
-        return f"{var_name} = {{'id': 1, 'value': 42.0, 'name': 'test'}}"
-    if "int" in t:
-        return f"{var_name} = 10"
-    if "float" in t:
-        return f"{var_name} = 1.0"
-    if "bool" in t:
-        return f"{var_name} = True"
-    if "bytes" in t:
-        return f"{var_name} = b'test_payload'"
-    if "path" in t or "file" in t or "url" in t:
-        return f"{var_name} = 'dummy_input_file.dat'"
-    if "str" in t or "string" in t:
-        return f"{var_name} = 'sample_string'"
-
-    # Generic collection fallback
+    # Domain-neutral fallbacks for undeclared types: a generic collection
+    # literal exercises most templates without assuming any carrier modality.
     return f"{var_name} = [1, 2, 3]"
 
 

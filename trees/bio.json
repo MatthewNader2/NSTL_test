@@ -1,0 +1,25 @@
+{
+ "domain": "bio",
+ "version": "1.0",
+ "description": "Pluggable bioinformatics domain extension: fixtures and hints only.",
+ "types": {},
+ "cells": [],
+ "mock_fixtures": [
+  {
+   "match_type_tokens": [
+    "dna",
+    "rna",
+    "fasta",
+    "fastq",
+    "nucleotide",
+    "genome",
+    "protein",
+    "sequence"
+   ],
+   "match_domain_tokens": [
+    "bio"
+   ],
+   "template": "{var_name} = 'ATGCGATCGATCGATC'"
+  }
+ ]
+}

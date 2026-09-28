@@ -1,0 +1,24 @@
+{
+ "domain": "audio",
+ "version": "1.0",
+ "description": "Pluggable audio/signal domain extension: fixtures and hints only.",
+ "types": {},
+ "cells": [],
+ "mock_fixtures": [
+  {
+   "match_type_tokens": [
+    "audio",
+    "waveform",
+    "sound",
+    "spectrogram",
+    "acoustic",
+    "sample_rate",
+    "signal"
+   ],
+   "match_domain_tokens": [
+    "audio"
+   ],
+   "template": "try:\n    import numpy as np\n    {var_name} = np.zeros(16000, dtype=np.float32)\nexcept ImportError:\n    {var_name} = [0.0] * 100"
+  }
+ ]
+}

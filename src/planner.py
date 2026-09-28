@@ -985,8 +985,8 @@ class LatticePlanner:
         Match channels, in order of specificity:
           - exact port name           (always)
           - substring in port name    (only when the literal is >= 3 chars)
-          - token in any cell_id      (covers 'numpy', 'standardscaler', ...)
-          - token in any domain name  (covers 'sklearn', 'pandas', ...)
+          - token in any cell_id      (covers library-qualified operation names)
+          - token in any domain name  (covers declared domain identifiers)
           - has a column_projection port on path  (consumes the whole
             bracketed list of quoted strings at once — R, G, B)
         Short-string substring matches are rejected: `'r' in 'array'` is a
@@ -1614,34 +1614,13 @@ class LatticePlanner:
         for c in candidates:
             identity_cache[c.cell_id] = _identity_tokens(c)
 
-        # Extract syntactic prepositional operand dependencies:
-        # e.g., "perform FFT on the sum" -> operand is "sum", operator is "fft".
-        # In execution order, operand "sum" must execute BEFORE "fft".
-        operand_dependencies: List[Tuple[Set[str], Set[str]]] = []
-        _non_op_tokens = (
-            set(STOPWORDS)
-            | set(getattr(self.orchestrator, "type_registry", TypeRegistry.get_instance()).get_column_projection_tokens())
-            | set(vocab.generic_tokens)
-        )
-        prompt_words = [w.lower().strip("'\",.;:()[]{}") for w in tokenize_alphanumeric(prompt or "", min_len=1)]
-        for p_idx in range(1, len(prompt_words) - 1):
-            prep = prompt_words[p_idx]
-            # A preposition is any function word that is not a sentence connective;
-            # determiners between it and its object are skipped the same way.
-            if prep in vocab.function_words and prep not in vocab.connectives:
-                head_w = prompt_words[p_idx - 1]
-                op_idx = p_idx + 1
-                while op_idx < len(prompt_words) and prompt_words[op_idx] in vocab.function_words:
-                    op_idx += 1
-                if op_idx < len(prompt_words):
-                    op_w = prompt_words[op_idx]
-                    if head_w and op_w and head_w != op_w and head_w not in _non_op_tokens and op_w not in _non_op_tokens:
-                        head_toks = CellTokenizer.tokenize_identifier(head_w)
-                        op_toks = CellTokenizer.tokenize_identifier(op_w)
-                        head_cells = {c.cell_id for c in candidates if head_toks & identity_cache.get(c.cell_id, set())}
-                        op_cells = {c.cell_id for c in candidates if op_toks & identity_cache.get(c.cell_id, set())}
-                        if head_cells and op_cells:
-                            operand_dependencies.append((op_cells, head_cells))
+        # Operand/operator ordering: the engine deliberately does NOT parse
+        # natural-language syntax (prepositions, head/operand positions, etc.).
+        # Language syntax is not declared structure — hardcoding English
+        # grammar here broke every non-English phrasing and inverted
+        # construction. Ordering evidence comes from DECLARED structure only:
+        # clause segmentation (cell_clause_mass), typed carrier dataflow
+        # (monadic transitions), and identifier role groups.
 
         def _match_mass(cl_toks: Set[str], c_toks: Set[str], id_toks: Set[str]) -> float:
             strong = sum(idf_of_prompt.get(t, _idf(t)) for t in (cl_toks & (c_toks & id_toks)))
@@ -1859,12 +1838,33 @@ class LatticePlanner:
 
         def _new_unbindable(cand: Cell, prev_path: List[Cell]) -> int:
             produced = [out_sig.signature for prev in prev_path for out_sig in prev.outputs.values()]
+            receivers = [
+                p_sig for p_sig in cell_receiver_sigs.get(cand.cell_id, ())
+                if not _is_table_groundable_target(p_sig, prev_path)
+            ]
+            # Monadic multi-carrier admissibility (one wire feeds ONE port per
+            # cell): required ports are only satisfiable from DISTINCT
+            # producers. Counting each port independently against the whole
+            # produced set let monoidal-product cells (two same-typed required
+            # inputs, e.g. row concatenation) pass planning with a single
+            # wire, only for the binder to refuse the duplicate consumption at
+            # emission time. Greedy bipartite matching, most-constrained port
+            # first, mirrors the binder's actual consumption semantics.
+            def _match_count(p_sig: Any) -> int:
+                return sum(1 for prod in produced if unify(prod, p_sig) is not None)
+
+            remaining = list(produced)
             count = 0
-            for p_sig in cell_receiver_sigs.get(cand.cell_id, ()):
-                if _is_table_groundable_target(p_sig, prev_path):
-                    continue
-                if not any(unify(prod, p_sig) is not None for prod in produced):
+            for p_sig in sorted(receivers, key=_match_count):
+                match_idx = None
+                for i, prod in enumerate(remaining):
+                    if unify(prod, p_sig) is not None:
+                        match_idx = i
+                        break
+                if match_idx is None:
                     count += 1
+                else:
+                    remaining.pop(match_idx)
 
             # Path port capacity checks: required external path inputs across the pipeline
             # must not exceed available source file literals (for ingress) or dest file literals (for egress).
@@ -2117,15 +2117,6 @@ class LatticePlanner:
             if covered_clauses:
                 ordered = sorted(covered_clauses)
                 gap_holes = sum(1 for g in range(ordered[0], ordered[-1] + 1) if g not in covered_clauses)
-
-            operand_inversions = 0
-            if operand_dependencies:
-                path_cids = [c.cell_id for c in path]
-                for op_cands, head_cands in operand_dependencies:
-                    head_indices = [idx for idx, cid in enumerate(path_cids) if cid in head_cands]
-                    op_indices = [idx for idx, cid in enumerate(path_cids) if cid in op_cands]
-                    if head_indices and op_indices and min(head_indices) < max(op_indices):
-                        operand_inversions += 1
 
             alignment = clause_cov / (1.0 + inversions)
 
@@ -2443,7 +2434,6 @@ class LatticePlanner:
                 float(dead_ctors),
                 float(dead_outputs),
                 float(dead_expansion_steps),
-                float(operand_inversions),
             )
             terms = {   # "family:term" - families are averaged first so correlated terms cannot double-count
                 "intent:coverage_identity": strong_mass,
@@ -2906,14 +2896,21 @@ class LatticePlanner:
         prompt: str
     ) -> List[Cell]:
         """
-        Expands for-each sub-goals: for every identifier role group in the
+        Monoidal for-each distribution: for every identifier role group in the
         prompt (>= 2 members sharing a role noun) and every witnessing cell on
-        the path, inserts N-1 replicas of the witness directly after it.
-        Gating is DECLARED-structure only: role tokens must intersect the
-        cell's own token vocabulary, and the cell must own a defaultless
-        required port of the reference value class (strict str, or any-typed
-        with a declared semantic role state). Mirrors the binding gate in
-        ExecutionContext.resolve_literal_for_port exactly.
+        the path, inserts exactly len(group.members) - 1 replicas of the
+        witness directly after it — the monoidal functor distributing a
+        morphism over the declared product of identifiers.
+
+        The replica count is DATA-DRIVEN: it is exactly the declared group
+        membership extracted structurally from the prompt (no fixed cap such
+        as the previous fixed replica cap, which silently truncated legitimate
+        multi-target requests). Gating remains DECLARED-structure only: role
+        tokens must intersect the cell's own token vocabulary, and the cell
+        must own a defaultless required port of the reference value class
+        (strict str, or any-typed with a declared semantic role state).
+        Mirrors the binding gate in ExecutionContext.resolve_literal_for_port
+        exactly.
         """
         if not prompt or len(path) < 1:
             return path
@@ -2970,25 +2967,20 @@ class LatticePlanner:
             return False
 
         expanded: List[Cell] = []
-        replicas_added = 0
-        MAX_REPLICAS = 8
         for cell in path:
             expanded.append(cell)
-            if replicas_added >= MAX_REPLICAS:
-                continue
             for group in groups:
                 if len(group.members) < 2 or not group.role_tokens:
                     continue
                 if not _is_witness(cell, group.role_tokens):
                     continue
+                # Exactly the declared multiplicity: one witness already on
+                # the path, one replica per additional declared member.
                 for _pos, _tok in group.members[1:]:
-                    if replicas_added >= MAX_REPLICAS:
-                        break
                     replica = copy.copy(cell)
                     replica.replica_of = cell.cell_id
                     replica.replica_role = ",".join(sorted(group.role_tokens))
                     expanded.append(replica)
-                    replicas_added += 1
         return expanded
 
     def _verify_transition(
@@ -3623,14 +3615,22 @@ class LatticePlanner:
 
                     new_sigma, bound_parents, is_join = v_res
 
-                    # Step canonicalization: prune permuted orderings of independent commuting steps.
-                    # If cand does not consume prev_cell and cand.cell_id < prev_cell.cell_id,
-                    # and cand was already eligible to attach to prev_path[:-1], cand should have
-                    # preceded prev_cell. Prune the non-canonical permutation, respecting prompt clause ordering.
+                    # Step canonicalization (DECLARED structure only): prune
+                    # permuted orderings of independent steps when the PROMPT's
+                    # own clause ordering declares the canonical sequence. If
+                    # cand belongs to a strictly EARLIER prompt clause than
+                    # prev_cell, does not consume it, does not connect to it,
+                    # and could have attached to prev_path[:-1], then placing
+                    # cand after prev_cell contradicts the user-requested
+                    # sequence. The previous heuristic also compared cell_id
+                    # STRINGS alphabetically ("A" < "B") — an arbitrary
+                    # lexicographic criterion that discarded valid topological
+                    # orderings; it has been removed. When no clause evidence
+                    # distinguishes the two orderings, BOTH are kept and the
+                    # scored trellis decides.
                     if (
                         len(prev_path) >= 1
                         and prev_cell.cell_id not in bound_parents
-                        and cand.cell_id < prev_cell.cell_id
                         and not _cells_connect(prev_cell, cand)
                         and not is_ingress
                     ):
@@ -3638,7 +3638,7 @@ class LatticePlanner:
                         cand_m = cell_clause_mass.get(cand.cell_id, []) if cell_clause_mass else []
                         prev_cl = max(range(len(prev_m)), key=lambda i: prev_m[i]) if prev_m and max(prev_m) > 0 else 0
                         cand_cl = max(range(len(cand_m)), key=lambda i: cand_m[i]) if cand_m and max(cand_m) > 0 else 0
-                        if cand_cl <= prev_cl:
+                        if cand_m and cand_cl < prev_cl:
                             if not prev_path[:-1] or _verify_frontier_step(prev_path[:-1], cand, prev_sigma) is not None:
                                 continue
 

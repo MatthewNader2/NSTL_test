@@ -1,0 +1,35 @@
+{
+ "domain": "nlp",
+ "version": "1.0",
+ "description": "Pluggable natural-language domain extension: fixtures and hints only.",
+ "types": {},
+ "cells": [],
+ "mock_fixtures": [
+  {
+   "match_type_tokens": [
+    "tokens",
+    "vocabulary",
+    "token_ids"
+   ],
+   "match_domain_tokens": [
+    "nlp"
+   ],
+   "template": "{var_name} = ['sample', 'token', 'sequence']"
+  },
+  {
+   "match_type_tokens": [
+    "document",
+    "corpus",
+    "sentence",
+    "prompt",
+    "transcription",
+    "utterance"
+   ],
+   "match_domain_tokens": [
+    "nlp",
+    "text"
+   ],
+   "template": "{var_name} = 'Sample textual data for natural language pipeline verification.'"
+  }
+ ]
+}

@@ -175,11 +175,20 @@ class IRCompiler:
             if getattr(c, "domain_name", None)
         })
 
-    def _vocab_for_prompt(self, max_entries: int = 300) -> str:
+    def _vocab_for_prompt(self, prompt: str = "", max_entries: int = 300) -> str:
         """
-        Formats vocabulary for the LLM prompt.
-        Avoids length-based sorting to ensure long, descriptive operation names
-        (e.g., singular_value_decomposition) are not dropped.
+        Formats vocabulary for the LLM prompt (Solution 7).
+
+        Selection is PROMPT-RELEVANCE based, never stride sampling: the
+        previous uniform stride sampling arbitrarily dropped up to ~70% of
+        operations, so any operation falling between sample steps was
+        unrepresentable in the compiled IR. Now:
+          1. Entries whose declared tokens overlap (or prefix-match) the
+             prompt's tokens always rank first — the operations the task
+             needs are guaranteed to be offered to the LLM.
+          2. Remaining budget is filled by stable, deterministic order so the
+             prompt stays within the context window without semantic loss
+             being concentrated on any lexical range.
         """
         if not self.vocab:
             return "(dynamically infer based on prompt and library context)"
@@ -188,10 +197,47 @@ class IRCompiler:
         if len(entries) <= max_entries:
             return ", ".join(entries)
 
-        # Balanced uniform sampling across the sorted vocabulary if exceeding max entries
-        step = max(1, len(entries) // max_entries)
-        sampled = entries[::step][:max_entries]
-        return ", ".join(sampled)
+        prompt_toks: Set[str] = set()
+        try:
+            from .tokenizer import CellTokenizer as _CT
+        except (ImportError, ValueError):
+            try:
+                from tokenizer import CellTokenizer as _CT
+            except Exception:
+                _CT = None
+        if _CT is not None and prompt:
+            try:
+                prompt_toks = {t.lower() for t in _CT.tokenize_prompt(prompt)}
+            except Exception:
+                prompt_toks = set()
+        if not prompt_toks and prompt:
+            prompt_toks = {
+                w.strip("_'\",.;:()[]{}").lower()
+                for w in prompt.split()
+                if len(w) >= 3
+            }
+
+        def _split_entry(entry: str) -> Set[str]:
+            parts = entry.replace("-", "_").split("_")
+            return {p.lower() for p in parts if len(p) >= 3}
+
+        def _relevance(entry: str) -> Tuple[int, int, str]:
+            if not prompt_toks:
+                return (0, 0, entry)
+            entry_toks = _split_entry(entry)
+            overlap = len(entry_toks & prompt_toks)
+            prefix_hit = any(pt.startswith(entry) or entry.startswith(pt) for pt in prompt_toks if len(entry) >= 3)
+            return (overlap, 1 if prefix_hit else 0, entry)
+
+        scored = sorted(entries, key=_relevance, reverse=True)
+        relevant = [e for e in scored if _relevance(e)[:2] != (0, 0)]
+        filler = [e for e in scored if _relevance(e)[:2] == (0, 0)]
+        selected = relevant[:max_entries]
+        if len(selected) < max_entries:
+            selected.extend(filler[: max_entries - len(selected)])
+        # Restore deterministic (alphabetical) order within the selected set
+        # so the prompt is stable across runs for identical inputs.
+        return ", ".join(sorted(selected))
 
     def compile(self, prompt: str) -> Optional[IR]:
         mm = ModelManager.get_instance()
@@ -199,7 +245,7 @@ class IRCompiler:
         if prof is None or getattr(prof, "llm", None) is None:
             return None
 
-        vocab_str = self._vocab_for_prompt()
+        vocab_str = self._vocab_for_prompt(prompt)
         libs_str = ", ".join(sorted(self.libs))
         msg = PROMPT_TEMPLATE.format(vocab=vocab_str, libs=libs_str, prompt=prompt)
 

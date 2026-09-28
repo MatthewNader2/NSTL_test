@@ -88,24 +88,20 @@ PRUNE_S2_PER_CLAUSE: int = int(_cfg("prune_s2_per_clause", 6))
 PRUNE_S3_MIN: int = int(_cfg("prune_s3_min", 8))
 PRUNE_S3_PER_CLAUSE: int = int(_cfg("prune_s3_per_clause", 2))
 
-# --- Macro promotion (Section 3.5) ----------------------------------------
+# --- Macro participation (Section 3.5) -------------------------------------
 # IDF-weighted concept coverage gate: a macro must own at least this fraction
-# of the prompt's semantic mass before it can be promoted.
+# of the prompt's semantic mass before it can enter the tunnel. Its relevance
+# is its measured coverage — no priority inflation, no constituent boosting.
 MACRO_CONCEPT_COVERAGE_GATE: float = float(_cfg("macro_concept_coverage_gate", 0.35))
-MACRO_PRIORITY_MICRO_FACTOR: float = float(_cfg("macro_priority_micro_factor", 1.25))
-MACRO_PRIORITY_MICRO_BIAS: float = float(_cfg("macro_priority_micro_bias", 0.05))
-MACRO_PRIORITY_IDF_WEIGHT: float = float(_cfg("macro_priority_idf_weight", 0.15))
-MACRO_REL_MICRO_FACTOR: float = float(_cfg("macro_rel_micro_factor", 1.1))
-MACRO_REL_MICRO_BIAS: float = float(_cfg("macro_rel_micro_bias", 0.02))
-MACRO_REL_FLOOR: float = float(_cfg("macro_rel_floor", 0.1))
 
-# --- Dense-RAG gating -----------------------------------------------------
-# When Stage-1 idiom discovery produces a strong lexical signal (top idiom's
-# total_score >= ratio * n_clauses AND full clause coverage), the dense blend
-# is skipped: the lexical evidence already suffices and the embed+FAISS pass
-# is redundant.
-DENSE_GATE_COVERAGE_RATIO: float = float(_cfg("dense_gate_coverage_ratio", 3.0))
-# Per-span top_k bounds when dense blending does run.
+# --- Dense-RAG fusion -------------------------------------------------------
+# The dense pass ALWAYS runs when an indexed RAG is available (Profile A/C/D/E
+# architecture contract): lexical stage-1 evidence and dense embedding
+# evidence are fused, never short-circuited by a lexical heuristic. There is
+# intentionally NO lexical-strength bypass here — such a gate silently
+# degraded Profile A/C/D benchmarks to Profile 0 behavior on prompts with
+# high lexical overlap.
+# Per-span top_k bounds for the dense blend.
 DENSE_RAG_MIN_PER_SPAN: int = int(_cfg("dense_rag_min_per_span", 4))
 DENSE_RAG_MAX_PER_SPAN: int = int(_cfg("dense_rag_max_per_span", 25))
 
@@ -514,22 +510,30 @@ class LatticeRouter:
         # prompt into a typed IR, that IR -- not a regex/punctuation split of
         # the raw text -- is the source of truth for the pipeline's semantic
         # clauses. The IR was produced by a model that actually read the
-        # prompt; the previous approach ran the LLM IR compiler ONLY to
-        # bump a clause *count* and to stuff its op/library words into the
-        # embedding query text, then still regex-segmented that mutated
-        # text for the actual clauses used everywhere else (search_texts,
-        # first_clause, idiom discovery). That defeated the point of having
-        # an IR at all. Here, a successfully compiled IR with >=1 step
-        # supplies the clauses directly (one per step); the embedding text
-        # itself is left untouched. The regex/punctuation segmenter is kept
-        # ONLY as the fallback for when no model is loaded or IR compilation
-        # did not produce anything usable.
+        # prompt. A successfully compiled IR with >=1 step supplies the
+        # clauses directly (one per step); the embedding text itself is left
+        # untouched. The regex/punctuation segmenter is kept ONLY as the
+        # fallback for when no model is loaded or IR compilation did not
+        # produce anything usable.
+        #
+        # Profile S (Semantic Compiler): the STRUCTURED IR is preserved, not
+        # discarded. `self.last_compiled_ir` and `self.last_ir_literals` keep
+        # the typed steps and extracted literals for downstream consumers:
+        #   - the structured steps deterministically constrain the candidate
+        #     tunnel (see the IR tunnel-constraint pass below), and
+        #   - the literals are injected into ExecutionContext.parameters by
+        #     the executors, letting the Unification Gate bind arguments
+        #     deterministically instead of re-scanning the prompt.
         num_semantic_clauses = 0
         ir_clauses: List[str] = []
+        self.last_compiled_ir = None
+        self.last_ir_literals = {}
         if getattr(self, "_use_ir_compiler", False) and self._ir_compiler is not None:
             try:
-                _ir = self._ir_compiler.compile(prompt)
+                _ir = self._ir_compiler.compile(prompt,)
                 if _ir is not None and _ir.steps:
+                    self.last_compiled_ir = _ir
+                    self.last_ir_literals = dict(getattr(_ir, "literals", {}) or {})
                     for s in _ir.steps:
                         op = str(s.get("op", "")).strip()
                         lib = str(s.get("library", "")).strip()
@@ -592,20 +596,13 @@ class LatticeRouter:
             if idiom_group:
                 grouped_candidates.append(idiom_group)
 
-        # Step 4: Optional dense vector blending from edge-context embeddings.
-        # Gated on weak lexical signal: if Stage-1 idiom discovery already
-        # produced a strongly-covered candidate (full clause coverage and a
-        # total_score at least DENSE_GATE_COVERAGE_RATIO x clause count), the
-        # lexical evidence is sufficient and the embed + FAISS pass is skipped.
-        # This removes the dominant latency cost on Profile A/C/D prompts whose
-        # intent is already unambiguous from tokens alone.
-        strong_lexical = bool(candidate_idioms) and (
-            candidate_idioms[0].total_score
-                >= DENSE_GATE_COVERAGE_RATIO * max(num_semantic_clauses, 1)
-            and len(candidate_idioms[0].covered_clauses) >= num_semantic_clauses
-        )
-
-        if (not strong_lexical) and self.internal_rag is not None and self.internal_rag.index is not None:
+        # Step 4: Dense vector blending from edge-context embeddings.
+        # Architecture contract (Profile A/C/D/E): the dense pass ALWAYS runs
+        # when an indexed RAG is present. Lexical stage-1 idiom evidence and
+        # dense embedding evidence are complementary modalities; a lexical
+        # heuristic must never short-circuit the embed + FAISS pass, so the
+        # reported dense-retrieval behavior in every profile is genuine.
+        if self.internal_rag is not None and self.internal_rag.index is not None:
             clause_spans = [c.strip() for c in search_texts if c and c.strip()]
             query_spans = clause_spans + [
                 q for q in self._generate_query_spans(prompt.strip()) if q not in clause_spans
@@ -618,22 +615,29 @@ class LatticeRouter:
                 DENSE_RAG_MIN_PER_SPAN,
                 min(DENSE_RAG_MAX_PER_SPAN, top_k // n_spans),
             )
-            dense_scores: Dict[str, float] = {}
+            dense_candidates: Dict[str, Tuple[Cell, float]] = {}
             rag_results = self.internal_rag.get_relevant_context_batch(query_spans, top_k=per_span_k)
             for span_results in rag_results:
                 for item in span_results:
                     cid = item.get("cell_id")
-                    sc = float(item.get("score", 0.0))
-                    if cid and sc >= 0.25 and (cid not in dense_scores or sc > dense_scores[cid]):
-                        dense_scores[cid] = sc
+                    if not cid:
+                        continue
+                    # Honest fusion weight: the RRF rank is the declared fusion
+                    # policy over dense + lexical modalities. No fabricated
+                    # cosine substitution is applied anywhere.
+                    weight = float(item.get("rrf_score", 0.0) or 0.0)
+                    if weight <= 0.0:
+                        continue
+                    cell_obj = self.orchestrator.loaded_cells.get(cid)
+                    if cell_obj is None:
+                        continue
+                    prev = dense_candidates.get(cid)
+                    if prev is None or weight > prev[1]:
+                        dense_candidates[cid] = (cell_obj, weight)
 
-            if dense_scores:
-                sorted_dense = sorted(dense_scores.items(), key=lambda x: x[1], reverse=True)[:60]
-                dense_dict: Dict[Cell, float] = {}
-                for cid, sc in sorted_dense:
-                    c = self.orchestrator.loaded_cells.get(cid)
-                    if c:
-                        dense_dict[c] = sc
+            if dense_candidates:
+                top_dense = sorted(dense_candidates.values(), key=lambda x: x[1], reverse=True)[:60]
+                dense_dict: Dict[Cell, float] = {c: w for c, w in top_dense}
                 if dense_dict:
                     grouped_candidates.append(dense_dict)
 
@@ -646,6 +650,32 @@ class LatticeRouter:
         final_tunnel: List[Cell] = [c for c, _ in candidates_with_scores]
         relevance_map = {c.cell_id: s for c, s in candidates_with_scores}
         tunnel_ids = set(c.cell_id for c in final_tunnel)
+
+        # Step 4.1 (Profile S): Structured IR tunnel constraint. Each compiled
+        # IR step deterministically contributes the cells whose DECLARED
+        # operation/identity vocabulary matches the step's op (and, when the
+        # step names a library, that domain). This keeps the typed-IR output
+        # in its structured form all the way into the tunnel instead of
+        # flattening it back to unstructured text and hoping lexical recall
+        # recovers it.
+        if getattr(self, "last_compiled_ir", None) is not None:
+            for s in getattr(self.last_compiled_ir, "steps", []) or []:
+                op_tok = CellTokenizer.tokenize_identifier(str(s.get("op", "")))
+                if not op_tok:
+                    continue
+                lib_name = str(s.get("library", "")).strip().lower()
+                for cell in self.orchestrator.loaded_cells.values():
+                    if cell.cell_id in tunnel_ids:
+                        continue
+                    if lib_name and str(getattr(cell, "domain_name", "")).lower() not in (lib_name, ""):
+                        continue
+                    identity = getattr(cell, "identity_tokens", getattr(cell, "token_set", set()))
+                    if op_tok & identity:
+                        final_tunnel.append(cell)
+                        tunnel_ids.add(cell.cell_id)
+                        relevance_map[cell.cell_id] = max(
+                            relevance_map.get(cell.cell_id, 0.0), self.epsilon * 2.0
+                        )
 
         # Category-Theoretic Bridge & Active Subcategory Morphism Completion:
         # If the active tunnel contains distinct carrier types A and B,
@@ -772,22 +802,24 @@ class LatticeRouter:
         relevance_map: Dict[str, float]
     ) -> None:
         """
-        Promotes matched MacroCells above their constituent micro-cells.
+        Enters matched MacroCells into the tunnel with HONEST, EARNED scores.
 
         A macro is a macro-goal: an empirically verified path over existing
-        micro-cells (synapses forming a known-good macro-path). Promotion is
-        gated by IDF-weighted CONCEPT COVERAGE: the macro's declared identity
+        micro-cells (synapses forming a known-good macro-path). Its evidence
+        is IDF-weighted CONCEPT COVERAGE: the macro's declared identity
         vocabulary (cell id + keywords) must cover a substantial fraction of
         the prompt's semantic mass. Generic I/O vocabulary ('csv', 'save')
-        carries near-zero IDF and can therefore never promote a macro on its
-        own — only the macro's composite concept (e.g. ranking, contour
-        annotation) can. This mirrors the planner's idf-weighted coverage
-        philosophy and keeps macros from hijacking prompts they do not express.
+        carries near-zero IDF and can therefore never enter on its own.
 
-        When promoted, the macro's relevance is strictly greater than the
-        maximum relevance of its own micro-cells (the known-good path outranks
-        its constituents). The macro carries no new functionality: downstream,
-        UnificationGate expands it back into its micro-cell sequence.
+        The macro's relevance is exactly its measured concept coverage — it
+        competes on the router's own distribution like every other cell. NO
+        fabricated priority inflation is applied: the macro is never
+        artificially forced above its constituent micro-cells regardless of
+        routing probabilities, and constituent micro-cells are never injected
+        with boosted scores they did not earn. Downstream, the Unification
+        Gate expands a promoted macro back into its micro-cell sequence (the
+        macro carries no new functionality), so routing fidelity is preserved
+        without rigging the distribution.
 
         All scaling constants resolve through config (see MACRO_* module
         constants); see settings for tuning semantics.
@@ -806,7 +838,7 @@ class LatticeRouter:
         if prompt_mass <= 0:
             return
 
-        promoted: List[Tuple[float, float, Cell]] = []
+        promoted: List[Tuple[float, Cell]] = []
         for cell in self.orchestrator.loaded_cells.values():
             if not (isinstance(cell, MacroCell) and getattr(cell, "sub_cells", None)):
                 continue
@@ -819,54 +851,26 @@ class LatticeRouter:
             if concept_coverage < MACRO_CONCEPT_COVERAGE_GATE:
                 continue
 
-            micro_scores = [
-                float(relevance_map.get(sid, 0.0))
-                for sid in cell.sub_cells
-                if sid in relevance_map
-            ]
-            micro_max = max(micro_scores) if micro_scores else 0.0
+            # Earned relevance: the macro's measured coverage of the prompt's
+            # semantic mass, bounded to [0, 1]. Strictly derived from declared
+            # identity vocabulary and the routing token statistics.
+            earned_rel = min(1.0, concept_coverage)
+            promoted.append((earned_rel, cell))
 
-            # Strictly-above guarantee: the macro outranks its strongest micro
-            # by a margin, scaled by the discriminative concept mass.
-            # D2 Fix: We compute an unbounded priority score for priority_map,
-            # but calibrate relevance_map so it remains strictly in [0.0, 1.0].
-            raw_priority = max(
-                micro_max * MACRO_PRIORITY_MICRO_FACTOR + MACRO_PRIORITY_MICRO_BIAS,
-                float(self.epsilon) * 4.0,
-            ) + MACRO_PRIORITY_IDF_WEIGHT * idf_mass
-
-            calibrated_macro_rel = min(
-                1.0,
-                max(micro_max * MACRO_REL_MICRO_FACTOR + MACRO_REL_MICRO_BIAS, MACRO_REL_FLOOR),
-            )
-
-            promoted.append((raw_priority, calibrated_macro_rel, cell))
-
-        for raw_priority, calibrated_rel, cell in promoted:
+        for earned_rel, cell in promoted:
             if cell.cell_id not in tunnel_ids:
                 final_tunnel.append(cell)
                 tunnel_ids.add(cell.cell_id)
-            if calibrated_rel > relevance_map.get(cell.cell_id, 0.0):
-                relevance_map[cell.cell_id] = calibrated_rel
-            self.priority_map[cell.cell_id] = max(self.priority_map.get(cell.cell_id, 0.0), raw_priority)
-
-            # Synaptic micro-cell promotion: bring constituent micro-cells into the tunnel
-            # with boosted relevance so they participate in routing and allow intermediate nodes
-            # (such as ranking, slicing, or custom filtering) to be spliced in the middle.
-            for sid in getattr(cell, "sub_cells", []):
-                micro_cell = self.orchestrator.loaded_cells.get(sid)
-                if micro_cell:
-                    if sid not in tunnel_ids:
-                        final_tunnel.append(micro_cell)
-                        tunnel_ids.add(sid)
-                    boosted_score = min(1.0, max(relevance_map.get(sid, 0.0), calibrated_rel * 0.85))
-                    relevance_map[sid] = boosted_score
-                    self.priority_map[sid] = max(self.priority_map.get(sid, 0.0), raw_priority * 0.85)
+            if earned_rel > relevance_map.get(cell.cell_id, 0.0):
+                relevance_map[cell.cell_id] = earned_rel
+            self.priority_map[cell.cell_id] = max(
+                self.priority_map.get(cell.cell_id, 0.0), earned_rel
+            )
 
         if promoted:
             logger.debug(
-                f"[ROUTER] Macro-goal promotion: "
-                f"{[_extract_id(c) for c in promoted]}"
+                f"[ROUTER] Macro-goal participation (earned coverage): "
+                f"{[_extract_id(c) for c, _ in promoted]}"
             )
 
     def _tunnel_from_groups(

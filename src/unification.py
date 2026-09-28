@@ -969,6 +969,12 @@ class ExecutionContext:
         self.consumed_members: Set[Tuple[str, int]] = set()
         self.unresolved_ports: List[Tuple[str, str]] = []
         self.unbindable_count: int = 0
+        # Declared runtime egress aliases: maps a prompt-declared sink
+        # identifier (e.g. "store the results into Z" -> "Z") to the pipeline
+        # variable that carries the terminal value. Applied at the RUNTIME
+        # namespace level by the sandbox — the emitted source is never
+        # rewritten to fake an assignment.
+        self.runtime_aliases: Dict[str, str] = {}
         self.ordered_literals: List[Tuple[int, str, str]] = self._extract_universal_literals(self._prompt)
         # D8: Map each literal to its prompt clause index
         self.literal_clause_map: Dict[int, int] = self._build_literal_clause_map(self._prompt, self.ordered_literals)
@@ -1051,6 +1057,13 @@ class ExecutionContext:
 
         return None
 
+    def declare_runtime_alias(self, alias_name: str, source_var: str) -> None:
+        """Declares that a prompt-declared sink identifier aliases a pipeline variable."""
+        name = str(alias_name or "").strip()
+        source = str(source_var or "").strip()
+        if name and source and name != source:
+            self.runtime_aliases[name] = source
+
     def reset(self):
         """Resets transient pipeline variables and consumed literal indices, preserving prompt, parameters, and initial scope."""
         self.variables = {}
@@ -1070,6 +1083,7 @@ class ExecutionContext:
         self.unresolved_ports = []
         self.unbindable_count = 0
         self.var_counter = 0
+        self.runtime_aliases = dict(getattr(self, "runtime_aliases", {}) or {})
         if hasattr(self, "scope") and self.scope:
             for k, v in self.scope.items():
                 self.declare_variable(k, v, k)
@@ -1096,6 +1110,7 @@ class ExecutionContext:
         new_ctx.target_col = self.target_col
         new_ctx.columns = list(self.columns)
         new_ctx.hyperparameters = dict(self.hyperparameters)
+        new_ctx.runtime_aliases = dict(getattr(self, "runtime_aliases", {}) or {})
         return new_ctx
 
     @staticmethod
@@ -2022,10 +2037,12 @@ class ExecutionContext:
                 desc_hint = bool(hint_toks & _DESCENDING_HINTS)
                 if asc_hint != desc_hint:
                     # Does this port's POSITIVE pole mean ascending order?
-                    # Inverted-pole names are DECLARED port identifiers; matched
-                    # token-wise so e.g. "description" never matches.
+                    # Inverted-pole names are DECLARED port identifiers, checked
+                    # against the registry-harvested descending polarity hints
+                    # (trees/*.json `polarity_hints`) — token-wise, so e.g.
+                    # "description" never matches.
                     positive_means_ascending = not (
-                        p_name in _DESCENDING_POLE_NAMES
+                        p_name in _DESCENDING_HINTS
                         or bool(p_name_tokens & {"desc", "descend", "descending", "decreasing", "reverse"})
                     )
                     descending_requested = desc_hint
@@ -2442,7 +2459,7 @@ class ExecutionContext:
                 return def_str
             if not is_str:
                 return def_str
-            # For string ports, check if def_str is an unquoted module constant (e.g. cv2.COLOR_BGR2GRAY)
+            # For string ports, check if def_str is an unquoted module constant (module-scoped enum attribute)
             parts = def_str.split(".")
             if len(parts) > 1 and parts[0] in sys.modules:
                 return def_str
@@ -2516,6 +2533,165 @@ class UnificationGate:
         self.last_egress_paths: List[str] = []
         self.last_pipeline_bindings: List[Tuple[Cell, Dict[str, str]]] = []
         self.last_verification_contract: Optional[VerificationContract] = None
+        self.last_runtime_aliases: Dict[str, str] = {}
+
+    def get_runtime_aliases(self) -> Dict[str, str]:
+        """
+        Returns the prompt-declared egress aliases produced by the most recent
+        synthesis (e.g. {"Z": "var_3"} for "store the results into Z"). The
+        sandbox applies these in the runtime namespace so the declared sink
+        identifier resolves without fabricating source-level assignments.
+        """
+        return dict(self.last_runtime_aliases)
+
+    # ------------------------------------------------------------------
+    # Declared bridge-morphism composition (Solution 3)
+    # ------------------------------------------------------------------
+
+    def _compose_declared_bridge_expr(
+        self,
+        src_var: str,
+        src_type: str,
+        dst_type: str,
+        literal_bindings: Dict[str, str],
+        dst_sig: Optional[Any] = None,
+        ctx: Optional[ExecutionContext] = None,
+        max_hops: int = 2,
+    ) -> Optional[str]:
+        """
+        Composes an expression from DECLARED bridge morphisms connecting
+        src_type to dst_type. Bridge morphisms are ordinary tree cells
+        (node_role == 'bridge') whose single-statement template has the shape
+        `{output_var} = <expression over its input ports>`.
+
+        The engine contributes ONLY the composition mechanism: it reads the
+        templates out of the loaded cells (which come from pluggable domain
+        trees) and instantiates them generically. When no tree declares a
+        morphism chain between the carriers, this returns None and the port
+        remains unresolved — the engine never writes library-specific syntax
+        (column projections, array conversions, ...) on its own.
+        """
+        orchestrator = getattr(self, "orchestrator", None)
+        if orchestrator is None:
+            return None
+        registry = TypeRegistry.get_instance()
+
+        bridge_cells = [
+            c for c in (getattr(orchestrator, "loaded_cells", {}) or {}).values()
+            if str(getattr(c, "node_role", "")).lower() == "bridge"
+            or str(getattr(c, "node_type", "")).lower() == "tunnel"
+        ]
+        if not bridge_cells:
+            return None
+
+        def _accepts(port_sig: Any, have: str) -> bool:
+            pt = str(getattr(getattr(port_sig, "signature", port_sig), "type_name", "") or "").lower()
+            have_l = (have or "").lower()
+            if pt in ("any", "*", "top", ""):
+                return True
+            if not have_l:
+                return False
+            return registry.is_subtype(have_l, pt)
+
+        def _dst_accepts(have: str) -> bool:
+            have_l = (have or "").lower()
+            dst_l = str(dst_type or "").lower()
+            if dst_l and registry.is_subtype(have_l, dst_l):
+                return True
+            ab = str(getattr(dst_sig, "abstract_type", "") or "").lower() if dst_sig is not None else ""
+            return bool(ab and ab not in ("any", "*") and registry.is_subtype(have_l, ab))
+
+        def _template_rhs(cell: Any) -> Optional[Tuple[str, str, Dict[str, str]]]:
+            tpl = (getattr(cell, "code_template", "") or "").strip()
+            if not tpl or "\n" in tpl or tpl.count("=") != 1:
+                return None
+            lhs, rhs = tpl.split("=", 1)
+            out_name = getattr(getattr(cell, "primary_output", None), "name", "") or "output_var"
+            if lhs.strip() != "{" + out_name + "}":
+                return None
+            rhs = rhs.strip()
+            placeholders = set(extract_template_placeholders(rhs))
+            if not placeholders:
+                return None
+            out_decl = (getattr(cell, "outputs", {}) or {}).get(out_name)
+            out_type = ""
+            if isinstance(out_decl, dict):
+                out_type = str(out_decl.get("type_name", ""))
+            elif out_decl is not None:
+                out_type = str(getattr(out_decl, "type_name", ""))
+            return rhs, out_name, {"output_type": out_type}
+
+        def _literal_for(port_name: str, port_sig: Any) -> Optional[str]:
+            # Match declared literal bindings by port name first, then by
+            # tokenized overlap between the port's declared name/state and the
+            # binding key (e.g. state "column_identifier" <-> key "column").
+            if port_name in literal_bindings:
+                return literal_bindings[port_name]
+            toks = CellTokenizer.tokenize_identifier(port_name)
+            state = str(getattr(getattr(port_sig, "signature", port_sig), "state", "") or "")
+            toks |= CellTokenizer.tokenize_identifier(state)
+            for key, rendered in literal_bindings.items():
+                if CellTokenizer.tokenize_identifier(key) & toks:
+                    return rendered
+            if not getattr(port_sig, "required", True):
+                default_val = getattr(port_sig, "default_value", None)
+                if default_val is not None:
+                    return repr(default_val)
+                return "None"
+            return None
+
+        frontier: List[Tuple[str, str]] = [(str(src_type or "").lower(), str(src_var))]
+        seen_types = {str(src_type or "").lower()}
+
+        for _hop in range(max(1, max_hops)):
+            next_frontier: List[Tuple[str, str]] = []
+            for cur_type, cur_expr in frontier:
+                if _dst_accepts(cur_type):
+                    return cur_expr
+                for cell in bridge_cells:
+                    tpl = _template_rhs(cell)
+                    if tpl is None:
+                        continue
+                    rhs, out_name, meta = tpl
+                    out_type = (meta.get("output_type") or "").lower()
+                    if not out_type or out_type in seen_types:
+                        continue
+                    in_ports = list((getattr(cell, "inputs", {}) or {}).items())
+                    if not in_ports:
+                        continue
+                    # Try each input port as the chain carrier; every other
+                    # required port must be satisfied from declared literals.
+                    for carrier_name, carrier_sig in in_ports:
+                        if not _accepts(carrier_sig, cur_type):
+                            continue
+                        subs: Dict[str, str] = {out_name: cur_expr}
+                        satisfiable = True
+                        for other_name, other_sig in in_ports:
+                            if other_name == carrier_name:
+                                continue
+                            rendered = _literal_for(other_name, other_sig)
+                            if rendered is None:
+                                satisfiable = False
+                                break
+                            subs[other_name] = rendered
+                        if not satisfiable:
+                            continue
+                        subs[carrier_name] = cur_expr
+                        composed = safe_substitute_template(rhs, subs)
+                        leftover = set(extract_template_placeholders(composed))
+                        if leftover:
+                            continue
+                        next_frontier.append((out_type, composed))
+                        seen_types.add(out_type)
+                        break
+            if not next_frontier:
+                break
+            frontier = next_frontier
+
+        for cur_type, cur_expr in frontier:
+            if _dst_accepts(cur_type):
+                return cur_expr
+        return None
 
     def get_egress_paths(self) -> List[str]:
         """
@@ -2535,7 +2711,7 @@ class UnificationGate:
           - a Stage 3 (terminal/egress) morphism, or
           - a cell whose output typestate declares materialization, or
           - any non-source (Stage 2+) morphism — in-place endomorphisms such as
-            writers with a destination port (e.g. DataFrame writers) are Stage 2
+            writers with a destination port (e.g. tabular writers) are Stage 2
             composable morphisms whose path port is still a materialization site.
         Type- and stage-driven, domain-agnostic.
         """
@@ -2841,7 +3017,7 @@ class UnificationGate:
             ctx.current_cell_clause_idx = getattr(cell, "matched_clause_idx", None)
             # For-each replicas (multiplicity expansion): a replica RE-CONSUMES
             # its receiver from the environment's in-scope variables (e.g. the
-            # source DataFrame) instead of the previous wire, and its reference
+            # source table) instead of the previous wire, and its reference
             # port binds the NEXT member of the identifier role group. It
             # consumes no incoming wire, exactly like a zero-ary constructor.
             is_replica = bool(getattr(cell, "replica_of", None))
@@ -3168,13 +3344,30 @@ class UnificationGate:
                                 break
 
                         if df_candidate:
-                            if registry.is_subtype(str(getattr(concrete_sig, "type_name", "")).lower(), "tensor"):
-                                cell_bindings[p_name] = f"{df_candidate}['{target_col}'].to_numpy()"
-                            else:
-                                cell_bindings[p_name] = f"{df_candidate}['{target_col}']"
-                            if hasattr(ctx, "consumed_tokens"):
-                                ctx.consumed_tokens.add(str(target_col).lower())
-                            continue
+                            # Declared-morphism composition (Solution 3): the
+                            # projection of a column out of a tabular carrier
+                            # (and any subsequent carrier conversion, e.g.
+                            # series -> tensor) is a BRIDGE MORPHISM declared
+                            # in a domain tree — never engine-written syntax.
+                            # The binder instantiates the declared templates
+                            # generically; when no tree declares the required
+                            # morphism chain the port stays unresolved and
+                            # synthesis refuses, instead of fabricating
+                            # library-specific access syntax here.
+                            expected_tn = str(getattr(concrete_sig, "type_name", ""))
+                            composed = self._compose_declared_bridge_expr(
+                                src_var=df_candidate,
+                                src_type="table",
+                                dst_type=expected_tn,
+                                literal_bindings={"column": repr(str(target_col))},
+                                dst_sig=concrete_sig,
+                                ctx=ctx,
+                            )
+                            if composed is not None:
+                                cell_bindings[p_name] = composed
+                                if hasattr(ctx, "consumed_tokens"):
+                                    ctx.consumed_tokens.add(str(target_col).lower())
+                                continue
 
                 # Check LLM slot filling / hyperparameters before heuristic fallback
                 llm_slot_val = None
@@ -3231,7 +3424,7 @@ class UnificationGate:
                 # A. Check in-scope variables first (environment / predecessor variables matching typestate)
                 # One wire feeds ONE port per cell: a variable already bound to
                 # this cell is skipped here. Silent duplication (the same
-                # DataFrame into both concat inputs) is a planning artifact,
+                # table into both concat inputs) is a planning artifact,
                 # not a composition the prompt requested — a cell that genuinely
                 # re-consumes a wire declares it (bound_slots / replicas).
                 already_bound_vars = {
@@ -3772,6 +3965,7 @@ class UnificationGate:
             pipeline_bindings = res.value
             accum_sigma = res.sigma
             self.last_egress_paths = self._derive_egress_paths(pipeline_bindings)
+            self.last_runtime_aliases = dict(getattr(ctx_run, "runtime_aliases", {}) or {})
             if getattr(ctx_run, "unresolved_ports", None):
                 ports_str = ", ".join(f"{cid}.{p}" for cid, p in ctx_run.unresolved_ports)
                 raise UnresolvedPlaceholderError(
@@ -3890,7 +4084,13 @@ class UnificationGate:
                 instantiated = self._instantiate_ast_template(template, bindings, cell.inputs)
                 code_lines.append(instantiated)
 
-        # Target variable assignment if explicitly requested in prompt (e.g. "store the results into Z")
+        # Declared egress aliasing: when the prompt explicitly declares a
+        # target sink ("store the results into Z"), the declaration is
+        # honored at the RUNTIME namespace level (sandbox aliases Z to the
+        # terminal pipeline variable). The emitted source is never rewritten
+        # with a synthetic assignment — that would fabricate a sink morphism
+        # that no declared cell provides, and would let verification observe
+        # a binding the dataflow never performed.
         if ctx is not None and getattr(ctx, "prompt", None) and pipeline_bindings:
             target_ident = ExecutionContext._extract_target_sink(ctx.prompt)
             if target_ident:
@@ -3909,8 +4109,10 @@ class UnificationGate:
                     if cand_var and any(_is_var_assignment(line, str(cand_var)) for line in code_lines):
                         out_var = cand_var
                         break
-                if out_var and out_var != target_ident:
-                    code_lines.append(f"{target_ident} = {out_var}")
+                if out_var and str(out_var) != str(target_ident):
+                    declare_alias = getattr(ctx, "declare_runtime_alias", None)
+                    if callable(declare_alias):
+                        declare_alias(target_ident, str(out_var))
 
         final_code = "\n".join(code_lines).strip()
         final_code = self._reconcile_imports(final_code)
@@ -4255,6 +4457,13 @@ class UnificationGate:
                 self.context.hyperparameters = dict(intent_data["hyperparameters"])
             if intent_data.get("slots") and isinstance(intent_data["slots"], dict):
                 self.context.llm_slots = dict(intent_data["slots"])
+            # Profile S (Semantic Compiler): literals extracted by the typed
+            # IR compiler become declared context parameters — deterministic
+            # binding without re-scanning the prompt.
+            if intent_data.get("parameters") and isinstance(intent_data["parameters"], dict):
+                for p_key, p_val in intent_data["parameters"].items():
+                    if p_key:
+                        self.context.parameters.setdefault(str(p_key), p_val)
             if intent_data.get("by_column"):
                 self.context.parameters["by_column"] = str(intent_data["by_column"]).strip()
             if intent_data.get("source_files"):
@@ -4840,13 +5049,24 @@ class ExtractedSlots:
 
 class ParameterExtractor:
     """Compatibility adapter over ExecutionContext."""
-    SEMANTIC_FLAG_PATTERNS: list = [
-        ({"descend", "descending", "reverse"}, "descending", True, {"ascending": False}),
-        ({"ascend", "ascending"},              "ascending",  True, {"descending": False}),
-        ({"hsv"},                              "is_hsv",     True, {}),
-        ({"rgb"},                              "is_rgb",     True, {}),
-        ({"gray", "grayscale", "grey"},        "is_grayscale", True, {}),
-    ]
+
+    @staticmethod
+    def _declared_flag_patterns() -> List[Tuple[Any, str, Any, Dict[str, Any]]]:
+        """
+        Keyword->flag observation patterns are DECLARED DATA harvested from
+        the loaded domain trees (tree key `semantic_flag_patterns`). The
+        engine ships zero patterns of its own: e.g. a vision tree declares
+        its colorspace observers and the primitives tree declares the
+        language-level ordering observers (ascending/descending).
+        """
+        try:
+            declared = TypeRegistry.get_instance().get_semantic_flag_patterns()
+        except Exception:
+            return []
+        return [
+            (p["keywords"], p["flag"], p["value"], dict(p.get("extras") or {}))
+            for p in declared
+        ]
 
     @staticmethod
     def extract_slots(prompt: str) -> ExtractedSlots:
@@ -4867,7 +5087,7 @@ class ParameterExtractor:
         flags = dict(ctx.flags)
         if prompt:
             p_low = prompt.lower()
-            for keywords, flag_key, flag_val, extras in ParameterExtractor.SEMANTIC_FLAG_PATTERNS:
+            for keywords, flag_key, flag_val, extras in ParameterExtractor._declared_flag_patterns():
                 if any(kw in p_low for kw in keywords):
                     flags[flag_key] = flag_val
                     flags.update(extras)
@@ -4880,6 +5100,22 @@ class ParameterExtractor:
     @staticmethod
     def extract_parameters(prompt: str) -> Dict[str, Any]:
         return ParameterExtractor.extract_slots(prompt).to_dict()
+
+
+def _enum_rule_for_placeholder(placeholder_lower: str) -> Optional[Dict[str, Any]]:
+    """
+    Finds a DECLARED enum-constant grounding rule (tree key
+    `enum_constant_rules`) governing a placeholder name. Returns None when no
+    tree declared a rule — the engine carries no placeholder vocabulary.
+    """
+    try:
+        rules = TypeRegistry.get_instance().get_enum_constant_rules()
+    except Exception:
+        return None
+    for rule in rules or []:
+        if placeholder_lower in (rule.get("placeholder_names") or ()):  # declared frozenset
+            return rule
+    return None
 
 
 def resolve_node_slots(template: str, extracted_params: Dict[str, Any]) -> Dict[str, str]:
@@ -4905,7 +5141,14 @@ def resolve_node_slots(template: str, extracted_params: Dict[str, Any]) -> Dict[
                 slots[ph] = f"'{by_col}'"
         elif ph_l == "ascending":
             slots[ph] = str(flags.get("ascending", True))
-        elif ph_l in ("code", "color_code", "conversion_code"):
+        elif _enum_rule_for_placeholder(ph_l) is not None:
+            # Declared enum-constant grounding (Solution: domain data in trees):
+            # a rule declares the placeholder names it governs, the module
+            # attribute prefix to resolve (e.g. a colorspace-constant prefix),
+            # and which operational flags select which format suffix. The
+            # engine only performs generic module reflection — the vocabulary
+            # itself lives entirely in the domain tree.
+            rule = _enum_rule_for_placeholder(ph_l)
             ph_needle = f"{{{ph}}}"
             mod_name = None
             if ph_needle in template:
@@ -4920,23 +5163,33 @@ def resolve_node_slots(template: str, extracted_params: Dict[str, Any]) -> Dict[
                             mod_name = candidate_mod
             if not mod_name:
                 continue
-            target_fmt = "GRAY"
-            if flags.get("is_hsv"):
-                target_fmt = "HSV"
-            elif flags.get("is_rgb"):
-                target_fmt = "RGB"
+            attr_prefix = str(rule.get("module_attribute_prefix", ""))
+            target_fmt = str(rule.get("default_format", ""))
+            format_flags = dict(rule.get("format_flags") or {})
+            for flag_key, fmt in format_flags.items():
+                if flags.get(flag_key):
+                    target_fmt = str(fmt)
+                    break
+            if not target_fmt:
+                continue
             resolved_code = None
             try:
                 import importlib
                 mod = importlib.import_module(mod_name)
-                cand = next((attr for attr in dir(mod) if attr.startswith("COLOR_BGR2") and attr.endswith(target_fmt)), None)
+                cand = next(
+                    (attr for attr in dir(mod) if attr_prefix and attr.startswith(attr_prefix) and attr.endswith(target_fmt)),
+                    None,
+                )
                 if not cand:
-                    cand = next((attr for attr in dir(mod) if attr.startswith("COLOR_") and attr.endswith(target_fmt)), None)
+                    cand = next(
+                        (attr for attr in dir(mod) if attr_prefix and attr.startswith(attr_prefix.rstrip("_")) and attr.endswith(target_fmt)),
+                        None,
+                    )
                 if cand:
                     resolved_code = f"{mod_name}.{cand}"
             except Exception:
                 pass
-            slots[ph] = resolved_code or f"{mod_name}.COLOR_BGR2{target_fmt}"
+            slots[ph] = resolved_code or (f"{mod_name}.{attr_prefix}{target_fmt}" if attr_prefix else f"{mod_name}.{target_fmt}")
         elif ph_l in ("target", "target_col", "target_column", "label", "y_col"):
             tgt = extracted_params.get("target_column") or extracted_params.get("target_col")
             if tgt:

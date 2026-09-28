@@ -11923,6 +11923,56 @@
       ],
       "primary_in": "series",
       "primary_out": "output_var"
+    },
+    {
+      "cell_id": "PD_COLUMN_EXTRACT",
+      "stage": 2,
+      "node_type": "function",
+      "node_role": "bridge",
+      "mutation_type": "pure",
+      "verified": true,
+      "source_priority": 1,
+      "is_public": true,
+      "docstring": "Declared morphism Table x ColumnIdentifier -> Series: project one column of a tabular carrier.",
+      "dependencies": [
+        "pandas as pd"
+      ],
+      "keywords": [
+        "column",
+        "extract",
+        "project",
+        "select",
+        "series"
+      ],
+      "semantic_tags": [
+        "bridge",
+        "projection",
+        "carrier_conversion"
+      ],
+      "code_template": "{output_var} = {table}[{column}]",
+      "slots": {},
+      "bound_slots": {},
+      "inputs": {
+        "table": {
+          "type_name": "table",
+          "state": "any",
+          "required": true,
+          "description": "Tabular carrier variable."
+        },
+        "column": {
+          "type_name": "str",
+          "state": "column_identifier",
+          "required": true,
+          "description": "Declared column identifier."
+        }
+      },
+      "outputs": {
+        "output_var": {
+          "type_name": "series",
+          "state": "any",
+          "description": "Projected labeled series."
+        }
+      }
     }
   ],
   "types": {
@@ -12006,5 +12056,49 @@
       "newest",
       "latest"
     ]
-  }
+  },
+  "mock_fixtures": [
+    {
+      "match_type_tokens": [
+        "dataframe",
+        "table",
+        "frame"
+      ],
+      "match_domain_tokens": [
+        "pandas"
+      ],
+      "template": "try:\n    import pandas as pd\n    {var_name} = pd.DataFrame({'a': [1.0, 2.0, 3.0], 'b': [4, 5, 6], 'target': [0, 1, 0]})\nexcept ImportError:\n    {var_name} = {'a': [1, 2], 'b': [3, 4]}"
+    },
+    {
+      "match_type_tokens": [
+        "series"
+      ],
+      "match_domain_tokens": [
+        "pandas"
+      ],
+      "template": "try:\n    import pandas as pd\n    {var_name} = pd.Series([1.0, 2.0, 3.0])\nexcept ImportError:\n    {var_name} = [1.0, 2.0, 3.0]"
+    }
+  ],
+  "port_name_type_hints": {
+    "df": "DataFrame",
+    "frame": "DataFrame",
+    "dataframe": "DataFrame",
+    "data": "DataFrame",
+    "dataset": "DataFrame",
+    "table": "DataFrame",
+    "rows": "DataFrame",
+    "records": "DataFrame"
+  },
+  "port_name_morphology_hints": [
+    {
+      "affix": "suffix",
+      "token": "_df",
+      "type_name": "DataFrame"
+    },
+    {
+      "affix": "prefix",
+      "token": "df_",
+      "type_name": "DataFrame"
+    }
+  ]
 }

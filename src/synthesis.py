@@ -4,6 +4,7 @@ Dynamic MicroCell Synthesizer: Grounded in Live API Documentation.
 """
 
 from __future__ import annotations
+import asyncio
 import ast
 import importlib
 import json
@@ -87,7 +88,30 @@ class SynthesisEngine:
         a verified, type-annotated MicroCell.
         """
         logger.info(f"[SYNTHESIS] Fetching live documentation for: '{gap_concept}'")
-        live_docs = fetcher.fetch(gap_concept) or "No live documentation available."
+        # LiveDocFetcher exposes a synchronous text interface; the async
+        # registry path is resolved internally (thread-offloaded when a loop
+        # is already running). Result is plain documentation text.
+        fetch_call = getattr(fetcher, "fetch", None)
+        if fetch_call is None:
+            live_docs = ""
+        else:
+            try:
+                live_docs = fetch_call(gap_concept)
+            except TypeError:
+                live_docs = ""
+            # Guard against awaitable returns from async fetchers.
+            if asyncio.iscoroutine(live_docs) or isinstance(live_docs, asyncio.Future):
+                try:
+                    loop = asyncio.get_running_loop()
+                except RuntimeError:
+                    loop = None
+                if loop and loop.is_running():
+                    live_docs = asyncio.run_coroutine_threadsafe(live_docs, loop).result()
+                else:
+                    live_docs = asyncio.run(live_docs)
+            if not isinstance(live_docs, str):
+                live_docs = str(getattr(live_docs, "content", "") or "")
+        live_docs = live_docs or "No live documentation available."
 
         # Infer stage algebraically from input/output spec if not explicitly passed
         if stage is None:

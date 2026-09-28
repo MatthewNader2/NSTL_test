@@ -22,15 +22,16 @@ domain-specific identifiers.
 
 from __future__ import annotations
 import ast
-import re
 from typing import List, Dict, Set, Tuple, Any, Optional
 from dataclasses import dataclass, field
 
 try:
     from .lattice import UNRESOLVED_PORT, TypeRegistry
+    from .tokenizer import CellTokenizer
     from .unification import ExecutionContext
 except (ImportError, ValueError):
     from lattice import UNRESOLVED_PORT, TypeRegistry
+    from tokenizer import CellTokenizer
     from unification import ExecutionContext
 
 
@@ -197,7 +198,12 @@ class PreflightLinter:
         """
         if not prompt:
             return False
-        tokens = {t.lower() for t in re.findall(r"[A-Za-z_][A-Za-z0-9_]*", prompt)}
+        # Zero-regex tokenization via the shared CellTokenizer (structural
+        # identifier splitting only — no pattern scanning, no domain vocab).
+        try:
+            tokens = {t.lower() for t in CellTokenizer.tokenize_prompt(prompt)}
+        except Exception:
+            tokens = set()
         if not tokens:
             return False
 

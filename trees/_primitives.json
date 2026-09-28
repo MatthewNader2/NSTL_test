@@ -170,7 +170,7 @@
     "top",
     "unknown",
     "*",
-    "\u22a4"
+    "⊤"
   ],
   "top_states": [
     "any",
@@ -178,7 +178,7 @@
     "unregistered",
     "unknown",
     "top",
-    "\u22a4"
+    "⊤"
   ],
   "product_constructors": [
     "tuple",
@@ -510,5 +510,318 @@
     "choices are",
     "must be one of",
     "refer to"
+  ],
+  "semantic_flag_patterns": [
+    {
+      "keywords": [
+        "descend",
+        "descending",
+        "reverse",
+        "decreasing"
+      ],
+      "flag": "descending",
+      "value": true,
+      "extras": {
+        "ascending": false
+      }
+    },
+    {
+      "keywords": [
+        "ascend",
+        "ascending",
+        "increasing"
+      ],
+      "flag": "ascending",
+      "value": true,
+      "extras": {
+        "descending": false
+      }
+    }
+  ],
+  "mock_fixtures": [
+    {
+      "match_type_tokens": [
+        "int",
+        "integer",
+        "count",
+        "index"
+      ],
+      "template": "{var_name} = 10"
+    },
+    {
+      "match_type_tokens": [
+        "float",
+        "numeric",
+        "scalar",
+        "double"
+      ],
+      "template": "{var_name} = 1.0"
+    },
+    {
+      "match_type_tokens": [
+        "bool",
+        "logical",
+        "flag"
+      ],
+      "template": "{var_name} = True"
+    },
+    {
+      "match_type_tokens": [
+        "bytes"
+      ],
+      "template": "{var_name} = b'test_payload'"
+    },
+    {
+      "match_type_tokens": [
+        "path",
+        "file",
+        "uri",
+        "url"
+      ],
+      "template": "{var_name} = 'dummy_input_file.dat'"
+    },
+    {
+      "match_type_tokens": [
+        "str",
+        "string",
+        "text"
+      ],
+      "template": "{var_name} = 'sample_string'"
+    },
+    {
+      "match_type_tokens": [
+        "dict",
+        "map",
+        "mapping",
+        "record"
+      ],
+      "template": "{var_name} = {'id': 1, 'value': 42.0, 'name': 'test'}"
+    }
+  ],
+  "port_name_type_hints": {
+    "index": "int",
+    "idx": "int",
+    "position": "int",
+    "pos": "int",
+    "iteration": "int",
+    "iter": "int",
+    "epoch": "int",
+    "epochs": "int",
+    "batch": "int",
+    "batch_size": "int",
+    "seed": "int",
+    "top_k": "int",
+    "max_iter": "int",
+    "n_iter": "int",
+    "num_iter": "int",
+    "depth": "int",
+    "width": "int",
+    "degree": "int",
+    "rank": "int",
+    "order": "int",
+    "level": "int",
+    "step": "int",
+    "steps": "int",
+    "stride": "int",
+    "n": "int",
+    "k": "int",
+    "count": "int",
+    "size": "int",
+    "length": "int",
+    "len": "int",
+    "num": "int",
+    "number": "int",
+    "rate": "float",
+    "alpha": "float",
+    "beta": "float",
+    "gamma": "float",
+    "lambda_": "float",
+    "threshold": "float",
+    "thresh": "float",
+    "eps": "float",
+    "epsilon": "float",
+    "lr": "float",
+    "learning_rate": "float",
+    "ratio": "float",
+    "weight": "float",
+    "score": "float",
+    "prob": "float",
+    "probability": "float",
+    "p": "float",
+    "momentum": "float",
+    "decay": "float",
+    "temperature": "float",
+    "scale": "float",
+    "factor": "float",
+    "tolerance": "float",
+    "tol": "float",
+    "verbose": "bool",
+    "enabled": "bool",
+    "enable": "bool",
+    "debug": "bool",
+    "shuffle": "bool",
+    "copy": "bool",
+    "inplace": "bool",
+    "in_place": "bool",
+    "use_gpu": "bool",
+    "cuda": "bool",
+    "parallel": "bool",
+    "strict": "bool",
+    "optional": "bool",
+    "required": "bool",
+    "sorted": "bool",
+    "reverse": "bool",
+    "ascending": "bool",
+    "descending": "bool",
+    "closed": "bool",
+    "unique": "bool",
+    "drop": "bool",
+    "keep": "bool",
+    "path": "str",
+    "filepath": "str",
+    "file_path": "str",
+    "filename": "str",
+    "file_name": "str",
+    "dir": "str",
+    "directory": "str",
+    "folder": "str",
+    "name": "str",
+    "label": "str",
+    "text": "str",
+    "message": "str",
+    "msg": "str",
+    "pattern": "str",
+    "column": "str",
+    "col": "str",
+    "key": "str",
+    "tag": "str",
+    "title": "str",
+    "description": "str",
+    "desc": "str",
+    "url": "str",
+    "uri": "str",
+    "format": "str",
+    "encoding": "str",
+    "mode": "str",
+    "kind": "str",
+    "type": "str",
+    "strategy": "str",
+    "method": "str",
+    "separator": "str",
+    "sep": "str",
+    "delimiter": "str",
+    "delim": "str",
+    "prefix": "str",
+    "suffix": "str",
+    "template": "str",
+    "symbol": "str",
+    "func": "Callable",
+    "fn": "Callable",
+    "callback": "Callable",
+    "callable": "Callable",
+    "predicate": "Callable",
+    "transform": "Callable",
+    "mapper": "Callable",
+    "reducer": "Callable",
+    "comparator": "Callable",
+    "key_func": "Callable",
+    "key_fn": "Callable",
+    "arr": "array-like",
+    "array": "array-like",
+    "values": "array-like",
+    "val": "array-like",
+    "vec": "array-like",
+    "vector": "array-like",
+    "tensor": "tensor",
+    "x": "array-like",
+    "y": "array-like",
+    "z": "array-like",
+    "xs": "array-like",
+    "ys": "array-like",
+    "samples": "array-like",
+    "features": "array-like",
+    "labels": "array-like",
+    "series": "series",
+    "matrix": "array-like",
+    "mat": "array-like",
+    "embedding": "array-like",
+    "embeddings": "array-like"
+  },
+  "port_name_morphology_hints": [
+    {
+      "affix": "suffix",
+      "token": "_path",
+      "type_name": "str"
+    },
+    {
+      "affix": "suffix",
+      "token": "_file",
+      "type_name": "str"
+    },
+    {
+      "affix": "suffix",
+      "token": "_name",
+      "type_name": "str"
+    },
+    {
+      "affix": "suffix",
+      "token": "_count",
+      "type_name": "int"
+    },
+    {
+      "affix": "suffix",
+      "token": "_size",
+      "type_name": "int"
+    },
+    {
+      "affix": "suffix",
+      "token": "_num",
+      "type_name": "int"
+    },
+    {
+      "affix": "suffix",
+      "token": "_flag",
+      "type_name": "bool"
+    },
+    {
+      "affix": "prefix",
+      "token": "is_",
+      "type_name": "bool"
+    },
+    {
+      "affix": "prefix",
+      "token": "has_",
+      "type_name": "bool"
+    },
+    {
+      "affix": "prefix",
+      "token": "use_",
+      "type_name": "bool"
+    },
+    {
+      "affix": "prefix",
+      "token": "num_",
+      "type_name": "int"
+    },
+    {
+      "affix": "prefix",
+      "token": "n_",
+      "type_name": "int"
+    },
+    {
+      "affix": "suffix",
+      "token": "_list",
+      "type_name": "array-like"
+    },
+    {
+      "affix": "suffix",
+      "token": "_arr",
+      "type_name": "array-like"
+    },
+    {
+      "affix": "suffix",
+      "token": "_array",
+      "type_name": "array-like"
+    }
   ]
 }

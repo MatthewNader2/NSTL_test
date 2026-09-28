@@ -9,11 +9,14 @@ from __future__ import annotations
 import abc
 import ast
 import builtins
+import contextlib
 import logging
 import multiprocessing
 import os
+import queue as _pyqueue
 import signal
 import sys
+import time
 import traceback
 from dataclasses import dataclass, field
 from typing import Any, Callable, Dict, List, Optional, Set, Tuple
@@ -334,12 +337,17 @@ def _restricted_import(name: str, globals=None, locals=None, fromlist=(), level:
 def _sandbox_worker_exec(
     code_str: str,
     context: Dict[str, Any],
+    runtime_aliases: Dict[str, str],
     result_queue: multiprocessing.Queue,
 ) -> None:
     """
     Subprocess worker executing sandboxed code in strict process isolation.
-    Exceptions are captured and returned safely via the IPC queue.
+    Exceptions, stdout and stderr are captured and returned safely via the IPC queue.
     """
+    import io as _io
+
+    captured_stdout = _io.StringIO()
+    captured_stderr = _io.StringIO()
     try:
         # Step 1: Pre-execution AST Analysis
         parsed_ast = ast.parse(code_str)
@@ -361,23 +369,86 @@ def _sandbox_worker_exec(
         }
         exec_globals.update(context)
 
-        # Step 3: Bytecode Execution
+        # Step 3: Bytecode Execution under captured streams
         compiled = compile(parsed_ast, filename="<sandbox>", mode="exec")
-        exec(compiled, exec_globals)
+        with contextlib.redirect_stdout(captured_stdout), contextlib.redirect_stderr(captured_stderr):
+            exec(compiled, exec_globals)
 
-        # Extract mutated context or return value
-        extracted_results = {
+        # Extract mutated context or return value; apply the pipeline's
+        # declared runtime aliases (e.g. a prompt-declared egress identifier
+        # "Z" aliases the terminal output variable) at the runtime namespace
+        # level — source code itself is never rewritten to fake a sink.
+        raw_results = {
             k: v for k, v in exec_globals.items()
             if not k.startswith("__") and k not in context
         }
+        for alias_name, source_var in (runtime_aliases or {}).items():
+            try:
+                if source_var in raw_results:
+                    raw_results[alias_name] = raw_results[source_var]
+            except Exception:
+                continue
 
-        result_queue.put({"success": True, "results": extracted_results, "error": None})
+        # Sanitize for IPC: modules, functions and other unpicklable objects
+        # would be silently DROPPED by the queue feeder thread (a lost payload
+        # looks identical to a crashed worker on the parent side). Replace
+        # anything unpicklable with a descriptive summary.
+        import pickle as _pickle
+
+        def _ipc_safe(value: Any) -> Any:
+            try:
+                _pickle.dumps(value)
+                return value
+            except Exception:
+                return f"<unpicklable:{type(value).__name__}>"
+
+        extracted_results = {
+            k: _ipc_safe(v) for k, v in raw_results.items()
+        }
+
+        result_queue.put({
+            "success": True,
+            "returncode": 0,
+            "stdout": captured_stdout.getvalue(),
+            "stderr": captured_stderr.getvalue(),
+            "error": None,
+            "results": extracted_results,
+        })
+
+        # Flush the queue feeder thread before interpreter exit so the
+        # payload can never be lost to the daemon-thread teardown race.
+        result_queue.close()
+        result_queue.join_thread()
 
     except SecurityViolationError as sec_err:
-        result_queue.put({"success": False, "results": {}, "error": f"SecurityViolation: {str(sec_err)}"})
+        result_queue.put({
+            "success": False,
+            "returncode": 1,
+            "stdout": captured_stdout.getvalue(),
+            "stderr": captured_stderr.getvalue(),
+            "error": f"SecurityViolation: {str(sec_err)}",
+            "results": {},
+        })
+
+        # Flush the queue feeder thread before interpreter exit so the
+        # payload can never be lost to the daemon-thread teardown race.
+        result_queue.close()
+        result_queue.join_thread()
     except Exception as exc:
         formatted_exc = traceback.format_exc()
-        result_queue.put({"success": False, "results": {}, "error": f"{type(exc).__name__}: {str(exc)}\n{formatted_exc}"})
+        result_queue.put({
+            "success": False,
+            "returncode": 1,
+            "stdout": captured_stdout.getvalue(),
+            "stderr": captured_stderr.getvalue(),
+            "error": f"{type(exc).__name__}: {str(exc)}\n{formatted_exc}",
+            "results": {},
+        })
+
+        # Flush the queue feeder thread before interpreter exit so the
+        # payload can never be lost to the daemon-thread teardown race.
+        result_queue.close()
+        result_queue.join_thread()
 
 
 # ============================================================================
@@ -402,15 +473,129 @@ class GEVRSandbox:
         self.intents = intent_registry or TerminalIntentRegistry()
         self.state_protocols = state_registry or StateProtocolRegistry()
 
+    # ------------------------------------------------------------------
+    # Unified execution contract (Solution 4)
+    # ------------------------------------------------------------------
+    # One stable, caller-agnostic result envelope shared by CLI, API and Dev
+    # Mode:
+    #   {
+    #     "success":      bool,   code ran AND satisfied egress/spec checks
+    #     "returncode":   int,    worker exit code (0 == clean run)
+    #     "stdout":       str,    captured standard output
+    #     "stderr":       str,    captured standard error
+    #     "error":        str,    "" when none
+    #     "extrinsic":    bool,   environmental failure (not the code's fault)
+    #     "results":      dict,   extracted global namespace (aliases applied)
+    #     "egress":       dict,   path -> verification detail
+    #   }
+    # Callers previously crashed with TypeError (unexpected kwarg
+    # 'egress_paths') or silently mis-read the raw globals dict for a
+    # "success" key; this contract makes every entrypoint agree.
+    # ------------------------------------------------------------------
+
+    #: Error prefixes that indicate an ENVIRONMENTAL failure rather than a
+    #: defect in the synthesized pipeline (generic runtime semantics only).
+    _EXTRINSIC_ERROR_MARKERS: Tuple[str, ...] = (
+        "ModuleNotFoundError",
+        "ImportError",
+        "FileNotFoundError",
+        "FileExistsError",
+        "PermissionError",
+        "No such file or directory",
+    )
+
+    @staticmethod
+    def _verify_egress_paths(egress_paths: Optional[List[str]]) -> Dict[str, str]:
+        """Verifies declared egress artifacts exist and are non-empty."""
+        verification: Dict[str, str] = {}
+        for raw_path in egress_paths or []:
+            path = str(raw_path)
+            if not path.strip():
+                continue
+            if not os.path.exists(path):
+                verification[path] = "missing"
+            elif os.path.getsize(path) <= 0:
+                verification[path] = "empty"
+            else:
+                verification[path] = "ok"
+        return verification
+
+    @staticmethod
+    def _evaluate_verification_spec(
+        verification_spec: Any,
+        results: Dict[str, Any],
+    ) -> List[str]:
+        """
+        Evaluates a pluggable verification protocol against the extracted
+        namespace. Only STRUCTURAL checks are interpreted here:
+          - variable identity contracts (expected_var vs actual_var resolved
+            through the actual computed values),
+          - registered generic postconditions (ndim / has_nans / is_deduped)
+            on named result variables.
+        Domain-specific rule evaluation stays in caller-side registries.
+        """
+        violations: List[str] = []
+        if verification_spec is None:
+            return violations
+
+        checks: List[Dict[str, Any]] = []
+        if isinstance(verification_spec, dict):
+            checks = list(verification_spec.get("terminal_checks") or [])
+        else:
+            checks = list(getattr(verification_spec, "terminal_checks", None) or [])
+
+        for check in checks:
+            if not isinstance(check, dict):
+                continue
+            expected_var = check.get("expected_var")
+            actual_var = check.get("actual_var")
+            if expected_var and actual_var:
+                expected_val = results.get(str(expected_var))
+                actual_val = results.get(str(actual_var))
+                if expected_val is not None and actual_val is not None:
+                    identical = expected_val is actual_val
+                    if not identical:
+                        try:
+                            identical = bool(expected_val == actual_val)
+                        except Exception:
+                            identical = False
+                    if not identical:
+                        violations.append(
+                            f"Terminal check '{check.get('type', 'unknown')}' failed: "
+                            f"'{actual_var}' does not carry the value declared for '{expected_var}'."
+                        )
+                continue
+
+            prop = check.get("property") or check.get("postcondition")
+            target_var = check.get("target_var") or check.get("var")
+            if prop and target_var and target_var in results:
+                expected = check.get("expected")
+                try:
+                    ok = PostconditionRegistry().evaluate(prop, results[target_var], expected)
+                except Exception as eval_err:
+                    logger.debug(f"[SANDBOX] postcondition '{prop}' evaluation failed: {eval_err}")
+                    ok = False
+                if not ok:
+                    violations.append(
+                        f"Postcondition '{prop}' on result '{target_var}' was not satisfied."
+                    )
+
+        return violations
+
     def execute(
         self,
         code: str,
         context: Optional[Dict[str, Any]] = None,
         timeout: Optional[float] = None,
+        egress_paths: Optional[List[str]] = None,
+        verification_spec: Optional[Any] = None,
+        runtime_aliases: Optional[Dict[str, str]] = None,
     ) -> Dict[str, Any]:
         """
-        Execute code in a separate process. Guarantees termination on timeout
-        without leaving CPU-consuming zombie workers.
+        Execute code in a separate process under the unified contract.
+        Guarantees termination on timeout without leaving CPU-consuming zombie
+        workers, and ALWAYS returns the full result envelope (it never raises
+        for execution failures, so every caller can uniformly read 'success').
         """
         exec_timeout = timeout if timeout is not None else self.default_timeout
         context = context or {}
@@ -419,16 +604,33 @@ class GEVRSandbox:
 
         worker = ctx.Process(
             target=_sandbox_worker_exec,
-            args=(code, context, result_queue),
+            args=(code, context, dict(runtime_aliases or {}), result_queue),
             daemon=True,
         )
 
         worker.start()
-        worker.join(timeout=exec_timeout)
 
-        # Enforce hard process termination if execution exceeds timeout
-        if worker.is_alive():
+        # Drain the result queue BEFORE reaping the worker. Reading with a
+        # deadline avoids the multiprocessing feeder-thread race where the
+        # child's daemon queue feeder can still be flushing when the parent
+        # calls join()/empty(), which previously made results vanish and
+        # surfaced as "worker terminated abruptly".
+        deadline = time.monotonic() + max(float(exec_timeout), 0.05)
+        payload: Optional[Dict[str, Any]] = None
+        timed_out = False
+        try:
+            remaining = max(0.05, deadline - time.monotonic())
+            payload = result_queue.get(timeout=remaining)
+        except _pyqueue.Empty:
+            payload = None
+        except Exception as recv_err:
+            logger.warning(f"[SANDBOX] Result reception failed: {recv_err}")
+            payload = None
+
+        if payload is None and worker.is_alive():
+            # Hard timeout: terminate, then escalate to SIGKILL.
             logger.warning(f"Worker PID {worker.pid} timed out after {exec_timeout}s. Terminating.")
+            timed_out = True
             worker.terminate()
             worker.join(timeout=0.5)
 
@@ -444,16 +646,70 @@ class GEVRSandbox:
                     pass
                 worker.join()
 
-            raise SandboxTimeoutError(f"Execution timed out after {exec_timeout} seconds.")
+        if payload is not None:
+            # Result delivered; reap the worker with a short grace period.
+            worker.join(timeout=1.0)
+            if worker.is_alive():
+                worker.terminate()
+                worker.join(timeout=0.5)
 
-        if result_queue.empty():
-            raise RuntimeError("Execution worker terminated abruptly without returning a result.")
+        envelope: Dict[str, Any] = {
+            "success": False,
+            "returncode": worker.exitcode if worker.exitcode is not None else 1,
+            "stdout": "",
+            "stderr": "",
+            "error": "",
+            "extrinsic": False,
+            "results": {},
+            "egress": {},
+        }
 
-        payload = result_queue.get_nowait()
-        if not payload["success"]:
-            raise RuntimeError(payload["error"])
+        if timed_out:
+            envelope["error"] = f"Execution timed out after {exec_timeout} seconds."
+            envelope["returncode"] = worker.exitcode if worker.exitcode is not None else 1
+            return envelope
 
-        return payload["results"]
+        if payload is None:
+            envelope["error"] = "Execution worker terminated abruptly without returning a result."
+            envelope["extrinsic"] = True
+            return envelope
+
+        envelope["success"] = bool(payload.get("success", False))
+        envelope["returncode"] = int(payload.get("returncode", 0) or 0)
+        envelope["stdout"] = str(payload.get("stdout", "") or "")
+        envelope["stderr"] = str(payload.get("stderr", "") or "")
+        envelope["error"] = str(payload.get("error", "") or "")
+        envelope["results"] = dict(payload.get("results", {}) or {})
+
+        if envelope["error"]:
+            envelope["extrinsic"] = any(
+                marker in envelope["error"] for marker in self._EXTRINSIC_ERROR_MARKERS
+            )
+
+        # Egress artifact verification (files persist in the shared filesystem)
+        egress_verification = self._verify_egress_paths(egress_paths)
+        envelope["egress"] = egress_verification
+        if egress_verification:
+            bad = {p: v for p, v in egress_verification.items() if v != "ok"}
+            if bad:
+                envelope["success"] = False
+                detail = "; ".join(f"{p}: {v}" for p, v in sorted(bad.items()))
+                envelope["error"] = (
+                    (envelope["error"] + "\n" if envelope["error"] else "")
+                    + f"Egress verification failed: {detail}"
+                )
+                envelope["extrinsic"] = True
+
+        # Structural verification protocol
+        spec_violations = self._evaluate_verification_spec(verification_spec, envelope["results"])
+        if spec_violations:
+            envelope["success"] = False
+            envelope["error"] = (
+                (envelope["error"] + "\n" if envelope["error"] else "")
+                + "Verification contract violated: " + " | ".join(spec_violations)
+            )
+
+        return envelope
 
     def verify_postcondition(self, property_name: str, target: Any, expected: Any) -> bool:
         """Evaluate postconditions using the decoupled registry."""

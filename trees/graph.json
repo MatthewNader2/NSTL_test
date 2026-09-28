@@ -1,0 +1,22 @@
+{
+ "domain": "graph",
+ "version": "1.0",
+ "description": "Pluggable graph/network domain extension: fixtures and hints only.",
+ "types": {},
+ "cells": [],
+ "mock_fixtures": [
+  {
+   "match_type_tokens": [
+    "graph",
+    "network",
+    "adjacency",
+    "edge_list"
+   ],
+   "match_domain_tokens": [
+    "graph",
+    "network"
+   ],
+   "template": "try:\n    import networkx as nx\n    {var_name} = nx.path_graph(5)\nexcept ImportError:\n    {var_name} = {'nodes': [0, 1, 2], 'edges': [(0, 1), (1, 2)]}"
+  }
+ ]
+}

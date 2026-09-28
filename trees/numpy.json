@@ -11392,6 +11392,49 @@
       "edges": [],
       "primary_in": "array",
       "primary_out": "output_var"
+    },
+    {
+      "cell_id": "NP_AS_ARRAY",
+      "stage": 2,
+      "node_type": "function",
+      "node_role": "bridge",
+      "mutation_type": "pure",
+      "verified": true,
+      "source_priority": 1,
+      "is_public": true,
+      "docstring": "Declared morphism ArrayLike -> Tensor: materialize an array-like carrier as a dense tensor.",
+      "dependencies": [
+        "numpy as np"
+      ],
+      "keywords": [
+        "asarray",
+        "convert",
+        "array",
+        "tensor",
+        "materialize"
+      ],
+      "semantic_tags": [
+        "bridge",
+        "carrier_conversion"
+      ],
+      "code_template": "{output_var} = np.asarray({array_like})",
+      "slots": {},
+      "bound_slots": {},
+      "inputs": {
+        "array_like": {
+          "type_name": "array-like",
+          "state": "any",
+          "required": true,
+          "description": "Any array-like carrier (series, list, buffer)."
+        }
+      },
+      "outputs": {
+        "output_var": {
+          "type_name": "tensor",
+          "state": "any",
+          "description": "Dense tensor carrier."
+        }
+      }
     }
   ],
   "types": {
@@ -11463,5 +11506,29 @@
       "newest",
       "latest"
     ]
-  }
+  },
+  "mock_fixtures": [
+    {
+      "match_type_tokens": [
+        "embedding",
+        "vector"
+      ],
+      "match_domain_tokens": [
+        "numpy"
+      ],
+      "template": "try:\n    import numpy as np\n    {var_name} = np.ones(64, dtype=np.float32)\nexcept ImportError:\n    {var_name} = [0.1] * 64"
+    },
+    {
+      "match_type_tokens": [
+        "matrix",
+        "ndarray",
+        "tensor",
+        "array"
+      ],
+      "match_domain_tokens": [
+        "numpy"
+      ],
+      "template": "try:\n    import numpy as np\n    {var_name} = np.zeros((4, 4), dtype=np.float32)\nexcept ImportError:\n    {var_name} = [[0.0] * 4] * 4"
+    }
+  ]
 }

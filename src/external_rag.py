@@ -240,6 +240,35 @@ class IntrospectionFetcher(BaseFetcher):
         )
 
 
+class LiveDocFetcher(BaseFetcher):
+    """
+    Live documentation fetcher exposing a SYNCHRONOUS, string-returning
+    interface over the shared default registry. This is the concrete fetcher
+    the synthesis engine consumes (`SynthesisEngine.synthesize_micro_cell`):
+    callers receive the raw documentation text directly rather than a
+    RAGResponse envelope, so live grounding works from non-async contexts.
+    """
+
+    async def fetch(self, query: str, context: Optional[Dict[str, Any]] = None) -> RAGResponse:  # type: ignore[override]
+        """Async contract honored for BaseFetcher compatibility."""
+        return await default_registry.fetch(query, context=context)
+
+    def fetch_text(self, query: str, domain_context: Optional[str] = None,
+                   context: Optional[Dict[str, Any]] = None) -> str:
+        """Synchronous fetch returning the documentation content as plain text."""
+        response = fetch_docs_sync(query, domain_context=domain_context, context=context)
+        if response is None:
+            return ""
+        if getattr(response, "success", False):
+            return getattr(response, "content", "") or ""
+        return ""
+
+    # Convenience alias so callers may simply call `fetcher.fetch(query)`
+    # synchronously and receive the documentation text.
+    def fetch_sync(self, query: str, context: Optional[Dict[str, Any]] = None) -> str:
+        return self.fetch_text(query, context=context)
+
+
 # ============================================================================
 # Dynamic Registry & Factory
 # ============================================================================
