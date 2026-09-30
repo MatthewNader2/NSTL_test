@@ -856,7 +856,7 @@ def _segment_prompt_clauses(prompt: str) -> List[str]:
             depth += 1; buf.append(ch); continue
         if ch in "])}":
             depth = max(0, depth - 1); buf.append(ch); continue
-        if depth == 0 and ch in ",;":
+        if depth == 0 and ch in ",;\n":
             seg = "".join(buf).strip()
             if seg: parts.append(seg)
             buf = []; continue
@@ -2218,6 +2218,14 @@ class LatticePlanner:
                 for i in range(k - 1):
                     c = path[i]
                     if _is_terminal_sink_cell(c) or not c.outputs:
+                        continue
+                    # A cell that directly witnesses a prompt clause (`cell_covered`, the
+                    # same clause-coverage map the incremental prefix state and the join
+                    # justification checks above already use) is a requested computation in
+                    # its own right, not dead weight -- even when nothing downstream consumes
+                    # its output. Penalizing it here is what makes the planner prefer paths
+                    # that silently drop a clause over paths that keep every requested step.
+                    if cell_covered.get(c.cell_id):
                         continue
                     consumed = (
                         any(c.cell_id in (getattr(d, "bound_parent_ids", None) or ()) for d in path[i + 1:])

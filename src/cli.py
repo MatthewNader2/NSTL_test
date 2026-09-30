@@ -80,6 +80,13 @@ except ImportError:
 
 console = Console()
 
+# Single source of truth for the numeric quick-shortcuts to profile letters. The dashboard
+# banner and the `default()` dispatcher both derive from this instead of keeping two
+# separately-maintained switch statements in sync by hand.
+QUICK_PROFILE_SHORTCUTS: Tuple[Tuple[str, str], ...] = (
+    ("1", "0"), ("2", "A"), ("3", "C"), ("4", "D"), ("5", "E"), ("6", "S"),
+)
+
 # =====================================================================
 # Constants & Defaults
 # =====================================================================
@@ -1545,8 +1552,10 @@ class NSTLInteractiveShell(cmd.Cmd):
         header_table.add_row(prof_text, models_text, hardware_text)
 
         title_text = Text("🧬 NSTL NEURO-SYMBOLIC TOPOLOGICAL LATTICE STUDIO", justify="center", style="bold white on blue")
+        _short_label = {"0": "Symbolic", "A": "Embedder", "C": "Neuro-Symbolic", "D": "Routing", "E": "Translator", "S": "Semantic-Compiler"}
+        _quick_line = "  ".join(f"[{k}] {v}:{_short_label.get(v, v)}" for k, v in QUICK_PROFILE_SHORTCUTS)
         quick_shortcuts = Text(
-            "Quick Layers: [1] 0:Symbolic  [2] A:Embedder  [3] C:Neuro-Symbolic  [4] D:Routing  [5] E:Translator  [6] S:Semantic-Compiler\n"
+            f"Quick Layers: {_quick_line}\n"
             "Commands: /profile <0|A|C|D|E|S> | /method <M0-M9> | /topology <frontier|linear> | /audit | /macro | /debug [on|off] | /sandbox [on|off] | /status | /new | /clear | /exit",
             justify="center",
             style="dim cyan"
@@ -2059,20 +2068,9 @@ class NSTLInteractiveShell(cmd.Cmd):
         if not prompt:
             return
 
-        if prompt == "1":
-            self._switch_profile("0")
-            return
-        elif prompt == "2":
-            self._switch_profile("A")
-            return
-        elif prompt == "3":
-            self._switch_profile("C")
-            return
-        elif prompt == "4":
-            self._switch_profile("D")
-            return
-        elif prompt == "5":
-            self._switch_profile("E")
+        _quick_profile = dict(QUICK_PROFILE_SHORTCUTS).get(prompt)
+        if _quick_profile is not None:
+            self._switch_profile(_quick_profile)
             return
 
         if prompt.startswith("/"):

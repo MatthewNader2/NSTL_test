@@ -1139,6 +1139,12 @@ class TypeRegistry:
                     continue
         return None
 
+    def generation(self) -> int:
+        """Public read of the poset mutation counter, for callers that memoize
+        their own derived predicates and need to invalidate them in step with
+        the registry (mirrors the guard used by ``is_subtype``'s own cache)."""
+        return self._generation
+
     def is_subtype(self, sub: str, super_: str) -> bool:
         """Memoised poset query. The cache is per-instance and generation-guarded:
         a result computed while a mutation was in flight is returned but never stored."""
@@ -1961,7 +1967,8 @@ class Cell(ABC):
         "preconditions", "postconditions", "effects", "edges", "endable",
         "primary_in", "primary_out",
         "_primary_input", "_primary_output", "_token_set", "_token_count",
-        "_identity_tokens", "bound_parent_ids", "matched_clause_idx"
+        "_identity_tokens", "bound_parent_ids", "matched_clause_idx",
+        "clause_literals"
     ]
 
     def __init__(

@@ -230,6 +230,14 @@ class PreflightLinter:
             return True
         return False
 
+    @classmethod
+    def _is_object_receiver_role(cls, role: str) -> bool:
+        """True for the declared data-bearing roles that carry a fitted model/estimator
+        instance rather than array-like data (`model_input`, `model_sink` in the tree
+        JSON's own `data_bearing_roles` vocabulary -- the same source Check 2 draws on,
+        not a separate hardcoded list)."""
+        return role in ("model_input", "model_sink")
+
     # ------------------------------------------------------------------
     # Public entrypoint
     # ------------------------------------------------------------------
@@ -412,6 +420,32 @@ class PreflightLinter:
                     violations.append(
                         f"Cell '{cell.cell_id}' port '{p_name}' has unresolved binding "
                         f"value: '{val}'"
+                    )
+
+        # -----------------------------------------------------------------
+        # Check 3c: Object-Receiver Ports Must Bind a Variable, Not a Literal
+        #
+        # A `model_input`/`model_sink` port carries a fitted estimator instance, never
+        # array-like or scalar data. The emitter's own convention is that a bound
+        # reference to a prior cell's output is a bare Python identifier ("var_7");
+        # anything else is a literal expression the resolver fell back to (e.g. a
+        # tree that misdeclares the port's carrier). This is a syntactic check on the
+        # emitted binding, not a check against any particular type name.
+        # -----------------------------------------------------------------
+        for cell, bindings in pipeline_bindings:
+            for p_name, port_sig in cell.inputs.items():
+                p_role = cls._port_role(port_sig)
+                if not cls._is_object_receiver_role(p_role):
+                    continue
+                bound_val = bindings.get(p_name)
+                if _is_unbound(bound_val) or bound_val is UNRESOLVED_PORT:
+                    continue  # already reported by Check 2 / Check 3b
+                val_str = str(bound_val).strip()
+                if not val_str.isidentifier():
+                    violations.append(
+                        f"Cell '{cell.cell_id}' port '{p_name}' has data-bearing role "
+                        f"'{p_role}' (a fitted model/estimator instance) but was bound to "
+                        f"literal expression '{val_str}' instead of a variable reference."
                     )
 
         # -----------------------------------------------------------------

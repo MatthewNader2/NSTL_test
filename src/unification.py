@@ -2389,13 +2389,19 @@ class ExecutionContext:
                     return json.dumps(val)
 
         # 6c. Multi-identifier collection / list projection (e.g. columns list for selection or projection)
+        _t_name_concrete = bool(t_name) and not registry.is_type_variable(t_name) and t_name in registry.get_registered_types()
         is_collection = (
             registry.is_subtype(t_name, "list")
             or registry.is_subtype(t_name, "collection")
             or registry.is_subtype(t_name, "sequence")
             or t_name in ("list", "sequence", "collection")
-            or getattr(port_sig, "abstract_type", None) == "collection"
-            or str(getattr(port_sig, "state", "")).lower() in ("column_projection", "columns", "columns_list", "feature_names")
+            or (
+                not _t_name_concrete
+                and (
+                    getattr(port_sig, "abstract_type", None) == "collection"
+                    or str(getattr(port_sig, "state", "")).lower() in ("column_projection", "columns", "columns_list", "feature_names")
+                )
+            )
         )
         if (cell_stage == 2 or cell_stage is None) and is_collection:
             _raw_state = str(getattr(port_sig, "state", "") or "")
