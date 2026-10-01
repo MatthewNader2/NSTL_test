@@ -94,6 +94,23 @@ def _is_unbound(value: Any) -> bool:
     return False
 
 
+def _check_callable_callees(tree: ast.AST, violations: List[str]) -> None:
+    """
+    Host-language sanity check (domain-agnostic): a call whose callee is a
+    non-callable CONSTANT (a string, number, bool...) can never execute
+    successfully -- it is the signature of an unfilled template placeholder
+    reaching emission ("var = 'X'(var_1)"). Catching it here keeps the failure
+    loud and honest at synthesis time instead of at sandbox time.
+    """
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Call) and isinstance(node.func, ast.Constant):
+            violations.append(
+                f"Synthesized code calls a non-callable constant "
+                f"{node.func.value!r} as a function (unfilled template placeholder "
+                f"reached emission)."
+            )
+
+
 # ---------------------------------------------------------------------------
 # Errors / results
 # ---------------------------------------------------------------------------
@@ -166,15 +183,25 @@ class PreflightLinter:
 
     @classmethod
     def _feature_roles(cls) -> Set[str]:
-        return cls._role_set("get_feature_roles", "get_feature_bearing_roles")
+        # Declared role vocabulary (trees' verification_semantics); falls back
+        # to the legacy accessor names when a registry provides them.
+        roles = {
+            str(r).lower()
+            for r in TypeRegistry.get_instance().get_verification_semantics("feature_roles")
+        }
+        return roles or cls._role_set("get_feature_roles", "get_feature_bearing_roles")
 
     @classmethod
     def _target_roles(cls) -> Set[str]:
-        return cls._role_set("get_target_roles", "get_target_bearing_roles")
+        roles = {
+            str(r).lower()
+            for r in TypeRegistry.get_instance().get_verification_semantics("target_roles")
+        }
+        return roles or cls._role_set("get_target_roles", "get_target_bearing_roles")
 
     @classmethod
     def _supervised_verbs(cls) -> Set[str]:
-        return cls._verb_set("get_supervised_estimator_verbs", "get_supervised_verbs")
+        return cls._verb_set("get_supervised_estimator_verbs", "get_supervised_verbs", "get_estimator_verbs")
 
     @classmethod
     def _unsupervised_verbs(cls) -> Set[str]:
@@ -233,10 +260,16 @@ class PreflightLinter:
     @classmethod
     def _is_object_receiver_role(cls, role: str) -> bool:
         """True for the declared data-bearing roles that carry a fitted model/estimator
-        instance rather than array-like data (`model_input`, `model_sink` in the tree
-        JSON's own `data_bearing_roles` vocabulary -- the same source Check 2 draws on,
-        not a separate hardcoded list)."""
-        return role in ("model_input", "model_sink")
+        instance rather than array-like data. The role names are DECLARED tree data
+        (verification_semantics.model_roles) -- the same source Check 2 draws on."""
+        try:
+            model_roles = {
+                str(r).lower()
+                for r in TypeRegistry.get_instance().get_verification_semantics("model_roles")
+            }
+        except Exception:
+            model_roles = set()
+        return role in (model_roles or {"model_input", "model_sink"})
 
     # ------------------------------------------------------------------
     # Public entrypoint
@@ -453,7 +486,8 @@ class PreflightLinter:
         # -----------------------------------------------------------------
         if code_str:
             try:
-                ast.parse(code_str)
+                tree = ast.parse(code_str)
+                _check_callable_callees(tree, violations)
             except SyntaxError as e:
                 violations.append(f"Synthesized code has syntax error: {e}")
 

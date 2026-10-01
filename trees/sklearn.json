@@ -2234,7 +2234,8 @@
         "mean",
         "variance",
         "normalize",
-        "zscore"
+        "zscore",
+        "fit"
       ],
       "code_template": "{output_var} = StandardScaler().fit_transform(getattr({X}, 'values', {X}).reshape(-1, 1)).flatten() if getattr({X}, 'ndim', 2) == 1 else StandardScaler().fit_transform({X})",
       "slots": [
@@ -3601,7 +3602,8 @@
         "logistic",
         "classification",
         "sigmoid",
-        "fit"
+        "fit",
+        "train"
       ],
       "code_template": "{model} = LogisticRegression(C={C}, max_iter={max_iter}, random_state={random_state}).fit({X}, {y})",
       "slots": [
@@ -4123,7 +4125,8 @@
         "random_forest",
         "trees",
         "ensemble",
-        "fit"
+        "fit",
+        "train"
       ],
       "code_template": "{model} = RandomForestClassifier(n_estimators={n_estimators}, random_state={random_state}).fit({X}, {y})",
       "slots": [
@@ -4350,7 +4353,9 @@
         "svc",
         "svm",
         "support_vector",
-        "rbf"
+        "rbf",
+        "fit",
+        "train"
       ],
       "code_template": "{model} = SVC(C={C}, kernel={kernel}, probability=True).fit({X}, {y})",
       "slots": [
@@ -4544,7 +4549,11 @@
       "keywords": [
         "linear_regression",
         "ols",
-        "least_squares"
+        "least_squares",
+        "fit",
+        "train",
+        "training",
+        "model"
       ],
       "code_template": "{model} = LinearRegression().fit({X}, {y})",
       "slots": [
@@ -5011,7 +5020,8 @@
         "lasso",
         "l1",
         "sparse",
-        "regularization"
+        "regularization",
+        "train"
       ],
       "code_template": "{model} = Lasso(alpha={alpha}).fit({X}, {y})",
       "slots": [
@@ -5172,7 +5182,8 @@
         "random_forest",
         "trees",
         "regressor",
-        "ensemble"
+        "ensemble",
+        "fit"
       ],
       "code_template": "{model} = RandomForestRegressor(n_estimators={n_estimators}, random_state={random_state}).fit({X}, {y})",
       "slots": [
@@ -9904,7 +9915,8 @@
         "ipca",
         "incremental",
         "minibatch",
-        "svd"
+        "svd",
+        "train"
       ],
       "code_template": "{output_var} = IncrementalPCA(n_components={n_components}, batch_size={batch_size}).fit_transform({X})",
       "slots": [
@@ -11018,7 +11030,8 @@
         "decision_tree",
         "gini",
         "entropy",
-        "split"
+        "split",
+        "train"
       ],
       "code_template": "{model} = DecisionTreeClassifier(max_depth={max_depth}, random_state={random_state}).fit({X}, {y})",
       "slots": [
@@ -11205,7 +11218,8 @@
         "gradient_boost",
         "residual",
         "stages",
-        "classifier"
+        "classifier",
+        "fit"
       ],
       "code_template": "{model} = GradientBoostingClassifier(n_estimators={n_estimators}, learning_rate={learning_rate}, random_state={random_state}).fit({X}, {y})",
       "slots": [
@@ -11408,7 +11422,9 @@
         "knn",
         "neighbors",
         "metric_space",
-        "kneighbors"
+        "kneighbors",
+        "fit",
+        "train"
       ],
       "code_template": "{model} = KNeighborsClassifier(n_neighbors={n_neighbors}).fit({X}, {y})",
       "slots": [
@@ -11569,7 +11585,9 @@
         "gaussian_nb",
         "bayes",
         "prior",
-        "likelihood"
+        "likelihood",
+        "fit",
+        "train"
       ],
       "code_template": "{model} = GaussianNB().fit({X}, {y})",
       "slots": [
@@ -11709,7 +11727,8 @@
         "sgd",
         "online",
         "hinge",
-        "log_loss"
+        "log_loss",
+        "train"
       ],
       "code_template": "{model} = SGDClassifier(loss={loss}, penalty={penalty}, random_state={random_state}).fit({X}, {y})",
       "slots": [
@@ -11913,7 +11932,8 @@
         "mlp",
         "neural_network",
         "backprop",
-        "hidden_layers"
+        "hidden_layers",
+        "fit"
       ],
       "code_template": "{model} = MLPClassifier(hidden_layer_sizes={hidden_layer_sizes}, max_iter={max_iter}, random_state={random_state}).fit({X}, {y})",
       "slots": [
@@ -12110,7 +12130,8 @@
       "keywords": [
         "decision_tree",
         "regression",
-        "mse_split"
+        "mse_split",
+        "train"
       ],
       "code_template": "{model} = DecisionTreeRegressor(max_depth={max_depth}, random_state={random_state}).fit({X}, {y})",
       "slots": [
@@ -12289,7 +12310,8 @@
       "keywords": [
         "gradient_boost",
         "regression",
-        "residual"
+        "residual",
+        "fit"
       ],
       "code_template": "{model} = GradientBoostingRegressor(n_estimators={n_estimators}, learning_rate={learning_rate}, random_state={random_state}).fit({X}, {y})",
       "slots": [
@@ -12688,7 +12710,9 @@
         "svr",
         "support_vector",
         "rbf",
-        "epsilon"
+        "epsilon",
+        "fit",
+        "train"
       ],
       "code_template": "{model} = SVR(C={C}, kernel={kernel}).fit({X}, {y})",
       "slots": [
@@ -12871,7 +12895,8 @@
         "knn",
         "neighbors",
         "continuous",
-        "regression"
+        "regression",
+        "fit"
       ],
       "code_template": "{model} = KNeighborsRegressor(n_neighbors={n_neighbors}).fit({X}, {y})",
       "slots": [

@@ -12,6 +12,7 @@ from __future__ import annotations
 import copy
 import math
 import os
+import time
 from typing import Dict, FrozenSet, List, Optional, Sequence, Set, Tuple, Any
 
 from log_config import get_logger
@@ -738,13 +739,39 @@ def _literal_groundable(p_sig: Any, cand: Any, quoted_str_literals: Sequence[Any
                         identifier_literals: Sequence[Any], numeric_literals: Sequence[Any]) -> bool:
     """A required port is satisfiable at synthesis time iff its DECLARED carrier is
     literal-groundable and the prompt supplies a literal of that family, or the port
-    declares an enum / a literal-family role / a slot role.  Roles are classified from the
-    lattice itself (see LatticeVocabulary.literal_roles / slot_roles)."""
+    declares an enum / a literal-family role / a slot role.  Roles are classified from
+    the lattice itself (see LatticeVocabulary.literal_roles / slot_roles).
+
+    Carrier-capability gate: the slot/role channels can only ever bind prompt
+    literals and scalar expressions. A port whose declared carrier is an OBJECT
+    (not scalar/text/numeric/logical/path/enum) can never be grounded that way,
+    no matter what role vocabulary it carries or whether its NAME matches a
+    template placeholder -- template placeholders like {model} are filled by the
+    binder from upstream wires, not from the prompt. Exempting object carriers
+    made the planner accept consumers (e.g. predict-without-fit) whose required
+    object ports no step could ever produce, deferring the failure to Layer 3.
+    """
     registry = TypeRegistry.get_instance()
     vocab = _active_vocab()
     t = _port_type(p_sig)
     role = _declared_role(p_sig)
     has_text = bool(quoted_str_literals or identifier_literals)
+    # Literal-capable carriers: primitives the emitter can synthesize as an
+    # expression, declared enum choices, and untyped wildcards. Everything else
+    # (class instances, containers of class instances, handles) requires a wire.
+    carrier_literal_capable = (
+        t in _WILDCARD_CARRIERS
+        or registry.is_subtype(t, "scalar")
+        or registry.is_subtype(t, "str")
+        or registry.is_subtype(t, "text")
+        or registry.is_subtype(t, "numeric")
+        or registry.is_subtype(t, "bool")
+        or registry.is_subtype(t, "logical")
+        or registry.is_subtype(t, "filepath")
+        or registry.is_subtype(t, "uri")
+        or registry.is_subtype(t, "path")
+        or bool(getattr(p_sig, "enum_values", None))
+    )
     return (
         (role != "" and role in vocab.literal_roles)
         or (registry.is_subtype(t, "str") and has_text)
@@ -755,9 +782,17 @@ def _literal_groundable(p_sig: Any, cand: Any, quoted_str_literals: Sequence[Any
         or _lattice_is_path_port(p_sig)
         or (registry.is_subtype(t, "scalar") and (has_text or bool(numeric_literals)))
         or bool(getattr(p_sig, "enum_values", None))
-        or (role != "" and role in vocab.slot_roles)
+        or (
+            carrier_literal_capable
+            and role != ""
+            and role in vocab.slot_roles
+        )
         or (_is_col_projection_port(p_sig) and has_text)
-        or (getattr(cand, "slots", None) and getattr(p_sig, "name", None) in getattr(cand, "slots", {}))
+        or (
+            carrier_literal_capable
+            and bool(getattr(cand, "slots", None))
+            and getattr(p_sig, "name", None) in getattr(cand, "slots", {})
+        )
     )
 
 
@@ -1381,6 +1416,19 @@ class LatticePlanner:
         """
         self.current_relevance_map = dict(relevance_map or {})
         self._affinity_cache.clear()
+        self._widened_this_plan = False
+        # Wall-clock search budget: the beam must never run unbounded. Valid
+        # terminal paths are collected incrementally at every step, so an
+        # expired budget still yields the best-so-far ranking (fail fast on
+        # latency, never on correctness of what is returned). Resolve the
+        # budget from settings when present; the fallback keeps the module
+        # runnable standalone.
+        try:
+            from config import settings as _settings
+            _budget_ms = float(getattr(_settings, "planner_time_budget_ms", 6000.0))
+        except Exception:
+            _budget_ms = 6000.0
+        self._plan_deadline = time.perf_counter() + max(_budget_ms, 250.0) / 1000.0
         if not tunnel:
             return []
 
@@ -1473,6 +1521,204 @@ class LatticePlanner:
             v for kind, v in universal_literals
             if kind == "identifier"
         ]
+
+        # =================================================================
+        # Provable-infeasibility probe & demand-driven retrieval widening.
+        #
+        # A required receiver port is PROVABLY infeasible when no cell in the
+        # entire loaded lattice can produce it and it cannot be grounded from
+        # prompt literals. Planning a path through such a cell can only end in
+        # an unresolved port at Layer 3, so the search must not pay for one:
+        #   1. Probe every candidate's required receiver ports against a
+        #      memoized producer index of the whole lattice (fail fast).
+        #   2. When the prompt demonstrably DEMANDS an infeasible cell (it
+        #      carries relevance), widen the search once: query the RAG with
+        #      the cell's own DECLARED identity vocabulary plus the unsatisfied
+        #      port's declared state/type tokens -- the producer declares the
+        #      matching vocabulary by construction -- and merge what comes back
+        #      into the candidate pool.
+        #   3. Whatever remains infeasible is dropped before the beam runs; if
+        #      nothing survives, planning fails fast with an honest diagnostic
+        #      instead of burning the full trellis on a doomed plan.
+        # All evidence is structural (declared ports, declared carriers,
+        # declared vocabulary): no domain knowledge, no pattern matching.
+        # =================================================================
+        def _port_literal_groundable(type_name: str, p_sig: Any = None) -> bool:
+            """Carrier-level literal groundability (no prompt literal required).
+            Defined here so the feasibility probe and the receiver-sig tables
+            share one definition."""
+            if p_sig is not None:
+                return _literal_groundable(p_sig, None, quoted_str_literals, identifier_literals, numeric_literals)
+            t = type_name.lower()
+            return (
+                (registry.is_subtype(t, "str") and bool(quoted_str_literals or identifier_literals))
+                or (registry.is_subtype(t, "numeric") and bool(numeric_literals))
+                or registry.is_subtype(t, "bool") or registry.is_subtype(t, "filepath") or registry.is_subtype(t, "uri")
+                or (registry.is_subtype(t, "scalar") and bool(quoted_str_literals or identifier_literals or numeric_literals))
+            )
+
+        def _producer_index() -> Dict[str, List[Any]]:
+            idx = getattr(self, "_producer_index_cache", None)
+            stamp = self._lattice_stamp()
+            if idx is not None and idx[0] == stamp:
+                return idx[1]
+            by_type: Dict[str, List[Any]] = {}
+            for c in self.orchestrator.loaded_cells.values():
+                for out_p in c.outputs.values():
+                    sig = getattr(out_p, "signature", out_p)
+                    t_key = str(getattr(sig, "type_name", "") or "").lower()
+                    by_type.setdefault(t_key, []).append(sig)
+            self._producer_index_cache = (stamp, by_type)
+            return by_type
+
+        _prod_idx = _producer_index()
+
+        def _candidate_producer_groups(t: str) -> List[List[Any]]:
+            """Producer signature groups whose TYPE could unify with carrier t.
+            Over-approximate on purpose (subtype both ways, wildcards, generic
+            parameters, type variables): a false 'feasible' only costs search
+            time, a false 'infeasible' would drop a workable cell."""
+            groups: List[List[Any]] = []
+            for pt, sigs in _prod_idx.items():
+                if (
+                    pt == t
+                    or pt in _WILDCARD_CARRIERS
+                    or t in _WILDCARD_CARRIERS
+                    or (len(pt) == 1 and pt.isalpha())
+                    or (len(t) == 1 and t.isalpha())
+                    or "[" in pt or "[" in t
+                    or registry.is_subtype(pt, t)
+                    or registry.is_subtype(t, pt)
+                ):
+                    groups.append(sigs)
+            return groups
+
+        def _has_lattice_producer(p_sig: Any) -> bool:
+            sig = getattr(p_sig, "signature", p_sig)
+            t = str(getattr(sig, "type_name", "") or "").lower()
+            key = (t, str(getattr(sig, "state", "") or "").lower())
+            hit = _producer_probe_memo.get(key)
+            if hit is None:
+                hit = False
+                for group in _candidate_producer_groups(t):
+                    for prod in group:
+                        if unify(prod, sig) is not None:
+                            hit = True
+                            break
+                    if hit:
+                        break
+                _producer_probe_memo[key] = hit
+            return hit
+
+        _producer_probe_memo: Dict[Tuple[str, str], bool] = {}
+
+        def _required_receiver_sigs(c: Cell) -> List[Tuple[str, Any]]:
+            """Required ports that need a producer wire (mirrors the beam's own
+            receiver rules: non-wildcard, non-literal-groundable, non-target)."""
+            out: List[Tuple[str, Any]] = []
+            for p_name, p_sig in c.inputs.items():
+                if not p_sig.required or p_sig.default_value is not None:
+                    continue
+                if _is_receiver_port(p_sig, c):
+                    out.append((p_name, p_sig))
+                    continue
+                t = str(p_sig.signature.type_name)
+                if t.lower() in _WILDCARD_CARRIERS:
+                    continue
+                if _is_table_groundable_target_port(p_sig, [], quoted_str_literals, identifier_literals):
+                    continue
+                if _port_literal_groundable(t, p_sig):
+                    continue
+                out.append((p_name, p_sig))
+            return out
+
+        def _probe_infeasible(cells: List[Cell]) -> List[Tuple[Cell, str, Any]]:
+            bad: List[Tuple[Cell, str, Any]] = []
+            for c in cells:
+                if getattr(c, "node_type", "") == "constructor":
+                    continue
+                for p_name, p_sig in _required_receiver_sigs(c):
+                    if not _has_lattice_producer(p_sig):
+                        bad.append((c, p_name, p_sig))
+            return bad
+
+        if start_sig is None:
+            infeasible = _probe_infeasible(candidates)
+            demanded = [(c, pn, ps) for c, pn, ps in infeasible
+                        if relevance_map.get(c.cell_id, 0.0) > 0.0]
+            if demanded:
+                logger.warning(
+                    "[PLANNER] %d demanded cell(s) carry required port(s) with no producer in the lattice: %s",
+                    len(demanded),
+                    [f"{c.cell_id}.{pn}" for c, pn, _ in demanded][:8],
+                )
+                # Demand-driven search widening: the consumer's own DECLARED
+                # identity vocabulary plus the port's declared state/type tokens
+                # form a retrieval query whose results necessarily share the
+                # producer's vocabulary (the producer declares the matching
+                # output state by construction of the typestate contract).
+                rag = getattr(self, "rag", None)
+                if rag is not None and not getattr(self, "_widened_this_plan", False):
+                    self._widened_this_plan = True
+                    exp_spans: List[str] = []
+                    for c, _pn, p_sig in demanded[:3]:
+                        toks = set(getattr(c, "identity_tokens", c.token_set) or set())
+                        sig = getattr(p_sig, "signature", p_sig)
+                        toks |= set(CellTokenizer.tokenize_identifier(str(getattr(sig, "state", "") or "")))
+                        toks |= set(CellTokenizer.tokenize_identifier(str(getattr(sig, "type_name", "") or "")))
+                        fw = set()
+                        try:
+                            _reg = TypeRegistry.get_instance()
+                            fw = set(_reg.get_function_words()) | set(_reg.get_sentence_connectives())
+                        except Exception:
+                            fw = set()
+                        span_toks = {t for t in (toks - fw) if len(t) >= 2}
+                        if span_toks:
+                            exp_spans.append(" ".join(sorted(span_toks)))
+                    if exp_spans:
+                        try:
+                            widened = rag.get_relevant_context_batch(exp_spans, top_k=12)
+                            added = 0
+                            for span_results in widened:
+                                for item in span_results:
+                                    cid = item.get("cell_id")
+                                    if not cid or cid in {x.cell_id for x in candidates}:
+                                         continue
+                                    cell_obj = self.orchestrator.loaded_cells.get(cid)
+                                    if cell_obj is None:
+                                        continue
+                                    if getattr(cell_obj, "node_type", "") == "constant":
+                                        continue
+                                    candidates.append(cell_obj)
+                                    relevance_map.setdefault(cid, 0.01)
+                                    self.current_relevance_map.setdefault(cid, 0.01)
+                                    log_probs[cid] = math.log(max(relevance_map.get(cid, 0.01), 1e-6))
+                                    added += 1
+                            if added:
+                                logger.info(
+                                    "[PLANNER] Search widened with %d producer candidate(s) via declared-vocabulary retrieval.",
+                                    added,
+                                )
+                        except Exception as _w_err:
+                            logger.debug("[PLANNER] Widening retrieval unavailable: %s", _w_err)
+                    # Re-probe after widening
+                    infeasible = _probe_infeasible(candidates)
+                else:
+                    infeasible = [(c, pn, ps) for c, pn, ps in infeasible]
+            if infeasible:
+                infeasible_ids = {c.cell_id for c, _pn, _ps in infeasible}
+                candidates = [c for c in candidates if c.cell_id not in infeasible_ids]
+                logger.warning(
+                    "[PLANNER] Failing fast: dropped %d cell(s) with provably unsatisfiable required ports: %s",
+                    len(infeasible_ids),
+                    sorted(infeasible_ids)[:8],
+                )
+                if not candidates:
+                    logger.error(
+                        "[PLANNER] No plannable candidate remains: the prompt's demanded operations "
+                        "require producers the loaded lattice does not declare. Emitting no plan."
+                    )
+                    return []
 
         def _can_be_entry_source(cell: Cell) -> bool:
             for p_name, p_sig in cell.inputs.items():
@@ -1797,16 +2043,7 @@ class LatticePlanner:
         # class must be produced somewhere earlier in the path (typically by the
         # class's constructor morphism) or by the environment's start signature.
         # Ports whose declared carrier is literal-groundable are exempt.
-        def _port_literal_groundable(type_name: str, p_sig: Any = None) -> bool:
-            if p_sig is not None:
-                return _literal_groundable(p_sig, None, quoted_str_literals, identifier_literals, numeric_literals)
-            t = type_name.lower()
-            return (
-                (registry.is_subtype(t, "str") and bool(quoted_str_literals or identifier_literals))
-                or (registry.is_subtype(t, "numeric") and bool(numeric_literals))
-                or registry.is_subtype(t, "bool") or registry.is_subtype(t, "filepath") or registry.is_subtype(t, "uri")
-                or (registry.is_subtype(t, "scalar") and bool(quoted_str_literals or identifier_literals or numeric_literals))
-            )
+        # (Defined before the feasibility probe above; see _port_literal_groundable.)
 
         # Per-cell: required concrete non-groundable receiver signatures (the ports
         # that need an in-path producer such as a constructor morphism).
@@ -1956,6 +2193,23 @@ class LatticePlanner:
 
         _edge_affinity = self._calculate_edge_affinity
         prompt_toks_all = CellTokenizer.tokenize_prompt(prompt) if prompt else set()
+
+        # Narrow-identity requested-ness for structural guards: only the cell's
+        # own NAME vocabulary (cell id, keywords, semantic tags) counts as
+        # "what the cell is"; port names describe the interface and are too
+        # generic ('data', 'result') to establish that the prompt asked for it.
+        def _narrow_identity(c: Cell) -> Set[str]:
+            toks = set(CellTokenizer.tokenize_identifier(c.cell_id))
+            for kw in getattr(c, "keywords", ()) or ():
+                toks |= set(CellTokenizer.tokenize_identifier(str(kw)))
+            for tag in getattr(c, "semantic_tags", ()) or ():
+                toks |= set(CellTokenizer.tokenize_identifier(str(tag)))
+            return toks
+
+        def _unrequested_narrow(c: Cell) -> bool:
+            toks = _narrow_identity(c)
+            return bool(toks and _is_transform_stage(c) and not (toks & prompt_toks_all))
+
         _unreq_memo: Dict[str, bool] = {}
 
         def _unrequested(c: Cell) -> bool:
@@ -2681,6 +2935,7 @@ class LatticePlanner:
                 has_egress_intent=has_prompt_egress_intent,
                 target_sink=target_sink,
                 is_valid_terminal=_is_valid_terminal,
+                unrequested_check=_unrequested_narrow,
             )
 
         # Filter and rank valid composition paths
@@ -2815,11 +3070,42 @@ class LatticePlanner:
                 cand_p = it[0]
                 cand_test = self._expand_identifier_multiplicity(cand_p, prompt)
                 try:
-                    res = gate.unify_pipeline(cand_test, ExecutionContext(prompt=prompt))
-                    if isinstance(res, Success) and not res.is_bottom():
-                        chosen_candidate = it
-                        break
+                    # Faithful emission dry-run: acceptance requires the FULL
+                    # emission path (clause scoping, slot planning, unification,
+                    # template instantiation, liveness) to succeed, exactly as
+                    # it will in synthesis. The trial runs on PRIVATE cell
+                    # copies so shared lattice cells are never mutated.
+                    # Candidates whose pipelines cannot render into executable
+                    # code are skipped in favor of the next ranked candidate.
+                    cand_private = [
+                        _private_copy(c, self.orchestrator) for c in cand_test
+                    ]
+                    # Clause scoping (same attachment the winning path receives)
+                    for c in cand_private:
+                        if getattr(c, "matched_clause_idx", None) is None and c.cell_id in cell_clause_mass:
+                            masses = cell_clause_mass[c.cell_id]
+                            if masses and max(masses) > 0.0:
+                                c.matched_clause_idx = max(range(len(masses)), key=lambda i: masses[i])
+                    # Sub-lattice slot planning (same as the winning path receives)
+                    for c in cand_private:
+                        if getattr(c, "slots", None):
+                            for slot_name, slot_contract in _safe_slots_items(c):
+                                if slot_name in getattr(c, "bound_slots", {}):
+                                    continue
+                                sub_plan = self.plan_sublattice(
+                                    c, slot_name, slot_contract, tunnel, relevance_map, it[1], prompt
+                                )
+                                if sub_plan:
+                                    c.bound_slots[slot_name] = sub_plan
+                    gate.emit_code(cand_private, ExecutionContext(prompt=prompt))
+                    chosen_candidate = it
+                    break
                 except Exception as e:
+                    logger.debug(
+                        "[PLANNER] Candidate rejected at emission dry-run (%s): %s",
+                        " -> ".join(c.cell_id for c in cand_p),
+                        str(e)[:200],
+                    )
                     continue
             if chosen_candidate is None and scored_candidates:
                 # Semantic repair stage (Section 3.4): attempt dynamic repair of candidate cells
@@ -3238,6 +3524,12 @@ class LatticePlanner:
             return sorted(res_cells, key=lambda c: self._calculate_edge_affinity(prev_cell, c), reverse=True)
 
         for step in range(2, max_steps + 1):
+            if time.perf_counter() > self._plan_deadline:
+                logger.warning(
+                    "[PLANNER] Search budget exhausted after step %d; returning best-so-far paths (fail fast).",
+                    step - 1,
+                )
+                break
             candidates_for_next: List[Tuple[List[Cell], Substitution, float, int, int]] = []
 
             for prev_path, prev_sigma, prev_score, prev_weak, prev_unbind in current_beam:
@@ -3347,6 +3639,7 @@ class LatticePlanner:
         has_egress_intent: bool = False,
         target_sink: Optional[str] = None,
         is_valid_terminal: Optional[Any] = None,
+        unrequested_check: Optional[Any] = None,
     ) -> List[Tuple[List[Cell], Substitution, float, int, int]]:
         """
         Monoidal Category Frontier DAG Planner (Default Approach).
@@ -3514,6 +3807,35 @@ class LatticePlanner:
                 else:
                     return None
 
+            # Unrequested-wildcard guard: a morphism the prompt never names
+            # (zero identity-vocabulary overlap) whose output carrier is a bare
+            # type variable / wildcard is neither a demanded operation nor a
+            # typed transformation -- it can only serve as an untyped bridge
+            # filler, so it is rejected as an extension entirely. Generic
+            # utilities the prompt DOES name, and typed transformations, are
+            # unaffected.
+            if unrequested_check is not None and unrequested_check(cand):
+                _out_t = str(getattr(getattr(cand, "primary_output", None), "type_name", "") or "").lower()
+                if _out_t in _WILDCARD_CARRIERS or (len(_out_t) == 1 and _out_t.isalpha()):
+                    return None
+
+            # Wildcard-bridge guard: an unrequested morphism (its declared
+            # identity vocabulary shares nothing with the prompt) may only join
+            # the pipeline through at least one TYPED wire. Attachments made
+            # purely through wildcard-carrier wires are the fingerprint of a
+            # generic utility morphism smuggled in as a bridge filler; the
+            # typed carriers the path already carries must make the connection.
+            if bound_parents and unrequested_check is not None and unrequested_check(cand):
+                parents_by_id = {p.cell_id: p for p in prev_path}
+                typed_wire_exists = any(
+                    str(getattr(parents_by_id[pid].primary_output, "type_name", "") or "").lower()
+                    not in _WILDCARD_CARRIERS
+                    for pid in bound_parents
+                    if pid in parents_by_id and parents_by_id[pid].primary_output is not None
+                )
+                if not typed_wire_exists:
+                    return None
+
             is_join = len(bound_parents) >= 2
             return (sub, bound_parents, is_join)
 
@@ -3565,6 +3887,12 @@ class LatticePlanner:
 
         # Step t = 2 ... max_steps
         for step in range(2, max_steps + 1):
+            if time.perf_counter() > self._plan_deadline:
+                logger.warning(
+                    "[PLANNER] Search budget exhausted after step %d; returning best-so-far paths (fail fast).",
+                    step - 1,
+                )
+                break
             candidates_for_next: List[Tuple[List[Cell], Substitution, float, int, int]] = []
 
             for prev_path, prev_sigma, prev_score, prev_weak, prev_unbind in current_beam:
@@ -3669,6 +3997,17 @@ class LatticePlanner:
 
             if not candidates_for_next:
                 break
+            # Cheap likelihood prefilter: the full Borda rank (semantic
+            # objective over every candidate extension) is the search's
+            # dominant cost. Bounding the ranked set to a constant multiple of
+            # the beam, ordered by the Viterbi log-likelihood the extension
+            # already accumulated, keeps the ranking semantics for every
+            # prefix that could realistically survive while making the step
+            # cost independent of the tunnel's branching factor.
+            _prefilter_cap = max(budget.beam_width * 2, 128)
+            if len(candidates_for_next) > _prefilter_cap:
+                candidates_for_next.sort(key=lambda it: it[2], reverse=True)
+                candidates_for_next = candidates_for_next[:_prefilter_cap]
             candidates_for_next = [it for it, _ in rank_items(candidates_for_next, False)]
             by_endpoint: Dict[str, List[Any]] = {}
             for item in candidates_for_next:

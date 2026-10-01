@@ -42,9 +42,15 @@ def extract_template_placeholders(template: str) -> List[str]:
 
 def safe_substitute_template(template: str, bindings: Dict[str, Any]) -> str:
     """Substitutes placeholders with bindings, preserving dict literals and syntax.
-    
+
     Leaves non-identifier braces (like {"a": 1}) and unbound placeholders untouched.
     Zero regular expressions.
+
+    Callee-position rule (host-language semantics): a placeholder immediately
+    followed by ``(`` is a CALL CALLEE in the emitted code, so its binding must
+    be a bare identifier. When the supplied binding is a quoted string, the
+    quotes are stripped so the emitted call names the identifier instead of
+    invoking a string constant (which can never execute).
     """
     if not template or "{" not in template:
         return template
@@ -57,7 +63,15 @@ def safe_substitute_template(template: str, bindings: Dict[str, Any]) -> str:
             if j != -1:
                 inner = template[i + 1:j]
                 if inner.isidentifier() and inner in bindings and bindings[inner] is not None:
-                    res.append(str(bindings[inner]))
+                    val = bindings[inner]
+                    is_callee = j + 1 < n and template[j + 1] == "("
+                    if is_callee and isinstance(val, str):
+                        stripped = val.strip()
+                        if len(stripped) >= 2 and stripped[0] == stripped[-1] and stripped[0] in ("'", '"'):
+                            stripped = stripped[1:-1]
+                        if stripped.isidentifier():
+                            val = stripped
+                    res.append(str(val))
                     i = j + 1
                     continue
         res.append(template[i])

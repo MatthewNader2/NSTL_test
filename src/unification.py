@@ -155,6 +155,20 @@ def is_top_symbol(raw: str, registry: Optional[Any] = None) -> bool:
     return registry.is_declared_top(s)
 
 
+def _declared_role_semantics(key: str) -> FrozenSet[str]:
+    """Declared role/effect/carrier vocabulary looked up by semantic key.
+    The WORDS live in the trees' `verification_semantics` declarations; the
+    engine never carries role-name literals of its own."""
+    try:
+        return frozenset(
+            str(r).strip().lower()
+            for r in TypeRegistry.get_instance().get_verification_semantics(key)
+            if str(r).strip()
+        )
+    except Exception:
+        return frozenset()
+
+
 class _DynamicTopTypeSet(frozenset):
     """Dynamic top type set backed by TypeRegistry declarations."""
     def __contains__(self, item):
@@ -1014,7 +1028,8 @@ class ExecutionContext:
             reg.get_egress_tokens()
             | reg.get_dest_port_tokens()
         )
-        arg_prepositions = {"on", "by", "with", "using", "via", "at", "from", "for"}
+        # Relational prepositions are DECLARED vocabulary (trees' preposition_triggers).
+        arg_prepositions = set(reg.get_preposition_triggers())
         reg_types = reg.get_registered_types()
         stopwords = reg.get_stopwords()
 
@@ -1169,14 +1184,19 @@ class ExecutionContext:
                 w = "".join(reversed(trailing)).lower()
             if not w:
                 continue
-            if w in ("and", "or", ",", "&", "with", "both"):
-                continue
             if "." in word or "/" in word or "\\" in word:
                 continue
+            # Direction triggers win: declared connective vocabulary overlaps
+            # them ("into", "from"), so test direction BEFORE skipping
+            # conjunctions during the backward scan.
             if w in dest_triggers:
                 return "dest"
             if w in src_triggers:
                 return "src"
+            # Conjunctions / coordinating words are DECLARED vocabulary; they
+            # neither mark a direction nor end the backward scan.
+            if w in TypeRegistry.get_instance().get_sentence_connectives():
+                continue
             break
         return ""
 
@@ -1221,13 +1241,20 @@ class ExecutionContext:
     def columns(self) -> List[str]:
         if getattr(self, "_explicit_columns", None):
             return self._explicit_columns
+        # Projection-role context is DECLARED vocabulary (column-projection
+        # tokens + relational preposition triggers), not engine literals.
+        try:
+            _reg = TypeRegistry.get_instance()
+            projection_roles = set(_reg.get_column_projection_tokens()) | set(_reg.get_preposition_triggers())
+        except Exception:
+            projection_roles = set()
         cols = []
         for pos, kind, val in self.ordered_literals:
             if kind == "quoted_str" and "." not in val:
                 cols.append(val)
             elif kind == "bare_id":
                 roles = self.identifier_roles.get(pos, frozenset())
-                if "column" in roles or "by" in roles:
+                if projection_roles and (roles & projection_roles):
                     cols.append(val)
         return cols
 
@@ -1242,12 +1269,22 @@ class ExecutionContext:
 
     @property
     def flags(self) -> Dict[str, Any]:
-        fl = {}
-        p_low = self._prompt.lower()
-        if "descend" in p_low or "descending" in p_low:
+        """Declared-polarity flags: direction words are the trees' own
+        `polarity_hints` vocabulary (ascending / descending poles), matched
+        token-wise against the prompt. No engine-side direction literals."""
+        fl: Dict[str, Any] = {}
+        try:
+            hint_toks = CellTokenizer.tokenize_prompt(self._prompt or "")
+        except Exception:
+            return fl
+        if not hint_toks:
+            return fl
+        asc_hint = bool(hint_toks & _ASCENDING_HINTS)
+        desc_hint = bool(hint_toks & _DESCENDING_HINTS)
+        if desc_hint and not asc_hint:
             fl["ascending"] = False
             fl["descending"] = True
-        elif "ascend" in p_low or "ascending" in p_low:
+        elif asc_hint and not desc_hint:
             fl["ascending"] = True
             fl["descending"] = False
         return fl
@@ -1771,13 +1808,17 @@ class ExecutionContext:
             triggers.append(target_label.lower())
 
         # Grammatical function words + declared ordering-vocabulary tokens are
-        # never slot VALUES. No domain operation verbs: file assets are already
-        # excluded by kind, and value words come from declared role/state
-        # vocabulary via `triggers` above.
-        skip_words = set(TypeRegistry.get_instance().get_function_words()) | {
-            "by", "on", "with", "of", "for", "in", "to", "the", "a", "an", "and", "then",
-            "true", "false",
-        }
+        # never slot VALUES. Function/connective vocabulary is DECLARED (trees),
+        # bool spellings come from the host language's keyword table. No domain
+        # operation verbs: file assets are already excluded by kind, and value
+        # words come from declared role/state vocabulary via `triggers` above.
+        _reg_skip = TypeRegistry.get_instance()
+        skip_words = (
+            set(_reg_skip.get_function_words())
+            | set(_reg_skip.get_sentence_connectives())
+            | {k.lower() for k in keyword.kwlist}
+            | {"true", "false", "none", "null"}
+        )
 
         for tr in triggers:
             if tr in raw_lower:
@@ -2040,10 +2081,11 @@ class ExecutionContext:
                     # Inverted-pole names are DECLARED port identifiers, checked
                     # against the registry-harvested descending polarity hints
                     # (trees/*.json `polarity_hints`) — token-wise, so e.g.
-                    # "description" never matches.
+                    # "description" never matches. The same declared hints drive
+                    # the port-name test: no engine-side direction vocabulary.
                     positive_means_ascending = not (
                         p_name in _DESCENDING_HINTS
-                        or bool(p_name_tokens & {"desc", "descend", "descending", "decreasing", "reverse"})
+                        or bool(p_name_tokens & _DESCENDING_HINTS)
                     )
                     descending_requested = desc_hint
                     if positive_means_ascending:
@@ -2069,22 +2111,37 @@ class ExecutionContext:
                 if idx in self.used_indices or kind != "numeric":
                     continue
                 if not port_sig.required:
-                    # Clause-bounded context: restrict evidence to the clause enclosing the literal
+                    # Clause-bounded context: restrict evidence to the clause enclosing the literal.
+                    # Clause delimiters are DECLARED connective vocabulary
+                    # (trees' sentence_connectives) plus the prompt's own
+                    # punctuation; no engine-side connective literals.
                     prompt_len = len(self.prompt)
                     delims: List[Tuple[int, int]] = []
+                    _connectives = sorted(
+                        (c for c in TypeRegistry.get_instance().get_sentence_connectives() if c.isalpha()),
+                        key=len, reverse=True,
+                    )
                     i = 0
                     while i < prompt_len:
                         c = self.prompt[i]
                         if c in (",", ";"):
                             delims.append((i, i + 1))
                             i += 1
-                        elif self.prompt[i : i + 3].lower() == "and" and (i == 0 or not self.prompt[i - 1].isalnum()) and (i + 3 == prompt_len or not self.prompt[i + 3].isalnum()):
-                            delims.append((i, i + 3))
-                            i += 3
-                        elif self.prompt[i : i + 4].lower() == "then" and (i == 0 or not self.prompt[i - 1].isalnum()) and (i + 4 == prompt_len or not self.prompt[i + 4].isalnum()):
-                            delims.append((i, i + 4))
-                            i += 4
-                        else:
+                            continue
+                        matched_conj = False
+                        if i == 0 or not self.prompt[i - 1].isalnum():
+                            for conj in _connectives:
+                                c_len = len(conj)
+                                if (
+                                    c_len >= 2
+                                    and self.prompt[i : i + c_len].lower() == conj
+                                    and (i + c_len == prompt_len or not self.prompt[i + c_len].isalnum())
+                                ):
+                                    delims.append((i, i + c_len))
+                                    i += c_len
+                                    matched_conj = True
+                                    break
+                        if not matched_conj:
                             i += 1
 
                     spans = []
@@ -2301,8 +2358,9 @@ class ExecutionContext:
             col_tokens = TypeRegistry.get_instance().get_column_projection_tokens()
             reg_types = TypeRegistry.get_instance().get_registered_types()
             is_col_port = (
-                p_role in ("column_projection", "columns", "target_input")
-                or p_state in ("column_projection", "columns", "feature_names", "column_name", "target_name")
+                p_role in _declared_role_semantics("projection_port_roles")
+                or p_role in _declared_role_semantics("target_roles")
+                or p_state in _declared_role_semantics("projection_port_states")
             )
 
             # Check unconsumed literals for operational parameter candidates (prioritizing current clause)
@@ -2540,6 +2598,36 @@ class UnificationGate:
         self.last_pipeline_bindings: List[Tuple[Cell, Dict[str, str]]] = []
         self.last_verification_contract: Optional[VerificationContract] = None
         self.last_runtime_aliases: Dict[str, str] = {}
+        self._generic_port_cache: Optional[Tuple[Tuple[int, int], FrozenSet[str]]] = None
+
+    def _generic_port_tokens(self) -> FrozenSet[str]:
+        """
+        Measured generic-vocabulary stop set: tokens whose document frequency
+        across the loaded lattice exceeds one standard deviation above the mean.
+        Such tokens appear on too many cells (and ports) to discriminate between
+        candidate wire bindings. Derived purely from the loaded corpus; no
+        literal token list lives in the engine.
+        """
+        lc = getattr(self.orchestrator, "loaded_cells", None) or {}
+        stamp = (id(lc), len(lc))
+        if self._generic_port_cache is not None and self._generic_port_cache[0] == stamp:
+            return self._generic_port_cache[1]
+        dfs: List[int] = []
+        toks: Dict[str, int] = {}
+        for c in lc.values():
+            for t in getattr(c, "token_set", set()):
+                if isinstance(t, str) and len(t) >= 2:
+                    toks[t.lower()] = toks.get(t.lower(), 0) + 1
+        dfs = list(toks.values())
+        if not dfs:
+            self._generic_port_cache = (stamp, frozenset())
+            return frozenset()
+        mean = sum(dfs) / len(dfs)
+        var = sum((v - mean) ** 2 for v in dfs) / len(dfs)
+        cut = mean + (var ** 0.5)
+        out = frozenset(t for t, v in toks.items() if v > cut)
+        self._generic_port_cache = (stamp, out)
+        return out
 
     def get_runtime_aliases(self) -> Dict[str, str]:
         """
@@ -2549,6 +2637,27 @@ class UnificationGate:
         identifier resolves without fabricating source-level assignments.
         """
         return dict(self.last_runtime_aliases)
+
+    @staticmethod
+    def _refuse_non_callable_calls(code: str) -> None:
+        """
+        Host-language sanity gate at emission time (domain-agnostic): a call
+        whose callee is a non-callable CONSTANT (string/number/bool literal)
+        can never execute. That pattern is the fingerprint of an unfilled
+        code-template placeholder reaching emission (e.g. ``var = 'X'(var_1)``)
+        and must fail the synthesis loudly here rather than at runtime.
+        """
+        try:
+            tree = ast.parse(code)
+        except SyntaxError:
+            return  # syntax problems are reported by the linters downstream
+        for node in ast.walk(tree):
+            if isinstance(node, ast.Call) and isinstance(node.func, ast.Constant):
+                raise UnresolvedPlaceholderError(
+                    f"Code synthesis refused: emitted code calls the non-callable "
+                    f"constant {node.func.value!r} as a function (an unfilled "
+                    f"template placeholder reached emission)."
+                )
 
     # ------------------------------------------------------------------
     # Declared bridge-morphism composition (Solution 3)
@@ -3002,8 +3111,9 @@ class UnificationGate:
             cells = expanded_cells
 
         # Pre-scan pipeline for target-input ports to prevent target column from bleeding into feature projection
+        _target_roles = _declared_role_semantics("target_roles")
         has_target_port = any(
-            any(getattr(p, "port_role", None) == "target_input" or getattr(p, "derived_role", "") == "target_input"
+            any(getattr(p, "port_role", None) in _target_roles or getattr(p, "derived_role", "") in _target_roles
                 for p in c.inputs.values())
             for c in cells
         )
@@ -3041,7 +3151,7 @@ class UnificationGate:
             ctx.consumed_tokens.update(t.lower() for t in cell.token_set)
 
             def _is_zero_ary_generator(c: Cell) -> bool:
-                if not c.outputs or getattr(c, "stage", None) == 3 or str(getattr(c, "node_role", "")).lower() == "sink":
+                if not c.outputs or getattr(c, "stage", None) == 3 or str(getattr(c, "node_role", "")).lower() in _declared_role_semantics("sink_roles"):
                     return False
                 if any(_lattice_is_path_port(p) for p in c.inputs.values()):
                     return False
@@ -3112,7 +3222,14 @@ class UnificationGate:
                 avail_vars = [v for v in ctx.variables.keys() if not _is_product(ctx.variables[v][0])]
 
                 candidates = []
-                ROLE_RESTRICTED = {"feature_input", "target_input", "model_input"}
+                ROLE_RESTRICTED = (
+                    _declared_role_semantics("feature_roles")
+                    | _declared_role_semantics("target_roles")
+                    | _declared_role_semantics("model_roles")
+                )
+                _wire_feature_roles = _declared_role_semantics("feature_roles")
+                _wire_target_roles = _declared_role_semantics("target_roles")
+                _wire_model_roles = _declared_role_semantics("model_roles")
 
                 for p_name, p in multi_ports:
                     p_role = getattr(p, "derived_role", "standard")
@@ -3135,11 +3252,11 @@ class UnificationGate:
                         if p_role in ROLE_RESTRICTED and v_role in ROLE_RESTRICTED:
                             if p_role != v_role:
                                 continue
-                        elif p_role == "target_input" and v_role != "target_input":
+                        elif p_role in _wire_target_roles and v_role not in _wire_target_roles:
                             continue
-                        elif p_role == "feature_input" and v_role == "target_input":
+                        elif p_role in _wire_feature_roles and v_role in _wire_target_roles:
                             continue
-                        elif p_role == "model_input" and v_role != "model_input":
+                        elif p_role in _wire_model_roles and v_role not in _wire_model_roles:
                             continue
 
                         # Signature unification check
@@ -3153,9 +3270,9 @@ class UnificationGate:
                             score -= 25.0
                         if p_role == v_role and p_role != "standard":
                             score += 25.0
-                        if p_role == "feature_input" and v_role == "feature_input":
+                        if p_role in _wire_feature_roles and v_role in _wire_feature_roles:
                             score += 15.0
-                        if p_role == "target_input" and v_role == "target_input":
+                        if p_role in _wire_target_roles and v_role in _wire_target_roles:
                             score += 15.0
                         if producer_var is not None and v_name == producer_var:
                             score += 8.0
@@ -3176,7 +3293,12 @@ class UnificationGate:
                         if src_cell:
                             v_toks.update(src_cell.token_set)
 
-                        _GENERIC_PORT_STOP = {"array", "arrai", "data", "input", "output", "first", "second", "operand"}
+                        # Generic port vocabulary is measured, not listed: tokens
+                        # whose document frequency across the lattice exceeds one
+                        # standard deviation above the mean cannot discriminate
+                        # between candidate wires (same statistic the planner's
+                        # LatticeVocabulary.frequent_tokens uses).
+                        _GENERIC_PORT_STOP = self._generic_port_tokens()
                         overlap = len((p_toks & v_toks) - _GENERIC_PORT_STOP)
                         score += overlap * 4.0
 
@@ -3298,12 +3420,12 @@ class UnificationGate:
                 # identifier (how users name the predicted column); the carrier is
                 # the most recent in-scope table-typed variable (declared poset).
                 p_role = getattr(p_sig, "port_role", None) or getattr(p_sig, "derived_role", "")
-                if p_role == "target_input" and p_name not in cell_bindings:
+                if p_role in _declared_role_semantics("target_roles") and p_name not in cell_bindings:
                     scoped_target = None
                     for v_name, (v_sig, _) in reversed(list(ctx.variables.items())):
                         if _is_product(v_sig) or v_name in cell_bindings.values():
                             continue
-                        if getattr(v_sig, "derived_role", "") == "target_input":
+                        if getattr(v_sig, "derived_role", "") in _declared_role_semantics("target_roles"):
                             u_v = unify(v_sig.signature, concrete_sig.signature, accumulated_sigma)
                             if u_v is not None:
                                 scoped_target = v_name
@@ -3756,7 +3878,19 @@ class UnificationGate:
             if isinstance(node, ast.Name) and node.id in ph_map:
                 orig = ph_map[node.id]
                 if orig in bindings and bindings[orig] is not None:
-                    node.id = str(bindings[orig])
+                    val = str(bindings[orig])
+                    # A Name node's id must be a bare identifier (host-language
+                    # invariant). Quote-wrapped identifier bindings are unwrapped
+                    # so a placeholder used in callee position emits a call to
+                    # the named function, not to a string constant. Bindings
+                    # that are not identifiers leave the placeholder name in
+                    # place, which the emission liveness check reports loudly.
+                    if not val.isidentifier():
+                        stripped = val.strip()
+                        if len(stripped) >= 2 and stripped[0] == stripped[-1] and stripped[0] in ("'", '"') and stripped[1:-1].isidentifier():
+                            val = stripped[1:-1]
+                    if val.isidentifier():
+                        node.id = val
 
         try:
             return ast.unparse(optimized)
@@ -3849,7 +3983,11 @@ class UnificationGate:
             for p_name, p_sig in c.inputs.items():
                 p_role = getattr(p_sig, "derived_role", "") or getattr(p_sig, "port_role", "") or ""
                 t_name = (getattr(p_sig, "type_name", "") or "").lower()
-                if p_role in ("carrier", "data_input", "feature_input", "model_input"):
+                if p_role in (
+                    _declared_role_semantics("dataflow_roles")
+                    | _declared_role_semantics("feature_roles")
+                    | _declared_role_semantics("model_roles")
+                ):
                     continue
                 if registry.is_subtype(t_name, "table") or registry.is_subtype(t_name, "tensor") or registry.is_subtype(t_name, "model"):
                     continue
@@ -4141,6 +4279,7 @@ class UnificationGate:
                     if v_name not in produced_vars:
                         prior_vars.add(v_name)
         self._verify_emitted_ast_liveness(final_code, initial_scope=prior_vars)
+        self._refuse_non_callable_calls(final_code)
         return final_code
 
     @staticmethod
@@ -4535,7 +4674,66 @@ class UnificationGate:
             if not p:
                 return False
             t = str(getattr(p, "type_name", "")).lower()
-            return registry.is_subtype(t, "figure") or t in ("figure", "axes")
+            if registry.is_subtype(t, "figure"):
+                return True
+            # Declared drawing-surface carriers (trees name the family members,
+            # e.g. a plotting library's figure and axes classes).
+            return t in _declared_role_semantics("figure_carriers")
+
+        def _estimator_state_targets() -> FrozenSet[str]:
+            """
+            Declared states that name fitted-model instances, derived entirely
+            from tree data: a declared typestate qualifies when its name is
+            spelled with the declared estimator-verb vocabulary (sklearn trees
+            declare `estimator_verbs`; their typestates name the fitted states
+            with those same verbs) AND its declared carrier is not a data-
+            abstract carrier (arrays/tables are data, instance handles are not).
+            Replaces the former engine-side literal state list.
+            """
+            reg_ = TypeRegistry.get_instance()
+            verb_toks: Set[str] = set()
+            for v in reg_.get_estimator_verbs():
+                verb_toks |= {t for t in CellTokenizer.tokenize_identifier(str(v)) if len(t) >= 2}
+            if not verb_toks:
+                return frozenset()
+            abstracts = set()
+            try:
+                abstracts = {str(a).lower() for a in reg_.get_abstract_carriers()}
+            except Exception:
+                abstracts = set()
+            out: Set[str] = set()
+            for s_name in reg_.get_declared_state_names():
+                name_toks = {normalize_token(t) for t in CellTokenizer.tokenize_identifier(s_name)}
+                name_toks |= {t for t in CellTokenizer.tokenize_identifier(s_name) if len(t) >= 2}
+                if not (name_toks & verb_toks):
+                    continue
+                carrier = reg_.get_state_carrier(s_name)
+                if carrier:
+                    c_l = str(carrier).lower()
+                    if any(reg_.is_subtype(c_l, ab) for ab in abstracts if ab not in ("object",)):
+                        continue
+                out.add(s_name)
+            return frozenset(out)
+
+        _ESTIMATOR_STATE_TARGETS = _estimator_state_targets()
+
+        # Declared verification vocabulary (trees' verification_semantics):
+        # role / effect / state names the contract tracks, keyed semantically.
+        # The words live entirely in the domain trees.
+        _SEM = TypeRegistry.get_instance().get_verification_semantics
+        _FEATURE_ROLES = {r.lower() for r in _SEM("feature_roles")}
+        _TARGET_ROLES = {r.lower() for r in _SEM("target_roles")}
+        _MODEL_ROLES = {r.lower() for r in _SEM("model_roles")}
+        _SOURCE_ROLES = {r.lower() for r in _SEM("source_roles")}
+        _SINK_ROLES = {r.lower() for r in _SEM("sink_roles")}
+        _ESTIMATOR_ROLES = {r.lower() for r in _SEM("estimator_roles")}
+        _ANNOTATION_EFFECTS = {e.lower() for e in _SEM("annotation_effects")}
+        _CLEAN_EFFECTS = {e.lower() for e in _SEM("clean_effects")}
+        _DEDUP_EFFECTS = {e.lower() for e in _SEM("dedup_effects")}
+        _SPLIT_FEATURE_STATES = {s.lower() for s in _SEM("split_states:feature")}
+        _SPLIT_TARGET_STATES = {s.lower() for s in _SEM("split_states:target")}
+        _CLEAN_PROPERTIES = {s.lower() for s in _SEM("clean_properties")}
+        _DEDUP_PROPERTIES = {s.lower() for s in _SEM("dedup_properties")}
 
         def _is_estimator_output(p: Any) -> bool:
             if not p:
@@ -4544,7 +4742,7 @@ class UnificationGate:
             st = str(getattr(p, "state", "")).lower()
             return (
                 registry.is_subtype(t, "estimator")
-                or registry.state_ancestry_reaches(st, {"trained", "fit_estimator"})
+                or registry.state_ancestry_reaches(st, _ESTIMATOR_STATE_TARGETS)
             )
 
         for cell, bindings in pipeline_bindings:
@@ -4586,8 +4784,8 @@ class UnificationGate:
                         "description": getattr(p_obj, "description", None),
                     })
 
-            # 2. Ingress Tracking (Stage 1 or Source Role)
-            if stage == 1 or role == "source":
+            # 2. Ingress Tracking (Stage 1 or declared source role)
+            if stage == 1 or role in _SOURCE_ROLES:
                 for p_name, p_sig in cell.outputs.items():
                     bound_v = bindings.get(p_name)
                     if not bound_v:
@@ -4600,30 +4798,30 @@ class UnificationGate:
                             ingress_df_var = bound_v
 
                     r = getattr(p_sig, "port_role", "") or ""
-                    if r == "feature_input":
+                    if r in _FEATURE_ROLES:
                         if not unsplit_features:
                             unsplit_features = bound_v
-                    elif r == "target_input":
+                    elif r in _TARGET_ROLES:
                         if not unsplit_targets:
                             unsplit_targets = bound_v
 
             # 3. Data Splitting / Partitioning Tracking (declared output states)
             for p_name, p_sig in cell.outputs.items():
                 st = str(getattr(p_sig, "state", "")).lower()
-                if "split_train_features" in st:
+                if any(s in st for s in _SPLIT_FEATURE_STATES):
                     split_train_features = bindings.get(p_name)
-                elif "split_train_targets" in st:
+                elif any(s in st for s in _SPLIT_TARGET_STATES):
                     split_train_targets = bindings.get(p_name)
 
             if split_train_features and not unsplit_features:
                 for in_name, in_sig in cell.inputs.items():
                     in_r = getattr(in_sig, "port_role", "") or ""
-                    if in_r == "feature_input":
+                    if in_r in _FEATURE_ROLES:
                         unsplit_features = bindings.get(in_name)
                         break
 
             # 4. Canvas Annotation / Drawing Tracking (declared effects only)
-            is_draw_cell = bool(effect_names & {"draws_annotation", "renders_annotation"})
+            is_draw_cell = bool(effect_names & _ANNOTATION_EFFECTS)
             if is_draw_cell:
                 for out_name, out_sig in cell.outputs.items():
                     if _is_tensor_or_image(out_sig):
@@ -4633,16 +4831,16 @@ class UnificationGate:
 
             # 5. Data Cleaning Tracking (declared effects / declared postcondition
             # properties — no expression substring sniffing)
-            if "cleans_missing" in effect_names:
+            if effect_names & _CLEAN_EFFECTS:
                 has_dropna = True
             elif any(
-                getattr(p, "property", "") == "has_nans" and getattr(p, "value", True) is False
+                str(getattr(p, "property", "")).lower() in _CLEAN_PROPERTIES and getattr(p, "value", True) is False
                 for p in getattr(cell, "postconditions", []) or []
             ):
                 has_dropna = True
 
-            if "deduplicates" in effect_names or any(
-                getattr(p, "property", "") == "is_deduped" and getattr(p, "value", False) is True
+            if effect_names & _DEDUP_EFFECTS or any(
+                str(getattr(p, "property", "")).lower() in _DEDUP_PROPERTIES and getattr(p, "value", False) is True
                 for p in getattr(cell, "postconditions", []) or []
             ):
                 has_dedup = True
@@ -4650,7 +4848,7 @@ class UnificationGate:
             # 6. Terminal Intent Checks
             # Model Training Intent (declared role / declared carrier / declared state)
             is_estimator_cell = (
-                role == "estimator"
+                role in _ESTIMATOR_ROLES
                 or any(_is_estimator_output(p) for p in cell.outputs.values())
             )
             if is_estimator_cell:
@@ -4658,7 +4856,7 @@ class UnificationGate:
                 # (optionally a port declared with the model_sink role).
                 model_var = None
                 sink_port = next(
-                    (p for p in cell.outputs.values() if getattr(p, "port_role", None) == "model_sink"),
+                    (p for p in cell.outputs.values() if str(getattr(p, "port_role", None) or "").lower() in _MODEL_ROLES),
                     None,
                 )
                 if sink_port is not None:
@@ -4671,9 +4869,9 @@ class UnificationGate:
                 tgt_var = None
                 for in_name, in_sig in cell.inputs.items():
                     r = getattr(in_sig, "port_role", "") or ""
-                    if r == "feature_input" and feat_var is None:
+                    if r in _FEATURE_ROLES and feat_var is None:
                         feat_var = bindings.get(in_name)
-                    elif r == "target_input" and tgt_var is None:
+                    elif r in _TARGET_ROLES and tgt_var is None:
                         tgt_var = bindings.get(in_name)
 
                 contract.terminal_checks.append({
@@ -4688,7 +4886,7 @@ class UnificationGate:
 
             # Terminal Egress Sinks (Stage 3 or sink role with path port)
             has_path_input = any(_is_path_port(p) for p in cell.inputs.values())
-            is_sink_cell = (stage == 3 or role == "sink" or has_path_input) and stage != 1
+            is_sink_cell = (stage == 3 or role in _SINK_ROLES or has_path_input) and stage != 1
 
             if is_sink_cell and has_path_input:
                 path_var = None
@@ -4995,7 +5193,20 @@ class DataflowLineageTracker(ast.NodeTransformer):
         elif isinstance(call_node.func, ast.Name):
             method_name = call_node.func.id
 
-        is_sink = any(k in method_name.lower() for k in ["save", "write", "dump", "export", "to_"])
+        # Sink-ness of the callee name is judged against the DECLARED egress /
+        # destination vocabulary harvested from the trees (token match plus
+        # declared-token substring for affixed forms like savefig/to_csv).
+        is_sink = False
+        if method_name:
+            try:
+                _reg = TypeRegistry.get_instance()
+                _sink_toks = set(_reg.get_egress_tokens()) | set(_reg.get_dest_port_tokens())
+            except Exception:
+                _sink_toks = set()
+            m_lower = method_name.lower()
+            m_toks = {t for t in CellTokenizer.tokenize_identifier(method_name)}
+            if (m_toks & _sink_toks) or any(len(k) >= 3 and k in m_lower for k in _sink_toks):
+                is_sink = True
         for cell in self.target_cells:
             if getattr(cell.outputs, "type_name", "") == "None" or getattr(cell, "metadata_tags", {}).get("is_sink", False):
                 is_sink = True
@@ -5125,7 +5336,13 @@ def _enum_rule_for_placeholder(placeholder_lower: str) -> Optional[Dict[str, Any
 
 
 def resolve_node_slots(template: str, extracted_params: Dict[str, Any]) -> Dict[str, str]:
-    """Deterministically binds extracted prompt parameters to template slot placeholders."""
+    """Deterministically binds extracted prompt parameters to template slot placeholders.
+
+    Placeholder classification (path / projection / polarity) is driven by the
+    DECLARED token vocabulary harvested from the trees (path port tokens,
+    destination and egress tokens, projection tokens, preposition triggers,
+    semantic flag patterns). The engine carries no placeholder-name literals.
+    """
     slots = {}
     placeholders = sorted(extract_template_placeholders(template))
     src_uris = extracted_params.get("source_uris", []) or extracted_params.get("input_files", [])
@@ -5133,20 +5350,51 @@ def resolve_node_slots(template: str, extracted_params: Dict[str, Any]) -> Dict[
     by_col = extracted_params.get("by_column") or (extracted_params.get("columns", [None])[0] if extracted_params.get("columns") else None)
     flags = extracted_params.get("operational_flags", {})
 
+    try:
+        _reg = TypeRegistry.get_instance()
+        _path_toks = {"filename", "pathname", "uri"} | set(_reg.get_path_port_tokens())
+        _dest_toks = set(_reg.get_dest_port_tokens()) | set(_reg.get_egress_tokens())
+        _proj_toks = set(_reg.get_column_projection_tokens()) | set(_reg.get_preposition_triggers())
+        _flag_defaults: Dict[str, bool] = {}
+        _flag_names = set()
+        for _p in _reg.get_semantic_flag_patterns():
+            _f = str(_p.get("flag", "")).lower()
+            if not _f:
+                continue
+            _flag_names.add(_f)
+            _v = _p.get("value")
+            if isinstance(_v, bool):
+                # A placeholder named for a declared flag defaults to the value
+                # the tree's own pattern declares for that flag.
+                _flag_defaults.setdefault(_f, _v)
+    except Exception:
+        _path_toks = set()
+        _dest_toks = set()
+        _proj_toks = set()
+        _flag_defaults = {}
+        _flag_names = set()
+
+    def _tokenized(s: str) -> Set[str]:
+        return {t for t in CellTokenizer.tokenize_identifier(s) if len(t) >= 2}
+
     for ph in placeholders:
         ph_l = ph.lower()
-        if "filename" in ph_l or "path" in ph_l or "uri" in ph_l:
-            if "output" in ph_l or "dest" in ph_l or "save" in ph_l:
+        ph_toks = _tokenized(ph_l)
+        if (ph_toks & _path_toks) or any(k in ph_l for k in ("filename", "path", "uri")):
+            if (ph_toks & _dest_toks) or any(
+                len(k) >= 4 and k in ph_l for k in _dest_toks
+            ):
                 if dst_uris:
                     slots[ph] = f"'{dst_uris[-1]}'"
             else:
                 if src_uris:
                     slots[ph] = f"'{src_uris[0]}'"
-        elif ph_l in ("by", "by_column", "column"):
+        elif ph_l in _proj_toks or (ph_toks and ph_toks <= _proj_toks):
             if by_col:
                 slots[ph] = f"'{by_col}'"
-        elif ph_l == "ascending":
-            slots[ph] = str(flags.get("ascending", True))
+        elif ph_l in _flag_names:
+            default = _flag_defaults.get(ph_l, True)
+            slots[ph] = str(flags.get(ph_l, default))
         elif _enum_rule_for_placeholder(ph_l) is not None:
             # Declared enum-constant grounding (Solution: domain data in trees):
             # a rule declares the placeholder names it governs, the module
@@ -5261,9 +5509,12 @@ def unify_cell_with_scope(
     def _shape_compatible(p_out: Any, p_in: Any) -> bool:
         in_role = getattr(p_in, "port_role", None) or getattr(p_in, "derived_role", "")
         out_role = getattr(p_out, "port_role", None) or getattr(p_out, "derived_role", "")
-        if in_role == "prediction_input" and out_role == "target_input":
+        _pred_in = _declared_role_semantics("prediction_input_roles")
+        _pred_out = _declared_role_semantics("prediction_output_roles")
+        _tgt_roles = _declared_role_semantics("target_roles")
+        if in_role in _pred_in and out_role in _tgt_roles:
             return False
-        if in_role == "target_input" and out_role == "prediction_output":
+        if in_role in _tgt_roles and out_role in _pred_out:
             return False
         out_sc = getattr(p_out, "shape_contract", None)
         in_sc = getattr(p_in, "shape_contract", None)

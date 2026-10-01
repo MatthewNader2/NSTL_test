@@ -265,6 +265,10 @@ class TypeRegistry:
         self._stopwords: Set[str] = set()
         self._preposition_triggers: Set[str] = set()
         self._sentence_connectives: Set[str] = set()
+        self._coordinating_conjunctions: Set[str] = set()
+        self._sequencing_connectives: Set[str] = set()
+        self._filter_context_tokens: Set[str] = set()
+        self._verification_semantics: Dict[str, List[str]] = {}
         self._asset_placeholders: Dict[str, str] = {}
         self._output_asset_placeholders: Dict[str, str] = {}
         self._operation_tokens: Set[str] = set()
@@ -454,6 +458,14 @@ class TypeRegistry:
                             self.register_preposition_triggers(data["preposition_triggers"])
                         if "sentence_connectives" in data and isinstance(data["sentence_connectives"], list):
                             self.register_sentence_connectives(data["sentence_connectives"])
+                        if "coordinating_conjunctions" in data and isinstance(data["coordinating_conjunctions"], list):
+                            self.register_coordinating_conjunctions(data["coordinating_conjunctions"])
+                        if "sequencing_connectives" in data and isinstance(data["sequencing_connectives"], list):
+                            self.register_sequencing_connectives(data["sequencing_connectives"])
+                        if "filter_context_tokens" in data and isinstance(data["filter_context_tokens"], list):
+                            self.register_filter_context_tokens(data["filter_context_tokens"])
+                        if "verification_semantics" in data and isinstance(data["verification_semantics"], dict):
+                            self.register_verification_semantics(data["verification_semantics"])
                         if "asset_placeholders" in data and isinstance(data["asset_placeholders"], dict):
                             self.register_asset_placeholders(data["asset_placeholders"])
                         if "default_asset_placeholders" in data and isinstance(data["default_asset_placeholders"], dict):
@@ -852,12 +864,69 @@ class TypeRegistry:
                 self._sentence_connectives.add(s)
 
     def get_sentence_connectives(self) -> FrozenSet[str]:
+        """Declared sentence connectives (trees own the vocabulary). When nothing is
+        declared, fall back to harvested corpus function words; the engine itself
+        carries no language literals."""
         if self._sentence_connectives:
             return frozenset(self._sentence_connectives)
-        fw = self.get_function_words()
-        if fw:
-            return fw
-        return frozenset({"and", "or", "to", "for", "with", "as", "by", "into", "from", "on", "in", "of", "the", "a", "an", "is", "at", "then"})
+        return self.get_function_words()
+
+    # --- Coordinating conjunctions (data-driven from tree declarations) ---
+    @_locked
+    def register_coordinating_conjunctions(self, words: Any) -> None:
+        for w in words or ():
+            s = str(w).strip().lower()
+            if s:
+                self._coordinating_conjunctions.add(s)
+
+    def get_coordinating_conjunctions(self) -> FrozenSet[str]:
+        return frozenset(self._coordinating_conjunctions)
+
+    # --- Sequencing connectives (data-driven from tree declarations) ---
+    @_locked
+    def register_sequencing_connectives(self, words: Any) -> None:
+        for w in words or ():
+            s = str(w).strip().lower()
+            if s:
+                self._sequencing_connectives.add(s)
+
+    def get_sequencing_connectives(self) -> FrozenSet[str]:
+        return frozenset(self._sequencing_connectives)
+
+    # --- Filter-context tokens (data-driven from tree declarations) ---
+    @_locked
+    def register_filter_context_tokens(self, words: Any) -> None:
+        for w in words or ():
+            s = str(w).strip().lower()
+            if s:
+                self._filter_context_tokens.add(s)
+
+    def get_filter_context_tokens(self) -> FrozenSet[str]:
+        return frozenset(self._filter_context_tokens)
+
+    # --- Verification semantics (data-driven from tree declarations) --------
+    @_locked
+    def register_verification_semantics(self, mapping: Dict[str, Any]) -> None:
+        """Registers declared role/effect/state vocabulary used by the static
+        verification contract. The WORDS live in the trees; the engine only
+        looks them up by semantic key."""
+        for k, v in (mapping or {}).items():
+            key = str(k).strip().lower()
+            if not key:
+                continue
+            if isinstance(v, (list, tuple)):
+                self._verification_semantics[key] = [str(x) for x in v]
+            elif isinstance(v, dict):
+                # Nested groups (e.g. split states per side) flatten to
+                # "group:member" keys so lookups stay single-level.
+                for sub_k, sub_v in v.items():
+                    if isinstance(sub_v, (list, tuple)):
+                        self._verification_semantics[f"{key}:{str(sub_k).strip().lower()}"] = [str(x) for x in sub_v]
+            else:
+                self._verification_semantics[key] = [str(v)]
+
+    def get_verification_semantics(self, key: str) -> List[str]:
+        return list(self._verification_semantics.get(str(key).strip().lower(), []))
 
     # --- Operation / algorithm tokens (data-driven from tree cell declarations) ---
     @_locked
@@ -1261,6 +1330,10 @@ class TypeRegistry:
     def get_state_parent(self, state: str) -> Optional[str]:
         """Returns the declared parent_state of a typestate, if any."""
         return self._state_parents.get(str(state).strip().lower())
+
+    def get_declared_state_names(self) -> FrozenSet[str]:
+        """All typestate names declared by the loaded trees."""
+        return frozenset(self._state_parents.keys()) | frozenset(getattr(self, "_state_carriers", {}).keys())
 
     def get_state_carrier(self, state: str) -> Optional[str]:
         """Returns the declared carrier_type of a typestate, if any."""
@@ -2659,6 +2732,14 @@ class LatticeOrchestrator:
                     reg.register_stopwords(data["stopwords"])
                 if "preposition_triggers" in data and isinstance(data["preposition_triggers"], list):
                     reg.register_preposition_triggers(data["preposition_triggers"])
+                if "coordinating_conjunctions" in data and isinstance(data["coordinating_conjunctions"], list):
+                    reg.register_coordinating_conjunctions(data["coordinating_conjunctions"])
+                if "sequencing_connectives" in data and isinstance(data["sequencing_connectives"], list):
+                    reg.register_sequencing_connectives(data["sequencing_connectives"])
+                if "filter_context_tokens" in data and isinstance(data["filter_context_tokens"], list):
+                    reg.register_filter_context_tokens(data["filter_context_tokens"])
+                if "verification_semantics" in data and isinstance(data["verification_semantics"], dict):
+                    reg.register_verification_semantics(data["verification_semantics"])
                 if "asset_placeholders" in data and isinstance(data["asset_placeholders"], dict):
                     reg.register_asset_placeholders(data["asset_placeholders"])
                 if "default_asset_placeholders" in data and isinstance(data["default_asset_placeholders"], dict):
@@ -2928,6 +3009,17 @@ class LatticeOrchestrator:
                             reg.register_asset_placeholders({item: extra})
                         elif cat == 'output_asset_placeholder':
                             reg.register_output_asset_placeholders({item: extra})
+                        elif cat == 'coordinating_conjunction':
+                            reg.register_coordinating_conjunctions([item])
+                        elif cat == 'sequencing_connective':
+                            reg.register_sequencing_connectives([item])
+                        elif cat == 'filter_context_token':
+                            reg.register_filter_context_tokens([item])
+                        elif cat == 'verification_semantics':
+                            try:
+                                reg.register_verification_semantics({item: json.loads(extra)})
+                            except Exception:
+                                pass
                         elif cat in ('action_verb', 'operation_token'):
                             reg.register_operation_tokens([item])
 

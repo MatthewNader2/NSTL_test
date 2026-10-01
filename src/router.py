@@ -23,14 +23,14 @@ import numpy as np
 from log_config import get_logger
 
 try:
-    from .lattice import LatticeOrchestrator, Cell, MacroCell
+    from .lattice import LatticeOrchestrator, Cell, MacroCell, TypeRegistry
     from .internal_rag import LocalRAG
     from .planner import LatticePlanner, STOPWORDS, _segment_prompt_clauses
     from .tokenizer import CellTokenizer
     from .inference import ModelManager
     from .route_methods import get_route_method, RouteMethod
 except (ImportError, ValueError):
-    from lattice import LatticeOrchestrator, Cell, MacroCell
+    from lattice import LatticeOrchestrator, Cell, MacroCell, TypeRegistry
     from internal_rag import LocalRAG
     from planner import LatticePlanner, STOPWORDS, _segment_prompt_clauses
     from tokenizer import CellTokenizer
@@ -107,21 +107,20 @@ DENSE_RAG_MAX_PER_SPAN: int = int(_cfg("dense_rag_max_per_span", 25))
 
 
 # --- Clause delimiter fallback -------------------------------------------
-# Canonical definition lives on CellTokenizer (see recommended addition to
-# tokenizer.py). Kept here ONLY as a compatibility shim so the router remains
-# functional before that lands. If CellTokenizer.CLAUSE_DELIMITERS is
-# present, it wins and this constant is unused.
-_FALLBACK_CLAUSE_DELIMITERS: frozenset = frozenset({
-    "on the", "on", "using", "with", "via", "into", "from",
-    "then", "and", "of the", "of", "to", "for", "by", "in",
-})
-
-
+# Sub-clause split points are DECLARED language vocabulary: the union of the
+# registry's sentence connectives and relational preposition triggers, both
+# harvested from the loaded domain trees. The engine carries no language
+# literals of its own; with no trees loaded the delimiter set is empty and
+# only punctuation-based splitting remains.
 def _get_clause_delims() -> frozenset:
     delims = getattr(CellTokenizer, "CLAUSE_DELIMITERS", None)
     if delims:
         return frozenset(delims)
-    return _FALLBACK_CLAUSE_DELIMITERS
+    try:
+        reg = TypeRegistry.get_instance()
+        return frozenset(reg.get_sentence_connectives()) | frozenset(reg.get_preposition_triggers())
+    except Exception:
+        return frozenset()
 
 
 def _extract_id(item):
@@ -229,6 +228,7 @@ class LatticeRouter:
         self._topology_mode = str(topo_val).lower()
         self.planner = LatticePlanner(
             orchestrator=self.orchestrator,
+            rag=self.internal_rag,
             macros_enabled=self._macros_enabled,
             topology_mode=self._topology_mode
         )
@@ -596,6 +596,28 @@ class LatticeRouter:
             if idiom_group:
                 grouped_candidates.append(idiom_group)
 
+        # Step 3.2: Corpus-derived query expansion (pseudo-relevance feedback).
+        # One bounded round: the first-pass candidate distribution reveals the
+        # lattice vocabulary the prompt could not name itself; high-support
+        # declared tokens absent from the prompt become one extra retrieval
+        # span applied to BOTH the lexical and dense channels below. No
+        # synonyms are ever hardcoded: the association is measured from the
+        # loaded cells' own declared identity vocabulary.
+        prf_spans: List[str] = []
+        try:
+            prelim = self._tunnel_from_groups(grouped_candidates)
+            exp_tokens = self._harvest_expansion_tokens(prompt, prelim)
+            if exp_tokens:
+                span = " ".join(exp_tokens)
+                prf_spans.append(span)
+                exp_scores = self._score_clause_lexical_idf(span, token_index, N)
+                if exp_scores:
+                    kept_exp = sorted(exp_scores.items(), key=lambda x: x[1], reverse=True)[:100]
+                    grouped_candidates.append(dict(kept_exp))
+                logger.debug("[ROUTER] PRF expansion span: %r", span)
+        except Exception as _prf_err:
+            logger.debug("[ROUTER] PRF expansion skipped: %s", _prf_err)
+
         # Step 4: Dense vector blending from edge-context embeddings.
         # Architecture contract (Profile A/C/D/E): the dense pass ALWAYS runs
         # when an indexed RAG is present. Lexical stage-1 idiom evidence and
@@ -605,7 +627,8 @@ class LatticeRouter:
         if self.internal_rag is not None and self.internal_rag.index is not None:
             clause_spans = [c.strip() for c in search_texts if c and c.strip()]
             query_spans = clause_spans + [
-                q for q in self._generate_query_spans(prompt.strip()) if q not in clause_spans
+                q for q in (prf_spans + self._generate_query_spans(prompt.strip()))
+                if q and q not in clause_spans
             ]
             # Divide the retrieval budget across spans instead of granting every
             # span the full top_k, so total dense work is bounded by top_k
@@ -872,6 +895,75 @@ class LatticeRouter:
                 f"[ROUTER] Macro-goal participation (earned coverage): "
                 f"{[_extract_id(c) for c, _ in promoted]}"
             )
+
+    def _harvest_expansion_tokens(
+        self,
+        prompt: str,
+        prelim: List[Tuple[Cell, float]],
+        max_cells: int = 12,
+        max_tokens: int = 6,
+    ) -> List[str]:
+        """
+        Corpus-derived query expansion (pseudo-relevance feedback), ONE round.
+
+        The first retrieval pass returns the cells the prompt's own vocabulary
+        can reach. Their DECLARED identity vocabulary (cell ids, keywords,
+        semantic tags) is the lattice's own way of naming the prompt's intent;
+        tokens that recur across MANY independently retrieved cells while being
+        ABSENT from the prompt are exactly the vocabulary the prompt is missing
+        (e.g. a prompt saying "train" retrieves estimators whose declared
+        identity vocabulary says "fit"). Those tokens become one expansion
+        query span, giving both the lexical and dense channels a second chance
+        at the cells the prompt's own wording could not name.
+
+        Fully domain-agnostic: tokens, IDF and support all come from the loaded
+        lattice and the registry's harvested function-word statistics.
+        """
+        if not prelim:
+            return []
+        prompt_toks = CellTokenizer.tokenize_prompt(prompt) if prompt else set()
+        try:
+            reg = TypeRegistry.get_instance()
+            stop = set(reg.get_function_words()) | set(reg.get_sentence_connectives())
+        except Exception:
+            stop = set()
+        try:
+            ns = getattr(self.planner, "_vocab", None)
+            namespace = set(ns.namespace_tokens) if ns is not None else set()
+        except Exception:
+            namespace = set()
+
+        token_index = getattr(self.orchestrator, "token_index", None) or {}
+        n_cells = max(len(self.orchestrator.loaded_cells), 1)
+
+        def _idf(tok: str) -> float:
+            return math.log(1.0 + (n_cells + 1) / (len(token_index.get(tok, ())) + 1.0))
+
+        top_cells = [(c, s) for c, s in prelim[:max_cells] if s > 0.0]
+        if len(top_cells) < 2:
+            return []
+
+        support: Dict[str, int] = {}
+        assoc: Dict[str, float] = {}
+        for cell, score in top_cells:
+            id_toks = set(getattr(cell, "identity_tokens", cell.token_set) or set())
+            fresh = {
+                t for t in id_toks
+                if len(t) >= 3
+                and t not in prompt_toks
+                and t not in stop
+                and t not in namespace
+            }
+            for t in fresh:
+                support[t] = support.get(t, 0) + 1
+                assoc[t] = assoc.get(t, 0.0) + float(score)
+
+        ranked = sorted(
+            ((t, a) for t, a in assoc.items() if support[t] >= 2),
+            key=lambda kv: (kv[1] * _idf(kv[0]), support[kv[0]]),
+            reverse=True,
+        )
+        return [t for t, _ in ranked[:max_tokens]]
 
     def _tunnel_from_groups(
         self,

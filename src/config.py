@@ -59,6 +59,12 @@ class NSTLSettings(BaseSettings):
     require_coverage_floor: bool = False
     dev_mode: bool = False
     planner_config: Optional[Path] = None
+    planner_time_budget_ms: float = Field(
+        default=10000.0,
+        ge=250.0,
+        description="Wall-clock budget for a single planning search. When expired, "
+        "the beam returns the best-so-far valid paths instead of running unbounded.",
+    )
 
     @field_validator("cors_origins", mode="before")
     @classmethod

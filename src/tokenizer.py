@@ -370,9 +370,9 @@ class CellTokenizer:
         Deterministic, syntax-aware, zero external dependencies.
 
         Verb-anchored splits are driven EXCLUSIVELY by the TypeRegistry operation
-        token pools; there is no hardcoded data-science verb list. When the
-        TypeRegistry is unavailable, only punctuation-based and connective-word
-        splits apply.
+        token pools; the sequencing / coordinating / filter-context word classes are
+        DECLARED vocabulary harvested from the domain trees (never engine literals).
+        When the TypeRegistry is unavailable, only punctuation-based splits apply.
         """
         if not prompt or not prompt.strip():
             return []
@@ -445,8 +445,17 @@ class CellTokenizer:
                 | reg.get_estimator_verbs()
                 | reg.get_egress_tokens()
             )
+            sequencing_words = set(reg.get_sequencing_connectives())
+            # "then" may be declared as a general sentence connective without being
+            # listed in the sequencing class; union it in when present.
+            sequencing_words |= reg.get_sentence_connectives() & {"then"}
+            coordinating_words = reg.get_coordinating_conjunctions()
+            filter_context_words = reg.get_filter_context_tokens()
         else:
             target_verbs = set()
+            sequencing_words = set()
+            coordinating_words = set()
+            filter_context_words = set()
 
         # 3. Detect clause boundaries
         split_positions = set()
@@ -466,18 +475,18 @@ class CellTokenizer:
                     split_positions.add(e)
                     continue
 
-            if clean_lower in ("then", "next", "afterwards"):
+            if clean_lower and clean_lower in sequencing_words:
                 split_positions.add(s)
                 continue
 
-            if clean_lower == "and":
+            if clean_lower and clean_lower in coordinating_words:
                 in_filter = False
                 for back in range(max(0, idx - 4), idx):
                     bw = raw_words[back][2].lower()
                     if any(op in bw for op in (">", "<", "==", "!=", ">=", "<=")):
                         in_filter = True
                         break
-                    if bw in ("where", "between", "filter"):
+                    if bw and bw in filter_context_words:
                         in_filter = True
                         break
                 if not in_filter:
@@ -492,7 +501,7 @@ class CellTokenizer:
 
             if w.endswith(",") and idx + 1 < len(raw_words):
                 next_word = raw_words[idx + 1][2].lower().strip(".,;:")
-                if next_word in target_verbs or next_word in ("then", "next", "afterwards"):
+                if next_word in target_verbs or (next_word and next_word in sequencing_words):
                     split_positions.add(e)
                     continue
 

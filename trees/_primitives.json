@@ -186,34 +186,40 @@
     "pair"
   ],
   "sentence_connectives": [
-    "and",
-    "or",
-    "to",
-    "for",
-    "with",
-    "as",
-    "by",
-    "into",
-    "from",
-    "on",
-    "in",
-    "of",
-    "the",
     "a",
+    "afterwards",
     "an",
-    "is",
+    "and",
+    "as",
     "at",
-    "then"
+    "both",
+    "by",
+    "for",
+    "from",
+    "in",
+    "into",
+    "is",
+    "next",
+    "of",
+    "on",
+    "or",
+    "the",
+    "then",
+    "to",
+    "with"
   ],
   "preposition_triggers": [
+    "across",
+    "along",
+    "at",
     "by",
-    "with",
+    "for",
+    "from",
     "on",
+    "over",
     "using",
     "via",
-    "over",
-    "along",
-    "across"
+    "with"
   ],
   "column_projection_tokens": [
     "column",
@@ -227,18 +233,19 @@
     "training"
   ],
   "dest_port_tokens": [
-    "target",
-    "sink",
+    "as",
+    "dest",
+    "destination",
+    "in",
+    "into",
     "output",
     "result",
     "results",
-    "variable",
-    "variables",
-    "destination",
-    "into",
-    "as",
+    "sink",
+    "target",
     "to",
-    "in"
+    "variable",
+    "variables"
   ],
   "source_port_tokens": [
     "from",
@@ -823,5 +830,90 @@
       "token": "_array",
       "type_name": "array-like"
     }
-  ]
+  ],
+  "coordinating_conjunctions": [
+    "and",
+    "or"
+  ],
+  "sequencing_connectives": [
+    "then",
+    "next",
+    "afterwards"
+  ],
+  "filter_context_tokens": [
+    "where",
+    "between",
+    "filter",
+    "matching"
+  ],
+  "verification_semantics": {
+    "annotation_effects": [
+      "draws_annotation",
+      "renders_annotation"
+    ],
+    "clean_effects": [
+      "cleans_missing"
+    ],
+    "clean_properties": [
+      "has_nans"
+    ],
+    "dataflow_roles": [
+      "carrier",
+      "data_input"
+    ],
+    "dedup_effects": [
+      "deduplicates"
+    ],
+    "dedup_properties": [
+      "is_deduped"
+    ],
+    "estimator_roles": [
+      "estimator"
+    ],
+    "feature_roles": [
+      "feature_input"
+    ],
+    "figure_carriers": [
+      "figure",
+      "axes"
+    ],
+    "model_roles": [
+      "model_input",
+      "model_sink"
+    ],
+    "prediction_input_roles": [
+      "prediction_input"
+    ],
+    "prediction_output_roles": [
+      "prediction_output"
+    ],
+    "projection_port_roles": [
+      "column_projection",
+      "columns"
+    ],
+    "projection_port_states": [
+      "column_projection",
+      "columns",
+      "feature_names",
+      "column_name",
+      "target_name"
+    ],
+    "sink_roles": [
+      "sink"
+    ],
+    "source_roles": [
+      "source"
+    ],
+    "split_states": {
+      "feature": [
+        "split_train_features"
+      ],
+      "target": [
+        "split_train_targets"
+      ]
+    },
+    "target_roles": [
+      "target_input"
+    ]
+  }
 }
