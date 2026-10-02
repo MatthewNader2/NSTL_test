@@ -126,7 +126,12 @@ class M7LLMPathfinderRouteMethod(RouteMethod):
         if len(tunnel) == 1:
             return [tunnel[0]]
 
-        candidates = [c for c in tunnel if getattr(c, "node_type", "") != "constant"] or [tunnel[0]]
+        candidates = [
+            c for c in tunnel
+            if getattr(c, "node_type", "") not in ("constant", "macro")
+            and not c.cell_id.startswith("MACRO_")
+            and not (getattr(c, "is_combinator", False) or getattr(c, "node_role", "") == "combinator" or getattr(c, "role", "") == "combinator" or getattr(c, "node_type", "") == "combinator")
+        ] or [tunnel[0]]
         mm = ModelManager.get_instance()
         has_llm = mm.profile is not None and getattr(mm.profile, "llm", None) is not None
 
@@ -214,7 +219,9 @@ class M7LLMPathfinderRouteMethod(RouteMethod):
             try:
                 from node_resolver import DynamicNodeResolver
                 dyn_bridge = DynamicNodeResolver.synthesize_adapter(curr, nxt, orch, rag=kwargs.get("rag"))
-                if dyn_bridge and self.step_unifies(curr, dyn_bridge, prev_path=chain) and self.step_unifies(dyn_bridge, nxt, prev_path=chain + [dyn_bridge]):
+                can_curr_dyn = self.step_unifies(curr, dyn_bridge, prev_path=chain) or self.step_unifies_dag(dyn_bridge, chain, ctx=ctx)
+                can_dyn_nxt = self.step_unifies(dyn_bridge, nxt, prev_path=chain + [dyn_bridge]) or self.step_unifies_dag(nxt, chain + [dyn_bridge], ctx=ctx)
+                if dyn_bridge and can_curr_dyn and can_dyn_nxt:
                     chain.extend([dyn_bridge, nxt])
                     continue
             except Exception:
@@ -226,5 +233,7 @@ class M7LLMPathfinderRouteMethod(RouteMethod):
             return _fallback()
 
         self.tag_cells_with_clause_indices(chain, prompt)
-        return chain[:min(20, max(max_transforms + 4, 6))]
+        clauses = self.segment_prompt_clauses(prompt)
+        max_allowed = max(32, len(clauses) * 4 + 4, max_transforms + 8)
+        return chain[:max_allowed]
 

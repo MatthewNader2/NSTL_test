@@ -227,3 +227,60 @@ def extract_code_from_llm_response(text: str) -> str:
 
     return text.strip()
 
+
+def ensure_comprehensive_prompt(prompt: str, candidate_prompt: Optional[str]) -> str:
+    """
+    Validates a preprocessed, translated, or compiler-generated prompt against the
+    authoritative user prompt. If the candidate prompt dropped clauses, truncated
+    compound workflows, or suffered from significant semantic loss (e.g. LLM
+    prematurely stopping after the first step), this preserves the original prompt
+    so downstream routers and planners receive the complete pipeline specification.
+    """
+    if not prompt or not prompt.strip():
+        return candidate_prompt or ""
+    if not candidate_prompt or not candidate_prompt.strip():
+        return prompt
+
+    p_clean = prompt.strip()
+    c_clean = candidate_prompt.strip().strip("`").strip()
+    if p_clean == c_clean:
+        return c_clean
+
+    try:
+        from tokenizer import CellTokenizer
+        from lattice import TypeRegistry
+        reg = TypeRegistry.get_instance()
+        stop = set(reg.get_function_words()) | set(reg.get_sentence_connectives())
+
+        p_toks = CellTokenizer.tokenize_prompt(p_clean)
+        c_toks = CellTokenizer.tokenize_prompt(c_clean)
+
+        p_content = {t for t in p_toks if t not in stop and reg.is_informative_token(t)}
+        c_content = {t for t in c_toks if t not in stop and reg.is_informative_token(t)}
+
+        # If the original prompt is rich, ensure candidate does not discard majority of intent
+        if len(p_content) >= 3:
+            recall = len(p_content & c_content) / len(p_content)
+            if recall < 0.50:
+                logger.info(f"[PromptProtection] Candidate prompt dropped key intent (recall {recall:.2f} < 0.50); reverting to original.")
+                return p_clean
+
+        # Clause count protection for compound queries
+        p_clauses = CellTokenizer.split_prompt_clauses(p_clean)
+        c_clauses = CellTokenizer.split_prompt_clauses(c_clean)
+        if len(p_clauses) > 1 and len(c_clauses) < max(2, int(len(p_clauses) * 0.6)):
+            logger.info(f"[PromptProtection] Candidate prompt truncated clauses ({len(c_clauses)} vs {len(p_clauses)}); reverting to original.")
+            return p_clean
+
+        # Word length sanity check
+        p_words = p_clean.split()
+        c_words = c_clean.split()
+        if len(p_words) >= 8 and len(c_words) < len(p_words) * 0.40:
+            logger.info(f"[PromptProtection] Candidate prompt is excessively abbreviated ({len(c_words)} vs {len(p_words)} words); reverting to original.")
+            return p_clean
+
+    except Exception as e:
+        logger.debug(f"[PromptProtection] Evaluation fallback: {e}")
+
+    return c_clean
+

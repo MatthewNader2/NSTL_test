@@ -25,6 +25,9 @@ class NSTLSettings(BaseSettings):
     harvests_dir: Optional[Path] = None
     logs_dir: Optional[Path] = None
     models_dir: Optional[Path] = None
+    rerankers_dir: Optional[Path] = None
+    reranker_model: Optional[str] = Field(default=None, description="Optional reranker model identifier.")
+    use_reranker: bool = Field(default=False, description="Whether neural reranking is enabled in Layer 1.")
 
     # Server & Networking
     api_host: str = Field(default="127.0.0.1", description="Host interface to bind the API server.")
@@ -42,6 +45,8 @@ class NSTLSettings(BaseSettings):
     sandbox_max_cpu_seconds: int = Field(default=5, ge=1, description="Sandbox CPU runtime limit in seconds.")
 
     # Inference & Similarity
+    embedder_model: str = Field(default="jina-embeddings-v5-text-nano", description="Default text embedding model identifier.")
+    llm_model: str = Field(default="qwen2.5-coder-0.5b-instruct", description="Default GGUF LLM model identifier.")
     llm_context_length: int = Field(default=4096, ge=512)
     llm_temperature: float = Field(default=0.1, ge=0.0, le=2.0)
     llm_top_p: float = Field(default=0.95, ge=0.0, le=1.0)
@@ -92,6 +97,8 @@ class NSTLSettings(BaseSettings):
             self.logs_dir = self.project_root / "logs"
         if self.models_dir is None:
             self.models_dir = self.project_root / "models"
+        if self.rerankers_dir is None:
+            self.rerankers_dir = (self.models_dir or (self.project_root / "models")) / "rerankers"
 
         if getattr(self, "planner_config", None) is None:
             for cand in (
@@ -119,6 +126,9 @@ TREES_DIR = str(settings.trees_dir)
 HARVESTS_DIR = str(settings.harvests_dir)
 LOGS_DIR = str(settings.logs_dir)
 MODELS_DIR = str(settings.models_dir)
+RERANKERS_DIR = str(settings.rerankers_dir)
+USE_RERANKER = settings.use_reranker
+RERANKER_MODEL = settings.reranker_model
 API_HOST = settings.api_host
 API_PORT = settings.api_port
 CORS_ORIGINS = settings.cors_origins

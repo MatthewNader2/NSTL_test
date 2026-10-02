@@ -29,6 +29,10 @@ try:
     from .tokenizer import CellTokenizer
     from .inference import ModelManager
     from .route_methods import get_route_method, RouteMethod
+    try:
+        from .reranker import LocalReranker
+    except (ImportError, ValueError):
+        from reranker import LocalReranker
 except (ImportError, ValueError):
     from lattice import LatticeOrchestrator, Cell, MacroCell, TypeRegistry
     from internal_rag import LocalRAG
@@ -36,6 +40,10 @@ except (ImportError, ValueError):
     from tokenizer import CellTokenizer
     from inference import ModelManager
     from route_methods import get_route_method, RouteMethod
+    try:
+        from reranker import LocalReranker
+    except ImportError:
+        LocalReranker = None
 
 logger = get_logger('router')
 
@@ -244,6 +252,23 @@ class LatticeRouter:
         self._last_ir_steps = 0
         self.priority_map: Dict[str, float] = {}
 
+        # Neural Reranker configuration (Optional / Experimental)
+        reranker_val = kwargs.get("use_reranker")
+        if reranker_val is None:
+            reranker_val = _cfg("use_reranker", False)
+        self.use_reranker = bool(reranker_val)
+        self.reranker_model = kwargs.get("reranker_model") or _cfg("reranker_model", None)
+        self.reranker = kwargs.get("reranker")
+        if self.use_reranker and self.reranker is None and LocalReranker is not None:
+            try:
+                self.reranker = LocalReranker(model_name_or_path=self.reranker_model)
+            except Exception as _e:
+                logger.warning(f"[ROUTER] Could not initialize LocalReranker: {_e}")
+                self.reranker = None
+        self.raw_rag_tunnel: List[Cell] = []
+        self.raw_rag_relevance_map: Dict[str, float] = {}
+        self.last_reranker_telemetry: List[Dict[str, Any]] = []
+
     @property
     def macros_enabled(self) -> bool:
         return self._macros_enabled
@@ -272,14 +297,18 @@ class LatticeRouter:
     ) -> Dict[Cell, float]:
         """Computes length-normalized, IDF-weighted lexical scores for a query clause."""
         q_tokens = CellTokenizer.tokenize_prompt(text)
-        q_len = max(len(text.split()), len(q_tokens), 1)
+        reg = TypeRegistry.get_instance()
+        stop = set(reg.get_function_words()) | set(reg.get_sentence_connectives())
+        content_tokens = {t for t in q_tokens if t not in stop and reg.is_informative_token(t)}
+        eval_tokens = content_tokens if content_tokens else q_tokens
+        q_len = max(len(text.split()), len(eval_tokens), 1)
         inv_q_len = 1.0 / q_len
         clause_scores: Dict[Cell, float] = {}
 
         if not token_index or N == 0:
             for cell in self.orchestrator.loaded_cells.values():
                 cell_tokens = cell.token_set
-                intersection_len = len(q_tokens & cell_tokens)
+                intersection_len = len(eval_tokens & cell_tokens)
                 if intersection_len > 0:
                     c_len = max(len(cell_tokens), 1)
                     sc = (intersection_len * inv_q_len) * LEN_NORM_TABLE[min(c_len, 499)]
@@ -291,7 +320,7 @@ class LatticeRouter:
             return math.log(1.0 + (N + 1) / (df + 1.0))
 
         match_weights: Dict[Cell, float] = {}
-        for tok in q_tokens:
+        for tok in eval_tokens:
             cells = token_index.get(tok, [])
             if N < 20 or len(cells) < 0.3 * N:
                 w = _idf(tok)
@@ -720,10 +749,25 @@ class LatticeRouter:
                     c for c in self.orchestrator.loaded_cells.values()
                     if getattr(c, "node_role", "") == "bridge" or getattr(c, "node_type", "") == "tunnel"
                 ]
+            reg = TypeRegistry.get_instance()
             for cell in bridge_cells:
-                c_in = getattr(cell.primary_input, "type_name", "")
-                c_out = getattr(cell.primary_output, "type_name", "")
-                if c_in in carriers_out and c_out in carriers_in:
+                c_in = str(getattr(cell.primary_input, "type_name", "") or "").lower()
+                c_out = str(getattr(cell.primary_output, "type_name", "") or "").lower()
+                if not c_in or not c_out:
+                    continue
+                in_matches = any(
+                    c_in == co.lower()
+                    or reg.is_subtype(co.lower(), c_in)
+                    or reg.is_subtype(c_in, co.lower())
+                    for co in carriers_out
+                )
+                out_matches = any(
+                    c_out == ci.lower()
+                    or reg.is_subtype(c_out, ci.lower())
+                    or reg.is_subtype(ci.lower(), c_out)
+                    for ci in carriers_in
+                )
+                if in_matches and out_matches:
                     if cell.cell_id not in tunnel_ids:
                         final_tunnel.append(cell)
                         tunnel_ids.add(cell.cell_id)
@@ -783,6 +827,22 @@ class LatticeRouter:
 
         for cid, s in relevance_map.items():
             if cid not in self.priority_map:
+                self.priority_map[cid] = s
+
+        # Capture pure RAG baseline before neural reranking
+        self.raw_rag_tunnel = list(final_tunnel)
+        self.raw_rag_relevance_map = dict(relevance_map)
+        self.last_reranker_telemetry = []
+
+        # Neural Reranking Pass (Optional / Experimental)
+        if getattr(self, "use_reranker", False) and getattr(self, "reranker", None) is not None:
+            final_tunnel, relevance_map, self.last_reranker_telemetry = self.reranker.rerank(
+                prompt,
+                final_tunnel,
+                relevance_map,
+                top_k=min(top_k, 50),
+            )
+            for cid, s in relevance_map.items():
                 self.priority_map[cid] = s
 
         return final_tunnel, relevance_map
@@ -1148,6 +1208,36 @@ class LatticeRouter:
                 start_sig=start_sig,
                 goal_sig=goal_sig
             )
+
+        if path:
+            # 1. Multiplicity expansion: distribute morphisms over declared prompt identifier groups
+            try:
+                path = self.planner._expand_identifier_multiplicity(path, prompt)
+            except Exception as _em_err:
+                logger.debug(f"[ROUTER] Multiplicity expansion skipped: {_em_err}")
+
+            # 2. Universal clause tagging: tag each cell with its prompt sub-goal
+            # for clause-scoped literal binding and dead-code protection in Layer 4
+            try:
+                from route_methods.base import BaseRouteMethod
+                BaseRouteMethod.tag_cells_with_clause_indices(path, prompt)
+            except Exception as _tc_err:
+                logger.debug(f"[ROUTER] Clause tagging skipped: {_tc_err}")
+
+            # 3. Sub-lattice recursive planning for cells with slots (control-flow, macros)
+            try:
+                from unification import Substitution
+                for cell in path:
+                    if getattr(cell, "slots", None):
+                        for slot_name, slot_contract in getattr(cell, "slots", {}).items():
+                            if slot_name not in getattr(cell, "bound_slots", {}):
+                                sub_plan = self.planner.plan_sublattice(
+                                    cell, slot_name, slot_contract, tunnel_cells, relevance_map, Substitution(), prompt
+                                )
+                                if sub_plan:
+                                    cell.bound_slots[slot_name] = sub_plan
+            except Exception as _sl_err:
+                logger.debug(f"[ROUTER] Sublattice slot planning skipped: {_sl_err}")
 
         if return_tuple:
             candidate_ids = set(c.cell_id for c in tunnel_cells)

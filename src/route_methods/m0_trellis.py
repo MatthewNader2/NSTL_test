@@ -48,5 +48,7 @@ class M0TrellisRouteMethod(RouteMethod):
             relevance_map=relevance_map,
             start_sig=start_sig,
             goal_sig=goal_sig,
-            max_transforms=max_transforms
+            max_transforms=max_transforms,
+            ctx=ctx,
+            **kwargs
         )

@@ -37,8 +37,12 @@ class M4LLMStepwiseRouteMethod(RouteMethod):
              start_sig=None, goal_sig=None, max_transforms=6, **kwargs):
         orch = orchestrator or self.orchestrator
         if not tunnel: return []
-        if len(tunnel) == 1: return [tunnel[0]]
-        candidates = [c for c in tunnel if getattr(c, "node_type", "") != "constant"] or [tunnel[0]]
+        candidates = [
+            c for c in tunnel
+            if getattr(c, "node_type", "") not in ("constant", "macro")
+            and not c.cell_id.startswith("MACRO_")
+            and not (getattr(c, "is_combinator", False) or getattr(c, "node_role", "") == "combinator" or getattr(c, "role", "") == "combinator" or getattr(c, "node_type", "") == "combinator")
+        ] or [tunnel[0]]
         mm = ModelManager.get_instance()
         has_llm = mm.profile is not None and getattr(mm.profile, "llm", None) is not None
 
@@ -53,17 +57,22 @@ class M4LLMStepwiseRouteMethod(RouteMethod):
             except Exception: ir_steps = []
 
         prompt_tokens = CellTokenizer.tokenize_prompt(prompt)
-        file_literals = [v for _, t, v in (ExecutionContext._extract_universal_literals(prompt or "") if ctx or prompt else []) if t == "file_asset"]
-        def _is_pc(c):
-            return any(getattr(p, "abstract_type", None) == "path"
-                       or getattr(p, "port_role", None) in ("source_data", "model_sink")
-                       or getattr(p.signature, "abstract_type", None) == "path"
-                       for p in c.inputs.values())
+        src_file_literals, dest_file_literals = self.extract_file_literals(prompt or "", ctx=ctx)
+        def _score_m4_entry(c):
+            sc = relevance_map.get(c.cell_id, 0.0) * 5.0 + len(prompt_tokens & getattr(c, "identity_tokens", c.token_set)) * 3.0
+            is_pc = any(getattr(p, "abstract_type", None) == "path"
+                        or getattr(p, "port_role", None) in ("source_data", "model_sink")
+                        or getattr(p.signature, "abstract_type", None) == "path"
+                        for p in c.inputs.values())
+            if src_file_literals and is_pc:
+                if self.is_file_format_compatible(c, str(src_file_literals[0])):
+                    sc += 6.0
+                else:
+                    sc -= 20.0
+            return sc
+
         entry_pool = [c for c in candidates if getattr(c, "stage", None) == 1] or candidates[:5]
-        best_entry = max(entry_pool,
-                         key=lambda c: relevance_map.get(c.cell_id, 0.0) * 5.0
-                         + len(prompt_tokens & getattr(c, "identity_tokens", c.token_set)) * 3.0
-                         + (5.0 if file_literals and _is_pc(c) else 0.0))
+        best_entry = max(entry_pool, key=_score_m4_entry)
 
         path, visited = [best_entry], {best_entry.cell_id}
         # Prefer the model-compiled IR steps as the clause set -- they came
@@ -95,14 +104,15 @@ class M4LLMStepwiseRouteMethod(RouteMethod):
 
         for step_idx in range(max_steps):
             curr = path[-1]
-            if (getattr(curr, "stage", None) == 3 and len(path) > 1) or any(_is_terminal_sink_cell(c) for c in path):
-                break
+            if len(path) > 1 and (_is_terminal_sink_cell(curr) or getattr(curr, "stage", None) == 3):
+                if step_idx >= max(1, len(clauses) - 1) or _cov_cnt(path) >= len(clauses) * 0.75:
+                    break
             curr_out_st = str(getattr(curr.primary_output, "state", "")).lower()
             is_pred = bool(TypeRegistry.get_instance().get_state_properties(curr_out_st).get("is_prediction")) or curr_out_st.startswith("predicted_")
 
             valid = []
             for c in candidates:
-                if c.cell_id in visited or not self.step_unifies(curr, c, prev_path=path): continue
+                if c.cell_id in visited or not (self.step_unifies(curr, c, prev_path=path) or self.step_unifies_dag(c, path, ctx=ctx)): continue
                 c_out = str(getattr(c.primary_output, "state", "")).lower()
                 if has_reg and ("label" in c_out or c_out == "predicted_labels"): continue
                 if has_cls and c_out == "predicted_values": continue
@@ -114,9 +124,24 @@ class M4LLMStepwiseRouteMethod(RouteMethod):
                 filtered = _ir_filter(valid, ir_steps[step_idx])
                 if filtered: valid = filtered
 
-            valid.sort(key=lambda c: relevance_map.get(c.cell_id, 0.0) * 10.0
-                       + self.calculate_edge_affinity(curr, c, orch, relevance_map=relevance_map) * 5.0
-                       + len(c.token_set & prompt_tokens) * 3.0, reverse=True)
+            def _score_cand(c: Cell) -> float:
+                sc = (
+                    relevance_map.get(c.cell_id, 0.0) * 10.0
+                    + self.calculate_edge_affinity(curr, c, orch, relevance_map=relevance_map) * 5.0
+                    + len(c.token_set & prompt_tokens) * 3.0
+                )
+                if not dest_file_literals and getattr(c, "stage", None) == 3:
+                    is_pc = any(
+                        getattr(p, "abstract_type", None) == "path"
+                        or getattr(p, "port_role", None) in ("source_data", "model_sink")
+                        or getattr(getattr(p, "signature", None), "abstract_type", None) == "path"
+                        for p in c.inputs.values()
+                    )
+                    if is_pc:
+                        sc -= 25.0
+                return sc
+
+            valid.sort(key=_score_cand, reverse=True)
             top_valid = valid[:5]
             selected = None
             if has_llm:
@@ -142,5 +167,5 @@ class M4LLMStepwiseRouteMethod(RouteMethod):
             if new_cov > prev_cov: prev_cov, stall = new_cov, 0
             else:
                 stall += 1
-                if stall >= 2: break
+                if stall >= 3 and step_idx >= max(1, len(clauses) - 1): break
         return path

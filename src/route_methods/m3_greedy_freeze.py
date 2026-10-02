@@ -45,13 +45,17 @@ class M3GreedyFreezeRouteMethod(RouteMethod):
         if len(tunnel) == 1:
             return [tunnel[0]]
 
-        candidates = [c for c in tunnel if getattr(c, "node_type", "") != "constant"]
+        candidates = [
+            c for c in tunnel
+            if getattr(c, "node_type", "") not in ("constant", "macro")
+            and not c.cell_id.startswith("MACRO_")
+            and not (getattr(c, "is_combinator", False) or getattr(c, "node_role", "") == "combinator" or getattr(c, "role", "") == "combinator" or getattr(c, "node_type", "") == "combinator")
+        ]
         if not candidates:
             return [tunnel[0]]
 
         prompt_tokens = CellTokenizer.tokenize_prompt(prompt)
-        l0_extracted = ExecutionContext._extract_universal_literals(prompt or "") if ctx or prompt else []
-        file_literals = [v for _, t, v in l0_extracted if t == "file_asset"]
+        src_file_literals, dest_file_literals = self.extract_file_literals(prompt or "", ctx=ctx)
 
         # 1. Select initial entry cell C_0
         stage1_cands = [c for c in candidates if getattr(c, "stage", None) == 1]
@@ -66,8 +70,11 @@ class M3GreedyFreezeRouteMethod(RouteMethod):
                 or getattr(p.signature, "abstract_type", None) == "path"
                 for p in c.inputs.values()
             )
-            if file_literals and is_path_consumer:
-                sc += 5.0
+            if src_file_literals and is_path_consumer:
+                if self.is_file_format_compatible(c, str(src_file_literals[0])):
+                    sc += 6.0
+                else:
+                    sc -= 20.0
             return sc
 
         best_entry = max(entry_pool, key=_score_entry)
@@ -78,32 +85,40 @@ class M3GreedyFreezeRouteMethod(RouteMethod):
 
         clauses = self.segment_prompt_clauses(prompt)
         num_clauses = len(clauses) if clauses else 1
-        max_steps = max(2, min(16, max(max_transforms + 2, num_clauses + 3)))
+        max_steps = max(32, num_clauses * 4 + 4, max_transforms + 8)
 
         # 2. Greedily commit steps forward
         for step in range(max_steps):
             curr = committed_path[-1]
 
-            # Terminal condition: Stage 3 reached
-            if getattr(curr, "stage", None) == 3 and len(committed_path) > 1:
-                break
+            # Terminal condition: Stage 3 or terminal evaluator reached after covering clauses
+            if (getattr(curr, "stage", None) == 3 or getattr(curr, "is_endable", False)) and len(committed_path) > 1:
+                if step >= max(1, num_clauses - 1) or not (prompt_tokens - covered_tokens):
+                    break
 
-            # Find all valid next candidates that unify with curr
+            # Find all valid next candidates that unify with curr or DAG scope
             valid_next = [
                 c for c in candidates
-                if c.cell_id not in visited_ids and self.step_unifies(curr, c, prev_path=committed_path)
+                if c.cell_id not in visited_ids and (self.step_unifies(curr, c, prev_path=committed_path) or self.step_unifies_dag(c, committed_path, ctx=ctx))
             ]
 
             if not valid_next:
                 break
 
+            # Target clause for sequential alignment
+            cl_idx = min(step + 1, num_clauses - 1)
+            target_cl = clauses[cl_idx] if cl_idx < num_clauses else ""
+            target_toks = (CellTokenizer.tokenize_prompt(target_cl) - STOPWORDS) if target_cl else prompt_tokens
+
             # Score each candidate greedily
             def _score_cand(cand: Cell) -> float:
                 rel = relevance_map.get(cand.cell_id, 0.0)
                 aff = self.calculate_edge_affinity(curr, cand, orch, relevance_map=relevance_map)
-                uncovered_toks = (getattr(cand, "identity_tokens", cand.token_set) & prompt_tokens) - covered_tokens
+                c_toks = getattr(cand, "identity_tokens", cand.token_set)
+                uncovered_toks = (c_toks & prompt_tokens) - covered_tokens
                 tok_bonus = len(uncovered_toks) * 3.0
-                
+                clause_match = len(target_toks & c_toks) * 4.0
+
                 # Favor stage progression (1 -> 2 -> 3)
                 curr_stage = getattr(curr, "stage", 1) or 1
                 cand_stage = getattr(cand, "stage", 2) or 2
@@ -116,9 +131,14 @@ class M3GreedyFreezeRouteMethod(RouteMethod):
                     or getattr(p.signature, "abstract_type", None) == "path"
                     for p in cand.inputs.values()
                 )
-                path_bonus = 6.0 if (file_literals and is_path_consumer and cand_stage == 3) else 0.0
+                path_bonus = 0.0
+                if is_path_consumer and cand_stage == 3:
+                    if dest_file_literals:
+                        path_bonus = 6.0 if self.is_file_format_compatible(cand, str(dest_file_literals[0])) else -15.0
+                    else:
+                        path_bonus = -10.0
 
-                return (rel * 10.0) + (aff * 5.0) + tok_bonus + progression_bonus + path_bonus
+                return (rel * 8.0) + (aff * 4.0) + tok_bonus + clause_match + progression_bonus + path_bonus
 
             valid_next.sort(key=_score_cand, reverse=True)
             best_next = valid_next[0]
@@ -129,7 +149,7 @@ class M3GreedyFreezeRouteMethod(RouteMethod):
             covered_tokens.update(best_next.token_set & prompt_tokens)
 
             # Check if all prompt content tokens are covered and cell is stage 3
-            if (prompt_tokens - covered_tokens) == set() and getattr(best_next, "stage", None) == 3:
+            if (prompt_tokens - covered_tokens) == set() and (getattr(best_next, "stage", None) == 3 or getattr(best_next, "is_endable", False)):
                 break
 
         return committed_path

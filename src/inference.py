@@ -176,6 +176,11 @@ def select_optimal_embedder(requested_name: str = "") -> str:
         for cand in available:
             if req.lower() in cand.lower():
                 return cand
+    else:
+        # Default / auto selection prioritizes the nano embedder when present
+        m_nano = next((m for m in available if "nano" in m.lower()), None)
+        if m_nano is not None:
+            return m_nano
 
     # Locate cache directories
     possible_cache_dirs = [
@@ -230,6 +235,38 @@ def select_optimal_embedder(requested_name: str = "") -> str:
 
     logger.info(f"[EMBEDDER SELECTION] Selected optimal model '{best_model}' (readiness score: {best_score:.3f})")
     return best_model
+
+
+def select_optimal_llm(requested_name: str = "") -> str:
+    """
+    Selects the optimal local GGUF LLM model.
+    Defaults to the 0.5b model when available, or matches the requested name.
+    """
+    llm_base_dir = os.path.join(MODELS_DIR, "llms")
+    if not os.path.exists(llm_base_dir):
+        return requested_name or "qwen2.5-coder-0.5b-instruct"
+
+    available = sorted([
+        d for d in os.listdir(llm_base_dir)
+        if os.path.isdir(os.path.join(llm_base_dir, d)) and any(f.endswith(".gguf") for f in os.listdir(os.path.join(llm_base_dir, d)))
+    ])
+    if not available:
+        return requested_name or "qwen2.5-coder-0.5b-instruct"
+
+    req = (requested_name or "").strip()
+    if req and req not in ("auto", "default"):
+        if req in available:
+            return req
+        for cand in available:
+            if req.lower() in cand.lower():
+                return cand
+
+    # Default to 0.5b model when available
+    m_05b = next((m for m in available if "0.5b" in m.lower()), None)
+    if m_05b is not None:
+        return m_05b
+
+    return available[0]
 
 
 def _encode_with_modes(
@@ -431,24 +468,12 @@ class BenchmarkProfile_C(InferenceProfile):
 
         self._dim = resolve_embedding_dimension(self.embedder)
 
-        # 2. Load LLM (Generic directory discovery without size or name substring hardcodes)
-        self.llm_name = (llm_name or "").strip()
+        # 2. Load LLM
+        self.llm_name = select_optimal_llm(llm_name)
         llm_base_dir = os.path.join(MODELS_DIR, "llms")
-
-        target_dir = os.path.join(llm_base_dir, self.llm_name) if self.llm_name and self.llm_name != "auto" else None
-        if target_dir and os.path.isdir(target_dir):
-            llm_dir = target_dir
-        else:
-            if not os.path.isdir(llm_base_dir):
-                raise FileNotFoundError(f"LLM base directory not found: {llm_base_dir}")
-            available_llms = sorted([
-                d for d in os.listdir(llm_base_dir)
-                if os.path.isdir(os.path.join(llm_base_dir, d)) and any(f.endswith(".gguf") for f in os.listdir(os.path.join(llm_base_dir, d)))
-            ])
-            if not available_llms:
-                raise FileNotFoundError(f"No directories containing .gguf models found in {llm_base_dir}")
-            self.llm_name = available_llms[0]
-            llm_dir = os.path.join(llm_base_dir, self.llm_name)
+        llm_dir = os.path.join(llm_base_dir, self.llm_name)
+        if not os.path.isdir(llm_dir):
+            raise FileNotFoundError(f"LLM directory not found: {llm_dir}")
 
         ggufs = [f for f in os.listdir(llm_dir) if f.endswith(".gguf")]
         if not ggufs:
@@ -562,8 +587,14 @@ class BenchmarkProfile_C(InferenceProfile):
                     data["dest_files"] = data["outputs"]
                 if "parameters" in data and "hyperparameters" not in data:
                     data["hyperparameters"] = data["parameters"]
-                if "effective_prompt" not in data:
+                if "effective_prompt" not in data or not data["effective_prompt"]:
                     data["effective_prompt"] = prompt
+                else:
+                    try:
+                        from utils import ensure_comprehensive_prompt
+                        data["effective_prompt"] = ensure_comprehensive_prompt(prompt, data["effective_prompt"])
+                    except Exception:
+                        pass
                 return data
         except Exception as e:
             logger.debug(f"[LLM] Semantic intent compilation fallback: {e}")

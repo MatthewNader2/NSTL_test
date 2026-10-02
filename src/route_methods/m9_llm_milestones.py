@@ -145,7 +145,7 @@ class M9LLMMilestonePathfinderRouteMethod(RouteMethod):
 
                 if cand.cell_id in visited or getattr(cand, "stage", None) == 1:
                     continue
-                if getattr(cand, "role", "") == "combinator" or cand.cell_id.startswith("CF_") or getattr(cand, "domain_name", "") == "control_flow":
+                if getattr(cand, "is_combinator", False) or getattr(cand, "node_role", "") == "combinator" or getattr(cand, "role", "") == "combinator" or cand.cell_id.startswith("CF_") or getattr(cand, "domain_name", "") == "control_flow":
                     continue
 
                 if self.step_unifies(curr, cand, prev_path=current_scope):
@@ -176,7 +176,12 @@ class M9LLMMilestonePathfinderRouteMethod(RouteMethod):
         if len(tunnel) == 1:
             return [tunnel[0]]
 
-        candidates = [c for c in tunnel if getattr(c, "node_type", "") != "constant"] or [tunnel[0]]
+        candidates = [
+            c for c in tunnel
+            if getattr(c, "node_type", "") not in ("constant", "macro")
+            and not c.cell_id.startswith("MACRO_")
+            and not (getattr(c, "is_combinator", False) or getattr(c, "node_role", "") == "combinator" or getattr(c, "role", "") == "combinator" or getattr(c, "node_type", "") == "combinator")
+        ] or [tunnel[0]]
         mm = ModelManager.get_instance()
         has_llm = mm.profile is not None and getattr(mm.profile, "llm", None) is not None
 
@@ -275,7 +280,9 @@ class M9LLMMilestonePathfinderRouteMethod(RouteMethod):
             try:
                 from node_resolver import DynamicNodeResolver
                 dyn_bridge = DynamicNodeResolver.synthesize_adapter(curr, target, orch, rag=kwargs.get("rag"))
-                if dyn_bridge and self.step_unifies(curr, dyn_bridge, prev_path=chain) and self.step_unifies(dyn_bridge, target, prev_path=chain + [dyn_bridge]):
+                can_curr_dyn = self.step_unifies(curr, dyn_bridge, prev_path=chain) or self.step_unifies_dag(dyn_bridge, chain, ctx=ctx)
+                can_dyn_tgt = self.step_unifies(dyn_bridge, target, prev_path=chain + [dyn_bridge]) or self.step_unifies_dag(target, chain + [dyn_bridge], ctx=ctx)
+                if dyn_bridge and can_curr_dyn and can_dyn_tgt:
                     chain.extend([dyn_bridge, target])
                     continue
             except Exception:
@@ -316,7 +323,9 @@ class M9LLMMilestonePathfinderRouteMethod(RouteMethod):
                             try:
                                 from node_resolver import DynamicNodeResolver
                                 dyn_brg = DynamicNodeResolver.synthesize_adapter(c_prev, nxt, orch, rag=kwargs.get("rag"))
-                                if dyn_brg and self.step_unifies(c_prev, dyn_brg, prev_path=verified) and self.step_unifies(dyn_brg, nxt, prev_path=verified + [dyn_brg]):
+                                can_c_prev = self.step_unifies(c_prev, dyn_brg, prev_path=verified) or self.step_unifies_dag(dyn_brg, verified, ctx=ctx)
+                                can_dyn_nxt = self.step_unifies(dyn_brg, nxt, prev_path=verified + [dyn_brg]) or self.step_unifies_dag(nxt, verified + [dyn_brg], ctx=ctx)
+                                if dyn_brg and can_c_prev and can_dyn_nxt:
                                     verified.extend([dyn_brg, nxt])
                                 else:
                                     continue
@@ -328,4 +337,6 @@ class M9LLMMilestonePathfinderRouteMethod(RouteMethod):
             return _fallback()
 
         self.tag_cells_with_clause_indices(chain, prompt)
-        return chain[:min(20, max(max_transforms + 4, 6))]
+        clauses = self.segment_prompt_clauses(prompt)
+        max_allowed = max(32, len(clauses) * 4 + 4, max_transforms + 8)
+        return chain[:max_allowed]

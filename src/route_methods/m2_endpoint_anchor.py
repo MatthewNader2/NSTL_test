@@ -45,18 +45,22 @@ class M2EndpointAnchorRouteMethod(RouteMethod):
         if len(tunnel) == 1:
             return [tunnel[0]]
 
-        candidates = [c for c in tunnel if getattr(c, "node_type", "") != "constant"]
+        candidates = [
+            c for c in tunnel
+            if getattr(c, "node_type", "") not in ("constant", "macro")
+            and not c.cell_id.startswith("MACRO_")
+            and not (getattr(c, "is_combinator", False) or getattr(c, "node_role", "") == "combinator" or getattr(c, "role", "") == "combinator" or getattr(c, "node_type", "") == "combinator")
+        ]
         if not candidates:
             return [tunnel[0]]
 
         prompt_tokens = CellTokenizer.tokenize_prompt(prompt)
-        l0_extracted = ExecutionContext._extract_universal_literals(prompt or "") if ctx or prompt else []
-        file_literals = [v for _, t, v in l0_extracted if t == "file_asset"]
+        src_file_literals, dest_file_literals = self.extract_file_literals(prompt or "", ctx=ctx)
 
         # 1. Identify Source Anchor (Stage 1)
         source_candidates = [c for c in candidates if getattr(c, "stage", None) == 1]
         best_source: Optional[Cell] = None
-        best_src_score = -1.0
+        best_src_score = -999.0
         for sc in (source_candidates or candidates[:5]):
             score = (
                 relevance_map.get(sc.cell_id, 0.0) * 5.0
@@ -69,21 +73,26 @@ class M2EndpointAnchorRouteMethod(RouteMethod):
                 or getattr(p.signature, "abstract_type", None) == "path"
                 for p in sc.inputs.values()
             )
-            if file_literals and is_path_consumer:
-                score += 5.0
+            if src_file_literals and is_path_consumer:
+                if self.is_file_format_compatible(sc, str(src_file_literals[0])):
+                    score += 6.0
+                else:
+                    score -= 20.0
             if score > best_src_score:
                 best_src_score = score
                 best_source = sc
 
-        # 2. Identify Sink Anchor (Stage 3)
-        sink_candidates = [c for c in candidates if getattr(c, "stage", None) == 3]
+        # 2. Identify Sink Anchor (Stage 3 or Endable Evaluator)
+        clauses = self.segment_prompt_clauses(prompt)
+        final_clause_tokens = (CellTokenizer.tokenize_prompt(clauses[-1]) - STOPWORDS) if clauses else prompt_tokens
+        sink_candidates = [c for c in candidates if getattr(c, "stage", None) == 3 or getattr(c, "is_endable", False)]
         best_sink: Optional[Cell] = None
-        best_sink_score = -1.0
+        best_sink_score = -999.0
         for snk in (sink_candidates or candidates[-5:]):
             score = (
                 relevance_map.get(snk.cell_id, 0.0) * 5.0
                 + len(prompt_tokens & getattr(snk, "identity_tokens", snk.token_set)) * 3.0
-                + (5.0 if best_source and snk.domain_name == best_source.domain_name else 0.0)
+                + len(final_clause_tokens & getattr(snk, "identity_tokens", snk.token_set)) * 5.0
             )
             is_path_consumer = any(
                 getattr(p, "abstract_type", None) == "path"
@@ -92,8 +101,15 @@ class M2EndpointAnchorRouteMethod(RouteMethod):
                 or getattr(p.signature, "abstract_type", None) == "path"
                 for p in snk.inputs.values()
             )
-            if file_literals and is_path_consumer:
-                score += 5.0
+            if dest_file_literals and is_path_consumer:
+                if self.is_file_format_compatible(snk, str(dest_file_literals[0])):
+                    score += 6.0
+                else:
+                    score -= 20.0
+            elif not dest_file_literals and is_path_consumer and getattr(snk, "stage", None) == 3:
+                # Egress file writer without destination file requested in prompt
+                score -= 25.0
+
             if score > best_sink_score:
                 best_sink_score = score
                 best_sink = snk
@@ -105,7 +121,49 @@ class M2EndpointAnchorRouteMethod(RouteMethod):
         if best_sink and best_source.cell_id == best_sink.cell_id:
             return [best_source]
 
-        # 3. Bidirectional Meeting-in-the-Middle through Stage 2 transforms
+        clauses = self.segment_prompt_clauses(prompt)
+        num_clauses = len(clauses) if clauses else 1
+
+        # 3. For multi-clause compound prompts (> 2 clauses), chain forward through intermediate transformations
+        if num_clauses > 2:
+            path = [best_source]
+            curr = best_source
+            max_steps = max(2, min(16, max(max_transforms + 2, num_clauses + 3)))
+            for cl_idx in range(1, num_clauses + 2):
+                if getattr(curr, "stage", None) == 3 or (best_sink and curr.cell_id == best_sink.cell_id):
+                    break
+                valid_next = [
+                    c for c in candidates
+                    if c.cell_id != curr.cell_id and c.cell_id not in [p.cell_id for p in path]
+                    and (self.step_unifies(curr, c, prev_path=path) or self.step_unifies_dag(c, path, ctx=ctx))
+                ]
+                if not valid_next:
+                    if best_sink and (self.step_unifies(curr, best_sink, prev_path=path) or self.step_unifies_dag(best_sink, path, ctx=ctx)) and best_sink.cell_id not in [p.cell_id for p in path]:
+                        path.append(best_sink)
+                    break
+
+                target_cl = clauses[min(cl_idx, num_clauses - 1)] if cl_idx < num_clauses else ""
+                target_toks = (CellTokenizer.tokenize_prompt(target_cl) - STOPWORDS) if target_cl else prompt_tokens
+
+                def _score_step(c: Cell) -> float:
+                    rel = relevance_map.get(c.cell_id, 0.0)
+                    aff = self.calculate_edge_affinity(curr, c, orch, relevance_map=relevance_map)
+                    c_toks = getattr(c, "identity_tokens", c.token_set)
+                    match_sc = len(target_toks & c_toks) * 4.0 + len(prompt_tokens & c_toks) * 1.5
+                    is_snk = 3.0 if (best_sink and c.cell_id == best_sink.cell_id and cl_idx >= num_clauses - 1) else 0.0
+                    return (rel * 8.0) + (aff * 4.0) + match_sc + is_snk
+
+                valid_next.sort(key=_score_step, reverse=True)
+                nxt = valid_next[0]
+                path.append(nxt)
+                curr = nxt
+
+            if best_sink and path[-1].cell_id != best_sink.cell_id:
+                if self.step_unifies(path[-1], best_sink, prev_path=path) or self.step_unifies_dag(best_sink, path, ctx=ctx):
+                    path.append(best_sink)
+            return path
+
+        # Bidirectional Meeting-in-the-Middle through Stage 2 transforms (short prompts)
         transforms = [c for c in candidates if getattr(c, "stage", None) == 2]
 
         if best_sink and transforms:
@@ -151,21 +209,18 @@ class M2EndpointAnchorRouteMethod(RouteMethod):
             if best_pair:
                 return [best_source, best_pair[0], best_pair[1], best_sink]
 
-        # If direct unification is valid when no transform found
-        if best_sink and self.step_unifies(best_source, best_sink):
+        # If direct unification is valid when no transform found and prompt is trivial
+        if best_sink and self.step_unifies(best_source, best_sink) and num_clauses <= 1:
             return [best_source, best_sink]
 
         # Fallback forward chaining
         path = [best_source]
         curr = best_source
-        clauses = self.segment_prompt_clauses(prompt)
-        num_clauses = len(clauses) if clauses else 1
-        max_steps = max(2, min(16, max(max_transforms + 2, num_clauses + 3)))
+        max_steps = max(32, num_clauses * 4 + 4, max_transforms + 8)
         for _ in range(max_steps):
             valid_next = [c for c in candidates if c.cell_id != curr.cell_id and self.step_unifies(curr, c)]
             if not valid_next:
                 break
-            # Sort by relevance + edge affinity
             valid_next.sort(
                 key=lambda c: relevance_map.get(c.cell_id, 0.0) + self.calculate_edge_affinity(curr, c, orch, relevance_map=relevance_map),
                 reverse=True

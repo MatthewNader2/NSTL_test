@@ -65,8 +65,7 @@ class M6HybridAnchorsRouteMethod(RouteMethod):
             return [tunnel[0]]
 
         # 1. Extract universal literals (files, identifiers, etc.)
-        extracted_literals = ExecutionContext._extract_universal_literals(prompt or "")
-        file_literals = [v for _, t, v in extracted_literals if t == "file_asset"]
+        src_file_literals, dest_file_literals = self.extract_file_literals(prompt or "", ctx=ctx)
 
         # 2. Identify Source & Sink Endpoints
         source_cell: Optional[Cell] = None
@@ -76,8 +75,24 @@ class M6HybridAnchorsRouteMethod(RouteMethod):
         stage3_cands = [c for c in candidates if getattr(c, "stage", None) == 3]
 
         if stage1_cands:
-            source_cell = max(stage1_cands, key=lambda c: relevance_map.get(c.cell_id, 0.0))
-        if stage3_cands and _prompt_has_egress_intent(prompt):
+            def _score_s1(c: Cell) -> float:
+                score = relevance_map.get(c.cell_id, 0.0)
+                if src_file_literals:
+                    is_pc = any(
+                        getattr(p, "abstract_type", None) == "path"
+                        or getattr(p, "port_role", None) in ("source_data", "model_sink")
+                        or getattr(getattr(p, "signature", None), "abstract_type", None) == "path"
+                        for p in c.inputs.values()
+                    )
+                    if is_pc and self.is_file_format_compatible(c, str(src_file_literals[0])):
+                        score += 10.0
+                    elif is_pc and not self.is_file_format_compatible(c, str(src_file_literals[0])):
+                        score -= 20.0
+                    elif not is_pc:
+                        score -= 10.0
+                return score
+            source_cell = max(stage1_cands, key=_score_s1)
+        if stage3_cands and (_prompt_has_egress_intent(prompt) or dest_file_literals):
             sink_cell = max(stage3_cands, key=lambda c: relevance_map.get(c.cell_id, 0.0))
 
         # 3. Identify Clause-Level Waypoint Anchors
@@ -105,7 +120,7 @@ class M6HybridAnchorsRouteMethod(RouteMethod):
                 for c in candidates:
                     if c in clause_cells:
                         continue
-                    if getattr(c, "role", "") == "combinator":
+                    if getattr(c, "is_combinator", False) or getattr(c, "node_role", "") == "combinator" or getattr(c, "role", "") == "combinator" or getattr(c, "node_type", "") == "combinator":
                         continue
                     c_toks = c.token_set
                     id_toks = getattr(c, "identity_tokens", c_toks)
@@ -202,10 +217,10 @@ class M6HybridAnchorsRouteMethod(RouteMethod):
 
         # 6. Pre-flight verification & path return
         num_clauses = len(clauses) if clauses else 1
-        dynamic_cap = max(max_transforms + 2, num_clauses + 3)
+        max_allowed = max(32, num_clauses * 4 + 4, max_transforms + 8)
 
         if bridged_path and len(bridged_path) >= 2:
-            return bridged_path[:min(16, dynamic_cap)]
+            return bridged_path[:max_allowed]
 
         # If waypoints failed to assemble, fallback to Trellis
         if orch:
@@ -221,4 +236,4 @@ class M6HybridAnchorsRouteMethod(RouteMethod):
             if m0_path:
                 return m0_path
 
-        return bridged_path[:min(16, dynamic_cap)]
+        return bridged_path[:max_allowed]

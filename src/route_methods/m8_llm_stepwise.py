@@ -127,7 +127,12 @@ class M8LLMStepwisePathfinderRouteMethod(RouteMethod):
         if len(tunnel) == 1:
             return [tunnel[0]]
 
-        candidates = [c for c in tunnel if getattr(c, "node_type", "") != "constant"] or [tunnel[0]]
+        candidates = [
+            c for c in tunnel
+            if getattr(c, "node_type", "") not in ("constant", "macro")
+            and not c.cell_id.startswith("MACRO_")
+            and not (getattr(c, "is_combinator", False) or getattr(c, "node_role", "") == "combinator" or getattr(c, "role", "") == "combinator" or getattr(c, "node_type", "") == "combinator")
+        ] or [tunnel[0]]
         mm = ModelManager.get_instance()
         has_llm = mm.profile is not None and getattr(mm.profile, "llm", None) is not None
 
@@ -145,12 +150,34 @@ class M8LLMStepwisePathfinderRouteMethod(RouteMethod):
         cand_map = {c.cell_id.lower(): c for c in shown}
 
         # Step 0: Choose entry node
+        l0_extracted = ExecutionContext._extract_universal_literals(prompt or "") if ctx or prompt else []
+        src_file_literals = [
+            val for pos, kind, val in l0_extracted
+            if (kind == "file_asset" or (kind == "quoted_str" and ExecutionContext._is_path_string(str(val))))
+            and ExecutionContext._asset_direction(prompt or "", pos) != "dest"
+        ]
         entry_candidates = [
             c for c in shown
             if getattr(c, "stage", None) == 1 or getattr(c, "node_role", "") == "source"
         ]
         if not entry_candidates:
             entry_candidates = shown[:5]
+        elif src_file_literals:
+            def _entry_compat_score(c: Cell) -> float:
+                is_pc = any(
+                    getattr(p, "abstract_type", None) == "path"
+                    or getattr(p, "port_role", None) in ("source_data", "model_sink")
+                    or getattr(getattr(p, "signature", None), "abstract_type", None) == "path"
+                    for p in c.inputs.values()
+                )
+                if is_pc and self.is_file_format_compatible(c, str(src_file_literals[0])):
+                    return relevance_map.get(c.cell_id, 0.0) + 10.0
+                elif is_pc and not self.is_file_format_compatible(c, str(src_file_literals[0])):
+                    return relevance_map.get(c.cell_id, 0.0) - 20.0
+                elif not is_pc:
+                    return relevance_map.get(c.cell_id, 0.0) - 10.0
+                return relevance_map.get(c.cell_id, 0.0)
+            entry_candidates.sort(key=_entry_compat_score, reverse=True)
 
         entry_cell = None
         try:
@@ -242,7 +269,8 @@ class M8LLMStepwisePathfinderRouteMethod(RouteMethod):
                 rem_lines = [f"- {_format_cell_signature(c)}" for c in remaining_nodes]
                 rem_block = f"\n\nOther Candidate Nodes in Pool (Goals / Rest of Pipeline):\n" + "\n".join(rem_lines)
 
-            finish_hint = " (or 'FINISH' if pipeline is complete)" if (curr_stage == 3 or curr_role == "sink" or len(path) >= 2) else ""
+            clauses = self.segment_prompt_clauses(prompt)
+            finish_hint = " (or 'FINISH' if pipeline is complete)" if (curr_stage == 3 or curr_role == "sink" or (clauses and len(path) >= len(clauses))) else ""
             step_msg = (
                 f"Request: {prompt}\n\n"
                 f"Current Pipeline: {path_str}\n\n"
@@ -260,7 +288,8 @@ class M8LLMStepwisePathfinderRouteMethod(RouteMethod):
                 chosen_id = None
 
             if chosen_id and chosen_id.upper() in ("FINISH", "DONE", "STOP", "END"):
-                break
+                if curr_stage == 3 or curr_role == "sink" or (clauses and len(path) >= len(clauses)) or not clauses:
+                    break
 
             matched_trans = trans_by_id.get(chosen_id.lower()) if chosen_id else None
             if matched_trans is None and chosen_id:
@@ -325,7 +354,9 @@ class M8LLMStepwisePathfinderRouteMethod(RouteMethod):
                             try:
                                 from node_resolver import DynamicNodeResolver
                                 dyn_brg = DynamicNodeResolver.synthesize_adapter(c_prev, nxt, orch, rag=kwargs.get("rag"))
-                                if dyn_brg and self.step_unifies(c_prev, dyn_brg, prev_path=verified) and self.step_unifies(dyn_brg, nxt, prev_path=verified + [dyn_brg]):
+                                can_c_prev = self.step_unifies(c_prev, dyn_brg, prev_path=verified) or self.step_unifies_dag(dyn_brg, verified, ctx=ctx)
+                                can_dyn_nxt = self.step_unifies(dyn_brg, nxt, prev_path=verified + [dyn_brg]) or self.step_unifies_dag(nxt, verified + [dyn_brg], ctx=ctx)
+                                if dyn_brg and can_c_prev and can_dyn_nxt:
                                     verified.extend([dyn_brg, nxt])
                                 else:
                                     return _fallback()

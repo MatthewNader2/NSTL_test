@@ -133,6 +133,65 @@ class RouteMethod(ABC):
 
         return 0.0
 
+    @staticmethod
+    def is_file_format_compatible(cell: Cell, file_path_str: str) -> bool:
+        """
+        Checks if a cell's file/path port is compatible with the given file path's extension.
+        100% domain-agnostic: derives declared format from generic signature File[Carrier, Format]
+        or declared cell metadata.
+        """
+        if not file_path_str or not isinstance(file_path_str, str) or "." not in file_path_str:
+            return True
+        ext = file_path_str.rpartition(".")[2].strip().lower()
+        if not ext:
+            return True
+
+        path_ports = [
+            p for p in list(cell.inputs.values()) + list(cell.outputs.values())
+            if is_path_port(p)
+        ]
+        if not path_ports:
+            return True
+
+        for p in path_ports:
+            tn = str(getattr(p, "type_name", "") or "").strip()
+            if "[" in tn and tn.endswith("]"):
+                ctor, _, inner = tn[:-1].partition("[")
+                if ctor.strip().lower() in ("file", "stream", "path", "asset"):
+                    parts = [part.strip().lower() for part in inner.split(",") if part.strip()]
+                    if len(parts) >= 2:
+                        fmt = parts[1]
+                        if fmt in ("any", "generic", "*", ""):
+                            carrier = parts[0]
+                            try:
+                                reg = TypeRegistry.get_instance()
+                                placeholder = reg.get_asset_placeholder(carrier, "")
+                                if placeholder and "." in placeholder:
+                                    carrier_ext = placeholder.rpartition(".")[2].strip().lower()
+                                    if carrier_ext and carrier_ext != "dat":
+                                        img_exts = ("png", "jpg", "jpeg", "bmp", "tiff", "webp", "gif")
+                                        tab_exts = ("csv", "tsv", "parquet", "xlsx", "xls", "json", "feather")
+                                        aud_exts = ("wav", "mp3", "flac", "ogg", "m4a")
+                                        if carrier_ext in img_exts:
+                                            return ext in img_exts
+                                        if carrier_ext in tab_exts:
+                                            return ext in tab_exts
+                                        if carrier_ext in aud_exts:
+                                            return ext in aud_exts
+                                        return ext == carrier_ext
+                            except Exception:
+                                pass
+                            return True
+                        if ext == fmt or fmt in ext or ext in fmt:
+                            return True
+                        if (ext in ("pkl", "pickle") and "pickle" in fmt) or \
+                           (ext in ("jpg", "jpeg") and "jpeg" in fmt) or \
+                           (ext in ("xls", "xlsx") and "excel" in fmt) or \
+                           (ext in ("npz",) and "npz" in fmt):
+                            return True
+                        return False
+        return True
+
     def _get_prompt_literals(self, prompt: Optional[str] = None) -> Tuple[List[Any], List[Any], List[Any]]:
         p = prompt or getattr(self, "_current_prompt", "") or ""
         if not p:
@@ -150,23 +209,14 @@ class RouteMethod(ABC):
 
     def step_unifies(self, producer: Cell, consumer: Cell, prev_path: Optional[List[Cell]] = None, prompt: Optional[str] = None) -> bool:
         """
-        Checks if consumer cell can validly execute after producer cell.
+        Checks if consumer cell can validly execute in the multi-carrier environment.
         Enforces:
           1. Stage 1 cells cannot be appended as intermediate transitions.
-          2. Entity-grounded transition check: producer and consumer must not operate on
-             disjoint prompt entities unless consumer is a multi-input join morphism.
-          3. Type-monadic verification via LatticePlanner._verify_transition with prompt literals.
+          2. Type-monadic verification via LatticePlanner._verify_transition with prompt literals.
+          3. Multi-carrier DAG scope verification via unify_cell_with_scope across available path wires.
         """
         if getattr(consumer, "stage", None) == 1:
             return False
-
-        # Entity-grounded transition check:
-        prod_lits = set(getattr(producer, "clause_literals", None) or ())
-        cons_lits = set(getattr(consumer, "clause_literals", None) or ())
-        if prod_lits and cons_lits and not (prod_lits & cons_lits):
-            is_join = len([p for p in consumer.inputs.values() if p.required]) >= 2
-            if not is_join:
-                return False
 
         orch = self.orchestrator
         chain = prev_path if prev_path else [producer]
@@ -247,9 +297,11 @@ class RouteMethod(ABC):
                 continue
             if getattr(cand, "stage", None) == 1:
                 continue
-            if getattr(cand, "role", "") == "combinator" or getattr(cand, "node_type", "") == "combinator":
+            if getattr(cand, "is_combinator", False) or getattr(cand, "node_role", "") == "combinator" or getattr(cand, "role", "") == "combinator" or getattr(cand, "node_type", "") == "combinator":
                 continue
-            if self.step_unifies(src_cell, cand, prev_path=current_scope) and self.step_unifies(cand, dst_cell, prev_path=current_scope + [cand]):
+            can_src_to_cand = self.step_unifies(src_cell, cand, prev_path=current_scope) or self.step_unifies_dag(cand, current_scope)
+            can_cand_to_dst = self.step_unifies(cand, dst_cell, prev_path=current_scope + [cand]) or self.step_unifies_dag(dst_cell, current_scope + [cand])
+            if can_src_to_cand and can_cand_to_dst:
                 aff1 = self.calculate_edge_affinity(src_cell, cand, orchestrator)
                 aff2 = self.calculate_edge_affinity(cand, dst_cell, orchestrator)
                 score = aff1 + aff2
@@ -264,7 +316,32 @@ class RouteMethod(ABC):
             return b_inst
         return None
 
-    def segment_prompt_clauses(self, prompt: str) -> List[str]:
+    @classmethod
+    def extract_file_literals(cls, prompt: str, ctx: Optional[Any] = None) -> Tuple[List[str], List[str]]:
+        """
+        Extracts source and destination file literals from prompt and/or ExecutionContext.
+        Preserves typed intent across layers without brittle re-scanning.
+        """
+        extracted = ExecutionContext._extract_universal_literals(prompt or "")
+        src_lits = [
+            val for pos, kind, val in extracted
+            if (kind == "file_asset" or (kind == "quoted_str" and ExecutionContext._is_path_string(str(val))))
+            and ExecutionContext._asset_direction(prompt or "", pos) != "dest"
+        ]
+        dest_lits = [
+            val for pos, kind, val in extracted
+            if (kind == "file_asset" or (kind == "quoted_str" and ExecutionContext._is_path_string(str(val))))
+            and ExecutionContext._asset_direction(prompt or "", pos) == "dest"
+        ]
+        if ctx:
+            if not src_lits:
+                src_lits = list(getattr(ctx, "parameters", {}).get("source_uris") or getattr(ctx, "source_files", []) or [])
+            if not dest_lits:
+                dest_lits = list(getattr(ctx, "parameters", {}).get("dest_uris") or getattr(ctx, "dest_files", []) or [])
+        return src_lits, dest_lits
+
+    @classmethod
+    def segment_prompt_clauses(cls, prompt: str) -> List[str]:
         """
         Partitions user prompt into sequential procedural clauses.
         Delegates to the planner's single LANGUAGE-level segmenter so clause
@@ -278,7 +355,8 @@ class RouteMethod(ABC):
             from planner import _segment_prompt_clauses
         return _segment_prompt_clauses(prompt)
 
-    def tag_cells_with_clause_indices(self, path: List[Cell], prompt: str) -> None:
+    @classmethod
+    def tag_cells_with_clause_indices(cls, path: List[Cell], prompt: str) -> None:
         """
         Tags each cell in path with matched_clause_idx based on prompt clauses.
         Preserves intentional sub-goals (e.g. mean, normalize) during dead-code pruning
@@ -287,7 +365,7 @@ class RouteMethod(ABC):
         if not path or not prompt:
             return
         from lattice import CellTokenizer
-        clauses = self.segment_prompt_clauses(prompt)
+        clauses = cls.segment_prompt_clauses(prompt)
         if not clauses:
             return
         clause_toks = [CellTokenizer.tokenize_prompt(cl) for cl in clauses]
@@ -337,7 +415,7 @@ class RouteMethod(ABC):
             cid = c.cell_id
             if getattr(c, "node_type", "") == "constant" or cid.startswith("MACRO_"):
                 continue
-            if getattr(c, "role", "") == "combinator" or getattr(c, "node_type", "") == "combinator":
+            if getattr(c, "is_combinator", False) or getattr(c, "node_role", "") == "combinator" or getattr(c, "role", "") == "combinator" or getattr(c, "node_type", "") == "combinator":
                 continue
             filtered_cands.append(c)
 
@@ -388,7 +466,7 @@ class RouteMethod(ABC):
             c_dom = getattr(c, "domain_name", "")
             if c_dom and c_dom not in active_domains and not any(d in cid.lower() for d in active_domains):
                 continue
-            if getattr(c, "role", "") == "combinator":
+            if getattr(c, "is_combinator", False) or getattr(c, "node_role", "") == "combinator" or getattr(c, "role", "") == "combinator" or getattr(c, "node_type", "") == "combinator":
                 continue
             is_bridge = (
                 getattr(c, "node_role", "") == "bridge"

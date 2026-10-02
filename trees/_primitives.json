@@ -414,7 +414,6 @@
     "file"
   ],
   "top_level_carriers": [
-    "array-like",
     "tensor",
     "table",
     "collection",

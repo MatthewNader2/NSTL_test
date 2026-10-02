@@ -35,18 +35,22 @@ try:
     from .config import settings, MODELS_DIR
     from .lattice import LatticeOrchestrator
     from .router import LatticeRouter
-    from .unification import UnificationGate
+    from .unification import UnificationGate, ExecutionContext
     from .gevr_sandbox import GEVRSandbox
     from .inference import ModelManager, select_optimal_embedder
     from .internal_rag import LocalRAG
+    from .preflight import PreflightLinter
+    from .utils import ensure_comprehensive_prompt
 except (ImportError, ValueError):
     from config import settings, MODELS_DIR
     from lattice import LatticeOrchestrator
     from router import LatticeRouter
-    from unification import UnificationGate
+    from unification import UnificationGate, ExecutionContext
     from gevr_sandbox import GEVRSandbox
     from inference import ModelManager, select_optimal_embedder
     from internal_rag import LocalRAG
+    from preflight import PreflightLinter
+    from utils import ensure_comprehensive_prompt
 
 logger = get_logger("main")
 
@@ -301,9 +305,42 @@ def run_prompt(request: Union[RunRequest, Dict[str, Any], str]) -> RunResponse:
 
     t_start = time.perf_counter()
 
+    # Step 0: Layer 0 Ingestion & Intent Compilation (Profile S / E support)
+    effective_prompt = prompt
+    intent_data = None
+    try:
+        mm = ModelManager.get_instance()
+        if mm.profile and mm.has_semantic_compiler():
+            intent_data = mm.compile_semantic_intent(prompt)
+            effective_prompt = ensure_comprehensive_prompt(prompt, intent_data.get("effective_prompt"))
+    except Exception:
+        intent_data = None
+
+    req_ctx = ExecutionContext(prompt=effective_prompt)
+    if intent_data and isinstance(intent_data, dict):
+        tgt = intent_data.get("target_column") or intent_data.get("target_col")
+        if tgt:
+            req_ctx.target_col = str(tgt).strip()
+        if intent_data.get("columns") and isinstance(intent_data["columns"], list):
+            req_ctx.columns = [str(c).strip() for c in intent_data["columns"]]
+        if intent_data.get("hyperparameters") and isinstance(intent_data["hyperparameters"], dict):
+            req_ctx.hyperparameters = dict(intent_data["hyperparameters"])
+        if intent_data.get("slots") and isinstance(intent_data["slots"], dict):
+            req_ctx.llm_slots = dict(intent_data["slots"])
+        if intent_data.get("parameters") and isinstance(intent_data["parameters"], dict):
+            for p_key, p_val in intent_data["parameters"].items():
+                if p_key:
+                    req_ctx.parameters.setdefault(str(p_key), p_val)
+        if intent_data.get("by_column"):
+            req_ctx.parameters["by_column"] = str(intent_data["by_column"]).strip()
+        if intent_data.get("source_files"):
+            req_ctx.parameters["source_uris"] = list(intent_data["source_files"])
+        if intent_data.get("dest_files"):
+            req_ctx.parameters["dest_uris"] = list(intent_data["dest_files"])
+
     # 1. Routing
     t_route_0 = time.perf_counter()
-    cells = _router.plan_path(prompt, return_tuple=False)
+    cells = _router.plan_path(effective_prompt, return_tuple=False, ctx=req_ctx)
     route_dt = (time.perf_counter() - t_route_0) * 1000.0
 
     if not cells:
@@ -322,13 +359,23 @@ def run_prompt(request: Union[RunRequest, Dict[str, Any], str]) -> RunResponse:
     # 2. Synthesis & Unification (Request-isolated gate instance eliminates race conditions)
     t_synth_0 = time.perf_counter()
     local_gate = UnificationGate(orchestrator=_orchestrator)
-    # Profile S: forward the structured IR literals (when the router compiled
-    # a typed IR) into the unification context as declared parameters.
+    # Profile S: forward structured IR literals / intent into unification context
     ir_literals = getattr(_router, "last_ir_literals", None) or {}
-    intent_payload = {"parameters": dict(ir_literals)} if isinstance(ir_literals, dict) and ir_literals else None
+    intent_payload = dict(intent_data) if intent_data else ({"parameters": dict(ir_literals)} if isinstance(ir_literals, dict) and ir_literals else None)
     code = local_gate.unify_and_emit(cells, prompt, intent_data=intent_payload)
     synth_dt = (time.perf_counter() - t_synth_0) * 1000.0
     total_dt = (time.perf_counter() - t_start) * 1000.0
+
+    # 2b. Static Pre-Flight Linting
+    lint_violations: List[str] = []
+    if hasattr(local_gate, "last_pipeline_bindings") and local_gate.last_pipeline_bindings:
+        try:
+            lint_res = PreflightLinter.lint(local_gate.last_pipeline_bindings, prompt=prompt, code_str=code)
+            if not lint_res.is_valid:
+                lint_violations = list(lint_res.violations)
+                logger.warning(f"Static Pre-Flight Lint Violations: {lint_violations}")
+        except Exception as _lint_err:
+            logger.debug(f"Preflight linting error: {_lint_err}")
 
     # 3. Optional Sandbox Verification (Egress paths read from local request-isolated gate)
     sandbox_result = None
@@ -342,6 +389,8 @@ def run_prompt(request: Union[RunRequest, Dict[str, Any], str]) -> RunResponse:
             verification_spec=getattr(local_gate, "last_verification_contract", None),
             runtime_aliases=local_gate.get_runtime_aliases(),
         )
+        if lint_violations and sandbox_result is not None:
+            sandbox_result["preflight_lint_violations"] = lint_violations
 
     path_ids = [c.cell_id for c in cells]
     return RunResponse(

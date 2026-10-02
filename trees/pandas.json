@@ -2195,7 +2195,8 @@
         "dropna",
         "clean",
         "nan",
-        "missing"
+        "missing",
+        "null"
       ],
       "code_template": "{output_var} = {df}.dropna(axis={axis}, how={how})",
       "slots": [
@@ -2300,6 +2301,16 @@
       ],
       "edges": [
         {
+          "target_cell_id": "PD_SELECT_COLUMN",
+          "affinity_score": 0.85,
+          "score_provenance": "ast_mined"
+        },
+        {
+          "target_cell_id": "PD_SET_COLUMN",
+          "affinity_score": 0.85,
+          "score_provenance": "ast_mined"
+        },
+        {
           "target_cell_id": "PD_DROP_DUPLICATES",
           "affinity_score": 0.627,
           "score_provenance": "ast_mined",
@@ -2370,7 +2381,8 @@
       "keywords": [
         "dropna",
         "subset",
-        "clean"
+        "clean",
+        "null"
       ],
       "code_template": "{output_var} = {df}.dropna(subset={subset})",
       "slots": [
@@ -10852,7 +10864,7 @@
       ],
       "cell_type": "micro",
       "node_type": "function",
-      "node_role": "transformer",
+      "node_role": "bridge",
       "mutation_type": "pure",
       "is_context_manager": false,
       "verified": true,
@@ -10930,6 +10942,11 @@
       "bound_slots": {},
       "code_template": "{output_var} = {df}[{columns}].to_numpy()",
       "edges": [
+        {
+          "target_cell_id": "sklearn.linear_model.LinearRegression.fit",
+          "affinity_score": 0.88,
+          "score_provenance": "ast_mined"
+        },
         {
           "target_cell_id": "sklearn.model_selection.train_test_split",
           "affinity_score": 0.68,
@@ -11614,6 +11631,159 @@
           "target_cell_id": "PD_SERIES_ADD",
           "affinity_score": 0.85,
           "score_provenance": "ast_mined"
+        },
+        {
+          "target_cell_id": "NUMPY_FFT_FFT",
+          "affinity_score": 0.85,
+          "score_provenance": "ast_mined"
+        }
+      ],
+      "primary_in": "port_0",
+      "primary_out": "port_0"
+    },
+    {
+      "cell_id": "PD_SET_COLUMN",
+      "stage": 2,
+      "topology_type": "sequential",
+      "node_type": "method",
+      "node_role": "transformer",
+      "mutation_type": "pure",
+      "is_context_manager": false,
+      "verified": true,
+      "source_priority": 1,
+      "is_public": true,
+      "docstring": "Assign an array or Series to a DataFrame column, returning an updated DataFrame.",
+      "dependencies": [
+        "pandas as pd"
+      ],
+      "semantic_tags": [
+        "assignment",
+        "column",
+        "set_column",
+        "write_column",
+        "dataframe",
+        "add_column"
+      ],
+      "keywords": [
+        "assign",
+        "set",
+        "write",
+        "new column",
+        "write to",
+        "add column",
+        "new_column",
+        "set column",
+        "write column"
+      ],
+      "code_template": "{output_var} = {df}.copy(); {output_var}[{column}] = {value}",
+      "slots": [
+        "output_var",
+        "df",
+        "column",
+        "value"
+      ],
+      "bound_slots": {},
+      "feedback_state_type": null,
+      "raises": [],
+      "type_vars": [],
+      "inputs": {
+        "port_0": {
+          "type_name": "DataFrame",
+          "state": "cleaned",
+          "accepted_states": [
+            "cleaned",
+            "raw",
+            "indexed",
+            "filtered",
+            "dataframe_2d_generic"
+          ],
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Input DataFrame.",
+          "domain": "pandas",
+          "required": true,
+          "abstract_type": "table",
+          "enum_values": null,
+          "param_kind": "positional_or_keyword",
+          "value_constraints": null,
+          "shape_contract": null,
+          "port_role": "data_input"
+        },
+        "port_1": {
+          "type_name": "str",
+          "state": "column_name",
+          "accepted_states": [
+            "column_name",
+            "column_projection",
+            "any"
+          ],
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Column name string to write.",
+          "domain": "pandas",
+          "required": true,
+          "abstract_type": "scalar",
+          "enum_values": null,
+          "param_kind": "positional_or_keyword",
+          "value_constraints": null,
+          "shape_contract": null,
+          "port_role": "literal_parameter"
+        },
+        "port_2": {
+          "type_name": "array-like",
+          "state": "any",
+          "accepted_states": [
+            "any"
+          ],
+          "qualifiers": [],
+          "default_value": null,
+          "description": "Array or Series values to assign to the column.",
+          "domain": "pandas",
+          "required": true,
+          "abstract_type": "sequence",
+          "enum_values": null,
+          "param_kind": "positional_or_keyword",
+          "value_constraints": null,
+          "shape_contract": "(N,)",
+          "port_role": "data_input"
+        }
+      },
+      "outputs": {
+        "port_0": {
+          "type_name": "DataFrame",
+          "state": "cleaned",
+          "accepted_states": [
+            "cleaned",
+            "raw",
+            "indexed",
+            "filtered",
+            "dataframe_2d_generic"
+          ],
+          "qualifiers": [],
+          "default_value": null,
+          "description": "DataFrame with updated column.",
+          "domain": "pandas",
+          "required": true,
+          "abstract_type": "table",
+          "enum_values": null,
+          "param_kind": "positional_or_keyword",
+          "value_constraints": null,
+          "shape_contract": null
+        }
+      },
+      "preconditions": [],
+      "postconditions": [],
+      "effects": [],
+      "edges": [
+        {
+          "target_cell_id": "PD_DATAFRAME_PROJECT_TO_NUMPY",
+          "affinity_score": 0.85,
+          "score_provenance": "ast_mined"
+        },
+        {
+          "target_cell_id": "PD_SELECT_COLUMN",
+          "affinity_score": 0.8,
+          "score_provenance": "ast_mined"
         }
       ],
       "primary_in": "port_0",
@@ -11996,13 +12166,12 @@
     },
     "DataFrame": {
       "parents": [
-        "table",
-        "array-like"
+        "table"
       ]
     },
     "Series": {
       "parents": [
-        "table",
+        "sequence",
         "array-like"
       ]
     },

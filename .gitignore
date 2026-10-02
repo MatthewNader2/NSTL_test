@@ -108,6 +108,8 @@ new_trees/
 apply_fixes.py
 inspect_code.py
 run_phase0_smoke.py
+test.py
+test_logs/
 test_report.md
 evaluation_results.json
 data.csv

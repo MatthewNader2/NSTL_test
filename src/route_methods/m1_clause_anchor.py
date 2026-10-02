@@ -83,7 +83,10 @@ class M1ClauseAnchorRouteMethod(RouteMethod):
             else:
                 pool = [c for c in candidates if getattr(c, "stage", None) != 1] or candidates
 
-            pool = [c for c in pool if getattr(c, "role", "") != "combinator"]
+            pool = [
+                c for c in pool
+                if not (getattr(c, "is_combinator", False) or getattr(c, "node_role", "") == "combinator" or getattr(c, "role", "") == "combinator" or getattr(c, "node_type", "") == "combinator")
+            ]
 
             # Semantic set-covering over distinct operational concepts in the clause
             clause_cells: List[Cell] = []
@@ -222,5 +225,5 @@ class M1ClauseAnchorRouteMethod(RouteMethod):
             except Exception:
                 pass
 
-        dynamic_cap = max(max_transforms + 2, len(clauses) + 3)
-        return routed_path[:min(16, dynamic_cap)]
+        max_allowed = max(32, len(clauses) * 4 + 4, max_transforms + 8)
+        return routed_path[:max_allowed]

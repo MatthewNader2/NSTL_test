@@ -8135,12 +8135,15 @@
       "type_vars": [],
       "inputs": {
         "a": {
-          "type_name": "ndarray",
+          "type_name": "array-like",
           "state": "nd_tensor",
           "accepted_states": [
             "nd_tensor",
             "1d_vector",
-            "ndarray_generic"
+            "ndarray_generic",
+            "series_numeric",
+            "series_cleaned",
+            "any"
           ],
           "qualifiers": [],
           "default_value": null,
@@ -8234,6 +8237,11 @@
           "bridging_precondition": null,
           "metadata": {},
           "needs_mining": true
+        },
+        {
+          "target_cell_id": "PD_SET_COLUMN",
+          "affinity_score": 0.85,
+          "score_provenance": "ast_mined"
         }
       ],
       "primary_in": "a",

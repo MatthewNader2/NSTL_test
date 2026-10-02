@@ -2395,6 +2395,14 @@ class Cell(ABC):
         return False
 
     @property
+    def role(self) -> str:
+        return self.node_role
+
+    @property
+    def is_combinator(self) -> bool:
+        return str(self.node_role).lower() == "combinator" or str(self.node_type).lower() == "combinator"
+
+    @property
     def token_count(self) -> int:
         if self._token_set is None:
             _ = self.token_set

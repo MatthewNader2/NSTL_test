@@ -48,16 +48,17 @@ try:
         Success, Failure
     )
     from gevr_sandbox import GEVRSandbox
-    from inference import ModelManager, select_optimal_embedder
+    from inference import ModelManager, select_optimal_embedder, select_optimal_llm
     from internal_rag import LocalRAG
     from config import MODELS_DIR, settings
-    from utils import extract_code_from_llm_response
+    from utils import extract_code_from_llm_response, ensure_comprehensive_prompt
     from tokenizer import CellTokenizer
     from planner import _segment_prompt_clauses, STOPWORDS
     from preflight import PreflightLinter
     from lattice_auditor import LatticeAuditor
     from macro_harvester import MacroHarvester
     from route_methods import ROUTE_METHOD_REGISTRY, get_route_method
+    from reranker import get_available_rerankers, LocalReranker
 except ImportError:
     from .lattice import LatticeOrchestrator, Cell, PortSignature, AlgebraicSignature, UNRESOLVED_PORT
     from .router import LatticeRouter, HardwareProfiler
@@ -67,16 +68,17 @@ except ImportError:
         Success, Failure
     )
     from .gevr_sandbox import GEVRSandbox
-    from .inference import ModelManager, select_optimal_embedder
+    from .inference import ModelManager, select_optimal_embedder, select_optimal_llm
     from .internal_rag import LocalRAG
     from .config import MODELS_DIR, settings
-    from .utils import extract_code_from_llm_response
+    from .utils import extract_code_from_llm_response, ensure_comprehensive_prompt
     from .tokenizer import CellTokenizer
     from .planner import _segment_prompt_clauses, STOPWORDS
     from .preflight import PreflightLinter
     from .lattice_auditor import LatticeAuditor
     from .macro_harvester import MacroHarvester
     from .route_methods import ROUTE_METHOD_REGISTRY, get_route_method
+    from .reranker import get_available_rerankers, LocalReranker
 
 console = Console()
 
@@ -94,12 +96,13 @@ DEFAULT_SANDBOX_TIMEOUT: float = getattr(settings, "sandbox_timeout", 5.0)
 HIGH_TRUST_PRIORITY_THRESHOLD: int = getattr(settings, "verified_priority_threshold", 10)
 DEFAULT_TRANSLATOR_PROMPT: str = (
     "You are a precise technical translator. Rewrite the user request as a "
-    "minimal, unambiguous pipeline specification that preserves every "
-    "operation, its arguments, and their requested execution order. Keep the "
-    "natural clause boundaries of the request — one operation per clause — "
-    "without adding, merging, or reordering steps. Use only words from the "
-    "request. Output ONLY the specification, no headers, no lists, no "
-    "formatting."
+    "sequential pipeline specification that preserves every operation, its arguments, "
+    "all variable or column assignments, target column names, and their requested execution order. "
+    "Preserve relational causality and output definitions (e.g. writing or assigning computed results "
+    "to target columns or variables: 'write to new column Z' -> 'assign result to column Z'). "
+    "Keep the natural clause boundaries of the request — one operation per clause — "
+    "without omitting, merging, or reordering steps. Do not drop column names, literals, or target outputs. "
+    "Output ONLY the normalized pipeline specification, no headers, no lists, no markdown formatting."
 )
 
 
@@ -771,25 +774,42 @@ def _unknown_api_references(repaired_code: str, original_code: str, cells) -> Se
 
 
 def _get_available_embedders() -> List[str]:
-    """Scans MODELS_DIR/embeddings for available embedding models."""
+    """Scans MODELS_DIR/embeddings for available embedding models, prioritizing nano."""
     emb_dir = os.path.join(MODELS_DIR, "embeddings")
     if os.path.exists(emb_dir):
-        return sorted([
+        raw = sorted([
             d for d in os.listdir(emb_dir)
             if os.path.isdir(os.path.join(emb_dir, d)) and not d.endswith("-GGUF")
         ])
+        m_nano = [d for d in raw if "nano" in d.lower()]
+        rest = [d for d in raw if "nano" not in d.lower()]
+        return m_nano + rest
     return []
 
 
 def _get_available_llms() -> List[str]:
-    """Scans MODELS_DIR/llms for available GGUF LLMs."""
+    """Scans MODELS_DIR/llms for available GGUF LLMs, prioritizing the default 0.5b model."""
     llm_dir = os.path.join(MODELS_DIR, "llms")
     if os.path.exists(llm_dir):
-        return sorted([
+        raw = sorted([
             d for d in os.listdir(llm_dir)
             if os.path.isdir(os.path.join(llm_dir, d))
         ])
+        m_05b = [d for d in raw if "0.5b" in d.lower()]
+        rest = [d for d in raw if "0.5b" not in d.lower()]
+        return m_05b + rest
     return []
+
+
+def _get_available_rerankers() -> List[str]:
+    """Scans MODELS_DIR/rerankers for available neural reranker models."""
+    try:
+        return get_available_rerankers()
+    except Exception:
+        r_dir = os.path.join(MODELS_DIR, "rerankers")
+        if os.path.exists(r_dir):
+            return sorted([d for d in os.listdir(r_dir) if os.path.isdir(os.path.join(r_dir, d))])
+        return []
 
 
 # =====================================================================
@@ -817,8 +837,8 @@ class PipelineDebugger:
         self.sandbox = sandbox
         self.active_profile = active_profile
         self.device = device
-        self.embedder_name = embedder_name
-        self.llm_name = llm_name
+        self.embedder_name = select_optimal_embedder(embedder_name) if embedder_name else select_optimal_embedder()
+        self.llm_name = select_optimal_llm(llm_name) if llm_name else select_optimal_llm()
         self.console = console or Console()
         self.route_method = route_method.upper() if route_method else None
 
@@ -862,6 +882,7 @@ class PipelineDebugger:
         # LAYER 0: Query Intent & Pre-Processing
         effective_prompt = prompt_clean
         t_trans = 0.0
+        intent_data = None
 
         if prof == "E":
             mm = ModelManager.get_instance()
@@ -869,7 +890,14 @@ class PipelineDebugger:
                 t0_t = time.perf_counter()
                 trans_system = get_translator_prompt(self.orchestrator)
                 effective_prompt = mm.generate_text(prompt_clean, max_tokens=128, system_prompt=trans_system)
-                effective_prompt = effective_prompt.strip().strip('`').strip()
+                effective_prompt = ensure_comprehensive_prompt(prompt_clean, effective_prompt)
+                t_trans = (time.perf_counter() - t0_t) * 1000.0
+        elif prof == "S":
+            mm = ModelManager.get_instance()
+            if mm.profile and mm.has_semantic_compiler():
+                t0_t = time.perf_counter()
+                intent_data = mm.compile_semantic_intent(prompt_clean)
+                effective_prompt = ensure_comprehensive_prompt(prompt_clean, intent_data.get("effective_prompt"))
                 t_trans = (time.perf_counter() - t0_t) * 1000.0
 
         clauses = _segment_prompt_clauses(effective_prompt)
@@ -885,8 +913,13 @@ class PipelineDebugger:
         l0_table.add_row("Raw User Prompt", prompt_clean)
         if prof == "E":
             l0_table.add_row(f"Translator Output ({t_trans:.1f}ms)", f"[italic magenta]{effective_prompt}[/italic magenta]")
+        elif prof == "S" and intent_data:
+            task_str = intent_data.get("task", "generic")
+            tgt_col = intent_data.get("target_column", "")
+            tgt_info = f" | Target: {tgt_col}" if tgt_col else ""
+            l0_table.add_row(f"Profile S Compiler ({t_trans:.1f}ms)", f"[italic magenta]Task: {task_str}{tgt_info}[/italic magenta]")
         else:
-            l0_table.add_row("Translator Pass", "[dim]Bypassed (Active in Profile E only)[/dim]")
+            l0_table.add_row("Translator Pass", "[dim]Bypassed (Active in Profile E/S)[/dim]")
 
         clauses_formatted = "  ➔  ".join(f"[bold yellow]Clause {idx+1}:[/bold yellow] '{cl}'" for idx, cl in enumerate(clauses)) if clauses else "[dim]None[/dim]"
         l0_table.add_row(f"Decomposed Clauses ({len(clauses)})", clauses_formatted)
@@ -910,6 +943,11 @@ class PipelineDebugger:
 
         tunnel_cells, relevance_map = self.router.route(effective_prompt, top_k=400)
         route_dt = (time.perf_counter() - t_route_0) * 1000.0
+
+        reranker_active = bool(getattr(self.router, "use_reranker", False) and getattr(self.router, "last_reranker_telemetry", None))
+        r_model_name = getattr(self.router, "reranker_model", None) or "jina-reranker-v3.5"
+        if reranker_active:
+            engine_desc += f" ➔ Neural Reranker ({r_model_name})"
 
         ranked_candidates = sorted(tunnel_cells, key=lambda cl: float(relevance_map.get(cl.cell_id, 0.0)), reverse=True)
 
@@ -947,46 +985,184 @@ class PipelineDebugger:
         c.print(Panel(summary_text, title=f"[bold yellow]⚡ LAYER 1: Semantic Tunneling & Scoring ({route_dt:.2f}ms)[/bold yellow]", border_style="yellow"))
 
         if ranked_candidates:
-            scores_are_prob = all(0.0 <= float(relevance_map.get(cl.cell_id, 0.0)) <= 1.0 for cl in ranked_candidates[:15])
-            score_col_title = "Score / P(v|x)" if scores_are_prob else "Score / Priority"
-            cand_table = Table(title=f"🎯 Top Scoring Nodes in Semantic Tunnel (Displaying top {min(15, len(ranked_candidates))} of {len(ranked_candidates):,})", box=box.ROUNDED, expand=True, border_style="yellow")
-            cand_table.add_column("#", style="dim", width=4)
-            cand_table.add_column(score_col_title, style="bold yellow", width=14)
-            cand_table.add_column("Cell ID", style="bold cyan", ratio=3)
-            cand_table.add_column("Domain", style="magenta", width=12)
-            cand_table.add_column("Stage", style="white", width=11)
-            cand_table.add_column("Role", style="dim", width=10)
-            cand_table.add_column("Primary Input (τ_in)", style="green", ratio=2)
-            cand_table.add_column("Primary Output (τ_out)", style="blue", ratio=2)
-
             display_limit = 15
-            for idx, cl in enumerate(ranked_candidates[:display_limit], 1):
-                sc = float(relevance_map.get(cl.cell_id, 0.0))
-                sc_color = _get_score_color(sc, epsilon=epsilon)
-                if scores_are_prob:
-                    sc_str = f"[{sc_color}]{sc:.4f} ({sc*100:.1f}%)[/{sc_color}]"
-                else:
-                    sc_str = f"[{sc_color}]{sc:.4f}[/{sc_color}]"
+            if reranker_active:
+                # -------------------------------------------------------------
+                # 1. Pure RAG Baseline Candidates (Pre-Reranker)
+                # -------------------------------------------------------------
+                raw_tunnel = getattr(self.router, "raw_rag_tunnel", []) or ranked_candidates
+                raw_map = getattr(self.router, "raw_rag_relevance_map", {}) or relevance_map
+                raw_ranked = sorted(raw_tunnel, key=lambda cl: float(raw_map.get(cl.cell_id, 0.0)), reverse=True)
 
-                stage_name = {1: "1: Ingress", 2: "2: Transform", 3: "3: Egress"}.get(cl.stage, str(cl.stage))
-                in_sig = f"{getattr(cl.primary_input, 'type_name', 'any')} [{getattr(cl.primary_input, 'state', 'any')}]"
-                out_sig = f"{getattr(cl.primary_output, 'type_name', 'any')} [{getattr(cl.primary_output, 'state', 'any')}]"
-
-                cand_table.add_row(
-                    str(idx),
-                    sc_str,
-                    cl.cell_id,
-                    cl.domain_name,
-                    stage_name,
-                    cl.node_role or cl.node_type,
-                    in_sig,
-                    out_sig
+                raw_cand_table = Table(
+                    title=f"🎯 Pure RAG Top Scoring Nodes (Pre-Reranker | Baseline RAG)",
+                    box=box.ROUNDED, expand=True, border_style="cyan"
                 )
-            c.print(cand_table)
+                raw_cand_table.add_column("#", style="dim", width=4)
+                raw_cand_table.add_column("RAG Score", style="bold cyan", width=14)
+                raw_cand_table.add_column("Cell ID", style="bold white", ratio=3)
+                raw_cand_table.add_column("Domain", style="magenta", width=12)
+                raw_cand_table.add_column("Stage", style="white", width=11)
+                raw_cand_table.add_column("Role", style="dim", width=10)
+                raw_cand_table.add_column("Primary Input (τ_in)", style="green", ratio=2)
+                raw_cand_table.add_column("Primary Output (τ_out)", style="blue", ratio=2)
+
+                for idx, cl in enumerate(raw_ranked[:display_limit], 1):
+                    sc = float(raw_map.get(cl.cell_id, 0.0))
+                    sc_color = _get_score_color(sc, epsilon=epsilon)
+                    sc_str = f"[{sc_color}]{sc:.4f}[/{sc_color}]"
+                    stage_name = {1: "1: Ingress", 2: "2: Transform", 3: "3: Egress"}.get(cl.stage, str(cl.stage))
+                    in_sig = f"{getattr(cl.primary_input, 'type_name', 'any')} [{getattr(cl.primary_input, 'state', 'any')}]"
+                    out_sig = f"{getattr(cl.primary_output, 'type_name', 'any')} [{getattr(cl.primary_output, 'state', 'any')}]"
+                    raw_cand_table.add_row(
+                        str(idx), sc_str, cl.cell_id, cl.domain_name, stage_name,
+                        cl.node_role or cl.node_type, in_sig, out_sig
+                    )
+                c.print(raw_cand_table)
+
+                # -------------------------------------------------------------
+                # 2. Neural Reranked Candidate Nodes (Post-Reranker)
+                # -------------------------------------------------------------
+                rerank_table = Table(
+                    title=f"🧠 Neural Reranked Nodes in Semantic Tunnel (Post-Reranker: {r_model_name})",
+                    box=box.ROUNDED, expand=True, border_style="yellow"
+                )
+                rerank_table.add_column("#", style="dim", width=4)
+                rerank_table.add_column("Blended Score", style="bold yellow", width=14)
+                rerank_table.add_column("Cell ID", style="bold cyan", ratio=3)
+                rerank_table.add_column("Domain", style="magenta", width=12)
+                rerank_table.add_column("Stage", style="white", width=11)
+                rerank_table.add_column("Role", style="dim", width=10)
+                rerank_table.add_column("Primary Input (τ_in)", style="green", ratio=2)
+                rerank_table.add_column("Primary Output (τ_out)", style="blue", ratio=2)
+
+                for idx, cl in enumerate(ranked_candidates[:display_limit], 1):
+                    sc = float(relevance_map.get(cl.cell_id, 0.0))
+                    sc_color = _get_score_color(sc, epsilon=epsilon)
+                    sc_str = f"[{sc_color}]{sc:.4f}[/{sc_color}]"
+                    stage_name = {1: "1: Ingress", 2: "2: Transform", 3: "3: Egress"}.get(cl.stage, str(cl.stage))
+                    in_sig = f"{getattr(cl.primary_input, 'type_name', 'any')} [{getattr(cl.primary_input, 'state', 'any')}]"
+                    out_sig = f"{getattr(cl.primary_output, 'type_name', 'any')} [{getattr(cl.primary_output, 'state', 'any')}]"
+                    rerank_table.add_row(
+                        str(idx), sc_str, cl.cell_id, cl.domain_name, stage_name,
+                        cl.node_role or cl.node_type, in_sig, out_sig
+                    )
+                c.print(rerank_table)
+
+                # -------------------------------------------------------------
+                # 3. Neural Reranker Impact & Trajectory Shifts
+                # -------------------------------------------------------------
+                telemetry = getattr(self.router, "last_reranker_telemetry", [])
+                if telemetry:
+                    diff_table = Table(
+                        title=f"📊 Neural Reranker Impact Analysis (Rank & Score Transitions)",
+                        box=box.ROUNDED, expand=True, border_style="magenta"
+                    )
+                    diff_table.add_column("Cell ID", style="bold cyan", ratio=3)
+                    diff_table.add_column("Domain", style="white", width=12)
+                    diff_table.add_column("RAG Rank", style="dim", justify="right", width=10)
+                    diff_table.add_column("Post Rank", style="bold", justify="right", width=10)
+                    diff_table.add_column("Rank Shift (Δ)", justify="center", width=15)
+                    diff_table.add_column("RAG Score", style="dim", justify="right", width=11)
+                    diff_table.add_column("Post Score", style="bold", justify="right", width=11)
+                    diff_table.add_column("Score Shift (Δ)", justify="right", width=15)
+                    diff_table.add_column("Status / Impact", justify="center", width=16)
+
+                    for item in telemetry[:20]:
+                        d_r = item.get("delta_rank", 0)
+                        d_s = item.get("delta_score", 0.0)
+                        if d_r > 0:
+                            shift_r = f"[bold green]▲ +{d_r}[/bold green]"
+                            status = "[bold green]▲ PROMOTED[/bold green]"
+                        elif d_r < 0:
+                            shift_r = f"[bold red]▼ {d_r}[/bold red]"
+                            status = "[bold red]▼ DEMOTED[/bold red]"
+                        else:
+                            shift_r = "[dim]= 0[/dim]"
+                            status = "[dim]STABLE[/dim]"
+
+                        if d_s > 0:
+                            shift_s = f"[green]+{d_s:.4f}[/green]"
+                        elif d_s < 0:
+                            shift_s = f"[red]{d_s:.4f}[/red]"
+                        else:
+                            shift_s = "[dim]0.0000[/dim]"
+
+                        diff_table.add_row(
+                            item["cell_id"],
+                            item.get("domain", ""),
+                            f"#{item['old_rank']}",
+                            f"#{item['new_rank']}",
+                            shift_r,
+                            f"{item['old_score']:.4f}",
+                            f"{item['new_score']:.4f}",
+                            shift_s,
+                            status
+                        )
+                    c.print(diff_table)
+            else:
+                scores_are_prob = all(0.0 <= float(relevance_map.get(cl.cell_id, 0.0)) <= 1.0 for cl in ranked_candidates[:15])
+                score_col_title = "Score / P(v|x)" if scores_are_prob else "Score / Priority"
+                cand_table = Table(title=f"🎯 Top Scoring Nodes in Semantic Tunnel (Displaying top {min(15, len(ranked_candidates))} of {len(ranked_candidates):,})", box=box.ROUNDED, expand=True, border_style="yellow")
+                cand_table.add_column("#", style="dim", width=4)
+                cand_table.add_column(score_col_title, style="bold yellow", width=14)
+                cand_table.add_column("Cell ID", style="bold cyan", ratio=3)
+                cand_table.add_column("Domain", style="magenta", width=12)
+                cand_table.add_column("Stage", style="white", width=11)
+                cand_table.add_column("Role", style="dim", width=10)
+                cand_table.add_column("Primary Input (τ_in)", style="green", ratio=2)
+                cand_table.add_column("Primary Output (τ_out)", style="blue", ratio=2)
+
+                for idx, cl in enumerate(ranked_candidates[:display_limit], 1):
+                    sc = float(relevance_map.get(cl.cell_id, 0.0))
+                    sc_color = _get_score_color(sc, epsilon=epsilon)
+                    if scores_are_prob:
+                        sc_str = f"[{sc_color}]{sc:.4f} ({sc*100:.1f}%)[/{sc_color}]"
+                    else:
+                        sc_str = f"[{sc_color}]{sc:.4f}[/{sc_color}]"
+
+                    stage_name = {1: "1: Ingress", 2: "2: Transform", 3: "3: Egress"}.get(cl.stage, str(cl.stage))
+                    in_sig = f"{getattr(cl.primary_input, 'type_name', 'any')} [{getattr(cl.primary_input, 'state', 'any')}]"
+                    out_sig = f"{getattr(cl.primary_output, 'type_name', 'any')} [{getattr(cl.primary_output, 'state', 'any')}]"
+
+                    cand_table.add_row(
+                        str(idx),
+                        sc_str,
+                        cl.cell_id,
+                        cl.domain_name,
+                        stage_name,
+                        cl.node_role or cl.node_type,
+                        in_sig,
+                        out_sig
+                    )
+                c.print(cand_table)
+
             if len(ranked_candidates) > display_limit:
                 c.print(f"  [dim]... and {len(ranked_candidates) - display_limit:,} more candidate nodes in semantic tunnel.[/dim]\n")
         else:
             c.print("[bold red][!] Empty tunnel: No nodes cleared the relevance cutoff threshold.[/bold red]\n")
+
+        dbg_ctx = ExecutionContext(prompt=effective_prompt)
+        if intent_data and isinstance(intent_data, dict):
+            tgt = intent_data.get("target_column") or intent_data.get("target_col")
+            if tgt:
+                dbg_ctx.target_col = str(tgt).strip()
+            if intent_data.get("columns") and isinstance(intent_data["columns"], list):
+                dbg_ctx.columns = [str(c).strip() for c in intent_data["columns"]]
+            if intent_data.get("hyperparameters") and isinstance(intent_data["hyperparameters"], dict):
+                dbg_ctx.hyperparameters = dict(intent_data["hyperparameters"])
+            if intent_data.get("slots") and isinstance(intent_data["slots"], dict):
+                dbg_ctx.llm_slots = dict(intent_data["slots"])
+            if intent_data.get("parameters") and isinstance(intent_data["parameters"], dict):
+                for p_key, p_val in intent_data["parameters"].items():
+                    if p_key:
+                        dbg_ctx.parameters.setdefault(str(p_key), p_val)
+            if intent_data.get("by_column"):
+                dbg_ctx.parameters["by_column"] = str(intent_data["by_column"]).strip()
+            if intent_data.get("source_files"):
+                dbg_ctx.parameters["source_uris"] = list(intent_data["source_files"])
+            if intent_data.get("dest_files"):
+                dbg_ctx.parameters["dest_uris"] = list(intent_data["dest_files"])
 
         # LAYER 2: Topological Planning & Trellis Viterbi (Planner)
         t_plan_0 = time.perf_counter()
@@ -996,13 +1172,15 @@ class PipelineDebugger:
                 cells = self.router.plan_path(
                     effective_prompt,
                     return_tuple=False,
-                    route_method=self.route_method
+                    route_method=self.route_method,
+                    ctx=dbg_ctx
                 )
             else:
                 cells = self.router.planner.plan(
                     prompt=effective_prompt,
                     tunnel=tunnel_cells,
-                    relevance_map=relevance_map
+                    relevance_map=relevance_map,
+                    ctx=dbg_ctx
                 )
         finally:
             os.environ.pop("NSTL_DEBUG_PLAN", None)
@@ -1041,7 +1219,20 @@ class PipelineDebugger:
                         if alt_port:
                             trans_status = f"[cyan]✓ Wire via port '{alt_port}'[/cyan]"
                         else:
-                            trans_status = "[yellow]~ Weak / Wildcard bind[/yellow]"
+                            # Multi-carrier DAG scope check: did it unify with an earlier ancestor?
+                            dag_parent = None
+                            for anc in reversed(cells[:idx - 1]):
+                                if any(unify(o.signature, cl.primary_input.signature) is not None for o in anc.outputs.values()):
+                                    dag_parent = anc.cell_id
+                                    break
+                                alt = next((p_n for p_n, p_s in cl.inputs.items() if any(unify(o.signature, p_s.signature) is not None for o in anc.outputs.values())), None)
+                                if alt:
+                                    dag_parent = f"{anc.cell_id}.{alt}"
+                                    break
+                            if dag_parent:
+                                trans_status = f"[bold cyan]✓ DAG Wire from {dag_parent}[/bold cyan]"
+                            else:
+                                trans_status = "[yellow]~ Weak / Wildcard bind[/yellow]"
 
                 path_table.add_row(
                     str(idx),
@@ -1137,7 +1328,7 @@ class PipelineDebugger:
 
         if cells:
             t_synth_0 = time.perf_counter()
-            ctx = ExecutionContext(prompt=prompt_clean)
+            ctx = dbg_ctx if dbg_ctx is not None else ExecutionContext(prompt=prompt_clean)
             # Profile S (Semantic Compiler): the typed IR's extracted literals
             # are injected into the execution context's declared parameters so
             # the Unification Gate binds arguments deterministically from the
@@ -1474,13 +1665,15 @@ class NSTLInteractiveShell(cmd.Cmd):
         macros: Optional[bool] = None,
         topology: Optional[str] = None,
         dev: Optional[bool] = None,
-        timeout: float = DEFAULT_SANDBOX_TIMEOUT
+        timeout: float = DEFAULT_SANDBOX_TIMEOUT,
+        reranker: Optional[bool] = None,
+        reranker_model: Optional[str] = None,
     ):
         super().__init__()
         self.db_path = db_path
         self.device = device
-        self.embedder_name = embedder
-        self.llm_name = llm
+        self.embedder_name = select_optimal_embedder(embedder)
+        self.llm_name = select_optimal_llm(llm)
         self.active_profile = "0"
         self.route_method = route_method.upper() if route_method else None
         self.no_lint: bool = bool(no_lint)
@@ -1490,6 +1683,16 @@ class NSTLInteractiveShell(cmd.Cmd):
         self.interactive: bool = interactive
         self.no_exec: bool = no_exec or not getattr(settings, "sandbox_enabled", True)
         self.timeout: float = timeout
+
+        if reranker is not None:
+            settings.use_reranker = bool(reranker)
+            os.environ["NSTL_USE_RERANKER"] = "1" if reranker else "0"
+        self.use_reranker = getattr(settings, "use_reranker", False)
+
+        if reranker_model is not None:
+            settings.reranker_model = reranker_model
+            os.environ["NSTL_RERANKER_MODEL"] = str(reranker_model)
+        self.reranker_model = getattr(settings, "reranker_model", None)
 
         if macros is not None:
             settings.macros_enabled = bool(macros)
@@ -1538,7 +1741,10 @@ class NSTLInteractiveShell(cmd.Cmd):
         prof_text = f"[bold white]{prof_name}[/bold white]\n[dim]{prof_desc}[/dim]"
         emb_text = f"[cyan]Embedder:[/cyan] {self.embedder_name or '[dim]None (Bypassed)[/dim]'}"
         llm_text = f"[cyan]LLM (GGUF):[/cyan] {self.llm_name or '[dim]None (Bypassed)[/dim]'}"
-        models_text = f"{emb_text}\n{llm_text}"
+        r_model = self.reranker_model or "jina-reranker-v3.5"
+        rerank_status = f"[bold green]ON ({r_model})[/bold green]" if getattr(self, "use_reranker", False) else "[dim]OFF[/dim]"
+        rerank_text = f"[cyan]Reranker:[/cyan] {rerank_status}"
+        models_text = f"{emb_text}\n{llm_text}\n{rerank_text}"
 
         db_nodes = f"[cyan]Nodes:[/cyan] {len(self.orchestrator.cells):,} in {len(domains)} domains"
         dbg_text = "[bold green]ON (Verbose)[/bold green]" if self.debug else "[dim]OFF[/dim]"
@@ -1556,7 +1762,7 @@ class NSTLInteractiveShell(cmd.Cmd):
         _quick_line = "  ".join(f"[{k}] {v}:{_short_label.get(v, v)}" for k, v in QUICK_PROFILE_SHORTCUTS)
         quick_shortcuts = Text(
             f"Quick Layers: {_quick_line}\n"
-            "Commands: /profile <0|A|C|D|E|S> | /method <M0-M9> | /topology <frontier|linear> | /audit | /macro | /debug [on|off] | /sandbox [on|off] | /status | /new | /clear | /exit",
+            "Commands: /profile <0|A|C|D|E|S> | /method <M0-M9> | /reranker [on|off|<model>] | /topology <frontier|linear> | /audit | /macro | /debug [on|off] | /sandbox [on|off] | /status | /new | /clear | /exit",
             justify="center",
             style="dim cyan"
         )
@@ -1675,7 +1881,13 @@ class NSTLInteractiveShell(cmd.Cmd):
         if p in ("0", "SYMBOLIC", "ZERO", "PURE"):
             self.active_profile = "0"
             self.rag = None
-            self.router = LatticeRouter(self.orchestrator, internal_rag=None, default_route_method=self.route_method)
+            self.router = LatticeRouter(
+                self.orchestrator,
+                internal_rag=None,
+                default_route_method=self.route_method,
+                use_reranker=getattr(self, "use_reranker", False),
+                reranker_model=getattr(self, "reranker_model", None),
+            )
             self._update_prompt()
             if verbose:
                 console.print(f"[bold green][✓] Switched to {self._format_profile_name(self.active_profile)}[/bold green]\n")
@@ -1687,7 +1899,7 @@ class NSTLInteractiveShell(cmd.Cmd):
 
         available_llm = _get_available_llms()
         emb_choice = select_optimal_embedder(embedder or self.embedder_name or "auto")
-        llm_choice = llm or self.llm_name or (available_llm[0] if available_llm else "qwen2.5-coder-0.5b-instruct")
+        llm_choice = select_optimal_llm(llm or self.llm_name)
 
         if verbose:
             console.print(f"[bold cyan][*] Loading {self._format_profile_name(p)}...[/bold cyan]")
@@ -1707,7 +1919,13 @@ class NSTLInteractiveShell(cmd.Cmd):
                 console.print(f"[*] Indexing FAISS vector space for {len(self.orchestrator.cells):,} nodes...")
             self.rag = LocalRAG(trees_dir="trees", orchestrator=self.orchestrator)
             self.orchestrator.rag = self.rag
-            self.router = LatticeRouter(self.orchestrator, internal_rag=self.rag, default_route_method=self.route_method)
+            self.router = LatticeRouter(
+                self.orchestrator,
+                internal_rag=self.rag,
+                default_route_method=self.route_method,
+                use_reranker=getattr(self, "use_reranker", False),
+                reranker_model=getattr(self, "reranker_model", None),
+            )
 
             self.active_profile = p
             self._update_prompt()
@@ -1724,7 +1942,13 @@ class NSTLInteractiveShell(cmd.Cmd):
                 pass
             self.active_profile = "0"
             self.rag = None
-            self.router = LatticeRouter(self.orchestrator, internal_rag=None, default_route_method=self.route_method)
+            self.router = LatticeRouter(
+                self.orchestrator,
+                internal_rag=None,
+                default_route_method=self.route_method,
+                use_reranker=getattr(self, "use_reranker", False),
+                reranker_model=getattr(self, "reranker_model", None),
+            )
             self._update_prompt()
             return False
 
@@ -1753,9 +1977,10 @@ class NSTLInteractiveShell(cmd.Cmd):
         self._switch_profile(arg)
 
     def do_models(self, arg: str):
-        """List all available embedding models and LLMs found on disk."""
+        """List all available embedding models, LLMs, and rerankers found on disk."""
         available_emb = _get_available_embedders()
         available_llm = _get_available_llms()
+        available_rerankers = _get_available_rerankers()
 
         table = Table(title="📦 Available Neural Models in models/", box=box.ROUNDED, border_style="cyan")
         table.add_column("Category", style="bold yellow")
@@ -1778,17 +2003,58 @@ class NSTLInteractiveShell(cmd.Cmd):
         else:
             table.add_row("LLM (GGUF)", "[dim]None found in models/llms/[/dim]", "-")
 
+        if available_rerankers:
+            for m in available_rerankers:
+                is_active = (getattr(self, "use_reranker", False) and (m == getattr(self, "reranker_model", "") or not getattr(self, "reranker_model", "")))
+                status = "[bold green]ACTIVE[/bold green]" if is_active else "[dim]Available[/dim]"
+                table.add_row("Reranker Model", m, status)
+        else:
+            table.add_row("Reranker Model", "[dim]None found in models/rerankers/[/dim]", "-")
+
         console.print(table)
-        console.print("[dim]Use `set embedder <name>` or `set llm <name>` to activate a specific model.[/dim]\n")
+        console.print("[dim]Use `set embedder <name>`, `set llm <name>`, or `/reranker [on|off|<name>]` to configure models.[/dim]\n")
+
+    def do_reranker(self, arg: str):
+        """Toggle or configure the neural reranker. Usage: /reranker [on|off|<model_name>]"""
+        arg = arg.strip().lstrip("/")
+        if arg.lower().startswith("reranker"):
+            arg = arg[8:].strip()
+        if not arg or arg.lower() in ("toggle", "t"):
+            self.use_reranker = not getattr(self, "use_reranker", False)
+        elif arg.lower() in ("on", "1", "true", "enable", "enabled"):
+            self.use_reranker = True
+        elif arg.lower() in ("off", "0", "false", "disable", "disabled"):
+            self.use_reranker = False
+        else:
+            self.reranker_model = arg
+            settings.reranker_model = arg
+            os.environ["NSTL_RERANKER_MODEL"] = str(arg)
+            self.use_reranker = True
+            console.print(f"[bold cyan][*] Reranker model set to '{arg}'.[/bold cyan]")
+
+        settings.use_reranker = self.use_reranker
+        os.environ["NSTL_USE_RERANKER"] = "1" if self.use_reranker else "0"
+        if getattr(self, "router", None) is not None:
+            self.router.use_reranker = self.use_reranker
+            if self.reranker_model:
+                self.router.reranker_model = self.reranker_model
+            if self.use_reranker and getattr(self.router, "reranker", None) is None:
+                try:
+                    self.router.reranker = LocalReranker(model_name_or_path=self.reranker_model)
+                except Exception as _e:
+                    console.print(f"[bold red][!] Could not load reranker model: {_e}[/bold red]")
+
+        status_str = f"[bold green]ENABLED ({self.reranker_model or 'jina-reranker-v3.5'})[/bold green]" if self.use_reranker else "[yellow]DISABLED[/yellow]"
+        console.print(f"\n[*] Neural Reranker: {status_str}\n")
 
     def do_set(self, arg: str):
-        """Configure models or hardware device. Usage: set <embedder|llm|device|macros|debug|timeout> <value>"""
+        """Configure models or hardware device. Usage: set <embedder|llm|device|reranker|reranker_model|macros|debug|timeout> <value>"""
         arg = arg.strip().lstrip("/")
         if arg.lower().startswith("set"):
             arg = arg[3:].strip()
         parts = arg.split(maxsplit=1)
         if len(parts) < 2:
-            console.print("[yellow]Usage: set <embedder|llm|device|macros|debug|timeout> <value>[/yellow]")
+            console.print("[yellow]Usage: set <embedder|llm|device|reranker|reranker_model|macros|debug|timeout> <value>[/yellow]")
             return
         key, val = parts[0].lower(), parts[1].strip()
 
@@ -1802,6 +2068,31 @@ class NSTLInteractiveShell(cmd.Cmd):
             console.print(f"[green][*] LLM set to '{val}'.[/green]")
             if self.active_profile in ("C", "D", "E"):
                 self._switch_profile(self.active_profile, llm=val)
+        elif key in ("reranker", "neural_reranker"):
+            enabled = val.lower() in ("1", "true", "on", "yes", "enable", "enabled")
+            settings.use_reranker = enabled
+            self.use_reranker = enabled
+            os.environ["NSTL_USE_RERANKER"] = "1" if enabled else "0"
+            if getattr(self, "router", None) is not None:
+                self.router.use_reranker = enabled
+                if enabled and getattr(self.router, "reranker", None) is None:
+                    try:
+                        self.router.reranker = LocalReranker(model_name_or_path=self.reranker_model)
+                    except Exception as _e:
+                        console.print(f"[bold red][!] Failed to load reranker: {_e}[/bold red]")
+            console.print(f"[green][*] Neural reranker set to {'ON' if enabled else 'OFF'}.[/green]")
+        elif key in ("reranker_model", "reranker-model"):
+            self.reranker_model = val
+            settings.reranker_model = val
+            os.environ["NSTL_RERANKER_MODEL"] = str(val)
+            if getattr(self, "router", None) is not None:
+                self.router.reranker_model = val
+                if getattr(self, "use_reranker", False):
+                    try:
+                        self.router.reranker = LocalReranker(model_name_or_path=val)
+                    except Exception as _e:
+                        console.print(f"[bold red][!] Failed to switch reranker model: {_e}[/bold red]")
+            console.print(f"[green][*] Reranker model set to '{val}'.[/green]")
         elif key == "device":
             self.device = val
             console.print(f"[green][*] Compute device set to '{val}'.[/green]")
@@ -1830,7 +2121,7 @@ class NSTLInteractiveShell(cmd.Cmd):
             settings.dev_mode = enabled
             console.print(f"[green][*] Dev mode set to {'ON' if enabled else 'OFF'}.[/green]")
         else:
-            console.print(f"[bold red][!] Unknown parameter '{key}'. Supported: embedder, llm, device, macros, dev, debug, timeout.[/bold red]")
+            console.print(f"[bold red][!] Unknown parameter '{key}'. Supported: embedder, llm, device, reranker, reranker_model, macros, dev, debug, timeout.[/bold red]")
 
     def do_dev(self, arg: str):
         """Toggle or set Dev Mode. Usage: /dev [on|off]"""
@@ -2115,6 +2406,9 @@ class NSTLInteractiveShell(cmd.Cmd):
             elif cmd_name in ("dev", "dev_mode", "devmode"):
                 self.do_dev(cmd_arg)
                 return
+            elif cmd_name in ("reranker", "rerank"):
+                self.do_reranker(cmd_arg)
+                return
             elif cmd_name in ("review", "rev"):
                 self.do_review(cmd_arg)
                 return
@@ -2134,6 +2428,17 @@ class NSTLInteractiveShell(cmd.Cmd):
                     prompt = (prompt[:pos] + prompt[pos + len(flag):]).strip()
                     query_method = m
                     break
+
+        if "--reranker" in prompt:
+            prompt = prompt.replace("--reranker", "").strip()
+            self.use_reranker = True
+            if self.router:
+                self.router.use_reranker = True
+        elif "--no-reranker" in prompt:
+            prompt = prompt.replace("--no-reranker", "").strip()
+            self.use_reranker = False
+            if self.router:
+                self.router.use_reranker = False
 
         query_no_lint = self.no_lint
         if "--no-lint" in prompt:
@@ -2186,7 +2491,7 @@ class NSTLInteractiveShell(cmd.Cmd):
                 t0_trans = time.perf_counter()
                 trans_system = get_translator_prompt(self.orchestrator)
                 effective_prompt = mm.generate_text(prompt, max_tokens=128, system_prompt=trans_system)
-                effective_prompt = effective_prompt.strip().strip('`').strip()
+                effective_prompt = ensure_comprehensive_prompt(prompt, effective_prompt)
                 t_trans = (time.perf_counter() - t0_trans) * 1000.0
                 console.print(f"[bold magenta][Translator Pass ({t_trans:.1f}ms)][/bold magenta] [italic]{effective_prompt}[/italic]")
         elif prof == "S":
@@ -2194,7 +2499,7 @@ class NSTLInteractiveShell(cmd.Cmd):
             if mm.profile and mm.has_semantic_compiler():
                 t0_trans = time.perf_counter()
                 intent_data = mm.compile_semantic_intent(prompt)
-                effective_prompt = intent_data.get("effective_prompt") or prompt
+                effective_prompt = ensure_comprehensive_prompt(prompt, intent_data.get("effective_prompt"))
                 t_trans = (time.perf_counter() - t0_trans) * 1000.0
                 task_str = intent_data.get("task", "generic")
                 tgt_col = intent_data.get("target_column", "")
@@ -2205,7 +2510,29 @@ class NSTLInteractiveShell(cmd.Cmd):
 
         # Step 2: Routing via LatticeRouter
         t_route_start = time.perf_counter()
-        cells = self.router.plan_path(effective_prompt, return_tuple=False, route_method=query_method)
+        plan_ctx = ExecutionContext(prompt=effective_prompt)
+        if intent_data and isinstance(intent_data, dict):
+            tgt = intent_data.get("target_column") or intent_data.get("target_col")
+            if tgt:
+                plan_ctx.target_col = str(tgt).strip()
+            if intent_data.get("columns") and isinstance(intent_data["columns"], list):
+                plan_ctx.columns = [str(c).strip() for c in intent_data["columns"]]
+            if intent_data.get("hyperparameters") and isinstance(intent_data["hyperparameters"], dict):
+                plan_ctx.hyperparameters = dict(intent_data["hyperparameters"])
+            if intent_data.get("slots") and isinstance(intent_data["slots"], dict):
+                plan_ctx.llm_slots = dict(intent_data["slots"])
+            if intent_data.get("parameters") and isinstance(intent_data["parameters"], dict):
+                for p_key, p_val in intent_data["parameters"].items():
+                    if p_key:
+                        plan_ctx.parameters.setdefault(str(p_key), p_val)
+            if intent_data.get("by_column"):
+                plan_ctx.parameters["by_column"] = str(intent_data["by_column"]).strip()
+            if intent_data.get("source_files"):
+                plan_ctx.parameters["source_uris"] = list(intent_data["source_files"])
+            if intent_data.get("dest_files"):
+                plan_ctx.parameters["dest_uris"] = list(intent_data["dest_files"])
+
+        cells = self.router.plan_path(effective_prompt, return_tuple=False, route_method=query_method, ctx=plan_ctx)
         route_dt = (time.perf_counter() - t_route_start) * 1000.0
 
         if not cells:
@@ -2393,7 +2720,9 @@ def cmd_shell(args):
         macros=getattr(args, "macros", None),
         topology=getattr(args, "topology", None),
         dev=getattr(args, "dev", None),
-        timeout=getattr(args, "timeout", DEFAULT_SANDBOX_TIMEOUT)
+        timeout=getattr(args, "timeout", DEFAULT_SANDBOX_TIMEOUT),
+        reranker=getattr(args, "reranker", None),
+        reranker_model=getattr(args, "reranker_model", None),
     )
     shell.cmdloop()
 
@@ -2426,7 +2755,9 @@ def cmd_run(args):
         macros=getattr(args, "macros", None),
         topology=getattr(args, "topology", None),
         dev=getattr(args, "dev", None),
-        timeout=getattr(args, "timeout", DEFAULT_SANDBOX_TIMEOUT)
+        timeout=getattr(args, "timeout", DEFAULT_SANDBOX_TIMEOUT),
+        reranker=getattr(args, "reranker", None),
+        reranker_model=getattr(args, "reranker_model", None),
     )
     shell.default(f"{prompt} --debug" if debug_mode else prompt)
 
@@ -2536,6 +2867,20 @@ def cmd_benchmark(args):
         except Exception:
             pass
         os.environ["NSTL_TOPOLOGY_MODE"] = str(args.topology).lower()
+    if getattr(args, "reranker", None) is not None:
+        try:
+            from config import settings
+            settings.use_reranker = bool(args.reranker)
+        except Exception:
+            pass
+        os.environ["NSTL_USE_RERANKER"] = "1" if args.reranker else "0"
+    if getattr(args, "reranker_model", None):
+        try:
+            from config import settings
+            settings.reranker_model = str(args.reranker_model)
+        except Exception:
+            pass
+        os.environ["NSTL_RERANKER_MODEL"] = str(args.reranker_model)
     db_path = getattr(args, "db", "trees/lattice.db")
     ensure_lattice_compiled(trees_dir="trees", db_path=db_path)
     bench_type = getattr(args, "type", "matrix")
@@ -2633,6 +2978,9 @@ def build_parser() -> argparse.ArgumentParser:
     p_bench.add_argument("--methods", nargs="*", default=["M0", "M1", "M2", "M3", "M6", "M7", "M8", "M9"], help="Route methods to evaluate")
     p_bench.add_argument("--macros", dest="macros", action="store_true", default=None, help="Enable macro-goal routing")
     p_bench.add_argument("--no-macros", dest="macros", action="store_false", help="Disable macro-goal routing")
+    p_bench.add_argument("--reranker", dest="reranker", action="store_true", default=None, help="Enable neural reranker for Layer 1 RAG routing")
+    p_bench.add_argument("--no-reranker", dest="reranker", action="store_false", help="Disable neural reranker for Layer 1 RAG routing")
+    p_bench.add_argument("--reranker-model", type=str, default=None, help="Neural reranker model name (e.g. jina-reranker-v3.5)")
     p_bench.add_argument("--dev", action="store_true", default=False, help="Enable Dev Mode")
     p_bench.add_argument("--topology", choices=["frontier", "linear"], default=None, help="Topological planning approach")
     p_bench.set_defaults(func=cmd_benchmark)
@@ -2640,7 +2988,7 @@ def build_parser() -> argparse.ArgumentParser:
     p_precompute = subparsers.add_parser("precompute-rag", help="Precompute FAISS dense embeddings into .rag_cache/")
     p_precompute.add_argument("--db", type=str, default="trees/lattice.db", help="Path to SQLite database")
     p_precompute.add_argument("--trees-dir", type=str, default="trees", help="Directory for domain tree JSON files")
-    p_precompute.add_argument("--embedder", type=str, default="", help="Embedding model name")
+    p_precompute.add_argument("--embedder", type=str, default="jina-embeddings-v5-text-nano", help="Embedding model name")
     p_precompute.set_defaults(func=cmd_precompute_rag)
 
     p_run = subparsers.add_parser("run", help="Synthesize code for a natural language prompt directly from CLI")
@@ -2651,8 +2999,11 @@ def build_parser() -> argparse.ArgumentParser:
     p_run.add_argument("--route-method", "-m", type=str, default=None, choices=["M0", "M1", "M2", "M3", "M4", "M5", "M6", "M7", "M8", "M9"], help="Routing method algorithm")
     p_run.add_argument("--dev", action="store_true", default=False, help="Enable Dev Mode")
     p_run.add_argument("--no-lint", action="store_true", help="Skip static pre-flight linter")
-    p_run.add_argument("--embedder", type=str, default="", help="Embedding model name")
-    p_run.add_argument("--llm", type=str, default="", help="LLM model name")
+    p_run.add_argument("--embedder", type=str, default="jina-embeddings-v5-text-nano", help="Embedding model name")
+    p_run.add_argument("--llm", type=str, default="qwen2.5-coder-0.5b-instruct", help="LLM model name")
+    p_run.add_argument("--reranker", dest="reranker", action="store_true", default=None, help="Enable neural reranker for Layer 1 RAG routing")
+    p_run.add_argument("--no-reranker", dest="reranker", action="store_false", help="Disable neural reranker for Layer 1 RAG routing")
+    p_run.add_argument("--reranker-model", type=str, default=None, help="Neural reranker model name (e.g. jina-reranker-v3.5)")
     p_run.add_argument("--device", type=str, default="auto", choices=["auto", "cpu", "cuda"], help="Compute device")
     p_run.add_argument("--no-exec", action="store_true", help="Skip GEVR sandbox execution")
     p_run.add_argument("--timeout", type=float, default=DEFAULT_SANDBOX_TIMEOUT, help="Sandbox execution timeout in seconds")
@@ -2667,8 +3018,11 @@ def build_parser() -> argparse.ArgumentParser:
     p_shell.add_argument("--route-method", "-m", type=str, default=None, choices=["M0", "M1", "M2", "M3", "M4", "M5", "M6", "M7", "M8", "M9"], help="Initial routing method")
     p_shell.add_argument("--dev", action="store_true", default=False, help="Launch studio with Dev Mode enabled")
     p_shell.add_argument("--no-lint", action="store_true", help="Skip static pre-flight linter")
-    p_shell.add_argument("--embedder", type=str, default="", help="Embedding model name")
-    p_shell.add_argument("--llm", type=str, default="", help="LLM model name")
+    p_shell.add_argument("--embedder", type=str, default="jina-embeddings-v5-text-nano", help="Embedding model name")
+    p_shell.add_argument("--llm", type=str, default="qwen2.5-coder-0.5b-instruct", help="LLM model name")
+    p_shell.add_argument("--reranker", dest="reranker", action="store_true", default=None, help="Enable neural reranker for Layer 1 RAG routing")
+    p_shell.add_argument("--no-reranker", dest="reranker", action="store_false", help="Disable neural reranker for Layer 1 RAG routing")
+    p_shell.add_argument("--reranker-model", type=str, default=None, help="Neural reranker model name (e.g. jina-reranker-v3.5)")
     p_shell.add_argument("--device", type=str, default="auto", choices=["auto", "cpu", "cuda"], help="Compute device")
     p_shell.add_argument("--debug", "-d", action="store_true", help="Launch studio with debug mode enabled")
     p_shell.add_argument("--no-exec", action="store_true", help="Skip GEVR sandbox execution")
@@ -2720,7 +3074,9 @@ def main():
             macros=None,
             topology=None,
             dev=None,
-            timeout=DEFAULT_SANDBOX_TIMEOUT
+            timeout=DEFAULT_SANDBOX_TIMEOUT,
+            reranker=None,
+            reranker_model=None
         ))
 
 

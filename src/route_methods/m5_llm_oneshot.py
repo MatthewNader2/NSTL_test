@@ -30,8 +30,12 @@ class M5LLMOneShotRouteMethod(RouteMethod):
              start_sig=None, goal_sig=None, max_transforms=6, **kwargs):
         orch = orchestrator or self.orchestrator
         if not tunnel: return []
-        if len(tunnel) == 1: return [tunnel[0]]
-        candidates = [c for c in tunnel if getattr(c, "node_type", "") != "constant"] or [tunnel[0]]
+        candidates = [
+            c for c in tunnel
+            if getattr(c, "node_type", "") not in ("constant", "macro")
+            and not c.cell_id.startswith("MACRO_")
+            and not (getattr(c, "is_combinator", False) or getattr(c, "node_role", "") == "combinator" or getattr(c, "role", "") == "combinator" or getattr(c, "node_type", "") == "combinator")
+        ] or [tunnel[0]]
         cand_map = {c.cell_id.lower(): c for c in candidates}
         mm = ModelManager.get_instance()
         has_llm = mm.profile is not None and getattr(mm.profile, "llm", None) is not None
@@ -78,11 +82,30 @@ class M5LLMOneShotRouteMethod(RouteMethod):
         chain = [proposed[0]]
         for nxt in proposed[1:]:
             curr = chain[-1]
-            if self.step_unifies(curr, nxt): chain.append(nxt)
+            if self.step_unifies(curr, nxt, prev_path=chain) or self.step_unifies_dag(nxt, chain, ctx=ctx):
+                chain.append(nxt)
             else:
-                bridge = self.find_bridge(curr, nxt, candidates, orch)
-                if bridge: chain.extend([bridge, nxt])
-                else: return M1ClauseAnchorRouteMethod(orchestrator=orch).plan(
-                    prompt, tunnel, relevance_map, orchestrator=orch, ctx=ctx,
-                    start_sig=start_sig, goal_sig=goal_sig, max_transforms=max_transforms)
-        return chain[:min(16, max(max_transforms + 2, 4))]
+                bridge = self.find_bridge(curr, nxt, candidates, orch, prev_path=chain)
+                if bridge:
+                    chain.extend([bridge, nxt])
+                else:
+                    connected = False
+                    for anc in reversed(chain[:-1]):
+                        if self.step_unifies(anc, nxt, prev_path=chain) or self.step_unifies_dag(nxt, chain, ctx=ctx):
+                            chain.append(nxt)
+                            connected = True
+                            break
+                        anc_brg = self.find_bridge(anc, nxt, candidates, orch, prev_path=chain)
+                        if anc_brg:
+                            chain.extend([anc_brg, nxt])
+                            connected = True
+                            break
+                    if not connected:
+                        return M1ClauseAnchorRouteMethod(orchestrator=orch).plan(
+                            prompt, tunnel, relevance_map, orchestrator=orch, ctx=ctx,
+                            start_sig=start_sig, goal_sig=goal_sig, max_transforms=max_transforms
+                        )
+        clauses = self.segment_prompt_clauses(prompt)
+        max_allowed = max(32, len(clauses) * 4 + 4, max_transforms + 8)
+        return chain[:max_allowed]
+
