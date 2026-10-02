@@ -299,6 +299,8 @@ class RouteMethod(ABC):
                 continue
             if getattr(cand, "is_combinator", False) or getattr(cand, "node_role", "") == "combinator" or getattr(cand, "role", "") == "combinator" or getattr(cand, "node_type", "") == "combinator":
                 continue
+            if getattr(cand, "stage", None) == 3 or str(getattr(cand, "node_role", "") or "").lower() in ("sink", "terminal"):
+                continue
             can_src_to_cand = self.step_unifies(src_cell, cand, prev_path=current_scope) or self.step_unifies_dag(cand, current_scope)
             can_cand_to_dst = self.step_unifies(cand, dst_cell, prev_path=current_scope + [cand]) or self.step_unifies_dag(dst_cell, current_scope + [cand])
             if can_src_to_cand and can_cand_to_dst:

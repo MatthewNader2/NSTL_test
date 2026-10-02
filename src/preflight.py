@@ -28,11 +28,11 @@ from dataclasses import dataclass, field
 try:
     from .lattice import UNRESOLVED_PORT, TypeRegistry
     from .tokenizer import CellTokenizer
-    from .unification import ExecutionContext
+    from .unification import ExecutionContext, unify, _shape_compatible, _is_sink_cell
 except (ImportError, ValueError):
     from lattice import UNRESOLVED_PORT, TypeRegistry
     from tokenizer import CellTokenizer
-    from unification import ExecutionContext
+    from unification import ExecutionContext, unify, _shape_compatible, _is_sink_cell
 
 
 class _DynamicDataBearingRoles(frozenset):
@@ -382,6 +382,77 @@ class PreflightLinter:
                         f"Cell '{cell.cell_id}' port '{p_name}' has data-bearing role '{p_role}' "
                         f"but received bare None or unresolved value."
                     )
+
+        # -----------------------------------------------------------------
+        # Check 2b: Cross-Port Static Type and Carrier Compatibility
+        # -----------------------------------------------------------------
+        var_signatures: Dict[str, Any] = {}
+        var_producers: Dict[str, Tuple[Any, str]] = {}
+
+        for cell, bindings in pipeline_bindings:
+            if not isinstance(bindings, dict):
+                continue
+
+            for p_name, in_port_sig in getattr(cell, "inputs", {}).items():
+                bound_val = bindings.get(p_name)
+                if bound_val is None or _is_unbound(bound_val) or bound_val is UNRESOLVED_PORT:
+                    continue
+
+                if isinstance(bound_val, str) and bound_val in var_signatures:
+                    prod_sig = var_signatures[bound_val]
+                    prod_cell, prod_port = var_producers[bound_val]
+
+                    # 1. Structural Carrier & Shape Compatibility
+                    if not _shape_compatible(prod_sig, in_port_sig):
+                        violations.append(
+                            f"Cell '{cell.cell_id}' port '{p_name}' has carrier/shape mismatch with "
+                            f"bound variable '{bound_val}' (produced by '{prod_cell.cell_id}' port '{prod_port}')."
+                        )
+                        continue
+
+                    # 2. Algebraic Type Unification
+                    p_term = getattr(prod_sig, "signature", prod_sig)
+                    c_term = getattr(in_port_sig, "signature", in_port_sig)
+                    sub = unify(p_term, c_term)
+                    if sub is None:
+                        prod_t = getattr(p_term, "type_name", str(p_term))
+                        cons_t = getattr(c_term, "type_name", str(c_term))
+                        violations.append(
+                            f"Cell '{cell.cell_id}' port '{p_name}' (expected type '{cons_t}') failed "
+                            f"type unification with bound variable '{bound_val}' (producer type '{prod_t}' from '{prod_cell.cell_id}')."
+                        )
+                elif isinstance(bound_val, str) and bound_val.startswith("var_") and bound_val not in var_signatures:
+                    violations.append(
+                        f"Cell '{cell.cell_id}' port '{p_name}' references undefined pipeline variable '{bound_val}' "
+                        f"with no producing cell in DAG history."
+                    )
+
+            if _is_sink_cell(cell):
+                continue
+
+            # Register cell outputs for subsequent consumers
+            prim_out = getattr(cell, "primary_output", None)
+            if prim_out is not None:
+                p_name = getattr(prim_out, "name", None)
+                if p_name and p_name in bindings:
+                    v = bindings[p_name]
+                    if isinstance(v, str) and v.isidentifier():
+                        var_signatures[v] = prim_out
+                        var_producers[v] = (cell, p_name)
+
+            for out_name, out_sig in getattr(cell, "outputs", {}).items():
+                if out_name in bindings:
+                    v = bindings[out_name]
+                    if isinstance(v, str) and v.isidentifier():
+                        var_signatures[v] = out_sig
+                        var_producers[v] = (cell, out_name)
+
+            out_var = bindings.get("output_var")
+            if isinstance(out_var, str) and out_var.isidentifier() and out_var not in var_signatures:
+                first_sig = prim_out or (next(iter(cell.outputs.values())) if getattr(cell, "outputs", None) else None)
+                if first_sig is not None:
+                    var_signatures[out_var] = first_sig
+                    var_producers[out_var] = (cell, "output_var")
 
         # -----------------------------------------------------------------
         # Check 3: Structural Estimator Fit/Predict Contract

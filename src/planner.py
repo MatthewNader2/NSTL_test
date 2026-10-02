@@ -3641,6 +3641,8 @@ class LatticePlanner:
             candidates_for_next: List[Tuple[List[Cell], Substitution, float, int, int]] = []
 
             for prev_path, prev_sigma, prev_score, prev_weak, prev_unbind in current_beam:
+                if time.perf_counter() > self._plan_deadline:
+                    break
                 prev_cell = prev_path[-1]
 
                 if _is_terminal_sink_cell(prev_cell):
@@ -3656,6 +3658,8 @@ class LatticePlanner:
                         seen_ids.add(ctor.cell_id.lower())
 
                 for cand in successor_cells:
+                    if time.perf_counter() > self._plan_deadline:
+                        break
                     if cand.cell_id.lower() in prev_path_ids:
                         continue
 
@@ -4057,6 +4061,8 @@ class LatticePlanner:
             candidates_for_next: List[Tuple[List[Cell], Substitution, float, int, int]] = []
 
             for prev_path, prev_sigma, prev_score, prev_weak, prev_unbind in current_beam:
+                if time.perf_counter() > self._plan_deadline:
+                    break
                 prev_cell = prev_path[-1]
 
                 # Terminal check (D5): stage 3 sinks conclude the path.
@@ -4096,6 +4102,8 @@ class LatticePlanner:
                             seen_succ_ids.add(entry_low)
 
                 for cand in successor_candidates:
+                    if time.perf_counter() > self._plan_deadline:
+                        break
                     cand_stage = getattr(cand, "stage", None)
                     is_ingress = (_is_ingress_stage(cand) and cand not in zero_ary_ctors)
 
@@ -4207,7 +4215,53 @@ class LatticePlanner:
             if len(all_valid_paths) > _hi:
                 all_valid_paths = [it for it, _ in rank_items(all_valid_paths, True)][:_lo]
 
-        if not all_valid_paths:
+        if not all_valid_paths and current_beam:
+            # Greedy completion: if the beam timed out without reaching a valid terminal,
+            # take the highest scoring prefix in current_beam and greedily extend it across
+            # any remaining uncovered prompt clauses.
+            best_tuple = max(current_beam, key=lambda it: it[2])
+            best_path, best_sigma, best_score, best_weak, best_unbind = best_tuple
+            covered_clauses = set().union(*(cell_covered.get(c.cell_id, set()) for c in best_path))
+            uncovered = [cl_i for cl_i in range(num_clauses) if cl_i not in covered_clauses]
+
+            if uncovered:
+                for cl_i in uncovered:
+                    clause_cands = [
+                        c for c in candidates
+                        if cl_i in cell_covered.get(c.cell_id, set())
+                        and c.cell_id.lower() not in {x.cell_id.lower() for x in best_path}
+                    ]
+                    clause_cands.sort(key=lambda c: log_probs.get(c.cell_id, -10.0), reverse=True)
+                    for cand in clause_cands:
+                        v_res = _verify_frontier_step(best_path, cand, best_sigma)
+                        if v_res is not None:
+                            new_sigma, bound_parents, is_join = v_res
+                            cand_sc = log_probs.get(cand.cell_id, -10.0)
+                            best_path = best_path + [cand]
+                            best_sigma = new_sigma
+                            best_score += cand_sc
+                            break
+
+            # If not yet a valid terminal, greedily reach an endable / terminal node
+            if is_valid_terminal is not None and not is_valid_terminal(best_path):
+                term_cands = [
+                    c for c in candidates
+                    if (_is_egress_stage(c) or getattr(c, "endable", False) or getattr(c, "is_endable", False))
+                    and c.cell_id.lower() not in {x.cell_id.lower() for x in best_path}
+                ]
+                term_cands.sort(key=lambda c: log_probs.get(c.cell_id, -10.0), reverse=True)
+                for cand in term_cands:
+                    v_res = _verify_frontier_step(best_path, cand, best_sigma)
+                    if v_res is not None:
+                        new_sigma, bound_parents, is_join = v_res
+                        cand_sc = log_probs.get(cand.cell_id, -10.0)
+                        best_path = best_path + [cand]
+                        best_sigma = new_sigma
+                        best_score += cand_sc
+                        break
+
+            all_valid_paths.append((best_path, best_sigma, best_score, best_weak, best_unbind))
+        elif not all_valid_paths:
             all_valid_paths = list(current_beam)
         return all_valid_paths
 

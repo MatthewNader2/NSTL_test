@@ -217,6 +217,14 @@ def _shape_compatible(p_out: Any, p_in: Any) -> bool:
     return True
 
 
+def _is_sink_cell(cell: Any) -> bool:
+    """Returns True if cell represents a terminal sink morphism with no outgoing dataflow."""
+    if cell is None:
+        return False
+    role = str(getattr(cell, "node_role", "") or "").lower()
+    return role in ("sink", "terminal")
+
+
 class _DynamicTopTypeSet(frozenset):
     """Dynamic top type set backed by TypeRegistry declarations."""
     def __contains__(self, item):
@@ -1034,9 +1042,13 @@ class ExecutionContext:
                 return True
         return False
 
-    def __init__(self, prompt: str = "", scope: Optional[Dict[str, Any]] = None):
+    def __init__(self, prompt: str = "", scope: Optional[Dict[str, Any]] = None, initial_scope: Optional[Set[str]] = None):
         self._prompt = prompt or ""
         self.scope: Dict[str, Any] = dict(scope or {})
+        if initial_scope is not None:
+            self.initial_scope: Set[str] = set(initial_scope)
+        else:
+            self.initial_scope: Set[str] = set(scope.keys()) if (scope and isinstance(scope, dict)) else set()
         self.variables: Dict[str, Tuple[PortSignature, str]] = {}
         self.var_counter: int = 0
         self.var_sources: Dict[str, Any] = {}
@@ -1171,7 +1183,7 @@ class ExecutionContext:
                 self.declare_variable(k, v, k)
 
     def clone(self) -> "ExecutionContext":
-        new_ctx = ExecutionContext(prompt=self._prompt, scope=self.scope)
+        new_ctx = ExecutionContext(prompt=self._prompt, scope=self.scope, initial_scope=self.initial_scope)
         new_ctx.variables = dict(self.variables)
         new_ctx.var_sources = dict(self.var_sources)
         new_ctx.var_origins = {k: set(v) for k, v in self.var_origins.items()}
@@ -3142,6 +3154,17 @@ class UnificationGate:
         # the planner) — used solely for member-state affinity when projecting
         # heterogeneous products. Zero domain vocabulary.
         prompt_text = getattr(ctx, "prompt", "") or ""
+        if prompt_text and cells:
+            try:
+                from .route_methods.base import RouteMethodBase
+                RouteMethodBase.tag_cells_with_clause_indices(cells, prompt_text)
+            except Exception:
+                try:
+                    from route_methods.base import RouteMethodBase
+                    RouteMethodBase.tag_cells_with_clause_indices(cells, prompt_text)
+                except Exception:
+                    pass
+
         clause_token_sets: List[Set[str]] = []
         if prompt_text:
             for cl in CellTokenizer.split_prompt_clauses(prompt_text):
@@ -3332,7 +3355,8 @@ class UnificationGate:
             # When idx > 0, verify that cell's inputs are satisfiable from the full
             # DAG ancestor frontier (available_cells = cells[:idx]).
             if idx > 0 and not is_zero_ary and not is_replica:
-                scope_res = unify_cell_with_scope(cell, available_cells=cells[:idx], sigma=accumulated_sigma, context=ctx)
+                valid_ancestors = [c for c in cells[:idx] if not _is_sink_cell(c)]
+                scope_res = unify_cell_with_scope(cell, available_cells=valid_ancestors, sigma=accumulated_sigma, context=ctx)
                 if scope_res is not None:
                     accumulated_sigma, dag_scope_bindings = scope_res
                     for p_name, (prod_cell, out_port_name) in dag_scope_bindings.items():
@@ -3354,6 +3378,8 @@ class UnificationGate:
                     transition_res = None
                     for k in range(idx - 1, -1, -1):
                         cand_producer = cells[k]
+                        if _is_sink_cell(cand_producer):
+                            continue
                         res = self.unify_transition(cand_producer, cell, accumulated_sigma, context=ctx)
                         if not res.is_bottom():
                             transition_res = res
@@ -3941,112 +3967,118 @@ class UnificationGate:
                 # Declare each individual output port in the execution context and bind in template
                 first_out_var = None
                 prim_out = cell.primary_output
-                prim_var = None
-                for idx_out, (out_name, out_sig) in enumerate(cell.outputs.items()):
-                    var_counter += 1
-                    ctx.var_counter = var_counter
-                    out_var = f"var_{var_counter}"
-                    if idx_out == 0:
-                        first_out_var = out_var
-                    cell_bindings[out_name] = out_var
-                    cell_port_vars[(cell.cell_id, out_name)] = out_var
-                    cell_port_vars[(id(cell), out_name)] = out_var
+                if _is_sink_cell(cell):
+                    producer_var = None
+                else:
+                    prim_var = None
+                    for idx_out, (out_name, out_sig) in enumerate(cell.outputs.items()):
+                        var_counter += 1
+                        ctx.var_counter = var_counter
+                        out_var = f"var_{var_counter}"
+                        if idx_out == 0:
+                            first_out_var = out_var
+                        cell_bindings[out_name] = out_var
+                        cell_port_vars[(cell.cell_id, out_name)] = out_var
+                        cell_port_vars[(id(cell), out_name)] = out_var
 
-                    concrete_out = substitute_generics(out_sig, accumulated_sigma)
-                    ctx.declare_variable(out_var, concrete_out, out_var, cell=cell)
-                    ctx.var_parents.setdefault(out_var, set())
-                    ctx.var_origins.setdefault(out_var, set())
-                    bound_in_vars = [v for v in cell_bindings.values() if isinstance(v, str) and v in ctx.variables]
-                    for in_v in bound_in_vars:
-                        ctx.var_parents[out_var].add(in_v)
-                        ctx.var_origins[out_var].update(ctx.var_origins.get(in_v, set()))
-                    if prim_out and out_name == prim_out.name:
-                        prim_var = out_var
+                        concrete_out = substitute_generics(out_sig, accumulated_sigma)
+                        ctx.declare_variable(out_var, concrete_out, out_var, cell=cell)
+                        ctx.var_parents.setdefault(out_var, set())
+                        ctx.var_origins.setdefault(out_var, set())
+                        bound_in_vars = [v for v in cell_bindings.values() if isinstance(v, str) and v in ctx.variables]
+                        for in_v in bound_in_vars:
+                            ctx.var_parents[out_var].add(in_v)
+                            ctx.var_origins[out_var].update(ctx.var_origins.get(in_v, set()))
+                        if prim_out and out_name == prim_out.name:
+                            prim_var = out_var
 
-                producer_var = prim_var if prim_var is not None else (first_out_var or current_out_var)
-                if "output_var" not in cell.outputs:
-                    cell_bindings["output_var"] = producer_var
-                cell_out_vars[cell.cell_id] = producer_var
-                cell_out_vars[id(cell)] = producer_var
-                cell_port_vars[(cell.cell_id, "output_var")] = producer_var
-                cell_port_vars[(id(cell), "output_var")] = producer_var
+                    producer_var = prim_var if prim_var is not None else (first_out_var or current_out_var)
+                    if "output_var" not in cell.outputs:
+                        cell_bindings["output_var"] = producer_var
+                    cell_out_vars[cell.cell_id] = producer_var
+                    cell_out_vars[id(cell)] = producer_var
+                    cell_port_vars[(cell.cell_id, "output_var")] = producer_var
+                    cell_port_vars[(id(cell), "output_var")] = producer_var
 
-                prim_sig_multi = getattr(prim_out, "signature", prim_out) if prim_out else None
-                out_t_multi = str(getattr(prim_sig_multi, "type_name", "") or "").lower()
-                out_abs_multi = str(getattr(prim_sig_multi, "abstract_type", "") or "").lower()
-                if registry.is_subtype(out_t_multi, "table") or registry.is_subtype(out_t_multi, "tensor") or out_abs_multi in ("table", "tensor", "collection") or getattr(ctx, "active_carrier_var", None) is None:
-                    ctx.active_carrier_var = producer_var
+                    prim_sig_multi = getattr(prim_out, "signature", prim_out) if prim_out else None
+                    out_t_multi = str(getattr(prim_sig_multi, "type_name", "") or "").lower()
+                    out_abs_multi = str(getattr(prim_sig_multi, "abstract_type", "") or "").lower()
+                    if registry.is_subtype(out_t_multi, "table") or registry.is_subtype(out_t_multi, "tensor") or out_abs_multi in ("table", "tensor", "collection") or getattr(ctx, "active_carrier_var", None) is None:
+                        ctx.active_carrier_var = producer_var
             elif len(cell.outputs) == 1:
                 # Single output cell
-                concrete_out = substitute_generics(cell.primary_output, accumulated_sigma)
-                # If the cell performs in-place mutation on a receiver, alias the output
-                # to the receiver: the receiver is the cell's declared receiver-role port,
-                # falling back to the primary input binding (declared-first, name-last).
-                if getattr(cell, "mutation_type", "pure") == "in_place":
-                    receiver_var = None
-                    receiver_port = next(
-                        (p for p in cell.inputs.values() if getattr(p, "port_role", None) == "receiver"),
-                        None,
-                    )
-                    if receiver_port is not None:
-                        receiver_var = cell_bindings.get(receiver_port.name)
-                    if receiver_var is None and cell.primary_input is not None:
-                        receiver_var = cell_bindings.get(cell.primary_input.name)
-                    if receiver_var is None:
-                        receiver_var = cell_bindings.get("data") or cell_bindings.get("self")
-                    if receiver_var and receiver_var in ctx.variables:
-                        current_out_var = receiver_var
-                        cell_bindings["output_var"] = current_out_var
+                if _is_sink_cell(cell):
+                    producer_var = None
+                else:
+                    concrete_out = substitute_generics(cell.primary_output, accumulated_sigma)
+                    # If the cell performs in-place mutation on a receiver, alias the output
+                    # to the receiver: the receiver is the cell's declared receiver-role port,
+                    # falling back to the primary input binding (declared-first, name-last).
+                    if getattr(cell, "mutation_type", "pure") == "in_place":
+                        receiver_var = None
+                        receiver_port = next(
+                            (p for p in cell.inputs.values() if getattr(p, "port_role", None) == "receiver"),
+                            None,
+                        )
+                        if receiver_port is not None:
+                            receiver_var = cell_bindings.get(receiver_port.name)
+                        if receiver_var is None and cell.primary_input is not None:
+                            receiver_var = cell_bindings.get(cell.primary_input.name)
+                        if receiver_var is None:
+                            receiver_var = cell_bindings.get("data") or cell_bindings.get("self")
+                        if receiver_var and receiver_var in ctx.variables:
+                            current_out_var = receiver_var
+                            cell_bindings["output_var"] = current_out_var
 
-                # Bind primary output port name if distinct from output_var
-                if cell.primary_output and cell.primary_output.name:
-                    cell_bindings[cell.primary_output.name] = current_out_var
-                    cell_port_vars[(cell.cell_id, cell.primary_output.name)] = current_out_var
-                    cell_port_vars[(id(cell), cell.primary_output.name)] = current_out_var
+                    # Bind primary output port name if distinct from output_var
+                    if cell.primary_output and cell.primary_output.name:
+                        cell_bindings[cell.primary_output.name] = current_out_var
+                        cell_port_vars[(cell.cell_id, cell.primary_output.name)] = current_out_var
+                        cell_port_vars[(id(cell), cell.primary_output.name)] = current_out_var
 
-                if current_out_var is not None:
-                    ctx.declare_variable(current_out_var, concrete_out, current_out_var, cell=cell)
-                    producer_var = current_out_var
-                    cell_out_vars[cell.cell_id] = current_out_var
-                    cell_out_vars[id(cell)] = current_out_var
-                    cell_port_vars[(cell.cell_id, "output_var")] = current_out_var
-                    cell_port_vars[(id(cell), "output_var")] = current_out_var
+                    if current_out_var is not None:
+                        ctx.declare_variable(current_out_var, concrete_out, current_out_var, cell=cell)
+                        producer_var = current_out_var
+                        cell_out_vars[cell.cell_id] = current_out_var
+                        cell_out_vars[id(cell)] = current_out_var
+                        cell_port_vars[(cell.cell_id, "output_var")] = current_out_var
+                        cell_port_vars[(id(cell), "output_var")] = current_out_var
 
-                    concrete_sig = getattr(concrete_out, "signature", concrete_out)
-                    out_t = str(getattr(concrete_sig, "type_name", "") or "").lower()
-                    out_abs = str(getattr(concrete_sig, "abstract_type", "") or "").lower()
-                    is_carrier = (
-                        registry.is_subtype(out_t, "table")
-                        or registry.is_subtype(out_t, "tensor")
-                        or out_abs in ("table", "tensor", "collection")
-                    )
-                    if is_carrier or getattr(ctx, "active_carrier_var", None) is None:
-                        ctx.active_carrier_var = current_out_var
+                        concrete_sig = getattr(concrete_out, "signature", concrete_out)
+                        out_t = str(getattr(concrete_sig, "type_name", "") or "").lower()
+                        out_abs = str(getattr(concrete_sig, "abstract_type", "") or "").lower()
+                        is_carrier = (
+                            registry.is_subtype(out_t, "table")
+                            or registry.is_subtype(out_t, "tensor")
+                            or out_abs in ("table", "tensor", "collection")
+                        )
+                        if is_carrier or getattr(ctx, "active_carrier_var", None) is None:
+                            ctx.active_carrier_var = current_out_var
 
-                    # Provenance and monoidal DAG branch tracking
-                    ctx.var_parents.setdefault(current_out_var, set())
-                    ctx.var_origins.setdefault(current_out_var, set())
-                    bound_in_vars = [v for v in cell_bindings.values() if isinstance(v, str) and v in ctx.variables]
-                    for in_v in bound_in_vars:
-                        ctx.var_parents[current_out_var].add(in_v)
-                        ctx.var_origins[current_out_var].update(ctx.var_origins.get(in_v, set()))
+                        # Provenance and monoidal DAG branch tracking
+                        ctx.var_parents.setdefault(current_out_var, set())
+                        ctx.var_origins.setdefault(current_out_var, set())
+                        bound_in_vars = [v for v in cell_bindings.values() if isinstance(v, str) and v in ctx.variables]
+                        for in_v in bound_in_vars:
+                            ctx.var_parents[current_out_var].add(in_v)
+                            ctx.var_origins[current_out_var].update(ctx.var_origins.get(in_v, set()))
 
-                    for p_k, p_val in cell_bindings.items():
-                        if p_k in ("column", "key", "columns") and p_val and p_val != UNRESOLVED_PORT:
-                            lit_clean = str(p_val).strip("'\"")
-                            if lit_clean:
-                                ctx.var_origins[current_out_var].add(lit_clean)
+                        for p_k, p_val in cell_bindings.items():
+                            if p_k in ("column", "key", "columns") and p_val and p_val != UNRESOLVED_PORT:
+                                lit_clean = str(p_val).strip("'\"")
+                                if lit_clean:
+                                    ctx.var_origins[current_out_var].add(lit_clean)
 
-                    c_lits = getattr(cell, "clause_literals", None)
-                    if c_lits:
-                        for cl_lit in c_lits:
-                            clean_lit = str(cl_lit).strip("'\"")
-                            if clean_lit:
-                                ctx.var_origins[current_out_var].add(clean_lit)
+                        c_lits = getattr(cell, "clause_literals", None)
+                        if c_lits:
+                            for cl_lit in c_lits:
+                                clean_lit = str(cl_lit).strip("'\"")
+                                if clean_lit:
+                                    ctx.var_origins[current_out_var].add(clean_lit)
 
-                    is_projection = any(k in ("column", "key", "columns") for k in cell.inputs.keys())
-                    if len(bound_in_vars) == 1 and not is_projection and getattr(cell, "stage", None) == 2:
-                        ctx.superseded_vars.add(bound_in_vars[0])
+                        is_projection = any(k in ("column", "key", "columns") for k in cell.inputs.keys())
+                        if len(bound_in_vars) == 1 and not is_projection and getattr(cell, "stage", None) == 2:
+                            ctx.superseded_vars.add(bound_in_vars[0])
             else:
                 # Void output cell (outputs: {}) - e.g. .show(), .save() returning None.
                 # Do not advance counter, do not declare phantom variables, and do not overwrite producer_var.
@@ -4651,22 +4683,52 @@ class UnificationGate:
         final_code = self._reconcile_imports(final_code)
         prior_vars: Set[str] = set()
         if ctx is not None:
-            if hasattr(ctx, "scope") and isinstance(ctx.scope, dict):
-                prior_vars.update(ctx.scope.keys())
-            if hasattr(ctx, "scope_variables") and isinstance(ctx.scope_variables, dict):
-                prior_vars.update(ctx.scope_variables.keys())
+            if hasattr(ctx, "initial_scope") and isinstance(ctx.initial_scope, set):
+                prior_vars.update(ctx.initial_scope)
+            else:
+                if hasattr(ctx, "scope") and isinstance(ctx.scope, dict):
+                    prior_vars.update(ctx.scope.keys())
+                if hasattr(ctx, "scope_variables") and isinstance(ctx.scope_variables, dict):
+                    prior_vars.update(ctx.scope_variables.keys())
+                if hasattr(ctx, "variables") and isinstance(ctx.variables, dict):
+                    prior_vars.update(ctx.variables.keys())
+
+            # Strictly exclude all pipeline-declared/produced variables from prior_vars
+            pipeline_vars: Set[str] = set()
+            for cell, bindings in pipeline_bindings:
+                if isinstance(bindings, dict):
+                    outputs = getattr(cell, "outputs", {})
+                    if isinstance(outputs, dict):
+                        for out_name in outputs.keys():
+                            if out_name in bindings and isinstance(bindings[out_name], str):
+                                pipeline_vars.add(bindings[out_name])
+                    if "output_var" in bindings and isinstance(bindings["output_var"], str):
+                        pipeline_vars.add(bindings["output_var"])
+                    prim_out = getattr(cell, "primary_output", None)
+                    if prim_out and getattr(prim_out, "name", None) in bindings:
+                        p_val = bindings[prim_out.name]
+                        if isinstance(p_val, str):
+                            pipeline_vars.add(p_val)
+                    for b_val in bindings.values():
+                        if isinstance(b_val, str) and (b_val.startswith("var_") or b_val.startswith("df_") or b_val.startswith("model_")):
+                            pipeline_vars.add(b_val)
+
             if hasattr(ctx, "variables") and isinstance(ctx.variables, dict):
-                produced_vars: Set[str] = set()
-                for cell, bindings in pipeline_bindings:
-                    if isinstance(bindings, dict):
-                        outputs = getattr(cell, "outputs", {})
-                        if isinstance(outputs, dict):
-                            for out_name in outputs.keys():
-                                if out_name in bindings and isinstance(bindings[out_name], str):
-                                    produced_vars.add(bindings[out_name])
                 for v_name in ctx.variables.keys():
-                    if v_name not in produced_vars:
-                        prior_vars.add(v_name)
+                    if isinstance(v_name, str) and (v_name.startswith("var_") or v_name in pipeline_vars):
+                        pipeline_vars.add(v_name)
+
+            if hasattr(ctx, "scope_variables") and isinstance(ctx.scope_variables, dict):
+                for v_name in ctx.scope_variables.keys():
+                    if isinstance(v_name, str) and (v_name.startswith("var_") or v_name in pipeline_vars):
+                        pipeline_vars.add(v_name)
+
+            if hasattr(ctx, "runtime_aliases") and isinstance(ctx.runtime_aliases, dict):
+                pipeline_vars.update(ctx.runtime_aliases.keys())
+                pipeline_vars.update(ctx.runtime_aliases.values())
+
+            prior_vars.difference_update(pipeline_vars)
+            prior_vars = {v for v in prior_vars if not (isinstance(v, str) and v.startswith("var_"))}
         self._verify_emitted_ast_liveness(final_code, initial_scope=prior_vars)
         self._refuse_non_callable_calls(final_code)
         return final_code
@@ -5886,6 +5948,8 @@ def unify_cell_with_scope(
 
         # 1. Available cells in DAG history
         for idx_c, earlier_cell in enumerate(reversed(available_cells)):
+            if _is_sink_cell(earlier_cell):
+                continue
             for out_name, out_sig in earlier_cell.outputs.items():
                 if not _shape_compatible(out_sig, p_sig):
                     continue
