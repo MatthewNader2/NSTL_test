@@ -612,6 +612,7 @@ class LatticeVocabulary:
         """Output states that terminal sinks declare, plus the registry's materialization states."""
         def build():
             out: Set[str] = {str(s).lower() for s in TypeRegistry.get_instance().get_materialization_states()}
+            out.update(TypeRegistry.get_instance().get_terminal_states())
             for c in self._terminal_cells():
                 for o in (getattr(c, "outputs", {}) or {}).values():
                     st = str(getattr(getattr(o, "signature", o), "state", "") or "").lower()
@@ -2526,6 +2527,12 @@ class LatticePlanner:
                     if any(vocab.is_materializable_carrier(o) for o in terminal.outputs.values()):
                         goal -= 1
             unrequested = sum(1 for c in path[1:] if _unrequested(c))
+            unrequested_transforms = sum(
+                1 for c in path[1:]
+                if _unrequested_narrow(c)
+                and getattr(c, "node_role", "") not in ("bridge", "source", "sink")
+                and getattr(c, "node_type", "") != "tunnel"
+            )
 
             weak_total = sum(1 for c in path if _is_wildcarrier(c)) + weak_edges
 
@@ -2780,6 +2787,7 @@ class LatticePlanner:
 
             defects = (
                 float(unbindable),
+                float(unrequested_transforms),
                 float(uncovered_clauses) if is_final else 0.0,
                 float(dead_ctors),
                 float(dead_outputs),
@@ -2968,10 +2976,21 @@ class LatticePlanner:
             if getattr(terminal, "stage", None) == vocab.terminal_stage and vocab.terminal_stage is not None:
                 return True
             t_role = str(getattr(terminal, "node_role", "") or "").lower()
+            pred_out_roles = set(registry.get_verification_semantics("prediction_output_roles")) | {"prediction_output"}
+            is_pred_terminal = any(
+                getattr(op, "port_role", "") in pred_out_roles
+                or getattr(op, "derived_role", "") in pred_out_roles
+                or str(getattr(op, "state", "")).lower() in vocab.terminal_states
+                for op in getattr(terminal, "outputs", {}).values()
+            )
             # A "transformer" is any non-terminal-stage cell that still has a downstream
-            # consumer in the lattice: it cannot end the pipeline before the last clause.
-            if _is_terminal_sink_cell(terminal) is False and _cells_connect_any(terminal):
+            # consumer in the lattice: it cannot end the pipeline before the last clause,
+            # unless its output satisfies an endable prediction/terminal typestate.
+            if _is_terminal_sink_cell(terminal) is False and _cells_connect_any(terminal) and not is_pred_terminal:
                 return False
+
+            if is_pred_terminal:
+                return True
 
             if target_sink and (getattr(terminal, "primary_output", None) or getattr(terminal, "outputs", None)):
                 return True
@@ -3036,6 +3055,8 @@ class LatticePlanner:
                 target_sink=target_sink,
                 is_valid_terminal=_is_valid_terminal,
                 unrequested_check=_unrequested_narrow,
+                num_clauses=num_clauses,
+                cell_covered=cell_covered,
             )
 
         # Filter and rank valid composition paths
@@ -3752,6 +3773,8 @@ class LatticePlanner:
         target_sink: Optional[str] = None,
         is_valid_terminal: Optional[Any] = None,
         unrequested_check: Optional[Any] = None,
+        num_clauses: int = 1,
+        cell_covered: Optional[Dict[str, Set[int]]] = None,
     ) -> List[Tuple[List[Cell], Substitution, float, int, int]]:
         """
         Monoidal Category Frontier DAG Planner (Default Approach).
@@ -3760,6 +3783,7 @@ class LatticePlanner:
         Fork-join / convergent morphisms (nabla) consuming >= 2 distinct ancestor carriers
         are naturally synthesized and rewarded with a multi-carrier join bonus.
         """
+        cell_covered = cell_covered or {}
         registry = TypeRegistry.get_instance()
         _cells_connect = self._cells_connect
         all_valid_paths: List[Tuple[List[Cell], Substitution, float, int, int]] = []
@@ -3980,6 +4004,12 @@ class LatticePlanner:
             # utilities the prompt DOES name, and typed transformations, are
             # unaffected.
             if unrequested_check is not None and unrequested_check(cand):
+                _cand_role = str(getattr(cand, "node_role", "") or "").lower()
+                _cand_type = str(getattr(cand, "node_type", "") or "").lower()
+                if _cand_role not in ("bridge", "source", "sink") and _cand_type != "tunnel":
+                    cov_set = cell_covered.get(cand.cell_id, set()) if cell_covered else set()
+                    if not cov_set:
+                        return None
                 _out_t = str(getattr(getattr(cand, "primary_output", None), "type_name", "") or "").lower()
                 if _out_t in _WILDCARD_CARRIERS or (len(_out_t) == 1 and _out_t.isalpha()):
                     return None

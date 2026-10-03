@@ -1384,7 +1384,8 @@
     "terminal_states": [
       "evaluated_metrics",
       "saved_model",
-      "serialized_pipeline"
+      "serialized_pipeline",
+      "predicted_values"
     ]
   },
   "cells": [

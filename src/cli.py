@@ -493,6 +493,12 @@ def cmd_compile(args):
                             "INSERT OR REPLACE INTO typestates (state_name, parent_state, carrier_type, properties, domain_name) VALUES (?, ?, ?, ?, ?)",
                             (s_name, s_parent, s_carrier, s_props, domain)
                         )
+                if isinstance(ts_data, dict) and "terminal_states" in ts_data:
+                    for t_s in ts_data["terminal_states"]:
+                        cur.execute(
+                            "INSERT OR REPLACE INTO structural_metadata (category, item, extra, domain_name) VALUES ('terminal_state', ?, '', ?)",
+                            (str(t_s).strip().lower(), domain)
+                        )
 
             aliases_dict = getattr(tree, "aliases", {}) or data.get("aliases", {})
             if isinstance(aliases_dict, dict):

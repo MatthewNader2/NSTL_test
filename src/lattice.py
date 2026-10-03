@@ -251,6 +251,7 @@ class TypeRegistry:
         self._function_words: Optional[FrozenSet[str]] = None
         self._egress_tokens: Set[str] = set()
         self._materialization_states: Set[str] = set()
+        self._terminal_states: Set[str] = set()
         self._role_carriers: Set[str] = set()
         self._polarity_hints: Dict[str, Set[str]] = {"ascending": set(), "descending": set()}
         self._artifact_readers: Dict[str, List[Tuple[str, str]]] = {}
@@ -691,6 +692,18 @@ class TypeRegistry:
 
     def get_materialization_states(self) -> FrozenSet[str]:
         return frozenset(self._materialization_states)
+
+    @_locked
+    def register_terminal_states(self, states: Any) -> None:
+        if not hasattr(self, "_terminal_states"):
+            self._terminal_states = set()
+        for st in states or ():
+            s = str(st).strip().lower()
+            if s:
+                self._terminal_states.add(s)
+
+    def get_terminal_states(self) -> FrozenSet[str]:
+        return frozenset(getattr(self, "_terminal_states", set()))
 
     @_locked
     def register_polarity_hints(self, direction: str, hints: Any) -> None:
@@ -2708,6 +2721,8 @@ class LatticeOrchestrator:
                 if "typestates" in data and data["typestates"]:
                     self.typestate_vocabularies[domain] = data["typestates"]
                     ts_info = data["typestates"]
+                    if isinstance(ts_info, dict) and "terminal_states" in ts_info:
+                        reg.register_terminal_states(ts_info["terminal_states"])
                     states_list = ts_info.get("states", []) if isinstance(ts_info, dict) else []
                     for s in states_list:
                         if isinstance(s, dict):
@@ -3003,6 +3018,8 @@ class LatticeOrchestrator:
                             reg.register_egress_tokens([item])
                         elif cat == 'materialization_state':
                             reg.register_materialization_states([item])
+                        elif cat == 'terminal_state':
+                            reg.register_terminal_states([item])
                         elif cat == 'polarity_hint':
                             reg.register_polarity_hints(item, [extra])
                         elif cat == 'role_carrier':
