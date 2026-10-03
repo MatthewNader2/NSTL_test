@@ -7,8 +7,14 @@ import time
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
-import torch
-from transformers import AutoModel
+try:
+    import torch
+    from transformers import AutoModel
+    _TORCH_AVAILABLE = True
+except ImportError:  # torch/transformers are optional heavy deps; reranking degrades to no-op
+    torch = None
+    AutoModel = None
+    _TORCH_AVAILABLE = False
 
 from config import settings, MODELS_DIR, RERANKERS_DIR
 from lattice import Cell
@@ -40,6 +46,12 @@ class LocalReranker:
     prior to topological planning.
     """
     def __init__(self, model_name_or_path: Optional[str] = None, device: str = 'auto'):
+        if not _TORCH_AVAILABLE:
+            logger.warning("[RERANKER] torch/transformers unavailable; neural reranking disabled (no-op).")
+            self.device = 'cpu'
+            self.model_name = model_name_or_path or self._resolve_default_model()
+            self.model = None
+            return
         self.device = (
             'cuda' if (device == 'auto' and torch.cuda.is_available())
             else ('cpu' if device == 'auto' else device)

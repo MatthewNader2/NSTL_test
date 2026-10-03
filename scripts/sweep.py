@@ -32,7 +32,7 @@ from typing import Any, Dict, List, Optional, Tuple
 ROOT_DIR = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT_DIR / "src"))
 
-from config import Profile, settings
+from config import settings
 from gevr_sandbox import GEVRSandbox
 from lattice import LatticeOrchestrator
 from planner import LatticePlanner, _segment_prompt_clauses
@@ -234,6 +234,7 @@ def parse_args():
     parser.add_argument("--no-exec", dest="execute_sandbox", action="store_false", help="Skip sandbox execution")
     parser.add_argument("--profiles", nargs="+", default=PROFILES, help="Profiles to evaluate")
     parser.add_argument("--methods", nargs="+", default=METHODS, help="Route methods to evaluate")
+    parser.add_argument("--explain-plan", action="store_true", help="Print clause-level coverage and precision diagnostics for the chosen path")
     return parser.parse_args()
 
 
@@ -242,20 +243,21 @@ def run_sweep():
     if args.debug:
         import logging
         logging.basicConfig(level=logging.DEBUG)
+    if getattr(args, "explain_plan", False):
+        try:
+            settings.explain_plan = True
+        except Exception:
+            pass
 
     trees_dir = str(ROOT_DIR / "trees")
     db_path = str(ROOT_DIR / "trees" / "lattice.db")
     orch = LatticeOrchestrator(trees_directory=trees_dir, db_path=db_path)
-    if os.path.exists(db_path):
-        try:
-            orch.load_from_database(db_path)
-        except Exception:
-            orch.load_all_json_trees()
-    else:
-        orch.load_all_json_trees()
+    # Load the JSON trees directly (source of truth): the lattice.db cache is a
+    # runtime artifact whose cell construction may diverge from the declared trees.
+    orch.load_all_json_trees()
     orch.build_topology()
 
-    all_cells = orch.all_cells()
+    all_cells = orch.cells
     prompt_tokens = CellTokenizer.tokenize_prompt(BENCHMARK_PROMPT)
     relevance_map = {
         c.cell_id: float(len(prompt_tokens & c.token_set))
@@ -267,13 +269,16 @@ def run_sweep():
     rows = []
     distinct_scripts = set()
     refused_count = 0
+    internal_error_count = 0
     violation_categories = collections.Counter()
 
     profiles_to_run = [p.upper() for p in args.profiles]
     methods_to_run = [m.upper() for m in args.methods]
 
     for profile_name in profiles_to_run:
-        prof = Profile(profile_name)
+        # config.py declares no Profile enum; SemanticRouteOptimizer accepts the
+        # plain profile string (it str()s it and initializes the model profile).
+        prof = profile_name.upper()
         for method_name in methods_to_run:
             t0 = time.perf_counter()
             best_path = None
@@ -288,17 +293,22 @@ def run_sweep():
 
             try:
                 if method_name == "M0":
-                    planner = LatticePlanner(orchestrator=orch)
-                    best_path, score = planner.plan_dag(BENCHMARK_PROMPT, candidates=all_cells, relevance_map=relevance_map)
-                    effective_route = "M0"
-                    fallback_reason = "-"
+                    # Mirror the CLI: the router computes the semantic tunnel first,
+                    # then the M0 trellis plans inside it (the full lattice is not
+                    # the tunnel — planning over it exhausts the search budget).
+                    from router import SemanticRouteOptimizer
+                    optimizer = SemanticRouteOptimizer(orch, prof, use_reranker=not args.no_reranker)
+                    ctx = ExecutionContext(prompt=BENCHMARK_PROMPT)
+                    best_path = optimizer.route(BENCHMARK_PROMPT, method_name="M0", relevance_map=relevance_map, ctx=ctx)
+                    effective_route = getattr(optimizer, "last_effective_route", "M0")
+                    fallback_reason = getattr(optimizer, "last_fallback_reason", "-") or "-"
                 else:
                     from router import SemanticRouteOptimizer
                     optimizer = SemanticRouteOptimizer(orch, prof, use_reranker=not args.no_reranker)
                     ctx = ExecutionContext(prompt=BENCHMARK_PROMPT)
                     best_path = optimizer.route(BENCHMARK_PROMPT, method_name=method_name, relevance_map=relevance_map, ctx=ctx)
-                    effective_route = getattr(optimizer.router, "last_effective_route", method_name)
-                    fallback_reason = getattr(optimizer.router, "last_fallback_reason", "-") or "-"
+                    effective_route = getattr(optimizer, "last_effective_route", method_name)
+                    fallback_reason = getattr(optimizer, "last_fallback_reason", "-") or "-"
 
                 layer2_ms = (time.perf_counter() - t0) * 1000.0
 
@@ -308,20 +318,59 @@ def run_sweep():
                 else:
                     steps = len(best_path)
                     ctx = ExecutionContext(prompt=BENCHMARK_PROMPT)
-                    unify_res = gate.unify_pipeline(best_path, context=ctx)
-                    if not unify_res.is_success():
+                    try:
+                        unify_res = gate.unify_pipeline(best_path, context=ctx)
+                    except Exception as exc:
+                        # Engine defect: never counted as a refusal (R6-4)
+                        import traceback
+                        traceback.print_exc()
+                        internal_error_count += 1
+                        rows.append({
+                            "profile": profile_name,
+                            "method": method_name,
+                            "effective_route": effective_route,
+                            "fallback_reason": fallback_reason,
+                            "steps": steps,
+                            "emitted": "no",
+                            "refused_why": "-",
+                            "internal_error": f"{type(exc).__name__}",
+                            "sandbox_ok": "no",
+                            "golden_passed": "0/6",
+                            "layer2_ms": f"{layer2_ms:.1f}",
+                        })
+                        continue
+                    if unify_res.is_bottom():
                         refused_why = f"Unification failed: {unify_res.reason if hasattr(unify_res, 'reason') else 'type bottom'}"
                         refused_count += 1
                     else:
                         bindings = unify_res.value
-                        code = gate.emit_code(bindings, ctx)
+                        try:
+                            code = gate.emit_code(bindings, ctx)
+                        except Exception as exc:
+                            # Engine defect: never counted as a refusal (R6-4)
+                            import traceback
+                            traceback.print_exc()
+                            internal_error_count += 1
+                            rows.append({
+                                "profile": profile_name,
+                                "method": method_name,
+                                "effective_route": effective_route,
+                                "fallback_reason": fallback_reason,
+                                "steps": steps,
+                                "emitted": "no",
+                                "refused_why": "-",
+                                "internal_error": f"{type(exc).__name__}",
+                                "sandbox_ok": "no",
+                                "golden_passed": "0/6",
+                                "layer2_ms": f"{layer2_ms:.1f}",
+                            })
+                            continue
 
-                        # Preflight check
+                        # Preflight check (same parameters the CLI main path uses)
                         lint_res = PreflightLinter.lint(
                             bindings,
                             prompt=BENCHMARK_PROMPT,
                             code_str=code,
-                            extracted_literals=ctx.ordered_literals,
                         )
 
                         if not lint_res.is_valid:
@@ -350,9 +399,25 @@ def run_sweep():
                                 sandbox_ok = "skipped"
 
             except Exception as exc:
+                # Planning-stage engine defect: reported as internal_error, never a refusal (R6-4)
                 layer2_ms = (time.perf_counter() - t0) * 1000.0
-                refused_why = f"Exception: {type(exc).__name__}: {str(exc)[:40]}"
-                refused_count += 1
+                import traceback
+                traceback.print_exc()
+                internal_error_count += 1
+                rows.append({
+                    "profile": profile_name,
+                    "method": method_name,
+                    "effective_route": effective_route,
+                    "fallback_reason": fallback_reason,
+                    "steps": steps,
+                    "emitted": "no",
+                    "refused_why": "-",
+                    "internal_error": f"{type(exc).__name__}",
+                    "sandbox_ok": "no",
+                    "golden_passed": "0/6",
+                    "layer2_ms": f"{layer2_ms:.1f}",
+                })
+                continue
 
             rows.append({
                 "profile": profile_name,
@@ -362,6 +427,7 @@ def run_sweep():
                 "steps": steps,
                 "emitted": "yes" if code else "no",
                 "refused_why": refused_why,
+                "internal_error": "-",
                 "sandbox_ok": sandbox_ok,
                 "golden_passed": f"{golden_score}/6",
                 "layer2_ms": f"{layer2_ms:.1f}",
@@ -369,17 +435,23 @@ def run_sweep():
 
     # Print markdown table
     print("\n### Sweep Results Table\n")
-    print("| profile | method | effective route | fallback reason | steps | emitted? | refused why | sandbox ok? | golden assertions passed (n/6) | layer-2 ms |")
-    print("|---|---|---|---|---|---|---|---|---|---|")
+    print("| profile | method | effective route | fallback reason | steps | emitted? | refused why | internal error | sandbox ok? | golden assertions passed (n/6) | layer-2 ms |")
+    print("|---|---|---|---|---|---|---|---|---|---|---|")
     for r in rows:
-        print(f"| {r['profile']} | {r['method']} | {r['effective_route']} | {r['fallback_reason']} | {r['steps']} | {r['emitted']} | {r['refused_why']} | {r['sandbox_ok']} | {r['golden_passed']} | {r['layer2_ms']} |")
+        print(f"| {r['profile']} | {r['method']} | {r['effective_route']} | {r['fallback_reason']} | {r['steps']} | {r['emitted']} | {r['refused_why']} | {r['internal_error']} | {r['sandbox_ok']} | {r['golden_passed']} | {r['layer2_ms']} |")
 
     print(f"\nDistinct emitted scripts: {len(distinct_scripts)}")
     print(f"Refused runs: {refused_count} / {len(rows)}")
+    print(f"Internal errors: {internal_error_count} / {len(rows)}")
     if violation_categories:
         print("\nPreflight violation categories:")
         for cat, count in violation_categories.most_common():
             print(f"  - {cat}: {count}")
+
+    # Internal errors are hard failures: the sweep must exit non-zero (R6-4)
+    if internal_error_count:
+        print("\n[FAIL] Sweep completed with INTERNAL ERRORS - these are engine defects, not refusals.")
+        sys.exit(1)
 
 
 if __name__ == "__main__":

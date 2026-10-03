@@ -389,15 +389,41 @@ def run_prompt(request: Union[RunRequest, Dict[str, Any], str]) -> RunResponse:
                 prod_id = viol.details.get("producer_cell_id")
 
                 bridge_cand = None
-                if "complex" in conflict or ("complex" in rej_quals and "complex" in res_quals):
-                    bridge_cand = _orchestrator.loaded_cells.get("NUMPY_ABS")
-                elif conflict:
+                if conflict:
+                    # Bridge selection derived solely from lattice declarations
+                    # (Rule 1: no qualifier-name or cell-id literals in the engine):
+                    # a valid bridge declares tolerance for the conflicting qualifier
+                    # on an input port (the qualifier token appears in the port's
+                    # declared state / accepted_states / qualifiers vocabulary) and
+                    # emits an output that carries no rejected qualifier.
+                    from tokenizer import CellTokenizer as _CT
+
+                    def _port_declares_acceptance(p_sig, wanted_quals):
+                        declared = list(getattr(p_sig, "qualifiers", None) or ())
+                        sig_inner = getattr(p_sig, "signature", None)
+                        declared.append(str(getattr(sig_inner, "state", "") or ""))
+                        declared.extend(str(s) for s in (getattr(sig_inner, "accepted_states", None) or frozenset()))
+                        declared_toks = set()
+                        for d in declared:
+                            declared_toks.update(_CT.tokenize_identifier(str(d).lower()))
+                        return any(str(q).lower() in declared_toks for q in wanted_quals)
+
                     for c_cell in _orchestrator.loaded_cells.values():
-                        if getattr(c_cell, "node_role", "") in ("bridge", "transformer"):
-                            c_out_quals = set(getattr(c_cell.primary_output, "qualifiers", []) or [])
-                            if not (c_out_quals & rej_quals):
-                                bridge_cand = c_cell
-                                break
+                        if getattr(c_cell, "node_role", "") not in ("bridge", "transformer"):
+                            continue
+                        c_out = getattr(c_cell, "primary_output", None)
+                        if c_out is None:
+                            continue
+                        c_out_quals = {str(q).lower() for q in (getattr(c_out, "qualifiers", []) or [])}
+                        if c_out_quals & rej_quals:
+                            continue
+                        if not any(
+                            _port_declares_acceptance(p_sig, conflict)
+                            for p_sig in c_cell.inputs.values()
+                        ):
+                            continue
+                        bridge_cand = c_cell
+                        break
 
                 if bridge_cand and prod_id:
                     prod_idx = next((i for i, cl in enumerate(repaired_cells) if cl.cell_id == prod_id), None)

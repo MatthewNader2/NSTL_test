@@ -453,7 +453,6 @@ class PreflightLinter:
                         target_v = carrier_in_var
                         if val_str.startswith("[") and val_str.endswith("]"):
                             try:
-                                import ast
                                 parsed = ast.literal_eval(val_str)
                                 if isinstance(parsed, (list, tuple, set)):
                                     for item in parsed:
@@ -478,7 +477,6 @@ class PreflightLinter:
                                 if inner_c.startswith("[") and inner_c.endswith("]"):
                                     inner_c = inner_c[1:-1].strip()
                                 try:
-                                    import ast
                                     parsed = ast.literal_eval(f"[{inner_c}]")
                                     if isinstance(parsed, (list, tuple, set)):
                                         for item in parsed:
@@ -570,7 +568,6 @@ class PreflightLinter:
                                         c_str = c_str[1:-1].strip()
                                     if c_str.startswith("[") and c_str.endswith("]"):
                                         try:
-                                            import ast
                                             parsed = ast.literal_eval(c_str)
                                             if isinstance(parsed, (list, tuple, set)):
                                                 cols_to_remove.extend(str(item).strip("'\"") for item in parsed)
@@ -594,7 +591,6 @@ class PreflightLinter:
                                                 c_str = c_str[1:-1].strip()
                                             if c_str.startswith("[") and c_str.endswith("]"):
                                                 try:
-                                                    import ast
                                                     parsed = ast.literal_eval(c_str)
                                                     if isinstance(parsed, (list, tuple, set)):
                                                         cols_to_remove.extend(str(x).strip("'\"") for x in parsed)
@@ -640,6 +636,45 @@ class PreflightLinter:
                         if p_sig and getattr(p_sig, "binds", None) == "column_key":
                             out_origs.add(inp_val.strip("'\""))
                 var_origins[out_var] = out_origs
+
+        # -----------------------------------------------------------------
+        # Check 2b: declared dependency names, from the cells' own dependency
+        # declarations (same data the emitter renders into import headers).
+        # -----------------------------------------------------------------
+        declared_dep_names: Set[str] = set()
+        for cell, _ in pipeline_bindings:
+            for dep in (getattr(cell, "dependencies", None) or []) + (getattr(cell, "imports", None) or []):
+                d = str(dep).strip()
+                if not d:
+                    continue
+                if d.startswith("import "):
+                    for p in d[len("import "):].split(","):
+                        p = p.strip()
+                        if " as " in p:
+                            alias = p.split(" as ")[1].strip()
+                        else:
+                            alias = p.split(".")[0].strip()
+                        if alias:
+                            declared_dep_names.add(alias)
+                elif d.startswith("from ") and " import " in d:
+                    tail = d.split(" import ", 1)[1]
+                    for p in tail.split(","):
+                        p = p.strip()
+                        if " as " in p:
+                            alias = p.split(" as ")[1].strip()
+                        else:
+                            alias = p
+                        if alias:
+                            declared_dep_names.add(alias)
+                else:
+                    # Bare module declaration form used by the trees: "numpy as np",
+                    # "pandas as pd" — the emitter renders these as import statements.
+                    if " as " in d:
+                        alias = d.split(" as ")[1].strip()
+                    else:
+                        alias = d.split(".")[0].strip()
+                    if alias:
+                        declared_dep_names.add(alias)
 
         # -----------------------------------------------------------------
         # Check 2: No bare None in required data-bearing positions
@@ -709,6 +744,14 @@ class PreflightLinter:
                 resolved_sig = record.resulting_signature
 
                 if root_var in cell_output_vars:
+                    continue
+
+                # Declared module aliases / imported symbols (R6-9): a binding whose
+                # root is an alias the cells themselves declare ("numpy as np",
+                # "from x import y") is defined by the emission header the emitter
+                # generates from those same declarations — referencing it is not an
+                # undefined variable.
+                if root_var in declared_dep_names:
                     continue
 
                 if resolved_sig is None:
@@ -804,6 +847,7 @@ class PreflightLinter:
         # Every non-goal, non-sink cell MUST have its output consumed downstream.
         # -----------------------------------------------------------------
         n_steps = len(pipeline_bindings)
+        _registry_liveness = cls._registry()
         for i, (cell, bindings) in enumerate(pipeline_bindings):
             if not isinstance(bindings, dict):
                 continue
@@ -851,6 +895,23 @@ class PreflightLinter:
                     break
 
             if not is_consumed:
+                # Scalar-leaf clause witness (R6-9): an aggregator whose outputs are
+                # all scalar/numeric and which witnesses a prompt clause (identity-
+                # level clause tag) is a legitimate terminal observation for that
+                # clause — e.g. "get the mean of the Y column" asks for the value,
+                # not for its downstream consumption. Same exemption the planner's
+                # own dead-output feasibility check applies.
+                outs_all_scalar = bool(cell.outputs) and all(
+                    _registry_liveness.is_subtype(
+                        str(getattr(getattr(o, "signature", o), "type_name", "") or ""), "scalar"
+                    )
+                    or _registry_liveness.is_subtype(
+                        str(getattr(getattr(o, "signature", o), "type_name", "") or ""), "numeric"
+                    )
+                    for o in cell.outputs.values()
+                )
+                if outs_all_scalar and getattr(cell, "matched_clause_idx", None) is not None:
+                    continue
                 dead_v = next(iter(produced_vars))
                 msg = (
                     f"Cell '{cell.cell_id}' produced output variable '{dead_v}' which is never "
@@ -1014,6 +1075,33 @@ class PreflightLinter:
                 prod_clause = getattr(prod_cell, "matched_clause_idx", None)
                 if prod_clause is None or prod_clause == cons_clause:
                     continue
+
+                # Primary-dataflow exemption (R6-9): the producer's PRIMARY output
+                # feeding the consumer's PRIMARY input is the pipeline's main data
+                # path — the unifier wires it from the freshest value of that
+                # carrier. Multi-stage prompts legitimately span clauses here
+                # (normalize at clause 1 feeding a mean at clause 3), and flagging
+                # the main dataflow produced false positives on correct pipelines.
+                # Auxiliary ports (parameters, secondary products) keep the
+                # adjacency/literal rules below.
+                prod_prim_out = getattr(prod_cell, "primary_output", None)
+                prod_prim_var = None
+                if prod_prim_out is not None and prod_cell in [c for c, _ in pipeline_bindings]:
+                    prod_bindings = next((b for c, b in pipeline_bindings if c is prod_cell), None)
+                    if prod_bindings is not None:
+                        cand_v = prod_bindings.get(getattr(prod_prim_out, "name", "") or "")
+                        if isinstance(cand_v, str):
+                            prod_prim_var = cand_v.split("[")[0].strip()
+                if prod_prim_var is None:
+                    cons_prim_in = getattr(cell, "primary_input", None)
+                    if cons_prim_in is not None and p_name == getattr(cons_prim_in, "name", None):
+                        # producer var unknown but port is primary: still require the
+                        # producer-side check below via fallback below.
+                        pass
+                if prod_prim_var is not None and prod_prim_var == root_var:
+                    cons_prim_in = getattr(cell, "primary_input", None)
+                    if cons_prim_in is not None and p_name == getattr(cons_prim_in, "name", None):
+                        continue
 
                 # 1. Matching literal in consumer clause
                 var_origs = set(var_origins.get(root_var, set()))

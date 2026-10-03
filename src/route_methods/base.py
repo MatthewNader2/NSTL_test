@@ -384,7 +384,14 @@ class RouteMethod(ABC):
                 strong = len(cl_tok & id_toks)
                 weak = len((cl_tok & c_toks) - id_toks)
                 score = (strong * 3.0) + weak
-                if score > best_score:
+                # Only IDENTITY-level evidence may claim a clause (R6-9): a single
+                # weak docstring-token touch (e.g. 'value' in np.abs's docstring
+                # touching "drop null values") must not tag the cell with an
+                # unrelated clause — downstream clause-adjacency and ordering
+                # checks would then raise false inversions/provenance mismatches
+                # against a clause the cell does not actually serve. Cells with no
+                # identity overlap stay clause-neutral (matched_clause_idx None).
+                if score > best_score and strong > 0:
                     best_score = score
                     best_idx = idx
             if best_score > 0.0:

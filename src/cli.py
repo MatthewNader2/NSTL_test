@@ -40,6 +40,13 @@ from rich import box
 from rich.columns import Columns
 
 try:
+    from log_config import get_logger
+except (ImportError, ValueError):
+    from .log_config import get_logger
+
+logger = get_logger("cli")
+
+try:
     from lattice import LatticeOrchestrator, Cell, PortSignature, AlgebraicSignature, UNRESOLVED_PORT
     from router import LatticeRouter, HardwareProfiler
     from unification import (
@@ -52,6 +59,7 @@ try:
     from internal_rag import LocalRAG
     from config import MODELS_DIR, settings
     from utils import extract_code_from_llm_response, ensure_comprehensive_prompt
+    from errors import SynthesisError
     from tokenizer import CellTokenizer
     from planner import _segment_prompt_clauses, STOPWORDS
     from preflight import PreflightLinter
@@ -72,6 +80,7 @@ except ImportError:
     from .internal_rag import LocalRAG
     from .config import MODELS_DIR, settings
     from .utils import extract_code_from_llm_response, ensure_comprehensive_prompt
+    from .errors import SynthesisError
     from .tokenizer import CellTokenizer
     from .planner import _segment_prompt_clauses, STOPWORDS
     from .preflight import PreflightLinter
@@ -1370,6 +1379,8 @@ class PipelineDebugger:
         pipeline_bindings = None
         accum_sigma = None
         synth_dt = 0.0
+        internal_error_msg: Optional[str] = None
+        refusal_reason: Optional[str] = None
 
         if cells:
             t_synth_0 = time.perf_counter()
@@ -1385,11 +1396,27 @@ class PipelineDebugger:
                         ctx.parameters[str(lit_key)] = lit_val
             try:
                 unify_res = self.gate.unify_pipeline(cells, ctx)
-            except Exception as exc:
+            except UnificationFailure as exc:
+                # Declared engine failure type: a legitimate type-level refusal (R6-4).
                 unify_res = Failure(reason=str(exc))
+            except Exception as exc:
+                # Any other exception is an ENGINE DEFECT, not a unification refusal.
+                # It must never be reported as "UNIFICATION FAILED" or counted as a
+                # refusal in sweeps (R6-4).
+                logger.error("INTERNAL ERROR in unify_pipeline: %s", exc, exc_info=True)
+                internal_error_msg = f"{type(exc).__name__}: {exc}"
+                unify_res = None
             synth_dt = (time.perf_counter() - t_synth_0) * 1000.0
 
-            if unify_res.is_bottom():
+            if internal_error_msg:
+                c.print(Panel(
+                    f"[bold red]❌ INTERNAL ERROR ({internal_error_msg.split(':', 1)[0]})[/bold red]\n"
+                    f"[red]{internal_error_msg}[/red]\n"
+                    f"[yellow]This is an engine defect (bug), not a type-level refusal. See log traceback.[/yellow]",
+                    title=f"[bold red]⚡ LAYER 3: Internal Engine Error ({synth_dt:.2f}ms)[/bold red]",
+                    border_style="red"
+                ))
+            elif unify_res.is_bottom():
                 fail_reason = getattr(unify_res, "reason", "Unknown unification failure")
                 c.print(Panel(
                     f"[bold red]❌ UNIFICATION FAILED: {fail_reason}[/bold red]\n"
@@ -1404,8 +1431,16 @@ class PipelineDebugger:
                 self.gate.last_egress_paths = dest_paths
                 try:
                     final_code = self.gate.emit_code(pipeline_bindings, ctx)
+                except (UnresolvedPlaceholderError, UnificationFailure) as e:
+                    # Declared refusal from the synthesis chain (e.g. unresolved
+                    # ports after estimator-identity gating) — not an engine defect.
+                    logger.warning("Synthesis refused (declared failure): %s", e)
+                    final_code = ""
+                    refusal_reason = str(e)
                 except Exception as e:
-                    c.print(f"[bold red][!] Code emission error: {e}[/bold red]")
+                    logger.error("INTERNAL ERROR in emit_code: %s", e, exc_info=True)
+                    internal_error_msg = f"{type(e).__name__}: {e}"
+                    c.print(f"[bold red]❌ INTERNAL ERROR ({type(e).__name__}) during code emission: {e}[/bold red]")
 
                 bind_table = Table(title="🔌 Port Placeholders & Variable Wiring Bindings", box=box.ROUNDED, expand=True, border_style="cyan")
                 bind_table.add_column("Step", style="dim", width=4)
@@ -1484,7 +1519,35 @@ class PipelineDebugger:
 
                 lint_valid = True
                 lint_res = None
-                if pipeline_bindings:
+                if refusal_reason:
+                    # Declared synthesis refusal (e.g. unresolved ports after
+                    # estimator-identity gating): refuse with the specific reason.
+                    c.print(Panel(
+                        f"[bold red]❌ SYNTHESIS REFUSED: {refusal_reason}[/bold red]",
+                        title="[bold red]⚡ LAYER 3: Synthesis Refusal[/bold red]",
+                        border_style="red",
+                    ))
+                    path_ids_r = [cl.cell_id for cl in cells]
+                    total_dt_r = (time.perf_counter() - t_total_start) * 1000.0
+                    return {
+                        "prompt": prompt_clean,
+                        "profile": self.active_profile,
+                        "path": path_ids_r,
+                        "latency_ms": total_dt_r,
+                        "sandbox_status": f"REFUSED: {refusal_reason}",
+                        "code": None,
+                        "internal_error": None,
+                        "refusal_reason": refusal_reason,
+                        "route_ms": route_dt,
+                        "plan_ms": plan_dt,
+                        "synth_ms": synth_dt,
+                        "sandbox_ms": 0.0,
+                        "sandbox_result": {"success": False, "error": refusal_reason, "refused": True},
+                        "cells": cells,
+                        "tunnel_size": len(tunnel_cells),
+                        "relevance_map": relevance_map,
+                    }
+                if pipeline_bindings and not internal_error_msg:
                     lint_res = PreflightLinter.lint(pipeline_bindings, prompt=prompt, code_str=final_code)
                     lint_valid = lint_res.is_valid
 
@@ -1496,21 +1559,48 @@ class PipelineDebugger:
 
                     for viol in lint_res.structured_violations:
                         if viol.check_id in ("shape_carrier_mismatch", "type_unification_failure"):
-                            rej_quals = set(viol.details.get("rejected_qualifiers", []))
-                            res_quals = set(viol.details.get("resolved_qualifiers", []))
+                            rej_quals = {str(q).lower() for q in viol.details.get("rejected_qualifiers", [])}
+                            res_quals = {str(q).lower() for q in viol.details.get("resolved_qualifiers", [])}
                             conflict = rej_quals & res_quals
                             prod_id = viol.details.get("producer_cell_id")
 
+                            # Bridge selection is derived solely from lattice declarations
+                            # (Rule 1: no qualifier-name or cell-id literals in the engine).
+                            # A valid bridge cell:
+                            #   (a) declares tolerance for the conflicting qualifier on one of
+                            #       its input ports (the qualifier token appears in the port's
+                            #       declared state / accepted_states / qualifiers vocabulary),
+                            #   (b) declares an output that does NOT carry any rejected qualifier.
+                            # Type validity of the insertion is then enforced by re-running the
+                            # full unification gate below.
+                            def _port_declares_acceptance(p_sig: Any, wanted_quals: Set[str]) -> bool:
+                                declared: List[str] = list(getattr(p_sig, "qualifiers", None) or ())
+                                sig_inner = getattr(p_sig, "signature", None)
+                                declared.append(str(getattr(sig_inner, "state", "") or ""))
+                                declared.extend(str(s) for s in (getattr(sig_inner, "accepted_states", None) or frozenset()))
+                                declared_toks: Set[str] = set()
+                                for d in declared:
+                                    declared_toks.update(CellTokenizer.tokenize_identifier(d.lower()))
+                                return any(str(q).lower() in declared_toks for q in wanted_quals)
+
                             bridge_cand = None
-                            if "complex" in conflict or ("complex" in rej_quals and "complex" in res_quals):
-                                bridge_cand = self.orchestrator.loaded_cells.get("NUMPY_ABS")
-                            elif conflict:
+                            if conflict:
                                 for c_cell in self.orchestrator.loaded_cells.values():
-                                    if getattr(c_cell, "node_role", "") in ("bridge", "transformer"):
-                                        c_out_quals = set(getattr(c_cell.primary_output, "qualifiers", []) or [])
-                                        if not (c_out_quals & rej_quals):
-                                            bridge_cand = c_cell
-                                            break
+                                    if getattr(c_cell, "node_role", "") not in ("bridge", "transformer"):
+                                        continue
+                                    c_out = getattr(c_cell, "primary_output", None)
+                                    if c_out is None:
+                                        continue
+                                    c_out_quals = {str(q).lower() for q in (getattr(c_out, "qualifiers", []) or [])}
+                                    if c_out_quals & rej_quals:
+                                        continue
+                                    if not any(
+                                        _port_declares_acceptance(p_sig, conflict)
+                                        for p_sig in c_cell.inputs.values()
+                                    ):
+                                        continue
+                                    bridge_cand = c_cell
+                                    break
 
                             if bridge_cand and prod_id:
                                 prod_idx = next((i for i, cl in enumerate(repaired_cells) if cl.cell_id == prod_id), None)
@@ -1519,19 +1609,37 @@ class PipelineDebugger:
                                     bridge_inserted = True
 
                     if bridge_inserted:
+                        # Real synthesis chain, same two calls as the main path above
+                        # (unify_pipeline + emit_code). The gate exposes no `synthesize`
+                        # method; the previous call raised AttributeError inside a bare
+                        # try/except and silently never ran (R6-3).
                         try:
-                            res_synth = self.gate.synthesize(repaired_cells, prompt=prompt_clean, route_method=route_method_name)
-                            rep_lint = PreflightLinter.lint(self.gate.last_pipeline_bindings, prompt=prompt, code_str=res_synth.code)
+                            bridge_ctx = ExecutionContext(prompt=prompt_clean)
+                            bridge_params = getattr(ctx, "parameters", None)
+                            if isinstance(bridge_params, dict) and bridge_params:
+                                bridge_ctx.parameters.update(bridge_params)
+                            bridge_unify = self.gate.unify_pipeline(repaired_cells, bridge_ctx)
+                            if bridge_unify.is_bottom():
+                                raise SynthesisError(
+                                    str(getattr(bridge_unify, "reason", "unification failed after bridge insertion"))
+                                )
+                            bridge_code = self.gate.emit_code(bridge_unify.value, bridge_ctx)
+                            rep_lint = PreflightLinter.lint(
+                                self.gate.last_pipeline_bindings, prompt=prompt, code_str=bridge_code
+                            )
                             bridge_dt = (time.perf_counter() - t_bridge_0) * 1000.0
                             if rep_lint.is_valid:
                                 c.print(f"  [bold green][✓] Deterministic bridge morphism inserted ({bridge_dt:.1f}ms).[/bold green]\n")
                                 cells = repaired_cells
-                                final_code = res_synth.code
+                                final_code = bridge_code
                                 pipeline_bindings = self.gate.last_pipeline_bindings
                                 lint_valid = True
                                 lint_res = rep_lint
                         except Exception as e:
-                            c.print(f"  [dim yellow]Deterministic bridge insertion attempt encountered: {e}[/dim yellow]")
+                            logger.warning(
+                                "Deterministic bridge insertion failed: %s: %s", type(e).__name__, e
+                            )
+                            c.print(f"  [dim yellow]Deterministic bridge insertion attempt encountered: {type(e).__name__}: {e}[/dim yellow]")
 
                 # Layer 5 Self-Repair for Pre-Flight Lint Violations (Profile C/E or --llm-feedback)
                 llm_feedback = getattr(self, "llm_feedback", False) or (prof in ("C", "E"))
@@ -1780,6 +1888,8 @@ class PipelineDebugger:
             "latency_ms": total_dt,
             "sandbox_status": sb_status,
             "code": final_code,
+            "internal_error": internal_error_msg,
+            "refusal_reason": refusal_reason,
             "route_ms": route_dt,
             "plan_ms": plan_dt,
             "synth_ms": synth_dt,
@@ -2713,6 +2823,12 @@ class NSTLInteractiveShell(cmd.Cmd):
         except (UnresolvedPlaceholderError, UnificationFailure) as e:
             console.print(f"\n[bold red][!] Could not synthesize code for: '{prompt}'[/bold red]")
             console.print(f"[red]    {e}[/red]\n")
+            return
+        except Exception as e:
+            # Engine defect, not a type-level refusal (R6-4)
+            logger.error("INTERNAL ERROR in unify_and_emit: %s", e, exc_info=True)
+            console.print(f"\n[bold red]❌ INTERNAL ERROR ({type(e).__name__}): {e}[/bold red]")
+            console.print("[yellow]This is an engine defect (bug), not a type-level refusal.[/yellow]\n")
             return
         synth_dt = (time.perf_counter() - t_synth_start) * 1000.0
 

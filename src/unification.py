@@ -599,8 +599,12 @@ def _shape_compatible(p_out: Any, p_in: Any) -> bool:
         flat_out_quals = set()
         for q in out_quals:
             if isinstance(q, tuple):
-                flat_out_quals.add(str(q[0]).lower())
-                flat_out_quals.add(str(q[1]).lower())
+                # Qualifier tuples are Tuple[str, ...] of ANY length (lattice.py
+                # LatticeType.qualifiers / AlgebraicSignature qualifiers are
+                # normalized to arbitrary-length tuples); flatten every element
+                # instead of assuming a 2-tuple (R6-2).
+                for q_el in q:
+                    flat_out_quals.add(str(q_el).lower())
             else:
                 flat_out_quals.add(str(q).lower())
         if any(str(rq).lower() in flat_out_quals for rq in rej_quals):
@@ -4535,6 +4539,12 @@ class UnificationGate:
                     cell_bindings[p_name] = UNRESOLVED_PORT
                 else:
                     cell_bindings[p_name] = None
+
+            # Bound input variables for this cell, computed ONCE after all input
+            # bindings are final and before any output branch runs (R6-1). Only
+            # strings that are variables in scope count (matches the semantics the
+            # pre-R5 refactor code had at both of its former definition sites).
+            bound_in_vars = [v for v in cell_bindings.values() if isinstance(v, str) and v in ctx.variables]
 
             # Register output port(s) in context for future steps
             if len(cell.outputs) > 1:

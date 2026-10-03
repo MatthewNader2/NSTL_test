@@ -1156,6 +1156,16 @@ class LatticeRouter:
           2. Uses selected RouteMethod (M0 - M6) to find valid monadic composition through T.
         """
         tunnel_cells, relevance_map = self.route(prompt, top_k=top_k)
+        # A caller-supplied relevance_map arrives inside **kwargs; if it were
+        # re-expanded into method.plan(...) below it would collide with the
+        # explicit `relevance_map` argument (TypeError: got multiple values),
+        # which the dispatch try/except silently converts into an M0 fallback.
+        # Merge the caller's scores instead of crashing (external retrieval
+        # signals may only raise, never lower, tunnel scores).
+        caller_relevance_map = kwargs.pop("relevance_map", None)
+        if caller_relevance_map:
+            for _cid, _score in caller_relevance_map.items():
+                relevance_map[_cid] = max(relevance_map.get(_cid, 0.0), _score)
         if not tunnel_cells:
             logger.warning(f"[ROUTER] Empty tunnel for prompt: '{prompt}'")
             return ([], set()) if return_tuple else []

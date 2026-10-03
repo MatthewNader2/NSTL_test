@@ -1965,7 +1965,14 @@ class LatticePlanner:
 
         idf_of_prompt = {tok: _idf(tok) for tok in content_prompt_tokens}
         total_prompt_idf = sum(idf_of_prompt.values()) or 1.0
-        clause_weights = [sum(_idf(t) for t in cl_toks) for cl_toks in clause_tokens_list]
+        # Clause weight counts only MATCHABLE vocabulary: a token no lattice cell
+        # declares (df == 0 — quoted file names, bare identifiers, phrasing noise)
+        # can never be matched by any cell, so counting it in the clause's weight
+        # only inflates the evidence floor past what the best possible explainer
+        # could reach (R6-5: clause 0's 'inputcsv' made even PD_READ_CSV fail).
+        def _cl_weight(cl_toks: Set[str]) -> float:
+            return sum(_idf(t) for t in cl_toks if t in token_index_for_idf)
+        clause_weights = [_cl_weight(cl_toks) for cl_toks in clause_tokens_list]
         total_clause_weight = sum(clause_weights) or 1.0
 
         # Token provenance weighting: a cell's IDENTITY tokens (cell_id + declared
@@ -1987,6 +1994,29 @@ class LatticePlanner:
         identity_cache: Dict[str, Set[str]] = {}
         for c in candidates:
             identity_cache[c.cell_id] = _identity_tokens(c)
+
+        # Core identity (R6-5): the vocabulary a cell DECLARES as its own name and
+        # keywords — what the cell IS. Port names and port type-names are schema
+        # interface shared by every similarly-shaped cell (e.g. a 'columns' port
+        # exists on dozens of dataframe transforms) and therefore carry retrieval
+        # mass (token_set / full identity) but NO clause-coverage evidence. Without
+        # this separation, a cell whose only operative overlap with a clause is a
+        # generic port name plus a verb can falsely claim that clause's coverage.
+        def _core_identity_tokens(cell: Cell) -> Set[str]:
+            toks = CellTokenizer.tokenize_cell(cell.cell_id, getattr(cell, "keywords", ()) or ())
+            if getattr(cell, "domain_name", None) and cell.domain_name != "generic":
+                toks = toks - CellTokenizer.tokenize_identifier(cell.domain_name)
+            try:
+                aliases = TypeRegistry.get_instance().get_all_aliases()
+            except Exception:
+                aliases = {}
+            if aliases:
+                toks = toks - {t for t in toks if t in aliases}
+            return toks
+
+        core_identity_cache: Dict[str, Set[str]] = {}
+        for c in candidates:
+            core_identity_cache[c.cell_id] = _core_identity_tokens(c)
 
         # Operand/operator ordering: the engine deliberately does NOT parse
         # natural-language syntax (prepositions, head/operand positions, etc.).
@@ -2044,7 +2074,7 @@ class LatticePlanner:
         _prec_by_cell: Dict[str, List[float]] = {}
         for c in candidates:
             _c_toks = c.token_set
-            _id = getattr(c, "identity_tokens", None) or identity_cache.get(c.cell_id, _c_toks)
+            _id = core_identity_cache.get(c.cell_id) or getattr(c, "identity_tokens", None) or identity_cache.get(c.cell_id, _c_toks)
             _raw_by_cell[c.cell_id] = [_raw_mass(cl, _c_toks, _id) for cl in clause_tokens_list]
             _c_total_idf = sum(_idf(t) for t in _c_toks)
             _prec_by_cell[c.cell_id] = [
@@ -2063,12 +2093,20 @@ class LatticePlanner:
             max_ev = max(col)
             max_prec = max(prec_col) if prec_col else 0.0
             cl_weight = clause_weights[gi] if gi < len(clause_weights) else 0.0
-            clause_min_evidence.append(max(0.5 * max_ev, 0.3 * cl_weight))
+            # A cell covers a clause only when it is a COMPETITIVE explainer of it:
+            # its identity evidence must reach 0.75x the best explainer's evidence
+            # for that clause (R6-5). The previous 0.5x let incidental verb overlaps
+            # (e.g. a cell whose only operative token is 'get') ride on a clause the
+            # lattice explains far better with its dedicated morphism.
+            clause_min_evidence.append(max(0.75 * max_ev, 0.3 * cl_weight))
             clause_min_precision.append(0.5 * max_prec)
 
         for c in candidates:
             c_toks = c.token_set
             id_toks = getattr(c, "identity_tokens", None) or identity_cache.get(c.cell_id, c_toks)
+            # Clause COVERAGE is decided by core identity only (R6-5); the full
+            # identity still feeds ranking via _match_mass below.
+            core_toks = core_identity_cache.get(c.cell_id) or id_toks
             cell_cov_strong[c.cell_id] = content_prompt_tokens & id_toks
             cell_cov_weak[c.cell_id] = non_literal_prompt_tokens & (c_toks - id_toks)
             cell_cov_mass_bonus[c.cell_id] = (
@@ -2085,8 +2123,8 @@ class LatticePlanner:
                 cl_idx = len(masses) - 1
                 c_prec = _prec_by_cell[c.cell_id][cl_idx]
                 if (
-                    _raw_mass(clause_tokens_list[cl_idx], c_toks, id_toks) > 0
-                    and _raw_mass(clause_tokens_list[cl_idx], c_toks, id_toks) >= clause_min_evidence[cl_idx]
+                    _raw_mass(clause_tokens_list[cl_idx], c_toks, core_toks) > 0
+                    and _raw_mass(clause_tokens_list[cl_idx], c_toks, core_toks) >= clause_min_evidence[cl_idx]
                     and c_prec >= clause_min_precision[cl_idx]
                 ):
                     covered.add(cl_idx)
@@ -2177,6 +2215,7 @@ class LatticePlanner:
                     continue
                 s_toks = sub.token_set
                 s_id_toks = getattr(sub, "identity_tokens", None) or identity_cache.get(s_id) or _identity_tokens(sub)
+                s_core_toks = core_identity_cache.get(s_id) or _core_identity_tokens(sub)
                 s_strong = content_prompt_tokens & s_id_toks
                 s_weak = content_prompt_tokens & (s_toks - s_id_toks)
                 strong |= s_strong
@@ -2193,8 +2232,8 @@ class LatticePlanner:
                     masses[gi] = max(masses[gi], m)
                     s_prec = (sum(_idf(t) for t in (cl_toks & s_toks)) / s_total_idf) if s_total_idf > 0 else 0.0
                     if (
-                        _raw_mass(clause_tokens_list[gi], s_toks, s_id_toks) > 0
-                        and _raw_mass(clause_tokens_list[gi], s_toks, s_id_toks) >= clause_min_evidence[gi]
+                        _raw_mass(clause_tokens_list[gi], s_toks, s_core_toks) > 0
+                        and _raw_mass(clause_tokens_list[gi], s_toks, s_core_toks) >= clause_min_evidence[gi]
                         and s_prec >= clause_min_precision[gi]
                     ):
                         covered.add(gi)
@@ -3434,7 +3473,10 @@ class LatticePlanner:
                             best_path[pos] = cell
                         cell.matched_clause_idx = max(range(len(masses)), key=lambda idx: masses[idx])
 
-            # R5-5: Coverage floor enforcement
+            # R5-5 / R6-7: Coverage floor enforcement. The floor is computed from
+            # the SAME precision-based cell_covered the explain table shows — the
+            # previous token-union re-add here let any identity-token touch count
+            # as coverage, silently inflating the fraction past the floor.
             if req_floor and clause_tokens_list:
                 all_cells_on_path = list(best_path)
                 for c in best_path:
@@ -3443,11 +3485,6 @@ class LatticePlanner:
                 covered_clauses = set()
                 for c in all_cells_on_path:
                     covered_clauses |= cell_covered.get(c.cell_id, set())
-                    c_toks = getattr(c, "token_set", set())
-                    id_toks = getattr(c, "identity_tokens", c_toks)
-                    for gi, cl_toks in enumerate(clause_tokens_list):
-                        if cl_toks & id_toks:
-                            covered_clauses.add(gi)
                 total_clauses = len(clause_tokens_list)
                 cov_frac = len(covered_clauses) / total_clauses if total_clauses > 0 else 1.0
                 uncovered = [i for i in range(total_clauses) if i not in covered_clauses]
@@ -3477,13 +3514,8 @@ class LatticePlanner:
                                     best_path.append(cand)
                                     best_path_ids.add(cand.cell_id.lower())
                                     covered_clauses |= cell_covered.get(cand.cell_id, set())
-                                    c_toks = getattr(cand, "token_set", set())
-                                    id_toks = getattr(cand, "identity_tokens", c_toks)
-                                    for gi, cl_toks in enumerate(clause_tokens_list):
-                                        if cl_toks & id_toks:
-                                            covered_clauses.add(gi)
                                     break
-                        cov_frac = len(covered_clauses) / total_clauses if total_clauses > 0 else 1.0
+                        cov_frac = len(covered_clauses) / total_clauses if total_clauses else 1.0
                         uncovered = [i for i in range(total_clauses) if i not in covered_clauses]
 
                 if cov_frac < floor_frac:
@@ -3501,7 +3533,21 @@ class LatticePlanner:
                     )
                     return []
 
-            return best_path
+                try:
+                    from config import settings as _settings
+                    if bool(getattr(_settings, "explain_plan", False)):
+                        print("\n=== EXPLAIN PLAN: CHOSEN PATH COVERAGE ===")
+                        for pos_, c_ in enumerate(best_path):
+                            print(
+                                f"  step {pos_}: {c_.cell_id:<45} covered={sorted(cell_covered.get(c_.cell_id, set()))}"
+                            )
+                        print(f"  coverage fraction: {cov_frac:.3f} (floor {floor_frac:.2f})")
+                        print(f"  greedy completion ran: {'yes' if cov_frac >= floor_frac and uncovered == [] and cov_frac < 1.0 else 'see refusal log above if refused'}")
+                        print("=============================================\n")
+                except Exception:
+                    pass
+
+                return best_path
 
         # Step 4: Bounded MCTS Fallback (Section 3.4) if Trellis was disconnected
         if not req_floor:

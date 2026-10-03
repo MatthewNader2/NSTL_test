@@ -1504,6 +1504,7 @@ class UniversalHarvester:
         sig = rec["sig"]
         params: List[inspect.Parameter] = rec["params"]
         ret_clean: str = rec["ret_clean"]
+        ret_is_none: bool = bool(rec.get("ret_is_none", ret_clean.lower() in _NONE_RETURNS))
         is_static: bool = rec["is_static"]
         is_class: bool = rec["is_class"]
         cid: str = rec["cid"]
@@ -1532,7 +1533,7 @@ class UniversalHarvester:
                 p.kind in (inspect.Parameter.POSITIONAL_ONLY, inspect.Parameter.POSITIONAL_OR_KEYWORD)
                 for p in params
             )
-            for p in params:
+            for p_idx, p in enumerate(params):
                 p_kind = self.adapter.get_param_kind(p)
                 if p.kind is inspect.Parameter.VAR_POSITIONAL:
                     is_primary_variadic = not has_positional
@@ -1587,7 +1588,7 @@ class UniversalHarvester:
                 p_role = _infer_port_role(
                     callable_name=attr,
                     param_name=p.name,
-                    pos_idx=p_idx if 'p_idx' in locals() else 0,
+                    pos_idx=p_idx,
                     param_type=p_type,
                     is_required=is_req,
                     default_val=p_default,
@@ -1659,7 +1660,7 @@ class UniversalHarvester:
                     code_template = f"{{output_var}} = {cls_expr}.{attr}({', '.join(required_template_args)})"
 
         elif is_static:
-            for p in params:
+            for p_idx, p in enumerate(params):
                 p_kind = self.adapter.get_param_kind(p)
                 if p.kind is inspect.Parameter.VAR_POSITIONAL:
                     inputs[p.name] = PortSchema(
@@ -1702,7 +1703,7 @@ class UniversalHarvester:
                 p_role = _infer_port_role(
                     callable_name=attr,
                     param_name=p.name,
-                    pos_idx=p_idx if 'p_idx' in locals() else 0,
+                    pos_idx=p_idx,
                     param_type=p_type,
                     is_required=is_req,
                     default_val=p_default,

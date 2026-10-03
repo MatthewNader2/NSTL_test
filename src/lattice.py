@@ -22,7 +22,7 @@ except ImportError:
     from .utils import tokenize_alphanumeric, extract_template_placeholders
 from abc import ABC
 from collections import deque
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from pathlib import Path
 from typing import Dict, List, Optional, Set, Tuple, Any, Callable, FrozenSet, Union
 
@@ -1569,6 +1569,9 @@ def _clean_abs_carrier(val: Any) -> str:
 def _normalize_qualifiers(raw_qualifiers: Any) -> FrozenSet[Tuple[str, ...]]:
     if not raw_qualifiers:
         return frozenset()
+    # A bare string is ONE qualifier, not a sequence of characters
+    if isinstance(raw_qualifiers, str):
+        return frozenset({(raw_qualifiers.strip(),)}) if raw_qualifiers.strip() else frozenset()
     result = []
     for q in raw_qualifiers:
         if isinstance(q, (list, tuple)):
@@ -2636,6 +2639,69 @@ class MacroCell(Cell):
         self._resolved_sub_cells: Dict[str, Cell] = {}
 
 
+def _apply_declared_estimator_identity(cell: Any) -> None:
+    """
+    Derives estimator-identity qualifiers from DECLARED structure only (R6-6).
+
+    The generic estimator typestate ("Regressor" / "fit_regressor" / "estimator")
+    cannot distinguish a LinearRegression model from a DecisionTreeRegressor one,
+    which let paths pair `fit` and `predict` from different estimator classes.
+    This derivation stamps both sides of the estimator contract with the owner
+    class path the cell itself declares, so the unifier's qualifier-subset rule
+    enforces same-class pairing. Grounded exclusively in declared fields:
+
+    - Producer side: a cell whose `node_role` declares "estimator" and whose
+      output port declares `port_role` "model_sink" carries its owner class
+      (cell_id minus the trailing method segment) as a qualifier on that output.
+    - Consumer side: a method cell that declares a precondition with property
+      "is_fitted" targeting an input port requires its own owner class as a
+      qualifier on that input port.
+
+    Idempotent; applied to every loaded cell on topology rebuild.
+    """
+    cid = str(getattr(cell, "cell_id", "") or "")
+    if not cid or str(getattr(cell, "node_type", "") or "") != "method":
+        return
+    owner = cid.rsplit(".", 1)[0] if "." in cid else cid
+    owner_qual = owner.strip().lower()
+    if not owner_qual:
+        return
+
+    def _qual_tuple_set(sig: Any) -> Set[Tuple[str, ...]]:
+        return {tuple(q) for q in (getattr(sig, "qualifiers", None) or frozenset())}
+
+    def _stamp(port_sig: Any, owner_qual: str) -> None:
+        sig = getattr(port_sig, "signature", None)
+        if sig is None or not hasattr(sig, "qualifiers"):
+            return
+        quals = _qual_tuple_set(sig)
+        if (owner_qual,) in quals:
+            return
+        quals.add((owner_qual,))
+        try:
+            new_sig = replace(sig, qualifiers=frozenset(quals))
+            port_sig.signature = new_sig
+        except Exception:
+            return
+
+    # Producer side: declared estimator role + declared model_sink output port.
+    if str(getattr(cell, "node_role", "") or "").lower() == "estimator":
+        for out_p in (getattr(cell, "outputs", {}) or {}).values():
+            if str(getattr(out_p, "port_role", "") or "").lower() == "model_sink":
+                _stamp(out_p, owner_qual)
+
+    # Consumer side: declared is_fitted precondition targeting an input port.
+    for pre in getattr(cell, "preconditions", []) or []:
+        if not isinstance(pre, dict):
+            continue
+        if str(pre.get("property", "")).strip().lower() != "is_fitted":
+            continue
+        target_port = str(pre.get("target", "")).strip()
+        in_p = (getattr(cell, "inputs", {}) or {}).get(target_port)
+        if in_p is not None:
+            _stamp(in_p, owner_qual)
+
+
 class LatticeOrchestrator:
     """
     Mathematical Lattice Topology G = (V, E).
@@ -3353,6 +3419,7 @@ class LatticeOrchestrator:
 
             all_cells = list(self.loaded_cells.values())
             for cell in all_cells:
+                _apply_declared_estimator_identity(cell)
                 _ = cell.token_set  # Warm up cached token set
                 for tok in cell.token_set:
                     self._token_index.setdefault(tok, []).append(cell)

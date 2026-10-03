@@ -1,14 +1,17 @@
 """
 tests/test_golden_prompt.py - Neuro-Symbolic Topological Lattice (NSTL)
-Golden benchmark test for Round 4.
+Golden benchmark test for the 7-clause benchmark prompt (offline; no models required).
 
-Evaluates the benchmark prompt:
   "load a csv file named \"input.csv\", normalize X column, drop null values,
    get the mean of the Y column, and perform FFT and write it to a new column called Z,
    then make a regression model trained on X and Y to predict Z"
 
-Executes emitted code in the GEVR sandbox with synthesized fixtures.
-Evaluates 6 runtime assertions via execution hooks/tracing (no regex on source).
+Contract under test (Definition of Done #4, R6-4):
+For every deterministic route method, the pipeline either
+  (a) emits code that passes the golden runtime assertions, or
+  (b) refuses with a structured, specific reason.
+An INTERNAL ERROR (any engine exception) is always a hard failure — it is an
+engine defect, never a refusal.
 """
 
 from __future__ import annotations
@@ -25,12 +28,12 @@ import pytest
 ROOT_DIR = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT_DIR / "src"))
 
-from config import Profile
 from gevr_sandbox import GEVRSandbox
 from lattice import LatticeOrchestrator
 from planner import LatticePlanner, _segment_prompt_clauses
+from preflight import PreflightLinter
 from tokenizer import CellTokenizer
-from unification import UnificationGate, ExecutionContext
+from unification import UnificationGate, ExecutionContext, UnificationFailure
 
 BENCHMARK_PROMPT = (
     'load a csv file named "input.csv", normalize X column, drop null values, '
@@ -46,49 +49,81 @@ def orchestrator():
     trees_dir = str(ROOT_DIR / "trees")
     db_path = str(ROOT_DIR / "trees" / "lattice.db")
     orch = LatticeOrchestrator(trees_directory=trees_dir, db_path=db_path)
-    if os.path.exists(db_path):
-        try:
-            orch.load_from_database(db_path)
-        except Exception:
-            orch.load_all_json_trees()
-    else:
-        orch.load_all_json_trees()
+    # Load the JSON trees directly (source of truth, R6-3): the lattice.db cache
+    # is a runtime artifact whose cell construction may diverge from the trees.
+    orch.load_all_json_trees()
     orch.build_topology()
     return orch
 
 
 def _run_pipeline_for_method(orch: LatticeOrchestrator, method: str, profile_name: str = "A"):
-    prof = Profile(profile_name)
+    # SemanticRouteOptimizer accepts any profile-shaped object (str or enum);
+    # config.py declares no Profile enum, so the plain profile string is used.
+    prof = profile_name
     planner = LatticePlanner(orchestrator=orch)
     gate = UnificationGate(orchestrator=orch)
 
     # Route and plan
     relevance_map = {}
     tokens = CellTokenizer.tokenize_prompt(BENCHMARK_PROMPT)
-    for c in orch.all_cells():
+    for c in orch.cells:
         overlap = len(tokens & c.token_set)
         if overlap > 0:
             relevance_map[c.cell_id] = float(overlap)
 
     if method == "M0":
-        best_path, score = planner.plan_dag(BENCHMARK_PROMPT, candidates=orch.all_cells(), relevance_map=relevance_map)
+        # Mirror the CLI: the router computes the semantic tunnel first, then the
+        # M0 trellis plans inside it (planning over the full lattice exhausts the
+        # search budget and is not the CLI's M0 configuration).
+        from router import SemanticRouteOptimizer
+        optimizer = SemanticRouteOptimizer(orch, prof, use_reranker=False)
+        best_path = optimizer.route(BENCHMARK_PROMPT, method_name="M0", relevance_map=relevance_map)
+        if not best_path:
+            router_refusal = getattr(optimizer.router.planner, "last_refusal", None) if hasattr(optimizer.router, "planner") else None
+            if router_refusal:
+                return None, None, None, [], f"planner refusal: {router_refusal.get('reason')}; missing: {router_refusal.get('uncovered_clauses')}"
     else:
         # Use route method
         from router import SemanticRouteOptimizer
-        optimizer = SemanticRouteOptimizer(orch, prof)
+        optimizer = SemanticRouteOptimizer(orch, prof, use_reranker=False)
         best_path = optimizer.route(BENCHMARK_PROMPT, method_name=method, relevance_map=relevance_map)
 
     if not best_path:
-        return None, None, None, []
+        return None, None, None, [], None
 
     ctx = ExecutionContext(prompt=BENCHMARK_PROMPT)
-    unify_res = gate.unify_pipeline(best_path, context=ctx)
-    if not unify_res.is_success():
-        return best_path, None, None, []
+    try:
+        unify_res = gate.unify_pipeline(best_path, context=ctx)
+    except Exception as exc:
+        # R6-4: internal errors must propagate, never masquerade as refusals
+        raise AssertionError(
+            f"INTERNAL ERROR ({type(exc).__name__}) in unify_pipeline for {method}: {exc}"
+        ) from exc
+    if unify_res.is_bottom():
+        refusal = getattr(unify_res, "reason", "type bottom")
+        return best_path, None, None, [], refusal
 
     bindings = unify_res.value
-    code = gate.emit_code(bindings, ctx)
-    return best_path, bindings, code, ctx.ordered_literals
+    try:
+        code = gate.emit_code(bindings, ctx)
+    except UnificationFailure as exc:
+        # Declared synthesis refusal (e.g. unresolved ports after estimator-
+        # identity gating) — the honest refuse arm of the DoD dichotomy.
+        return best_path, None, None, [], str(exc)
+    except Exception as exc:
+        raise AssertionError(
+            f"INTERNAL ERROR ({type(exc).__name__}) in emit_code for {method}: {exc}"
+        ) from exc
+
+    # Pre-flight lint gate — the same check the CLI applies between emission and
+    # execution. A lint-invalid path is REFUSED with specific structured reasons;
+    # it must never reach the sandbox.
+    lint_res = PreflightLinter.lint(bindings, prompt=BENCHMARK_PROMPT, code_str=code)
+    if not lint_res.is_valid:
+        return best_path, None, None, [], (
+            "preflight lint: " + "; ".join(lint_res.violations[:3])
+        )
+    return best_path, bindings, code, ctx.ordered_literals, None
 
 
 def _execute_with_tracing(code: str, bindings: list, literals: list, working_dir: Path):
@@ -173,18 +208,24 @@ _nstl_slm.LinearRegression.fit = _traced_lr_fit
 
 @pytest.mark.parametrize("method", NON_LLM_METHODS)
 def test_golden_prompt(orchestrator, method):
-    if method in ("M2", "M3"):
-        pytest.xfail("M2/M3 path ends in a non-regression sink until PR-B lands")
-
+    """DoD dichotomy: golden-pass OR structured refusal; internal errors always fail."""
     with tempfile.TemporaryDirectory() as tmpdir:
         work_path = Path(tmpdir)
-        best_path, bindings, code, literals = _run_pipeline_for_method(orchestrator, method)
+        best_path, bindings, code, literals, refusal = _run_pipeline_for_method(orchestrator, method)
 
-        assert best_path is not None, f"Planner produced no path for {method}"
-        assert code is not None, f"Synthesis produced no code for {method}"
+        if best_path is None:
+            # No path AND no structured refusal is never acceptable (R6-4/R6-7)
+            assert refusal, f"{method} produced no path and gave no structured refusal reason"
+            return
+        assert best_path, f"Planner produced no path for {method} (without structured refusal)"
 
+        if code is None or bindings is None:
+            # (b) Refusal path: must be a structured, specific reason — never empty
+            assert refusal, f"{method} emitted no code and gave no refusal reason"
+            return
+
+        # (a) Emission path: the golden runtime assertions must all pass
         # 6. No cell on path has empty clause coverage unless it is a bridge or source
-        planner = LatticePlanner(orchestrator=orchestrator)
         clauses = _segment_prompt_clauses(BENCHMARK_PROMPT)
         clause_toks = [CellTokenizer.tokenize_prompt(cl) for cl in clauses]
         for cell in best_path:
