@@ -377,6 +377,46 @@ def run_prompt(request: Union[RunRequest, Dict[str, Any], str]) -> RunResponse:
         except Exception as _lint_err:
             logger.debug(f"Preflight linting error: {_lint_err}")
 
+    # Deterministic Bridge Insertion for Pre-Flight Lint Violations
+    if lint_violations and 'lint_res' in locals() and lint_res and getattr(lint_res, "structured_violations", None) and cells:
+        repaired_cells = list(cells)
+        bridge_inserted = False
+        for viol in lint_res.structured_violations:
+            if viol.check_id in ("shape_carrier_mismatch", "type_unification_failure"):
+                rej_quals = set(viol.details.get("rejected_qualifiers", []))
+                res_quals = set(viol.details.get("resolved_qualifiers", []))
+                conflict = rej_quals & res_quals
+                prod_id = viol.details.get("producer_cell_id")
+
+                bridge_cand = None
+                if "complex" in conflict or ("complex" in rej_quals and "complex" in res_quals):
+                    bridge_cand = _orchestrator.loaded_cells.get("NUMPY_ABS")
+                elif conflict:
+                    for c_cell in _orchestrator.loaded_cells.values():
+                        if getattr(c_cell, "node_role", "") in ("bridge", "transformer"):
+                            c_out_quals = set(getattr(c_cell.primary_output, "qualifiers", []) or [])
+                            if not (c_out_quals & rej_quals):
+                                bridge_cand = c_cell
+                                break
+
+                if bridge_cand and prod_id:
+                    prod_idx = next((i for i, cl in enumerate(repaired_cells) if cl.cell_id == prod_id), None)
+                    if prod_idx is not None and (prod_idx + 1 >= len(repaired_cells) or repaired_cells[prod_idx + 1].cell_id != bridge_cand.cell_id):
+                        repaired_cells.insert(prod_idx + 1, bridge_cand)
+                        bridge_inserted = True
+
+        if bridge_inserted:
+            try:
+                rep_code = local_gate.unify_and_emit(repaired_cells, prompt, intent_data=intent_payload)
+                rep_lint = PreflightLinter.lint(local_gate.last_pipeline_bindings, prompt=prompt, code_str=rep_code)
+                if rep_lint.is_valid:
+                    cells = repaired_cells
+                    code = rep_code
+                    lint_violations = []
+                    logger.info("Deterministic bridge inserted successfully, preflight passed.")
+            except Exception as _bridge_err:
+                logger.debug(f"Deterministic bridge insertion failed: {_bridge_err}")
+
     # Layer 5 Self-Repair for Pre-Flight Lint Violations (Profile C/E)
     if lint_violations and _active_profile in ("C", "E"):
         mm = ModelManager.get_instance()

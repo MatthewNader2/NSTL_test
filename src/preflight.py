@@ -117,9 +117,20 @@ def _check_callable_callees(tree: ast.AST, violations: List[str]) -> None:
 
 class PreflightLintError(Exception):
     """Raised when synthesized code fails static structural pre-flight validation."""
-    def __init__(self, message: str, violations: Optional[List[str]] = None):
+    def __init__(self, message: str, violations: Optional[List[str]] = None, structured_violations: Optional[List[PreflightViolation]] = None):
         super().__init__(message)
         self.violations = violations or [message]
+        self.structured_violations = structured_violations or []
+
+
+@dataclass
+class PreflightViolation:
+    check_id: str
+    message: str
+    cell_id: Optional[str] = None
+    port_name: Optional[str] = None
+    variable_name: Optional[str] = None
+    details: Dict[str, Any] = field(default_factory=dict)
 
 
 @dataclass
@@ -127,11 +138,12 @@ class PreflightLintResult:
     is_valid: bool
     violations: List[str] = field(default_factory=list)
     warnings: List[str] = field(default_factory=list)
+    structured_violations: List[PreflightViolation] = field(default_factory=list)
 
     def raise_if_invalid(self) -> None:
         if not self.is_valid:
             msg = "Pre-flight lint validation failed:\n  - " + "\n  - ".join(self.violations)
-            raise PreflightLintError(msg, violations=self.violations)
+            raise PreflightLintError(msg, violations=self.violations, structured_violations=self.structured_violations)
 
 
 # ---------------------------------------------------------------------------
@@ -380,7 +392,28 @@ class PreflightLinter:
     ) -> PreflightLintResult:
         violations: List[str] = []
         warnings: List[str] = []
+        structured_violations: List[PreflightViolation] = []
         waived = set(waived_literals or set())
+
+        def _add_violation(
+            check_id: str,
+            message: str,
+            cell_id: Optional[str] = None,
+            port_name: Optional[str] = None,
+            variable_name: Optional[str] = None,
+            details: Optional[Dict[str, Any]] = None,
+        ) -> None:
+            violations.append(message)
+            structured_violations.append(
+                PreflightViolation(
+                    check_id=check_id,
+                    message=message,
+                    cell_id=cell_id,
+                    port_name=port_name,
+                    variable_name=variable_name,
+                    details=details or {},
+                )
+            )
 
         # Extract universal literals from prompt if ExecutionContext is available.
         extracted_literals: List[Tuple[int, str, str]] = []
@@ -438,9 +471,7 @@ class PreflightLinter:
                                     is_consumed = True
                                     break
                     except SyntaxError:
-                        violations.append(
-                            "Synthesized code failed static AST parsing (SyntaxError)."
-                        )
+                        _add_violation("syntax_error", "Synthesized code failed static AST parsing (SyntaxError).")
                         is_consumed = False
                     except Exception:
                         is_consumed = False
@@ -450,14 +481,74 @@ class PreflightLinter:
                         f"Universal literal '{clean_lit}' (kind: {kind}) extracted from prompt "
                         f"was not consumed by any bound port on the path."
                     )
-                    is_path_like = (
-                        kind == "file_asset"
-                        or (kind == "quoted_str" and ExecutionContext._is_path_string(clean_lit))
+                    _add_violation(
+                        "unconsumed_literal",
+                        msg,
+                        details={"literal": clean_lit, "kind": kind}
                     )
-                    if is_path_like:
-                        violations.append(msg)
-                    else:
-                        warnings.append(msg)
+
+        # -----------------------------------------------------------------
+        # Check 1b: Active Column Set Tracking (Column Invalidation / Removal)
+        # -----------------------------------------------------------------
+        removed_columns: Set[str] = set()
+        for cell, bindings in pipeline_bindings:
+            if not isinstance(bindings, dict):
+                continue
+            # Check if any port binding references an already-removed column
+            for p_name, val in bindings.items():
+                if val is None or _is_unbound(val):
+                    continue
+                val_str = str(val)
+                for rem_col in list(removed_columns):
+                    rem_lower = rem_col.lower()
+                    is_ref = False
+                    if val_str.strip("'\"").lower() == rem_lower:
+                        is_ref = True
+                    elif f"'{rem_lower}'" in val_str.lower() or f'"{rem_lower}"' in val_str.lower():
+                        is_ref = True
+                    if is_ref:
+                        msg = (
+                            f"Cell '{cell.cell_id}' port '{p_name}' references column '{rem_col}' "
+                            f"which was removed/invalidated by an earlier cell with 'removes_columns' effect."
+                        )
+                        _add_violation(
+                            "removed_column_reference",
+                            msg,
+                            cell_id=cell.cell_id,
+                            port_name=p_name,
+                            details={"column": rem_col, "bound_val": val_str},
+                        )
+
+            # Record columns removed by this cell
+            effects = getattr(cell, "effects", []) or []
+            if isinstance(effects, (list, tuple, set)) and "removes_columns" in effects:
+                for col_key in ("column", "columns", "key"):
+                    if col_key in bindings and bindings[col_key] is not None:
+                        c_val = bindings[col_key]
+                        if isinstance(c_val, (list, tuple, set)):
+                            for item in c_val:
+                                cl = str(item).strip("'\"")
+                                if cl:
+                                    removed_columns.add(cl)
+                        else:
+                            cl_s = str(c_val).strip("'\"")
+                            if cl_s.startswith("[") and cl_s.endswith("]"):
+                                try:
+                                    import json
+                                    parsed = json.loads(cl_s)
+                                    if isinstance(parsed, list):
+                                        for item in parsed:
+                                            removed_columns.add(str(item).strip("'\""))
+                                except Exception:
+                                    pass
+                            elif cl_s:
+                                removed_columns.add(cl_s)
+                c_lits = getattr(cell, "clause_literals", None)
+                if c_lits:
+                    for cl_lit in c_lits:
+                        cl = str(cl_lit).strip("'\"")
+                        if cl:
+                            removed_columns.add(cl)
 
         # -----------------------------------------------------------------
         # Check 2: No bare None in required data-bearing positions
@@ -473,10 +564,11 @@ class PreflightLinter:
                     continue
                 bound_val = bindings.get(p_name)
                 if _is_unbound(bound_val):
-                    violations.append(
+                    msg = (
                         f"Cell '{cell.cell_id}' port '{p_name}' has data-bearing role '{p_role}' "
                         f"but received bare None or unresolved value."
                     )
+                    _add_violation("unbound_data_port", msg, cell_id=cell.cell_id, port_name=p_name, details={"port_role": p_role})
 
         # -----------------------------------------------------------------
         # Check 2b: Cross-Port Static Type and Carrier Compatibility
@@ -517,10 +609,11 @@ class PreflightLinter:
                     continue
 
                 if resolved_sig is None:
-                    violations.append(
+                    msg = (
                         f"Cell '{cell.cell_id}' port '{p_name}' references undefined pipeline variable '{root_var}' "
                         f"with no producing cell in DAG history."
                     )
+                    _add_violation("undefined_variable", msg, cell_id=cell.cell_id, port_name=p_name, variable_name=root_var)
                     continue
 
                 prod_cell, prod_port = var_producers.get(root_var, (None, None))
@@ -528,9 +621,25 @@ class PreflightLinter:
 
                 # 1. Structural Carrier & Shape Compatibility
                 if not _shape_compatible(resolved_sig, in_port_sig):
-                    violations.append(
+                    res_quals = getattr(resolved_sig, "qualifiers", frozenset())
+                    in_rej = getattr(in_port_sig, "rejected_qualifiers", frozenset())
+                    msg = (
                         f"Cell '{cell.cell_id}' port '{p_name}' has carrier/shape mismatch with "
                         f"bound variable '{bound_val}' (produced by '{prod_id}' port '{prod_port}')."
+                    )
+                    _add_violation(
+                        "shape_carrier_mismatch",
+                        msg,
+                        cell_id=cell.cell_id,
+                        port_name=p_name,
+                        variable_name=root_var,
+                        details={
+                            "bound_val": bound_val,
+                            "producer_cell_id": prod_id,
+                            "producer_port": prod_port,
+                            "resolved_qualifiers": list(res_quals) if isinstance(res_quals, (set, frozenset, list)) else [],
+                            "rejected_qualifiers": list(in_rej) if isinstance(in_rej, (set, frozenset, list)) else [],
+                        },
                     )
                     continue
 
@@ -541,9 +650,23 @@ class PreflightLinter:
                 if sub is None:
                     prod_t = getattr(p_term, "type_name", str(p_term))
                     cons_t = getattr(c_term, "type_name", str(c_term))
-                    violations.append(
+                    msg = (
                         f"Cell '{cell.cell_id}' port '{p_name}' (expected type '{cons_t}') failed "
                         f"type unification with bound variable '{bound_val}' (producer type '{prod_t}' from '{prod_id}')."
+                    )
+                    _add_violation(
+                        "type_unification_failure",
+                        msg,
+                        cell_id=cell.cell_id,
+                        port_name=p_name,
+                        variable_name=root_var,
+                        details={
+                            "bound_val": bound_val,
+                            "producer_cell_id": prod_id,
+                            "producer_port": prod_port,
+                            "producer_type": prod_t,
+                            "consumer_type": cons_t,
+                        },
                     )
 
             if _is_sink_cell(cell):
@@ -615,17 +738,19 @@ class PreflightLinter:
 
                 for p_name in required_features:
                     if _is_unbound(bindings.get(p_name)):
-                        violations.append(
+                        msg = (
                             f"Estimator-shaped cell '{cell.cell_id}' requires feature port "
                             f"'{p_name}', which was left unbound or None."
                         )
+                        _add_violation("estimator_contract", msg, cell_id=cell.cell_id, port_name=p_name, details={"role": "feature"})
                 for p_name in required_targets:
                     if _is_unbound(bindings.get(p_name)):
-                        violations.append(
+                        msg = (
                             f"Estimator-shaped cell '{cell.cell_id}' requires target port "
                             f"'{p_name}' for the supervised relation implied by data "
                             f"identifiers {data_ids}, but it was left unbound or None."
                         )
+                        _add_violation("estimator_contract", msg, cell_id=cell.cell_id, port_name=p_name, details={"role": "target", "data_ids": data_ids})
 
         # -----------------------------------------------------------------
         # Check 3b: Explicit Unresolved Port Detection
@@ -633,17 +758,19 @@ class PreflightLinter:
         for cell, bindings in pipeline_bindings:
             for p_name, val in bindings.items():
                 if val is UNRESOLVED_PORT:
-                    violations.append(
+                    msg = (
                         f"Cell '{cell.cell_id}' port '{p_name}' has unresolved binding "
                         f"value: '{val}'"
                     )
+                    _add_violation("unresolved_port", msg, cell_id=cell.cell_id, port_name=p_name, details={"value": str(val)})
                 elif isinstance(val, str) and val in (
                     str(UNRESOLVED_PORT), "<UNRESOLVED>", "<unbound>"
                 ):
-                    violations.append(
+                    msg = (
                         f"Cell '{cell.cell_id}' port '{p_name}' has unresolved binding "
                         f"value: '{val}'"
                     )
+                    _add_violation("unresolved_port", msg, cell_id=cell.cell_id, port_name=p_name, details={"value": str(val)})
 
         # -----------------------------------------------------------------
         # Check 3c: Object-Receiver Ports Must Bind a Variable, Not a Literal
@@ -665,11 +792,12 @@ class PreflightLinter:
                     continue  # already reported by Check 2 / Check 3b
                 val_str = str(bound_val).strip()
                 if not val_str.isidentifier():
-                    violations.append(
+                    msg = (
                         f"Cell '{cell.cell_id}' port '{p_name}' has data-bearing role "
                         f"'{p_role}' (a fitted model/estimator instance) but was bound to "
                         f"literal expression '{val_str}' instead of a variable reference."
                     )
+                    _add_violation("object_receiver_literal", msg, cell_id=cell.cell_id, port_name=p_name, details={"port_role": p_role, "bound_val": val_str})
 
         # -----------------------------------------------------------------
         # Check 4: AST Syntax Validation (if code_str provided)
@@ -677,12 +805,22 @@ class PreflightLinter:
         if code_str:
             try:
                 tree = ast.parse(code_str)
+                pre_cnt = len(violations)
                 _check_callable_callees(tree, violations)
+                for v in violations[pre_cnt:]:
+                    structured_violations.append(
+                        PreflightViolation(
+                            check_id="callable_callee_constant",
+                            message=v,
+                            details={"code": code_str},
+                        )
+                    )
             except SyntaxError as e:
-                violations.append(f"Synthesized code has syntax error: {e}")
+                msg = f"Synthesized code has syntax error: {e}"
+                _add_violation("syntax_error", msg, details={"error": str(e)})
 
         is_valid = len(violations) == 0
-        return PreflightLintResult(is_valid=is_valid, violations=violations, warnings=warnings)
+        return PreflightLintResult(is_valid=is_valid, violations=violations, warnings=warnings, structured_violations=structured_violations)
 
     @staticmethod
     def audit_lattice(orchestrator: Any) -> Optional[Any]:

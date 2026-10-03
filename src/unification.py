@@ -207,6 +207,28 @@ def _shape_compatible(p_out: Any, p_in: Any) -> bool:
         return False
     if out_abs in ("sequence", "scalar", "collection") and in_abs == "table":
         return False
+
+    rej_quals = (
+        getattr(p_in, "rejected_qualifiers", None)
+        or getattr(in_sig_o, "rejected_qualifiers", None)
+        or frozenset()
+    )
+    if rej_quals:
+        out_quals = (
+            getattr(p_out, "qualifiers", None)
+            or getattr(out_sig_o, "qualifiers", None)
+            or frozenset()
+        )
+        flat_out_quals = set()
+        for q in out_quals:
+            if isinstance(q, tuple):
+                flat_out_quals.add(str(q[0]).lower())
+                flat_out_quals.add(str(q[1]).lower())
+            else:
+                flat_out_quals.add(str(q).lower())
+        if any(str(rq).lower() in flat_out_quals for rq in rej_quals):
+            return False
+
     out_sc = getattr(out_sig_o, "shape_contract", None)
     in_sc = getattr(in_sig_o, "shape_contract", None)
     if out_sc and in_sc:
@@ -3352,6 +3374,7 @@ class UnificationGate:
                         elif not ExecutionContext._is_path_string(v_str) and "." not in v_str:
                             target_col_for_cell = v_str
                             break
+            ctx.target_col_for_cell = target_col_for_cell
             # For-each replicas (multiplicity expansion): a replica RE-CONSUMES
             # its receiver from the environment's in-scope variables (e.g. the
             # source table) instead of the previous wire, and its reference
@@ -3593,8 +3616,14 @@ class UnificationGate:
             col_mismatch = False
             if producer_var is not None and not bound_producer and not is_zero_ary and not is_replica:
                 prod_origins = getattr(ctx, "var_origins", {}).get(producer_var, set())
+                all_known_origins = set().union(*getattr(ctx, "var_origins", {}).values()) if getattr(ctx, "var_origins", None) else set()
+                is_new_target_col = target_col_for_cell is not None and (
+                    target_col_for_cell not in all_known_origins
+                    and target_col_for_cell.lower() not in {str(o).lower() for o in all_known_origins}
+                )
                 col_mismatch = bool(
                     target_col_for_cell is not None
+                    and not is_new_target_col
                     and prod_origins
                     and target_col_for_cell not in prod_origins
                     and target_col_for_cell.lower() not in {str(o).lower() for o in prod_origins}
@@ -3979,8 +4008,24 @@ class UnificationGate:
 
                     # Column provenance gating: don't bind a variable from column X into a cell targeting column Y
                     v_origins = getattr(ctx, "var_origins", {}).get(v_name, set())
+                    p_abstract = getattr(concrete_sig, "abstract_type", "")
+                    p_tn = str(getattr(getattr(concrete_sig, "signature", concrete_sig), "type_name", "")).lower()
+                    is_table_carrier = (p_abstract == "table" or registry.is_subtype(p_tn, "table"))
+                    is_assign_val = (
+                        p_name in ("value", "val")
+                        or p_role_in == "value"
+                        or any(target_col_for_cell and str(target_col_for_cell).lower() in str(b).lower() for b in cell_bindings.values() if isinstance(b, str))
+                    )
+                    all_known_origins = set().union(*getattr(ctx, "var_origins", {}).values()) if getattr(ctx, "var_origins", None) else set()
+                    is_new_target_col = target_col_for_cell is not None and (
+                        target_col_for_cell not in all_known_origins
+                        and target_col_for_cell.lower() not in {str(o).lower() for o in all_known_origins}
+                    )
                     if (
                         target_col_for_cell is not None
+                        and not is_table_carrier
+                        and not is_assign_val
+                        and not is_new_target_col
                         and v_origins
                         and target_col_for_cell not in v_origins
                         and target_col_for_cell.lower() not in {str(o).lower() for o in v_origins}
@@ -6126,6 +6171,7 @@ def unify_cell_with_scope(
     sub = Substitution(sigma.mappings if sigma else {})
     port_bindings: Dict[str, Tuple[Cell, str]] = {}
     bound_count = 0
+    target_col_for_cell = getattr(context, "target_col_for_cell", None)
 
     candidates = []
     # Collect candidate wire matches across all available DAG output ports
@@ -6139,6 +6185,23 @@ def unify_cell_with_scope(
         for idx_c, earlier_cell in enumerate(reversed(available_cells)):
             if _is_sink_cell(earlier_cell):
                 continue
+            if target_col_for_cell is not None and context is not None:
+                p_abstract = getattr(p_sig, "abstract_type", "")
+                p_tn = str(getattr(getattr(p_sig, "signature", p_sig), "type_name", "")).lower()
+                is_table_carrier = (p_abstract == "table" or TypeRegistry.get_instance().is_subtype(p_tn, "table"))
+                is_assign_val = (p_name in ("value", "val") or in_role == "value" or "column" in cand.inputs)
+                all_known_origins = set().union(*getattr(context, "var_origins", {}).values()) if getattr(context, "var_origins", None) else set()
+                is_new_target_col = (
+                    target_col_for_cell not in all_known_origins
+                    and target_col_for_cell.lower() not in {str(o).lower() for o in all_known_origins}
+                )
+                if not is_table_carrier and not is_assign_val and not is_new_target_col:
+                    earlier_origins = set()
+                    for v_n, src_c in getattr(context, "var_sources", {}).items():
+                        if src_c is earlier_cell or id(src_c) == id(earlier_cell):
+                            earlier_origins.update(getattr(context, "var_origins", {}).get(v_n, set()))
+                    if earlier_origins and target_col_for_cell not in earlier_origins and target_col_for_cell.lower() not in {str(o).lower() for o in earlier_origins}:
+                        continue
             for out_name, out_sig in earlier_cell.outputs.items():
                 if not _shape_compatible(out_sig, p_sig):
                     continue
@@ -6187,6 +6250,25 @@ def unify_cell_with_scope(
             for v_name, (v_sig, _) in context.variables.items():
                 v_cell = getattr(context, "var_sources", {}).get(v_name)
                 if v_cell is not None and id(v_cell) in avail_cell_ids:
+                    continue
+                p_abstract = getattr(p_sig, "abstract_type", "")
+                p_tn = str(getattr(getattr(p_sig, "signature", p_sig), "type_name", "")).lower()
+                is_table_carrier = (p_abstract == "table" or TypeRegistry.get_instance().is_subtype(p_tn, "table"))
+                is_assign_val = (p_name in ("value", "val") or in_role == "value" or "column" in cand.inputs)
+                all_known_origins = set().union(*getattr(context, "var_origins", {}).values()) if getattr(context, "var_origins", None) else set()
+                is_new_target_col = (
+                    target_col_for_cell not in all_known_origins
+                    and target_col_for_cell.lower() not in {str(o).lower() for o in all_known_origins}
+                )
+                if (
+                    target_col_for_cell is not None
+                    and not is_table_carrier
+                    and not is_assign_val
+                    and not is_new_target_col
+                    and v_origins
+                    and target_col_for_cell not in v_origins
+                    and target_col_for_cell.lower() not in {str(o).lower() for o in v_origins}
+                ):
                     continue
                 if not _shape_compatible(v_sig, p_sig):
                     continue
@@ -6240,8 +6322,8 @@ def unify_cell_with_scope(
                 satisfied = True
             else:
                 p_role = getattr(p_sig, "port_role", None) or getattr(p_sig, "derived_role", "")
-                projective_roles = _declared_role_semantics("projective_roles") | _declared_role_semantics("feature_roles") | _declared_role_semantics("target_roles") | {"feature_input", "target_input", "projection"}
-                if p_role in projective_roles:
+                projective_roles = _declared_role_semantics("projective_roles") | _declared_role_semantics("feature_roles") | _declared_role_semantics("target_roles") | {"feature_input", "target_input", "projection", "data_input"}
+                if target_col_for_cell is not None or p_role in projective_roles:
                     has_carrier = any(
                         registry.is_subtype(str(getattr(out_s.signature, "type_name", "")).lower(), "table")
                         or getattr(out_s, "abstract_type", "") in ("table", "tensor")

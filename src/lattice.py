@@ -1847,6 +1847,7 @@ class PortSignature:
     __slots__ = [
         "name", "signature", "required", "default_value", "doc", "domain",
         "abstract_type", "enum_values", "param_kind", "value_constraints", "shape_contract",
+        "rejected_qualifiers",
         "accepted_states", "parent_state", "port_role", "_cached_term", "_cached_col_proj",
         "_cached_derived_role", "_cached_is_path_port", "_cached_ndim"
     ]
@@ -1864,6 +1865,7 @@ class PortSignature:
         param_kind: str = "standard",
         value_constraints: Optional[Dict[str, Any]] = None,
         shape_contract: Optional[Dict[str, Any]] = None,
+        rejected_qualifiers: Optional[Union[List[str], Set[str], FrozenSet[str]]] = None,
         accepted_states: Optional[Union[List[str], Set[str], FrozenSet[str]]] = None,
         parent_state: Optional[str] = None,
         port_role: Optional[str] = None,
@@ -1876,6 +1878,11 @@ class PortSignature:
         self.param_kind = str(param_kind or kwargs.get("param_kind", "standard"))
         self.value_constraints = value_constraints if value_constraints is not None else kwargs.get("value_constraints")
         self.shape_contract = shape_contract if shape_contract is not None else kwargs.get("shape_contract")
+        acc_rej = rejected_qualifiers if rejected_qualifiers is not None else kwargs.get("rejected_qualifiers", [])
+        if isinstance(acc_rej, (set, frozenset, list, tuple)):
+            self.rejected_qualifiers = frozenset(str(s).strip().lower() for s in acc_rej if str(s).strip())
+        else:
+            self.rejected_qualifiers = frozenset()
         self.port_role = str(port_role).strip().lower() if port_role else (str(kwargs.get("port_role")).strip().lower() if kwargs.get("port_role") else None)
 
         acc = accepted_states if accepted_states is not None else kwargs.get("accepted_states", [])
@@ -2054,7 +2061,7 @@ class Cell(ABC):
         "primary_in", "primary_out",
         "_primary_input", "_primary_output", "_token_set", "_token_count",
         "_identity_tokens", "bound_parent_ids", "matched_clause_idx",
-        "clause_literals"
+        "clause_literals", "fixture_needs"
     ]
 
     def __init__(
@@ -2095,6 +2102,7 @@ class Cell(ABC):
         endable: Optional[bool] = None,
         primary_in: Optional[str] = None,
         primary_out: Optional[str] = None,
+        fixture_needs: Optional[List[str]] = None,
         **kwargs
     ):
         self.cell_id = cell_id
@@ -2152,6 +2160,7 @@ class Cell(ABC):
         self.endable = endable if endable is not None else kwargs.get("endable")
         self.primary_in = primary_in if primary_in is not None else kwargs.get("primary_in")
         self.primary_out = primary_out if primary_out is not None else kwargs.get("primary_out")
+        self.fixture_needs = list(fixture_needs or kwargs.get("fixture_needs", []))
 
         # For-each multiplicity expansion: a replica is a runtime copy of a
         # planned cell that re-consumes its receiver from the environment and
@@ -2262,6 +2271,7 @@ class Cell(ABC):
                     param_kind=v.get("param_kind", "standard"),
                     value_constraints=v.get("value_constraints"),
                     shape_contract=v.get("shape_contract"),
+                    rejected_qualifiers=v.get("rejected_qualifiers", []),
                     accepted_states=acc_s,
                     parent_state=p_s,
                     port_role=v.get("port_role") or v.get("role"),
@@ -2825,6 +2835,7 @@ class LatticeOrchestrator:
                     endable=c_dict.get("endable"),
                     primary_in=c_dict.get("primary_in"),
                     primary_out=c_dict.get("primary_out"),
+                    fixture_needs=c_dict.get("fixture_needs", []),
                     sub_cells=c_dict.get("sub_cells", []),
                     algorithmic_steps=c_dict.get("algorithmic_steps", []),
                     internal_topology=c_dict.get("internal_topology", {}),
@@ -3129,6 +3140,7 @@ class LatticeOrchestrator:
                                         param_kind=p_val.get("param_kind", "standard"),
                                         value_constraints=p_val.get("value_constraints"),
                                         shape_contract=p_val.get("shape_contract"),
+                                        rejected_qualifiers=p_val.get("rejected_qualifiers", []),
                                         accepted_states=acc_s,
                                         parent_state=p_s,
                                         port_role=p_val.get("port_role"),

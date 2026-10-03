@@ -590,6 +590,9 @@ class GEVRSandbox:
         egress_paths: Optional[List[str]] = None,
         verification_spec: Optional[Any] = None,
         runtime_aliases: Optional[Dict[str, str]] = None,
+        pipeline_bindings: Optional[List[Tuple[Any, Dict[str, Any]]]] = None,
+        extracted_literals: Optional[List[Tuple[int, str, Any]]] = None,
+        fixtures_dir: Optional[str] = None,
     ) -> Dict[str, Any]:
         """
         Execute code in a separate process under the unified contract.
@@ -597,6 +600,22 @@ class GEVRSandbox:
         workers, and ALWAYS returns the full result envelope (it never raises
         for execution failures, so every caller can uniformly read 'success').
         """
+        # Synthesize any input file fixtures required by the planned pipeline
+        if pipeline_bindings:
+            try:
+                try:
+                    from .fixtures import FixtureSynthesizer
+                except (ImportError, ValueError):
+                    from fixtures import FixtureSynthesizer
+                target_dir = fixtures_dir or os.getcwd()
+                FixtureSynthesizer.synthesize_for_pipeline(
+                    pipeline_bindings=pipeline_bindings,
+                    working_dir=target_dir,
+                    extracted_literals=extracted_literals,
+                )
+            except Exception as fix_err:
+                logger.warning(f"[SANDBOX] Fixture synthesis encountered an error: {fix_err}")
+
         exec_timeout = timeout if timeout is not None else self.default_timeout
         context = context or {}
         ctx = multiprocessing.get_context("spawn")

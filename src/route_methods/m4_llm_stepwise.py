@@ -110,14 +110,29 @@ class M4LLMStepwiseRouteMethod(RouteMethod):
             curr_out_st = str(getattr(curr.primary_output, "state", "")).lower()
             is_pred = bool(TypeRegistry.get_instance().get_state_properties(curr_out_st).get("is_prediction")) or curr_out_st.startswith("predicted_")
 
+            drop_reasons: Dict[str, int] = {}
             valid = []
             for c in candidates:
-                if c.cell_id in visited or not (self.step_unifies(curr, c, prev_path=path) or self.step_unifies_dag(c, path, ctx=ctx)): continue
+                if c.cell_id in visited:
+                    drop_reasons["already_visited"] = drop_reasons.get("already_visited", 0) + 1
+                    continue
+                if not (self.step_unifies(curr, c, prev_path=path) or self.step_unifies_dag(c, path, ctx=ctx)):
+                    drop_reasons["unification_failure"] = drop_reasons.get("unification_failure", 0) + 1
+                    continue
                 c_out = str(getattr(c.primary_output, "state", "")).lower()
-                if has_reg and ("label" in c_out or c_out == "predicted_labels"): continue
-                if has_cls and c_out == "predicted_values": continue
-                if is_pred and (getattr(c, "node_role", "") in ("estimator", "model") or "fit" in c.cell_id.lower()): continue
+                if has_reg and ("label" in c_out or c_out == "predicted_labels"):
+                    drop_reasons["reg_label_conflict"] = drop_reasons.get("reg_label_conflict", 0) + 1
+                    continue
+                if has_cls and c_out == "predicted_values":
+                    drop_reasons["cls_value_conflict"] = drop_reasons.get("cls_value_conflict", 0) + 1
+                    continue
+                if is_pred and (getattr(c, "node_role", "") in ("estimator", "model") or "fit" in c.cell_id.lower()):
+                    drop_reasons["post_pred_estimator"] = drop_reasons.get("post_pred_estimator", 0) + 1
+                    continue
                 valid.append(c)
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.debug("M4 step %d: candidate count=%d, valid count=%d, drop reasons: %s", step_idx, len(candidates), len(valid), drop_reasons)
             if not valid: break
 
             if ir_steps and step_idx < len(ir_steps):
@@ -168,4 +183,37 @@ class M4LLMStepwiseRouteMethod(RouteMethod):
             else:
                 stall += 1
                 if stall >= 3 and step_idx >= max(1, len(clauses) - 1): break
+
+        # Check fallback condition: len(path) < 5 or clause coverage < coverage_floor_fraction
+        try:
+            from config import NSTLSettings
+            cov_floor = NSTLSettings().coverage_floor_fraction
+        except Exception:
+            cov_floor = 0.85
+        total_clauses = len(clauses) if clauses else 1
+        curr_coverage = _cov_cnt(path) / total_clauses
+
+        if len(path) < 5 or curr_coverage < cov_floor:
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.info("M4 fallback triggered: len(path)=%d < 5 or coverage=%.2f < %.2f. Falling back to M1ClauseAnchorRouteMethod.", len(path), curr_coverage, cov_floor)
+            try:
+                from .m1_clause_anchor import M1ClauseAnchorRouteMethod
+                m1 = M1ClauseAnchorRouteMethod(self.orchestrator)
+                fallback_path = m1.plan(
+                    prompt=prompt,
+                    tunnel=tunnel,
+                    relevance_map=relevance_map,
+                    orchestrator=orch,
+                    ctx=ctx,
+                    start_sig=start_sig,
+                    goal_sig=goal_sig,
+                    max_transforms=max_transforms,
+                    **kwargs,
+                )
+                if fallback_path and len(fallback_path) >= len(path):
+                    return fallback_path
+            except Exception as e:
+                logger.warning("M4 fallback to M1 failed: %s", e)
+
         return path

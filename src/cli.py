@@ -1391,10 +1391,14 @@ class PipelineDebugger:
                             b_val = str(bindings[p_name])
                             if any(b_val.strip("'\"") == lit for lit in prompt_lits):
                                 source_desc = "Prompt Literal"
+                            elif any(f"'{lit}'" in b_val or f'"{lit}"' in b_val for lit in prompt_lits) or (b_val.startswith("[") and b_val.endswith("]")):
+                                source_desc = "Literal Projection"
                             elif b_val.startswith("var_") or b_val.startswith("v"):
                                 source_desc = "Wired Variable"
-                            elif p_sig.default_value is not None:
+                            elif p_sig.default_value is not None and str(p_sig.default_value) == b_val:
                                 source_desc = "Declared Default"
+                            elif p_sig.default_value is not None:
+                                source_desc = "Literal Projection"
                             else:
                                 source_desc = "Dynamic Resolver"
                         elif p_sig.default_value is not None:
@@ -1445,9 +1449,55 @@ class PipelineDebugger:
                     lint_res = PreflightLinter.lint(pipeline_bindings, prompt=prompt, code_str=final_code)
                     lint_valid = lint_res.is_valid
 
-                # Layer 5 Self-Repair for Pre-Flight Lint Violations (Profile C/E)
+                # Deterministic Bridge Insertion for Pre-Flight Lint Violations
+                if not lint_valid and lint_res and getattr(lint_res, "structured_violations", None) and cells:
+                    t_bridge_0 = time.perf_counter()
+                    repaired_cells = list(cells)
+                    bridge_inserted = False
+
+                    for viol in lint_res.structured_violations:
+                        if viol.check_id in ("shape_carrier_mismatch", "type_unification_failure"):
+                            rej_quals = set(viol.details.get("rejected_qualifiers", []))
+                            res_quals = set(viol.details.get("resolved_qualifiers", []))
+                            conflict = rej_quals & res_quals
+                            prod_id = viol.details.get("producer_cell_id")
+
+                            bridge_cand = None
+                            if "complex" in conflict or ("complex" in rej_quals and "complex" in res_quals):
+                                bridge_cand = self.orchestrator.loaded_cells.get("NUMPY_ABS")
+                            elif conflict:
+                                for c_cell in self.orchestrator.loaded_cells.values():
+                                    if getattr(c_cell, "node_role", "") in ("bridge", "transformer"):
+                                        c_out_quals = set(getattr(c_cell.primary_output, "qualifiers", []) or [])
+                                        if not (c_out_quals & rej_quals):
+                                            bridge_cand = c_cell
+                                            break
+
+                            if bridge_cand and prod_id:
+                                prod_idx = next((i for i, cl in enumerate(repaired_cells) if cl.cell_id == prod_id), None)
+                                if prod_idx is not None and (prod_idx + 1 >= len(repaired_cells) or repaired_cells[prod_idx + 1].cell_id != bridge_cand.cell_id):
+                                    repaired_cells.insert(prod_idx + 1, bridge_cand)
+                                    bridge_inserted = True
+
+                    if bridge_inserted:
+                        try:
+                            res_synth = self.gate.synthesize(repaired_cells, prompt=prompt_clean, route_method=route_method_name)
+                            rep_lint = PreflightLinter.lint(self.gate.last_pipeline_bindings, prompt=prompt, code_str=res_synth.code)
+                            bridge_dt = (time.perf_counter() - t_bridge_0) * 1000.0
+                            if rep_lint.is_valid:
+                                c.print(f"  [bold green][✓] Deterministic bridge morphism inserted ({bridge_dt:.1f}ms).[/bold green]\n")
+                                cells = repaired_cells
+                                final_code = res_synth.code
+                                pipeline_bindings = self.gate.last_pipeline_bindings
+                                lint_valid = True
+                                lint_res = rep_lint
+                        except Exception as e:
+                            c.print(f"  [dim yellow]Deterministic bridge insertion attempt encountered: {e}[/dim yellow]")
+
+                # Layer 5 Self-Repair for Pre-Flight Lint Violations (Profile C/E or --llm-feedback)
+                llm_feedback = getattr(self, "llm_feedback", False) or (prof in ("C", "E"))
                 rep_dt = 0.0
-                if not lint_valid and prof in ("C", "E") and final_code:
+                if not lint_valid and llm_feedback and final_code:
                     mm = ModelManager.get_instance()
                     if mm.profile and mm.can_feedback_check():
                         err_msg = "Pre-flight lint validation failed:\n" + "\n".join(f"- {v}" for v in lint_res.violations)
@@ -1545,7 +1595,15 @@ class PipelineDebugger:
             else:
                 t_exec_start = time.perf_counter()
                 v_contract = getattr(self.gate, "last_verification_contract", None)
-                sandbox_res = self.sandbox.execute(final_code, timeout=timeout, egress_paths=dest_paths, verification_spec=v_contract, runtime_aliases=getattr(self.gate, 'last_runtime_aliases', None))
+                sandbox_res = self.sandbox.execute(
+                    final_code,
+                    timeout=timeout,
+                    egress_paths=dest_paths,
+                    verification_spec=v_contract,
+                    runtime_aliases=getattr(self.gate, 'last_runtime_aliases', None),
+                    pipeline_bindings=pipeline_bindings,
+                    extracted_literals=literals,
+                )
                 sandbox_dt = (time.perf_counter() - t_exec_start) * 1000.0
 
             sb_success = sandbox_res.get("success", False)
@@ -1631,7 +1689,15 @@ class PipelineDebugger:
                             final_code = repaired_code
                             repaired = True
                             v_contract = getattr(self.gate, "last_verification_contract", None)
-                            sandbox_res = self.sandbox.execute(final_code, timeout=timeout, egress_paths=dest_paths, verification_spec=v_contract, runtime_aliases=getattr(self.gate, 'last_runtime_aliases', None))
+                            sandbox_res = self.sandbox.execute(
+                                final_code,
+                                timeout=timeout,
+                                egress_paths=dest_paths,
+                                verification_spec=v_contract,
+                                runtime_aliases=getattr(self.gate, 'last_runtime_aliases', None),
+                                pipeline_bindings=pipeline_bindings,
+                                extracted_literals=literals,
+                            )
                             c.print(f"  [bold]Post-Repair Result:[/bold] {'[green]PASSED[/green]' if sandbox_res.get('success') else '[red]FAILED[/red]'}\n")
                     else:
                         c.print(f"  [yellow][!] LLM could not produce an alternative repair ({rep_dt:.1f}ms).[/yellow]\n")
@@ -1717,6 +1783,8 @@ class NSTLInteractiveShell(cmd.Cmd):
         timeout: float = DEFAULT_SANDBOX_TIMEOUT,
         reranker: Optional[bool] = None,
         reranker_model: Optional[str] = None,
+        exec_sandbox: bool = False,
+        llm_feedback: bool = False,
     ):
         super().__init__()
         self.db_path = db_path
@@ -1726,11 +1794,15 @@ class NSTLInteractiveShell(cmd.Cmd):
         self.active_profile = "0"
         self.route_method = route_method.upper() if route_method else None
         self.no_lint: bool = bool(no_lint)
+        self.llm_feedback: bool = bool(llm_feedback)
         self.rag: Optional[LocalRAG] = None
         self.history: List[Dict[str, Any]] = []
         self.debug: bool = debug
         self.interactive: bool = interactive
-        self.no_exec: bool = no_exec or not getattr(settings, "sandbox_enabled", True)
+        if exec_sandbox:
+            self.no_exec = False
+        else:
+            self.no_exec = no_exec or not getattr(settings, "sandbox_enabled", True)
         self.timeout: float = timeout
 
         if reranker is not None:
@@ -2648,7 +2720,15 @@ class NSTLInteractiveShell(cmd.Cmd):
                 sandbox_res = {"success": None, "skipped": True, "verified": bool(v_contract)}
             sandbox_dt = 0.0
         else:
-            sandbox_res = self.sandbox.execute(final_code, timeout=self.timeout, egress_paths=dest_paths, verification_spec=v_contract, runtime_aliases=getattr(self.gate, 'last_runtime_aliases', None))
+            last_bindings = getattr(self.gate, "last_pipeline_bindings", None)
+            sandbox_res = self.sandbox.execute(
+                final_code,
+                timeout=self.timeout,
+                egress_paths=dest_paths,
+                verification_spec=v_contract,
+                runtime_aliases=getattr(self.gate, 'last_runtime_aliases', None),
+                pipeline_bindings=last_bindings,
+            )
             sandbox_dt = (time.perf_counter() - t_exec_start) * 1000.0
 
         repaired = False
@@ -2677,7 +2757,15 @@ class NSTLInteractiveShell(cmd.Cmd):
                         else:
                             final_code = repaired_code
                             repaired = True
-                            sandbox_res = self.sandbox.execute(final_code, timeout=self.timeout, egress_paths=dest_paths, verification_spec=v_contract, runtime_aliases=getattr(self.gate, 'last_runtime_aliases', None))
+                            last_bindings = getattr(self.gate, "last_pipeline_bindings", None)
+                            sandbox_res = self.sandbox.execute(
+                                final_code,
+                                timeout=self.timeout,
+                                egress_paths=dest_paths,
+                                verification_spec=v_contract,
+                                runtime_aliases=getattr(self.gate, 'last_runtime_aliases', None),
+                                pipeline_bindings=last_bindings,
+                            )
                     rep_dt = (time.perf_counter() - t_rep_start) * 1000.0
                     console.print(f"  [bold green][✓] Repair cycle completed ({rep_dt:.1f}ms).[/bold green]")
 
@@ -2786,6 +2874,8 @@ def cmd_shell(args):
         timeout=getattr(args, "timeout", DEFAULT_SANDBOX_TIMEOUT),
         reranker=getattr(args, "reranker", None),
         reranker_model=getattr(args, "reranker_model", None),
+        exec_sandbox=getattr(args, "exec_sandbox", False),
+        llm_feedback=getattr(args, "llm_feedback", False),
     )
     shell.cmdloop()
 
@@ -2821,6 +2911,8 @@ def cmd_run(args):
         timeout=getattr(args, "timeout", DEFAULT_SANDBOX_TIMEOUT),
         reranker=getattr(args, "reranker", None),
         reranker_model=getattr(args, "reranker_model", None),
+        exec_sandbox=getattr(args, "exec_sandbox", False),
+        llm_feedback=getattr(args, "llm_feedback", False),
     )
     shell.default(f"{prompt} --debug" if debug_mode else prompt)
 
@@ -3069,6 +3161,8 @@ def build_parser() -> argparse.ArgumentParser:
     p_run.add_argument("--reranker-model", type=str, default=None, help="Neural reranker model name (e.g. jina-reranker-v3.5)")
     p_run.add_argument("--device", type=str, default="auto", choices=["auto", "cpu", "cuda"], help="Compute device")
     p_run.add_argument("--no-exec", action="store_true", help="Skip GEVR sandbox execution")
+    p_run.add_argument("--exec", dest="exec_sandbox", action="store_true", default=False, help="Enable GEVR sandbox execution")
+    p_run.add_argument("--llm-feedback", dest="llm_feedback", action="store_true", default=False, help="Enable LLM feedback / self-repair cycle when pre-flight lint fails")
     p_run.add_argument("--timeout", type=float, default=DEFAULT_SANDBOX_TIMEOUT, help="Sandbox execution timeout in seconds")
     p_run.add_argument("--macros", dest="macros", action="store_true", default=None, help="Enable macro-goal routing")
     p_run.add_argument("--no-macros", dest="macros", action="store_false", help="Disable macro-goal routing")
@@ -3089,6 +3183,8 @@ def build_parser() -> argparse.ArgumentParser:
     p_shell.add_argument("--device", type=str, default="auto", choices=["auto", "cpu", "cuda"], help="Compute device")
     p_shell.add_argument("--debug", "-d", action="store_true", help="Launch studio with debug mode enabled")
     p_shell.add_argument("--no-exec", action="store_true", help="Skip GEVR sandbox execution")
+    p_shell.add_argument("--exec", dest="exec_sandbox", action="store_true", default=False, help="Enable GEVR sandbox execution")
+    p_shell.add_argument("--llm-feedback", dest="llm_feedback", action="store_true", default=False, help="Enable LLM feedback / self-repair cycle when pre-flight lint fails")
     p_shell.add_argument("--timeout", type=float, default=DEFAULT_SANDBOX_TIMEOUT, help="Sandbox execution timeout in seconds")
     p_shell.add_argument("--macros", dest="macros", action="store_true", default=None, help="Enable macro-goal routing")
     p_shell.add_argument("--no-macros", dest="macros", action="store_false", help="Disable macro-goal routing")

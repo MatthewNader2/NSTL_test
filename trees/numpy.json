@@ -8189,7 +8189,9 @@
         "output_var": {
           "type_name": "ndarray",
           "state": "fft_frequency_domain",
-          "qualifiers": [],
+          "qualifiers": [
+            "complex"
+          ],
           "default_value": null,
           "description": "Complex Fourier frequency spectrum",
           "domain": "numpy",
@@ -8198,7 +8200,7 @@
           "enum_values": null,
           "param_kind": "standard",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": "(n_samples,)"
         }
       },
       "preconditions": [],

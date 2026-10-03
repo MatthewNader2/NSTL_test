@@ -2210,6 +2210,9 @@
       "raises": [
         "KeyError"
       ],
+      "fixture_needs": [
+        "missing_values"
+      ],
       "type_vars": [],
       "inputs": {
         "port_0": {
@@ -7128,7 +7131,9 @@
       },
       "preconditions": [],
       "postconditions": [],
-      "effects": [],
+      "effects": [
+        "removes_columns"
+      ],
       "edges": [
         {
           "target_cell_id": "PANDAS_DATAFRAME_TO_GENERIC_2D",
@@ -10921,7 +10926,9 @@
         "port_0": {
           "type_name": "ndarray",
           "state": "ndarray_generic",
-          "qualifiers": [],
+          "qualifiers": [
+            "matrix"
+          ],
           "default_value": null,
           "description": "Projected feature matrix.",
           "domain": "pandas",
@@ -10930,7 +10937,7 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null,
+          "shape_contract": "(n_samples, n_features)",
           "port_role": "feature_input"
         }
       },
@@ -11735,7 +11742,9 @@
           "accepted_states": [
             "any"
           ],
-          "qualifiers": [],
+          "qualifiers": [
+            "vector"
+          ],
           "default_value": null,
           "description": "Array or Series values to assign to the column.",
           "domain": "pandas",
@@ -11744,7 +11753,7 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": "(N,)",
+          "shape_contract": "(n_samples,)",
           "port_role": "data_input"
         }
       },

@@ -4581,6 +4581,9 @@
           "qualifiers": [
             "matrix"
           ],
+          "rejected_qualifiers": [
+            "complex"
+          ],
           "default_value": null,
           "description": "Training features matrix.",
           "domain": "sklearn",
@@ -4602,6 +4605,9 @@
           ],
           "qualifiers": [
             "vector"
+          ],
+          "rejected_qualifiers": [
+            "complex"
           ],
           "default_value": null,
           "description": "Continuous target observations.",
@@ -4875,6 +4881,9 @@
           "qualifiers": [
             "matrix"
           ],
+          "rejected_qualifiers": [
+            "complex"
+          ],
           "default_value": null,
           "description": "Standardized features.",
           "domain": "sklearn",
@@ -4896,6 +4905,9 @@
           ],
           "qualifiers": [
             "vector"
+          ],
+          "rejected_qualifiers": [
+            "complex"
           ],
           "default_value": null,
           "description": "Target continuous observations.",

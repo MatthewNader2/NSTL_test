@@ -2000,19 +2000,30 @@ class LatticePlanner:
         # of the per-cell evidence).  Adaptive: common words that many cells happen to carry
         # ("values", "data") raise the bar, discriminative tokens clear it.
         _raw_by_cell: Dict[str, List[float]] = {}
+        _prec_by_cell: Dict[str, List[float]] = {}
         for c in candidates:
             _c_toks = c.token_set
             _id = getattr(c, "identity_tokens", None) or identity_cache.get(c.cell_id, _c_toks)
             _raw_by_cell[c.cell_id] = [_raw_mass(cl, _c_toks, _id) for cl in clause_tokens_list]
+            _c_total_idf = sum(_idf(t) for t in _c_toks)
+            _prec_by_cell[c.cell_id] = [
+                (sum(_idf(t) for t in (cl & _c_toks)) / _c_total_idf) if _c_total_idf > 0 else 0.0
+                for cl in clause_tokens_list
+            ]
         clause_min_evidence = []
+        clause_min_precision = []
         for gi in range(len(clause_tokens_list)):
             col = [v[gi] for v in _raw_by_cell.values()]
+            prec_col = [v[gi] for v in _prec_by_cell.values()]
             if not col:
                 clause_min_evidence.append(0.0)
+                clause_min_precision.append(0.0)
                 continue
             max_ev = max(col)
+            max_prec = max(prec_col) if prec_col else 0.0
             cl_weight = clause_weights[gi] if gi < len(clause_weights) else 0.0
             clause_min_evidence.append(max(0.5 * max_ev, 0.3 * cl_weight))
+            clause_min_precision.append(0.5 * max_prec)
 
         for c in candidates:
             c_toks = c.token_set
@@ -2029,9 +2040,14 @@ class LatticePlanner:
                 m = _match_mass(cl_toks, c_toks, id_toks)
                 masses.append(m)
                 # Intent coverage: With empirical edge affinity dominating path selection,
-                # the legacy id_mass clamp is replaced with calibrated clause matching.
+                # the legacy id_mass clamp is replaced with calibrated clause matching and precision.
                 cl_idx = len(masses) - 1
-                if _raw_mass(clause_tokens_list[cl_idx], c_toks, id_toks) > 0 and _raw_mass(clause_tokens_list[cl_idx], c_toks, id_toks) >= clause_min_evidence[cl_idx]:
+                c_prec = _prec_by_cell[c.cell_id][cl_idx]
+                if (
+                    _raw_mass(clause_tokens_list[cl_idx], c_toks, id_toks) > 0
+                    and _raw_mass(clause_tokens_list[cl_idx], c_toks, id_toks) >= clause_min_evidence[cl_idx]
+                    and c_prec >= clause_min_precision[cl_idx]
+                ):
                     covered.add(cl_idx)
             cell_clause_mass[c.cell_id] = masses
             cell_covered[c.cell_id] = covered
@@ -2094,12 +2110,18 @@ class LatticePlanner:
                     sum(idf_of_prompt.get(t, _idf(t)) for t in s_strong)
                     + sum(idf_of_prompt.get(t, _idf(t)) for t in s_weak)
                 ) / total_prompt_idf
+                s_total_idf = sum(_idf(t) for t in s_toks)
                 for gi, cl_toks in enumerate(clause_tokens_list):
                     m = _match_mass(cl_toks, s_toks, s_id_toks)
                     if len(masses) <= gi:
                         masses.append(0.0)
                     masses[gi] = max(masses[gi], m)
-                    if _raw_mass(clause_tokens_list[gi], s_toks, s_id_toks) > 0 and _raw_mass(clause_tokens_list[gi], s_toks, s_id_toks) >= clause_min_evidence[gi]:
+                    s_prec = (sum(_idf(t) for t in (cl_toks & s_toks)) / s_total_idf) if s_total_idf > 0 else 0.0
+                    if (
+                        _raw_mass(clause_tokens_list[gi], s_toks, s_id_toks) > 0
+                        and _raw_mass(clause_tokens_list[gi], s_toks, s_id_toks) >= clause_min_evidence[gi]
+                        and s_prec >= clause_min_precision[gi]
+                    ):
                         covered.add(gi)
             cell_cov_strong[c_id] = strong
             cell_cov_weak[c_id] = weak
@@ -2785,10 +2807,33 @@ class LatticePlanner:
                 gate = max(coverage, literal_consumption) if universal_literals else coverage
             gated_affinity = affinity_score * gate
 
+            redundant_cell_count = 0
+            for c_idx, c in enumerate(path):
+                if (
+                    getattr(c, "node_type", "") == "bridge"
+                    or getattr(c, "node_role", "") == "bridge"
+                    or (vocab is not None and vocab.is_bridge(c))
+                ):
+                    continue
+                if not getattr(c, "inputs", None):
+                    continue
+                c_cov = cell_covered.get(c.cell_id, set())
+                if not c_cov:
+                    redundant_cell_count += 1
+                    continue
+                other_cov = set()
+                for o_idx, other in enumerate(path):
+                    if o_idx != c_idx:
+                        other_cov |= cell_covered.get(other.cell_id, set())
+                if c_cov.issubset(other_cov):
+                    redundant_cell_count += 1
+
             defects = (
                 float(unbindable),
                 float(unrequested_transforms),
                 float(uncovered_clauses) if is_final else 0.0,
+                float(inversions),
+                float(redundant_cell_count),
                 float(dead_ctors),
                 float(dead_outputs),
                 float(dead_expansion_steps),
@@ -4272,20 +4317,38 @@ class LatticePlanner:
                 covered_clauses = set().union(*(cell_covered.get(c.cell_id, set()) for c in best_path))
                 uncovered = [cl_i for cl_i in range(num_clauses) if cl_i not in covered_clauses]
 
+                try:
+                    from config import settings as _s
+                    greedy_budget = float(getattr(_s, "planner_greedy_budget_ms", 1000.0)) / 1000.0
+                except Exception:
+                    greedy_budget = 1.0
+                greedy_deadline = time.perf_counter() + greedy_budget
+
+                best_path_ids = {x.cell_id.lower() for x in best_path}
+
                 if uncovered:
                     for cl_i in uncovered:
+                        if time.perf_counter() > greedy_deadline:
+                            break
+                        if cl_i in covered_clauses:
+                            continue
                         clause_cands = [
                             c for c in candidates
                             if cl_i in cell_covered.get(c.cell_id, set())
-                            and c.cell_id.lower() not in {x.cell_id.lower() for x in best_path}
+                            and c.cell_id.lower() not in best_path_ids
+                            and bool(cell_covered.get(c.cell_id, set()) - covered_clauses)
                         ]
                         clause_cands.sort(key=lambda c: log_probs.get(c.cell_id, -10.0), reverse=True)
                         for cand in clause_cands:
+                            if time.perf_counter() > greedy_deadline:
+                                break
                             v_res = _verify_frontier_step(best_path, cand, best_sigma)
                             if v_res is not None:
                                 new_sigma, bound_parents, is_join = v_res
                                 cand_sc = log_probs.get(cand.cell_id, -10.0)
                                 best_path = best_path + [cand]
+                                best_path_ids.add(cand.cell_id.lower())
+                                covered_clauses |= cell_covered.get(cand.cell_id, set())
                                 best_sigma = new_sigma
                                 best_score += cand_sc
                                 break
@@ -4295,15 +4358,19 @@ class LatticePlanner:
                     term_cands = [
                         c for c in candidates
                         if (_is_egress_stage(c) or getattr(c, "endable", False) or getattr(c, "is_endable", False))
-                        and c.cell_id.lower() not in {x.cell_id.lower() for x in best_path}
+                        and c.cell_id.lower() not in best_path_ids
                     ]
                     term_cands.sort(key=lambda c: log_probs.get(c.cell_id, -10.0), reverse=True)
                     for cand in term_cands:
+                        if time.perf_counter() > greedy_deadline:
+                            break
                         v_res = _verify_frontier_step(best_path, cand, best_sigma)
                         if v_res is not None:
                             new_sigma, bound_parents, is_join = v_res
                             cand_sc = log_probs.get(cand.cell_id, -10.0)
                             best_path = best_path + [cand]
+                            best_path_ids.add(cand.cell_id.lower())
+                            covered_clauses |= cell_covered.get(cand.cell_id, set())
                             best_sigma = new_sigma
                             best_score += cand_sc
                             break

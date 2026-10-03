@@ -61,7 +61,13 @@ class NSTLSettings(BaseSettings):
     macros_enabled: bool = True
     topology_mode: str = "frontier"
     use_ir_compiler: bool = False
-    require_coverage_floor: bool = False
+    require_coverage_floor: bool = True
+    coverage_floor_fraction: float = Field(
+        default=0.85,
+        ge=0.0,
+        le=1.0,
+        description="Fraction of clauses required to be covered when require_coverage_floor is active.",
+    )
     dev_mode: bool = False
     planner_config: Optional[Path] = None
     planner_time_budget_ms: float = Field(
@@ -69,6 +75,11 @@ class NSTLSettings(BaseSettings):
         ge=250.0,
         description="Wall-clock budget for a single planning search. When expired, "
         "the beam returns the best-so-far valid paths instead of running unbounded.",
+    )
+    planner_greedy_budget_ms: float = Field(
+        default=1000.0,
+        ge=100.0,
+        description="Wall-clock budget for greedy completion phase in planner.",
     )
 
     @field_validator("cors_origins", mode="before")
