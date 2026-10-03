@@ -4419,6 +4419,7 @@
     },
     {
       "cell_id": "PD_SELECT_COLUMNS",
+      "projection": "columns",
       "stage": 2,
       "topology_type": "sequential",
       "node_type": "method",
@@ -4473,7 +4474,8 @@
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
           "shape_contract": null,
-          "port_role": "data_input"
+          "port_role": "data_input",
+          "binds": "data_carrier"
         },
         "port_1": {
           "type_name": "List[str]",
@@ -4487,7 +4489,9 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "port_role": "literal_parameter",
+          "binds": "column_key"
         }
       },
       "outputs": {
@@ -7132,7 +7136,10 @@
       "preconditions": [],
       "postconditions": [],
       "effects": [
-        "removes_columns"
+        {
+          "name": "removes_columns",
+          "from_port": "port_1"
+        }
       ],
       "edges": [
         {
@@ -11512,6 +11519,7 @@
     },
     {
       "cell_id": "PD_SELECT_COLUMN",
+      "projection": "column",
       "stage": 2,
       "topology_type": "sequential",
       "node_type": "method",
@@ -11571,7 +11579,8 @@
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
           "shape_contract": null,
-          "port_role": "data_input"
+          "port_role": "data_input",
+          "binds": "data_carrier"
         },
         "port_1": {
           "type_name": "str",
@@ -11591,7 +11600,8 @@
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
           "shape_contract": null,
-          "port_role": "literal_parameter"
+          "port_role": "literal_parameter",
+          "binds": "column_key"
         }
       },
       "outputs": {
@@ -11714,7 +11724,8 @@
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
           "shape_contract": null,
-          "port_role": "data_input"
+          "port_role": "data_input",
+          "binds": "data_carrier"
         },
         "port_1": {
           "type_name": "str",
@@ -11734,7 +11745,8 @@
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
           "shape_contract": null,
-          "port_role": "literal_parameter"
+          "port_role": "literal_parameter",
+          "binds": "column_key"
         },
         "port_2": {
           "type_name": "array-like",
@@ -11754,7 +11766,8 @@
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
           "shape_contract": "(n_samples,)",
-          "port_role": "data_input"
+          "port_role": "data_input",
+          "binds": "assigned_value"
         }
       },
       "outputs": {

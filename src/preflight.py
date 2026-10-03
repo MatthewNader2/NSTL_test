@@ -28,11 +28,21 @@ from dataclasses import dataclass, field
 try:
     from .lattice import UNRESOLVED_PORT, TypeRegistry, AlgebraicSignature, PortSignature
     from .tokenizer import CellTokenizer
-    from .unification import ExecutionContext, unify, _shape_compatible, _is_sink_cell
+    from .unification import ExecutionContext, unify, _shape_compatible, _is_sink_cell, resolve_typed_binding_record, TypedBindingRecord
 except (ImportError, ValueError):
     from lattice import UNRESOLVED_PORT, TypeRegistry, AlgebraicSignature, PortSignature
     from tokenizer import CellTokenizer
-    from unification import ExecutionContext, unify, _shape_compatible, _is_sink_cell
+    from unification import ExecutionContext, unify, _shape_compatible, _is_sink_cell, resolve_typed_binding_record, TypedBindingRecord
+
+
+@dataclass
+class VariableSchema:
+    """Tracks active and invalidated column schemas per variable (R5-3)."""
+    known_columns: Optional[Set[str]] = None
+    removed_columns: Set[str] = field(default_factory=set)
+    added_columns: Set[str] = field(default_factory=set)
+    removed_by: Dict[str, str] = field(default_factory=dict)
+
 
 
 class _DynamicDataBearingRoles(frozenset):
@@ -283,101 +293,6 @@ class PreflightLinter:
             model_roles = set()
         return role in (model_roles or {"model_input", "model_sink"})
 
-    @classmethod
-    def _resolve_expr_sig(
-        cls,
-        bound_val: Any,
-        var_signatures: Dict[str, Any]
-    ) -> Tuple[Optional[str], Optional[Any]]:
-        """
-        Parses a bound port value via Python AST to extract the root pipeline variable
-        (e.g., 'var_1' from 'var_1[[\"X\", \"Y\"]]') and resolve its derived signature.
-
-        Returns:
-            (root_var, resolved_sig):
-            - If bound_val is an expression on a known variable: (root_var, resolved_sig)
-            - If bound_val refers to an undefined pipeline variable (var_*): (root_var, None)
-            - If bound_val is a literal or non-pipeline expression: (None, None)
-        """
-        if not isinstance(bound_val, str):
-            return None, None
-        val_str = bound_val.strip()
-        if not val_str:
-            return None, None
-
-        try:
-            parsed = ast.parse(val_str, mode="eval")
-        except Exception:
-            return None, None
-
-        body = parsed.body
-
-        # 1. Plain Name
-        if isinstance(body, ast.Name):
-            v = body.id
-            if v in var_signatures:
-                return v, var_signatures[v]
-            elif v.startswith("var_"):
-                return v, None
-            return None, None
-
-        # 2. Subscript (e.g. var_1[['X', 'Y']], var_1['X'], var_1[0])
-        if isinstance(body, ast.Subscript):
-            if isinstance(body.value, ast.Name):
-                root_v = body.value.id
-                if root_v not in var_signatures:
-                    return (root_v, None) if root_v.startswith("var_") else (None, None)
-                base_sig = var_signatures[root_v]
-                sl = body.slice
-                if isinstance(sl, (ast.List, ast.Tuple)):
-                    base_sig_obj = getattr(base_sig, "signature", base_sig)
-                    res_sig = AlgebraicSignature(
-                        type_name=getattr(base_sig_obj, "type_name", "DataFrame"),
-                        state="dataframe_2d_generic",
-                        abstract_type="table",
-                        accepted_states=frozenset(["dataframe_2d_generic", "ndarray_generic", "split_train_features"]),
-                        qualifiers=frozenset(["matrix"]),
-                    )
-                    return root_v, res_sig
-                elif isinstance(sl, ast.Constant):
-                    if isinstance(sl.value, str):
-                        res_sig = AlgebraicSignature(
-                            type_name="Series",
-                            state="series_generic",
-                            abstract_type="series",
-                            accepted_states=frozenset(["series_generic", "ndarray_generic", "split_train_targets", "vector"]),
-                            qualifiers=frozenset(["vector"]),
-                        )
-                        return root_v, res_sig
-                    elif isinstance(sl.value, int):
-                        raw = str(getattr(getattr(base_sig, "signature", None), "type_name", "") or getattr(base_sig, "type_name", ""))
-                        if "[" in raw and raw.endswith("]"):
-                            inner = raw.split("[", 1)[1][:-1]
-                            members = [m.strip() for m in inner.split(",")]
-                            if 0 <= sl.value < len(members):
-                                return root_v, AlgebraicSignature(type_name=members[sl.value], state="any", abstract_type="any")
-                        return root_v, AlgebraicSignature(type_name="any", state="any", abstract_type="any")
-                return root_v, base_sig
-
-        # 3. Method calls, attributes, or nested expressions with pipeline variables
-        var_names = [n.id for n in ast.walk(body) if isinstance(n, ast.Name) and n.id.startswith("var_")]
-        if var_names:
-            root_v = var_names[0]
-            if root_v not in var_signatures:
-                return root_v, None
-            if isinstance(body, ast.Call) or (isinstance(body, ast.Attribute) and getattr(body, "attr", "") in ("values", "to_numpy")):
-                res_sig = AlgebraicSignature(
-                    type_name="ndarray",
-                    state="ndarray_generic",
-                    abstract_type="tensor",
-                    accepted_states=frozenset(["ndarray_generic", "split_train_features", "split_test_features", "matrix"]),
-                    qualifiers=frozenset(["matrix"]),
-                )
-                return root_v, res_sig
-            return root_v, var_signatures[root_v]
-
-        return None, None
-
     # ------------------------------------------------------------------
     # Public entrypoint
     # ------------------------------------------------------------------
@@ -488,67 +403,243 @@ class PreflightLinter:
                     )
 
         # -----------------------------------------------------------------
-        # Check 1b: Active Column Set Tracking (Column Invalidation / Removal)
+        # Check 1b: Active Column Set Tracking (Column Removal & Schema Tracking, R5-3)
         # -----------------------------------------------------------------
-        removed_columns: Set[str] = set()
+        var_schemas: Dict[str, VariableSchema] = {}
+        var_origins: Dict[str, Set[str]] = {}
+
         for cell, bindings in pipeline_bindings:
             if not isinstance(bindings, dict):
                 continue
-            # Check if any port binding references an already-removed column
+
+            # 1. Identify input carrier variable
+            carrier_in_var: Optional[str] = None
+            prim_in = getattr(cell, "primary_input", None)
+            if prim_in and prim_in.name in bindings:
+                v = bindings[prim_in.name]
+                if isinstance(v, str) and v.startswith("var_"):
+                    carrier_in_var = v
+            if not carrier_in_var:
+                for k in ("df", "data", "self", "port_0"):
+                    if k in bindings and isinstance(bindings[k], str) and bindings[k].startswith("var_"):
+                        carrier_in_var = bindings[k]
+                        break
+
+            # 2. Check if any port binding references a column absent or removed from its target variable
             for p_name, val in bindings.items():
                 if val is None or _is_unbound(val):
                     continue
-                val_str = str(val)
-                for rem_col in list(removed_columns):
-                    rem_lower = rem_col.lower()
-                    is_ref = False
-                    if val_str.strip("'\"").lower() == rem_lower:
-                        is_ref = True
-                    elif f"'{rem_lower}'" in val_str.lower() or f'"{rem_lower}"' in val_str.lower():
-                        is_ref = True
-                    if is_ref:
+
+                rec = getattr(cell, "typed_bindings", {}).get(p_name)
+                cols_referenced: List[Tuple[str, Optional[str]]] = []  # (col_name, target_var)
+
+                if rec and rec.kind == "projection" and rec.projection:
+                    proj_k = rec.projection.get("kind")
+                    proj_key = rec.projection.get("key")
+                    target_v = rec.root_var or carrier_in_var
+                    if proj_k == "column" and isinstance(proj_key, str):
+                        cols_referenced.append((proj_key, target_v))
+                    elif proj_k == "columns" and isinstance(proj_key, (list, tuple)):
+                        for k in proj_key:
+                            cols_referenced.append((str(k), target_v))
+                else:
+                    val_str = str(val)
+                    # Check for literal column arguments
+                    p_sig = cell.inputs.get(p_name) if getattr(cell, "inputs", None) else None
+                    p_role_s = cls._port_role(p_sig) if p_sig else ""
+                    if p_name in ("column", "columns", "key", "port_1") or any(
+                        r in p_role_s for r in ("column", "target", "feature")
+                    ):
+                        target_v = carrier_in_var
+                        if val_str.startswith("[") and val_str.endswith("]"):
+                            try:
+                                import ast
+                                parsed = ast.literal_eval(val_str)
+                                if isinstance(parsed, (list, tuple, set)):
+                                    for item in parsed:
+                                        cols_referenced.append((str(item).strip("'\""), target_v))
+                            except Exception:
+                                items = val_str[1:-1].split(",")
+                                for item in items:
+                                    it = item.strip().strip("'\"")
+                                    if it:
+                                        cols_referenced.append((it, target_v))
+                        else:
+                            clean_col = val_str.strip("'\"")
+                            if clean_col and not clean_col.startswith("var_"):
+                                cols_referenced.append((clean_col, target_v))
+
+                    # Projection / subscript check: var['col'] or var[['col1', 'col2']]
+                    for v_name, sch in var_schemas.items():
+                        if val_str.startswith(f"{v_name}["):
+                            inner = val_str[len(v_name):].strip()
+                            if inner.startswith("[") and inner.endswith("]"):
+                                inner_c = inner[1:-1].strip()
+                                if inner_c.startswith("[") and inner_c.endswith("]"):
+                                    inner_c = inner_c[1:-1].strip()
+                                try:
+                                    import ast
+                                    parsed = ast.literal_eval(f"[{inner_c}]")
+                                    if isinstance(parsed, (list, tuple, set)):
+                                        for item in parsed:
+                                            cols_referenced.append((str(item).strip("'\""), v_name))
+                                except Exception:
+                                    for item in inner_c.split(","):
+                                        it = item.strip().strip("'\"")
+                                        if it:
+                                            cols_referenced.append((it, v_name))
+                        elif v_name in val_str:
+                            for rem_c in sch.removed_columns:
+                                if f"'{rem_c}'" in val_str or f'"{rem_c}"' in val_str:
+                                    cols_referenced.append((rem_c, v_name))
+
+                for col, target_v in cols_referenced:
+                    if not target_v or target_v not in var_schemas:
+                        continue
+                    schema = var_schemas[target_v]
+                    # Provably removed column
+                    if col in schema.removed_columns:
+                        remover = schema.removed_by.get(col, "unknown")
                         msg = (
-                            f"Cell '{cell.cell_id}' port '{p_name}' references column '{rem_col}' "
-                            f"which was removed/invalidated by an earlier cell with 'removes_columns' effect."
+                            f"Cell '{cell.cell_id}' port '{p_name}' references column '{col}' "
+                            f"which was provably removed from '{target_v}' by '{remover}'."
                         )
                         _add_violation(
-                            "removed_column_reference",
+                            "column_absent",
                             msg,
                             cell_id=cell.cell_id,
                             port_name=p_name,
-                            details={"column": rem_col, "bound_val": val_str},
+                            variable_name=target_v,
+                            details={"column": col, "variable": target_v, "removed_by": remover},
                         )
+                    # Provably absent from known schema
+                    elif schema.known_columns is not None:
+                        if col not in schema.known_columns and col not in schema.added_columns:
+                            msg = (
+                                f"Cell '{cell.cell_id}' port '{p_name}' references column '{col}' "
+                                f"which is absent from known columns of '{target_v}'."
+                            )
+                            _add_violation(
+                                "column_absent",
+                                msg,
+                                cell_id=cell.cell_id,
+                                port_name=p_name,
+                                variable_name=target_v,
+                                details={"column": col, "variable": target_v, "known_columns": list(schema.known_columns)},
+                            )
 
-            # Record columns removed by this cell
-            effects = getattr(cell, "effects", []) or []
-            if isinstance(effects, (list, tuple, set)) and "removes_columns" in effects:
-                for col_key in ("column", "columns", "key"):
-                    if col_key in bindings and bindings[col_key] is not None:
-                        c_val = bindings[col_key]
-                        if isinstance(c_val, (list, tuple, set)):
-                            for item in c_val:
-                                cl = str(item).strip("'\"")
-                                if cl:
-                                    removed_columns.add(cl)
-                        else:
-                            cl_s = str(c_val).strip("'\"")
-                            if cl_s.startswith("[") and cl_s.endswith("]"):
-                                try:
-                                    import json
-                                    parsed = json.loads(cl_s)
-                                    if isinstance(parsed, list):
-                                        for item in parsed:
-                                            removed_columns.add(str(item).strip("'\""))
-                                except Exception:
-                                    pass
-                            elif cl_s:
-                                removed_columns.add(cl_s)
-                c_lits = getattr(cell, "clause_literals", None)
-                if c_lits:
-                    for cl_lit in c_lits:
-                        cl = str(cl_lit).strip("'\"")
-                        if cl:
-                            removed_columns.add(cl)
+            # 3. Determine output variable produced by this cell
+            out_var: Optional[str] = bindings.get("output_var")
+            if not out_var and getattr(cell, "primary_output", None):
+                out_var = bindings.get(cell.primary_output.name)
+            if not out_var and carrier_in_var and getattr(cell, "mutation_type", "") == "in_place":
+                out_var = carrier_in_var
+
+            # 4. Construct or update schema for out_var
+            if out_var and isinstance(out_var, str) and out_var.startswith("var_"):
+                base_sch = var_schemas.get(carrier_in_var) if carrier_in_var else None
+                new_sch = VariableSchema(
+                    known_columns=set(base_sch.known_columns) if base_sch and base_sch.known_columns is not None else None,
+                    removed_columns=set(base_sch.removed_columns) if base_sch else set(),
+                    added_columns=set(base_sch.added_columns) if base_sch else set(),
+                    removed_by=dict(base_sch.removed_by) if base_sch else {},
+                )
+
+                # Track column additions (e.g. PD_SET_COLUMN)
+                c_id_s = str(getattr(cell, "cell_id", "") or "").lower()
+                if getattr(cell, "projection", None) == "set_column" or "set_column" in c_id_s:
+                    col_k = bindings.get("column") or bindings.get("key") or bindings.get("port_1")
+                    if col_k:
+                        new_sch.added_columns.add(str(col_k).strip("'\""))
+
+                # Track column removals from effects
+                effects = getattr(cell, "effects", []) or []
+                if isinstance(effects, (list, tuple, set)):
+                    for eff in effects:
+                        eff_name = eff.get("name") if isinstance(eff, dict) else str(eff)
+                        if eff_name == "removes_columns":
+                            from_port = eff.get("from_port") if isinstance(eff, dict) else None
+                            cols_to_remove: List[str] = []
+                            if from_port and from_port in bindings:
+                                c_val = bindings[from_port]
+                                if isinstance(c_val, (list, tuple, set)):
+                                    cols_to_remove.extend(str(item).strip("'\"") for item in c_val)
+                                elif isinstance(c_val, str):
+                                    c_str = str(c_val).strip()
+                                    if (c_str.startswith('"') and c_str.endswith('"')) or (c_str.startswith("'") and c_str.endswith("'")):
+                                        c_str = c_str[1:-1].strip()
+                                    if c_str.startswith("[") and c_str.endswith("]"):
+                                        try:
+                                            import ast
+                                            parsed = ast.literal_eval(c_str)
+                                            if isinstance(parsed, (list, tuple, set)):
+                                                cols_to_remove.extend(str(item).strip("'\"") for item in parsed)
+                                        except Exception:
+                                            items = c_str[1:-1].split(",")
+                                            for item in items:
+                                                it = item.strip().strip("'\"")
+                                                if it:
+                                                    cols_to_remove.append(it)
+                                    elif c_str and not _is_unbound(c_str):
+                                        cols_to_remove.append(c_str.strip("'\""))
+                            else:
+                                for col_key in ("columns", "column", "key", "port_1"):
+                                    if col_key in bindings and bindings[col_key] is not None:
+                                        c_val = bindings[col_key]
+                                        if isinstance(c_val, (list, tuple, set)):
+                                            cols_to_remove.extend(str(x).strip("'\"") for x in c_val)
+                                        elif isinstance(c_val, str) and not _is_unbound(c_val):
+                                            c_str = str(c_val).strip()
+                                            if (c_str.startswith('"') and c_str.endswith('"')) or (c_str.startswith("'") and c_str.endswith("'")):
+                                                c_str = c_str[1:-1].strip()
+                                            if c_str.startswith("[") and c_str.endswith("]"):
+                                                try:
+                                                    import ast
+                                                    parsed = ast.literal_eval(c_str)
+                                                    if isinstance(parsed, (list, tuple, set)):
+                                                        cols_to_remove.extend(str(x).strip("'\"") for x in parsed)
+                                                except Exception:
+                                                    for item in c_str[1:-1].split(","):
+                                                        it = item.strip().strip("'\"")
+                                                        if it:
+                                                            cols_to_remove.append(it)
+                                            else:
+                                                cols_to_remove.append(c_str.strip("'\""))
+                                c_lits = getattr(cell, "clause_literals", None)
+                                if c_lits:
+                                    cols_to_remove.extend(str(x).strip("'\"") for x in c_lits)
+
+                            for rem_c in cols_to_remove:
+                                if rem_c:
+                                    new_sch.removed_columns.add(rem_c)
+                                    new_sch.removed_by[rem_c] = getattr(cell, "cell_id", "unknown")
+                                    if new_sch.known_columns is not None:
+                                        new_sch.known_columns.discard(rem_c)
+
+                var_schemas[out_var] = new_sch
+                out_origs: Set[str] = set()
+                for inp_name, inp_val in bindings.items():
+                    if not isinstance(inp_val, str):
+                        continue
+                    if inp_val.startswith("var_"):
+                        r_v = inp_val.split("[")[0].strip()
+                        out_origs.update(var_origins.get(r_v, set()))
+                        if "[" in inp_val and "]" in inp_val:
+                            try:
+                                rec = resolve_typed_binding_record(cell=cell, port_name=inp_name, bound_val=inp_val)
+                                if rec and rec.kind == "projection" and rec.projection:
+                                    k = rec.projection.get("key")
+                                    if isinstance(k, str):
+                                        out_origs.add(k)
+                                    elif isinstance(k, (list, tuple, set)):
+                                        out_origs.update(str(x) for x in k)
+                            except Exception:
+                                pass
+                    elif cell:
+                        p_sig = getattr(cell, "inputs", {}).get(inp_name)
+                        if p_sig and getattr(p_sig, "binds", None) == "column_key":
+                            out_origs.add(inp_val.strip("'\""))
+                var_origins[out_var] = out_origs
 
         # -----------------------------------------------------------------
         # Check 2: No bare None in required data-bearing positions
@@ -601,9 +692,21 @@ class PreflightLinter:
                 if isinstance(bound_val, str) and bound_val in cell_output_vars:
                     continue
 
-                root_var, resolved_sig = cls._resolve_expr_sig(bound_val, var_signatures)
-                if root_var is None:
+                record = getattr(cell, "typed_bindings", {}).get(p_name)
+                if record is None:
+                    record = resolve_typed_binding_record(
+                        cell=cell,
+                        port_name=p_name,
+                        bound_val=bound_val,
+                        port_sig=in_port_sig,
+                        var_signatures=var_signatures,
+                    )
+
+                if record.kind == "literal" or record.root_var is None:
                     continue
+
+                root_var = record.root_var
+                resolved_sig = record.resulting_signature
 
                 if root_var in cell_output_vars:
                     continue
@@ -697,7 +800,271 @@ class PreflightLinter:
                     var_producers[out_var] = (cell, "output_var")
 
         # -----------------------------------------------------------------
-        # Check 3: Structural Estimator Fit/Predict Contract
+        # Check 3: Dataflow Output Liveness (R5-2)
+        # Every non-goal, non-sink cell MUST have its output consumed downstream.
+        # -----------------------------------------------------------------
+        n_steps = len(pipeline_bindings)
+        for i, (cell, bindings) in enumerate(pipeline_bindings):
+            if not isinstance(bindings, dict):
+                continue
+            if _is_sink_cell(cell) or not getattr(cell, "outputs", None):
+                continue
+            # The final step is the pipeline goal / return value
+            if i == n_steps - 1:
+                continue
+
+            # Output variables produced by this step
+            produced_vars: Set[str] = set()
+            for out_name in getattr(cell, "outputs", {}).keys():
+                v = bindings.get(out_name)
+                if isinstance(v, str) and v.startswith("var_"):
+                    produced_vars.add(v)
+            out_v = bindings.get("output_var")
+            if isinstance(out_v, str) and out_v.startswith("var_"):
+                produced_vars.add(out_v)
+
+            if not produced_vars:
+                continue
+
+            # Check if any downstream cell reads at least one produced variable
+            is_consumed = False
+            for downstream_cell, down_bindings in pipeline_bindings[i + 1 :]:
+                if not isinstance(down_bindings, dict):
+                    continue
+                for p_k, down_val in down_bindings.items():
+                    if down_val is None:
+                        continue
+                    # Check typed bindings record first
+                    d_rec = getattr(downstream_cell, "typed_bindings", {}).get(p_k)
+                    if d_rec and d_rec.root_var and d_rec.root_var in produced_vars:
+                        is_consumed = True
+                        break
+                    # String check
+                    down_str = str(down_val)
+                    for pv in produced_vars:
+                        if pv == down_str or f"{pv}[" in down_str or f"{pv}." in down_str or f"({pv}" in down_str:
+                            is_consumed = True
+                            break
+                    if is_consumed:
+                        break
+                if is_consumed:
+                    break
+
+            if not is_consumed:
+                dead_v = next(iter(produced_vars))
+                msg = (
+                    f"Cell '{cell.cell_id}' produced output variable '{dead_v}' which is never "
+                    f"consumed by any downstream cell (dead output)."
+                )
+                _add_violation(
+                    "dead_output",
+                    msg,
+                    cell_id=cell.cell_id,
+                    variable_name=dead_v,
+                    details={"cell_id": cell.cell_id, "output_var": dead_v, "produced_vars": list(produced_vars)},
+                )
+
+        # -----------------------------------------------------------------
+        # Check 4: Monotonic Clause Ordering & Dependency Inversion (R5-2)
+        # -----------------------------------------------------------------
+        if prompt:
+            try:
+                from .route_methods.base import RouteMethod
+                RouteMethod.tag_cells_with_clause_indices([c for c, _ in pipeline_bindings], prompt)
+            except Exception:
+                try:
+                    from route_methods.base import RouteMethod
+                    RouteMethod.tag_cells_with_clause_indices([c for c, _ in pipeline_bindings], prompt)
+                except Exception:
+                    pass
+
+        # Track which variables each cell produces and consumes
+        cell_producers: Dict[str, Tuple[int, Any]] = {}  # var_name -> (step_idx, cell)
+        for i, (cell, bindings) in enumerate(pipeline_bindings):
+            if not isinstance(bindings, dict):
+                continue
+            for out_name in getattr(cell, "outputs", {}).keys():
+                v = bindings.get(out_name)
+                if isinstance(v, str) and v.startswith("var_"):
+                    cell_producers[v] = (i, cell)
+            out_v = bindings.get("output_var")
+            if isinstance(out_v, str) and out_v.startswith("var_"):
+                cell_producers[out_v] = (i, cell)
+
+        # Check for order inversions across dependent cell pairs
+        for j, (cons_cell, cons_bindings) in enumerate(pipeline_bindings):
+            if not isinstance(cons_bindings, dict):
+                continue
+            cons_clause = getattr(cons_cell, "matched_clause_idx", None)
+            if cons_clause is None:
+                continue
+
+            for p_k, down_val in cons_bindings.items():
+                if down_val is None:
+                    continue
+                d_rec = getattr(cons_cell, "typed_bindings", {}).get(p_k)
+                root_v = d_rec.root_var if d_rec else None
+                if not root_v and isinstance(down_val, str) and down_val.startswith("var_"):
+                    root_v = down_val
+
+                if root_v and root_v in cell_producers:
+                    prod_idx, prod_cell = cell_producers[root_v]
+                    prod_clause = getattr(prod_cell, "matched_clause_idx", None)
+                    if prod_clause is not None and prod_clause > cons_clause:
+                        msg = (
+                            f"Order inversion: Cell '{prod_cell.cell_id}' (serving clause {prod_clause}) "
+                            f"produces variable '{root_v}' consumed by earlier-clause Cell '{cons_cell.cell_id}' "
+                            f"(serving clause {cons_clause})."
+                        )
+                        _add_violation(
+                            "order_inversion",
+                            msg,
+                            cell_id=prod_cell.cell_id,
+                            variable_name=root_v,
+                            details={
+                                "producer": prod_cell.cell_id,
+                                "producer_clause": prod_clause,
+                                "consumer": cons_cell.cell_id,
+                                "consumer_clause": cons_clause,
+                                "variable": root_v,
+                            },
+                        )
+
+            # Also check if cons_cell is an earlier-clause data cleaner/transformer (e.g. dropna, normalize)
+            # placed AFTER a later-clause estimator or consumer that operated on the uncleaned root carrier
+            cons_in_v = None
+            for k in ("df", "data", "self", "port_0"):
+                if k in cons_bindings and isinstance(cons_bindings[k], str) and cons_bindings[k].startswith("var_"):
+                    cons_in_v = cons_bindings[k]
+                    break
+            if cons_in_v:
+                for prev_i in range(j):
+                    prev_cell, prev_b = pipeline_bindings[prev_i]
+                    prev_clause = getattr(prev_cell, "matched_clause_idx", None)
+                    if prev_clause is not None and prev_clause > cons_clause:
+                        if any(v == cons_in_v or (isinstance(v, str) and cons_in_v in v) for v in prev_b.values()):
+                            msg = (
+                                f"Order inversion: Cell '{prev_cell.cell_id}' (serving clause {prev_clause}) "
+                                f"executed before Cell '{cons_cell.cell_id}' (serving clause {cons_clause}) "
+                                f"on shared carrier '{cons_in_v}'."
+                            )
+                            _add_violation(
+                                "order_inversion",
+                                msg,
+                                cell_id=prev_cell.cell_id,
+                                variable_name=cons_in_v,
+                                details={
+                                    "producer": prev_cell.cell_id,
+                                    "producer_clause": prev_clause,
+                                    "consumer": cons_cell.cell_id,
+                                    "consumer_clause": cons_clause,
+                                    "variable": cons_in_v,
+                                },
+                            )
+                            break
+
+        # -----------------------------------------------------------------
+        # Check 4c: Clause Adjacency & Provenance Gating (R5-7)
+        # A data port bound to the product of a cell covering a different clause
+        # than its own without clause adjacency or a matching prompt literal
+        # is flagged provenance_mismatch.
+        # -----------------------------------------------------------------
+        prompt_clauses = []
+        try:
+            from planner import _segment_prompt_clauses
+            prompt_clauses = _segment_prompt_clauses(prompt or "")
+        except Exception:
+            pass
+
+        for j, (cell, bindings) in enumerate(pipeline_bindings):
+            cons_clause = getattr(cell, "matched_clause_idx", None)
+            if cons_clause is None:
+                continue
+
+            cons_clause_text = prompt_clauses[cons_clause] if cons_clause < len(prompt_clauses) else ""
+            cons_clause_toks = {t.lower() for t in cons_clause_text.replace(",", " ").replace('"', " ").replace("'", " ").split()} if cons_clause_text else set()
+
+            for p_name, val_expr in bindings.items():
+                if not isinstance(val_expr, str) or not val_expr.startswith("var_"):
+                    continue
+
+                p_sig = getattr(cell, "inputs", {}).get(p_name)
+                if p_sig is None:
+                    continue
+
+                p_binds = getattr(p_sig, "binds", None)
+                p_abstract = getattr(p_sig, "abstract_type", "")
+                inner_sig = getattr(p_sig, "signature", p_sig)
+                p_tn = str(getattr(inner_sig, "type_name", "")).lower()
+
+                # Carrier tables are exempt as they carry throughout the entire pipeline
+                if p_binds in ("data_carrier", "carrier") or p_abstract == "table" or cls._registry().is_subtype(p_tn, "table"):
+                    continue
+
+                # Literal parameters or column keys are exempt
+                if p_binds == "column_key" or getattr(p_sig, "port_role", None) == "literal_parameter":
+                    continue
+
+                # Extract root variable if projection
+                root_var = val_expr.split("[")[0].strip() if "[" in val_expr else val_expr.strip()
+                prod_cell, _ = var_producers.get(root_var, (None, None))
+                if prod_cell is None:
+                    continue
+
+                prod_clause = getattr(prod_cell, "matched_clause_idx", None)
+                if prod_clause is None or prod_clause == cons_clause:
+                    continue
+
+                # 1. Matching literal in consumer clause
+                var_origs = set(var_origins.get(root_var, set()))
+                if "[" in val_expr and "]" in val_expr:
+                    try:
+                        rec = resolve_typed_binding_record(cell=cell, port_name=p_name, bound_val=val_expr)
+                        if rec and rec.kind == "projection" and rec.projection:
+                            k = rec.projection.get("key")
+                            if isinstance(k, str):
+                                var_origs.add(k)
+                            elif isinstance(k, (list, tuple, set)):
+                                var_origs.update(str(x) for x in k)
+                    except Exception:
+                        pass
+                has_literal_match = False
+                if var_origs:
+                    for orig in var_origs:
+                        if str(orig).lower() in cons_clause_toks:
+                            has_literal_match = True
+                            break
+
+                if has_literal_match:
+                    continue
+
+                # 2. Clause adjacency: immediately preceding clause (cons_clause - 1)
+                is_adjacent = (prod_clause == cons_clause - 1)
+
+                if not is_adjacent:
+                    msg = (
+                        f"Provenance mismatch: Cell '{cell.cell_id}' port '{p_name}' bound variable '{val_expr}' "
+                        f"produced by Cell '{prod_cell.cell_id}' (serving clause {prod_clause}) into clause {cons_clause} "
+                        f"without clause adjacency or matching prompt literal."
+                    )
+                    _add_violation(
+                        "provenance_mismatch",
+                        msg,
+                        cell_id=cell.cell_id,
+                        port_name=p_name,
+                        variable_name=val_expr,
+                        details={
+                            "consumer": cell.cell_id,
+                            "consumer_clause": cons_clause,
+                            "producer": prod_cell.cell_id,
+                            "producer_clause": prod_clause,
+                            "port": p_name,
+                            "variable": val_expr,
+                        },
+                    )
+
+        # -----------------------------------------------------------------
+        # Check 5: Structural Estimator Fit/Predict Contract
         #
         # Fire ONLY when:
         #   (a) the prompt carries >= 2 data identifiers (relation declared), AND

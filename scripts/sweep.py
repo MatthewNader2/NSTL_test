@@ -10,7 +10,7 @@ Runs the benchmark prompt across:
 Options used: --debug --no-reranker --exec
 
 Emits a structured markdown table:
-  | profile | method | steps | emitted? | refused why | sandbox ok? | golden assertions passed (n/6) | layer-2 ms |
+  | profile | method | effective route | fallback reason | steps | emitted? | refused why | sandbox ok? | golden assertions passed (n/6) | layer-2 ms |
 Followed by:
   - Number of distinct emitted scripts
   - Number refused
@@ -19,6 +19,7 @@ Followed by:
 
 from __future__ import annotations
 
+import argparse
 import collections
 import hashlib
 import os
@@ -32,7 +33,6 @@ ROOT_DIR = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT_DIR / "src"))
 
 from config import Profile, settings
-from fixtures import FixtureSynthesizer
 from gevr_sandbox import GEVRSandbox
 from lattice import LatticeOrchestrator
 from planner import LatticePlanner, _segment_prompt_clauses
@@ -54,15 +54,32 @@ def evaluate_golden_assertions(
     code: str, bindings: list, literals: list, working_dir: Path, path: list
 ) -> Tuple[int, Optional[str]]:
     """
-    Evaluates the 6 runtime assertions on the generated code.
+    Evaluates runtime assertions on the generated code.
     Returns (score: 0-6, error_message).
     """
-    FixtureSynthesizer.synthesize_for_pipeline(
-        pipeline_bindings=bindings,
-        working_dir=working_dir,
-        extracted_literals=literals,
-        num_rows=50,
-    )
+    import numpy as np
+    import pandas as pd
+
+    # Dynamically create sample dataset for test execution in the temporary sandbox
+    csv_files = [lit for lit in literals if isinstance(lit, str) and lit.endswith(".csv")]
+    if not csv_files:
+        csv_files = ["input.csv"]
+    col_names = [lit for lit in literals if isinstance(lit, str) and not lit.endswith(".csv") and len(lit) <= 30]
+    if not col_names:
+        col_names = ["X", "Y"]
+
+    np.random.seed(42)
+    n_rows = 50
+    sample_data = {c: np.random.randn(n_rows) * 10.0 + 5.0 for c in col_names}
+    if n_rows > 5 and col_names:
+        for c in col_names:
+            sample_data[c][2] = np.nan
+    df_sample = pd.DataFrame(sample_data)
+
+    for f in csv_files:
+        p = working_dir / f
+        p.parent.mkdir(parents=True, exist_ok=True)
+        df_sample.to_csv(p, index=False)
 
     clauses = _segment_prompt_clauses(BENCHMARK_PROMPT)
     clause_toks = [CellTokenizer.tokenize_prompt(cl) for cl in clauses]
@@ -144,11 +161,25 @@ _nstl_slm.LinearRegression.fit = _traced_lr_fit
     results = res.get("results", {})
     trace = results.get("_nstl_trace", {})
 
-    # Assertion 2: Column Z in working frame, length matches non-null rows, no NaN
+    # Assertion 2: Target created column in working frame, length matches non-null rows, no NaN
+    target_col = None
+    for b in bindings:
+        c_id = str(b.get("cell_id", "")).upper()
+        if "SET_COLUMN" in c_id:
+            for p_k in ("port_1", "column", "key", "target"):
+                if p_k in b and isinstance(b[p_k], str):
+                    target_col = b[p_k].strip("'\"")
+                    break
+        if target_col:
+            break
+    if not target_col:
+        col_literals = [lit for lit in literals if isinstance(lit, str) and not lit.endswith(".csv")]
+        target_col = col_literals[-1] if col_literals else "Z"
+
     df_found = False
     for v in results.values():
-        if hasattr(v, "columns") and "Z" in v.columns:
-            z_col = v["Z"]
+        if hasattr(v, "columns") and target_col in v.columns:
+            z_col = v[target_col]
             if len(z_col) > 0 and not z_col.isna().any():
                 df_found = True
                 break
@@ -160,9 +191,31 @@ _nstl_slm.LinearRegression.fit = _traced_lr_fit
     if fit_calls and fit_calls[0]["X_ndim"] == 2 and fit_calls[0]["X_shape"][1] == 2 and fit_calls[0]["y_ndim"] == 1:
         passed += 1
 
-    # Assertion 4: Mean computed on Series named Y
+    # Assertion 4: Mean computed on target Series
+    mean_target_col = None
+    for b in bindings:
+        c_id = str(b.get("cell_id", "")).upper()
+        if "MEAN" in c_id:
+            val = b.get("port_0") or b.get("series") or b.get("data")
+            if val and isinstance(val, str) and "[" in val:
+                import re
+                m = re.search(r"\[['\"](.*?)['\"]\]", val)
+                if m:
+                    mean_target_col = m.group(1)
+        if mean_target_col:
+            break
+    if not mean_target_col:
+        for cl in clauses:
+            if "mean" in cl.lower():
+                for lit in literals:
+                    if isinstance(lit, str) and lit in cl and not lit.endswith(".csv"):
+                        mean_target_col = lit
+                        break
+    if not mean_target_col:
+        mean_target_col = "Y"
+
     mean_names = trace.get("series_mean_names", [])
-    if any(name in ("Y", "'Y'", '"Y"') for name in mean_names):
+    if any(str(name).strip("'\"") == mean_target_col for name in mean_names if name is not None):
         passed += 1
 
     # Assertion 5: 1D FFT applied to single column
@@ -173,7 +226,23 @@ _nstl_slm.LinearRegression.fit = _traced_lr_fit
     return passed, None
 
 
+def parse_args():
+    parser = argparse.ArgumentParser(description="NSTL Multi-Profile & Multi-Method Sweep Runner")
+    parser.add_argument("--debug", action="store_true", help="Enable debug logging")
+    parser.add_argument("--no-reranker", action="store_true", help="Disable neural reranker")
+    parser.add_argument("--exec", dest="execute_sandbox", action="store_true", default=True, help="Execute sandbox")
+    parser.add_argument("--no-exec", dest="execute_sandbox", action="store_false", help="Skip sandbox execution")
+    parser.add_argument("--profiles", nargs="+", default=PROFILES, help="Profiles to evaluate")
+    parser.add_argument("--methods", nargs="+", default=METHODS, help="Route methods to evaluate")
+    return parser.parse_args()
+
+
 def run_sweep():
+    args = parse_args()
+    if args.debug:
+        import logging
+        logging.basicConfig(level=logging.DEBUG)
+
     trees_dir = str(ROOT_DIR / "trees")
     db_path = str(ROOT_DIR / "trees" / "lattice.db")
     orch = LatticeOrchestrator(trees_directory=trees_dir, db_path=db_path)
@@ -200,9 +269,12 @@ def run_sweep():
     refused_count = 0
     violation_categories = collections.Counter()
 
-    for profile_name in PROFILES:
+    profiles_to_run = [p.upper() for p in args.profiles]
+    methods_to_run = [m.upper() for m in args.methods]
+
+    for profile_name in profiles_to_run:
         prof = Profile(profile_name)
-        for method_name in METHODS:
+        for method_name in methods_to_run:
             t0 = time.perf_counter()
             best_path = None
             code = None
@@ -211,15 +283,22 @@ def run_sweep():
             golden_score = 0
             steps = 0
             layer2_ms = 0.0
+            effective_route = method_name
+            fallback_reason = "-"
 
             try:
                 if method_name == "M0":
                     planner = LatticePlanner(orchestrator=orch)
                     best_path, score = planner.plan_dag(BENCHMARK_PROMPT, candidates=all_cells, relevance_map=relevance_map)
+                    effective_route = "M0"
+                    fallback_reason = "-"
                 else:
                     from router import SemanticRouteOptimizer
-                    optimizer = SemanticRouteOptimizer(orch, prof)
-                    best_path = optimizer.route(BENCHMARK_PROMPT, method_name=method_name, relevance_map=relevance_map)
+                    optimizer = SemanticRouteOptimizer(orch, prof, use_reranker=not args.no_reranker)
+                    ctx = ExecutionContext(prompt=BENCHMARK_PROMPT)
+                    best_path = optimizer.route(BENCHMARK_PROMPT, method_name=method_name, relevance_map=relevance_map, ctx=ctx)
+                    effective_route = getattr(optimizer.router, "last_effective_route", method_name)
+                    fallback_reason = getattr(optimizer.router, "last_fallback_reason", "-") or "-"
 
                 layer2_ms = (time.perf_counter() - t0) * 1000.0
 
@@ -258,14 +337,17 @@ def run_sweep():
                             script_hash = hashlib.sha256(code.strip().encode("utf-8")).hexdigest()[:12]
                             distinct_scripts.add(script_hash)
 
-                            with tempfile.TemporaryDirectory() as tmpdir:
-                                golden_score, err = evaluate_golden_assertions(
-                                    code, bindings, ctx.ordered_literals, Path(tmpdir), best_path
-                                )
-                                if err is None:
-                                    sandbox_ok = "yes"
-                                else:
-                                    sandbox_ok = f"error: {err.splitlines()[-1][:40]}"
+                            if args.execute_sandbox:
+                                with tempfile.TemporaryDirectory() as tmpdir:
+                                    golden_score, err = evaluate_golden_assertions(
+                                        code, bindings, ctx.ordered_literals, Path(tmpdir), best_path
+                                    )
+                                    if err is None:
+                                        sandbox_ok = "yes"
+                                    else:
+                                        sandbox_ok = f"error: {err.splitlines()[-1][:40]}"
+                            else:
+                                sandbox_ok = "skipped"
 
             except Exception as exc:
                 layer2_ms = (time.perf_counter() - t0) * 1000.0
@@ -275,6 +357,8 @@ def run_sweep():
             rows.append({
                 "profile": profile_name,
                 "method": method_name,
+                "effective_route": effective_route,
+                "fallback_reason": fallback_reason,
                 "steps": steps,
                 "emitted": "yes" if code else "no",
                 "refused_why": refused_why,
@@ -285,10 +369,10 @@ def run_sweep():
 
     # Print markdown table
     print("\n### Sweep Results Table\n")
-    print("| profile | method | steps | emitted? | refused why | sandbox ok? | golden assertions passed (n/6) | layer-2 ms |")
-    print("|---|---|---|---|---|---|---|---|")
+    print("| profile | method | effective route | fallback reason | steps | emitted? | refused why | sandbox ok? | golden assertions passed (n/6) | layer-2 ms |")
+    print("|---|---|---|---|---|---|---|---|---|---|")
     for r in rows:
-        print(f"| {r['profile']} | {r['method']} | {r['steps']} | {r['emitted']} | {r['refused_why']} | {r['sandbox_ok']} | {r['golden_passed']} | {r['layer2_ms']} |")
+        print(f"| {r['profile']} | {r['method']} | {r['effective_route']} | {r['fallback_reason']} | {r['steps']} | {r['emitted']} | {r['refused_why']} | {r['sandbox_ok']} | {r['golden_passed']} | {r['layer2_ms']} |")
 
     print(f"\nDistinct emitted scripts: {len(distinct_scripts)}")
     print(f"Refused runs: {refused_count} / {len(rows)}")

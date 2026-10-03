@@ -18,6 +18,8 @@ class ConditionPredicate(BaseModel):
     value: Any = None                  # Target value (e.g. 1, "binary", True)
     expression: Optional[str] = None   # Raw string expression (e.g. "channels == 1")
     description: Optional[str] = None  # Human-readable explanation
+    name: Optional[str] = None         # Structured predicate / effect name (e.g. "removes_columns")
+    from_port: Optional[str] = None    # Port specifying affected items (e.g. "port_1")
 
     @classmethod
     def from_any(cls, v: Any) -> "ConditionPredicate":
@@ -77,7 +79,7 @@ class ConditionPredicate(BaseModel):
             return cls(expression=expr)
 
         if isinstance(v, dict):
-            if "property" in v or "operator" in v or "expression" in v or "target" in v:
+            if "name" in v or "property" in v or "operator" in v or "expression" in v or "target" in v:
                 return cls(**v)
             items = list(v.items())
             if len(items) == 1:
@@ -156,6 +158,7 @@ class PortSchema(BaseModel):
     port_role: Optional[str] = None
     role: Optional[str] = None
     polarity: Optional[str] = None
+    binds: Optional[str] = None
 
     def model_post_init(self, __context: Any) -> None:
         if self.role and not self.port_role:
@@ -221,6 +224,7 @@ class CellSchema(BaseModel):
     endable: Optional[bool] = None
     primary_in: Optional[str] = None
     primary_out: Optional[str] = None
+    projection: Optional[str] = None
 
     # --- Macro Node Pipeline ---
     sub_cells: List[str] = Field(default_factory=list)

@@ -1168,6 +1168,9 @@ class LatticeRouter:
 
         # Dispatch to selected RouteMethod
         method_name = str(route_method or self.default_route_method or "m0").strip().lower()
+        self.last_requested_route = method_name.upper()
+        self.last_effective_route = method_name.upper()
+        self.last_fallback_reason = None
         # Registry-driven dispatch decision (no alias duplication here):
         # the M0 trellis planner is the in-router baseline; everything else
         # delegates to its registered RouteMethod class.
@@ -1187,11 +1190,14 @@ class LatticeRouter:
                     rag=kwargs.get("rag", self.internal_rag),
                     **kwargs
                 )
+                self.last_effective_route = method_name.upper()
             except Exception as e:
                 logger.error(
                     f"[ROUTER] RouteMethod '{method_name}' failed: {e}",
                     exc_info=True,
                 )
+                self.last_effective_route = "M0"
+                self.last_fallback_reason = f"{type(e).__name__}: {str(e)}"
                 path = self.planner.plan(
                     prompt=prompt,
                     tunnel=tunnel_cells,
@@ -1201,6 +1207,7 @@ class LatticeRouter:
                 )
         else:
             # Find verified composition path inside tunnel T using baseline Trellis
+            self.last_effective_route = "M0"
             path = self.planner.plan(
                 prompt=prompt,
                 tunnel=tunnel_cells,
@@ -1337,3 +1344,71 @@ def log_coverage_gap(prompt: str, domain_guess: str = "", score: float = 0.0, no
             "node_id": node_id,
             "timestamp": time.time()
         }) + "\n")
+
+
+class SemanticRouteOptimizer:
+    """
+    Route optimizer wrapping LatticeRouter for profiling and benchmarking across
+    methods and profiles.
+    """
+    def __init__(
+        self,
+        orchestrator: LatticeOrchestrator,
+        profile: Optional[Any] = None,
+        use_reranker: bool = False,
+        **kwargs
+    ):
+        self.orchestrator = orchestrator
+        self.profile = profile
+        if profile is not None:
+            p_name = profile.value if hasattr(profile, "value") else str(profile)
+            try:
+                from inference import ModelManager
+                mm = ModelManager.get_instance()
+                if getattr(mm, "current_profile_name", None) != p_name.upper():
+                    mm.initialize_profile(p_name)
+                if not hasattr(orchestrator, "rag") or orchestrator.rag is None:
+                    from internal_rag import LocalRAG
+                    orchestrator.rag = LocalRAG(trees_dir="trees", orchestrator=orchestrator)
+            except Exception as e:
+                logger.warning(f"[SemanticRouteOptimizer] Failed to initialize profile {p_name}: {e}")
+
+        self.router = LatticeRouter(
+            orchestrator=self.orchestrator,
+            internal_rag=getattr(orchestrator, "rag", None),
+            use_reranker=use_reranker,
+            **kwargs
+        )
+
+    def route(
+        self,
+        prompt: str,
+        method_name: str = "m0",
+        relevance_map: Optional[Dict[str, float]] = None,
+        ctx: Optional[Any] = None,
+        **kwargs
+    ) -> List[Cell]:
+        if ctx is None:
+            try:
+                from unification import ExecutionContext
+                ctx = ExecutionContext(prompt=prompt)
+            except Exception:
+                ctx = None
+        res = self.router.plan_path(
+            prompt=prompt,
+            route_method=method_name,
+            return_tuple=False,
+            ctx=ctx,
+            relevance_map=relevance_map,
+            **kwargs
+        )
+        return res if isinstance(res, list) else []
+
+    @property
+    def last_effective_route(self) -> str:
+        return getattr(self.router, "last_effective_route", "M0")
+
+    @property
+    def last_fallback_reason(self) -> Optional[str]:
+        return getattr(self.router, "last_fallback_reason", None)
+

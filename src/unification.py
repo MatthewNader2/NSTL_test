@@ -71,6 +71,383 @@ logger = get_logger('unification')
 T = TypeVar('T')
 U = TypeVar('U')
 
+
+@dataclass
+class TypedBindingRecord:
+    """
+    Structured typed binding record emitted for every cell port during unification.
+    Conforms to Round 5 specification (R5-1).
+    """
+    port: str
+    value_expr: str
+    kind: str  # "variable", "projection", "literal", "default"
+    root_var: Optional[str] = None
+    projection: Optional[Dict[str, Any]] = None
+    resulting_signature: Optional[Any] = None
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "port": self.port,
+            "value_expr": self.value_expr,
+            "kind": self.kind,
+            "root_var": self.root_var,
+            "projection": self.projection,
+            "resulting_signature": self.resulting_signature,
+        }
+
+
+def _is_unbound(value: Any) -> bool:
+    if value is None or value is UNRESOLVED_PORT:
+        return True
+    try:
+        s = str(value).strip().lower()
+    except Exception:
+        return False
+    return s in ("none", "null", "<unresolved>", "<unbound>", "<unresolved_port>")
+
+
+def resolve_typed_binding_record(
+    cell: Any,
+    port_name: str,
+    bound_val: Any,
+    port_sig: Optional[Any] = None,
+    var_signatures: Optional[Dict[str, Any]] = None,
+) -> TypedBindingRecord:
+    """
+    Computes a structured TypedBindingRecord for a bound port directly from the lattice,
+    without inventing arbitrary synthetic state names or guessing types from strings.
+    """
+    var_sigs = var_signatures or {}
+    expected_sig = getattr(port_sig, "signature", port_sig) if port_sig else None
+
+    if bound_val is None or _is_unbound(bound_val) or bound_val is UNRESOLVED_PORT or (
+        isinstance(bound_val, str) and bound_val in ("<UNRESOLVED_PORT>", "<UNRESOLVED>", "<unbound>")
+    ):
+        return TypedBindingRecord(
+            port=port_name,
+            value_expr=str(bound_val) if bound_val is not None else "",
+            kind="default",
+            root_var=None,
+            projection=None,
+            resulting_signature=expected_sig,
+        )
+
+    if not isinstance(bound_val, str):
+        return TypedBindingRecord(
+            port=port_name,
+            value_expr=repr(bound_val),
+            kind="literal",
+            root_var=None,
+            projection=None,
+            resulting_signature=expected_sig,
+        )
+
+    val_str = bound_val.strip()
+    if not val_str:
+        return TypedBindingRecord(
+            port=port_name,
+            value_expr="",
+            kind="default",
+            root_var=None,
+            projection=None,
+            resulting_signature=expected_sig,
+        )
+
+    # 1. Plain pipeline variable
+    if val_str in var_sigs:
+        sig = var_sigs[val_str]
+        return TypedBindingRecord(
+            port=port_name,
+            value_expr=val_str,
+            kind="variable",
+            root_var=val_str,
+            projection=None,
+            resulting_signature=getattr(sig, "signature", sig),
+        )
+    elif val_str.startswith("var_") and val_str.isidentifier():
+        return TypedBindingRecord(
+            port=port_name,
+            value_expr=val_str,
+            kind="variable",
+            root_var=val_str,
+            projection=None,
+            resulting_signature=None,
+        )
+
+    # 2. Parse expression via AST
+    try:
+        parsed = ast.parse(val_str, mode="eval").body
+    except Exception:
+        parsed = None
+
+    if isinstance(parsed, ast.Name):
+        v = parsed.id
+        sig = var_sigs.get(v)
+        return TypedBindingRecord(
+            port=port_name,
+            value_expr=val_str,
+            kind="variable",
+            root_var=v,
+            projection=None,
+            resulting_signature=getattr(sig, "signature", sig) if sig else None,
+        )
+
+    if isinstance(parsed, ast.Subscript):
+        root_v = parsed.value.id if isinstance(parsed.value, ast.Name) else None
+        base_sig = var_sigs.get(root_v) if root_v else None
+        sl = parsed.slice
+
+        # (A) Column selection: var['X']
+        if isinstance(sl, ast.Constant) and isinstance(sl.value, str):
+            col_sig = None
+            try:
+                try:
+                    from .lattice import LatticeOrchestrator
+                except (ImportError, ValueError):
+                    from lattice import LatticeOrchestrator
+                orch = LatticeOrchestrator.get_active_instance()
+                if orch:
+                    for c in orch.cells:
+                        if getattr(c, "projection", None) == "column":
+                            p_out = getattr(c, "primary_output", None) or next(iter(c.outputs.values()), None)
+                            if p_out:
+                                col_sig = getattr(p_out, "signature", p_out)
+                                break
+            except Exception:
+                pass
+
+            if col_sig is None:
+                col_sig = AlgebraicSignature(
+                    type_name="Series",
+                    state="series_numeric",
+                    abstract_type="sequence",
+                    accepted_states=frozenset(["series_numeric", "series_cleaned", "series_raw"]),
+                    qualifiers=frozenset(["vector"]),
+                )
+            return TypedBindingRecord(
+                port=port_name,
+                value_expr=val_str,
+                kind="projection",
+                root_var=root_v,
+                projection={"kind": "column", "key": sl.value},
+                resulting_signature=col_sig,
+            )
+
+        # (B) Multi-column selection: var[['X', 'Y']]
+        elif isinstance(sl, (ast.List, ast.Tuple)):
+            cols_sig = None
+            try:
+                try:
+                    from .lattice import LatticeOrchestrator
+                except (ImportError, ValueError):
+                    from lattice import LatticeOrchestrator
+                orch = LatticeOrchestrator.get_active_instance()
+                if orch:
+                    for c in orch.cells:
+                        if getattr(c, "projection", None) == "columns":
+                            p_out = getattr(c, "primary_output", None) or next(iter(c.outputs.values()), None)
+                            if p_out:
+                                cols_sig = getattr(p_out, "signature", p_out)
+                                break
+            except Exception:
+                pass
+
+            if cols_sig is None:
+                cols_sig = AlgebraicSignature(
+                    type_name="DataFrame",
+                    state="filtered",
+                    abstract_type="table",
+                    accepted_states=frozenset(["filtered", "cleaned", "raw"]),
+                    qualifiers=frozenset(["matrix"]),
+                )
+            keys = [elt.value for elt in sl.elts if isinstance(elt, ast.Constant)]
+            return TypedBindingRecord(
+                port=port_name,
+                value_expr=val_str,
+                kind="projection",
+                root_var=root_v,
+                projection={"kind": "columns", "key": keys},
+                resulting_signature=cols_sig,
+            )
+
+        # (C) Index projection: var[0]
+        elif isinstance(sl, ast.Constant) and isinstance(sl.value, int):
+            idx_val = sl.value
+            idx_sig = None
+            if base_sig:
+                raw = str(getattr(getattr(base_sig, "signature", None), "type_name", "") or getattr(base_sig, "type_name", ""))
+                if "[" in raw and raw.endswith("]"):
+                    inner = raw.split("[", 1)[1][:-1]
+                    members = [m.strip() for m in inner.split(",")]
+                    if 0 <= idx_val < len(members):
+                        idx_sig = AlgebraicSignature(type_name=members[idx_val], state="any", abstract_type="any")
+            if idx_sig is None:
+                idx_sig = AlgebraicSignature(type_name="any", state="any", abstract_type="any")
+            return TypedBindingRecord(
+                port=port_name,
+                value_expr=val_str,
+                kind="projection",
+                root_var=root_v,
+                projection={"kind": "index", "key": idx_val},
+                resulting_signature=idx_sig,
+            )
+
+    # (D) Method calls on variable, e.g. var.to_numpy()
+    if isinstance(parsed, ast.Call) and isinstance(parsed.func, ast.Attribute) and isinstance(parsed.func.value, ast.Name):
+        root_v = parsed.func.value.id
+        attr_name = parsed.func.attr
+        base_sig = var_sigs.get(root_v) if root_v else None
+        if attr_name == "to_numpy":
+            np_sig = None
+            try:
+                try:
+                    from .lattice import LatticeOrchestrator
+                except (ImportError, ValueError):
+                    from lattice import LatticeOrchestrator
+                orch = LatticeOrchestrator.get_active_instance()
+                if orch:
+                    for c in orch.cells:
+                        if getattr(c, "projection", None) == "to_numpy" or "project_to_numpy" in c.cell_id.lower():
+                            p_out = getattr(c, "primary_output", None) or next(iter(c.outputs.values()), None)
+                            if p_out:
+                                np_sig = getattr(p_out, "signature", p_out)
+                                break
+            except Exception:
+                pass
+            if np_sig is None:
+                np_sig = AlgebraicSignature(
+                    type_name="ndarray",
+                    state="ndarray_numeric",
+                    abstract_type="tensor",
+                    accepted_states=frozenset(["ndarray_numeric", "split_train_features"]),
+                    qualifiers=frozenset(["matrix"]) if (base_sig and getattr(base_sig, "abstract_type", "") == "table") else frozenset(["vector"]),
+                )
+            return TypedBindingRecord(
+                port=port_name,
+                value_expr=val_str,
+                kind="projection",
+                root_var=root_v,
+                projection={"kind": "method", "key": attr_name},
+                resulting_signature=np_sig,
+            )
+        return TypedBindingRecord(
+            port=port_name,
+            value_expr=val_str,
+            kind="projection",
+            root_var=root_v,
+            projection={"kind": "method", "key": attr_name},
+            resulting_signature=getattr(base_sig, "signature", base_sig) if base_sig else None,
+        )
+
+    # 3. Literal
+    return TypedBindingRecord(
+        port=port_name,
+        value_expr=val_str,
+        kind="literal",
+        root_var=None,
+        projection=None,
+        resulting_signature=expected_sig,
+    )
+
+
+def check_provenance_compatibility(
+    port_sig: Any,
+    candidate_origins: Set[str],
+    target_col: Optional[str],
+    all_known_origins: Set[str],
+    registry: Optional[Any] = None,
+) -> bool:
+    """
+    Check if a candidate variable's column origins are compatible with a port and target column.
+    Uses declared node properties and TypeRegistry, with zero hardcoded port names or state strings (R5-7).
+    """
+    if target_col is None:
+        return True
+
+    p_binds = getattr(port_sig, "binds", None)
+    if p_binds == "assigned_value":
+        return True
+    if p_binds == "column_key":
+        return True
+
+    try:
+        from .lattice import TypeRegistry
+    except (ImportError, ValueError):
+        from lattice import TypeRegistry
+    reg = registry or TypeRegistry.get_instance()
+    p_abstract = getattr(port_sig, "abstract_type", "")
+    inner_sig = getattr(port_sig, "signature", port_sig)
+    p_tn = str(getattr(inner_sig, "type_name", "")).lower()
+    if p_binds in ("data_carrier", "carrier") or p_abstract == "table" or reg.is_subtype(p_tn, "table"):
+        return True
+
+    is_new_target_col = (
+        target_col not in all_known_origins
+        and target_col.lower() not in {str(o).lower() for o in all_known_origins}
+    )
+    if is_new_target_col:
+        return True
+
+    if not candidate_origins:
+        return True
+
+    if target_col in candidate_origins or target_col.lower() in {str(o).lower() for o in candidate_origins}:
+        return True
+
+    return False
+
+
+def _update_variable_provenance(
+    ctx: ExecutionContext,
+    out_var: str,
+    cell: Any,
+    cell_bindings: Dict[str, Any],
+) -> None:
+    """
+    Updates variable provenance records using typed binding records and declared properties (R5-7).
+    Eliminates all substring/bracket parsing of bound strings.
+    """
+    ctx.var_parents.setdefault(out_var, set())
+    ctx.var_origins.setdefault(out_var, set())
+    var_sigs_curr = {v: sig_tuple[0] for v, sig_tuple in getattr(ctx, "variables", {}).items()}
+    for p_n, p_val in cell_bindings.items():
+        if not p_val or p_val is UNRESOLVED_PORT:
+            continue
+        p_sig_n = getattr(cell, "inputs", {}).get(p_n) or getattr(cell, "outputs", {}).get(p_n)
+        rec = resolve_typed_binding_record(
+            cell=cell,
+            port_name=p_n,
+            bound_val=p_val,
+            port_sig=getattr(p_sig_n, "signature", p_sig_n) if p_sig_n else None,
+            var_signatures=var_sigs_curr,
+        )
+        if rec.root_var and rec.root_var in ctx.variables:
+            ctx.var_parents[out_var].add(rec.root_var)
+            ctx.var_origins[out_var].update(ctx.var_origins.get(rec.root_var, set()))
+        if rec.kind == "projection" and rec.projection:
+            p_key = rec.projection.get("key")
+            if p_key:
+                if isinstance(p_key, list):
+                    for k_item in p_key:
+                        ctx.var_origins[out_var].add(str(k_item).strip("'\""))
+                else:
+                    ctx.var_origins[out_var].add(str(p_key).strip("'\""))
+        elif getattr(p_sig_n, "binds", None) == "column_key" and rec.value_expr:
+            lit_clean = str(rec.value_expr).strip("'\"")
+            if lit_clean and not lit_clean.isdigit():
+                ctx.var_origins[out_var].add(lit_clean)
+        elif p_n in ("column", "key", "columns") and rec.value_expr:
+            lit_clean = str(rec.value_expr).strip("'\"")
+            if lit_clean and not lit_clean.isdigit():
+                ctx.var_origins[out_var].add(lit_clean)
+
+    c_lits = getattr(cell, "clause_literals", None)
+    if c_lits:
+        for cl_lit in c_lits:
+            clean_lit = str(cl_lit).strip("'\"")
+            if clean_lit:
+                ctx.var_origins[out_var].add(clean_lit)
+
 # English sentence-connective function words (LANGUAGE-level primitives, not
 # domain vocabulary): a capitalized occurrence of one of these mid-prompt is a
 class DynamicSentenceConnectives(frozenset):
@@ -2833,6 +3210,7 @@ class UnificationGate:
         self.context = ExecutionContext()
         self.last_egress_paths: List[str] = []
         self.last_pipeline_bindings: List[Tuple[Cell, Dict[str, str]]] = []
+        self.last_pipeline_typed_bindings: List[Dict[str, TypedBindingRecord]] = []
         self.last_verification_contract: Optional[VerificationContract] = None
         self.last_runtime_aliases: Dict[str, str] = {}
         self._generic_port_cache: Optional[Tuple[Tuple[int, int], FrozenSet[str]]] = None
@@ -3617,16 +3995,14 @@ class UnificationGate:
             if producer_var is not None and not bound_producer and not is_zero_ary and not is_replica:
                 prod_origins = getattr(ctx, "var_origins", {}).get(producer_var, set())
                 all_known_origins = set().union(*getattr(ctx, "var_origins", {}).values()) if getattr(ctx, "var_origins", None) else set()
-                is_new_target_col = target_col_for_cell is not None and (
-                    target_col_for_cell not in all_known_origins
-                    and target_col_for_cell.lower() not in {str(o).lower() for o in all_known_origins}
-                )
-                col_mismatch = bool(
-                    target_col_for_cell is not None
-                    and not is_new_target_col
-                    and prod_origins
-                    and target_col_for_cell not in prod_origins
-                    and target_col_for_cell.lower() not in {str(o).lower() for o in prod_origins}
+                prim_in = cell.primary_input
+                target_port = prim_in if prim_in is not None else (cell.inputs.get("port_0") if hasattr(cell, "inputs") else None)
+                col_mismatch = not check_provenance_compatibility(
+                    port_sig=target_port,
+                    candidate_origins=prod_origins,
+                    target_col=target_col_for_cell,
+                    all_known_origins=all_known_origins,
+                    registry=registry,
                 )
 
                 prim_in = cell.primary_input
@@ -4008,27 +4384,13 @@ class UnificationGate:
 
                     # Column provenance gating: don't bind a variable from column X into a cell targeting column Y
                     v_origins = getattr(ctx, "var_origins", {}).get(v_name, set())
-                    p_abstract = getattr(concrete_sig, "abstract_type", "")
-                    p_tn = str(getattr(getattr(concrete_sig, "signature", concrete_sig), "type_name", "")).lower()
-                    is_table_carrier = (p_abstract == "table" or registry.is_subtype(p_tn, "table"))
-                    is_assign_val = (
-                        p_name in ("value", "val")
-                        or p_role_in == "value"
-                        or any(target_col_for_cell and str(target_col_for_cell).lower() in str(b).lower() for b in cell_bindings.values() if isinstance(b, str))
-                    )
                     all_known_origins = set().union(*getattr(ctx, "var_origins", {}).values()) if getattr(ctx, "var_origins", None) else set()
-                    is_new_target_col = target_col_for_cell is not None and (
-                        target_col_for_cell not in all_known_origins
-                        and target_col_for_cell.lower() not in {str(o).lower() for o in all_known_origins}
-                    )
-                    if (
-                        target_col_for_cell is not None
-                        and not is_table_carrier
-                        and not is_assign_val
-                        and not is_new_target_col
-                        and v_origins
-                        and target_col_for_cell not in v_origins
-                        and target_col_for_cell.lower() not in {str(o).lower() for o in v_origins}
+                    if not check_provenance_compatibility(
+                        port_sig=p_sig,
+                        candidate_origins=v_origins,
+                        target_col=target_col_for_cell,
+                        all_known_origins=all_known_origins,
+                        registry=registry,
                     ):
                         continue
 
@@ -4036,12 +4398,34 @@ class UnificationGate:
                     if u_v is not None:
                         prod_cell = ctx.var_sources.get(v_name)
                         is_planned = bool(prod_cell and prod_cell.cell_id in planned_parents)
-                        candidate_vars.append((is_planned, v_name, u_v))
+                        c_clause = getattr(cell, "matched_clause_idx", None)
+                        prod_clause = getattr(prod_cell, "matched_clause_idx", None) if prod_cell else None
+
+                        clause_score = 0.0
+                        if c_clause is not None and prod_clause is not None:
+                            if prod_clause == c_clause:
+                                clause_score = 100.0
+                            elif prod_clause < c_clause:
+                                dist = c_clause - prod_clause
+                                clause_score = max(0.0, 90.0 - (dist - 1) * 20.0)
+                            else:
+                                clause_score = -100.0
+
+                        literal_score = 0.0
+                        if target_col_for_cell and v_origins and (
+                            target_col_for_cell in v_origins or target_col_for_cell.lower() in {str(o).lower() for o in v_origins}
+                        ):
+                            literal_score = 150.0
+
+                        planned_score = 200.0 if is_planned else 0.0
+                        prio = planned_score + literal_score + clause_score
+                        candidate_vars.append((prio, v_name, u_v))
 
                 if candidate_vars:
-                    # D6 Fix: Planned parent variables take absolute priority over arbitrary recency
+                    # D6 Fix: Planned parent variables & clause adjacency take absolute priority over arbitrary recency
                     candidate_vars.sort(key=lambda x: x[0], reverse=True)
-                    _, scoped_var, accumulated_sigma = candidate_vars[0]
+                    if candidate_vars[0][0] >= 0:
+                        _, scoped_var, accumulated_sigma = candidate_vars[0]
 
                 if scoped_var is not None:
                     cell_bindings[p_name] = scoped_var
@@ -4174,27 +4558,7 @@ class UnificationGate:
 
                         concrete_out = substitute_generics(out_sig, accumulated_sigma)
                         ctx.declare_variable(out_var, concrete_out, out_var, cell=cell)
-                        ctx.var_parents.setdefault(out_var, set())
-                        ctx.var_origins.setdefault(out_var, set())
-                        bound_in_vars = [v for v in cell_bindings.values() if isinstance(v, str) and v in ctx.variables]
-                        for in_v in bound_in_vars:
-                            ctx.var_parents[out_var].add(in_v)
-                            ctx.var_origins[out_var].update(ctx.var_origins.get(in_v, set()))
-                        for p_val in cell_bindings.values():
-                            if isinstance(p_val, str) and "[" in p_val and "]" in p_val:
-                                inside = p_val[p_val.find("[") + 1 : p_val.rfind("]")].strip()
-                                if inside.startswith("[") and inside.endswith("]"):
-                                    try:
-                                        parsed = json.loads(inside)
-                                        if isinstance(parsed, list):
-                                            for c in parsed:
-                                                ctx.var_origins[out_var].add(str(c))
-                                    except Exception:
-                                        pass
-                                else:
-                                    clean_inside = inside.strip("'\"")
-                                    if clean_inside and not clean_inside.isdigit():
-                                        ctx.var_origins[out_var].add(clean_inside)
+                        _update_variable_provenance(ctx, out_var, cell, cell_bindings)
                         if prim_out and out_name == prim_out.name:
                             prim_var = out_var
 
@@ -4263,40 +4627,7 @@ class UnificationGate:
 
                         # Provenance and monoidal DAG branch tracking
                         ctx.var_parents.setdefault(current_out_var, set())
-                        ctx.var_origins.setdefault(current_out_var, set())
-                        bound_in_vars = [v for v in cell_bindings.values() if isinstance(v, str) and v in ctx.variables]
-                        for in_v in bound_in_vars:
-                            ctx.var_parents[current_out_var].add(in_v)
-                            ctx.var_origins[current_out_var].update(ctx.var_origins.get(in_v, set()))
-
-                        for p_k, p_val in cell_bindings.items():
-                            if p_k in ("column", "key", "columns") and p_val and p_val != UNRESOLVED_PORT:
-                                lit_clean = str(p_val).strip("'\"")
-                                if lit_clean:
-                                    ctx.var_origins[current_out_var].add(lit_clean)
-
-                        for p_val in cell_bindings.values():
-                            if isinstance(p_val, str) and "[" in p_val and "]" in p_val:
-                                inside = p_val[p_val.find("[") + 1 : p_val.rfind("]")].strip()
-                                if inside.startswith("[") and inside.endswith("]"):
-                                    try:
-                                        parsed = json.loads(inside)
-                                        if isinstance(parsed, list):
-                                            for c in parsed:
-                                                ctx.var_origins[current_out_var].add(str(c))
-                                    except Exception:
-                                        pass
-                                else:
-                                    clean_inside = inside.strip("'\"")
-                                    if clean_inside and not clean_inside.isdigit():
-                                        ctx.var_origins[current_out_var].add(clean_inside)
-
-                        c_lits = getattr(cell, "clause_literals", None)
-                        if c_lits:
-                            for cl_lit in c_lits:
-                                clean_lit = str(cl_lit).strip("'\"")
-                                if clean_lit:
-                                    ctx.var_origins[current_out_var].add(clean_lit)
+                        _update_variable_provenance(ctx, current_out_var, cell, cell_bindings)
 
                         # Record model feature grounding
                         p_role_out = getattr(concrete_out, "port_role", None) or getattr(concrete_out, "derived_role", "")
@@ -4318,8 +4649,30 @@ class UnificationGate:
                 # Do not advance counter, do not declare phantom variables, and do not overwrite producer_var.
                 pass
 
+            cell_typed_bindings = {}
+            var_sigs = {v: sig_tuple[0] for v, sig_tuple in ctx.variables.items()}
+            for p_name, val_expr in cell_bindings.items():
+                expected_sig = None
+                if cell.inputs and p_name in cell.inputs:
+                    expected_sig = getattr(cell.inputs[p_name], "signature", cell.inputs[p_name])
+                elif cell.outputs and p_name in cell.outputs:
+                    expected_sig = getattr(cell.outputs[p_name], "signature", cell.outputs[p_name])
+                elif p_name == "output_var" and getattr(cell, "primary_output", None):
+                    expected_sig = getattr(cell.primary_output, "signature", cell.primary_output)
+                record = resolve_typed_binding_record(
+                    cell=cell,
+                    port_name=p_name,
+                    bound_val=val_expr,
+                    port_sig=expected_sig,
+                    var_signatures=var_sigs,
+                )
+                cell_typed_bindings[p_name] = record
+            cell.typed_bindings = cell_typed_bindings
+
             pipeline_bindings.append((cell, cell_bindings))
 
+        self.last_pipeline_bindings = pipeline_bindings
+        self.last_pipeline_typed_bindings = [getattr(c, "typed_bindings", {}) for c, _ in pipeline_bindings]
         return Success(pipeline_bindings, accumulated_sigma)
 
     @staticmethod
@@ -6186,22 +6539,19 @@ def unify_cell_with_scope(
             if _is_sink_cell(earlier_cell):
                 continue
             if target_col_for_cell is not None and context is not None:
-                p_abstract = getattr(p_sig, "abstract_type", "")
-                p_tn = str(getattr(getattr(p_sig, "signature", p_sig), "type_name", "")).lower()
-                is_table_carrier = (p_abstract == "table" or TypeRegistry.get_instance().is_subtype(p_tn, "table"))
-                is_assign_val = (p_name in ("value", "val") or in_role == "value" or "column" in cand.inputs)
                 all_known_origins = set().union(*getattr(context, "var_origins", {}).values()) if getattr(context, "var_origins", None) else set()
-                is_new_target_col = (
-                    target_col_for_cell not in all_known_origins
-                    and target_col_for_cell.lower() not in {str(o).lower() for o in all_known_origins}
-                )
-                if not is_table_carrier and not is_assign_val and not is_new_target_col:
-                    earlier_origins = set()
-                    for v_n, src_c in getattr(context, "var_sources", {}).items():
-                        if src_c is earlier_cell or id(src_c) == id(earlier_cell):
-                            earlier_origins.update(getattr(context, "var_origins", {}).get(v_n, set()))
-                    if earlier_origins and target_col_for_cell not in earlier_origins and target_col_for_cell.lower() not in {str(o).lower() for o in earlier_origins}:
-                        continue
+                earlier_origins = set()
+                for v_n, src_c in getattr(context, "var_sources", {}).items():
+                    if src_c is earlier_cell or id(src_c) == id(earlier_cell):
+                        earlier_origins.update(getattr(context, "var_origins", {}).get(v_n, set()))
+                if not check_provenance_compatibility(
+                    port_sig=p_sig,
+                    candidate_origins=earlier_origins,
+                    target_col=target_col_for_cell,
+                    all_known_origins=all_known_origins,
+                    registry=TypeRegistry.get_instance(),
+                ):
+                    continue
             for out_name, out_sig in earlier_cell.outputs.items():
                 if not _shape_compatible(out_sig, p_sig):
                     continue
@@ -6224,6 +6574,20 @@ def unify_cell_with_scope(
                         score += 15.0
                     # Recency tie-breaker
                     score += (len(available_cells) - idx_c) * 0.1
+
+                    # Clause-adjacency rule (R5-7): prioritize product of nearest preceding clause
+                    cand_clause = getattr(cand, "matched_clause_idx", None)
+                    earlier_clause = getattr(earlier_cell, "matched_clause_idx", None)
+                    if cand_clause is not None and earlier_clause is not None:
+                        if earlier_clause == cand_clause:
+                            score += 35.0
+                        elif earlier_clause == cand_clause - 1:
+                            score += 30.0
+                        elif earlier_clause < cand_clause - 1:
+                            dist = cand_clause - earlier_clause
+                            score += max(0.0, 25.0 - dist * 5.0)
+                        else:
+                            score -= 50.0
 
                     # Multi-input positional alignment: if consumer has multiple inputs accepting this carrier type,
                     # align them with ancestor producer cells in topological order (e.g. left -> first df, right -> second df)
@@ -6251,23 +6615,14 @@ def unify_cell_with_scope(
                 v_cell = getattr(context, "var_sources", {}).get(v_name)
                 if v_cell is not None and id(v_cell) in avail_cell_ids:
                     continue
-                p_abstract = getattr(p_sig, "abstract_type", "")
-                p_tn = str(getattr(getattr(p_sig, "signature", p_sig), "type_name", "")).lower()
-                is_table_carrier = (p_abstract == "table" or TypeRegistry.get_instance().is_subtype(p_tn, "table"))
-                is_assign_val = (p_name in ("value", "val") or in_role == "value" or "column" in cand.inputs)
                 all_known_origins = set().union(*getattr(context, "var_origins", {}).values()) if getattr(context, "var_origins", None) else set()
-                is_new_target_col = (
-                    target_col_for_cell not in all_known_origins
-                    and target_col_for_cell.lower() not in {str(o).lower() for o in all_known_origins}
-                )
-                if (
-                    target_col_for_cell is not None
-                    and not is_table_carrier
-                    and not is_assign_val
-                    and not is_new_target_col
-                    and v_origins
-                    and target_col_for_cell not in v_origins
-                    and target_col_for_cell.lower() not in {str(o).lower() for o in v_origins}
+                v_origins = getattr(context, "var_origins", {}).get(v_name, set())
+                if not check_provenance_compatibility(
+                    port_sig=p_sig,
+                    candidate_origins=v_origins,
+                    target_col=target_col_for_cell,
+                    all_known_origins=all_known_origins,
+                    registry=TypeRegistry.get_instance(),
                 ):
                     continue
                 if not _shape_compatible(v_sig, p_sig):
@@ -6286,6 +6641,21 @@ def unify_cell_with_scope(
                         score += 20.0
                     if in_role and v_role and in_role == v_role:
                         score += 15.0
+
+                    # Clause-adjacency rule (R5-7) for context variables
+                    cand_clause = getattr(cand, "matched_clause_idx", None)
+                    v_clause = getattr(v_cell, "matched_clause_idx", None) if v_cell else None
+                    if cand_clause is not None and v_clause is not None:
+                        if v_clause == cand_clause:
+                            score += 35.0
+                        elif v_clause == cand_clause - 1:
+                            score += 30.0
+                        elif v_clause < cand_clause - 1:
+                            dist = cand_clause - v_clause
+                            score += max(0.0, 25.0 - dist * 5.0)
+                        else:
+                            score -= 50.0
+
                     v_cell = getattr(context, "var_sources", {}).get(v_name)
                     wire_key = v_name
                     candidates.append((score, p_name, v_cell, v_name, wire_key, s_wire))

@@ -176,19 +176,19 @@ def _create_mock_input_code(var_name: str, type_name: str, domain_name: str = ""
     """
     Generates a dry-run mock instantiation for a port.
 
-    Domain knowledge lives in the pluggable trees, not here: fixtures are
-    harvested from trees/*.json (`mock_fixtures` declarations) via the
+    Domain knowledge lives in the pluggable trees, not here: mock probes are
+    harvested from trees/*.json (`mock_probes` declarations) via the
     TypeRegistry, so adding a tree for domain X teaches the engine how to
     construct X's carriers without any engine change. Only the final,
     domain-neutral collection fallback remains in engine code.
     """
     try:
         from lattice import TypeRegistry
-        fixture = TypeRegistry.get_instance().find_mock_fixture(type_name, domain_name)
+        probe = TypeRegistry.get_instance().find_mock_probe(type_name, domain_name)
     except Exception:
-        fixture = None
-    if fixture:
-        return fixture.replace("{var_name}", var_name)
+        probe = None
+    if probe:
+        return probe.replace("{var_name}", var_name)
 
     # Domain-neutral fallbacks for undeclared types: a generic collection
     # literal exercises most templates without assuming any carrier modality.

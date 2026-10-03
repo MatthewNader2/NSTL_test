@@ -99,7 +99,6 @@ frontend/
 frontend_dist/
 packaging/
 reports/
-tests/
 scratch/
 new_trees/
 "new trees"/
@@ -120,7 +119,6 @@ frontend/
 frontend_dist/
 packaging/
 reports/
-tests/
 scratch/
 new_trees/
 "new trees"/

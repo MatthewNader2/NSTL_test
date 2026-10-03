@@ -81,6 +81,10 @@ class NSTLSettings(BaseSettings):
         ge=100.0,
         description="Wall-clock budget for greedy completion phase in planner.",
     )
+    explain_plan: bool = Field(
+        default=False,
+        description="When True, prints diagnostic table of cell-clause precision and coverage.",
+    )
 
     @field_validator("cors_origins", mode="before")
     @classmethod

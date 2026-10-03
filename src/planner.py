@@ -998,7 +998,11 @@ class LatticePlanner:
         orchestrator: LatticeOrchestrator,
         rag: Optional[Any] = None,
         macros_enabled: Optional[bool] = None,
-        topology_mode: Optional[str] = None
+        topology_mode: Optional[str] = None,
+        require_coverage_floor: Optional[bool] = None,
+        coverage_floor_fraction: Optional[float] = None,
+        planner_time_budget_ms: Optional[float] = None,
+        planner_greedy_budget_ms: Optional[float] = None,
     ):
         self.orchestrator = orchestrator
         self.rag = rag
@@ -1018,6 +1022,44 @@ class LatticePlanner:
                 self.topology_mode = str(getattr(settings, "topology_mode", "frontier")).lower()
             except Exception as e:
                 self.topology_mode = "frontier"
+
+        if require_coverage_floor is not None:
+            self.require_coverage_floor = bool(require_coverage_floor)
+        else:
+            try:
+                from config import settings
+                self.require_coverage_floor = bool(getattr(settings, "require_coverage_floor", True))
+            except Exception:
+                self.require_coverage_floor = True
+
+        if coverage_floor_fraction is not None:
+            self.coverage_floor_fraction = float(coverage_floor_fraction)
+        else:
+            try:
+                from config import settings
+                self.coverage_floor_fraction = float(getattr(settings, "coverage_floor_fraction", 0.85))
+            except Exception:
+                self.coverage_floor_fraction = 0.85
+
+        if planner_time_budget_ms is not None:
+            self.planner_time_budget_ms = float(planner_time_budget_ms)
+        else:
+            try:
+                from config import settings
+                self.planner_time_budget_ms = float(getattr(settings, "planner_time_budget_ms", 10000.0))
+            except Exception:
+                self.planner_time_budget_ms = 10000.0
+
+        if planner_greedy_budget_ms is not None:
+            self.planner_greedy_budget_ms = float(planner_greedy_budget_ms)
+        else:
+            try:
+                from config import settings
+                self.planner_greedy_budget_ms = float(getattr(settings, "planner_greedy_budget_ms", 1000.0))
+            except Exception:
+                self.planner_greedy_budget_ms = 1000.0
+
+        self.last_refusal: Optional[Dict[str, Any]] = None
         self.current_relevance_map: Dict[str, float] = {}
         self._affinity_cache: Dict[Tuple[str, str], float] = {}
         self._macro_edges_index: Optional[Dict[Tuple[str, str], List[str]]] = None
@@ -1441,17 +1483,16 @@ class LatticePlanner:
         self.current_relevance_map = dict(relevance_map or {})
         self._affinity_cache.clear()
         self._widened_this_plan = False
-        # Wall-clock search budget: the beam must never run unbounded. Valid
-        # terminal paths are collected incrementally at every step, so an
-        # expired budget still yields the best-so-far ranking (fail fast on
-        # latency, never on correctness of what is returned). Resolve the
-        # budget from settings when present; the fallback keeps the module
-        # runnable standalone.
-        try:
-            from config import settings as _settings
-            _budget_ms = float(getattr(_settings, "planner_time_budget_ms", 6000.0))
-        except Exception:
-            _budget_ms = 6000.0
+        self.last_refusal = None
+
+        req_floor = kwargs.get("require_coverage_floor", getattr(self, "require_coverage_floor", True))
+        floor_frac = float(kwargs.get("coverage_floor_fraction", getattr(self, "coverage_floor_fraction", 0.85)))
+
+        # Wall-clock search budget: the beam must never run unbounded.
+        if "planner_time_budget_ms" in kwargs:
+            _budget_ms = float(kwargs["planner_time_budget_ms"])
+        else:
+            _budget_ms = float(getattr(self, "planner_time_budget_ms", 10000.0))
         self._plan_deadline = time.perf_counter() + max(_budget_ms, 250.0) / 1000.0
         if not tunnel:
             return []
@@ -2052,6 +2093,40 @@ class LatticePlanner:
             cell_clause_mass[c.cell_id] = masses
             cell_covered[c.cell_id] = covered
 
+        self.last_cell_covered = cell_covered
+        self.last_prec_by_cell = _prec_by_cell
+        self.last_raw_by_cell = _raw_by_cell
+
+        try:
+            from config import settings
+            _explain_active = bool(getattr(settings, "explain_plan", False))
+        except Exception:
+            _explain_active = False
+
+        if _explain_active:
+            print("\n=== EXPLAIN PLAN: CLAUSE-LEVEL EVIDENCE TABLE ===")
+            for idx, cl_text in enumerate(clauses):
+                print(f"Clause {idx}: '{cl_text}'")
+            header = f"{'Cell ID':<35} | " + " | ".join(f"cl{gi}: prec/raw/cov" for gi in range(len(clause_tokens_list))) + " | Covered"
+            print("-" * len(header))
+            print(header)
+            print("-" * len(header))
+            sorted_cands = sorted(
+                candidates,
+                key=lambda c: (len(cell_covered.get(c.cell_id, set())), relevance_map.get(c.cell_id, 0.0)),
+                reverse=True
+            )
+            for c in sorted_cands[:40]:
+                cov = cell_covered.get(c.cell_id, set())
+                cl_entries = []
+                for gi in range(len(clause_tokens_list)):
+                    p = _prec_by_cell[c.cell_id][gi] if c.cell_id in _prec_by_cell and gi < len(_prec_by_cell[c.cell_id]) else 0.0
+                    r = _raw_by_cell[c.cell_id][gi] if c.cell_id in _raw_by_cell and gi < len(_raw_by_cell[c.cell_id]) else 0.0
+                    is_cov = "Y" if gi in cov else "N"
+                    cl_entries.append(f"{p:.2f}/{r:.2f}/{is_cov}")
+                print(f"{c.cell_id:<35} | " + " | ".join(cl_entries) + f" | {sorted(list(cov))}")
+            print("-" * len(header) + "\n")
+
         # Macro-goal expansion tables: a MacroCell is scored by its EXPANDED
         # sub-cell composition, with the SAME objective as flat paths (coverage,
         # clause alignment, parsimony evidence). This is what lets a macro
@@ -2315,17 +2390,33 @@ class LatticePlanner:
                 toks |= set(CellTokenizer.tokenize_identifier(str(tag)))
             return toks
 
+        def _is_bridge_or_carrier(c: Cell) -> bool:
+            return (
+                getattr(c, "node_type", "") == "bridge"
+                or getattr(c, "node_role", "") in ("bridge", "source", "sink", "adaptor")
+                or (vocab is not None and vocab.is_bridge(c))
+            )
+
         def _unrequested_narrow(c: Cell) -> bool:
-            toks = _narrow_identity(c)
-            return bool(toks and _is_transform_stage(c) and not (toks & prompt_toks_all))
+            if not _is_transform_stage(c):
+                return False
+            if _is_bridge_or_carrier(c):
+                toks = _narrow_identity(c)
+                return bool(toks and not (toks & prompt_toks_all))
+            return not bool(cell_covered.get(c.cell_id))
 
         _unreq_memo: Dict[str, bool] = {}
 
         def _unrequested(c: Cell) -> bool:
             hit = _unreq_memo.get(c.cell_id)
             if hit is None:
-                c_toks = getattr(c, "identity_tokens", getattr(c, "token_set", set()))
-                hit = bool(c_toks and _is_transform_stage(c) and not (c_toks & prompt_toks_all))
+                if not _is_transform_stage(c):
+                    hit = False
+                elif _is_bridge_or_carrier(c):
+                    c_toks = getattr(c, "identity_tokens", getattr(c, "token_set", set()))
+                    hit = bool(c_toks and not (c_toks & prompt_toks_all))
+                else:
+                    hit = not bool(cell_covered.get(c.cell_id))
                 _unreq_memo[c.cell_id] = hit
             return hit
 
@@ -3343,15 +3434,91 @@ class LatticePlanner:
                             best_path[pos] = cell
                         cell.matched_clause_idx = max(range(len(masses)), key=lambda idx: masses[idx])
 
+            # R5-5: Coverage floor enforcement
+            if req_floor and clause_tokens_list:
+                all_cells_on_path = list(best_path)
+                for c in best_path:
+                    for slot_cells in (getattr(c, "bound_slots", {}) or {}).values():
+                        all_cells_on_path.extend(slot_cells)
+                covered_clauses = set()
+                for c in all_cells_on_path:
+                    covered_clauses |= cell_covered.get(c.cell_id, set())
+                    c_toks = getattr(c, "token_set", set())
+                    id_toks = getattr(c, "identity_tokens", c_toks)
+                    for gi, cl_toks in enumerate(clause_tokens_list):
+                        if cl_toks & id_toks:
+                            covered_clauses.add(gi)
+                total_clauses = len(clause_tokens_list)
+                cov_frac = len(covered_clauses) / total_clauses if total_clauses > 0 else 1.0
+                uncovered = [i for i in range(total_clauses) if i not in covered_clauses]
+
+                if cov_frac < floor_frac:
+                    if uncovered and (time.perf_counter() < self._plan_deadline):
+                        greedy_cfg_s = float(getattr(self, "planner_greedy_budget_ms", 1000.0)) / 1000.0
+                        greedy_budget = min(greedy_cfg_s, max(0.0, self._plan_deadline - time.perf_counter()))
+                        greedy_deadline = time.perf_counter() + greedy_budget
+                        best_path_ids = {x.cell_id.lower() for x in best_path}
+                        for cl_i in uncovered:
+                            if time.perf_counter() > greedy_deadline:
+                                break
+                            if cl_i in covered_clauses:
+                                continue
+                            clause_cands = [
+                                c for c in candidates
+                                if cl_i in cell_covered.get(c.cell_id, set())
+                                and c.cell_id.lower() not in best_path_ids
+                            ]
+                            clause_cands.sort(key=lambda c: log_probs.get(c.cell_id, -10.0), reverse=True)
+                            for cand in clause_cands:
+                                if time.perf_counter() > greedy_deadline:
+                                    break
+                                v_res = self._cells_connect(best_path[-1], cand) if best_path else False
+                                if v_res:
+                                    best_path.append(cand)
+                                    best_path_ids.add(cand.cell_id.lower())
+                                    covered_clauses |= cell_covered.get(cand.cell_id, set())
+                                    c_toks = getattr(cand, "token_set", set())
+                                    id_toks = getattr(cand, "identity_tokens", c_toks)
+                                    for gi, cl_toks in enumerate(clause_tokens_list):
+                                        if cl_toks & id_toks:
+                                            covered_clauses.add(gi)
+                                    break
+                        cov_frac = len(covered_clauses) / total_clauses if total_clauses > 0 else 1.0
+                        uncovered = [i for i in range(total_clauses) if i not in covered_clauses]
+
+                if cov_frac < floor_frac:
+                    self.last_refusal = {
+                        "reason": "coverage_below_floor",
+                        "coverage_fraction": cov_frac,
+                        "coverage_floor": floor_frac,
+                        "uncovered_clauses": [(i, clauses[i]) for i in uncovered if i < len(clauses)],
+                    }
+                    logger.warning(
+                        "[PLANNER] Refused: coverage %.2f < floor %.2f; missing clauses: %s",
+                        cov_frac,
+                        floor_frac,
+                        self.last_refusal["uncovered_clauses"],
+                    )
+                    return []
+
             return best_path
 
         # Step 4: Bounded MCTS Fallback (Section 3.4) if Trellis was disconnected
-        logger.info("[PLANNER] Running bounded MCTS search...")
-        mcts_path = self._bounded_mcts_search(tunnel, relevance_map)
-        if mcts_path:
-            return mcts_path
+        if not req_floor:
+            logger.info("[PLANNER] Running bounded MCTS search...")
+            mcts_path = self._bounded_mcts_search(tunnel, relevance_map)
+            if mcts_path:
+                return mcts_path
+            return [max(tunnel, key=lambda c: relevance_map.get(c.cell_id, 0.0))]
 
-        return [max(tunnel, key=lambda c: relevance_map.get(c.cell_id, 0.0))]
+        self.last_refusal = {
+            "reason": "coverage_below_floor",
+            "coverage_fraction": 0.0,
+            "coverage_floor": floor_frac,
+            "uncovered_clauses": [(i, clauses[i]) for i in range(len(clauses))] if clauses else [],
+        }
+        logger.warning("[PLANNER] Refused: Trellis found no valid paths meeting coverage floor.")
+        return []
 
     def _expand_identifier_multiplicity(
         self,
@@ -3945,6 +4112,8 @@ class LatticePlanner:
             cand: Cell,
             prev_sigma: Substitution
         ) -> Optional[Tuple[Substitution, Set[str], bool]]:
+            if hasattr(self, "_plan_deadline") and time.perf_counter() > self._plan_deadline:
+                return None
             # STRICT STAGE MONOID: S3 (Sink) is terminal. No transforms may follow a sink.
             if prev_path and _is_terminal_sink_cell(prev_path[-1]):
                 return None
@@ -4319,9 +4488,13 @@ class LatticePlanner:
 
                 try:
                     from config import settings as _s
-                    greedy_budget = float(getattr(_s, "planner_greedy_budget_ms", 1000.0)) / 1000.0
+                    greedy_cfg_s = float(getattr(_s, "planner_greedy_budget_ms", getattr(self, "planner_greedy_budget_ms", 1000.0))) / 1000.0
                 except Exception:
-                    greedy_budget = 1.0
+                    greedy_cfg_s = float(getattr(self, "planner_greedy_budget_ms", 1000.0)) / 1000.0
+                if hasattr(self, "_plan_deadline"):
+                    greedy_budget = min(greedy_cfg_s, max(0.0, self._plan_deadline - time.perf_counter()))
+                else:
+                    greedy_budget = greedy_cfg_s
                 greedy_deadline = time.perf_counter() + greedy_budget
 
                 best_path_ids = {x.cell_id.lower() for x in best_path}

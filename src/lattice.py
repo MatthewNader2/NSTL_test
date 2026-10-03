@@ -280,11 +280,11 @@ class TypeRegistry:
         # default so the engine core never carries domain information):
         #   semantic_flag_patterns  — keyword->flag observers for slot extraction
         #   enum_constant_rules     — placeholder->module-constant grounding rules
-        #   mock_fixtures           — probe fixtures for sandbox dry-runs
+        #   mock_probes             — mock probe templates for sandbox dry-runs
         #   port_name_type_hints    — declared port-name/affix -> type_name hints
         self._semantic_flag_patterns: List[Dict[str, Any]] = []
         self._enum_constant_rules: List[Dict[str, Any]] = []
-        self._mock_fixtures: List[Dict[str, Any]] = []
+        self._mock_probes: List[Dict[str, Any]] = []
         self._port_name_type_hints: Dict[str, str] = {}
         self._port_name_morphology_hints: List[Dict[str, str]] = []
         # Data-driven structural vocabulary (declared in tree JSON; empty by default)
@@ -331,7 +331,7 @@ class TypeRegistry:
 
         Tree discovery is cwd-independent: in addition to the relative search
         dirs, it resolves the trees directory next to the package root and the
-        configured settings.trees_dir, so registry declarations (fixtures,
+        configured settings.trees_dir, so registry declarations (mock probes,
         flag patterns, polarity hints, port hints, ...) are available in every
         session — including ones that only load the compiled SQLite lattice.
         """
@@ -485,8 +485,14 @@ class TypeRegistry:
                             self.register_semantic_flag_patterns(data["semantic_flag_patterns"])
                         if "enum_constant_rules" in data and isinstance(data["enum_constant_rules"], list):
                             self.register_enum_constant_rules(data["enum_constant_rules"])
-                        if "mock_fixtures" in data and isinstance(data["mock_fixtures"], list):
-                            self.register_mock_fixtures(data["mock_fixtures"])
+                        probes = data.get("mock_probes")
+                        if not probes:
+                            for k_p, v_p in data.items():
+                                if k_p.startswith("mock_") and isinstance(v_p, list):
+                                    probes = v_p
+                                    break
+                        if isinstance(probes, list):
+                            self.register_mock_probes(probes)
                         if "port_name_type_hints" in data and isinstance(data["port_name_type_hints"], dict):
                             self.register_port_name_type_hints(data["port_name_type_hints"])
                         if "port_name_morphology_hints" in data and isinstance(data["port_name_morphology_hints"], list):
@@ -1062,18 +1068,18 @@ class TypeRegistry:
         return list(self._enum_constant_rules)
 
     @_locked
-    def register_mock_fixtures(self, fixtures: Any) -> None:
-        """Registers declared dry-run probe fixtures keyed by type/domain tokens."""
-        for f in fixtures or ():
+    def register_mock_probes(self, probes: Any) -> None:
+        """Registers declared dry-run mock probes keyed by type/domain tokens."""
+        for f in probes or ():
             if isinstance(f, dict) and f.get("template"):
-                self._mock_fixtures.append({
+                self._mock_probes.append({
                     "match_type_tokens": frozenset(str(t).lower() for t in (f.get("match_type_tokens") or ())),
                     "match_domain_tokens": frozenset(str(d).lower() for d in (f.get("match_domain_tokens") or ())),
                     "template": str(f["template"]),
                 })
 
-    def get_mock_fixtures(self) -> List[Dict[str, Any]]:
-        return list(self._mock_fixtures)
+    def get_mock_probes(self) -> List[Dict[str, Any]]:
+        return list(self._mock_probes)
 
     @staticmethod
     def _name_parts(value: str) -> Set[str]:
@@ -1090,10 +1096,10 @@ class TypeRegistry:
             parts.add("".join(buf).strip("_"))
         return {p for p in parts if p}
 
-    def find_mock_fixture(self, type_name: str, domain_name: str = "") -> Optional[str]:
-        """Returns the declared fixture template for a type/domain pair, or None.
+    def find_mock_probe(self, type_name: str, domain_name: str = "") -> Optional[str]:
+        """Returns the declared mock probe template for a type/domain pair, or None.
 
-        Matching is DECLARED-vocabulary only and part-based: a fixture token
+        Matching is DECLARED-vocabulary only and part-based: a probe token
         matches when its word parts are all present in the candidate name's
         word parts (e.g. declared token `sample_rate` matches type
         `sample_rate` or `audio.sample_rate`; declared token `frame` does NOT
@@ -1103,9 +1109,9 @@ class TypeRegistry:
         d_parts = self._name_parts(domain_name)
         if not t_parts and not d_parts:
             return None
-        for fixture in self._mock_fixtures:
-            tt = fixture["match_type_tokens"]
-            dt = fixture["match_domain_tokens"]
+        for probe in self._mock_probes:
+            tt = probe["match_type_tokens"]
+            dt = probe["match_domain_tokens"]
 
             def _hits(tokens: FrozenSet[str], parts: Set[str]) -> bool:
                 for tok in tokens:
@@ -1117,7 +1123,7 @@ class TypeRegistry:
             type_hit = _hits(tt, t_parts)
             domain_hit = _hits(dt, d_parts) or _hits(dt, t_parts)
             if type_hit or domain_hit:
-                return fixture["template"]
+                return probe["template"]
         return None
 
     @_locked
@@ -1849,7 +1855,7 @@ class PortSignature:
         "abstract_type", "enum_values", "param_kind", "value_constraints", "shape_contract",
         "rejected_qualifiers",
         "accepted_states", "parent_state", "port_role", "_cached_term", "_cached_col_proj",
-        "_cached_derived_role", "_cached_is_path_port", "_cached_ndim"
+        "_cached_derived_role", "_cached_is_path_port", "_cached_ndim", "binds"
     ]
 
     def __init__(
@@ -1869,6 +1875,7 @@ class PortSignature:
         accepted_states: Optional[Union[List[str], Set[str], FrozenSet[str]]] = None,
         parent_state: Optional[str] = None,
         port_role: Optional[str] = None,
+        binds: Optional[str] = None,
         **kwargs
     ):
         self.name = str(name)
@@ -1878,6 +1885,8 @@ class PortSignature:
         self.param_kind = str(param_kind or kwargs.get("param_kind", "standard"))
         self.value_constraints = value_constraints if value_constraints is not None else kwargs.get("value_constraints")
         self.shape_contract = shape_contract if shape_contract is not None else kwargs.get("shape_contract")
+        raw_binds = binds if binds is not None else kwargs.get("binds")
+        self.binds = str(raw_binds).strip().lower() if raw_binds else None
         acc_rej = rejected_qualifiers if rejected_qualifiers is not None else kwargs.get("rejected_qualifiers", [])
         if isinstance(acc_rej, (set, frozenset, list, tuple)):
             self.rejected_qualifiers = frozenset(str(s).strip().lower() for s in acc_rej if str(s).strip())
@@ -2061,7 +2070,7 @@ class Cell(ABC):
         "primary_in", "primary_out",
         "_primary_input", "_primary_output", "_token_set", "_token_count",
         "_identity_tokens", "bound_parent_ids", "matched_clause_idx",
-        "clause_literals", "fixture_needs"
+        "clause_literals", "fixture_needs", "projection", "typed_bindings"
     ]
 
     def __init__(
@@ -2103,6 +2112,7 @@ class Cell(ABC):
         primary_in: Optional[str] = None,
         primary_out: Optional[str] = None,
         fixture_needs: Optional[List[str]] = None,
+        projection: Optional[str] = None,
         **kwargs
     ):
         self.cell_id = cell_id
@@ -2161,6 +2171,7 @@ class Cell(ABC):
         self.primary_in = primary_in if primary_in is not None else kwargs.get("primary_in")
         self.primary_out = primary_out if primary_out is not None else kwargs.get("primary_out")
         self.fixture_needs = list(fixture_needs or kwargs.get("fixture_needs", []))
+        self.projection = str(projection).strip().lower() if projection else (str(kwargs.get("projection")).strip().lower() if kwargs.get("projection") else None)
 
         # For-each multiplicity expansion: a replica is a runtime copy of a
         # planned cell that re-consumes its receiver from the environment and
@@ -2170,6 +2181,7 @@ class Cell(ABC):
         self.replica_role: Optional[str] = None
         self.bound_parent_ids: Optional[Set[str]] = None
         self.matched_clause_idx: Optional[int] = None
+        self.typed_bindings: Dict[str, Any] = {}
 
         self._primary_input = None
         self._primary_output = None
@@ -2275,6 +2287,7 @@ class Cell(ABC):
                     accepted_states=acc_s,
                     parent_state=p_s,
                     port_role=v.get("port_role") or v.get("role"),
+                    binds=v.get("binds"),
                 )
             else:
                 port_sig = PortSignature(name=k, signature=AlgebraicSignature("any", "any"))
@@ -2342,6 +2355,7 @@ class Cell(ABC):
                     accepted_states=acc_s,
                     parent_state=p_s,
                     port_role=v.get("port_role") or v.get("role"),
+                    binds=v.get("binds"),
                 )
             else:
                 self.outputs[k] = PortSignature(name=k, signature=AlgebraicSignature("any", "any"))
@@ -2790,8 +2804,14 @@ class LatticeOrchestrator:
                     reg.register_semantic_flag_patterns(data["semantic_flag_patterns"])
                 if "enum_constant_rules" in data and isinstance(data["enum_constant_rules"], list):
                     reg.register_enum_constant_rules(data["enum_constant_rules"])
-                if "mock_fixtures" in data and isinstance(data["mock_fixtures"], list):
-                    reg.register_mock_fixtures(data["mock_fixtures"])
+                probes = data.get("mock_probes")
+                if not probes:
+                    for k_p, v_p in data.items():
+                        if k_p.startswith("mock_") and isinstance(v_p, list):
+                            probes = v_p
+                            break
+                if isinstance(probes, list):
+                    reg.register_mock_probes(probes)
                 if "port_name_type_hints" in data and isinstance(data["port_name_type_hints"], dict):
                     reg.register_port_name_type_hints(data["port_name_type_hints"])
                 if "port_name_morphology_hints" in data and isinstance(data["port_name_morphology_hints"], list):
@@ -2836,6 +2856,7 @@ class LatticeOrchestrator:
                     primary_in=c_dict.get("primary_in"),
                     primary_out=c_dict.get("primary_out"),
                     fixture_needs=c_dict.get("fixture_needs", []),
+                    projection=c_dict.get("projection"),
                     sub_cells=c_dict.get("sub_cells", []),
                     algorithmic_steps=c_dict.get("algorithmic_steps", []),
                     internal_topology=c_dict.get("internal_topology", {}),
@@ -3224,6 +3245,7 @@ class LatticeOrchestrator:
                             sub_cells=cfg.get("sub_cells", []),
                             algorithmic_steps=cfg.get("algorithmic_steps", []),
                             internal_topology=cfg.get("internal_topology", {}),
+                            projection=cfg.get("projection"),
                         )
                         self.loaded_cells[cell.cell_id] = cell
 
@@ -3296,7 +3318,8 @@ class LatticeOrchestrator:
                             verified=True,
                             endable=cfg.get("endable"),
                             primary_in=cfg.get("primary_in"),
-                            primary_out=cfg.get("primary_out")
+                            primary_out=cfg.get("primary_out"),
+                            projection=cfg.get("projection")
                         )
                         if cell.is_public_morphism:
                             self.loaded_cells[cell.cell_id] = cell

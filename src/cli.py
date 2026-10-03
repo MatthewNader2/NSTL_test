@@ -595,6 +595,7 @@ def cmd_compile(args):
                 "endable": getattr(cell, "endable", None),
                 "primary_in": getattr(cell, "primary_in", None),
                 "primary_out": getattr(cell, "primary_out", None),
+                "projection": getattr(cell, "projection", None),
             }
             cfg_json = json.dumps(cfg_dict)
             deps_json = json.dumps(cell.dependencies)
@@ -1250,8 +1251,17 @@ class PipelineDebugger:
                 )
 
             path_chain = " ➔ ".join(f"[bold cyan]{c.cell_id}[/bold cyan]" for c in cells)
+            eff_route = getattr(getattr(self, "router", None), "last_effective_route", None)
+            req_route = getattr(getattr(self, "router", None), "last_requested_route", None)
+            fb_reason = getattr(getattr(self, "router", None), "last_fallback_reason", None)
+            route_str = ""
+            if eff_route:
+                if fb_reason:
+                    route_str = f" [yellow](Route: {eff_route} fallback from {req_route}: {fb_reason})[/yellow]"
+                else:
+                    route_str = f" [cyan](Route: {eff_route})[/cyan]"
             c.print(Panel(
-                f"[bold green]✓ Synthesized Type-Valid Path ({len(cells)} steps):[/bold green] {path_chain}",
+                f"[bold green]✓ Synthesized Type-Valid Path ({len(cells)} steps){route_str}:[/bold green] {path_chain}",
                 title=f"[bold green]⚡ LAYER 2: Topological Planning & Trellis Viterbi ({plan_dt:.2f}ms)[/bold green]",
                 border_style="green"
             ))
@@ -1322,8 +1332,37 @@ class PipelineDebugger:
                     f"Entry outputs: {entry_out_types} vs Transform inputs: {transform_in_types}."
                 )
 
+            refusal = getattr(getattr(self.router, "planner", None), "last_refusal", None)
+            if refusal and isinstance(refusal, dict):
+                cov_frac = refusal.get("coverage_fraction", 0.0)
+                cov_fl = refusal.get("coverage_floor", 0.85)
+                uncovered = refusal.get("uncovered_clauses", [])
+                unc_text = ", ".join(f"[{idx}]: '{txt}'" for idx, txt in uncovered) if uncovered else "None"
+                diag_table.add_row(
+                    "Coverage Floor Check",
+                    "[red]REFUSED[/red]",
+                    f"Plan coverage {cov_frac:.1%} < floor {cov_fl:.1%}. Uncovered clauses: {unc_text}"
+                )
+
             c.print(diag_table)
             c.print("")
+
+            # Layer 5 Feedback Check for Planning Refusal (Profile C/E or --llm-feedback)
+            llm_feedback = getattr(self, "llm_feedback", False) or (prof in ("C", "E"))
+            if not cells and refusal and llm_feedback:
+                mm = ModelManager.get_instance()
+                if mm.profile and mm.can_feedback_check():
+                    unc_list = [f"Clause {idx}: '{txt}'" for idx, txt in refusal.get("uncovered_clauses", [])]
+                    err_msg = (
+                        f"Topological planning REFUSED due to coverage below floor "
+                        f"({refusal.get('coverage_fraction', 0.0):.1%} < {refusal.get('coverage_floor', 0.85):.1%}).\n"
+                        f"Missing clauses:\n" + "\n".join(f"- {u}" for u in unc_list)
+                    )
+                    c.print(Panel("[bold yellow]⚡ LAYER 5: Planning Refusal LLM Feedback Check[/bold yellow]", border_style="yellow"))
+                    feedback_reply = mm.feedback_check(failing_code="", traceback_error=err_msg)
+                    extracted = extract_code_from_llm_response(feedback_reply)
+                    if extracted:
+                        final_code = extracted
 
         # LAYER 3: Type-Monadic Unification & AST Synthesis
         final_code = ""
@@ -1612,7 +1651,10 @@ class PipelineDebugger:
             sb_stderr = sandbox_res.get("stderr", "").strip()
             sb_err = sandbox_res.get("error", "").strip()
 
-            if sb_success:
+            if sandbox_res.get("skipped"):
+                sb_badge = f"[bold yellow]⚠ SKIPPED ({sb_err})[/bold yellow]"
+                border_col = "yellow"
+            elif sb_success:
                 sb_badge = "[bold green]✓ PASSED[/bold green]"
                 border_col = "green"
             else:
@@ -2894,6 +2936,13 @@ def cmd_run(args):
         console.print("[bold red][!] Prompt must not be empty.[/bold red]")
         sys.exit(1)
 
+    if getattr(args, "explain_plan", False):
+        try:
+            from config import settings
+            settings.explain_plan = True
+        except Exception:
+            pass
+
     shell = NSTLInteractiveShell(
         db_path=db_path,
         initial_profile=profile,
@@ -3167,6 +3216,7 @@ def build_parser() -> argparse.ArgumentParser:
     p_run.add_argument("--macros", dest="macros", action="store_true", default=None, help="Enable macro-goal routing")
     p_run.add_argument("--no-macros", dest="macros", action="store_false", help="Disable macro-goal routing")
     p_run.add_argument("--topology", choices=["frontier", "linear"], default=None, help="Topological planning approach")
+    p_run.add_argument("--explain-plan", action="store_true", help="Print clause-level coverage and precision diagnostics table")
     p_run.set_defaults(func=cmd_run)
 
     p_shell = subparsers.add_parser("shell", help="Launch real-time interactive synthesis TUI studio")

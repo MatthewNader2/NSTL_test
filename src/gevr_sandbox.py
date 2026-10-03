@@ -590,9 +590,7 @@ class GEVRSandbox:
         egress_paths: Optional[List[str]] = None,
         verification_spec: Optional[Any] = None,
         runtime_aliases: Optional[Dict[str, str]] = None,
-        pipeline_bindings: Optional[List[Tuple[Any, Dict[str, Any]]]] = None,
-        extracted_literals: Optional[List[Tuple[int, str, Any]]] = None,
-        fixtures_dir: Optional[str] = None,
+        **kwargs
     ) -> Dict[str, Any]:
         """
         Execute code in a separate process under the unified contract.
@@ -600,21 +598,50 @@ class GEVRSandbox:
         workers, and ALWAYS returns the full result envelope (it never raises
         for execution failures, so every caller can uniformly read 'success').
         """
-        # Synthesize any input file fixtures required by the planned pipeline
-        if pipeline_bindings:
-            try:
-                try:
-                    from .fixtures import FixtureSynthesizer
-                except (ImportError, ValueError):
-                    from fixtures import FixtureSynthesizer
-                target_dir = fixtures_dir or os.getcwd()
-                FixtureSynthesizer.synthesize_for_pipeline(
-                    pipeline_bindings=pipeline_bindings,
-                    working_dir=target_dir,
-                    extracted_literals=extracted_literals,
-                )
-            except Exception as fix_err:
-                logger.warning(f"[SANDBOX] Fixture synthesis encountered an error: {fix_err}")
+        # Check if required input files exist on disk before executing
+        missing_inputs: List[str] = []
+        try:
+            import ast
+            parsed_ast = ast.parse(code)
+            for node in ast.walk(parsed_ast):
+                if isinstance(node, ast.Call):
+                    func_name = ""
+                    if isinstance(node.func, ast.Name):
+                        func_name = node.func.id
+                    elif isinstance(node.func, ast.Attribute):
+                        func_name = node.func.attr
+                    # Skip egress/export functions (they write files, not read them)
+                    if any(func_name.startswith(pfx) for pfx in ("to_", "save", "dump", "write", "export")):
+                        continue
+                    for arg in node.args:
+                        if isinstance(arg, ast.Constant) and isinstance(arg.value, str):
+                            s = arg.value.strip()
+                            _, ext = os.path.splitext(s)
+                            if ext.lower() in (
+                                ".csv", ".tsv", ".parquet", ".feather", ".json", ".h5", ".hdf5",
+                                ".npy", ".npz", ".txt", ".png", ".jpg", ".jpeg", ".wav", ".mp3",
+                            ):
+                                if not os.path.exists(s) and not os.path.exists(os.path.abspath(s)):
+                                    if s not in missing_inputs:
+                                        missing_inputs.append(s)
+        except Exception as ast_err:
+            logger.debug(f"[SANDBOX] AST inspection for input files failed: {ast_err}")
+
+        if missing_inputs:
+            missing_file = missing_inputs[0]
+            logger.info(f"[SANDBOX] Input file '{missing_file}' not found on disk. Skipping execution.")
+            return {
+                "success": False,
+                "skipped": True,
+                "status": "SKIPPED",
+                "returncode": 0,
+                "stdout": "",
+                "stderr": "",
+                "error": f"SKIPPED: input '{missing_file}' not provided",
+                "extrinsic": False,
+                "results": {},
+                "egress": {},
+            }
 
         exec_timeout = timeout if timeout is not None else self.default_timeout
         context = context or {}
