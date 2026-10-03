@@ -105,12 +105,15 @@
     },
     "array-like": {
       "parents": [
-        "tensor",
-        "sequence"
+        "sequence",
+        "object"
       ]
     },
     "tensor": {
-      "parent": "object"
+      "parents": [
+        "array-like",
+        "object"
+      ]
     },
     "table": {
       "parent": "object"

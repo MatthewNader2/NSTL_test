@@ -40,7 +40,7 @@ try:
     from .inference import ModelManager, select_optimal_embedder
     from .internal_rag import LocalRAG
     from .preflight import PreflightLinter
-    from .utils import ensure_comprehensive_prompt
+    from .utils import ensure_comprehensive_prompt, extract_code_from_llm_response
 except (ImportError, ValueError):
     from config import settings, MODELS_DIR
     from lattice import LatticeOrchestrator
@@ -50,7 +50,7 @@ except (ImportError, ValueError):
     from inference import ModelManager, select_optimal_embedder
     from internal_rag import LocalRAG
     from preflight import PreflightLinter
-    from utils import ensure_comprehensive_prompt
+    from utils import ensure_comprehensive_prompt, extract_code_from_llm_response
 
 logger = get_logger("main")
 
@@ -366,7 +366,7 @@ def run_prompt(request: Union[RunRequest, Dict[str, Any], str]) -> RunResponse:
     synth_dt = (time.perf_counter() - t_synth_0) * 1000.0
     total_dt = (time.perf_counter() - t_start) * 1000.0
 
-    # 2b. Static Pre-Flight Linting
+    # 2b. Static Pre-Flight Linting & Emission Gating
     lint_violations: List[str] = []
     if hasattr(local_gate, "last_pipeline_bindings") and local_gate.last_pipeline_bindings:
         try:
@@ -376,6 +376,34 @@ def run_prompt(request: Union[RunRequest, Dict[str, Any], str]) -> RunResponse:
                 logger.warning(f"Static Pre-Flight Lint Violations: {lint_violations}")
         except Exception as _lint_err:
             logger.debug(f"Preflight linting error: {_lint_err}")
+
+    # Layer 5 Self-Repair for Pre-Flight Lint Violations (Profile C/E)
+    if lint_violations and _active_profile in ("C", "E"):
+        mm = ModelManager.get_instance()
+        if mm.profile and mm.can_feedback_check():
+            err_msg = "Pre-flight lint validation failed:\n" + "\n".join(f"- {v}" for v in lint_violations)
+            repaired_code = extract_code_from_llm_response(mm.feedback_check(code, err_msg))
+            if repaired_code and repaired_code.strip() != code.strip():
+                try:
+                    rep_lint = PreflightLinter.lint(local_gate.last_pipeline_bindings, prompt=prompt, code_str=repaired_code)
+                    if rep_lint.is_valid:
+                        code = repaired_code
+                        lint_violations = []
+                except Exception:
+                    pass
+
+    if lint_violations:
+        return RunResponse(
+            status="refused",
+            prompt=prompt,
+            path=[c.cell_id for c in cells],
+            code="",
+            latency_ms=round(total_dt, 2),
+            route_latency_ms=round(route_dt, 2),
+            synthesis_latency_ms=round(synth_dt, 2),
+            total_latency_ms=round(total_dt, 2),
+            sandbox_result={"success": False, "error": f"Pre-flight lint validation failed: {'; '.join(lint_violations)}", "preflight_lint_violations": lint_violations}
+        )
 
     # 3. Optional Sandbox Verification (Egress paths read from local request-isolated gate)
     sandbox_result = None
@@ -389,8 +417,6 @@ def run_prompt(request: Union[RunRequest, Dict[str, Any], str]) -> RunResponse:
             verification_spec=getattr(local_gate, "last_verification_contract", None),
             runtime_aliases=local_gate.get_runtime_aliases(),
         )
-        if lint_violations and sandbox_result is not None:
-            sandbox_result["preflight_lint_violations"] = lint_violations
 
     path_ids = [c.cell_id for c in cells]
     return RunResponse(

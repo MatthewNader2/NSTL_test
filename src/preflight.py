@@ -26,11 +26,11 @@ from typing import List, Dict, Set, Tuple, Any, Optional
 from dataclasses import dataclass, field
 
 try:
-    from .lattice import UNRESOLVED_PORT, TypeRegistry
+    from .lattice import UNRESOLVED_PORT, TypeRegistry, AlgebraicSignature, PortSignature
     from .tokenizer import CellTokenizer
     from .unification import ExecutionContext, unify, _shape_compatible, _is_sink_cell
 except (ImportError, ValueError):
-    from lattice import UNRESOLVED_PORT, TypeRegistry
+    from lattice import UNRESOLVED_PORT, TypeRegistry, AlgebraicSignature, PortSignature
     from tokenizer import CellTokenizer
     from unification import ExecutionContext, unify, _shape_compatible, _is_sink_cell
 
@@ -271,6 +271,101 @@ class PreflightLinter:
             model_roles = set()
         return role in (model_roles or {"model_input", "model_sink"})
 
+    @classmethod
+    def _resolve_expr_sig(
+        cls,
+        bound_val: Any,
+        var_signatures: Dict[str, Any]
+    ) -> Tuple[Optional[str], Optional[Any]]:
+        """
+        Parses a bound port value via Python AST to extract the root pipeline variable
+        (e.g., 'var_1' from 'var_1[[\"X\", \"Y\"]]') and resolve its derived signature.
+
+        Returns:
+            (root_var, resolved_sig):
+            - If bound_val is an expression on a known variable: (root_var, resolved_sig)
+            - If bound_val refers to an undefined pipeline variable (var_*): (root_var, None)
+            - If bound_val is a literal or non-pipeline expression: (None, None)
+        """
+        if not isinstance(bound_val, str):
+            return None, None
+        val_str = bound_val.strip()
+        if not val_str:
+            return None, None
+
+        try:
+            parsed = ast.parse(val_str, mode="eval")
+        except Exception:
+            return None, None
+
+        body = parsed.body
+
+        # 1. Plain Name
+        if isinstance(body, ast.Name):
+            v = body.id
+            if v in var_signatures:
+                return v, var_signatures[v]
+            elif v.startswith("var_"):
+                return v, None
+            return None, None
+
+        # 2. Subscript (e.g. var_1[['X', 'Y']], var_1['X'], var_1[0])
+        if isinstance(body, ast.Subscript):
+            if isinstance(body.value, ast.Name):
+                root_v = body.value.id
+                if root_v not in var_signatures:
+                    return (root_v, None) if root_v.startswith("var_") else (None, None)
+                base_sig = var_signatures[root_v]
+                sl = body.slice
+                if isinstance(sl, (ast.List, ast.Tuple)):
+                    base_sig_obj = getattr(base_sig, "signature", base_sig)
+                    res_sig = AlgebraicSignature(
+                        type_name=getattr(base_sig_obj, "type_name", "DataFrame"),
+                        state="dataframe_2d_generic",
+                        abstract_type="table",
+                        accepted_states=frozenset(["dataframe_2d_generic", "ndarray_generic", "split_train_features"]),
+                        qualifiers=frozenset(["matrix"]),
+                    )
+                    return root_v, res_sig
+                elif isinstance(sl, ast.Constant):
+                    if isinstance(sl.value, str):
+                        res_sig = AlgebraicSignature(
+                            type_name="Series",
+                            state="series_generic",
+                            abstract_type="series",
+                            accepted_states=frozenset(["series_generic", "ndarray_generic", "split_train_targets", "vector"]),
+                            qualifiers=frozenset(["vector"]),
+                        )
+                        return root_v, res_sig
+                    elif isinstance(sl.value, int):
+                        raw = str(getattr(getattr(base_sig, "signature", None), "type_name", "") or getattr(base_sig, "type_name", ""))
+                        if "[" in raw and raw.endswith("]"):
+                            inner = raw.split("[", 1)[1][:-1]
+                            members = [m.strip() for m in inner.split(",")]
+                            if 0 <= sl.value < len(members):
+                                return root_v, AlgebraicSignature(type_name=members[sl.value], state="any", abstract_type="any")
+                        return root_v, AlgebraicSignature(type_name="any", state="any", abstract_type="any")
+                return root_v, base_sig
+
+        # 3. Method calls, attributes, or nested expressions with pipeline variables
+        var_names = [n.id for n in ast.walk(body) if isinstance(n, ast.Name) and n.id.startswith("var_")]
+        if var_names:
+            root_v = var_names[0]
+            if root_v not in var_signatures:
+                return root_v, None
+            if isinstance(body, ast.Call) or (isinstance(body, ast.Attribute) and getattr(body, "attr", "") in ("values", "to_numpy")):
+                res_sig = AlgebraicSignature(
+                    type_name="ndarray",
+                    state="ndarray_generic",
+                    abstract_type="tensor",
+                    accepted_states=frozenset(["ndarray_generic", "split_train_features", "split_test_features", "matrix"]),
+                    qualifiers=frozenset(["matrix"]),
+                )
+                return root_v, res_sig
+            return root_v, var_signatures[root_v]
+
+        return None, None
+
     # ------------------------------------------------------------------
     # Public entrypoint
     # ------------------------------------------------------------------
@@ -393,38 +488,62 @@ class PreflightLinter:
             if not isinstance(bindings, dict):
                 continue
 
+            cell_outputs = getattr(cell, "outputs", {})
+            cell_output_vars = set()
+            for out_name, out_sig in cell_outputs.items():
+                if out_name in bindings and isinstance(bindings[out_name], str):
+                    cell_output_vars.add(bindings[out_name])
+            out_v = bindings.get("output_var")
+            if isinstance(out_v, str):
+                cell_output_vars.add(out_v)
+
             for p_name, in_port_sig in getattr(cell, "inputs", {}).items():
+                # Skip self-declared outputs on the cell
+                if p_name in cell_outputs:
+                    continue
+
                 bound_val = bindings.get(p_name)
                 if bound_val is None or _is_unbound(bound_val) or bound_val is UNRESOLVED_PORT:
                     continue
 
-                if isinstance(bound_val, str) and bound_val in var_signatures:
-                    prod_sig = var_signatures[bound_val]
-                    prod_cell, prod_port = var_producers[bound_val]
+                if isinstance(bound_val, str) and bound_val in cell_output_vars:
+                    continue
 
-                    # 1. Structural Carrier & Shape Compatibility
-                    if not _shape_compatible(prod_sig, in_port_sig):
-                        violations.append(
-                            f"Cell '{cell.cell_id}' port '{p_name}' has carrier/shape mismatch with "
-                            f"bound variable '{bound_val}' (produced by '{prod_cell.cell_id}' port '{prod_port}')."
-                        )
-                        continue
+                root_var, resolved_sig = cls._resolve_expr_sig(bound_val, var_signatures)
+                if root_var is None:
+                    continue
 
-                    # 2. Algebraic Type Unification
-                    p_term = getattr(prod_sig, "signature", prod_sig)
-                    c_term = getattr(in_port_sig, "signature", in_port_sig)
-                    sub = unify(p_term, c_term)
-                    if sub is None:
-                        prod_t = getattr(p_term, "type_name", str(p_term))
-                        cons_t = getattr(c_term, "type_name", str(c_term))
-                        violations.append(
-                            f"Cell '{cell.cell_id}' port '{p_name}' (expected type '{cons_t}') failed "
-                            f"type unification with bound variable '{bound_val}' (producer type '{prod_t}' from '{prod_cell.cell_id}')."
-                        )
-                elif isinstance(bound_val, str) and bound_val.startswith("var_") and bound_val not in var_signatures:
+                if root_var in cell_output_vars:
+                    continue
+
+                if resolved_sig is None:
                     violations.append(
-                        f"Cell '{cell.cell_id}' port '{p_name}' references undefined pipeline variable '{bound_val}' "
+                        f"Cell '{cell.cell_id}' port '{p_name}' references undefined pipeline variable '{root_var}' "
                         f"with no producing cell in DAG history."
+                    )
+                    continue
+
+                prod_cell, prod_port = var_producers.get(root_var, (None, None))
+                prod_id = prod_cell.cell_id if prod_cell else "unknown"
+
+                # 1. Structural Carrier & Shape Compatibility
+                if not _shape_compatible(resolved_sig, in_port_sig):
+                    violations.append(
+                        f"Cell '{cell.cell_id}' port '{p_name}' has carrier/shape mismatch with "
+                        f"bound variable '{bound_val}' (produced by '{prod_id}' port '{prod_port}')."
+                    )
+                    continue
+
+                # 2. Algebraic Type Unification
+                p_term = getattr(resolved_sig, "signature", resolved_sig)
+                c_term = getattr(in_port_sig, "signature", in_port_sig)
+                sub = unify(p_term, c_term)
+                if sub is None:
+                    prod_t = getattr(p_term, "type_name", str(p_term))
+                    cons_t = getattr(c_term, "type_name", str(c_term))
+                    violations.append(
+                        f"Cell '{cell.cell_id}' port '{p_name}' (expected type '{cons_t}') failed "
+                        f"type unification with bound variable '{bound_val}' (producer type '{prod_t}' from '{prod_id}')."
                     )
 
             if _is_sink_cell(cell):
@@ -440,7 +559,7 @@ class PreflightLinter:
                         var_signatures[v] = prim_out
                         var_producers[v] = (cell, p_name)
 
-            for out_name, out_sig in getattr(cell, "outputs", {}).items():
+            for out_name, out_sig in cell_outputs.items():
                 if out_name in bindings:
                     v = bindings[out_name]
                     if isinstance(v, str) and v.isidentifier():
@@ -449,7 +568,7 @@ class PreflightLinter:
 
             out_var = bindings.get("output_var")
             if isinstance(out_var, str) and out_var.isidentifier() and out_var not in var_signatures:
-                first_sig = prim_out or (next(iter(cell.outputs.values())) if getattr(cell, "outputs", None) else None)
+                first_sig = prim_out or (next(iter(cell_outputs.values())) if cell_outputs else None)
                 if first_sig is not None:
                     var_signatures[out_var] = first_sig
                     var_producers[out_var] = (cell, "output_var")

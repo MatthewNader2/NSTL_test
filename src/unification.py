@@ -203,9 +203,9 @@ def _shape_compatible(p_out: Any, p_in: Any) -> bool:
         return False
     out_abs = getattr(out_sig_o, "abstract_type", None)
     in_abs = getattr(in_sig_o, "abstract_type", None)
-    if out_abs == "table" and in_abs in ("sequence", "scalar"):
+    if out_abs == "table" and in_abs in ("sequence", "scalar", "collection"):
         return False
-    if out_abs in ("sequence", "scalar") and in_abs == "table":
+    if out_abs in ("sequence", "scalar", "collection") and in_abs == "table":
         return False
     out_sc = getattr(out_sig_o, "shape_contract", None)
     in_sc = getattr(in_sig_o, "shape_contract", None)
@@ -691,6 +691,16 @@ def unify(
                 and t1.abstract_type
                 and t2.abstract_type
                 and registry.is_subtype(t1.abstract_type, t2.abstract_type)
+            ):
+                pass
+            elif (
+                (registry.is_subtype(t1.type_name, "array-like") or t1.abstract_type in ("table", "tensor", "series"))
+                and (registry.is_subtype(t2.type_name, "array-like") or t2.abstract_type in ("table", "tensor", "series"))
+                and (
+                    (t1.state and t1.state in (t2.accepted_states or ()))
+                    or (t2.state and t2.state in (t1.accepted_states or ()))
+                    or bool(set(t1.accepted_states or ()) & set(t2.accepted_states or ()))
+                )
             ):
                 pass
             else:
@@ -3156,14 +3166,14 @@ class UnificationGate:
         prompt_text = getattr(ctx, "prompt", "") or ""
         if prompt_text and cells:
             try:
-                from .route_methods.base import RouteMethodBase
-                RouteMethodBase.tag_cells_with_clause_indices(cells, prompt_text)
-            except Exception:
+                from .route_methods.base import RouteMethod
+                RouteMethod.tag_cells_with_clause_indices(cells, prompt_text)
+            except Exception as e1:
                 try:
-                    from route_methods.base import RouteMethodBase
-                    RouteMethodBase.tag_cells_with_clause_indices(cells, prompt_text)
-                except Exception:
-                    pass
+                    from route_methods.base import RouteMethod
+                    RouteMethod.tag_cells_with_clause_indices(cells, prompt_text)
+                except Exception as e2:
+                    logger.warning("Failed to tag cells with clause indices: %s | %s", e1, e2)
 
         clause_token_sets: List[Set[str]] = []
         if prompt_text:
@@ -3736,7 +3746,13 @@ class UnificationGate:
 
                 # Symmetric Dual-Port Typestate Projection for Feature Carriers:
                 # Project feature matrix from upstream tabular carrier for supervised tasks.
-                if p_role in _declared_role_semantics("feature_roles") and p_name not in cell_bindings:
+                expected_tn_f = str(getattr(concrete_sig, "type_name", "") or "").lower()
+                is_feature_carrier = (
+                    registry.is_subtype(expected_tn_f, "table")
+                    or registry.is_subtype(expected_tn_f, "tensor")
+                    or str(getattr(concrete_sig, "abstract_type", "") or "").lower() in ("table", "tensor")
+                ) and expected_tn_f not in ("list", "tuple", "str", "int", "float", "bool", "sequence", "collection")
+                if is_feature_carrier and p_role in _declared_role_semantics("feature_roles") and p_name not in cell_bindings:
                     scoped_feature = None
                     for v_name, (v_sig, _) in reversed(list(ctx.variables.items())):
                         if _is_product(v_sig) or v_name in cell_bindings.values():

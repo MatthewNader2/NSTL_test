@@ -4215,24 +4215,60 @@ class LatticePlanner:
             if len(all_valid_paths) > _hi:
                 all_valid_paths = [it for it, _ in rank_items(all_valid_paths, True)][:_lo]
 
-        if not all_valid_paths and current_beam:
-            # Greedy completion: if the beam timed out without reaching a valid terminal,
-            # take the highest scoring prefix in current_beam and greedily extend it across
-            # any remaining uncovered prompt clauses.
-            best_tuple = max(current_beam, key=lambda it: it[2])
-            best_path, best_sigma, best_score, best_weak, best_unbind = best_tuple
-            covered_clauses = set().union(*(cell_covered.get(c.cell_id, set()) for c in best_path))
-            uncovered = [cl_i for cl_i in range(num_clauses) if cl_i not in covered_clauses]
+        # Greedy completion: if all_valid_paths is empty, OR if all_valid_paths has paths
+        # but the best path has clause coverage < 1.0 (uncovered clauses exist when num_clauses > 1).
+        max_cov = 0
+        if all_valid_paths and num_clauses > 1:
+            max_cov = max(
+                len(set().union(*(cell_covered.get(c.cell_id, set()) for c in it[0])))
+                for it in all_valid_paths
+            )
 
-            if uncovered:
-                for cl_i in uncovered:
-                    clause_cands = [
+        should_greedy_complete = (not all_valid_paths and bool(current_beam)) or (
+            num_clauses > 1 and max_cov < num_clauses and (bool(all_valid_paths) or bool(current_beam))
+        )
+
+        if should_greedy_complete:
+            candidate_pool = list(all_valid_paths) + list(current_beam)
+            if candidate_pool:
+                best_tuple = max(
+                    candidate_pool,
+                    key=lambda it: (
+                        len(set().union(*(cell_covered.get(c.cell_id, set()) for c in it[0]))),
+                        it[2],
+                    ),
+                )
+                best_path, best_sigma, best_score, best_weak, best_unbind = best_tuple
+                covered_clauses = set().union(*(cell_covered.get(c.cell_id, set()) for c in best_path))
+                uncovered = [cl_i for cl_i in range(num_clauses) if cl_i not in covered_clauses]
+
+                if uncovered:
+                    for cl_i in uncovered:
+                        clause_cands = [
+                            c for c in candidates
+                            if cl_i in cell_covered.get(c.cell_id, set())
+                            and c.cell_id.lower() not in {x.cell_id.lower() for x in best_path}
+                        ]
+                        clause_cands.sort(key=lambda c: log_probs.get(c.cell_id, -10.0), reverse=True)
+                        for cand in clause_cands:
+                            v_res = _verify_frontier_step(best_path, cand, best_sigma)
+                            if v_res is not None:
+                                new_sigma, bound_parents, is_join = v_res
+                                cand_sc = log_probs.get(cand.cell_id, -10.0)
+                                best_path = best_path + [cand]
+                                best_sigma = new_sigma
+                                best_score += cand_sc
+                                break
+
+                # If not yet a valid terminal, greedily reach an endable / terminal node
+                if is_valid_terminal is not None and not is_valid_terminal(best_path):
+                    term_cands = [
                         c for c in candidates
-                        if cl_i in cell_covered.get(c.cell_id, set())
+                        if (_is_egress_stage(c) or getattr(c, "endable", False) or getattr(c, "is_endable", False))
                         and c.cell_id.lower() not in {x.cell_id.lower() for x in best_path}
                     ]
-                    clause_cands.sort(key=lambda c: log_probs.get(c.cell_id, -10.0), reverse=True)
-                    for cand in clause_cands:
+                    term_cands.sort(key=lambda c: log_probs.get(c.cell_id, -10.0), reverse=True)
+                    for cand in term_cands:
                         v_res = _verify_frontier_step(best_path, cand, best_sigma)
                         if v_res is not None:
                             new_sigma, bound_parents, is_join = v_res
@@ -4242,25 +4278,7 @@ class LatticePlanner:
                             best_score += cand_sc
                             break
 
-            # If not yet a valid terminal, greedily reach an endable / terminal node
-            if is_valid_terminal is not None and not is_valid_terminal(best_path):
-                term_cands = [
-                    c for c in candidates
-                    if (_is_egress_stage(c) or getattr(c, "endable", False) or getattr(c, "is_endable", False))
-                    and c.cell_id.lower() not in {x.cell_id.lower() for x in best_path}
-                ]
-                term_cands.sort(key=lambda c: log_probs.get(c.cell_id, -10.0), reverse=True)
-                for cand in term_cands:
-                    v_res = _verify_frontier_step(best_path, cand, best_sigma)
-                    if v_res is not None:
-                        new_sigma, bound_parents, is_join = v_res
-                        cand_sc = log_probs.get(cand.cell_id, -10.0)
-                        best_path = best_path + [cand]
-                        best_sigma = new_sigma
-                        best_score += cand_sc
-                        break
-
-            all_valid_paths.append((best_path, best_sigma, best_score, best_weak, best_unbind))
+                all_valid_paths.append((best_path, best_sigma, best_score, best_weak, best_unbind))
         elif not all_valid_paths:
             all_valid_paths = list(current_beam)
         return all_valid_paths

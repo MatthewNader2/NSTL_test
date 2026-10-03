@@ -1433,27 +1433,70 @@ class PipelineDebugger:
                 c.print(bind_table)
                 c.print("")
 
-                if final_code:
-                    syntax_code = Syntax(final_code, "python", theme="monokai", line_numbers=True)
-                    c.print(Panel(syntax_code, title="[bold green]✨ Synthesized Python Code[/bold green]", border_style="green", padding=(0, 1)))
-                    c.print("")
-
                 lint_valid = True
+                lint_res = None
                 if pipeline_bindings:
                     lint_res = PreflightLinter.lint(pipeline_bindings, prompt=prompt, code_str=final_code)
                     lint_valid = lint_res.is_valid
-                    if not lint_res.is_valid:
-                        c.print(Panel(
-                            "[bold red]❌ PRE-FLIGHT LINT VIOLATIONS DETECTED:[/bold red]\n" +
-                            "\n".join(f"  • {v}" for v in lint_res.violations),
-                            title="[bold red]⚠️ Pre-Flight Static Validator[/bold red]",
-                            border_style="red"
-                        ))
-                    else:
-                        lint_msg = "[bold green]✓ All structural contracts and port binding constraints satisfied.[/bold green]"
-                        if lint_res.warnings:
-                            lint_msg += "\n[yellow]Warnings:[/yellow]\n" + "\n".join(f"  • {w}" for w in lint_res.warnings)
-                        c.print(Panel(lint_msg, title="[bold green]✓ Pre-Flight Static Validator Passed (Type Contracts Verified - Sandbox Disabled)[/bold green]", border_style="green"))
+
+                # Layer 5 Self-Repair for Pre-Flight Lint Violations (Profile C/E)
+                rep_dt = 0.0
+                if not lint_valid and prof in ("C", "E") and final_code:
+                    mm = ModelManager.get_instance()
+                    if mm.profile and mm.can_feedback_check():
+                        err_msg = "Pre-flight lint validation failed:\n" + "\n".join(f"- {v}" for v in lint_res.violations)
+                        c.print(Panel("[bold yellow]⚡ LAYER 5: Pre-Flight Lint LLM Self-Repair Cycle[/bold yellow]", border_style="yellow"))
+                        t_rep_0 = time.perf_counter()
+                        failing_code = final_code
+                        repaired_code = extract_code_from_llm_response(mm.feedback_check(failing_code, err_msg))
+                        rep_dt = (time.perf_counter() - t_rep_0) * 1000.0
+                        if repaired_code and repaired_code.strip() != failing_code.strip():
+                            unknown = _unknown_api_references(repaired_code, failing_code, self.orchestrator.loaded_cells.values())
+                            if not unknown:
+                                rep_lint = PreflightLinter.lint(pipeline_bindings, prompt=prompt, code_str=repaired_code)
+                                if rep_lint.is_valid:
+                                    c.print(f"  [bold green][✓] Pre-flight repair accepted ({rep_dt:.1f}ms).[/bold green]\n")
+                                    final_code = repaired_code
+                                    lint_valid = True
+                                    lint_res = rep_lint
+
+                if not lint_valid and lint_res is not None:
+                    c.print(Panel(
+                        "[bold red]❌ PRE-FLIGHT LINT VIOLATIONS DETECTED:[/bold red]\n" +
+                        "\n".join(f"  • {v}" for v in lint_res.violations),
+                        title="[bold red]⚠️ Pre-Flight Static Validator[/bold red]",
+                        border_style="red"
+                    ))
+                    c.print("[bold red][!] Code emission refused due to pre-flight lint violations.[/bold red]\n")
+                    final_code = None
+                    path_ids = [cl.cell_id for cl in cells] if cells else []
+                    total_dt = (time.perf_counter() - t_total_start) * 1000.0
+                    return {
+                        "prompt": prompt_clean,
+                        "profile": self.active_profile,
+                        "path": path_ids,
+                        "latency_ms": total_dt,
+                        "sandbox_status": "REFUSED: Pre-flight lint validation failed",
+                        "code": None,
+                        "route_ms": route_dt,
+                        "plan_ms": plan_dt,
+                        "synth_ms": synth_dt,
+                        "sandbox_ms": 0.0,
+                        "sandbox_result": {"success": False, "error": f"Pre-flight lint validation failed: {'; '.join(lint_res.violations)}", "preflight_lint_violations": lint_res.violations},
+                        "cells": cells,
+                        "tunnel_size": len(tunnel_cells),
+                        "relevance_map": relevance_map
+                    }
+                elif lint_res is not None:
+                    lint_msg = "[bold green]✓ All structural contracts and port binding constraints satisfied.[/bold green]"
+                    if lint_res.warnings:
+                        lint_msg += "\n[yellow]Warnings:[/yellow]\n" + "\n".join(f"  • {w}" for w in lint_res.warnings)
+                    c.print(Panel(lint_msg, title="[bold green]✓ Pre-Flight Static Validator Passed (Type Contracts Verified)[/bold green]", border_style="green"))
+                    c.print("")
+
+                if final_code:
+                    syntax_code = Syntax(final_code, "python", theme="monokai", line_numbers=True)
+                    c.print(Panel(syntax_code, title="[bold green]✨ Synthesized Python Code[/bold green]", border_style="green", padding=(0, 1)))
                     c.print("")
 
         # LAYER 4: GEVR Sandbox Execution & Verification
@@ -2566,6 +2609,20 @@ class NSTLInteractiveShell(cmd.Cmd):
                 console.print("\n[bold yellow][!] Pre-Flight Warnings:[/bold yellow]")
                 for w in lint_res.warnings:
                     console.print(f"  [yellow]• {w}[/yellow]")
+
+            # Layer 5 Self-Repair for Pre-Flight Lint Violations (Profile C/E)
+            if not lint_valid and getattr(self, "active_profile", getattr(self, "profile", "")) in ("C", "E") and final_code:
+                mm = ModelManager.get_instance()
+                if mm.profile and mm.can_feedback_check():
+                    err_msg = "Pre-flight lint validation failed:\n" + "\n".join(f"- {v}" for v in lint_res.violations)
+                    console.print("\n[bold yellow]⚡ LAYER 5: Pre-Flight Lint LLM Self-Repair Cycle[/bold yellow]")
+                    repaired_code = extract_code_from_llm_response(mm.feedback_check(final_code, err_msg))
+                    if repaired_code and repaired_code.strip() != final_code.strip():
+                        rep_lint = PreflightLinter.lint(self.gate.last_pipeline_bindings, prompt=prompt, code_str=repaired_code)
+                        if rep_lint.is_valid:
+                            console.print("  [bold green][✓] Pre-flight repair accepted.[/bold green]\n")
+                            final_code = repaired_code
+                            lint_valid = True
 
         if not lint_valid:
             console.print("\n[bold red][!] Execution halted due to pre-flight lint violations.[/bold red]\n")
