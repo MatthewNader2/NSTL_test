@@ -163,22 +163,35 @@ class M8LLMStepwisePathfinderRouteMethod(RouteMethod):
         if not entry_candidates:
             entry_candidates = shown[:5]
         elif src_file_literals:
-            def _entry_compat_score(c: Cell) -> float:
-                is_pc = any(
+            file_compat = [
+                c for c in entry_candidates
+                if any(
                     getattr(p, "abstract_type", None) == "path"
                     or getattr(p, "port_role", None) in ("source_data", "model_sink")
                     or getattr(getattr(p, "signature", None), "abstract_type", None) == "path"
                     for p in c.inputs.values()
-                )
-                if is_pc and self.is_file_format_compatible(c, str(src_file_literals[0])):
-                    return relevance_map.get(c.cell_id, 0.0) + 10.0
-                elif is_pc and not self.is_file_format_compatible(c, str(src_file_literals[0])):
-                    return relevance_map.get(c.cell_id, 0.0) - 20.0
-                elif not is_pc:
-                    return relevance_map.get(c.cell_id, 0.0) - 10.0
-                return relevance_map.get(c.cell_id, 0.0)
-            entry_candidates.sort(key=_entry_compat_score, reverse=True)
+                ) and self.is_file_format_compatible(c, str(src_file_literals[0]))
+            ]
+            if file_compat:
+                entry_candidates = file_compat
+            else:
+                def _entry_compat_score(c: Cell) -> float:
+                    is_pc = any(
+                        getattr(p, "abstract_type", None) == "path"
+                        or getattr(p, "port_role", None) in ("source_data", "model_sink")
+                        or getattr(getattr(p, "signature", None), "abstract_type", None) == "path"
+                        for p in c.inputs.values()
+                    )
+                    if is_pc and self.is_file_format_compatible(c, str(src_file_literals[0])):
+                        return relevance_map.get(c.cell_id, 0.0) + 10.0
+                    elif is_pc and not self.is_file_format_compatible(c, str(src_file_literals[0])):
+                        return relevance_map.get(c.cell_id, 0.0) - 20.0
+                    elif not is_pc:
+                        return relevance_map.get(c.cell_id, 0.0) - 10.0
+                    return relevance_map.get(c.cell_id, 0.0)
+                entry_candidates.sort(key=_entry_compat_score, reverse=True)
 
+        entry_cand_map = {c.cell_id.lower(): c for c in entry_candidates}
         entry_cell = None
         try:
             entry_lines = "\n".join(f"- {_format_cell_signature(c)}" for c in entry_candidates[:8])
@@ -188,22 +201,24 @@ class M8LLMStepwisePathfinderRouteMethod(RouteMethod):
             )
             node_id = _parse_next_node(raw)
             if node_id:
-                entry_cell = cand_map.get(node_id.lower())
+                entry_cell = entry_cand_map.get(node_id.lower())
                 if entry_cell is None:
                     try:
                         from node_resolver import DynamicNodeResolver
-                        entry_cell = DynamicNodeResolver.resolve_node(
+                        resolved = DynamicNodeResolver.resolve_node(
                             raw_id=node_id,
                             prompt=prompt,
                             orchestrator=orch,
                             rag=kwargs.get("rag"),
                         )
+                        if resolved and resolved.cell_id.lower() in entry_cand_map and getattr(resolved, "verified", True):
+                            entry_cell = resolved
                     except Exception:
                         entry_cell = None
         except Exception:
             entry_cell = None
 
-        if entry_cell is None:
+        if entry_cell is None and entry_candidates:
             entry_cell = entry_candidates[0]
 
         path: List[Cell] = [entry_cell]
@@ -288,39 +303,57 @@ class M8LLMStepwisePathfinderRouteMethod(RouteMethod):
                 chosen_id = None
 
             if chosen_id and chosen_id.upper() in ("FINISH", "DONE", "STOP", "END"):
-                if curr_stage == 3 or curr_role == "sink" or (clauses and len(path) >= len(clauses)) or not clauses:
-                    break
+                break
 
             matched_trans = trans_by_id.get(chosen_id.lower()) if chosen_id else None
             if matched_trans is None and chosen_id:
-                try:
-                    from node_resolver import DynamicNodeResolver
-                    res_cell = DynamicNodeResolver.resolve_node(
-                        raw_id=chosen_id,
-                        prompt=prompt,
-                        orchestrator=orch,
-                        rag=kwargs.get("rag"),
-                    )
-                    if res_cell is not None and res_cell.cell_id not in visited_ids:
-                        if self.step_unifies(curr, res_cell, prev_path=path):
-                            matched_trans = (res_cell, None, "DYNAMIC_DIRECT")
-                        elif self.step_unifies_dag(res_cell, path, ctx=ctx):
-                            matched_trans = (res_cell, None, "DYNAMIC_DAG_FRONTIER")
-                        else:
-                            brg = self.find_bridge(curr, res_cell, candidates, orch)
-                            if brg and brg.cell_id not in visited_ids:
-                                matched_trans = (res_cell, brg, f"DYNAMIC_BRIDGED via {brg.cell_id}")
-                except Exception:
-                    pass
+                cand_cell = next((c for c in candidates if c.cell_id.lower() == chosen_id.lower()), None)
+                if cand_cell and cand_cell.cell_id not in visited_ids:
+                    if self.step_unifies(curr, cand_cell, prev_path=path):
+                        matched_trans = (cand_cell, None, "DIRECT")
+                    elif self.step_unifies_dag(cand_cell, path, ctx=ctx):
+                        matched_trans = (cand_cell, None, "DAG_FRONTIER")
+                    else:
+                        brg = self.find_bridge(curr, cand_cell, candidates, orch)
+                        if brg and brg.cell_id not in visited_ids:
+                            matched_trans = (cand_cell, brg, f"BRIDGED via {brg.cell_id}")
+
+                if matched_trans is None:
+                    try:
+                        from node_resolver import DynamicNodeResolver
+                        res_cell = DynamicNodeResolver.resolve_node(
+                            raw_id=chosen_id,
+                            prompt=prompt,
+                            orchestrator=orch,
+                            rag=kwargs.get("rag"),
+                        )
+                        if res_cell is not None and res_cell.cell_id not in visited_ids and getattr(res_cell, "verified", True):
+                            if self.step_unifies(curr, res_cell, prev_path=path):
+                                matched_trans = (res_cell, None, "DYNAMIC_DIRECT")
+                            elif self.step_unifies_dag(res_cell, path, ctx=ctx):
+                                matched_trans = (res_cell, None, "DYNAMIC_DAG_FRONTIER")
+                            else:
+                                brg = self.find_bridge(curr, res_cell, candidates, orch)
+                                if brg and brg.cell_id not in visited_ids:
+                                    matched_trans = (res_cell, brg, f"DYNAMIC_BRIDGED via {brg.cell_id}")
+                    except Exception:
+                        pass
 
             if matched_trans is None:
                 # If current node is a sink or stage 3, complete
-                if curr_stage == 3 or curr_role == "sink":
+                if curr_stage == 3 or curr_role == "sink" or len(path) >= 2:
                     break
-                # Default to top scored transition
-                matched_trans = active_transitions[0]
+                # Default to top scored transition that is not visited
+                for tr in active_transitions:
+                    if tr[0].cell_id not in visited_ids:
+                        matched_trans = tr
+                        break
+                if matched_trans is None:
+                    break
 
             target_cell, bridge_cell, _ = matched_trans
+            if target_cell.cell_id in visited_ids:
+                break
             if bridge_cell:
                 path.append(bridge_cell)
                 visited_ids.add(bridge_cell.cell_id)

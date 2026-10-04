@@ -1599,34 +1599,28 @@ class LatticePlanner:
                         parts = [part.strip().lower() for part in inner.split(",") if part.strip()]
                         if len(parts) >= 2:
                             fmt = parts[1]
+                            reg = TypeRegistry.get_instance()
                             if fmt in ("any", "generic", "*", ""):
                                 carrier = parts[0]
                                 try:
-                                    reg = TypeRegistry.get_instance()
                                     placeholder = reg.get_asset_placeholder(carrier, "")
                                     if placeholder and "." in placeholder:
                                         carrier_ext = placeholder.rpartition(".")[2].strip().lower()
                                         if carrier_ext and carrier_ext != "dat":
-                                            img_exts = ("png", "jpg", "jpeg", "bmp", "tiff", "webp", "gif")
-                                            tab_exts = ("csv", "tsv", "parquet", "xlsx", "xls", "json", "feather")
-                                            aud_exts = ("wav", "mp3", "flac", "ogg", "m4a")
-                                            if carrier_ext in img_exts:
-                                                return ext in img_exts
-                                            if carrier_ext in tab_exts:
-                                                return ext in tab_exts
-                                            if carrier_ext in aud_exts:
-                                                return ext in aud_exts
-                                            return ext == carrier_ext
+                                            if ext == carrier_ext or reg.is_subtype(ext, carrier_ext) or reg.is_subtype(carrier_ext, ext):
+                                                return True
+                                            for anc in ("image_format", "tabular_format", "audio_format", "serialized_format"):
+                                                if reg.is_subtype(ext, anc) and reg.is_subtype(carrier_ext, anc):
+                                                    return True
+                                            return False
                                 except Exception:
                                     pass
                                 return True
-                            if ext == fmt or fmt in ext or ext in fmt:
+                            if ext == fmt or fmt in ext or ext in fmt or reg.is_subtype(ext, fmt) or reg.is_subtype(fmt, ext):
                                 return True
-                            if (ext in ("pkl", "pickle") and "pickle" in fmt) or \
-                               (ext in ("jpg", "jpeg") and "jpeg" in fmt) or \
-                               (ext in ("xls", "xlsx") and "excel" in fmt) or \
-                               (ext in ("npz",) and "npz" in fmt):
-                                return True
+                            for anc in ("image_format", "tabular_format", "audio_format", "serialized_format"):
+                                if reg.is_subtype(ext, anc) and (reg.is_subtype(fmt, anc) or fmt in anc):
+                                    return True
                             return False
             return True
 

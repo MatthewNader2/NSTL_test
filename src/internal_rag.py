@@ -287,7 +287,7 @@ class _BM25Index:
         self.avg_dl = max(1.0, self._total_len / float(max(1, self.num_docs)))
 
     def score_query(self, query: str) -> Dict[int, float]:
-        tokens = tokenize_alphanumeric(query, min_len=3)
+        tokens = tokenize_alphanumeric(query, min_len=1)
         if not tokens or self.num_docs == 0:
             return {}
 

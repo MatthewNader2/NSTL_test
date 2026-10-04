@@ -15,15 +15,28 @@ from typing import Any, Dict, List, Optional, Set
 
 
 def clean_malformed_template_braces(template: str) -> str:
-    """Cleans malformed double braces or trailing artifacts in templates without regex."""
+    """Cleans malformed double braces around identifier placeholders or trailing artifacts in templates without regex."""
     if not template or "{" not in template:
         return template
     cleaned = template
-    while "{{" in cleaned or "}}" in cleaned:
-        cleaned = cleaned.replace("{{", "{").replace("}}", "}")
     for artifact in (", {/*}", "{/*},", "{/*}", ", {\\*}", "{\\*},", "{\\*}"):
         cleaned = cleaned.replace(artifact, "")
-    return cleaned
+
+    res = []
+    i = 0
+    n = len(cleaned)
+    while i < n:
+        if cleaned[i:i+2] == "{{" and i + 2 < n:
+            end = cleaned.find("}}", i + 2)
+            if end != -1:
+                inner = cleaned[i + 2:end].strip()
+                if inner.isidentifier():
+                    res.append(f"{{{inner}}}")
+                    i = end + 2
+                    continue
+        res.append(cleaned[i])
+        i += 1
+    return "".join(res)
 
 
 def extract_placeholders(template: str) -> List[str]:

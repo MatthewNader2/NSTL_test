@@ -122,7 +122,12 @@ class M3GreedyFreezeRouteMethod(RouteMethod):
                 # Favor stage progression (1 -> 2 -> 3)
                 curr_stage = getattr(curr, "stage", 1) or 1
                 cand_stage = getattr(cand, "stage", 2) or 2
-                progression_bonus = 1.0 if cand_stage >= curr_stage else -2.0
+                if cand_stage < curr_stage:
+                    progression_bonus = -50.0 if (curr_stage == 3 or cand_stage == 1) else -25.0
+                elif cand_stage > curr_stage:
+                    progression_bonus = 5.0
+                else:
+                    progression_bonus = 1.0
 
                 is_path_consumer = any(
                     getattr(p, "abstract_type", None) == "path"

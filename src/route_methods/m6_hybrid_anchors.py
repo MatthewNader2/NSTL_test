@@ -80,7 +80,7 @@ class M6HybridAnchorsRouteMethod(RouteMethod):
                 if src_file_literals:
                     is_pc = any(
                         getattr(p, "abstract_type", None) == "path"
-                        or getattr(p, "port_role", None) in ("source_data", "model_sink")
+                        or getattr(p, "port_role", None) == "source_data"
                         or getattr(getattr(p, "signature", None), "abstract_type", None) == "path"
                         for p in c.inputs.values()
                     )
@@ -93,7 +93,23 @@ class M6HybridAnchorsRouteMethod(RouteMethod):
                 return score
             source_cell = max(stage1_cands, key=_score_s1)
         if stage3_cands and (_prompt_has_egress_intent(prompt) or dest_file_literals):
-            sink_cell = max(stage3_cands, key=lambda c: relevance_map.get(c.cell_id, 0.0))
+            def _score_s3(c: Cell) -> float:
+                score = relevance_map.get(c.cell_id, 0.0) * 5.0
+                prompt_toks = CellTokenizer.tokenize_prompt(prompt)
+                c_toks = getattr(c, "identity_tokens", c.token_set)
+                score += len(prompt_toks & c_toks) * 3.0
+                if dest_file_literals:
+                    is_pc = any(
+                        getattr(p, "abstract_type", None) == "path"
+                        or getattr(getattr(p, "signature", None), "abstract_type", None) == "path"
+                        for p in c.inputs.values()
+                    )
+                    if is_pc and self.is_file_format_compatible(c, str(dest_file_literals[0])):
+                        score += 15.0
+                    elif is_pc and not self.is_file_format_compatible(c, str(dest_file_literals[0])):
+                        score -= 25.0
+                return score
+            sink_cell = max(stage3_cands, key=_score_s3)
 
         # 3. Identify Clause-Level Waypoint Anchors
         clauses = self.segment_prompt_clauses(prompt)

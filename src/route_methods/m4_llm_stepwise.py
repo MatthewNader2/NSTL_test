@@ -193,10 +193,11 @@ class M4LLMStepwiseRouteMethod(RouteMethod):
         total_clauses = len(clauses) if clauses else 1
         curr_coverage = _cov_cnt(path) / total_clauses
 
-        if len(path) < 5 or curr_coverage < cov_floor:
+        min_required_len = min(len(clauses), 3) if clauses else 1
+        if len(path) < min_required_len or curr_coverage < cov_floor:
             import logging
             logger = logging.getLogger(__name__)
-            logger.info("M4 fallback triggered: len(path)=%d < 5 or coverage=%.2f < %.2f. Falling back to M1ClauseAnchorRouteMethod.", len(path), curr_coverage, cov_floor)
+            logger.info("M4 fallback triggered: len(path)=%d < %d or coverage=%.2f < %.2f. Falling back to M1ClauseAnchorRouteMethod.", len(path), min_required_len, curr_coverage, cov_floor)
             try:
                 from .m1_clause_anchor import M1ClauseAnchorRouteMethod
                 m1 = M1ClauseAnchorRouteMethod(self.orchestrator)

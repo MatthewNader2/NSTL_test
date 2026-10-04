@@ -630,7 +630,75 @@ class BenchmarkProfile_E(BenchmarkProfile_C):
 
 class BenchmarkProfile_S(BenchmarkProfile_C):
     """Profile S: Structured Semantic Compiler Profile."""
-    pass
+
+    def has_semantic_compiler(self) -> bool:
+        return True
+
+    def compile_semantic_intent(
+        self,
+        prompt: str,
+        schema: Optional[Dict[str, Any]] = None,
+        system_prompt: Optional[str] = None
+    ) -> Dict[str, Any]:
+        if self.llm is not None:
+            res = super().compile_semantic_intent(prompt, schema, system_prompt)
+            if res and res.get("task") not in ("generic", ""):
+                return res
+
+        # Semantic heuristic extraction when LLM is unavailable or returns generic
+        try:
+            from planner import _segment_prompt_clauses
+            clauses = _segment_prompt_clauses(prompt)
+        except Exception:
+            clauses = [prompt]
+
+        inputs = []
+        outputs = []
+        for word in prompt.split():
+            clean_w = word.strip("'\":,;.()[]{}")
+            if "." in clean_w:
+                ext = clean_w.rpartition(".")[2].lower()
+                is_file = False
+                try:
+                    from .lattice import TypeRegistry
+                    reg = TypeRegistry.get_instance()
+                    is_file = reg.is_subtype(ext, "format") or reg.is_subtype(ext, "file")
+                except Exception:
+                    try:
+                        from lattice import TypeRegistry
+                        reg = TypeRegistry.get_instance()
+                        is_file = reg.is_subtype(ext, "format") or reg.is_subtype(ext, "file")
+                    except Exception:
+                        pass
+                if not is_file:
+                    try:
+                        from .unification import ExecutionContext
+                        is_file = ExecutionContext._is_path_string(clean_w)
+                    except Exception:
+                        try:
+                            from unification import ExecutionContext
+                            is_file = ExecutionContext._is_path_string(clean_w)
+                        except Exception:
+                            pass
+                if is_file:
+                    if not inputs:
+                        inputs.append(clean_w)
+                    else:
+                        outputs.append(clean_w)
+
+        return {
+            "task": "pipeline",
+            "domain": "data_science",
+            "inputs": inputs,
+            "outputs": outputs,
+            "source_files": inputs,
+            "dest_files": outputs,
+            "operations": clauses,
+            "parameters": {},
+            "hyperparameters": {},
+            "slots": {},
+            "effective_prompt": prompt,
+        }
 
 
 class ModelManager:

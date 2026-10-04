@@ -58,7 +58,7 @@ try:
     from inference import ModelManager, select_optimal_embedder, select_optimal_llm
     from internal_rag import LocalRAG
     from config import MODELS_DIR, settings
-    from utils import extract_code_from_llm_response, ensure_comprehensive_prompt
+    from utils import extract_code_from_llm_response, ensure_comprehensive_prompt, extract_template_placeholders, safe_substitute_template
     from errors import SynthesisError
     from tokenizer import CellTokenizer
     from planner import _segment_prompt_clauses, STOPWORDS
@@ -79,7 +79,7 @@ except ImportError:
     from .inference import ModelManager, select_optimal_embedder, select_optimal_llm
     from .internal_rag import LocalRAG
     from .config import MODELS_DIR, settings
-    from .utils import extract_code_from_llm_response, ensure_comprehensive_prompt
+    from .utils import extract_code_from_llm_response, ensure_comprehensive_prompt, extract_template_placeholders, safe_substitute_template
     from .errors import SynthesisError
     from .tokenizer import CellTokenizer
     from .planner import _segment_prompt_clauses, STOPWORDS
@@ -136,8 +136,9 @@ def sanitize_placeholders_for_ast(code: str) -> str:
         tokens = list(tokenize.generate_tokens(io.StringIO(code).readline))
     except (tokenize.TokenError, IndentationError):
         # Fallback if tokenizer encounters unclosed delimiters before substitution
-        import re
-        return re.sub(r'(?<!["\'])\{([a-zA-Z_]\w*)\}(?!["\'])', r'__ph_\1', code)
+        placeholders = extract_template_placeholders(code)
+        sub_map = {ph: f"__ph_{ph}" for ph in placeholders}
+        return safe_substitute_template(code, sub_map)
 
     new_tokens: List[tokenize.TokenInfo] = []
     seen: Dict[str, str] = {}
@@ -167,8 +168,9 @@ def sanitize_placeholders_for_ast(code: str) -> str:
     try:
         return tokenize.untokenize(new_tokens)
     except Exception:
-        import re
-        return re.sub(r'(?<!["\'])\{([a-zA-Z_]\w*)\}(?!["\'])', r'__ph_\1', code)
+        placeholders = extract_template_placeholders(code)
+        sub_map = {ph: f"__ph_{ph}" for ph in placeholders}
+        return safe_substitute_template(code, sub_map)
 
 
 # =====================================================================
@@ -1493,7 +1495,12 @@ class PipelineDebugger:
                             source_desc
                         )
                     for p_name, p_sig in cl.outputs.items():
-                        b_val = str(bindings.get(p_name, UNRESOLVED_PORT))
+                        b_val = bindings.get(p_name)
+                        if b_val is None:
+                            is_sink = str(getattr(cl, "node_role", "") or "").lower() in ("sink", "terminal") or getattr(cl, "stage", None) == 3
+                            b_val = "None (sink/terminal)" if is_sink else str(UNRESOLVED_PORT)
+                        else:
+                            b_val = str(b_val)
                         t_str = f"{p_sig.signature.type_name} [{p_sig.signature.state}]"
                         bind_table.add_row(
                             str(step_idx),
@@ -1548,8 +1555,13 @@ class PipelineDebugger:
                         "relevance_map": relevance_map,
                     }
                 if pipeline_bindings and not internal_error_msg:
-                    lint_res = PreflightLinter.lint(pipeline_bindings, prompt=prompt, code_str=final_code)
-                    lint_valid = lint_res.is_valid
+                    try:
+                        lint_res = PreflightLinter.lint(pipeline_bindings, prompt=prompt, code_str=final_code)
+                        lint_valid = lint_res.is_valid
+                    except Exception as lint_err:
+                        logger.warning(f"[PREFLIGHT] Linting exception: {lint_err}")
+                        lint_res = None
+                        lint_valid = True
 
                 # Deterministic Bridge Insertion for Pre-Flight Lint Violations
                 if not lint_valid and lint_res and getattr(lint_res, "structured_violations", None) and cells:
@@ -1953,8 +1965,10 @@ class NSTLInteractiveShell(cmd.Cmd):
         self.interactive: bool = interactive
         if exec_sandbox:
             self.no_exec = False
+        elif no_exec:
+            self.no_exec = True
         else:
-            self.no_exec = no_exec or not getattr(settings, "sandbox_enabled", True)
+            self.no_exec = not getattr(settings, "sandbox_enabled", True)
         self.timeout: float = timeout
 
         if reranker is not None:

@@ -2189,10 +2189,17 @@
       "semantic_tags": [
         "cleaning",
         "missing_data",
-        "dropna"
+        "dropna",
+        "drop_na",
+        "remove_missing"
       ],
       "keywords": [
         "dropna",
+        "drop",
+        "values",
+        "null_values",
+        "na",
+        "isna",
         "clean",
         "nan",
         "missing",

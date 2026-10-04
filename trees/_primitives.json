@@ -142,6 +142,104 @@
     "Exception": {
       "parent": "object"
     },
+    "model": {
+      "parent": "object"
+    },
+    "estimator": {
+      "parents": [
+        "model",
+        "object"
+      ]
+    },
+    "baseestimator": {
+      "parents": [
+        "estimator",
+        "model"
+      ]
+    },
+    "regressor": {
+      "parents": [
+        "estimator",
+        "model"
+      ]
+    },
+    "classifier": {
+      "parents": [
+        "estimator",
+        "model"
+      ]
+    },
+    "transformer": {
+      "parents": [
+        "estimator",
+        "model"
+      ]
+    },
+    "pipeline": {
+      "parents": [
+        "estimator",
+        "model"
+      ]
+    },
+    "kneighborsregressor": {
+      "parents": [
+        "regressor",
+        "estimator"
+      ]
+    },
+    "linearregression": {
+      "parents": [
+        "regressor",
+        "estimator"
+      ]
+    },
+    "ridge": {
+      "parents": [
+        "regressor",
+        "estimator"
+      ]
+    },
+    "lasso": {
+      "parents": [
+        "regressor",
+        "estimator"
+      ]
+    },
+    "image_format": {
+      "parent": "format"
+    },
+    "tabular_format": {
+      "parent": "format"
+    },
+    "audio_format": {
+      "parent": "format"
+    },
+    "serialized_format": {
+      "parent": "format"
+    },
+    "png": { "parents": ["image_format", "format"] },
+    "jpg": { "parents": ["image_format", "format"] },
+    "jpeg": { "parents": ["image_format", "format"] },
+    "bmp": { "parents": ["image_format", "format"] },
+    "tiff": { "parents": ["image_format", "format"] },
+    "webp": { "parents": ["image_format", "format"] },
+    "gif": { "parents": ["image_format", "format"] },
+    "csv": { "parents": ["tabular_format", "table", "format"] },
+    "tsv": { "parents": ["tabular_format", "table", "format"] },
+    "parquet": { "parents": ["tabular_format", "table", "format"] },
+    "xlsx": { "parents": ["tabular_format", "table", "format"] },
+    "xls": { "parents": ["tabular_format", "table", "format"] },
+    "json": { "parents": ["tabular_format", "format"] },
+    "feather": { "parents": ["tabular_format", "table", "format"] },
+    "wav": { "parents": ["audio_format", "format"] },
+    "mp3": { "parents": ["audio_format", "format"] },
+    "flac": { "parents": ["audio_format", "format"] },
+    "ogg": { "parents": ["audio_format", "format"] },
+    "m4a": { "parents": ["audio_format", "format"] },
+    "pkl": { "parents": ["serialized_format", "format"] },
+    "pickle": { "parents": ["serialized_format", "format"] },
+    "joblib": { "parents": ["serialized_format", "format"] },
+    "npz": { "parents": ["serialized_format", "tensor", "format"] },
     "Series": {
       "parents": [
         "collection",
@@ -499,7 +597,11 @@
       "baseestimator",
       "classifier",
       "regressor",
-      "pipeline"
+      "pipeline",
+      "kneighborsregressor",
+      "linearregression",
+      "ridge",
+      "lasso"
     ]
   },
   "egress_exclusion_tokens": [
@@ -870,7 +972,11 @@
       "is_deduped"
     ],
     "estimator_roles": [
-      "estimator"
+      "estimator",
+      "transformer",
+      "regressor",
+      "classifier",
+      "model"
     ],
     "feature_roles": [
       "feature_input"
@@ -881,7 +987,13 @@
     ],
     "model_roles": [
       "model_input",
-      "model_sink"
+      "model_sink",
+      "model",
+      "estimator",
+      "transformer",
+      "regressor",
+      "classifier",
+      "model_port"
     ],
     "prediction_input_roles": [
       "prediction_input"

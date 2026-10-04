@@ -6,6 +6,10 @@ from .m1_clause_anchor import M1ClauseAnchorRouteMethod
 from lattice import Cell, LatticeOrchestrator
 from unification import ExecutionContext
 from inference import ModelManager
+try:
+    from ..tokenizer import CellTokenizer
+except (ImportError, ValueError):
+    from tokenizer import CellTokenizer
 
 
 def _ir_filter_m5(candidates, ir_step):
@@ -15,12 +19,20 @@ def _ir_filter_m5(candidates, ir_step):
     if not op and not lib: return candidates
     out = []
     for c in candidates:
-        cid = c.cell_id.lower(); dom = (getattr(c, "domain_name", "") or "").lower()
+        cid = c.cell_id.lower(); dom = (getattr(c, "domain_name", "") or getattr(c, "domain", "") or "").lower()
         toks = set(str(k).lower() for k in getattr(c, "keywords", []) or [])
         toks |= set(str(k).lower() for k in getattr(c, "semantic_tags", []) or [])
         if (not op or op in cid or any(op in t for t in toks)) and (not lib or lib in dom or lib in cid):
             out.append(c)
-    return out or candidates
+    if out:
+        return out
+    op_tokens = CellTokenizer.tokenize_identifier(op)
+    if op_tokens:
+        for c in candidates:
+            c_toks = getattr(c, "identity_tokens", c.token_set)
+            if op_tokens & c_toks:
+                out.append(c)
+    return out
 
 
 class M5LLMOneShotRouteMethod(RouteMethod):
@@ -51,8 +63,14 @@ class M5LLMOneShotRouteMethod(RouteMethod):
                     for step in ir.steps:
                         pool = _ir_filter_m5(candidates, step)
                         pool.sort(key=lambda c: relevance_map.get(c.cell_id, 0.0) * 5.0, reverse=True)
-                        if pool and (not proposed or pool[0].cell_id != proposed[-1].cell_id):
-                            proposed.append(pool[0])
+                        if pool:
+                            chosen = None
+                            for cand in pool:
+                                if not any(p.cell_id == cand.cell_id for p in proposed):
+                                    chosen = cand
+                                    break
+                            if chosen is not None:
+                                proposed.append(chosen)
             except Exception:
                 proposed = []
 

@@ -236,9 +236,9 @@ class M9LLMMilestonePathfinderRouteMethod(RouteMethod):
         chain: List[Cell] = [milestones[0]]
 
         for target in milestones[1:]:
-            curr = chain[-1]
-            if curr.cell_id == target.cell_id:
+            if any(c.cell_id == target.cell_id for c in chain):
                 continue
+            curr = chain[-1]
 
             # 1. Direct edge
             if self.step_unifies(curr, target, prev_path=chain) or self.step_unifies_dag(target, chain, ctx=ctx):

@@ -15,11 +15,13 @@ try:
     from ..unification import unify, Substitution, ExecutionContext, unify_cell_with_scope
     from ..tokenizer import CellTokenizer
     from ..planner import LatticePlanner
+    from ..utils import tokenize_alphanumeric
 except (ImportError, ValueError):
     from lattice import Cell, MicroCell, MacroCell, LatticeOrchestrator, TypeRegistry, is_path_port
     from unification import unify, Substitution, ExecutionContext, unify_cell_with_scope
     from tokenizer import CellTokenizer
     from planner import LatticePlanner, STOPWORDS, _WILDCARD_CARRIERS
+    from utils import tokenize_alphanumeric
 
 logger = get_logger("route_methods")
 
@@ -161,34 +163,28 @@ class RouteMethod(ABC):
                     parts = [part.strip().lower() for part in inner.split(",") if part.strip()]
                     if len(parts) >= 2:
                         fmt = parts[1]
+                        reg = TypeRegistry.get_instance()
                         if fmt in ("any", "generic", "*", ""):
                             carrier = parts[0]
                             try:
-                                reg = TypeRegistry.get_instance()
                                 placeholder = reg.get_asset_placeholder(carrier, "")
                                 if placeholder and "." in placeholder:
                                     carrier_ext = placeholder.rpartition(".")[2].strip().lower()
                                     if carrier_ext and carrier_ext != "dat":
-                                        img_exts = ("png", "jpg", "jpeg", "bmp", "tiff", "webp", "gif")
-                                        tab_exts = ("csv", "tsv", "parquet", "xlsx", "xls", "json", "feather")
-                                        aud_exts = ("wav", "mp3", "flac", "ogg", "m4a")
-                                        if carrier_ext in img_exts:
-                                            return ext in img_exts
-                                        if carrier_ext in tab_exts:
-                                            return ext in tab_exts
-                                        if carrier_ext in aud_exts:
-                                            return ext in aud_exts
-                                        return ext == carrier_ext
+                                        if ext == carrier_ext or reg.is_subtype(ext, carrier_ext) or reg.is_subtype(carrier_ext, ext):
+                                            return True
+                                        for anc in ("image_format", "tabular_format", "audio_format", "serialized_format"):
+                                            if reg.is_subtype(ext, anc) and reg.is_subtype(carrier_ext, anc):
+                                                return True
+                                        return False
                             except Exception:
                                 pass
                             return True
-                        if ext == fmt or fmt in ext or ext in fmt:
+                        if ext == fmt or fmt in ext or ext in fmt or reg.is_subtype(ext, fmt) or reg.is_subtype(fmt, ext):
                             return True
-                        if (ext in ("pkl", "pickle") and "pickle" in fmt) or \
-                           (ext in ("jpg", "jpeg") and "jpeg" in fmt) or \
-                           (ext in ("xls", "xlsx") and "excel" in fmt) or \
-                           (ext in ("npz",) and "npz" in fmt):
-                            return True
+                        for anc in ("image_format", "tabular_format", "audio_format", "serialized_format"):
+                            if reg.is_subtype(ext, anc) and (reg.is_subtype(fmt, anc) or fmt in anc):
+                                return True
                         return False
         return True
 
@@ -292,6 +288,9 @@ class RouteMethod(ABC):
         best_score = -1.0
         current_scope = prev_path if prev_path else [src_cell]
 
+        prompt_str = getattr(self, "prompt", "") or (getattr(orchestrator, "prompt", "") if orchestrator else "")
+        prompt_l = str(prompt_str).lower()
+
         for cand in candidates:
             if cand.cell_id in (src_cell.cell_id, dst_cell.cell_id):
                 continue
@@ -301,6 +300,16 @@ class RouteMethod(ABC):
                 continue
             if getattr(cand, "stage", None) == 3 or str(getattr(cand, "node_role", "") or "").lower() in ("sink", "terminal"):
                 continue
+
+            cand_role = str(getattr(cand, "node_role", "") or "").lower()
+            is_declared_bridge = cand_role in ("bridge", "tunnel", "adapter", "cast", "coercion")
+            if not is_declared_bridge:
+                # Operational transforms require positive lexical/semantic evidence in the prompt to act as bridges
+                cand_toks = set(getattr(cand, "token_set", set())) | set(getattr(cand, "keywords", []) or []) | set(getattr(cand, "semantic_tags", []) or [])
+                cand_toks = {str(t).lower() for t in cand_toks}
+                prompt_toks = set(tokenize_alphanumeric(prompt_l))
+                if not (cand_toks & prompt_toks):
+                    continue
             can_src_to_cand = self.step_unifies(src_cell, cand, prev_path=current_scope) or self.step_unifies_dag(cand, current_scope)
             can_cand_to_dst = self.step_unifies(cand, dst_cell, prev_path=current_scope + [cand]) or self.step_unifies_dag(dst_cell, current_scope + [cand])
             if can_src_to_cand and can_cand_to_dst:

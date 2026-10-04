@@ -38,7 +38,7 @@ class NSTLSettings(BaseSettings):
     )
 
     # Sandbox
-    sandbox_enabled: bool = Field(default=False, description="Whether sandbox isolation is enabled.")
+    sandbox_enabled: bool = Field(default=True, description="Whether sandbox isolation is enabled.")
     sandbox_timeout: float = Field(default=5.0, gt=0, description="Sandbox timeout in seconds.")
     sandbox_workers: int = Field(default=2, ge=1, description="Number of sandbox worker processes.")
     sandbox_max_memory_mb: int = Field(default=1024, ge=64, description="Sandbox memory limit in MB.")

@@ -68,9 +68,9 @@ class M2EndpointAnchorRouteMethod(RouteMethod):
             )
             is_path_consumer = any(
                 getattr(p, "abstract_type", None) == "path"
-                or getattr(p, "port_role", None) in ("source_data", "model_sink")
-                or getattr(p, "derived_role", None) in ("source_data", "model_sink")
-                or getattr(p.signature, "abstract_type", None) == "path"
+                or getattr(p, "port_role", None) == "source_data"
+                or getattr(p, "derived_role", None) == "source_data"
+                or getattr(getattr(p, "signature", None), "abstract_type", None) == "path"
                 for p in sc.inputs.values()
             )
             if src_file_literals and is_path_consumer:

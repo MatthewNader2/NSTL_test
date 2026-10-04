@@ -292,44 +292,108 @@ def resolve_typed_binding_record(
                 resulting_signature=idx_sig,
             )
 
-    # (D) Method calls on variable, e.g. var.to_numpy()
+    # (D) Method calls on variable (e.g. var.to_numpy()) or module functions (e.g. np.asarray(var))
     if isinstance(parsed, ast.Call) and isinstance(parsed.func, ast.Attribute) and isinstance(parsed.func.value, ast.Name):
         root_v = parsed.func.value.id
         attr_name = parsed.func.attr
-        base_sig = var_sigs.get(root_v) if root_v else None
-        if attr_name == "to_numpy":
-            np_sig = None
+
+        # Check if root_v is a module or library alias rather than a pipeline variable
+        try:
+            from .lattice import TypeRegistry
+            reg = TypeRegistry.get_instance()
+            known_aliases = set(reg.get_all_aliases().keys())
+            known_modules = set(reg.get_all_aliases().values())
+        except Exception:
             try:
-                try:
-                    from .lattice import LatticeOrchestrator
-                except (ImportError, ValueError):
-                    from lattice import LatticeOrchestrator
-                orch = LatticeOrchestrator.get_active_instance()
-                if orch:
-                    for c in orch.cells:
-                        if getattr(c, "projection", None) == "to_numpy" or "project_to_numpy" in c.cell_id.lower():
-                            p_out = getattr(c, "primary_output", None) or next(iter(c.outputs.values()), None)
-                            if p_out:
-                                np_sig = getattr(p_out, "signature", p_out)
-                                break
+                from lattice import TypeRegistry
+                reg = TypeRegistry.get_instance()
+                known_aliases = set(reg.get_all_aliases().keys())
+                known_modules = set(reg.get_all_aliases().values())
             except Exception:
-                pass
-            if np_sig is None:
-                np_sig = AlgebraicSignature(
-                    type_name="ndarray",
-                    state="ndarray_numeric",
-                    abstract_type="tensor",
-                    accepted_states=frozenset(["ndarray_numeric", "split_train_features"]),
-                    qualifiers=frozenset(["matrix"]) if (base_sig and getattr(base_sig, "abstract_type", "") == "table") else frozenset(["vector"]),
-                )
+                reg = None
+                known_aliases = set()
+                known_modules = set()
+
+        import sys
+        import importlib.util
+        def _is_module_or_alias(name: str) -> bool:
+            if not name.isidentifier():
+                return False
+            if name in known_aliases or name in known_modules or name in sys.modules:
+                return True
+            try:
+                return importlib.util.find_spec(name) is not None
+            except (ValueError, AttributeError):
+                return False
+
+        is_module_call = _is_module_or_alias(root_v) and root_v not in var_sigs
+
+        if is_module_call:
+            carrier_var = None
+            if parsed.args:
+                arg0 = parsed.args[0]
+                if isinstance(arg0, ast.Name):
+                    carrier_var = arg0.id
+                elif isinstance(arg0, ast.Subscript) and isinstance(arg0.value, ast.Name):
+                    carrier_var = arg0.value.id
+                else:
+                    for node in ast.walk(arg0):
+                        if isinstance(node, ast.Name) and node.id in var_sigs:
+                            carrier_var = node.id
+                            break
+            base_sig = var_sigs.get(carrier_var) if carrier_var else None
+            np_sig = AlgebraicSignature(
+                type_name="ndarray",
+                state="ndarray_numeric",
+                abstract_type="tensor",
+                accepted_states=frozenset(["ndarray_numeric", "split_train_features"]),
+                qualifiers=frozenset(["matrix"]) if (base_sig and getattr(base_sig, "abstract_type", "") == "table") else frozenset(["vector"]),
+            )
             return TypedBindingRecord(
                 port=port_name,
                 value_expr=val_str,
-                kind="projection",
-                root_var=root_v,
-                projection={"kind": "method", "key": attr_name},
-                resulting_signature=np_sig,
+                kind="projection" if carrier_var else "literal",
+                root_var=carrier_var,
+                projection={"kind": "module_call", "module": root_v, "func": attr_name},
+                resulting_signature=expected_sig or np_sig,
             )
+
+        base_sig = var_sigs.get(root_v) if root_v else None
+        method_sig = None
+        try:
+            try:
+                from .lattice import LatticeOrchestrator
+            except (ImportError, ValueError):
+                from lattice import LatticeOrchestrator
+            orch = LatticeOrchestrator.get_active_instance()
+            if orch:
+                for c in orch.cells:
+                    if getattr(c, "projection", None) == attr_name or getattr(c, "method_name", None) == attr_name:
+                        p_out = getattr(c, "primary_output", None) or next(iter(c.outputs.values()), None)
+                        if p_out:
+                            method_sig = getattr(p_out, "signature", p_out)
+                            break
+        except Exception:
+            pass
+
+        if method_sig is None and expected_sig:
+            method_sig = expected_sig
+        if method_sig is None:
+            method_sig = AlgebraicSignature(
+                type_name="ndarray",
+                state="ndarray_numeric",
+                abstract_type="tensor",
+                accepted_states=frozenset(["ndarray_numeric", "split_train_features"]),
+                qualifiers=frozenset(["matrix"]) if (base_sig and getattr(base_sig, "abstract_type", "") == "table") else frozenset(["vector"]),
+            )
+        return TypedBindingRecord(
+            port=port_name,
+            value_expr=val_str,
+            kind="projection",
+            root_var=root_v,
+            projection={"kind": "method", "key": attr_name},
+            resulting_signature=method_sig,
+        )
         return TypedBindingRecord(
             port=port_name,
             value_expr=val_str,
@@ -378,7 +442,21 @@ def check_provenance_compatibility(
     p_abstract = getattr(port_sig, "abstract_type", "")
     inner_sig = getattr(port_sig, "signature", port_sig)
     p_tn = str(getattr(inner_sig, "type_name", "")).lower()
-    if p_binds in ("data_carrier", "carrier") or p_abstract == "table" or reg.is_subtype(p_tn, "table"):
+    model_types = set(reg.get_carrier_roles().get("model_input", ())) | {"model", "estimator"}
+    is_model_type = (
+        reg.is_subtype(p_tn, "model")
+        or reg.is_subtype(p_tn, "estimator")
+        or any(reg.is_subtype(p_tn, m) for m in model_types)
+        or p_tn in model_types
+    )
+    p_role = getattr(port_sig, "port_role", None) or getattr(port_sig, "derived_role", "")
+    if (
+        p_binds in ("data_carrier", "carrier", "model", "estimator")
+        or p_role in (_declared_role_semantics("model_roles") | _declared_role_semantics("estimator_roles"))
+        or p_abstract in ("table", "model", "estimator")
+        or reg.is_subtype(p_tn, "table")
+        or is_model_type
+    ):
         return True
 
     is_new_target_col = (
@@ -1502,6 +1580,7 @@ class ExecutionContext:
         self.llm_slots: Dict[str, Dict[str, Any]] = {}
         self._explicit_columns: List[str] = []
         self.hyperparameters: Dict[str, Any] = {}
+        self.composed_bridge_cells: List[Any] = []
         if self.scope:
             for k, v in self.scope.items():
                 self.declare_variable(k, v, k)
@@ -2869,15 +2948,11 @@ class ExecutionContext:
                 registry = TypeRegistry.get_instance()
                 modality = registry.get_abstract_carrier(t_str) or registry.get_abstract_carrier(dom)
                 if not modality:
-                    if "image" in t_str:
-                        modality = "image"
-                    elif "table" in t_str or "csv" in t_str:
-                        modality = "table"
-                    elif "array" in t_str or "tensor" in t_str:
-                        modality = "array"
-                    elif "text" in t_str:
-                        modality = "text"
-                    else:
+                    for cand_mod in ("table", "tensor", "image", "audio", "text"):
+                        if registry.is_subtype(t_str, cand_mod) or registry.is_subtype(dom, cand_mod):
+                            modality = cand_mod
+                            break
+                    if not modality:
                         modality = "default"
                 placeholder = registry.get_asset_placeholder(modality)
                 return json.dumps(placeholder)
@@ -2889,15 +2964,11 @@ class ExecutionContext:
                 registry = TypeRegistry.get_instance()
                 modality = registry.get_abstract_carrier(t_str) or registry.get_abstract_carrier(dom)
                 if not modality:
-                    if "image" in t_str:
-                        modality = "image"
-                    elif "table" in t_str or "csv" in t_str:
-                        modality = "table"
-                    elif "array" in t_str or "tensor" in t_str:
-                        modality = "array"
-                    elif "text" in t_str:
-                        modality = "text"
-                    else:
+                    for cand_mod in ("table", "tensor", "image", "audio", "text"):
+                        if registry.is_subtype(t_str, cand_mod) or registry.is_subtype(dom, cand_mod):
+                            modality = cand_mod
+                            break
+                    if not modality:
                         modality = "default"
                 placeholder = registry.get_output_asset_placeholder(modality)
                 return json.dumps(placeholder)
@@ -3351,13 +3422,18 @@ class UnificationGate:
                 return None
             lhs, rhs = tpl.split("=", 1)
             out_name = getattr(getattr(cell, "primary_output", None), "name", "") or "output_var"
-            if lhs.strip() != "{" + out_name + "}":
+            lhs_clean = lhs.strip().strip("{}")
+            if lhs_clean != out_name and lhs_clean != "output_var" and lhs.strip() != "{" + out_name + "}":
                 return None
             rhs = rhs.strip()
             placeholders = set(extract_template_placeholders(rhs))
             if not placeholders:
                 return None
             out_decl = (getattr(cell, "outputs", {}) or {}).get(out_name)
+            if out_decl is None:
+                out_decl = getattr(cell, "primary_output", None)
+                if out_decl is None and getattr(cell, "outputs", None):
+                    out_decl = next(iter(cell.outputs.values()), None)
             out_type = ""
             if isinstance(out_decl, dict):
                 out_type = str(out_decl.get("type_name", ""))
@@ -3384,19 +3460,22 @@ class UnificationGate:
                 return "None"
             return None
 
-        frontier: List[Tuple[str, str]] = [(str(src_type or "").lower(), str(src_var))]
+        frontier: List[Tuple[str, str, List[Any]]] = [(str(src_type or "").lower(), str(src_var), [])]
         seen_types = {str(src_type or "").lower()}
 
         for _hop in range(max(1, max_hops)):
-            next_frontier: List[Tuple[str, str]] = []
-            for cur_type, cur_expr in frontier:
+            next_frontier: List[Tuple[str, str, List[Any]]] = []
+            for cur_type, cur_expr, used_cells in frontier:
                 if _dst_accepts(cur_type):
+                    if ctx is not None and hasattr(ctx, "composed_bridge_cells"):
+                        ctx.composed_bridge_cells.extend(used_cells)
                     return cur_expr
                 for cell in bridge_cells:
                     tpl = _template_rhs(cell)
                     if tpl is None:
                         continue
                     rhs, out_name, meta = tpl
+                    placeholders = extract_template_placeholders(rhs)
                     out_type = (meta.get("output_type") or "").lower()
                     if not out_type or out_type in seen_types:
                         continue
@@ -3408,7 +3487,7 @@ class UnificationGate:
                     for carrier_name, carrier_sig in in_ports:
                         if not _accepts(carrier_sig, cur_type):
                             continue
-                        subs: Dict[str, str] = {out_name: cur_expr}
+                        subs: Dict[str, str] = {out_name: cur_expr, "output_var": cur_expr}
                         satisfiable = True
                         for other_name, other_sig in in_ports:
                             if other_name == carrier_name:
@@ -3421,19 +3500,24 @@ class UnificationGate:
                         if not satisfiable:
                             continue
                         subs[carrier_name] = cur_expr
+                        for p in placeholders:
+                            if p not in subs and p != out_name and p != "output_var":
+                                subs[p] = cur_expr
                         composed = safe_substitute_template(rhs, subs)
                         leftover = set(extract_template_placeholders(composed))
                         if leftover:
                             continue
-                        next_frontier.append((out_type, composed))
+                        next_frontier.append((out_type, composed, used_cells + [cell]))
                         seen_types.add(out_type)
                         break
             if not next_frontier:
                 break
             frontier = next_frontier
 
-        for cur_type, cur_expr in frontier:
+        for cur_type, cur_expr, used_cells in frontier:
             if _dst_accepts(cur_type):
+                if ctx is not None and hasattr(ctx, "composed_bridge_cells"):
+                    ctx.composed_bridge_cells.extend(used_cells)
                 return cur_expr
         return None
 
@@ -3580,7 +3664,27 @@ class UnificationGate:
         # Clause decomposition of the prompt (connector-based fast path; shared with
         # the planner) — used solely for member-state affinity when projecting
         # heterogeneous products. Zero domain vocabulary.
-        prompt_text = getattr(ctx, "prompt", "") or ""
+        prompt_text = (
+            getattr(ctx, "prompt", "")
+            or getattr(ctx, "_prompt", "")
+            or (getattr(self.context, "prompt", "") if hasattr(self, "context") and self.context else "")
+            or (getattr(self.context, "_prompt", "") if hasattr(self, "context") and self.context else "")
+            or ""
+        )
+        llm_pipeline_bindings: Dict[str, Dict[str, Any]] = {}
+        if prompt_text and cells:
+            try:
+                from .inference import ModelManager
+                if ModelManager.get_instance().can_synthesize():
+                    llm_pipeline_bindings = self._synthesize_pipeline_bindings_with_llm(cells, prompt_text, ctx)
+            except Exception:
+                try:
+                    from inference import ModelManager
+                    if ModelManager.get_instance().can_synthesize():
+                        llm_pipeline_bindings = self._synthesize_pipeline_bindings_with_llm(cells, prompt_text, ctx)
+                except Exception:
+                    llm_pipeline_bindings = {}
+
         if prompt_text and cells:
             try:
                 from .route_methods.base import RouteMethod
@@ -3792,6 +3896,49 @@ class UnificationGate:
             )
 
             bound_producer = False
+
+            # Grounded LLM Dataflow Binding: In supported profiles (C, D, E, S),
+            # evaluate LLM-proposed variable bindings against the typestate lattice.
+            step_key = str(idx)
+            step_llm_bindings = (
+                llm_pipeline_bindings.get(step_key)
+                or llm_pipeline_bindings.get(f"step_{idx}")
+                or llm_pipeline_bindings.get(cell.cell_id)
+                or {}
+            )
+            for p_name, p_sig in cell.inputs.items():
+                if p_name in step_llm_bindings and p_name not in cell_bindings:
+                    cand_val = step_llm_bindings[p_name]
+                    if cand_val is not None:
+                        cand_str = str(cand_val).strip()
+                        if cand_str:
+                            concrete_sig = substitute_generics(p_sig, accumulated_sigma)
+                            try:
+                                parsed_ast = ast.parse(cand_str, mode='eval')
+                                var_names = {node.id for node in ast.walk(parsed_ast) if isinstance(node, ast.Name)}
+                                if all(v in ctx.variables for v in var_names if v.startswith("var_")):
+                                    if cand_str in ctx.variables:
+                                        v_sig, _ = ctx.variables[cand_str]
+                                        if _shape_compatible(v_sig, concrete_sig):
+                                            u_cand = unify(v_sig.signature, concrete_sig.signature, accumulated_sigma)
+                                            if u_cand is not None:
+                                                cell_bindings[p_name] = cand_str
+                                                accumulated_sigma = u_cand
+                                                p_role = getattr(p_sig, "derived_role", "") or getattr(p_sig, "port_role", "")
+                                                if p_role in _declared_role_semantics("dataflow_roles"):
+                                                    bound_producer = True
+                                    else:
+                                        rec = resolve_typed_binding_record(cell, p_name, p_sig, cand_str, ctx.variables, expected_sig=concrete_sig)
+                                        if rec and rec.resulting_signature:
+                                            u_cand = unify(rec.resulting_signature, concrete_sig.signature, accumulated_sigma)
+                                            if u_cand is not None:
+                                                cell_bindings[p_name] = cand_str
+                                                accumulated_sigma = u_cand
+                                                p_role = getattr(p_sig, "derived_role", "") or getattr(p_sig, "port_role", "")
+                                                if p_role in _declared_role_semantics("dataflow_roles"):
+                                                    bound_producer = True
+                            except Exception:
+                                pass
 
             # 1. Multi-Carrier DAG Scope Verification & Wire Resolution:
             # When idx > 0, verify that cell's inputs are satisfiable from the full
@@ -4226,8 +4373,18 @@ class UnificationGate:
                         if isinstance(b_var, str) and b_var in ctx.variables:
                             b_sig, _ = ctx.variables[b_var]
                             b_role = getattr(b_sig, "port_role", None) or getattr(b_sig, "derived_role", "")
-                            b_type = str(getattr(getattr(b_sig, "signature", b_sig), "type_name", "")).lower()
-                            if b_role in _declared_role_semantics("model_roles") or "regressor" in b_type or "classifier" in b_type or "estimator" in b_type:
+                            b_inner = getattr(b_sig, "signature", b_sig)
+                            b_type = str(getattr(b_inner, "type_name", "") or "").lower()
+                            model_types = set(registry.get_carrier_roles().get("model_input", ())) | {"model", "estimator"}
+                            is_model_b = (
+                                b_role in _declared_role_semantics("model_roles")
+                                or b_role in _declared_role_semantics("estimator_roles")
+                                or registry.is_subtype(b_type, "model")
+                                or registry.is_subtype(b_type, "estimator")
+                                or any(registry.is_subtype(b_type, m) for m in model_types)
+                                or b_type in model_types
+                            )
+                            if is_model_b:
                                 bound_model_var = b_var
                                 break
 
@@ -4428,8 +4585,15 @@ class UnificationGate:
                 if candidate_vars:
                     # D6 Fix: Planned parent variables & clause adjacency take absolute priority over arbitrary recency
                     candidate_vars.sort(key=lambda x: x[0], reverse=True)
-                    if candidate_vars[0][0] >= 0:
-                        _, scoped_var, accumulated_sigma = candidate_vars[0]
+                    has_matching_origin = False
+                    if target_col_for_cell:
+                        top_v = candidate_vars[0][1]
+                        top_origs = getattr(ctx, "var_origins", {}).get(top_v, set())
+                        if target_col_for_cell in top_origs or str(target_col_for_cell).lower() in {str(o).lower() for o in top_origs}:
+                            has_matching_origin = True
+                    if target_col_for_cell is None or has_matching_origin:
+                        if candidate_vars[0][0] >= 0:
+                            _, scoped_var, accumulated_sigma = candidate_vars[0]
 
                 if scoped_var is not None:
                     cell_bindings[p_name] = scoped_var
@@ -4458,6 +4622,11 @@ class UnificationGate:
                             ctx.consumed_tokens.add(str(target_col_for_cell).lower())
                             target_col_for_cell = None
                             continue
+
+                if scoped_var is None and candidate_vars and candidate_vars[0][0] >= 0:
+                    _, scoped_var, accumulated_sigma = candidate_vars[0]
+                    cell_bindings[p_name] = scoped_var
+                    continue
 
                 # A2. Product-member projection: bind {port} to var[i] when the port's
                 # declared signature unifies with a declared member carrier. Preference:
@@ -4529,10 +4698,25 @@ class UnificationGate:
                     accumulated_sigma.bind(p_name, default_fn)
                     continue
 
-                # E. Unresolved REQUIRED port: fail loudly. A pipeline with an
-                # unsatisfiable required port must not emit garbage code (e.g. a bare
-                # identifier that NameErrors at runtime); it is reported as a synthesis
-                # failure so the caller (or the LLM repair cycle) can react honestly.
+                # E. Unresolved REQUIRED port: check for targeted LLM resolution before failing
+                if p_sig.required and (p_name not in cell_bindings or cell_bindings[p_name] in (None, UNRESOLVED_PORT)):
+                    try:
+                        from .inference import ModelManager
+                        can_synth = ModelManager.get_instance().can_synthesize()
+                    except Exception:
+                        try:
+                            from inference import ModelManager
+                            can_synth = ModelManager.get_instance().can_synthesize()
+                        except Exception:
+                            can_synth = False
+                    if can_synth:
+                        fallback_expr = self._synthesize_single_port_binding_with_llm(cell, p_name, p_sig, concrete_sig, ctx)
+                        if fallback_expr is not None:
+                            cell_bindings[p_name] = fallback_expr
+                            accumulated_sigma.bind(p_name, fallback_expr)
+                            continue
+
+                # E.2 Unresolved REQUIRED port: fail loudly if still ungrounded
                 if p_sig.required:
                     ctx.unresolved_ports.append((cell.cell_id, p_name))
                     ctx.unbindable_count += 1
@@ -4554,6 +4738,8 @@ class UnificationGate:
                 prim_out = cell.primary_output
                 if _is_sink_cell(cell):
                     producer_var = None
+                    for out_name in cell.outputs:
+                        cell_bindings[out_name] = "None (sink/terminal)"
                 else:
                     prim_var = None
                     for idx_out, (out_name, out_sig) in enumerate(cell.outputs.items()):
@@ -4589,6 +4775,8 @@ class UnificationGate:
                 # Single output cell
                 if _is_sink_cell(cell):
                     producer_var = None
+                    if cell.primary_output and cell.primary_output.name:
+                        cell_bindings[cell.primary_output.name] = "None (sink/terminal)"
                 else:
                     concrete_out = substitute_generics(cell.primary_output, accumulated_sigma)
                     # If the cell performs in-place mutation on a receiver, alias the output
@@ -4641,7 +4829,16 @@ class UnificationGate:
 
                         # Record model feature grounding
                         p_role_out = getattr(concrete_out, "port_role", None) or getattr(concrete_out, "derived_role", "")
-                        if p_role_out in _declared_role_semantics("model_roles") or "regressor" in out_t or "classifier" in out_t or "estimator" in out_t:
+                        model_types = set(registry.get_carrier_roles().get("model_input", ())) | {"model", "estimator"}
+                        is_model_out = (
+                            p_role_out in _declared_role_semantics("model_roles")
+                            or p_role_out in _declared_role_semantics("estimator_roles")
+                            or registry.is_subtype(out_t, "model")
+                            or registry.is_subtype(out_t, "estimator")
+                            or any(registry.is_subtype(out_t, m) for m in model_types)
+                            or out_t in model_types
+                        )
+                        if is_model_out:
                             if hasattr(ctx, "last_feature_binding") and ctx.last_feature_binding:
                                 if not hasattr(ctx, "estimator_features"):
                                     ctx.estimator_features = {}
@@ -4920,7 +5117,7 @@ class UnificationGate:
                 role = str(getattr(cell, "node_role", "") or "").lower()
                 outputs = getattr(cell, "outputs", {}) or {}
                 # The final cell produces the terminal pipeline result and must never be pruned
-                if idx == len(current) - 1 or stage == 3 or role == "sink" or not outputs:
+                if idx == len(current) - 1 or stage == 3 or role in ("sink", "model_sink", "evaluator", "export", "terminal", "output") or not outputs:
                     continue
                 # Never prune cells that witness an explicit clause or intent from the prompt (e.g. side calculations like mean, metrics)
                 if getattr(cell, "matched_clause_idx", None) is not None or getattr(cell, "is_goal", False):
@@ -4938,6 +5135,180 @@ class UnificationGate:
                     changed = True
                     break
         return current
+
+    def _synthesize_pipeline_bindings_with_llm(
+        self,
+        cells: List[Cell],
+        prompt: str,
+        ctx: ExecutionContext
+    ) -> Dict[str, Dict[str, Any]]:
+        """
+        Synthesizes complete dataflow variable bindings, column projections, and parameters
+        using the LLM (in supported profiles C, D, E, S) for the candidate cell pipeline.
+        Returns a mapping from step key ('0', '1', ... or cell_id) to {port_name: expression}.
+        """
+        if not prompt or not cells:
+            return {}
+        try:
+            try:
+                from .inference import ModelManager
+            except (ImportError, ValueError):
+                from inference import ModelManager
+            mm = ModelManager.get_instance()
+            if not mm.can_synthesize():
+                return {}
+        except Exception:
+            return {}
+
+        pipeline_steps_desc = []
+        var_counter = 0
+        for idx, c in enumerate(cells):
+            in_desc = []
+            for p_name, p_sig in (getattr(c, "inputs", {}) or {}).items():
+                p_role = getattr(p_sig, "derived_role", "") or getattr(p_sig, "port_role", "") or ""
+                t_name = getattr(getattr(p_sig, "signature", p_sig), "type_name", "") or ""
+                req = "required" if getattr(p_sig, "required", False) else "optional"
+                in_desc.append(f"{p_name} ({t_name}, role={p_role}, {req})")
+
+            out_names = []
+            if not _is_sink_cell(c):
+                for o_name, o_sig in (getattr(c, "outputs", {}) or {}).items():
+                    var_name = f"var_{var_counter}"
+                    var_counter += 1
+                    o_type = getattr(getattr(o_sig, "signature", o_sig), "type_name", "") or ""
+                    out_names.append(f"{var_name} ({o_type})")
+
+            pipeline_steps_desc.append(
+                f"Step {idx} [cell_id: {c.cell_id}]:\n"
+                f"  Inputs needed: {', '.join(in_desc) if in_desc else 'None'}\n"
+                f"  Template: {getattr(c, 'code_template', '')}\n"
+                f"  Outputs produced: {', '.join(out_names) if out_names else 'None (side-effect/sink)'}"
+            )
+
+        steps_text = "\n".join(pipeline_steps_desc)
+        schema = {
+            "type": "object",
+            "properties": {
+                "step_bindings": {
+                    "type": "object",
+                    "description": "Mapping from step index (e.g. '0', '1', '2') or cell_id to port bindings dict",
+                    "additionalProperties": {
+                        "type": "object",
+                        "description": "Mapping of port_name to variable name (e.g. 'var_0'), column projection (e.g. \"var_0['col']\"), or literal",
+                        "additionalProperties": {"type": ["string", "number", "boolean", "null"]}
+                    }
+                }
+            },
+            "required": ["step_bindings"]
+        }
+
+        query = (
+            f"User Prompt: {prompt}\n\n"
+            f"Ordered Pipeline Steps:\n{steps_text}\n\n"
+            "Task: For each step, determine which variable (e.g. var_0, var_1), column projection (e.g. var_0['col']), "
+            "or literal value should be bound to each input port.\n"
+            "Return valid JSON only matching schema with 'step_bindings'."
+        )
+
+        try:
+            raw = mm.generate_text(
+                query,
+                max_tokens=1024,
+                schema=schema,
+                system_prompt="You are a dataflow compiler. Return exact variable wiring, column projections, and arguments for each pipeline step in valid JSON."
+            )
+            if not raw or not raw.strip():
+                return {}
+            text = raw.strip()
+            if "```json" in text:
+                text = text.split("```json", 1)[1].split("```", 1)[0].strip()
+            elif "```" in text:
+                text = text.split("```", 1)[1].split("```", 1)[0].strip()
+            parsed = json.loads(text)
+            bindings = parsed.get("step_bindings", {})
+            return bindings if isinstance(bindings, dict) else {}
+        except Exception as e:
+            logger.debug(f"[UNIFICATION] LLM pipeline binding synthesis skipped or failed: {e}")
+            return {}
+
+    def _synthesize_single_port_binding_with_llm(
+        self,
+        cell: Cell,
+        port_name: str,
+        port_sig: Any,
+        concrete_sig: Any,
+        ctx: ExecutionContext
+    ) -> Optional[str]:
+        """
+        Emergency fallback: queries LLM to bind an ungrounded required port to an in-scope variable or expression.
+        """
+        try:
+            try:
+                from .inference import ModelManager
+            except (ImportError, ValueError):
+                from inference import ModelManager
+            mm = ModelManager.get_instance()
+            if not mm.can_synthesize():
+                return None
+        except Exception:
+            return None
+
+        prompt = getattr(ctx, "prompt", "") or getattr(ctx, "_prompt", "") or ""
+        in_scope_vars = []
+        for v_name, (v_sig, _) in ctx.variables.items():
+            t_name = getattr(getattr(v_sig, "signature", v_sig), "type_name", "") or ""
+            r_name = getattr(v_sig, "port_role", "") or getattr(v_sig, "derived_role", "") or ""
+            in_scope_vars.append(f"- {v_name}: type={t_name}, role={r_name}")
+
+        query = (
+            f"User Prompt: {prompt}\n\n"
+            f"Current Cell: {cell.cell_id}\n"
+            f"Template: {getattr(cell, 'code_template', '')}\n"
+            f"Required Unbound Port: '{port_name}' (expected type: {getattr(concrete_sig, 'type_name', '')}, role: {getattr(port_sig, 'port_role', '')})\n"
+            f"In-scope available variables:\n" + "\n".join(in_scope_vars) + "\n\n"
+            f"Specify ONLY the exact variable name (e.g. var_0), projection (e.g. var_0['col']), or literal that satisfies port '{port_name}'.\n"
+            "Respond in JSON: {\"binding\": \"expression\"}"
+        )
+        schema = {
+            "type": "object",
+            "properties": {
+                "binding": {"type": "string", "description": "The exact variable name, projection, or expression to bind"}
+            },
+            "required": ["binding"]
+        }
+        try:
+            raw = mm.generate_text(
+                query,
+                max_tokens=128,
+                schema=schema,
+                system_prompt="You are a dataflow compiler. Provide the exact variable or projection expression to satisfy the port."
+            )
+            if raw and raw.strip():
+                text = raw.strip()
+                if "```json" in text:
+                    text = text.split("```json", 1)[1].split("```", 1)[0].strip()
+                elif "```" in text:
+                    text = text.split("```", 1)[1].split("```", 1)[0].strip()
+                parsed = json.loads(text)
+                cand = parsed.get("binding")
+                if cand:
+                    cand_str = str(cand).strip()
+                    # Validate candidate against scope and typing
+                    try:
+                        parsed_ast = ast.parse(cand_str, mode='eval')
+                        var_names = {node.id for node in ast.walk(parsed_ast) if isinstance(node, ast.Name)}
+                        if all(v in ctx.variables for v in var_names if v.startswith("var_")):
+                            # Check typing
+                            rec = resolve_typed_binding_record(cell, port_name, port_sig, cand_str, ctx.variables, expected_sig=concrete_sig)
+                            if rec and rec.resulting_signature:
+                                u = unify(rec.resulting_signature, concrete_sig.signature, Substitution())
+                                if u is not None:
+                                    return cand_str
+                    except Exception:
+                        pass
+        except Exception as e:
+            logger.debug(f"[UNIFICATION] Single-port LLM synthesis failed: {e}")
+        return None
 
     def _extract_pipeline_slots_with_llm(
         self,
@@ -5142,6 +5513,8 @@ class UnificationGate:
 
         # Collect dependencies recursively
         deps: List[str] = []
+        reg_aliases = TypeRegistry.get_instance().get_all_aliases()
+
         def collect_deps(c: Cell):
             all_deps = list(getattr(c, "dependencies", [])) + list(getattr(c, "imports", []))
             for dep in all_deps:
@@ -5156,16 +5529,19 @@ class UnificationGate:
                 base_mod = dep_clean.split(".")[0]
                 tpl = getattr(c, "code_template", "") or ""
                 has_attr_call = f"{base_mod}." in tpl or f"{dep_clean}." in tpl
-                if not has_attr_call:
-                    aliases = TypeRegistry.get_instance().get_all_aliases()
-                    for alias, target in aliases.items():
-                        if target == dep_clean or target == base_mod:
-                            if f"{alias}." in tpl:
-                                has_attr_call = True
-                                break
+                found_alias = None
+                for alias, target in reg_aliases.items():
+                    if target == dep_clean or target == base_mod:
+                        if f"{alias}." in tpl:
+                            has_attr_call = True
+                            found_alias = alias
+                            break
 
                 if has_attr_call:
-                    stmt = f"import {dep_clean}"
+                    if found_alias and found_alias != dep_clean:
+                        stmt = f"import {dep_clean} as {found_alias}"
+                    else:
+                        stmt = f"import {dep_clean}"
                     if stmt not in deps:
                         deps.append(stmt)
                 else:
@@ -5200,6 +5576,24 @@ class UnificationGate:
 
         for cell, _ in pipeline_bindings:
             collect_deps(cell)
+
+        if ctx is not None and hasattr(ctx, "composed_bridge_cells"):
+            for bcell in ctx.composed_bridge_cells:
+                collect_deps(bcell)
+
+        # Ensure standard data science aliases referenced in any template or binding are imported
+        all_rendered_text = " ".join([getattr(c, "code_template", "") or "" for c, _ in pipeline_bindings])
+        for _, b in pipeline_bindings:
+            for v in b.values():
+                if isinstance(v, str):
+                    all_rendered_text += " " + v
+
+        for alias, target in reg_aliases.items():
+            pattern = f"{alias}."
+            if pattern in all_rendered_text:
+                import_stmt = f"import {target} as {alias}"
+                if not any(import_stmt in d or f"import {target}" in d for d in deps):
+                    deps.append(import_stmt)
 
         code_lines: List[str] = []
         if deps:
@@ -5341,7 +5735,8 @@ class UnificationGate:
         except Exception as e:
             return code
 
-        bound: Set[str] = set(dir(__builtins__))
+        import builtins
+        bound: Set[str] = set(dir(builtins))
         for node in ast.walk(tree):
             if isinstance(node, ast.Import):
                 for a in node.names:

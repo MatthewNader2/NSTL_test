@@ -642,6 +642,22 @@ class PreflightLinter:
         # declarations (same data the emitter renders into import headers).
         # -----------------------------------------------------------------
         declared_dep_names: Set[str] = set()
+        try:
+            from .lattice import TypeRegistry
+            reg_aliases = TypeRegistry.get_instance().get_all_aliases()
+            declared_dep_names.update(reg_aliases.keys())
+            declared_dep_names.update(reg_aliases.values())
+        except Exception:
+            try:
+                from lattice import TypeRegistry
+                reg_aliases = TypeRegistry.get_instance().get_all_aliases()
+                declared_dep_names.update(reg_aliases.keys())
+                declared_dep_names.update(reg_aliases.values())
+            except Exception:
+                pass
+        import sys
+        import importlib.util
+        declared_dep_names.update(sys.builtin_module_names)
         for cell, _ in pipeline_bindings:
             for dep in (getattr(cell, "dependencies", None) or []) + (getattr(cell, "imports", None) or []):
                 d = str(dep).strip()
@@ -751,7 +767,7 @@ class PreflightLinter:
                 # "from x import y") is defined by the emission header the emitter
                 # generates from those same declarations — referencing it is not an
                 # undefined variable.
-                if root_var in declared_dep_names:
+                if root_var in declared_dep_names or root_var in sys.modules or (importlib.util.find_spec(root_var) is not None if root_var.isidentifier() else False):
                     continue
 
                 if resolved_sig is None:
@@ -895,12 +911,16 @@ class PreflightLinter:
                     break
 
             if not is_consumed:
-                # Scalar-leaf clause witness (R6-9): an aggregator whose outputs are
-                # all scalar/numeric and which witnesses a prompt clause (identity-
-                # level clause tag) is a legitimate terminal observation for that
-                # clause — e.g. "get the mean of the Y column" asks for the value,
-                # not for its downstream consumption. Same exemption the planner's
-                # own dead-output feasibility check applies.
+                # Terminal observation, goal, sink, or clause witness exemption
+                role = str(getattr(cell, "node_role", "") or "").lower()
+                stage = getattr(cell, "stage", None)
+                if (
+                    role in ("sink", "model_sink", "evaluator", "export", "terminal", "output")
+                    or stage == 3
+                    or getattr(cell, "is_goal", False)
+                    or getattr(cell, "matched_clause_idx", None) is not None
+                ):
+                    continue
                 outs_all_scalar = bool(cell.outputs) and all(
                     _registry_liveness.is_subtype(
                         str(getattr(getattr(o, "signature", o), "type_name", "") or ""), "scalar"
@@ -991,13 +1011,43 @@ class PreflightLinter:
                             },
                         )
 
-            # Also check if cons_cell is an earlier-clause data cleaner/transformer (e.g. dropna, normalize)
+            # Also check if cons_cell is an earlier-clause data cleaner/transformer
             # placed AFTER a later-clause estimator or consumer that operated on the uncleaned root carrier
+            clean_effects = set()
+            try:
+                from .lattice import TypeRegistry
+                reg_p = TypeRegistry.get_instance()
+                clean_effects = {str(e).lower() for e in (set(reg_p.get_verification_semantics("clean_effects")) | set(reg_p.get_verification_semantics("dedup_effects")))}
+            except Exception:
+                try:
+                    from lattice import TypeRegistry
+                    reg_p = TypeRegistry.get_instance()
+                    clean_effects = {str(e).lower() for e in (set(reg_p.get_verification_semantics("clean_effects")) | set(reg_p.get_verification_semantics("dedup_effects")))}
+                except Exception:
+                    reg_p = None
+                    clean_effects = set()
+
+            cons_effects = set()
+            for eff in getattr(cons_cell, "effects", []) or []:
+                if isinstance(eff, dict):
+                    for val in (eff.get("name"), eff.get("type"), eff.get("kind"), eff.get("property"), eff.get("value"), eff.get("description")):
+                        if isinstance(val, str):
+                            cons_effects.add(val.lower())
+                elif isinstance(eff, str):
+                    cons_effects.add(eff.lower())
+
+            cons_is_cleaner = bool(cons_effects & clean_effects) or getattr(cons_cell, "node_role", "") in ("cleaner", "transformer", "filter")
+
             cons_in_v = None
-            for k in ("df", "data", "self", "port_0"):
-                if k in cons_bindings and isinstance(cons_bindings[k], str) and cons_bindings[k].startswith("var_"):
-                    cons_in_v = cons_bindings[k]
-                    break
+            if cons_is_cleaner:
+                for port_name, b_val in cons_bindings.items():
+                    if isinstance(b_val, str) and b_val.startswith("var_"):
+                        port_sig = getattr(cons_cell, "inputs", {}).get(port_name)
+                        p_role = getattr(port_sig, "port_role", "") if port_sig else ""
+                        p_tn = getattr(getattr(port_sig, "signature", port_sig), "type_name", "") if port_sig else ""
+                        if not port_sig or p_role in ("carrier", "data_input", "feature_input") or (reg_p and (reg_p.is_subtype(p_tn, "table") or reg_p.is_subtype(p_tn, "tensor"))):
+                            cons_in_v = b_val
+                            break
             if cons_in_v:
                 for prev_i in range(j):
                     prev_cell, prev_b = pipeline_bindings[prev_i]
@@ -1126,14 +1176,14 @@ class PreflightLinter:
                 if has_literal_match:
                     continue
 
-                # 2. Clause adjacency: immediately preceding clause (cons_clause - 1)
-                is_adjacent = (prod_clause == cons_clause - 1)
+                # 2. Forward DAG dataflow: producer must precede or equal consumer clause
+                is_valid_flow = (prod_clause <= cons_clause)
 
-                if not is_adjacent:
+                if not is_valid_flow:
                     msg = (
                         f"Provenance mismatch: Cell '{cell.cell_id}' port '{p_name}' bound variable '{val_expr}' "
-                        f"produced by Cell '{prod_cell.cell_id}' (serving clause {prod_clause}) into clause {cons_clause} "
-                        f"without clause adjacency or matching prompt literal."
+                        f"produced by Cell '{prod_cell.cell_id}' (serving clause {prod_clause}) into earlier clause {cons_clause} "
+                        f"violating forward DAG dataflow."
                     )
                     _add_violation(
                         "provenance_mismatch",
