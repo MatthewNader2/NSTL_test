@@ -1181,6 +1181,8 @@ class LatticeRouter:
         self.last_requested_route = method_name.upper()
         self.last_effective_route = method_name.upper()
         self.last_fallback_reason = None
+        self.last_route_trace: List[Dict[str, Any]] = []
+        self.last_tagging_decisions: List[Dict[str, Any]] = []
         # Registry-driven dispatch decision (no alias duplication here):
         # the M0 trellis planner is the in-router baseline; everything else
         # delegates to its registered RouteMethod class.

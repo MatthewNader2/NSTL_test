@@ -28,11 +28,11 @@ from dataclasses import dataclass, field
 try:
     from .lattice import UNRESOLVED_PORT, TypeRegistry, AlgebraicSignature, PortSignature
     from .tokenizer import CellTokenizer
-    from .unification import ExecutionContext, unify, _shape_compatible, _is_sink_cell, resolve_typed_binding_record, TypedBindingRecord
+    from .unification import ExecutionContext, unify, _shape_compatible, _is_sink_cell, resolve_typed_binding_record, TypedBindingRecord, _declared_role_semantics
 except (ImportError, ValueError):
     from lattice import UNRESOLVED_PORT, TypeRegistry, AlgebraicSignature, PortSignature
     from tokenizer import CellTokenizer
-    from unification import ExecutionContext, unify, _shape_compatible, _is_sink_cell, resolve_typed_binding_record, TypedBindingRecord
+    from unification import ExecutionContext, unify, _shape_compatible, _is_sink_cell, resolve_typed_binding_record, TypedBindingRecord, _declared_role_semantics
 
 
 @dataclass
@@ -915,7 +915,7 @@ class PreflightLinter:
                 role = str(getattr(cell, "node_role", "") or "").lower()
                 stage = getattr(cell, "stage", None)
                 if (
-                    role in ("sink", "model_sink", "evaluator", "export", "terminal", "output")
+                    role in _declared_role_semantics("terminal_roles")
                     or stage == 3
                     or getattr(cell, "is_goal", False)
                     or getattr(cell, "matched_clause_idx", None) is not None
@@ -1323,6 +1323,35 @@ class PreflightLinter:
             except SyntaxError as e:
                 msg = f"Synthesized code has syntax error: {e}"
                 _add_violation("syntax_error", msg, details={"error": str(e)})
+
+        # -----------------------------------------------------------------
+        # Check 9: Prompt-clause coverage (corpus-derived, vocabulary-free).
+        # "Sandbox exit code 0" proved nothing about whether the program does
+        # what was asked; a path with no FFT or with an unrequested file sink
+        # used to lint clean.
+        # -----------------------------------------------------------------
+        try:
+            from coverage_audit import audit as _cov_audit
+            _cells_for_cov = [b[0] for b in pipeline_bindings]
+            _cov = _cov_audit(_cells_for_cov, prompt)
+            for _iss in _cov.get("issues", []):
+                if _iss["kind"] == "clause_unserved":
+                    _add_violation(
+                        "clause_unserved",
+                        "Prompt clause %d (%r) is not served by any cell in the "
+                        "pipeline (best on-path cell %s explains %s of it; the lattice can explain %s)." % (
+                            _iss['clause_idx'] + 1, _iss['clause'], _iss['best_on_path'],
+                            _iss['path_recall'], _iss['lattice_best_recall']),
+                        details=_iss)
+                elif _iss["kind"] == "unrequested_cell":
+                    _add_violation(
+                        "unrequested_cell",
+                        "Cell '%s' is not requested by the prompt: every clause it touches is better "
+                        "explained by another cell (%s) and it explains no remaining clause token." % (
+                            _iss['cell'], _iss['winners']),
+                        cell_id=_iss["cell"], details=_iss)
+        except Exception as _cov_err:  # an audit crash must never silently pass or kill lint
+            warnings.append("coverage audit unavailable: %s: %s" % (type(_cov_err).__name__, _cov_err))
 
         is_valid = len(violations) == 0
         return PreflightLintResult(is_valid=is_valid, violations=violations, warnings=warnings, structured_violations=structured_violations)

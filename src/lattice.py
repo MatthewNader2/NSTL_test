@@ -2411,8 +2411,12 @@ class Cell(ABC):
                 aliases = {}
             if aliases:
                 toks = toks - {t for t in toks if t in aliases}
-            for p in self.inputs: toks.update(CellTokenizer.tokenize_identifier(p))
-            for p in self.outputs: toks.update(CellTokenizer.tokenize_identifier(p))
+            # Identity is the OPERATION a cell performs (id + declared keywords).
+            # Port/parameter names are deliberately NOT identity: a parameter such
+            # as `drop_first` says nothing about what the cell does, and adding
+            # its tokens made unrelated prompt words ("drop null values") claim
+            # the cell. Port vocabulary stays available through `token_set`
+            # (weak evidence) only.
             self._identity_tokens = toks
         return self._identity_tokens
 

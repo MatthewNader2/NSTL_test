@@ -1203,6 +1203,12 @@ class PipelineDebugger:
         finally:
             os.environ.pop("NSTL_DEBUG_PLAN", None)
         plan_dt = (time.perf_counter() - t_plan_0) * 1000.0
+        try:
+            from debug_panels import render_planning_diagnostics
+            if cells:
+                render_planning_diagnostics(console, self.router, cells, effective_prompt)
+        except Exception as _dp_err:
+            logger.warning(f"[DEBUG] planning diagnostics unavailable: {type(_dp_err).__name__}: {_dp_err}")
 
         if cells:
             path_table = Table(title=f"🛣️ Planned Monadic Pipeline Composition ({len(cells)} Steps)", box=box.ROUNDED, expand=True, border_style="green")
@@ -1398,6 +1404,11 @@ class PipelineDebugger:
                         ctx.parameters[str(lit_key)] = lit_val
             try:
                 unify_res = self.gate.unify_pipeline(cells, ctx)
+                try:
+                    from debug_panels import render_synthesis_diagnostics
+                    render_synthesis_diagnostics(console, ctx, cells, prompt)
+                except Exception as _dp_err:
+                    logger.warning(f"[DEBUG] synthesis diagnostics unavailable: {type(_dp_err).__name__}: {_dp_err}")
             except UnificationFailure as exc:
                 # Declared engine failure type: a legitimate type-level refusal (R6-4).
                 unify_res = Failure(reason=str(exc))

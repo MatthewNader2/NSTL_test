@@ -30,6 +30,18 @@ logger = get_logger("route_methods")
 # between the router, the planner and the route methods).
 
 
+_ACTIVE_ORCHESTRATOR: List[Any] = []
+
+
+def _bridge_roles() -> frozenset:
+    """Declared bridge/adapter role names come from the trees' verification_semantics."""
+    try:
+        from lattice import TypeRegistry
+        return frozenset(str(r).strip().lower() for r in TypeRegistry.get_instance().get_verification_semantics("bridge_roles"))
+    except Exception:
+        return frozenset()
+
+
 class RouteMethod(ABC):
     """
     Abstract base class for all NSTL RouteMethods (M0 - M6).
@@ -39,6 +51,13 @@ class RouteMethod(ABC):
     def __init__(self, orchestrator: Optional[LatticeOrchestrator] = None, **kwargs):
         self.orchestrator = orchestrator
         self.kwargs = kwargs
+        self.trace_events: List[Dict[str, Any]] = []
+
+    def _trace(self, event: str, **fields: Any) -> None:
+        """Structured planner telemetry surfaced by `--debug` (never affects planning)."""
+        if not hasattr(self, "trace_events"):
+            self.trace_events = []
+        self.trace_events.append({"event": event, **fields})
 
     @abstractmethod
     def plan(
@@ -302,7 +321,7 @@ class RouteMethod(ABC):
                 continue
 
             cand_role = str(getattr(cand, "node_role", "") or "").lower()
-            is_declared_bridge = cand_role in ("bridge", "tunnel", "adapter", "cast", "coercion")
+            is_declared_bridge = cand_role in _bridge_roles()
             if not is_declared_bridge:
                 # Operational transforms require positive lexical/semantic evidence in the prompt to act as bridges
                 cand_toks = set(getattr(cand, "token_set", set())) | set(getattr(cand, "keywords", []) or []) | set(getattr(cand, "semantic_tags", []) or [])
@@ -367,44 +386,57 @@ class RouteMethod(ABC):
         return _segment_prompt_clauses(prompt)
 
     @classmethod
-    def tag_cells_with_clause_indices(cls, path: List[Cell], prompt: str) -> None:
+    def tag_cells_with_clause_indices(cls, path: List[Cell], prompt: str, orchestrator: Any = None) -> List[Dict[str, Any]]:
         """
-        Tags each cell in path with matched_clause_idx based on prompt clauses.
-        Preserves intentional sub-goals (e.g. mean, normalize) during dead-code pruning
-        and provides clause-scoped literal binding.
+        Tag path cells with the prompt clause they SERVE (matched_clause_idx).
+
+        Evidence comes from token_evidence (corpus IDF, identity precision x
+        recall). A clause is served by the path cell(s) with the best identity
+        F-score for it; a cell that is merely a weaker partial match for a clause
+        another path cell explains better stays clause-neutral, so downstream
+        dead-output and coverage checks can see it is unrequested. Returns the
+        decision table (also used by the --debug coverage panel).
         """
+        decisions: List[Dict[str, Any]] = []
         if not path or not prompt:
-            return
-        from lattice import CellTokenizer
+            return decisions
+        from token_evidence import get_evidence
+        orch = orchestrator
+        if orch is None:
+            for c in path:
+                orch = getattr(c, "_orchestrator", None) or orch
+        if orch is None:
+            orch = _ACTIVE_ORCHESTRATOR[0] if _ACTIVE_ORCHESTRATOR else None
+        ev = get_evidence(orch)
         clauses = cls.segment_prompt_clauses(prompt)
-        if not clauses:
-            return
-        clause_toks = [CellTokenizer.tokenize_prompt(cl) for cl in clauses]
+        if ev is None or not clauses:
+            return decisions
+        clause_toks = [ev.clause_tokens(cl) for cl in clauses]
+        # F matrix: path cell x clause
+        table = []
         for cell in path:
+            row = [ev.identity_overlap(ct, cell) if ct else {"f": 0.0, "hit": 0.0, "rank": (0.0, 0.0, 0.0), "tokens": []} for ct in clause_toks]
+            table.append(row)
+        winner_f = []
+        for j in range(len(clauses)):
+            winner_f.append(max((table[i][j]["rank"] for i in range(len(path))), default=(0.0, 0.0, 0.0)))
+        for i, cell in enumerate(path):
             if getattr(cell, "matched_clause_idx", None) is not None:
                 continue
-            c_toks = getattr(cell, "token_set", set())
-            id_toks = getattr(cell, "identity_tokens", c_toks)
-            best_idx = None
-            best_score = 0.0
-            for idx, cl_tok in enumerate(clause_toks):
-                if not cl_tok:
-                    continue
-                strong = len(cl_tok & id_toks)
-                weak = len((cl_tok & c_toks) - id_toks)
-                score = (strong * 3.0) + weak
-                # Only IDENTITY-level evidence may claim a clause (R6-9): a single
-                # weak docstring-token touch (e.g. 'value' in np.abs's docstring
-                # touching "drop null values") must not tag the cell with an
-                # unrelated clause — downstream clause-adjacency and ordering
-                # checks would then raise false inversions/provenance mismatches
-                # against a clause the cell does not actually serve. Cells with no
-                # identity overlap stay clause-neutral (matched_clause_idx None).
-                if score > best_score and strong > 0:
-                    best_score = score
-                    best_idx = idx
-            if best_score > 0.0:
-                cell.matched_clause_idx = best_idx
+            best_j, best_f = None, (0.0, 0.0, 0.0)
+            for j in range(len(clauses)):
+                f = table[i][j]["rank"]
+                if table[i][j]["hit"] > 0.0 and f >= winner_f[j] and f > best_f:
+                    best_j, best_f = j, f
+            if best_j is not None:
+                cell.matched_clause_idx = best_j
+            decisions.append({
+                "cell": cell.cell_id, "tagged_clause": best_j,
+                "best_rank": tuple(round(x, 3) for x in best_f),
+                "outranked_on": [j for j in range(len(clauses))
+                                 if table[i][j]["hit"] > 0.0 and table[i][j]["rank"] < winner_f[j]],
+            })
+        return decisions
 
     def select_stratified_candidates(
         self,
