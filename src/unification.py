@@ -414,12 +414,35 @@ def resolve_typed_binding_record(
     )
 
 
+def _violates_clause_feature_cols(cell: Any, port_role: Any, var_name: str, ctx: Any) -> bool:
+    """A feature-role port whose clause names feature columns (clause literals minus the
+    target column) must not be fed a wire whose recorded origins do not cover them all.
+    Unknown provenance (no recorded origins) is not a contradiction."""
+    if str(port_role or "") not in _declared_role_semantics("feature_roles"):
+        return False
+    tgt = str(getattr(ctx, "target_col", "") or "").strip().lower()
+    want = {str(l).strip().lower() for l in (getattr(cell, "clause_literals", None) or []) if isinstance(l, str)} - {tgt}
+    have = {str(o).strip().lower() for o in getattr(ctx, "var_origins", {}).get(var_name, set())}
+    return bool(want and have and not want <= have)
+
+
+def _cell_consumes_name_literal(cell: Any) -> bool:
+    """True when the cell declares a port that receives a NAME/VALUE-to-store
+    (binds column_key / assigned_value): its clause literals may be output names."""
+    try:
+        return any(getattr(p, "binds", None) in ("column_key", "assigned_value")
+                   for p in getattr(cell, "inputs", {}).values())
+    except Exception:
+        return True
+
+
 def check_provenance_compatibility(
     port_sig: Any,
     candidate_origins: Set[str],
     target_col: Optional[str],
     all_known_origins: Set[str],
     registry: Optional[Any] = None,
+    target_is_input_column: bool = False,
 ) -> bool:
     """
     Check if a candidate variable's column origins are compatible with a port and target column.
@@ -463,7 +486,12 @@ def check_provenance_compatibility(
         target_col not in all_known_origins
         and target_col.lower() not in {str(o).lower() for o in all_known_origins}
     )
-    if is_new_target_col:
+    # "Not seen in any variable's origins yet" does NOT mean "new column": a real data
+    # column that has simply not been read yet looks identical. A literal is an OUTPUT
+    # NAME only when a cell serving the clause declares a name-consuming port
+    # (column_key / assigned_value). Otherwise the clause literal names an INPUT column
+    # and a candidate derived from a different column is a contradiction.
+    if is_new_target_col and not target_is_input_column:
         return True
 
     if not candidate_origins:
@@ -705,6 +733,27 @@ def _is_sink_cell(cell: Any) -> bool:
     role = str(getattr(cell, "node_role", "") or "").lower()
     return role in ("sink", "terminal")
 
+
+
+class _TracedBindings(dict):
+    """cell_bindings that records WHICH code site bound each port (for --debug).
+    Purely observational: behaves exactly like a dict."""
+    def __init__(self, ctx: Any, cell: Any):
+        super().__init__()
+        self._ctx, self._cell = ctx, cell
+
+    def __setitem__(self, port, value):
+        try:
+            import sys as _sys
+            f = _sys._getframe(1)
+            self._ctx.trace_binding(
+                "bind", cell=getattr(self._cell, "cell_id", "?"), port=str(port), value=str(value),
+                site=f"{f.f_code.co_name}:{f.f_lineno}",
+                clause=getattr(self._cell, "matched_clause_idx", None),
+                target_col=getattr(self._ctx, "target_col_for_cell", None))
+        except Exception:
+            pass
+        super().__setitem__(port, value)
 
 class _DynamicTopTypeSet(frozenset):
     """Dynamic top type set backed by TypeRegistry declarations."""
@@ -1574,6 +1623,7 @@ class ExecutionContext:
         self.identifier_roles: Dict[int, FrozenSet[str]] = self._build_identifier_role_map(self._prompt)
         # Provenance and monoidal DAG branch tracking
         self.var_origins: Dict[str, Set[str]] = {}
+        self.binding_trace: List[Dict[str, Any]] = []
         self.superseded_vars: Set[str] = set()
         self.var_parents: Dict[str, Set[str]] = {}
         self.scope_variables: Dict[str, Any] = {}
@@ -1674,8 +1724,13 @@ class ExecutionContext:
             for k, v in self.scope.items():
                 self.declare_variable(k, v, k)
 
+    def trace_binding(self, event: str, **fields: Any) -> None:
+        """Layer-3 binding telemetry for --debug. Never affects synthesis."""
+        self.binding_trace.append({"event": event, **fields})
+
     def clone(self) -> "ExecutionContext":
         new_ctx = ExecutionContext(prompt=self._prompt, scope=self.scope, initial_scope=self.initial_scope)
+        new_ctx.binding_trace = self.binding_trace  # shared by reference: one trace per synthesis
         new_ctx.variables = dict(self.variables)
         new_ctx.var_sources = dict(self.var_sources)
         new_ctx.var_origins = {k: set(v) for k, v in self.var_origins.items()}
@@ -3688,11 +3743,11 @@ class UnificationGate:
         if prompt_text and cells:
             try:
                 from .route_methods.base import RouteMethod
-                RouteMethod.tag_cells_with_clause_indices(cells, prompt_text)
+                RouteMethod.tag_cells_with_clause_indices(cells, prompt_text, orchestrator=getattr(self, "orchestrator", None))
             except Exception as e1:
                 try:
                     from route_methods.base import RouteMethod
-                    RouteMethod.tag_cells_with_clause_indices(cells, prompt_text)
+                    RouteMethod.tag_cells_with_clause_indices(cells, prompt_text, orchestrator=getattr(self, "orchestrator", None))
                 except Exception as e2:
                     logger.warning("Failed to tag cells with clause indices: %s | %s", e1, e2)
 
@@ -3867,7 +3922,7 @@ class UnificationGate:
             # port binds the NEXT member of the identifier role group. It
             # consumes no incoming wire, exactly like a zero-ary constructor.
             is_replica = bool(getattr(cell, "replica_of", None))
-            cell_bindings: Dict[str, str] = {}
+            cell_bindings: Dict[str, str] = _TracedBindings(ctx, cell)
             current_out_var = None
             if len(cell.outputs) == 1:
                 var_counter += 1
@@ -3960,6 +4015,30 @@ class UnificationGate:
                         if not v_name and out_port_name and out_port_name in getattr(ctx, "variables", {}):
                             v_name = out_port_name
                         if v_name and p_name not in cell_bindings:
+                            # DAG-resolved wires used to bypass clause/provenance checks entirely
+                            # (type-only unification). Apply the same gate every other binding
+                            # site uses so a wire derived from a different column than the one this
+                            # clause names is left unbound for the projection branches to resolve.
+                            _dag_port = cell.inputs.get(p_name)
+                            if _violates_clause_feature_cols(
+                                cell, getattr(_dag_port, "port_role", None) or getattr(_dag_port, "derived_role", ""), v_name, ctx
+                            ):
+                                ctx.trace_binding("dag_scope_rejected_feature_columns", cell=cell.cell_id, port=p_name, var=v_name,
+                                                  var_origins=sorted(getattr(ctx, "var_origins", {}).get(v_name, set())),
+                                                  clause_literals=list(getattr(cell, "clause_literals", []) or []))
+                                continue
+                            if target_col_for_cell is not None and not check_provenance_compatibility(
+                                port_sig=cell.inputs.get(p_name),
+                                candidate_origins=getattr(ctx, "var_origins", {}).get(v_name, set()),
+                                target_col=target_col_for_cell,
+                                all_known_origins=set().union(*getattr(ctx, "var_origins", {}).values()) if getattr(ctx, "var_origins", None) else set(),
+                                registry=registry,
+                                target_is_input_column=not _cell_consumes_name_literal(cell),
+                            ):
+                                ctx.trace_binding("dag_scope_rejected_provenance", cell=cell.cell_id, port=p_name,
+                                                  var=v_name, var_origins=sorted(getattr(ctx, "var_origins", {}).get(v_name, set())),
+                                                  target_col=target_col_for_cell)
+                                continue
                             cell_bindings[p_name] = v_name
                             bound_producer = True
                 else:
@@ -4109,6 +4188,21 @@ class UnificationGate:
                     if p_name in assigned_ports or v_name in assigned_vars:
                         continue
                     v_origins = getattr(ctx, "var_origins", {}).get(v_name, set())
+                    # Clause-scoped column provenance (same gate every other binding site
+                    # uses): this clause names column `target_col_for_cell`, so a wire that
+                    # demonstrably derives from a different column must not satisfy the port.
+                    # Was missing here, so "mean of the Y column" bound normalized X.
+                    if target_col_for_cell is not None and not check_provenance_compatibility(
+                        port_sig=p,
+                        candidate_origins=v_origins,
+                        target_col=target_col_for_cell,
+                        all_known_origins=set().union(*getattr(ctx, "var_origins", {}).values()) if getattr(ctx, "var_origins", None) else set(),
+                        registry=registry,
+                        target_is_input_column=not _cell_consumes_name_literal(cell),
+                    ):
+                        ctx.trace_binding("multiport_rejected_provenance", cell=cell.cell_id, port=p_name,
+                                          var=v_name, var_origins=sorted(v_origins), target_col=target_col_for_cell)
+                        continue
                     # Monoidal origin disjointness: avoid binding multiple join ports to the same origin wire
                     if v_origins and (v_origins & assigned_origins):
                         continue
@@ -4154,6 +4248,7 @@ class UnificationGate:
                     target_col=target_col_for_cell,
                     all_known_origins=all_known_origins,
                     registry=registry,
+                    target_is_input_column=not _cell_consumes_name_literal(cell),
                 )
 
                 prim_in = cell.primary_input
@@ -4397,6 +4492,11 @@ class UnificationGate:
                         if _is_product(v_sig) or v_name in cell_bindings.values():
                             continue
                         if (getattr(v_sig, "port_role", None) or getattr(v_sig, "derived_role", "")) in _declared_role_semantics("feature_roles"):
+                            if _violates_clause_feature_cols(cell, p_role, v_name, ctx):
+                                ctx.trace_binding("scoped_feature_rejected_columns", cell=cell.cell_id, port=p_name, var=v_name,
+                                                  var_origins=sorted(getattr(ctx, "var_origins", {}).get(v_name, set())),
+                                                  clause_literals=list(getattr(cell, "clause_literals", []) or []))
+                                continue
                             if _shape_compatible(v_sig, concrete_sig):
                                 u_v = unify(v_sig.signature, concrete_sig.signature, accumulated_sigma)
                                 if u_v is not None:
@@ -4552,6 +4652,7 @@ class UnificationGate:
                         target_col=target_col_for_cell,
                         all_known_origins=all_known_origins,
                         registry=registry,
+                        target_is_input_column=not _cell_consumes_name_literal(cell),
                     ):
                         continue
 
@@ -4591,6 +4692,10 @@ class UnificationGate:
                         top_origs = getattr(ctx, "var_origins", {}).get(top_v, set())
                         if target_col_for_cell in top_origs or str(target_col_for_cell).lower() in {str(o).lower() for o in top_origs}:
                             has_matching_origin = True
+                    ctx.trace_binding(
+                        "scoped_candidates", cell=cell.cell_id, port=p_name, clause=cell_clause,
+                        target_col=target_col_for_cell, matching_origin=has_matching_origin,
+                        candidates=[(v, round(pr, 1), sorted(getattr(ctx, "var_origins", {}).get(v, set()))) for pr, v, _ in candidate_vars[:4]])
                     if target_col_for_cell is None or has_matching_origin:
                         if candidate_vars[0][0] >= 0:
                             _, scoped_var, accumulated_sigma = candidate_vars[0]
@@ -4617,6 +4722,9 @@ class UnificationGate:
                             dst_sig=concrete_sig,
                             ctx=ctx,
                         )
+                        ctx.trace_binding("column_projection_composed" if composed is not None else "column_projection_failed",
+                                          cell=cell.cell_id, port=p_name, clause=cell_clause, src=df_carrier,
+                                          target_col=target_col_for_cell, expr=composed)
                         if composed is not None:
                             cell_bindings[p_name] = composed
                             ctx.consumed_tokens.add(str(target_col_for_cell).lower())
@@ -4624,9 +4732,30 @@ class UnificationGate:
                             continue
 
                 if scoped_var is None and candidate_vars and candidate_vars[0][0] >= 0:
-                    _, scoped_var, accumulated_sigma = candidate_vars[0]
-                    cell_bindings[p_name] = scoped_var
-                    continue
+                    # Last-resort fallback. It must NOT override the provenance gate
+                    # above: if this clause names column `target_col_for_cell` and the
+                    # best in-scope variable demonstrably derives from a DIFFERENT
+                    # column, binding it silently computes the wrong thing (e.g. "mean
+                    # of the Y column" taking normalized X). Variables with no recorded
+                    # origin remain acceptable (provenance unknown, not contradicted).
+                    _fb_v = candidate_vars[0][1]
+                    _fb_orig = getattr(ctx, "var_origins", {}).get(_fb_v, set())
+                    _contradicted = bool(
+                        target_col_for_cell and _fb_orig
+                        and target_col_for_cell not in _fb_orig
+                        and str(target_col_for_cell).lower() not in {str(o).lower() for o in _fb_orig}
+                    )
+                    if _contradicted:
+                        ctx.trace_binding(
+                            "fallback_rejected_provenance_conflict", cell=cell.cell_id, port=p_name,
+                            clause=cell_clause, target_col=target_col_for_cell, rejected=_fb_v,
+                            rejected_origins=sorted(_fb_orig))
+                    else:
+                        _, scoped_var, accumulated_sigma = candidate_vars[0]
+                        ctx.trace_binding("fallback_bound", cell=cell.cell_id, port=p_name, var=scoped_var,
+                                          target_col=target_col_for_cell)
+                        cell_bindings[p_name] = scoped_var
+                        continue
 
                 # A2. Product-member projection: bind {port} to var[i] when the port's
                 # declared signature unifies with a declared member carrier. Preference:
@@ -5117,7 +5246,7 @@ class UnificationGate:
                 role = str(getattr(cell, "node_role", "") or "").lower()
                 outputs = getattr(cell, "outputs", {}) or {}
                 # The final cell produces the terminal pipeline result and must never be pruned
-                if idx == len(current) - 1 or stage == 3 or role in ("sink", "model_sink", "evaluator", "export", "terminal", "output") or not outputs:
+                if idx == len(current) - 1 or stage == 3 or role in _declared_role_semantics("terminal_roles") or not outputs:
                     continue
                 # Never prune cells that witness an explicit clause or intent from the prompt (e.g. side calculations like mean, metrics)
                 if getattr(cell, "matched_clause_idx", None) is not None or getattr(cell, "is_goal", False):

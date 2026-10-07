@@ -1015,6 +1015,9 @@
     "sink_roles": [
       "sink"
     ],
+    "terminal_roles": ["sink", "model_sink", "evaluator", "export", "terminal", "output"],
+    "bridge_roles": ["bridge", "tunnel", "adapter", "cast", "coercion"],
+    "row_set_effects": ["cleans_missing"],
     "source_roles": [
       "source"
     ],

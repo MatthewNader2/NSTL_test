@@ -1203,6 +1203,7 @@ class LatticeRouter:
                     **kwargs
                 )
                 self.last_effective_route = method_name.upper()
+                self.last_route_trace = list(getattr(method, "trace_events", []) or [])
             except Exception as e:
                 logger.error(
                     f"[ROUTER] RouteMethod '{method_name}' failed: {e}",
@@ -1238,10 +1239,13 @@ class LatticeRouter:
             # 2. Universal clause tagging: tag each cell with its prompt sub-goal
             # for clause-scoped literal binding and dead-code protection in Layer 4
             try:
-                from route_methods.base import BaseRouteMethod
-                BaseRouteMethod.tag_cells_with_clause_indices(path, prompt)
+                from route_methods.base import RouteMethod as _RM
+                self.last_tagging_decisions = _RM.tag_cells_with_clause_indices(
+                    path, prompt, orchestrator=self.orchestrator)
             except Exception as _tc_err:
-                logger.debug(f"[ROUTER] Clause tagging skipped: {_tc_err}")
+                # Was logger.debug + wrong class name: tagging silently never ran.
+                logger.warning(f"[ROUTER] Clause tagging FAILED ({type(_tc_err).__name__}): {_tc_err}")
+                self.last_tagging_decisions = []
 
             # 3. Sub-lattice recursive planning for cells with slots (control-flow, macros)
             try:

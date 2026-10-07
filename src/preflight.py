@@ -1325,6 +1325,22 @@ class PreflightLinter:
                 _add_violation("syntax_error", msg, details={"error": str(e)})
 
         # -----------------------------------------------------------------
+        # Check 10: Row-set lineage. A value computed on one row set must not be
+        # written into a table living on another (tree-declared row_set_effects).
+        # -----------------------------------------------------------------
+        try:
+            from row_lineage import analyze as _row_analyze
+            for _ri in _row_analyze(pipeline_bindings):
+                _add_violation(
+                    "row_misalignment",
+                    f"Cell '{_ri['cell']}' writes {_ri['value_vars']} (row epoch {_ri['value_epoch']}) into table "
+                    f"{_ri['table_vars']} (row epoch {_ri['table_epoch']}): the value was computed before/after a "
+                    f"row-changing step the table has (or has not) been through, so the lengths differ at runtime.",
+                    cell_id=_ri["cell"], details=_ri)
+        except Exception as _row_err:
+            warnings.append(f"row lineage analysis unavailable: {type(_row_err).__name__}: {_row_err}")
+
+        # -----------------------------------------------------------------
         # Check 9: Prompt-clause coverage (corpus-derived, vocabulary-free).
         # "Sandbox exit code 0" proved nothing about whether the program does
         # what was asked; a path with no FFT or with an unrequested file sink
@@ -1338,20 +1354,17 @@ class PreflightLinter:
                 if _iss["kind"] == "clause_unserved":
                     _add_violation(
                         "clause_unserved",
-                        "Prompt clause %d (%r) is not served by any cell in the "
-                        "pipeline (best on-path cell %s explains %s of it; the lattice can explain %s)." % (
-                            _iss['clause_idx'] + 1, _iss['clause'], _iss['best_on_path'],
-                            _iss['path_recall'], _iss['lattice_best_recall']),
+                        f"Prompt clause {_iss['clause_idx'] + 1} ({_iss['clause']!r}) is not served by any cell in the "
+                        f"pipeline (best on-path cell {_iss['best_on_path']} explains {_iss['path_recall']} of it; the lattice can explain {_iss['lattice_best_recall']}).",
                         details=_iss)
                 elif _iss["kind"] == "unrequested_cell":
                     _add_violation(
                         "unrequested_cell",
-                        "Cell '%s' is not requested by the prompt: every clause it touches is better "
-                        "explained by another cell (%s) and it explains no remaining clause token." % (
-                            _iss['cell'], _iss['winners']),
+                        f"Cell '{_iss['cell']}' is not requested by the prompt: every clause it touches is better "
+                        f"explained by another cell ({_iss['winners']}) and it explains no remaining clause token.",
                         cell_id=_iss["cell"], details=_iss)
         except Exception as _cov_err:  # an audit crash must never silently pass or kill lint
-            warnings.append("coverage audit unavailable: %s: %s" % (type(_cov_err).__name__, _cov_err))
+            warnings.append(f"coverage audit unavailable: {type(_cov_err).__name__}: {_cov_err}")
 
         is_valid = len(violations) == 0
         return PreflightLintResult(is_valid=is_valid, violations=violations, warnings=warnings, structured_violations=structured_violations)
