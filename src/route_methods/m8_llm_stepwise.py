@@ -136,14 +136,14 @@ class M8LLMStepwisePathfinderRouteMethod(RouteMethod):
         mm = ModelManager.get_instance()
         has_llm = mm.profile is not None and getattr(mm.profile, "llm", None) is not None
 
-        def _fallback():
-            return M1ClauseAnchorRouteMethod(orchestrator=orch).plan(
-                prompt, tunnel, relevance_map, orchestrator=orch, ctx=ctx,
+        def _fallback(reason):
+            return self._delegate_to_m1(
+                reason, prompt, tunnel, relevance_map, orch, ctx=ctx,
                 start_sig=start_sig, goal_sig=goal_sig, max_transforms=max_transforms,
             )
 
         if not has_llm:
-            return _fallback()
+            return _fallback("no LLM loaded in this profile")
 
         shown = sorted(candidates, key=lambda c: relevance_map.get(c.cell_id, 0.0), reverse=True)
         shown = shown[:MAX_SHOWN_CANDIDATES]
@@ -392,9 +392,9 @@ class M8LLMStepwisePathfinderRouteMethod(RouteMethod):
                                 if dyn_brg and can_c_prev and can_dyn_nxt:
                                     verified.extend([dyn_brg, nxt])
                                 else:
-                                    return _fallback()
-                            except Exception:
-                                return _fallback()
+                                    return _fallback(f"synthesized adapter between {c_prev.cell_id} and {nxt.cell_id} does not unify")
+                            except Exception as _brg_err:
+                                return _fallback(f"adapter synthesis raised {type(_brg_err).__name__}: {_brg_err}")
             path = verified
 
         return path[:min(20, max(max_transforms + 4, 6))]

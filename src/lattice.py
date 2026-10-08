@@ -269,6 +269,7 @@ class TypeRegistry:
         self._coordinating_conjunctions: Set[str] = set()
         self._sequencing_connectives: Set[str] = set()
         self._filter_context_tokens: Set[str] = set()
+        self._prompt_filler_tokens: Set[str] = set()
         self._verification_semantics: Dict[str, List[str]] = {}
         self._asset_placeholders: Dict[str, str] = {}
         self._output_asset_placeholders: Dict[str, str] = {}
@@ -465,6 +466,8 @@ class TypeRegistry:
                             self.register_sequencing_connectives(data["sequencing_connectives"])
                         if "filter_context_tokens" in data and isinstance(data["filter_context_tokens"], list):
                             self.register_filter_context_tokens(data["filter_context_tokens"])
+                        if "prompt_filler_tokens" in data and isinstance(data["prompt_filler_tokens"], list):
+                            self.register_prompt_filler_tokens(data["prompt_filler_tokens"])
                         if "verification_semantics" in data and isinstance(data["verification_semantics"], dict):
                             self.register_verification_semantics(data["verification_semantics"])
                         if "asset_placeholders" in data and isinstance(data["asset_placeholders"], dict):
@@ -922,6 +925,17 @@ class TypeRegistry:
 
     def get_filter_context_tokens(self) -> FrozenSet[str]:
         return frozenset(self._filter_context_tokens)
+
+    def register_prompt_filler_tokens(self, words: Any) -> None:
+        """Tree-declared prompt words that name no operation (generic verbs, pronouns,
+        placeholders such as 'get', 'perform', 'it'). Lexical evidence ignores them."""
+        for w in (words or []):
+            s = str(w).strip().lower()
+            if s:
+                self._prompt_filler_tokens.add(s)
+
+    def get_prompt_filler_tokens(self) -> FrozenSet[str]:
+        return frozenset(self._prompt_filler_tokens)
 
     # --- Verification semantics (data-driven from tree declarations) --------
     @_locked
@@ -2706,6 +2720,63 @@ def _apply_declared_estimator_identity(cell: Any) -> None:
             _stamp(in_p, owner_qual)
 
 
+
+def build_cell_from_raw(c_dict: Dict[str, Any], domain: str = "generic", default_verified: bool = True) -> "Cell":
+    """
+    The ONE place a tree entry (raw dict) becomes a Cell.
+
+    The JSON loader, register_cell() and the compiled-database loader all call this, so the
+    CLI (which runs from lattice.db) and the tests (which load JSON) can never again disagree
+    about what a cell is. Previously three hand-copied constructors had drifted: the DB path
+    dropped every port's `binds`, merged semantic_tags into keywords (changing retrieval
+    identity), and lost `raises`, `fixture_needs`, `mutation_type` and `topology_type`.
+    """
+    node_type = str(c_dict.get("node_type", "") or "").lower()
+    node_role = str(c_dict.get("node_role", "") or "").lower()
+    is_macro = (
+        node_type in ("macro", "higher_order") or node_role in ("macro", "higher_order")
+        or node_type.startswith("macro_") or node_role.startswith("macro_")
+    )
+    cell_cls = MacroCell if is_macro else MicroCell
+    return cell_cls(
+        cell_id=c_dict.get("cell_id"),
+        stage=c_dict.get("stage", 2),
+        keywords=c_dict.get("keywords", []),
+        inputs=c_dict.get("inputs", {}),
+        outputs=c_dict.get("outputs", {}),
+        domain_name=c_dict.get("domain_name") or domain or "generic",
+        node_type=c_dict.get("node_type", "function"),
+        node_role=c_dict.get("node_role", "function"),
+        slots=c_dict.get("slots", {}),
+        dependencies=c_dict.get("dependencies", []),
+        code_template=c_dict.get("code_template", ""),
+        verified=c_dict.get("verified", default_verified),
+        semantic_tags=c_dict.get("semantic_tags", []),
+        docstring=c_dict.get("docstring", ""),
+        source_priority=c_dict.get("source_priority", 100),
+        is_public=bool(c_dict.get("is_public", True)),
+        mutation_type=c_dict.get("mutation_type", "pure"),
+        is_context_manager=bool(c_dict.get("is_context_manager", False)),
+        raises=c_dict.get("raises", []),
+        type_vars=c_dict.get("type_vars", []),
+        preconditions=c_dict.get("preconditions", []),
+        postconditions=c_dict.get("postconditions", []),
+        effects=c_dict.get("effects", []),
+        edges=c_dict.get("edges", []),
+        endable=c_dict.get("endable"),
+        primary_in=c_dict.get("primary_in"),
+        primary_out=c_dict.get("primary_out"),
+        fixture_needs=c_dict.get("fixture_needs", []),
+        projection=c_dict.get("projection"),
+        sub_cells=c_dict.get("sub_cells", []),
+        algorithmic_steps=c_dict.get("algorithmic_steps", []),
+        internal_topology=c_dict.get("internal_topology", {}),
+        topology_type=c_dict.get("topology_type", "sequential"),
+        feedback_state_type=c_dict.get("feedback_state_type"),
+        bound_slots=c_dict.get("bound_slots", {}),
+    )
+
+
 class LatticeOrchestrator:
     """
     Mathematical Lattice Topology G = (V, E).
@@ -2855,6 +2926,8 @@ class LatticeOrchestrator:
                     reg.register_sequencing_connectives(data["sequencing_connectives"])
                 if "filter_context_tokens" in data and isinstance(data["filter_context_tokens"], list):
                     reg.register_filter_context_tokens(data["filter_context_tokens"])
+                if "prompt_filler_tokens" in data and isinstance(data["prompt_filler_tokens"], list):
+                    reg.register_prompt_filler_tokens(data["prompt_filler_tokens"])
                 if "verification_semantics" in data and isinstance(data["verification_semantics"], dict):
                     reg.register_verification_semantics(data["verification_semantics"])
                 if "asset_placeholders" in data and isinstance(data["asset_placeholders"], dict):
@@ -2890,47 +2963,7 @@ class LatticeOrchestrator:
             for c_dict in raw_cells:
                 if isinstance(c_dict, dict) and "type_vars" in c_dict and c_dict["type_vars"]:
                     TypeRegistry.get_instance().register_type_vars(c_dict["type_vars"])
-                is_macro = (
-                    str(c_dict.get("node_type", "")).lower() in ("macro", "higher_order")
-                    or str(c_dict.get("node_role", "")).lower() in ("macro", "higher_order")
-                    or str(c_dict.get("node_type", "")).lower().startswith("macro_")
-                    or str(c_dict.get("node_role", "")).lower().startswith("macro_")
-                )
-                cell_cls = MacroCell if is_macro else MicroCell
-                cell = cell_cls(
-                    cell_id=c_dict.get("cell_id"),
-                    stage=c_dict.get("stage", 2),
-                    keywords=c_dict.get("keywords", []),
-                    inputs=c_dict.get("inputs", {}),
-                    outputs=c_dict.get("outputs", {}),
-                    domain_name=c_dict.get("domain_name") or domain,
-                    node_type=c_dict.get("node_type", "function"),
-                    node_role=c_dict.get("node_role", "function"),
-                    slots=c_dict.get("slots", {}),
-                    dependencies=c_dict.get("dependencies", []),
-                    code_template=c_dict.get("code_template", ""),
-                    verified=c_dict.get("verified", True),
-                    semantic_tags=c_dict.get("semantic_tags", []),
-                    docstring=c_dict.get("docstring", ""),
-                    source_priority=c_dict.get("source_priority", 100),
-                    is_public=bool(c_dict.get("is_public", True)),
-                    mutation_type=c_dict.get("mutation_type", "pure"),
-                    is_context_manager=bool(c_dict.get("is_context_manager", False)),
-                    raises=c_dict.get("raises", []),
-                    type_vars=c_dict.get("type_vars", []),
-                    preconditions=c_dict.get("preconditions", []),
-                    postconditions=c_dict.get("postconditions", []),
-                    effects=c_dict.get("effects", []),
-                    edges=c_dict.get("edges", []),
-                    endable=c_dict.get("endable"),
-                    primary_in=c_dict.get("primary_in"),
-                    primary_out=c_dict.get("primary_out"),
-                    fixture_needs=c_dict.get("fixture_needs", []),
-                    projection=c_dict.get("projection"),
-                    sub_cells=c_dict.get("sub_cells", []),
-                    algorithmic_steps=c_dict.get("algorithmic_steps", []),
-                    internal_topology=c_dict.get("internal_topology", {}),
-                )
+                cell = build_cell_from_raw(c_dict, domain, default_verified=True)
                 self.loaded_cells[cell.cell_id] = cell
             logger.info(f"[LATTICE] Loaded {len(raw_cells)} nodes from tree: {json_path} (domain: {domain})")
 
@@ -2954,45 +2987,7 @@ class LatticeOrchestrator:
                 c_dict = cell_or_dict
                 if isinstance(c_dict, dict) and "type_vars" in c_dict and c_dict["type_vars"]:
                     TypeRegistry.get_instance().register_type_vars(c_dict["type_vars"])
-                is_macro = (
-                    str(c_dict.get("node_type", "")).lower() in ("macro", "higher_order")
-                    or str(c_dict.get("node_role", "")).lower() in ("macro", "higher_order")
-                    or str(c_dict.get("node_type", "")).lower().startswith("macro_")
-                    or str(c_dict.get("node_role", "")).lower().startswith("macro_")
-                )
-                cell_cls = MacroCell if is_macro else MicroCell
-                cell = cell_cls(
-                    cell_id=c_dict.get("cell_id"),
-                    stage=c_dict.get("stage", 2),
-                    keywords=c_dict.get("keywords", []),
-                    inputs=c_dict.get("inputs", {}),
-                    outputs=c_dict.get("outputs", {}),
-                    domain_name=c_dict.get("domain_name") or domain or "generic",
-                    node_type=c_dict.get("node_type", "function"),
-                    node_role=c_dict.get("node_role", "function"),
-                    slots=c_dict.get("slots", {}),
-                    dependencies=c_dict.get("dependencies", []),
-                    code_template=c_dict.get("code_template", ""),
-                    verified=c_dict.get("verified", False),
-                    semantic_tags=c_dict.get("semantic_tags", []),
-                    docstring=c_dict.get("docstring", ""),
-                    source_priority=c_dict.get("source_priority", 100),
-                    is_public=bool(c_dict.get("is_public", True)),
-                    mutation_type=c_dict.get("mutation_type", "pure"),
-                    is_context_manager=bool(c_dict.get("is_context_manager", False)),
-                    raises=c_dict.get("raises", []),
-                    type_vars=c_dict.get("type_vars", []),
-                    preconditions=c_dict.get("preconditions", []),
-                    postconditions=c_dict.get("postconditions", []),
-                    effects=c_dict.get("effects", []),
-                    edges=c_dict.get("edges", []),
-                    endable=c_dict.get("endable"),
-                    primary_in=c_dict.get("primary_in"),
-                    primary_out=c_dict.get("primary_out"),
-                    sub_cells=c_dict.get("sub_cells", []),
-                    algorithmic_steps=c_dict.get("algorithmic_steps", []),
-                    internal_topology=c_dict.get("internal_topology", {}),
-                )
+                cell = build_cell_from_raw(c_dict, domain or "generic", default_verified=False)
             self.loaded_cells[cell.cell_id] = cell
             self.build_topology()
             logger.info(f"[LATTICE] Dynamically registered cell: {cell.cell_id} (domain: {cell.domain_name})")
@@ -3142,6 +3137,8 @@ class LatticeOrchestrator:
                             reg.register_sequencing_connectives([item])
                         elif cat == 'filter_context_token':
                             reg.register_filter_context_tokens([item])
+                        elif cat == 'prompt_filler_token':
+                            reg.register_prompt_filler_tokens([item])
                         elif cat == 'verification_semantics':
                             try:
                                 reg.register_verification_semantics({item: json.loads(extra)})
@@ -3166,17 +3163,34 @@ class LatticeOrchestrator:
                     deps_sel = "dependencies" if "dependencies" in col_names else "'' AS dependencies"
                     cfg_sel = "configuration_schema" if "configuration_schema" in col_names else "'' AS configuration_schema"
                     slots_sel = "slots" if "slots" in col_names else "'' AS slots"
+                    raw_sel = "raw_cell" if "raw_cell" in col_names else "NULL AS raw_cell"
+                    if "raw_cell" not in col_names:
+                        logger.warning(
+                            "[LATTICE] %s predates the raw_cell column: cells are rebuilt from lossy columns "
+                            "(port `binds`, semantic tags, raises, ... are NOT preserved). "
+                            "Recompile with `compile --clean`.", self.db_path)
 
                     cursor.execute(f"""
                         SELECT cell_id, {dom_sel}, {type_sel}, {role_sel}, stage,
                                keywords, input_type, input_state, output_type, output_state,
-                               code, {deps_sel}, {cfg_sel}, {slots_sel}, {ver_sel}, {doc_sel}, {prio_sel}
+                               code, {deps_sel}, {cfg_sel}, {slots_sel}, {ver_sel}, {doc_sel}, {prio_sel}, {raw_sel}
                         FROM nodes
                     """)
                     for row in cursor.fetchall():
                         (cell_id, domain_name, node_type, node_role, stage,
                          keywords_json, in_type, in_state, out_type, out_state,
-                         code, deps_json, config_json, slots_json, verified, doc_str, source_priority) = row
+                         code, deps_json, config_json, slots_json, verified, doc_str, source_priority, raw_json) = row
+
+                        if raw_json:
+                            # Faithful path: identical construction to the JSON loader.
+                            try:
+                                cell = build_cell_from_raw(json.loads(raw_json), domain_name or "generic", default_verified=True)
+                                cell.source_provenance = f"sqlite:{Path(self.db_path).name}"
+                                self.loaded_cells[cell.cell_id] = cell
+                                continue
+                            except Exception as _raw_err:
+                                logger.warning("[LATTICE] raw_cell for %s unusable (%s); falling back to lossy columns",
+                                               cell_id, _raw_err)
 
                         try:
                             keywords = set(json.loads(keywords_json)) if keywords_json else set()

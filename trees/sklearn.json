@@ -3966,7 +3966,8 @@
         }
       ],
       "primary_in": "X",
-      "primary_out": "y_pred"
+      "primary_out": "y_pred",
+      "endable": true
     },
     {
       "cell_id": "sklearn.linear_model.LogisticRegression.predict_proba",
@@ -4099,7 +4100,8 @@
         }
       ],
       "primary_in": "X",
-      "primary_out": "y_proba"
+      "primary_out": "y_proba",
+      "endable": true
     },
     {
       "cell_id": "sklearn.ensemble.RandomForestClassifier.fit",
@@ -4827,7 +4829,8 @@
         }
       ],
       "primary_in": "X",
-      "primary_out": "y_pred"
+      "primary_out": "y_pred",
+      "endable": true
     },
     {
       "cell_id": "sklearn.linear_model.Ridge.fit",

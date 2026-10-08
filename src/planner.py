@@ -3543,10 +3543,10 @@ class LatticePlanner:
 
                 return best_path
 
-        # Step 4: Bounded MCTS Fallback (Section 3.4) if Trellis was disconnected
+        # Step 4: bounded greedy-walk fallback if the Trellis was disconnected (named MCTS before; it is not Monte Carlo)
         if not req_floor:
-            logger.info("[PLANNER] Running bounded MCTS search...")
-            mcts_path = self._bounded_mcts_search(tunnel, relevance_map)
+            logger.info("[PLANNER] Trellis disconnected: running bounded greedy-walk fallback (not MCTS)...")
+            mcts_path = self._bounded_greedy_walk(tunnel, relevance_map)
             if mcts_path:
                 return mcts_path
             return [max(tunnel, key=lambda c: relevance_map.get(c.cell_id, 0.0))]
@@ -4701,15 +4701,20 @@ class LatticePlanner:
             out.append(cell)
         return out
 
-    def _bounded_mcts_search(
+    def _bounded_greedy_walk(
         self,
         tunnel: List[Cell],
         relevance_map: Dict[str, float],
         max_simulations: int = 50
     ) -> Optional[List[Cell]]:
         """
-        Bounded Monte Carlo Tree Search over tunnel T (Section 3.4).
-        Treats partial chains as tree nodes and explores indirect combinations.
+        Bounded DETERMINISTIC greedy walk over tunnel T (last-resort fallback of the M0 planner).
+
+        Despite the name it carried until now ("Monte Carlo Tree Search, Section 3.4"), this is NOT
+        Monte Carlo: no random sampling, no search tree, no visit/value statistics, no UCT selection,
+        no rollouts, no backpropagation. `max_simulations` is simply the maximum chain length. From each
+        ingress cell it repeatedly takes the best-scoring type-valid successor and returns the first chain
+        that reaches an endable terminal.
         """
         _ing = self._vocab.ingress_stage
         entry_nodes = [c for c in tunnel if c.stage == _ing] or list(tunnel)

@@ -43,6 +43,12 @@ def render_planning_diagnostics(console: Any, router: Any, cells: List[Any], pro
             if e["event"] == "anchor_dropped":
                 console.print(f"[bold red]✗ ANCHOR DROPPED[/bold red] {e['cell']} (clause {e['clause_idx'] + 1 if e['clause_idx'] is not None else '?'}): {e['reason']}\n"
                               f"    needs: {e['needs']}\n    ancestor outputs: {e['ancestor_outputs']}")
+            elif e["event"] == "method_fallback":
+                console.print(f"[bold yellow]⚠ METHOD FELL BACK[/bold yellow] requested {e['requested']} → effective {e['to']}: {e['reason']}\n"
+                              f"    (the path below is {e['to']}'s, not {e['requested']}'s)")
+            elif e["event"] in ("pruned_unrequested", "prune_blocked"):
+                col = "green" if e["event"] == "pruned_unrequested" else "yellow"
+                console.print(f"[bold {col}]✂ {e['event'].upper()}[/bold {col}] {e['cell']}: {e['reason']} (better explained by {e.get('winners')})")
             elif e["event"] == "producer_inserted":
                 console.print(f"[bold green]+ PRODUCER INSERTED[/bold green] {e['cell']} for {e['for_anchor']}: {e['reason']}")
             elif e["event"] in ("anchor_fallback_retrieval_only", "clause_without_anchor"):

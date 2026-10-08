@@ -950,6 +950,7 @@
     "filter",
     "matching"
   ],
+  "prompt_filler_tokens": ["get", "make", "perform", "do", "it", "its", "call", "called", "named", "new"],
   "verification_semantics": {
     "annotation_effects": [
       "draws_annotation",
@@ -1018,6 +1019,8 @@
     "terminal_roles": ["sink", "model_sink", "evaluator", "export", "terminal", "output"],
     "bridge_roles": ["bridge", "tunnel", "adapter", "cast", "coercion"],
     "row_set_effects": ["cleans_missing"],
+    "path_consumer_roles": ["source_data", "model_sink"],
+    "path_abstract_types": ["path"],
     "source_roles": [
       "source"
     ],

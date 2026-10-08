@@ -53,6 +53,25 @@ class RouteMethod(ABC):
         self.kwargs = kwargs
         self.trace_events: List[Dict[str, Any]] = []
 
+    effective_method: Optional[str] = None      # set when this method handed the request to another
+    fallback_reason: Optional[str] = None
+
+    def _delegate_to_m1(self, reason: str, prompt: str, tunnel: List[Cell], relevance_map: Dict[str, float],
+                        orch: Any = None, **plan_kwargs: Any) -> List[Cell]:
+        """
+        Hand the request to M1 (clause anchor) AND SAY SO. M4/M5/M7/M8/M9 used to call M1 silently
+        (no model, bad JSON, unbridgeable step, short chain, ...), so a row labelled M4 in a
+        benchmark could be an M1 result with nothing in the log to show it.
+        """
+        from route_methods.m1_clause_anchor import M1ClauseAnchorRouteMethod
+        self.effective_method = "M1"
+        self.fallback_reason = reason
+        self._trace("method_fallback", requested=type(self).__name__, to="M1", reason=reason)
+        m1 = M1ClauseAnchorRouteMethod(orchestrator=orch or self.orchestrator)
+        out = m1.plan(prompt, tunnel, relevance_map, orchestrator=orch or self.orchestrator, **plan_kwargs)
+        self.trace_events.extend(getattr(m1, "trace_events", []))
+        return out
+
     def _trace(self, event: str, **fields: Any) -> None:
         """Structured planner telemetry surfaced by `--debug` (never affects planning)."""
         if not hasattr(self, "trace_events"):
@@ -428,6 +447,21 @@ class RouteMethod(ABC):
                 f = table[i][j]["rank"]
                 if table[i][j]["hit"] > 0.0 and f >= winner_f[j] and f > best_f:
                     best_j, best_f = j, f
+            if best_j is None:
+                # Not the winner anywhere: still serves a clause if it explains tokens the winner left over
+                # (e.g. "train a model ... to predict": predict wins, fit explains the rest). Same rule as
+                # the planner's secondary anchors and the coverage audit.
+                best_res = (0.0, 0.0, 0.0)
+                for j in range(len(clauses)):
+                    if table[i][j]["hit"] <= 0.0 or not clause_toks[j]:
+                        continue
+                    w_tokens = set()
+                    for k in range(len(path)):
+                        if table[k][j]["rank"] == winner_f[j]:
+                            w_tokens |= set(table[k][j]["tokens"])
+                    res = ev.identity_overlap(clause_toks[j] - w_tokens, cell)
+                    if res["hit"] > 0.0 and res["rank"] > best_res:
+                        best_j, best_res = j, res["rank"]
             if best_j is not None:
                 cell.matched_clause_idx = best_j
             decisions.append({
@@ -436,7 +470,159 @@ class RouteMethod(ABC):
                 "outranked_on": [j for j in range(len(clauses))
                                  if table[i][j]["hit"] > 0.0 and table[i][j]["rank"] < winner_f[j]],
             })
+        # Clause-scoped literals (column names, quoted strings) travel with the clause a cell
+        # serves. Only M1/M6 used to attach them, so literal-scoped binding (target column,
+        # feature columns, provenance gates) was silently off for every other method.
+        try:
+            from unification import ExecutionContext as _EC
+            for cell in path:
+                j = getattr(cell, "matched_clause_idx", None)
+                if j is None or j >= len(clauses) or getattr(cell, "clause_literals", None):
+                    continue
+                cell.clause_literals = [v for _, k, v in _EC._extract_universal_literals(clauses[j])
+                                        if k in ("identifier", "quoted_str")]
+        except Exception as _lit_err:
+            decisions.append({"cell": None, "error": f"clause literal attachment failed: {_lit_err}"})
         return decisions
+
+
+    def _find_type_producer(self, anchor, routed_path, candidates, clauses, orch):
+        """Type-directed repair: the anchor needs a type no cell in scope produces
+        (e.g. predict needs a Regressor). Pick the candidate that (1) has identity
+        evidence on the SAME prompt clause, (2) unifies from the current scope and
+        (3) unifies into the anchor. Ranked by the shared evidence rank. No
+        vocabulary, no thresholds: a producer must be demanded by types AND named
+        by the clause."""
+        from token_evidence import get_evidence
+        ev = get_evidence(orch or self.orchestrator)
+        idx = getattr(anchor, "matched_clause_idx", None)
+        if ev is None or idx is None or idx >= len(clauses) or not routed_path:
+            return None
+        ctoks = ev.clause_tokens(clauses[idx])
+        in_path = {c.cell_id for c in routed_path}
+        best, best_rank = None, None
+        for cand in candidates:
+            if cand.cell_id in in_path or cand.cell_id == anchor.cell_id:
+                continue
+            o = ev.identity_overlap(ctoks, cand)
+            if o["hit"] <= 0.0:
+                continue
+            if not (self.step_unifies(routed_path[-1], cand, prev_path=routed_path)
+                    or self.step_unifies_dag(cand, routed_path)):
+                continue
+            if not self.step_unifies(cand, anchor, prev_path=routed_path + [cand]):
+                continue
+            if best_rank is None or o["rank"] > best_rank:
+                best, best_rank = cand, o["rank"]
+        if best is None:
+            return None
+        inst = best.clone() if hasattr(best, "clone") else best
+        inst.matched_clause_idx = idx
+        inst.clause_literals = getattr(anchor, "clause_literals", {})
+        return inst
+
+
+    def chain_is_valid(self, path: List[Cell]) -> bool:
+        """Every step unifies with its predecessor or with the DAG scope of the prefix."""
+        for i in range(1, len(path)):
+            if not (self.step_unifies(path[i - 1], path[i], prev_path=path[:i])
+                    or self.step_unifies_dag(path[i], path[:i])):
+                return False
+        return True
+
+    def prune_unrequested(self, path: List[Cell], prompt: str) -> List[Cell]:
+        """
+        Post-planning pass shared by every method. Remove cells the coverage audit calls UNREQUESTED
+        (outranked on every clause they touch, explaining no leftover clause token) when the chain
+        stays type-valid without them. Each removal is traced. Never removes the first cell.
+        """
+        from coverage_audit import audit
+        current = list(path)
+        for _ in range(len(current)):
+            res = audit(current, prompt, self.orchestrator)
+            if not res.get("available"):
+                break
+            victim = next((i for i in res["issues"] if i["kind"] == "unrequested_cell"), None)
+            if victim is None:
+                break
+            idx = next((k for k, c in enumerate(current) if c.cell_id == victim["cell"]), None)
+            if idx is None or idx == 0:
+                break
+            trial = current[:idx] + current[idx + 1:]
+            if not self.chain_is_valid(trial):
+                self._trace("prune_blocked", cell=victim["cell"], reason="chain would not unify without it",
+                            winners=victim["winners"])
+                break
+            self._trace("pruned_unrequested", cell=victim["cell"], winners=victim["winners"],
+                        reason="outranked on every clause it touches and explains no leftover clause token")
+            current = trial
+        return current
+
+    # ------------------------------------------------------------------
+    # Shared evidence primitives (identical for every route method)
+    # ------------------------------------------------------------------
+    def _evidence(self) -> Any:
+        from token_evidence import get_evidence
+        return get_evidence(self.orchestrator)
+
+    def clause_fit(self, clause_text: str, cell: Cell) -> Tuple[float, float, float]:
+        """Identity evidence rank (recall, name-precision, F) of `cell` for a prompt clause; zeros if none."""
+        ev = self._evidence()
+        if ev is None or not clause_text:
+            return (0.0, 0.0, 0.0)
+        toks = ev.clause_tokens(clause_text)
+        if not toks:
+            return (0.0, 0.0, 0.0)
+        o = ev.identity_overlap(toks, cell)
+        return o["rank"] if o["hit"] > 0.0 else (0.0, 0.0, 0.0)
+
+    @staticmethod
+    def _is_path_consumer(cell: Cell) -> bool:
+        """True if the cell reads/writes a filesystem path (tree-declared roles / abstract types)."""
+        try:
+            from lattice import TypeRegistry
+            reg = TypeRegistry.get_instance()
+            roles = {str(r).lower() for r in reg.get_verification_semantics("path_consumer_roles")}
+            abstracts = {str(r).lower() for r in reg.get_verification_semantics("path_abstract_types")}
+        except Exception:
+            roles, abstracts = set(), set()
+        for p in cell.inputs.values():
+            sig = getattr(p, "signature", p)
+            if str(getattr(p, "abstract_type", "") or "").lower() in abstracts or str(getattr(sig, "abstract_type", "") or "").lower() in abstracts:
+                return True
+            if str(getattr(p, "port_role", "") or "").lower() in roles or str(getattr(p, "derived_role", "") or "").lower() in roles:
+                return True
+        return False
+
+    def file_compat(self, cell: Cell, literal: Any) -> int:
+        """+1 format-compatible, -1 incompatible, 0 not applicable (no literal / not a path consumer)."""
+        if literal is None or not self._is_path_consumer(cell):
+            return 0
+        return 1 if self.is_file_format_compatible(cell, str(literal)) else -1
+
+    def requested_sink(self, prompt: str, candidates: List[Cell]) -> Optional[Cell]:
+        """
+        A sink (egress/terminal) cell is requested only if some clause is better explained by a sink
+        than by ANY non-sink candidate. Replaces the "prompt contains the word write" egress guess,
+        which turned "write it to a new column" into a file sink.
+        """
+        ev = self._evidence()
+        if ev is None:
+            return None
+        from unification import _is_sink_cell
+        sinks = [c for c in candidates if _is_sink_cell(c)]
+        others = [c for c in candidates if not _is_sink_cell(c)]
+        best, best_rank = None, (0.0, 0.0, 0.0)
+        for cl in self.segment_prompt_clauses(prompt):
+            toks = ev.clause_tokens(cl)
+            if not toks:
+                continue
+            top_other = max((ev.identity_overlap(toks, c)["rank"] for c in others), default=(0.0, 0.0, 0.0))
+            for s in sinks:
+                o = ev.identity_overlap(toks, s)
+                if o["hit"] > 0.0 and o["rank"] > top_other and o["rank"] > best_rank:
+                    best, best_rank = s, o["rank"]
+        return best
 
     def select_stratified_candidates(
         self,

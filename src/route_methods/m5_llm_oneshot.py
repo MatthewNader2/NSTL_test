@@ -53,6 +53,7 @@ class M5LLMOneShotRouteMethod(RouteMethod):
         has_llm = mm.profile is not None and getattr(mm.profile, "llm", None) is not None
 
         proposed = []
+        _llm_error = None
         if has_llm:
             try:
                 from ir_compiler import IRCompiler
@@ -89,12 +90,15 @@ class M5LLMOneShotRouteMethod(RouteMethod):
                 if isinstance(parsed_list, list):
                     for cid in parsed_list:
                         if str(cid).strip().lower() in cand_map: proposed.append(cand_map[str(cid).strip().lower()])
-            except Exception:
+            except Exception as _llm_err:
                 proposed = []
+                _llm_error = f"{type(_llm_err).__name__}: {_llm_err}"
 
         if not proposed:
-            return M1ClauseAnchorRouteMethod(orchestrator=orch).plan(
-                prompt, tunnel, relevance_map, orchestrator=orch, ctx=ctx,
+            return self._delegate_to_m1(
+                (f"LLM/IR proposal raised {_llm_error}" if _llm_error else
+                 ("no LLM loaded in this profile" if not has_llm else "LLM/IR proposed no usable cells")),
+                prompt, tunnel, relevance_map, orch, ctx=ctx,
                 start_sig=start_sig, goal_sig=goal_sig, max_transforms=max_transforms)
 
         chain = [proposed[0]]
@@ -119,8 +123,9 @@ class M5LLMOneShotRouteMethod(RouteMethod):
                             connected = True
                             break
                     if not connected:
-                        return M1ClauseAnchorRouteMethod(orchestrator=orch).plan(
-                            prompt, tunnel, relevance_map, orchestrator=orch, ctx=ctx,
+                        return self._delegate_to_m1(
+                            f"proposed step {nxt.cell_id} could not be connected or bridged",
+                            prompt, tunnel, relevance_map, orch, ctx=ctx,
                             start_sig=start_sig, goal_sig=goal_sig, max_transforms=max_transforms
                         )
         clauses = self.segment_prompt_clauses(prompt)

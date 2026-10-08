@@ -95,42 +95,15 @@ class M1ClauseAnchorRouteMethod(RouteMethod):
             # segmenter already splits on conjunctions/sequencing), so a further
             # anchor in the same clause is accepted ONLY when it explains
             # residual clause tokens at least as well as the primary did.
-            from token_evidence import get_evidence
+            from token_evidence import get_evidence, anchors_for_clause
             ev = get_evidence(orch)
             clause_cells: List[Cell] = []
             if ev is not None:
-                cl_ev_toks = ev.clause_tokens(cl)
-                scored = []
-                for c in pool:
-                    o = ev.identity_overlap(cl_ev_toks, c)
-                    if o["hit"] > 0.0:
-                        scored.append((o["rank"], relevance_map.get(c.cell_id, 0.0), c, o))
-                scored.sort(key=lambda x: (x[0], x[1]), reverse=True)  # (recall, name_precision, f), then retrieval relevance
-                primary_f = None
-                covered: Set[str] = set()
-                for f_val, rel_val, c, o in scored:
-                    if not clause_cells:
-                        primary_f = o["f"]
-                        covered |= set(o["tokens"])
-                        accept = True
-                        why = "primary (best rank: recall, name-precision, F)"
-                    else:
-                        residual = ev.identity_overlap(cl_ev_toks - covered, c)
-                        accept = residual["hit"] > 0.0 and residual["f"] >= primary_f
-                        why = "secondary: residual F %.3f %s primary F %.3f" % (
-                            residual["f"], ">=" if accept else "<", primary_f)
-                        if accept:
-                            covered |= set(residual["tokens"])
-                    self._trace(
-                        "anchor_candidate", clause_idx=idx, cell=c.cell_id,
-                        precision=round(o["precision"], 3), recall=round(o["recall"], 3),
-                        name_precision=round(o["name_precision"], 3), f=round(o["f"], 3), relevance=round(rel_val, 3),
-                        tokens=o["tokens"], accepted=accept, reason=why)
-                    if accept:
-                        c_inst = c.clone() if hasattr(c, "clone") else c
-                        c_inst.matched_clause_idx = idx
-                        c_inst.clause_literals = cl_literals
-                        clause_cells.append(c_inst)
+                for c, _o in anchors_for_clause(ev, cl, pool, relevance_map, on_event=self._trace, clause_idx=idx):
+                    c_inst = c.clone() if hasattr(c, "clone") else c
+                    c_inst.matched_clause_idx = idx
+                    c_inst.clause_literals = cl_literals
+                    clause_cells.append(c_inst)
                 if not clause_cells and pool:
                     # No lattice cell carries identity evidence for this clause:
                     # fall back to the retrieval score alone and SAY so.
@@ -260,38 +233,3 @@ class M1ClauseAnchorRouteMethod(RouteMethod):
 
         max_allowed = max(32, len(clauses) * 4 + 4, max_transforms + 8)
         return routed_path[:max_allowed]
-
-    def _find_type_producer(self, anchor, routed_path, candidates, clauses, orch):
-        """Type-directed repair: the anchor needs a type no cell in scope produces
-        (e.g. predict needs a Regressor). Pick the candidate that (1) has identity
-        evidence on the SAME prompt clause, (2) unifies from the current scope and
-        (3) unifies into the anchor. Ranked by the shared evidence rank. No
-        vocabulary, no thresholds: a producer must be demanded by types AND named
-        by the clause."""
-        from token_evidence import get_evidence
-        ev = get_evidence(orch or self.orchestrator)
-        idx = getattr(anchor, "matched_clause_idx", None)
-        if ev is None or idx is None or idx >= len(clauses) or not routed_path:
-            return None
-        ctoks = ev.clause_tokens(clauses[idx])
-        in_path = {c.cell_id for c in routed_path}
-        best, best_rank = None, None
-        for cand in candidates:
-            if cand.cell_id in in_path or cand.cell_id == anchor.cell_id:
-                continue
-            o = ev.identity_overlap(ctoks, cand)
-            if o["hit"] <= 0.0:
-                continue
-            if not (self.step_unifies(routed_path[-1], cand, prev_path=routed_path)
-                    or self.step_unifies_dag(cand, routed_path)):
-                continue
-            if not self.step_unifies(cand, anchor, prev_path=routed_path + [cand]):
-                continue
-            if best_rank is None or o["rank"] > best_rank:
-                best, best_rank = cand, o["rank"]
-        if best is None:
-            return None
-        inst = best.clone() if hasattr(best, "clone") else best
-        inst.matched_clause_idx = idx
-        inst.clause_literals = getattr(anchor, "clause_literals", {})
-        return inst

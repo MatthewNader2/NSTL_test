@@ -61,29 +61,21 @@ class M3GreedyFreezeRouteMethod(RouteMethod):
         stage1_cands = [c for c in candidates if getattr(c, "stage", None) == 1]
         entry_pool = stage1_cands if stage1_cands else candidates[:5]
 
-        def _score_entry(c: Cell) -> float:
-            sc = relevance_map.get(c.cell_id, 0.0) * 5.0 + len(prompt_tokens & getattr(c, "identity_tokens", c.token_set)) * 3.0
-            is_path_consumer = any(
-                getattr(p, "abstract_type", None) == "path"
-                or getattr(p, "port_role", None) in ("source_data", "model_sink")
-                or getattr(p, "derived_role", None) in ("source_data", "model_sink")
-                or getattr(p.signature, "abstract_type", None) == "path"
-                for p in c.inputs.values()
-            )
-            if src_file_literals and is_path_consumer:
-                if self.is_file_format_compatible(c, str(src_file_literals[0])):
-                    sc += 6.0
-                else:
-                    sc -= 20.0
-            return sc
-
-        best_entry = max(entry_pool, key=_score_entry)
+        clauses = self.segment_prompt_clauses(prompt)
+        first_clause = clauses[0] if clauses else prompt
+        src_lit = src_file_literals[0] if src_file_literals else None
+        dst_lit = dest_file_literals[0] if dest_file_literals else None
+        best_entry = max(
+            entry_pool,
+            key=lambda c: (self.file_compat(c, src_lit), self.clause_fit(first_clause, c), relevance_map.get(c.cell_id, 0.0)),
+        )
 
         committed_path: List[Cell] = [best_entry]
         visited_ids: Set[str] = {best_entry.cell_id}
+        _ev = self._evidence()
+        prompt_tokens = _ev.clause_tokens(prompt) if _ev is not None else prompt_tokens
         covered_tokens: Set[str] = set(getattr(best_entry, "identity_tokens", best_entry.token_set) & prompt_tokens)
 
-        clauses = self.segment_prompt_clauses(prompt)
         num_clauses = len(clauses) if clauses else 1
         max_steps = max(32, num_clauses * 4 + 4, max_transforms + 8)
 
@@ -107,43 +99,25 @@ class M3GreedyFreezeRouteMethod(RouteMethod):
 
             # Target clause for sequential alignment
             cl_idx = min(step + 1, num_clauses - 1)
-            target_cl = clauses[cl_idx] if cl_idx < num_clauses else ""
-            target_toks = (CellTokenizer.tokenize_prompt(target_cl) - STOPWORDS) if target_cl else prompt_tokens
+            target_cl = clauses[cl_idx] if cl_idx < num_clauses else prompt
+            _requested_sink = self.requested_sink(prompt, candidates)
 
-            # Score each candidate greedily
-            def _score_cand(cand: Cell) -> float:
+            # Greedy key, lexicographic (no magic weights): never take a path-writing/terminal cell the
+            # prompt did not ask for > evidence for the clause this step realises > newly explained prompt
+            # tokens > stage progression (forward, same, backward) > retrieval relevance + edge affinity.
+            def _score_cand(cand: Cell):
                 rel = relevance_map.get(cand.cell_id, 0.0)
                 aff = self.calculate_edge_affinity(curr, cand, orch, relevance_map=relevance_map)
                 c_toks = getattr(cand, "identity_tokens", cand.token_set)
-                uncovered_toks = (c_toks & prompt_tokens) - covered_tokens
-                tok_bonus = len(uncovered_toks) * 3.0
-                clause_match = len(target_toks & c_toks) * 4.0
-
-                # Favor stage progression (1 -> 2 -> 3)
+                new_mass = _ev.mass((c_toks & prompt_tokens) - covered_tokens) if _ev is not None else 0.0
                 curr_stage = getattr(curr, "stage", 1) or 1
                 cand_stage = getattr(cand, "stage", 2) or 2
-                if cand_stage < curr_stage:
-                    progression_bonus = -50.0 if (curr_stage == 3 or cand_stage == 1) else -25.0
-                elif cand_stage > curr_stage:
-                    progression_bonus = 5.0
-                else:
-                    progression_bonus = 1.0
-
-                is_path_consumer = any(
-                    getattr(p, "abstract_type", None) == "path"
-                    or getattr(p, "port_role", None) in ("source_data", "model_sink")
-                    or getattr(p, "derived_role", None) in ("source_data", "model_sink")
-                    or getattr(p.signature, "abstract_type", None) == "path"
-                    for p in cand.inputs.values()
-                )
-                path_bonus = 0.0
-                if is_path_consumer and cand_stage == 3:
-                    if dest_file_literals:
-                        path_bonus = 6.0 if self.is_file_format_compatible(cand, str(dest_file_literals[0])) else -15.0
-                    else:
-                        path_bonus = -10.0
-
-                return (rel * 8.0) + (aff * 4.0) + tok_bonus + clause_match + progression_bonus + path_bonus
+                progress = 2 if cand_stage > curr_stage else (1 if cand_stage == curr_stage else 0)
+                unrequested_egress = (
+                    cand_stage == 3 and self._is_path_consumer(cand)
+                    and not (dst_lit is not None and self.file_compat(cand, dst_lit) > 0)
+                ) or (_requested_sink is None and cand_stage == 3 and curr_stage != 3 and self.clause_fit(target_cl, cand)[0] <= 0.0)
+                return (0 if unrequested_egress else 1, self.clause_fit(target_cl, cand), new_mass, progress, rel + aff)
 
             valid_next.sort(key=_score_cand, reverse=True)
             best_next = valid_next[0]
@@ -151,7 +125,16 @@ class M3GreedyFreezeRouteMethod(RouteMethod):
             # Commit next cell (freeze)
             committed_path.append(best_next)
             visited_ids.add(best_next.cell_id)
-            covered_tokens.update(best_next.token_set & prompt_tokens)
+            covered_tokens.update(getattr(best_next, "identity_tokens", best_next.token_set) & prompt_tokens)
+
+            # Goal test shared with preflight: once every prompt clause is served by the path (after each
+            # clause position has had its turn) the plan is complete; extending it only adds unrequested cells.
+            if step >= num_clauses - 1:
+                from coverage_audit import audit as _audit
+                _res = _audit(committed_path, prompt, orch)
+                if _res.get("available") and not any(i["kind"] == "clause_unserved" for i in _res["issues"]):
+                    self._trace("m3_goal_reached", step=step, path_len=len(committed_path))
+                    break
 
             # Check if all prompt content tokens are covered and cell is stage 3
             if (prompt_tokens - covered_tokens) == set() and (getattr(best_next, "stage", None) == 3 or getattr(best_next, "is_endable", False)):

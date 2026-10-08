@@ -39,6 +39,7 @@ class TokenEvidence:
                 df[t] = df.get(t, 0) + 1
         self._df = df
         self._idf_cache: Dict[str, float] = {}
+        self._skip: Optional[Set[str]] = None
 
     def idf(self, tok: str) -> float:
         """0.0 for tokens no cell can match; log-IDF otherwise."""
@@ -52,8 +53,24 @@ class TokenEvidence:
     def mass(self, toks: Iterable[str]) -> float:
         return sum(self.idf(t) for t in toks)
 
+    def _non_evidence(self) -> Set[str]:
+        """Words the TREES declare as carrying no operation identity."""
+        if self._skip is None:
+            skip: Set[str] = set()
+            try:
+                from lattice import TypeRegistry
+                reg = TypeRegistry.get_instance()
+                skip |= set(reg.get_prompt_filler_tokens())
+                skip |= set(reg.get_sentence_connectives())
+                skip |= set(reg.get_function_words())
+            except Exception:
+                pass
+            self._skip = skip
+        return self._skip
+
     def clause_tokens(self, clause: str) -> Set[str]:
-        return {t for t in CellTokenizer.tokenize_prompt(clause) if self.idf(t) > 0.0}
+        skip = self._non_evidence()
+        return {t for t in CellTokenizer.tokenize_prompt(clause) if self.idf(t) > 0.0 and t not in skip}
 
     def identity_overlap(self, clause_toks: Set[str], cell: Any) -> Dict[str, float]:
         """Evidence a clause gives for a cell.
@@ -101,3 +118,47 @@ def get_evidence(orchestrator: Any) -> Optional[TokenEvidence]:
         _CACHE[key] = ev
     _LAST[:] = [orchestrator]
     return ev
+
+
+def anchors_for_clause(ev: "TokenEvidence", clause: str, pool: Iterable[Any],
+                       relevance: Optional[Dict[str, float]] = None, on_event: Any = None,
+                       clause_idx: Optional[int] = None) -> list:
+    """
+    The one anchor-selection rule shared by every route method.
+
+    Rank pool cells by identity evidence (recall, name-precision, F), then retrieval relevance.
+    The best cell is the clause's primary anchor. A clause is one operation (the segmenter splits
+    on conjunctions/sequencing), so another cell joins only if it explains residual clause tokens
+    at least as well as the primary did. Returns [(cell, overlap_dict), ...]; empty when no pool
+    cell carries identity evidence (callers decide what to do and should say so).
+    """
+    relevance = relevance or {}
+    toks = ev.clause_tokens(clause)
+    scored = []
+    for c in pool:
+        o = ev.identity_overlap(toks, c)
+        if o["hit"] > 0.0:
+            scored.append((o["rank"], relevance.get(c.cell_id, 0.0), c, o))
+    scored.sort(key=lambda x: (x[0], x[1]), reverse=True)
+    accepted: list = []
+    covered: Set[str] = set()
+    primary_f = None
+    for rank, rel, c, o in scored:
+        if not accepted:
+            primary_f = o["f"]
+            covered |= set(o["tokens"])
+            ok, why = True, "primary (best rank: recall, name-precision, F)"
+        else:
+            residual = ev.identity_overlap(toks - covered, c)
+            ok = residual["hit"] > 0.0 and residual["f"] >= primary_f
+            why = "secondary: residual F %.3f %s primary F %.3f" % (residual["f"], ">=" if ok else "<", primary_f)
+            if ok:
+                covered |= set(residual["tokens"])
+        if on_event is not None:
+            on_event("anchor_candidate", clause_idx=clause_idx, cell=c.cell_id,
+                     precision=round(o["precision"], 3), recall=round(o["recall"], 3),
+                     name_precision=round(o["name_precision"], 3), f=round(o["f"], 3),
+                     relevance=round(rel, 3), tokens=o["tokens"], accepted=ok, reason=why)
+        if ok:
+            accepted.append((c, o))
+    return accepted

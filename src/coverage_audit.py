@@ -7,8 +7,8 @@ vocabulary-free. Used by PreflightLinter (hard checks) and the CLI --debug panel
 
 Definitions
   winner(clause)   best-ranked on-path cell by (recall, name_precision, F) with identity evidence
-  served(clause)   the winner explains as much of the clause (identity recall) as the best
-                   cell anywhere in the lattice could (ties count)
+  served(clause)   the cells on the path jointly explain as much of the clause (identity
+                   token mass) as the best single cell anywhere in the lattice could
   unrequested(cell) has identity evidence somewhere, is outranked on every clause it
                    touches, and explains no residual clause token the winner left over.
                    Cells with zero evidence anywhere are connectors (projection/cast): never flagged.
@@ -50,11 +50,19 @@ def audit(cells: List[Any], prompt: str, orchestrator: Any = None) -> Dict[str, 
         if best_i is not None:
             winners[j] = best_i
         w = table[best_i][j] if best_i is not None else None
-        # served == the on-path winner explains as much of the clause as the BEST cell
-        # anywhere in the lattice could (ties count). Parameter-free, vocabulary-free.
+        # served == the tokens of this clause that the whole path explains are at least as much
+        # mass as the BEST SINGLE cell anywhere in the lattice could explain. Union over the
+        # path because one clause can be legitimately served by several cells ("train a model
+        # ... to predict" = fit + predict). Parameter-free and vocabulary-free.
         lattice_best = max((ev.identity_overlap(toks, lc)["recall"]
                             for lc in getattr(ev.orch, "loaded_cells", {}).values()), default=0.0) if toks else 0.0
-        path_best = w["recall"] if w else 0.0
+        path_tokens: set = set()
+        for i in range(len(cells)):
+            o = table[i][j]
+            if o and o["hit"] > 0.0:
+                path_tokens |= set(o["tokens"])
+        c_mass = ev.mass(toks)
+        path_best = (ev.mass(path_tokens) / c_mass) if c_mass > 0 else 0.0
         if not toks or lattice_best <= 0.0:
             status = "no-evidence" if not toks else "unservable"
         else:

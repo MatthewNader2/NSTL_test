@@ -185,14 +185,14 @@ class M9LLMMilestonePathfinderRouteMethod(RouteMethod):
         mm = ModelManager.get_instance()
         has_llm = mm.profile is not None and getattr(mm.profile, "llm", None) is not None
 
-        def _fallback():
-            return M1ClauseAnchorRouteMethod(orchestrator=orch).plan(
-                prompt, tunnel, relevance_map, orchestrator=orch, ctx=ctx,
+        def _fallback(reason):
+            return self._delegate_to_m1(
+                reason, prompt, tunnel, relevance_map, orch, ctx=ctx,
                 start_sig=start_sig, goal_sig=goal_sig, max_transforms=max_transforms,
             )
 
         if not has_llm:
-            return _fallback()
+            return _fallback("no LLM loaded in this profile")
 
         shown = self.select_stratified_candidates(prompt, candidates, relevance_map, orchestrator=orch, max_shown=MAX_SHOWN_CANDIDATES)
         cand_map = {c.cell_id.lower(): c for c in shown}
@@ -205,8 +205,8 @@ class M9LLMMilestonePathfinderRouteMethod(RouteMethod):
             raw = mm.generate_text(
                 user_msg, max_tokens=512, schema=MILESTONE_SCHEMA, system_prompt=SYSTEM_PROMPT_MILESTONES
             )
-        except Exception:
-            return _fallback()
+        except Exception as _llm_err:
+            return _fallback(f"LLM generation raised {type(_llm_err).__name__}: {_llm_err}")
 
         milestone_ids = _parse_milestones(raw)
         milestones: List[Cell] = []
@@ -230,7 +230,7 @@ class M9LLMMilestonePathfinderRouteMethod(RouteMethod):
                 milestones.append(c)
 
         if not milestones:
-            return _fallback()
+            return _fallback("LLM proposed no milestones")
 
         # Phase 2: Topological Path Synthesis between Milestones
         chain: List[Cell] = [milestones[0]]
@@ -334,7 +334,7 @@ class M9LLMMilestonePathfinderRouteMethod(RouteMethod):
             chain = verified
 
         if len(chain) < 2:
-            return _fallback()
+            return _fallback("verified chain shorter than 2 cells")
 
         self.tag_cells_with_clause_indices(chain, prompt)
         clauses = self.segment_prompt_clauses(prompt)

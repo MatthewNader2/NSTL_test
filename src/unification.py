@@ -5290,7 +5290,7 @@ class UnificationGate:
             return {}
 
         pipeline_steps_desc = []
-        var_counter = 0
+        var_counter = 1  # the emitter's first variable is var_1 and it advances once per non-sink CELL
         for idx, c in enumerate(cells):
             in_desc = []
             for p_name, p_sig in (getattr(c, "inputs", {}) or {}).items():
@@ -5301,9 +5301,9 @@ class UnificationGate:
 
             out_names = []
             if not _is_sink_cell(c):
+                var_name = f"var_{var_counter}"
+                var_counter += 1
                 for o_name, o_sig in (getattr(c, "outputs", {}) or {}).items():
-                    var_name = f"var_{var_counter}"
-                    var_counter += 1
                     o_type = getattr(getattr(o_sig, "signature", o_sig), "type_name", "") or ""
                     out_names.append(f"{var_name} ({o_type})")
 

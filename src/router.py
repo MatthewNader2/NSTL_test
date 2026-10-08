@@ -1202,7 +1202,9 @@ class LatticeRouter:
                     rag=kwargs.get("rag", self.internal_rag),
                     **kwargs
                 )
-                self.last_effective_route = method_name.upper()
+                self.last_effective_route = (getattr(method, "effective_method", None) or method_name).upper()
+                if getattr(method, "fallback_reason", None):
+                    self.last_fallback_reason = f"{method_name.upper()} -> {self.last_effective_route}: {method.fallback_reason}"
                 self.last_route_trace = list(getattr(method, "trace_events", []) or [])
             except Exception as e:
                 logger.error(
@@ -1238,6 +1240,16 @@ class LatticeRouter:
 
             # 2. Universal clause tagging: tag each cell with its prompt sub-goal
             # for clause-scoped literal binding and dead-code protection in Layer 4
+            try:
+                from route_methods.m1_clause_anchor import M1ClauseAnchorRouteMethod as _Util
+                _util = _Util(orchestrator=self.orchestrator)
+                _before = [c.cell_id for c in path]
+                path = _util.prune_unrequested(path, prompt)
+                self.last_route_trace = list(self.last_route_trace) + list(_util.trace_events)
+                if [c.cell_id for c in path] != _before:
+                    logger.info(f"[ROUTER] Pruned unrequested cells: {sorted(set(_before) - {c.cell_id for c in path})}")
+            except Exception as _pr_err:
+                logger.warning(f"[ROUTER] Unrequested-cell pruning FAILED ({type(_pr_err).__name__}): {_pr_err}")
             try:
                 from route_methods.base import RouteMethod as _RM
                 self.last_tagging_decisions = _RM.tag_cells_with_clause_indices(
@@ -1313,7 +1325,10 @@ class HardwareProfiler:
 
 
 class MCTSEngine:
-    """MCTS gap bridging proxy (Section 3.4)."""
+    """
+    Gap-bridging proxy kept for backward compatibility with older tests. It is NOT Monte Carlo: it tries a
+    1-step direct transition, then a 2-step BFS. Nothing in the planner calls it.
+    """
     def __init__(self, orchestrator: LatticeOrchestrator):
         self.orchestrator = orchestrator
         self.planner = LatticePlanner(orchestrator)

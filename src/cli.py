@@ -297,7 +297,8 @@ def init_sqlite_db(db_path: Path, clean: bool = False) -> sqlite3.Connection:
             enrichment_source    TEXT DEFAULT NULL,
             enriched_at          TEXT DEFAULT NULL,
             source_provenance    TEXT DEFAULT 'unknown',
-            source_priority      INTEGER DEFAULT 100
+            source_priority      INTEGER DEFAULT 100,
+            raw_cell             TEXT DEFAULT NULL
         )
     """)
     cur.execute("PRAGMA table_info(nodes)")
@@ -305,6 +306,11 @@ def init_sqlite_db(db_path: Path, clean: bool = False) -> sqlite3.Connection:
     if "slots" not in existing_cols:
         try:
             cur.execute("ALTER TABLE nodes ADD COLUMN slots TEXT DEFAULT '{}'")
+        except Exception:
+            pass
+    if "raw_cell" not in existing_cols:
+        try:
+            cur.execute("ALTER TABLE nodes ADD COLUMN raw_cell TEXT DEFAULT NULL")
         except Exception:
             pass
 
@@ -324,6 +330,10 @@ def init_sqlite_db(db_path: Path, clean: bool = False) -> sqlite3.Connection:
     return conn
 
 
+# Bump whenever the compiled node serialization changes: forces stale databases to rebuild.
+COMPILER_SCHEMA_VERSION = "2"
+
+
 def compute_trees_fingerprint(trees_dir: Union[str, Path] = "trees") -> str:
     """Computes a fast SHA-256 fingerprint over all tree JSON files in the directory."""
     td = Path(trees_dir)
@@ -338,6 +348,7 @@ def compute_trees_fingerprint(trees_dir: Union[str, Path] = "trees") -> str:
         return "EMPTY"
 
     h = hashlib.sha256()
+    h.update(f"compiler:{COMPILER_SCHEMA_VERSION}".encode("utf-8"))
     for entry in entries:
         h.update(entry.name.encode("utf-8"))
         try:
@@ -346,6 +357,20 @@ def compute_trees_fingerprint(trees_dir: Union[str, Path] = "trees") -> str:
         except OSError:
             pass
     return h.hexdigest()
+
+
+def get_stored_meta(db_path: Union[str, Path], key: str) -> Optional[str]:
+    """Reads one value from the compilation metadata table (None when absent)."""
+    target = Path(db_path)
+    if not target.exists():
+        return None
+    try:
+        conn = sqlite3.connect(str(target))
+        row = conn.execute("SELECT value FROM _compilation_meta WHERE key = ?", (key,)).fetchone()
+        conn.close()
+        return row[0] if row else None
+    except Exception:
+        return None
 
 
 def get_stored_fingerprint(db_path: Union[str, Path]) -> Optional[str]:
@@ -372,6 +397,8 @@ def record_trees_fingerprint(db_path: Union[str, Path], fingerprint: str) -> Non
         cur.execute("CREATE TABLE IF NOT EXISTS _compilation_meta (key TEXT PRIMARY KEY, value TEXT, timestamp REAL)")
         cur.execute("INSERT OR REPLACE INTO _compilation_meta (key, value, timestamp) VALUES ('trees_fingerprint', ?, ?)",
                     (fingerprint, time.time()))
+        cur.execute("INSERT OR REPLACE INTO _compilation_meta (key, value, timestamp) VALUES ('compiler_schema', ?, ?)",
+                    (COMPILER_SCHEMA_VERSION, time.time()))
         conn.commit()
         conn.close()
     except Exception:
@@ -386,7 +413,9 @@ def ensure_lattice_compiled(trees_dir: Union[str, Path] = "trees", db_path: Unio
     trees_path = Path(trees_dir)
     target_db = Path(db_path)
 
-    if target_db.exists():
+    schema_current = (not target_db.exists()) or get_stored_meta(target_db, "compiler_schema") == COMPILER_SCHEMA_VERSION
+
+    if target_db.exists() and schema_current:
         try:
             db_mtime = target_db.stat().st_mtime_ns
             dir_mtime = trees_path.stat().st_mtime_ns
@@ -404,7 +433,7 @@ def ensure_lattice_compiled(trees_dir: Union[str, Path] = "trees", db_path: Unio
     current_fp = compute_trees_fingerprint(trees_path)
     stored_fp = get_stored_fingerprint(target_db)
 
-    if target_db.exists() and stored_fp is not None and stored_fp == current_fp:
+    if target_db.exists() and schema_current and stored_fp is not None and stored_fp == current_fp:
         return False
 
     if current_fp == "EMPTY":
@@ -443,7 +472,7 @@ def _load_tree_file(jf: Path) -> Tuple[Optional[TreeSchema], Optional[Dict[str, 
     elif isinstance(data, list):
         cells = [CellSchema(**c) for c in data if isinstance(c, dict) and "cell_id" in c]
         domain = jf.stem.replace("_tree", "").replace("_seeds", "")
-        return None, None, cells, domain, jf.name
+        return None, {"cells": [x for x in data if isinstance(x, dict)]}, cells, domain, jf.name
     return None, None, None, jf.stem, jf.name
 
 
@@ -579,6 +608,12 @@ def cmd_compile(args):
             for ot in getattr(tree, "operation_tokens", []) or data.get("operation_tokens", []):
                 cur.execute("INSERT OR REPLACE INTO structural_metadata (category, item, extra, domain_name) VALUES ('operation_token', ?, '', ?)", (str(ot).strip().lower(), domain))
 
+        raw_by_id: Dict[str, Any] = {}
+        if isinstance(data, dict):
+            for _rc in (data.get("cells") or []):
+                if isinstance(_rc, dict) and _rc.get("cell_id"):
+                    raw_by_id[str(_rc["cell_id"]).strip().upper()] = _rc
+
         count = 0
         for cell in cells:
             cid = cell.cell_id.strip().upper()
@@ -649,7 +684,8 @@ def cmd_compile(args):
                 getattr(cell, "enrichment_source", None),
                 getattr(cell, "enriched_at", None),
                 fname,
-                cell.source_priority
+                cell.source_priority,
+                json.dumps(raw_by_id[cid]) if cid in raw_by_id else None,
             ))
             count += 1
             total_compiled += 1
@@ -662,8 +698,8 @@ def cmd_compile(args):
         (cell_id, domain_name, node_type, node_role, stage, keywords,
          input_type, input_state, output_type, output_state, code,
          dependencies, configuration_schema, slots, verified, docstring,
-         enrichment_source, enriched_at, source_provenance, source_priority)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+         enrichment_source, enriched_at, source_provenance, source_priority, raw_cell)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     """, node_rows)
 
     conn.commit()

@@ -22,18 +22,6 @@ except (ImportError, ValueError):
     from planner import LatticePlanner
 
 
-def _prompt_has_egress_intent(prompt: str) -> bool:
-    """Declared-egress-vocabulary intent test (see planner.EGRESS_INTENT_TOKENS);
-    when not an in-memory variable target."""
-    try:
-        from .planner import EGRESS_INTENT_TOKENS
-    except (ImportError, ValueError):
-        from planner import EGRESS_INTENT_TOKENS
-    target = ExecutionContext._extract_target_sink(prompt or "")
-    toks = set(CellTokenizer.tokenize_prompt((prompt or "").lower()))
-    return bool(toks & EGRESS_INTENT_TOKENS) and not target
-
-
 class M6HybridAnchorsRouteMethod(RouteMethod):
     """
     RouteMethod M6: Flagship Hybrid.
@@ -73,104 +61,53 @@ class M6HybridAnchorsRouteMethod(RouteMethod):
 
         stage1_cands = [c for c in candidates if getattr(c, "stage", None) == 1]
         stage3_cands = [c for c in candidates if getattr(c, "stage", None) == 3]
+        clauses = self.segment_prompt_clauses(prompt)
+        first_clause = clauses[0] if clauses else (prompt or "")
+        last_clause = clauses[-1] if clauses else (prompt or "")
+        src_lit = src_file_literals[0] if src_file_literals else None
+        dst_lit = dest_file_literals[0] if dest_file_literals else None
 
         if stage1_cands:
-            def _score_s1(c: Cell) -> float:
-                score = relevance_map.get(c.cell_id, 0.0)
-                if src_file_literals:
-                    is_pc = any(
-                        getattr(p, "abstract_type", None) == "path"
-                        or getattr(p, "port_role", None) == "source_data"
-                        or getattr(getattr(p, "signature", None), "abstract_type", None) == "path"
-                        for p in c.inputs.values()
-                    )
-                    if is_pc and self.is_file_format_compatible(c, str(src_file_literals[0])):
-                        score += 10.0
-                    elif is_pc and not self.is_file_format_compatible(c, str(src_file_literals[0])):
-                        score -= 20.0
-                    elif not is_pc:
-                        score -= 10.0
-                return score
-            source_cell = max(stage1_cands, key=_score_s1)
-        if stage3_cands and (_prompt_has_egress_intent(prompt) or dest_file_literals):
-            def _score_s3(c: Cell) -> float:
-                score = relevance_map.get(c.cell_id, 0.0) * 5.0
-                prompt_toks = CellTokenizer.tokenize_prompt(prompt)
-                c_toks = getattr(c, "identity_tokens", c.token_set)
-                score += len(prompt_toks & c_toks) * 3.0
-                if dest_file_literals:
-                    is_pc = any(
-                        getattr(p, "abstract_type", None) == "path"
-                        or getattr(getattr(p, "signature", None), "abstract_type", None) == "path"
-                        for p in c.inputs.values()
-                    )
-                    if is_pc and self.is_file_format_compatible(c, str(dest_file_literals[0])):
-                        score += 15.0
-                    elif is_pc and not self.is_file_format_compatible(c, str(dest_file_literals[0])):
-                        score -= 25.0
-                return score
-            sink_cell = max(stage3_cands, key=_score_s3)
+            source_cell = max(
+                stage1_cands,
+                key=lambda c: (self.file_compat(c, src_lit), self.clause_fit(first_clause, c), relevance_map.get(c.cell_id, 0.0)),
+            )
+        # A sink exists only if a clause is better explained by a sink than by every non-sink cell
+        # (not because the prompt contains a word such as "write"), or an explicit destination file
+        # has a format-compatible writer.
+        sink_cell = self.requested_sink(prompt, candidates)
+        if sink_cell is None and dst_lit is not None:
+            writers = [c for c in stage3_cands if self.file_compat(c, dst_lit) > 0]
+            if writers:
+                sink_cell = max(writers, key=lambda c: (self.clause_fit(last_clause, c), relevance_map.get(c.cell_id, 0.0)))
+        self._trace("m6_endpoints", source=source_cell.cell_id if source_cell else None,
+                    sink=sink_cell.cell_id if sink_cell else None)
 
         # 3. Identify Clause-Level Waypoint Anchors
-        clauses = self.segment_prompt_clauses(prompt)
         clause_anchors: List[Cell] = []
+        from token_evidence import anchors_for_clause
+        _ev = self._evidence()
+        anchor_pool = [
+            c for c in candidates
+            if not (getattr(c, "is_combinator", False) or getattr(c, "node_role", "") == "combinator"
+                    or getattr(c, "role", "") == "combinator" or getattr(c, "node_type", "") == "combinator")
+        ]
 
         for idx, cl in enumerate(clauses):
-            cl_tokens = CellTokenizer.tokenize_prompt(cl) - STOPWORDS
-            if not cl_tokens:
-                continue
-
             cl_literals = [
                 v for _, k, v in ExecutionContext._extract_universal_literals(cl)
                 if k in ("identifier", "quoted_str")
             ]
-
             clause_cells: List[Cell] = []
-            uncovered_tokens = set(cl_tokens)
-
-            while uncovered_tokens:
-                best_c: Optional[Cell] = None
-                best_score = -1.0
-                best_covered: Set[str] = set()
-
-                for c in candidates:
-                    if c in clause_cells:
-                        continue
-                    if getattr(c, "is_combinator", False) or getattr(c, "node_role", "") == "combinator" or getattr(c, "role", "") == "combinator" or getattr(c, "node_type", "") == "combinator":
-                        continue
-                    c_toks = c.token_set
-                    id_toks = getattr(c, "identity_tokens", c_toks)
-                    strong_overlap = len(uncovered_tokens & id_toks)
-                    if strong_overlap == 0 and clause_cells:
-                        continue
-                    weak_overlap = len((uncovered_tokens & c_toks) - id_toks)
-                    rel_score = relevance_map.get(c.cell_id, 0.0)
-                    last_anc = clause_cells[-1] if clause_cells else (clause_anchors[-1] if clause_anchors else None)
-                    aff_score = self.calculate_edge_affinity(last_anc, c, orch, relevance_map=relevance_map) if last_anc else 0.0
-                    scope_so_far = clause_anchors + clause_cells
-                    unif_bonus = 5.0 if (last_anc and (self.step_unifies(last_anc, c, prev_path=scope_so_far) or self.step_unifies_dag(c, scope_so_far, ctx=ctx))) else 0.0
-                    domain_bonus = 2.0 if (last_anc and c.domain_name == last_anc.domain_name) else 0.0
-                    sc = (
-                        (strong_overlap * 4.0)
-                        + (weak_overlap * 1.5)
-                        + (rel_score * 5.0)
-                        + (aff_score * 4.0)
-                        + unif_bonus
-                        + domain_bonus
-                    )
-                    if sc > best_score:
-                        best_score = sc
-                        best_c = c
-                        best_covered = (uncovered_tokens & id_toks) or (uncovered_tokens & c_toks)
-
-                if best_c and best_covered:
-                    c_inst = best_c.clone() if hasattr(best_c, "clone") else best_c
+            if _ev is not None:
+                for c, _o in anchors_for_clause(_ev, cl, anchor_pool, relevance_map, on_event=self._trace, clause_idx=idx):
+                    c_inst = c.clone() if hasattr(c, "clone") else c
                     c_inst.matched_clause_idx = idx
                     c_inst.clause_literals = cl_literals
                     clause_cells.append(c_inst)
-                    uncovered_tokens -= best_covered
-                else:
-                    break
+            if not clause_cells and _ev is not None and _ev.clause_tokens(cl):
+                self._trace("clause_without_anchor", clause_idx=idx, clause=cl,
+                            reason="no candidate cell carries identity evidence for this clause")
 
             if len(clause_cells) >= 2:
                 from functools import cmp_to_key
@@ -230,6 +167,18 @@ class M6HybridAnchorsRouteMethod(RouteMethod):
                             bridged_path.extend([anc_bridge, nxt])
                             connected = True
                             break
+                    if not connected:
+                        producer = self._find_type_producer(nxt, bridged_path, candidates, clauses, orch)
+                        if producer is not None:
+                            self._trace("producer_inserted", cell=producer.cell_id, for_anchor=nxt.cell_id,
+                                        clause_idx=getattr(nxt, "matched_clause_idx", None),
+                                        reason="anchor input type unmet by scope; producer has same-clause identity evidence and unifies from scope")
+                            bridged_path.extend([producer, nxt])
+                            connected = True
+                    if not connected:
+                        self._trace("anchor_dropped", cell=nxt.cell_id, clause_idx=getattr(nxt, "matched_clause_idx", None),
+                                    reason="no direct unification, no DAG-scope unification, no bridge or producer from any ancestor",
+                                    ancestors=[a.cell_id for a in bridged_path], needs=[], ancestor_outputs=[])
 
         # 6. Pre-flight verification & path return
         num_clauses = len(clauses) if clauses else 1

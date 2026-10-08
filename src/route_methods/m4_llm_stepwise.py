@@ -213,6 +213,11 @@ class M4LLMStepwiseRouteMethod(RouteMethod):
                     **kwargs,
                 )
                 if fallback_path and len(fallback_path) >= len(path):
+                    self.effective_method = "M1"
+                    self.fallback_reason = (f"stepwise path len={len(path)} (min {min_required_len}) or "
+                                            f"clause coverage {curr_coverage:.2f} < floor {cov_floor:.2f}")
+                    self._trace("method_fallback", requested="M4LLMStepwiseRouteMethod", to="M1", reason=self.fallback_reason)
+                    self.trace_events.extend(getattr(m1, "trace_events", []))
                     return fallback_path
             except Exception as e:
                 logger.warning("M4 fallback to M1 failed: %s", e)
