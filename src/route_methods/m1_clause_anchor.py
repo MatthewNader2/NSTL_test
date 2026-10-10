@@ -212,15 +212,22 @@ class M1ClauseAnchorRouteMethod(RouteMethod):
                     routed_path.append(best_sink)
 
         # 4. Monadic pipeline validation check: if broken, fallback to LatticePlanner
-        if orch:
+        if orch and routed_path:
+            is_broken = False
             try:
                 from ..unification import UnificationGate
                 gate = UnificationGate(orchestrator=orch)
                 test_res = gate.unify_pipeline(routed_path, ExecutionContext(prompt=prompt))
                 if test_res.is_bottom():
+                    is_broken = True
+            except Exception:
+                is_broken = True
+
+            if is_broken:
+                try:
                     from ..planner import LatticePlanner
                     planner = LatticePlanner(orchestrator=orch)
-                    return planner.plan(
+                    fb_path = planner.plan(
                         prompt=prompt,
                         tunnel=tunnel,
                         relevance_map=relevance_map,
@@ -228,8 +235,11 @@ class M1ClauseAnchorRouteMethod(RouteMethod):
                         goal_sig=goal_sig,
                         max_transforms=max_transforms
                     )
-            except Exception:
-                pass
+                    if fb_path:
+                        return fb_path
+                except Exception as fb_err:
+                    logger.debug(f"[M1] Fallback to LatticePlanner failed: {fb_err}")
+                return []
 
         max_allowed = max(32, len(clauses) * 4 + 4, max_transforms + 8)
         return routed_path[:max_allowed]

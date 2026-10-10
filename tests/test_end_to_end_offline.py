@@ -105,6 +105,14 @@ class TestEndToEndOffline(unittest.TestCase):
         internal engine crash and fails the test (R6-1/R6-2 regression gate).
         """
         cells = self._cells(cell_ids)
+        # The CLI plans through router.plan_path, whose post-pass tags cells with their clause and writes
+        # column transformations back into their table (tree-declared column_transform_effects). Mirror it,
+        # otherwise a path that transforms a column before dropping nulls is judged without the step that
+        # makes it correct.
+        from route_methods.base import RouteMethod
+        from route_methods.m1_clause_anchor import M1ClauseAnchorRouteMethod
+        RouteMethod.tag_cells_with_clause_indices(cells, BENCHMARK_PROMPT, orchestrator=self.orch)
+        cells = M1ClauseAnchorRouteMethod(orchestrator=self.orch).insert_column_commits(cells)
         gate = UnificationGate(orchestrator=self.orch)
         ctx = ExecutionContext(prompt=BENCHMARK_PROMPT)
         try:
@@ -123,7 +131,8 @@ class TestEndToEndOffline(unittest.TestCase):
         bindings, code, lint_res = self._run_cli_chain(CASES["three_cell_minimal"])
         if bindings is None:
             self.fail("three-cell pipeline refused — it must unify and emit")
-        self.assertEqual(len(bindings), 3)
+        # +1: normalising X and then dropping nulls plans the tree-declared column commit between them
+        self.assertEqual(len(bindings), 3 + 1)
 
     def test_m1_path_from_log_runs(self):
         bindings, code, lint_res = self._run_cli_chain(CASES["m1_path_from_log"])
@@ -139,7 +148,8 @@ class TestEndToEndOffline(unittest.TestCase):
         bindings, code, lint_res = self._run_cli_chain(CASES["reference_like"])
         if bindings is None:
             self.fail("reference-like pipeline refused — it must unify and emit")
-        self.assertEqual(len(bindings), 9)
+        # +1: the column commit written back after normalisation (tree: column_transform_effects)
+        self.assertEqual(len(bindings), 9 + 1)
 
     def test_reference_like_path_lints_clean(self):
         """R6-9 acceptance: zero false positives on the reference-like path."""

@@ -179,12 +179,16 @@ def transform_call_ast_with_flag(code_snippet: str, mod_alias: str, flag_attr: s
                     attr=flag_attr,
                     ctx=ast.Load(),
                 )
-                if node.args:
-                    node.args[-1] = flag_node
-                elif node.keywords:
-                    node.keywords[-1].value = flag_node
-                else:
-                    node.args.append(flag_node)
+                # Prevent duplicate injection if flag is already present
+                for arg in node.args:
+                    if isinstance(arg, ast.Attribute) and arg.attr == flag_attr:
+                        return node
+                for kw in node.keywords:
+                    if isinstance(kw.value, ast.Attribute) and kw.value.attr == flag_attr:
+                        return node
+
+                # Safely append flag without overwriting existing arguments or keywords
+                node.args.append(flag_node)
                 return node
 
         transformed = FlagASTReplacer().visit(tree)

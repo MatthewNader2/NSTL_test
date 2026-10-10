@@ -426,6 +426,32 @@ def _violates_clause_feature_cols(cell: Any, port_role: Any, var_name: str, ctx:
     return bool(want and have and not want <= have)
 
 
+def _wire_rejection(cell: Any, p_name: str, port: Any, v_name: str, ctx: Any, registry: Any,
+                    target_col: Optional[str]) -> Optional[Tuple[str, Dict[str, Any]]]:
+    """
+    ONE admissibility test for "may variable `v_name` feed port `p_name` of `cell`?", shared by every binding
+    site that picks a wire (DAG scope, multi-port matcher). Two clause-scoped rules, both tree/clause driven:
+      * column provenance: the wire must not demonstrably derive from a different column than the clause names;
+      * feature columns: a feature-role port must be fed by a wire covering every feature column the clause names.
+    Returns (rule, detail) when the wire is inadmissible, else None. Having separate copies of these checks at
+    each site is how a wire rejected at one site was silently bound at the next.
+    """
+    origins = getattr(ctx, "var_origins", {}).get(v_name, set())
+    role = getattr(port, "port_role", None) or getattr(port, "derived_role", "")
+    if _violates_clause_feature_cols(cell, role, v_name, ctx):
+        return ("feature_columns", {"var_origins": sorted(origins), "clause_literals": list(getattr(cell, "clause_literals", []) or [])})
+    if target_col is not None and not check_provenance_compatibility(
+        port_sig=port,
+        candidate_origins=origins,
+        target_col=target_col,
+        all_known_origins=set().union(*getattr(ctx, "var_origins", {}).values()) if getattr(ctx, "var_origins", None) else set(),
+        registry=registry,
+        target_is_input_column=not _cell_consumes_name_literal(cell),
+    ):
+        return ("provenance", {"var_origins": sorted(origins), "target_col": target_col})
+    return None
+
+
 def _cell_consumes_name_literal(cell: Any) -> bool:
     """True when the cell declares a port that receives a NAME/VALUE-to-store
     (binds column_key / assigned_value): its clause literals may be output names."""
@@ -527,9 +553,14 @@ def _update_variable_provenance(
             port_sig=getattr(p_sig_n, "signature", p_sig_n) if p_sig_n else None,
             var_signatures=var_sigs_curr,
         )
+        _is_projection = bool(rec.kind == "projection" and rec.projection and rec.projection.get("key"))
         if rec.root_var and rec.root_var in ctx.variables:
             ctx.var_parents[out_var].add(rec.root_var)
-            ctx.var_origins[out_var].update(ctx.var_origins.get(rec.root_var, set()))
+            # A column PROJECTION carries only the projected column(s); inheriting the whole table's origins made
+            # `var['X']` look derived from every column the table's lineage ever touched, so column-level
+            # provenance gates could never tell X from Y.
+            if not _is_projection:
+                ctx.var_origins[out_var].update(ctx.var_origins.get(rec.root_var, set()))
         if rec.kind == "projection" and rec.projection:
             p_key = rec.projection.get("key")
             if p_key:
@@ -553,6 +584,17 @@ def _update_variable_provenance(
             clean_lit = str(cl_lit).strip("'\"")
             if clean_lit:
                 ctx.var_origins[out_var].add(clean_lit)
+
+    # Row-set epoch: how many row-changing steps (tree-declared row_set_effects) this value has been through.
+    try:
+        from lattice import TypeRegistry
+        _row_fx = {str(e).lower() for e in TypeRegistry.get_instance().get_verification_semantics("row_set_effects")}
+    except Exception:
+        _row_fx = set()
+    _ep = max((ctx.var_epochs.get(v, 0) for v in ctx.var_parents.get(out_var, set())), default=0)
+    if _row_fx & {str(e).lower() for e in (getattr(cell, "effects", None) or [])}:
+        _ep += 1
+    ctx.var_epochs[out_var] = _ep
 
 # English sentence-connective function words (LANGUAGE-level primitives, not
 # domain vocabulary): a capitalized occurrence of one of these mid-prompt is a
@@ -1623,6 +1665,7 @@ class ExecutionContext:
         self.identifier_roles: Dict[int, FrozenSet[str]] = self._build_identifier_role_map(self._prompt)
         # Provenance and monoidal DAG branch tracking
         self.var_origins: Dict[str, Set[str]] = {}
+        self.var_epochs: Dict[str, int] = {}   # row-set epoch per variable (tree-declared row_set_effects)
         self.binding_trace: List[Dict[str, Any]] = []
         self.superseded_vars: Set[str] = set()
         self.var_parents: Dict[str, Set[str]] = {}
@@ -1734,6 +1777,7 @@ class ExecutionContext:
         new_ctx.variables = dict(self.variables)
         new_ctx.var_sources = dict(self.var_sources)
         new_ctx.var_origins = {k: set(v) for k, v in self.var_origins.items()}
+        new_ctx.var_epochs = dict(self.var_epochs)
         new_ctx.superseded_vars = set(self.superseded_vars)
         new_ctx.var_parents = {k: set(v) for k, v in self.var_parents.items()}
         new_ctx.scope_variables = dict(self.scope_variables)
@@ -2148,15 +2192,12 @@ class ExecutionContext:
     @staticmethod
     def _is_bare_identifier_token(w: str) -> bool:
         """
-        Structural orthography of a bare referential identifier: short, begins
-        uppercase, alphanumeric/underscore body. Covers the conventions humans
-        use for columns/fields/variables in prose (X, Y, Z, X1, Col, ID) without
-        any domain vocabulary. Sentence-initial position is handled by the
-        caller (context), not here.
+        Structural orthography of a bare referential identifier:
+        valid identifier syntax, not an English connective, not pure digits.
+        Covers conventions humans use for columns/fields/variables in prose
+        (X, Y, Z, x, y, Age, Price, Salary, Col, id) without domain vocabulary.
         """
-        if not w or len(w) > 4:
-            return False
-        if not w[0].isupper():
+        if not w or len(w) > 32:
             return False
         if not all(ch.isalnum() or ch == "_" for ch in w):
             return False
@@ -2164,7 +2205,16 @@ class ExecutionContext:
             return False
         if w.lower() in _SENTENCE_CONNECTIVES:
             return False
-        return True
+        # Single-letter variable: always valid (e.g. X, Y, x, y)
+        if len(w) == 1:
+            return True
+        # Capitalized token or variable with underscores/numbers
+        if w[0].isupper() or "_" in w or any(ch.isdigit() for ch in w):
+            return True
+        # Short lowercase token (<= 4 chars, e.g. col, data, row)
+        if len(w) <= 4:
+            return True
+        return False
 
     @staticmethod
     def extract_identifier_groups(prompt: str) -> List[IdentifierGroup]:
@@ -3408,6 +3458,51 @@ class UnificationGate:
     # Declared bridge-morphism composition (Solution 3)
     # ------------------------------------------------------------------
 
+    def _rederive_stale_series(self, cell: Any, p_name: str, v_name: str, ctx: Any, registry: Any) -> Optional[str]:
+        """
+        A Series computed before a row-changing step is STALE relative to a table that has since been
+        through it. If that fresher table has absorbed the Series (the Series was committed back into it),
+        the column to use is the table's column, not the old Series. Returns the projection expression, or
+        None when the Series is not stale / not absorbed / the column cannot be identified.
+        """
+        port = cell.inputs.get(p_name)
+        p_tn = str(getattr(getattr(port, "signature", port), "type_name", "") or "")
+        if not p_tn or registry.is_subtype(p_tn.lower(), "table"):
+            return None
+        v_ep = getattr(ctx, "var_epochs", {}).get(v_name)
+        if v_ep is None:
+            return None
+        cols = {str(c).lower(): str(c) for c in (getattr(ctx, "columns", None) or [])}
+        origin_cols = [cols[str(o).lower()] for o in getattr(ctx, "var_origins", {}).get(v_name, set()) if str(o).lower() in cols]
+        if len(set(origin_cols)) != 1:
+            return None
+        col = origin_cols[0]
+
+        def _ancestors(v: str) -> Set[str]:
+            seen: Set[str] = set()
+            stack = [v]
+            while stack:
+                cur = stack.pop()
+                for par in getattr(ctx, "var_parents", {}).get(cur, set()):
+                    if par not in seen:
+                        seen.add(par)
+                        stack.append(par)
+            return seen
+
+        for t_name, (t_sig, _) in reversed(list(ctx.variables.items())):
+            t_tn = str(getattr(getattr(t_sig, "signature", t_sig), "type_name", "") or "").lower()
+            if not t_tn or not registry.is_subtype(t_tn, "table"):
+                continue
+            if getattr(ctx, "var_epochs", {}).get(t_name, 0) > v_ep and v_name in _ancestors(t_name):
+                expr = self._compose_declared_bridge_expr(
+                    src_var=t_name, src_type="table", dst_type=p_tn,
+                    literal_bindings={"column": repr(col)}, dst_sig=getattr(port, "signature", port), ctx=ctx)
+                ctx.trace_binding("stale_series_rederived", cell=cell.cell_id, port=p_name, stale=v_name,
+                                  stale_epoch=v_ep, table=t_name, table_epoch=ctx.var_epochs.get(t_name), column=col, expr=expr)
+                return expr
+            break  # only the freshest table is a candidate
+        return None
+
     def _compose_declared_bridge_expr(
         self,
         src_var: str,
@@ -4019,25 +4114,14 @@ class UnificationGate:
                             # (type-only unification). Apply the same gate every other binding
                             # site uses so a wire derived from a different column than the one this
                             # clause names is left unbound for the projection branches to resolve.
-                            _dag_port = cell.inputs.get(p_name)
-                            if _violates_clause_feature_cols(
-                                cell, getattr(_dag_port, "port_role", None) or getattr(_dag_port, "derived_role", ""), v_name, ctx
-                            ):
-                                ctx.trace_binding("dag_scope_rejected_feature_columns", cell=cell.cell_id, port=p_name, var=v_name,
-                                                  var_origins=sorted(getattr(ctx, "var_origins", {}).get(v_name, set())),
-                                                  clause_literals=list(getattr(cell, "clause_literals", []) or []))
+                            _rej = _wire_rejection(cell, p_name, cell.inputs.get(p_name), v_name, ctx, registry, target_col_for_cell)
+                            if _rej is not None:
+                                ctx.trace_binding(f"dag_scope_rejected_{_rej[0]}", cell=cell.cell_id, port=p_name, var=v_name, **_rej[1])
                                 continue
-                            if target_col_for_cell is not None and not check_provenance_compatibility(
-                                port_sig=cell.inputs.get(p_name),
-                                candidate_origins=getattr(ctx, "var_origins", {}).get(v_name, set()),
-                                target_col=target_col_for_cell,
-                                all_known_origins=set().union(*getattr(ctx, "var_origins", {}).values()) if getattr(ctx, "var_origins", None) else set(),
-                                registry=registry,
-                                target_is_input_column=not _cell_consumes_name_literal(cell),
-                            ):
-                                ctx.trace_binding("dag_scope_rejected_provenance", cell=cell.cell_id, port=p_name,
-                                                  var=v_name, var_origins=sorted(getattr(ctx, "var_origins", {}).get(v_name, set())),
-                                                  target_col=target_col_for_cell)
+                            _fresh = self._rederive_stale_series(cell, p_name, v_name, ctx, registry)
+                            if _fresh is not None:
+                                cell_bindings[p_name] = _fresh
+                                bound_producer = True
                                 continue
                             cell_bindings[p_name] = v_name
                             bound_producer = True
@@ -4188,20 +4272,10 @@ class UnificationGate:
                     if p_name in assigned_ports or v_name in assigned_vars:
                         continue
                     v_origins = getattr(ctx, "var_origins", {}).get(v_name, set())
-                    # Clause-scoped column provenance (same gate every other binding site
-                    # uses): this clause names column `target_col_for_cell`, so a wire that
-                    # demonstrably derives from a different column must not satisfy the port.
-                    # Was missing here, so "mean of the Y column" bound normalized X.
-                    if target_col_for_cell is not None and not check_provenance_compatibility(
-                        port_sig=p,
-                        candidate_origins=v_origins,
-                        target_col=target_col_for_cell,
-                        all_known_origins=set().union(*getattr(ctx, "var_origins", {}).values()) if getattr(ctx, "var_origins", None) else set(),
-                        registry=registry,
-                        target_is_input_column=not _cell_consumes_name_literal(cell),
-                    ):
-                        ctx.trace_binding("multiport_rejected_provenance", cell=cell.cell_id, port=p_name,
-                                          var=v_name, var_origins=sorted(v_origins), target_col=target_col_for_cell)
+                    # Clause-scoped admissibility (column provenance + feature columns), shared with the DAG site.
+                    _rej = _wire_rejection(cell, p_name, p, v_name, ctx, registry, target_col_for_cell)
+                    if _rej is not None:
+                        ctx.trace_binding(f"multiport_rejected_{_rej[0]}", cell=cell.cell_id, port=p_name, var=v_name, **_rej[1])
                         continue
                     # Monoidal origin disjointness: avoid binding multiple join ports to the same origin wire
                     if v_origins and (v_origins & assigned_origins):
@@ -4778,6 +4852,19 @@ class UnificationGate:
                     break
 
                 if member_bound:
+                    continue
+
+                # B0. A name-consuming port (tree: binds == column_key) takes the column its OWN clause names, even if
+                # that literal was already consumed by an earlier read of the same column (read X, then write X).
+                # The generic resolver below hands out "the next unconsumed literal", which wrote the
+                # normalized X into column Y when X had already been projected.
+                if getattr(p_sig, "binds", None) == "column_key" and target_col_for_cell is not None and llm_slot_val is None:
+                    _name_lit = _format_literal_value(target_col_for_cell, concrete_sig)
+                    ctx.trace_binding("column_key_from_clause", cell=cell.cell_id, port=p_name, clause=cell_clause,
+                                      target_col=target_col_for_cell, value=_name_lit)
+                    cell_bindings[p_name] = _name_lit
+                    accumulated_sigma.bind(p_name, _name_lit)
+                    ctx.consumed_tokens.add(str(target_col_for_cell).lower())
                     continue
 
                 # B. Check typestate-driven literal resolution from prompt or LLM slots
@@ -7016,16 +7103,27 @@ def resolve_node_slots(template: str, extracted_params: Dict[str, Any]) -> Dict[
             except Exception:
                 pass
             slots[ph] = resolved_code or (f"{mod_name}.{attr_prefix}{target_fmt}" if attr_prefix else f"{mod_name}.{target_fmt}")
-        elif ph_l in ("target", "target_col", "target_column", "label", "y_col"):
-            tgt = extracted_params.get("target_column") or extracted_params.get("target_col")
-            if tgt:
-                slots[ph] = f"'{tgt}'"
-        elif ph_l in ("columns", "feature_cols", "features", "x_cols"):
-            cols = extracted_params.get("columns")
-            if cols:
-                slots[ph] = repr(cols)
         else:
-            hp = extracted_params.get("hyperparameters", {})
+            reg = TypeRegistry.get_instance()
+            target_aliases = set(reg.get_slot_aliases("target")) or {"target", "target_col", "target_column", "label", "y_col"}
+            feature_aliases = set(reg.get_slot_aliases("columns")) or {"columns", "feature_cols", "features", "x_cols"}
+
+            if ph in extracted_params:
+                val = extracted_params[ph]
+                slots[ph] = repr(val) if not (isinstance(val, str) and (val.startswith("'") or val.startswith('"'))) else val
+            elif ph_l in extracted_params:
+                val = extracted_params[ph_l]
+                slots[ph] = repr(val) if not (isinstance(val, str) and (val.startswith("'") or val.startswith('"'))) else val
+            elif ph_l in target_aliases:
+                tgt = extracted_params.get("target_column") or extracted_params.get("target_col") or extracted_params.get("target")
+                if tgt:
+                    slots[ph] = f"'{tgt}'" if not (str(tgt).startswith("'") or str(tgt).startswith('"')) else str(tgt)
+            elif ph_l in feature_aliases:
+                cols = extracted_params.get("columns") or extracted_params.get("features")
+                if cols:
+                    slots[ph] = repr(cols)
+            else:
+                hp = extracted_params.get("hyperparameters", {})
             if ph in hp:
                 slots[ph] = repr(hp[ph])
             elif ph_l in hp:
@@ -7038,6 +7136,37 @@ def resolve_node_slots(template: str, extracted_params: Dict[str, Any]) -> Dict[
                     slots[ph] = repr(llm_s[ph_l])
 
     return slots
+
+
+def _adjacency_rank(cand_clause: Optional[int], producer_clause: Optional[int]) -> Tuple[int, int]:
+    """Clause adjacency as an ordinal (R5-7): same clause > previous clause > earlier clauses (closer is
+    better) > unknown > a producer from a LATER clause (backward flow). Replaces additive 35/30/25-5d/-50."""
+    if cand_clause is None or producer_clause is None:
+        return (1, -5)
+    d = cand_clause - producer_clause
+    if d == 0:
+        return (3, 0)
+    if d == 1:
+        return (2, 0)
+    if d > 1:
+        return (1, -min(d, 5))
+    return (-1, 0)
+
+
+def _wire_rank(p_type: str, p_state: str, in_role: Any, w_type: str, w_state: str, w_role: Any,
+               cand_clause: Optional[int], producer_clause: Optional[int], recency: int, aligned: int = 0) -> tuple:
+    """Lexicographic preference between candidate wires into one port. Priority order mirrors the previous
+    additive scorer (adjacency, then exact type, exact state, role) but is an ordering, not a sum, so a
+    fresher producer is never outweighed by an exact-state bonus (a `cleaned` table feeding a `raw`
+    consumer is legal: the typestate hierarchy says cleaned refines raw)."""
+    return (
+        _adjacency_rank(cand_clause, producer_clause),
+        1 if (p_type and w_type and p_type == w_type) else 0,
+        1 if (p_state and w_state and p_state == w_state) else 0,
+        1 if (in_role and w_role and in_role == w_role) else 0,
+        recency,
+        aligned,
+    )
 
 
 def unify_cell_with_scope(
@@ -7096,35 +7225,11 @@ def unify_cell_with_scope(
                     out_state = str(getattr(out_sig_inner, "state", "") or "").lower()
                     out_role = getattr(out_sig, "port_role", None) or getattr(out_sig, "derived_role", "")
 
-                    score = 10.0
-                    # Exact type equality bonus
-                    if p_type and out_type and p_type == out_type:
-                        score += 25.0
-                    # Exact state match bonus
-                    if p_state and out_state and p_state == out_state:
-                        score += 20.0
-                    # Port role compatibility
-                    if in_role and out_role and in_role == out_role:
-                        score += 15.0
-                    # Recency tie-breaker
-                    score += (len(available_cells) - idx_c) * 0.1
-
-                    # Clause-adjacency rule (R5-7): prioritize product of nearest preceding clause
                     cand_clause = getattr(cand, "matched_clause_idx", None)
                     earlier_clause = getattr(earlier_cell, "matched_clause_idx", None)
-                    if cand_clause is not None and earlier_clause is not None:
-                        if earlier_clause == cand_clause:
-                            score += 35.0
-                        elif earlier_clause == cand_clause - 1:
-                            score += 30.0
-                        elif earlier_clause < cand_clause - 1:
-                            dist = cand_clause - earlier_clause
-                            score += max(0.0, 25.0 - dist * 5.0)
-                        else:
-                            score -= 50.0
 
-                    # Multi-input positional alignment: if consumer has multiple inputs accepting this carrier type,
-                    # align them with ancestor producer cells in topological order (e.g. left -> first df, right -> second df)
+                    # Multi-input positional alignment: if the consumer has several inputs accepting this
+                    # carrier type, align them with ancestor producers in topological order.
                     carrier_in_ports = [
                         k for k, p in cand.inputs.items()
                         if unify(getattr(p, "signature", p), getattr(p_sig, "signature", p_sig), sub) is not None
@@ -7133,11 +7238,15 @@ def unify_cell_with_scope(
                         c for c in available_cells
                         if any(unify(o.signature, p_sig.signature, sub) is not None for o in c.outputs.values())
                     ]
+                    aligned = 0
                     if len(carrier_in_ports) > 1 and len(matching_ancestors) > 1:
                         port_idx = carrier_in_ports.index(p_name) if p_name in carrier_in_ports else -1
                         anc_idx = matching_ancestors.index(earlier_cell) if earlier_cell in matching_ancestors else -1
                         if port_idx >= 0 and port_idx == anc_idx:
-                            score += 1.0
+                            aligned = 1
+
+                    score = _wire_rank(p_type, p_state, in_role, out_type, out_state, out_role,
+                                       cand_clause, earlier_clause, -idx_c, aligned)
 
                     wire_key = (id(earlier_cell), out_name)
                     candidates.append((score, p_name, earlier_cell, out_name, wire_key, s_wire))
@@ -7168,27 +7277,11 @@ def unify_cell_with_scope(
                     v_state = str(getattr(v_sig_inner, "state", "") or "").lower()
                     v_role = getattr(v_sig, "port_role", None) or getattr(v_sig, "derived_role", "")
 
-                    score = 10.0
-                    if p_type and v_type and p_type == v_type:
-                        score += 25.0
-                    if p_state and v_state and p_state == v_state:
-                        score += 20.0
-                    if in_role and v_role and in_role == v_role:
-                        score += 15.0
-
-                    # Clause-adjacency rule (R5-7) for context variables
                     cand_clause = getattr(cand, "matched_clause_idx", None)
                     v_clause = getattr(v_cell, "matched_clause_idx", None) if v_cell else None
-                    if cand_clause is not None and v_clause is not None:
-                        if v_clause == cand_clause:
-                            score += 35.0
-                        elif v_clause == cand_clause - 1:
-                            score += 30.0
-                        elif v_clause < cand_clause - 1:
-                            dist = cand_clause - v_clause
-                            score += max(0.0, 25.0 - dist * 5.0)
-                        else:
-                            score -= 50.0
+                    _order = list(context.variables.keys())
+                    score = _wire_rank(p_type, p_state, in_role, v_type, v_state, v_role,
+                                       cand_clause, v_clause, _order.index(v_name) - len(_order))
 
                     v_cell = getattr(context, "var_sources", {}).get(v_name)
                     wire_key = v_name

@@ -3375,7 +3375,9 @@
       },
       "preconditions": [],
       "postconditions": [],
-      "effects": [],
+      "effects": [
+        "transforms_column"
+      ],
       "edges": [
         {
           "target_cell_id": "PANDAS_SERIES_TO_NUMPY",
@@ -3478,7 +3480,9 @@
       },
       "preconditions": [],
       "postconditions": [],
-      "effects": [],
+      "effects": [
+        "transforms_column"
+      ],
       "edges": [],
       "primary_in": "port_0",
       "primary_out": "port_0"
@@ -3653,7 +3657,9 @@
       },
       "preconditions": [],
       "postconditions": [],
-      "effects": [],
+      "effects": [
+        "transforms_column"
+      ],
       "edges": [],
       "primary_in": "port_0",
       "primary_out": "port_0"
@@ -3778,7 +3784,9 @@
       },
       "preconditions": [],
       "postconditions": [],
-      "effects": [],
+      "effects": [
+        "transforms_column"
+      ],
       "edges": [],
       "primary_in": "port_0",
       "primary_out": "port_0"
@@ -12010,7 +12018,9 @@
       },
       "preconditions": [],
       "postconditions": [],
-      "effects": [],
+      "effects": [
+        "transforms_column"
+      ],
       "edges": [
         {
           "target_cell_id": "PANDAS_SERIES_TO_NUMPY",
@@ -12107,7 +12117,9 @@
       },
       "preconditions": [],
       "postconditions": [],
-      "effects": [],
+      "effects": [
+        "transforms_column"
+      ],
       "edges": [
         {
           "target_cell_id": "PANDAS_SERIES_TO_NUMPY",

@@ -190,9 +190,15 @@ def _create_mock_input_code(var_name: str, type_name: str, domain_name: str = ""
     if probe:
         return probe.replace("{var_name}", var_name)
 
-    # Domain-neutral fallbacks for undeclared types: a generic collection
-    # literal exercises most templates without assuming any carrier modality.
-    return f"{var_name} = [1, 2, 3]"
+    # Domain-neutral fallback: a dynamic mock carrier that subclasses list and tolerates
+    # arbitrary method calls, attribute accesses, and indexing during dry-run sandbox probes.
+    return (
+        f"class _NSTLMockCarrier(list):\n"
+        f"    def __getattr__(self, name): return lambda *a, **kw: _NSTLMockCarrier([1, 2, 3])\n"
+        f"    def __getitem__(self, key): return _NSTLMockCarrier([1, 2, 3])\n"
+        f"    shape = (3, 3)\n"
+        f"{var_name} = _NSTLMockCarrier([1, 2, 3])"
+    )
 
 
 def _generate_mock_code_probe(
@@ -277,15 +283,20 @@ class DynamicNodeResolver:
             norm_id = clean_id.replace("-", "_")
             cell = orchestrator.loaded_cells.get(norm_id)
             if cell is None:
+                # Case-insensitive exact match
                 for k, c in orchestrator.loaded_cells.items():
-                    k_lower = k.lower()
-                    if (
-                        k_lower == norm_id
-                        or k_lower.endswith(f"_{norm_id}")
-                        or norm_id.endswith(f"_{k_lower}")
-                    ):
+                    if k.lower() == norm_id:
                         cell = c
                         break
+
+            # Qualified prefix/suffix match: only for unambiguous candidates when norm_id is specific
+            if cell is None and len(norm_id) > 6:
+                candidates = [
+                    c for k, c in orchestrator.loaded_cells.items()
+                    if k.lower().endswith(f"_{norm_id}") or norm_id.endswith(f"_{k.lower()}")
+                ]
+                if len(candidates) == 1:
+                    cell = candidates[0]
 
         if cell is not None:
             # Case A: Found in catalog! Boost in RAG so it surfaces naturally

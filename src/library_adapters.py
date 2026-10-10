@@ -46,6 +46,7 @@ try:
         extract_docstring_raises,
         extract_ast_raises,
         extract_type_vars,
+        _tier2_text_signature,
     )
 except ImportError:
     from .log_config import get_logger
@@ -63,6 +64,7 @@ except ImportError:
         extract_docstring_raises,
         extract_ast_raises,
         extract_type_vars,
+        _tier2_text_signature,
     )
 
 logger = get_logger("library_adapters")
@@ -72,13 +74,26 @@ logger = get_logger("library_adapters")
 # Domain-Agnostic Configuration Helpers
 # =====================================================================
 
+def _get_type_registry():
+    try:
+        from .lattice import TypeRegistry
+        return TypeRegistry.get_instance()
+    except (ImportError, ValueError):
+        try:
+            from lattice import TypeRegistry
+            return TypeRegistry.get_instance()
+        except (ImportError, ValueError):
+            return None
+
+
 def _get_excluded_module_tokens() -> Set[str]:
     """Retrieves generic internal/test module tokens, dynamically extensible via TypeRegistry."""
     try:
-        from lattice import TypeRegistry
-        tokens = TypeRegistry.get_instance().get_excluded_module_tokens()
-        if tokens:
-            return set(tokens)
+        reg = _get_type_registry()
+        if reg is not None:
+            tokens = reg.get_excluded_module_tokens()
+            if tokens:
+                return set(tokens)
     except Exception:
         pass
     return {
@@ -91,10 +106,11 @@ def _get_excluded_module_tokens() -> Set[str]:
 def _get_enum_citation_triggers() -> Set[str]:
     """Retrieves triggers indicating enum/choice citations in docstrings."""
     try:
-        from lattice import TypeRegistry
-        triggers = TypeRegistry.get_instance().get_enum_citation_triggers()
-        if triggers:
-            return set(triggers)
+        reg = _get_type_registry()
+        if reg is not None:
+            triggers = reg.get_enum_citation_triggers()
+            if triggers:
+                return set(triggers)
     except Exception:
         pass
     return {"see", "values in", "one of", "choices are", "must be one of", "refer to"}
@@ -103,10 +119,11 @@ def _get_enum_citation_triggers() -> Set[str]:
 def _get_enum_suffixes() -> Tuple[str, ...]:
     """Retrieves candidate suffixes for enum lookup stripping."""
     try:
-        from lattice import TypeRegistry
-        suffixes = TypeRegistry.get_instance().get_enum_suffixes()
-        if suffixes:
-            return tuple(suffixes)
+        reg = _get_type_registry()
+        if reg is not None:
+            suffixes = reg.get_enum_suffixes()
+            if suffixes:
+                return tuple(suffixes)
     except Exception:
         pass
     return ("flags", "flag", "types", "type", "codes", "code", "mode", "modes", "enum", "enums")
@@ -115,10 +132,11 @@ def _get_enum_suffixes() -> Tuple[str, ...]:
 def _get_symbol_stopwords() -> Set[str]:
     """Retrieves common linguistic and docstring noise tokens."""
     try:
-        from lattice import TypeRegistry
-        sw = TypeRegistry.get_instance().get_symbol_stopwords()
-        if sw:
-            return set(sw)
+        reg = _get_type_registry()
+        if reg is not None:
+            sw = reg.get_symbol_stopwords()
+            if sw:
+                return set(sw)
     except Exception:
         pass
     return {
@@ -578,27 +596,7 @@ class CompiledExtensionAdapter(LibraryAdapter):
             return stub_sig
 
         # 2. Introspect __text_signature__ if provided by Argument Clinic
-        text_sig = getattr(obj, "__text_signature__", None)
-        if text_sig:
-            try:
-                # Wrap with dummy def to construct signature
-                dummy_code = f"def {callable_name or 'func'}{text_sig}: pass"
-                tree = ast.parse(dummy_code)
-                for node in ast.walk(tree):
-                    if isinstance(node, ast.FunctionDef):
-                        params = []
-                        for arg in node.args.args:
-                            params.append(
-                                inspect.Parameter(
-                                    arg.arg,
-                                    inspect.Parameter.POSITIONAL_OR_KEYWORD
-                                )
-                            )
-                        return inspect.Signature(parameters=params)
-            except Exception:
-                pass
-
-        return None
+        return _tier2_text_signature(obj)
 
     def get_raises(self, doc: str = "", source: Optional[str] = None) -> List[str]:
         # Compiled binaries rely strictly on docstring raises and type annotations

@@ -65,7 +65,7 @@ try:
     from preflight import PreflightLinter
     from lattice_auditor import LatticeAuditor
     from macro_harvester import MacroHarvester
-    from route_methods import ROUTE_METHOD_REGISTRY, get_route_method
+    from route_methods import ROUTE_METHOD_REGISTRY, get_route_method, route_method_ids, describe_route_methods
     from reranker import get_available_rerankers, LocalReranker
 except ImportError:
     from .lattice import LatticeOrchestrator, Cell, PortSignature, AlgebraicSignature, UNRESOLVED_PORT
@@ -86,7 +86,7 @@ except ImportError:
     from .preflight import PreflightLinter
     from .lattice_auditor import LatticeAuditor
     from .macro_harvester import MacroHarvester
-    from .route_methods import ROUTE_METHOD_REGISTRY, get_route_method
+    from .route_methods import ROUTE_METHOD_REGISTRY, get_route_method, route_method_ids, describe_route_methods
     from .reranker import get_available_rerankers, LocalReranker
 
 console = Console()
@@ -2096,7 +2096,7 @@ class NSTLInteractiveShell(cmd.Cmd):
         _quick_line = "  ".join(f"[{k}] {v}:{_short_label.get(v, v)}" for k, v in QUICK_PROFILE_SHORTCUTS)
         quick_shortcuts = Text(
             f"Quick Layers: {_quick_line}\n"
-            "Commands: /profile <0|A|C|D|E|S> | /method <M0-M9> | /reranker [on|off|<model>] | /topology <frontier|linear> | /audit | /macro | /debug [on|off] | /sandbox [on|off] | /status | /new | /clear | /exit",
+            "Commands: /profile <0|A|C|D|E|S> | /method <M<n>> | /reranker [on|off|<model>] | /topology <frontier|linear> | /audit | /macro | /debug [on|off] | /sandbox [on|off] | /status | /new | /clear | /exit",
             justify="center",
             style="dim cyan"
         )
@@ -2581,34 +2581,23 @@ class NSTLInteractiveShell(cmd.Cmd):
         console.print("")
 
     def do_method(self, arg: str):
-        """Set or view active RouteMethod algorithm (M0-M9). Usage: /method [M0-M9]"""
+        """Set or view active RouteMethod algorithm. Usage: /method [M<n>] (see /method for the list)"""
         raw_arg = arg.strip()
         clean = raw_arg.lower()
         if not clean:
             curr = self.route_method or str(getattr(self.router, "default_route_method", "m0")).upper()
             console.print(f"\n[cyan]Active RouteMethod:[/cyan] [bold yellow]{curr}[/bold yellow]")
             console.print("[cyan]Available Methods:[/cyan]")
-            methods_summary = [
-                ("M0", "m0_trellis", "Classical Trellis / Viterbi Dynamic Programming"),
-                ("M1", "m1_clause_anchor", "Clause-Based Strict Anchoring"),
-                ("M2", "m2_endpoint_anchor", "Endpoint Anchoring (Source & Sink)"),
-                ("M3", "m3_greedy_freeze", "Greedy Forward Beam with Prefix Freeze"),
-                ("M4", "m4_llm_stepwise", "LLM Stepwise Transition Oracle"),
-                ("M5", "m5_llm_oneshot", "LLM One-Shot Topological Alignment"),
-                ("M6", "m6_hybrid_anchors", "Hybrid Clause & Dynamic Routing"),
-                ("M7", "m7_llm_pathfinder", "LLM Full-Context Pathfinder"),
-                ("M8", "m8_llm_stepwise", "LLM Stepwise Edge Pathfinder"),
-                ("M9", "m9_llm_milestones", "LLM Milestone Anchor & Topological Pathfinder"),
-            ]
+            methods_summary = describe_route_methods()
             for m_tag, m_alias, m_desc in methods_summary:
-                is_active = (self.route_method and self.route_method.upper().startswith(m_tag)) or (not self.route_method and m_tag == curr.upper())
+                is_active = (self.route_method and self.route_method.upper() == m_tag) or (not self.route_method and m_tag == curr.upper())
                 prefix = "➔ " if is_active else "  "
                 console.print(f"  {prefix}[bold cyan]{m_tag}[/bold cyan] ({m_alias}): {m_desc}")
             console.print("")
             return
 
         if clean not in ROUTE_METHOD_REGISTRY:
-            console.print(f"[bold red][!] Unknown route method '{raw_arg}'. Valid: m0..m9, {', '.join(list(ROUTE_METHOD_REGISTRY.keys())[:10])}[/bold red]")
+            console.print(f"[bold red][!] Unknown route method '{raw_arg}'. Valid: {', '.join(m.lower() for m in route_method_ids())}, plus aliases[/bold red]")
             return
 
         m_cls = ROUTE_METHOD_REGISTRY[clean]
@@ -2753,7 +2742,7 @@ class NSTLInteractiveShell(cmd.Cmd):
                 return self.do_exit(cmd_arg)
 
         query_method = self.route_method
-        for m in ("M0", "M1", "M2", "M3", "M4", "M5", "M6", "M7", "M8", "M9"):
+        for m in sorted(route_method_ids(), key=lambda t: -len(t)):   # longest first so M10 is not read as M1
             for flag in (f"--method {m}", f"--route-method {m}", f"-m {m}", f"--method={m}", f"--route-method={m}"):
                 low_p = prompt.lower()
                 f_low = flag.lower()
@@ -3271,7 +3260,7 @@ def cmd_benchmark(args):
         ret = pytest.main(["-s", "tests/test_reference_benchmark_bank.py"])
         sys.exit(ret)
     else:
-        print("[*] Running NSTL Phase 5 Evaluation Matrix (RouteMethods M0-M9)...")
+        print("[*] Running NSTL Phase 5 Evaluation Matrix (all registered RouteMethods)...")
         import pytest
         ret = pytest.main(["-s", "tests/test_evaluation_matrix.py"])
         sys.exit(ret)
@@ -3356,7 +3345,7 @@ def build_parser() -> argparse.ArgumentParser:
     p_bench.add_argument("--type", choices=["reference", "matrix"], default="matrix", help="Benchmark type (default: matrix)")
     p_bench.add_argument("--output", type=str, default="evaluation_results.json", help="Path to write evaluation results JSON")
     p_bench.add_argument("--db", type=str, default="trees/lattice.db", help="Path to SQLite database")
-    p_bench.add_argument("--methods", nargs="*", default=["M0", "M1", "M2", "M3", "M6", "M7", "M8", "M9"], help="Route methods to evaluate")
+    p_bench.add_argument("--methods", nargs="*", default=route_method_ids(), help="Route methods to evaluate")
     p_bench.add_argument("--macros", dest="macros", action="store_true", default=None, help="Enable macro-goal routing")
     p_bench.add_argument("--no-macros", dest="macros", action="store_false", help="Disable macro-goal routing")
     p_bench.add_argument("--reranker", dest="reranker", action="store_true", default=None, help="Enable neural reranker for Layer 1 RAG routing")
@@ -3377,7 +3366,7 @@ def build_parser() -> argparse.ArgumentParser:
     p_run.add_argument("--debug", "-d", action="store_true", help="Enable verbose debug output across all pipeline layers")
     p_run.add_argument("--db", type=str, default="trees/lattice.db", help="Path to SQLite database")
     p_run.add_argument("--profile", type=str, default="0", help="Inference profile (0=Symbolic, A=Embedder, C=Neuro-Symbolic, D, E)")
-    p_run.add_argument("--route-method", "-m", type=str, default=None, choices=["M0", "M1", "M2", "M3", "M4", "M5", "M6", "M7", "M8", "M9"], help="Routing method algorithm")
+    p_run.add_argument("--route-method", "-m", type=str, default=None, choices=route_method_ids(), help="Routing method algorithm")
     p_run.add_argument("--dev", action="store_true", default=False, help="Enable Dev Mode")
     p_run.add_argument("--no-lint", action="store_true", help="Skip static pre-flight linter")
     p_run.add_argument("--embedder", type=str, default="jina-embeddings-v5-text-nano", help="Embedding model name")
@@ -3399,7 +3388,7 @@ def build_parser() -> argparse.ArgumentParser:
     p_shell = subparsers.add_parser("shell", help="Launch real-time interactive synthesis TUI studio")
     p_shell.add_argument("--db", type=str, default="trees/lattice.db", help="Path to SQLite database")
     p_shell.add_argument("--profile", type=str, default="0", help="Initial inference profile")
-    p_shell.add_argument("--route-method", "-m", type=str, default=None, choices=["M0", "M1", "M2", "M3", "M4", "M5", "M6", "M7", "M8", "M9"], help="Initial routing method")
+    p_shell.add_argument("--route-method", "-m", type=str, default=None, choices=route_method_ids(), help="Initial routing method")
     p_shell.add_argument("--dev", action="store_true", default=False, help="Launch studio with Dev Mode enabled")
     p_shell.add_argument("--no-lint", action="store_true", help="Skip static pre-flight linter")
     p_shell.add_argument("--embedder", type=str, default="jina-embeddings-v5-text-nano", help="Embedding model name")

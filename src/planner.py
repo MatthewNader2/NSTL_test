@@ -117,7 +117,8 @@ def _is_col_projection_port(p_sig: Any) -> bool:
             pass
         return True
     tname = str(getattr(getattr(p_sig, "signature", p_sig), "type_name", "")).lower()
-    if (registry.is_subtype(tname, "list") or registry.is_subtype(tname, "sequence")) and not (registry.is_subtype(tname, "ndarray") or registry.is_subtype(tname, "tensor") or registry.is_subtype(tname, "matrix")):
+    arr_types = registry.get_verification_semantics("array_types") or ("ndarray", "tensor", "matrix", "array")
+    if (registry.is_subtype(tname, "list") or registry.is_subtype(tname, "sequence")) and not any(registry.is_subtype(tname, a) for a in arr_types):
         st_tokens = set(CellTokenizer.tokenize_identifier(st))
         proj_tokens = TypeRegistry.get_instance().get_column_projection_tokens()
         if st_tokens & proj_tokens:
@@ -3543,13 +3544,16 @@ class LatticePlanner:
 
                 return best_path
 
-        # Step 4: bounded greedy-walk fallback if the Trellis was disconnected (named MCTS before; it is not Monte Carlo)
-        if not req_floor:
-            logger.info("[PLANNER] Trellis disconnected: running bounded greedy-walk fallback (not MCTS)...")
-            mcts_path = self._bounded_greedy_walk(tunnel, relevance_map)
-            if mcts_path:
-                return mcts_path
-            return [max(tunnel, key=lambda c: relevance_map.get(c.cell_id, 0.0))]
+        # Step 4: Monte Carlo Tree Search over chains if the Trellis was disconnected
+        logger.info("[PLANNER] Trellis disconnected: running Monte Carlo Tree Search over chains...")
+        try:
+            mcts_path = self._monte_carlo_chain_search(prompt, tunnel, relevance_map)
+        except Exception as mcts_err:
+            logger.debug(f"[PLANNER] MCTS chain search encountered error: {mcts_err}")
+            mcts_path = []
+
+        if mcts_path:
+            return mcts_path
 
         self.last_refusal = {
             "reason": "coverage_below_floor",
@@ -4701,59 +4705,127 @@ class LatticePlanner:
             out.append(cell)
         return out
 
-    def _bounded_greedy_walk(
+    def _monte_carlo_chain_search(
         self,
+        prompt: str,
         tunnel: List[Cell],
         relevance_map: Dict[str, float],
-        max_simulations: int = 50
     ) -> Optional[List[Cell]]:
         """
-        Bounded DETERMINISTIC greedy walk over tunnel T (last-resort fallback of the M0 planner).
+        Last-resort fallback of the M0 planner when the Trellis is disconnected: REAL Monte Carlo Tree Search
+        (src/mcts.py: UCT selection, progressive widening, seeded prior-weighted random rollouts, value
+        back-propagation) over chains of type-composable cells.
 
-        Despite the name it carried until now ("Monte Carlo Tree Search, Section 3.4"), this is NOT
-        Monte Carlo: no random sampling, no search tree, no visit/value statistics, no UCT selection,
-        no rollouts, no backpropagation. `max_simulations` is simply the maximum chain length. From each
-        ingress cell it repeatedly takes the best-scoring type-valid successor and returns the first chain
-        that reaches an endable terminal.
+          state   = chain of cell ids so far (starts from each ingress-stage cell's chain)
+          actions = tunnel cells whose input unifies with the chain tail's output (substitution threaded)
+          reward  = prompt-clause coverage of the chain (cells assigned by evidence) x evidence quality,
+                    with a bonus for ending on a terminal cell; a chain that cannot be unified scores 0
+
+        This replaces the deterministic greedy walk that used to carry the name "MCTS" without any of its
+        mechanics. Budget, exploration, seed and widening come from settings (mcts_*).
         """
+        from config import settings
+        from mcts import MonteCarloTreeSearch
+        from coverage_audit import audit as _audit
+
+        # The planner is time-budgeted (planner_time_budget_ms / _plan_deadline): the search gets only what is
+        # left of it, and does not start at all once the deadline has passed.
+        _remaining = (self._plan_deadline - time.perf_counter()) if hasattr(self, "_plan_deadline") else float("inf")
+        if _remaining <= 0.0:
+            logger.warning("[PLANNER] Monte Carlo fallback skipped: planner deadline already exceeded.")
+            return None
+        _search_seconds = min(float(settings.mcts_max_seconds), _remaining)
+
         _ing = self._vocab.ingress_stage
-        entry_nodes = [c for c in tunnel if c.stage == _ing] or list(tunnel)
+        entries = [c for c in tunnel if c.stage == _ing] or list(tunnel)
+        by_id = {c.cell_id: c for c in tunnel}
+        sigma_cache: Dict[tuple, Optional[Substitution]] = {(): Substitution()}
 
-        for entry in entry_nodes:
-            chain = [entry]
-            current_sigma = Substitution()
+        def sigma_of(chain: tuple) -> Optional[Substitution]:
+            if chain in sigma_cache:
+                return sigma_cache[chain]
+            prev = sigma_of(chain[:-1])
+            sig = None
+            if prev is not None:
+                if len(chain) == 1:
+                    sig = prev
+                else:
+                    sig = unify(by_id[chain[-2]].primary_output.signature, by_id[chain[-1]].primary_input.signature, prev)
+            sigma_cache[chain] = sig
+            return sig
 
-            for _ in range(max_simulations):
-                curr = chain[-1]
-                if _is_terminal_sink_cell(curr):
-                    return chain
+        def actions(state: tuple) -> list:
+            chain = state
+            if not chain:
+                return [(e.cell_id,) for e in entries]                    # first action picks the entry cell
+            tail = by_id[chain[-1]]
+            if _is_terminal_sink_cell(tail) or len(chain) >= 24:
+                return []
+            sig = sigma_of(chain)
+            if sig is None:
+                return []
+            used = set(chain)
+            return [(c.cell_id,) for c in tunnel
+                    if c.cell_id not in used and unify(tail.primary_output.signature, c.primary_input.signature, sig) is not None]
 
-                # Find valid unifiable candidates
-                out_sig = curr.primary_output.signature
-                valid_next = []
-                for cand in tunnel:
-                    if cand.cell_id in (c.cell_id for c in chain):
-                        continue
-                    new_sigma = unify(out_sig, cand.primary_input.signature, current_sigma)
-                    if new_sigma is not None:
-                        valid_next.append((cand, new_sigma))
+        def step(state: tuple, action: tuple) -> tuple:
+            return state + action
 
-                if not valid_next:
-                    break
+        # heuristic for expansion order and the softmax rollout policy: how strongly some prompt clause names the
+        # cell (identity evidence), plus retrieval relevance and edge affinity
+        import math as _math
+        from token_evidence import get_evidence as _get_ev
+        _ev = _get_ev(self.orchestrator)
+        _clause_toks = [_ev.clause_tokens(cl) for cl in _segment_prompt_clauses(prompt)] if _ev is not None else []
+        _fit: Dict[str, float] = {}
+        for _c in tunnel:
+            _best = 0.0
+            for _t in _clause_toks:
+                if _t:
+                    _o = _ev.identity_overlap(_t, _c)
+                    _best = max(_best, _o["recall"] * _o["name_precision"])
+            _fit[_c.cell_id] = _best
 
-                # Bias exploration by semantic relevance probability combined with edge affinity
-                valid_next.sort(key=lambda x: relevance_map.get(x[0].cell_id, 0.0) + 2.0 * self._calculate_edge_affinity(curr, x[0]), reverse=True)
-                chosen_cand, chosen_sigma = valid_next[0]
-                chain.append(chosen_cand)
-                current_sigma = chosen_sigma
+        def prior(state: tuple, action: tuple) -> float:
+            c = by_id[action[0]]
+            aff = self._calculate_edge_affinity(by_id[state[-1]], c) if state else 0.0
+            h = _fit.get(c.cell_id, 0.0) + relevance_map.get(c.cell_id, 0.0) + aff
+            return _math.exp(h / settings.mcts_rollout_temperature)
 
-                if _is_terminal_sink_cell(chosen_cand) and not getattr(chosen_cand, "slots", None):
-                    return self._bind_chain_slots(chain, tunnel, relevance_map, current_sigma)
+        def reward(state: tuple) -> float:
+            if not state or sigma_of(state) is None:
+                return 0.0
+            cells = [by_id[i] for i in state]
+            res = _audit(cells, prompt, self.orchestrator if hasattr(self, "orchestrator") else None)
+            infos = [c for c in res.get("clauses", []) if c["status"] in ("served", "UNSERVED")]
+            if not infos:
+                return 0.0
+            served = sum(1 for c in infos if c["status"] == "served") / len(infos)
+            quality = sum(c["quality"] for c in infos) / len(infos)
+            terminal = 1.0 if _is_terminal_sink_cell(cells[-1]) else 0.5
+            # every cell the audit calls unrequested (or clause it calls unserved) counts against the chain,
+            # exactly as in M10's reward: without this a long wander that happens to touch every clause wins
+            return served * quality * terminal / (1.0 + len(res.get("issues", [])))
 
-            if len(chain) > 1:
-                return self._bind_chain_slots(chain, tunnel, relevance_map, current_sigma)
-
-        return None
+        search = MonteCarloTreeSearch(
+            actions=actions, step=step, reward=reward, prior=prior, state_key=lambda s: s,
+            describe_action=lambda a: a[0], iterations=settings.mcts_iterations, exploration=settings.mcts_exploration,
+            widening_alpha=settings.mcts_widening_alpha, max_seconds=_search_seconds, max_rollout_depth=24,
+            seed=settings.mcts_seed,
+        )
+        res = search.search(())
+        self.last_mcts_summary = {
+            "iterations": res.iterations, "evaluations": res.evaluations, "cache_hits": res.cache_hits, "seed": res.seed,
+            "elapsed_ms": round(res.elapsed_ms, 1), "stopped_by": res.stopped_by, "best_reward": round(res.best_reward, 4),
+            "best_chain": list(res.best_state), "root": res.root_stats[:8],
+        }
+        logger.info(f"[PLANNER] Monte Carlo chain search: {self.last_mcts_summary}")
+        chain = list(res.best_state)
+        if len(chain) < 1 or res.best_reward <= 0.0:
+            return None
+        cells = [by_id[i] for i in chain]
+        sig = sigma_of(tuple(chain))
+        return self._bind_chain_slots(cells, tunnel, relevance_map, sig) if sig is not None else cells
 
 
 ZeroShotPlanner = LatticePlanner

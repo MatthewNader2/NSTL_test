@@ -98,13 +98,17 @@ class TokenEvidence:
                 "tokens": sorted(hit)}
 
 
+import threading
+
 _CACHE: Dict[int, "TokenEvidence"] = {}
 _LAST: list = []
+_LOCK = threading.RLock()
 
 
 def last_orchestrator() -> Any:
     """Most recent orchestrator an evidence service was built for (lint has no handle on it)."""
-    return _LAST[0] if _LAST else None
+    with _LOCK:
+        return _LAST[0] if _LAST else None
 
 
 def get_evidence(orchestrator: Any) -> Optional[TokenEvidence]:
@@ -112,12 +116,13 @@ def get_evidence(orchestrator: Any) -> Optional[TokenEvidence]:
     if orchestrator is None or not getattr(orchestrator, "loaded_cells", None):
         return None
     key = id(orchestrator)
-    ev = _CACHE.get(key)
-    if ev is None or ev.n != max(len(orchestrator.loaded_cells), 1):
-        ev = TokenEvidence(orchestrator)
-        _CACHE[key] = ev
-    _LAST[:] = [orchestrator]
-    return ev
+    with _LOCK:
+        ev = _CACHE.get(key)
+        if ev is None or ev.n != max(len(orchestrator.loaded_cells), 1):
+            ev = TokenEvidence(orchestrator)
+            _CACHE[key] = ev
+        _LAST[:] = [orchestrator]
+        return ev
 
 
 def anchors_for_clause(ev: "TokenEvidence", clause: str, pool: Iterable[Any],

@@ -686,9 +686,16 @@ class BenchmarkProfile_S(BenchmarkProfile_C):
                     else:
                         outputs.append(clean_w)
 
+        active_domain = "generic"
+        try:
+            from lattice import TypeRegistry
+            active_domain = getattr(TypeRegistry.get_instance(), "active_domain", "generic") or "generic"
+        except Exception:
+            pass
+
         return {
             "task": "pipeline",
-            "domain": "data_science",
+            "domain": active_domain,
             "inputs": inputs,
             "outputs": outputs,
             "source_files": inputs,

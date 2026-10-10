@@ -2923,7 +2923,9 @@
           "description": "Dimensionality must be strictly 2"
         }
       ],
-      "effects": [],
+      "effects": [
+        "preserves:is_complex"
+      ],
       "edges": [
         {
           "target_cell_id": "NUMPY_MATMUL",
@@ -3163,7 +3165,9 @@
           "description": "Output dimensionality must be 1"
         }
       ],
-      "effects": [],
+      "effects": [
+        "preserves:is_complex"
+      ],
       "edges": [
         {
           "target_cell_id": "NUMPY_SORT",
@@ -4309,7 +4313,9 @@
           "description": "Boolean index extraction yields a 1D vector"
         }
       ],
-      "effects": [],
+      "effects": [
+        "preserves:is_complex"
+      ],
       "edges": [
         {
           "target_cell_id": "NUMPY_MEAN_ALL",
@@ -5389,7 +5395,16 @@
         }
       },
       "preconditions": [],
-      "postconditions": [],
+      "postconditions": [
+        {
+          "target": "output_var",
+          "property": "is_complex",
+          "operator": "==",
+          "value": false,
+          "expression": "not np.iscomplexobj(output_var)",
+          "description": "Result is real-valued."
+        }
+      ],
       "effects": [],
       "edges": [
         {
@@ -8346,7 +8361,16 @@
         }
       },
       "preconditions": [],
-      "postconditions": [],
+      "postconditions": [
+        {
+          "target": "output_var",
+          "property": "is_complex",
+          "operator": "==",
+          "value": true,
+          "expression": "np.iscomplexobj(output_var)",
+          "description": "Frequency-domain output is complex-valued."
+        }
+      ],
       "effects": [],
       "edges": [
         {
@@ -8463,7 +8487,16 @@
         }
       },
       "preconditions": [],
-      "postconditions": [],
+      "postconditions": [
+        {
+          "target": "output_var",
+          "property": "is_complex",
+          "operator": "==",
+          "value": true,
+          "expression": "np.iscomplexobj(output_var)",
+          "description": "Frequency-domain output is complex-valued."
+        }
+      ],
       "effects": [],
       "edges": [
         {
@@ -8591,7 +8624,16 @@
         }
       },
       "preconditions": [],
-      "postconditions": [],
+      "postconditions": [
+        {
+          "target": "output_var",
+          "property": "is_complex",
+          "operator": "==",
+          "value": true,
+          "expression": "np.iscomplexobj(output_var)",
+          "description": "Frequency-domain output is complex-valued."
+        }
+      ],
       "effects": [],
       "edges": [
         {
@@ -8703,7 +8745,16 @@
         }
       },
       "preconditions": [],
-      "postconditions": [],
+      "postconditions": [
+        {
+          "target": "output_var",
+          "property": "is_complex",
+          "operator": "==",
+          "value": true,
+          "expression": "np.iscomplexobj(output_var)",
+          "description": "Frequency-domain output is complex-valued."
+        }
+      ],
       "effects": [],
       "edges": [
         {
@@ -8827,7 +8878,16 @@
         }
       },
       "preconditions": [],
-      "postconditions": [],
+      "postconditions": [
+        {
+          "target": "output_var",
+          "property": "is_complex",
+          "operator": "==",
+          "value": true,
+          "expression": "np.iscomplexobj(output_var)",
+          "description": "Frequency-domain output is complex-valued."
+        }
+      ],
       "effects": [],
       "edges": [
         {
@@ -8947,7 +9007,16 @@
         }
       },
       "preconditions": [],
-      "postconditions": [],
+      "postconditions": [
+        {
+          "target": "output_var",
+          "property": "is_complex",
+          "operator": "==",
+          "value": false,
+          "expression": "not np.iscomplexobj(output_var)",
+          "description": "Result is real-valued."
+        }
+      ],
       "effects": [],
       "edges": [
         {
@@ -9044,7 +9113,9 @@
       },
       "preconditions": [],
       "postconditions": [],
-      "effects": [],
+      "effects": [
+        "preserves:is_complex"
+      ],
       "edges": [
         {
           "target_cell_id": "NUMPY_FFT_IFFTSHIFT",
@@ -9147,7 +9218,9 @@
       },
       "preconditions": [],
       "postconditions": [],
-      "effects": [],
+      "effects": [
+        "preserves:is_complex"
+      ],
       "edges": [
         {
           "target_cell_id": "NUMPY_FFT_IFFT",
@@ -10303,7 +10376,9 @@
           "description": "Unique returns a 1D vector by default"
         }
       ],
-      "effects": [],
+      "effects": [
+        "preserves:is_complex"
+      ],
       "edges": [
         {
           "target_cell_id": "NUMPY_SEARCHSORTED",
@@ -11398,7 +11473,9 @@
           "description": "Dimensionality must be strictly 2"
         }
       ],
-      "effects": [],
+      "effects": [
+        "preserves:is_complex"
+      ],
       "edges": [],
       "primary_in": "array",
       "primary_out": "output_var"

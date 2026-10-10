@@ -46,9 +46,32 @@ def render_planning_diagnostics(console: Any, router: Any, cells: List[Any], pro
             elif e["event"] == "method_fallback":
                 console.print(f"[bold yellow]⚠ METHOD FELL BACK[/bold yellow] requested {e['requested']} → effective {e['to']}: {e['reason']}\n"
                               f"    (the path below is {e['to']}'s, not {e['requested']}'s)")
+            elif e["event"] == "mcts_space":
+                console.print(f"[bold cyan]🎲 MONTE CARLO SEARCH SPACE[/bold cyan] {e['clauses']} clauses; alternatives per clause "
+                              f"(tied evidence): {[[g[0] if len(g) == 1 else g for g in gl] for gl in e['groups']]}; "
+                              f"bridge candidates (tree postconditions that satisfy preconditions): {e['bridges']}")
+            elif e["event"] == "mcts_summary":
+                v = e.get("verdict") or {}
+                console.print(f"[bold cyan]🎲 MONTE CARLO RESULT[/bold cyan] iterations={e['iterations']} distinct evaluations={e['evaluations']} "
+                              f"cache hits={e['cache_hits']} seed={e['seed']} {e['elapsed_ms']} ms (stopped by {e['stopped_by']}); "
+                              f"best reward={e['best_reward']}  verdict: served={v.get('served')} quality={v.get('quality')} "
+                              f"violations={v.get('violations')} {v.get('first') or ''}")
+                tb = _t("🎲 Root statistics (UCT): how the budget was spent")
+                for col in ("First decision", "Visits", "Mean reward"):
+                    tb.add_column(col, overflow="fold")
+                for r in e.get("root", []):
+                    tb.add_row(str(r["action"]), str(r["visits"]), str(r["mean_reward"]))
+                console.print(tb)
+                console.print(f"    most-visited line: {[(x['action'], x['visits']) for x in e.get('best_line', [])]}")
+            elif e["event"] in ("mcts_bridge_removed", "mcts_baseline_kept"):
+                console.print(f"[cyan]🎲 {e['event']}[/cyan] {({k: v for k, v in e.items() if k != 'event'})}")
             elif e["event"] in ("pruned_unrequested", "prune_blocked"):
                 col = "green" if e["event"] == "pruned_unrequested" else "yellow"
                 console.print(f"[bold {col}]✂ {e['event'].upper()}[/bold {col}] {e['cell']}: {e['reason']} (better explained by {e.get('winners')})")
+            elif e["event"] in ("column_commit_inserted", "column_commit_blocked"):
+                col = "green" if e["event"] == "column_commit_inserted" else "yellow"
+                console.print(f"[bold {col}]↩ {e['event'].upper()}[/bold {col}] {e.get('commit')} after {e['after']} "
+                              f"(column {e.get('column')}): {e['reason']}")
             elif e["event"] == "producer_inserted":
                 console.print(f"[bold green]+ PRODUCER INSERTED[/bold green] {e['cell']} for {e['for_anchor']}: {e['reason']}")
             elif e["event"] in ("anchor_fallback_retrieval_only", "clause_without_anchor"):

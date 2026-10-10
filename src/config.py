@@ -44,6 +44,16 @@ class NSTLSettings(BaseSettings):
     sandbox_max_memory_mb: int = Field(default=1024, ge=64, description="Sandbox memory limit in MB.")
     sandbox_max_cpu_seconds: int = Field(default=5, ge=1, description="Sandbox CPU runtime limit in seconds.")
 
+    # Monte Carlo Tree Search (src/mcts.py): used by the M10 route method and by the M0 planner's fallback.
+    mcts_iterations: int = Field(default=64, ge=1, description="Selection/expansion/rollout/backprop iterations per search.")
+    mcts_exploration: float = Field(default=1.4142135623730951, ge=0, description="UCT exploration constant C (sqrt(2) is the classical choice).")
+    mcts_widening_alpha: float = Field(default=0.5, ge=0, le=1, description="Progressive widening: a node with n visits may expand ceil(n**alpha) children.")
+    mcts_seed: int = Field(default=0, description="RNG seed. Searches are deterministic for a given seed; change it to sample other plans.")
+    mcts_max_seconds: float = Field(default=20.0, gt=0, description="Wall-clock budget per search (the search stops early and returns its best plan).")
+    mcts_max_branch: int = Field(default=4, ge=1, description="Alternative cells considered per clause by the M10 route method.")
+    mcts_max_bridges: int = Field(default=2, ge=0, description="Maximum property/type bridge cells M10 may insert.")
+    mcts_rollout_temperature: float = Field(default=0.1, gt=0, description="Softmax temperature of the rollout policy (lower = rollouts follow the heuristic prior more closely).")
+
     # Inference & Similarity
     embedder_model: str = Field(default="jina-embeddings-v5-text-nano", description="Default text embedding model identifier.")
     llm_model: str = Field(default="qwen2.5-coder-0.5b-instruct", description="Default GGUF LLM model identifier.")

@@ -1,6 +1,6 @@
 """
 src/route_methods/__init__.py - Neuro-Symbolic Topological Lattice (NSTL)
-Pluggable RouteMethods registry and factory (M0 - M6).
+Pluggable RouteMethods registry and factory (M0 - M10).
 """
 
 from typing import Dict, Type, Optional
@@ -16,6 +16,7 @@ from .m6_hybrid_anchors import M6HybridAnchorsRouteMethod
 from .m7_llm_pathfinder import M7LLMPathfinderRouteMethod
 from .m8_llm_stepwise import M8LLMStepwisePathfinderRouteMethod
 from .m9_llm_milestones import M9LLMMilestonePathfinderRouteMethod
+from .m10_monte_carlo import M10MonteCarloRouteMethod
 
 ROUTE_METHOD_REGISTRY: Dict[str, Type[RouteMethod]] = {
     "m0": M0TrellisRouteMethod,
@@ -64,7 +65,28 @@ ROUTE_METHOD_REGISTRY: Dict[str, Type[RouteMethod]] = {
     "m9_llm_milestones": M9LLMMilestonePathfinderRouteMethod,
     "milestone_pathfinder": M9LLMMilestonePathfinderRouteMethod,
     "milestones": M9LLMMilestonePathfinderRouteMethod,
+
+    "m10": M10MonteCarloRouteMethod,
+    "m10_monte_carlo": M10MonteCarloRouteMethod,
+    "monte_carlo": M10MonteCarloRouteMethod,
+    "mcts": M10MonteCarloRouteMethod,
 }
+
+
+def route_method_ids() -> list:
+    """Canonical ids (M0, M1, ... in numeric order) derived from the registry, so no caller keeps its own list."""
+    ids = {k.upper() for k in ROUTE_METHOD_REGISTRY if k[:1] == "m" and k[1:].isdigit()}
+    return sorted(ids, key=lambda t: int(t[1:]))
+
+
+def describe_route_methods() -> list:
+    """[(id, module-style name, one-line description)] from each method's own class."""
+    out = []
+    for mid in route_method_ids():
+        cls = ROUTE_METHOD_REGISTRY[mid.lower()]
+        doc = next((ln.strip() for ln in (cls.__doc__ or "").strip().splitlines() if ln.strip()), cls.__name__)
+        out.append((mid, getattr(cls, "name", cls.__name__), doc))
+    return out
 
 
 def get_route_method(name: str = "m0", **kwargs) -> RouteMethod:
@@ -92,6 +114,9 @@ __all__ = [
     "M7LLMPathfinderRouteMethod",
     "M8LLMStepwisePathfinderRouteMethod",
     "M9LLMMilestonePathfinderRouteMethod",
+    "M10MonteCarloRouteMethod",
     "ROUTE_METHOD_REGISTRY",
+    "route_method_ids",
+    "describe_route_methods",
     "get_route_method",
 ]

@@ -1,4 +1,3 @@
-# STATUS: partially wired / candidate for future removal. Do not expand until usage is confirmed.
 """
 src/tree_merger.py - Neuro-Symbolic Topological Lattice (NSTL)
 Universal Knowledge Tree Merger & Schema Reconciler.
@@ -11,6 +10,16 @@ from __future__ import annotations
 import json
 from pathlib import Path
 from typing import Dict, List, Optional, Set, Union
+
+try:
+    import config
+    PROJECT_ROOT = config.PROJECT_ROOT
+except ImportError:
+    try:
+        from . import config
+        PROJECT_ROOT = config.PROJECT_ROOT
+    except ImportError:
+        PROJECT_ROOT = Path(__file__).resolve().parent.parent
 
 try:
     from schema import CellSchema, TreeSchema
@@ -40,11 +49,12 @@ def merge_domain_tree(
     )
 
     new_cells = harvester.harvest_all()
-    t_path = Path(tree_path) if tree_path else Path("trees") / f"{domain_name}.json"
+    trees_dir = Path(PROJECT_ROOT) / "trees"
+    t_path = Path(tree_path) if tree_path else trees_dir / f"{domain_name}.json"
     existing_paths = []
     if t_path.exists():
         existing_paths.append(t_path)
-    ckpt = Path("nstl_enrichment/checkpoints") / f"{domain_name}.json"
+    ckpt = Path(PROJECT_ROOT) / "nstl_enrichment" / "checkpoints" / f"{domain_name}.json"
     if ckpt.exists():
         existing_paths.append(ckpt)
 

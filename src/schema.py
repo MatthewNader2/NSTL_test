@@ -59,7 +59,17 @@ class ConditionPredicate(BaseModel):
                         prop = ast.unparse(left)
                     except Exception:
                         prop = None
-                    if prop and all(part.isidentifier() for part in prop.split(".")):
+
+                    def _is_valid_prop_ast(node: ast.AST) -> bool:
+                        if isinstance(node, ast.Name):
+                            return node.id.isidentifier()
+                        if isinstance(node, ast.Attribute):
+                            return node.attr.isidentifier() and _is_valid_prop_ast(node.value)
+                        if isinstance(node, ast.Subscript):
+                            return _is_valid_prop_ast(node.value)
+                        return False
+
+                    if prop and _is_valid_prop_ast(left):
                         right = body.comparators[0]
                         try:
                             val = ast.literal_eval(right)
@@ -337,7 +347,10 @@ class CellSchema(BaseModel):
         if isinstance(v, (list, tuple)):
             res = []
             for item in v:
-                if isinstance(item, (str, dict, ConditionPredicate)):
+                if isinstance(item, dict) and not any(k in item for k in ("property", "expression", "target", "operator")):
+                    for k, val in item.items():
+                        res.append(ConditionPredicate(property=k, operator="==", value=val))
+                elif isinstance(item, (str, dict, ConditionPredicate)):
                     res.append(
                         ConditionPredicate.from_any(item)
                         if not isinstance(item, ConditionPredicate)
@@ -360,7 +373,10 @@ class CellSchema(BaseModel):
         if isinstance(v, (list, tuple)):
             res = []
             for item in v:
-                if isinstance(item, (str, dict, ConditionPredicate)):
+                if isinstance(item, dict) and not any(k in item for k in ("property", "expression", "target", "operator")):
+                    for k, val in item.items():
+                        res.append(ConditionPredicate(property=k, operator="==", value=val))
+                elif isinstance(item, (str, dict, ConditionPredicate)):
                     res.append(
                         ConditionPredicate.from_any(item)
                         if not isinstance(item, ConditionPredicate)

@@ -622,6 +622,38 @@
     "must be one of",
     "refer to"
   ],
+  "excluded_module_tokens": [
+    "test",
+    "tests",
+    "testing",
+    "conftest",
+    "testutils",
+    "vendor",
+    "vendored",
+    "externals",
+    "third_party",
+    "compat",
+    "internal",
+    "internals"
+  ],
+  "enum_suffixes": [
+    "flags",
+    "flag",
+    "types",
+    "type",
+    "codes",
+    "code",
+    "mode",
+    "modes",
+    "enum",
+    "enums"
+  ],
+  "symbol_stopwords": [
+    "the", "a", "an", "and", "or", "not", "for", "in", "to", "of", "by", "with",
+    "from", "at", "on", "as", "is", "be", "see", "one", "all", "any", "each",
+    "none", "true", "false", "list", "set", "dict", "tuple", "optional", "default",
+    "either", "valid", "values", "value", "type", "types", "more", "details"
+  ],
   "semantic_flag_patterns": [
     {
       "keywords": [
@@ -1019,6 +1051,8 @@
     "terminal_roles": ["sink", "model_sink", "evaluator", "export", "terminal", "output"],
     "bridge_roles": ["bridge", "tunnel", "adapter", "cast", "coercion"],
     "row_set_effects": ["cleans_missing"],
+    "column_transform_effects": ["transforms_column"],
+    "column_commit_cell": ["PD_SET_COLUMN"],
     "path_consumer_roles": ["source_data", "model_sink"],
     "path_abstract_types": ["path"],
     "source_roles": [

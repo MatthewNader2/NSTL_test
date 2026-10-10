@@ -1254,6 +1254,10 @@ class LatticeRouter:
                 from route_methods.base import RouteMethod as _RM
                 self.last_tagging_decisions = _RM.tag_cells_with_clause_indices(
                     path, prompt, orchestrator=self.orchestrator)
+                from route_methods.m1_clause_anchor import M1ClauseAnchorRouteMethod as _Util2
+                _util2 = _Util2(orchestrator=self.orchestrator)
+                path = _util2.insert_column_commits(path)
+                self.last_route_trace = list(self.last_route_trace) + list(_util2.trace_events)
             except Exception as _tc_err:
                 # Was logger.debug + wrong class name: tagging silently never ran.
                 logger.warning(f"[ROUTER] Clause tagging FAILED ({type(_tc_err).__name__}): {_tc_err}")

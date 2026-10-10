@@ -420,10 +420,19 @@ class PreflightLinter:
                 if isinstance(v, str) and v.startswith("var_"):
                     carrier_in_var = v
             if not carrier_in_var:
-                for k in ("df", "data", "self", "port_0"):
+                # Dynamic port inspection: check ports declared as carriers or bound to input variables
+                for k, p_sig in (getattr(cell, "inputs", {}) or {}).items():
                     if k in bindings and isinstance(bindings[k], str) and bindings[k].startswith("var_"):
-                        carrier_in_var = bindings[k]
-                        break
+                        p_role = cls._port_role(p_sig).lower()
+                        if getattr(p_sig, "is_carrier", False) or getattr(p_sig, "binds", "") in ("carrier", "data_carrier") or "carrier" in p_role or "receiver" in p_role:
+                            carrier_in_var = bindings[k]
+                            break
+                if not carrier_in_var:
+                    # Fallback to the first variable binding in input ports
+                    for k in (getattr(cell, "inputs", {}) or {}):
+                        if k in bindings and isinstance(bindings[k], str) and bindings[k].startswith("var_"):
+                            carrier_in_var = bindings[k]
+                            break
 
             # 2. Check if any port binding references a column absent or removed from its target variable
             for p_name, val in bindings.items():
@@ -447,9 +456,12 @@ class PreflightLinter:
                     # Check for literal column arguments
                     p_sig = cell.inputs.get(p_name) if getattr(cell, "inputs", None) else None
                     p_role_s = cls._port_role(p_sig) if p_sig else ""
-                    if p_name in ("column", "columns", "key", "port_1") or any(
-                        r in p_role_s for r in ("column", "target", "feature")
-                    ):
+                    is_proj_port = (
+                        getattr(p_sig, "binds", "") in ("column_key", "column", "key")
+                        or any(r in p_role_s for r in ("column", "target", "feature", "projection", "key"))
+                        or p_name in ("column", "columns", "key", "port_1")
+                    )
+                    if is_proj_port:
                         target_v = carrier_in_var
                         if val_str.startswith("[") and val_str.endswith("]"):
                             try:
@@ -543,10 +555,21 @@ class PreflightLinter:
                     removed_by=dict(base_sch.removed_by) if base_sch else {},
                 )
 
-                # Track column additions (e.g. PD_SET_COLUMN)
                 c_id_s = str(getattr(cell, "cell_id", "") or "").lower()
-                if getattr(cell, "projection", None) == "set_column" or "set_column" in c_id_s:
-                    col_k = bindings.get("column") or bindings.get("key") or bindings.get("port_1")
+                is_set_item = (
+                    getattr(cell, "projection", None) in ("set_column", "set_item", "assign")
+                    or getattr(cell, "node_role", "") in ("assign", "setter")
+                    or any(
+                        eff == "adds_column" or (isinstance(eff, dict) and eff.get("name") in ("adds_column", "set_column"))
+                        for eff in (getattr(cell, "effects", []) or [])
+                    )
+                    or "set_column" in c_id_s
+                )
+                if is_set_item:
+                    col_k = next((bindings[p] for p, sig in (getattr(cell, "inputs", {}) or {}).items()
+                                  if getattr(sig, "binds", "") in ("column_key", "key") and p in bindings), None)
+                    if not col_k:
+                        col_k = bindings.get("column") or bindings.get("key") or bindings.get("port_1")
                     if col_k:
                         new_sch.added_columns.add(str(col_k).strip("'\""))
 
@@ -1339,6 +1362,40 @@ class PreflightLinter:
                     cell_id=_ri["cell"], details=_ri)
         except Exception as _row_err:
             warnings.append(f"row lineage analysis unavailable: {type(_row_err).__name__}: {_row_err}")
+
+        # -----------------------------------------------------------------
+        # Check 10b: a column must not be read before the cell that defines it has run.
+        # -----------------------------------------------------------------
+        try:
+            from row_lineage import analyze_column_definitions as _col_defs
+            for _ci in _col_defs(pipeline_bindings):
+                _add_violation(
+                    "column_used_before_defined",
+                    f"Cell '{_ci['cell']}' reads column {_ci['column']!r} (port '{_ci['port']}', step {_ci['read_at'] + 1}) before "
+                    f"'{_ci['defined_by']}' defines it (step {_ci['defined_at'] + 1}); this raises KeyError at runtime.",
+                    cell_id=_ci["cell"], details=_ci)
+        except Exception as _cd_err:
+            warnings.append(f"column definition analysis unavailable: {type(_cd_err).__name__}: {_cd_err}")
+
+        # -----------------------------------------------------------------
+        # Check 11: Tree-declared value properties. A consumer precondition that a KNOWN
+        # producer postcondition contradicts (e.g. a complex FFT result bound to an estimator that
+        # rejects complex data) is a static error, not a runtime surprise.
+        # -----------------------------------------------------------------
+        try:
+            from property_contracts import analyze as _prop_analyze
+            from token_evidence import last_orchestrator as _last_orch
+            for _pi in _prop_analyze(pipeline_bindings, _last_orch()):
+                _hint = (f" Cells declared to establish {_pi['property']} == {_pi['required']}: {', '.join(_pi['bridge_candidates'])}."
+                         if _pi["bridge_candidates"] else "")
+                _add_violation(
+                    "precondition_violated",
+                    f"Cell '{_pi['cell']}' port '{_pi['port']}' requires {_pi['property']} {_pi['required_operator']} {_pi['required']}, "
+                    f"but the bound value {_pi['bound']} is known to have {_pi['property']} == {_pi['known']} "
+                    f"(established by {_pi['established_by']}: {_pi['established_note']}).{_hint}",
+                    cell_id=_pi["cell"], details=_pi)
+        except Exception as _prop_err:
+            warnings.append(f"property analysis unavailable: {type(_prop_err).__name__}: {_prop_err}")
 
         # -----------------------------------------------------------------
         # Check 9: Prompt-clause coverage (corpus-derived, vocabulary-free).

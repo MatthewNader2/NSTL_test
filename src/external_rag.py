@@ -218,9 +218,24 @@ class IntrospectionFetcher(BaseFetcher):
             import inspect
 
             try:
-                mod_name, *sub = query.split(".", 1)
-                mod = importlib.import_module(mod_name)
-                target = getattr(mod, sub[0]) if sub else mod
+                parts = query.strip().split(".")
+                mod = None
+                sub_attrs = []
+                for i in range(len(parts), 0, -1):
+                    mod_path = ".".join(parts[:i])
+                    try:
+                        mod = importlib.import_module(mod_path)
+                        sub_attrs = parts[i:]
+                        break
+                    except Exception:
+                        continue
+                if mod is None:
+                    return f"Introspection unavailable: cannot import '{query}'"
+
+                target = mod
+                for attr in sub_attrs:
+                    target = getattr(target, attr)
+
                 doc = inspect.getdoc(target) or ""
                 sig = ""
                 try:

@@ -277,6 +277,9 @@ class TypeRegistry:
         self._ancestry_cache: Dict[Tuple[str, FrozenSet[str]], bool] = {}
         # (apply_fixes_v7) P6 — configurable enum-citation triggers
         self._enum_citation_triggers: Set[str] = set()
+        self._excluded_module_tokens: Set[str] = set()
+        self._enum_suffixes: Set[str] = set()
+        self._symbol_stopwords: Set[str] = set()
         # Data-driven extension registries (declared ONLY in tree JSON; empty by
         # default so the engine core never carries domain information):
         #   semantic_flag_patterns  — keyword->flag observers for slot extraction
@@ -500,6 +503,14 @@ class TypeRegistry:
                             self.register_port_name_type_hints(data["port_name_type_hints"])
                         if "port_name_morphology_hints" in data and isinstance(data["port_name_morphology_hints"], list):
                             self.register_port_name_morphology_hints(data["port_name_morphology_hints"])
+                        if "enum_citation_triggers" in data and isinstance(data["enum_citation_triggers"], list):
+                            self.register_enum_citation_triggers(data["enum_citation_triggers"])
+                        if "excluded_module_tokens" in data and isinstance(data["excluded_module_tokens"], list):
+                            self.register_excluded_module_tokens(data["excluded_module_tokens"])
+                        if "enum_suffixes" in data and isinstance(data["enum_suffixes"], list):
+                            self.register_enum_suffixes(data["enum_suffixes"])
+                        if "symbol_stopwords" in data and isinstance(data["symbol_stopwords"], list):
+                            self.register_symbol_stopwords(data["symbol_stopwords"])
                 except Exception as e:
                     logger.debug("suppressed: %s", e, exc_info=False)
 
@@ -961,6 +972,16 @@ class TypeRegistry:
     def get_verification_semantics(self, key: str) -> List[str]:
         return list(self._verification_semantics.get(str(key).strip().lower(), []))
 
+    def get_slot_aliases(self, role: str) -> List[str]:
+        """Returns registered slot aliases for an operational role or placeholder."""
+        k = str(role).strip().lower()
+        aliases = self.get_verification_semantics(f"slot_aliases:{k}")
+        if not aliases:
+            aliases = self.get_verification_semantics(f"slot_aliases_{k}")
+        if not aliases:
+            aliases = self.get_verification_semantics(k)
+        return aliases
+
     # --- Operation / algorithm tokens (data-driven from tree cell declarations) ---
     @_locked
     def register_operation_tokens(self, tokens: Any) -> None:
@@ -1046,6 +1067,36 @@ class TypeRegistry:
 
     def get_enum_citation_triggers(self) -> FrozenSet[str]:
         return frozenset(self._enum_citation_triggers)
+
+    @_locked
+    def register_excluded_module_tokens(self, tokens: Any) -> None:
+        for t in tokens or ():
+            s = str(t).strip().lower()
+            if s:
+                self._excluded_module_tokens.add(s)
+
+    def get_excluded_module_tokens(self) -> FrozenSet[str]:
+        return frozenset(self._excluded_module_tokens)
+
+    @_locked
+    def register_enum_suffixes(self, suffixes: Any) -> None:
+        for s in suffixes or ():
+            s_ = str(s).strip().lower()
+            if s_:
+                self._enum_suffixes.add(s_)
+
+    def get_enum_suffixes(self) -> FrozenSet[str]:
+        return frozenset(self._enum_suffixes)
+
+    @_locked
+    def register_symbol_stopwords(self, words: Any) -> None:
+        for w in words or ():
+            s = str(w).strip().lower()
+            if s:
+                self._symbol_stopwords.add(s)
+
+    def get_symbol_stopwords(self) -> FrozenSet[str]:
+        return frozenset(self._symbol_stopwords)
 
     # ---------------------------------------------------------------------
     # Data-driven extension registries (all populated from trees/*.json)
@@ -1223,21 +1274,32 @@ class TypeRegistry:
             parts = clean.rsplit(".", 1)
             mod_name, cls_name = parts[0], parts[1]
             mod = sys.modules.get(mod_name)
+            if not mod:
+                try:
+                    import importlib
+                    mod = importlib.import_module(mod_name)
+                except Exception:
+                    mod = None
             if mod and hasattr(mod, cls_name):
                 obj = getattr(mod, cls_name)
                 if isinstance(obj, type):
                     return obj
+
+        # For unqualified type names, restrict lookup to top-level canonical root modules
+        # and verify the class actually belongs to the declaring package namespace
+        known_roots = [
+            mod for name, mod in list(sys.modules.items())
+            if mod and "." not in name and not name.startswith("_")
+        ]
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
-            for mod_name, mod in list(sys.modules.items()):
-                if not mod or mod_name.startswith("_") or "._" in mod_name:
-                    continue
+            for mod in known_roots:
                 try:
                     if hasattr(mod, clean):
                         obj = getattr(mod, clean)
-                        if isinstance(obj, type):
+                        if isinstance(obj, type) and getattr(obj, "__module__", "").split(".")[0] == getattr(mod, "__name__", ""):
                             return obj
-                except Exception as e:
+                except Exception:
                     continue
         return None
 
@@ -2959,6 +3021,14 @@ class LatticeOrchestrator:
                     reg.register_port_name_type_hints(data["port_name_type_hints"])
                 if "port_name_morphology_hints" in data and isinstance(data["port_name_morphology_hints"], list):
                     reg.register_port_name_morphology_hints(data["port_name_morphology_hints"])
+                if "enum_citation_triggers" in data and isinstance(data["enum_citation_triggers"], list):
+                    reg.register_enum_citation_triggers(data["enum_citation_triggers"])
+                if "excluded_module_tokens" in data and isinstance(data["excluded_module_tokens"], list):
+                    reg.register_excluded_module_tokens(data["excluded_module_tokens"])
+                if "enum_suffixes" in data and isinstance(data["enum_suffixes"], list):
+                    reg.register_enum_suffixes(data["enum_suffixes"])
+                if "symbol_stopwords" in data and isinstance(data["symbol_stopwords"], list):
+                    reg.register_symbol_stopwords(data["symbol_stopwords"])
 
             for c_dict in raw_cells:
                 if isinstance(c_dict, dict) and "type_vars" in c_dict and c_dict["type_vars"]:
@@ -3446,14 +3516,16 @@ class LatticeOrchestrator:
                 self._adjacency[cell.cell_id] = []
                 self._reverse_adjacency[cell.cell_id] = []
 
-            # Populate graph edges
+            # Populate graph edges (accelerated with O(1) set lookups)
+            adj_sets: Dict[str, Set[str]] = {c.cell_id: set() for c in all_cells}
             for u in all_cells:
                 # 1. Declared edges from cell schema
                 for edge in getattr(u, "edges", []):
                     tgt_id = edge.get("target_cell_id") if isinstance(edge, dict) else getattr(edge, "target_cell_id", None)
                     if tgt_id:
                         tgt_cell = self.loaded_cells.get(tgt_id)
-                        if tgt_cell and tgt_cell.cell_id not in self._adjacency[u.cell_id]:
+                        if tgt_cell and tgt_cell.cell_id not in adj_sets[u.cell_id]:
+                            adj_sets[u.cell_id].add(tgt_cell.cell_id)
                             self._adjacency[u.cell_id].append(tgt_cell.cell_id)
                             self._reverse_adjacency[tgt_cell.cell_id].append(u.cell_id)
 
@@ -3466,7 +3538,7 @@ class LatticeOrchestrator:
                         is_out_bot = (hasattr(out_sig, 'is_bottom') and out_sig.is_bottom()) or out_tn in ('none', 'null', 'undefined', 'bottom', '')
                         if not (hasattr(out_sig, 'is_top') and out_sig.is_top()) and not is_out_bot:
                             for v in all_cells:
-                                if u.cell_id == v.cell_id or v.cell_id in self._adjacency[u.cell_id]:
+                                if u.cell_id == v.cell_id or v.cell_id in adj_sets[u.cell_id]:
                                     continue
                                 # Stage 1 source/reader nodes never accept upstream incoming dataflow
                                 if getattr(v, "stage", None) == 1 or not getattr(v, "inputs", None):
@@ -3479,6 +3551,7 @@ class LatticeOrchestrator:
                                         is_in_bot = (hasattr(in_sig, 'is_bottom') and in_sig.is_bottom()) or in_tn in ('none', 'null', 'undefined', 'bottom', '')
                                         if not (hasattr(in_sig, 'is_top') and in_sig.is_top()) and not is_in_bot:
                                             if out_sig.unifies_with(in_sig):
+                                                adj_sets[u.cell_id].add(v.cell_id)
                                                 self._adjacency[u.cell_id].append(v.cell_id)
                                                 self._reverse_adjacency[v.cell_id].append(u.cell_id)
 
@@ -3564,10 +3637,12 @@ class LatticeOrchestrator:
                         desc = getattr(p, "description", "") or ""
                         if desc:
                             desc_toks = CellTokenizer.tokenize_prompt(desc)
-                            if "ascending" in desc_toks or "smallest" in desc_toks:
-                                reg.register_polarity_hints("ascending", desc_toks)
-                            if "descending" in desc_toks or "largest" in desc_toks:
-                                reg.register_polarity_hints("descending", desc_toks)
+                            asc_matches = [t for t in desc_toks if t in ("ascending", "smallest", "lowest", "bottom", "min", "increasing")]
+                            if asc_matches:
+                                reg.register_polarity_hints("ascending", asc_matches)
+                            desc_matches = [t for t in desc_toks if t in ("descending", "largest", "highest", "top", "max", "decreasing")]
+                            if desc_matches:
+                                reg.register_polarity_hints("descending", desc_matches)
 
     def audit_topology(self) -> Any:
         try:

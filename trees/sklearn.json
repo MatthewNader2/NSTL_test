@@ -1597,6 +1597,22 @@
           "value": 2,
           "expression": "X.ndim == 2",
           "description": "Feature container must be a two-dimensional matrix."
+        },
+        {
+          "target": "X",
+          "property": "is_complex",
+          "operator": "==",
+          "value": false,
+          "expression": "not np.iscomplexobj(X)",
+          "description": "scikit-learn estimators reject complex-valued data."
+        },
+        {
+          "target": "y",
+          "property": "is_complex",
+          "operator": "==",
+          "value": false,
+          "expression": "not np.iscomplexobj(y)",
+          "description": "scikit-learn estimators reject complex-valued data."
         }
       ],
       "postconditions": [
@@ -2300,6 +2316,14 @@
           "value": 2,
           "expression": "X.ndim == 2",
           "description": "Input must be a 2D matrix."
+        },
+        {
+          "target": "X",
+          "property": "is_complex",
+          "operator": "==",
+          "value": false,
+          "expression": "not np.iscomplexobj(X)",
+          "description": "scikit-learn estimators reject complex-valued data."
         }
       ],
       "postconditions": [
@@ -2544,6 +2568,14 @@
           "value": 2,
           "expression": "X.ndim == 2",
           "description": "Input feature tensor must be 2D."
+        },
+        {
+          "target": "X",
+          "property": "is_complex",
+          "operator": "==",
+          "value": false,
+          "expression": "not np.iscomplexobj(X)",
+          "description": "scikit-learn estimators reject complex-valued data."
         }
       ],
       "postconditions": [
@@ -2672,6 +2704,14 @@
           "value": 2,
           "expression": "X.ndim == 2",
           "description": "Features must form a 2-dimensional matrix."
+        },
+        {
+          "target": "X",
+          "property": "is_complex",
+          "operator": "==",
+          "value": false,
+          "expression": "not np.iscomplexobj(X)",
+          "description": "scikit-learn estimators reject complex-valued data."
         }
       ],
       "postconditions": [
@@ -2823,6 +2863,14 @@
           "value": 2,
           "expression": "X.ndim == 2",
           "description": "Input array must be 2-dimensional."
+        },
+        {
+          "target": "X",
+          "property": "is_complex",
+          "operator": "==",
+          "value": false,
+          "expression": "not np.iscomplexobj(X)",
+          "description": "scikit-learn estimators reject complex-valued data."
         }
       ],
       "postconditions": [
@@ -2951,6 +2999,14 @@
           "value": 2,
           "expression": "X.ndim == 2",
           "description": "Input categorical matrix must be 2D."
+        },
+        {
+          "target": "X",
+          "property": "is_complex",
+          "operator": "==",
+          "value": false,
+          "expression": "not np.iscomplexobj(X)",
+          "description": "scikit-learn estimators reject complex-valued data."
         }
       ],
       "postconditions": [
@@ -3087,6 +3143,14 @@
           "value": 2,
           "expression": "X.ndim == 2",
           "description": "Matrix dimension must equal 2."
+        },
+        {
+          "target": "X",
+          "property": "is_complex",
+          "operator": "==",
+          "value": false,
+          "expression": "not np.iscomplexobj(X)",
+          "description": "scikit-learn estimators reject complex-valued data."
         }
       ],
       "postconditions": [
@@ -3223,6 +3287,14 @@
           "value": 2,
           "expression": "X.ndim == 2",
           "description": "PCA input must be a 2D matrix."
+        },
+        {
+          "target": "X",
+          "property": "is_complex",
+          "operator": "==",
+          "value": false,
+          "expression": "not np.iscomplexobj(X)",
+          "description": "scikit-learn estimators reject complex-valued data."
         }
       ],
       "postconditions": [
@@ -3380,6 +3452,14 @@
           "value": 2,
           "expression": "X.ndim == 2",
           "description": "Matrix dimension must be 2."
+        },
+        {
+          "target": "X",
+          "property": "is_complex",
+          "operator": "==",
+          "value": false,
+          "expression": "not np.iscomplexobj(X)",
+          "description": "scikit-learn estimators reject complex-valued data."
         }
       ],
       "postconditions": [
@@ -3539,6 +3619,22 @@
           "value": 2,
           "expression": "X.ndim == 2",
           "description": "Input feature tensor must be 2D."
+        },
+        {
+          "target": "X",
+          "property": "is_complex",
+          "operator": "==",
+          "value": false,
+          "expression": "not np.iscomplexobj(X)",
+          "description": "scikit-learn estimators reject complex-valued data."
+        },
+        {
+          "target": "y",
+          "property": "is_complex",
+          "operator": "==",
+          "value": false,
+          "expression": "not np.iscomplexobj(y)",
+          "description": "scikit-learn estimators reject complex-valued data."
         }
       ],
       "postconditions": [
@@ -3751,6 +3847,22 @@
           "value": 2,
           "expression": "X.ndim == 2",
           "description": "Feature matrix must be 2-dimensional."
+        },
+        {
+          "target": "X",
+          "property": "is_complex",
+          "operator": "==",
+          "value": false,
+          "expression": "not np.iscomplexobj(X)",
+          "description": "scikit-learn estimators reject complex-valued data."
+        },
+        {
+          "target": "y",
+          "property": "is_complex",
+          "operator": "==",
+          "value": false,
+          "expression": "not np.iscomplexobj(y)",
+          "description": "scikit-learn estimators reject complex-valued data."
         }
       ],
       "postconditions": [
@@ -3904,6 +4016,14 @@
           "value": true,
           "expression": "hasattr(model, 'classes_')",
           "description": "Classifier must be fitted prior to running inference."
+        },
+        {
+          "target": "X",
+          "property": "is_complex",
+          "operator": "==",
+          "value": false,
+          "expression": "not np.iscomplexobj(X)",
+          "description": "scikit-learn estimators reject complex-valued data."
         }
       ],
       "postconditions": [
@@ -4074,6 +4194,14 @@
           "value": true,
           "expression": "hasattr(model, 'classes_')",
           "description": "Estimator must possess class attributes."
+        },
+        {
+          "target": "X",
+          "property": "is_complex",
+          "operator": "==",
+          "value": false,
+          "expression": "not np.iscomplexobj(X)",
+          "description": "scikit-learn estimators reject complex-valued data."
         }
       ],
       "postconditions": [
@@ -4255,6 +4383,22 @@
           "value": 2,
           "expression": "X.ndim == 2",
           "description": "Feature container must be a 2D matrix."
+        },
+        {
+          "target": "X",
+          "property": "is_complex",
+          "operator": "==",
+          "value": false,
+          "expression": "not np.iscomplexobj(X)",
+          "description": "scikit-learn estimators reject complex-valued data."
+        },
+        {
+          "target": "y",
+          "property": "is_complex",
+          "operator": "==",
+          "value": false,
+          "expression": "not np.iscomplexobj(y)",
+          "description": "scikit-learn estimators reject complex-valued data."
         }
       ],
       "postconditions": [
@@ -4489,6 +4633,22 @@
           "value": 2,
           "expression": "X.ndim == 2",
           "description": "Features must form a 2-dimensional matrix."
+        },
+        {
+          "target": "X",
+          "property": "is_complex",
+          "operator": "==",
+          "value": false,
+          "expression": "not np.iscomplexobj(X)",
+          "description": "scikit-learn estimators reject complex-valued data."
+        },
+        {
+          "target": "y",
+          "property": "is_complex",
+          "operator": "==",
+          "value": false,
+          "expression": "not np.iscomplexobj(y)",
+          "description": "scikit-learn estimators reject complex-valued data."
         }
       ],
       "postconditions": [
@@ -4651,6 +4811,22 @@
           "value": 2,
           "expression": "X.ndim == 2",
           "description": "Feature matrix must have rank 2."
+        },
+        {
+          "target": "X",
+          "property": "is_complex",
+          "operator": "==",
+          "value": false,
+          "expression": "not np.iscomplexobj(X)",
+          "description": "scikit-learn estimators reject complex-valued data."
+        },
+        {
+          "target": "y",
+          "property": "is_complex",
+          "operator": "==",
+          "value": false,
+          "expression": "not np.iscomplexobj(y)",
+          "description": "scikit-learn estimators reject complex-valued data."
         }
       ],
       "postconditions": [
@@ -4787,6 +4963,14 @@
           "value": true,
           "expression": "hasattr(model, 'coef_')",
           "description": "Estimator must possess fitted weights."
+        },
+        {
+          "target": "X",
+          "property": "is_complex",
+          "operator": "==",
+          "value": false,
+          "expression": "not np.iscomplexobj(X)",
+          "description": "scikit-learn estimators reject complex-valued data."
         }
       ],
       "postconditions": [
@@ -4971,6 +5155,22 @@
           "value": 2,
           "expression": "X.ndim == 2",
           "description": "Input feature tensor must be 2D."
+        },
+        {
+          "target": "X",
+          "property": "is_complex",
+          "operator": "==",
+          "value": false,
+          "expression": "not np.iscomplexobj(X)",
+          "description": "scikit-learn estimators reject complex-valued data."
+        },
+        {
+          "target": "y",
+          "property": "is_complex",
+          "operator": "==",
+          "value": false,
+          "expression": "not np.iscomplexobj(y)",
+          "description": "scikit-learn estimators reject complex-valued data."
         }
       ],
       "postconditions": [
@@ -5145,6 +5345,22 @@
           "value": 2,
           "expression": "X.ndim == 2",
           "description": "X must be a 2D matrix."
+        },
+        {
+          "target": "X",
+          "property": "is_complex",
+          "operator": "==",
+          "value": false,
+          "expression": "not np.iscomplexobj(X)",
+          "description": "scikit-learn estimators reject complex-valued data."
+        },
+        {
+          "target": "y",
+          "property": "is_complex",
+          "operator": "==",
+          "value": false,
+          "expression": "not np.iscomplexobj(y)",
+          "description": "scikit-learn estimators reject complex-valued data."
         }
       ],
       "postconditions": [
@@ -5325,6 +5541,22 @@
           "value": 2,
           "expression": "X.ndim == 2",
           "description": "Input feature tensor must be 2D."
+        },
+        {
+          "target": "X",
+          "property": "is_complex",
+          "operator": "==",
+          "value": false,
+          "expression": "not np.iscomplexobj(X)",
+          "description": "scikit-learn estimators reject complex-valued data."
+        },
+        {
+          "target": "y",
+          "property": "is_complex",
+          "operator": "==",
+          "value": false,
+          "expression": "not np.iscomplexobj(y)",
+          "description": "scikit-learn estimators reject complex-valued data."
         }
       ],
       "postconditions": [
@@ -5482,6 +5714,14 @@
           "value": 2,
           "expression": "X.ndim == 2",
           "description": "Feature matrix must be 2D."
+        },
+        {
+          "target": "X",
+          "property": "is_complex",
+          "operator": "==",
+          "value": false,
+          "expression": "not np.iscomplexobj(X)",
+          "description": "scikit-learn estimators reject complex-valued data."
         }
       ],
       "postconditions": [
@@ -5647,6 +5887,14 @@
           "value": 2,
           "expression": "X.ndim == 2",
           "description": "Feature matrix must be 2D."
+        },
+        {
+          "target": "X",
+          "property": "is_complex",
+          "operator": "==",
+          "value": false,
+          "expression": "not np.iscomplexobj(X)",
+          "description": "scikit-learn estimators reject complex-valued data."
         }
       ],
       "postconditions": [
@@ -5804,6 +6052,14 @@
           "value": 2,
           "expression": "X.ndim == 2",
           "description": "Input feature tensor must be 2D."
+        },
+        {
+          "target": "X",
+          "property": "is_complex",
+          "operator": "==",
+          "value": false,
+          "expression": "not np.iscomplexobj(X)",
+          "description": "scikit-learn estimators reject complex-valued data."
         }
       ],
       "postconditions": [
@@ -5966,6 +6222,22 @@
           "value": 2,
           "expression": "X.ndim == 2",
           "description": "Feature matrix input must be 2D."
+        },
+        {
+          "target": "X",
+          "property": "is_complex",
+          "operator": "==",
+          "value": false,
+          "expression": "not np.iscomplexobj(X)",
+          "description": "scikit-learn estimators reject complex-valued data."
+        },
+        {
+          "target": "y",
+          "property": "is_complex",
+          "operator": "==",
+          "value": false,
+          "expression": "not np.iscomplexobj(y)",
+          "description": "scikit-learn estimators reject complex-valued data."
         }
       ],
       "postconditions": [
@@ -6171,6 +6443,22 @@
           "value": 2,
           "expression": "X.ndim == 2",
           "description": "Training features matrix must be 2D."
+        },
+        {
+          "target": "X",
+          "property": "is_complex",
+          "operator": "==",
+          "value": false,
+          "expression": "not np.iscomplexobj(X)",
+          "description": "scikit-learn estimators reject complex-valued data."
+        },
+        {
+          "target": "y",
+          "property": "is_complex",
+          "operator": "==",
+          "value": false,
+          "expression": "not np.iscomplexobj(y)",
+          "description": "scikit-learn estimators reject complex-valued data."
         }
       ],
       "postconditions": [
@@ -6358,6 +6646,22 @@
           "value": 2,
           "expression": "X.ndim == 2",
           "description": "Matrix dimension must be 2."
+        },
+        {
+          "target": "X",
+          "property": "is_complex",
+          "operator": "==",
+          "value": false,
+          "expression": "not np.iscomplexobj(X)",
+          "description": "scikit-learn estimators reject complex-valued data."
+        },
+        {
+          "target": "y",
+          "property": "is_complex",
+          "operator": "==",
+          "value": false,
+          "expression": "not np.iscomplexobj(y)",
+          "description": "scikit-learn estimators reject complex-valued data."
         }
       ],
       "postconditions": [
@@ -6504,6 +6808,14 @@
           "value": 1,
           "expression": "y_true.ndim == 1",
           "description": "Ground truth must be a 1D vector."
+        },
+        {
+          "target": "y_true",
+          "property": "is_complex",
+          "operator": "==",
+          "value": false,
+          "expression": "not np.iscomplexobj(y_true)",
+          "description": "scikit-learn estimators reject complex-valued data."
         }
       ],
       "postconditions": [
@@ -6685,6 +6997,14 @@
           "value": 1,
           "expression": "y_true.ndim == 1",
           "description": "Ground truth array must be 1D."
+        },
+        {
+          "target": "y_true",
+          "property": "is_complex",
+          "operator": "==",
+          "value": false,
+          "expression": "not np.iscomplexobj(y_true)",
+          "description": "scikit-learn estimators reject complex-valued data."
         }
       ],
       "postconditions": [
@@ -6829,6 +7149,22 @@
           "value": 1,
           "expression": "y_true.ndim == 1",
           "description": "Input vector must be 1-dimensional."
+        },
+        {
+          "target": "y_true",
+          "property": "is_complex",
+          "operator": "==",
+          "value": false,
+          "expression": "not np.iscomplexobj(y_true)",
+          "description": "scikit-learn estimators reject complex-valued data."
+        },
+        {
+          "target": "y_pred",
+          "property": "is_complex",
+          "operator": "==",
+          "value": false,
+          "expression": "not np.iscomplexobj(y_pred)",
+          "description": "scikit-learn estimators reject complex-valued data."
         }
       ],
       "postconditions": [
@@ -6976,6 +7312,22 @@
           "value": 1,
           "expression": "y_true.ndim == 1",
           "description": "Ground truth must be 1D vector."
+        },
+        {
+          "target": "y_true",
+          "property": "is_complex",
+          "operator": "==",
+          "value": false,
+          "expression": "not np.iscomplexobj(y_true)",
+          "description": "scikit-learn estimators reject complex-valued data."
+        },
+        {
+          "target": "y_score",
+          "property": "is_complex",
+          "operator": "==",
+          "value": false,
+          "expression": "not np.iscomplexobj(y_score)",
+          "description": "scikit-learn estimators reject complex-valued data."
         }
       ],
       "postconditions": [
@@ -7109,6 +7461,14 @@
           "value": 1,
           "expression": "y_true.ndim == 1",
           "description": "True values array must be 1D."
+        },
+        {
+          "target": "y_true",
+          "property": "is_complex",
+          "operator": "==",
+          "value": false,
+          "expression": "not np.iscomplexobj(y_true)",
+          "description": "scikit-learn estimators reject complex-valued data."
         }
       ],
       "postconditions": [
@@ -7252,6 +7612,14 @@
           "value": 1,
           "expression": "y_true.ndim == 1",
           "description": "Target response array must be 1D."
+        },
+        {
+          "target": "y_true",
+          "property": "is_complex",
+          "operator": "==",
+          "value": false,
+          "expression": "not np.iscomplexobj(y_true)",
+          "description": "scikit-learn estimators reject complex-valued data."
         }
       ],
       "postconditions": [
@@ -7385,6 +7753,14 @@
           "value": 2,
           "expression": "X.ndim == 2",
           "description": "Features tensor must be 2D."
+        },
+        {
+          "target": "X",
+          "property": "is_complex",
+          "operator": "==",
+          "value": false,
+          "expression": "not np.iscomplexobj(X)",
+          "description": "scikit-learn estimators reject complex-valued data."
         }
       ],
       "postconditions": [
@@ -8250,6 +8626,14 @@
           "value": 2,
           "expression": "X.ndim == 2",
           "description": "Dataset must have two dimensions."
+        },
+        {
+          "target": "X",
+          "property": "is_complex",
+          "operator": "==",
+          "value": false,
+          "expression": "not np.iscomplexobj(X)",
+          "description": "scikit-learn estimators reject complex-valued data."
         }
       ],
       "postconditions": [],
@@ -8433,6 +8817,22 @@
           "value": 1,
           "expression": "y.ndim == 1",
           "description": "Stratification targets must form a 1D vector."
+        },
+        {
+          "target": "X",
+          "property": "is_complex",
+          "operator": "==",
+          "value": false,
+          "expression": "not np.iscomplexobj(X)",
+          "description": "scikit-learn estimators reject complex-valued data."
+        },
+        {
+          "target": "y",
+          "property": "is_complex",
+          "operator": "==",
+          "value": false,
+          "expression": "not np.iscomplexobj(y)",
+          "description": "scikit-learn estimators reject complex-valued data."
         }
       ],
       "postconditions": [],
@@ -8550,6 +8950,14 @@
           "value": true,
           "expression": "hasattr(scaler, 'mean_')",
           "description": "Scaler must already have fitted mean vector."
+        },
+        {
+          "target": "X",
+          "property": "is_complex",
+          "operator": "==",
+          "value": false,
+          "expression": "not np.iscomplexobj(X)",
+          "description": "scikit-learn estimators reject complex-valued data."
         }
       ],
       "postconditions": [
@@ -8681,6 +9089,14 @@
           "value": 2,
           "expression": "X.ndim == 2",
           "description": "Feature matrix must be 2D."
+        },
+        {
+          "target": "X",
+          "property": "is_complex",
+          "operator": "==",
+          "value": false,
+          "expression": "not np.iscomplexobj(X)",
+          "description": "scikit-learn estimators reject complex-valued data."
         }
       ],
       "postconditions": [
@@ -8819,6 +9235,14 @@
           "value": 2,
           "expression": "X.ndim == 2",
           "description": "Input feature matrix must have dimension 2."
+        },
+        {
+          "target": "X",
+          "property": "is_complex",
+          "operator": "==",
+          "value": false,
+          "expression": "not np.iscomplexobj(X)",
+          "description": "scikit-learn estimators reject complex-valued data."
         }
       ],
       "postconditions": [
@@ -8973,6 +9397,14 @@
           "value": 2,
           "expression": "X.ndim == 2",
           "description": "Input feature tensor must be 2D."
+        },
+        {
+          "target": "X",
+          "property": "is_complex",
+          "operator": "==",
+          "value": false,
+          "expression": "not np.iscomplexobj(X)",
+          "description": "scikit-learn estimators reject complex-valued data."
         }
       ],
       "postconditions": [
@@ -9110,6 +9542,14 @@
           "value": 2,
           "expression": "X.ndim == 2",
           "description": "Matrix dimension must be 2."
+        },
+        {
+          "target": "X",
+          "property": "is_complex",
+          "operator": "==",
+          "value": false,
+          "expression": "not np.iscomplexobj(X)",
+          "description": "scikit-learn estimators reject complex-valued data."
         }
       ],
       "postconditions": [
@@ -9226,6 +9666,14 @@
           "value": 2,
           "expression": "X.ndim == 2",
           "description": "Matrix dimension must be 2."
+        },
+        {
+          "target": "X",
+          "property": "is_complex",
+          "operator": "==",
+          "value": false,
+          "expression": "not np.iscomplexobj(X)",
+          "description": "scikit-learn estimators reject complex-valued data."
         }
       ],
       "postconditions": [
@@ -9341,6 +9789,14 @@
           "value": 1,
           "expression": "y.ndim == 1",
           "description": "Target container must be a 1D vector."
+        },
+        {
+          "target": "y",
+          "property": "is_complex",
+          "operator": "==",
+          "value": false,
+          "expression": "not np.iscomplexobj(y)",
+          "description": "scikit-learn estimators reject complex-valued data."
         }
       ],
       "postconditions": [
@@ -9477,6 +9933,14 @@
           "value": 2,
           "expression": "X.ndim == 2",
           "description": "Input feature tensor must be 2D."
+        },
+        {
+          "target": "X",
+          "property": "is_complex",
+          "operator": "==",
+          "value": false,
+          "expression": "not np.iscomplexobj(X)",
+          "description": "scikit-learn estimators reject complex-valued data."
         }
       ],
       "postconditions": [
@@ -9611,6 +10075,14 @@
           "value": 2,
           "expression": "X.ndim == 2",
           "description": "Feature tensor must be 2-dimensional."
+        },
+        {
+          "target": "X",
+          "property": "is_complex",
+          "operator": "==",
+          "value": false,
+          "expression": "not np.iscomplexobj(X)",
+          "description": "scikit-learn estimators reject complex-valued data."
         }
       ],
       "postconditions": [
@@ -9878,6 +10350,14 @@
           "value": true,
           "expression": "hasattr(pca, 'components_')",
           "description": "PCA model must contain orthogonal basis components."
+        },
+        {
+          "target": "X",
+          "property": "is_complex",
+          "operator": "==",
+          "value": false,
+          "expression": "not np.iscomplexobj(X)",
+          "description": "scikit-learn estimators reject complex-valued data."
         }
       ],
       "postconditions": [
@@ -10036,6 +10516,14 @@
           "value": 2,
           "expression": "X.ndim == 2",
           "description": "Matrix dimension must be 2."
+        },
+        {
+          "target": "X",
+          "property": "is_complex",
+          "operator": "==",
+          "value": false,
+          "expression": "not np.iscomplexobj(X)",
+          "description": "scikit-learn estimators reject complex-valued data."
         }
       ],
       "postconditions": [
@@ -10190,6 +10678,14 @@
           "value": 2,
           "expression": "X.ndim == 2",
           "description": "Input signal array must be 2-dimensional."
+        },
+        {
+          "target": "X",
+          "property": "is_complex",
+          "operator": "==",
+          "value": false,
+          "expression": "not np.iscomplexobj(X)",
+          "description": "scikit-learn estimators reject complex-valued data."
         }
       ],
       "postconditions": [
@@ -10345,6 +10841,14 @@
           "value": 2,
           "expression": "X.ndim == 2",
           "description": "Matrix dimension must be 2."
+        },
+        {
+          "target": "X",
+          "property": "is_complex",
+          "operator": "==",
+          "value": false,
+          "expression": "not np.iscomplexobj(X)",
+          "description": "scikit-learn estimators reject complex-valued data."
         }
       ],
       "postconditions": [
@@ -10504,6 +11008,22 @@
           "value": 2,
           "expression": "X.ndim == 2",
           "description": "Feature matrix must be 2D."
+        },
+        {
+          "target": "X",
+          "property": "is_complex",
+          "operator": "==",
+          "value": false,
+          "expression": "not np.iscomplexobj(X)",
+          "description": "scikit-learn estimators reject complex-valued data."
+        },
+        {
+          "target": "y",
+          "property": "is_complex",
+          "operator": "==",
+          "value": false,
+          "expression": "not np.iscomplexobj(y)",
+          "description": "scikit-learn estimators reject complex-valued data."
         }
       ],
       "postconditions": [
@@ -10680,6 +11200,14 @@
           "value": 2,
           "expression": "X.ndim == 2",
           "description": "Input feature tensor must be 2D."
+        },
+        {
+          "target": "X",
+          "property": "is_complex",
+          "operator": "==",
+          "value": false,
+          "expression": "not np.iscomplexobj(X)",
+          "description": "scikit-learn estimators reject complex-valued data."
         }
       ],
       "postconditions": [
@@ -10815,6 +11343,14 @@
           "value": 2,
           "expression": "X.ndim == 2",
           "description": "Input feature tensor must be 2D."
+        },
+        {
+          "target": "X",
+          "property": "is_complex",
+          "operator": "==",
+          "value": false,
+          "expression": "not np.iscomplexobj(X)",
+          "description": "scikit-learn estimators reject complex-valued data."
         }
       ],
       "postconditions": [
@@ -10993,6 +11529,22 @@
           "value": 2,
           "expression": "X.ndim == 2",
           "description": "Input feature tensor must be 2D."
+        },
+        {
+          "target": "X",
+          "property": "is_complex",
+          "operator": "==",
+          "value": false,
+          "expression": "not np.iscomplexobj(X)",
+          "description": "scikit-learn estimators reject complex-valued data."
+        },
+        {
+          "target": "y",
+          "property": "is_complex",
+          "operator": "==",
+          "value": false,
+          "expression": "not np.iscomplexobj(y)",
+          "description": "scikit-learn estimators reject complex-valued data."
         }
       ],
       "postconditions": [
@@ -11173,6 +11725,22 @@
           "value": 2,
           "expression": "X.ndim == 2",
           "description": "Feature matrix must be 2D."
+        },
+        {
+          "target": "X",
+          "property": "is_complex",
+          "operator": "==",
+          "value": false,
+          "expression": "not np.iscomplexobj(X)",
+          "description": "scikit-learn estimators reject complex-valued data."
+        },
+        {
+          "target": "y",
+          "property": "is_complex",
+          "operator": "==",
+          "value": false,
+          "expression": "not np.iscomplexobj(y)",
+          "description": "scikit-learn estimators reject complex-valued data."
         }
       ],
       "postconditions": [
@@ -11381,6 +11949,22 @@
           "value": 2,
           "expression": "X.ndim == 2",
           "description": "Training features must be a 2D matrix."
+        },
+        {
+          "target": "X",
+          "property": "is_complex",
+          "operator": "==",
+          "value": false,
+          "expression": "not np.iscomplexobj(X)",
+          "description": "scikit-learn estimators reject complex-valued data."
+        },
+        {
+          "target": "y",
+          "property": "is_complex",
+          "operator": "==",
+          "value": false,
+          "expression": "not np.iscomplexobj(y)",
+          "description": "scikit-learn estimators reject complex-valued data."
         }
       ],
       "postconditions": [
@@ -11548,6 +12132,22 @@
           "value": 2,
           "expression": "X.ndim == 2",
           "description": "Input feature tensor must be 2D."
+        },
+        {
+          "target": "X",
+          "property": "is_complex",
+          "operator": "==",
+          "value": false,
+          "expression": "not np.iscomplexobj(X)",
+          "description": "scikit-learn estimators reject complex-valued data."
+        },
+        {
+          "target": "y",
+          "property": "is_complex",
+          "operator": "==",
+          "value": false,
+          "expression": "not np.iscomplexobj(y)",
+          "description": "scikit-learn estimators reject complex-valued data."
         }
       ],
       "postconditions": [
@@ -11691,6 +12291,22 @@
           "value": 2,
           "expression": "X.ndim == 2",
           "description": "Feature matrix must have dimension 2."
+        },
+        {
+          "target": "X",
+          "property": "is_complex",
+          "operator": "==",
+          "value": false,
+          "expression": "not np.iscomplexobj(X)",
+          "description": "scikit-learn estimators reject complex-valued data."
+        },
+        {
+          "target": "y",
+          "property": "is_complex",
+          "operator": "==",
+          "value": false,
+          "expression": "not np.iscomplexobj(y)",
+          "description": "scikit-learn estimators reject complex-valued data."
         }
       ],
       "postconditions": [
@@ -11895,6 +12511,22 @@
           "value": 2,
           "expression": "X.ndim == 2",
           "description": "Feature matrix must be 2D."
+        },
+        {
+          "target": "X",
+          "property": "is_complex",
+          "operator": "==",
+          "value": false,
+          "expression": "not np.iscomplexobj(X)",
+          "description": "scikit-learn estimators reject complex-valued data."
+        },
+        {
+          "target": "y",
+          "property": "is_complex",
+          "operator": "==",
+          "value": false,
+          "expression": "not np.iscomplexobj(y)",
+          "description": "scikit-learn estimators reject complex-valued data."
         }
       ],
       "postconditions": [
@@ -12094,6 +12726,22 @@
           "value": 2,
           "expression": "X.ndim == 2",
           "description": "Input feature tensor must be 2D."
+        },
+        {
+          "target": "X",
+          "property": "is_complex",
+          "operator": "==",
+          "value": false,
+          "expression": "not np.iscomplexobj(X)",
+          "description": "scikit-learn estimators reject complex-valued data."
+        },
+        {
+          "target": "y",
+          "property": "is_complex",
+          "operator": "==",
+          "value": false,
+          "expression": "not np.iscomplexobj(y)",
+          "description": "scikit-learn estimators reject complex-valued data."
         }
       ],
       "postconditions": [
@@ -12274,6 +12922,22 @@
           "value": 2,
           "expression": "X.ndim == 2",
           "description": "Input feature tensor must be 2D."
+        },
+        {
+          "target": "X",
+          "property": "is_complex",
+          "operator": "==",
+          "value": false,
+          "expression": "not np.iscomplexobj(X)",
+          "description": "scikit-learn estimators reject complex-valued data."
+        },
+        {
+          "target": "y",
+          "property": "is_complex",
+          "operator": "==",
+          "value": false,
+          "expression": "not np.iscomplexobj(y)",
+          "description": "scikit-learn estimators reject complex-valued data."
         }
       ],
       "postconditions": [
@@ -12473,6 +13137,22 @@
           "value": 2,
           "expression": "X.ndim == 2",
           "description": "Training features must be a 2D matrix."
+        },
+        {
+          "target": "X",
+          "property": "is_complex",
+          "operator": "==",
+          "value": false,
+          "expression": "not np.iscomplexobj(X)",
+          "description": "scikit-learn estimators reject complex-valued data."
+        },
+        {
+          "target": "y",
+          "property": "is_complex",
+          "operator": "==",
+          "value": false,
+          "expression": "not np.iscomplexobj(y)",
+          "description": "scikit-learn estimators reject complex-valued data."
         }
       ],
       "postconditions": [
@@ -12673,6 +13353,22 @@
           "value": 2,
           "expression": "X.ndim == 2",
           "description": "Feature matrix must be 2D."
+        },
+        {
+          "target": "X",
+          "property": "is_complex",
+          "operator": "==",
+          "value": false,
+          "expression": "not np.iscomplexobj(X)",
+          "description": "scikit-learn estimators reject complex-valued data."
+        },
+        {
+          "target": "y",
+          "property": "is_complex",
+          "operator": "==",
+          "value": false,
+          "expression": "not np.iscomplexobj(y)",
+          "description": "scikit-learn estimators reject complex-valued data."
         }
       ],
       "postconditions": [
@@ -12859,6 +13555,22 @@
           "value": 2,
           "expression": "X.ndim == 2",
           "description": "Feature matrix must be 2D."
+        },
+        {
+          "target": "X",
+          "property": "is_complex",
+          "operator": "==",
+          "value": false,
+          "expression": "not np.iscomplexobj(X)",
+          "description": "scikit-learn estimators reject complex-valued data."
+        },
+        {
+          "target": "y",
+          "property": "is_complex",
+          "operator": "==",
+          "value": false,
+          "expression": "not np.iscomplexobj(y)",
+          "description": "scikit-learn estimators reject complex-valued data."
         }
       ],
       "postconditions": [
@@ -13020,6 +13732,22 @@
           "value": 2,
           "expression": "X.ndim == 2",
           "description": "Input feature tensor must be 2D."
+        },
+        {
+          "target": "X",
+          "property": "is_complex",
+          "operator": "==",
+          "value": false,
+          "expression": "not np.iscomplexobj(X)",
+          "description": "scikit-learn estimators reject complex-valued data."
+        },
+        {
+          "target": "y",
+          "property": "is_complex",
+          "operator": "==",
+          "value": false,
+          "expression": "not np.iscomplexobj(y)",
+          "description": "scikit-learn estimators reject complex-valued data."
         }
       ],
       "postconditions": [
@@ -13157,6 +13885,14 @@
           "value": 2,
           "expression": "X.ndim == 2",
           "description": "Feature matrix must be 2D."
+        },
+        {
+          "target": "X",
+          "property": "is_complex",
+          "operator": "==",
+          "value": false,
+          "expression": "not np.iscomplexobj(X)",
+          "description": "scikit-learn estimators reject complex-valued data."
         }
       ],
       "postconditions": [
@@ -13321,6 +14057,14 @@
           "value": 2,
           "expression": "X.ndim == 2",
           "description": "Feature matrix must be 2D."
+        },
+        {
+          "target": "X",
+          "property": "is_complex",
+          "operator": "==",
+          "value": false,
+          "expression": "not np.iscomplexobj(X)",
+          "description": "scikit-learn estimators reject complex-valued data."
         }
       ],
       "postconditions": [
@@ -13484,6 +14228,14 @@
           "value": 2,
           "expression": "X.ndim == 2",
           "description": "Feature matrix must be 2D."
+        },
+        {
+          "target": "X",
+          "property": "is_complex",
+          "operator": "==",
+          "value": false,
+          "expression": "not np.iscomplexobj(X)",
+          "description": "scikit-learn estimators reject complex-valued data."
         }
       ],
       "postconditions": [
@@ -13618,6 +14370,14 @@
           "value": 2,
           "expression": "X.ndim == 2",
           "description": "Input feature tensor must be 2D."
+        },
+        {
+          "target": "X",
+          "property": "is_complex",
+          "operator": "==",
+          "value": false,
+          "expression": "not np.iscomplexobj(X)",
+          "description": "scikit-learn estimators reject complex-valued data."
         }
       ],
       "postconditions": [
@@ -13853,6 +14613,22 @@
           "value": 2,
           "expression": "X.ndim == 2",
           "description": "Training features must be 2D."
+        },
+        {
+          "target": "X",
+          "property": "is_complex",
+          "operator": "==",
+          "value": false,
+          "expression": "not np.iscomplexobj(X)",
+          "description": "scikit-learn estimators reject complex-valued data."
+        },
+        {
+          "target": "y",
+          "property": "is_complex",
+          "operator": "==",
+          "value": false,
+          "expression": "not np.iscomplexobj(y)",
+          "description": "scikit-learn estimators reject complex-valued data."
         }
       ],
       "postconditions": [
@@ -14039,6 +14815,22 @@
           "value": 2,
           "expression": "X.ndim == 2",
           "description": "Matrix dimension must be 2."
+        },
+        {
+          "target": "X",
+          "property": "is_complex",
+          "operator": "==",
+          "value": false,
+          "expression": "not np.iscomplexobj(X)",
+          "description": "scikit-learn estimators reject complex-valued data."
+        },
+        {
+          "target": "y",
+          "property": "is_complex",
+          "operator": "==",
+          "value": false,
+          "expression": "not np.iscomplexobj(y)",
+          "description": "scikit-learn estimators reject complex-valued data."
         }
       ],
       "postconditions": [],
@@ -14186,6 +14978,22 @@
           "value": 1,
           "expression": "y_true.ndim == 1",
           "description": "Target container must be a 1D vector."
+        },
+        {
+          "target": "y_true",
+          "property": "is_complex",
+          "operator": "==",
+          "value": false,
+          "expression": "not np.iscomplexobj(y_true)",
+          "description": "scikit-learn estimators reject complex-valued data."
+        },
+        {
+          "target": "y_pred",
+          "property": "is_complex",
+          "operator": "==",
+          "value": false,
+          "expression": "not np.iscomplexobj(y_pred)",
+          "description": "scikit-learn estimators reject complex-valued data."
         }
       ],
       "postconditions": [
@@ -14342,6 +15150,22 @@
           "value": 1,
           "expression": "y_true.ndim == 1",
           "description": "Target container must be 1-dimensional."
+        },
+        {
+          "target": "y_true",
+          "property": "is_complex",
+          "operator": "==",
+          "value": false,
+          "expression": "not np.iscomplexobj(y_true)",
+          "description": "scikit-learn estimators reject complex-valued data."
+        },
+        {
+          "target": "y_pred",
+          "property": "is_complex",
+          "operator": "==",
+          "value": false,
+          "expression": "not np.iscomplexobj(y_pred)",
+          "description": "scikit-learn estimators reject complex-valued data."
         }
       ],
       "postconditions": [
@@ -14472,6 +15296,22 @@
           "value": 1,
           "expression": "y_true.ndim == 1",
           "description": "Target container must be 1-dimensional."
+        },
+        {
+          "target": "y_true",
+          "property": "is_complex",
+          "operator": "==",
+          "value": false,
+          "expression": "not np.iscomplexobj(y_true)",
+          "description": "scikit-learn estimators reject complex-valued data."
+        },
+        {
+          "target": "y_pred",
+          "property": "is_complex",
+          "operator": "==",
+          "value": false,
+          "expression": "not np.iscomplexobj(y_pred)",
+          "description": "scikit-learn estimators reject complex-valued data."
         }
       ],
       "postconditions": [],
@@ -14596,6 +15436,14 @@
           "value": 1,
           "expression": "y_true.ndim == 1",
           "description": "Target container must be 1D."
+        },
+        {
+          "target": "y_true",
+          "property": "is_complex",
+          "operator": "==",
+          "value": false,
+          "expression": "not np.iscomplexobj(y_true)",
+          "description": "scikit-learn estimators reject complex-valued data."
         }
       ],
       "postconditions": [
@@ -14727,6 +15575,14 @@
           "value": 2,
           "expression": "X.ndim == 2",
           "description": "Input feature tensor must be 2D."
+        },
+        {
+          "target": "X",
+          "property": "is_complex",
+          "operator": "==",
+          "value": false,
+          "expression": "not np.iscomplexobj(X)",
+          "description": "scikit-learn estimators reject complex-valued data."
         }
       ],
       "postconditions": [
@@ -14858,6 +15714,14 @@
           "value": 2,
           "expression": "X.ndim == 2",
           "description": "Input feature tensor must be 2D."
+        },
+        {
+          "target": "X",
+          "property": "is_complex",
+          "operator": "==",
+          "value": false,
+          "expression": "not np.iscomplexobj(X)",
+          "description": "scikit-learn estimators reject complex-valued data."
         }
       ],
       "postconditions": [

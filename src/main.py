@@ -362,7 +362,23 @@ def run_prompt(request: Union[RunRequest, Dict[str, Any], str]) -> RunResponse:
     # Profile S: forward structured IR literals / intent into unification context
     ir_literals = getattr(_router, "last_ir_literals", None) or {}
     intent_payload = dict(intent_data) if intent_data else ({"parameters": dict(ir_literals)} if isinstance(ir_literals, dict) and ir_literals else None)
-    code = local_gate.unify_and_emit(cells, prompt, intent_data=intent_payload)
+    try:
+        code = local_gate.unify_and_emit(cells, prompt, intent_data=intent_payload)
+    except (ValueError, Exception) as unif_err:
+        synth_dt = (time.perf_counter() - t_synth_0) * 1000.0
+        total_dt = (time.perf_counter() - t_start) * 1000.0
+        logger.warning(f"Pipeline unification failed for prompt '{prompt}': {unif_err}")
+        return RunResponse(
+            status="error",
+            prompt=prompt,
+            path=[c.cell_id for c in cells],
+            code="",
+            latency_ms=round(total_dt, 2),
+            route_latency_ms=round(route_dt, 2),
+            synthesis_latency_ms=round(synth_dt, 2),
+            total_latency_ms=round(total_dt, 2),
+            sandbox_result={"success": False, "error": f"Pipeline unification failed: {unif_err}"}
+        )
     synth_dt = (time.perf_counter() - t_synth_0) * 1000.0
     total_dt = (time.perf_counter() - t_start) * 1000.0
 

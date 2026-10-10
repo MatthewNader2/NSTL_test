@@ -470,6 +470,14 @@ class RouteMethod(ABC):
                 "outranked_on": [j for j in range(len(clauses))
                                  if table[i][j]["hit"] > 0.0 and table[i][j]["rank"] < winner_f[j]],
             })
+        # A connector (zero identity evidence anywhere: a bridge/cast/property-establishing cell) is part of the
+        # realisation of the cell it extends, so it inherits that cell's clause. Without a clause it lost every
+        # adjacency contest and its output was routed to the wrong consumer.
+        for i, cell in enumerate(path):
+            if i > 0 and getattr(cell, "matched_clause_idx", None) is None and \
+                    all(table[i][j]["hit"] <= 0.0 for j in range(len(clauses))) and \
+                    getattr(path[i - 1], "matched_clause_idx", None) is not None:
+                cell.matched_clause_idx = path[i - 1].matched_clause_idx
         # Clause-scoped literals (column names, quoted strings) travel with the clause a cell
         # serves. Only M1/M6 used to attach them, so literal-scoped binding (target column,
         # feature columns, provenance gates) was silently off for every other method.
@@ -529,6 +537,68 @@ class RouteMethod(ABC):
                     or self.step_unifies_dag(path[i], path[:i])):
                 return False
         return True
+
+    def _consumes_table(self, cell: Cell) -> bool:
+        try:
+            from lattice import TypeRegistry
+            reg = TypeRegistry.get_instance()
+        except Exception:
+            return False
+        for p in cell.inputs.values():
+            tn = str(getattr(getattr(p, "signature", p), "type_name", "") or "").lower()
+            if tn and reg.is_subtype(tn, "table"):
+                return True
+        return False
+
+    def insert_column_commits(self, path: List[Cell], trace: bool = True) -> List[Cell]:
+        """
+        Commit column transformations back into their table.
+
+        A Series-valued cell that TRANSFORMS a column (tree effect in verification_semantics.
+        column_transform_effects) produces a new Series; unless it is written back, every later table
+        operation silently runs on the UNtransformed table ("normalize X, then drop nulls" lost the
+        normalization and left the Series on a different row set than the table). When such a cell is
+        followed by a table-consuming cell, insert the tree-declared commit cell
+        (verification_semantics.column_commit_cell) right after it, scoped to the same clause and
+        column literal. Inserted only if the chain stays type-valid; every decision is traced.
+        """
+        try:
+            from lattice import TypeRegistry
+            reg = TypeRegistry.get_instance()
+            effects = {str(e).lower() for e in reg.get_verification_semantics("column_transform_effects")}
+            commit_ids = {str(e).upper() for e in reg.get_verification_semantics("column_commit_cell")}
+        except Exception:
+            return path
+        if not effects or not commit_ids or self.orchestrator is None:
+            return path
+        proto = next((c for c in self.orchestrator.loaded_cells.values() if c.cell_id.upper() in commit_ids), None)
+        if proto is None:
+            return path
+        out = list(path)
+        i = 0
+        while i < len(out):
+            c = out[i]
+            lits = getattr(c, "clause_literals", None)
+            if ({str(e).lower() for e in (getattr(c, "effects", None) or [])} & effects) and lits:
+                nxt_is_commit = i + 1 < len(out) and out[i + 1].cell_id.upper() in commit_ids
+                if not nxt_is_commit and any(self._consumes_table(x) for x in out[i + 1:]):
+                    commit = proto.clone() if hasattr(proto, "clone") else proto
+                    commit.matched_clause_idx = getattr(c, "matched_clause_idx", None)
+                    commit.clause_literals = list(lits)
+                    trial = out[: i + 1] + [commit] + out[i + 1:]
+                    if self.chain_is_valid(trial):
+                        if trace:
+                            self._trace("column_commit_inserted", after=c.cell_id, commit=commit.cell_id, column=list(lits),
+                                        reason="column transform is followed by a table-consuming cell")
+                        out = trial
+                        i += 1
+                    else:
+                        if trace:
+                            self._trace("column_commit_blocked", after=c.cell_id, commit=proto.cell_id,
+                                        reason="chain would not unify with the commit cell inserted")
+            i += 1
+        return out
+
 
     def prune_unrequested(self, path: List[Cell], prompt: str) -> List[Cell]:
         """

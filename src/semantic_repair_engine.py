@@ -24,14 +24,45 @@ from template_wiring import (
 )
 
 
+class CallExpressionInfo:
+    """
+    Holds parsed call expression metadata, preserving surrounding multi-statement code.
+    Maintains 4-tuple compatibility for backwards-compatible unpacking.
+    """
+    def __init__(
+        self,
+        func_expr: str,
+        positional: List[str],
+        keywords: Dict[str, str],
+        lhs: Optional[str],
+        prefix_code: str = "",
+        suffix_code: str = "",
+    ):
+        self.func_expr = func_expr
+        self.positional = positional
+        self.keywords = keywords
+        self.lhs = lhs
+        self.prefix_code = prefix_code
+        self.suffix_code = suffix_code
+
+    def __iter__(self):
+        return iter((self.func_expr, self.positional, self.keywords, self.lhs))
+
+    def __len__(self):
+        return 4
+
+    def __getitem__(self, idx):
+        return (self.func_expr, self.positional, self.keywords, self.lhs)[idx]
+
+
 def parse_call_expression(
     template: str,
-) -> Optional[Tuple[str, List[str], Dict[str, str], Optional[str]]]:
+) -> Optional[CallExpressionInfo]:
     """
     Parses the single call expression in a code template.
 
     Returns:
-        (func_expr, positional_arg_names, keyword_arg_names, lhs)
+        CallExpressionInfo (unpacks as (func_expr, positional_arg_names, keyword_arg_names, lhs))
 
     `lhs` is the original assignment target if the template contains an
     assignment, otherwise None.  This allows callers to preserve multi-target
@@ -51,8 +82,16 @@ def parse_call_expression(
         ast_ready = ast_ready.replace(f"{{{name}}}", ast_name)
         ph_map[ast_name] = name
 
+    def _restore_placeholders(s: str) -> str:
+        for ast_name, orig in ph_map.items():
+            s = s.replace(ast_name, f"{{{orig}}}")
+        return s
+
+    prefix_code = ""
+    suffix_code = ""
+
     # Try expression first (e.g. "func({x})" or "obj.method({x})").
-    # If that fails, parse as a statement and extract the RHS of an assignment.
+    # If that fails, parse as a statement and extract the statement containing the call.
     try:
         tree = ast.parse(ast_ready, mode="eval")
         rhs_node = tree.body
@@ -65,20 +104,35 @@ def parse_call_expression(
 
         rhs_node = None
         lhs_node = None
-        for node in tree.body:
-            if isinstance(node, ast.Assign):
-                lhs_node = node.targets[0] if node.targets else None
-                rhs_node = node.value
+        target_idx = None
+        for idx, node in enumerate(tree.body):
+            curr_rhs = None
+            curr_lhs = None
+            if isinstance(node, ast.Assign) and isinstance(node.value, ast.Call):
+                curr_lhs = node.targets[0] if node.targets else None
+                curr_rhs = node.value
+            elif isinstance(node, ast.AnnAssign) and isinstance(node.value, ast.Call):
+                curr_lhs = node.target
+                curr_rhs = node.value
+            elif isinstance(node, ast.Expr) and isinstance(node.value, ast.Call):
+                curr_rhs = node.value
+
+            if curr_rhs is not None:
+                rhs_node = curr_rhs
+                lhs_node = curr_lhs
+                target_idx = idx
                 break
-            if isinstance(node, ast.AnnAssign):
-                lhs_node = node.target
-                rhs_node = node.value
-                break
-            if isinstance(node, ast.Expr):
-                rhs_node = node.value
-                break
-        if rhs_node is None:
+
+        if rhs_node is None or target_idx is None:
             return None
+
+        if target_idx > 0:
+            prefix_stmts = tree.body[:target_idx]
+            prefix_code = _restore_placeholders("\n".join(ast.unparse(s) for s in prefix_stmts))
+
+        if target_idx + 1 < len(tree.body):
+            suffix_stmts = tree.body[target_idx + 1 :]
+            suffix_code = _restore_placeholders("\n".join(ast.unparse(s) for s in suffix_stmts))
 
     if not isinstance(rhs_node, ast.Call):
         return None
@@ -103,11 +157,6 @@ def parse_call_expression(
     # placeholder as their root: there is no static callable to resolve against.
     if func_expr.startswith("_nstl_ph_"):
         return None
-
-    def _restore_placeholders(s: str) -> str:
-        for ast_name, orig in ph_map.items():
-            s = s.replace(ast_name, f"{{{orig}}}")
-        return s
 
     def _ph_name(node: ast.AST) -> Optional[str]:
         if isinstance(node, ast.Name) and node.id.startswith("_nstl_ph_"):
@@ -148,7 +197,7 @@ def parse_call_expression(
     if not placeholders and not positional and not keywords:
         return None
 
-    return func_expr, positional, keywords, lhs
+    return CallExpressionInfo(func_expr, positional, keywords, lhs, prefix_code, suffix_code)
 
 
 def resolve_callable_from_expr(func_expr: str, dependencies: Optional[List[str]] = None):
@@ -356,9 +405,19 @@ def repair_cell_semantics(cell: Dict[str, Any], domain: str = "generic") -> bool
             # Preserve the original assignment target if one existed.
             # Never force `{output_var} =` onto void/sink calls or multi-assignments.
             if lhs:
-                new_tmpl = f"{lhs} = {reconstructed}"
+                call_stmt = f"{lhs} = {reconstructed}"
             else:
-                new_tmpl = reconstructed
+                call_stmt = reconstructed
+
+            prefix_code = getattr(call_info, "prefix_code", "")
+            suffix_code = getattr(call_info, "suffix_code", "")
+            parts = []
+            if prefix_code:
+                parts.append(prefix_code)
+            parts.append(call_stmt)
+            if suffix_code:
+                parts.append(suffix_code)
+            new_tmpl = "\n".join(parts)
 
             if new_tmpl != tmpl:
                 cell["code_template"] = clean_malformed_template_braces(new_tmpl)

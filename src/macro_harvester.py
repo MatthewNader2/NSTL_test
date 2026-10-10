@@ -141,19 +141,43 @@ class MacroHarvester:
                 if old_p != new_p:
                     raw = raw.replace(f"{{{old_p}}}", f"{{{new_p}}}")
 
-            # Thread primary input: step 0 reads external {input_var}, subsequent steps read prior wire
+            # Thread primary input: step 0 reads external port, subsequent steps read prior wire
             if idx > 0:
                 in_wire = f"_wire_{idx - 1}"
                 raw = raw.replace("{input_var}", in_wire)
                 raw = raw.replace("{input}", in_wire)
                 raw = raw.replace("{in_var}", in_wire)
 
-            # Thread primary output: intermediate steps write to _wire_{idx}, last step writes to {output_var}
+                # Dynamic carrier port detection from cell schema
+                in_carrier = getattr(c, "primary_input_name", None)
+                if not in_carrier and getattr(c, "primary_input", None):
+                    in_carrier = getattr(c.primary_input, "name", None)
+                if not in_carrier and hasattr(c, "inputs") and c.inputs:
+                    for p_name, p_sig in c.inputs.items():
+                        is_cfg = getattr(p_sig, "optional", False) or getattr(p_sig, "is_config", False)
+                        if not is_cfg:
+                            in_carrier = p_name
+                            break
+                    if not in_carrier:
+                        in_carrier = next(iter(c.inputs.keys()))
+                if in_carrier:
+                    raw = raw.replace(f"{{{in_carrier}}}", in_wire)
+
+            # Thread primary output: intermediate steps write to _wire_{idx}, last step writes to output port
             if idx < num_code_cells - 1:
                 out_wire = f"_wire_{idx}"
                 raw = raw.replace("{output_var}", out_wire)
                 raw = raw.replace("{output}", out_wire)
                 raw = raw.replace("{out_var}", out_wire)
+
+                # Dynamic carrier port detection from cell schema
+                out_carrier = getattr(c, "primary_output_name", None)
+                if not out_carrier and getattr(c, "primary_output", None):
+                    out_carrier = getattr(c.primary_output, "name", None)
+                if not out_carrier and hasattr(c, "outputs") and c.outputs:
+                    out_carrier = next(iter(c.outputs.keys()))
+                if out_carrier:
+                    raw = raw.replace(f"{{{out_carrier}}}", out_wire)
 
             threaded_blocks.append(f"# Step {idx + 1}: {c.cell_id}\n{raw}")
 

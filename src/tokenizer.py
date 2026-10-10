@@ -446,11 +446,10 @@ class CellTokenizer:
                 | reg.get_egress_tokens()
             )
             sequencing_words = set(reg.get_sequencing_connectives())
-            # "then" may be declared as a general sentence connective without being
-            # listed in the sequencing class; union it in when present.
-            sequencing_words |= reg.get_sentence_connectives() & {"then"}
-            coordinating_words = reg.get_coordinating_conjunctions()
-            filter_context_words = reg.get_filter_context_tokens()
+            if not sequencing_words:
+                sequencing_words = set(reg.get_sentence_connectives())
+            coordinating_words = set(reg.get_coordinating_conjunctions())
+            filter_context_words = set(reg.get_filter_context_tokens())
         else:
             target_verbs = set()
             sequencing_words = set()
@@ -508,24 +507,35 @@ class CellTokenizer:
         if not split_positions:
             return [text]
 
+        strip_words = set(coordinating_words) | set(sequencing_words)
+        if not strip_words and reg is not None:
+            strip_words = set(reg.get_sentence_connectives())
+        if not strip_words:
+            strip_words = {"and", "then"}
+
+        def _strip_leading_connectives(chunk_text: str) -> str:
+            chunk_text = chunk_text.strip(" ,;:\n\t")
+            changed = True
+            while changed:
+                changed = False
+                parts = chunk_text.split(None, 1)
+                if parts:
+                    first_w = parts[0].lower().strip(" ,;:\n\t")
+                    if first_w in strip_words:
+                        chunk_text = parts[1].strip(" ,;:\n\t") if len(parts) > 1 else ""
+                        changed = True
+            return chunk_text
+
         sorted_splits = sorted(list(split_positions))
         clauses = []
         last_pos = 0
         for pos in sorted_splits:
-            chunk = text[last_pos:pos].strip(" ,;:\n\t")
-            if chunk.lower().startswith("and "):
-                chunk = chunk[4:].strip(" ,;:\n\t")
-            if chunk.lower().startswith("then "):
-                chunk = chunk[5:].strip(" ,;:\n\t")
+            chunk = _strip_leading_connectives(text[last_pos:pos])
             if chunk:
                 clauses.append(chunk)
             last_pos = pos
 
-        tail = text[last_pos:].strip(" ,;:\n\t")
-        if tail.lower().startswith("and "):
-            tail = tail[4:].strip(" ,;:\n\t")
-        if tail.lower().startswith("then "):
-            tail = tail[5:].strip(" ,;:\n\t")
+        tail = _strip_leading_connectives(text[last_pos:])
         if tail:
             clauses.append(tail)
 
