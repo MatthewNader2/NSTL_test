@@ -28,6 +28,12 @@ from lattice import LatticeOrchestrator
 from unification import ExecutionContext
 
 
+def _cond_get(obj: Any, key: str, default: Any = None) -> Any:
+    if isinstance(obj, dict):
+        return obj.get(key, default)
+    return getattr(obj, key, default)
+
+
 class M10MonteCarloRouteMethod(RouteMethod):
     """Monte Carlo Tree Search over per-clause cell choices and bridges, scored by Layer-3 + preflight."""
 
@@ -90,19 +96,20 @@ class M10MonteCarloRouteMethod(RouteMethod):
         produced: Dict[Any, set] = {}
         for c in plan_cells:
             for q in (getattr(c, "postconditions", None) or []):
-                if isinstance(q, dict) and q.get("operator") == "==" and q.get("target") == "output_var" and q.get("property") is not None:
-                    produced.setdefault(q["property"], set()).add(repr(q.get("value")))
+                if _cond_get(q, "operator") == "==" and _cond_get(q, "target") == "output_var" and _cond_get(q, "property") is not None:
+                    produced.setdefault(_cond_get(q, "property"), set()).add(repr(_cond_get(q, "value")))
         needs = set()
         for c in plan_cells:
             for pre in (getattr(c, "preconditions", None) or []):
-                if isinstance(pre, dict) and pre.get("operator") == "==" and pre.get("property") in produced:
-                    if produced[pre["property"]] - {repr(pre.get("value"))}:
-                        needs.add((pre["property"], repr(pre.get("value"))))
+                prop = _cond_get(pre, "property")
+                if _cond_get(pre, "operator") == "==" and prop in produced:
+                    if produced[prop] - {repr(_cond_get(pre, "value"))}:
+                        needs.add((prop, repr(_cond_get(pre, "value"))))
         bridges: List[Cell] = []
         if settings.mcts_max_bridges > 0 and needs:
             for c in orch.loaded_cells.values():
-                if any(isinstance(q, dict) and q.get("operator") == "==" and q.get("target") == "output_var"
-                       and (q.get("property"), repr(q.get("value"))) in needs for q in (getattr(c, "postconditions", None) or [])):
+                if any(_cond_get(q, "operator") == "==" and _cond_get(q, "target") == "output_var"
+                       and (_cond_get(q, "property"), repr(_cond_get(q, "value"))) in needs for q in (getattr(c, "postconditions", None) or [])):
                     bridges.append(c)
                     proto.setdefault(c.cell_id, c)
             bridges.sort(key=lambda c: c.cell_id)
@@ -162,7 +169,16 @@ class M10MonteCarloRouteMethod(RouteMethod):
             if not groups[j] or not acts:
                 acts.append(("skip", 0))
             if cells and nb < settings.mcts_max_bridges:
+                tail = cells[-1]
+                tail_post = {(_cond_get(q, "property"), repr(_cond_get(q, "value"))) for q in (getattr(tail, "postconditions", None) or [])
+                             if _cond_get(q, "operator") == "=="}
+                props_of_tail = {p for p, _ in tail_post}
                 for b in bridges:
+                    flips = any(_cond_get(q, "property") in props_of_tail
+                                and (_cond_get(q, "property"), repr(_cond_get(q, "value"))) not in tail_post
+                                for q in (getattr(b, "postconditions", None) or []))
+                    if not flips:
+                        continue
                     if b.cell_id not in {c for c, _ in path_t} and (self.step_unifies(cells[-1], b, prev_path=cells) or self.step_unifies_dag(b, cells)):
                         acts.append(("bridge", b.cell_id))
             return acts
@@ -194,14 +210,26 @@ class M10MonteCarloRouteMethod(RouteMethod):
                 # property the bridge flips (e.g. FFT declares is_complex == True, the bridge establishes False).
                 tail = proto.get(state[1][-1][0]) if state[1] else None
                 flips = False
-                if tail is not None:
-                    tail_post = {(q.get("property"), repr(q.get("value"))) for q in (getattr(tail, "postconditions", None) or [])
-                                 if isinstance(q, dict) and q.get("operator") == "=="}
+                cand = proto.get(arg)
+                if tail is not None and cand is not None:
+                    tail_post = {(_cond_get(q, "property"), repr(_cond_get(q, "value"))) for q in (getattr(tail, "postconditions", None) or [])
+                                 if _cond_get(q, "operator") == "=="}
                     props_of_tail = {p for p, _ in tail_post}
-                    flips = any(isinstance(q, dict) and q.get("property") in props_of_tail
-                                and (q.get("property"), repr(q.get("value"))) not in tail_post
-                                for q in (getattr(proto[arg], "postconditions", None) or []))
-                return 0.9 if flips else 0.02
+                    flips = any(_cond_get(q, "property") in props_of_tail
+                                and (_cond_get(q, "property"), repr(_cond_get(q, "value"))) not in tail_post
+                                for q in (getattr(cand, "postconditions", None) or []))
+                if not flips:
+                    return 0.02
+                score = 0.9
+                # Harmonize with find_bridge scoring:
+                # Unary element-wise dimension-preserving transforms (e.g. abs, real, imag)
+                # are vastly preferred as bridges over complex multi-argument or length-transforming operators
+                if cand is not None:
+                    if len(cand.inputs) == 1 and not any(getattr(p, "state", None) == "transform_length" for p in cand.inputs.values()):
+                        score += 0.8
+                    if any(getattr(p, "state", None) == "transform_length" for p in cand.inputs.values()):
+                        score -= 0.5
+                return max(0.01, score)
             return 0.01
 
         from unification import UnificationGate, UnificationFailure

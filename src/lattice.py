@@ -1309,6 +1309,25 @@ class TypeRegistry:
         the registry (mirrors the guard used by ``is_subtype``'s own cache)."""
         return self._generation
 
+    def is_known_type_name(self, name: str) -> bool:
+        """Checks if a string matches any registered type, alias, or carrier in the Poset."""
+        if not name:
+            return False
+        t_low = str(name).strip().lower()
+        if t_low in {str(p).lower() for p in self._parents}:
+            return True
+        if t_low in {str(a).lower() for a in self._aliases}:
+            return True
+        if t_low in {str(c).lower() for c in self._state_carriers.values()}:
+            return True
+        if t_low in {str(ac).lower() for ac in self._abstract_carriers}:
+            return True
+        if t_low in {str(tc).lower() for tc in self._top_level_carriers}:
+            return True
+        if t_low in {str(rc).lower() for rc in self._role_carriers}:
+            return True
+        return False
+
     def is_subtype(self, sub: str, super_: str) -> bool:
         """Memoised poset query. The cache is per-instance and generation-guarded:
         a result computed while a mutation was in flight is returned but never stored."""

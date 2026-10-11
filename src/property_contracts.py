@@ -35,8 +35,16 @@ def _known(expr: Any, props: Dict[str, Props], col_props: Dict[Tuple[str, Any], 
 def _eval(node: ast.AST, props, col_props) -> Props:
     if isinstance(node, ast.Name):
         return dict(props.get(node.id, {}))
-    if isinstance(node, ast.Call) and len(node.args) == 1 and not node.keywords:
-        return _eval(node.args[0], props, col_props)          # structural identity-like wrapper
+    if isinstance(node, ast.Call):
+        # Attribute method calls like x.to_numpy(), x.copy()
+        if isinstance(node.func, ast.Attribute):
+            return _eval(node.func.value, props, col_props)
+        # Function wrappers like np.asarray(x), list(x)
+        if len(node.args) == 1 and not node.keywords:
+            return _eval(node.args[0], props, col_props)
+    if isinstance(node, ast.Attribute):
+        # Attribute access like x.values
+        return _eval(node.value, props, col_props)
     if isinstance(node, ast.Subscript) and isinstance(node.value, ast.Name):
         sl = node.slice
         cols: List[Any]

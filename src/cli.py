@@ -1667,6 +1667,27 @@ class PipelineDebugger:
                                     repaired_cells.insert(prod_idx + 1, bridge_cand)
                                     bridge_inserted = True
 
+                        elif viol.check_id == "precondition_violated":
+                            prod_id = viol.details.get("established_by")
+                            candidates = viol.details.get("bridge_candidates", [])
+                            if prod_id and candidates:
+                                prod_idx = next((i for i, cl in enumerate(repaired_cells) if cl.cell_id == prod_id), None)
+                                if prod_idx is not None:
+                                    best_cand = None
+                                    for c_id in candidates:
+                                        cand_cell = self.orchestrator.loaded_cells.get(c_id)
+                                        if cand_cell:
+                                            if len(cand_cell.inputs) == 1:
+                                                best_cand = cand_cell
+                                                break
+                                            if best_cand is None:
+                                                best_cand = cand_cell
+                                    if best_cand and (prod_idx + 1 >= len(repaired_cells) or repaired_cells[prod_idx + 1].cell_id != best_cand.cell_id):
+                                        b_inst = best_cand.clone() if hasattr(best_cand, "clone") else best_cand
+                                        b_inst.matched_clause_idx = getattr(repaired_cells[prod_idx], "matched_clause_idx", None)
+                                        repaired_cells.insert(prod_idx + 1, b_inst)
+                                        bridge_inserted = True
+
                     if bridge_inserted:
                         # Real synthesis chain, same two calls as the main path above
                         # (unify_pipeline + emit_code). The gate exposes no `synthesize`

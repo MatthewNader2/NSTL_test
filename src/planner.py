@@ -3792,6 +3792,30 @@ class LatticePlanner:
             if not satisfied:
                 return None
 
+        # 4. Verify tree-declared property preconditions against established properties in prev_path
+        cand_pres = getattr(cand, "preconditions", None) or []
+        if cand_pres:
+            for pre in cand_pres:
+                p_op = pre.get("operator") if isinstance(pre, dict) else getattr(pre, "operator", None)
+                p_prop = pre.get("property") if isinstance(pre, dict) else getattr(pre, "property", None)
+                p_want = pre.get("value") if isinstance(pre, dict) else getattr(pre, "value", None)
+                if p_op == "==" and p_prop is not None:
+                    # Look backwards through prev_path to see the latest established value for this property
+                    for c in reversed(prev_path):
+                        c_posts = getattr(c, "postconditions", None) or []
+                        found_prop = False
+                        for q in c_posts:
+                            q_op = q.get("operator") if isinstance(q, dict) else getattr(q, "operator", None)
+                            q_prop = q.get("property") if isinstance(q, dict) else getattr(q, "property", None)
+                            q_val = q.get("value") if isinstance(q, dict) else getattr(q, "value", None)
+                            if q_op == "==" and q_prop == p_prop:
+                                if q_val != p_want:
+                                    return None  # Property contract violation
+                                found_prop = True
+                                break
+                        if found_prop:
+                            break
+
         return sub
 
     def _plan_linear_trellis(

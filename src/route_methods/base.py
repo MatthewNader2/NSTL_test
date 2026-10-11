@@ -341,7 +341,41 @@ class RouteMethod(ABC):
 
             cand_role = str(getattr(cand, "node_role", "") or "").lower()
             is_declared_bridge = cand_role in _bridge_roles()
-            if not is_declared_bridge:
+            resolves_property_mismatch = False
+
+            # Check if cand resolves a property precondition of dst_cell violated by src_cell / current_scope
+            dst_pres = getattr(dst_cell, "preconditions", None) or []
+            src_posts = getattr(src_cell, "postconditions", None) or []
+            cand_posts = getattr(cand, "postconditions", None) or []
+
+            def _c_prop(c, key, default=None):
+                if isinstance(c, dict):
+                    return c.get(key, default)
+                return getattr(c, key, default)
+
+            if dst_pres and cand_posts:
+                for dp in dst_pres:
+                    dp_prop = _c_prop(dp, "property")
+                    dp_val = _c_prop(dp, "value")
+                    dp_op = _c_prop(dp, "operator")
+                    if dp_op == "==" and dp_prop is not None:
+                        src_conflict = any(
+                            _c_prop(sp, "property") == dp_prop
+                            and _c_prop(sp, "operator") == "=="
+                            and _c_prop(sp, "value") != dp_val
+                            for sp in src_posts
+                        )
+                        cand_resolves = any(
+                            _c_prop(cp, "property") == dp_prop
+                            and _c_prop(cp, "operator") == "=="
+                            and _c_prop(cp, "value") == dp_val
+                            for cp in cand_posts
+                        )
+                        if src_conflict and cand_resolves:
+                            resolves_property_mismatch = True
+                            break
+
+            if not is_declared_bridge and not resolves_property_mismatch:
                 # Operational transforms require positive lexical/semantic evidence in the prompt to act as bridges
                 cand_toks = set(getattr(cand, "token_set", set())) | set(getattr(cand, "keywords", []) or []) | set(getattr(cand, "semantic_tags", []) or [])
                 cand_toks = {str(t).lower() for t in cand_toks}
@@ -354,6 +388,14 @@ class RouteMethod(ABC):
                 aff1 = self.calculate_edge_affinity(src_cell, cand, orchestrator)
                 aff2 = self.calculate_edge_affinity(cand, dst_cell, orchestrator)
                 score = aff1 + aff2
+                if resolves_property_mismatch:
+                    score += 5.0
+                    req_in = sum(1 for p in cand.inputs.values() if p.required)
+                    opt_in = len(cand.inputs) - req_in
+                    if req_in == 1 and opt_in == 0:
+                        score += 3.0  # Clean unary element-wise transform preserving element count
+                    elif any("transform_length" in str(getattr(getattr(p, "signature", p), "state", "")) for p in cand.inputs.values()):
+                        score -= 2.0  # Penalize transforms requiring output length specifications
                 if score > best_score:
                     best_score = score
                     best_b = cand
@@ -598,6 +640,62 @@ class RouteMethod(ABC):
                                         reason="chain would not unify with the commit cell inserted")
             i += 1
         return out
+
+    def insert_property_bridges(self, path: List[Cell], trace: bool = True) -> List[Cell]:
+        """
+        Inserts property-resolving bridges (e.g. converting complex frequency outputs to real
+        magnitudes via NUMPY_ABS) when an upstream cell produces a property that conflicts
+        with a downstream consumer's declared preconditions or column contract.
+        """
+        if not path or self.orchestrator is None:
+            return path
+        try:
+            from property_contracts import analyze as _prop_analyze
+            from unification import UnificationGate, ExecutionContext
+            gate = UnificationGate(orchestrator=self.orchestrator)
+            ctx = ExecutionContext(prompt=getattr(self, "prompt", ""))
+            res = gate.unify_pipeline(path, ctx)
+            if res.is_bottom() or not gate.last_pipeline_bindings:
+                return path
+            issues = _prop_analyze(gate.last_pipeline_bindings, self.orchestrator)
+            if not issues:
+                return path
+
+            out = list(path)
+            for iss in issues:
+                prod_id = iss.get("established_by")
+                candidates = iss.get("bridge_candidates", [])
+                if not prod_id or not candidates:
+                    continue
+                prod_idx = next((i for i, c in enumerate(out) if c.cell_id == prod_id), None)
+                if prod_idx is None:
+                    continue
+
+                best_cand = None
+                for cid in candidates:
+                    cand_cell = self.orchestrator.loaded_cells.get(cid)
+                    if cand_cell:
+                        if len(cand_cell.inputs) == 1:
+                            best_cand = cand_cell
+                            break
+                        if best_cand is None:
+                            best_cand = cand_cell
+
+                if best_cand:
+                    if prod_idx + 1 < len(out) and out[prod_idx + 1].cell_id == best_cand.cell_id:
+                        continue
+                    b_cell = best_cand.clone() if hasattr(best_cand, "clone") else best_cand
+                    b_cell.matched_clause_idx = getattr(out[prod_idx], "matched_clause_idx", None)
+                    trial = out[: prod_idx + 1] + [b_cell] + out[prod_idx + 1 :]
+                    if self.chain_is_valid(trial):
+                        if trace:
+                            self._trace("property_bridge_inserted", after=prod_id, bridge=b_cell.cell_id,
+                                        property=iss.get("property"), reason="resolves downstream property precondition")
+                        out = trial
+            return out
+        except Exception as _p_err:
+            logger.debug(f"[ROUTE] insert_property_bridges skipped: {_p_err}")
+            return path
 
 
     def prune_unrequested(self, path: List[Cell], prompt: str) -> List[Cell]:

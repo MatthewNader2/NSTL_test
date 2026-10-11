@@ -232,11 +232,6 @@
       },
       {
         "from": "1d_vector",
-        "to": "fft_frequency_domain",
-        "via": "NUMPY_FFT_RFFT"
-      },
-      {
-        "from": "1d_vector",
         "to": "nd_tensor",
         "via": "NUMPY_ABS"
       },
@@ -571,11 +566,6 @@
         "via": "NUMPY_FFT_IFFTSHIFT"
       },
       {
-        "from": "fft_frequency_domain",
-        "to": "nd_tensor",
-        "via": "NUMPY_FFT_IRFFT"
-      },
-      {
         "from": "file_path_str",
         "to": "nd_tensor",
         "via": "NUMPY_LOAD_NPY"
@@ -649,11 +639,6 @@
         "from": "nd_tensor",
         "to": "fft_frequency_domain",
         "via": "NUMPY_FFT_FFTN"
-      },
-      {
-        "from": "nd_tensor",
-        "to": "fft_frequency_domain",
-        "via": "NUMPY_FFT_RFFT"
       },
       {
         "from": "nd_tensor",
@@ -1014,6 +999,26 @@
         "from": "ndarray_generic",
         "to": "2d_matrix",
         "via": "NUMPY_RESHAPE_NCOL"
+      },
+      {
+        "from": "fft_frequency_domain",
+        "to": "nd_tensor",
+        "via": "NUMPY_ABS"
+      },
+      {
+        "from": "fft_half_spectrum",
+        "to": "nd_tensor",
+        "via": "NUMPY_ABS"
+      },
+      {
+        "from": "fft_half_spectrum",
+        "to": "nd_tensor",
+        "via": "NUMPY_FFT_IRFFT"
+      },
+      {
+        "from": "nd_tensor",
+        "to": "fft_half_spectrum",
+        "via": "NUMPY_FFT_RFFT"
       }
     ],
     "initial_state": "1d_vector",
@@ -5363,7 +5368,9 @@
             "nd_tensor",
             "1d_vector",
             "2d_matrix",
-            "complex_tensor"
+            "complex_tensor",
+            "fft_frequency_domain",
+            "fft_half_spectrum"
           ],
           "qualifiers": [],
           "default_value": null,
@@ -8864,8 +8871,10 @@
       "outputs": {
         "output_var": {
           "type_name": "ndarray",
-          "state": "fft_frequency_domain",
-          "qualifiers": [],
+          "state": "fft_half_spectrum",
+          "qualifiers": [
+            "complex"
+          ],
           "default_value": null,
           "description": "Hermitian-symmetric positive frequency spectrum",
           "domain": "numpy",
@@ -8949,7 +8958,7 @@
       "inputs": {
         "a": {
           "type_name": "ndarray",
-          "state": "fft_frequency_domain",
+          "state": "fft_half_spectrum",
           "qualifiers": [],
           "default_value": null,
           "description": "Complex half-spectrum from rfft",
@@ -8959,7 +8968,10 @@
           "enum_values": null,
           "param_kind": "standard",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "accepted_states": [
+            "fft_half_spectrum"
+          ]
         },
         "n": {
           "type_name": "int",

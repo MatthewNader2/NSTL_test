@@ -1554,6 +1554,70 @@ def bind(
     return k(m.value, m.sigma)
 
 
+def _is_valid_slot_value(val: Any, sig: Optional[PortSignature] = None) -> bool:
+    """Validates whether an extracted slot/hyperparameter value conforms to port schema."""
+    if val is None or sig is None:
+        return False
+    val_s = str(val).strip()
+    if not val_s:
+        return False
+    val_low = val_s.lower()
+    if val_low in ("none", "null"):
+        return False
+
+    declared_enums = getattr(sig, "enum_values", None)
+    enum_set = {str(e).strip().lower() for e in declared_enums} if declared_enums else set()
+
+    # Tier 1: Reject echoes of the port's own declared type or abstract type
+    t_sig = str(getattr(sig, "type_name", "")).strip().lower()
+    abs_sig = str(getattr(sig, "abstract_type", "")).strip().lower()
+    if (val_low == t_sig or (abs_sig and val_low == abs_sig)) and val_low not in enum_set:
+        return False
+
+    # Tier 2: Dynamic Python Built-in Types (via runtime reflection, 0 hardcoded strings)
+    import builtins
+    if not hasattr(_is_valid_slot_value, "_builtin_type_names"):
+        _is_valid_slot_value._builtin_type_names = {
+            k.lower() for k, v in builtins.__dict__.items() if isinstance(v, type)
+        }
+    if val_low in _is_valid_slot_value._builtin_type_names and val_low not in enum_set:
+        return False
+
+    # Tier 3: Poset Ontology Types from TypeRegistry (ndarray, DataFrame, Series, etc.)
+    try:
+        from lattice import TypeRegistry
+        reg = TypeRegistry.get_instance()
+        if reg.is_known_type_name(val_low) and val_low not in enum_set:
+            return False
+    except Exception:
+        pass
+
+    # If the port declares discrete enum_values, candidate MUST match one of them
+    if declared_enums:
+        return val_low in enum_set
+
+    # Verify numeric convertibility using Poset subtyping if port is numeric
+    try:
+        from lattice import TypeRegistry
+        reg = TypeRegistry.get_instance()
+        if reg.is_subtype(t_sig, "int"):
+            try:
+                int(val_s)
+                return True
+            except ValueError:
+                return False
+        if reg.is_subtype(t_sig, "numeric"):
+            try:
+                float(val_s)
+                return True
+            except ValueError:
+                return False
+    except Exception:
+        pass
+
+    return True
+
+
 def _format_literal_value(val: Any, sig: Optional[PortSignature] = None) -> str:
     """Formats an extracted slot/hyperparameter value into an executable code literal."""
     if val is None:
@@ -1567,13 +1631,6 @@ def _format_literal_value(val: Any, sig: Optional[PortSignature] = None) -> str:
     s = str(val).strip()
     if s in ("None", "True", "False"):
         return s
-    if (s.startswith("'") and s.endswith("'")) or (s.startswith('"') and s.endswith('"')):
-        return s
-    try:
-        float(s)
-        return s
-    except ValueError:
-        pass
 
     p_role = str(getattr(sig, "port_role", "") or getattr(sig, "role", "") or "").strip().lower()
     if p_role == "data_input":
@@ -1589,6 +1646,22 @@ def _format_literal_value(val: Any, sig: Optional[PortSignature] = None) -> str:
     except Exception:
         is_str_like = t_name in ("str", "enum", "column_identifier", "filepath", "path")
 
+    declared_enums = getattr(sig, "enum_values", None)
+    if declared_enums:
+        enum_set = {str(e).strip().lower() for e in declared_enums}
+        if s.lower() not in enum_set:
+            if getattr(sig, "default_value", None) is not None:
+                return repr(str(sig.default_value)) if is_str_like else str(sig.default_value)
+            return "None"
+
+    if (s.startswith("'") and s.endswith("'")) or (s.startswith('"') and s.endswith('"')):
+        return s
+    try:
+        float(s)
+        return s
+    except ValueError:
+        pass
+
     # If the value represents an identifier or pipeline variable expression and port is not string-like
     if not is_str_like and p_role not in ("parameter", "literal_parameter", "literal", "config"):
         if s.isidentifier() or s.startswith("var_"):
@@ -1597,6 +1670,7 @@ def _format_literal_value(val: Any, sig: Optional[PortSignature] = None) -> str:
     if is_str_like or not s.isidentifier() or p_role in ("parameter", "literal_parameter", "literal", "config"):
         return repr(s)
     return s
+
 
 
 # =====================================================================
@@ -2143,6 +2217,7 @@ class ExecutionContext:
                 (w.isidentifier() or w.isalpha())
                 and 3 <= len(w)
                 and w.lower() not in _SENTENCE_CONNECTIVES
+                and w.lower() not in reg.get_prompt_filler_tokens()
                 and not reg.is_operation_token(w)
             ):
                 prev = prompt[:pos].rstrip()
@@ -2205,14 +2280,16 @@ class ExecutionContext:
             return False
         if w.lower() in _SENTENCE_CONNECTIVES:
             return False
+        reg = TypeRegistry.get_instance()
+        if w.lower() in reg.get_prompt_filler_tokens():
+            return False
+        if reg.is_operation_token(w):
+            return False
         # Single-letter variable: always valid (e.g. X, Y, x, y)
         if len(w) == 1:
             return True
         # Capitalized token or variable with underscores/numbers
         if w[0].isupper() or "_" in w or any(ch.isdigit() for ch in w):
-            return True
-        # Short lowercase token (<= 4 chars, e.g. col, data, row)
-        if len(w) <= 4:
             return True
         return False
 
@@ -2552,6 +2629,7 @@ class ExecutionContext:
         skip_words = (
             set(_reg_skip.get_function_words())
             | set(_reg_skip.get_sentence_connectives())
+            | set(_reg_skip.get_prompt_filler_tokens())
             | {k.lower() for k in keyword.kwlist}
             | {"true", "false", "none", "null"}
         )
@@ -3824,16 +3902,18 @@ class UnificationGate:
         llm_pipeline_bindings: Dict[str, Dict[str, Any]] = {}
         if prompt_text and cells:
             try:
-                from .inference import ModelManager
-                if ModelManager.get_instance().can_synthesize():
-                    llm_pipeline_bindings = self._synthesize_pipeline_bindings_with_llm(cells, prompt_text, ctx)
-            except Exception:
                 try:
+                    from .inference import ModelManager
+                except (ImportError, ValueError):
                     from inference import ModelManager
-                    if ModelManager.get_instance().can_synthesize():
-                        llm_pipeline_bindings = self._synthesize_pipeline_bindings_with_llm(cells, prompt_text, ctx)
-                except Exception:
-                    llm_pipeline_bindings = {}
+                mm = ModelManager.get_instance()
+                if mm.can_synthesize():
+                    if not getattr(ctx, "llm_slots", None):
+                        self._extract_pipeline_slots_with_llm(cells, prompt_text, ctx)
+                    llm_pipeline_bindings = self._synthesize_pipeline_bindings_with_llm(cells, prompt_text, ctx)
+            except Exception as e:
+                logger.debug(f"[UNIFICATION] LLM pipeline synthesis setup failed: {e}")
+                llm_pipeline_bindings = {}
 
         if prompt_text and cells:
             try:
@@ -3999,17 +4079,88 @@ class UnificationGate:
             ctx.current_cell_clause_idx = getattr(cell, "matched_clause_idx", None)
             cell_clause = ctx.current_cell_clause_idx
             target_col_for_cell = None
-            if cell_clause is not None and getattr(ctx, "literal_clause_map", None):
+            # 1. Check if LLM slot extraction specifically bound a column for this cell
+            if getattr(ctx, "llm_slots", None) and cell.cell_id in ctx.llm_slots:
+                c_slots = ctx.llm_slots[cell.cell_id]
+                if isinstance(c_slots, dict):
+                    for p_key in ("column", "target_col", "col", "target"):
+                        if p_key in c_slots and c_slots[p_key]:
+                            target_col_for_cell = str(c_slots[p_key]).strip()
+                            break
+
+            # 2. Check syntactic cues & literals in cell's clause
+            if target_col_for_cell is None and cell_clause is not None and getattr(ctx, "literal_clause_map", None):
+                reg = TypeRegistry.get_instance()
+                filler_tokens = reg.get_prompt_filler_tokens()
                 known_cols = {str(c).strip().lower() for c in getattr(ctx, "columns", []) if str(c).strip()}
+
+                # Extract candidate literals for this clause
+                clause_candidates: List[str] = []
                 for lit_idx, (_, kind, val) in enumerate(getattr(ctx, "ordered_literals", [])):
                     if ctx.literal_clause_map.get(lit_idx) == cell_clause and kind in ("identifier", "quoted_str"):
                         v_str = str(val).strip()
-                        if v_str.lower() in known_cols or (hasattr(ctx, "columns") and ctx.columns and v_str in ctx.columns):
-                            target_col_for_cell = v_str
+                        vl = v_str.lower()
+                        if vl in _SENTENCE_CONNECTIVES or vl in filler_tokens or reg.is_operation_token(v_str):
+                            continue
+                        if ExecutionContext._is_path_string(v_str) or "." in v_str:
+                            continue
+                        clause_candidates.append(v_str)
+
+                # Prioritize:
+                # a) Matches explicit ctx.target_col
+                target_str = str(getattr(ctx, "target_col", "") or "").strip()
+                if target_str:
+                    for cand in clause_candidates:
+                        if cand.lower() == target_str.lower():
+                            target_col_for_cell = cand
                             break
-                        elif not ExecutionContext._is_path_string(v_str) and "." not in v_str:
-                            target_col_for_cell = v_str
+
+                # b) Syntactic cue matching in clause prompt (e.g. "called Z", "named Z")
+                if target_col_for_cell is None and prompt_text:
+                    clauses_list = CellTokenizer.split_prompt_clauses(prompt_text)
+                    if 0 <= cell_clause < len(clauses_list):
+                        cl_text = clauses_list[cell_clause].lower()
+                        cue_words = ("called", "named", "as", "labeled", "titled", "column", "columns")
+                        for cand in clause_candidates:
+                            cand_l = cand.lower()
+                            for cw in cue_words:
+                                if f"{cw} {cand_l}" in cl_text or f"{cw} '{cand_l}'" in cl_text or f'{cw} "{cand_l}"' in cl_text:
+                                    target_col_for_cell = cand
+                                    break
+                            if target_col_for_cell is not None:
+                                break
+
+                # c) Known column match
+                if target_col_for_cell is None:
+                    for cand in clause_candidates:
+                        if cand.lower() in known_cols or (hasattr(ctx, "columns") and ctx.columns and cand in ctx.columns):
+                            target_col_for_cell = cand
                             break
+
+                # d) Quoted string literal
+                if target_col_for_cell is None:
+                    for cand in clause_candidates:
+                        for lit_idx, (_, kind, val) in enumerate(getattr(ctx, "ordered_literals", [])):
+                            if ctx.literal_clause_map.get(lit_idx) == cell_clause and kind == "quoted_str" and str(val).strip() == cand:
+                                target_col_for_cell = cand
+                                break
+                        if target_col_for_cell is not None:
+                            break
+
+                # e) Any remaining valid identifier candidate
+                if target_col_for_cell is None and clause_candidates:
+                    preferred = [c for c in clause_candidates if len(c) == 1 or c[0].isupper() or "_" in c or any(ch.isdigit() for ch in c)]
+                    target_col_for_cell = preferred[0] if preferred else clause_candidates[0]
+
+            # 3. Fallback: if cell requires a column key and target_col is set globally
+            if target_col_for_cell is None and getattr(ctx, "target_col", None):
+                c_has_col_port = any(
+                    getattr(p, "binds", None) == "column_key" or "column" in (getattr(p, "port_role", "") or "").lower()
+                    for p in cell.inputs.values()
+                ) or "column" in cell.cell_id.lower()
+                if c_has_col_port:
+                    target_col_for_cell = str(ctx.target_col).strip()
+
             ctx.target_col_for_cell = target_col_for_cell
             # For-each replicas (multiplicity expansion): a replica RE-CONSUMES
             # its receiver from the environment's in-scope variables (e.g. the
@@ -4637,6 +4788,9 @@ class UnificationGate:
                     if p_name in ctx.hyperparameters:
                         llm_slot_val = ctx.hyperparameters[p_name]
 
+                if llm_slot_val is not None and not _is_valid_slot_value(llm_slot_val, concrete_sig):
+                    llm_slot_val = None
+
                 # Optional parameters with declared default: use prompt literal or omit/default
                 if not p_sig.required and p_sig.default_value is not None:
                     if llm_slot_val is not None:
@@ -4868,7 +5022,7 @@ class UnificationGate:
                     continue
 
                 # B. Check typestate-driven literal resolution from prompt or LLM slots
-                if llm_slot_val is not None:
+                if llm_slot_val is not None and _is_valid_slot_value(llm_slot_val, concrete_sig):
                     formatted_val = _format_literal_value(llm_slot_val, concrete_sig)
                     cell_bindings[p_name] = formatted_val
                     accumulated_sigma.bind(p_name, formatted_val)
@@ -5570,7 +5724,8 @@ class UnificationGate:
                 c_ports[p_name] = {
                     "type": t_name or "any",
                     "required": getattr(p_sig, "required", False),
-                    "default": str(getattr(p_sig, "default_value", None))
+                    "default": str(getattr(p_sig, "default_value", None)),
+                    "enum_values": getattr(p_sig, "enum_values", None)
                 }
             if c_ports:
                 candidate_ports_by_cell[c.cell_id] = c_ports
@@ -5601,8 +5756,12 @@ class UnificationGate:
 
         cell_summary = []
         for cid, ports in candidate_ports_by_cell.items():
-            port_desc = ", ".join(f"{p}: {info['type']}" for p, info in ports.items())
-            cell_summary.append(f"- Cell '{cid}': {port_desc}")
+            port_descs = []
+            for p, info in ports.items():
+                e_vals = info.get("enum_values")
+                e_str = f" [options: {e_vals}]" if e_vals else ""
+                port_descs.append(f"{p}: {info['type']}{e_str}")
+            cell_summary.append(f"- Cell '{cid}': {', '.join(port_descs)}")
 
         query = (
             f"User Prompt: {prompt}\n\n"
@@ -5648,6 +5807,11 @@ class UnificationGate:
                                     ctx.llm_slots[k] = {}
                                 for p_name, val in v.items():
                                     if val is not None:
+                                        c_match = next((cl for cl in cells if cl.cell_id == k), None)
+                                        p_sig = c_match.inputs.get(p_name) if c_match and hasattr(c_match, "inputs") else None
+                                        concrete_sig = getattr(p_sig, "signature", p_sig) if p_sig else None
+                                        if concrete_sig and not _is_valid_slot_value(val, concrete_sig):
+                                            continue
                                         ctx.llm_slots[k][p_name] = val
                             elif v is not None:
                                 if not hasattr(ctx, "hyperparameters") or ctx.hyperparameters is None:
@@ -7215,6 +7379,25 @@ def unify_cell_with_scope(
                     registry=TypeRegistry.get_instance(),
                 ):
                     continue
+            cand_pres = getattr(cand, "preconditions", None) or []
+            earlier_posts = getattr(earlier_cell, "postconditions", None) or []
+            prop_conflict = False
+            if cand_pres and earlier_posts:
+                def _c_prop(c, key, default=None):
+                    if isinstance(c, dict):
+                        return c.get(key, default)
+                    return getattr(c, key, default)
+                for pre in cand_pres:
+                    if _c_prop(pre, "operator") == "==" and _c_prop(pre, "property") is not None:
+                        for q in earlier_posts:
+                            if _c_prop(q, "operator") == "==" and _c_prop(q, "property") == _c_prop(pre, "property"):
+                                if _c_prop(q, "value") != _c_prop(pre, "value"):
+                                    prop_conflict = True
+                                    break
+                        if prop_conflict:
+                            break
+            if prop_conflict:
+                continue
             for out_name, out_sig in earlier_cell.outputs.items():
                 if not _shape_compatible(out_sig, p_sig):
                     continue

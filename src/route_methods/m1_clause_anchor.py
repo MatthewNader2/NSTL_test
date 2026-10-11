@@ -7,7 +7,10 @@ Anchors key morphisms for each linguistic clause in the prompt and bridges type 
 from __future__ import annotations
 from typing import Dict, List, Optional, Set, Tuple, Any
 
+from log_config import get_logger
 from .base import RouteMethod, STOPWORDS
+
+logger = get_logger("m1_clause_anchor")
 
 try:
     from ..lattice import Cell, LatticeOrchestrator, TypeRegistry
@@ -23,7 +26,7 @@ def _clause_has_egress_intent(clause: str) -> bool:
     """Language-level materialization intent for a clause: declared egress
     verbs (planner.EGRESS_INTENT_TOKENS) when not an in-memory variable target."""
     try:
-        from .planner import EGRESS_INTENT_TOKENS
+        from ..planner import EGRESS_INTENT_TOKENS
     except (ImportError, ValueError):
         from planner import EGRESS_INTENT_TOKENS
     target = ExecutionContext._extract_target_sink(clause)
@@ -215,7 +218,10 @@ class M1ClauseAnchorRouteMethod(RouteMethod):
         if orch and routed_path:
             is_broken = False
             try:
-                from ..unification import UnificationGate
+                try:
+                    from ..unification import UnificationGate
+                except (ImportError, ValueError):
+                    from unification import UnificationGate
                 gate = UnificationGate(orchestrator=orch)
                 test_res = gate.unify_pipeline(routed_path, ExecutionContext(prompt=prompt))
                 if test_res.is_bottom():
@@ -225,7 +231,10 @@ class M1ClauseAnchorRouteMethod(RouteMethod):
 
             if is_broken:
                 try:
-                    from ..planner import LatticePlanner
+                    try:
+                        from ..planner import LatticePlanner
+                    except (ImportError, ValueError):
+                        from planner import LatticePlanner
                     planner = LatticePlanner(orchestrator=orch)
                     fb_path = planner.plan(
                         prompt=prompt,
