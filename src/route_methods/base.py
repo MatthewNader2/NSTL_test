@@ -517,7 +517,6 @@ class RouteMethod(ABC):
         # adjacency contest and its output was routed to the wrong consumer.
         for i, cell in enumerate(path):
             if i > 0 and getattr(cell, "matched_clause_idx", None) is None and \
-                    all(table[i][j]["hit"] <= 0.0 for j in range(len(clauses))) and \
                     getattr(path[i - 1], "matched_clause_idx", None) is not None:
                 cell.matched_clause_idx = path[i - 1].matched_clause_idx
         # Clause-scoped literals (column names, quoted strings) travel with the clause a cell
@@ -665,11 +664,19 @@ class RouteMethod(ABC):
             for iss in issues:
                 prod_id = iss.get("established_by")
                 candidates = iss.get("bridge_candidates", [])
+                prop = iss.get("property")
                 if not prod_id or not candidates:
                     continue
                 prod_idx = next((i for i, c in enumerate(out) if c.cell_id == prod_id), None)
                 if prod_idx is None:
                     continue
+
+                # Advance past any intermediate cells that preserve the offending property
+                while prod_idx + 1 < len(out) and any(
+                    str(eff).lower() == f"preserves:{str(prop).lower()}"
+                    for eff in (getattr(out[prod_idx + 1], "effects", None) or [])
+                ):
+                    prod_idx += 1
 
                 best_cand = None
                 for cid in candidates:

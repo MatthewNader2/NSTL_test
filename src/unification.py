@@ -106,6 +106,19 @@ def _is_unbound(value: Any) -> bool:
     return s in ("none", "null", "<unresolved>", "<unbound>", "<unresolved_port>")
 
 
+@functools.lru_cache(maxsize=1024)
+def _parse_expr_ast(expr_str: str) -> Optional[ast.AST]:
+    try:
+        return ast.parse(expr_str, mode="eval").body
+    except Exception:
+        return None
+
+
+_cached_col_proj_sig: Optional[Any] = None
+_cached_cols_proj_sig: Optional[Any] = None
+_cached_attr_proj_sigs: Dict[str, Any] = {}
+
+
 def resolve_typed_binding_record(
     cell: Any,
     port_name: str,
@@ -175,10 +188,7 @@ def resolve_typed_binding_record(
         )
 
     # 2. Parse expression via AST
-    try:
-        parsed = ast.parse(val_str, mode="eval").body
-    except Exception:
-        parsed = None
+    parsed = _parse_expr_ast(val_str)
 
     if isinstance(parsed, ast.Name):
         v = parsed.id
@@ -199,22 +209,25 @@ def resolve_typed_binding_record(
 
         # (A) Column selection: var['X']
         if isinstance(sl, ast.Constant) and isinstance(sl.value, str):
-            col_sig = None
-            try:
+            global _cached_col_proj_sig
+            col_sig = _cached_col_proj_sig
+            if col_sig is None:
                 try:
-                    from .lattice import LatticeOrchestrator
-                except (ImportError, ValueError):
-                    from lattice import LatticeOrchestrator
-                orch = LatticeOrchestrator.get_active_instance()
-                if orch:
-                    for c in orch.cells:
-                        if getattr(c, "projection", None) == "column":
-                            p_out = getattr(c, "primary_output", None) or next(iter(c.outputs.values()), None)
-                            if p_out:
-                                col_sig = getattr(p_out, "signature", p_out)
-                                break
-            except Exception:
-                pass
+                    try:
+                        from .lattice import LatticeOrchestrator
+                    except (ImportError, ValueError):
+                        from lattice import LatticeOrchestrator
+                    orch = LatticeOrchestrator.get_active_instance()
+                    if orch:
+                        for c in orch.cells:
+                            if getattr(c, "projection", None) == "column":
+                                p_out = getattr(c, "primary_output", None) or next(iter(c.outputs.values()), None)
+                                if p_out:
+                                    col_sig = getattr(p_out, "signature", p_out)
+                                    _cached_col_proj_sig = col_sig
+                                    break
+                except Exception:
+                    pass
 
             if col_sig is None:
                 col_sig = AlgebraicSignature(
@@ -235,22 +248,25 @@ def resolve_typed_binding_record(
 
         # (B) Multi-column selection: var[['X', 'Y']]
         elif isinstance(sl, (ast.List, ast.Tuple)):
-            cols_sig = None
-            try:
+            global _cached_cols_proj_sig
+            cols_sig = _cached_cols_proj_sig
+            if cols_sig is None:
                 try:
-                    from .lattice import LatticeOrchestrator
-                except (ImportError, ValueError):
-                    from lattice import LatticeOrchestrator
-                orch = LatticeOrchestrator.get_active_instance()
-                if orch:
-                    for c in orch.cells:
-                        if getattr(c, "projection", None) == "columns":
-                            p_out = getattr(c, "primary_output", None) or next(iter(c.outputs.values()), None)
-                            if p_out:
-                                cols_sig = getattr(p_out, "signature", p_out)
-                                break
-            except Exception:
-                pass
+                    try:
+                        from .lattice import LatticeOrchestrator
+                    except (ImportError, ValueError):
+                        from lattice import LatticeOrchestrator
+                    orch = LatticeOrchestrator.get_active_instance()
+                    if orch:
+                        for c in orch.cells:
+                            if getattr(c, "projection", None) == "columns":
+                                p_out = getattr(c, "primary_output", None) or next(iter(c.outputs.values()), None)
+                                if p_out:
+                                    cols_sig = getattr(p_out, "signature", p_out)
+                                    _cached_cols_proj_sig = cols_sig
+                                    break
+                except Exception:
+                    pass
 
             if cols_sig is None:
                 cols_sig = AlgebraicSignature(
@@ -359,22 +375,24 @@ def resolve_typed_binding_record(
             )
 
         base_sig = var_sigs.get(root_v) if root_v else None
-        method_sig = None
-        try:
+        method_sig = _cached_attr_proj_sigs.get(attr_name)
+        if method_sig is None:
             try:
-                from .lattice import LatticeOrchestrator
-            except (ImportError, ValueError):
-                from lattice import LatticeOrchestrator
-            orch = LatticeOrchestrator.get_active_instance()
-            if orch:
-                for c in orch.cells:
-                    if getattr(c, "projection", None) == attr_name or getattr(c, "method_name", None) == attr_name:
-                        p_out = getattr(c, "primary_output", None) or next(iter(c.outputs.values()), None)
-                        if p_out:
-                            method_sig = getattr(p_out, "signature", p_out)
-                            break
-        except Exception:
-            pass
+                try:
+                    from .lattice import LatticeOrchestrator
+                except (ImportError, ValueError):
+                    from lattice import LatticeOrchestrator
+                orch = LatticeOrchestrator.get_active_instance()
+                if orch:
+                    for c in orch.cells:
+                        if getattr(c, "projection", None) == attr_name or getattr(c, "method_name", None) == attr_name:
+                            p_out = getattr(c, "primary_output", None) or next(iter(c.outputs.values()), None)
+                            if p_out:
+                                method_sig = getattr(p_out, "signature", p_out)
+                                _cached_attr_proj_sigs[attr_name] = method_sig
+                                break
+            except Exception:
+                pass
 
         if method_sig is None and expected_sig:
             method_sig = expected_sig
@@ -4924,7 +4942,12 @@ class UnificationGate:
                         "scoped_candidates", cell=cell.cell_id, port=p_name, clause=cell_clause,
                         target_col=target_col_for_cell, matching_origin=has_matching_origin,
                         candidates=[(v, round(pr, 1), sorted(getattr(ctx, "var_origins", {}).get(v, set()))) for pr, v, _ in candidate_vars[:4]])
-                    if target_col_for_cell is None or has_matching_origin:
+                    is_dest_carrier = (
+                        getattr(p_sig, "binds", "") == "data_carrier"
+                        or getattr(p_sig, "port_role", "") in ("receiver", "data_carrier")
+                        or (_cell_consumes_name_literal(cell) and registry.is_subtype(str(getattr(concrete_sig, "type_name", "")).lower(), "table"))
+                    )
+                    if target_col_for_cell is None or has_matching_origin or is_dest_carrier:
                         if candidate_vars[0][0] >= 0:
                             _, scoped_var, accumulated_sigma = candidate_vars[0]
 

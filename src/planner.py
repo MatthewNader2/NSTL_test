@@ -3676,24 +3676,31 @@ class LatticePlanner:
         prev_cell = prev_path[-1]
         prev_out = prev_cell.primary_output.signature
 
-        def _extract_ndim(sc: Any) -> Optional[int]:
+        def _get_ndim(port_obj: Any) -> Optional[int]:
+            cached = getattr(port_obj, "_cached_ndim", ...)
+            if cached is not ...:
+                return cached
+            sc = getattr(port_obj, "shape_contract", None)
+            val = None
             if isinstance(sc, dict):
-                val = sc.get("ndim")
-                if isinstance(val, int):
-                    return val
-                try:
-                    return int(val) if val is not None else None
-                except (ValueError, TypeError):
-                    return None
+                v = sc.get("ndim")
+                if isinstance(v, int):
+                    val = v
+                else:
+                    try:
+                        val = int(v) if v is not None else None
+                    except (ValueError, TypeError):
+                        val = None
             elif isinstance(sc, str):
-                sc = sc.strip()
-                if sc.startswith("(") and sc.endswith(")"):
-                    inner = sc[1:-1].strip()
-                    if not inner:
-                        return 0
-                    parts = [p.strip() for p in inner.split(",") if p.strip()]
-                    return len(parts)
-            return None
+                s = sc.strip()
+                if s.startswith("(") and s.endswith(")"):
+                    inner = s[1:-1].strip()
+                    val = 0 if not inner else len([p for p in inner.split(",") if p.strip()])
+            try:
+                port_obj._cached_ndim = val
+            except (AttributeError, TypeError):
+                pass
+            return val
 
         def _shape_compatible(p_out: Any, p_in: Any) -> bool:
             if not _is_port_role_compatible(p_out, p_in):
@@ -3707,8 +3714,8 @@ class LatticePlanner:
             out_sc = getattr(p_out, "shape_contract", None)
             in_sc = getattr(p_in, "shape_contract", None)
             if out_sc and in_sc:
-                o_ndim = _extract_ndim(out_sc)
-                i_ndim = _extract_ndim(in_sc)
+                o_ndim = _get_ndim(p_out)
+                i_ndim = _get_ndim(p_in)
                 if o_ndim is not None and i_ndim is not None and o_ndim != i_ndim:
                     return False
             return True
@@ -3958,6 +3965,9 @@ class LatticePlanner:
                         successor_cells.append(ctor)
                         seen_ids.add(ctor.cell_id.lower())
 
+                prev_out_sigs = tuple(sorted((out_sig.signature.type_name, str(getattr(out_sig.signature, "state", "any"))) for c in prev_path for out_sig in c.outputs.values()))
+                prev_sigma_fp = _sigma_fingerprint(prev_sigma)
+
                 for cand in successor_cells:
                     if time.perf_counter() > self._plan_deadline:
                         break
@@ -3977,8 +3987,7 @@ class LatticePlanner:
                         if _is_ingress_stage(cand) and cand not in zero_ary_ctors:
                             continue
 
-                        prev_out_sigs = tuple(sorted((out_sig.signature.type_name, str(getattr(out_sig.signature, "state", "any"))) for c in prev_path for out_sig in c.outputs.values()))
-                        pair_key = (prev_cell.cell_id, cand.cell_id, _sigma_fingerprint(prev_sigma), prev_out_sigs)
+                        pair_key = (prev_cell.cell_id, cand.cell_id, prev_sigma_fp, prev_out_sigs)
                         if pair_key in edge_compat_cache:
                             new_sigma = edge_compat_cache[pair_key]
                         else:

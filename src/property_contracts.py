@@ -17,6 +17,8 @@ from __future__ import annotations
 import ast
 from typing import Any, Dict, List, Optional, Tuple
 
+import functools
+
 Props = Dict[str, Tuple[Any, str, str]]   # property -> (value, producing cell id, description)
 
 
@@ -24,10 +26,17 @@ def _const(node: ast.AST) -> Optional[Any]:
     return node.value if isinstance(node, ast.Constant) else None
 
 
-def _known(expr: Any, props: Dict[str, Props], col_props: Dict[Tuple[str, Any], Props]) -> Props:
+@functools.lru_cache(maxsize=1024)
+def _parse_expr(expr_str: str) -> Optional[ast.AST]:
     try:
-        tree = ast.parse(str(expr), mode="eval").body
+        return ast.parse(expr_str, mode="eval").body
     except SyntaxError:
+        return None
+
+
+def _known(expr: Any, props: Dict[str, Props], col_props: Dict[Tuple[str, Any], Props]) -> Props:
+    tree = _parse_expr(str(expr))
+    if tree is None:
         return {}
     return _eval(tree, props, col_props)
 
@@ -36,12 +45,14 @@ def _eval(node: ast.AST, props, col_props) -> Props:
     if isinstance(node, ast.Name):
         return dict(props.get(node.id, {}))
     if isinstance(node, ast.Call):
+        # Function wrappers or single-argument calls like np.asarray(x), list(x)
+        if len(node.args) == 1 and not node.keywords:
+            arg_props = _eval(node.args[0], props, col_props)
+            if arg_props:
+                return arg_props
         # Attribute method calls like x.to_numpy(), x.copy()
         if isinstance(node.func, ast.Attribute):
             return _eval(node.func.value, props, col_props)
-        # Function wrappers like np.asarray(x), list(x)
-        if len(node.args) == 1 and not node.keywords:
-            return _eval(node.args[0], props, col_props)
     if isinstance(node, ast.Attribute):
         # Attribute access like x.values
         return _eval(node.value, props, col_props)

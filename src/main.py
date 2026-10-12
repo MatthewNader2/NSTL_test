@@ -450,9 +450,15 @@ def run_prompt(request: Union[RunRequest, Dict[str, Any], str]) -> RunResponse:
             elif viol.check_id == "precondition_violated":
                 prod_id = viol.details.get("established_by")
                 candidates = viol.details.get("bridge_candidates", [])
+                prop = viol.details.get("property")
                 if prod_id and candidates:
                     prod_idx = next((i for i, cl in enumerate(repaired_cells) if cl.cell_id == prod_id), None)
                     if prod_idx is not None:
+                        while prod_idx + 1 < len(repaired_cells) and any(
+                            str(eff).lower() == f"preserves:{str(prop).lower()}"
+                            for eff in (getattr(repaired_cells[prod_idx + 1], "effects", None) or [])
+                        ):
+                            prod_idx += 1
                         best_cand = None
                         for c_id in candidates:
                             cand_cell = _orchestrator.loaded_cells.get(c_id)
