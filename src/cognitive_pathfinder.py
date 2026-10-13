@@ -55,44 +55,45 @@ class LatentVectorExtractor:
         emb_dir = os.path.join(MODELS_DIR, "embeddings")
         llm_dir = os.path.join(MODELS_DIR, "llms")
 
-        # 1. Try SentenceTransformer with local sub-1B models
-        candidates = [
-            os.path.join(emb_dir, "embeddinggemma-300m"),
-            os.path.join(emb_dir, "jina-embeddings-v5-text-nano"),
-            os.path.join(emb_dir, "jina-embeddings-v5-text-small"),
-        ]
-
-        if model_name:
-            candidates.insert(0, os.path.join(emb_dir, model_name))
-            candidates.insert(0, model_name)
-
-        for path in candidates:
-            if os.path.isdir(path):
-                try:
-                    from sentence_transformers import SentenceTransformer
-                    import torch
-                    device = "cuda" if torch.cuda.is_available() else "cpu"
-                    self._model = SentenceTransformer(path, device=device)
-                    self._backend = "sentence_transformers"
-                    sample = self._model.encode("probe", normalize_embeddings=True)
-                    self._dim = int(sample.shape[-1])
-                    logger.info(f"[COGNITIVE PATHFINDER] Loaded '{os.path.basename(path)}' on {device} (dim={self._dim})")
-                    return
-                except Exception as e:
-                    logger.debug(f"[COGNITIVE PATHFINDER] Failed loading {path}: {e}")
-
-        # 2. Fallback to llama.cpp GGUF embedding
-        qwen_gguf = os.path.join(llm_dir, "qwen2.5-coder-0.5b-instruct", "qwen2.5-coder-0.5b-instruct-q4_k_m.gguf")
-        if os.path.isfile(qwen_gguf):
-            try:
-                from llama_cpp import Llama
-                self._model = Llama(model_path=qwen_gguf, embedding=True, verbose=False, n_gpu_layers=0)
-                self._backend = "llama_cpp"
-                self._dim = 896
-                logger.info(f"[COGNITIVE PATHFINDER] Loaded Qwen-0.5B GGUF embedding on CPU (dim={self._dim})")
+        # 1. Try optimal local SentenceTransformer embedding model
+        try:
+            from inference import select_optimal_embedder
+            opt_emb = select_optimal_embedder(model_name or "")
+            emb_path = os.path.join(emb_dir, opt_emb)
+            if os.path.isdir(emb_path):
+                from sentence_transformers import SentenceTransformer
+                import torch
+                device = "cuda" if torch.cuda.is_available() else "cpu"
+                self._model = SentenceTransformer(emb_path, device=device)
+                self._backend = "sentence_transformers"
+                sample = self._model.encode("probe", normalize_embeddings=True)
+                self._dim = int(sample.shape[-1])
+                logger.info(f"[COGNITIVE PATHFINDER] Loaded optimal embedder '{opt_emb}' on {device} (dim={self._dim})")
                 return
-            except Exception as e:
-                logger.debug(f"[COGNITIVE PATHFINDER] Failed loading GGUF: {e}")
+        except Exception as e:
+            logger.debug(f"[COGNITIVE PATHFINDER] Failed loading optimal embedder: {e}")
+
+        # 2. Fallback to optimal local GGUF model in embedding mode
+        try:
+            from inference import select_optimal_llm
+            best_llm = select_optimal_llm()
+            llm_cand_dir = os.path.join(llm_dir, best_llm)
+            if os.path.isdir(llm_cand_dir):
+                ggufs = [f for f in os.listdir(llm_cand_dir) if f.endswith(".gguf")]
+                if ggufs:
+                    chosen_gguf = next((f for f in ggufs if "shard" not in f), ggufs[0])
+                    model_file = os.path.join(llm_cand_dir, chosen_gguf)
+                    from llama_cpp import Llama
+                    self._model = Llama(model_path=model_file, embedding=True, verbose=False, n_gpu_layers=0)
+                    self._backend = "llama_cpp"
+                    # Probe dimension dynamically
+                    res = self._model.create_embedding("probe")
+                    raw = np.array(res["data"][0]["embedding"], dtype=np.float32)
+                    self._dim = int(raw.shape[-1])
+                    logger.info(f"[COGNITIVE PATHFINDER] Loaded optimal LLM '{best_llm}' GGUF embedding on CPU (dim={self._dim})")
+                    return
+        except Exception as e:
+            logger.debug(f"[COGNITIVE PATHFINDER] Failed loading GGUF: {e}")
 
         # 3. Deterministic hash-based projection fallback
         self._backend = "deterministic_hash"

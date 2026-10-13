@@ -996,6 +996,16 @@
     },
     "target_roles": [
       "target_input"
+    ],
+    "headless_environment": [
+      "SDL_VIDEODRIVER=dummy",
+      "SDL_AUDIODRIVER=dummy",
+      "MPLBACKEND=Agg",
+      "QT_QPA_PLATFORM=offscreen",
+      "PYGAME_HIDE_SUPPORT_PROMPT=1"
+    ],
+    "smoke_test_loop_bound": [
+      "5"
     ]
   }
 }

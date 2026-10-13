@@ -383,12 +383,16 @@ def _sandbox_worker_exec(
     """
     import io as _io
 
-    # Step 0: Configure headless environment for GUI, Audio, and Plotting
-    os.environ["SDL_VIDEODRIVER"] = "dummy"
-    os.environ["SDL_AUDIODRIVER"] = "dummy"
-    os.environ["MPLBACKEND"] = "Agg"
-    os.environ["QT_QPA_PLATFORM"] = "offscreen"
-    os.environ["PYGAME_HIDE_SUPPORT_PROMPT"] = "1"
+    # Step 0: Configure headless environment for GUI, Audio, and Plotting from tree declarations
+    try:
+        from lattice import TypeRegistry
+        env_specs = TypeRegistry.get_instance().get_verification_semantics("headless_environment")
+        for spec in env_specs:
+            if "=" in spec:
+                k, v = spec.split("=", 1)
+                os.environ.setdefault(k.strip(), v.strip())
+    except Exception:
+        pass
 
     captured_stdout = _io.StringIO()
     captured_stderr = _io.StringIO()
@@ -398,8 +402,14 @@ def _sandbox_worker_exec(
         _SecurityASTVisitor().visit(parsed_ast)
 
         if smoke_test:
-            # Bound unbounded state/game loops to a smoke-test ceiling
-            bounder = ASTLoopBounder(max_iters=5)
+            # Bound unbounded state/game loops to declared smoke-test ceiling
+            try:
+                from lattice import TypeRegistry
+                raw_bound = TypeRegistry.get_instance().get_verification_semantics("smoke_test_loop_bound")
+                loop_limit = int(raw_bound[0]) if raw_bound else 5
+            except Exception:
+                loop_limit = 5
+            bounder = ASTLoopBounder(max_iters=loop_limit)
             parsed_ast = bounder.visit(parsed_ast)
             ast.fix_missing_locations(parsed_ast)
 

@@ -413,19 +413,25 @@ class InductiveKernelGenerator:
         try:
             from config import MODELS_DIR
             from llama_cpp import Llama
-            qwen_path = os.path.join(MODELS_DIR, "llms", "qwen2.5-coder-0.5b-instruct", "qwen2.5-coder-0.5b-instruct-q4_k_m.gguf")
-            if os.path.isfile(qwen_path):
-                llm = Llama(model_path=qwen_path, n_ctx=2048, n_gpu_layers=0, verbose=False)
-                res = llm.create_chat_completion(
-                    messages=[
-                        {"role": "system", "content": system_prompt},
-                        {"role": "user", "content": user_prompt},
-                    ],
-                    max_tokens=max_tokens,
-                    temperature=0.2,
-                )
-                text = res["choices"][0]["message"]["content"]
-                return extract_code_from_llm_response(text).strip()
+            from inference import select_optimal_llm
+            best_llm = select_optimal_llm()
+            llm_dir = os.path.join(MODELS_DIR, "llms", best_llm)
+            if os.path.isdir(llm_dir):
+                ggufs = [f for f in os.listdir(llm_dir) if f.endswith(".gguf")]
+                if ggufs:
+                    chosen_gguf = next((f for f in ggufs if "shard" not in f), ggufs[0])
+                    model_path = os.path.join(llm_dir, chosen_gguf)
+                    llm = Llama(model_path=model_path, n_ctx=2048, n_gpu_layers=0, verbose=False)
+                    res = llm.create_chat_completion(
+                        messages=[
+                            {"role": "system", "content": system_prompt},
+                            {"role": "user", "content": user_prompt},
+                        ],
+                        max_tokens=max_tokens,
+                        temperature=0.2,
+                    )
+                    text = res["choices"][0]["message"]["content"]
+                    return extract_code_from_llm_response(text).strip()
         except Exception as e:
             logger.debug(f"[INDUCTIVE KERNEL] Direct local generation fallback: {e}")
         return ""
@@ -436,25 +442,32 @@ class InductiveKernelGenerator:
         state_outputs: Dict[str, str],
         task_description: str,
     ) -> str:
-        """Deterministic fallback keeping state variables consistent and sound."""
+        """Deterministic fallback keeping state variables consistent and sound based on poset types."""
+        try:
+            from lattice import TypeRegistry
+            reg = TypeRegistry.get_instance()
+        except Exception:
+            reg = None
+
         lines = [f"# Inductive State Kernel: {task_description}"]
         for out_var, out_type in state_outputs.items():
             if out_var in state_inputs:
                 lines.append(f"# Preserve state: {out_var}")
-            else:
-                t_lower = out_type.lower()
-                if "int" in t_lower or "float" in t_lower:
+            elif reg is not None:
+                if reg.is_subtype(out_type, "numeric") or reg.is_subtype(out_type, "int") or reg.is_subtype(out_type, "float"):
                     lines.append(f"{out_var} = 0")
-                elif "bool" in t_lower:
+                elif reg.is_subtype(out_type, "bool") or reg.is_subtype(out_type, "boolean"):
                     lines.append(f"{out_var} = False")
-                elif "list" in t_lower:
+                elif reg.is_subtype(out_type, "sequence") or reg.is_subtype(out_type, "list"):
                     lines.append(f"{out_var} = []")
-                elif "dict" in t_lower:
+                elif reg.is_subtype(out_type, "mapping") or reg.is_subtype(out_type, "dict"):
                     lines.append(f"{out_var} = {{}}")
-                elif "set" in t_lower:
+                elif reg.is_subtype(out_type, "set"):
                     lines.append(f"{out_var} = set()")
                 else:
                     lines.append(f"{out_var} = None")
+            else:
+                lines.append(f"{out_var} = None")
         return "\n".join(lines)
 
     def splice_kernel(self, envelope_template: str, slot_name: str, kernel_code: str) -> str:
