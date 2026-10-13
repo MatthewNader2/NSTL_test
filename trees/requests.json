@@ -1,0 +1,2980 @@
+{
+  "domain": "requests",
+  "version": "1.1.0",
+  "description": "HTTP client, REST API querying, session pooling, streaming downloads, and payload serialization morphisms.",
+  "types": [
+    {
+      "name": "response",
+      "parent": "object"
+    },
+    {
+      "name": "session",
+      "parent": "object"
+    },
+    {
+      "name": "url",
+      "parent": "str"
+    },
+    {
+      "name": "http_headers",
+      "parent": "dict"
+    },
+    {
+      "name": "http_params",
+      "parent": "dict"
+    },
+    {
+      "name": "http_payload",
+      "parent": "object"
+    },
+    {
+      "name": "status_code",
+      "parent": "int"
+    },
+    {
+      "name": "stream_content",
+      "parent": "iterable"
+    },
+    {
+      "name": "http_auth",
+      "parent": "object"
+    },
+    {
+      "name": "http_cookies",
+      "parent": "dict"
+    },
+    {
+      "name": "http_adapter",
+      "parent": "object"
+    },
+    {
+      "name": "prepared_request",
+      "parent": "object"
+    }
+  ],
+  "typestates": {
+    "uninitialized": "Resource or network transport has not been established.",
+    "url_string": "Valid target URL representation ready for HTTP dispatch.",
+    "request_headers": "Dictionary containing HTTP request header key-value pairs.",
+    "query_parameters": "Key-value mapping formatted for query string appending.",
+    "raw_params": "Raw, unvalidated query parameter mappings.",
+    "json_payload": "Serializable Python dictionary or list intended for JSON encoding.",
+    "form_data": "Form-encoded dictionary or byte stream for HTTP POST/PUT payloads.",
+    "timeout_seconds": "Floating-point network transport timeout in seconds.",
+    "timeout_tuple": "Pair of connect and read timeout floats.",
+    "active_session": "Persistent requests.Session object with active connection pooling.",
+    "http_response": "Raw HTTP response received from server endpoint.",
+    "received": "HTTP response buffered and ready for inspection or extraction.",
+    "streaming": "Active response stream open for chunked reading.",
+    "stream_chunks": "Chunked byte iterator from HTTP response stream.",
+    "parsed_json": "Deserialized JSON data representation.",
+    "raw_bytes": "Raw binary payload extracted from response body.",
+    "decoded_text": "Unicode text decoded using response character encoding.",
+    "status_code_value": "Integer HTTP status code received from server.",
+    "boolean_flag": "Boolean flag indicating status evaluation or boolean condition.",
+    "auth_credentials": "Authenticated credentials object or handler.",
+    "bearer_token": "Secret token string for HTTP Bearer Authorization.",
+    "username": "Username string for basic authentication.",
+    "password": "Password string for basic authentication.",
+    "header_key": "String representing an HTTP header field name.",
+    "header_value": "String value of an arbitrary HTTP header.",
+    "api_key_secret": "Secret key string for API authentication header.",
+    "user_agent_string": "User agent identifier string.",
+    "cookie_jar": "Key-value cookie mappings for session state.",
+    "encoding_name": "String identifier of text character encoding.",
+    "chunk_size_bytes": "Integer byte size for chunked streaming transfer.",
+    "destination_path": "Filesystem path targeting file write operations.",
+    "source_path": "Filesystem path locating a source file on disk.",
+    "field_name": "Name of the multipart form field.",
+    "configured_adapter": "HTTPAdapter instance initialized with pool and retry configuration.",
+    "url_prefix": "String URL prefix for mounting network transport adapters.",
+    "proxy_address": "Proxy server URL address string.",
+    "prepared_message": "Pre-serialized HTTP request envelope ready for low-level transport dispatch.",
+    "redirect_chain": "List of intermediate response objects encountered during redirects.",
+    "link_headers": "Dictionary of parsed RFC 5988 web pagination relation links.",
+    "reason_phrase": "HTTP textual status reason phrase.",
+    "mime_type": "MIME media type string from Content-Type header.",
+    "content_length_bytes": "Integer length of payload in bytes.",
+    "written": "Content persisted to local file system destination.",
+    "closed": "Transport session or connection pool terminated."
+  },
+  "cells": [
+    {
+      "cell_id": "REQ_GET",
+      "stage": 1,
+      "domain_name": "requests",
+      "node_type": "function",
+      "node_role": "source",
+      "topology_type": "sequential",
+      "docstring": "Sends an HTTP GET request to a URL and returns a Response object.",
+      "semantic_tags": ["get", "http_get", "fetch", "download", "request", "api_call"],
+      "inputs": {
+        "url": {
+          "type_name": "url",
+          "state": "url_string",
+          "abstract_type": "scalar",
+          "required": true,
+          "port_role": "source_data",
+          "description": "Target endpoint URL."
+        },
+        "params": {
+          "type_name": "http_params",
+          "state": "query_parameters",
+          "abstract_type": "collection",
+          "required": false,
+          "default_value": null,
+          "port_role": "configuration",
+          "description": "Optional dictionary of URL query parameters."
+        },
+        "headers": {
+          "type_name": "http_headers",
+          "state": "request_headers",
+          "abstract_type": "collection",
+          "required": false,
+          "default_value": null,
+          "port_role": "configuration",
+          "description": "Optional HTTP headers dictionary."
+        },
+        "timeout": {
+          "type_name": "float",
+          "state": "timeout_seconds",
+          "abstract_type": "scalar",
+          "required": false,
+          "default_value": 30.0,
+          "port_role": "configuration",
+          "description": "Connection and read timeout in seconds."
+        }
+      },
+      "outputs": {
+        "response": {
+          "type_name": "response",
+          "state": "http_response",
+          "abstract_type": "handle",
+          "port_role": "data_output",
+          "description": "Raw HTTP Response object."
+        }
+      },
+      "code_template": "{response} = requests.get({url}, params={params}, headers={headers}, timeout={timeout})",
+      "dependencies": ["import requests"],
+      "primary_in": "url",
+      "primary_out": "response"
+    },
+    {
+      "cell_id": "REQ_POST_JSON",
+      "stage": 1,
+      "domain_name": "requests",
+      "node_type": "function",
+      "node_role": "source",
+      "topology_type": "sequential",
+      "docstring": "Sends an HTTP POST request with a JSON payload and returns a Response object.",
+      "semantic_tags": ["post", "http_post", "json_post", "create", "api_call"],
+      "inputs": {
+        "url": {
+          "type_name": "url",
+          "state": "url_string",
+          "abstract_type": "scalar",
+          "required": true,
+          "port_role": "source_data",
+          "description": "Target endpoint URL."
+        },
+        "json_data": {
+          "type_name": "http_payload",
+          "state": "json_payload",
+          "abstract_type": "collection",
+          "required": true,
+          "port_role": "data_input",
+          "description": "JSON serializable data payload."
+        },
+        "headers": {
+          "type_name": "http_headers",
+          "state": "request_headers",
+          "abstract_type": "collection",
+          "required": false,
+          "default_value": null,
+          "port_role": "configuration",
+          "description": "Optional HTTP headers dictionary."
+        },
+        "timeout": {
+          "type_name": "float",
+          "state": "timeout_seconds",
+          "abstract_type": "scalar",
+          "required": false,
+          "default_value": 30.0,
+          "port_role": "configuration",
+          "description": "Connection and read timeout in seconds."
+        }
+      },
+      "outputs": {
+        "response": {
+          "type_name": "response",
+          "state": "http_response",
+          "abstract_type": "handle",
+          "port_role": "data_output",
+          "description": "Raw HTTP Response object."
+        }
+      },
+      "code_template": "{response} = requests.post({url}, json={json_data}, headers={headers}, timeout={timeout})",
+      "dependencies": ["import requests"],
+      "primary_in": "url",
+      "primary_out": "response"
+    },
+    {
+      "cell_id": "REQ_POST_DATA",
+      "stage": 1,
+      "domain_name": "requests",
+      "node_type": "function",
+      "node_role": "source",
+      "topology_type": "sequential",
+      "docstring": "Sends an HTTP POST request with form-encoded data payload.",
+      "semantic_tags": ["post", "http_post", "form_post", "data_post", "api_call"],
+      "inputs": {
+        "url": {
+          "type_name": "url",
+          "state": "url_string",
+          "abstract_type": "scalar",
+          "required": true,
+          "port_role": "source_data",
+          "description": "Target endpoint URL."
+        },
+        "data": {
+          "type_name": "http_payload",
+          "state": "form_data",
+          "abstract_type": "collection",
+          "required": true,
+          "port_role": "data_input",
+          "description": "Form-encoded dictionary or byte payload."
+        },
+        "headers": {
+          "type_name": "http_headers",
+          "state": "request_headers",
+          "abstract_type": "collection",
+          "required": false,
+          "default_value": null,
+          "port_role": "configuration",
+          "description": "Optional HTTP headers dictionary."
+        },
+        "timeout": {
+          "type_name": "float",
+          "state": "timeout_seconds",
+          "abstract_type": "scalar",
+          "required": false,
+          "default_value": 30.0,
+          "port_role": "configuration",
+          "description": "Connection and read timeout in seconds."
+        }
+      },
+      "outputs": {
+        "response": {
+          "type_name": "response",
+          "state": "http_response",
+          "abstract_type": "handle",
+          "port_role": "data_output",
+          "description": "Raw HTTP Response object."
+        }
+      },
+      "code_template": "{response} = requests.post({url}, data={data}, headers={headers}, timeout={timeout})",
+      "dependencies": ["import requests"],
+      "primary_in": "url",
+      "primary_out": "response"
+    },
+    {
+      "cell_id": "REQ_PUT",
+      "stage": 1,
+      "domain_name": "requests",
+      "node_type": "function",
+      "node_role": "source",
+      "topology_type": "sequential",
+      "docstring": "Sends an HTTP PUT request with a JSON payload to replace a remote resource.",
+      "semantic_tags": ["put", "http_put", "update", "replace", "api_call"],
+      "inputs": {
+        "url": {
+          "type_name": "url",
+          "state": "url_string",
+          "abstract_type": "scalar",
+          "required": true,
+          "port_role": "source_data",
+          "description": "Target endpoint URL."
+        },
+        "json_data": {
+          "type_name": "http_payload",
+          "state": "json_payload",
+          "abstract_type": "collection",
+          "required": true,
+          "port_role": "data_input",
+          "description": "JSON serializable replacement payload."
+        },
+        "headers": {
+          "type_name": "http_headers",
+          "state": "request_headers",
+          "abstract_type": "collection",
+          "required": false,
+          "default_value": null,
+          "port_role": "configuration",
+          "description": "Optional HTTP headers dictionary."
+        },
+        "timeout": {
+          "type_name": "float",
+          "state": "timeout_seconds",
+          "abstract_type": "scalar",
+          "required": false,
+          "default_value": 30.0,
+          "port_role": "configuration",
+          "description": "Connection and read timeout in seconds."
+        }
+      },
+      "outputs": {
+        "response": {
+          "type_name": "response",
+          "state": "http_response",
+          "abstract_type": "handle",
+          "port_role": "data_output",
+          "description": "Raw HTTP Response object."
+        }
+      },
+      "code_template": "{response} = requests.put({url}, json={json_data}, headers={headers}, timeout={timeout})",
+      "dependencies": ["import requests"],
+      "primary_in": "url",
+      "primary_out": "response"
+    },
+    {
+      "cell_id": "REQ_PATCH",
+      "stage": 1,
+      "domain_name": "requests",
+      "node_type": "function",
+      "node_role": "source",
+      "topology_type": "sequential",
+      "docstring": "Sends an HTTP PATCH request with partial updates to a remote resource.",
+      "semantic_tags": ["patch", "http_patch", "modify", "partial_update", "api_call"],
+      "inputs": {
+        "url": {
+          "type_name": "url",
+          "state": "url_string",
+          "abstract_type": "scalar",
+          "required": true,
+          "port_role": "source_data",
+          "description": "Target endpoint URL."
+        },
+        "json_data": {
+          "type_name": "http_payload",
+          "state": "json_payload",
+          "abstract_type": "collection",
+          "required": true,
+          "port_role": "data_input",
+          "description": "JSON serializable partial update payload."
+        },
+        "headers": {
+          "type_name": "http_headers",
+          "state": "request_headers",
+          "abstract_type": "collection",
+          "required": false,
+          "default_value": null,
+          "port_role": "configuration",
+          "description": "Optional HTTP headers dictionary."
+        },
+        "timeout": {
+          "type_name": "float",
+          "state": "timeout_seconds",
+          "abstract_type": "scalar",
+          "required": false,
+          "default_value": 30.0,
+          "port_role": "configuration",
+          "description": "Connection and read timeout in seconds."
+        }
+      },
+      "outputs": {
+        "response": {
+          "type_name": "response",
+          "state": "http_response",
+          "abstract_type": "handle",
+          "port_role": "data_output",
+          "description": "Raw HTTP Response object."
+        }
+      },
+      "code_template": "{response} = requests.patch({url}, json={json_data}, headers={headers}, timeout={timeout})",
+      "dependencies": ["import requests"],
+      "primary_in": "url",
+      "primary_out": "response"
+    },
+    {
+      "cell_id": "REQ_DELETE",
+      "stage": 1,
+      "domain_name": "requests",
+      "node_type": "function",
+      "node_role": "source",
+      "topology_type": "sequential",
+      "docstring": "Sends an HTTP DELETE request to remove a remote resource.",
+      "semantic_tags": ["delete", "http_delete", "remove", "destroy", "api_call"],
+      "inputs": {
+        "url": {
+          "type_name": "url",
+          "state": "url_string",
+          "abstract_type": "scalar",
+          "required": true,
+          "port_role": "source_data",
+          "description": "Target endpoint URL."
+        },
+        "headers": {
+          "type_name": "http_headers",
+          "state": "request_headers",
+          "abstract_type": "collection",
+          "required": false,
+          "default_value": null,
+          "port_role": "configuration",
+          "description": "Optional HTTP headers dictionary."
+        },
+        "timeout": {
+          "type_name": "float",
+          "state": "timeout_seconds",
+          "abstract_type": "scalar",
+          "required": false,
+          "default_value": 30.0,
+          "port_role": "configuration",
+          "description": "Connection and read timeout in seconds."
+        }
+      },
+      "outputs": {
+        "response": {
+          "type_name": "response",
+          "state": "http_response",
+          "abstract_type": "handle",
+          "port_role": "data_output",
+          "description": "Raw HTTP Response object."
+        }
+      },
+      "code_template": "{response} = requests.delete({url}, headers={headers}, timeout={timeout})",
+      "dependencies": ["import requests"],
+      "primary_in": "url",
+      "primary_out": "response"
+    },
+    {
+      "cell_id": "REQ_HEAD",
+      "stage": 1,
+      "domain_name": "requests",
+      "node_type": "function",
+      "node_role": "source",
+      "topology_type": "sequential",
+      "docstring": "Sends an HTTP HEAD request to fetch headers without response body.",
+      "semantic_tags": ["head", "http_head", "headers_only", "probe", "api_call"],
+      "inputs": {
+        "url": {
+          "type_name": "url",
+          "state": "url_string",
+          "abstract_type": "scalar",
+          "required": true,
+          "port_role": "source_data",
+          "description": "Target endpoint URL."
+        },
+        "headers": {
+          "type_name": "http_headers",
+          "state": "request_headers",
+          "abstract_type": "collection",
+          "required": false,
+          "default_value": null,
+          "port_role": "configuration",
+          "description": "Optional HTTP headers dictionary."
+        },
+        "timeout": {
+          "type_name": "float",
+          "state": "timeout_seconds",
+          "abstract_type": "scalar",
+          "required": false,
+          "default_value": 30.0,
+          "port_role": "configuration",
+          "description": "Connection and read timeout in seconds."
+        }
+      },
+      "outputs": {
+        "response": {
+          "type_name": "response",
+          "state": "http_response",
+          "abstract_type": "handle",
+          "port_role": "data_output",
+          "description": "Raw HTTP Response object."
+        }
+      },
+      "code_template": "{response} = requests.head({url}, headers={headers}, timeout={timeout})",
+      "dependencies": ["import requests"],
+      "primary_in": "url",
+      "primary_out": "response"
+    },
+    {
+      "cell_id": "REQ_OPTIONS",
+      "stage": 1,
+      "domain_name": "requests",
+      "node_type": "function",
+      "node_role": "source",
+      "topology_type": "sequential",
+      "docstring": "Sends an HTTP OPTIONS request to query permitted communication options on the target URL.",
+      "semantic_tags": ["options", "http_options", "cors", "probe", "api_call"],
+      "inputs": {
+        "url": {
+          "type_name": "url",
+          "state": "url_string",
+          "abstract_type": "scalar",
+          "required": true,
+          "port_role": "source_data",
+          "description": "Target endpoint URL."
+        },
+        "headers": {
+          "type_name": "http_headers",
+          "state": "request_headers",
+          "abstract_type": "collection",
+          "required": false,
+          "default_value": null,
+          "port_role": "configuration",
+          "description": "Optional HTTP headers dictionary."
+        },
+        "timeout": {
+          "type_name": "float",
+          "state": "timeout_seconds",
+          "abstract_type": "scalar",
+          "required": false,
+          "default_value": 30.0,
+          "port_role": "configuration",
+          "description": "Connection and read timeout in seconds."
+        }
+      },
+      "outputs": {
+        "response": {
+          "type_name": "response",
+          "state": "http_response",
+          "abstract_type": "handle",
+          "port_role": "data_output",
+          "description": "Raw HTTP Response object."
+        }
+      },
+      "code_template": "{response} = requests.options({url}, headers={headers}, timeout={timeout})",
+      "dependencies": ["import requests"],
+      "primary_in": "url",
+      "primary_out": "response"
+    },
+    {
+      "cell_id": "REQ_SESSION_INIT",
+      "stage": 1,
+      "domain_name": "requests",
+      "node_type": "function",
+      "node_role": "source",
+      "topology_type": "sequential",
+      "docstring": "Initializes a persistent requests Session object for connection pooling and cookie persistence.",
+      "semantic_tags": ["session", "session_init", "connection_pool", "client", "setup"],
+      "inputs": {},
+      "outputs": {
+        "session": {
+          "type_name": "session",
+          "state": "active_session",
+          "abstract_type": "handle",
+          "port_role": "data_output",
+          "description": "Active requests.Session object."
+        }
+      },
+      "code_template": "{session} = requests.Session()",
+      "dependencies": ["import requests"],
+      "primary_in": null,
+      "primary_out": "session"
+    },
+    {
+      "cell_id": "REQ_SESSION_GET",
+      "stage": 2,
+      "domain_name": "requests",
+      "node_type": "method",
+      "node_role": "transformer",
+      "topology_type": "sequential",
+      "docstring": "Executes an HTTP GET request using an existing persistent Session.",
+      "semantic_tags": ["session_get", "get", "fetch", "session_call", "request"],
+      "inputs": {
+        "session": {
+          "type_name": "session",
+          "state": "active_session",
+          "abstract_type": "handle",
+          "required": true,
+          "port_role": "data_input",
+          "description": "Active requests.Session object."
+        },
+        "url": {
+          "type_name": "url",
+          "state": "url_string",
+          "abstract_type": "scalar",
+          "required": true,
+          "port_role": "source_data",
+          "description": "Target endpoint URL."
+        },
+        "params": {
+          "type_name": "http_params",
+          "state": "query_parameters",
+          "abstract_type": "collection",
+          "required": false,
+          "default_value": null,
+          "port_role": "configuration",
+          "description": "Optional dictionary of URL query parameters."
+        },
+        "headers": {
+          "type_name": "http_headers",
+          "state": "request_headers",
+          "abstract_type": "collection",
+          "required": false,
+          "default_value": null,
+          "port_role": "configuration",
+          "description": "Optional HTTP headers dictionary."
+        },
+        "timeout": {
+          "type_name": "float",
+          "state": "timeout_seconds",
+          "abstract_type": "scalar",
+          "required": false,
+          "default_value": 30.0,
+          "port_role": "configuration",
+          "description": "Connection and read timeout in seconds."
+        }
+      },
+      "outputs": {
+        "response": {
+          "type_name": "response",
+          "state": "http_response",
+          "abstract_type": "handle",
+          "port_role": "data_output",
+          "description": "Raw HTTP Response object."
+        }
+      },
+      "code_template": "{response} = {session}.get({url}, params={params}, headers={headers}, timeout={timeout})",
+      "dependencies": ["import requests"],
+      "primary_in": "session",
+      "primary_out": "response"
+    },
+    {
+      "cell_id": "REQ_SESSION_POST_JSON",
+      "stage": 2,
+      "domain_name": "requests",
+      "node_type": "method",
+      "node_role": "transformer",
+      "topology_type": "sequential",
+      "docstring": "Executes an HTTP POST request with JSON payload via an existing persistent Session.",
+      "semantic_tags": ["session_post", "post_json", "session_call", "request", "json"],
+      "inputs": {
+        "session": {
+          "type_name": "session",
+          "state": "active_session",
+          "abstract_type": "handle",
+          "required": true,
+          "port_role": "data_input",
+          "description": "Active requests.Session object."
+        },
+        "url": {
+          "type_name": "url",
+          "state": "url_string",
+          "abstract_type": "scalar",
+          "required": true,
+          "port_role": "source_data",
+          "description": "Target endpoint URL."
+        },
+        "json_data": {
+          "type_name": "http_payload",
+          "state": "json_payload",
+          "abstract_type": "collection",
+          "required": true,
+          "port_role": "data_input",
+          "description": "JSON serializable data payload."
+        },
+        "headers": {
+          "type_name": "http_headers",
+          "state": "request_headers",
+          "abstract_type": "collection",
+          "required": false,
+          "default_value": null,
+          "port_role": "configuration",
+          "description": "Optional HTTP headers dictionary."
+        },
+        "timeout": {
+          "type_name": "float",
+          "state": "timeout_seconds",
+          "abstract_type": "scalar",
+          "required": false,
+          "default_value": 30.0,
+          "port_role": "configuration",
+          "description": "Connection and read timeout in seconds."
+        }
+      },
+      "outputs": {
+        "response": {
+          "type_name": "response",
+          "state": "http_response",
+          "abstract_type": "handle",
+          "port_role": "data_output",
+          "description": "Raw HTTP Response object."
+        }
+      },
+      "code_template": "{response} = {session}.post({url}, json={json_data}, headers={headers}, timeout={timeout})",
+      "dependencies": ["import requests"],
+      "primary_in": "session",
+      "primary_out": "response"
+    },
+    {
+      "cell_id": "REQ_SESSION_POST_DATA",
+      "stage": 2,
+      "domain_name": "requests",
+      "node_type": "method",
+      "node_role": "transformer",
+      "topology_type": "sequential",
+      "docstring": "Executes an HTTP POST request with form-encoded data via an existing persistent Session.",
+      "semantic_tags": ["session_post_data", "post_data", "form_data", "session_call"],
+      "inputs": {
+        "session": {
+          "type_name": "session",
+          "state": "active_session",
+          "abstract_type": "handle",
+          "required": true,
+          "port_role": "data_input",
+          "description": "Active requests.Session object."
+        },
+        "url": {
+          "type_name": "url",
+          "state": "url_string",
+          "abstract_type": "scalar",
+          "required": true,
+          "port_role": "source_data",
+          "description": "Target endpoint URL."
+        },
+        "data": {
+          "type_name": "http_payload",
+          "state": "form_data",
+          "abstract_type": "collection",
+          "required": true,
+          "port_role": "data_input",
+          "description": "Form-encoded dictionary or byte payload."
+        },
+        "headers": {
+          "type_name": "http_headers",
+          "state": "request_headers",
+          "abstract_type": "collection",
+          "required": false,
+          "default_value": null,
+          "port_role": "configuration",
+          "description": "Optional HTTP headers dictionary."
+        },
+        "timeout": {
+          "type_name": "float",
+          "state": "timeout_seconds",
+          "abstract_type": "scalar",
+          "required": false,
+          "default_value": 30.0,
+          "port_role": "configuration",
+          "description": "Connection and read timeout in seconds."
+        }
+      },
+      "outputs": {
+        "response": {
+          "type_name": "response",
+          "state": "http_response",
+          "abstract_type": "handle",
+          "port_role": "data_output",
+          "description": "Raw HTTP Response object."
+        }
+      },
+      "code_template": "{response} = {session}.post({url}, data={data}, headers={headers}, timeout={timeout})",
+      "dependencies": ["import requests"],
+      "primary_in": "session",
+      "primary_out": "response"
+    },
+    {
+      "cell_id": "REQ_SESSION_PUT",
+      "stage": 2,
+      "domain_name": "requests",
+      "node_type": "method",
+      "node_role": "transformer",
+      "topology_type": "sequential",
+      "docstring": "Executes an HTTP PUT request with JSON payload via an existing persistent Session.",
+      "semantic_tags": ["session_put", "put", "update", "session_call", "request"],
+      "inputs": {
+        "session": {
+          "type_name": "session",
+          "state": "active_session",
+          "abstract_type": "handle",
+          "required": true,
+          "port_role": "data_input",
+          "description": "Active requests.Session object."
+        },
+        "url": {
+          "type_name": "url",
+          "state": "url_string",
+          "abstract_type": "scalar",
+          "required": true,
+          "port_role": "source_data",
+          "description": "Target endpoint URL."
+        },
+        "json_data": {
+          "type_name": "http_payload",
+          "state": "json_payload",
+          "abstract_type": "collection",
+          "required": true,
+          "port_role": "data_input",
+          "description": "JSON serializable replacement payload."
+        },
+        "headers": {
+          "type_name": "http_headers",
+          "state": "request_headers",
+          "abstract_type": "collection",
+          "required": false,
+          "default_value": null,
+          "port_role": "configuration",
+          "description": "Optional HTTP headers dictionary."
+        },
+        "timeout": {
+          "type_name": "float",
+          "state": "timeout_seconds",
+          "abstract_type": "scalar",
+          "required": false,
+          "default_value": 30.0,
+          "port_role": "configuration",
+          "description": "Connection and read timeout in seconds."
+        }
+      },
+      "outputs": {
+        "response": {
+          "type_name": "response",
+          "state": "http_response",
+          "abstract_type": "handle",
+          "port_role": "data_output",
+          "description": "Raw HTTP Response object."
+        }
+      },
+      "code_template": "{response} = {session}.put({url}, json={json_data}, headers={headers}, timeout={timeout})",
+      "dependencies": ["import requests"],
+      "primary_in": "session",
+      "primary_out": "response"
+    },
+    {
+      "cell_id": "REQ_SESSION_DELETE",
+      "stage": 2,
+      "domain_name": "requests",
+      "node_type": "method",
+      "node_role": "transformer",
+      "topology_type": "sequential",
+      "docstring": "Executes an HTTP DELETE request via an existing persistent Session.",
+      "semantic_tags": ["session_delete", "delete", "remove", "session_call", "request"],
+      "inputs": {
+        "session": {
+          "type_name": "session",
+          "state": "active_session",
+          "abstract_type": "handle",
+          "required": true,
+          "port_role": "data_input",
+          "description": "Active requests.Session object."
+        },
+        "url": {
+          "type_name": "url",
+          "state": "url_string",
+          "abstract_type": "scalar",
+          "required": true,
+          "port_role": "source_data",
+          "description": "Target endpoint URL."
+        },
+        "headers": {
+          "type_name": "http_headers",
+          "state": "request_headers",
+          "abstract_type": "collection",
+          "required": false,
+          "default_value": null,
+          "port_role": "configuration",
+          "description": "Optional HTTP headers dictionary."
+        },
+        "timeout": {
+          "type_name": "float",
+          "state": "timeout_seconds",
+          "abstract_type": "scalar",
+          "required": false,
+          "default_value": 30.0,
+          "port_role": "configuration",
+          "description": "Connection and read timeout in seconds."
+        }
+      },
+      "outputs": {
+        "response": {
+          "type_name": "response",
+          "state": "http_response",
+          "abstract_type": "handle",
+          "port_role": "data_output",
+          "description": "Raw HTTP Response object."
+        }
+      },
+      "code_template": "{response} = {session}.delete({url}, headers={headers}, timeout={timeout})",
+      "dependencies": ["import requests"],
+      "primary_in": "session",
+      "primary_out": "response"
+    },
+    {
+      "cell_id": "REQ_SESSION_CLOSE",
+      "stage": 3,
+      "domain_name": "requests",
+      "node_type": "method",
+      "node_role": "sink",
+      "topology_type": "sequential",
+      "docstring": "Closes an active requests Session and terminates all underlying connection pool sockets.",
+      "semantic_tags": ["close", "session_close", "terminate", "cleanup", "sink"],
+      "inputs": {
+        "session": {
+          "type_name": "session",
+          "state": "active_session",
+          "abstract_type": "handle",
+          "required": true,
+          "port_role": "data_input",
+          "description": "Active requests.Session to be closed."
+        }
+      },
+      "outputs": {},
+      "code_template": "{session}.close()",
+      "dependencies": ["import requests"],
+      "primary_in": "session",
+      "primary_out": null
+    },
+    {
+      "cell_id": "REQ_SESSION_CONTEXT",
+      "stage": 1,
+      "domain_name": "requests",
+      "node_type": "context_manager",
+      "node_role": "source",
+      "topology_type": "context_manager",
+      "slots": {
+        "body": {}
+      },
+      "docstring": "Resource context manager: creates a scoped HTTP Session that auto-closes upon block exit.",
+      "semantic_tags": ["session", "context", "connection_pool", "with_session"],
+      "inputs": {},
+      "outputs": {
+        "session": {
+          "type_name": "session",
+          "state": "active_session",
+          "abstract_type": "handle",
+          "port_role": "data_output",
+          "description": "Scoped requests.Session object."
+        }
+      },
+      "code_template": "with requests.Session() as {session}:\n    {body}",
+      "dependencies": ["import requests"],
+      "primary_in": null,
+      "primary_out": "session"
+    },
+    {
+      "cell_id": "REQ_SET_BEARER_AUTH",
+      "stage": 2,
+      "domain_name": "requests",
+      "node_type": "function",
+      "node_role": "transformer",
+      "topology_type": "sequential",
+      "docstring": "Constructs HTTP headers dictionary containing Bearer token authorization header, merging with optional existing headers.",
+      "semantic_tags": ["auth", "bearer_token", "jwt", "authorization", "headers"],
+      "inputs": {
+        "token": {
+          "type_name": "str",
+          "state": "bearer_token",
+          "abstract_type": "scalar",
+          "required": true,
+          "port_role": "source_data",
+          "description": "Bearer authentication token string."
+        },
+        "headers": {
+          "type_name": "http_headers",
+          "state": "request_headers",
+          "abstract_type": "collection",
+          "required": false,
+          "default_value": null,
+          "port_role": "configuration",
+          "description": "Existing headers dictionary or None."
+        }
+      },
+      "outputs": {
+        "out_headers": {
+          "type_name": "http_headers",
+          "state": "request_headers",
+          "abstract_type": "collection",
+          "port_role": "data_output",
+          "description": "Updated headers dictionary containing Authorization Bearer token."
+        }
+      },
+      "code_template": "{out_headers} = dict({headers} or dict())\n{out_headers}['Authorization'] = 'Bearer ' + str({token})",
+      "dependencies": ["import requests"],
+      "primary_in": "token",
+      "primary_out": "out_headers"
+    },
+    {
+      "cell_id": "REQ_SET_BASIC_AUTH",
+      "stage": 2,
+      "domain_name": "requests",
+      "node_type": "function",
+      "node_role": "transformer",
+      "topology_type": "sequential",
+      "docstring": "Instantiates a requests HTTPBasicAuth credential object for request authentication.",
+      "semantic_tags": ["auth", "basic_auth", "credentials", "security", "http_basic"],
+      "inputs": {
+        "username": {
+          "type_name": "str",
+          "state": "username",
+          "abstract_type": "scalar",
+          "required": true,
+          "port_role": "source_data",
+          "description": "Basic auth username."
+        },
+        "password": {
+          "type_name": "str",
+          "state": "password",
+          "abstract_type": "scalar",
+          "required": true,
+          "port_role": "source_data",
+          "description": "Basic auth password."
+        }
+      },
+      "outputs": {
+        "auth": {
+          "type_name": "http_auth",
+          "state": "auth_credentials",
+          "abstract_type": "handle",
+          "port_role": "data_output",
+          "description": "HTTPBasicAuth instance ready for request dispatch."
+        }
+      },
+      "code_template": "{auth} = requests.auth.HTTPBasicAuth({username}, {password})",
+      "dependencies": ["import requests", "import requests.auth"],
+      "primary_in": "username",
+      "primary_out": "auth"
+    },
+    {
+      "cell_id": "REQ_SET_API_KEY_HEADER",
+      "stage": 2,
+      "domain_name": "requests",
+      "node_type": "function",
+      "node_role": "transformer",
+      "topology_type": "sequential",
+      "docstring": "Injects an API key into an HTTP request headers dictionary under a specified header name.",
+      "semantic_tags": ["api_key", "headers", "security", "custom_header", "auth"],
+      "inputs": {
+        "headers": {
+          "type_name": "http_headers",
+          "state": "request_headers",
+          "abstract_type": "collection",
+          "required": false,
+          "default_value": null,
+          "port_role": "configuration",
+          "description": "Existing headers dictionary or None."
+        },
+        "header_name": {
+          "type_name": "str",
+          "state": "header_key",
+          "abstract_type": "scalar",
+          "required": true,
+          "port_role": "configuration",
+          "description": "Header field name (e.g., 'X-API-Key')."
+        },
+        "api_key": {
+          "type_name": "str",
+          "state": "api_key_secret",
+          "abstract_type": "scalar",
+          "required": true,
+          "port_role": "source_data",
+          "description": "API key secret value."
+        }
+      },
+      "outputs": {
+        "out_headers": {
+          "type_name": "http_headers",
+          "state": "request_headers",
+          "abstract_type": "collection",
+          "port_role": "data_output",
+          "description": "Updated headers dictionary containing the injected API key."
+        }
+      },
+      "code_template": "{out_headers} = dict({headers} or dict())\n{out_headers}[{header_name}] = str({api_key})",
+      "dependencies": ["import requests"],
+      "primary_in": "api_key",
+      "primary_out": "out_headers"
+    },
+    {
+      "cell_id": "REQ_SET_USER_AGENT",
+      "stage": 2,
+      "domain_name": "requests",
+      "node_type": "function",
+      "node_role": "transformer",
+      "topology_type": "sequential",
+      "docstring": "Sets or overrides the User-Agent header in an HTTP headers dictionary.",
+      "semantic_tags": ["user_agent", "headers", "client_identity", "browser_emulation"],
+      "inputs": {
+        "headers": {
+          "type_name": "http_headers",
+          "state": "request_headers",
+          "abstract_type": "collection",
+          "required": false,
+          "default_value": null,
+          "port_role": "configuration",
+          "description": "Existing headers dictionary or None."
+        },
+        "user_agent": {
+          "type_name": "str",
+          "state": "user_agent_string",
+          "abstract_type": "scalar",
+          "required": true,
+          "port_role": "source_data",
+          "description": "User-Agent string."
+        }
+      },
+      "outputs": {
+        "out_headers": {
+          "type_name": "http_headers",
+          "state": "request_headers",
+          "abstract_type": "collection",
+          "port_role": "data_output",
+          "description": "Headers dictionary updated with User-Agent header."
+        }
+      },
+      "code_template": "{out_headers} = dict({headers} or dict())\n{out_headers}['User-Agent'] = str({user_agent})",
+      "dependencies": ["import requests"],
+      "primary_in": "user_agent",
+      "primary_out": "out_headers"
+    },
+    {
+      "cell_id": "REQ_SET_COOKIES",
+      "stage": 2,
+      "domain_name": "requests",
+      "node_type": "function",
+      "node_role": "transformer",
+      "topology_type": "sequential",
+      "docstring": "Updates the cookies dictionary of an active requests session.",
+      "semantic_tags": ["cookies", "session_cookies", "session_state", "update_cookies"],
+      "inputs": {
+        "session": {
+          "type_name": "session",
+          "state": "active_session",
+          "abstract_type": "handle",
+          "required": true,
+          "port_role": "data_input",
+          "description": "Active requests.Session object."
+        },
+        "cookies": {
+          "type_name": "http_cookies",
+          "state": "cookie_jar",
+          "abstract_type": "collection",
+          "required": true,
+          "port_role": "configuration",
+          "description": "Dictionary of cookies to inject."
+        }
+      },
+      "outputs": {
+        "updated_session": {
+          "type_name": "session",
+          "state": "active_session",
+          "abstract_type": "handle",
+          "port_role": "data_output",
+          "description": "Session with updated cookie jar."
+        }
+      },
+      "code_template": "{session}.cookies.update({cookies})\n{updated_session} = {session}",
+      "dependencies": ["import requests"],
+      "primary_in": "session",
+      "primary_out": "updated_session"
+    },
+    {
+      "cell_id": "REQ_BUILD_QUERY_PARAMS",
+      "stage": 2,
+      "domain_name": "requests",
+      "node_type": "function",
+      "node_role": "transformer",
+      "topology_type": "sequential",
+      "docstring": "Sanitizes and encodes a dictionary into query parameters, omitting keys with None values.",
+      "semantic_tags": ["params", "query_params", "sanitize", "url_encode", "filter_none"],
+      "inputs": {
+        "params": {
+          "type_name": "http_params",
+          "state": "raw_params",
+          "abstract_type": "collection",
+          "required": true,
+          "port_role": "data_input",
+          "description": "Raw parameter mappings."
+        }
+      },
+      "outputs": {
+        "query_params": {
+          "type_name": "http_params",
+          "state": "query_parameters",
+          "abstract_type": "collection",
+          "port_role": "data_output",
+          "description": "Sanitized query parameter dictionary."
+        }
+      },
+      "code_template": "{query_params} = dict((k, v) for k, v in ({params} or dict()).items() if v is not None)",
+      "dependencies": ["import requests"],
+      "primary_in": "params",
+      "primary_out": "query_params"
+    },
+    {
+      "cell_id": "REQ_RESP_JSON",
+      "stage": 2,
+      "domain_name": "requests",
+      "node_type": "method",
+      "node_role": "transformer",
+      "topology_type": "sequential",
+      "docstring": "Deserializes JSON payload from HTTP response body into a dictionary or list.",
+      "semantic_tags": ["json", "deserialize", "parse_json", "response_data", "payload"],
+      "inputs": {
+        "response": {
+          "type_name": "response",
+          "state": "received",
+          "abstract_type": "handle",
+          "required": true,
+          "port_role": "data_input",
+          "description": "HTTP Response containing JSON body."
+        }
+      },
+      "outputs": {
+        "data": {
+          "type_name": "http_payload",
+          "state": "parsed_json",
+          "abstract_type": "collection",
+          "port_role": "data_output",
+          "description": "Parsed JSON object."
+        }
+      },
+      "code_template": "{data} = {response}.json()",
+      "dependencies": ["import requests"],
+      "primary_in": "response",
+      "primary_out": "data"
+    },
+    {
+      "cell_id": "REQ_RESP_TEXT",
+      "stage": 2,
+      "domain_name": "requests",
+      "node_type": "method",
+      "node_role": "transformer",
+      "topology_type": "sequential",
+      "docstring": "Extracts decoded Unicode text content from an HTTP response body.",
+      "semantic_tags": ["text", "decode", "string", "response_body", "unicode"],
+      "inputs": {
+        "response": {
+          "type_name": "response",
+          "state": "received",
+          "abstract_type": "handle",
+          "required": true,
+          "port_role": "data_input",
+          "description": "HTTP Response object."
+        }
+      },
+      "outputs": {
+        "text": {
+          "type_name": "str",
+          "state": "decoded_text",
+          "abstract_type": "scalar",
+          "port_role": "data_output",
+          "description": "Decoded response body as string."
+        }
+      },
+      "code_template": "{text} = {response}.text",
+      "dependencies": ["import requests"],
+      "primary_in": "response",
+      "primary_out": "text"
+    },
+    {
+      "cell_id": "REQ_RESP_CONTENT",
+      "stage": 2,
+      "domain_name": "requests",
+      "node_type": "method",
+      "node_role": "transformer",
+      "topology_type": "sequential",
+      "docstring": "Extracts raw uncompressed binary bytes from an HTTP response body.",
+      "semantic_tags": ["content", "bytes", "binary", "raw_response", "payload"],
+      "inputs": {
+        "response": {
+          "type_name": "response",
+          "state": "received",
+          "abstract_type": "handle",
+          "required": true,
+          "port_role": "data_input",
+          "description": "HTTP Response object."
+        }
+      },
+      "outputs": {
+        "content": {
+          "type_name": "bytes",
+          "state": "raw_bytes",
+          "abstract_type": "scalar",
+          "port_role": "data_output",
+          "description": "Binary byte content of response."
+        }
+      },
+      "code_template": "{content} = {response}.content",
+      "dependencies": ["import requests"],
+      "primary_in": "response",
+      "primary_out": "content"
+    },
+    {
+      "cell_id": "REQ_RESP_STATUS_CODE",
+      "stage": 2,
+      "domain_name": "requests",
+      "node_type": "method",
+      "node_role": "transformer",
+      "topology_type": "sequential",
+      "docstring": "Extracts the integer HTTP status code from an HTTP response.",
+      "semantic_tags": ["status_code", "status", "http_status", "inspection"],
+      "inputs": {
+        "response": {
+          "type_name": "response",
+          "state": "received",
+          "abstract_type": "handle",
+          "required": true,
+          "port_role": "data_input",
+          "description": "HTTP Response object."
+        }
+      },
+      "outputs": {
+        "status_code": {
+          "type_name": "status_code",
+          "state": "status_code_value",
+          "abstract_type": "scalar",
+          "port_role": "data_output",
+          "description": "Integer HTTP status code."
+        }
+      },
+      "code_template": "{status_code} = {response}.status_code",
+      "dependencies": ["import requests"],
+      "primary_in": "response",
+      "primary_out": "status_code"
+    },
+    {
+      "cell_id": "REQ_RESP_OK",
+      "stage": 2,
+      "domain_name": "requests",
+      "node_type": "method",
+      "node_role": "transformer",
+      "topology_type": "sequential",
+      "docstring": "Evaluates boolean response.ok flag, returning True if status code is less than 400.",
+      "semantic_tags": ["ok", "is_ok", "status_check", "success", "boolean"],
+      "inputs": {
+        "response": {
+          "type_name": "response",
+          "state": "received",
+          "abstract_type": "handle",
+          "required": true,
+          "port_role": "data_input",
+          "description": "HTTP Response object."
+        }
+      },
+      "outputs": {
+        "is_ok": {
+          "type_name": "bool",
+          "state": "boolean_flag",
+          "abstract_type": "scalar",
+          "port_role": "data_output",
+          "description": "True if status code is less than 400, else False."
+        }
+      },
+      "code_template": "{is_ok} = {response}.ok",
+      "dependencies": ["import requests"],
+      "primary_in": "response",
+      "primary_out": "is_ok"
+    },
+    {
+      "cell_id": "REQ_RESP_HEADERS",
+      "stage": 2,
+      "domain_name": "requests",
+      "node_type": "method",
+      "node_role": "transformer",
+      "topology_type": "sequential",
+      "docstring": "Extracts response headers from an HTTP response as a standard dictionary.",
+      "semantic_tags": ["headers", "response_headers", "metadata", "content_type"],
+      "inputs": {
+        "response": {
+          "type_name": "response",
+          "state": "received",
+          "abstract_type": "handle",
+          "required": true,
+          "port_role": "data_input",
+          "description": "HTTP Response object."
+        }
+      },
+      "outputs": {
+        "headers": {
+          "type_name": "http_headers",
+          "state": "request_headers",
+          "abstract_type": "collection",
+          "port_role": "data_output",
+          "description": "Dictionary of HTTP response headers."
+        }
+      },
+      "code_template": "{headers} = dict({response}.headers)",
+      "dependencies": ["import requests"],
+      "primary_in": "response",
+      "primary_out": "headers"
+    },
+    {
+      "cell_id": "REQ_RESP_COOKIES",
+      "stage": 2,
+      "domain_name": "requests",
+      "node_type": "method",
+      "node_role": "transformer",
+      "topology_type": "sequential",
+      "docstring": "Extracts response cookies jar into a standard Python dictionary.",
+      "semantic_tags": ["cookies", "response_cookies", "cookie_jar", "extract"],
+      "inputs": {
+        "response": {
+          "type_name": "response",
+          "state": "received",
+          "abstract_type": "handle",
+          "required": true,
+          "port_role": "data_input",
+          "description": "HTTP Response object."
+        }
+      },
+      "outputs": {
+        "cookies": {
+          "type_name": "http_cookies",
+          "state": "cookie_jar",
+          "abstract_type": "collection",
+          "port_role": "data_output",
+          "description": "Dictionary of cookies returned by server."
+        }
+      },
+      "code_template": "{cookies} = {response}.cookies.get_dict()",
+      "dependencies": ["import requests"],
+      "primary_in": "response",
+      "primary_out": "cookies"
+    },
+    {
+      "cell_id": "REQ_RESP_URL",
+      "stage": 2,
+      "domain_name": "requests",
+      "node_type": "method",
+      "node_role": "transformer",
+      "topology_type": "sequential",
+      "docstring": "Extracts the final response URL, reflecting any redirects followed.",
+      "semantic_tags": ["url", "final_url", "redirect", "location"],
+      "inputs": {
+        "response": {
+          "type_name": "response",
+          "state": "received",
+          "abstract_type": "handle",
+          "required": true,
+          "port_role": "data_input",
+          "description": "HTTP Response object."
+        }
+      },
+      "outputs": {
+        "url": {
+          "type_name": "url",
+          "state": "url_string",
+          "abstract_type": "scalar",
+          "port_role": "data_output",
+          "description": "Final URL string after redirects."
+        }
+      },
+      "code_template": "{url} = {response}.url",
+      "dependencies": ["import requests"],
+      "primary_in": "response",
+      "primary_out": "url"
+    },
+    {
+      "cell_id": "REQ_RESP_ELAPSED",
+      "stage": 2,
+      "domain_name": "requests",
+      "node_type": "method",
+      "node_role": "transformer",
+      "topology_type": "sequential",
+      "docstring": "Extracts the elapsed round-trip request latency as total seconds.",
+      "semantic_tags": ["elapsed", "latency", "duration", "benchmark", "timing"],
+      "inputs": {
+        "response": {
+          "type_name": "response",
+          "state": "received",
+          "abstract_type": "handle",
+          "required": true,
+          "port_role": "data_input",
+          "description": "HTTP Response object."
+        }
+      },
+      "outputs": {
+        "elapsed_seconds": {
+          "type_name": "float",
+          "state": "timeout_seconds",
+          "abstract_type": "scalar",
+          "port_role": "data_output",
+          "description": "Total round-trip latency in seconds."
+        }
+      },
+      "code_template": "{elapsed_seconds} = {response}.elapsed.total_seconds()",
+      "dependencies": ["import requests"],
+      "primary_in": "response",
+      "primary_out": "elapsed_seconds"
+    },
+    {
+      "cell_id": "REQ_RESP_ENCODING",
+      "stage": 2,
+      "domain_name": "requests",
+      "node_type": "method",
+      "node_role": "transformer",
+      "topology_type": "sequential",
+      "docstring": "Extracts the character encoding determined or specified for an HTTP response.",
+      "semantic_tags": ["encoding", "charset", "response_encoding", "inspection"],
+      "inputs": {
+        "response": {
+          "type_name": "response",
+          "state": "received",
+          "abstract_type": "handle",
+          "required": true,
+          "port_role": "data_input",
+          "description": "HTTP Response object."
+        }
+      },
+      "outputs": {
+        "encoding": {
+          "type_name": "str",
+          "state": "encoding_name",
+          "abstract_type": "scalar",
+          "port_role": "data_output",
+          "description": "Character encoding string (e.g., 'utf-8')."
+        }
+      },
+      "code_template": "{encoding} = {response}.encoding",
+      "dependencies": ["import requests"],
+      "primary_in": "response",
+      "primary_out": "encoding"
+    },
+    {
+      "cell_id": "REQ_RESP_RAISE_FOR_STATUS",
+      "stage": 2,
+      "domain_name": "requests",
+      "node_type": "method",
+      "node_role": "transformer",
+      "topology_type": "sequential",
+      "docstring": "Validates HTTP response and raises HTTPError if status code denotes client or server error (>= 400).",
+      "semantic_tags": ["raise_for_status", "validate", "error_handling", "assertion"],
+      "inputs": {
+        "response": {
+          "type_name": "response",
+          "state": "received",
+          "abstract_type": "handle",
+          "required": true,
+          "port_role": "data_input",
+          "description": "HTTP Response object to validate."
+        }
+      },
+      "outputs": {
+        "validated_response": {
+          "type_name": "response",
+          "state": "received",
+          "abstract_type": "handle",
+          "port_role": "data_output",
+          "description": "Verified HTTP Response guaranteed to have status < 400."
+        }
+      },
+      "code_template": "{response}.raise_for_status()\n{validated_response} = {response}",
+      "dependencies": ["import requests"],
+      "primary_in": "response",
+      "primary_out": "validated_response"
+    },
+    {
+      "cell_id": "REQ_IS_STATUS_200",
+      "stage": 2,
+      "domain_name": "requests",
+      "node_type": "function",
+      "node_role": "transformer",
+      "topology_type": "sequential",
+      "docstring": "Verifies whether an HTTP status code is exactly 200 OK.",
+      "semantic_tags": ["status_check", "status_200", "is_200", "success_check"],
+      "inputs": {
+        "status_code": {
+          "type_name": "status_code",
+          "state": "status_code_value",
+          "abstract_type": "scalar",
+          "required": true,
+          "port_role": "data_input",
+          "description": "HTTP status code integer."
+        }
+      },
+      "outputs": {
+        "is_200": {
+          "type_name": "bool",
+          "state": "boolean_flag",
+          "abstract_type": "scalar",
+          "port_role": "data_output",
+          "description": "True if status code equals 200, else False."
+        }
+      },
+      "code_template": "{is_200} = ({status_code} == 200)",
+      "dependencies": ["import requests"],
+      "primary_in": "status_code",
+      "primary_out": "is_200"
+    },
+    {
+      "cell_id": "REQ_IS_CLIENT_ERROR",
+      "stage": 2,
+      "domain_name": "requests",
+      "node_type": "function",
+      "node_role": "transformer",
+      "topology_type": "sequential",
+      "docstring": "Checks if an HTTP status code falls in the 4xx client error range.",
+      "semantic_tags": ["client_error", "4xx", "status_check", "bad_request", "not_found"],
+      "inputs": {
+        "status_code": {
+          "type_name": "status_code",
+          "state": "status_code_value",
+          "abstract_type": "scalar",
+          "required": true,
+          "port_role": "data_input",
+          "description": "HTTP status code integer."
+        }
+      },
+      "outputs": {
+        "is_client_error": {
+          "type_name": "bool",
+          "state": "boolean_flag",
+          "abstract_type": "scalar",
+          "port_role": "data_output",
+          "description": "True if 400 <= status_code < 500, else False."
+        }
+      },
+      "code_template": "{is_client_error} = (400 <= {status_code} < 500)",
+      "dependencies": ["import requests"],
+      "primary_in": "status_code",
+      "primary_out": "is_client_error"
+    },
+    {
+      "cell_id": "REQ_IS_SERVER_ERROR",
+      "stage": 2,
+      "domain_name": "requests",
+      "node_type": "function",
+      "node_role": "transformer",
+      "topology_type": "sequential",
+      "docstring": "Checks if an HTTP status code falls in the 5xx server error range.",
+      "semantic_tags": ["server_error", "5xx", "status_check", "gateway_error", "fault"],
+      "inputs": {
+        "status_code": {
+          "type_name": "status_code",
+          "state": "status_code_value",
+          "abstract_type": "scalar",
+          "required": true,
+          "port_role": "data_input",
+          "description": "HTTP status code integer."
+        }
+      },
+      "outputs": {
+        "is_server_error": {
+          "type_name": "bool",
+          "state": "boolean_flag",
+          "abstract_type": "scalar",
+          "port_role": "data_output",
+          "description": "True if status_code >= 500, else False."
+        }
+      },
+      "code_template": "{is_server_error} = ({status_code} >= 500)",
+      "dependencies": ["import requests"],
+      "primary_in": "status_code",
+      "primary_out": "is_server_error"
+    },
+    {
+      "cell_id": "REQ_GET_STREAM",
+      "stage": 1,
+      "domain_name": "requests",
+      "node_type": "function",
+      "node_role": "source",
+      "topology_type": "sequential",
+      "docstring": "Sends an HTTP GET request with stream=True enabled for chunked body consumption.",
+      "semantic_tags": ["get_stream", "stream", "download_stream", "streaming_request"],
+      "inputs": {
+        "url": {
+          "type_name": "url",
+          "state": "url_string",
+          "abstract_type": "scalar",
+          "required": true,
+          "port_role": "source_data",
+          "description": "Target endpoint URL."
+        },
+        "params": {
+          "type_name": "http_params",
+          "state": "query_parameters",
+          "abstract_type": "collection",
+          "required": false,
+          "default_value": null,
+          "port_role": "configuration",
+          "description": "Optional dictionary of URL query parameters."
+        },
+        "headers": {
+          "type_name": "http_headers",
+          "state": "request_headers",
+          "abstract_type": "collection",
+          "required": false,
+          "default_value": null,
+          "port_role": "configuration",
+          "description": "Optional HTTP headers dictionary."
+        },
+        "timeout": {
+          "type_name": "float",
+          "state": "timeout_seconds",
+          "abstract_type": "scalar",
+          "required": false,
+          "default_value": 30.0,
+          "port_role": "configuration",
+          "description": "Connection and read timeout in seconds."
+        }
+      },
+      "outputs": {
+        "response": {
+          "type_name": "response",
+          "state": "streaming",
+          "abstract_type": "handle",
+          "port_role": "data_output",
+          "description": "Streaming HTTP Response object."
+        }
+      },
+      "code_template": "{response} = requests.get({url}, params={params}, headers={headers}, stream=True, timeout={timeout})",
+      "dependencies": ["import requests"],
+      "primary_in": "url",
+      "primary_out": "response"
+    },
+    {
+      "cell_id": "REQ_STREAM_ITER_CONTENT",
+      "stage": 2,
+      "domain_name": "requests",
+      "node_type": "method",
+      "node_role": "transformer",
+      "topology_type": "sequential",
+      "docstring": "Returns an iterator over response byte chunks using iter_content.",
+      "semantic_tags": ["iter_content", "stream", "chunks", "iterator", "bytes"],
+      "inputs": {
+        "response": {
+          "type_name": "response",
+          "state": "streaming",
+          "abstract_type": "handle",
+          "required": true,
+          "port_role": "data_input",
+          "description": "Streaming HTTP Response object."
+        },
+        "chunk_size": {
+          "type_name": "int",
+          "state": "chunk_size_bytes",
+          "abstract_type": "scalar",
+          "required": false,
+          "default_value": 8192,
+          "port_role": "configuration",
+          "description": "Number of bytes per chunk."
+        }
+      },
+      "outputs": {
+        "stream": {
+          "type_name": "stream_content",
+          "state": "stream_chunks",
+          "abstract_type": "stream",
+          "port_role": "data_output",
+          "description": "Iterator yielding byte chunks."
+        }
+      },
+      "code_template": "{stream} = {response}.iter_content(chunk_size={chunk_size})",
+      "dependencies": ["import requests"],
+      "primary_in": "response",
+      "primary_out": "stream"
+    },
+    {
+      "cell_id": "REQ_RESP_SAVE_TO_FILE",
+      "stage": 3,
+      "domain_name": "requests",
+      "node_type": "function",
+      "node_role": "sink",
+      "topology_type": "sequential",
+      "docstring": "Writes raw binary content of an HTTP response directly to a local file path.",
+      "semantic_tags": ["save", "write_file", "download_file", "save_response", "sink"],
+      "inputs": {
+        "response": {
+          "type_name": "response",
+          "state": "received",
+          "abstract_type": "handle",
+          "required": true,
+          "port_role": "data_input",
+          "description": "Response whose binary content should be written."
+        },
+        "filepath": {
+          "type_name": "str",
+          "state": "destination_path",
+          "abstract_type": "path",
+          "required": true,
+          "port_role": "destination",
+          "description": "Target filesystem path."
+        }
+      },
+      "outputs": {
+        "out_path": {
+          "type_name": "str",
+          "state": "written",
+          "abstract_type": "path",
+          "port_role": "result",
+          "description": "Path to the saved local file."
+        }
+      },
+      "code_template": "with open({filepath}, 'wb') as _f:\n    _f.write({response}.content)\n{out_path} = {filepath}",
+      "dependencies": ["import requests"],
+      "primary_in": "response",
+      "primary_out": "out_path"
+    },
+    {
+      "cell_id": "REQ_RESP_STREAM_SAVE_TO_FILE",
+      "stage": 3,
+      "domain_name": "requests",
+      "node_type": "function",
+      "node_role": "sink",
+      "topology_type": "sequential",
+      "docstring": "Streams HTTP response chunks directly to local storage to prevent memory overflow on large downloads.",
+      "semantic_tags": ["stream_to_file", "save_stream", "large_download", "disk_sink"],
+      "inputs": {
+        "response": {
+          "type_name": "response",
+          "state": "streaming",
+          "abstract_type": "handle",
+          "required": true,
+          "port_role": "data_input",
+          "description": "Streaming HTTP Response object."
+        },
+        "filepath": {
+          "type_name": "str",
+          "state": "destination_path",
+          "abstract_type": "path",
+          "required": true,
+          "port_role": "destination",
+          "description": "Target destination file path on disk."
+        },
+        "chunk_size": {
+          "type_name": "int",
+          "state": "chunk_size_bytes",
+          "abstract_type": "scalar",
+          "required": false,
+          "default_value": 8192,
+          "port_role": "configuration",
+          "description": "Streaming chunk size in bytes."
+        }
+      },
+      "outputs": {
+        "out_path": {
+          "type_name": "str",
+          "state": "written",
+          "abstract_type": "path",
+          "port_role": "result",
+          "description": "Destination file path written."
+        }
+      },
+      "code_template": "with open({filepath}, 'wb') as _f:\n    for _chunk in {response}.iter_content(chunk_size={chunk_size}):\n        if _chunk:\n            _f.write(_chunk)\n{out_path} = {filepath}",
+      "dependencies": ["import requests"],
+      "primary_in": "response",
+      "primary_out": "out_path"
+    },
+    {
+      "cell_id": "REQ_POST_UPLOAD_FILE",
+      "stage": 1,
+      "domain_name": "requests",
+      "node_type": "function",
+      "node_role": "source",
+      "topology_type": "sequential",
+      "docstring": "Uploads a local file via multipart/form-data encoding to an HTTP endpoint.",
+      "semantic_tags": ["upload", "multipart", "post_file", "upload_file", "form_data"],
+      "inputs": {
+        "url": {
+          "type_name": "url",
+          "state": "url_string",
+          "abstract_type": "scalar",
+          "required": true,
+          "port_role": "source_data",
+          "description": "Target endpoint URL for file upload."
+        },
+        "filepath": {
+          "type_name": "str",
+          "state": "source_path",
+          "abstract_type": "path",
+          "required": true,
+          "port_role": "source_data",
+          "description": "Local path of the file to upload."
+        },
+        "file_field": {
+          "type_name": "str",
+          "state": "field_name",
+          "abstract_type": "scalar",
+          "required": false,
+          "default_value": "file",
+          "port_role": "configuration",
+          "description": "Multipart form field name."
+        },
+        "headers": {
+          "type_name": "http_headers",
+          "state": "request_headers",
+          "abstract_type": "collection",
+          "required": false,
+          "default_value": null,
+          "port_role": "configuration",
+          "description": "Optional HTTP headers dictionary."
+        },
+        "timeout": {
+          "type_name": "float",
+          "state": "timeout_seconds",
+          "abstract_type": "scalar",
+          "required": false,
+          "default_value": 60.0,
+          "port_role": "configuration",
+          "description": "Connection and upload timeout in seconds."
+        }
+      },
+      "outputs": {
+        "response": {
+          "type_name": "response",
+          "state": "http_response",
+          "abstract_type": "handle",
+          "port_role": "data_output",
+          "description": "HTTP Response object from upload endpoint."
+        }
+      },
+      "code_template": "with open({filepath}, 'rb') as _f:\n    {response} = requests.post({url}, files=dict([({file_field}, _f)]), headers={headers}, timeout={timeout})",
+      "dependencies": ["import requests"],
+      "primary_in": "filepath",
+      "primary_out": "response"
+    },
+    {
+      "cell_id": "REQ_DOWNLOAD_IMAGE",
+      "stage": 3,
+      "domain_name": "requests",
+      "node_type": "function",
+      "node_role": "sink",
+      "topology_type": "sequential",
+      "docstring": "Direct end-to-end streaming download of a remote image URL to a local destination file path.",
+      "semantic_tags": ["download_image", "image_sink", "save_image", "download", "sink"],
+      "inputs": {
+        "url": {
+          "type_name": "url",
+          "state": "url_string",
+          "abstract_type": "scalar",
+          "required": true,
+          "port_role": "source_data",
+          "description": "Source image URL to fetch."
+        },
+        "filepath": {
+          "type_name": "str",
+          "state": "destination_path",
+          "abstract_type": "path",
+          "required": true,
+          "port_role": "destination",
+          "description": "Local filesystem path to save image."
+        },
+        "timeout": {
+          "type_name": "float",
+          "state": "timeout_seconds",
+          "abstract_type": "scalar",
+          "required": false,
+          "default_value": 30.0,
+          "port_role": "configuration",
+          "description": "Connection and download timeout in seconds."
+        }
+      },
+      "outputs": {
+        "out_path": {
+          "type_name": "str",
+          "state": "written",
+          "abstract_type": "path",
+          "port_role": "result",
+          "description": "Path to the successfully downloaded image."
+        }
+      },
+      "code_template": "with requests.get({url}, stream=True, timeout={timeout}) as _r:\n    _r.raise_for_status()\n    with open({filepath}, 'wb') as _f:\n        for _chunk in _r.iter_content(chunk_size=8192):\n            if _chunk:\n                _f.write(_chunk)\n{out_path} = {filepath}",
+      "dependencies": ["import requests"],
+      "primary_in": "url",
+      "primary_out": "out_path"
+    },
+    {
+      "cell_id": "REQ_HTTP_ADAPTER_INIT",
+      "stage": 1,
+      "domain_name": "requests",
+      "node_type": "function",
+      "node_role": "source",
+      "topology_type": "sequential",
+      "docstring": "Instantiates an HTTPAdapter with connection pooling limits and retry parameters.",
+      "semantic_tags": ["adapter", "http_adapter", "pool_connections", "retries", "transport"],
+      "inputs": {
+        "pool_connections": {
+          "type_name": "int",
+          "state": "chunk_size_bytes",
+          "abstract_type": "scalar",
+          "required": false,
+          "default_value": 10,
+          "port_role": "configuration",
+          "description": "Number of urllib3 connection pools to cache."
+        },
+        "pool_maxsize": {
+          "type_name": "int",
+          "state": "chunk_size_bytes",
+          "abstract_type": "scalar",
+          "required": false,
+          "default_value": 10,
+          "port_role": "configuration",
+          "description": "Maximum number of connections to save in the pool."
+        },
+        "max_retries": {
+          "type_name": "int",
+          "state": "chunk_size_bytes",
+          "abstract_type": "scalar",
+          "required": false,
+          "default_value": 3,
+          "port_role": "configuration",
+          "description": "Maximum number of retries each connection attempt can make."
+        }
+      },
+      "outputs": {
+        "adapter": {
+          "type_name": "http_adapter",
+          "state": "configured_adapter",
+          "abstract_type": "handle",
+          "port_role": "data_output",
+          "description": "Configured requests.adapters.HTTPAdapter instance."
+        }
+      },
+      "code_template": "{adapter} = requests.adapters.HTTPAdapter(pool_connections={pool_connections}, pool_maxsize={pool_maxsize}, max_retries={max_retries})",
+      "dependencies": ["import requests", "import requests.adapters"],
+      "primary_in": null,
+      "primary_out": "adapter"
+    },
+    {
+      "cell_id": "REQ_SESSION_MOUNT_ADAPTER",
+      "stage": 2,
+      "domain_name": "requests",
+      "node_type": "method",
+      "node_role": "transformer",
+      "topology_type": "sequential",
+      "docstring": "Mounts an HTTPAdapter instance to a designated URL prefix on an active requests.Session.",
+      "semantic_tags": ["mount", "session_adapter", "transport", "prefix_mount", "routing"],
+      "inputs": {
+        "session": {
+          "type_name": "session",
+          "state": "active_session",
+          "abstract_type": "handle",
+          "required": true,
+          "port_role": "data_input",
+          "description": "Active requests.Session object."
+        },
+        "prefix": {
+          "type_name": "str",
+          "state": "url_prefix",
+          "abstract_type": "scalar",
+          "required": true,
+          "port_role": "configuration",
+          "description": "URL prefix (e.g. 'https://' or 'http://') to bind adapter."
+        },
+        "adapter": {
+          "type_name": "http_adapter",
+          "state": "configured_adapter",
+          "abstract_type": "handle",
+          "required": true,
+          "port_role": "data_input",
+          "description": "HTTPAdapter instance to mount."
+        }
+      },
+      "outputs": {
+        "configured_session": {
+          "type_name": "session",
+          "state": "active_session",
+          "abstract_type": "handle",
+          "port_role": "data_output",
+          "description": "Session with mounted adapter."
+        }
+      },
+      "code_template": "{session}.mount({prefix}, {adapter})\n{configured_session} = {session}",
+      "dependencies": ["import requests"],
+      "primary_in": "session",
+      "primary_out": "configured_session"
+    },
+    {
+      "cell_id": "REQ_SESSION_SET_PROXIES",
+      "stage": 2,
+      "domain_name": "requests",
+      "node_type": "function",
+      "node_role": "transformer",
+      "topology_type": "sequential",
+      "docstring": "Configures HTTP and HTTPS forward proxy addresses directly on an active Session.",
+      "semantic_tags": ["proxies", "http_proxy", "https_proxy", "gateway", "tunnel"],
+      "inputs": {
+        "session": {
+          "type_name": "session",
+          "state": "active_session",
+          "abstract_type": "handle",
+          "required": true,
+          "port_role": "data_input",
+          "description": "Active requests.Session object."
+        },
+        "http_proxy": {
+          "type_name": "str",
+          "state": "proxy_address",
+          "abstract_type": "scalar",
+          "required": true,
+          "port_role": "configuration",
+          "description": "Proxy URL address for HTTP requests."
+        },
+        "https_proxy": {
+          "type_name": "str",
+          "state": "proxy_address",
+          "abstract_type": "scalar",
+          "required": true,
+          "port_role": "configuration",
+          "description": "Proxy URL address for HTTPS requests."
+        }
+      },
+      "outputs": {
+        "configured_session": {
+          "type_name": "session",
+          "state": "active_session",
+          "abstract_type": "handle",
+          "port_role": "data_output",
+          "description": "Session configured with proxy mappings."
+        }
+      },
+      "code_template": "{session}.proxies = dict([('http', {http_proxy}), ('https', {https_proxy})])\n{configured_session} = {session}",
+      "dependencies": ["import requests"],
+      "primary_in": "session",
+      "primary_out": "configured_session"
+    },
+    {
+      "cell_id": "REQ_SESSION_SET_VERIFY_SSL",
+      "stage": 2,
+      "domain_name": "requests",
+      "node_type": "function",
+      "node_role": "transformer",
+      "topology_type": "sequential",
+      "docstring": "Configures SSL certificate verification flag on an active Session.",
+      "semantic_tags": ["ssl", "tls", "verify", "certificate", "insecure"],
+      "inputs": {
+        "session": {
+          "type_name": "session",
+          "state": "active_session",
+          "abstract_type": "handle",
+          "required": true,
+          "port_role": "data_input",
+          "description": "Active requests.Session object."
+        },
+        "verify": {
+          "type_name": "bool",
+          "state": "boolean_flag",
+          "abstract_type": "scalar",
+          "required": true,
+          "port_role": "configuration",
+          "description": "Boolean flag enabling or disabling TLS validation."
+        }
+      },
+      "outputs": {
+        "configured_session": {
+          "type_name": "session",
+          "state": "active_session",
+          "abstract_type": "handle",
+          "port_role": "data_output",
+          "description": "Session with updated SSL verification behavior."
+        }
+      },
+      "code_template": "{session}.verify = {verify}\n{configured_session} = {session}",
+      "dependencies": ["import requests"],
+      "primary_in": "session",
+      "primary_out": "configured_session"
+    },
+    {
+      "cell_id": "REQ_SESSION_SET_CLIENT_CERT",
+      "stage": 2,
+      "domain_name": "requests",
+      "node_type": "function",
+      "node_role": "transformer",
+      "topology_type": "sequential",
+      "docstring": "Attaches client certificate and private key paths to a session for mutual TLS (mTLS).",
+      "semantic_tags": ["mtls", "client_cert", "mutual_tls", "private_key", "security"],
+      "inputs": {
+        "session": {
+          "type_name": "session",
+          "state": "active_session",
+          "abstract_type": "handle",
+          "required": true,
+          "port_role": "data_input",
+          "description": "Active requests.Session object."
+        },
+        "cert_file": {
+          "type_name": "str",
+          "state": "source_path",
+          "abstract_type": "path",
+          "required": true,
+          "port_role": "configuration",
+          "description": "Path to client SSL certificate file."
+        },
+        "key_file": {
+          "type_name": "str",
+          "state": "source_path",
+          "abstract_type": "path",
+          "required": true,
+          "port_role": "configuration",
+          "description": "Path to client private key file."
+        }
+      },
+      "outputs": {
+        "configured_session": {
+          "type_name": "session",
+          "state": "active_session",
+          "abstract_type": "handle",
+          "port_role": "data_output",
+          "description": "Session configured with client credentials."
+        }
+      },
+      "code_template": "{session}.cert = ({cert_file}, {key_file})\n{configured_session} = {session}",
+      "dependencies": ["import requests"],
+      "primary_in": "session",
+      "primary_out": "configured_session"
+    },
+    {
+      "cell_id": "REQ_SESSION_CLEAR_COOKIES",
+      "stage": 2,
+      "domain_name": "requests",
+      "node_type": "method",
+      "node_role": "transformer",
+      "topology_type": "sequential",
+      "docstring": "Purges all stored cookies from the session cookie jar.",
+      "semantic_tags": ["clear_cookies", "reset_cookies", "session_reset", "cleanup"],
+      "inputs": {
+        "session": {
+          "type_name": "session",
+          "state": "active_session",
+          "abstract_type": "handle",
+          "required": true,
+          "port_role": "data_input",
+          "description": "Active requests.Session object."
+        }
+      },
+      "outputs": {
+        "cleared_session": {
+          "type_name": "session",
+          "state": "active_session",
+          "abstract_type": "handle",
+          "port_role": "data_output",
+          "description": "Session with an empty cookie jar."
+        }
+      },
+      "code_template": "{session}.cookies.clear()\n{cleared_session} = {session}",
+      "dependencies": ["import requests"],
+      "primary_in": "session",
+      "primary_out": "cleared_session"
+    },
+    {
+      "cell_id": "REQ_SET_DIGEST_AUTH",
+      "stage": 2,
+      "domain_name": "requests",
+      "node_type": "function",
+      "node_role": "transformer",
+      "topology_type": "sequential",
+      "docstring": "Instantiates an HTTPDigestAuth authentication handler for Digest challenged endpoints.",
+      "semantic_tags": ["auth", "digest_auth", "http_digest", "challenge_response"],
+      "inputs": {
+        "username": {
+          "type_name": "str",
+          "state": "username",
+          "abstract_type": "scalar",
+          "required": true,
+          "port_role": "source_data",
+          "description": "Digest auth username."
+        },
+        "password": {
+          "type_name": "str",
+          "state": "password",
+          "abstract_type": "scalar",
+          "required": true,
+          "port_role": "source_data",
+          "description": "Digest auth password."
+        }
+      },
+      "outputs": {
+        "auth": {
+          "type_name": "http_auth",
+          "state": "auth_credentials",
+          "abstract_type": "handle",
+          "port_role": "data_output",
+          "description": "HTTPDigestAuth handler ready for request dispatch."
+        }
+      },
+      "code_template": "{auth} = requests.auth.HTTPDigestAuth({username}, {password})",
+      "dependencies": ["import requests", "import requests.auth"],
+      "primary_in": "username",
+      "primary_out": "auth"
+    },
+    {
+      "cell_id": "REQ_SET_PROXY_AUTH",
+      "stage": 2,
+      "domain_name": "requests",
+      "node_type": "function",
+      "node_role": "transformer",
+      "topology_type": "sequential",
+      "docstring": "Instantiates an HTTPProxyAuth handler for authenticating against forward HTTP proxies.",
+      "semantic_tags": ["auth", "proxy_auth", "credentials", "proxy_authentication"],
+      "inputs": {
+        "username": {
+          "type_name": "str",
+          "state": "username",
+          "abstract_type": "scalar",
+          "required": true,
+          "port_role": "source_data",
+          "description": "Proxy username."
+        },
+        "password": {
+          "type_name": "str",
+          "state": "password",
+          "abstract_type": "scalar",
+          "required": true,
+          "port_role": "source_data",
+          "description": "Proxy password."
+        }
+      },
+      "outputs": {
+        "auth": {
+          "type_name": "http_auth",
+          "state": "auth_credentials",
+          "abstract_type": "handle",
+          "port_role": "data_output",
+          "description": "HTTPProxyAuth handler instance."
+        }
+      },
+      "code_template": "{auth} = requests.auth.HTTPProxyAuth({username}, {password})",
+      "dependencies": ["import requests", "import requests.auth"],
+      "primary_in": "username",
+      "primary_out": "auth"
+    },
+    {
+      "cell_id": "REQ_REQUEST_PREPARE",
+      "stage": 2,
+      "domain_name": "requests",
+      "node_type": "function",
+      "node_role": "transformer",
+      "topology_type": "sequential",
+      "docstring": "Creates and pre-compiles a PreparedRequest envelope via a Session.",
+      "semantic_tags": ["prepared_request", "prepare", "precompile", "envelope", "request_object"],
+      "inputs": {
+        "session": {
+          "type_name": "session",
+          "state": "active_session",
+          "abstract_type": "handle",
+          "required": true,
+          "port_role": "data_input",
+          "description": "Active requests.Session object."
+        },
+        "method": {
+          "type_name": "str",
+          "state": "header_key",
+          "abstract_type": "scalar",
+          "required": true,
+          "port_role": "configuration",
+          "description": "HTTP method verb (e.g. 'GET', 'POST')."
+        },
+        "url": {
+          "type_name": "url",
+          "state": "url_string",
+          "abstract_type": "scalar",
+          "required": true,
+          "port_role": "source_data",
+          "description": "Target endpoint URL."
+        },
+        "headers": {
+          "type_name": "http_headers",
+          "state": "request_headers",
+          "abstract_type": "collection",
+          "required": false,
+          "default_value": null,
+          "port_role": "configuration",
+          "description": "Optional request headers dictionary."
+        },
+        "data": {
+          "type_name": "http_payload",
+          "state": "form_data",
+          "abstract_type": "collection",
+          "required": false,
+          "default_value": null,
+          "port_role": "data_input",
+          "description": "Optional request body data."
+        }
+      },
+      "outputs": {
+        "prepared_request": {
+          "type_name": "prepared_request",
+          "state": "prepared_message",
+          "abstract_type": "handle",
+          "port_role": "data_output",
+          "description": "Pre-compiled PreparedRequest object."
+        }
+      },
+      "code_template": "{prepared_request} = {session}.prepare_request(requests.Request(method={method}, url={url}, headers={headers}, data={data}))",
+      "dependencies": ["import requests"],
+      "primary_in": "session",
+      "primary_out": "prepared_request"
+    },
+    {
+      "cell_id": "REQ_SESSION_SEND",
+      "stage": 2,
+      "domain_name": "requests",
+      "node_type": "method",
+      "node_role": "transformer",
+      "topology_type": "sequential",
+      "docstring": "Dispatches a pre-compiled PreparedRequest object using session connection pooling.",
+      "semantic_tags": ["send", "session_send", "dispatch", "low_level", "prepared_request"],
+      "inputs": {
+        "session": {
+          "type_name": "session",
+          "state": "active_session",
+          "abstract_type": "handle",
+          "required": true,
+          "port_role": "data_input",
+          "description": "Active requests.Session object."
+        },
+        "prepared_request": {
+          "type_name": "prepared_request",
+          "state": "prepared_message",
+          "abstract_type": "handle",
+          "required": true,
+          "port_role": "data_input",
+          "description": "PreparedRequest object to dispatch."
+        },
+        "timeout": {
+          "type_name": "float",
+          "state": "timeout_seconds",
+          "abstract_type": "scalar",
+          "required": false,
+          "default_value": 30.0,
+          "port_role": "configuration",
+          "description": "Connection and read timeout in seconds."
+        }
+      },
+      "outputs": {
+        "response": {
+          "type_name": "response",
+          "state": "http_response",
+          "abstract_type": "handle",
+          "port_role": "data_output",
+          "description": "HTTP Response returned from dispatch."
+        }
+      },
+      "code_template": "{response} = {session}.send({prepared_request}, timeout={timeout})",
+      "dependencies": ["import requests"],
+      "primary_in": "session",
+      "primary_out": "response"
+    },
+    {
+      "cell_id": "REQ_RESP_HISTORY",
+      "stage": 2,
+      "domain_name": "requests",
+      "node_type": "method",
+      "node_role": "transformer",
+      "topology_type": "sequential",
+      "docstring": "Extracts the sequence of intermediate redirect responses from an HTTP response.",
+      "semantic_tags": ["history", "redirects", "trace", "redirect_chain"],
+      "inputs": {
+        "response": {
+          "type_name": "response",
+          "state": "received",
+          "abstract_type": "handle",
+          "required": true,
+          "port_role": "data_input",
+          "description": "HTTP Response object."
+        }
+      },
+      "outputs": {
+        "history": {
+          "type_name": "list",
+          "state": "redirect_chain",
+          "abstract_type": "collection",
+          "port_role": "data_output",
+          "description": "List of intermediate Response objects encountered during redirects."
+        }
+      },
+      "code_template": "{history} = list({response}.history)",
+      "dependencies": ["import requests"],
+      "primary_in": "response",
+      "primary_out": "history"
+    },
+    {
+      "cell_id": "REQ_RESP_IS_REDIRECT",
+      "stage": 2,
+      "domain_name": "requests",
+      "node_type": "method",
+      "node_role": "transformer",
+      "topology_type": "sequential",
+      "docstring": "Checks whether the response indicates a redirect that could have been followed.",
+      "semantic_tags": ["is_redirect", "redirect_check", "status_3xx", "boolean"],
+      "inputs": {
+        "response": {
+          "type_name": "response",
+          "state": "received",
+          "abstract_type": "handle",
+          "required": true,
+          "port_role": "data_input",
+          "description": "HTTP Response object."
+        }
+      },
+      "outputs": {
+        "is_redirect": {
+          "type_name": "bool",
+          "state": "boolean_flag",
+          "abstract_type": "scalar",
+          "port_role": "data_output",
+          "description": "True if response status is a redirect and Location header exists."
+        }
+      },
+      "code_template": "{is_redirect} = bool({response}.is_redirect)",
+      "dependencies": ["import requests"],
+      "primary_in": "response",
+      "primary_out": "is_redirect"
+    },
+    {
+      "cell_id": "REQ_RESP_LINKS",
+      "stage": 2,
+      "domain_name": "requests",
+      "node_type": "method",
+      "node_role": "transformer",
+      "topology_type": "sequential",
+      "docstring": "Parses RFC 5988 Link headers from response into a dictionary for REST web pagination.",
+      "semantic_tags": ["links", "pagination", "rfc5988", "next_page", "rel_links"],
+      "inputs": {
+        "response": {
+          "type_name": "response",
+          "state": "received",
+          "abstract_type": "handle",
+          "required": true,
+          "port_role": "data_input",
+          "description": "HTTP Response object."
+        }
+      },
+      "outputs": {
+        "links": {
+          "type_name": "dict",
+          "state": "link_headers",
+          "abstract_type": "collection",
+          "port_role": "data_output",
+          "description": "Dictionary of parsed relation links (e.g. {'next': {'url': ...}})."
+        }
+      },
+      "code_template": "{links} = dict({response}.links)",
+      "dependencies": ["import requests"],
+      "primary_in": "response",
+      "primary_out": "links"
+    },
+    {
+      "cell_id": "REQ_RESP_REASON",
+      "stage": 2,
+      "domain_name": "requests",
+      "node_type": "method",
+      "node_role": "transformer",
+      "topology_type": "sequential",
+      "docstring": "Extracts the textual HTTP status reason phrase (e.g. 'OK', 'Not Found') from the response.",
+      "semantic_tags": ["reason", "status_text", "status_phrase", "http_reason"],
+      "inputs": {
+        "response": {
+          "type_name": "response",
+          "state": "received",
+          "abstract_type": "handle",
+          "required": true,
+          "port_role": "data_input",
+          "description": "HTTP Response object."
+        }
+      },
+      "outputs": {
+        "reason": {
+          "type_name": "str",
+          "state": "reason_phrase",
+          "abstract_type": "scalar",
+          "port_role": "data_output",
+          "description": "Textual HTTP status reason phrase."
+        }
+      },
+      "code_template": "{reason} = str({response}.reason)",
+      "dependencies": ["import requests"],
+      "primary_in": "response",
+      "primary_out": "reason"
+    },
+    {
+      "cell_id": "REQ_RESP_APPARENT_ENCODING",
+      "stage": 2,
+      "domain_name": "requests",
+      "node_type": "method",
+      "node_role": "transformer",
+      "topology_type": "sequential",
+      "docstring": "Heuristically identifies character encoding from raw response body bytes.",
+      "semantic_tags": ["apparent_encoding", "charset_detect", "chardet", "encoding"],
+      "inputs": {
+        "response": {
+          "type_name": "response",
+          "state": "received",
+          "abstract_type": "handle",
+          "required": true,
+          "port_role": "data_input",
+          "description": "HTTP Response object."
+        }
+      },
+      "outputs": {
+        "apparent_encoding": {
+          "type_name": "str",
+          "state": "encoding_name",
+          "abstract_type": "scalar",
+          "port_role": "data_output",
+          "description": "Detected character encoding string."
+        }
+      },
+      "code_template": "{apparent_encoding} = str({response}.apparent_encoding)",
+      "dependencies": ["import requests"],
+      "primary_in": "response",
+      "primary_out": "apparent_encoding"
+    },
+    {
+      "cell_id": "REQ_RESP_CONTENT_TYPE",
+      "stage": 2,
+      "domain_name": "requests",
+      "node_type": "function",
+      "node_role": "transformer",
+      "topology_type": "sequential",
+      "docstring": "Extracts the Content-Type MIME header string from an HTTP response.",
+      "semantic_tags": ["content_type", "mime_type", "headers", "media_type"],
+      "inputs": {
+        "response": {
+          "type_name": "response",
+          "state": "received",
+          "abstract_type": "handle",
+          "required": true,
+          "port_role": "data_input",
+          "description": "HTTP Response object."
+        }
+      },
+      "outputs": {
+        "content_type": {
+          "type_name": "str",
+          "state": "mime_type",
+          "abstract_type": "scalar",
+          "port_role": "data_output",
+          "description": "Content-Type header value."
+        }
+      },
+      "code_template": "{content_type} = str({response}.headers.get('Content-Type', ''))",
+      "dependencies": ["import requests"],
+      "primary_in": "response",
+      "primary_out": "content_type"
+    },
+    {
+      "cell_id": "REQ_RESP_CONTENT_LENGTH",
+      "stage": 2,
+      "domain_name": "requests",
+      "node_type": "function",
+      "node_role": "transformer",
+      "topology_type": "sequential",
+      "docstring": "Extracts the Content-Length byte count integer from response headers.",
+      "semantic_tags": ["content_length", "size", "bytes_count", "header_size"],
+      "inputs": {
+        "response": {
+          "type_name": "response",
+          "state": "received",
+          "abstract_type": "handle",
+          "required": true,
+          "port_role": "data_input",
+          "description": "HTTP Response object."
+        }
+      },
+      "outputs": {
+        "content_length": {
+          "type_name": "int",
+          "state": "content_length_bytes",
+          "abstract_type": "scalar",
+          "port_role": "data_output",
+          "description": "Total declared payload byte size or 0 if missing."
+        }
+      },
+      "code_template": "{content_length} = int({response}.headers.get('Content-Length', 0))",
+      "dependencies": ["import requests"],
+      "primary_in": "response",
+      "primary_out": "content_length"
+    },
+    {
+      "cell_id": "REQ_STREAM_ITER_LINES",
+      "stage": 2,
+      "domain_name": "requests",
+      "node_type": "method",
+      "node_role": "transformer",
+      "topology_type": "sequential",
+      "docstring": "Iterates line-by-line over streamed response content, stripping newline terminators.",
+      "semantic_tags": ["iter_lines", "ndjson", "sse", "streaming_lines", "event_stream"],
+      "inputs": {
+        "response": {
+          "type_name": "response",
+          "state": "streaming",
+          "abstract_type": "handle",
+          "required": true,
+          "port_role": "data_input",
+          "description": "Streaming HTTP Response object."
+        },
+        "chunk_size": {
+          "type_name": "int",
+          "state": "chunk_size_bytes",
+          "abstract_type": "scalar",
+          "required": false,
+          "default_value": 512,
+          "port_role": "configuration",
+          "description": "Internal buffer size for reading chunks."
+        }
+      },
+      "outputs": {
+        "lines_stream": {
+          "type_name": "stream_content",
+          "state": "stream_chunks",
+          "abstract_type": "stream",
+          "port_role": "data_output",
+          "description": "Iterator yielding individual decoded or raw byte lines."
+        }
+      },
+      "code_template": "{lines_stream} = {response}.iter_lines(chunk_size={chunk_size})",
+      "dependencies": ["import requests"],
+      "primary_in": "response",
+      "primary_out": "lines_stream"
+    },
+    {
+      "cell_id": "REQ_RESP_SAVE_JSON",
+      "stage": 3,
+      "domain_name": "requests",
+      "node_type": "function",
+      "node_role": "sink",
+      "topology_type": "sequential",
+      "docstring": "Parses response body as JSON and formats and saves it directly to a local JSON file.",
+      "semantic_tags": ["save_json", "json_file", "dump_json", "sink", "export"],
+      "inputs": {
+        "response": {
+          "type_name": "response",
+          "state": "received",
+          "abstract_type": "handle",
+          "required": true,
+          "port_role": "data_input",
+          "description": "HTTP Response containing JSON body."
+        },
+        "filepath": {
+          "type_name": "str",
+          "state": "destination_path",
+          "abstract_type": "path",
+          "required": true,
+          "port_role": "destination",
+          "description": "Destination file path on disk."
+        },
+        "indent": {
+          "type_name": "int",
+          "state": "chunk_size_bytes",
+          "abstract_type": "scalar",
+          "required": false,
+          "default_value": 2,
+          "port_role": "configuration",
+          "description": "JSON indentation level."
+        }
+      },
+      "outputs": {
+        "out_path": {
+          "type_name": "str",
+          "state": "written",
+          "abstract_type": "path",
+          "port_role": "result",
+          "description": "Path to the saved JSON file."
+        }
+      },
+      "code_template": "with open({filepath}, 'w', encoding='utf-8') as _f:\n    json.dump({response}.json(), _f, indent={indent})\n{out_path} = {filepath}",
+      "dependencies": ["import requests", "import json"],
+      "primary_in": "response",
+      "primary_out": "out_path"
+    },
+    {
+      "cell_id": "REQ_RESP_SAVE_TEXT",
+      "stage": 3,
+      "domain_name": "requests",
+      "node_type": "function",
+      "node_role": "sink",
+      "topology_type": "sequential",
+      "docstring": "Writes decoded response text directly to a local text file with explicit encoding.",
+      "semantic_tags": ["save_text", "write_text", "text_file", "sink", "export"],
+      "inputs": {
+        "response": {
+          "type_name": "response",
+          "state": "received",
+          "abstract_type": "handle",
+          "required": true,
+          "port_role": "data_input",
+          "description": "HTTP Response object."
+        },
+        "filepath": {
+          "type_name": "str",
+          "state": "destination_path",
+          "abstract_type": "path",
+          "required": true,
+          "port_role": "destination",
+          "description": "Destination file path on disk."
+        },
+        "encoding": {
+          "type_name": "str",
+          "state": "encoding_name",
+          "abstract_type": "scalar",
+          "required": false,
+          "default_value": "utf-8",
+          "port_role": "configuration",
+          "description": "Character encoding for output file."
+        }
+      },
+      "outputs": {
+        "out_path": {
+          "type_name": "str",
+          "state": "written",
+          "abstract_type": "path",
+          "port_role": "result",
+          "description": "Path to the saved text file."
+        }
+      },
+      "code_template": "with open({filepath}, 'w', encoding={encoding}) as _f:\n    _f.write({response}.text)\n{out_path} = {filepath}",
+      "dependencies": ["import requests"],
+      "primary_in": "response",
+      "primary_out": "out_path"
+    },
+    {
+      "cell_id": "REQ_BUILD_CUSTOM_HEADER",
+      "stage": 2,
+      "domain_name": "requests",
+      "node_type": "function",
+      "node_role": "transformer",
+      "topology_type": "sequential",
+      "docstring": "Appends or modifies an arbitrary header key-value pair in an HTTP headers dictionary.",
+      "semantic_tags": ["custom_header", "headers", "set_header", "request_config"],
+      "inputs": {
+        "headers": {
+          "type_name": "http_headers",
+          "state": "request_headers",
+          "abstract_type": "collection",
+          "required": false,
+          "default_value": null,
+          "port_role": "configuration",
+          "description": "Existing headers dictionary or None."
+        },
+        "name": {
+          "type_name": "str",
+          "state": "header_key",
+          "abstract_type": "scalar",
+          "required": true,
+          "port_role": "configuration",
+          "description": "HTTP header field name."
+        },
+        "value": {
+          "type_name": "str",
+          "state": "header_value",
+          "abstract_type": "scalar",
+          "required": true,
+          "port_role": "source_data",
+          "description": "HTTP header field value."
+        }
+      },
+      "outputs": {
+        "out_headers": {
+          "type_name": "http_headers",
+          "state": "request_headers",
+          "abstract_type": "collection",
+          "port_role": "data_output",
+          "description": "Headers dictionary with added key-value pair."
+        }
+      },
+      "code_template": "{out_headers} = dict({headers} or dict())\n{out_headers}[str({name})] = str({value})",
+      "dependencies": ["import requests"],
+      "primary_in": "value",
+      "primary_out": "out_headers"
+    },
+    {
+      "cell_id": "REQ_URL_JOIN",
+      "stage": 2,
+      "domain_name": "requests",
+      "node_type": "function",
+      "node_role": "transformer",
+      "topology_type": "sequential",
+      "docstring": "Combines a base URL with an endpoint path using standard URL resolution rules.",
+      "semantic_tags": ["url_join", "url_build", "endpoint_join", "url_format"],
+      "inputs": {
+        "base_url": {
+          "type_name": "url",
+          "state": "url_string",
+          "abstract_type": "scalar",
+          "required": true,
+          "port_role": "source_data",
+          "description": "Base URL (e.g. 'https://api.example.com/v1/')."
+        },
+        "endpoint": {
+          "type_name": "str",
+          "state": "url_string",
+          "abstract_type": "scalar",
+          "required": true,
+          "port_role": "configuration",
+          "description": "Relative path endpoint (e.g. 'users/123')."
+        }
+      },
+      "outputs": {
+        "full_url": {
+          "type_name": "url",
+          "state": "url_string",
+          "abstract_type": "scalar",
+          "port_role": "data_output",
+          "description": "Fully resolved target URL."
+        }
+      },
+      "code_template": "{full_url} = urllib.parse.urljoin({base_url}, {endpoint})",
+      "dependencies": ["import urllib.parse"],
+      "primary_in": "base_url",
+      "primary_out": "full_url"
+    },
+    {
+      "cell_id": "REQ_SET_TIMEOUT_TUPLE",
+      "stage": 2,
+      "domain_name": "requests",
+      "node_type": "function",
+      "node_role": "transformer",
+      "topology_type": "sequential",
+      "docstring": "Constructs a (connect_timeout, read_timeout) tuple for fine-grained timeout control.",
+      "semantic_tags": ["timeout", "timeout_tuple", "connect_timeout", "read_timeout"],
+      "inputs": {
+        "connect_timeout": {
+          "type_name": "float",
+          "state": "timeout_seconds",
+          "abstract_type": "scalar",
+          "required": true,
+          "port_role": "configuration",
+          "description": "Connection handshake timeout in seconds."
+        },
+        "read_timeout": {
+          "type_name": "float",
+          "state": "timeout_seconds",
+          "abstract_type": "scalar",
+          "required": true,
+          "port_role": "configuration",
+          "description": "Read response socket timeout in seconds."
+        }
+      },
+      "outputs": {
+        "timeout": {
+          "type_name": "object",
+          "state": "timeout_tuple",
+          "abstract_type": "scalar",
+          "port_role": "data_output",
+          "description": "Tuple of (connect_timeout, read_timeout)."
+        }
+      },
+      "code_template": "{timeout} = ({connect_timeout}, {read_timeout})",
+      "dependencies": [],
+      "primary_in": "connect_timeout",
+      "primary_out": "timeout"
+    },
+    {
+      "cell_id": "REQ_RESP_CLOSE",
+      "stage": 3,
+      "domain_name": "requests",
+      "node_type": "method",
+      "node_role": "sink",
+      "topology_type": "sequential",
+      "docstring": "Explicitly closes response socket and releases socket handle back to the connection pool.",
+      "semantic_tags": ["response_close", "close_socket", "release_connection", "sink"],
+      "inputs": {
+        "response": {
+          "type_name": "response",
+          "state": "received",
+          "abstract_type": "handle",
+          "required": true,
+          "port_role": "data_input",
+          "description": "HTTP Response object to release."
+        }
+      },
+      "outputs": {},
+      "code_template": "{response}.close()",
+      "dependencies": ["import requests"],
+      "primary_in": "response",
+      "primary_out": null
+    }
+  ]
+}

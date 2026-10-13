@@ -1,0 +1,2046 @@
+
+
+{
+  "domain": "sqlite3",
+  "version": "1.0.0",
+  "description": "Relational database operations, cursor transactions, parameterized queries, and persistence morphisms.",
+  "types": [
+    {
+      "name": "object",
+      "parent": null
+    },
+    {
+      "name": "handle",
+      "parent": "object"
+    },
+    {
+      "name": "connection",
+      "parent": "handle"
+    },
+    {
+      "name": "cursor",
+      "parent": "handle"
+    },
+    {
+      "name": "scalar",
+      "parent": "object"
+    },
+    {
+      "name": "str",
+      "parent": "scalar"
+    },
+    {
+      "name": "int",
+      "parent": "scalar"
+    },
+    {
+      "name": "float",
+      "parent": "scalar"
+    },
+    {
+      "name": "bool",
+      "parent": "scalar"
+    },
+    {
+      "name": "path",
+      "parent": "str"
+    },
+    {
+      "name": "db_path",
+      "parent": "path"
+    },
+    {
+      "name": "sql_query",
+      "parent": "str"
+    },
+    {
+      "name": "collection",
+      "parent": "object"
+    },
+    {
+      "name": "tuple",
+      "parent": "collection"
+    },
+    {
+      "name": "list",
+      "parent": "collection"
+    },
+    {
+      "name": "dict",
+      "parent": "collection"
+    },
+    {
+      "name": "row",
+      "parent": "tuple"
+    },
+    {
+      "name": "record_list",
+      "parent": "list"
+    },
+    {
+      "name": "callable",
+      "parent": "object"
+    }
+  ],
+  "typestates": {
+    "connection": [
+      "uninitialized",
+      "open",
+      "in_transaction",
+      "committed",
+      "rolled_back",
+      "closed"
+    ],
+    "cursor": [
+      "uninitialized",
+      "active",
+      "executed",
+      "exhausted",
+      "closed"
+    ],
+    "db_path": [
+      "db_file",
+      "filesystem_path",
+      "memory_identifier",
+      "uri_identifier"
+    ],
+    "sql_statement": [
+      "raw_ddl",
+      "raw_dml",
+      "raw_query",
+      "parameter_values",
+      "parameterized",
+      "script"
+    ],
+    "row_state": [
+      "raw_tuple",
+      "named_row",
+      "dict_record"
+    ],
+    "collection_state": [
+      "records",
+      "batch",
+      "dump_stream"
+    ]
+  },
+  "cells": [
+    {
+      "cell_id": "SQLITE_CONNECT",
+      "stage": 1,
+      "domain_name": "sqlite3",
+      "node_type": "function",
+      "node_role": "source",
+      "topology_type": "sequential",
+      "docstring": "Opens a connection to the SQLite database file on disk.",
+      "semantic_tags": ["connect", "database", "open_db", "sqlite_connect"],
+      "inputs": {
+        "database_path": {
+          "type_name": "db_path",
+          "state": "db_file",
+          "abstract_type": "path",
+          "required": true,
+          "port_role": "source_data",
+          "description": "Filesystem path to the SQLite database file."
+        }
+      },
+      "outputs": {
+        "connection": {
+          "type_name": "connection",
+          "state": "open",
+          "abstract_type": "handle",
+          "port_role": "data_output",
+          "description": "Database connection handle."
+        }
+      },
+      "code_template": "{connection} = sqlite3.connect({database_path})",
+      "dependencies": ["import sqlite3"],
+      "primary_in": "database_path",
+      "primary_out": "connection"
+    },
+    {
+      "cell_id": "SQLITE_CONNECT_MEMORY",
+      "stage": 1,
+      "domain_name": "sqlite3",
+      "node_type": "function",
+      "node_role": "source",
+      "topology_type": "sequential",
+      "docstring": "Opens an isolated, high-performance in-memory SQLite database connection.",
+      "semantic_tags": ["connect", "in_memory", "ram_database", "sqlite_memory"],
+      "inputs": {},
+      "outputs": {
+        "connection": {
+          "type_name": "connection",
+          "state": "open",
+          "abstract_type": "handle",
+          "port_role": "data_output",
+          "description": "In-memory database connection handle."
+        }
+      },
+      "code_template": "{connection} = sqlite3.connect(\":memory:\")",
+      "dependencies": ["import sqlite3"],
+      "primary_in": null,
+      "primary_out": "connection"
+    },
+    {
+      "cell_id": "SQLITE_CONNECT_URI",
+      "stage": 1,
+      "domain_name": "sqlite3",
+      "node_type": "function",
+      "node_role": "source",
+      "topology_type": "sequential",
+      "docstring": "Opens a database connection using URI filename handling for flags like mode=ro or cache=shared.",
+      "semantic_tags": ["connect", "uri", "read_only", "shared_cache"],
+      "inputs": {
+        "uri": {
+          "type_name": "str",
+          "state": "uri_identifier",
+          "abstract_type": "scalar",
+          "required": true,
+          "port_role": "source_data",
+          "description": "URI connection string (e.g. 'file:data.db?mode=ro')."
+        }
+      },
+      "outputs": {
+        "connection": {
+          "type_name": "connection",
+          "state": "open",
+          "abstract_type": "handle",
+          "port_role": "data_output",
+          "description": "Database connection handle opened in URI mode."
+        }
+      },
+      "code_template": "{connection} = sqlite3.connect({uri}, uri=True)",
+      "dependencies": ["import sqlite3"],
+      "primary_in": "uri",
+      "primary_out": "connection"
+    },
+    {
+      "cell_id": "SQLITE_ROW_FACTORY_DICT",
+      "stage": 2,
+      "domain_name": "sqlite3",
+      "node_type": "method",
+      "node_role": "transformer",
+      "topology_type": "sequential",
+      "docstring": "Configures row_factory on the connection to sqlite3.Row for column-name keyed indexing.",
+      "semantic_tags": ["row_factory", "sqlite_row", "dictionary_cursor", "config"],
+      "inputs": {
+        "connection": {
+          "type_name": "connection",
+          "state": "open",
+          "abstract_type": "handle",
+          "required": true,
+          "port_role": "data_input",
+          "description": "Database connection handle."
+        }
+      },
+      "outputs": {
+        "out_connection": {
+          "type_name": "connection",
+          "state": "open",
+          "abstract_type": "handle",
+          "port_role": "data_output",
+          "description": "Connection configured with sqlite3.Row row_factory."
+        }
+      },
+      "code_template": "{connection}.row_factory = sqlite3.Row\n{out_connection} = {connection}",
+      "dependencies": ["import sqlite3"],
+      "primary_in": "connection",
+      "primary_out": "out_connection"
+    },
+    {
+      "cell_id": "SQLITE_SET_ISOLATION_LEVEL",
+      "stage": 2,
+      "domain_name": "sqlite3",
+      "node_type": "method",
+      "node_role": "transformer",
+      "topology_type": "sequential",
+      "docstring": "Configures transaction isolation level or enables autocommit mode when set to None.",
+      "semantic_tags": ["isolation_level", "autocommit", "transaction_mode"],
+      "inputs": {
+        "connection": {
+          "type_name": "connection",
+          "state": "open",
+          "abstract_type": "handle",
+          "required": true,
+          "port_role": "data_input",
+          "description": "Database connection handle."
+        },
+        "isolation_level": {
+          "type_name": "Optional[str]",
+          "state": "scalar",
+          "abstract_type": "scalar",
+          "required": true,
+          "port_role": "configuration",
+          "description": "Isolation level string ('DEFERRED', 'IMMEDIATE', 'EXCLUSIVE') or None."
+        }
+      },
+      "outputs": {
+        "out_connection": {
+          "type_name": "connection",
+          "state": "open",
+          "abstract_type": "handle",
+          "port_role": "data_output",
+          "description": "Connection configured with specified isolation level."
+        }
+      },
+      "code_template": "{connection}.isolation_level = {isolation_level}\n{out_connection} = {connection}",
+      "dependencies": ["import sqlite3"],
+      "primary_in": "connection",
+      "primary_out": "out_connection"
+    },
+    {
+      "cell_id": "SQLITE_SET_TIMEOUT",
+      "stage": 2,
+      "domain_name": "sqlite3",
+      "node_type": "method",
+      "node_role": "transformer",
+      "topology_type": "sequential",
+      "docstring": "Configures the busy handler lock timeout in seconds on the active connection.",
+      "semantic_tags": ["timeout", "busy_timeout", "lock", "concurrency"],
+      "inputs": {
+        "connection": {
+          "type_name": "connection",
+          "state": "open",
+          "abstract_type": "handle",
+          "required": true,
+          "port_role": "data_input",
+          "description": "Database connection handle."
+        },
+        "timeout_seconds": {
+          "type_name": "float",
+          "state": "scalar",
+          "abstract_type": "scalar",
+          "required": true,
+          "port_role": "configuration",
+          "description": "Timeout duration in seconds to wait for database locks."
+        }
+      },
+      "outputs": {
+        "out_connection": {
+          "type_name": "connection",
+          "state": "open",
+          "abstract_type": "handle",
+          "port_role": "data_output",
+          "description": "Connection configured with busy timeout."
+        }
+      },
+      "code_template": "{connection}.execute(\"PRAGMA busy_timeout = \" + str(int({timeout_seconds} * 1000)))\n{out_connection} = {connection}",
+      "dependencies": ["import sqlite3"],
+      "primary_in": "connection",
+      "primary_out": "out_connection"
+    },
+    {
+      "cell_id": "SQLITE_CURSOR",
+      "stage": 2,
+      "domain_name": "sqlite3",
+      "node_type": "method",
+      "node_role": "transformer",
+      "topology_type": "sequential",
+      "docstring": "Creates a new Cursor handle from an open database connection.",
+      "semantic_tags": ["cursor", "create_cursor", "query_handle"],
+      "inputs": {
+        "connection": {
+          "type_name": "connection",
+          "state": "open",
+          "abstract_type": "handle",
+          "required": true,
+          "port_role": "data_input",
+          "description": "Open database connection."
+        }
+      },
+      "outputs": {
+        "cursor": {
+          "type_name": "cursor",
+          "state": "active",
+          "abstract_type": "handle",
+          "port_role": "data_output",
+          "description": "Instantiated cursor handle."
+        }
+      },
+      "code_template": "{cursor} = {connection}.cursor()"
+    },
+    {
+      "cell_id": "SQLITE_CURSOR_CLOSE",
+      "stage": 3,
+      "domain_name": "sqlite3",
+      "node_type": "method",
+      "node_role": "sink",
+      "topology_type": "sequential",
+      "docstring": "Closes the database cursor handle and releases underlying resources.",
+      "semantic_tags": ["close_cursor", "cursor_teardown", "release_cursor"],
+      "inputs": {
+        "cursor": {
+          "type_name": "cursor",
+          "state": "active",
+          "abstract_type": "handle",
+          "required": true,
+          "port_role": "data_input",
+          "description": "Cursor handle to close."
+        }
+      },
+      "outputs": {
+        "status": {
+          "type_name": "bool",
+          "state": "closed",
+          "abstract_type": "logical",
+          "port_role": "result",
+          "description": "True when cursor is successfully closed."
+        }
+      },
+      "code_template": "{cursor}.close()\n{status} = True",
+      "dependencies": ["import sqlite3"],
+      "primary_in": "cursor",
+      "primary_out": "status"
+    },
+    {
+      "cell_id": "SQLITE_CREATE_TABLE",
+      "stage": 2,
+      "domain_name": "sqlite3",
+      "node_type": "method",
+      "node_role": "transformer",
+      "topology_type": "sequential",
+      "docstring": "Executes a CREATE TABLE IF NOT EXISTS statement to initialize relational schema.",
+      "semantic_tags": ["ddl", "create_table", "schema_init", "table"],
+      "inputs": {
+        "cursor": {
+          "type_name": "cursor",
+          "state": "active",
+          "abstract_type": "handle",
+          "required": true,
+          "port_role": "data_input",
+          "description": "Active database cursor."
+        },
+        "table_name": {
+          "type_name": "str",
+          "state": "scalar",
+          "abstract_type": "scalar",
+          "required": true,
+          "port_role": "configuration",
+          "description": "Name of table to create."
+        },
+        "schema_ddl": {
+          "type_name": "str",
+          "state": "raw_ddl",
+          "abstract_type": "scalar",
+          "required": true,
+          "port_role": "configuration",
+          "description": "Column definitions (e.g. 'id INTEGER PRIMARY KEY, title TEXT NOT NULL')."
+        }
+      },
+      "outputs": {
+        "out_cursor": {
+          "type_name": "cursor",
+          "state": "executed",
+          "abstract_type": "handle",
+          "port_role": "data_output",
+          "description": "Cursor after table creation execution."
+        }
+      },
+      "code_template": "{cursor}.execute(\"CREATE TABLE IF NOT EXISTS \" + str({table_name}) + \" (\" + str({schema_ddl}) + \")\")\n{out_cursor} = {cursor}",
+      "dependencies": ["import sqlite3"],
+      "primary_in": "cursor",
+      "primary_out": "out_cursor"
+    },
+    {
+      "cell_id": "SQLITE_DROP_TABLE",
+      "stage": 2,
+      "domain_name": "sqlite3",
+      "node_type": "method",
+      "node_role": "transformer",
+      "topology_type": "sequential",
+      "docstring": "Executes a DROP TABLE IF EXISTS statement to remove a relational table.",
+      "semantic_tags": ["ddl", "drop_table", "schema_teardown"],
+      "inputs": {
+        "cursor": {
+          "type_name": "cursor",
+          "state": "active",
+          "abstract_type": "handle",
+          "required": true,
+          "port_role": "data_input",
+          "description": "Active database cursor."
+        },
+        "table_name": {
+          "type_name": "str",
+          "state": "scalar",
+          "abstract_type": "scalar",
+          "required": true,
+          "port_role": "configuration",
+          "description": "Name of table to drop."
+        }
+      },
+      "outputs": {
+        "out_cursor": {
+          "type_name": "cursor",
+          "state": "executed",
+          "abstract_type": "handle",
+          "port_role": "data_output",
+          "description": "Cursor after table drop execution."
+        }
+      },
+      "code_template": "{cursor}.execute(\"DROP TABLE IF EXISTS \" + str({table_name}))\n{out_cursor} = {cursor}",
+      "dependencies": ["import sqlite3"],
+      "primary_in": "cursor",
+      "primary_out": "out_cursor"
+    },
+    {
+      "cell_id": "SQLITE_CREATE_INDEX",
+      "stage": 2,
+      "domain_name": "sqlite3",
+      "node_type": "method",
+      "node_role": "transformer",
+      "topology_type": "sequential",
+      "docstring": "Creates an index on specified table columns to accelerate query lookups.",
+      "semantic_tags": ["ddl", "create_index", "indexing", "performance"],
+      "inputs": {
+        "cursor": {
+          "type_name": "cursor",
+          "state": "active",
+          "abstract_type": "handle",
+          "required": true,
+          "port_role": "data_input",
+          "description": "Active database cursor."
+        },
+        "index_name": {
+          "type_name": "str",
+          "state": "scalar",
+          "abstract_type": "scalar",
+          "required": true,
+          "port_role": "configuration",
+          "description": "Name of index to create."
+        },
+        "table_name": {
+          "type_name": "str",
+          "state": "scalar",
+          "abstract_type": "scalar",
+          "required": true,
+          "port_role": "configuration",
+          "description": "Target table name."
+        },
+        "columns": {
+          "type_name": "str",
+          "state": "scalar",
+          "abstract_type": "scalar",
+          "required": true,
+          "port_role": "configuration",
+          "description": "Comma-separated column names to index (e.g. 'user_id, created_at')."
+        }
+      },
+      "outputs": {
+        "out_cursor": {
+          "type_name": "cursor",
+          "state": "executed",
+          "abstract_type": "handle",
+          "port_role": "data_output",
+          "description": "Cursor after index creation execution."
+        }
+      },
+      "code_template": "{cursor}.execute(\"CREATE INDEX IF NOT EXISTS \" + str({index_name}) + \" ON \" + str({table_name}) + \" (\" + str({columns}) + \")\")\n{out_cursor} = {cursor}",
+      "dependencies": ["import sqlite3"],
+      "primary_in": "cursor",
+      "primary_out": "out_cursor"
+    },
+    {
+      "cell_id": "SQLITE_ALTER_TABLE_ADD_COLUMN",
+      "stage": 2,
+      "domain_name": "sqlite3",
+      "node_type": "method",
+      "node_role": "transformer",
+      "topology_type": "sequential",
+      "docstring": "Applies schema migration by adding a new column to an existing table.",
+      "semantic_tags": ["ddl", "alter_table", "add_column", "migration"],
+      "inputs": {
+        "cursor": {
+          "type_name": "cursor",
+          "state": "active",
+          "abstract_type": "handle",
+          "required": true,
+          "port_role": "data_input",
+          "description": "Active database cursor."
+        },
+        "table_name": {
+          "type_name": "str",
+          "state": "scalar",
+          "abstract_type": "scalar",
+          "required": true,
+          "port_role": "configuration",
+          "description": "Target table name."
+        },
+        "column_def": {
+          "type_name": "str",
+          "state": "raw_ddl",
+          "abstract_type": "scalar",
+          "required": true,
+          "port_role": "configuration",
+          "description": "Column specification (e.g. 'is_verified INTEGER DEFAULT 0')."
+        }
+      },
+      "outputs": {
+        "out_cursor": {
+          "type_name": "cursor",
+          "state": "executed",
+          "abstract_type": "handle",
+          "port_role": "data_output",
+          "description": "Cursor after schema alteration."
+        }
+      },
+      "code_template": "{cursor}.execute(\"ALTER TABLE \" + str({table_name}) + \" ADD COLUMN \" + str({column_def}))\n{out_cursor} = {cursor}",
+      "dependencies": ["import sqlite3"],
+      "primary_in": "cursor",
+      "primary_out": "out_cursor"
+    },
+    {
+      "cell_id": "SQLITE_GET_TABLE_NAMES",
+      "stage": 2,
+      "domain_name": "sqlite3",
+      "node_type": "method",
+      "node_role": "transformer",
+      "topology_type": "sequential",
+      "docstring": "Queries sqlite_master to introspect all user table names in the database.",
+      "semantic_tags": ["introspection", "schema", "table_names", "sqlite_master"],
+      "inputs": {
+        "cursor": {
+          "type_name": "cursor",
+          "state": "active",
+          "abstract_type": "handle",
+          "required": true,
+          "port_role": "data_input",
+          "description": "Active database cursor."
+        }
+      },
+      "outputs": {
+        "table_names": {
+          "type_name": "List[str]",
+          "state": "records",
+          "abstract_type": "collection",
+          "port_role": "data_output",
+          "description": "List of user table names."
+        }
+      },
+      "code_template": "{cursor}.execute(\"SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'\")\n{table_names} = [row[0] for row in {cursor}.fetchall()]",
+      "dependencies": ["import sqlite3"],
+      "primary_in": "cursor",
+      "primary_out": "table_names"
+    },
+    {
+      "cell_id": "SQLITE_GET_TABLE_SCHEMA",
+      "stage": 2,
+      "domain_name": "sqlite3",
+      "node_type": "method",
+      "node_role": "transformer",
+      "topology_type": "sequential",
+      "docstring": "Executes PRAGMA table_info to inspect column metadata for a target table.",
+      "semantic_tags": ["introspection", "table_info", "pragma", "schema_info"],
+      "inputs": {
+        "cursor": {
+          "type_name": "cursor",
+          "state": "active",
+          "abstract_type": "handle",
+          "required": true,
+          "port_role": "data_input",
+          "description": "Active database cursor."
+        },
+        "table_name": {
+          "type_name": "str",
+          "state": "scalar",
+          "abstract_type": "scalar",
+          "required": true,
+          "port_role": "configuration",
+          "description": "Table name to introspect."
+        }
+      },
+      "outputs": {
+        "schema_info": {
+          "type_name": "record_list",
+          "state": "records",
+          "abstract_type": "collection",
+          "port_role": "data_output",
+          "description": "List of tuples with column metadata."
+        }
+      },
+      "code_template": "{cursor}.execute(\"PRAGMA table_info(\" + str({table_name}) + \")\")\n{schema_info} = {cursor}.fetchall()",
+      "dependencies": ["import sqlite3"],
+      "primary_in": "cursor",
+      "primary_out": "schema_info"
+    },
+    {
+      "cell_id": "SQLITE_EXECUTE",
+      "stage": 2,
+      "domain_name": "sqlite3",
+      "node_type": "method",
+      "node_role": "transformer",
+      "topology_type": "sequential",
+      "docstring": "Executes a raw non-parameterized SQL statement string.",
+      "semantic_tags": ["execute", "raw_sql", "query", "run_statement"],
+      "inputs": {
+        "cursor": {
+          "type_name": "cursor",
+          "state": "active",
+          "abstract_type": "handle",
+          "required": true,
+          "port_role": "data_input",
+          "description": "Active database cursor."
+        },
+        "sql": {
+          "type_name": "sql_query",
+          "state": "raw_query",
+          "abstract_type": "scalar",
+          "required": true,
+          "port_role": "configuration",
+          "description": "SQL statement string to execute."
+        }
+      },
+      "outputs": {
+        "out_cursor": {
+          "type_name": "cursor",
+          "state": "executed",
+          "abstract_type": "handle",
+          "port_role": "data_output",
+          "description": "Cursor populated with execution results."
+        }
+      },
+      "code_template": "{cursor}.execute({sql})\n{out_cursor} = {cursor}",
+      "dependencies": ["import sqlite3"],
+      "primary_in": "cursor",
+      "primary_out": "out_cursor"
+    },
+    {
+      "cell_id": "SQLITE_EXECUTE_PARAMS",
+      "stage": 2,
+      "domain_name": "sqlite3",
+      "node_type": "method",
+      "node_role": "transformer",
+      "topology_type": "sequential",
+      "docstring": "Executes a parameterized SQL query safely binding placeholder values against a cursor.",
+      "semantic_tags": ["execute", "query", "sql", "parameterized_sql", "run_query"],
+      "inputs": {
+        "cursor": {
+          "type_name": "cursor",
+          "state": "active",
+          "abstract_type": "handle",
+          "required": true,
+          "port_role": "data_input",
+          "description": "Active database cursor."
+        },
+        "sql": {
+          "type_name": "sql_query",
+          "state": "parameterized",
+          "abstract_type": "scalar",
+          "required": true,
+          "port_role": "configuration",
+          "description": "SQL statement string containing ? parameter placeholders."
+        },
+        "parameters": {
+          "type_name": "Tuple[Any, ...]",
+          "state": "parameter_values",
+          "abstract_type": "collection",
+          "required": true,
+          "port_role": "data_input",
+          "description": "Tuple of parameter values to bind safely."
+        }
+      },
+      "outputs": {
+        "out_cursor": {
+          "type_name": "cursor",
+          "state": "executed",
+          "abstract_type": "handle",
+          "port_role": "data_output",
+          "description": "Cursor populated with execution results."
+        }
+      },
+      "code_template": "{cursor}.execute({sql}, {parameters})\n{out_cursor} = {cursor}",
+      "dependencies": ["import sqlite3"],
+      "primary_in": "cursor",
+      "primary_out": "out_cursor"
+    },
+    {
+      "cell_id": "SQLITE_EXECUTEMANY",
+      "stage": 2,
+      "domain_name": "sqlite3",
+      "node_type": "method",
+      "node_role": "transformer",
+      "topology_type": "sequential",
+      "docstring": "Executes a parameterized SQL query repeatedly across an iterable of parameter sequences.",
+      "semantic_tags": ["executemany", "batch_insert", "bulk_query", "bulk_execution"],
+      "inputs": {
+        "cursor": {
+          "type_name": "cursor",
+          "state": "active",
+          "abstract_type": "handle",
+          "required": true,
+          "port_role": "data_input",
+          "description": "Active database cursor."
+        },
+        "sql": {
+          "type_name": "sql_query",
+          "state": "parameterized",
+          "abstract_type": "scalar",
+          "required": true,
+          "port_role": "configuration",
+          "description": "Parameterized SQL template string."
+        },
+        "seq_of_parameters": {
+          "type_name": "Iterable[Tuple[Any, ...]]",
+          "state": "parameter_values",
+          "abstract_type": "collection",
+          "required": true,
+          "port_role": "data_input",
+          "description": "Sequence of parameter tuples for batch binding."
+        }
+      },
+      "outputs": {
+        "out_cursor": {
+          "type_name": "cursor",
+          "state": "executed",
+          "abstract_type": "handle",
+          "port_role": "data_output",
+          "description": "Cursor after batch execution completes."
+        }
+      },
+      "code_template": "{cursor}.executemany({sql}, {seq_of_parameters})\n{out_cursor} = {cursor}",
+      "dependencies": ["import sqlite3"],
+      "primary_in": "cursor",
+      "primary_out": "out_cursor"
+    },
+    {
+      "cell_id": "SQLITE_EXECUTESCRIPT",
+      "stage": 2,
+      "domain_name": "sqlite3",
+      "node_type": "method",
+      "node_role": "transformer",
+      "topology_type": "sequential",
+      "docstring": "Executes a multi-statement SQL script separated by semicolons.",
+      "semantic_tags": ["executescript", "sql_script", "batch_ddl", "migration_script"],
+      "inputs": {
+        "cursor": {
+          "type_name": "cursor",
+          "state": "active",
+          "abstract_type": "handle",
+          "required": true,
+          "port_role": "data_input",
+          "description": "Active database cursor."
+        },
+        "sql_script": {
+          "type_name": "str",
+          "state": "script",
+          "abstract_type": "scalar",
+          "required": true,
+          "port_role": "configuration",
+          "description": "Multi-statement SQL script string."
+        }
+      },
+      "outputs": {
+        "out_cursor": {
+          "type_name": "cursor",
+          "state": "executed",
+          "abstract_type": "handle",
+          "port_role": "data_output",
+          "description": "Cursor after executing SQL script."
+        }
+      },
+      "code_template": "{cursor}.executescript({sql_script})\n{out_cursor} = {cursor}",
+      "dependencies": ["import sqlite3"],
+      "primary_in": "cursor",
+      "primary_out": "out_cursor"
+    },
+    {
+      "cell_id": "SQLITE_INSERT_ROW",
+      "stage": 2,
+      "domain_name": "sqlite3",
+      "node_type": "method",
+      "node_role": "transformer",
+      "topology_type": "sequential",
+      "docstring": "Constructs and executes a parameterized INSERT INTO statement for a single record.",
+      "semantic_tags": ["insert", "insert_row", "dml", "create_record"],
+      "inputs": {
+        "cursor": {
+          "type_name": "cursor",
+          "state": "active",
+          "abstract_type": "handle",
+          "required": true,
+          "port_role": "data_input",
+          "description": "Active database cursor."
+        },
+        "table_name": {
+          "type_name": "str",
+          "state": "scalar",
+          "abstract_type": "scalar",
+          "required": true,
+          "port_role": "configuration",
+          "description": "Target table name."
+        },
+        "columns": {
+          "type_name": "str",
+          "state": "scalar",
+          "abstract_type": "scalar",
+          "required": true,
+          "port_role": "configuration",
+          "description": "Comma-separated column names."
+        },
+        "values": {
+          "type_name": "Tuple[Any, ...]",
+          "state": "parameter_values",
+          "abstract_type": "collection",
+          "required": true,
+          "port_role": "data_input",
+          "description": "Tuple of values to insert."
+        }
+      },
+      "outputs": {
+        "out_cursor": {
+          "type_name": "cursor",
+          "state": "executed",
+          "abstract_type": "handle",
+          "port_role": "data_output",
+          "description": "Cursor after row insertion."
+        }
+      },
+      "code_template": "{cursor}.execute(\"INSERT INTO \" + str({table_name}) + \" (\" + str({columns}) + \") VALUES (\" + \",\".join([\"?\"] * len({values})) + \")\", {values})\n{out_cursor} = {cursor}",
+      "dependencies": ["import sqlite3"],
+      "primary_in": "cursor",
+      "primary_out": "out_cursor"
+    },
+    {
+      "cell_id": "SQLITE_UPDATE_ROWS",
+      "stage": 2,
+      "domain_name": "sqlite3",
+      "node_type": "method",
+      "node_role": "transformer",
+      "topology_type": "sequential",
+      "docstring": "Executes a parameterized UPDATE statement against records matching a WHERE predicate.",
+      "semantic_tags": ["update", "update_rows", "dml", "modify_records"],
+      "inputs": {
+        "cursor": {
+          "type_name": "cursor",
+          "state": "active",
+          "abstract_type": "handle",
+          "required": true,
+          "port_role": "data_input",
+          "description": "Active database cursor."
+        },
+        "table_name": {
+          "type_name": "str",
+          "state": "scalar",
+          "abstract_type": "scalar",
+          "required": true,
+          "port_role": "configuration",
+          "description": "Target table name."
+        },
+        "set_clause": {
+          "type_name": "str",
+          "state": "scalar",
+          "abstract_type": "scalar",
+          "required": true,
+          "port_role": "configuration",
+          "description": "SET clause with ? placeholders (e.g. 'status = ?, updated_at = ?')."
+        },
+        "where_clause": {
+          "type_name": "str",
+          "state": "scalar",
+          "abstract_type": "scalar",
+          "required": true,
+          "port_role": "configuration",
+          "description": "WHERE clause with ? placeholders (e.g. 'id = ?')."
+        },
+        "parameters": {
+          "type_name": "Tuple[Any, ...]",
+          "state": "parameter_values",
+          "abstract_type": "collection",
+          "required": true,
+          "port_role": "data_input",
+          "description": "Tuple of parameters matching SET and WHERE placeholders."
+        }
+      },
+      "outputs": {
+        "out_cursor": {
+          "type_name": "cursor",
+          "state": "executed",
+          "abstract_type": "handle",
+          "port_role": "data_output",
+          "description": "Cursor after update execution."
+        }
+      },
+      "code_template": "{cursor}.execute(\"UPDATE \" + str({table_name}) + \" SET \" + str({set_clause}) + \" WHERE \" + str({where_clause}), {parameters})\n{out_cursor} = {cursor}",
+      "dependencies": ["import sqlite3"],
+      "primary_in": "cursor",
+      "primary_out": "out_cursor"
+    },
+    {
+      "cell_id": "SQLITE_DELETE_ROWS",
+      "stage": 2,
+      "domain_name": "sqlite3",
+      "node_type": "method",
+      "node_role": "transformer",
+      "topology_type": "sequential",
+      "docstring": "Executes a parameterized DELETE FROM statement matching a WHERE predicate.",
+      "semantic_tags": ["delete", "delete_rows", "dml", "remove_records"],
+      "inputs": {
+        "cursor": {
+          "type_name": "cursor",
+          "state": "active",
+          "abstract_type": "handle",
+          "required": true,
+          "port_role": "data_input",
+          "description": "Active database cursor."
+        },
+        "table_name": {
+          "type_name": "str",
+          "state": "scalar",
+          "abstract_type": "scalar",
+          "required": true,
+          "port_role": "configuration",
+          "description": "Target table name."
+        },
+        "where_clause": {
+          "type_name": "str",
+          "state": "scalar",
+          "abstract_type": "scalar",
+          "required": true,
+          "port_role": "configuration",
+          "description": "WHERE clause with ? placeholders (e.g. 'category = ?')."
+        },
+        "parameters": {
+          "type_name": "Tuple[Any, ...]",
+          "state": "parameter_values",
+          "abstract_type": "collection",
+          "required": true,
+          "port_role": "data_input",
+          "description": "Tuple of parameters bound to WHERE clause."
+        }
+      },
+      "outputs": {
+        "out_cursor": {
+          "type_name": "cursor",
+          "state": "executed",
+          "abstract_type": "handle",
+          "port_role": "data_output",
+          "description": "Cursor after delete execution."
+        }
+      },
+      "code_template": "{cursor}.execute(\"DELETE FROM \" + str({table_name}) + \" WHERE \" + str({where_clause}), {parameters})\n{out_cursor} = {cursor}",
+      "dependencies": ["import sqlite3"],
+      "primary_in": "cursor",
+      "primary_out": "out_cursor"
+    },
+    {
+      "cell_id": "SQLITE_FETCHONE",
+      "stage": 2,
+      "domain_name": "sqlite3",
+      "node_type": "method",
+      "node_role": "transformer",
+      "topology_type": "sequential",
+      "docstring": "Retrieves the single next row record from an executed cursor query.",
+      "semantic_tags": ["fetchone", "fetch_row", "read_record", "single_row"],
+      "inputs": {
+        "cursor": {
+          "type_name": "cursor",
+          "state": "executed",
+          "abstract_type": "handle",
+          "required": true,
+          "port_role": "data_input",
+          "description": "Cursor with executed query."
+        }
+      },
+      "outputs": {
+        "row": {
+          "type_name": "Optional[row]",
+          "state": "raw_tuple",
+          "abstract_type": "collection",
+          "port_role": "data_output",
+          "description": "Single row record tuple or None if no rows remaining."
+        }
+      },
+      "code_template": "{row} = {cursor}.fetchone()",
+      "dependencies": ["import sqlite3"],
+      "primary_in": "cursor",
+      "primary_out": "row"
+    },
+    {
+      "cell_id": "SQLITE_FETCHALL",
+      "stage": 2,
+      "domain_name": "sqlite3",
+      "node_type": "method",
+      "node_role": "transformer",
+      "topology_type": "sequential",
+      "docstring": "Retrieves all remaining row records from an executed cursor query as a list.",
+      "semantic_tags": ["fetchall", "fetch_all_rows", "read_all", "record_list"],
+      "inputs": {
+        "cursor": {
+          "type_name": "cursor",
+          "state": "executed",
+          "abstract_type": "handle",
+          "required": true,
+          "port_role": "data_input",
+          "description": "Cursor with executed query."
+        }
+      },
+      "outputs": {
+        "rows": {
+          "type_name": "record_list",
+          "state": "records",
+          "abstract_type": "collection",
+          "port_role": "data_output",
+          "description": "List of all result rows."
+        }
+      },
+      "code_template": "{rows} = {cursor}.fetchall()",
+      "dependencies": ["import sqlite3"],
+      "primary_in": "cursor",
+      "primary_out": "rows"
+    },
+    {
+      "cell_id": "SQLITE_FETCHMANY",
+      "stage": 2,
+      "domain_name": "sqlite3",
+      "node_type": "method",
+      "node_role": "transformer",
+      "topology_type": "sequential",
+      "docstring": "Retrieves the next batch of up to size rows from an executed cursor.",
+      "semantic_tags": ["fetchmany", "batch_fetch", "chunk_fetch", "pagination"],
+      "inputs": {
+        "cursor": {
+          "type_name": "cursor",
+          "state": "executed",
+          "abstract_type": "handle",
+          "required": true,
+          "port_role": "data_input",
+          "description": "Cursor with executed query."
+        },
+        "size": {
+          "type_name": "int",
+          "state": "scalar",
+          "abstract_type": "scalar",
+          "required": true,
+          "port_role": "configuration",
+          "description": "Maximum number of rows to retrieve."
+        }
+      },
+      "outputs": {
+        "rows": {
+          "type_name": "record_list",
+          "state": "batch",
+          "abstract_type": "collection",
+          "port_role": "data_output",
+          "description": "Batch list of result rows."
+        }
+      },
+      "code_template": "{rows} = {cursor}.fetchmany({size})",
+      "dependencies": ["import sqlite3"],
+      "primary_in": "cursor",
+      "primary_out": "rows"
+    },
+    {
+      "cell_id": "SQLITE_ROWCOUNT",
+      "stage": 2,
+      "domain_name": "sqlite3",
+      "node_type": "property",
+      "node_role": "transformer",
+      "topology_type": "sequential",
+      "docstring": "Extracts the number of rows modified by the most recent execute statement.",
+      "semantic_tags": ["rowcount", "affected_rows", "changes_count", "cursor_metric"],
+      "inputs": {
+        "cursor": {
+          "type_name": "cursor",
+          "state": "executed",
+          "abstract_type": "handle",
+          "required": true,
+          "port_role": "data_input",
+          "description": "Cursor after DML mutation."
+        }
+      },
+      "outputs": {
+        "count": {
+          "type_name": "int",
+          "state": "scalar",
+          "abstract_type": "scalar",
+          "port_role": "data_output",
+          "description": "Count of affected rows."
+        }
+      },
+      "code_template": "{count} = {cursor}.rowcount",
+      "dependencies": ["import sqlite3"],
+      "primary_in": "cursor",
+      "primary_out": "count"
+    },
+    {
+      "cell_id": "SQLITE_LASTROWID",
+      "stage": 2,
+      "domain_name": "sqlite3",
+      "node_type": "property",
+      "node_role": "transformer",
+      "topology_type": "sequential",
+      "docstring": "Extracts the rowid or auto-increment primary key ID generated by the last INSERT.",
+      "semantic_tags": ["lastrowid", "inserted_id", "autoincrement", "rowid"],
+      "inputs": {
+        "cursor": {
+          "type_name": "cursor",
+          "state": "executed",
+          "abstract_type": "handle",
+          "required": true,
+          "port_role": "data_input",
+          "description": "Cursor after INSERT statement."
+        }
+      },
+      "outputs": {
+        "last_id": {
+          "type_name": "Optional[int]",
+          "state": "scalar",
+          "abstract_type": "scalar",
+          "port_role": "data_output",
+          "description": "Generated integer rowid of the inserted record."
+        }
+      },
+      "code_template": "{last_id} = {cursor}.lastrowid",
+      "dependencies": ["import sqlite3"],
+      "primary_in": "cursor",
+      "primary_out": "last_id"
+    },
+    {
+      "cell_id": "SQLITE_ROWS_TO_DICTS",
+      "stage": 2,
+      "domain_name": "sqlite3",
+      "node_type": "function",
+      "node_role": "transformer",
+      "topology_type": "sequential",
+      "docstring": "Maps an iterable of sqlite3.Row objects to standard Python dictionaries keyed by column name.",
+      "semantic_tags": ["dict_mapping", "rows_to_dicts", "serialization", "transform"],
+      "inputs": {
+        "rows": {
+          "type_name": "record_list",
+          "state": "named_row",
+          "abstract_type": "collection",
+          "required": true,
+          "port_role": "data_input",
+          "description": "List of sqlite3.Row instances."
+        }
+      },
+      "outputs": {
+        "dict_records": {
+          "type_name": "List[Dict[str, Any]]",
+          "state": "dict_record",
+          "abstract_type": "collection",
+          "port_role": "data_output",
+          "description": "List of dictionaries mapping column names to values."
+        }
+      },
+      "code_template": "{dict_records} = [dict(r) for r in {rows}]",
+      "dependencies": ["import sqlite3"],
+      "primary_in": "rows",
+      "primary_out": "dict_records"
+    },
+    {
+      "cell_id": "SQLITE_COMMIT",
+      "stage": 2,
+      "domain_name": "sqlite3",
+      "node_type": "method",
+      "node_role": "transformer",
+      "topology_type": "sequential",
+      "docstring": "Commits the current transaction, making all pending database writes durable.",
+      "semantic_tags": ["commit", "save_transaction", "persist", "flush_changes"],
+      "inputs": {
+        "connection": {
+          "type_name": "connection",
+          "state": "in_transaction",
+          "abstract_type": "handle",
+          "required": true,
+          "port_role": "data_input",
+          "description": "Database connection with uncommitted changes."
+        }
+      },
+      "outputs": {
+        "out_connection": {
+          "type_name": "connection",
+          "state": "committed",
+          "abstract_type": "handle",
+          "port_role": "data_output",
+          "description": "Connection after transaction commit."
+        }
+      },
+      "code_template": "{connection}.commit()\n{out_connection} = {connection}",
+      "dependencies": ["import sqlite3"],
+      "primary_in": "connection",
+      "primary_out": "out_connection"
+    },
+    {
+      "cell_id": "SQLITE_ROLLBACK",
+      "stage": 2,
+      "domain_name": "sqlite3",
+      "node_type": "method",
+      "node_role": "transformer",
+      "topology_type": "sequential",
+      "docstring": "Rolls back all uncommitted changes from the start of the current transaction.",
+      "semantic_tags": ["rollback", "abort_transaction", "revert_changes", "undo"],
+      "inputs": {
+        "connection": {
+          "type_name": "connection",
+          "state": "in_transaction",
+          "abstract_type": "handle",
+          "required": true,
+          "port_role": "data_input",
+          "description": "Database connection handle."
+        }
+      },
+      "outputs": {
+        "out_connection": {
+          "type_name": "connection",
+          "state": "rolled_back",
+          "abstract_type": "handle",
+          "port_role": "data_output",
+          "description": "Connection after transaction rollback."
+        }
+      },
+      "code_template": "{connection}.rollback()\n{out_connection} = {connection}",
+      "dependencies": ["import sqlite3"],
+      "primary_in": "connection",
+      "primary_out": "out_connection"
+    },
+    {
+      "cell_id": "SQLITE_TRANSACTION_CONTEXT",
+      "stage": 2,
+      "domain_name": "sqlite3",
+      "node_type": "context_manager",
+      "node_role": "transformer",
+      "topology_type": "context_manager",
+      "slots": {
+        "body": {}
+      },
+      "docstring": "Category-Theoretic Transaction Context: auto-commits on clean exit and auto-rollbacks on exception.",
+      "semantic_tags": ["transaction", "with_conn", "atomic", "auto_commit"],
+      "inputs": {
+        "connection": {
+          "type_name": "connection",
+          "state": "open",
+          "abstract_type": "handle",
+          "required": true,
+          "port_role": "data_input",
+          "description": "Database connection handle."
+        }
+      },
+      "outputs": {
+        "out_conn": {
+          "type_name": "connection",
+          "state": "committed",
+          "abstract_type": "handle",
+          "port_role": "result",
+          "description": "Connection after transaction resolution."
+        }
+      },
+      "code_template": "with {connection}:\n    {body}\n{out_conn} = {connection}",
+      "dependencies": ["import sqlite3"],
+      "primary_in": "connection",
+      "primary_out": "out_conn"
+    },
+    {
+      "cell_id": "SQLITE_PRAGMA_SET",
+      "stage": 2,
+      "domain_name": "sqlite3",
+      "node_type": "method",
+      "node_role": "transformer",
+      "topology_type": "sequential",
+      "docstring": "Executes a PRAGMA directive to configure database engine parameters like WAL journal mode or foreign keys.",
+      "semantic_tags": ["pragma", "configure_db", "wal_mode", "foreign_keys"],
+      "inputs": {
+        "connection": {
+          "type_name": "connection",
+          "state": "open",
+          "abstract_type": "handle",
+          "required": true,
+          "port_role": "data_input",
+          "description": "Active database connection."
+        },
+        "pragma_name": {
+          "type_name": "str",
+          "state": "scalar",
+          "abstract_type": "scalar",
+          "required": true,
+          "port_role": "configuration",
+          "description": "Pragma setting key (e.g. 'foreign_keys', 'journal_mode')."
+        },
+        "pragma_value": {
+          "type_name": "str",
+          "state": "scalar",
+          "abstract_type": "scalar",
+          "required": true,
+          "port_role": "configuration",
+          "description": "Pragma setting value (e.g. 'ON', 'WAL')."
+        }
+      },
+      "outputs": {
+        "out_connection": {
+          "type_name": "connection",
+          "state": "open",
+          "abstract_type": "handle",
+          "port_role": "data_output",
+          "description": "Connection after PRAGMA configuration."
+        }
+      },
+      "code_template": "{connection}.execute(\"PRAGMA \" + str({pragma_name}) + \" = \" + str({pragma_value}))\n{out_connection} = {connection}",
+      "dependencies": ["import sqlite3"],
+      "primary_in": "connection",
+      "primary_out": "out_connection"
+    },
+    {
+      "cell_id": "SQLITE_PRAGMA_GET",
+      "stage": 2,
+      "domain_name": "sqlite3",
+      "node_type": "method",
+      "node_role": "transformer",
+      "topology_type": "sequential",
+      "docstring": "Queries the current value of a PRAGMA parameter on the connection.",
+      "semantic_tags": ["pragma", "get_pragma", "inspect_config"],
+      "inputs": {
+        "connection": {
+          "type_name": "connection",
+          "state": "open",
+          "abstract_type": "handle",
+          "required": true,
+          "port_role": "data_input",
+          "description": "Active database connection."
+        },
+        "pragma_name": {
+          "type_name": "str",
+          "state": "scalar",
+          "abstract_type": "scalar",
+          "required": true,
+          "port_role": "configuration",
+          "description": "Pragma key to inspect (e.g. 'foreign_keys', 'user_version')."
+        }
+      },
+      "outputs": {
+        "result": {
+          "type_name": "Any",
+          "state": "scalar",
+          "abstract_type": "scalar",
+          "port_role": "data_output",
+          "description": "Retrieved scalar PRAGMA value."
+        }
+      },
+      "code_template": "{result} = ({connection}.execute(\"PRAGMA \" + str({pragma_name})).fetchone() or [None])[0]",
+      "dependencies": ["import sqlite3"],
+      "primary_in": "connection",
+      "primary_out": "result"
+    },
+    {
+      "cell_id": "SQLITE_CREATE_FUNCTION",
+      "stage": 2,
+      "domain_name": "sqlite3",
+      "node_type": "method",
+      "node_role": "transformer",
+      "topology_type": "sequential",
+      "docstring": "Registers a custom Python scalar function (UDF) callable directly within SQL statements.",
+      "semantic_tags": ["udf", "create_function", "custom_sql_func", "scalar_function"],
+      "inputs": {
+        "connection": {
+          "type_name": "connection",
+          "state": "open",
+          "abstract_type": "handle",
+          "required": true,
+          "port_role": "data_input",
+          "description": "Database connection handle."
+        },
+        "function_name": {
+          "type_name": "str",
+          "state": "scalar",
+          "abstract_type": "scalar",
+          "required": true,
+          "port_role": "configuration",
+          "description": "Name of the SQL function to register."
+        },
+        "num_params": {
+          "type_name": "int",
+          "state": "scalar",
+          "abstract_type": "scalar",
+          "required": true,
+          "port_role": "configuration",
+          "description": "Number of function arguments (-1 for variadic)."
+        },
+        "func": {
+          "type_name": "Callable[..., Any]",
+          "state": "open",
+          "abstract_type": "callable",
+          "required": true,
+          "port_role": "data_input",
+          "description": "Python callable function."
+        }
+      },
+      "outputs": {
+        "out_connection": {
+          "type_name": "connection",
+          "state": "open",
+          "abstract_type": "handle",
+          "port_role": "data_output",
+          "description": "Connection with registered scalar function."
+        }
+      },
+      "code_template": "{connection}.create_function({function_name}, {num_params}, {func})\n{out_connection} = {connection}",
+      "dependencies": ["import sqlite3"],
+      "primary_in": "connection",
+      "primary_out": "out_connection"
+    },
+    {
+      "cell_id": "SQLITE_CREATE_AGGREGATE",
+      "stage": 2,
+      "domain_name": "sqlite3",
+      "node_type": "method",
+      "node_role": "transformer",
+      "topology_type": "sequential",
+      "docstring": "Registers a custom user-defined aggregate function class having step and finalize methods.",
+      "semantic_tags": ["aggregate", "create_aggregate", "custom_aggregate", "udf"],
+      "inputs": {
+        "connection": {
+          "type_name": "connection",
+          "state": "open",
+          "abstract_type": "handle",
+          "required": true,
+          "port_role": "data_input",
+          "description": "Database connection handle."
+        },
+        "aggregate_name": {
+          "type_name": "str",
+          "state": "scalar",
+          "abstract_type": "scalar",
+          "required": true,
+          "port_role": "configuration",
+          "description": "Name of the aggregate function in SQL."
+        },
+        "num_params": {
+          "type_name": "int",
+          "state": "scalar",
+          "abstract_type": "scalar",
+          "required": true,
+          "port_role": "configuration",
+          "description": "Number of arguments the step method accepts."
+        },
+        "aggregate_class": {
+          "type_name": "Type[Any]",
+          "state": "open",
+          "abstract_type": "callable",
+          "required": true,
+          "port_role": "data_input",
+          "description": "Class implementing step and finalize methods."
+        }
+      },
+      "outputs": {
+        "out_connection": {
+          "type_name": "connection",
+          "state": "open",
+          "abstract_type": "handle",
+          "port_role": "data_output",
+          "description": "Connection with registered aggregate function."
+        }
+      },
+      "code_template": "{connection}.create_aggregate({aggregate_name}, {num_params}, {aggregate_class})\n{out_connection} = {connection}",
+      "dependencies": ["import sqlite3"],
+      "primary_in": "connection",
+      "primary_out": "out_connection"
+    },
+    {
+      "cell_id": "SQLITE_CREATE_COLLATION",
+      "stage": 2,
+      "domain_name": "sqlite3",
+      "node_type": "method",
+      "node_role": "transformer",
+      "topology_type": "sequential",
+      "docstring": "Registers a custom string comparison collation callable on the database connection.",
+      "semantic_tags": ["collation", "create_collation", "custom_sort", "string_ordering"],
+      "inputs": {
+        "connection": {
+          "type_name": "connection",
+          "state": "open",
+          "abstract_type": "handle",
+          "required": true,
+          "port_role": "data_input",
+          "description": "Database connection handle."
+        },
+        "collation_name": {
+          "type_name": "str",
+          "state": "scalar",
+          "abstract_type": "scalar",
+          "required": true,
+          "port_role": "configuration",
+          "description": "Name of collation to register (e.g. 'reverse_str')."
+        },
+        "callable_func": {
+          "type_name": "Callable[[str, str], int]",
+          "state": "open",
+          "abstract_type": "callable",
+          "required": true,
+          "port_role": "data_input",
+          "description": "Comparison function taking two strings and returning negative, zero, or positive integer."
+        }
+      },
+      "outputs": {
+        "out_connection": {
+          "type_name": "connection",
+          "state": "open",
+          "abstract_type": "handle",
+          "port_role": "data_output",
+          "description": "Connection with registered collation."
+        }
+      },
+      "code_template": "{connection}.create_collation({collation_name}, {callable_func})\n{out_connection} = {connection}",
+      "dependencies": ["import sqlite3"],
+      "primary_in": "connection",
+      "primary_out": "out_connection"
+    },
+    {
+      "cell_id": "SQLITE_SET_TRACE_CALLBACK",
+      "stage": 2,
+      "domain_name": "sqlite3",
+      "node_type": "method",
+      "node_role": "transformer",
+      "topology_type": "sequential",
+      "docstring": "Registers a trace callback invoked with statement text for every executed query.",
+      "semantic_tags": ["trace", "logging", "profiling", "query_audit"],
+      "inputs": {
+        "connection": {
+          "type_name": "connection",
+          "state": "open",
+          "abstract_type": "handle",
+          "required": true,
+          "port_role": "data_input",
+          "description": "Database connection handle."
+        },
+        "trace_callback": {
+          "type_name": "Optional[Callable[[str], None]]",
+          "state": "open",
+          "abstract_type": "callable",
+          "required": true,
+          "port_role": "data_input",
+          "description": "Callback receiving SQL string or None to disable tracing."
+        }
+      },
+      "outputs": {
+        "out_connection": {
+          "type_name": "connection",
+          "state": "open",
+          "abstract_type": "handle",
+          "port_role": "data_output",
+          "description": "Connection with trace callback configured."
+        }
+      },
+      "code_template": "{connection}.set_trace_callback({trace_callback})\n{out_connection} = {connection}",
+      "dependencies": ["import sqlite3"],
+      "primary_in": "connection",
+      "primary_out": "out_connection"
+    },
+    {
+      "cell_id": "SQLITE_SET_PROGRESS_HANDLER",
+      "stage": 2,
+      "domain_name": "sqlite3",
+      "node_type": "method",
+      "node_role": "transformer",
+      "topology_type": "sequential",
+      "docstring": "Registers a progress handler callback invoked periodically during long-running SQLite operations.",
+      "semantic_tags": ["progress_handler", "interrupt_hook", "timeout_handler", "concurrency"],
+      "inputs": {
+        "connection": {
+          "type_name": "connection",
+          "state": "open",
+          "abstract_type": "handle",
+          "required": true,
+          "port_role": "data_input",
+          "description": "Database connection handle."
+        },
+        "handler": {
+          "type_name": "Optional[Callable[[], int]]",
+          "state": "open",
+          "abstract_type": "callable",
+          "required": true,
+          "port_role": "data_input",
+          "description": "Handler returning non-zero to abort execution or None to clear."
+        },
+        "n_instructions": {
+          "type_name": "int",
+          "state": "scalar",
+          "abstract_type": "scalar",
+          "required": true,
+          "port_role": "configuration",
+          "description": "Number of SQLite VM instructions between handler invocations."
+        }
+      },
+      "outputs": {
+        "out_connection": {
+          "type_name": "connection",
+          "state": "open",
+          "abstract_type": "handle",
+          "port_role": "data_output",
+          "description": "Connection with progress handler installed."
+        }
+      },
+      "code_template": "{connection}.set_progress_handler({handler}, {n_instructions})\n{out_connection} = {connection}",
+      "dependencies": ["import sqlite3"],
+      "primary_in": "connection",
+      "primary_out": "out_connection"
+    },
+    {
+      "cell_id": "SQLITE_SET_AUTHORIZER",
+      "stage": 2,
+      "domain_name": "sqlite3",
+      "node_type": "method",
+      "node_role": "transformer",
+      "topology_type": "sequential",
+      "docstring": "Registers an authorizer callback invoked during query compilation to inspect and filter permissions.",
+      "semantic_tags": ["authorizer", "security", "access_control", "query_firewall"],
+      "inputs": {
+        "connection": {
+          "type_name": "connection",
+          "state": "open",
+          "abstract_type": "handle",
+          "required": true,
+          "port_role": "data_input",
+          "description": "Database connection handle."
+        },
+        "authorizer_callback": {
+          "type_name": "Optional[Callable[..., int]]",
+          "state": "open",
+          "abstract_type": "callable",
+          "required": true,
+          "port_role": "data_input",
+          "description": "Authorizer callback returning SQLITE_OK, SQLITE_DENY, or SQLITE_IGNORE."
+        }
+      },
+      "outputs": {
+        "out_connection": {
+          "type_name": "connection",
+          "state": "open",
+          "abstract_type": "handle",
+          "port_role": "data_output",
+          "description": "Connection with authorizer callback attached."
+        }
+      },
+      "code_template": "{connection}.set_authorizer({authorizer_callback})\n{out_connection} = {connection}",
+      "dependencies": ["import sqlite3"],
+      "primary_in": "connection",
+      "primary_out": "out_connection"
+    },
+    {
+      "cell_id": "SQLITE_ENABLE_LOAD_EXTENSION",
+      "stage": 2,
+      "domain_name": "sqlite3",
+      "node_type": "method",
+      "node_role": "transformer",
+      "topology_type": "sequential",
+      "docstring": "Enables or disables dynamic extension loading on the database connection handle.",
+      "semantic_tags": ["extensions", "load_extension", "security", "plugins"],
+      "inputs": {
+        "connection": {
+          "type_name": "connection",
+          "state": "open",
+          "abstract_type": "handle",
+          "required": true,
+          "port_role": "data_input",
+          "description": "Database connection handle."
+        },
+        "enabled": {
+          "type_name": "bool",
+          "state": "scalar",
+          "abstract_type": "logical",
+          "required": true,
+          "port_role": "configuration",
+          "description": "True to enable loading SQLite extensions, False to disable."
+        }
+      },
+      "outputs": {
+        "out_connection": {
+          "type_name": "connection",
+          "state": "open",
+          "abstract_type": "handle",
+          "port_role": "data_output",
+          "description": "Connection with updated extension loading permissions."
+        }
+      },
+      "code_template": "{connection}.enable_load_extension({enabled})\n{out_connection} = {connection}",
+      "dependencies": ["import sqlite3"],
+      "primary_in": "connection",
+      "primary_out": "out_connection"
+    },
+    {
+      "cell_id": "SQLITE_LOAD_EXTENSION",
+      "stage": 2,
+      "domain_name": "sqlite3",
+      "node_type": "method",
+      "node_role": "transformer",
+      "topology_type": "sequential",
+      "docstring": "Loads a compiled shared library SQLite extension module into the database connection.",
+      "semantic_tags": ["load_extension", "c_extension", "spatialite", "sqlite_vec"],
+      "inputs": {
+        "connection": {
+          "type_name": "connection",
+          "state": "open",
+          "abstract_type": "handle",
+          "required": true,
+          "port_role": "data_input",
+          "description": "Database connection handle with extension loading enabled."
+        },
+        "extension_path": {
+          "type_name": "str",
+          "state": "filesystem_path",
+          "abstract_type": "path",
+          "required": true,
+          "port_role": "configuration",
+          "description": "Filesystem path to the extension shared library."
+        }
+      },
+      "outputs": {
+        "out_connection": {
+          "type_name": "connection",
+          "state": "open",
+          "abstract_type": "handle",
+          "port_role": "data_output",
+          "description": "Connection with extension loaded."
+        }
+      },
+      "code_template": "{connection}.load_extension({extension_path})\n{out_connection} = {connection}",
+      "dependencies": ["import sqlite3"],
+      "primary_in": "connection",
+      "primary_out": "out_connection"
+    },
+    {
+      "cell_id": "SQLITE_TOTAL_CHANGES",
+      "stage": 2,
+      "domain_name": "sqlite3",
+      "node_type": "property",
+      "node_role": "transformer",
+      "topology_type": "sequential",
+      "docstring": "Retrieves the total count of database row mutations since the connection was opened.",
+      "semantic_tags": ["total_changes", "mutation_count", "metrics", "database_stat"],
+      "inputs": {
+        "connection": {
+          "type_name": "connection",
+          "state": "open",
+          "abstract_type": "handle",
+          "required": true,
+          "port_role": "data_input",
+          "description": "Database connection handle."
+        }
+      },
+      "outputs": {
+        "total_changes": {
+          "type_name": "int",
+          "state": "scalar",
+          "abstract_type": "scalar",
+          "port_role": "data_output",
+          "description": "Cumulative count of row modifications."
+        }
+      },
+      "code_template": "{total_changes} = {connection}.total_changes",
+      "dependencies": ["import sqlite3"],
+      "primary_in": "connection",
+      "primary_out": "total_changes"
+    },
+    {
+      "cell_id": "SQLITE_IN_TRANSACTION",
+      "stage": 2,
+      "domain_name": "sqlite3",
+      "node_type": "property",
+      "node_role": "transformer",
+      "topology_type": "sequential",
+      "docstring": "Checks whether the connection is currently inside an active transaction.",
+      "semantic_tags": ["in_transaction", "transaction_state", "active_tx"],
+      "inputs": {
+        "connection": {
+          "type_name": "connection",
+          "state": "open",
+          "abstract_type": "handle",
+          "required": true,
+          "port_role": "data_input",
+          "description": "Database connection handle."
+        }
+      },
+      "outputs": {
+        "is_in_tx": {
+          "type_name": "bool",
+          "state": "scalar",
+          "abstract_type": "logical",
+          "port_role": "data_output",
+          "description": "True if a transaction is currently open, False otherwise."
+        }
+      },
+      "code_template": "{is_in_tx} = {connection}.in_transaction",
+      "dependencies": ["import sqlite3"],
+      "primary_in": "connection",
+      "primary_out": "is_in_tx"
+    },
+    {
+      "cell_id": "SQLITE_DUMP_SQL",
+      "stage": 2,
+      "domain_name": "sqlite3",
+      "node_type": "method",
+      "node_role": "transformer",
+      "topology_type": "sequential",
+      "docstring": "Iterates through database SQL definitions and rows, producing a complete text dump script.",
+      "semantic_tags": ["iterdump", "sql_dump", "database_export", "backup_sql"],
+      "inputs": {
+        "connection": {
+          "type_name": "connection",
+          "state": "open",
+          "abstract_type": "handle",
+          "required": true,
+          "port_role": "data_input",
+          "description": "Database connection to dump."
+        }
+      },
+      "outputs": {
+        "dump_sql": {
+          "type_name": "str",
+          "state": "dump_stream",
+          "abstract_type": "scalar",
+          "port_role": "data_output",
+          "description": "Full SQL text script reconstructing the database."
+        }
+      },
+      "code_template": "{dump_sql} = chr(10).join({connection}.iterdump())",
+      "dependencies": ["import sqlite3"],
+      "primary_in": "connection",
+      "primary_out": "dump_sql"
+    },
+    {
+      "cell_id": "SQLITE_INTERRUPT",
+      "stage": 3,
+      "domain_name": "sqlite3",
+      "node_type": "method",
+      "node_role": "sink",
+      "topology_type": "sequential",
+      "docstring": "Aborts any pending or long-running database operation on the connection.",
+      "semantic_tags": ["interrupt", "abort", "cancel_query", "teardown"],
+      "inputs": {
+        "connection": {
+          "type_name": "connection",
+          "state": "open",
+          "abstract_type": "handle",
+          "required": true,
+          "port_role": "data_input",
+          "description": "Connection handle running queries."
+        }
+      },
+      "outputs": {
+        "interrupted": {
+          "type_name": "bool",
+          "state": "closed",
+          "abstract_type": "logical",
+          "port_role": "result",
+          "description": "True when interrupt call completes."
+        }
+      },
+      "code_template": "{connection}.interrupt()\n{interrupted} = True",
+      "dependencies": ["import sqlite3"],
+      "primary_in": "connection",
+      "primary_out": "interrupted"
+    },
+    {
+      "cell_id": "SQLITE_BACKUP",
+      "stage": 2,
+      "domain_name": "sqlite3",
+      "node_type": "method",
+      "node_role": "transformer",
+      "topology_type": "sequential",
+      "docstring": "Streams data from source database connection into destination database connection using SQLite Online Backup API.",
+      "semantic_tags": ["backup", "online_backup", "replication", "sync_db"],
+      "inputs": {
+        "source_conn": {
+          "type_name": "connection",
+          "state": "open",
+          "abstract_type": "handle",
+          "required": true,
+          "port_role": "data_input",
+          "description": "Source database connection handle."
+        },
+        "target_conn": {
+          "type_name": "connection",
+          "state": "open",
+          "abstract_type": "handle",
+          "required": true,
+          "port_role": "data_input",
+          "description": "Destination database connection handle."
+        }
+      },
+      "outputs": {
+        "status": {
+          "type_name": "bool",
+          "state": "committed",
+          "abstract_type": "logical",
+          "port_role": "result",
+          "description": "True when online backup completes successfully."
+        }
+      },
+      "code_template": "{source_conn}.backup({target_conn})\n{status} = True",
+      "dependencies": ["import sqlite3"],
+      "primary_in": "source_conn",
+      "primary_out": "status"
+    },
+    {
+      "cell_id": "SQLITE_BACKUP_TO_FILE",
+      "stage": 3,
+      "domain_name": "sqlite3",
+      "node_type": "method",
+      "node_role": "sink",
+      "topology_type": "sequential",
+      "docstring": "Streams in-memory or active database contents to a permanent SQLite database file on disk.",
+      "semantic_tags": ["backup_to_file", "save_database", "disk_backup", "persistence_sink"],
+      "inputs": {
+        "source_conn": {
+          "type_name": "connection",
+          "state": "open",
+          "abstract_type": "handle",
+          "required": true,
+          "port_role": "data_input",
+          "description": "Source database connection (e.g. in-memory database)."
+        },
+        "target_db_path": {
+          "type_name": "db_path",
+          "state": "filesystem_path",
+          "abstract_type": "path",
+          "required": true,
+          "port_role": "configuration",
+          "description": "Destination filesystem path for database backup."
+        }
+      },
+      "outputs": {
+        "backup_success": {
+          "type_name": "bool",
+          "state": "closed",
+          "abstract_type": "logical",
+          "port_role": "result",
+          "description": "True when backup is completely flushed to disk."
+        }
+      },
+      "code_template": "_dest_conn = sqlite3.connect({target_db_path})\ntry:\n    {source_conn}.backup(_dest_conn)\n    {backup_success} = True\nfinally:\n    _dest_conn.close()",
+      "dependencies": ["import sqlite3"],
+      "primary_in": "source_conn",
+      "primary_out": "backup_success"
+    },
+    {
+      "cell_id": "SQLITE_CLOSE",
+      "stage": 3,
+      "domain_name": "sqlite3",
+      "node_type": "method",
+      "node_role": "sink",
+      "topology_type": "sequential",
+      "docstring": "Closes the SQLite database connection handle, releasing file locks.",
+      "semantic_tags": ["close", "disconnect", "release_db", "teardown"],
+      "inputs": {
+        "connection": {
+          "type_name": "connection",
+          "state": "open",
+          "abstract_type": "handle",
+          "required": true,
+          "port_role": "data_input",
+          "description": "Connection to close."
+        }
+      },
+      "outputs": {
+        "status": {
+          "type_name": "bool",
+          "state": "closed",
+          "abstract_type": "logical",
+          "port_role": "result",
+          "description": "True when connection is closed."
+        }
+      },
+      "code_template": "{connection}.close()\n{status} = True",
+      "dependencies": ["import sqlite3"],
+      "primary_in": "connection",
+      "primary_out": "status"
+    }
+  ]
+}
