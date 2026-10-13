@@ -17,6 +17,7 @@ from .m7_llm_pathfinder import M7LLMPathfinderRouteMethod
 from .m8_llm_stepwise import M8LLMStepwisePathfinderRouteMethod
 from .m9_llm_milestones import M9LLMMilestonePathfinderRouteMethod
 from .m10_monte_carlo import M10MonteCarloRouteMethod
+from .m11_latent_cognitive import M11LatentCognitiveRouteMethod
 
 ROUTE_METHOD_REGISTRY: Dict[str, Type[RouteMethod]] = {
     "m0": M0TrellisRouteMethod,
@@ -70,6 +71,11 @@ ROUTE_METHOD_REGISTRY: Dict[str, Type[RouteMethod]] = {
     "m10_monte_carlo": M10MonteCarloRouteMethod,
     "monte_carlo": M10MonteCarloRouteMethod,
     "mcts": M10MonteCarloRouteMethod,
+
+    "m11": M11LatentCognitiveRouteMethod,
+    "m11_latent_cognitive": M11LatentCognitiveRouteMethod,
+    "latent": M11LatentCognitiveRouteMethod,
+    "latent_cognitive": M11LatentCognitiveRouteMethod,
 }
 
 

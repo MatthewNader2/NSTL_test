@@ -334,11 +334,48 @@ def _restricted_import(name: str, globals=None, locals=None, fromlist=(), level:
     return real_import(name, globals, locals, fromlist, level)
 
 
+class ASTLoopBounder(ast.NodeTransformer):
+    """
+    Bounds unbounded while loops to a maximum number of iterations during smoke-test verification.
+    Ensures state loops and game loops verify API calls and rendering without hanging until timeout.
+    """
+    def __init__(self, max_iters: int = 5):
+        super().__init__()
+        self.max_iters = max_iters
+        self._loop_count = 0
+
+    def visit_While(self, node: ast.While) -> Any:
+        self.generic_visit(node)
+        self._loop_count += 1
+        counter_name = f"_nstl_iter_{self._loop_count}"
+        inc_stmt = ast.AugAssign(
+            target=ast.Name(id=counter_name, ctx=ast.Store()),
+            op=ast.Add(),
+            value=ast.Constant(value=1),
+        )
+        check_stmt = ast.If(
+            test=ast.Compare(
+                left=ast.Name(id=counter_name, ctx=ast.Load()),
+                ops=[ast.Gt()],
+                comparators=[ast.Constant(value=self.max_iters)],
+            ),
+            body=[ast.Break()],
+            orelse=[],
+        )
+        node.body = [inc_stmt, check_stmt] + node.body
+        init_stmt = ast.Assign(
+            targets=[ast.Name(id=counter_name, ctx=ast.Store())],
+            value=ast.Constant(value=0),
+        )
+        return [init_stmt, node]
+
+
 def _sandbox_worker_exec(
     code_str: str,
     context: Dict[str, Any],
     runtime_aliases: Dict[str, str],
     result_queue: multiprocessing.Queue,
+    smoke_test: bool = False,
 ) -> None:
     """
     Subprocess worker executing sandboxed code in strict process isolation.
@@ -346,12 +383,25 @@ def _sandbox_worker_exec(
     """
     import io as _io
 
+    # Step 0: Configure headless environment for GUI, Audio, and Plotting
+    os.environ["SDL_VIDEODRIVER"] = "dummy"
+    os.environ["SDL_AUDIODRIVER"] = "dummy"
+    os.environ["MPLBACKEND"] = "Agg"
+    os.environ["QT_QPA_PLATFORM"] = "offscreen"
+    os.environ["PYGAME_HIDE_SUPPORT_PROMPT"] = "1"
+
     captured_stdout = _io.StringIO()
     captured_stderr = _io.StringIO()
     try:
         # Step 1: Pre-execution AST Analysis
         parsed_ast = ast.parse(code_str)
         _SecurityASTVisitor().visit(parsed_ast)
+
+        if smoke_test:
+            # Bound unbounded state/game loops to a smoke-test ceiling
+            bounder = ASTLoopBounder(max_iters=5)
+            parsed_ast = bounder.visit(parsed_ast)
+            ast.fix_missing_locations(parsed_ast)
 
         # Step 2: Construct Sanitized Execution Environment
         safe_builtins: Dict[str, Any] = {}
@@ -655,9 +705,10 @@ class GEVRSandbox:
         ctx = multiprocessing.get_context("spawn")
         result_queue: multiprocessing.Queue = ctx.Queue()
 
+        smoke_test = bool(kwargs.get("smoke_test", False))
         worker = ctx.Process(
             target=_sandbox_worker_exec,
-            args=(code, context, dict(runtime_aliases or {}), result_queue),
+            args=(code, context, dict(runtime_aliases or {}), result_queue, smoke_test),
             daemon=True,
         )
 
