@@ -89,7 +89,8 @@ class M6HybridAnchorsRouteMethod(RouteMethod):
         _ev = self._evidence()
         anchor_pool = [
             c for c in candidates
-            if not (getattr(c, "is_combinator", False) or getattr(c, "node_role", "") == "combinator"
+            if bool(getattr(c, "slots", None))
+            or not (getattr(c, "is_combinator", False) or getattr(c, "node_role", "") == "combinator"
                     or getattr(c, "role", "") == "combinator" or getattr(c, "node_type", "") == "combinator")
         ]
 

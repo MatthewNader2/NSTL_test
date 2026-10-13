@@ -88,7 +88,8 @@ class M1ClauseAnchorRouteMethod(RouteMethod):
 
             pool = [
                 c for c in pool
-                if not (getattr(c, "is_combinator", False) or getattr(c, "node_role", "") == "combinator" or getattr(c, "role", "") == "combinator" or getattr(c, "node_type", "") == "combinator")
+                if bool(getattr(c, "slots", None))
+                or not (getattr(c, "is_combinator", False) or getattr(c, "node_role", "") == "combinator" or getattr(c, "role", "") == "combinator" or getattr(c, "node_type", "") == "combinator")
             ]
 
             # Evidence-ranked anchor selection (corpus-derived, no vocabulary).

@@ -946,7 +946,9 @@ class TypeRegistry:
                 self._prompt_filler_tokens.add(s)
 
     def get_prompt_filler_tokens(self) -> FrozenSet[str]:
-        return frozenset(self._prompt_filler_tokens)
+        if self._prompt_filler_tokens:
+            return frozenset(self._prompt_filler_tokens)
+        return self.get_function_words()
 
     # --- Verification semantics (data-driven from tree declarations) --------
     @_locked
@@ -1228,6 +1230,30 @@ class TypeRegistry:
             if hint["affix"] == "suffix" and name.endswith(token) and len(name) > len(token):
                 return hint["type_name"]
         return None
+
+    def is_known_type_name(self, name: str) -> bool:
+        """
+        Dynamically checks if a type name is known in the Poset ontology,
+        carrier registries, or Python runtime built-ins.
+        Zero hardcoded type string sets.
+        """
+        if not name:
+            return False
+        n_low = str(name).strip().lower()
+        if n_low in self._parents or n_low in self._aliases:
+            return True
+        if n_low in self._top_level_carriers or n_low in self._state_carriers:
+            return True
+        if hasattr(self, "_abstract_carriers") and n_low in self._abstract_carriers:
+            return True
+        if hasattr(self, "_role_carriers") and n_low in self._role_carriers:
+            return True
+        # Dynamic Python built-in type reflection
+        import builtins
+        builtin_val = getattr(builtins, n_low, None) or getattr(builtins, str(name).strip(), None)
+        if builtin_val is not None and isinstance(builtin_val, type):
+            return True
+        return False
 
     @_locked
     def register_alias(self, alias: str, canonical: str):
@@ -2690,9 +2716,7 @@ class Cell(ABC):
 
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> "Cell":
-        is_macro = str(data.get("node_type", "")).lower() in ("macro", "higher_order") or str(data.get("node_role", "")).lower() in ("macro", "higher_order")
-        cell_cls = MacroCell if is_macro else MicroCell
-        return cell_cls(**data)
+        return build_cell_from_raw(data)
 
     def clone(self) -> "Cell":
         c = copy.copy(self)
@@ -2814,9 +2838,15 @@ def build_cell_from_raw(c_dict: Dict[str, Any], domain: str = "generic", default
     """
     node_type = str(c_dict.get("node_type", "") or "").lower()
     node_role = str(c_dict.get("node_role", "") or "").lower()
+    top = str(c_dict.get("topology_type", "") or "").lower()
+    has_slots = bool(c_dict.get("slots"))
     is_macro = (
-        node_type in ("macro", "higher_order") or node_role in ("macro", "higher_order")
-        or node_type.startswith("macro_") or node_role.startswith("macro_")
+        node_type in ("macro", "higher_order", "combinator")
+        or node_role in ("macro", "higher_order", "combinator")
+        or node_type.startswith("macro_")
+        or node_role.startswith("macro_")
+        or top in ("traced_loop", "coproduct_branch", "state_loop", "context_manager")
+        or has_slots
     )
     cell_cls = MacroCell if is_macro else MicroCell
     return cell_cls(
@@ -3375,11 +3405,14 @@ class LatticeOrchestrator:
                         if not outputs and (not isinstance(cfg, dict) or "outputs" not in cfg):
                             outputs = {"output_data": PortSignature("output_data", out_sig)}
 
+                        top_val = str(cfg.get("topology_type", "") if isinstance(cfg, dict) else "").lower()
                         is_macro = (
-                            str(node_type).lower() in ("macro", "higher_order")
-                            or str(node_role).lower() in ("macro", "higher_order")
+                            str(node_type).lower() in ("macro", "higher_order", "combinator")
+                            or str(node_role).lower() in ("macro", "higher_order", "combinator")
                             or str(node_type).lower().startswith("macro_")
                             or str(node_role).lower().startswith("macro_")
+                            or top_val in ("traced_loop", "coproduct_branch", "state_loop", "context_manager")
+                            or bool(slots_val)
                         )
                         cls = MacroCell if is_macro else MicroCell
                         cell = cls(
@@ -3644,6 +3677,26 @@ class LatticeOrchestrator:
                         p_st = getattr(getattr(p, "signature", p), "state", None)
                         if p_st:
                             reg.register_materialization_states([p_st])
+
+                # Harvest ingress tokens from stage-1/ingress/source cells
+                is_ingress = getattr(c, "stage", None) == 1 or str(getattr(c, "node_role", "")).lower() == "ingress" or str(getattr(c, "mutation_type", "")).lower() in ("io", "source", "ingress")
+                if is_ingress:
+                    if getattr(c, "keywords", None):
+                        reg.register_source_port_tokens(c.keywords)
+                    for p in getattr(c, "inputs", {}).values():
+                        p_name = getattr(p, "name", "")
+                        if p_name:
+                            reg.register_source_port_tokens([p_name])
+
+                # Harvest data-bearing roles and port tokens from declared port roles
+                for p_name, p in getattr(c, "inputs", {}).items():
+                    role = getattr(p, "port_role", None) or getattr(p, "role", None)
+                    if role:
+                        reg.register_data_bearing_roles([str(role)])
+                for p_name, p in getattr(c, "outputs", {}).items():
+                    role = getattr(p, "port_role", None) or getattr(p, "role", None)
+                    if role:
+                        reg.register_dest_port_tokens([str(role)])
 
                 # Harvest polarity hints from order_flag ports
                 for p_name, p in getattr(c, "inputs", {}).items():

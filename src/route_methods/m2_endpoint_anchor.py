@@ -47,9 +47,15 @@ class M2EndpointAnchorRouteMethod(RouteMethod):
 
         candidates = [
             c for c in tunnel
-            if getattr(c, "node_type", "") not in ("constant", "macro")
-            and not c.cell_id.startswith("MACRO_")
-            and not (getattr(c, "is_combinator", False) or getattr(c, "node_role", "") == "combinator" or getattr(c, "role", "") == "combinator" or getattr(c, "node_type", "") == "combinator")
+            if getattr(c, "node_type", "") != "constant"
+            and (
+                bool(getattr(c, "slots", None))
+                or (
+                    getattr(c, "node_type", "") != "macro"
+                    and not c.cell_id.startswith("MACRO_")
+                    and not (getattr(c, "is_combinator", False) or getattr(c, "node_role", "") == "combinator" or getattr(c, "role", "") == "combinator" or getattr(c, "node_type", "") == "combinator")
+                )
+            )
         ]
         if not candidates:
             return [tunnel[0]]

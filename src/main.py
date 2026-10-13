@@ -318,9 +318,10 @@ def run_prompt(request: Union[RunRequest, Dict[str, Any], str]) -> RunResponse:
 
     req_ctx = ExecutionContext(prompt=effective_prompt)
     if intent_data and isinstance(intent_data, dict):
-        tgt = intent_data.get("target_column") or intent_data.get("target_col")
+        tgt = intent_data.get("target_sink") or intent_data.get("target_column") or intent_data.get("target_col")
         if tgt:
             req_ctx.target_col = str(tgt).strip()
+            req_ctx.target_literals.add(req_ctx.target_col)
         if intent_data.get("columns") and isinstance(intent_data["columns"], list):
             req_ctx.columns = [str(c).strip() for c in intent_data["columns"]]
         if intent_data.get("hyperparameters") and isinstance(intent_data["hyperparameters"], dict):

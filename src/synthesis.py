@@ -124,17 +124,17 @@ class SynthesisEngine:
 
         if stage == 1:
             template_rule = (
-                "For Stage 1 (file loading/source), `code_template` MUST use `{filepath}` "
-                "as the input path argument and `{output_var}` for the output assignment "
-                "(e.g. `{output_var} = package.load_func({filepath})`)."
+                "For Stage 1 (Initial / Ingress morphism), `code_template` MUST produce the primary output "
+                "assigned to `{output_var}`. If path-driven, use `{filepath}` as the input asset identifier "
+                "(e.g. `{output_var} = <package>.<source_func>({filepath})`)."
             )
             input_spec = '{"type_name": "str", "state": "source_identifier"}'
             sample_template = "{output_var} = <package>.<source_func>({filepath})"
         elif stage == 3:
             template_rule = (
-                "For Stage 3 (exporting/saving), `code_template` MUST use `{dest_path}` as "
-                "the destination file path (e.g. `{input_var}.save_func({dest_path})\\n"
-                "{output_var} = {dest_path}`)."
+                "For Stage 3 (Terminal / Egress morphism), `code_template` MUST consume `{input_var}` and "
+                "complete the lifecycle (exporting, rendering, or evaluation). If path-driven, use `{dest_path}` "
+                "as the destination identifier (e.g. `{input_var}.<sink_func>({dest_path})\\n{output_var} = {dest_path}`)."
             )
             input_spec = f'{{"type_name": "{expected_input}", "state": "any"}}'
             sample_template = (
@@ -142,8 +142,8 @@ class SynthesisEngine:
             )
         else:
             template_rule = (
-                "For Stage 2 (data transform), `code_template` MUST use `{input_var}` for "
-                "input and `{output_var}` for output (e.g. `{output_var} = <func>({input_var})`)."
+                "For Stage 2 (Intermediate morphism), `code_template` MUST consume `{input_var}` and "
+                "assign the result to `{output_var}` (e.g. `{output_var} = <func>({input_var})`)."
             )
             input_spec = f'{{"type_name": "{expected_input}", "state": "any"}}'
             sample_template = "{output_var} = <package>.<func>({input_var})"
@@ -521,9 +521,18 @@ def render_cell(
             child_bindings["output_var"] = child_out_var
             last_metric = child_out_var
 
-            child_text = UnificationGate._instantiate_ast_template(
-                child.code_template, child_bindings, child.inputs
-            )
+            if bool(getattr(child, "bound_slots", None)) or getattr(child, "node_type", "") == "macro" or bool(getattr(child, "slots", None)):
+                child_text = render_cell(
+                    child,
+                    child_bindings,
+                    indent_level=0,
+                    context=context,
+                    accumulated_sigma=accumulated_sigma,
+                )
+            else:
+                child_text = UnificationGate._instantiate_ast_template(
+                    child.code_template, child_bindings, child.inputs
+                )
             if child_text:
                 child_lines.append(child_text)
 

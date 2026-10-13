@@ -322,77 +322,6 @@
     "via",
     "with"
   ],
-  "column_projection_tokens": [
-    "column",
-    "columns",
-    "select",
-    "project",
-    "feature",
-    "features",
-    "target",
-    "predict",
-    "training"
-  ],
-  "dest_port_tokens": [
-    "as",
-    "dest",
-    "destination",
-    "in",
-    "into",
-    "output",
-    "result",
-    "results",
-    "sink",
-    "target",
-    "to",
-    "variable",
-    "variables"
-  ],
-  "source_port_tokens": [
-    "from",
-    "source",
-    "input",
-    "src",
-    "in",
-    "reading",
-    "read",
-    "load",
-    "loading"
-  ],
-  "data_bearing_roles": [
-    "feature",
-    "features",
-    "target",
-    "predict",
-    "column",
-    "columns",
-    "attribute",
-    "attributes",
-    "axis",
-    "by",
-    "variable"
-  ],
-  "egress_intent_tokens": [
-    "save",
-    "export",
-    "write",
-    "dump",
-    "persist",
-    "store",
-    "plot",
-    "show",
-    "display"
-  ],
-  "action_verbs": [
-    "calculate",
-    "compute",
-    "perform",
-    "evaluate",
-    "execute",
-    "apply",
-    "run",
-    "do"
-  ],
   "advisory_qualifiers": [
     [
       "const"
@@ -982,7 +911,6 @@
     "filter",
     "matching"
   ],
-  "prompt_filler_tokens": ["get", "make", "perform", "do", "it", "its", "call", "called", "named", "new"],
   "verification_semantics": {
     "annotation_effects": [
       "draws_annotation",

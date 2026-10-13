@@ -27,6 +27,24 @@ IR_SCHEMA = {
     "type": "object",
     "required": ["steps"],
     "properties": {
+        "task_objective": {
+            "type": "object",
+            "properties": {
+                "kind": {"type": "string"},
+                "target_scale": {"type": "string"},
+            },
+        },
+        "variables": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "id": {"type": "string"},
+                    "domain_representation": {"type": "string"},
+                    "origin": {"type": "string"},
+                },
+            },
+        },
         "libraries": {"type": "array", "items": {"type": "string"}},
         "steps": {
             "type": "array",
@@ -34,12 +52,20 @@ IR_SCHEMA = {
                 "type": "object",
                 "required": ["op"],
                 "properties": {
-                    "op":      {"type": "string"},
-                    "params":  {"type": "object"},
-                    "library": {"type": "string"},
+                    "op":          {"type": "string"},
+                    "step_kind":   {"type": "string"},
+                    "condition":   {"type": "string"},
+                    "params":      {"type": "object"},
+                    "library":     {"type": "string"},
+                    "inputs":      {"type": "array", "items": {"type": "string"}},
+                    "outputs":     {"type": "array", "items": {"type": "string"}},
+                    "body":        {"type": "array", "items": {"type": "object"}},
+                    "then_branch": {"type": "array", "items": {"type": "object"}},
+                    "else_branch": {"type": "array", "items": {"type": "object"}},
                 },
             },
         },
+        "causal_dependencies": {"type": "array", "items": {"type": "array"}},
         "literals": {"type": "object"},
     },
 }
@@ -54,6 +80,8 @@ Allowed libraries: {libs}
 Rules:
 - One `op` per semantic action. Do NOT split on commas inside lists.
 - Use only ops from the allowed list.
+- For iterative tasks or state loops (e.g. while loops, game loops, simulations), set `step_kind`: "loop" and place loop body steps into `body`.
+- For conditional branches (if/else), set `step_kind`: "branch" with `condition`, placing branches into `then_branch` and `else_branch`.
 - Extract EVERY literal into `literals`.
 - Return ONLY a JSON object. No prose, no markdown.
 
@@ -65,7 +93,7 @@ RETRY_TEMPLATE = """\
 Your previous response was not valid JSON. Respond with ONLY a JSON object
 matching this schema:
 
-{{"steps": [{{"op": "str", "params": {{}}, "library": "str"}}], "libraries": ["..."], "literals": {{}}}}
+{{"steps": [{{"op": "str", "step_kind": "call|loop|branch", "params": {{}}, "library": "str", "body": []}}], "libraries": ["..."], "literals": {{}}}}
 
 User prompt:
 {prompt}
@@ -82,7 +110,23 @@ class IR:
     steps: List[Dict[str, Any]]
     literals: Dict[str, Any] = field(default_factory=dict)
     libraries: List[str] = field(default_factory=list)
+    task_objective: Dict[str, Any] = field(default_factory=dict)
+    variables: List[Dict[str, Any]] = field(default_factory=list)
+    causal_dependencies: List[List[str]] = field(default_factory=list)
     raw: str = ""
+
+    def all_steps(self) -> List[Dict[str, Any]]:
+        """Recursively flattens all steps including nested body and branch steps."""
+        res: List[Dict[str, Any]] = []
+        def _collect(s_list: List[Dict[str, Any]]):
+            for s in s_list:
+                res.append(s)
+                for k in ("body", "then_branch", "else_branch"):
+                    sub = s.get(k)
+                    if isinstance(sub, list):
+                        _collect([x for x in sub if isinstance(x, dict)])
+        _collect(self.steps)
+        return res
 
     @classmethod
     def parse(cls, text: str) -> "IR":
@@ -93,20 +137,29 @@ class IR:
             steps=data.get("steps", []),
             literals=dict(data.get("literals") or {}),
             libraries=list(data.get("libraries") or []),
+            task_objective=dict(data.get("task_objective") or {}),
+            variables=list(data.get("variables") or []),
+            causal_dependencies=list(data.get("causal_dependencies") or []),
             raw=text,
         )
 
     def validate(self, vocab: Set[str]) -> List[str]:
         errs = []
-        for i, s in enumerate(self.steps):
+        def _check_step(s: Dict[str, Any], path: str):
             op = str(s.get("op", "")).strip().lower().replace("-", "_").replace(" ", "_")
-            if not op:
-                continue
-            if op in vocab:
-                continue
-            if len(op) >= 3 and any((op in v) or (v in op) for v in vocab if len(v) >= 3):
-                continue
-            errs.append(f"step {i}: unknown op {s.get('op')!r}")
+            if op:
+                if op not in vocab and not (len(op) >= 3 and any((op in v) or (v in op) for v in vocab if len(v) >= 3)):
+                    errs.append(f"{path}: unknown op {s.get('op')!r}")
+            for sub_name in ("body", "then_branch", "else_branch"):
+                sub_list = s.get(sub_name)
+                if isinstance(sub_list, list):
+                    for j, sub_s in enumerate(sub_list):
+                        if isinstance(sub_s, dict):
+                            _check_step(sub_s, f"{path}.{sub_name}[{j}]")
+
+        for i, s in enumerate(self.steps):
+            if isinstance(s, dict):
+                _check_step(s, f"step {i}")
         return errs
 
 

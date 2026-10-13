@@ -112,7 +112,11 @@ class M10MonteCarloRouteMethod(RouteMethod):
                        and (_cond_get(q, "property"), repr(_cond_get(q, "value"))) in needs for q in (getattr(c, "postconditions", None) or [])):
                     bridges.append(c)
                     proto.setdefault(c.cell_id, c)
-            bridges.sort(key=lambda c: c.cell_id)
+            # Prioritize unary element-wise dimension-preserving functors (abs, real, imag) over complex inverse transforms
+            bridges.sort(key=lambda c: (
+                0 if len(c.inputs) == 1 and not any(getattr(p, "state", None) == "transform_length" for p in c.inputs.values()) else 1,
+                c.cell_id
+            ))
         self._trace("mcts_space", clauses=len(clauses), groups=[[g[0] for g in gl] for gl in groups],
                     bridges=[b.cell_id for b in bridges])
 
@@ -225,10 +229,12 @@ class M10MonteCarloRouteMethod(RouteMethod):
                 # Unary element-wise dimension-preserving transforms (e.g. abs, real, imag)
                 # are vastly preferred as bridges over complex multi-argument or length-transforming operators
                 if cand is not None:
+                    # Functor contract: unary element-wise dimension-preserving transforms (abs, real, imag)
+                    # are given overwhelming priority when bridging value domain properties
                     if len(cand.inputs) == 1 and not any(getattr(p, "state", None) == "transform_length" for p in cand.inputs.values()):
-                        score += 0.8
-                    if any(getattr(p, "state", None) == "transform_length" for p in cand.inputs.values()):
-                        score -= 0.5
+                        score += 1.5
+                    if len(cand.inputs) > 1 or any(getattr(p, "state", None) == "transform_length" for p in cand.inputs.values()) or "inverse" in getattr(cand, "semantic_tags", []):
+                        score -= 1.5
                 return max(0.01, score)
             return 0.01
 

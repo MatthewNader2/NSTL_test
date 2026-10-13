@@ -150,13 +150,17 @@ class RouteMethod(ABC):
                 aff = float(edge.get("affinity_score", 0.3) if isinstance(edge, dict) else getattr(edge, "affinity_score", 0.3))
                 return aff * 0.75
 
-        # 3. Stage 2 -> Stage 3 Egress Completion
+        # 3. Intermediate -> Terminal Sink Egress Completion
         src_stage = getattr(src_cell, "stage", None)
         dst_stage = getattr(dst_cell, "stage", None)
+        src_role = str(getattr(src_cell, "node_role", "") or getattr(src_cell, "role", "") or "").lower()
+        dst_role = str(getattr(dst_cell, "node_role", "") or getattr(dst_cell, "role", "") or "").lower()
         src_domain = getattr(src_cell, "domain_name", "")
         dst_domain = getattr(dst_cell, "domain_name", "")
-        if src_stage == 2 and dst_stage == 3 and src_domain and dst_domain and src_domain == dst_domain:
-            # A.2 Fix: Gate the +0.75 egress completion bonus on src_cell having positive prompt relevance
+        is_src_intermediate = (src_stage == 2 or src_role in ("transform", "operation", "intermediate"))
+        is_dst_sink = (dst_stage == 3 or dst_role in ("sink", "terminal", "egress", "consumer"))
+        if is_src_intermediate and is_dst_sink and src_domain and dst_domain and src_domain == dst_domain:
+            # Gate the +0.75 egress completion bonus on src_cell having positive prompt relevance
             rel_map = relevance_map if relevance_map is not None else getattr(self, "relevance_map", None)
             if rel_map is None or rel_map.get(src_cell.cell_id, 0.0) > 0.0:
                 return 0.75
@@ -413,6 +417,12 @@ class RouteMethod(ABC):
         Extracts source and destination file literals from prompt and/or ExecutionContext.
         Preserves typed intent across layers without brittle re-scanning.
         """
+        if ctx:
+            ctx_src = list(getattr(ctx, "parameters", {}).get("source_uris") or getattr(ctx, "source_files", []) or [])
+            ctx_dest = list(getattr(ctx, "parameters", {}).get("dest_uris") or getattr(ctx, "dest_files", []) or [])
+            if ctx_src or ctx_dest:
+                return ctx_src, ctx_dest
+
         extracted = ExecutionContext._extract_universal_literals(prompt or "")
         src_lits = [
             val for pos, kind, val in extracted
@@ -424,11 +434,6 @@ class RouteMethod(ABC):
             if (kind == "file_asset" or (kind == "quoted_str" and ExecutionContext._is_path_string(str(val))))
             and ExecutionContext._asset_direction(prompt or "", pos) == "dest"
         ]
-        if ctx:
-            if not src_lits:
-                src_lits = list(getattr(ctx, "parameters", {}).get("source_uris") or getattr(ctx, "source_files", []) or [])
-            if not dest_lits:
-                dest_lits = list(getattr(ctx, "parameters", {}).get("dest_uris") or getattr(ctx, "dest_files", []) or [])
         return src_lits, dest_lits
 
     @classmethod
@@ -824,10 +829,13 @@ class RouteMethod(ABC):
         filtered_cands: List[Cell] = []
         for c in candidates:
             cid = c.cell_id
-            if getattr(c, "node_type", "") == "constant" or cid.startswith("MACRO_"):
+            if getattr(c, "node_type", "") == "constant":
                 continue
-            if getattr(c, "is_combinator", False) or getattr(c, "node_role", "") == "combinator" or getattr(c, "role", "") == "combinator" or getattr(c, "node_type", "") == "combinator":
-                continue
+            if not getattr(c, "slots", None):
+                if cid.startswith("MACRO_"):
+                    continue
+                if getattr(c, "is_combinator", False) or getattr(c, "node_role", "") == "combinator" or getattr(c, "role", "") == "combinator" or getattr(c, "node_type", "") == "combinator":
+                    continue
             filtered_cands.append(c)
 
         for idx, cl in enumerate(clauses):
@@ -856,6 +864,41 @@ class RouteMethod(ABC):
                 id_match = sum(2.0 for t in cl_toks if t in cid_toks or t in c.keywords)
                 rel = relevance_map.get(cid, 0.0)
                 score = (strong * 4.0) + (weak * 1.5) + id_match + (rel * 2.0)
+
+                # Format/modality verification from clause literal
+                cl_file_ext = None
+                for w in cl.split():
+                    clean_w = w.strip(" '\"`(),;:")
+                    if "." in clean_w and not clean_w.startswith("."):
+                        ext = clean_w.rsplit(".", 1)[1].lower()
+                        if ext and len(ext) <= 5 and ext.isalnum():
+                            cl_file_ext = ext
+                            break
+
+                if cl_file_ext:
+                    if not self.is_file_format_compatible(c, f"file.{cl_file_ext}"):
+                        score = 0.0
+
+                # Estimator mathematical contract verification via declared role semantics
+                try:
+                    from signature_introspector import introspect_estimator_role
+                    from tokenizer import normalize_token
+                    role = introspect_estimator_role(c)
+                    if role:
+                        reg_stem = normalize_token("regressor")
+                        clf_stems = {normalize_token("classifier"), normalize_token("classification")}
+                        norm_cl_toks = {normalize_token(t) for t in cl_toks}
+                        is_clause_regression = (reg_stem in norm_cl_toks) and not bool(clf_stems & norm_cl_toks)
+                        is_clause_classification = bool(clf_stems & norm_cl_toks) and (reg_stem not in norm_cl_toks)
+                        if is_clause_regression and role == "classifier":
+                            score = 0.0
+                        elif is_clause_classification and role == "regressor":
+                            score = 0.0
+                except Exception:
+                    pass
+
+                if score <= 0.0:
+                    continue
                 scored.append((c, score))
 
             if not scored:

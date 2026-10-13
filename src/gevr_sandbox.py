@@ -610,20 +610,27 @@ class GEVRSandbox:
                         func_name = node.func.id
                     elif isinstance(node.func, ast.Attribute):
                         func_name = node.func.attr
-                    # Skip egress/export functions (they write files, not read them)
-                    if any(func_name.startswith(pfx) for pfx in ("to_", "save", "dump", "write", "export")):
-                        continue
+                    # Skip egress targets declared in egress_paths
+                    egress_set = {str(p).strip() for p in (egress_paths or []) if p}
                     for arg in node.args:
                         if isinstance(arg, ast.Constant) and isinstance(arg.value, str):
                             s = arg.value.strip()
-                            _, ext = os.path.splitext(s)
-                            if ext.lower() in (
-                                ".csv", ".tsv", ".parquet", ".feather", ".json", ".h5", ".hdf5",
-                                ".npy", ".npz", ".txt", ".png", ".jpg", ".jpeg", ".wav", ".mp3",
-                            ):
-                                if not os.path.exists(s) and not os.path.exists(os.path.abspath(s)):
-                                    if s not in missing_inputs:
-                                        missing_inputs.append(s)
+                            if s in egress_set:
+                                continue
+                            _, raw_ext = os.path.splitext(s)
+                            clean_ext = raw_ext.lstrip(".").lower()
+                            if clean_ext and clean_ext.isalnum() and len(clean_ext) <= 6:
+                                is_known_format = False
+                                try:
+                                    from lattice import TypeRegistry
+                                    reg = TypeRegistry.get_instance()
+                                    is_known_format = reg.is_subtype(clean_ext, "format") or reg.is_registered(clean_ext)
+                                except Exception:
+                                    is_known_format = True
+                                if is_known_format:
+                                    if not os.path.exists(s) and not os.path.exists(os.path.abspath(s)):
+                                        if s not in missing_inputs:
+                                            missing_inputs.append(s)
         except Exception as ast_err:
             logger.debug(f"[SANDBOX] AST inspection for input files failed: {ast_err}")
 

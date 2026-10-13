@@ -1469,3 +1469,97 @@ def get_callable_parameters(
         "return_type": ret_type,
         "signature": sig,
     }
+
+
+_ESTIMATOR_ROLE_CACHE: Dict[str, Optional[str]] = {}
+
+
+def introspect_estimator_role(cell_or_obj: Any) -> Optional[str]:
+    """
+    Dynamically introspects whether an estimator / model is a 'regressor',
+    'classifier', 'clusterer', or 'transformer' using Python runtime reflection,
+    object attributes (_estimator_type), and Poset/contract metadata.
+    Zero hardcoded model names or closed static taxonomy files.
+    """
+    if cell_or_obj is None:
+        return None
+
+    # Determine unique cache key
+    cache_key = ""
+    if isinstance(cell_or_obj, str):
+        cache_key = cell_or_obj
+    elif hasattr(cell_or_obj, "cell_id"):
+        cache_key = getattr(cell_or_obj, "cell_id")
+    elif inspect.isclass(cell_or_obj) or hasattr(cell_or_obj, "__class__"):
+        cache_key = f"{getattr(cell_or_obj, '__module__', '')}.{getattr(cell_or_obj, '__qualname__', '')}"
+
+    if cache_key and cache_key in _ESTIMATOR_ROLE_CACHE:
+        return _ESTIMATOR_ROLE_CACHE[cache_key]
+
+    role: Optional[str] = None
+
+    # Tier 1: Direct live object or class reflection
+    target_obj = cell_or_obj
+    if hasattr(cell_or_obj, "callable_obj") and getattr(cell_or_obj, "callable_obj") is not None:
+        target_obj = getattr(cell_or_obj, "callable_obj")
+
+    est_type = getattr(target_obj, "_estimator_type", None)
+    if est_type and isinstance(est_type, str):
+        role = est_type.strip().lower()
+
+    # Tier 2: Check class MRO for standard mixins / base classes
+    if role is None and (inspect.isclass(target_obj) or hasattr(target_obj, "__class__")):
+        cls = target_obj if inspect.isclass(target_obj) else target_obj.__class__
+        try:
+            for base in inspect.getmro(cls):
+                b_name = base.__name__.lower()
+                if "regressor" in b_name:
+                    role = "regressor"
+                    break
+                elif "classifier" in b_name:
+                    role = "classifier"
+                    break
+                elif "clusterer" in b_name:
+                    role = "clusterer"
+                    break
+        except Exception:
+            pass
+
+    # Tier 3: Dynamic module/class import from cell dependencies
+    if role is None and hasattr(cell_or_obj, "dependencies"):
+        deps = getattr(cell_or_obj, "dependencies", []) or []
+        for dep in deps:
+            dep_str = str(dep).strip()
+            if dep_str.startswith("from ") and " import " in dep_str:
+                parts = dep_str[5:].split(" import ", 1)
+                mod_name = parts[0].strip()
+                import_names = [n.strip().split(" as ")[0].strip() for n in parts[1].split(",")]
+                for sym_name in import_names:
+                    try:
+                        import importlib
+                        mod = importlib.import_module(mod_name)
+                        sym = getattr(mod, sym_name, None)
+                        if sym is not None:
+                            sub_role = introspect_estimator_role(sym)
+                            if sub_role:
+                                role = sub_role
+                                break
+                    except Exception:
+                        pass
+            if role:
+                break
+
+    # Tier 4: Cell declared semantic_tags
+    if role is None:
+        tags = set(str(t).lower() for t in (getattr(cell_or_obj, "semantic_tags", []) or []))
+        if "regressor" in tags or "regression" in tags:
+            role = "regressor"
+        elif "classifier" in tags or "classification" in tags:
+            role = "classifier"
+        elif "clusterer" in tags or "clustering" in tags:
+            role = "clusterer"
+
+    if cache_key:
+        _ESTIMATOR_ROLE_CACHE[cache_key] = role
+
+    return role

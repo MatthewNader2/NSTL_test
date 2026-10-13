@@ -1502,16 +1502,22 @@ class LatticePlanner:
         if len(tunnel) == 1:
             return [tunnel[0]]
 
-        # Candidate pool excluding constants and atomic macro shortcuts
-        # (Macro cells act as synaptic priors that boost micro-cells and edge affinities,
-        # but do not preempt multi-cell compositions as monolithic 1-step black boxes).
+        # Candidate pool excluding constants and monolithic macro shortcuts
+        # (Macro cells without slots act as synaptic priors that boost micro-cells,
+        # but do not preempt multi-cell compositions as monolithic 1-step black boxes.
+        # Higher-order combinator envelopes with slots ARE allowed as structured wrappers).
         candidates = [
             c for c in tunnel
             if getattr(c, "node_type", "") != "constant"
-            and getattr(c, "cell_type", "") != "macro"
-            and not getattr(c, "is_macro", False)
-            and not isinstance(c, MacroCell)
-            and not (getattr(c, "is_combinator", False) or getattr(c, "node_role", "") == "combinator" or getattr(c, "role", "") == "combinator" or getattr(c, "node_type", "") == "combinator")
+            and (
+                bool(getattr(c, "slots", None))
+                or (
+                    getattr(c, "cell_type", "") != "macro"
+                    and not getattr(c, "is_macro", False)
+                    and not isinstance(c, MacroCell)
+                    and not (getattr(c, "is_combinator", False) or getattr(c, "node_role", "") == "combinator" or getattr(c, "role", "") == "combinator" or getattr(c, "node_type", "") == "combinator")
+                )
+            )
         ]
         if not candidates:
             candidates = [c for c in tunnel if getattr(c, "node_type", "") != "constant"]
@@ -1534,9 +1540,15 @@ class LatticePlanner:
         # ---- Goal-directed objective data (all derived from DECLARED structure) ----
         registry = TypeRegistry.get_instance()
         l0_extracted_literals = ExecutionContext._extract_universal_literals(prompt or "")
-        target_sink = ExecutionContext._extract_target_sink(prompt or "")
-        if not target_sink and ctx:
-            target_sink = getattr(ctx, "target_col", None) or getattr(ctx, "parameters", {}).get("target_col")
+        target_sink = None
+        if ctx:
+            target_sink = (
+                getattr(ctx, "target_col", None)
+                or getattr(ctx, "parameters", {}).get("target_sink")
+                or getattr(ctx, "parameters", {}).get("target_col")
+            )
+        if not target_sink:
+            target_sink = ExecutionContext._extract_target_sink(prompt or "")
         universal_literals = [
             (kind, val) for _, kind, val in l0_extracted_literals
             if kind in ("file_asset", "identifier", "quoted_str", "numeric")
@@ -1554,21 +1566,22 @@ class LatticePlanner:
             v for kind, v in universal_literals
             if kind == "file_asset" or (kind == "quoted_str" and ExecutionContext._is_path_string(str(v)))
         ]
-        dest_file_literals = [
+        if ctx:
+            ctx_src = list(getattr(ctx, "parameters", {}).get("source_uris") or getattr(ctx, "source_files", []) or [])
+            ctx_dest = list(getattr(ctx, "parameters", {}).get("dest_uris") or getattr(ctx, "dest_files", []) or [])
+        else:
+            ctx_src, ctx_dest = [], []
+
+        dest_file_literals = ctx_dest if ctx_dest else [
             val for pos, kind, val in l0_extracted_literals
             if (kind == "file_asset" or (kind == "quoted_str" and ExecutionContext._is_path_string(str(val))))
             and ExecutionContext._asset_direction(prompt or "", pos) == "dest"
         ]
-        src_file_literals = [
+        src_file_literals = ctx_src if ctx_src else [
             val for pos, kind, val in l0_extracted_literals
             if (kind == "file_asset" or (kind == "quoted_str" and ExecutionContext._is_path_string(str(val))))
             and ExecutionContext._asset_direction(prompt or "", pos) != "dest"
         ]
-        if ctx:
-            if not src_file_literals:
-                src_file_literals = list(getattr(ctx, "parameters", {}).get("source_uris") or getattr(ctx, "source_files", []) or [])
-            if not dest_file_literals:
-                dest_file_literals = list(getattr(ctx, "parameters", {}).get("dest_uris") or getattr(ctx, "dest_files", []) or [])
 
         def _has_path_port(cell: Cell) -> bool:
             for p_name, p_sig in cell.inputs.items():
@@ -3390,6 +3403,7 @@ class LatticePlanner:
                                     c, slot_name, slot_contract, tunnel, relevance_map, it[1], prompt
                                 )
                                 if sub_plan:
+                                    sub_plan = self._bind_chain_slots(sub_plan, tunnel, relevance_map, it[1], prompt)
                                     c.bound_slots[slot_name] = sub_plan
                     gate.emit_code(cand_private, ExecutionContext(prompt=prompt), extract_llm_slots=False)
                     chosen_candidate = it
@@ -3456,6 +3470,7 @@ class LatticePlanner:
                                 cell, slot_name, slot_contract, tunnel, relevance_map, best_sigma, prompt
                             )
                             if sub_plan:
+                                sub_plan = self._bind_chain_slots(sub_plan, tunnel, relevance_map, best_sigma, prompt)
                                 cell.bound_slots[slot_name] = sub_plan
 
             # Attach matched clause index to cells for unification literal scoping (D8)
@@ -4693,7 +4708,9 @@ class LatticePlanner:
 
             child_candidates = []
             for cand in pool:
-                if getattr(cand, "stage", None) not in (2, 3):
+                cand_st = getattr(cand, "stage", None)
+                cand_r = str(getattr(cand, "node_role", "") or getattr(cand, "role", "")).lower()
+                if cand_st not in (2, 3, 4) and cand_r not in ("transform", "operation", "sink", "macro", "intermediate") and getattr(cand, "node_type", "") != "macro":
                     continue
                 for p_name, p_sig in cand.inputs.items():
                     u_cand = unify(item_type, p_sig.signature, active_sigma) or unify(p_sig.signature, item_type, active_sigma)
@@ -4714,26 +4731,98 @@ class LatticePlanner:
                 if valid:
                     return [best_child]
 
-        # 2. Coproduct Branch Slot Planning (⊕) — declared topology dispatch.
+        # 2. State Loop / Fixed Point / While Loop / Repeat Until (Tr^{State}: State -> State)
+        elif topology in ("state_loop", "while_loop", "fixed_point", "repeat_until"):
+            s_in_contract = slot_contract.get("input_type") if isinstance(slot_contract, dict) else getattr(slot_contract, "input_type", None)
+            u_raw = getattr(parent_cell, "feedback_state_type", None) or s_in_contract or "State"
+            u_concrete = substitute_generics(str(u_raw), active_sigma)
+
+            pool = [c for c in tunnel if c.cell_id != parent_cell.cell_id and getattr(c, "node_type", "") != "constant"]
+            if not pool:
+                pool = [c for c in self.orchestrator.loaded_cells.values() if c.cell_id != parent_cell.cell_id and getattr(c, "node_type", "") != "constant"]
+
+            parent_toks = getattr(parent_cell, "identity_tokens", getattr(parent_cell, "token_set", set()))
+            clauses = _segment_prompt_clauses(prompt)
+            if clauses and parent_toks:
+                related = [
+                    cl for cl in clauses
+                    if CellTokenizer.tokenize_prompt(cl) & parent_toks
+                ]
+                slot_clause = " ".join(related)
+            else:
+                slot_clause = ""
+            target_text = slot_clause.strip() or prompt
+            target_tokens = CellTokenizer.tokenize_prompt(target_text) if target_text else set()
+            if not target_tokens:
+                target_tokens = CellTokenizer.tokenize_prompt(prompt) if prompt else set()
+
+            child_candidates = []
+            for cand in pool:
+                cand_st = getattr(cand, "stage", None)
+                cand_r = str(getattr(cand, "node_role", "") or getattr(cand, "role", "")).lower()
+                if cand_st not in (2, 3, 4) and cand_r not in ("transform", "operation", "sink", "macro", "intermediate") and getattr(cand, "node_type", "") != "macro":
+                    continue
+                cand_sub = active_sigma
+                in_unified = False
+                for p_name, p_sig in cand.inputs.items():
+                    u_cand = unify(u_concrete, p_sig.signature, active_sigma) or unify(p_sig.signature, u_concrete, active_sigma)
+                    if u_cand is not None:
+                        in_unified = True
+                        cand_sub = u_cand
+                        break
+                if in_unified or getattr(cand, "domain_name", "") == parent_cell.domain_name or u_concrete in ("State", "any"):
+                    rel = relevance_map.get(cand.cell_id, 0.0)
+                    cand_id_toks = getattr(cand, "identity_tokens", getattr(cand, "token_set", set()))
+                    tok_ov = len(target_tokens & cand_id_toks)
+                    domain_bonus = 0.5 if cand.domain_name and any(c.domain_name == cand.domain_name for c in tunnel) else 0.0
+                    score = tok_ov * 1.0 + rel + domain_bonus
+                    child_candidates.append((cand, score, cand_sub))
+
+            if child_candidates:
+                child_candidates.sort(key=lambda x: x[1], reverse=True)
+                best_child, _, child_sigma = child_candidates[0]
+                valid, _ = verify_traced_loop_invariant(u_concrete, u_concrete, child_sigma)
+                if valid:
+                    return [best_child]
+                return [best_child]
+
+        # 3. Coproduct Branch Slot Planning (⊕) — declared topology dispatch.
         elif topology == "coproduct_branch":
             pool = [c for c in tunnel if c.cell_id != parent_cell.cell_id and getattr(c, "node_type", "") != "constant"]
+            if not pool:
+                pool = [c for c in self.orchestrator.loaded_cells.values() if c.cell_id != parent_cell.cell_id and getattr(c, "node_type", "") != "constant"]
             if pool:
-                pool.sort(key=lambda c: relevance_map.get(c.cell_id, 0.0), reverse=True)
-                return [pool[0]]
+                is_alt_branch = slot_name in ("else_branch", "except_body", "fallback")
+                pool_sorted = sorted(pool, key=lambda c: relevance_map.get(c.cell_id, 0.0), reverse=True)
+                if is_alt_branch and len(pool_sorted) > 1:
+                    return [pool_sorted[1]]
+                return [pool_sorted[0]]
+
+        # 4. Context Manager Slot Planning (bracket resource pattern)
+        elif topology == "context_manager":
+            pool = [c for c in tunnel if c.cell_id != parent_cell.cell_id and getattr(c, "node_type", "") != "constant"]
+            if not pool:
+                pool = [c for c in self.orchestrator.loaded_cells.values() if c.cell_id != parent_cell.cell_id and getattr(c, "node_type", "") != "constant"]
+            if pool:
+                pool_sorted = sorted(pool, key=lambda c: relevance_map.get(c.cell_id, 0.0), reverse=True)
+                return [pool_sorted[0]]
 
         return None
 
     def _bind_chain_slots(self, chain: List[Cell], tunnel: List[Cell],
-                          relevance_map: Dict[str, float], sigma: Substitution) -> List[Cell]:
-        """Plans macro slots on private copies of the chain's cells (never on shared lattice cells)."""
+                          relevance_map: Dict[str, float], sigma: Substitution,
+                          prompt: str = "") -> List[Cell]:
+        """Plans macro slots on private copies of the chain's cells (never on shared lattice cells). Recursively binds nested slots."""
         out: List[Cell] = []
         for cell in chain:
             if getattr(cell, "slots", None):
                 cell = _private_copy(cell, self.orchestrator)
                 for slot_name, slot_contract in _safe_slots_items(cell):
                     if slot_name not in getattr(cell, "bound_slots", {}):
-                        sub_plan = self.plan_sublattice(cell, slot_name, slot_contract, tunnel, relevance_map, sigma, "")
+                        sub_plan = self.plan_sublattice(cell, slot_name, slot_contract, tunnel, relevance_map, sigma, prompt)
                         if sub_plan:
+                            # Recursively bind nested slots inside sub_plan
+                            sub_plan = self._bind_chain_slots(sub_plan, tunnel, relevance_map, sigma, prompt)
                             cell.bound_slots[slot_name] = sub_plan
             out.append(cell)
         return out
@@ -4858,7 +4947,7 @@ class LatticePlanner:
             return None
         cells = [by_id[i] for i in chain]
         sig = sigma_of(tuple(chain))
-        return self._bind_chain_slots(cells, tunnel, relevance_map, sig) if sig is not None else cells
+        return self._bind_chain_slots(cells, tunnel, relevance_map, sig, prompt=prompt) if sig is not None else cells
 
 
 ZeroShotPlanner = LatticePlanner

@@ -12,6 +12,8 @@ from __future__ import annotations
 import ast
 import collections
 import sys
+import builtins
+import importlib.util
 import json
 import math
 import keyword
@@ -1746,10 +1748,16 @@ class ExecutionContext:
         # D8: Map each literal to its prompt clause index
         self.literal_clause_map: Dict[int, int] = self._build_literal_clause_map(self._prompt, self.ordered_literals)
         self.target_literals: Set[str] = set()
-        t_sink = self._extract_target_sink(self._prompt)
-        self.target_col: Optional[str] = t_sink if t_sink else None
-        if t_sink:
-            self.target_literals.add(t_sink)
+        t_sink = (
+            getattr(self, "target_col", None)
+            or self.parameters.get("target_sink")
+            or self.parameters.get("target_col")
+            or self._extract_target_sink(self._prompt)
+        )
+        self.target_col: Optional[str] = str(t_sink).strip() if t_sink else None
+        if self.target_col:
+            self.target_literals.add(self.target_col)
+        self.written_columns: Set[str] = set()
         self.current_cell_clause_idx: Optional[int] = None
         # Bare-identifier role map: char position -> stemmed role context tokens
         # (e.g. pos(X) -> {"column"}). Drives role-conditioned identifier binding
@@ -1805,26 +1813,23 @@ class ExecutionContext:
                     ):
                         return tok
 
-        # 2. Contextual scan of prompt tail
-        tokens = prompt.strip().rstrip(".;:").split()
-        if len(tokens) < 2:
-            return None
-        prev_word = tokens[-2].strip("'\",.;:").lower()
-        if prev_word in arg_prepositions:
-            return None
-
-        last_tok = tokens[-1].strip("'\"")
-        last_tok_low = last_tok.lower()
-        if (
-            last_tok.isidentifier()
-            and not keyword.iskeyword(last_tok_low)
-            and last_tok_low not in reg_types
-            and last_tok_low not in stopwords
-            and not ExecutionContext._is_path_string(last_tok)
-        ):
-            tail_words = [w.strip("'\",.;:").lower() for w in tokens[-5:-1]]
-            if any(w in egress_triggers for w in tail_words):
-                return last_tok
+        # 2. Structural scan for egress preposition introducing a target identifier
+        # (e.g. 'into Z', 'to Z', 'as Z', 'called Z') anywhere in the prompt clauses,
+        # without assuming the target identifier must be at the very end of the prompt.
+        words = prompt.strip().replace(";", " ; ").replace(",", " , ").split()
+        for idx in range(len(words) - 1):
+            w_prev = words[idx].strip("'\",.;:").lower()
+            if w_prev in egress_triggers and w_prev not in arg_prepositions:
+                cand = words[idx + 1].strip("'\",.;:")
+                cand_low = cand.lower()
+                if (
+                    cand.isidentifier()
+                    and not keyword.iskeyword(cand_low)
+                    and cand_low not in reg_types
+                    and cand_low not in stopwords
+                    and not ExecutionContext._is_path_string(cand)
+                ):
+                    return cand
 
         return None
 
@@ -1847,9 +1852,15 @@ class ExecutionContext:
         self.consumed_tokens = set()
         self.consumed_members = set()
         self.target_literals = set()
-        t_sink = self._extract_target_sink(self._prompt)
+        t_sink = (
+            getattr(self, "target_col", None)
+            or self.parameters.get("target_sink")
+            or self.parameters.get("target_col")
+            or self._extract_target_sink(self._prompt)
+        )
         if t_sink:
-            self.target_literals.add(t_sink)
+            self.target_col = str(t_sink).strip()
+            self.target_literals.add(self.target_col)
         self.current_cell_clause_idx = None
         self.unresolved_ports = []
         self.unbindable_count = 0
@@ -2064,6 +2075,17 @@ class ExecutionContext:
         `polarity_hints` vocabulary (ascending / descending poles), matched
         token-wise against the prompt. No engine-side direction literals."""
         fl: Dict[str, Any] = {}
+        if self.parameters:
+            if "ascending" in self.parameters:
+                val = bool(self.parameters["ascending"])
+                fl["ascending"] = val
+                fl["descending"] = not val
+                return fl
+            if "descending" in self.parameters:
+                val = bool(self.parameters["descending"])
+                fl["descending"] = val
+                fl["ascending"] = not val
+                return fl
         try:
             hint_toks = CellTokenizer.tokenize_prompt(self._prompt or "")
         except Exception:
@@ -3103,6 +3125,27 @@ class ExecutionContext:
                 if kind == "quoted_str" and len(str(val)) <= 1:
                     is_file_or_quoted = False
                 matches_path = ExecutionContext._is_path_string(str(val))
+                if matches_path:
+                    # Modality/format compatibility guard
+                    val_str = str(val).strip()
+                    if "." in val_str:
+                        ext = val_str.rsplit(".", 1)[1].lower()
+                        reg = TypeRegistry.get_instance()
+                        port_t = str(getattr(port_sig, "type_name", "")).lower()
+                        port_d = str(getattr(port_sig, "domain", "")).lower()
+                        carrier = reg.get_abstract_carrier(port_t) or reg.get_abstract_carrier(port_d)
+                        if carrier:
+                            fmt_anc = f"{carrier}_format"
+                            if reg.is_registered(fmt_anc) and reg.is_registered(ext):
+                                if not reg.is_subtype(ext, fmt_anc) and not reg.is_subtype(ext, carrier):
+                                    continue
+                        # Cross-modality collision guard backed by poset hierarchy
+                        if reg.is_subtype(ext, "tabular_format") and (reg.is_subtype(port_t, "image") or reg.is_subtype(port_d, "image")):
+                            continue
+                        if reg.is_subtype(ext, "image_format") and (reg.is_subtype(port_t, "table") or reg.is_subtype(port_d, "table")):
+                            continue
+                        if reg.is_subtype(ext, "audio_format") and (reg.is_subtype(port_t, "table") or reg.is_subtype(port_d, "table")):
+                            continue
                 if is_file_or_quoted or (is_path_role and matches_path):
                     direction = _asset_direction(lit_pos) if kind == "file_asset" else ""
                     if prefer and direction == prefer:
@@ -3123,24 +3166,35 @@ class ExecutionContext:
                 return json.dumps(fallback[1])
             return None
 
+        is_sink_ctx = (
+            cell_stage == 3
+            or port_role in ("model_sink", "destination", "output_file", "dest_identifier", "sink")
+            or str(getattr(port_sig, "state", "")).lower() in ("dest_identifier", "filepath_written", "destination_written")
+        )
+        is_source_ctx = (
+            cell_stage == 1
+            or port_role in ("source_data", "source", "input_file", "source_identifier")
+            or str(getattr(port_sig, "state", "")).lower() in ("source_identifier", "file_path")
+        )
+
         allow_str_asset = (
-            cell_stage in (1, 3)
+            (cell_stage in (1, 3) or is_sink_ctx or is_source_ctx)
             and is_str
             and not getattr(port_sig, "enum_values", None)
             and not _cell_has_path_port()
-            and (port_sig.required or cell_stage == 3)
+            and (port_sig.required or is_sink_ctx)
         )
         if is_path or is_path_role or allow_str_asset:
-            if cell_stage == 3:
+            if is_sink_ctx:
                 taken = _take_asset("dest")
-            elif cell_stage == 1:
+            elif is_source_ctx:
                 taken = _take_asset("src")
             else:
                 taken = _take_asset("")
             if taken is not None:
                 return taken
-            # If Stage 1 source cell has a required path port and prompt omitted explicit file literal:
-            if port_sig.required and cell_stage == 1:
+            # If source cell has a required path port and prompt omitted explicit file literal:
+            if port_sig.required and is_source_ctx:
                 if port_sig.default_value is not None:
                     val = str(port_sig.default_value)
                     return json.dumps(val) if not (val.startswith(("'", '"')) or val in ("None", "True", "False")) else val
@@ -3158,8 +3212,8 @@ class ExecutionContext:
                 placeholder = registry.get_asset_placeholder(modality)
                 return json.dumps(placeholder)
 
-            # If Stage 3 sink cell has a path port and prompt omitted explicit destination literal:
-            if cell_stage == 3 and (port_sig.required or is_path or is_path_role):
+            # If sink cell has a path port and prompt omitted explicit destination literal:
+            if is_sink_ctx and (port_sig.required or is_path or is_path_role):
                 t_str = str(getattr(port_sig, "type_name", "")).lower()
                 dom = str(getattr(port_sig, "domain", "")).lower()
                 registry = TypeRegistry.get_instance()
@@ -3203,12 +3257,12 @@ class ExecutionContext:
                 val_low = val_str.lower()
                 # Target protection: operational parameters must not steal the target sink variable
                 # UNLESS this cell/port is a setter morphism that introduces/writes the target column or key
-                is_setter_port = False
-                if cell_tokens and (cell_tokens & {"set", "write", "assign", "set_column", "write_column", "new_column", "add_column"}):
-                    is_setter_port = True
-                _p_desc = str(getattr(port_sig, "description", "") or "").lower()
-                if "to write" in _p_desc or "assign" in _p_desc or "destination" in _p_desc:
-                    is_setter_port = True
+                is_setter_port = (
+                    p_role in _declared_role_semantics("target_roles")
+                    or p_role in ("destination", "target_setter", "target_column", "producer")
+                    or p_state in _declared_role_semantics("target_states")
+                    or getattr(port_sig, "param_kind", "") == "target"
+                )
                 if val_low in self.target_literals and not is_setter_port:
                     continue
                 # Exclude file assets from operational parameters
@@ -3272,7 +3326,10 @@ class ExecutionContext:
                 if self.current_cell_clause_idx is not None:
                     cand_indices.sort(key=lambda i: 0 if self.literal_clause_map.get(i) == self.current_cell_clause_idx else 1)
                 _is_setter = is_setter_port if "is_setter_port" in locals() else (
-                    cell_tokens and bool(cell_tokens & {"set", "write", "assign", "set_column", "write_column", "new_column", "add_column"})
+                    p_role in _declared_role_semantics("target_roles")
+                    or p_role in ("destination", "target_setter", "target_column", "producer")
+                    or _raw_state in _declared_role_semantics("target_states")
+                    or getattr(port_sig, "param_kind", "") == "target"
                 )
                 for idx in cand_indices:
                     pos, kind, val = self.ordered_literals[idx]
@@ -3803,13 +3860,14 @@ class UnificationGate:
 
         for cell, bindings in pipeline_bindings:
             stage = getattr(cell, "stage", None)
-            is_terminal = stage == 3
+            node_role = str(getattr(cell, "node_role", "") or getattr(cell, "role", "") or "").lower()
+            is_terminal = (stage == 3 or node_role in ("sink", "terminal", "egress", "consumer"))
             if not is_terminal:
                 for out_p in getattr(cell, "outputs", {}).values():
                     if str(getattr(out_p, "state", "")).lower() in ("destination_written", "filepath_written", "saved", "exported"):
                         is_terminal = True
                         break
-            is_source = stage == 1
+            is_source = (stage == 1 or node_role in ("source", "ingress", "initial"))
             if not is_terminal and is_source:
                 continue
 
@@ -3824,7 +3882,7 @@ class UnificationGate:
                     continue
                 bound_val = bindings.get(p_name)
                 unquoted = _quoted_literal(bound_val)
-                if unquoted and (is_terminal or stage == 2):
+                if unquoted and (is_terminal or stage == 2 or node_role in ("transform", "operation", "intermediate")):
                     egress.append(unquoted)
 
         return egress
@@ -4176,8 +4234,13 @@ class UnificationGate:
                     getattr(p, "binds", None) == "column_key" or "column" in (getattr(p, "port_role", "") or "").lower()
                     for p in cell.inputs.values()
                 ) or "column" in cell.cell_id.lower()
+                is_col_write = any(getattr(p, "binds", None) == "assigned_value" for p in cell.inputs.values()) or "set" in cell.cell_id.lower()
                 if c_has_col_port:
-                    target_col_for_cell = str(ctx.target_col).strip()
+                    t_cand = str(ctx.target_col).strip()
+                    # Causal DAG verification: a write operation can target the sink,
+                    # but a read/selection cannot read a target column before it has been created
+                    if is_col_write or (hasattr(ctx, "written_columns") and t_cand in ctx.written_columns):
+                        target_col_for_cell = t_cand
 
             ctx.target_col_for_cell = target_col_for_cell
             # For-each replicas (multiplicity expansion): a replica RE-CONSUMES
@@ -5042,6 +5105,8 @@ class UnificationGate:
                     cell_bindings[p_name] = _name_lit
                     accumulated_sigma.bind(p_name, _name_lit)
                     ctx.consumed_tokens.add(str(target_col_for_cell).lower())
+                    if hasattr(ctx, "written_columns") and (any(getattr(p, "binds", None) == "assigned_value" for p in cell.inputs.values()) or "set" in cell.cell_id.lower()):
+                        ctx.written_columns.add(str(target_col_for_cell).strip().strip("'\""))
                     continue
 
                 # B. Check typestate-driven literal resolution from prompt or LLM slots
@@ -5367,14 +5432,44 @@ class UnificationGate:
             if unquoted in active_vars or unquoted.startswith("var_") or unquoted.startswith("out_"):
                 return ast.Name(id=unquoted, ctx=ast.Load())
 
+            # Dynamic module & builtin reflection: resolves any valid Python package, builtin,
+            # or registered lattice alias without requiring a static hardcoded module whitelist.
+            def _is_resolvable_module_or_builtin(ident: str) -> bool:
+                if not ident or not ident.isidentifier():
+                    return False
+                if ident in builtins.__dict__ or ident in sys.modules:
+                    return True
+                try:
+                    from .lattice import TypeRegistry
+                except (ImportError, ValueError):
+                    try:
+                        from lattice import TypeRegistry
+                    except (ImportError, ValueError):
+                        TypeRegistry = None
+                if TypeRegistry is not None:
+                    reg = TypeRegistry.get_instance()
+                    if ident in reg.get_all_aliases():
+                        return True
+                try:
+                    if importlib.util.find_spec(ident) is not None:
+                        return True
+                except Exception:
+                    pass
+                return False
+
             # Try parsing s as an evaluated Python expression (handles array projections, bridges, indexed lookups)
-            _KNOWN_MODULES = {"np", "pd", "plt", "sns", "scipy", "sklearn", "torch", "cv2", "math", "os", "sys"}
             try:
                 parsed_expr = ast.parse(s, mode="eval").body
                 free_names = {node.id for node in ast.walk(parsed_expr) if isinstance(node, ast.Name)}
-                if free_names and all((v in active_vars or v.startswith("var_") or v.startswith("out_") or v in _KNOWN_MODULES) for v in free_names):
+                if free_names and all(
+                    (v in active_vars or v.startswith("var_") or v.startswith("out_") or _is_resolvable_module_or_builtin(v))
+                    for v in free_names
+                ):
                     return parsed_expr
-                if isinstance(parsed_expr, (ast.List, ast.Dict, ast.Tuple, ast.Set)) and not (free_names - active_vars - _KNOWN_MODULES):
+                if isinstance(parsed_expr, (ast.List, ast.Dict, ast.Tuple, ast.Set)) and not any(
+                    not (v in active_vars or v.startswith("var_") or v.startswith("out_") or _is_resolvable_module_or_builtin(v))
+                    for v in free_names
+                ):
                     return parsed_expr
                 if not free_names and isinstance(parsed_expr, ast.Constant):
                     return parsed_expr
@@ -5512,9 +5607,16 @@ class UnificationGate:
                 # The final cell produces the terminal pipeline result and must never be pruned
                 if idx == len(current) - 1 or stage == 3 or role in _declared_role_semantics("terminal_roles") or not outputs:
                     continue
-                # Never prune cells that witness an explicit clause or intent from the prompt (e.g. side calculations like mean, metrics)
-                if getattr(cell, "matched_clause_idx", None) is not None or getattr(cell, "is_goal", False):
-                    continue
+                # Protect explicit calculations/metrics (e.g. mean, metrics, aggregations) that witness a clause,
+                # but pure intermediate projections/slices (like PD_SELECT_COLUMN) whose output is never used
+                # are dead extraction bridges and must be pruned to avoid anti-causal or unused variable errors.
+                is_pure_projection = (
+                    getattr(cell, "projection", None) == "column"
+                    or (getattr(cell, "mutation_type", "") == "pure" and (role in ("bridge", "projection") or "select" in getattr(cell, "cell_id", "").lower()))
+                )
+                if not is_pure_projection:
+                    if getattr(cell, "matched_clause_idx", None) is not None or getattr(cell, "is_goal", False):
+                        continue
                 out_vars = {v for k, v in bnd.items() if k in outputs and isinstance(v, str)}
                 if not out_vars:
                     continue
@@ -5759,6 +5861,7 @@ class UnificationGate:
         schema = {
             "type": "object",
             "properties": {
+                "target_sink": {"type": "string", "description": "Target or output sink variable/column name declared by prompt (e.g. into Z, column Y), if any"},
                 "target_col": {"type": "string", "description": "Target or label column name to predict, if any"},
                 "columns": {"type": "array", "items": {"type": "string"}, "description": "Specific feature columns or subset mentioned"},
                 "slots": {
@@ -5790,7 +5893,7 @@ class UnificationGate:
             f"User Prompt: {prompt}\n\n"
             f"Extract literal values (file paths, column names, thresholds, hyperparameters) for the following pipeline nodes:\n"
             + "\n".join(cell_summary) + "\n\n"
-            "Return valid JSON only matching schema with 'target_col', 'columns', 'slots' ({cell_id: {port_name: value}}), and 'hyperparameters'."
+            "Return valid JSON only matching schema with 'target_sink', 'target_col', 'columns', 'slots' ({cell_id: {port_name: value}}), and 'hyperparameters'."
         )
 
         try:
@@ -5808,8 +5911,10 @@ class UnificationGate:
                     text = text.split("```", 1)[1].split("```", 1)[0].strip()
                 parsed = json.loads(text)
                 if isinstance(parsed, dict):
-                    if not ctx.target_col and parsed.get("target_col"):
-                        ctx.target_col = str(parsed["target_col"]).strip()
+                    extracted_target = parsed.get("target_sink") or parsed.get("target_col")
+                    if not ctx.target_col and extracted_target:
+                        ctx.target_col = str(extracted_target).strip()
+                        ctx.target_literals.add(ctx.target_col)
                     if not ctx.columns and parsed.get("columns") and isinstance(parsed["columns"], list):
                         ctx.columns = [str(c).strip() for c in parsed["columns"]]
                     if ctx.columns:
@@ -6031,7 +6136,7 @@ class UnificationGate:
                 if p_out and isinstance(p_out, str):
                     known_vars.add(p_out.strip().strip("'\""))
 
-            if has_render_cell and (bool(getattr(cell, "bound_slots", None)) or getattr(cell, "node_type", "") == "macro"):
+            if has_render_cell and (bool(getattr(cell, "bound_slots", None)) or getattr(cell, "node_type", "") == "macro" or bool(getattr(cell, "slots", None))):
                 rendered = render_cell(cell, bindings, indent_level=0, context=ctx, accumulated_sigma=accum_sigma)
                 if rendered:
                     code_lines.append(rendered)
@@ -6439,9 +6544,10 @@ class UnificationGate:
                 intent_data = None
 
         if intent_data and isinstance(intent_data, dict):
-            tgt = intent_data.get("target_column") or intent_data.get("target_col")
+            tgt = intent_data.get("target_sink") or intent_data.get("target_column") or intent_data.get("target_col")
             if tgt:
                 self.context.target_col = str(tgt).strip()
+                self.context.target_literals.add(self.context.target_col)
             if intent_data.get("columns") and isinstance(intent_data["columns"], list):
                 self.context.columns = [str(c).strip() for c in intent_data["columns"]]
             if intent_data.get("hyperparameters") and isinstance(intent_data["hyperparameters"], dict):
@@ -6493,6 +6599,7 @@ class UnificationGate:
         ingress_df_var = None
         has_dropna = False
         has_dedup = False
+        latest_carrier_by_kind: Dict[str, str] = {}
 
         def _is_path_port(p: Any) -> bool:
             return _lattice_is_path_port(p)
@@ -6691,6 +6798,19 @@ class UnificationGate:
             ):
                 has_dedup = True
 
+            # Track intermediate mutated carrier variables per abstract carrier / data kind
+            if stage != 1 and role not in _SOURCE_ROLES and stage != 3 and role not in _SINK_ROLES:
+                for out_name, out_sig in cell.outputs.items():
+                    out_v = bindings.get(out_name)
+                    if not out_v:
+                        continue
+                    if _is_tensor_or_image(out_sig):
+                        latest_carrier_by_kind["image"] = out_v
+                    elif _is_table_or_df(out_sig):
+                        latest_carrier_by_kind["table"] = out_v
+                    elif _is_figure(out_sig):
+                        latest_carrier_by_kind["figure"] = out_v
+
             # 6. Terminal Intent Checks
             # Model Training Intent (declared role / declared carrier / declared state)
             is_estimator_cell = (
@@ -6728,6 +6848,8 @@ class UnificationGate:
                     "target_var": tgt_var,
                     "expected_train_feature_var": split_train_features,
                     "unsplit_feature_var": unsplit_features,
+                    "expected_var": split_train_features,
+                    "actual_var": feat_var,
                 })
 
             # Terminal Egress Sinks (Stage 3 or sink role with path port)
@@ -6753,29 +6875,58 @@ class UnificationGate:
                         data_kind = "figure"
 
                 if data_kind == "image" or (_is_tensor_or_image(cell.primary_input) if cell.primary_input else False):
-                    last_annotated = annotated_image_vars[-1] if annotated_image_vars else None
+                    last_annotated = annotated_image_vars[-1] if annotated_image_vars else latest_carrier_by_kind.get("image")
                     contract.terminal_checks.append({
                         "type": "image_annotation_egress",
                         "cell_id": cell.cell_id,
                         "saved_var": data_var,
                         "annotated_var": last_annotated,
                         "ingress_var": ingress_image_var,
+                        "expected_var": last_annotated or data_var,
+                        "actual_var": data_var,
                         "output_path": path_var,
                     })
                 elif data_kind == "table" or (_is_table_or_df(cell.primary_input) if cell.primary_input else False):
+                    expected_props: Dict[str, Any] = {}
+                    if has_dropna:
+                        expected_props["no_nans"] = True
+                    if has_dedup:
+                        expected_props["is_deduped"] = True
+                    for c_item, _ in pipeline_bindings:
+                        for post in (getattr(c_item, "postconditions", []) or []):
+                            prop = getattr(post, "property", None)
+                            val = getattr(post, "value", None)
+                            if prop:
+                                expected_props[str(prop)] = val
                     contract.terminal_checks.append({
                         "type": "tabular_egress",
                         "cell_id": cell.cell_id,
                         "saved_var": data_var,
                         "ingress_var": ingress_df_var,
+                        "expected_var": expected_tbl,
+                        "actual_var": data_var,
                         "output_path": path_var,
-                        "expected_clean": {"no_nans": has_dropna, "is_deduped": has_dedup},
+                        "expected_clean": expected_props,
                     })
                 elif data_kind == "figure" or (_is_figure(cell.primary_input) if cell.primary_input else False):
+                    expected_fig = latest_carrier_by_kind.get("figure") or data_var
                     contract.terminal_checks.append({
                         "type": "visualization_egress",
                         "cell_id": cell.cell_id,
                         "fig_var": data_var,
+                        "expected_var": expected_fig,
+                        "actual_var": data_var,
+                        "output_path": path_var,
+                    })
+                elif path_var or data_var:
+                    expected_gen = latest_carrier_by_kind.get(data_kind) or data_var
+                    contract.terminal_checks.append({
+                        "type": "generic_egress",
+                        "cell_id": cell.cell_id,
+                        "data_kind": data_kind,
+                        "saved_var": data_var,
+                        "expected_var": expected_gen,
+                        "actual_var": data_var,
                         "output_path": path_var,
                     })
 
@@ -6911,27 +7062,49 @@ class DynamicPlaceholderResolver:
         t_name = str(getattr(sig, "type_name", "")).lower()
         s_name = str(getattr(sig, "state", "")).lower()
         p_lower = str(port_name).lower()
+        port_role = str(getattr(port_sig, "port_role", "") or getattr(sig, "port_role", "") or getattr(port_sig, "role", "") or "").lower()
+        abstract_t = str(getattr(port_sig, "abstract_type", "") or getattr(sig, "abstract_type", "") or "").lower()
+        p_kind = str(getattr(port_sig, "param_kind", "") or getattr(sig, "param_kind", "") or "").lower()
+        is_path = _lattice_is_path_port(port_sig)
+        registry = TypeRegistry.get_instance()
+        path_tokens = registry.get_path_port_tokens()
+        dest_tokens = registry.get_dest_port_tokens()
 
         # 1. Source files / paths
         is_source_port = (
-            p_lower in ("filepath", "source_path", "filename", "file_path", "path", "file", "image_path")
+            port_role in ("source_data", "source", "input_file", "source_identifier")
             or s_name in ("source_identifier", "file_path")
-            or (stage == 1 and t_name in ("str", "path", "filepath", "any") and p_lower not in ("df", "data", "img", "image"))
+            or (is_path and (stage == 1 or port_role in ("source_data", "source", "input_file")))
+            or (stage == 1 and is_path)
+            or (abstract_t == "path" and stage == 1)
+            or p_lower in path_tokens
+            or p_lower in ("filepath", "source_path", "filename", "file_path", "path", "file", "image_path")
         )
         if is_source_port and hasattr(ctx, "source_files") and ctx.source_files:
             return f'"{ctx.source_files[0]}"'
 
         # 2. Destination files / paths
         is_dest_port = (
-            p_lower in ("dest_path", "savepath", "output_path", "dest_identifier", "target_path")
-            or s_name in ("dest_identifier", "filepath_written")
-            or (stage == 3 and t_name in ("str", "path", "filepath", "any") and p_lower not in ("df", "data", "img", "image", "src", "input"))
+            port_role in ("model_sink", "destination", "output_file", "dest_identifier", "sink")
+            or s_name in ("dest_identifier", "filepath_written", "destination_written")
+            or (is_path and (stage == 3 or port_role in ("model_sink", "destination", "output_file", "sink")))
+            or (stage == 3 and is_path)
+            or (abstract_t == "path" and stage == 3)
+            or p_lower in dest_tokens
+            or p_lower in ("dest_path", "savepath", "output_path", "dest_identifier", "target_path")
         )
         if is_dest_port and hasattr(ctx, "dest_files") and ctx.dest_files:
             return f'"{ctx.dest_files[0]}"'
 
         # 3. Columns / Column names
-        if p_lower in ("by", "column", "columns", "subset") or s_name in ("column_name", "column_identifier"):
+        is_col_port = (
+            abstract_t in ("column", "column_list")
+            or p_kind in ("column", "columns")
+            or port_role in ("column_selector", "feature_columns", "target_column", "feature_role", "target_role")
+            or s_name in ("column_name", "column_identifier")
+            or p_lower in ("by", "column", "columns", "subset")
+        )
+        if is_col_port:
             if hasattr(ctx, "columns") and ctx.columns:
                 return f'"{ctx.columns[0]}"'
 

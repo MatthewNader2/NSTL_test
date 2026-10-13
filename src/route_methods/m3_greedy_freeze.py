@@ -47,9 +47,15 @@ class M3GreedyFreezeRouteMethod(RouteMethod):
 
         candidates = [
             c for c in tunnel
-            if getattr(c, "node_type", "") not in ("constant", "macro")
-            and not c.cell_id.startswith("MACRO_")
-            and not (getattr(c, "is_combinator", False) or getattr(c, "node_role", "") == "combinator" or getattr(c, "role", "") == "combinator" or getattr(c, "node_type", "") == "combinator")
+            if getattr(c, "node_type", "") != "constant"
+            and (
+                bool(getattr(c, "slots", None))
+                or (
+                    getattr(c, "node_type", "") != "macro"
+                    and not c.cell_id.startswith("MACRO_")
+                    and not (getattr(c, "is_combinator", False) or getattr(c, "node_role", "") == "combinator" or getattr(c, "role", "") == "combinator" or getattr(c, "node_type", "") == "combinator")
+                )
+            )
         ]
         if not candidates:
             return [tunnel[0]]
@@ -113,10 +119,12 @@ class M3GreedyFreezeRouteMethod(RouteMethod):
                 curr_stage = getattr(curr, "stage", 1) or 1
                 cand_stage = getattr(cand, "stage", 2) or 2
                 progress = 2 if cand_stage > curr_stage else (1 if cand_stage == curr_stage else 0)
+                is_cand_sink = (cand_stage == 3 or str(getattr(cand, "node_role", "") or getattr(cand, "role", "")).lower() in ("sink", "terminal", "egress", "consumer"))
+                is_curr_sink = (curr_stage == 3 or str(getattr(curr, "node_role", "") or getattr(curr, "role", "")).lower() in ("sink", "terminal", "egress", "consumer"))
                 unrequested_egress = (
-                    cand_stage == 3 and self._is_path_consumer(cand)
+                    is_cand_sink and self._is_path_consumer(cand)
                     and not (dst_lit is not None and self.file_compat(cand, dst_lit) > 0)
-                ) or (_requested_sink is None and cand_stage == 3 and curr_stage != 3 and self.clause_fit(target_cl, cand)[0] <= 0.0)
+                ) or (_requested_sink is None and is_cand_sink and not is_curr_sink and self.clause_fit(target_cl, cand)[0] <= 0.0)
                 return (0 if unrequested_egress else 1, self.clause_fit(target_cl, cand), new_mass, progress, rel + aff)
 
             valid_next.sort(key=_score_cand, reverse=True)

@@ -92,6 +92,30 @@ class TokenEvidence:
         name_toks = {t for t in CellTokenizer.tokenize_identifier(str(getattr(cell, "cell_id", ""))) if self.idf(t) > 0.0}
         n_mass = self.mass(name_toks)
         name_precision = (self.mass(clause_toks & name_toks) / n_mass) if n_mass > 0 else 0.0
+
+        # Mathematical contract verification: disambiguate regressor vs classifier dynamically
+        try:
+            from signature_introspector import introspect_estimator_role
+            role = introspect_estimator_role(cell)
+            if role:
+                reg_stem = normalize_token("regressor")
+                clf_stems = {normalize_token("classifier"), normalize_token("classification")}
+                norm_cl_toks = {normalize_token(t) for t in clause_toks}
+                is_clause_regression = (reg_stem in norm_cl_toks) and not bool(clf_stems & norm_cl_toks)
+                is_clause_classification = bool(clf_stems & norm_cl_toks) and (reg_stem not in norm_cl_toks)
+                if is_clause_regression and role == "classifier":
+                    recall *= 0.05
+                    precision *= 0.05
+                    f *= 0.05
+                    name_precision *= 0.05
+                elif is_clause_classification and role == "regressor":
+                    recall *= 0.05
+                    precision *= 0.05
+                    f *= 0.05
+                    name_precision *= 0.05
+        except Exception:
+            pass
+
         return {"hit": hit_mass, "recall": recall, "precision": precision, "f": f,
                 "name_precision": name_precision,
                 "rank": (recall, name_precision, f),

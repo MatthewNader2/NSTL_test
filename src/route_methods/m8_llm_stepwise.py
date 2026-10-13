@@ -129,9 +129,15 @@ class M8LLMStepwisePathfinderRouteMethod(RouteMethod):
 
         candidates = [
             c for c in tunnel
-            if getattr(c, "node_type", "") not in ("constant", "macro")
-            and not c.cell_id.startswith("MACRO_")
-            and not (getattr(c, "is_combinator", False) or getattr(c, "node_role", "") == "combinator" or getattr(c, "role", "") == "combinator" or getattr(c, "node_type", "") == "combinator")
+            if getattr(c, "node_type", "") != "constant"
+            and (
+                bool(getattr(c, "slots", None))
+                or (
+                    getattr(c, "node_type", "") != "macro"
+                    and not c.cell_id.startswith("MACRO_")
+                    and not (getattr(c, "is_combinator", False) or getattr(c, "node_role", "") == "combinator" or getattr(c, "role", "") == "combinator" or getattr(c, "node_type", "") == "combinator")
+                )
+            )
         ] or [tunnel[0]]
         mm = ModelManager.get_instance()
         has_llm = mm.profile is not None and getattr(mm.profile, "llm", None) is not None
@@ -150,12 +156,7 @@ class M8LLMStepwisePathfinderRouteMethod(RouteMethod):
         cand_map = {c.cell_id.lower(): c for c in shown}
 
         # Step 0: Choose entry node
-        l0_extracted = ExecutionContext._extract_universal_literals(prompt or "") if ctx or prompt else []
-        src_file_literals = [
-            val for pos, kind, val in l0_extracted
-            if (kind == "file_asset" or (kind == "quoted_str" and ExecutionContext._is_path_string(str(val))))
-            and ExecutionContext._asset_direction(prompt or "", pos) != "dest"
-        ]
+        src_file_literals, _ = self.extract_file_literals(prompt or "", ctx=ctx)
         entry_candidates = [
             c for c in shown
             if getattr(c, "stage", None) == 1 or getattr(c, "node_role", "") == "source"
@@ -341,7 +342,7 @@ class M8LLMStepwisePathfinderRouteMethod(RouteMethod):
 
             if matched_trans is None:
                 # If current node is a sink or stage 3, complete
-                if curr_stage == 3 or curr_role == "sink" or len(path) >= 2:
+                if curr_stage == 3 or curr_role in ("sink", "terminal", "egress", "consumer"):
                     break
                 # Default to top scored transition that is not visited
                 for tr in active_transitions:

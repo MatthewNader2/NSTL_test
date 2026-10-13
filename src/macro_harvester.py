@@ -227,12 +227,17 @@ class MacroHarvester:
         first_cell = cells[0]
         last_cell = cells[-1]
 
-        # Stage resolution
-        if first_cell.stage == 1 and last_cell.stage == 3:
+        # Stage & Role resolution
+        first_role = str(getattr(first_cell, "node_role", "") or getattr(first_cell, "role", "") or "").lower()
+        last_role = str(getattr(last_cell, "node_role", "") or getattr(last_cell, "role", "") or "").lower()
+        first_is_source = (first_cell.stage == 1 or first_role in ("source", "ingress", "initial"))
+        last_is_sink = (last_cell.stage == 3 or last_role in ("sink", "terminal", "egress", "consumer"))
+
+        if first_is_source and last_is_sink:
             resolved_stage = 2
-        elif first_cell.stage == 1:
+        elif first_is_source:
             resolved_stage = 1
-        elif last_cell.stage == 3:
+        elif last_is_sink:
             resolved_stage = 3
         else:
             resolved_stage = 2

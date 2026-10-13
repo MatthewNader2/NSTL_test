@@ -563,7 +563,8 @@ class LatticeRouter:
                 if _ir is not None and _ir.steps:
                     self.last_compiled_ir = _ir
                     self.last_ir_literals = dict(getattr(_ir, "literals", {}) or {})
-                    for s in _ir.steps:
+                    all_ir_steps = _ir.all_steps() if hasattr(_ir, "all_steps") else _ir.steps
+                    for s in all_ir_steps:
                         op = str(s.get("op", "")).strip()
                         lib = str(s.get("library", "")).strip()
                         params = s.get("params") or {}
@@ -574,7 +575,7 @@ class LatticeRouter:
                         piece = " ".join(w for w in (op, lib, param_words) if w).strip()
                         if piece:
                             ir_clauses.append(piece)
-                    num_semantic_clauses = len(_ir.steps)
+                    num_semantic_clauses = len(all_ir_steps)
                     self._last_ir_steps = num_semantic_clauses
             except Exception as _e:
                 logger.debug("[IR] compilation failed: %s", _e)

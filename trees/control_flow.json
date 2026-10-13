@@ -711,6 +711,15 @@
     {
       "cell_id": "CF_FOR_EACH_STATE",
       "stage": 2,
+      "node_type": "macro",
+      "topology_type": "traced_loop",
+      "feedback_state_type": "State",
+      "slots": {
+        "body": {
+          "input_type": "T",
+          "output_type": "State"
+        }
+      },
       "doc": "Iterative State-Threading Loop: Sequentially iterates through a collection, feeding each element and threading the accumulated State forward.",
       "inputs": {
         "collection": {
@@ -721,7 +730,7 @@
         },
         "body_fn": {
           "type_name": "Callable[[T, State], State]",
-          "required": true,
+          "required": false,
           "port_role": "functional_operator",
           "default_value": "lambda item, s: s"
         },
@@ -738,9 +747,9 @@
         }
       },
       "code_templates": {
-        "python": "{final_state} = {init_state}\nfor _item in {collection}:\n    {final_state} = {body_fn}(_item, {final_state})",
-        "cpp": "{State} {final_state} = {init_state};\nfor (const auto& _item : {collection}) {\n    {final_state} = {body_fn}(_item, {final_state});\n}",
-        "rust": "let mut {final_state} = {init_state};\nfor _item in &{collection} {\n    {final_state} = {body_fn}(_item, {final_state});\n}"
+        "python": "{final_state} = {init_state}\nfor _item in {collection}:\n    {body}",
+        "cpp": "{State} {final_state} = {init_state};\nfor (const auto& _item : {collection}) {\n    {body}\n}",
+        "rust": "let mut {final_state} = {init_state};\nfor _item in &{collection} {\n    {body}\n}"
       },
       "docstring": "Iterative State-Threading Loop: Sequentially iterates through a collection, feeding each element and threading the accumulated State forward.",
       "keywords": [
@@ -751,7 +760,7 @@
         "accumulate"
       ],
       "effects": [],
-      "code_template": "{final_state} = {init_state}\nfor _item in {collection}:\n    {final_state} = {body_fn}(_item, {final_state})",
+      "code_template": "{final_state} = {init_state}\nfor _item in {collection}:\n    {body}",
       "node_role": "combinator",
       "primary_in": "collection",
       "primary_out": "final_state"
@@ -865,6 +874,15 @@
     {
       "cell_id": "CF_WHILE_LOOP",
       "stage": 2,
+      "node_type": "macro",
+      "topology_type": "state_loop",
+      "feedback_state_type": "State",
+      "slots": {
+        "body": {
+          "input_type": "State",
+          "output_type": "State"
+        }
+      },
       "doc": "Inductive Fixpoint Monad: Continuously computes State -> State as long as cond_fn(State) remains true.",
       "inputs": {
         "init_state": {
@@ -881,7 +899,7 @@
         },
         "body_fn": {
           "type_name": "Callable[[State], State]",
-          "required": true,
+          "required": false,
           "port_role": "functional_operator",
           "default_value": "lambda item, s: s"
         }
@@ -892,9 +910,9 @@
         }
       },
       "code_templates": {
-        "python": "{final_state} = {init_state}\nwhile {cond_fn}({final_state}):\n    {final_state} = {body_fn}({final_state})",
-        "cpp": "{State} {final_state} = {init_state};\nwhile ({cond_fn}({final_state})) {\n    {final_state} = {body_fn}({final_state});\n}",
-        "rust": "let mut {final_state} = {init_state};\nwhile {cond_fn}(&{final_state}) {\n    {final_state} = {body_fn}({final_state});\n}"
+        "python": "{final_state} = {init_state}\nwhile {cond_fn}({final_state}):\n    {body}",
+        "cpp": "{State} {final_state} = {init_state};\nwhile ({cond_fn}({final_state})) {\n    {body}\n}",
+        "rust": "let mut {final_state} = {init_state};\nwhile {cond_fn}(&{final_state}) {\n    {body}\n}"
       },
       "docstring": "Inductive Fixpoint Monad: Continuously computes State -> State as long as cond_fn(State) remains true.",
       "keywords": [
@@ -906,7 +924,7 @@
         "iterate"
       ],
       "effects": [],
-      "code_template": "{final_state} = {init_state}\nwhile {cond_fn}({final_state}):\n    {final_state} = {body_fn}({final_state})",
+      "code_template": "{final_state} = {init_state}\nwhile {cond_fn}({final_state}):\n    {body}",
       "node_role": "combinator",
       "primary_in": "init_state",
       "primary_out": "final_state"
@@ -914,6 +932,15 @@
     {
       "cell_id": "CF_WHILE_BOUNDED",
       "stage": 2,
+      "node_type": "macro",
+      "topology_type": "state_loop",
+      "feedback_state_type": "State",
+      "slots": {
+        "body": {
+          "input_type": "State",
+          "output_type": "State"
+        }
+      },
       "doc": "Safe Bounded Fixpoint Loop: Evaluates State -> State while cond_fn(State) is true, with a strict max_iters bound to guarantee termination.",
       "inputs": {
         "init_state": {
@@ -930,7 +957,7 @@
         },
         "body_fn": {
           "type_name": "Callable[[State], State]",
-          "required": true,
+          "required": false,
           "port_role": "functional_operator",
           "default_value": "lambda item, s: s"
         },
@@ -947,9 +974,9 @@
         }
       },
       "code_templates": {
-        "python": "{final_state} = {init_state}\n_iter_count = 0\nwhile {cond_fn}({final_state}) and _iter_count < {max_iters}:\n    {final_state} = {body_fn}({final_state})\n    _iter_count += 1",
-        "cpp": "{State} {final_state} = {init_state};\nint _iter_count = 0;\nwhile ({cond_fn}({final_state}) && _iter_count < {max_iters}) {\n    {final_state} = {body_fn}({final_state});\n    ++_iter_count;\n}",
-        "rust": "let mut {final_state} = {init_state};\nlet mut _iter_count = 0;\nwhile {cond_fn}(&{final_state}) && _iter_count < {max_iters} {\n    {final_state} = {body_fn}({final_state});\n    _iter_count += 1;\n}"
+        "python": "{final_state} = {init_state}\n_iter_count = 0\nwhile {cond_fn}({final_state}) and _iter_count < {max_iters}:\n    {body}\n    _iter_count += 1",
+        "cpp": "{State} {final_state} = {init_state};\nint _iter_count = 0;\nwhile ({cond_fn}({final_state}) && _iter_count < {max_iters}) {\n    {body}\n    ++_iter_count;\n}",
+        "rust": "let mut {final_state} = {init_state};\nlet mut _iter_count = 0;\nwhile {cond_fn}(&{final_state}) && _iter_count < {max_iters} {\n    {body}\n    _iter_count += 1;\n}"
       },
       "docstring": "Safe Bounded Fixpoint Loop: Evaluates State -> State while cond_fn(State) is true, with a strict max_iters bound to guarantee termination.",
       "keywords": [
@@ -958,7 +985,7 @@
         "max_iterations"
       ],
       "effects": [],
-      "code_template": "{final_state} = {init_state}\n_iter_count = 0\nwhile {cond_fn}({final_state}) and _iter_count < {max_iters}:\n    {final_state} = {body_fn}({final_state})\n    _iter_count += 1",
+      "code_template": "{final_state} = {init_state}\n_iter_count = 0\nwhile {cond_fn}({final_state}) and _iter_count < {max_iters}:\n    {body}\n    _iter_count += 1",
       "node_role": "combinator",
       "primary_in": "init_state",
       "primary_out": "final_state"
@@ -966,6 +993,15 @@
     {
       "cell_id": "CF_REPEAT_UNTIL",
       "stage": 2,
+      "node_type": "macro",
+      "topology_type": "state_loop",
+      "feedback_state_type": "State",
+      "slots": {
+        "body": {
+          "input_type": "State",
+          "output_type": "State"
+        }
+      },
       "doc": "Post-Condition Inductive Loop (do-while): Executes body_fn at least once, repeating until until_cond_fn(State) is true.",
       "inputs": {
         "init_state": {
@@ -976,7 +1012,7 @@
         },
         "body_fn": {
           "type_name": "Callable[[State], State]",
-          "required": true,
+          "required": false,
           "port_role": "functional_operator",
           "default_value": "lambda item, s: s"
         },
@@ -993,9 +1029,9 @@
         }
       },
       "code_templates": {
-        "python": "{final_state} = {init_state}\nwhile True:\n    {final_state} = {body_fn}({final_state})\n    if {until_cond_fn}({final_state}):\n        break",
-        "cpp": "{State} {final_state} = {init_state};\ndo {\n    {final_state} = {body_fn}({final_state});\n} while (!{until_cond_fn}({final_state}));",
-        "rust": "let mut {final_state} = {init_state};\nloop {\n    {final_state} = {body_fn}({final_state});\n    if {until_cond_fn}(&{final_state}) {\n        break;\n    }\n}"
+        "python": "{final_state} = {init_state}\nwhile True:\n    {body}\n    if {until_cond_fn}({final_state}):\n        break",
+        "cpp": "{State} {final_state} = {init_state};\ndo {\n    {body}\n} while (!{until_cond_fn}({final_state}));",
+        "rust": "let mut {final_state} = {init_state};\nloop {\n    {body}\n    if {until_cond_fn}(&{final_state}) {\n        break;\n    }\n}"
       },
       "docstring": "Post-Condition Inductive Loop (do-while): Executes body_fn at least once, repeating until until_cond_fn(State) is true.",
       "keywords": [
@@ -1004,7 +1040,7 @@
         "do_while"
       ],
       "effects": [],
-      "code_template": "{final_state} = {init_state}\nwhile True:\n    {final_state} = {body_fn}({final_state})\n    if {until_cond_fn}({final_state}):\n        break",
+      "code_template": "{final_state} = {init_state}\nwhile True:\n    {body}\n    if {until_cond_fn}({final_state}):\n        break",
       "node_role": "combinator",
       "primary_in": "init_state",
       "primary_out": "final_state"
@@ -1012,7 +1048,13 @@
     {
       "cell_id": "CF_BRANCH_IF_ELSE",
       "stage": 2,
-      "doc": "Coproduct / Sum Eliminator: Dispatches computation to either on_true or on_false based on a boolean condition flag.",
+      "node_type": "macro",
+      "topology_type": "coproduct_branch",
+      "slots": {
+        "then_branch": {},
+        "else_branch": {}
+      },
+      "doc": "Coproduct / Sum Eliminator: Dispatches computation to either then_branch or else_branch based on a boolean condition flag.",
       "inputs": {
         "condition": {
           "type_name": "bool",
@@ -1022,13 +1064,13 @@
         },
         "on_true": {
           "type_name": "Callable[[T], U]",
-          "required": true,
+          "required": false,
           "port_role": "functional_operator",
           "default_value": "lambda d: d"
         },
         "on_false": {
           "type_name": "Callable[[T], U]",
-          "required": true,
+          "required": false,
           "port_role": "functional_operator",
           "default_value": "lambda d: d"
         },
@@ -1045,11 +1087,11 @@
         }
       },
       "code_templates": {
-        "python": "{result} = ({on_true})({data}) if {condition} else ({on_false})({data})",
-        "cpp": "{U} {result} = ({condition}) ? {on_true}({data}) : {on_false}({data});",
-        "rust": "let {result}: {U} = if {condition} { {on_true}({data}) } else { {on_false}({data}) };"
+        "python": "if {condition}:\n    {then_branch}\nelse:\n    {else_branch}",
+        "cpp": "if ({condition}) {\n    {then_branch}\n} else {\n    {else_branch}\n}",
+        "rust": "if {condition} {\n    {then_branch}\n} else {\n    {else_branch}\n}"
       },
-      "docstring": "Coproduct / Sum Eliminator: Dispatches computation to either on_true or on_false based on a boolean condition flag.",
+      "docstring": "Coproduct / Sum Eliminator: Dispatches computation to either then_branch or else_branch based on a boolean condition flag.",
       "keywords": [
         "if",
         "else",
@@ -1059,7 +1101,7 @@
         "choose"
       ],
       "effects": [],
-      "code_template": "{result} = ({on_true})({data}) if {condition} else ({on_false})({data})",
+      "code_template": "if {condition}:\n    {then_branch}\nelse:\n    {else_branch}",
       "node_role": "combinator",
       "primary_in": "data",
       "primary_out": "result"
@@ -1203,17 +1245,23 @@
     {
       "cell_id": "CF_TRY_EXCEPT",
       "stage": 2,
+      "node_type": "macro",
+      "topology_type": "coproduct_branch",
+      "slots": {
+        "try_body": {},
+        "except_body": {}
+      },
       "doc": "Error Trap / Either Monad morphism: Safely evaluates an action, catching specific runtime exceptions and executing a fallback handler.",
       "inputs": {
         "action": {
           "type_name": "Callable[[T], U]",
-          "required": true,
+          "required": false,
           "port_role": "functional_operator",
           "default_value": "lambda d: d"
         },
         "fallback": {
           "type_name": "Callable[[Exception, T], U]",
-          "required": true,
+          "required": false,
           "port_role": "functional_operator",
           "default_value": "lambda err, d: d"
         },
@@ -1236,8 +1284,8 @@
         }
       },
       "code_templates": {
-        "python": "try:\n    {result} = {action}({data})\nexcept {exception_type} as _err:\n    {result} = {fallback}(_err, {data})",
-        "cpp": "{U} {result};\ntry {\n    {result} = {action}({data});\n} catch (const std::exception& _err /* {exception_type} */) {\n    {result} = {fallback}(_err, {data});\n}",
+        "python": "try:\n    {try_body}\nexcept {exception_type} as _err:\n    {except_body}",
+        "cpp": "{U} {result};\ntry {\n    {try_body}\n} catch (const std::exception& _err /* {exception_type} */) {\n    {except_body}\n}",
         "rust": "let {result}: {U} = match std::panic::catch_unwind(std::panic::AssertUnwindSafe /* {exception_type} */(|| {action}({data}))) {\n    Ok(res) => res,\n    Err(_err) => {fallback}(_err, {data}),\n};"
       },
       "docstring": "Error Trap / Either Monad morphism: Safely evaluates an action, catching specific runtime exceptions and executing a fallback handler.",
@@ -1252,7 +1300,7 @@
         "handle"
       ],
       "effects": [],
-      "code_template": "try:\n    {result} = {action}({data})\nexcept {exception_type} as _err:\n    {result} = {fallback}(_err, {data})",
+      "code_template": "try:\n    {try_body}\nexcept {exception_type} as _err:\n    {except_body}",
       "node_role": "combinator",
       "primary_in": "data",
       "primary_out": "result"
@@ -1665,6 +1713,11 @@
     {
       "cell_id": "CF_WITH_CONTEXT",
       "stage": 2,
+      "node_type": "macro",
+      "topology_type": "context_manager",
+      "slots": {
+        "body": {}
+      },
       "doc": "Bracket / RAII Context Manager: Acquires a managed resource, securely runs body_fn within the active context, and guarantees deterministic release.",
       "inputs": {
         "context_manager": {
@@ -1675,7 +1728,7 @@
         },
         "body_fn": {
           "type_name": "Callable[[C], U]",
-          "required": true,
+          "required": false,
           "port_role": "functional_operator",
           "default_value": "lambda item, s: s"
         }
@@ -1686,9 +1739,9 @@
         }
       },
       "code_templates": {
-        "python": "with {context_manager} as _ctx:\n    {result} = {body_fn}(_ctx)",
-        "cpp": "{U} {result};\n{\n    auto _ctx = {context_manager}.acquire();\n    {result} = {body_fn}(_ctx.get());\n}",
-        "rust": "let {result}: {U} = {\n    let _ctx = {context_manager}.enter();\n    {body_fn}(&_ctx)\n};"
+        "python": "with {context_manager} as _ctx:\n    {body}",
+        "cpp": "{\n    auto _ctx = {context_manager}.acquire();\n    {body}\n}",
+        "rust": "{\n    let _ctx = {context_manager}.enter();\n    {body}\n}"
       },
       "docstring": "Bracket / RAII Context Manager: Acquires a managed resource, securely runs body_fn within the active context, and guarantees deterministic release.",
       "keywords": [
@@ -1699,7 +1752,7 @@
         "open"
       ],
       "effects": [],
-      "code_template": "with {context_manager} as _ctx:\n    {result} = {body_fn}(_ctx)",
+      "code_template": "with {context_manager} as _ctx:\n    {body}",
       "node_role": "combinator",
       "primary_in": "context_manager",
       "primary_out": "result"
