@@ -721,14 +721,72 @@ def cmd_compile(args):
 
 
 def cmd_validate(args):
-    """Performs dry-run AST validation and integrity verification on all nodes in SQLite."""
-    db_path = Path(args.db)
-    if not db_path.exists():
-        print(f"[!] Database file '{db_path}' does not exist!")
+    """Performs dry-run AST validation and integrity verification on SQLite or JSON trees."""
+    target_str = getattr(args, "db", None) or getattr(args, "target", "trees/lattice.db")
+    target_path = Path(target_str)
+    if not target_path.exists():
+        print(f"[!] Target file '{target_path}' does not exist!")
         sys.exit(1)
 
-    print(f"[*] Validating SQLite Database '{db_path}'...")
-    conn = sqlite3.connect(str(db_path))
+    if target_str.endswith(".json"):
+        print(f"[*] Validating Domain Tree JSON '{target_path}'...")
+        try:
+            with open(target_path, "r", encoding="utf-8") as f:
+                raw_data = json.load(f)
+            tree = TreeSchema.model_validate(raw_data)
+        except Exception as e:
+            print(f"[X] JSON / Schema Validation Error: {e}")
+            sys.exit(1)
+
+        valid_count = 0
+        failed_count = 0
+        errors: List[str] = []
+        stage_counts = {1: 0, 2: 0, 3: 0}
+
+        for cell in tree.cells:
+            stage_counts[cell.stage] = stage_counts.get(cell.stage, 0) + 1
+            code = cell.code_template
+            if not code or not code.strip():
+                if getattr(cell, "node_type", "") == "macro" or getattr(cell, "sub_cells", []):
+                    valid_count += 1
+                    continue
+                failed_count += 1
+                errors.append(f"{cell.cell_id}: Empty code template")
+                continue
+
+            dummy_code = sanitize_placeholders_for_ast(code)
+            try:
+                ast.parse(dummy_code)
+                valid_count += 1
+            except SyntaxError as e:
+                failed_count += 1
+                errors.append(f"{cell.cell_id}: AST Syntax Error: {e}")
+
+        total = len(tree.cells)
+        print(f"\n==================================================")
+        print(f" VALIDATION RESULTS FOR: {target_path.name}")
+        print(f"==================================================")
+        print(f" Domain Name         : {tree.domain}")
+        print(f" Total Cells Checked : {total}")
+        print(f"   Stage 1 (Ingress) : {stage_counts.get(1, 0)}")
+        print(f"   Stage 2 (Step)    : {stage_counts.get(2, 0)}")
+        print(f"   Stage 3 (Egress)  : {stage_counts.get(3, 0)}")
+        print(f" Syntactically Valid : {valid_count}")
+        print(f" Failed Nodes        : {failed_count}")
+        print(f" Success Rate        : {(valid_count / total * 100):.2f}%" if total else "0.00%")
+
+        if errors:
+            print("\n[!] Top Errors:")
+            for err in errors[:10]:
+                print(f"  - {err}")
+            sys.exit(1)
+        else:
+            print("\n✅ Tree is 100% valid and ready to compile into lattice.db!")
+            print(f"   Run: python3 nstl_cli.py compile")
+        return
+
+    print(f"[*] Validating SQLite Database '{target_path}'...")
+    conn = sqlite3.connect(str(target_path))
     cur = conn.cursor()
 
     cur.execute("SELECT cell_id, domain_name, stage, code, input_type, output_type, configuration_schema, node_type, node_role FROM nodes")
@@ -765,7 +823,7 @@ def cmd_validate(args):
     conn.close()
 
     print(f"\n==================================================")
-    print(f" VALIDATION RESULTS FOR: {db_path.name}")
+    print(f" VALIDATION RESULTS FOR: {target_path.name}")
     print(f"==================================================")
     print(f" Total Nodes Checked : {len(rows)}")
     print(f" Syntactically Valid : {valid_count}")
@@ -3361,8 +3419,9 @@ def build_parser() -> argparse.ArgumentParser:
     p_compile.add_argument("--clean", action="store_true", help="Purge target database before compiling")
     p_compile.set_defaults(func=cmd_compile)
 
-    p_validate = subparsers.add_parser("validate", help="Validate AST syntax and schema of all nodes in SQLite")
-    p_validate.add_argument("--db", type=str, default="trees/lattice.db", help="Path to SQLite database")
+    p_validate = subparsers.add_parser("validate", help="Validate AST syntax and schema of all nodes in SQLite or domain JSON")
+    p_validate.add_argument("target", nargs="?", default="trees/lattice.db", help="Path to SQLite database (.db) or domain JSON file (.json) to validate")
+    p_validate.add_argument("--db", type=str, default=None, help="Optional legacy path to SQLite database")
     p_validate.set_defaults(func=cmd_validate)
 
     p_audit = subparsers.add_parser("audit", help="Audit lattice graph connectivity, reachability, and cross-tree bridges")
