@@ -503,7 +503,19 @@ def cmd_compile(args):
 
         if tree and data:
             types_dict = getattr(tree, "types", {}) or data.get("types", {})
-            if isinstance(types_dict, dict):
+            if isinstance(types_dict, list):
+                reg = TypeRegistry.get_instance()
+                for item in types_dict:
+                    if isinstance(item, dict):
+                        t_name = item.get("name") or item.get("type_name")
+                        parent = item.get("parent") or item.get("parent_type")
+                        if t_name and parent:
+                            reg.register_type(str(t_name), str(parent))
+                            cur.execute(
+                                "INSERT OR REPLACE INTO types (type_name, parent_type, domain_name) VALUES (?, ?, ?)",
+                                (str(t_name).strip().lower(), str(parent).strip().lower(), domain)
+                            )
+            elif isinstance(types_dict, dict):
                 reg = TypeRegistry.get_instance()
                 for t_name, t_meta in types_dict.items():
                     if isinstance(t_meta, dict):
