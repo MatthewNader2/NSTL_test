@@ -1,16 +1,14 @@
 """
 src/synthesis.py - Neuro-Symbolic Topological Lattice (NSTL)
-Dynamic MicroCell Synthesizer: Grounded in Live API Documentation.
+Dynamic MicroCell Synthesizer & Capability-Sandboxed Inductive Kernel Generator.
 """
 
 from __future__ import annotations
 import asyncio
 import ast
 import importlib
-import json
 import os
-import textwrap
-from typing import Dict, Any, List, Optional, Tuple
+from typing import Dict, Any, List, Optional, Set, Tuple, Type
 from log_config import get_logger
 
 try:
@@ -34,7 +32,196 @@ except (ImportError, ValueError):
         extract_template_placeholders,
     )
 
-logger = get_logger('synthesis')
+logger = get_logger("synthesis")
+
+
+class KernelSynthesisError(RuntimeError):
+    """
+    Raised when inductive state kernel synthesis fails or produces unsafe code.
+    Eliminates silent fake-success zero/empty fallbacks.
+    """
+    pass
+
+
+# --------------------------------------------------------------------------- #
+# AST Capability Permit-List Validator (Track 1.6)
+# --------------------------------------------------------------------------- #
+
+class ASTCapabilityValidator(ast.NodeVisitor):
+    """
+    Capability-based AST Permit-List Validator for synthesized kernels.
+    Strictly allows only pure mathematical, algorithmic, collection, and bounded
+    control-flow constructs. Rejects all imports, I/O, reflection builtins
+    (getattr, eval, exec, open, __import__), unwhitelisted modules, and dunder attribute traversal.
+    """
+
+    PERMITTED_BUILTINS: Set[str] = {
+        "abs", "all", "any", "bool", "chr", "cmp", "complex", "dict", "divmod",
+        "enumerate", "filter", "float", "frozenset", "hex", "int", "isinstance",
+        "issubclass", "iter", "len", "list", "map", "max", "min", "next", "oct",
+        "ord", "pow", "range", "reversed", "round", "set", "slice", "sorted",
+        "str", "sum", "tuple", "zip",
+        # Safe exception types for defensive arithmetic
+        "ValueError", "TypeError", "ZeroDivisionError", "IndexError", "KeyError", "Exception",
+    }
+
+    PERMITTED_MODULE_NAMESPACES: Set[str] = {
+        "math", "np", "numpy", "pd", "pandas", "scipy", "cv2", "pygame",
+    }
+
+    FORBIDDEN_NAMES: Set[str] = {
+        "__builtins__", "__import__", "__loader__", "__spec__", "__package__",
+        "__file__", "__cached__", "globals", "locals", "vars", "dir",
+        "eval", "exec", "compile", "open", "input", "breakpoint", "exit", "quit",
+        "getattr", "setattr", "delattr", "hasattr", "memoryview", "classmethod", "staticmethod",
+    }
+
+    PERMITTED_NODES: Tuple[Type[ast.AST], ...] = (
+        ast.Module,
+        # Statements
+        ast.Assign, ast.AnnAssign, ast.AugAssign, ast.Expr, ast.Pass,
+        ast.If, ast.For, ast.While, ast.Break, ast.Continue,
+        ast.Try, ast.ExceptHandler, ast.Raise, ast.Delete,
+        # Expressions
+        ast.BinOp, ast.UnaryOp, ast.BoolOp, ast.Compare, ast.IfExp,
+        ast.Call, ast.Constant, ast.Name, ast.Attribute, ast.Subscript, ast.Slice,
+        ast.List, ast.Tuple, ast.Set, ast.Dict, ast.Starred,
+        ast.ListComp, ast.SetComp, ast.DictComp, ast.GeneratorExp, ast.comprehension,
+        ast.Lambda, ast.arguments, ast.arg, ast.keyword,
+        ast.JoinedStr, ast.FormattedValue,
+        # Contexts & Operators
+        ast.Load, ast.Store, ast.Del,
+        ast.operator, ast.unaryop, ast.boolop, ast.cmpop,
+    )
+
+    def __init__(self, allowed_vars: Optional[Set[str]] = None) -> None:
+        self.error: Optional[str] = None
+        self.allowed_vars: Set[str] = set(allowed_vars or ())
+        self._valid_roots: Set[str] = set()
+
+    def _collect_local_assigned_names(self, tree: ast.AST) -> Set[str]:
+        assigned: Set[str] = set()
+        for node in ast.walk(tree):
+            if isinstance(node, ast.Assign):
+                for target in node.targets:
+                    assigned.update(n.id for n in ast.walk(target) if isinstance(n, ast.Name))
+            elif isinstance(node, (ast.AugAssign, ast.AnnAssign)):
+                if node.target:
+                    assigned.update(n.id for n in ast.walk(node.target) if isinstance(n, ast.Name))
+            elif isinstance(node, (ast.For, ast.AsyncFor)):
+                assigned.update(n.id for n in ast.walk(node.target) if isinstance(n, ast.Name))
+            elif isinstance(node, ast.comprehension):
+                assigned.update(n.id for n in ast.walk(node.target) if isinstance(n, ast.Name))
+            elif isinstance(node, ast.NamedExpr):
+                if isinstance(node.target, ast.Name):
+                    assigned.add(node.target.id)
+            elif isinstance(node, ast.ExceptHandler):
+                if node.name:
+                    assigned.add(node.name)
+        return assigned
+
+    def _find_attribute_root(self, node: ast.AST) -> Optional[str]:
+        curr = node
+        while isinstance(curr, ast.Attribute):
+            curr = curr.value
+        if isinstance(curr, ast.Name):
+            return curr.id
+        return None
+
+    def validate(self, tree: ast.AST, allowed_vars: Optional[Set[str]] = None) -> Tuple[bool, Optional[str]]:
+        self.error = None
+        current_allowed = set(self.allowed_vars)
+        if allowed_vars:
+            current_allowed.update(allowed_vars)
+
+        try:
+            try:
+                from .lattice import TypeRegistry
+            except (ImportError, ValueError):
+                from lattice import TypeRegistry
+            reg = TypeRegistry.get_instance()
+            aliases = reg.get_all_aliases()
+            libs = reg.get_all_libraries()
+            permitted_modules = (
+                set(self.PERMITTED_MODULE_NAMESPACES)
+                | set(aliases.keys())
+                | set(aliases.values())
+                | set(libs)
+            )
+        except Exception:
+            permitted_modules = set(self.PERMITTED_MODULE_NAMESPACES)
+
+        local_assigned = self._collect_local_assigned_names(tree)
+        self._valid_roots = (
+            current_allowed
+            | local_assigned
+            | permitted_modules
+            | self.PERMITTED_BUILTINS
+            | {"self", "cls"}
+        )
+        self.visit(tree)
+        return (self.error is None, self.error)
+
+    def generic_visit(self, node: ast.AST) -> None:
+        if self.error is not None:
+            return
+        if not isinstance(node, self.PERMITTED_NODES):
+            self.error = f"Disallowed AST construct '{type(node).__name__}' in pure kernel"
+            return
+        super().generic_visit(node)
+
+    def visit_Name(self, node: ast.Name) -> None:
+        if self.error is not None:
+            return
+        if node.id.startswith("__") or node.id.endswith("__") or node.id in self.FORBIDDEN_NAMES:
+            self.error = f"Forbidden identifier or builtin reference: '{node.id}'"
+            return
+        self.generic_visit(node)
+
+    def visit_Attribute(self, node: ast.Attribute) -> None:
+        if self.error is not None:
+            return
+        if node.attr.startswith("__") or node.attr.endswith("__"):
+            self.error = f"Forbidden dunder attribute access: '.{node.attr}'"
+            return
+        if node.attr in self.FORBIDDEN_NAMES:
+            self.error = f"Forbidden attribute access: '.{node.attr}'"
+            return
+        root_id = self._find_attribute_root(node)
+        if root_id is not None and root_id not in self._valid_roots:
+            self.error = f"Unauthorized attribute access on untrusted/unpermitted identifier '{root_id}.{node.attr}'"
+            return
+        self.generic_visit(node)
+
+    def visit_Call(self, node: ast.Call) -> None:
+        if self.error is not None:
+            return
+        func = node.func
+        if isinstance(func, ast.Name):
+            if func.id not in self.PERMITTED_BUILTINS and func.id not in self._valid_roots:
+                self.error = f"Call to non-whitelisted function or builtin: '{func.id}()'"
+                return
+        elif isinstance(func, ast.Attribute):
+            if func.attr.startswith("_") or func.attr in self.FORBIDDEN_NAMES:
+                self.error = f"Forbidden method call: '.{func.attr}()'"
+                return
+            # Block known OS/process/network/file-write methods even on variables
+            if func.attr in (
+                "system", "popen", "spawn", "execv", "fork", "kill", "remove", "unlink",
+                "rmdir", "rmtree", "connect", "bind", "listen", "makefile", "to_pickle",
+                "read_pickle", "load_module", "exec_module", "run", "check_output",
+                "write_text", "write_bytes", "urlopen", "urlretrieve", "delete",
+            ):
+                self.error = f"Forbidden side-effecting method call: '.{func.attr}()'"
+                return
+            root_id = self._find_attribute_root(func)
+            if root_id is not None and root_id not in self._valid_roots:
+                self.error = f"Unauthorized method call on untrusted/unpermitted identifier '{root_id}.{func.attr}()'"
+                return
+        else:
+            self.error = f"Disallowed dynamic callable expression '{type(func).__name__}'"
+            return
+        self.generic_visit(node)
 
 
 # --------------------------------------------------------------------------- #
@@ -87,10 +274,7 @@ class SynthesisEngine:
         Queries official API documentation and uses the LLM to synthesize
         a verified, type-annotated MicroCell.
         """
-        logger.info(f"[SYNTHESIS] Fetching live documentation for: '{gap_concept}'")
-        # LiveDocFetcher exposes a synchronous text interface; the async
-        # registry path is resolved internally (thread-offloaded when a loop
-        # is already running). Result is plain documentation text.
+        logger.info("[SYNTHESIS] Fetching live documentation for: '%s'", gap_concept)
         fetch_call = getattr(fetcher, "fetch", None)
         if fetch_call is None:
             live_docs = ""
@@ -99,7 +283,6 @@ class SynthesisEngine:
                 live_docs = fetch_call(gap_concept)
             except TypeError:
                 live_docs = ""
-            # Guard against awaitable returns from async fetchers.
             if asyncio.iscoroutine(live_docs) or isinstance(live_docs, asyncio.Future):
                 try:
                     loop = asyncio.get_running_loop()
@@ -113,7 +296,6 @@ class SynthesisEngine:
                 live_docs = str(getattr(live_docs, "content", "") or "")
         live_docs = live_docs or "No live documentation available."
 
-        # Infer stage algebraically from input/output spec if not explicitly passed
         if stage is None:
             if not expected_input or str(expected_input).lower() in ("any", "none"):
                 stage = 1
@@ -137,9 +319,7 @@ class SynthesisEngine:
                 "as the destination identifier (e.g. `{input_var}.<sink_func>({dest_path})\\n{output_var} = {dest_path}`)."
             )
             input_spec = f'{{"type_name": "{expected_input}", "state": "any"}}'
-            sample_template = (
-                "{input_var}.<sink_func>({dest_path})\n{output_var} = {dest_path}"
-            )
+            sample_template = "{input_var}.<sink_func>({dest_path})\n{output_var} = {dest_path}"
         else:
             template_rule = (
                 "For Stage 2 (Intermediate morphism), `code_template` MUST consume `{input_var}` and "
@@ -177,7 +357,6 @@ RULES:
 4. Never hardcode file asset paths — always use `{{filepath}}` or `{{dest_path}}` placeholders."""
 
         full_prompt = f"{system_prompt}\n\nTask: {gap_concept}"
-
         result_text = ModelManager.get_instance().generate_text(full_prompt, max_tokens=1024)
 
         cell_dict = extract_json_from_llm(result_text)
@@ -185,7 +364,6 @@ RULES:
             logger.error("[SYNTHESIS ERROR] Failed to extract JSON from model output")
             raise ValueError(f"Model failed to generate valid JSON for {gap_concept}")
 
-        # Validate template syntax by substituting dummy identifiers for all placeholders
         template = extract_code_from_llm_response(cell_dict.get("code_template", ""))
         cell_dict["code_template"] = template
         if not validate_code_template(template):
@@ -207,8 +385,7 @@ def synthesize_and_register(
 ) -> Optional[Any]:
     """
     Pipeline-facing entrypoint that synthesizes a micro-cell and registers it
-    into a TypeRegistry / cell repository. Wires SynthesisEngine into the
-    active pipeline without forcing callers to know the internal shape.
+    into a TypeRegistry / cell repository.
     """
     try:
         cell_dict = engine.synthesize_micro_cell(
@@ -253,24 +430,15 @@ class InductiveKernelGenerator:
     simulation step, algorithmic transformations).
 
     Guarantees:
-      - Rigorous AST validation (no unsafe globals, imports, or I/O).
-      - Strict state boundary encapsulation: reads inputs, writes outputs.
-      - Exact indentation alignment when spliced into macro envelopes.
-      - Self-contained deterministic fallback if LLM inference is unavailable.
+      - Capability-based AST Permit-List validation (zero imports, I/O, or dunder bypasses).
+      - Explicit statement unwrapping (strips `def` wrappers, `return`, `assert`, and `print()`).
+      - Counter-Example Guided Inductive Synthesis (CEGIS) repair hook (`repair_kernel`).
+      - Fails loudly with `KernelSynthesisError` instead of emitting dummy zero-values.
     """
-
-    FORBIDDEN_BUILTINS = {
-        "eval", "exec", "compile", "__import__", "open", "input",
-        "globals", "locals", "breakpoint", "exit", "quit"
-    }
-
-    FORBIDDEN_MODULES = {
-        "os", "sys", "subprocess", "socket", "urllib", "requests",
-        "http", "shutil", "ctypes", "builtins"
-    }
 
     def __init__(self, model_manager: Optional[ModelManager] = None):
         self._model_manager = model_manager
+        self._validator = ASTCapabilityValidator()
 
     @property
     def model_manager(self) -> ModelManager:
@@ -278,38 +446,22 @@ class InductiveKernelGenerator:
             self._model_manager = ModelManager.get_instance()
         return self._model_manager
 
-    def validate_safety(self, code: str) -> Tuple[bool, Optional[str]]:
+    def validate_safety(self, code: str, allowed_vars: Optional[Set[str]] = None) -> Tuple[bool, Optional[str]]:
         """
-        Validates that a code snippet is a pure, safe state transition without I/O or unsafe calls.
+        Validates that a code snippet is a pure, capability-safe state transition
+        using ASTCapabilityValidator.
         """
+        if not code or not code.strip():
+            return False, "Empty kernel code"
         try:
             tree = ast.parse(code)
         except SyntaxError as e:
             return False, f"SyntaxError in kernel code: {e}"
 
-        for node in ast.walk(tree):
-            if isinstance(node, ast.Call):
-                func = node.func
-                if isinstance(func, ast.Name) and func.id in self.FORBIDDEN_BUILTINS:
-                    return False, f"Forbidden builtin call: {func.id}()"
-                elif isinstance(func, ast.Attribute):
-                    if isinstance(func.value, ast.Name) and func.value.id in self.FORBIDDEN_MODULES:
-                        return False, f"Forbidden module method call: {func.value.id}.{func.attr}()"
-                    if func.attr in self.FORBIDDEN_BUILTINS:
-                        return False, f"Forbidden attribute call: .{func.attr}()"
+        if not tree.body:
+            return False, "Kernel AST contains no executable statements"
 
-            elif isinstance(node, (ast.Import, ast.ImportFrom)):
-                if isinstance(node, ast.Import):
-                    for alias in node.names:
-                        mod = alias.name.split(".")[0]
-                        if mod in self.FORBIDDEN_MODULES:
-                            return False, f"Forbidden import: {mod}"
-                elif isinstance(node, ast.ImportFrom):
-                    mod = (node.module or "").split(".")[0]
-                    if mod in self.FORBIDDEN_MODULES:
-                        return False, f"Forbidden import from: {mod}"
-
-        return True, None
+        return self._validator.validate(tree, allowed_vars=allowed_vars)
 
     def generate_kernel(
         self,
@@ -321,6 +473,7 @@ class InductiveKernelGenerator:
     ) -> str:
         """
         Synthesizes a pure Python state transition snippet for the given task and state signatures.
+        Raises KernelSynthesisError if no valid, capability-safe kernel can be synthesized.
         """
         in_lines = "\n".join(f"- {name}: {t}" for name, t in state_inputs.items()) or "- (none)"
         out_lines = "\n".join(f"- {name}: {t}" for name, t in state_outputs.items()) or "- (none)"
@@ -332,7 +485,7 @@ class InductiveKernelGenerator:
             "STRICT RULES:\n"
             "1. Output ONLY executable Python code statements. No markdown code fences, no explanations, no def function wrappers.\n"
             "2. PURE LOGIC ONLY: Read from input state variables and update/assign output state variables.\n"
-            "3. NO I/O, NO print(), NO input(), NO imports of os, sys, subprocess, or socket.\n"
+            "3. NO I/O, NO print(), NO assert, NO input(), NO imports of any module.\n"
             "4. Keep code clean, bounded, and mathematically correct."
         )
 
@@ -355,57 +508,149 @@ class InductiveKernelGenerator:
                 )
                 raw_code = extract_code_from_llm_response(response).strip()
             except Exception as e:
-                logger.warning(f"[INDUCTIVE KERNEL] ModelManager generation failed: {e}")
+                logger.warning("[INDUCTIVE KERNEL] ModelManager generation failed: %s", e)
 
         if not raw_code:
             raw_code = self._try_direct_local_generation(user_prompt, system_prompt, max_tokens)
 
-        if raw_code:
-            clean_code = self._sanitize_and_unwrap_kernel(raw_code, state_outputs)
-            is_safe, error_msg = self.validate_safety(clean_code)
-            if is_safe:
-                logger.info(f"[INDUCTIVE KERNEL] Successfully synthesized and validated kernel for '{task_description}'")
-                return clean_code
-            else:
-                logger.warning(f"[INDUCTIVE KERNEL] Synthesized code failed safety check: {error_msg}")
+        if not raw_code:
+            raise KernelSynthesisError(
+                f"Inductive synthesis failed for '{task_description}': no LLM output generated."
+            )
 
-        logger.info(f"[INDUCTIVE KERNEL] Using deterministic fallback for '{task_description}'")
-        return self._generate_fallback_kernel(state_inputs, state_outputs, task_description)
+        clean_code = self._sanitize_and_unwrap_kernel(raw_code, state_outputs)
+        allowed_state_vars = set(state_inputs.keys()) | set(state_outputs.keys())
+        is_safe, error_msg = self.validate_safety(clean_code, allowed_vars=allowed_state_vars)
+        if not is_safe:
+            logger.error("[INDUCTIVE KERNEL] Synthesized code failed capability check: %s", error_msg)
+            raise KernelSynthesisError(
+                f"Synthesized kernel for '{task_description}' violated capability safety: {error_msg}"
+            )
+
+        logger.info("[INDUCTIVE KERNEL] Successfully synthesized and validated kernel for '%s'", task_description)
+        return clean_code
+
+    def repair_kernel(
+        self,
+        failing_code: str,
+        task_description: str,
+        traceback_error: str,
+        state_inputs: Dict[str, str],
+        state_outputs: Dict[str, str],
+        failing_inputs: Optional[Dict[str, Any]] = None,
+        max_tokens: int = 512,
+    ) -> str:
+        """
+        Counter-Example Guided Inductive Synthesis (CEGIS) kernel repair (Track 8.1).
+        Accepts a failing kernel snippet, target invariant/goal, runtime traceback,
+        and optional counter-example input values, returning a surgically repaired
+        and capability-validated kernel.
+        """
+        in_lines = "\n".join(f"- {name}: {t}" for name, t in state_inputs.items()) or "- (none)"
+        out_lines = "\n".join(f"- {name}: {t}" for name, t in state_outputs.items()) or "- (none)"
+        ce_text = f"\nFailing Counter-Example Inputs:\n{failing_inputs}" if failing_inputs else ""
+
+        system_prompt = (
+            "You are an expert CEGIS (Counter-Example Guided Inductive Synthesis) repair engine.\n"
+            "Fix the runtime error or invariant violation in the provided pure Python state transition kernel.\n"
+            "STRICT RULES:\n"
+            "1. Output ONLY the corrected executable Python statements. No markdown, no explanations, no def wrappers.\n"
+            "2. Preserve all required output state variable assignments.\n"
+            "3. NO imports, NO print(), NO assert, NO I/O, NO dunder attributes."
+        )
+
+        user_prompt = (
+            f"State Transition Goal: {task_description}\n\n"
+            f"Input State Variables:\n{in_lines}\n\n"
+            f"Required Output State Variables:\n{out_lines}"
+            f"{ce_text}\n\n"
+            f"Failing Kernel Code:\n{failing_code}\n\n"
+            f"Runtime Exception / Traceback:\n{traceback_error}\n\n"
+            f"Write the corrected pure Python statements:"
+        )
+
+        raw_code = ""
+        mgr = self.model_manager
+        if mgr.profile is not None:
+            try:
+                response = mgr.generate_text(
+                    user_prompt,
+                    max_tokens=max_tokens,
+                    system_prompt=system_prompt,
+                )
+                raw_code = extract_code_from_llm_response(response).strip()
+            except Exception as e:
+                logger.warning("[INDUCTIVE KERNEL] CEGIS repair generation failed: %s", e)
+
+        if not raw_code:
+            raw_code = self._try_direct_local_generation(user_prompt, system_prompt, max_tokens)
+
+        if not raw_code:
+            raise KernelSynthesisError(
+                f"CEGIS repair failed for '{task_description}': model produced no repair candidate."
+            )
+
+        clean_code = self._sanitize_and_unwrap_kernel(raw_code, state_outputs)
+        allowed_state_vars = set(state_inputs.keys()) | set(state_outputs.keys())
+        is_safe, error_msg = self.validate_safety(clean_code, allowed_vars=allowed_state_vars)
+        if not is_safe:
+            raise KernelSynthesisError(
+                f"CEGIS repaired kernel for '{task_description}' failed capability validation: {error_msg}"
+            )
+
+        return clean_code
 
     def _sanitize_and_unwrap_kernel(self, code: str, state_outputs: Dict[str, str]) -> str:
         """
         Extracts clean, pure executable statements from LLM output.
-        If the model wrapped the logic in a `def func(...):` or appended example usage / print calls,
-        this extracts only the core state-transition statements.
+        If the model wrapped the logic in a `def func(...):` or appended `assert` statements
+        or `print()` calls, this strips them and extracts only the core state-transition statements.
         """
         try:
             tree = ast.parse(code)
         except SyntaxError:
             return code
 
-        # If top-level contains a FunctionDef, extract its body statements
+        def _filter_statements(stmts: List[ast.stmt]) -> List[ast.stmt]:
+            cleaned: List[ast.stmt] = []
+            for stmt in stmts:
+                # 1. Strip `assert ...` statements (ast.Assert is a statement, not ast.Call)
+                if isinstance(stmt, ast.Assert):
+                    continue
+                # 2. Strip top-level `return ...` statements from unwrapped functions
+                if isinstance(stmt, ast.Return):
+                    continue
+                # 3. Strip standalone docstrings and `print(...)` call expressions
+                if isinstance(stmt, ast.Expr):
+                    if isinstance(stmt.value, ast.Constant) and isinstance(stmt.value.value, str):
+                        continue
+                    if isinstance(stmt.value, ast.Call):
+                        func = stmt.value.func
+                        if isinstance(func, ast.Name) and func.id == "print":
+                            continue
+                cleaned.append(stmt)
+            return cleaned
+
+        # If top-level contains a FunctionDef, unwrap its body statements
         fn_nodes = [node for node in tree.body if isinstance(node, ast.FunctionDef)]
         if fn_nodes:
             fn = fn_nodes[0]
-            body_stmts = [stmt for stmt in fn.body if not isinstance(stmt, ast.Return)]
+            body_stmts = _filter_statements(fn.body)
             if body_stmts:
                 try:
-                    return ast.unparse(body_stmts)
-                except Exception:
-                    pass
+                    mod = ast.Module(body=body_stmts, type_ignores=[])
+                    return ast.unparse(mod)
+                except Exception as e:
+                    logger.debug("[INDUCTIVE KERNEL] Function unwrap unparse fallback: %s", e)
 
-        # Otherwise filter out top-level print/expression calls
-        clean_stmts = []
-        for stmt in tree.body:
-            if isinstance(stmt, ast.Expr) and isinstance(stmt.value, ast.Call):
-                func = stmt.value.func
-                if isinstance(func, ast.Name) and func.id in ("print", "assert"):
-                    continue
-            clean_stmts.append(stmt)
-
+        clean_stmts = _filter_statements(tree.body)
         try:
-            return ast.unparse(clean_stmts) if clean_stmts else code
-        except Exception:
+            if clean_stmts:
+                mod = ast.Module(body=clean_stmts, type_ignores=[])
+                return ast.unparse(mod)
+            return ""
+        except Exception as e:
+            logger.debug("[INDUCTIVE KERNEL] Statement unparse fallback: %s", e)
             return code
 
     def _try_direct_local_generation(self, user_prompt: str, system_prompt: str, max_tokens: int) -> str:
@@ -414,6 +659,17 @@ class InductiveKernelGenerator:
             from config import MODELS_DIR
             from llama_cpp import Llama
             from inference import select_optimal_llm
+            try:
+                from .router import HardwareProfiler
+            except (ImportError, ValueError):
+                try:
+                    from router import HardwareProfiler
+                except Exception:
+                    HardwareProfiler = None
+
+            device = HardwareProfiler.get_llm_device() if HardwareProfiler else "cpu"
+            n_gpu = -1 if device in ("cuda", "mps") else 0
+
             best_llm = select_optimal_llm()
             llm_dir = os.path.join(MODELS_DIR, "llms", best_llm)
             if os.path.isdir(llm_dir):
@@ -421,7 +677,7 @@ class InductiveKernelGenerator:
                 if ggufs:
                     chosen_gguf = next((f for f in ggufs if "shard" not in f), ggufs[0])
                     model_path = os.path.join(llm_dir, chosen_gguf)
-                    llm = Llama(model_path=model_path, n_ctx=2048, n_gpu_layers=0, verbose=False)
+                    llm = Llama(model_path=model_path, n_ctx=2048, n_gpu_layers=n_gpu, verbose=False)
                     res = llm.create_chat_completion(
                         messages=[
                             {"role": "system", "content": system_prompt},
@@ -433,42 +689,8 @@ class InductiveKernelGenerator:
                     text = res["choices"][0]["message"]["content"]
                     return extract_code_from_llm_response(text).strip()
         except Exception as e:
-            logger.debug(f"[INDUCTIVE KERNEL] Direct local generation fallback: {e}")
+            logger.debug("[INDUCTIVE KERNEL] Direct local generation fallback: %s", e)
         return ""
-
-    def _generate_fallback_kernel(
-        self,
-        state_inputs: Dict[str, str],
-        state_outputs: Dict[str, str],
-        task_description: str,
-    ) -> str:
-        """Deterministic fallback keeping state variables consistent and sound based on poset types."""
-        try:
-            from lattice import TypeRegistry
-            reg = TypeRegistry.get_instance()
-        except Exception:
-            reg = None
-
-        lines = [f"# Inductive State Kernel: {task_description}"]
-        for out_var, out_type in state_outputs.items():
-            if out_var in state_inputs:
-                lines.append(f"# Preserve state: {out_var}")
-            elif reg is not None:
-                if reg.is_subtype(out_type, "numeric") or reg.is_subtype(out_type, "int") or reg.is_subtype(out_type, "float"):
-                    lines.append(f"{out_var} = 0")
-                elif reg.is_subtype(out_type, "bool") or reg.is_subtype(out_type, "boolean"):
-                    lines.append(f"{out_var} = False")
-                elif reg.is_subtype(out_type, "sequence") or reg.is_subtype(out_type, "list"):
-                    lines.append(f"{out_var} = []")
-                elif reg.is_subtype(out_type, "mapping") or reg.is_subtype(out_type, "dict"):
-                    lines.append(f"{out_var} = {{}}")
-                elif reg.is_subtype(out_type, "set"):
-                    lines.append(f"{out_var} = set()")
-                else:
-                    lines.append(f"{out_var} = None")
-            else:
-                lines.append(f"{out_var} = None")
-        return "\n".join(lines)
 
     def splice_kernel(self, envelope_template: str, slot_name: str, kernel_code: str) -> str:
         """
@@ -511,10 +733,6 @@ class InductiveKernelGenerator:
 def _derive_loop_item_type(cell: Any, accumulated_sigma: Optional[Any]) -> Optional[Any]:
     """
     Derives the declared iteration carrier (item type) of a traced-loop macro.
-    Categorically: a loop morphism consumes a monoidal container C[T]; the item
-    carrier T is recovered from the generic argument of the container-typed input
-    port after generic substitution. Works for ANY container C and item type T
-    with zero hardcoded container or item names. Returns None if not derivable.
     """
     try:
         from .unification import TypeTerm, GenericTypeTerm, substitute_generics
@@ -531,7 +749,8 @@ def _derive_loop_item_type(cell: Any, accumulated_sigma: Optional[Any]) -> Optio
         concrete_t = substitute_generics(raw_t, accumulated_sigma) if accumulated_sigma is not None else raw_t
         try:
             term = TypeTerm.from_string(concrete_t)
-        except Exception:
+        except Exception as e:
+            logger.debug("[SYNTHESIS] TypeTerm parse skipped for '%s': %s", concrete_t, e)
             continue
         if isinstance(term, GenericTypeTerm) and term.args:
             return term.args[0]
@@ -558,18 +777,17 @@ def _declared_loop_kind(cell: Any) -> Optional[str]:
     return None
 
 
-def _template_initializes_container(template: str) -> bool:
+def _template_initializes_container(template: str) -> Optional[str]:
     """
     Structural fallback: detect whether the template initializes the output
-    container variable to an empty container. Accepts any literal container
-    expression or empty-constructor call, without matching one hardcoded
-    literal (previously `{output_var} = []`).
+    container variable to an empty container and return its container kind.
     """
     marker = "{output_var}"
-    constructors = (
-        "set", "dict", "list", "tuple", "frozenset",
-        "deque", "OrderedDict", "defaultdict", "Counter",
-    )
+    constructors = {
+        "set": "set", "frozenset": "set",
+        "dict": "dict", "OrderedDict": "dict", "defaultdict": "dict", "Counter": "dict",
+        "list": "list", "tuple": "tuple", "deque": "deque",
+    }
     for line in template.splitlines():
         s = line.strip()
         idx = s.find(marker)
@@ -581,11 +799,17 @@ def _template_initializes_container(template: str) -> bool:
         rhs = tail[1:].strip()
         if not rhs:
             continue
-        if rhs[0] in "([{":
-            return True
-        if rhs.endswith("()") and rhs[:-2].strip() in constructors:
-            return True
-    return False
+        if rhs.startswith("{") and rhs.endswith("}"):
+            return "dict" if ":" in rhs else ("dict" if rhs == "{}" else "set")
+        if rhs.startswith("[") and rhs.endswith("]"):
+            return "list"
+        if rhs.startswith("(") and rhs.endswith(")"):
+            return "tuple"
+        if rhs.endswith("()"):
+            c_name = rhs[:-2].strip()
+            if c_name in constructors:
+                return constructors[c_name]
+    return None
 
 
 def _detect_loop_item_var(template: str) -> Optional[str]:
@@ -650,16 +874,40 @@ def _resolve_direction_is_max(cell: Any, bindings: Dict[str, Any]) -> bool:
     )
     raw = bindings.get(direction_port)
     if raw is None:
-        for k in ("direction", "extreme", "mode", "order"):
+        try:
+            try:
+                from .lattice import TypeRegistry
+            except (ImportError, ValueError):
+                from lattice import TypeRegistry
+            order_ports = TypeRegistry.get_instance().get_verification_semantics("order_flag_names") or ()
+        except Exception:
+            order_ports = ()
+        for k in tuple(order_ports) + ("direction", "extreme", "mode", "order"):
             if k in bindings and bindings[k] is not None:
                 raw = bindings[k]
                 break
     if raw is None:
         return True
     s = str(raw).strip().strip("'\"").lower()
-    if s in ("true", "max", "maximum", "argmax", "gt", ">", "1", "desc", "descending"):
+    try:
+        try:
+            from .lattice import TypeRegistry
+        except (ImportError, ValueError):
+            from lattice import TypeRegistry
+        reg = TypeRegistry.get_instance()
+        desc_hints = {str(h).lower() for h in reg.get_polarity_hints("descending")} | {
+            "true", "max", "maximum", "argmax", "gt", ">", "1", "desc", "descending"
+        }
+        asc_hints = {str(h).lower() for h in reg.get_polarity_hints("ascending")} | {
+            "false", "min", "minimum", "argmin", "lt", "<", "0", "asc", "ascending"
+        }
+    except Exception:
+        desc_hints = {"true", "max", "maximum", "argmax", "gt", ">", "1", "desc", "descending"}
+        asc_hints = {"false", "min", "minimum", "argmin", "lt", "<", "0", "asc", "ascending"}
+
+    if s in desc_hints:
         return True
-    if s in ("false", "min", "minimum", "argmin", "lt", "<", "0", "asc", "ascending"):
+    if s in asc_hints:
         return False
     return True
 
@@ -674,19 +922,6 @@ def render_cell(
     """
     Renders an executable block of Python code for a cell at the specified indentation level.
     Recursively renders child sub-pipelines in bound_slots at indent_level + 1.
-    Handles invariant accumulator wiring for traced loops and coproduct branch joins.
-
-    All loop semantics are driven by DECLARED data only:
-      - The loop kind (collect vs extremum) comes from cell metadata
-        (`loop_kind` / `topology_type`); a structural container-init scan is used
-        only as a last-resort fallback.
-      - The loop item carrier is recovered from the container's generic argument.
-      - The extremum direction comes from the cell's declared direction port
-        binding (resolved through the typestate polarity machinery), never from
-        prompt text.
-      - All injected helper variables are cell-scoped unique names derived from
-        the cell identifier; no hardcoded globals like `_item`, `_res`,
-        `_max_metric`, `_min_metric`.
     """
     try:
         from .unification import UnificationGate, unify, Substitution
@@ -706,39 +941,53 @@ def render_cell(
         f"_{getattr(cell.primary_output, 'state', None) or 'out'}",
     )
 
-    # ---- Declared loop semantics ----
     loop_kind = _declared_loop_kind(cell)
+    init_container = _template_initializes_container(template)
     if loop_kind == "extremum":
         is_extremum_loop, is_collect_loop = True, False
     elif loop_kind == "collect":
         is_extremum_loop, is_collect_loop = False, True
     else:
-        # Structural fallback, driven by declared ports, not by prompt text.
         has_direction_port = "direction" in getattr(cell, "inputs", {})
         direction_bound = bindings.get("direction") is not None
         is_extremum_loop = has_direction_port and direction_bound
         is_collect_loop = (
-            not is_extremum_loop and _template_initializes_container(template)
+            not is_extremum_loop and init_container is not None
         )
 
     is_max = _resolve_direction_is_max(cell, bindings) if is_extremum_loop else False
 
-    # ---- Scoped, unique variable names (no hardcoded globals) ----
     item_var = _resolve_item_var(cell, template)
     metric_var = _unique_var(cell, "max_metric" if is_max else "min_metric")
 
-    # Declared iteration carrier for child port wiring (monoidal container recovery).
     item_type = (
         _derive_loop_item_type(cell, accumulated_sigma)
         if (is_collect_loop or is_extremum_loop)
         else None
     )
 
-    # Process each declared slot
     slot_rendered: Dict[str, str] = {}
-    for slot_name in slots.keys():
+    slots_items = slots.items() if isinstance(slots, dict) else [(s, {}) for s in slots]
+    for slot_name, slot_spec in slots_items:
         child_nodes = bound_slots.get(slot_name, [])
         if not child_nodes:
+            # Unified Continuum (Track 6.2): if no lattice cell filled this macro slot,
+            # synthesize a capability-sandboxed kernel for the typed hole if an LLM is active.
+            prompt_str = getattr(context, "prompt", "") if context is not None else ""
+            if prompt_str:
+                try:
+                    gen = InductiveKernelGenerator()
+                    if gen.model_manager.can_synthesize():
+                        in_sigs = {k: p.type_name for k, p in getattr(cell, "inputs", {}).items()}
+                        out_sigs = {out_var: getattr(cell.primary_output, "type_name", "any")}
+                        slot_rendered[slot_name] = gen.generate_kernel(
+                            task_description=f"{prompt_str} (slot: {slot_name})",
+                            state_inputs=in_sigs,
+                            state_outputs=out_sigs,
+                        )
+                        continue
+                except Exception as synth_err:
+                    logger.debug("[SYNTHESIS] Slot kernel generation fallback: %s", synth_err)
             slot_rendered[slot_name] = "pass"
             continue
 
@@ -754,9 +1003,6 @@ def render_cell(
         for child in child_nodes:
             child_bindings: Dict[str, Any] = {}
             for p_name, p_sig in child.inputs.items():
-                # 1. Type-driven loop-item wiring: bind the child's port to the loop
-                #    variable iff the port's declared signature unifies with the item
-                #    carrier recovered from the container's generic argument.
                 bound = False
                 if item_type is not None:
                     child_sig = getattr(p_sig, "signature", None)
@@ -768,11 +1014,11 @@ def render_cell(
                             ):
                                 child_bindings[p_name] = item_var
                                 bound = True
-                        except Exception:
+                        except Exception as e:
+                            logger.debug("[SYNTHESIS] Loop item unify check skipped: %s", e)
                             bound = False
                 if bound:
                     continue
-                # 2. Ports matching a parent binding keep the parent's wire.
                 if p_name in bindings:
                     child_bindings[p_name] = bindings[p_name]
                 elif getattr(p_sig, "default_value", None) is not None:
@@ -784,7 +1030,11 @@ def render_cell(
             child_bindings["output_var"] = child_out_var
             last_metric = child_out_var
 
-            if bool(getattr(child, "bound_slots", None)) or getattr(child, "node_type", "") == "macro" or bool(getattr(child, "slots", None)):
+            if (
+                bool(getattr(child, "bound_slots", None))
+                or getattr(child, "node_type", "") == "macro"
+                or bool(getattr(child, "slots", None))
+            ):
                 child_text = render_cell(
                     child,
                     child_bindings,
@@ -799,7 +1049,6 @@ def render_cell(
             if child_text:
                 child_lines.append(child_text)
 
-        # Traced loop reduction logic, driven purely by declared loop kind.
         if is_extremum_loop and last_metric is not None:
             op = ">" if is_max else "<"
             update_block = (
@@ -809,7 +1058,23 @@ def render_cell(
             )
             child_lines.append(update_block)
         elif is_collect_loop and last_metric is not None:
-            child_lines.append(f"{out_var}.append({last_metric})")
+            container_type = init_container
+            if container_type is None:
+                out_sig = getattr(cell, "primary_output", None)
+                t_name = str(getattr(out_sig, "type_name", "") or "").lower()
+                if "set" in t_name:
+                    container_type = "set"
+                elif "dict" in t_name or "map" in t_name:
+                    container_type = "dict"
+                else:
+                    container_type = "list"
+
+            if container_type == "set":
+                child_lines.append(f"{out_var}.add({last_metric})")
+            elif container_type == "dict":
+                child_lines.append(f"{out_var}[{item_var}] = {last_metric}")
+            else:
+                child_lines.append(f"{out_var}.append({last_metric})")
 
         slot_rendered[slot_name] = "\n".join(child_lines) if child_lines else "pass"
 
@@ -839,10 +1104,8 @@ def render_cell(
         else:
             rendered = rendered.replace(placeholder, indented_slot)
 
-    # Instantiate remaining placeholders using bindings safely
     rendered = safe_substitute_template(rendered, bindings)
 
-    # Apply base indent_level
     if indent_level > 0:
         rendered = "\n".join(
             (indent_prefix + line if line.strip() else line)
@@ -853,6 +1116,8 @@ def render_cell(
 
 
 __all__ = [
+    "KernelSynthesisError",
+    "ASTCapabilityValidator",
     "SynthesisEngine",
     "synthesize_and_register",
     "render_cell",

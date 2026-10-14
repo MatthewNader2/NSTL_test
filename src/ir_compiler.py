@@ -207,7 +207,7 @@ class IRCompiler:
                         getattr(c, "semantic_tags", []) or []):
                 for kw in src:
                     k = str(kw).strip().lower()
-                    if 2 < len(k) < 40 and " " not in k and not k.isdigit():
+                    if 2 <= len(k) < 40 and " " not in k and not k.isdigit():
                         out.add(k)
 
         if not out:
@@ -287,7 +287,14 @@ class IRCompiler:
         filler = [e for e in scored if _relevance(e)[:2] == (0, 0)]
         selected = relevant[:max_entries]
         if len(selected) < max_entries:
-            selected.extend(filler[: max_entries - len(selected)])
+            needed = max_entries - len(selected)
+            if len(filler) <= needed:
+                selected.extend(filler)
+            else:
+                sorted_filler = sorted(filler)
+                step = len(sorted_filler) / float(needed)
+                stratified_filler = [sorted_filler[int(i * step)] for i in range(needed)]
+                selected.extend(stratified_filler)
         # Restore deterministic (alphabetical) order within the selected set
         # so the prompt is stable across runs for identical inputs.
         return ", ".join(sorted(selected))

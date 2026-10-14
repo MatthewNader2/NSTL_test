@@ -1,21 +1,28 @@
 """
-src/row_lineage.py - Neuro-Symbolic Topological Lattice (NSTL)
+src/row_lineage.py - Universal Carrier Extent-Epoch & Key Def-Use Verifier.
 
-Row-set lineage over a synthesized pipeline. The TREES declare which cell effects
-change a table's row set (`verification_semantics.row_set_effects`); the engine only
-propagates "row epochs" along data dependence and reports where a value computed on
-one row set is written into a table that lives on another (e.g. an array built
-before `dropna` assigned as a column of the frame after it).
-
-No names of operations, libraries or columns appear here.
+Enforces two domain-agnostic dataflow invariants over any indexed/keyed carrier:
+1. Extent-Epoch Alignment: Co-indexed inputs to a join/mutation cell must share the
+   same extent epoch (incremented by any cell declaring extent/row/shape-mutating effects).
+2. Causal Key Def-Use: A key/field introduced onto a carrier at step j cannot be
+   projected from that carrier at an earlier step i < j.
 """
 from __future__ import annotations
 
 import ast
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict, List, Set, Tuple
+
+try:
+    from .lattice import TypeRegistry
+    from .unification import resolve_typed_binding_record
+except (ImportError, ValueError):
+    from lattice import TypeRegistry
+    from unification import resolve_typed_binding_record
 
 
-def _names(expr: Any, known: Dict[str, int]) -> List[str]:
+def _referenced_vars(expr: Any, known: Dict[str, int]) -> List[str]:
+    if not expr:
+        return []
     try:
         tree = ast.parse(str(expr), mode="eval")
     except SyntaxError:
@@ -23,115 +30,153 @@ def _names(expr: Any, known: Dict[str, int]) -> List[str]:
     return [n.id for n in ast.walk(tree) if isinstance(n, ast.Name) and n.id in known]
 
 
+def _extract_effect_names(cell: Any) -> Set[str]:
+    out: Set[str] = set()
+    for eff in getattr(cell, "effects", None) or ():
+        if isinstance(eff, dict):
+            for k in ("name", "kind", "type", "effect"):
+                if eff.get(k):
+                    out.add(str(eff[k]).lower())
+        elif eff:
+            out.add(str(eff).lower())
+    return out
+
+
 def analyze(pipeline_bindings: List[Tuple[Any, Dict[str, str]]]) -> List[Dict[str, Any]]:
+    """
+    Universal Extent-Epoch Alignment:
+    Whenever a cell binds an 'assigned_value' (or secondary co-indexed payload) into a
+    receiver/carrier, both inputs must originate from the same extent-mutation epoch.
+    """
     try:
-        try:
-            from .lattice import TypeRegistry
-        except (ImportError, ValueError):
-            from lattice import TypeRegistry
         reg = TypeRegistry.get_instance()
-        row_effects = {str(e).lower() for e in reg.get_verification_semantics("row_set_effects")}
+        mutating_effects = {
+            str(e).lower()
+            for key in ("extent_mutating_effects", "row_set_effects")
+            for e in (reg.get_verification_semantics(key) or ())
+        }
+        carrier_roles = {
+            str(r).lower()
+            for r in (reg.get_verification_semantics("carrier_roles") or ("receiver", "carrier", "data_carrier"))
+        }
     except Exception:
         return []
-    if not row_effects:
+
+    if not mutating_effects:
         return []
+
     epoch: Dict[str, int] = {}
     issues: List[Dict[str, Any]] = []
+
     for cell, bindings in pipeline_bindings:
+        if not isinstance(bindings, dict):
+            continue
         out = bindings.get("output_var")
-        in_refs: Dict[str, List[str]] = {p: _names(v, epoch) for p, v in bindings.items() if p != "output_var"}
-        # value-to-store port vs. table port of the same cell
-        for p_name, port in getattr(cell, "inputs", {}).items():
+        in_refs: Dict[str, List[str]] = {
+            p: _referenced_vars(v, epoch) for p, v in bindings.items() if p != "output_var"
+        }
+        inputs = getattr(cell, "inputs", {}) or {}
+
+        for p_name, port in inputs.items():
             if getattr(port, "binds", None) != "assigned_value" or p_name not in in_refs:
                 continue
             val_ep = max((epoch[n] for n in in_refs[p_name]), default=None)
-            for q_name, q in getattr(cell, "inputs", {}).items():
-                q_type = str(getattr(getattr(q, "signature", q), "type_name", "") or "").lower()
-                if q_name == p_name or q_name not in in_refs or not q_type or not reg.is_subtype(q_type, "table"):
+            for q_name, q in inputs.items():
+                if q_name == p_name or q_name not in in_refs:
                     continue
-                tab_ep = max((epoch[n] for n in in_refs[q_name]), default=None)
-                if val_ep is not None and tab_ep is not None and val_ep != tab_ep:
-                    issues.append({"cell": cell.cell_id, "value_port": p_name, "value_vars": in_refs[p_name],
-                                   "value_epoch": val_ep, "table_port": q_name, "table_vars": in_refs[q_name],
-                                   "table_epoch": tab_ep})
+                q_role = str(getattr(q, "port_role", None) or getattr(q, "derived_role", "") or "").lower()
+                q_binds = str(getattr(q, "binds", "") or "").lower()
+                is_carrier = (
+                    q_binds in carrier_roles
+                    or q_role in carrier_roles
+                    or q is getattr(cell, "primary_input", None)
+                )
+                if not is_carrier:
+                    continue
+                carrier_ep = max((epoch[n] for n in in_refs[q_name]), default=None)
+                if val_ep is not None and carrier_ep is not None and val_ep != carrier_ep:
+                    issues.append({
+                        "cell": cell.cell_id,
+                        "value_port": p_name,
+                        "value_vars": in_refs[p_name],
+                        "value_epoch": val_ep,
+                        "table_port": q_name,
+                        "table_vars": in_refs[q_name],
+                        "table_epoch": carrier_ep,
+                    })
+
         if out:
             ep = max((epoch[n] for refs in in_refs.values() for n in refs), default=0)
-            if {str(e).lower() for e in (getattr(cell, "effects", None) or [])} & row_effects:
+            if _extract_effect_names(cell) & mutating_effects:
                 ep += 1
             epoch[out] = ep
+
     return issues
 
 
 def analyze_column_definitions(pipeline_bindings: List[Tuple[Any, Dict[str, Any]]]) -> List[Dict[str, Any]]:
     """
-    A column must not be READ before the cell that DEFINES it has run.
-
-    A cell with a name-consuming port and a value-consuming port (tree: binds column_key / assigned_value)
-    writes a column. The write DEFINES the column when the written value's own column lineage does not
-    include it (Z written from an FFT of X); it UPDATES it when it does (X normalised and written back).
-    Reading a defined-later column earlier in the pipeline is a guaranteed KeyError at runtime and used to
-    pass lint (a model fitted on var_1['Z'] before any cell created Z).
+    Universal Causal Key Def-Use:
+    A key/field introduced onto a carrier at step j (via a key-binding port + assigned_value port)
+    must not be projected from any carrier at an earlier step i < j.
     """
-    origin: Dict[str, set] = {}
+    origin_keys: Dict[str, Set[str]] = {}
+    defined_at: Dict[str, int] = {}
+    step_projected_keys: List[Tuple[int, Any, str, Set[str]]] = []
 
-    def cols_of(node: ast.AST) -> set:
-        if isinstance(node, ast.Name):
-            return set(origin.get(node.id, set()))
-        if isinstance(node, ast.Subscript) and isinstance(node.value, ast.Name):
-            sl = node.slice
-            elts = sl.elts if isinstance(sl, ast.List) else [sl]
-            return {e.value for e in elts if isinstance(e, ast.Constant)}
-        out: set = set()
-        for ch in ast.iter_child_nodes(node):
-            out |= cols_of(ch)
-        return out
+    key_bind_tags = {"key", "column_key", "field_key", "attr_key"}
 
-    def parse(expr: Any):
-        try:
-            return ast.parse(str(expr), mode="eval").body
-        except SyntaxError:
-            return None
+    for idx, (cell, bindings) in enumerate(pipeline_bindings):
+        if not isinstance(bindings, dict):
+            continue
+        inputs = getattr(cell, "inputs", {}) or {}
+        typed_map = getattr(cell, "typed_bindings", {}) or {}
 
-    def reads(node: ast.AST) -> set:
-        found: set = set()
-        for n in ast.walk(node):
-            if isinstance(n, ast.Subscript) and isinstance(n.value, ast.Name):
-                sl = n.slice
-                for e in (sl.elts if isinstance(sl, ast.List) else [sl]):
-                    if isinstance(e, ast.Constant):
-                        found.add(e.value)
-        return found
+        def _keys_of_port(p_name: str, expr: Any) -> Set[str]:
+            rec = typed_map.get(p_name) or resolve_typed_binding_record(cell, p_name, expr, inputs.get(p_name))
+            found: Set[str] = set()
+            if rec.kind == "projection" and rec.projection:
+                k = rec.projection.get("key")
+                if isinstance(k, (list, tuple, set)):
+                    found.update(str(x).strip("'\"") for x in k)
+                elif isinstance(k, str):
+                    found.add(k.strip("'\""))
+            elif rec.root_var and rec.root_var in origin_keys:
+                found.update(origin_keys[rec.root_var])
+            return found
 
-    defined_at: Dict[Any, int] = {}
-    for idx, (cell, b) in enumerate(pipeline_bindings):
-        key = next((n for n, p in cell.inputs.items() if getattr(p, "binds", None) == "column_key" and n in b), None)
-        val = next((n for n, p in cell.inputs.items() if getattr(p, "binds", None) == "assigned_value" and n in b), None)
-        if key and val:
-            col = str(b[key]).strip().strip("'\"")
-            vnode = parse(b[val])
-            if vnode is not None and col not in cols_of(vnode):
-                defined_at.setdefault(col, idx)
-        out = b.get("output_var")
+        key_port = next((n for n, p in inputs.items() if getattr(p, "binds", None) in key_bind_tags and n in bindings), None)
+        val_port = next((n for n, p in inputs.items() if getattr(p, "binds", None) == "assigned_value" and n in bindings), None)
+
+        if key_port and val_port:
+            written_key = str(bindings[key_port]).strip().strip("'\"")
+            val_lineage = _keys_of_port(val_port, bindings[val_port])
+            if written_key and written_key not in val_lineage:
+                defined_at.setdefault(written_key, idx)
+
+        acc: Set[str] = set()
+        for p_name, expr in bindings.items():
+            if p_name == "output_var" or p_name == key_port:
+                continue
+            p_keys = _keys_of_port(p_name, expr)
+            if p_keys:
+                acc |= p_keys
+                step_projected_keys.append((idx, cell, p_name, p_keys))
+
+        out = bindings.get("output_var")
         if out:
-            acc: set = set()
-            for port, expr in b.items():
-                if port == "output_var":
-                    continue
-                node = parse(expr)
-                if node is not None:
-                    acc |= cols_of(node)
-            origin[out] = acc
+            origin_keys[out] = acc
 
     issues: List[Dict[str, Any]] = []
-    for idx, (cell, b) in enumerate(pipeline_bindings):
-        for port, expr in b.items():
-            if port == "output_var":
-                continue
-            node = parse(expr)
-            if node is None:
-                continue
-            for col in reads(node):
-                if col in defined_at and defined_at[col] > idx:
-                    issues.append({"cell": cell.cell_id, "port": port, "column": col, "read_at": idx,
-                                   "defined_at": defined_at[col], "defined_by": pipeline_bindings[defined_at[col]][0].cell_id})
+    for idx, cell, p_name, keys in step_projected_keys:
+        for k in keys:
+            if k in defined_at and defined_at[k] > idx:
+                issues.append({
+                    "cell": cell.cell_id,
+                    "port": p_name,
+                    "column": k,
+                    "read_at": idx,
+                    "defined_at": defined_at[k],
+                    "defined_by": pipeline_bindings[defined_at[k]][0].cell_id,
+                })
     return issues

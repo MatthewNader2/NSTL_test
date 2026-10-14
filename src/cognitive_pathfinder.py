@@ -11,7 +11,7 @@ progress projection.
 from __future__ import annotations
 import os
 import threading
-from typing import Dict, List, Optional, Tuple, Any, Set
+from typing import Dict, List, Optional, Tuple, Any
 import numpy as np
 
 try:
@@ -21,17 +21,60 @@ except ImportError:
     get_logger = logging.getLogger
 
 try:
-    from .config import MODELS_DIR
+    from .config import MODELS_DIR, settings
 except (ImportError, ValueError):
-    from config import MODELS_DIR
+    from config import MODELS_DIR, settings
+
+try:
+    from .lattice import TypeRegistry
+except (ImportError, ValueError):
+    from lattice import TypeRegistry
 
 logger = get_logger("cognitive_pathfinder")
+
+
+class ModelUnavailableError(RuntimeError):
+    """
+    Raised when cognitive latent extraction is invoked but no local neural
+    embedding model (SentenceTransformer or GGUF) is loaded or available.
+    Prevents silent fallback to pseudo-random Gaussian noise.
+    """
+    pass
+
+
+def get_latent_scoring_weights() -> Dict[str, float]:
+    """
+    Resolves geodesic scoring and state-update weights from TypeRegistry
+    or settings without hardcoded magic numbers in the scoring loop.
+    """
+    defaults = {
+        "sim_weight": float(getattr(settings, "latent_sim_weight", 0.5)),
+        "progress_weight": float(getattr(settings, "latent_progress_weight", 0.5)),
+        "clause_weight": float(getattr(settings, "latent_clause_weight", 0.5)),
+        "goal_weight": float(getattr(settings, "latent_goal_weight", 0.3)),
+        "structural_weight": float(getattr(settings, "latent_structural_weight", 0.2)),
+        "state_momentum": float(getattr(settings, "latent_state_momentum", 0.7)),
+    }
+    try:
+        reg = TypeRegistry.get_instance()
+        sem = reg.get_verification_semantics("latent_scoring_weights")
+        if sem:
+            for item in sem:
+                if isinstance(item, str) and "=" in item:
+                    k, v = item.split("=", 1)
+                    k = k.strip().lower()
+                    if k in defaults:
+                        defaults[k] = float(v.strip())
+    except Exception as e:
+        logger.debug("[COGNITIVE PATHFINDER] Weight config lookup fallback: %s", e)
+    return defaults
 
 
 class LatentVectorExtractor:
     """
     Thread-safe continuous latent vector extractor using local sub-1B models.
     Supports SentenceTransformer (EmbeddingGemma-300M, Jina-Nano) and llama.cpp GGUF.
+    Strictly fails loudly with ModelUnavailableError if no neural model is available.
     """
     _instance: Optional[LatentVectorExtractor] = None
     _lock = threading.RLock()
@@ -40,8 +83,9 @@ class LatentVectorExtractor:
         self._lock = threading.RLock()
         self._cache: Dict[str, np.ndarray] = {}
         self._model = None
-        self._backend = None
-        self._dim = 768
+        self._backend: str = "unavailable"
+        self._dim: int = 0
+        self._init_error: Optional[str] = None
         self._init_model(model_name)
 
     @classmethod
@@ -51,31 +95,76 @@ class LatentVectorExtractor:
                 cls._instance = cls()
             return cls._instance
 
-    def _init_model(self, model_name: Optional[str] = None):
+    @classmethod
+    def reset_instance(cls) -> None:
+        with cls._lock:
+            cls._instance = None
+
+    def is_available(self) -> bool:
+        """Returns True iff a real neural embedding backend is loaded and active."""
+        return self._backend in ("sentence_transformers", "llama_cpp") and self._model is not None
+
+    def _init_model(self, model_name: Optional[str] = None) -> None:
         emb_dir = os.path.join(MODELS_DIR, "embeddings")
         llm_dir = os.path.join(MODELS_DIR, "llms")
+        errors: List[str] = []
 
-        # 1. Try optimal local SentenceTransformer embedding model
+        # 1. First check if ModelManager already has an active profile with an embedder
         try:
-            from inference import select_optimal_embedder
+            try:
+                from .inference import ModelManager
+            except (ImportError, ValueError):
+                from inference import ModelManager
+            mm = ModelManager.get_instance()
+            if mm.profile is not None:
+                active_emb = getattr(mm.profile, "model", None) or getattr(mm.profile, "embedder", None)
+                if active_emb is not None:
+                    self._model = active_emb
+                    self._backend = "sentence_transformers"
+                    self._dim = int(mm.embedding_dimension)
+                    logger.info(
+                        "[COGNITIVE PATHFINDER] Reusing active ModelManager embedder (dim=%d)",
+                        self._dim,
+                    )
+                    return
+        except Exception as e:
+            errors.append(f"ModelManager reuse: {e}")
+
+        # 2. Try optimal local SentenceTransformer embedding model
+        try:
+            try:
+                from .inference import select_optimal_embedder
+            except (ImportError, ValueError):
+                from inference import select_optimal_embedder
             opt_emb = select_optimal_embedder(model_name or "")
             emb_path = os.path.join(emb_dir, opt_emb)
             if os.path.isdir(emb_path):
                 from sentence_transformers import SentenceTransformer
                 import torch
                 device = "cuda" if torch.cuda.is_available() else "cpu"
-                self._model = SentenceTransformer(emb_path, device=device)
+                self._model = SentenceTransformer(emb_path, device=device, trust_remote_code=True)
                 self._backend = "sentence_transformers"
                 sample = self._model.encode("probe", normalize_embeddings=True)
                 self._dim = int(sample.shape[-1])
-                logger.info(f"[COGNITIVE PATHFINDER] Loaded optimal embedder '{opt_emb}' on {device} (dim={self._dim})")
+                logger.info(
+                    "[COGNITIVE PATHFINDER] Loaded optimal embedder '%s' on %s (dim=%d)",
+                    opt_emb,
+                    device,
+                    self._dim,
+                )
                 return
+            else:
+                errors.append(f"Embedder directory not found: {emb_path}")
         except Exception as e:
-            logger.debug(f"[COGNITIVE PATHFINDER] Failed loading optimal embedder: {e}")
+            errors.append(f"SentenceTransformer load failed: {e}")
+            logger.debug("[COGNITIVE PATHFINDER] Failed loading optimal embedder: %s", e)
 
-        # 2. Fallback to optimal local GGUF model in embedding mode
+        # 3. Fallback to optimal local GGUF model in embedding mode
         try:
-            from inference import select_optimal_llm
+            try:
+                from .inference import select_optimal_llm
+            except (ImportError, ValueError):
+                from inference import select_optimal_llm
             best_llm = select_optimal_llm()
             llm_cand_dir = os.path.join(llm_dir, best_llm)
             if os.path.isdir(llm_cand_dir):
@@ -86,23 +175,48 @@ class LatentVectorExtractor:
                     from llama_cpp import Llama
                     self._model = Llama(model_path=model_file, embedding=True, verbose=False, n_gpu_layers=0)
                     self._backend = "llama_cpp"
-                    # Probe dimension dynamically
                     res = self._model.create_embedding("probe")
                     raw = np.array(res["data"][0]["embedding"], dtype=np.float32)
-                    self._dim = int(raw.shape[-1])
-                    logger.info(f"[COGNITIVE PATHFINDER] Loaded optimal LLM '{best_llm}' GGUF embedding on CPU (dim={self._dim})")
+                    pooled = np.mean(raw, axis=0) if raw.ndim > 1 else raw
+                    self._dim = int(pooled.shape[-1])
+                    logger.info(
+                        "[COGNITIVE PATHFINDER] Loaded optimal LLM '%s' GGUF embedding on CPU (dim=%d)",
+                        best_llm,
+                        self._dim,
+                    )
                     return
+                else:
+                    errors.append(f"No .gguf files in {llm_cand_dir}")
+            else:
+                errors.append(f"LLM directory not found: {llm_cand_dir}")
         except Exception as e:
-            logger.debug(f"[COGNITIVE PATHFINDER] Failed loading GGUF: {e}")
+            errors.append(f"GGUF load failed: {e}")
+            logger.debug("[COGNITIVE PATHFINDER] Failed loading GGUF: %s", e)
 
-        # 3. Deterministic hash-based projection fallback
-        self._backend = "deterministic_hash"
-        self._dim = 384
-        logger.warning("[COGNITIVE PATHFINDER] No neural models available; using deterministic pseudo-latent fallback")
+        # 4. Fail-Closed: Never fall back to pseudo-random hash noise
+        self._backend = "unavailable"
+        self._model = None
+        self._dim = 0
+        self._init_error = "; ".join(errors) if errors else "No local embedding or GGUF models found"
+        logger.warning(
+            "[COGNITIVE PATHFINDER] No neural models available (%s); M11 latent pathfinding disabled.",
+            self._init_error,
+        )
+
+    def _require_available(self) -> None:
+        if not self.is_available():
+            raise ModelUnavailableError(
+                f"LatentVectorExtractor has no neural model loaded ({self._init_error or 'unavailable'}). "
+                f"Refusing to generate pseudo-random noise embeddings."
+            )
 
     def encode(self, text: str) -> np.ndarray:
-        """Encodes text to a unit-normalized latent vector in R^d."""
-        if not text:
+        """
+        Encodes text to a unit-normalized latent vector on the hypersphere S^{d-1}.
+        Raises ModelUnavailableError if no neural model is loaded.
+        """
+        self._require_available()
+        if not text or not text.strip():
             return np.zeros(self._dim, dtype=np.float32)
 
         with self._lock:
@@ -111,37 +225,41 @@ class LatentVectorExtractor:
 
             if self._backend == "sentence_transformers" and self._model is not None:
                 vec = self._model.encode(text, normalize_embeddings=True)
-                norm_vec = np.array(vec, dtype=np.float32)
+                raw_vec = np.array(vec, dtype=np.float32)
+                norm = float(np.linalg.norm(raw_vec))
+                norm_vec = raw_vec / (norm + 1e-9) if norm > 0 else np.zeros(self._dim, dtype=np.float32)
 
             elif self._backend == "llama_cpp" and self._model is not None:
                 res = self._model.create_embedding(text)
                 raw = np.array(res["data"][0]["embedding"], dtype=np.float32)
                 pooled = np.mean(raw, axis=0) if raw.ndim > 1 else raw
                 norm = float(np.linalg.norm(pooled))
-                norm_vec = pooled / (norm + 1e-9)
+                norm_vec = pooled / (norm + 1e-9) if norm > 0 else np.zeros(self._dim, dtype=np.float32)
 
             else:
-                import hashlib
-                h = hashlib.sha256(text.encode("utf-8")).digest()
-                rng = np.random.RandomState(int.from_bytes(h[:4], "big"))
-                rnd = rng.randn(self._dim).astype(np.float32)
-                norm_vec = rnd / (float(np.linalg.norm(rnd)) + 1e-9)
+                raise ModelUnavailableError("Neural embedding backend is not initialized.")
 
             self._cache[text] = norm_vec
             return norm_vec
 
     def encode_batch(self, texts: List[str]) -> List[np.ndarray]:
-        """Encodes a batch of texts to unit-normalized latent vectors."""
+        """
+        Encodes a batch of texts to unit-normalized latent vectors.
+        Raises ModelUnavailableError if no neural model is loaded.
+        """
+        self._require_available()
         if not texts:
             return []
 
-        uncached_indices = []
-        uncached_texts = []
+        uncached_indices: List[int] = []
+        uncached_texts: List[str] = []
         results: List[Optional[np.ndarray]] = [None] * len(texts)
 
         with self._lock:
             for i, t in enumerate(texts):
-                if t in self._cache:
+                if not t or not t.strip():
+                    results[i] = np.zeros(self._dim, dtype=np.float32)
+                elif t in self._cache:
                     results[i] = self._cache[t]
                 else:
                     uncached_indices.append(i)
@@ -151,7 +269,9 @@ class LatentVectorExtractor:
                 if self._backend == "sentence_transformers" and self._model is not None:
                     vecs = self._model.encode(uncached_texts, normalize_embeddings=True)
                     for idx, vec in zip(uncached_indices, vecs):
-                        norm_vec = np.array(vec, dtype=np.float32)
+                        raw_vec = np.array(vec, dtype=np.float32)
+                        norm = float(np.linalg.norm(raw_vec))
+                        norm_vec = raw_vec / (norm + 1e-9) if norm > 0 else np.zeros(self._dim, dtype=np.float32)
                         self._cache[texts[idx]] = norm_vec
                         results[idx] = norm_vec
                 else:
@@ -163,16 +283,28 @@ class LatentVectorExtractor:
 
 class CognitivePathfinder:
     """
-    Cognitive Latent Pathfinder.
-    Guides search across the lattice morphism DAG using latent space geodesic alignment.
+    Cognitive Latent Pathfinder with Experimental Lab Integration:
+      - Early-Exit Sub-Layer Residual Stream Extraction & ZCA Whitening
+      - Sparse Autoencoder (SAE) / OMP Multi-Clause Concept Decomposition
+      - Spherical Geodesic Energy Heuristics on S^{d-1}
     """
 
     def __init__(self, extractor: Optional[LatentVectorExtractor] = None):
         self.extractor = extractor or LatentVectorExtractor.get_instance()
         self._cell_vec_cache: Dict[str, np.ndarray] = {}
+        try:
+            from .experiments import EarlyExitLatentProbe, SparseConceptCoding, ACTIVE_EXPERIMENTS
+        except (ImportError, ValueError):
+            from experiments import EarlyExitLatentProbe, SparseConceptCoding, ACTIVE_EXPERIMENTS
+        self.exp_cfg = ACTIVE_EXPERIMENTS
+        self.probe = EarlyExitLatentProbe(self.extractor, config=self.exp_cfg)
+        self.sae = SparseConceptCoding()
+        self._whitening_fitted = False
+
+    def is_available(self) -> bool:
+        return self.extractor.is_available()
 
     def get_cell_representation_text(self, cell: Any) -> str:
-        """Derives a rich semantic string for a cell covering identity, keywords, inputs, and outputs."""
         cid = getattr(cell, "cell_id", "")
         keywords = " ".join(getattr(cell, "keywords", []) or [])
         summary = getattr(cell, "summary", "") or ""
@@ -188,45 +320,107 @@ class CognitivePathfinder:
         )
         return f"{cid} {keywords} {summary} {doc} in:{in_types} out:{out_types} {code}".strip()
 
+    def encode_text(self, text: str) -> np.ndarray:
+        """Encodes text using Early-Exit + ZCA Whitening when enabled in ACTIVE_EXPERIMENTS."""
+        if self.exp_cfg.early_exit_layer is not None or self.exp_cfg.use_zca_whitening:
+            return self.probe.encode_early_exit(text, layer_idx=self.exp_cfg.early_exit_layer)
+        return self.extractor.encode(text)
+
+    def ensure_corpus_whitening(self, cells: List[Any]) -> None:
+        """Fits ZCA whitening matrix over the active candidate cell embeddings."""
+        if self._whitening_fitted or not self.exp_cfg.use_zca_whitening or len(cells) < 4:
+            return
+        texts = [self.get_cell_representation_text(c) for c in cells]
+        raw_vecs = np.array(self.extractor.encode_batch(texts), dtype=np.float32)
+        self.probe.fit_whitening(raw_vecs)
+        self._whitening_fitted = True
+        self._cell_vec_cache.clear()
+
     def get_cell_vector(self, cell: Any) -> np.ndarray:
-        """Retrieves or computes the unit-normalized latent vector for a cell."""
         cid = getattr(cell, "cell_id", id(cell))
         if cid in self._cell_vec_cache:
             return self._cell_vec_cache[cid]
-
         text = self.get_cell_representation_text(cell)
-        vec = self.extractor.encode(text)
+        vec = self.encode_text(text)
         self._cell_vec_cache[cid] = vec
         return vec
+
+    def compute_sparse_concept_boosts(self, prompt: str, candidates: List[Any]) -> Dict[str, float]:
+        """
+        Decomposes `prompt` into sparse K-hot concept activations over `candidates`
+        via Orthogonal Matching Pursuit (SAE) when `use_sparse_coding` is enabled.
+        """
+        if not self.exp_cfg.use_sparse_coding or not candidates:
+            return {}
+        self.ensure_corpus_whitening(candidates)
+        p_vec = self.encode_text(prompt)
+        c_ids = [getattr(c, "cell_id", "") for c in candidates]
+        D_mat = np.array([self.get_cell_vector(c) for c in candidates], dtype=np.float32)
+        return self.sae.decompose_prompt_embedding(
+            prompt_vec=p_vec,
+            dictionary_matrix=D_mat,
+            cell_ids=c_ids,
+            top_k=self.exp_cfg.sparse_top_k,
+        )
 
     def compute_latent_heuristic(
         self,
         current_vec: np.ndarray,
         candidate_vec: np.ndarray,
-        goal_vec: np.ndarray
+        goal_vec: np.ndarray,
+        weights: Optional[Dict[str, float]] = None,
     ) -> float:
-        """
-        Computes the latent geodesic heuristic H(current, candidate, goal).
-        Combines:
-          1. Direct cosine similarity with goal: sim(cand, goal)
-          2. Directional delta progress: projection of (cand - current) along (goal - current).
-        """
-        sim = float(np.dot(candidate_vec, goal_vec))
+        w = weights or get_latent_scoring_weights()
+        w_sim = w.get("sim_weight", 0.5)
+        w_prog = w.get("progress_weight", 0.5)
+        norm_w = (w_sim + w_prog) or 1.0
 
-        delta_goal = goal_vec - current_vec
-        delta_step = candidate_vec - current_vec
-        norm_dg = float(np.linalg.norm(delta_goal))
+        norm_cand = float(np.linalg.norm(candidate_vec))
+        norm_goal = float(np.linalg.norm(goal_vec))
+        if norm_cand < 1e-9 or norm_goal < 1e-9:
+            return 0.0
 
-        if norm_dg > 1e-6:
-            unit_goal = delta_goal / norm_dg
-            progress = float(np.dot(delta_step, unit_goal))
+        u_cand = candidate_vec / norm_cand
+        u_goal = goal_vec / norm_goal
+        sim = float(np.clip(np.dot(u_cand, u_goal), -1.0, 1.0))
+
+        norm_curr = float(np.linalg.norm(current_vec))
+        if norm_curr > 1e-6:
+            u_curr = current_vec / norm_curr
+            tangent_goal = u_goal - float(np.dot(u_goal, u_curr)) * u_curr
+            tangent_step = u_cand - u_curr
+            norm_tg = float(np.linalg.norm(tangent_goal))
+            norm_ts = float(np.linalg.norm(tangent_step))
+            if norm_tg > 1e-6 and norm_ts > 1e-6:
+                progress = float(np.clip(np.dot(tangent_step / norm_ts, tangent_goal / norm_tg), -1.0, 1.0))
+            else:
+                progress = sim
         else:
             progress = sim
 
-        clamped_sim = max(0.0, min(1.0, (sim + 1.0) / 2.0))
-        clamped_prog = max(0.0, min(1.0, (progress + 1.0) / 2.0))
+        geodesic_sim = 1.0 - (float(np.arccos(sim)) / np.pi)
+        geodesic_prog = 1.0 - (float(np.arccos(progress)) / np.pi)
+        return (w_sim * geodesic_sim + w_prog * geodesic_prog) / norm_w
 
-        return 0.5 * clamped_sim + 0.5 * clamped_prog
+    def update_state_vector(
+        self,
+        current_vec: np.ndarray,
+        next_vec: np.ndarray,
+        momentum: Optional[float] = None,
+    ) -> np.ndarray:
+        if momentum is None:
+            momentum = get_latent_scoring_weights().get("state_momentum", 0.7)
+        momentum = float(np.clip(momentum, 0.0, 1.0))
+
+        if float(np.linalg.norm(current_vec)) < 1e-9:
+            norm_n = float(np.linalg.norm(next_vec))
+            return (next_vec / norm_n).astype(np.float32) if norm_n > 1e-9 else next_vec
+
+        blended = momentum * current_vec + (1.0 - momentum) * next_vec
+        norm_b = float(np.linalg.norm(blended))
+        if norm_b > 1e-9:
+            return (blended / norm_b).astype(np.float32)
+        return blended.astype(np.float32)
 
     def rank_candidates(
         self,
@@ -234,19 +428,21 @@ class CognitivePathfinder:
         current_vec: np.ndarray,
         goal_vec: np.ndarray,
         relevance_map: Optional[Dict[str, float]] = None,
-        alpha: float = 0.7,
-        beta: float = 0.3
+        alpha: Optional[float] = None,
+        beta: Optional[float] = None,
     ) -> List[Tuple[Any, float]]:
-        """
-        Ranks candidate morphism cells by combining the latent geodesic heuristic
-        with prior semantic relevance scores.
-        """
+        w = get_latent_scoring_weights()
+        a = alpha if alpha is not None else (w.get("clause_weight", 0.5) + w.get("goal_weight", 0.3))
+        b = beta if beta is not None else w.get("structural_weight", 0.2)
+        total = (a + b) or 1.0
+
+        self.ensure_corpus_whitening(candidates)
         scored: List[Tuple[Any, float]] = []
         for cell in candidates:
             c_vec = self.get_cell_vector(cell)
-            h_score = self.compute_latent_heuristic(current_vec, c_vec, goal_vec)
+            h_score = self.compute_latent_heuristic(current_vec, c_vec, goal_vec, weights=w)
             r_score = (relevance_map or {}).get(getattr(cell, "cell_id", ""), 0.0)
-            composite = alpha * h_score + beta * r_score
+            composite = (a * h_score + b * r_score) / total
             scored.append((cell, composite))
 
         scored.sort(key=lambda t: t[1], reverse=True)
@@ -254,6 +450,8 @@ class CognitivePathfinder:
 
 
 __all__ = [
+    "ModelUnavailableError",
     "LatentVectorExtractor",
     "CognitivePathfinder",
+    "get_latent_scoring_weights",
 ]

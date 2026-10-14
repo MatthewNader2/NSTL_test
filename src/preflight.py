@@ -291,7 +291,7 @@ class PreflightLinter:
             }
         except Exception:
             model_roles = set()
-        return role in (model_roles or {"model_input", "model_sink"})
+        return bool(role and role in model_roles)
 
     # ------------------------------------------------------------------
     # Public entrypoint
@@ -309,6 +309,30 @@ class PreflightLinter:
         warnings: List[str] = []
         structured_violations: List[PreflightViolation] = []
         waived = set(waived_literals or set())
+
+        bound_pipeline_vars: Set[str] = set()
+        for cell_item, b_dict in pipeline_bindings:
+            if isinstance(b_dict, dict):
+                out_v = b_dict.get("output_var")
+                if out_v and not _is_unbound(out_v):
+                    bound_pipeline_vars.add(str(out_v))
+                for k, v in b_dict.items():
+                    if isinstance(v, str) and not _is_unbound(v):
+                        if v.startswith("var_") or (k == "output_var" and v.isidentifier()):
+                            bound_pipeline_vars.add(v)
+
+        def _is_var(val: Any) -> bool:
+            if not isinstance(val, str) or not val:
+                return False
+            if _is_unbound(val):
+                return False
+            v = val.strip()
+            if v in bound_pipeline_vars or v.startswith("var_"):
+                return True
+            root = v.split("[")[0].strip() if "[" in v else v
+            if root in bound_pipeline_vars or root.startswith("var_"):
+                return True
+            return False
 
         def _add_violation(
             check_id: str,
@@ -417,12 +441,12 @@ class PreflightLinter:
             prim_in = getattr(cell, "primary_input", None)
             if prim_in and prim_in.name in bindings:
                 v = bindings[prim_in.name]
-                if isinstance(v, str) and v.startswith("var_"):
+                if isinstance(v, str) and _is_var(v):
                     carrier_in_var = v
             if not carrier_in_var:
                 # Dynamic port inspection: check ports declared as carriers or bound to input variables
                 for k, p_sig in (getattr(cell, "inputs", {}) or {}).items():
-                    if k in bindings and isinstance(bindings[k], str) and bindings[k].startswith("var_"):
+                    if k in bindings and isinstance(bindings[k], str) and _is_var(bindings[k]):
                         p_role = cls._port_role(p_sig).lower()
                         if getattr(p_sig, "is_carrier", False) or getattr(p_sig, "binds", "") in ("carrier", "data_carrier") or "carrier" in p_role or "receiver" in p_role:
                             carrier_in_var = bindings[k]
@@ -430,7 +454,7 @@ class PreflightLinter:
                 if not carrier_in_var:
                     # Fallback to the first variable binding in input ports
                     for k in (getattr(cell, "inputs", {}) or {}):
-                        if k in bindings and isinstance(bindings[k], str) and bindings[k].startswith("var_"):
+                        if k in bindings and isinstance(bindings[k], str) and _is_var(bindings[k]):
                             carrier_in_var = bindings[k]
                             break
 
@@ -456,10 +480,12 @@ class PreflightLinter:
                     # Check for literal column arguments
                     p_sig = cell.inputs.get(p_name) if getattr(cell, "inputs", None) else None
                     p_role_s = cls._port_role(p_sig) if p_sig else ""
+                    reg = cls._registry()
+                    proj_roles = set(r.lower() for r in reg.get_verification_semantics("projection_port_roles"))
                     is_proj_port = (
                         getattr(p_sig, "binds", "") in ("column_key", "column", "key")
+                        or (p_role_s in proj_roles)
                         or any(r in p_role_s for r in ("column", "target", "feature", "projection", "key"))
-                        or p_name in ("column", "columns", "key", "port_1")
                     )
                     if is_proj_port:
                         target_v = carrier_in_var
@@ -477,7 +503,7 @@ class PreflightLinter:
                                         cols_referenced.append((it, target_v))
                         else:
                             clean_col = val_str.strip("'\"")
-                            if clean_col and not clean_col.startswith("var_"):
+                            if clean_col and not _is_var(clean_col):
                                 cols_referenced.append((clean_col, target_v))
 
                     # Projection / subscript check: var['col'] or var[['col1', 'col2']]
@@ -546,7 +572,7 @@ class PreflightLinter:
                 out_var = carrier_in_var
 
             # 4. Construct or update schema for out_var
-            if out_var and isinstance(out_var, str) and out_var.startswith("var_"):
+            if out_var and isinstance(out_var, str) and _is_var(out_var):
                 base_sch = var_schemas.get(carrier_in_var) if carrier_in_var else None
                 new_sch = VariableSchema(
                     known_columns=set(base_sch.known_columns) if base_sch and base_sch.known_columns is not None else None,
@@ -555,21 +581,22 @@ class PreflightLinter:
                     removed_by=dict(base_sch.removed_by) if base_sch else {},
                 )
 
-                c_id_s = str(getattr(cell, "cell_id", "") or "").lower()
+                reg = cls._registry()
+                eff_set = set(r.lower() for r in reg.get_verification_semantics("column_transform_effects"))
                 is_set_item = (
                     getattr(cell, "projection", None) in ("set_column", "set_item", "assign")
                     or getattr(cell, "node_role", "") in ("assign", "setter")
+                    or getattr(cell, "mutation_type", "") in ("add_key", "set_item")
                     or any(
-                        eff == "adds_column" or (isinstance(eff, dict) and eff.get("name") in ("adds_column", "set_column"))
+                        eff == "adds_column"
+                        or (isinstance(eff, dict) and (eff.get("name") in ("adds_column", "set_column") or eff.get("name") in eff_set))
                         for eff in (getattr(cell, "effects", []) or [])
                     )
-                    or "set_column" in c_id_s
                 )
                 if is_set_item:
+                    proj_roles = set(r.lower() for r in reg.get_verification_semantics("projection_port_roles"))
                     col_k = next((bindings[p] for p, sig in (getattr(cell, "inputs", {}) or {}).items()
-                                  if getattr(sig, "binds", "") in ("column_key", "key") and p in bindings), None)
-                    if not col_k:
-                        col_k = bindings.get("column") or bindings.get("key") or bindings.get("port_1")
+                                  if (getattr(sig, "binds", "") in ("column_key", "key") or cls._port_role(sig) in proj_roles) and p in bindings), None)
                     if col_k:
                         new_sch.added_columns.add(str(col_k).strip("'\""))
 
@@ -640,7 +667,7 @@ class PreflightLinter:
                 for inp_name, inp_val in bindings.items():
                     if not isinstance(inp_val, str):
                         continue
-                    if inp_val.startswith("var_"):
+                    if _is_var(inp_val):
                         r_v = inp_val.split("[")[0].strip()
                         out_origs.update(var_origins.get(r_v, set()))
                         if "[" in inp_val and "]" in inp_val:
@@ -900,10 +927,10 @@ class PreflightLinter:
             produced_vars: Set[str] = set()
             for out_name in getattr(cell, "outputs", {}).keys():
                 v = bindings.get(out_name)
-                if isinstance(v, str) and v.startswith("var_"):
+                if isinstance(v, str) and _is_var(v):
                     produced_vars.add(v)
             out_v = bindings.get("output_var")
-            if isinstance(out_v, str) and out_v.startswith("var_"):
+            if isinstance(out_v, str) and _is_var(out_v):
                 produced_vars.add(out_v)
 
             if not produced_vars:
@@ -936,10 +963,16 @@ class PreflightLinter:
             if not is_consumed:
                 # Terminal observation, goal, sink, or clause witness exemption
                 role = str(getattr(cell, "node_role", "") or "").lower()
-                stage = getattr(cell, "stage", None)
+                term_roles = _declared_role_semantics("terminal_roles")
+                is_terminal = (role in term_roles) if term_roles else False
+                if not is_terminal:
+                    try:
+                        from planner import _active_vocab
+                        is_terminal = _active_vocab().is_terminal(cell)
+                    except Exception:
+                        pass
                 if (
-                    role in _declared_role_semantics("terminal_roles")
-                    or stage == 3
+                    is_terminal
                     or getattr(cell, "is_goal", False)
                     or getattr(cell, "matched_clause_idx", None) is not None
                 ):
@@ -989,10 +1022,10 @@ class PreflightLinter:
                 continue
             for out_name in getattr(cell, "outputs", {}).keys():
                 v = bindings.get(out_name)
-                if isinstance(v, str) and v.startswith("var_"):
+                if isinstance(v, str) and _is_var(v):
                     cell_producers[v] = (i, cell)
             out_v = bindings.get("output_var")
-            if isinstance(out_v, str) and out_v.startswith("var_"):
+            if isinstance(out_v, str) and _is_var(out_v):
                 cell_producers[out_v] = (i, cell)
 
         # Check for order inversions across dependent cell pairs
@@ -1008,7 +1041,7 @@ class PreflightLinter:
                     continue
                 d_rec = getattr(cons_cell, "typed_bindings", {}).get(p_k)
                 root_v = d_rec.root_var if d_rec else None
-                if not root_v and isinstance(down_val, str) and down_val.startswith("var_"):
+                if not root_v and isinstance(down_val, str) and _is_var(down_val):
                     root_v = down_val
 
                 if root_v and root_v in cell_producers:
@@ -1059,16 +1092,20 @@ class PreflightLinter:
                 elif isinstance(eff, str):
                     cons_effects.add(eff.lower())
 
-            cons_is_cleaner = bool(cons_effects & clean_effects) or getattr(cons_cell, "node_role", "") in ("cleaner", "transformer", "filter")
+            clean_roles = set(r.lower() for r in (reg_p.get_verification_semantics("clean_roles") if reg_p else []))
+            clean_roles.update(r.lower() for r in (reg_p.get_verification_semantics("transform_roles") if reg_p else []))
+            if not clean_roles:
+                clean_roles = {"cleaner", "transformer", "filter"}
+            cons_is_cleaner = bool(cons_effects & clean_effects) or (getattr(cons_cell, "node_role", "") in clean_roles)
 
             cons_in_v = None
             if cons_is_cleaner:
                 for port_name, b_val in cons_bindings.items():
-                    if isinstance(b_val, str) and b_val.startswith("var_"):
+                    if isinstance(b_val, str) and _is_var(b_val):
                         port_sig = getattr(cons_cell, "inputs", {}).get(port_name)
                         p_role = getattr(port_sig, "port_role", "") if port_sig else ""
                         p_tn = getattr(getattr(port_sig, "signature", port_sig), "type_name", "") if port_sig else ""
-                        if not port_sig or p_role in ("carrier", "data_input", "feature_input") or (reg_p and (reg_p.is_subtype(p_tn, "table") or reg_p.is_subtype(p_tn, "tensor"))):
+                        if not port_sig or p_role in ("carrier", "data_input", "feature_input") or (reg_p and (reg_p.is_abstract_carrier(p_tn) or reg_p.get_abstract_carrier(p_tn) is not None)):
                             cons_in_v = b_val
                             break
             if cons_in_v:
@@ -1119,7 +1156,7 @@ class PreflightLinter:
             cons_clause_toks = {t.lower() for t in cons_clause_text.replace(",", " ").replace('"', " ").replace("'", " ").split()} if cons_clause_text else set()
 
             for p_name, val_expr in bindings.items():
-                if not isinstance(val_expr, str) or not val_expr.startswith("var_"):
+                if not isinstance(val_expr, str) or not _is_var(val_expr):
                     continue
 
                 p_sig = getattr(cell, "inputs", {}).get(p_name)
@@ -1131,8 +1168,16 @@ class PreflightLinter:
                 inner_sig = getattr(p_sig, "signature", p_sig)
                 p_tn = str(getattr(inner_sig, "type_name", "")).lower()
 
-                # Carrier tables are exempt as they carry throughout the entire pipeline
-                if p_binds in ("data_carrier", "carrier") or p_abstract == "table" or cls._registry().is_subtype(p_tn, "table"):
+                # Carriers of any modality are exempt as they carry throughout the entire pipeline
+                reg_4c = cls._registry()
+                is_carrier_port = (
+                    getattr(p_sig, "is_carrier", False)
+                    or p_binds in ("data_carrier", "carrier")
+                    or reg_4c.is_abstract_carrier(p_abstract)
+                    or reg_4c.is_abstract_carrier(p_tn)
+                    or reg_4c.get_abstract_carrier(p_tn) is not None
+                )
+                if is_carrier_port:
                     continue
 
                 # Literal parameters or column keys are exempt

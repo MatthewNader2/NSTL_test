@@ -2035,6 +2035,12 @@ class PipelineDebugger:
         c.print(perf_table)
         c.print("")
 
+        try:
+            from cli_helpers import render_failure_surface_summary
+            render_failure_surface_summary(c, ctx=dbg_ctx, router=self.router, gate=self.gate)
+        except Exception as _fs_err:
+            logger.debug("[CLI] Failure surface summary skipped: %s", _fs_err)
+
         path_ids = [cl.cell_id for cl in cells] if cells else []
         sb_status = "PASSED" if sandbox_res.get("success", False) else ("FAILED: " + sandbox_res.get("error", "").splitlines()[-1] if sandbox_res.get("error") else "FAILED")
         return {
@@ -3451,6 +3457,27 @@ def build_parser() -> argparse.ArgumentParser:
     p_bench.add_argument("--reranker-model", type=str, default=None, help="Neural reranker model name (e.g. jina-reranker-v3.5)")
     p_bench.add_argument("--dev", action="store_true", default=False, help="Enable Dev Mode")
     p_bench.add_argument("--topology", choices=["frontier", "linear"], default=None, help="Topological planning approach")
+    p_bench.add_argument(
+        "--early-exit-layer",
+        type=int,
+        default=None,
+        help="Experimental: Extract residual stream from transformer layer K instead of final layer.",
+    )
+    p_bench.add_argument(
+        "--no-whitening",
+        action="store_true",
+        help="Experimental: Disable ZCA whitening on latent cell embeddings.",
+    )
+    p_bench.add_argument(
+        "--sparse-sae",
+        action="store_true",
+        help="Experimental: Enable Top-K Sparse Autoencoder (OMP) multi-clause concept decomposition.",
+    )
+    p_bench.add_argument(
+        "--no-markov-prior",
+        action="store_true",
+        help="Experimental: Disable Absorbing Markov Chain N=(I-Q)^-1 hitting-probability prior.",
+    )
     p_bench.set_defaults(func=cmd_benchmark)
 
     p_precompute = subparsers.add_parser("precompute-rag", help="Precompute FAISS dense embeddings into .rag_cache/")
@@ -3480,6 +3507,27 @@ def build_parser() -> argparse.ArgumentParser:
     p_run.add_argument("--macros", dest="macros", action="store_true", default=None, help="Enable macro-goal routing")
     p_run.add_argument("--no-macros", dest="macros", action="store_false", help="Disable macro-goal routing")
     p_run.add_argument("--topology", choices=["frontier", "linear"], default=None, help="Topological planning approach")
+    p_run.add_argument(
+        "--early-exit-layer",
+        type=int,
+        default=None,
+        help="Experimental: Extract residual stream from transformer layer K instead of final layer.",
+    )
+    p_run.add_argument(
+        "--no-whitening",
+        action="store_true",
+        help="Experimental: Disable ZCA whitening on latent cell embeddings.",
+    )
+    p_run.add_argument(
+        "--sparse-sae",
+        action="store_true",
+        help="Experimental: Enable Top-K Sparse Autoencoder (OMP) multi-clause concept decomposition.",
+    )
+    p_run.add_argument(
+        "--no-markov-prior",
+        action="store_true",
+        help="Experimental: Disable Absorbing Markov Chain N=(I-Q)^-1 hitting-probability prior.",
+    )
     p_run.add_argument("--explain-plan", action="store_true", help="Print clause-level coverage and precision diagnostics table")
     p_run.set_defaults(func=cmd_run)
 
@@ -3503,6 +3551,27 @@ def build_parser() -> argparse.ArgumentParser:
     p_shell.add_argument("--macros", dest="macros", action="store_true", default=None, help="Enable macro-goal routing")
     p_shell.add_argument("--no-macros", dest="macros", action="store_false", help="Disable macro-goal routing")
     p_shell.add_argument("--topology", choices=["frontier", "linear"], default=None, help="Topological planning approach")
+    p_shell.add_argument(
+        "--early-exit-layer",
+        type=int,
+        default=None,
+        help="Experimental: Extract residual stream from transformer layer K instead of final layer.",
+    )
+    p_shell.add_argument(
+        "--no-whitening",
+        action="store_true",
+        help="Experimental: Disable ZCA whitening on latent cell embeddings.",
+    )
+    p_shell.add_argument(
+        "--sparse-sae",
+        action="store_true",
+        help="Experimental: Enable Top-K Sparse Autoencoder (OMP) multi-clause concept decomposition.",
+    )
+    p_shell.add_argument(
+        "--no-markov-prior",
+        action="store_true",
+        help="Experimental: Disable Absorbing Markov Chain N=(I-Q)^-1 hitting-probability prior.",
+    )
     p_shell.set_defaults(func=cmd_shell)
 
     return parser
@@ -3530,6 +3599,22 @@ def main():
 
     parser = build_parser()
     args = parser.parse_args()
+
+    try:
+        try:
+            from experiments import ACTIVE_EXPERIMENTS
+        except (ImportError, ValueError):
+            from .experiments import ACTIVE_EXPERIMENTS
+        if getattr(args, "early_exit_layer", None) is not None:
+            ACTIVE_EXPERIMENTS.early_exit_layer = args.early_exit_layer
+        if getattr(args, "no_whitening", False):
+            ACTIVE_EXPERIMENTS.use_zca_whitening = False
+        if getattr(args, "sparse_sae", False):
+            ACTIVE_EXPERIMENTS.use_sparse_coding = True
+        if getattr(args, "no_markov_prior", False):
+            ACTIVE_EXPERIMENTS.use_markov_hitting_prior = False
+    except Exception as _exp_err:
+        logger.debug("[CLI] Experiment config binding skipped: %s", _exp_err)
 
     if hasattr(args, "func"):
         args.func(args)

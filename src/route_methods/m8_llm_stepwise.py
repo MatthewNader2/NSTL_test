@@ -23,7 +23,7 @@ from __future__ import annotations
 import json
 from typing import Dict, List, Optional, Any, Tuple
 
-from .base import RouteMethod
+from .base import RouteMethod, is_terminal_sink
 from .m1_clause_anchor import M1ClauseAnchorRouteMethod
 from lattice import Cell, LatticeOrchestrator
 from unification import ExecutionContext
@@ -286,7 +286,7 @@ class M8LLMStepwisePathfinderRouteMethod(RouteMethod):
                 rem_block = f"\n\nOther Candidate Nodes in Pool (Goals / Rest of Pipeline):\n" + "\n".join(rem_lines)
 
             clauses = self.segment_prompt_clauses(prompt)
-            finish_hint = " (or 'FINISH' if pipeline is complete)" if (curr_stage == 3 or curr_role == "sink" or (clauses and len(path) >= len(clauses))) else ""
+            finish_hint = " (or 'FINISH' if pipeline is complete)" if (is_terminal_sink(curr, orch) or (clauses and len(path) >= len(clauses))) else ""
             step_msg = (
                 f"Request: {prompt}\n\n"
                 f"Current Pipeline: {path_str}\n\n"
@@ -342,7 +342,7 @@ class M8LLMStepwisePathfinderRouteMethod(RouteMethod):
 
             if matched_trans is None:
                 # If current node is a sink or stage 3, complete
-                if curr_stage == 3 or curr_role in ("sink", "terminal", "egress", "consumer"):
+                if is_terminal_sink(curr, orch):
                     break
                 # Default to top scored transition that is not visited
                 for tr in active_transitions:
@@ -361,7 +361,7 @@ class M8LLMStepwisePathfinderRouteMethod(RouteMethod):
             path.append(target_cell)
             visited_ids.add(target_cell.cell_id)
 
-            if getattr(target_cell, "stage", None) == 3 or getattr(target_cell, "node_role", "") == "sink":
+            if is_terminal_sink(target_cell, orch):
                 # Egress reached
                 break
 

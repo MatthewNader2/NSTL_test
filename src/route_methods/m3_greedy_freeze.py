@@ -7,7 +7,7 @@ Greedily commits the best next morphism at each step without backtracking.
 from __future__ import annotations
 from typing import Dict, List, Optional, Set, Tuple, Any
 
-from .base import RouteMethod, STOPWORDS
+from .base import RouteMethod, STOPWORDS, is_terminal_sink
 
 try:
     from ..lattice import Cell, LatticeOrchestrator
@@ -119,8 +119,8 @@ class M3GreedyFreezeRouteMethod(RouteMethod):
                 curr_stage = getattr(curr, "stage", 1) or 1
                 cand_stage = getattr(cand, "stage", 2) or 2
                 progress = 2 if cand_stage > curr_stage else (1 if cand_stage == curr_stage else 0)
-                is_cand_sink = (cand_stage == 3 or str(getattr(cand, "node_role", "") or getattr(cand, "role", "")).lower() in ("sink", "terminal", "egress", "consumer"))
-                is_curr_sink = (curr_stage == 3 or str(getattr(curr, "node_role", "") or getattr(curr, "role", "")).lower() in ("sink", "terminal", "egress", "consumer"))
+                is_cand_sink = is_terminal_sink(cand, orch)
+                is_curr_sink = is_terminal_sink(curr, orch)
                 unrequested_egress = (
                     is_cand_sink and self._is_path_consumer(cand)
                     and not (dst_lit is not None and self.file_compat(cand, dst_lit) > 0)

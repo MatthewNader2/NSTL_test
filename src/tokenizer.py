@@ -505,6 +505,14 @@ class CellTokenizer:
                     continue
 
         if not split_positions:
+            if not coordinating_words and not sequencing_words:
+                try:
+                    from experiments import corpus_idf_split_clauses
+                    idf_clauses = corpus_idf_split_clauses(text)
+                    if len(idf_clauses) > 1:
+                        return idf_clauses
+                except Exception:
+                    pass
             return [text]
 
         strip_words = set(coordinating_words) | set(sequencing_words)

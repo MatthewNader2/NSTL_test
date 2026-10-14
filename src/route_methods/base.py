@@ -16,12 +16,14 @@ try:
     from ..tokenizer import CellTokenizer
     from ..planner import LatticePlanner
     from ..utils import tokenize_alphanumeric
+    from ..dag_plan import DAGPlan, OpenPortFrontier
 except (ImportError, ValueError):
     from lattice import Cell, MicroCell, MacroCell, LatticeOrchestrator, TypeRegistry, is_path_port
     from unification import unify, Substitution, ExecutionContext, unify_cell_with_scope
     from tokenizer import CellTokenizer
     from planner import LatticePlanner, STOPWORDS, _WILDCARD_CARRIERS
     from utils import tokenize_alphanumeric
+    from dag_plan import DAGPlan, OpenPortFrontier
 
 logger = get_logger("route_methods")
 
@@ -40,6 +42,82 @@ def _bridge_roles() -> frozenset:
         return frozenset(str(r).strip().lower() for r in TypeRegistry.get_instance().get_verification_semantics("bridge_roles"))
     except Exception:
         return frozenset()
+
+
+def is_terminal_sink(cell: Any, orch: Optional[Any] = None) -> bool:
+    """Check if cell is a terminal/sink morphism dynamically via LatticeVocabulary and TypeRegistry."""
+    try:
+        from planner import _active_vocab
+        return _active_vocab(orch).is_terminal(cell)
+    except Exception:
+        pass
+    try:
+        from lattice import TypeRegistry
+        reg = TypeRegistry.get_instance()
+        term_roles = {str(r).lower() for r in reg.get_verification_semantics("terminal_roles")}
+        term_roles.update(str(r).lower() for r in reg.get_verification_semantics("sink_roles"))
+        role = str(getattr(cell, "node_role", "") or getattr(cell, "role", "") or "").lower()
+        if role in term_roles:
+            return True
+        term_stages = reg.get_verification_semantics("terminal_stages")
+        if term_stages and getattr(cell, "stage", None) in term_stages:
+            return True
+    except Exception:
+        pass
+    if getattr(cell, "is_endable", False):
+        return True
+    stage = getattr(cell, "stage", None)
+    role = str(getattr(cell, "node_role", "") or getattr(cell, "role", "") or "").lower()
+    return stage == 3 or role in ("sink", "terminal", "egress", "consumer")
+
+
+def is_ingress_source(cell: Any, orch: Optional[Any] = None) -> bool:
+    """Check if cell is an ingress/source morphism dynamically via LatticeVocabulary and TypeRegistry."""
+    try:
+        from planner import _active_vocab
+        return _active_vocab(orch).is_ingress(cell)
+    except Exception:
+        pass
+    try:
+        from lattice import TypeRegistry
+        reg = TypeRegistry.get_instance()
+        ing_roles = {str(r).lower() for r in reg.get_verification_semantics("ingress_roles")}
+        ing_roles.update(str(r).lower() for r in reg.get_verification_semantics("source_roles"))
+        role = str(getattr(cell, "node_role", "") or getattr(cell, "role", "") or "").lower()
+        if role in ing_roles:
+            return True
+        ing_stages = reg.get_verification_semantics("ingress_stages")
+        if ing_stages and getattr(cell, "stage", None) in ing_stages:
+            return True
+    except Exception:
+        pass
+    stage = getattr(cell, "stage", None)
+    role = str(getattr(cell, "node_role", "") or getattr(cell, "role", "") or "").lower()
+    return stage == 1 or role in ("source", "ingress", "producer")
+
+
+def is_intermediate_transform(cell: Any, orch: Optional[Any] = None) -> bool:
+    """Check if cell is an intermediate/transform morphism dynamically via LatticeVocabulary and TypeRegistry."""
+    try:
+        from planner import _active_vocab
+        return _active_vocab(orch).is_transform(cell)
+    except Exception:
+        pass
+    try:
+        from lattice import TypeRegistry
+        reg = TypeRegistry.get_instance()
+        tf_roles = {str(r).lower() for r in reg.get_verification_semantics("transform_roles")}
+        role = str(getattr(cell, "node_role", "") or getattr(cell, "role", "") or "").lower()
+        if role in tf_roles:
+            return True
+        tf_stages = reg.get_verification_semantics("transform_stages")
+        if tf_stages and getattr(cell, "stage", None) in tf_stages:
+            return True
+    except Exception:
+        pass
+    stage = getattr(cell, "stage", None)
+    role = str(getattr(cell, "node_role", "") or getattr(cell, "role", "") or "").lower()
+    return stage == 2 or role in ("transform", "operation", "intermediate")
 
 
 class RouteMethod(ABC):
@@ -151,14 +229,10 @@ class RouteMethod(ABC):
                 return aff * 0.75
 
         # 3. Intermediate -> Terminal Sink Egress Completion
-        src_stage = getattr(src_cell, "stage", None)
-        dst_stage = getattr(dst_cell, "stage", None)
-        src_role = str(getattr(src_cell, "node_role", "") or getattr(src_cell, "role", "") or "").lower()
-        dst_role = str(getattr(dst_cell, "node_role", "") or getattr(dst_cell, "role", "") or "").lower()
         src_domain = getattr(src_cell, "domain_name", "")
         dst_domain = getattr(dst_cell, "domain_name", "")
-        is_src_intermediate = (src_stage == 2 or src_role in ("transform", "operation", "intermediate"))
-        is_dst_sink = (dst_stage == 3 or dst_role in ("sink", "terminal", "egress", "consumer"))
+        is_src_intermediate = is_intermediate_transform(src_cell, orch)
+        is_dst_sink = is_terminal_sink(dst_cell, orch)
         if is_src_intermediate and is_dst_sink and src_domain and dst_domain and src_domain == dst_domain:
             # Gate the +0.75 egress completion bonus on src_cell having positive prompt relevance
             rel_map = relevance_map if relevance_map is not None else getattr(self, "relevance_map", None)
@@ -336,11 +410,11 @@ class RouteMethod(ABC):
         for cand in candidates:
             if cand.cell_id in (src_cell.cell_id, dst_cell.cell_id):
                 continue
-            if getattr(cand, "stage", None) == 1:
+            if is_ingress_source(cand, orchestrator):
                 continue
             if getattr(cand, "is_combinator", False) or getattr(cand, "node_role", "") == "combinator" or getattr(cand, "role", "") == "combinator" or getattr(cand, "node_type", "") == "combinator":
                 continue
-            if getattr(cand, "stage", None) == 3 or str(getattr(cand, "node_role", "") or "").lower() in ("sink", "terminal"):
+            if is_terminal_sink(cand, orchestrator):
                 continue
 
             cand_role = str(getattr(cand, "node_role", "") or "").lower()
@@ -409,6 +483,25 @@ class RouteMethod(ABC):
             b_inst.clause_literals = getattr(dst_cell, "clause_literals", None)
             b_inst.matched_clause_idx = getattr(dst_cell, "matched_clause_idx", None)
             return b_inst
+
+        # Open-World Continuum (Issue 5): If no pre-harvested bridge exists in the lattice,
+        # instantiate a TypedHoleCell(tau_src -> tau_dst) when synthesis is available.
+        if best_b is None and src_cell.primary_output and dst_cell.primary_input:
+            try:
+                from dag_plan import TypedHoleCell
+                from inference import ModelManager
+                if ModelManager.get_instance().can_synthesize():
+                    hole_cell = TypedHoleCell(
+                        hole_id=f"HOLE_BRIDGE_{src_cell.cell_id}_TO_{dst_cell.cell_id}",
+                        task_description=f"Bridge {src_cell.primary_output.type_name} to {dst_cell.primary_input.type_name}",
+                        in_sig=src_cell.primary_output.signature,
+                        out_sig=dst_cell.primary_input.signature,
+                    )
+                    hole_cell.matched_clause_idx = getattr(dst_cell, "matched_clause_idx", None)
+                    hole_cell.clause_literals = getattr(dst_cell, "clause_literals", None)
+                    return hole_cell
+            except Exception as hole_exc:
+                logger.debug("[ROUTE] TypedHoleCell bridge fallback skipped: %s", hole_exc)
         return None
 
     @classmethod
@@ -643,7 +736,10 @@ class RouteMethod(ABC):
                             self._trace("column_commit_blocked", after=c.cell_id, commit=proto.cell_id,
                                         reason="chain would not unify with the commit cell inserted")
             i += 1
-        return out
+        try:
+            return OpenPortFrontier.build_dag_plan(out)
+        except Exception:
+            return out
 
     def insert_property_bridges(self, path: List[Cell], trace: bool = True) -> List[Cell]:
         """
@@ -704,7 +800,10 @@ class RouteMethod(ABC):
                             self._trace("property_bridge_inserted", after=prod_id, bridge=b_cell.cell_id,
                                         property=iss.get("property"), reason="resolves downstream property precondition")
                         out = trial
-            return out
+            try:
+                return OpenPortFrontier.build_dag_plan(out)
+            except Exception:
+                return out
         except Exception as _p_err:
             logger.debug(f"[ROUTE] insert_property_bridges skipped: {_p_err}")
             return path
@@ -736,7 +835,11 @@ class RouteMethod(ABC):
             self._trace("pruned_unrequested", cell=victim["cell"], winners=victim["winners"],
                         reason="outranked on every clause it touches and explains no leftover clause token")
             current = trial
-        return current
+        try:
+            from dag_plan import DAGPlan
+            return DAGPlan(current)
+        except Exception:
+            return current
 
     # ------------------------------------------------------------------
     # Shared evidence primitives (identical for every route method)

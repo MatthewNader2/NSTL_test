@@ -168,8 +168,10 @@ class IdiomSubgraph:
     @property
     def total_score(self) -> float:
         # Multi-clause coverage bonus + lexical relevance + transition affinities
-        coverage_bonus = 3.0 * len(self.covered_clauses)
-        return self.lexical_score + 1.2 * self.affinity_score + coverage_bonus
+        w_cov = _cfg("idiom_coverage_weight", 3.0)
+        w_aff = _cfg("idiom_affinity_weight", 1.2)
+        coverage_bonus = w_cov * len(self.covered_clauses)
+        return self.lexical_score + w_aff * self.affinity_score + coverage_bonus
 
     def __repr__(self) -> str:
         entry_id = self.entry_node.cell_id if self.entry_node else "None"
@@ -320,12 +322,14 @@ class LatticeRouter:
             return math.log(1.0 + (N + 1) / (df + 1.0))
 
         match_weights: Dict[Cell, float] = {}
+        idf_ratio = float(_cfg("lexical_idf_max_freq_ratio", 0.3))
+        idf_body_w = float(_cfg("lexical_idf_body_weight", 0.3))
         for tok in eval_tokens:
             cells = token_index.get(tok, [])
-            if N < 20 or len(cells) < 0.3 * N:
+            if N < 20 or len(cells) < idf_ratio * N:
                 w = _idf(tok)
                 for cell in cells:
-                    weight = w if tok in cell.identity_tokens else 0.3 * w
+                    weight = w if tok in cell.identity_tokens else idf_body_w * w
                     match_weights[cell] = match_weights.get(cell, 0.0) + weight
 
         for cell, weight_sum in match_weights.items():
@@ -501,17 +505,37 @@ class LatticeRouter:
         best_cell = idiom.cells[0]
         best_score = -1e9
 
+        w_c1 = float(_cfg("entry_c1_score_weight", 1.5))
+        w_root = float(_cfg("entry_root_bonus", 2.0))
+        w_ingress = float(_cfg("entry_ingress_bonus", 2.0))
+        w_source = float(_cfg("entry_source_bonus", 1.0))
+        w_no_req = float(_cfg("entry_no_req_inputs_bonus", 1.0))
+        try:
+            from lattice import TypeRegistry
+            reg = TypeRegistry.get_instance()
+            ingress_stage = reg.get_ingress_stage()
+            ingress_roles = {str(r).lower() for r in (reg.get_verification_semantics("ingress_roles") or ("source", "ingress"))}
+        except Exception:
+            ingress_stage = 1
+            ingress_roles = {"source", "ingress"}
+
         for cell in idiom.cells:
             cid = cell.cell_id
             c1_sc = c1_scores.get(cell, 0.0)
             is_root = 1.0 if internal_in_deg[cid] == 0 else 0.0
-            is_stage1 = 1.5 if getattr(cell, "stage", 2) == 1 else 0.0
-            is_source = 1.0 if getattr(cell, "node_role", "") == "source" else 0.0
+            is_ingress = 1.0 if getattr(cell, "stage", 2) == ingress_stage else 0.0
+            is_source = 1.0 if str(getattr(cell, "node_role", "") or "").lower() in ingress_roles else 0.0
 
             # Nodes with no required input ports receive initiation bonus
             no_req_inputs = 1.0 if not any(getattr(p, "required", True) for p in getattr(cell, "inputs", {}).values()) else 0.0
 
-            entry_score = c1_sc * 1.5 + 2.0 * is_root + 2.0 * is_stage1 + 1.0 * is_source + 1.0 * no_req_inputs
+            entry_score = (
+                c1_sc * w_c1
+                + w_root * is_root
+                + w_ingress * is_ingress
+                + w_source * is_source
+                + w_no_req * no_req_inputs
+            )
             if entry_score > best_score:
                 best_score = entry_score
                 best_cell = cell
@@ -621,8 +645,9 @@ class LatticeRouter:
             if not idiom.cells:
                 continue
             idiom_group: Dict[Cell, float] = {}
+            entry_bonus = float(_cfg("idiom_entry_bonus", 0.5))
             for c in idiom.cells:
-                idiom_group[c] = 1.0 + (0.5 if c == idiom.entry_node else 0.0)
+                idiom_group[c] = 1.0 + (entry_bonus if c == idiom.entry_node else 0.0)
             if idiom_group:
                 grouped_candidates.append(idiom_group)
 
@@ -782,13 +807,19 @@ class LatticeRouter:
             # least content tokens with the prompt. An unbounded same-domain
             # flood drowns the trellis in noise cells (measured: +571 cells on a
             # 150-cell tunnel in the 38K-node corpus).
+            ingress_stage = reg.get_ingress_stage() if hasattr(reg, "get_ingress_stage") else 1
+            ingress_roles = set(reg.get_verification_semantics("ingress_roles")) if hasattr(reg, "get_verification_semantics") else {"source"}
+            if not ingress_roles:
+                ingress_roles = {"source"}
+            carrier_augment_max = int(_cfg("carrier_augment_max", 35))
+            carrier_min_overlap = int(_cfg("carrier_min_overlap", 2))
             augment: List[Cell] = []
             for cell in self.orchestrator.loaded_cells.values():
                 if cell.domain_name in active_domains and cell.cell_id not in tunnel_ids:
                     c_in = getattr(cell.primary_input, "type_name", "")
                     c_out = getattr(cell.primary_output, "type_name", "")
-                    is_s1_src = getattr(cell, "stage", None) == 1 and getattr(cell, "node_role", "") == "source"
-                    min_ov = 1 if is_s1_src else 2
+                    is_ingress_src = getattr(cell, "stage", None) == ingress_stage and getattr(cell, "node_role", "") in ingress_roles
+                    min_ov = 1 if is_ingress_src else carrier_min_overlap
                     tok_ov = len(getattr(cell, "identity_tokens", cell.token_set) & prompt_toks)
                     if (c_in in carriers_out or c_out in carriers_in) and tok_ov >= min_ov:
                         augment.append(cell)
@@ -797,7 +828,7 @@ class LatticeRouter:
                 relevance_map.get(c.cell_id, 0.0),
                 -getattr(c, "source_priority", 100)
             ), reverse=True)
-            for cell in augment[:35]:
+            for cell in augment[:carrier_augment_max]:
                 final_tunnel.append(cell)
                 tunnel_ids.add(cell.cell_id)
                 relevance_map[cell.cell_id] = max(relevance_map.get(cell.cell_id, 0.0), self.epsilon * 2.0)
@@ -861,21 +892,41 @@ class LatticeRouter:
 
         def _stage_num(c):
             st = getattr(c, 'stage', -1)
-            if isinstance(st, int): return st
+            if isinstance(st, int) and st >= 0:
+                return st
             st_str = str(st).strip().upper()
-            return 1 if st_str in ('1', 'S1', 'INGRESS') else (
-                   2 if st_str in ('2', 'S2', 'TRANSFORM') else (
-                   3 if st_str in ('3', 'S3', 'EGRESS', 'SINK') else 0))
+            if st_str in ('1', 'S1', 'INGRESS'):
+                return 1
+            if st_str in ('2', 'S2', 'TRANSFORM'):
+                return 2
+            if st_str in ('3', 'S3', 'EGRESS', 'SINK'):
+                return 3
+            clean = st_str.lstrip('S')
+            if clean.isdigit():
+                return int(clean)
+            return 0
 
         protected_ids = {c.cell_id for c in tunnel_cells if relevance_map.get(c.cell_id, 0.0) >= 0.05}
-        s1 = sorted([c for c in tunnel_cells if _stage_num(c) == 1],
-                    key=lambda c: relevance_map.get(c.cell_id, 0.0), reverse=True)[:max_s1]
-        s2 = sorted([c for c in tunnel_cells if _stage_num(c) == 2],
-                    key=lambda c: relevance_map.get(c.cell_id, 0.0), reverse=True)[:max_s2]
-        s3 = sorted([c for c in tunnel_cells if _stage_num(c) == 3],
-                    key=lambda c: relevance_map.get(c.cell_id, 0.0), reverse=True)[:max_s3]
+        from collections import defaultdict
+        stage_cells = defaultdict(list)
+        for c in tunnel_cells:
+            stage_cells[_stage_num(c)].append(c)
+
+        keep_stage_cells = []
+        for st_id, cells in stage_cells.items():
+            if st_id == 1:
+                cap = max_s1
+            elif st_id == 2:
+                cap = max_s2
+            elif st_id == 3:
+                cap = max_s3
+            else:
+                cap = max(PRUNE_S2_MIN, n * PRUNE_S2_PER_CLAUSE)
+            sorted_st = sorted(cells, key=lambda c: relevance_map.get(c.cell_id, 0.0), reverse=True)[:cap]
+            keep_stage_cells.extend(sorted_st)
+
         bridge_ids = {c.cell_id for c in tunnel_cells if getattr(c, "node_role", "") == "bridge" or getattr(c, "node_type", "") == "tunnel"}
-        keep_ids = {c.cell_id for c in s1 + s2 + s3} | protected_ids | bridge_ids
+        keep_ids = {c.cell_id for c in keep_stage_cells} | protected_ids | bridge_ids
         return [c for c in tunnel_cells if c.cell_id in keep_ids] or tunnel_cells
 
     def _promote_macro_goals(
@@ -954,7 +1005,7 @@ class LatticeRouter:
         if promoted:
             logger.debug(
                 f"[ROUTER] Macro-goal participation (earned coverage): "
-                f"{[_extract_id(c) for c, _ in promoted]}"
+                f"{[_extract_id(c) for _, c in promoted]}"
             )
 
     def _harvest_expansion_tokens(
@@ -1052,11 +1103,12 @@ class LatticeRouter:
             exp_scores = np.exp(shifted)
             probs = exp_scores / np.sum(exp_scores)
             max_prob = float(np.max(probs))
-            group_size_factor = min(1.0, (len(items) / 5.0) ** 0.5)
+            group_size_factor = min(1.0, (len(items) / float(_cfg("group_size_divisor", 5.0))) ** 0.5)
             calibrated_probs = probs * group_size_factor
             cutoff = tau * max_prob * group_size_factor
             sorted_indices = np.argsort(raw_scores)[::-1]
-            top_indices = set(sorted_indices[:8])
+            top_k_guaranteed = int(_cfg("group_top_k_guaranteed", 8))
+            top_indices = set(sorted_indices[:top_k_guaranteed])
 
             for i, ((cell, _), p) in enumerate(zip(items, calibrated_probs)):
                 if p < cutoff and i not in top_indices:
@@ -1257,7 +1309,18 @@ class LatticeRouter:
                     path, prompt, orchestrator=self.orchestrator)
                 from route_methods.m1_clause_anchor import M1ClauseAnchorRouteMethod as _Util2
                 _util2 = _Util2(orchestrator=self.orchestrator)
-                path = _util2.insert_column_commits(path)
+                from lattice import TypeRegistry
+                _reg = TypeRegistry.get_instance()
+                _col_effects = {str(e).lower() for e in _reg.get_verification_semantics("column_transform_effects")}
+                _has_col_mutations = any(
+                    ({str(e).lower() for e in (getattr(c, "effects", None) or [])} & _col_effects)
+                    or getattr(c, "carrier", "") in ("table", "column", "series")
+                    or getattr(getattr(c, "primary_input", None), "carrier", "") in ("table", "column", "series")
+                    or getattr(getattr(c, "primary_output", None), "carrier", "") in ("table", "column", "series")
+                    for c in path
+                )
+                if _has_col_mutations:
+                    path = _util2.insert_column_commits(path)
                 path = _util2.insert_property_bridges(path)
                 self.last_route_trace = list(self.last_route_trace) + list(_util2.trace_events)
             except Exception as _tc_err:
@@ -1362,7 +1425,9 @@ class MCTSEngine:
             return []
 
         if isinstance(arg1, list) and isinstance(arg2, dict):
-            return self.planner._bounded_mcts_search(arg1, arg2)
+            return self.planner._monte_carlo_chain_search("", arg1, arg2)
+        if isinstance(arg1, str) and isinstance(arg2, list):
+            return self.planner._monte_carlo_chain_search(arg1, arg2, {})
         return []
 
 

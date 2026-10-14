@@ -84,18 +84,43 @@ def _ast_clean_type(node: ast.AST) -> str:
                     for e in slice_node.elts
                     if _ast_clean_type(e).lower() not in ("none", "nonetype")
                 ]
-                return elts[0] if elts else "None"
+                seen: List[str] = []
+                for e in elts:
+                    if e not in seen:
+                        seen.append(e)
+                return " | ".join(seen) if seen else "None"
             else:
                 return _ast_clean_type(slice_node)
         elif val_name.lower() == "literal":
-            return "str"
+            slice_node = node.slice
+            elts = slice_node.elts if isinstance(slice_node, ast.Tuple) else [slice_node]
+            types: List[str] = []
+            for elt in elts:
+                if isinstance(elt, ast.Constant):
+                    t = type(elt.value).__name__
+                    if t not in types:
+                        types.append(t)
+                elif isinstance(elt, ast.UnaryOp) and isinstance(elt.operand, ast.Constant):
+                    val = -elt.operand.value if isinstance(elt.op, ast.USub) else elt.operand.value
+                    t = type(val).__name__
+                    if t not in types:
+                        types.append(t)
+                else:
+                    ct = _ast_clean_type(elt)
+                    if ct and ct != "any" and ct not in types:
+                        types.append(ct)
+            if not types:
+                return "scalar"
+            return " | ".join(types)
         return val_name
     elif isinstance(node, ast.BinOp) and isinstance(node.op, ast.BitOr):
         left = _ast_clean_type(node.left)
         right = _ast_clean_type(node.right)
         if left.lower() in ("none", "nonetype"):
             return right
-        return left
+        if right.lower() in ("none", "nonetype"):
+            return left
+        return f"{left} | {right}"
     elif isinstance(node, ast.Tuple):
         if node.elts:
             return _ast_clean_type(node.elts[0])
@@ -139,8 +164,21 @@ def extract_clean_type_name(anno: Any) -> str:
                     if getattr(a, "__name__", str(a)).lower() not in ("none", "nonetype")
                 ]
                 if args:
-                    return extract_clean_type_name(args[0])
+                    clean_args: List[str] = []
+                    for a in args:
+                        c = extract_clean_type_name(a)
+                        if c not in clean_args and c != "None":
+                            clean_args.append(c)
+                    return " | ".join(clean_args) if clean_args else "None"
                 return "None"
+            if origin is getattr(typing, "Literal", None):
+                args = typing.get_args(anno)
+                types = []
+                for a in args:
+                    t = type(a).__name__
+                    if t not in types:
+                        types.append(t)
+                return " | ".join(types) if types else "scalar"
             if hasattr(origin, "__name__"):
                 return origin.__name__
     except Exception as e:
@@ -727,13 +765,46 @@ def extract_shape_contract(text: str) -> Optional[Dict[str, Any]]:
     if not text:
         return None
     shape: Dict[str, Any] = {}
-    for tok in text.lower().replace("-", " ").split():
+
+    # 1. Prioritize explicit shape tuples like (N, 3) or (batch, time, features)
+    if "(" in text and ")" in text:
+        start = text.find("(")
+        end = text.find(")", start)
+        if start != -1 and end != -1 and end > start:
+            inner = text[start + 1:end].strip()
+            if "," in inner:
+                dims = [d.strip() for d in inner.split(",") if d.strip()]
+                if 1 <= len(dims) <= 10 and all(len(d) <= 30 for d in dims):
+                    shape["ndim"] = len(dims)
+                    shape["rank"] = len(dims)
+                    shape["shape"] = tuple(dims)
+                    return shape
+
+    # 2. Extract rank from <digits>d or <digits>-dimensional with strict array context
+    tokens = text.lower().replace("-", " ").split()
+    array_context_words = {
+        "array", "tensor", "ndarray", "matrix", "vector", "grid",
+        "volume", "signal", "dim", "dims", "dimension", "ndim",
+    }
+    for i, tok in enumerate(tokens):
+        rank = None
         if tok.endswith("d") and tok[:-1].isdigit():
-            shape["ndim"] = int(tok[:-1])
-            break
+            rank = int(tok[:-1])
         elif tok.endswith("dimensional") and tok[: -len("dimensional")].isdigit():
-            shape["ndim"] = int(tok[: -len("dimensional")])
-            break
+            rank = int(tok[: -len("dimensional")])
+        if rank is not None:
+            has_context = False
+            for offset in (-2, -1, 1, 2):
+                idx = i + offset
+                if 0 <= idx < len(tokens):
+                    t = tokens[idx].strip(",.()")
+                    if t in array_context_words or t.startswith(("array", "tensor", "matrix", "ndim")):
+                        has_context = True
+                        break
+            if has_context:
+                shape["ndim"] = rank
+                shape["rank"] = rank
+                break
     return shape or None
 
 
@@ -1476,10 +1547,10 @@ _ESTIMATOR_ROLE_CACHE: Dict[str, Optional[str]] = {}
 
 def introspect_estimator_role(cell_or_obj: Any) -> Optional[str]:
     """
-    Dynamically introspects whether an estimator / model is a 'regressor',
-    'classifier', 'clusterer', or 'transformer' using Python runtime reflection,
-    object attributes (_estimator_type), and Poset/contract metadata.
-    Zero hardcoded model names or closed static taxonomy files.
+    Dynamically introspects whether an estimator / model role applies
+    using Python runtime reflection, object attributes, declared cell metadata,
+    and TypeRegistry verification semantics.
+    Zero closed static taxonomy files.
     """
     if cell_or_obj is None:
         return None
@@ -1496,31 +1567,59 @@ def introspect_estimator_role(cell_or_obj: Any) -> Optional[str]:
     if cache_key and cache_key in _ESTIMATOR_ROLE_CACHE:
         return _ESTIMATOR_ROLE_CACHE[cache_key]
 
+    try:
+        try:
+            from .lattice import TypeRegistry
+        except (ImportError, ValueError):
+            from lattice import TypeRegistry
+        reg = TypeRegistry.get_instance()
+        model_roles = {
+            str(r).lower()
+            for r in (reg.get_verification_semantics("model_roles") or reg.get_model_types() or ("regressor", "classifier", "clusterer", "transformer", "estimator"))
+        }
+    except Exception:
+        model_roles = {"regressor", "classifier", "clusterer", "transformer", "estimator"}
+
     role: Optional[str] = None
+
+    # Tier 0: Direct cell node_role, primary_output state, or semantic_tags
+    if hasattr(cell_or_obj, "node_role"):
+        nr = str(getattr(cell_or_obj, "node_role", "") or "").lower()
+        if nr in model_roles:
+            role = nr
+    if role is None and hasattr(cell_or_obj, "primary_output"):
+        st = str(getattr(cell_or_obj.primary_output, "state", "") or "").lower()
+        if st in model_roles:
+            role = st
+
+    if role is None:
+        tags = set(str(t).lower() for t in (getattr(cell_or_obj, "semantic_tags", []) or []))
+        for mr in model_roles:
+            if mr in tags or f"{mr}ion" in tags or f"{mr}ing" in tags:
+                role = mr
+                break
 
     # Tier 1: Direct live object or class reflection
     target_obj = cell_or_obj
     if hasattr(cell_or_obj, "callable_obj") and getattr(cell_or_obj, "callable_obj") is not None:
         target_obj = getattr(cell_or_obj, "callable_obj")
 
-    est_type = getattr(target_obj, "_estimator_type", None)
-    if est_type and isinstance(est_type, str):
-        role = est_type.strip().lower()
+    if role is None:
+        est_type = getattr(target_obj, "_estimator_type", None)
+        if est_type and isinstance(est_type, str):
+            role = est_type.strip().lower()
 
-    # Tier 2: Check class MRO for standard mixins / base classes
+    # Tier 2: Check class MRO for declared model roles or mixins
     if role is None and (inspect.isclass(target_obj) or hasattr(target_obj, "__class__")):
         cls = target_obj if inspect.isclass(target_obj) else target_obj.__class__
         try:
             for base in inspect.getmro(cls):
                 b_name = base.__name__.lower()
-                if "regressor" in b_name:
-                    role = "regressor"
-                    break
-                elif "classifier" in b_name:
-                    role = "classifier"
-                    break
-                elif "clusterer" in b_name:
-                    role = "clusterer"
+                for mr in model_roles:
+                    if mr in b_name:
+                        role = mr
+                        break
+                if role:
                     break
         except Exception:
             pass
@@ -1548,16 +1647,6 @@ def introspect_estimator_role(cell_or_obj: Any) -> Optional[str]:
                         pass
             if role:
                 break
-
-    # Tier 4: Cell declared semantic_tags
-    if role is None:
-        tags = set(str(t).lower() for t in (getattr(cell_or_obj, "semantic_tags", []) or []))
-        if "regressor" in tags or "regression" in tags:
-            role = "regressor"
-        elif "classifier" in tags or "classification" in tags:
-            role = "classifier"
-        elif "clusterer" in tags or "clustering" in tags:
-            role = "clusterer"
 
     if cache_key:
         _ESTIMATOR_ROLE_CACHE[cache_key] = role

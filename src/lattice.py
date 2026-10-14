@@ -308,9 +308,12 @@ class TypeRegistry:
         self._bootstrap_plugin_types()
 
     def _bootstrap_carrier_hierarchy(self):
-        """No-op: all carrier types are declared in trees/_primitives.json and
-        domain trees.  Loaded by _bootstrap_plugin_types() at construction."""
-        pass
+        """Track 10: Dynamically bootstraps language-level poset & POS categories via runtime reflection."""
+        try:
+            from .runtime_poset import bootstrap_runtime_poset
+        except (ImportError, ValueError):
+            from runtime_poset import bootstrap_runtime_poset
+        bootstrap_runtime_poset(self)
 
     def _bootstrap_state_hierarchy(self):
         """No-op: universal egress states (saved, written_to_disk, exported, default)
@@ -653,6 +656,8 @@ class TypeRegistry:
             return True
         return False
 
+    is_top_state = is_declared_top_state
+
     @_locked
     def register_product_constructor(self, ctor: str) -> None:
         c = str(ctor).strip().lower()
@@ -813,6 +818,18 @@ class TypeRegistry:
                 if not rest or not rest[0].isalnum():
                     return mapping[prefix]
         return None
+
+    def is_literal_groundable(self, type_name: str, has_enum: bool = False) -> bool:
+        """Domain-agnostic check whether a carrier type can be synthesized as a prompt literal expression."""
+        if not type_name:
+            return False
+        t = str(type_name).strip().lower()
+        if t in ("*", "any", "top", "⊤") or has_enum:
+            return True
+        literal_roots = self.get_verification_semantics("literal_types")
+        if not literal_roots:
+            literal_roots = ["scalar", "str", "text", "numeric", "bool", "logical", "path", "filepath", "uri", "list", "dict", "tuple"]
+        return any(self.is_subtype(t, root) for root in literal_roots)
 
     # --- Destination port tokens (data-driven from tree declarations) ---
     @_locked
@@ -1354,6 +1371,8 @@ class TypeRegistry:
             return True
         return False
 
+    is_registered = is_known_type_name
+
     def is_subtype(self, sub: str, super_: str) -> bool:
         """Memoised poset query. The cache is per-instance and generation-guarded:
         a result computed while a mutation was in flight is returned but never stored."""
@@ -1630,34 +1649,36 @@ def _compute_is_path_port(port: Any) -> bool:
     registry = TypeRegistry.get_instance()
     path_tokens = registry.get_path_port_tokens()   # declared in tree JSON: `path_port_tokens`
     role = str(getattr(port, "port_role", None) or getattr(port, "role", None) or "").strip().lower()
-    if role and role in path_tokens:
+    if role and (role in path_tokens or role in ("path", "filepath", "dest_path", "source_path", "dest_identifier", "source_identifier")):
         return True
     sig = getattr(port, "signature", port)
     t_name = str(getattr(sig, "type_name", "") or "").lower()
+    if t_name and (t_name in ("path", "filepath", "uri", "url", "file", "pathlike") or any(registry.is_subtype(t_name, tok) for tok in path_tokens) or registry.is_subtype(t_name, "path")):
+        return True
     abstract_t = str(
         getattr(port, "abstract_type", "") or getattr(sig, "abstract_type", "") or ""
     ).lower()
-    if abstract_t and abstract_t in path_tokens:
+    if abstract_t and (abstract_t in path_tokens or abstract_t in ("path", "filepath", "pathlike")):
         return True
-    if t_name and any(registry.is_subtype(t_name, tok) for tok in path_tokens):
-        return True
-    # String-typed ports whose declared state descends from a declared source-asset state.
+    # String-typed ports whose declared state descends from a declared source-asset state or dest_identifier.
     state = str(getattr(sig, "state", "") or "").lower()
+    if state in ("dest_identifier", "source_identifier"):
+        return True
     source_ancestors = registry.get_state_role_ancestors().get("source_data")
     if state and source_ancestors and registry.state_ancestry_reaches(state, source_ancestors):
         return True
     aliases = registry.get_all_aliases()
-    if t_name in aliases and str(aliases[t_name]).lower() in path_tokens:
+    if t_name in aliases and (str(aliases[t_name]).lower() in path_tokens or str(aliases[t_name]).lower() in ("path", "filepath")):
         return True
     c_type = str(getattr(sig, "carrier_type", "") or getattr(port, "carrier_type", "") or "").lower()
-    if c_type and c_type in path_tokens:
+    if c_type and (c_type in path_tokens or c_type in ("path", "filepath")):
         return True
     # Naming fallback for unannotated string ports (declared `dest_port_tokens`).
     name = str(getattr(port, "name", "") or "").lower()
     if not name:
         return False
     name_tokens = set(tokenize_alphanumeric(name, min_len=1))
-    if name_tokens & PATH_PORT_NAME_TOKENS:
+    if (name_tokens & PATH_PORT_NAME_TOKENS) or (name_tokens & {"path", "filepath", "dest", "filename"}):
         return True
     return False
 
@@ -2194,7 +2215,8 @@ class Cell(ABC):
         "primary_in", "primary_out",
         "_primary_input", "_primary_output", "_token_set", "_token_count",
         "_identity_tokens", "bound_parent_ids", "matched_clause_idx",
-        "clause_literals", "fixture_needs", "projection", "typed_bindings"
+        "clause_literals", "fixture_needs", "projection", "typed_bindings",
+        "planned_port_wires", "is_typed_hole", "task_description"
     ]
 
     def __init__(
@@ -2304,6 +2326,7 @@ class Cell(ABC):
         self.replica_of: Optional[str] = None
         self.replica_role: Optional[str] = None
         self.bound_parent_ids: Optional[Set[str]] = None
+        self.planned_port_wires: Optional[Dict[str, Tuple[Any, str]]] = None
         self.matched_clause_idx: Optional[int] = None
         self.typed_bindings: Dict[str, Any] = {}
 
@@ -2552,11 +2575,21 @@ class Cell(ABC):
         """
         if self.endable is not None:
             return bool(self.endable)
-        if self.stage == 3 or self.node_role in ("sink", "terminal", "evaluator", "consumer"):
+        reg = TypeRegistry.get_instance()
+        term_roles = set(r.lower() for r in reg.get_verification_semantics("terminal_roles"))
+        term_roles.update(r.lower() for r in reg.get_verification_semantics("sink_roles"))
+        t_role = str(self.node_role or "").lower()
+        if t_role and t_role in term_roles:
             return True
-        t_role = self.node_role.lower()
-        if t_role in ("display", "visualizer", "cleanup", "destructor"):
-            return True
+        try:
+            from .planner import _active_vocab
+            vocab = _active_vocab()
+            if vocab.terminal_stage is not None and self.stage == vocab.terminal_stage:
+                return True
+            if t_role and t_role in vocab.terminal_roles:
+                return True
+        except Exception:
+            pass
         return False
 
     @property
@@ -2726,6 +2759,8 @@ class Cell(ABC):
             c.metadata_tags = dict(self.metadata_tags)
         if self.bound_parent_ids:
             c.bound_parent_ids = set(self.bound_parent_ids)
+        if getattr(self, "planned_port_wires", None):
+            c.planned_port_wires = dict(self.planned_port_wires)
         return c
 
     def __repr__(self) -> str:
@@ -3565,47 +3600,15 @@ class LatticeOrchestrator:
                     self._token_index.setdefault(tok, []).append(cell)
                 if getattr(cell, "node_role", "") == "bridge" or getattr(cell, "node_type", "") == "tunnel":
                     self._bridge_cells.append(cell)
-                self._adjacency[cell.cell_id] = []
-                self._reverse_adjacency[cell.cell_id] = []
+            try:
+                from .experiments import build_indexed_topology
+            except (ImportError, ValueError):
+                from experiments import build_indexed_topology
 
-            # Populate graph edges (accelerated with O(1) set lookups)
-            adj_sets: Dict[str, Set[str]] = {c.cell_id: set() for c in all_cells}
-            for u in all_cells:
-                # 1. Declared edges from cell schema
-                for edge in getattr(u, "edges", []):
-                    tgt_id = edge.get("target_cell_id") if isinstance(edge, dict) else getattr(edge, "target_cell_id", None)
-                    if tgt_id:
-                        tgt_cell = self.loaded_cells.get(tgt_id)
-                        if tgt_cell and tgt_cell.cell_id not in adj_sets[u.cell_id]:
-                            adj_sets[u.cell_id].add(tgt_cell.cell_id)
-                            self._adjacency[u.cell_id].append(tgt_cell.cell_id)
-                            self._reverse_adjacency[tgt_cell.cell_id].append(u.cell_id)
+            self._adjacency, self._reverse_adjacency = build_indexed_topology(
+                all_cells, self.loaded_cells, TypeRegistry.get_instance()
+            )
 
-                # 2. Monadic type compatibility (guarded against undefined/none/any spurious edges)
-                out_p = u.primary_output
-                if out_p and getattr(out_p, "type_name", None):
-                    out_tn = str(out_p.type_name).strip().lower()
-                    if out_tn not in ("none", "null", "undefined", "any", "*", ""):
-                        out_sig = out_p.signature
-                        is_out_bot = (hasattr(out_sig, 'is_bottom') and out_sig.is_bottom()) or out_tn in ('none', 'null', 'undefined', 'bottom', '')
-                        if not (hasattr(out_sig, 'is_top') and out_sig.is_top()) and not is_out_bot:
-                            for v in all_cells:
-                                if u.cell_id == v.cell_id or v.cell_id in adj_sets[u.cell_id]:
-                                    continue
-                                # Stage 1 source/reader nodes never accept upstream incoming dataflow
-                                if getattr(v, "stage", None) == 1 or not getattr(v, "inputs", None):
-                                    continue
-                                in_p = v.primary_input
-                                if in_p and getattr(in_p, "type_name", None):
-                                    in_tn = str(in_p.type_name).strip().lower()
-                                    if in_tn not in ("none", "null", "undefined", "any", "*", ""):
-                                        in_sig = in_p.signature
-                                        is_in_bot = (hasattr(in_sig, 'is_bottom') and in_sig.is_bottom()) or in_tn in ('none', 'null', 'undefined', 'bottom', '')
-                                        if not (hasattr(in_sig, 'is_top') and in_sig.is_top()) and not is_in_bot:
-                                            if out_sig.unifies_with(in_sig):
-                                                adj_sets[u.cell_id].add(v.cell_id)
-                                                self._adjacency[u.cell_id].append(v.cell_id)
-                                                self._reverse_adjacency[v.cell_id].append(u.cell_id)
 
             # 3. Macro internal topology synaptic edges (synapses connecting constituent micro-cells)
             for m in all_cells:

@@ -68,6 +68,11 @@ except (ImportError, ValueError):
     )
     from tokenizer import CellTokenizer, normalize_token
 
+try:
+    from .diagnostics import DiagnosticTelemetry, record_diagnostic_exception
+except (ImportError, ValueError):
+    from diagnostics import DiagnosticTelemetry, record_diagnostic_exception
+
 logger = get_logger('unification')
 
 T = TypeVar('T')
@@ -127,13 +132,15 @@ def resolve_typed_binding_record(
     bound_val: Any,
     port_sig: Optional[Any] = None,
     var_signatures: Optional[Dict[str, Any]] = None,
+    expected_sig: Optional[Any] = None,
 ) -> TypedBindingRecord:
     """
     Computes a structured TypedBindingRecord for a bound port directly from the lattice,
     without inventing arbitrary synthetic state names or guessing types from strings.
     """
     var_sigs = var_signatures or {}
-    expected_sig = getattr(port_sig, "signature", port_sig) if port_sig else None
+    if expected_sig is None:
+        expected_sig = getattr(port_sig, "signature", port_sig) if port_sig else None
 
     if bound_val is None or _is_unbound(bound_val) or bound_val is UNRESOLVED_PORT or (
         isinstance(bound_val, str) and bound_val in ("<UNRESOLVED_PORT>", "<UNRESOLVED>", "<unbound>")
@@ -179,14 +186,14 @@ def resolve_typed_binding_record(
             projection=None,
             resulting_signature=getattr(sig, "signature", sig),
         )
-    elif val_str.startswith("var_") and val_str.isidentifier():
+    elif val_str.isidentifier() and not keyword.iskeyword(val_str):
         return TypedBindingRecord(
             port=port_name,
             value_expr=val_str,
             kind="variable",
             root_var=val_str,
             projection=None,
-            resulting_signature=None,
+            resulting_signature=expected_sig,
         )
 
     # 2. Parse expression via AST
@@ -201,7 +208,7 @@ def resolve_typed_binding_record(
             kind="variable",
             root_var=v,
             projection=None,
-            resulting_signature=getattr(sig, "signature", sig) if sig else None,
+            resulting_signature=getattr(sig, "signature", sig) if sig else expected_sig,
         )
 
     if isinstance(parsed, ast.Subscript):
@@ -228,17 +235,13 @@ def resolve_typed_binding_record(
                                     col_sig = getattr(p_out, "signature", p_out)
                                     _cached_col_proj_sig = col_sig
                                     break
-                except Exception:
-                    pass
+                except Exception as _exc:
+                    logger.debug("[UNIFICATION DIAGNOSTIC] Suppressed exception: %s", _exc, exc_info=True)
 
             if col_sig is None:
-                col_sig = AlgebraicSignature(
-                    type_name="Series",
-                    state="series_numeric",
-                    abstract_type="sequence",
-                    accepted_states=frozenset(["series_numeric", "series_cleaned", "series_raw"]),
-                    qualifiers=frozenset(["vector"]),
-                )
+                col_sig = expected_sig or (
+                    getattr(base_sig, "signature", base_sig) if base_sig else None
+                ) or AlgebraicSignature(type_name="any", state="any", abstract_type="any")
             return TypedBindingRecord(
                 port=port_name,
                 value_expr=val_str,
@@ -267,17 +270,13 @@ def resolve_typed_binding_record(
                                     cols_sig = getattr(p_out, "signature", p_out)
                                     _cached_cols_proj_sig = cols_sig
                                     break
-                except Exception:
-                    pass
+                except Exception as _exc:
+                    logger.debug("[UNIFICATION DIAGNOSTIC] Suppressed exception: %s", _exc, exc_info=True)
 
             if cols_sig is None:
-                cols_sig = AlgebraicSignature(
-                    type_name="DataFrame",
-                    state="filtered",
-                    abstract_type="table",
-                    accepted_states=frozenset(["filtered", "cleaned", "raw"]),
-                    qualifiers=frozenset(["matrix"]),
-                )
+                cols_sig = expected_sig or (
+                    getattr(base_sig, "signature", base_sig) if base_sig else None
+                ) or AlgebraicSignature(type_name="any", state="any", abstract_type="any")
             keys = [elt.value for elt in sl.elts if isinstance(elt, ast.Constant)]
             return TypedBindingRecord(
                 port=port_name,
@@ -360,20 +359,16 @@ def resolve_typed_binding_record(
                             carrier_var = node.id
                             break
             base_sig = var_sigs.get(carrier_var) if carrier_var else None
-            np_sig = AlgebraicSignature(
-                type_name="ndarray",
-                state="ndarray_numeric",
-                abstract_type="tensor",
-                accepted_states=frozenset(["ndarray_numeric", "split_train_features"]),
-                qualifiers=frozenset(["matrix"]) if (base_sig and getattr(base_sig, "abstract_type", "") == "table") else frozenset(["vector"]),
-            )
+            mod_sig = expected_sig or (
+                getattr(base_sig, "signature", base_sig) if base_sig else None
+            ) or AlgebraicSignature(type_name="any", state="any", abstract_type="any")
             return TypedBindingRecord(
                 port=port_name,
                 value_expr=val_str,
                 kind="projection" if carrier_var else "literal",
                 root_var=carrier_var,
                 projection={"kind": "module_call", "module": root_v, "func": attr_name},
-                resulting_signature=expected_sig or np_sig,
+                resulting_signature=mod_sig,
             )
 
         base_sig = var_sigs.get(root_v) if root_v else None
@@ -393,19 +388,15 @@ def resolve_typed_binding_record(
                                 method_sig = getattr(p_out, "signature", p_out)
                                 _cached_attr_proj_sigs[attr_name] = method_sig
                                 break
-            except Exception:
-                pass
+            except Exception as _exc:
+                logger.debug("[UNIFICATION DIAGNOSTIC] Suppressed exception: %s", _exc, exc_info=True)
 
         if method_sig is None and expected_sig:
             method_sig = expected_sig
         if method_sig is None:
-            method_sig = AlgebraicSignature(
-                type_name="ndarray",
-                state="ndarray_numeric",
-                abstract_type="tensor",
-                accepted_states=frozenset(["ndarray_numeric", "split_train_features"]),
-                qualifiers=frozenset(["matrix"]) if (base_sig and getattr(base_sig, "abstract_type", "") == "table") else frozenset(["vector"]),
-            )
+            method_sig = (
+                getattr(base_sig, "signature", base_sig) if base_sig else None
+            ) or AlgebraicSignature(type_name="any", state="any", abstract_type="any")
         return TypedBindingRecord(
             port=port_name,
             value_expr=val_str,
@@ -413,14 +404,6 @@ def resolve_typed_binding_record(
             root_var=root_v,
             projection={"kind": "method", "key": attr_name},
             resulting_signature=method_sig,
-        )
-        return TypedBindingRecord(
-            port=port_name,
-            value_expr=val_str,
-            kind="projection",
-            root_var=root_v,
-            projection={"kind": "method", "key": attr_name},
-            resulting_signature=getattr(base_sig, "signature", base_sig) if base_sig else None,
         )
 
     # 3. Literal
@@ -589,14 +572,31 @@ def _update_variable_provenance(
                         ctx.var_origins[out_var].add(str(k_item).strip("'\""))
                 else:
                     ctx.var_origins[out_var].add(str(p_key).strip("'\""))
-        elif getattr(p_sig_n, "binds", None) == "column_key" and rec.value_expr:
-            lit_clean = str(rec.value_expr).strip("'\"")
-            if lit_clean and not lit_clean.isdigit():
-                ctx.var_origins[out_var].add(lit_clean)
-        elif p_n in ("column", "key", "columns") and rec.value_expr:
-            lit_clean = str(rec.value_expr).strip("'\"")
-            if lit_clean and not lit_clean.isdigit():
-                ctx.var_origins[out_var].add(lit_clean)
+        elif rec.value_expr:
+            p_binds = getattr(p_sig_n, "binds", None)
+            p_role = str(getattr(p_sig_n, "port_role", "") or "").lower()
+            try:
+                from .lattice import TypeRegistry
+                reg = TypeRegistry.get_instance()
+                proj_roles = {r.lower() for r in reg.get_verification_semantics("projection_port_roles")}
+                proj_names = {n.lower() for n in reg.get_verification_semantics("projection_port_names")}
+            except Exception:
+                try:
+                    from lattice import TypeRegistry
+                    reg = TypeRegistry.get_instance()
+                    proj_roles = {r.lower() for r in reg.get_verification_semantics("projection_port_roles")}
+                    proj_names = {n.lower() for n in reg.get_verification_semantics("projection_port_names")}
+                except Exception:
+                    proj_roles = set()
+                    proj_names = set()
+            if (
+                p_binds in ("column_key", "key", "projection_key")
+                or p_role in proj_roles
+                or p_n.lower() in proj_names
+            ):
+                lit_clean = str(rec.value_expr).strip("'\"")
+                if lit_clean and not lit_clean.isdigit():
+                    ctx.var_origins[out_var].add(lit_clean)
 
     c_lits = getattr(cell, "clause_literals", None)
     if c_lits:
@@ -651,12 +651,52 @@ class DynamicPolarityHints(frozenset):
         return (set(other) if not isinstance(other, set) else other) & TypeRegistry.get_instance().get_polarity_hints(self.direction)
     def __rand__(self, other):
         return (set(other) if not isinstance(other, set) else other) & TypeRegistry.get_instance().get_polarity_hints(self.direction)
+    def __or__(self, other):
+        return set(self) | (set(other) if not isinstance(other, (set, frozenset)) else other)
+    def __ror__(self, other):
+        return (set(other) if not isinstance(other, (set, frozenset)) else other) | set(self)
 
 _ASCENDING_HINTS = DynamicPolarityHints("ascending")
 _DESCENDING_HINTS = DynamicPolarityHints("descending")
 # Port names/states that carry an ordering polarity (generic, not domain names).
-_ORDER_FLAG_NAMES = frozenset()          # must be registered from trees
-_ORDER_FLAG_STATES = frozenset()
+class DynamicOrderFlagNames(frozenset):
+    """Dynamic order flag port names registered in TypeRegistry."""
+    def __contains__(self, item):
+        try:
+            return str(item).lower() in {str(n).lower() for n in TypeRegistry.get_instance().get_verification_semantics("order_flag_names")}
+        except Exception:
+            return False
+    def __iter__(self):
+        try:
+            return iter({str(n).lower() for n in TypeRegistry.get_instance().get_verification_semantics("order_flag_names")})
+        except Exception:
+            return iter(())
+    def __len__(self):
+        try:
+            return len(TypeRegistry.get_instance().get_verification_semantics("order_flag_names"))
+        except Exception:
+            return 0
+
+class DynamicOrderFlagStates(frozenset):
+    """Dynamic order flag typestates registered in TypeRegistry."""
+    def __contains__(self, item):
+        try:
+            return str(item).lower() in {str(s).lower() for s in TypeRegistry.get_instance().get_verification_semantics("order_flag_states")}
+        except Exception:
+            return False
+    def __iter__(self):
+        try:
+            return iter({str(s).lower() for s in TypeRegistry.get_instance().get_verification_semantics("order_flag_states")})
+        except Exception:
+            return iter(())
+    def __len__(self):
+        try:
+            return len(TypeRegistry.get_instance().get_verification_semantics("order_flag_states"))
+        except Exception:
+            return 0
+
+_ORDER_FLAG_NAMES = DynamicOrderFlagNames()
+_ORDER_FLAG_STATES = DynamicOrderFlagStates()
 class DynamicPrepositionTriggers(frozenset):
     """Dynamic relational preposition triggers harvested from domain trees."""
     def __contains__(self, item):
@@ -667,7 +707,6 @@ class DynamicPrepositionTriggers(frozenset):
         return len(TypeRegistry.get_instance().get_preposition_triggers())
 
 _PREPOSITION_TRIGGERS = DynamicPrepositionTriggers()
-_ORDER_POLE_TOKENS = frozenset()
 
 
 class IdentifierGroup:
@@ -792,8 +831,21 @@ def _is_sink_cell(cell: Any) -> bool:
     """Returns True if cell represents a terminal sink morphism with no outgoing dataflow."""
     if cell is None:
         return False
-    role = str(getattr(cell, "node_role", "") or "").lower()
-    return role in ("sink", "terminal")
+    if getattr(cell, "is_endable", False):
+        return True
+    role = str(getattr(cell, "node_role", "") or getattr(cell, "role", "") or "").lower()
+    term_roles = _declared_role_semantics("terminal_roles") | _declared_role_semantics("sink_roles")
+    if role in term_roles:
+        return True
+    try:
+        from lattice import TypeRegistry
+        term_stages = TypeRegistry.get_instance().get_verification_semantics("terminal_stages")
+        if term_stages and getattr(cell, "stage", None) in term_stages:
+            return True
+    except Exception:
+        pass
+    stage = getattr(cell, "stage", None)
+    return stage == 3 or role in ("sink", "terminal", "egress", "consumer")
 
 
 
@@ -813,8 +865,8 @@ class _TracedBindings(dict):
                 site=f"{f.f_code.co_name}:{f.f_lineno}",
                 clause=getattr(self._cell, "matched_clause_idx", None),
                 target_col=getattr(self._ctx, "target_col_for_cell", None))
-        except Exception:
-            pass
+        except Exception as _exc:
+            logger.debug("[UNIFICATION DIAGNOSTIC] Suppressed exception: %s", _exc, exc_info=True)
         super().__setitem__(port, value)
 
 class _DynamicTopTypeSet(frozenset):
@@ -1285,16 +1337,6 @@ def unify(
                 and registry.is_subtype(t1.abstract_type, t2.abstract_type)
             ):
                 pass
-            elif (
-                (registry.is_subtype(t1.type_name, "array-like") or t1.abstract_type in ("table", "tensor", "series"))
-                and (registry.is_subtype(t2.type_name, "array-like") or t2.abstract_type in ("table", "tensor", "series"))
-                and (
-                    (t1.state and t1.state in (t2.accepted_states or ()))
-                    or (t2.state and t2.state in (t1.accepted_states or ()))
-                    or bool(set(t1.accepted_states or ()) & set(t2.accepted_states or ()))
-                )
-            ):
-                pass
             else:
                 if is_ground_query:
                     _unify_cache_put(cache_key, None)
@@ -1609,8 +1651,8 @@ def _is_valid_slot_value(val: Any, sig: Optional[PortSignature] = None) -> bool:
         reg = TypeRegistry.get_instance()
         if reg.is_known_type_name(val_low) and val_low not in enum_set:
             return False
-    except Exception:
-        pass
+    except Exception as _exc:
+        logger.debug("[UNIFICATION DIAGNOSTIC] Suppressed exception: %s", _exc, exc_info=True)
 
     # If the port declares discrete enum_values, candidate MUST match one of them
     if declared_enums:
@@ -1632,8 +1674,8 @@ def _is_valid_slot_value(val: Any, sig: Optional[PortSignature] = None) -> bool:
                 return True
             except ValueError:
                 return False
-    except Exception:
-        pass
+    except Exception as _exc:
+        logger.debug("[UNIFICATION DIAGNOSTIC] Suppressed exception: %s", _exc, exc_info=True)
 
     return True
 
@@ -1749,15 +1791,17 @@ class ExecutionContext:
         self.literal_clause_map: Dict[int, int] = self._build_literal_clause_map(self._prompt, self.ordered_literals)
         self.target_literals: Set[str] = set()
         t_sink = (
-            getattr(self, "target_col", None)
+            getattr(self, "target_key", None)
+            or getattr(self, "target_col", None)
             or self.parameters.get("target_sink")
+            or self.parameters.get("target_key")
             or self.parameters.get("target_col")
             or self._extract_target_sink(self._prompt)
         )
-        self.target_col: Optional[str] = str(t_sink).strip() if t_sink else None
-        if self.target_col:
-            self.target_literals.add(self.target_col)
-        self.written_columns: Set[str] = set()
+        self.target_key: Optional[str] = str(t_sink).strip() if t_sink else None
+        if self.target_key:
+            self.target_literals.add(self.target_key)
+        self.written_keys: Set[str] = set()
         self.current_cell_clause_idx: Optional[int] = None
         # Bare-identifier role map: char position -> stemmed role context tokens
         # (e.g. pos(X) -> {"column"}). Drives role-conditioned identifier binding
@@ -1771,9 +1815,19 @@ class ExecutionContext:
         self.var_parents: Dict[str, Set[str]] = {}
         self.scope_variables: Dict[str, Any] = {}
         self.llm_slots: Dict[str, Dict[str, Any]] = {}
-        self._explicit_columns: List[str] = []
+        self._explicit_keys: List[str] = []
         self.hyperparameters: Dict[str, Any] = {}
         self.composed_bridge_cells: List[Any] = []
+        self.diagnostics: DiagnosticTelemetry = DiagnosticTelemetry()
+        try:
+            from dag_plan import SemanticBlackboard
+            self.blackboard = SemanticBlackboard()
+        except Exception:
+            try:
+                from .dag_plan import SemanticBlackboard
+                self.blackboard = SemanticBlackboard()
+            except Exception:
+                self.blackboard = None
         if self.scope:
             for k, v in self.scope.items():
                 self.declare_variable(k, v, k)
@@ -1823,7 +1877,7 @@ class ExecutionContext:
                 cand = words[idx + 1].strip("'\",.;:")
                 cand_low = cand.lower()
                 if (
-                    cand.isidentifier()
+                    ExecutionContext._is_bare_identifier_token(cand)
                     and not keyword.iskeyword(cand_low)
                     and cand_low not in reg_types
                     and cand_low not in stopwords
@@ -1899,6 +1953,7 @@ class ExecutionContext:
         new_ctx.columns = list(self.columns)
         new_ctx.hyperparameters = dict(self.hyperparameters)
         new_ctx.runtime_aliases = dict(getattr(self, "runtime_aliases", {}) or {})
+        new_ctx.diagnostics = self.diagnostics
         return new_ctx
 
     @staticmethod
@@ -2040,9 +2095,37 @@ class ExecutionContext:
         return [val for pos, val in file_candidates if val not in src_set and self._asset_direction(self.prompt, pos) != "src"]
 
     @property
+    def target_col(self) -> Optional[str]:
+        return getattr(self, "target_key", None)
+
+    @target_col.setter
+    def target_col(self, val: Optional[str]) -> None:
+        self.target_key = val
+
+    @property
+    def written_columns(self) -> Set[str]:
+        if not hasattr(self, "written_keys"):
+            self.written_keys = set()
+        return self.written_keys
+
+    @written_columns.setter
+    def written_columns(self, val: Set[str]) -> None:
+        self.written_keys = set(val) if val is not None else set()
+
+    @property
+    def _explicit_columns(self) -> List[str]:
+        if not hasattr(self, "_explicit_keys"):
+            self._explicit_keys = []
+        return self._explicit_keys
+
+    @_explicit_columns.setter
+    def _explicit_columns(self, val: List[str]) -> None:
+        self._explicit_keys = list(val) if val is not None else []
+
+    @property
     def columns(self) -> List[str]:
-        if getattr(self, "_explicit_columns", None):
-            return self._explicit_columns
+        if getattr(self, "_explicit_keys", None):
+            return self._explicit_keys
         # Projection-role context is DECLARED vocabulary (column-projection
         # tokens + relational preposition triggers), not engine literals.
         try:
@@ -2062,7 +2145,7 @@ class ExecutionContext:
 
     @columns.setter
     def columns(self, val: List[str]):
-        self._explicit_columns = list(val)
+        self._explicit_keys = list(val) if val is not None else []
 
     @property
     def by_column(self) -> Optional[str]:
@@ -2629,8 +2712,9 @@ class ExecutionContext:
                     e_param = e_param / p_norm
                     best_word = None
                     best_sim = -1.0
-                    for w in words:
-                        e_w = np.array(mm.get_embedding(w), dtype=np.float32)
+                    word_embs = mm.get_embeddings(words, mode="query")
+                    for w, raw_e in zip(words, word_embs):
+                        e_w = np.array(raw_e, dtype=np.float32)
                         w_norm = np.linalg.norm(e_w)
                         if w_norm > 0:
                             sim = float(np.dot(e_param, e_w / w_norm))
@@ -2654,7 +2738,7 @@ class ExecutionContext:
             triggers.append(param_name.lower())
             # Relational prepositions (LANGUAGE-level): how English attaches a
             # value to its slot ("sort BY column", "matrix OF rows").
-            triggers.extend(["by", "of", "for", "with"])
+            triggers.extend(_PREPOSITION_TRIGGERS)
         if role_label:
             triggers.extend(t.lower() for t in CellTokenizer.tokenize_identifier(role_label) if len(t) >= 3)
         if target_label:
@@ -2674,10 +2758,11 @@ class ExecutionContext:
             | {"true", "false", "none", "null"}
         )
 
+        search_window = getattr(_reg_skip, "slot_search_window", 5) or 5
         for tr in triggers:
             if tr in raw_lower:
                 t_idx = raw_lower.index(tr)
-                for f_idx in range(t_idx + 1, min(t_idx + 6, len(raw_tokens))):
+                for f_idx in range(t_idx + 1, min(t_idx + 1 + search_window, len(raw_tokens))):
                     tok = raw_tokens[f_idx]
                     tl = tok.lower()
                     if tl in skip_words or tl in self.consumed_tokens or "." in tok or len(tok) < 2:
@@ -2744,9 +2829,10 @@ class ExecutionContext:
                     e_prompt = e_prompt / p_norm
                     best_cand = None
                     best_sim = -1.0
-                    for cand in sorted_candidates:
-                        cand_text = cand.replace("_", " ").lower()
-                        e_c = np.array(mm.get_embedding(cand_text), dtype=np.float32)
+                    cand_texts = [cand.replace("_", " ").lower() for cand in sorted_candidates]
+                    cand_embs = mm.get_embeddings(cand_texts, mode="query")
+                    for cand, raw_e in zip(sorted_candidates, cand_embs):
+                        e_c = np.array(raw_e, dtype=np.float32)
                         c_norm = np.linalg.norm(e_c)
                         if c_norm > 0:
                             sim = float(np.dot(e_prompt, e_c / c_norm))
@@ -2864,7 +2950,7 @@ class ExecutionContext:
             if not (
                 "negative" in qualifier_map
                 or p_name in _ORDER_FLAG_NAMES
-                or bool(CellTokenizer.tokenize_identifier(p_name) & _ORDER_POLE_TOKENS)
+                or bool(CellTokenizer.tokenize_identifier(p_name) & (_DESCENDING_HINTS | _ASCENDING_HINTS))
             ):
                 neg_label = f"not {port_sig.name}"
 
@@ -2923,7 +3009,7 @@ class ExecutionContext:
             is_order_port = (
                 p_name in _ORDER_FLAG_NAMES
                 or p_state_l in _ORDER_FLAG_STATES
-                or bool(p_name_tokens & _ORDER_POLE_TOKENS)
+                or bool(p_name_tokens & (_DESCENDING_HINTS | _ASCENDING_HINTS))
                 or "asc" in str(pos_label).lower().split() or "desc" in str(neg_label).lower().split()
             )
             if is_order_port:
@@ -3139,13 +3225,19 @@ class ExecutionContext:
                             if reg.is_registered(fmt_anc) and reg.is_registered(ext):
                                 if not reg.is_subtype(ext, fmt_anc) and not reg.is_subtype(ext, carrier):
                                     continue
-                        # Cross-modality collision guard backed by poset hierarchy
-                        if reg.is_subtype(ext, "tabular_format") and (reg.is_subtype(port_t, "image") or reg.is_subtype(port_d, "image")):
-                            continue
-                        if reg.is_subtype(ext, "image_format") and (reg.is_subtype(port_t, "table") or reg.is_subtype(port_d, "table")):
-                            continue
-                        if reg.is_subtype(ext, "audio_format") and (reg.is_subtype(port_t, "table") or reg.is_subtype(port_d, "table")):
-                            continue
+                        # Universal cross-modality collision guard backed by poset hierarchy
+                        ext_carrier = None
+                        try:
+                            for abs_c in reg.get_abstract_carriers():
+                                if reg.is_subtype(ext, f"{abs_c}_format") or reg.is_subtype(ext, abs_c):
+                                    ext_carrier = abs_c
+                                    break
+                        except Exception:
+                            ext_carrier = None
+                        port_carrier = carrier or reg.get_abstract_carrier(port_t) or reg.get_abstract_carrier(port_d)
+                        if ext_carrier and port_carrier and ext_carrier != port_carrier:
+                            if not (reg.is_subtype(ext_carrier, port_carrier) or reg.is_subtype(port_carrier, ext_carrier)):
+                                continue
                 if is_file_or_quoted or (is_path_role and matches_path):
                     direction = _asset_direction(lit_pos) if kind == "file_asset" else ""
                     if prefer and direction == prefer:
@@ -3547,6 +3639,24 @@ class UnificationGate:
         self.last_verification_contract: Optional[VerificationContract] = None
         self.last_runtime_aliases: Dict[str, str] = {}
         self._generic_port_cache: Optional[Tuple[Tuple[int, int], FrozenSet[str]]] = None
+        try:
+            from .unification_stages import (
+                PortWiringStage,
+                TypeCoercionStage,
+                ScopeResolutionStage,
+                TemplateInstantiationStage,
+            )
+        except (ImportError, ValueError):
+            from unification_stages import (
+                PortWiringStage,
+                TypeCoercionStage,
+                ScopeResolutionStage,
+                TemplateInstantiationStage,
+            )
+        self.wiring_stage = PortWiringStage(self)
+        self.coercion_stage = TypeCoercionStage(self)
+        self.scope_stage = ScopeResolutionStage(self)
+        self.template_stage = TemplateInstantiationStage(self)
 
     def _generic_port_tokens(self) -> FrozenSet[str]:
         """
@@ -3611,25 +3721,29 @@ class UnificationGate:
     # Declared bridge-morphism composition (Solution 3)
     # ------------------------------------------------------------------
 
-    def _rederive_stale_series(self, cell: Any, p_name: str, v_name: str, ctx: Any, registry: Any) -> Optional[str]:
+    def _rederive_stale_carrier_projection(self, cell: Any, p_name: str, v_name: str, ctx: Any, registry: Any) -> Optional[str]:
         """
-        A Series computed before a row-changing step is STALE relative to a table that has since been
-        through it. If that fresher table has absorbed the Series (the Series was committed back into it),
-        the column to use is the table's column, not the old Series. Returns the projection expression, or
-        None when the Series is not stale / not absorbed / the column cannot be identified.
+        A projected carrier component computed before an epoch-advancing mutation step is STALE relative
+        to a parent carrier that has since evolved. If the fresher carrier has absorbed the component,
+        the projection to use is from the fresh carrier. Returns the projection expression, or None.
         """
         port = cell.inputs.get(p_name)
         p_tn = str(getattr(getattr(port, "signature", port), "type_name", "") or "")
-        if not p_tn or registry.is_subtype(p_tn.lower(), "table"):
+        if not p_tn or registry.is_abstract_carrier(p_tn.lower()):
             return None
         v_ep = getattr(ctx, "var_epochs", {}).get(v_name)
         if v_ep is None:
             return None
-        cols = {str(c).lower(): str(c) for c in (getattr(ctx, "columns", None) or [])}
-        origin_cols = [cols[str(o).lower()] for o in getattr(ctx, "var_origins", {}).get(v_name, set()) if str(o).lower() in cols]
-        if len(set(origin_cols)) != 1:
+        raw_origins = [
+            str(o).strip("'\"") for o in getattr(ctx, "var_origins", {}).get(v_name, set())
+            if str(o).strip("'\"")
+            and str(o) not in getattr(ctx, "variables", {})
+            and not str(o).startswith("var_")
+            and not ExecutionContext._is_path_string(str(o))
+        ]
+        if len(set(o.lower() for o in raw_origins)) != 1:
             return None
-        col = origin_cols[0]
+        col = raw_origins[0]
 
         def _ancestors(v: str) -> Set[str]:
             seen: Set[str] = set()
@@ -3642,19 +3756,30 @@ class UnificationGate:
                         stack.append(par)
             return seen
 
+        proj_port = "column"
+        try:
+            p_names = registry.get_verification_semantics("projection_port_names")
+            if p_names:
+                proj_port = p_names[0]
+        except Exception:
+            proj_port = "column"
+
         for t_name, (t_sig, _) in reversed(list(ctx.variables.items())):
             t_tn = str(getattr(getattr(t_sig, "signature", t_sig), "type_name", "") or "").lower()
-            if not t_tn or not registry.is_subtype(t_tn, "table"):
+            if not t_tn or not (registry.is_abstract_carrier(t_tn) or registry.is_subtype(t_tn, "table")):
                 continue
             if getattr(ctx, "var_epochs", {}).get(t_name, 0) > v_ep and v_name in _ancestors(t_name):
                 expr = self._compose_declared_bridge_expr(
-                    src_var=t_name, src_type="table", dst_type=p_tn,
-                    literal_bindings={"column": repr(col)}, dst_sig=getattr(port, "signature", port), ctx=ctx)
-                ctx.trace_binding("stale_series_rederived", cell=cell.cell_id, port=p_name, stale=v_name,
-                                  stale_epoch=v_ep, table=t_name, table_epoch=ctx.var_epochs.get(t_name), column=col, expr=expr)
+                    src_var=t_name, src_type=t_tn, dst_type=p_tn,
+                    literal_bindings={proj_port: repr(col)}, dst_sig=getattr(port, "signature", port), ctx=ctx)
+                ctx.trace_binding("stale_carrier_rederived", cell=cell.cell_id, port=p_name, stale=v_name,
+                                  stale_epoch=v_ep, carrier=t_name, carrier_epoch=ctx.var_epochs.get(t_name), key=col, expr=expr)
                 return expr
-            break  # only the freshest table is a candidate
+            break  # only the freshest carrier is a candidate
         return None
+
+    def _rederive_stale_series(self, cell: Any, p_name: str, v_name: str, ctx: Any, registry: Any) -> Optional[str]:
+        return self._rederive_stale_carrier_projection(cell, p_name, v_name, ctx, registry)
 
     def _compose_declared_bridge_expr(
         self,
@@ -3714,8 +3839,11 @@ class UnificationGate:
         def _dst_accepts(have: str) -> bool:
             have_l = (have or "").lower()
             dst_l = str(dst_type or "").lower()
-            if dst_l and registry.is_subtype(have_l, dst_l):
-                return True
+            if dst_l and not registry.is_declared_top(dst_l):
+                if registry.is_subtype(have_l, dst_l):
+                    return True
+                if dst_l not in registry.get_abstract_carriers():
+                    return False
             ab = str(getattr(dst_sig, "abstract_type", "") or "").lower() if dst_sig is not None else ""
             return bool(ab and ab not in ("any", "*") and registry.is_subtype(have_l, ab))
 
@@ -3858,16 +3986,21 @@ class UnificationGate:
                 return inner or None
             return None
 
+        term_roles = _declared_role_semantics("terminal_roles") | _declared_role_semantics("sink_roles")
+        ing_roles = _declared_role_semantics("ingress_roles") | _declared_role_semantics("source_roles")
+        term_stages = set(registry.get_verification_semantics("terminal_stages")) or {3}
+        ing_stages = set(registry.get_verification_semantics("ingress_stages")) or {1}
+
         for cell, bindings in pipeline_bindings:
             stage = getattr(cell, "stage", None)
             node_role = str(getattr(cell, "node_role", "") or getattr(cell, "role", "") or "").lower()
-            is_terminal = (stage == 3 or node_role in ("sink", "terminal", "egress", "consumer"))
+            is_terminal = getattr(cell, "is_endable", False) or (stage in term_stages) or (node_role in term_roles)
             if not is_terminal:
                 for out_p in getattr(cell, "outputs", {}).values():
                     if str(getattr(out_p, "state", "")).lower() in ("destination_written", "filepath_written", "saved", "exported"):
                         is_terminal = True
                         break
-            is_source = (stage == 1 or node_role in ("source", "ingress", "initial"))
+            is_source = (stage in ing_stages) or (node_role in ing_roles)
             if not is_terminal and is_source:
                 continue
 
@@ -3938,7 +4071,8 @@ class UnificationGate:
     def unify_pipeline(
         self,
         cells: List[Cell],
-        context: Optional[ExecutionContext] = None
+        context: Optional[ExecutionContext] = None,
+        allow_llm: bool = True,
     ) -> MonadResult[List[Tuple[Cell, Dict[str, str]]]]:
         """
         Chains a sequence of cells [v_1, ..., v_n] through the Type Monad.
@@ -3976,7 +4110,7 @@ class UnificationGate:
             or ""
         )
         llm_pipeline_bindings: Dict[str, Dict[str, Any]] = {}
-        if prompt_text and cells:
+        if prompt_text and cells and allow_llm:
             try:
                 try:
                     from .inference import ModelManager
@@ -4059,7 +4193,7 @@ class UnificationGate:
                 return []
 
             consumed = getattr(ctx, "consumed_members", set())
-            candidates: List[Tuple[float, int, Substitution]] = []
+            candidates: List[Tuple[Any, int, Substitution]] = []
             for i, m_str in enumerate(members):
                 try:
                     member_term = TypeTerm.from_string(m_str)
@@ -4068,68 +4202,18 @@ class UnificationGate:
                 u = unify(member_term, port_sig.signature, accumulated_sigma)
                 if u is None:
                     continue
-                sc = 0.0
-                if (v_name, i) in consumed:
-                    sc -= 5.0
+                is_unconsumed = 1 if (v_name, i) not in consumed else 0
                 state_part = m_str[m_str.index("[") + 1 : -1] if "[" in m_str and m_str.endswith("]") else ""
+                token_overlap = 0
                 if state_part and state_part.lower() != "any" and cell_toks:
                     st_toks = CellTokenizer.tokenize_identifier(state_part)
-                    sc += 2.0 * len(st_toks & cell_toks)
-                candidates.append((sc, i, u))
+                    token_overlap = len(st_toks & cell_toks)
+                rank = (is_unconsumed, token_overlap, -i)
+                candidates.append((rank, i, u))
             return candidates
 
         # Static Pre-Unification Structural Macro Expansion (Phase 4 / T4.1)
-        # A macro expands ONLY when every sub-cell id resolves; otherwise the
-        # macro stays intact (rendered as a single composite morphism) and a
-        # warning is logged. Re-inserting a partially-resolved macro here would
-        # make the expansion loop non-convergent (resolved sub-cells would be
-        # duplicated on every pass while the macro itself remained in the list).
-        changed = True
-        expansion_depth = 0
-        while changed and expansion_depth < 10:
-            changed = False
-            expansion_depth += 1
-            expanded_cells: List[Cell] = []
-            for c in cells:
-                sub_cells = getattr(c, "sub_cells", None)
-                if not ((getattr(c, "cell_type", "") == "macro" or isinstance(c, MacroCell)) and sub_cells):
-                    expanded_cells.append(c)
-                    continue
-
-                orch = getattr(self, "orchestrator", None)
-                if orch is None:
-                    try:
-                        from lattice import LatticeOrchestrator
-                        orch = LatticeOrchestrator.get_active_instance()
-                    except (ImportError, ValueError):
-                        try:
-                            from .lattice import LatticeOrchestrator
-                            orch = LatticeOrchestrator.get_active_instance()
-                        except Exception as e:
-                            orch = None
-                resolved_cache = getattr(c, "_resolved_sub_cells", {}) or {}
-                resolved: List[Cell] = []
-                missing: List[str] = []
-                for sub_item in sub_cells:
-                    sub_cell = sub_item if isinstance(sub_item, Cell) else None
-                    if sub_cell is None:
-                        sub_cell = resolved_cache.get(sub_item)
-                    if sub_cell is None and orch:
-                        sub_cell = orch.loaded_cells.get(sub_item)
-                    if sub_cell is None:
-                        missing.append(str(sub_item))
-                    else:
-                        resolved.append(sub_cell)
-
-                if missing:
-                    logger.warning(
-                        f"[UNIFY] Macro '{c.cell_id}' kept unexpanded: unresolved sub-cells {missing}."
-                    )
-                    expanded_cells.append(c)
-                else:
-                    expanded_cells.extend(resolved)
-                    changed = True
-            cells = expanded_cells
+        cells = self.wiring_stage.expand_macros(cells, ctx)
 
         # Pre-scan pipeline for target-input ports to prevent target column from bleeding into feature projection
         _target_roles = _declared_role_semantics("target_roles")
@@ -4145,7 +4229,7 @@ class UnificationGate:
             ]
             if getattr(ctx, "target_col", None):
                 ctx.target_literals.add(str(ctx.target_col).lower())
-            elif unconsumed_ids:
+            elif unconsumed_ids and not (getattr(ctx, "blackboard", None) and getattr(ctx.blackboard, "locked_by_neural", False)):
                 target_col_name = unconsumed_ids[-1]
                 ctx.target_literals.add(str(target_col_name).lower())
                 ctx.target_col = str(target_col_name)
@@ -4223,18 +4307,24 @@ class UnificationGate:
                         if target_col_for_cell is not None:
                             break
 
-                # e) Any remaining valid identifier candidate
-                if target_col_for_cell is None and clause_candidates:
-                    preferred = [c for c in clause_candidates if len(c) == 1 or c[0].isupper() or "_" in c or any(ch.isdigit() for ch in c)]
-                    target_col_for_cell = preferred[0] if preferred else clause_candidates[0]
+                # e) Single unambiguous identifier candidate in clause
+                if target_col_for_cell is None and len(set(c.lower() for c in clause_candidates)) == 1:
+                    target_col_for_cell = clause_candidates[0]
 
             # 3. Fallback: if cell requires a column key and target_col is set globally
             if target_col_for_cell is None and getattr(ctx, "target_col", None):
+                reg = TypeRegistry.get_instance()
+                proj_roles = {r.lower() for r in reg.get_verification_semantics("projection_port_roles")}
                 c_has_col_port = any(
-                    getattr(p, "binds", None) == "column_key" or "column" in (getattr(p, "port_role", "") or "").lower()
+                    getattr(p, "binds", None) in ("column_key", "key", "projection_key")
+                    or (getattr(p, "port_role", "") or "").lower() in proj_roles
                     for p in cell.inputs.values()
-                ) or "column" in cell.cell_id.lower()
-                is_col_write = any(getattr(p, "binds", None) == "assigned_value" for p in cell.inputs.values()) or "set" in cell.cell_id.lower()
+                ) or getattr(cell, "projection", None) is not None
+                is_col_write = (
+                    any(getattr(p, "binds", None) == "assigned_value" for p in cell.inputs.values())
+                    or getattr(cell, "mutation_type", None) == "mutates"
+                    or any(str(e).lower() in reg.get_verification_semantics("mutation_effects") for e in getattr(cell, "effects", []))
+                )
                 if c_has_col_port:
                     t_cand = str(ctx.target_col).strip()
                     # Causal DAG verification: a write operation can target the sink,
@@ -4296,9 +4386,8 @@ class UnificationGate:
                         if cand_str:
                             concrete_sig = substitute_generics(p_sig, accumulated_sigma)
                             try:
-                                parsed_ast = ast.parse(cand_str, mode='eval')
                                 var_names = {node.id for node in ast.walk(parsed_ast) if isinstance(node, ast.Name)}
-                                if all(v in ctx.variables for v in var_names if v.startswith("var_")):
+                                if all(v in ctx.variables for v in var_names if not keyword.iskeyword(v)):
                                     if cand_str in ctx.variables:
                                         v_sig, _ = ctx.variables[cand_str]
                                         if _shape_compatible(v_sig, concrete_sig):
@@ -4310,7 +4399,14 @@ class UnificationGate:
                                                 if p_role in _declared_role_semantics("dataflow_roles"):
                                                     bound_producer = True
                                     else:
-                                        rec = resolve_typed_binding_record(cell, p_name, p_sig, cand_str, ctx.variables, expected_sig=concrete_sig)
+                                        rec = resolve_typed_binding_record(
+                                            cell=cell,
+                                            port_name=p_name,
+                                            bound_val=cand_str,
+                                            port_sig=concrete_sig,
+                                            var_signatures={v: s[0] if isinstance(s, tuple) else s for v, s in ctx.variables.items()},
+                                            expected_sig=concrete_sig,
+                                        )
                                         if rec and rec.resulting_signature:
                                             u_cand = unify(rec.resulting_signature, concrete_sig.signature, accumulated_sigma)
                                             if u_cand is not None:
@@ -4319,13 +4415,54 @@ class UnificationGate:
                                                 p_role = getattr(p_sig, "derived_role", "") or getattr(p_sig, "port_role", "")
                                                 if p_role in _declared_role_semantics("dataflow_roles"):
                                                     bound_producer = True
-                            except Exception:
-                                pass
+                            except Exception as _exc:
+                                logger.debug("[UNIFICATION DIAGNOSTIC] Suppressed exception: %s", _exc, exc_info=True)
 
             # 1. Multi-Carrier DAG Scope Verification & Wire Resolution:
             # When idx > 0, verify that cell's inputs are satisfiable from the full
             # DAG ancestor frontier (available_cells = cells[:idx]).
             if idx > 0 and not is_zero_ary and not is_replica:
+                # Honor planned_port_wires if provided by the planner DAG
+                planned_wires = getattr(cell, "planned_port_wires", None)
+                if planned_wires:
+                    for p_name, wire_target in planned_wires.items():
+                        if isinstance(wire_target, tuple) and len(wire_target) == 2:
+                            prod_cell, out_port_name = wire_target
+                        else:
+                            prod_cell, out_port_name = wire_target, "output"
+                        v_name = None
+                        if prod_cell is not None:
+                            p_cid = getattr(prod_cell, "cell_id", str(prod_cell))
+                            v_name = (
+                                cell_port_vars.get((id(prod_cell), out_port_name))
+                                or cell_out_vars.get(id(prod_cell))
+                                or cell_port_vars.get((p_cid, out_port_name))
+                                or cell_out_vars.get(p_cid)
+                            )
+                        if not v_name and out_port_name and out_port_name in getattr(ctx, "variables", {}):
+                            v_name = out_port_name
+                        if v_name and p_name not in cell_bindings:
+                            if v_name in getattr(ctx, "superseded_vars", set()):
+                                continue
+                            _rej = _wire_rejection(cell, p_name, cell.inputs.get(p_name), v_name, ctx, registry, target_col_for_cell)
+                            if _rej is not None:
+                                ctx.trace_binding(f"planned_wire_rejected_{_rej[0]}", cell=cell.cell_id, port=p_name, var=v_name, **_rej[1])
+                                continue
+                            _fresh = self._rederive_stale_series(cell, p_name, v_name, ctx, registry)
+                            if _fresh is not None:
+                                cell_bindings[p_name] = _fresh
+                                bound_producer = True
+                                continue
+                            cell_bindings[p_name] = v_name
+                            bound_producer = True
+                            if prod_cell is not None and hasattr(prod_cell, "outputs") and hasattr(cell, "inputs"):
+                                out_port = prod_cell.outputs.get(out_port_name) or prod_cell.primary_output
+                                in_port = cell.inputs.get(p_name) or cell.primary_input
+                                if out_port and in_port:
+                                    u_wire = unify(out_port.signature, in_port.signature, accumulated_sigma)
+                                    if u_wire is not None:
+                                        accumulated_sigma = u_wire
+
                 valid_ancestors = [c for c in cells[:idx] if not _is_sink_cell(c)]
                 scope_res = unify_cell_with_scope(cell, available_cells=valid_ancestors, sigma=accumulated_sigma, context=ctx)
                 if scope_res is not None:
@@ -4385,7 +4522,8 @@ class UnificationGate:
                             (getattr(p, "port_role", "") in projective_roles or getattr(p, "derived_role", "") in projective_roles)
                             for p in req_ports
                         )
-                        if not (has_proj and has_carrier):
+                        all_req_bound = all(p_name in cell_bindings for p_name, p in cell.inputs.items() if p.required)
+                        if not (has_proj and has_carrier) and not (planned_wires and all_req_bound):
                             return Failure(transition_res.reason if isinstance(transition_res, Failure) else f"Transition failed for cell {cell.cell_id} from ancestors")
 
             # 2. Multi-Port Monoidal Matching: Bind input ports across available wires using semantic roles
@@ -4452,24 +4590,20 @@ class UnificationGate:
                         if u_p is None:
                             continue
 
-                        # Compute score for (p, v_name)
-                        score = 10.0
-                        if v_name in getattr(ctx, "superseded_vars", set()):
-                            score -= 25.0
+                        # Compute scale-free lexicographic rank for (p, v_name)
+                        not_superseded = 1 if v_name not in getattr(ctx, "superseded_vars", set()) else 0
+                        role_tier = 1
                         if p_role == v_role and p_role != "standard":
-                            score += 25.0
-                        if p_role in _wire_feature_roles and v_role in _wire_feature_roles:
-                            score += 15.0
-                        if p_role in _wire_target_roles and v_role in _wire_target_roles:
-                            score += 15.0
-                        if producer_var is not None and v_name == producer_var:
-                            score += 8.0
+                            role_tier = 3
+                        elif (p_role in _wire_feature_roles and v_role in _wire_feature_roles) or (p_role in _wire_target_roles and v_role in _wire_target_roles):
+                            role_tier = 2
 
                         # Exact state match priority
                         v_sig_inner = getattr(v_sig, "signature", v_sig)
                         v_state = (getattr(v_sig_inner, "state", "") or "").lower()
-                        if p_state and v_state and p_state == v_state:
-                            score += 20.0
+                        state_match = 1 if (p_state and v_state and p_state == v_state) else 0
+
+                        is_prod = 1 if (producer_var is not None and v_name == producer_var) else 0
 
                         # Token overlap
                         v_toks = set(CellTokenizer.tokenize_identifier((getattr(v_sig, "name", "") or "").lower()))
@@ -4488,12 +4622,13 @@ class UnificationGate:
                         # LatticeVocabulary.frequent_tokens uses).
                         _GENERIC_PORT_STOP = self._generic_port_tokens()
                         overlap = len((p_toks & v_toks) - _GENERIC_PORT_STOP)
-                        score += overlap * 4.0
 
-                        candidates.append((score, p_name, p, v_name))
+                        recency_idx = avail_vars.index(v_name)
+                        rank = (not_superseded, role_tier, state_match, is_prod, overlap, recency_idx)
+                        candidates.append((rank, p_name, p, v_name))
 
                 # Deterministic greedy assignment with recency tie-breaking (active wire in frontier)
-                candidates.sort(key=lambda item: (item[0], avail_vars.index(item[3])), reverse=True)
+                candidates.sort(key=lambda item: item[0], reverse=True)
                 assigned_ports = set()
                 assigned_vars = set()
                 assigned_origins = set()
@@ -4972,24 +5107,23 @@ class UnificationGate:
                         c_clause = getattr(cell, "matched_clause_idx", None)
                         prod_clause = getattr(prod_cell, "matched_clause_idx", None) if prod_cell else None
 
-                        clause_score = 0.0
+                        is_planned_score = 1 if is_planned else 0
+                        has_origin_match = 1 if (target_col_for_cell and v_origins and (
+                            target_col_for_cell in v_origins or target_col_for_cell.lower() in {str(o).lower() for o in v_origins}
+                        )) else 0
+
+                        clause_causality = 0.0
                         if c_clause is not None and prod_clause is not None:
                             if prod_clause == c_clause:
-                                clause_score = 100.0
+                                clause_causality = 2.0
                             elif prod_clause < c_clause:
                                 dist = c_clause - prod_clause
-                                clause_score = max(0.0, 90.0 - (dist - 1) * 20.0)
+                                clause_causality = 1.0 / (1.0 + dist)
                             else:
-                                clause_score = -100.0
+                                clause_causality = -1.0
 
-                        literal_score = 0.0
-                        if target_col_for_cell and v_origins and (
-                            target_col_for_cell in v_origins or target_col_for_cell.lower() in {str(o).lower() for o in v_origins}
-                        ):
-                            literal_score = 150.0
-
-                        planned_score = 200.0 if is_planned else 0.0
-                        prio = planned_score + literal_score + clause_score
+                        recency_idx = list(ctx.variables.keys()).index(v_name) if v_name in ctx.variables else 0
+                        prio = (is_planned_score, has_origin_match, clause_causality, recency_idx)
                         candidate_vars.append((prio, v_name, u_v))
 
                 if candidate_vars:
@@ -5004,7 +5138,7 @@ class UnificationGate:
                     ctx.trace_binding(
                         "scoped_candidates", cell=cell.cell_id, port=p_name, clause=cell_clause,
                         target_col=target_col_for_cell, matching_origin=has_matching_origin,
-                        candidates=[(v, round(pr, 1), sorted(getattr(ctx, "var_origins", {}).get(v, set()))) for pr, v, _ in candidate_vars[:4]])
+                        candidates=[(v, str(pr), sorted(getattr(ctx, "var_origins", {}).get(v, set()))) for pr, v, _ in candidate_vars[:4]])
                     is_dest_carrier = (
                         getattr(p_sig, "binds", "") == "data_carrier"
                         or getattr(p_sig, "port_role", "") in ("receiver", "data_carrier")
@@ -5015,7 +5149,8 @@ class UnificationGate:
                             _, scoped_var, accumulated_sigma = candidate_vars[0]
 
                 if scoped_var is not None:
-                    cell_bindings[p_name] = scoped_var
+                    _fresh_sc = self._rederive_stale_series(cell, p_name, scoped_var, ctx, registry)
+                    cell_bindings[p_name] = _fresh_sc if _fresh_sc is not None else scoped_var
                     continue
 
                 if scoped_var is None and target_col_for_cell is not None:
@@ -5081,7 +5216,7 @@ class UnificationGate:
                     cands = _member_candidates(v_sig, v_name, concrete_sig, cell_toks_for_projection)
                     if not cands:
                         continue
-                    cands.sort(key=lambda x: (x[0], x[1]), reverse=True)
+                    cands.sort(key=lambda x: x[0], reverse=True)
                     _, best_i, best_u = cands[0]
                     cell_bindings[p_name] = f"{v_name}[{best_i}]"
                     accumulated_sigma = best_u
@@ -5105,7 +5240,11 @@ class UnificationGate:
                     cell_bindings[p_name] = _name_lit
                     accumulated_sigma.bind(p_name, _name_lit)
                     ctx.consumed_tokens.add(str(target_col_for_cell).lower())
-                    if hasattr(ctx, "written_columns") and (any(getattr(p, "binds", None) == "assigned_value" for p in cell.inputs.values()) or "set" in cell.cell_id.lower()):
+                    if hasattr(ctx, "written_columns") and (
+                        any(getattr(p, "binds", None) == "assigned_value" for p in cell.inputs.values())
+                        or getattr(cell, "mutation_type", None) == "mutates"
+                        or any(str(e).lower() in TypeRegistry.get_instance().get_verification_semantics("mutation_effects") for e in getattr(cell, "effects", []))
+                    ):
                         ctx.written_columns.add(str(target_col_for_cell).strip().strip("'\""))
                     continue
 
@@ -5141,20 +5280,6 @@ class UnificationGate:
                         cell_bindings[p_name] = enum_val
                         accumulated_sigma.bind(p_name, enum_val)
                         continue
-
-                # D.2 Higher-Order Functional Operator resolution:
-                # If the port is a functional operator (Callable), synthesize a safe default lambda
-                # (identity functor, predicate, or fallback) rather than failing synthesis.
-                if getattr(p_sig, "port_role", None) == "functional_operator" or "Callable" in getattr(concrete_sig, "type_name", ""):
-                    if "bool" in str(concrete_sig.type_name).lower():
-                        default_fn = "lambda x: bool(x)"
-                    elif "Exception" in str(concrete_sig.type_name):
-                        default_fn = "lambda err, d=None: d"
-                    else:
-                        default_fn = "lambda *args: args[0] if args else None"
-                    cell_bindings[p_name] = default_fn
-                    accumulated_sigma.bind(p_name, default_fn)
-                    continue
 
                 # E. Unresolved REQUIRED port: check for targeted LLM resolution before failing
                 if p_sig.required and (p_name not in cell_bindings or cell_bindings[p_name] in (None, UNRESOLVED_PORT)):
@@ -5306,33 +5431,19 @@ class UnificationGate:
                                     ctx.estimator_feature_cols = {}
                                 ctx.estimator_feature_cols[current_out_var] = list(ctx.last_feature_cols)
 
-                        is_projection = any(k in ("column", "key", "columns") for k in cell.inputs.keys())
-                        if len(bound_in_vars) == 1 and not is_projection and getattr(cell, "stage", None) == 2:
-                            ctx.superseded_vars.add(bound_in_vars[0])
+                        if getattr(cell, "stage", None) == 2 and out_t:
+                            canon_out = registry.canonical_name(out_t).lower()
+                            for b_in_v in bound_in_vars:
+                                b_in_sig = ctx.variables.get(b_in_v, (None, None))[0]
+                                b_in_t = str(getattr(getattr(b_in_sig, "signature", b_in_sig), "type_name", "") or "").lower()
+                                if b_in_t and registry.canonical_name(b_in_t).lower() == canon_out:
+                                    ctx.superseded_vars.add(b_in_v)
             else:
                 # Void output cell (outputs: {}) - e.g. .show(), .save() returning None.
                 # Do not advance counter, do not declare phantom variables, and do not overwrite producer_var.
                 pass
 
-            cell_typed_bindings = {}
-            var_sigs = {v: sig_tuple[0] for v, sig_tuple in ctx.variables.items()}
-            for p_name, val_expr in cell_bindings.items():
-                expected_sig = None
-                if cell.inputs and p_name in cell.inputs:
-                    expected_sig = getattr(cell.inputs[p_name], "signature", cell.inputs[p_name])
-                elif cell.outputs and p_name in cell.outputs:
-                    expected_sig = getattr(cell.outputs[p_name], "signature", cell.outputs[p_name])
-                elif p_name == "output_var" and getattr(cell, "primary_output", None):
-                    expected_sig = getattr(cell.primary_output, "signature", cell.primary_output)
-                record = resolve_typed_binding_record(
-                    cell=cell,
-                    port_name=p_name,
-                    bound_val=val_expr,
-                    port_sig=expected_sig,
-                    var_signatures=var_sigs,
-                )
-                cell_typed_bindings[p_name] = record
-            cell.typed_bindings = cell_typed_bindings
+            cell_typed_bindings = self.scope_stage.finalize_cell_scope(cell, cell_bindings, ctx, accumulated_sigma)
 
             pipeline_bindings.append((cell, cell_bindings))
 
@@ -5405,8 +5516,8 @@ class UnificationGate:
             if isinstance(val, (list, tuple, dict)):
                 try:
                     return ast.parse(repr(val), mode="eval").body
-                except Exception:
-                    pass
+                except Exception as _exc:
+                    logger.debug("[UNIFICATION DIAGNOSTIC] Suppressed exception: %s", _exc, exc_info=True)
 
             s = str(val).strip()
             if s in ("True", "False"):
@@ -5453,8 +5564,8 @@ class UnificationGate:
                 try:
                     if importlib.util.find_spec(ident) is not None:
                         return True
-                except Exception:
-                    pass
+                except Exception as _exc:
+                    logger.debug("[UNIFICATION DIAGNOSTIC] Suppressed exception: %s", _exc, exc_info=True)
                 return False
 
             # Try parsing s as an evaluated Python expression (handles array projections, bridges, indexed lookups)
@@ -5473,8 +5584,8 @@ class UnificationGate:
                     return parsed_expr
                 if not free_names and isinstance(parsed_expr, ast.Constant):
                     return parsed_expr
-            except Exception:
-                pass
+            except Exception as _exc:
+                logger.debug("[UNIFICATION DIAGNOSTIC] Suppressed exception: %s", _exc, exc_info=True)
 
             # String literal / parameter identifier (e.g. column name 'X', strategy 'mean', how 'any', filename 'input.csv')
             return ast.Constant(value=unquoted)
@@ -5610,9 +5721,11 @@ class UnificationGate:
                 # Protect explicit calculations/metrics (e.g. mean, metrics, aggregations) that witness a clause,
                 # but pure intermediate projections/slices (like PD_SELECT_COLUMN) whose output is never used
                 # are dead extraction bridges and must be pruned to avoid anti-causal or unused variable errors.
+                reg = TypeRegistry.get_instance()
+                proj_roles = set(r.lower() for r in reg.get_verification_semantics("projection_roles")) | {"bridge", "projection", "selector"}
                 is_pure_projection = (
-                    getattr(cell, "projection", None) == "column"
-                    or (getattr(cell, "mutation_type", "") == "pure" and (role in ("bridge", "projection") or "select" in getattr(cell, "cell_id", "").lower()))
+                    getattr(cell, "projection", None) is not None
+                    or (getattr(cell, "mutation_type", "") == "pure" and role in proj_roles)
                 )
                 if not is_pure_projection:
                     if getattr(cell, "matched_clause_idx", None) is not None or getattr(cell, "is_goal", False):
@@ -5792,15 +5905,22 @@ class UnificationGate:
                     try:
                         parsed_ast = ast.parse(cand_str, mode='eval')
                         var_names = {node.id for node in ast.walk(parsed_ast) if isinstance(node, ast.Name)}
-                        if all(v in ctx.variables for v in var_names if v.startswith("var_")):
+                        if all(v in ctx.variables for v in var_names if not keyword.iskeyword(v)):
                             # Check typing
-                            rec = resolve_typed_binding_record(cell, port_name, port_sig, cand_str, ctx.variables, expected_sig=concrete_sig)
+                            rec = resolve_typed_binding_record(
+                                cell=cell,
+                                port_name=port_name,
+                                bound_val=cand_str,
+                                port_sig=concrete_sig,
+                                var_signatures={v: s[0] if isinstance(s, tuple) else s for v, s in ctx.variables.items()},
+                                expected_sig=concrete_sig,
+                            )
                             if rec and rec.resulting_signature:
                                 u = unify(rec.resulting_signature, concrete_sig.signature, Substitution())
                                 if u is not None:
                                     return cand_str
-                    except Exception:
-                        pass
+                    except Exception as _exc:
+                        logger.debug("[UNIFICATION DIAGNOSTIC] Suppressed exception: %s", _exc, exc_info=True)
         except Exception as e:
             logger.debug(f"[UNIFICATION] Single-port LLM synthesis failed: {e}")
         return None
@@ -5957,9 +6077,10 @@ class UnificationGate:
 
     def emit_code(
         self,
-        cells: List[Cell],
+        cells: Union[List[Cell], List[Tuple[Cell, Dict[str, str]]]],
         context: Optional[ExecutionContext] = None,
-        extract_llm_slots: bool = True
+        extract_llm_slots: bool = True,
+        accum_sigma: Optional[Substitution] = None,
     ) -> str:
         """
         Emits clean, fully instantiated code from a verified cell pipeline.
@@ -5972,8 +6093,11 @@ class UnificationGate:
                 f"Code synthesis refused: pipeline contains unresolved ports: [{ports_str}]"
             )
 
-        accum_sigma: Substitution = Substitution()
-        if cells and isinstance(cells[0], tuple):
+        if accum_sigma is None:
+            accum_sigma = Substitution()
+        if not cells:
+            return ""
+        if isinstance(cells[0], tuple):
             pipeline_bindings = cells
         else:
             ctx_run = ctx.clone() if hasattr(ctx, "clone") else ctx
@@ -5981,7 +6105,7 @@ class UnificationGate:
                 ctx_run.reset()
             if extract_llm_slots:
                 self._extract_pipeline_slots_with_llm(cells, getattr(ctx_run, "_prompt", "") or getattr(self.context, "_prompt", ""), ctx_run)
-            res = self.unify_pipeline(cells, ctx_run)
+            res = self.unify_pipeline(cells, ctx_run, allow_llm=extract_llm_slots)
             if res.is_bottom():
                 reason = res.reason if isinstance(res, Failure) else "Unknown unification failure"
                 raise ValueError(f"Unification Failed: {reason}")
@@ -6136,7 +6260,25 @@ class UnificationGate:
                 if p_out and isinstance(p_out, str):
                     known_vars.add(p_out.strip().strip("'\""))
 
-            if has_render_cell and (bool(getattr(cell, "bound_slots", None)) or getattr(cell, "node_type", "") == "macro" or bool(getattr(cell, "slots", None))):
+            if getattr(cell, "is_typed_hole", False):
+                try:
+                    from synthesis import InductiveKernelGenerator
+                except (ImportError, ValueError):
+                    from .synthesis import InductiveKernelGenerator
+                gen = InductiveKernelGenerator()
+                in_sigs = {bnd_v: p.type_name for p_k, p in cell.inputs.items() if (bnd_v := bindings.get(p_k))}
+                out_v = bindings.get("output_var") or "var_out"
+                out_sigs = {out_v: getattr(cell.primary_output, "type_name", "any")}
+                code_lines.append(
+                    gen.generate_kernel(
+                        task_description=getattr(cell, "task_description", cell.cell_id),
+                        state_inputs=in_sigs,
+                        state_outputs=out_sigs,
+                    )
+                )
+                continue
+
+            if has_render_cell and (bool(getattr(cell, "bound_slots", None)) or getattr(cell, "node_type", "") == "macro"):
                 rendered = render_cell(cell, bindings, indent_level=0, context=ctx, accumulated_sigma=accum_sigma)
                 if rendered:
                     code_lines.append(rendered)
@@ -6209,17 +6351,18 @@ class UnificationGate:
                         if isinstance(p_val, str):
                             pipeline_vars.add(p_val)
                     for b_val in bindings.values():
-                        if isinstance(b_val, str) and (b_val.startswith("var_") or b_val.startswith("df_") or b_val.startswith("model_")):
-                            pipeline_vars.add(b_val)
+                        if isinstance(b_val, str) and b_val.isidentifier() and not keyword.iskeyword(b_val):
+                            if b_val in ctx.variables or b_val.startswith("var_"):
+                                pipeline_vars.add(b_val)
 
             if hasattr(ctx, "variables") and isinstance(ctx.variables, dict):
                 for v_name in ctx.variables.keys():
-                    if isinstance(v_name, str) and (v_name.startswith("var_") or v_name in pipeline_vars):
+                    if isinstance(v_name, str):
                         pipeline_vars.add(v_name)
 
             if hasattr(ctx, "scope_variables") and isinstance(ctx.scope_variables, dict):
                 for v_name in ctx.scope_variables.keys():
-                    if isinstance(v_name, str) and (v_name.startswith("var_") or v_name in pipeline_vars):
+                    if isinstance(v_name, str):
                         pipeline_vars.add(v_name)
 
             if hasattr(ctx, "runtime_aliases") and isinstance(ctx.runtime_aliases, dict):
@@ -6227,7 +6370,7 @@ class UnificationGate:
                 pipeline_vars.update(ctx.runtime_aliases.values())
 
             prior_vars.difference_update(pipeline_vars)
-            prior_vars = {v for v in prior_vars if not (isinstance(v, str) and v.startswith("var_"))}
+            prior_vars = {v for v in prior_vars if not (isinstance(v, str) and (v in pipeline_vars or v.startswith("var_")))}
         self._verify_emitted_ast_liveness(final_code, initial_scope=prior_vars)
         self._refuse_non_callable_calls(final_code)
         return final_code
@@ -6544,12 +6687,21 @@ class UnificationGate:
                 intent_data = None
 
         if intent_data and isinstance(intent_data, dict):
-            tgt = intent_data.get("target_sink") or intent_data.get("target_column") or intent_data.get("target_col")
-            if tgt:
-                self.context.target_col = str(tgt).strip()
-                self.context.target_literals.add(self.context.target_col)
-            if intent_data.get("columns") and isinstance(intent_data["columns"], list):
-                self.context.columns = [str(c).strip() for c in intent_data["columns"]]
+            if hasattr(self.context, "blackboard") and self.context.blackboard is not None:
+                self.context.blackboard.lock_from_intent(intent_data)
+                if self.context.blackboard.locked_by_neural:
+                    if self.context.blackboard.target_sink:
+                        self.context.target_col = self.context.blackboard.target_sink
+                        self.context.target_literals.add(self.context.target_col)
+                    if self.context.blackboard.feature_columns:
+                        self.context.columns = list(self.context.blackboard.feature_columns)
+            if not (hasattr(self.context, "blackboard") and getattr(self.context.blackboard, "locked_by_neural", False)):
+                tgt = intent_data.get("target_sink") or intent_data.get("target_column") or intent_data.get("target_col")
+                if tgt:
+                    self.context.target_col = str(tgt).strip()
+                    self.context.target_literals.add(self.context.target_col)
+                if intent_data.get("columns") and isinstance(intent_data["columns"], list):
+                    self.context.columns = [str(c).strip() for c in intent_data["columns"]]
             if intent_data.get("hyperparameters") and isinstance(intent_data["hyperparameters"], dict):
                 self.context.hyperparameters = dict(intent_data["hyperparameters"])
             if intent_data.get("slots") and isinstance(intent_data["slots"], dict):
@@ -6583,142 +6735,29 @@ class UnificationGate:
         Builds a structured VerificationContract capturing Phase-1 postconditions
         and terminal node intent rules for GEVR sandbox execution.
         """
-        contract = VerificationContract()
-
-        # Track wires across pipeline
-        registry = TypeRegistry.get_instance()
-
-        split_train_features = None
-        split_train_targets = None
-        unsplit_features = None
-        unsplit_targets = None
-
-        ingress_image_var = None
-        annotated_image_vars: List[str] = []
-
-        ingress_df_var = None
-        has_dropna = False
-        has_dedup = False
-        latest_carrier_by_kind: Dict[str, str] = {}
-
-        def _is_path_port(p: Any) -> bool:
-            return _lattice_is_path_port(p)
-
-        def _is_tensor_or_image(p: Any) -> bool:
-            if not p:
-                return False
-            t = str(getattr(p, "type_name", "")).lower()
-            st = str(getattr(p, "state", "")).lower()
-            ab = str(getattr(p, "abstract_type", "")).lower()
-            return (
-                ab == "tensor"
-                or registry.is_subtype(t, "tensor")
-                or bool(st and registry.get_state_carrier(st) and registry.is_subtype(registry.get_state_carrier(st), "tensor"))
-            )
-
-        def _is_table_or_df(p: Any) -> bool:
-            if not p:
-                return False
-            t = str(getattr(p, "type_name", "")).lower()
-            ab = str(getattr(p, "abstract_type", "")).lower()
-            return ab == "table" or registry.is_subtype(t, "table")
-
-        def _is_figure(p: Any) -> bool:
-            if not p:
-                return False
-            t = str(getattr(p, "type_name", "")).lower()
-            if registry.is_subtype(t, "figure"):
-                return True
-            # Declared drawing-surface carriers (trees name the family members,
-            # e.g. a plotting library's figure and axes classes).
-            return t in _declared_role_semantics("figure_carriers")
-
-        def _estimator_state_targets() -> FrozenSet[str]:
-            """
-            Declared states that name fitted-model instances, derived entirely
-            from tree data: a declared typestate qualifies when its name is
-            spelled with the declared estimator-verb vocabulary (sklearn trees
-            declare `estimator_verbs`; their typestates name the fitted states
-            with those same verbs) AND its declared carrier is not a data-
-            abstract carrier (arrays/tables are data, instance handles are not).
-            Replaces the former engine-side literal state list.
-            """
-            reg_ = TypeRegistry.get_instance()
-            verb_toks: Set[str] = set()
-            for v in reg_.get_estimator_verbs():
-                verb_toks |= {t for t in CellTokenizer.tokenize_identifier(str(v)) if len(t) >= 2}
-            if not verb_toks:
-                return frozenset()
-            abstracts = set()
+        try:
             try:
-                abstracts = {str(a).lower() for a in reg_.get_abstract_carriers()}
-            except Exception:
-                abstracts = set()
-            out: Set[str] = set()
-            for s_name in reg_.get_declared_state_names():
-                name_toks = {normalize_token(t) for t in CellTokenizer.tokenize_identifier(s_name)}
-                name_toks |= {t for t in CellTokenizer.tokenize_identifier(s_name) if len(t) >= 2}
-                if not (name_toks & verb_toks):
-                    continue
-                carrier = reg_.get_state_carrier(s_name)
-                if carrier:
-                    c_l = str(carrier).lower()
-                    if any(reg_.is_subtype(c_l, ab) for ab in abstracts if ab not in ("object",)):
-                        continue
-                out.add(s_name)
-            return frozenset(out)
+                from algebraic_effects import build_universal_verification_contract
+            except (ImportError, ValueError):
+                from .algebraic_effects import build_universal_verification_contract
+            contract = build_universal_verification_contract(pipeline_bindings, VerificationContract)
+        except Exception as _alg_exc:
+            logger.debug("[UNIFICATION] Algebraic contract build fallback: %s", _alg_exc)
+            contract = VerificationContract()
 
-        _ESTIMATOR_STATE_TARGETS = _estimator_state_targets()
-
-        # Declared verification vocabulary (trees' verification_semantics):
-        # role / effect / state names the contract tracks, keyed semantically.
-        # The words live entirely in the domain trees.
-        _SEM = TypeRegistry.get_instance().get_verification_semantics
-        _FEATURE_ROLES = {r.lower() for r in _SEM("feature_roles")}
-        _TARGET_ROLES = {r.lower() for r in _SEM("target_roles")}
-        _MODEL_ROLES = {r.lower() for r in _SEM("model_roles")}
-        _SOURCE_ROLES = {r.lower() for r in _SEM("source_roles")}
-        _SINK_ROLES = {r.lower() for r in _SEM("sink_roles")}
-        _ESTIMATOR_ROLES = {r.lower() for r in _SEM("estimator_roles")}
-        _ANNOTATION_EFFECTS = {e.lower() for e in _SEM("annotation_effects")}
-        _CLEAN_EFFECTS = {e.lower() for e in _SEM("clean_effects")}
-        _DEDUP_EFFECTS = {e.lower() for e in _SEM("dedup_effects")}
-        _SPLIT_FEATURE_STATES = {s.lower() for s in _SEM("split_states:feature")}
-        _SPLIT_TARGET_STATES = {s.lower() for s in _SEM("split_states:target")}
-        _CLEAN_PROPERTIES = {s.lower() for s in _SEM("clean_properties")}
-        _DEDUP_PROPERTIES = {s.lower() for s in _SEM("dedup_properties")}
-
-        def _is_estimator_output(p: Any) -> bool:
-            if not p:
-                return False
-            t = str(getattr(p, "type_name", "")).lower()
-            st = str(getattr(p, "state", "")).lower()
-            return (
-                registry.is_subtype(t, "estimator")
-                or registry.state_ancestry_reaches(st, _ESTIMATOR_STATE_TARGETS)
-            )
-
+        # Phase-1 Cell Postconditions from schema declarations
         for cell, bindings in pipeline_bindings:
-            stage = getattr(cell, "stage", None)
-            role = getattr(cell, "node_role", "")
-            effects = getattr(cell, "effects", []) or []
-            effect_names = {
-                str(e.get("kind") if isinstance(e, dict) else e).lower()
-                for e in effects
-            } if effects else set()
-
-            # 1. Phase-1 Cell Postconditions
             for post in (getattr(cell, "postconditions", []) or []):
                 p_obj = post
                 if not hasattr(p_obj, "property") and not hasattr(p_obj, "expression"):
                     try:
                         from .schema import ConditionPredicate
                         p_obj = ConditionPredicate.from_any(post)
-                    except Exception as e:
+                    except Exception:
                         try:
                             from schema import ConditionPredicate
                             p_obj = ConditionPredicate.from_any(post)
-                        except Exception as e:
+                        except Exception:
                             p_obj = post
 
                 target_name = getattr(p_obj, "target", None) or "output_var"
@@ -6726,7 +6765,7 @@ class UnificationGate:
                 if not target_var:
                     target_var = bindings.get("output_var") or (bindings.get(cell.primary_output.name) if cell.primary_output else None)
                 if target_var:
-                    contract.cell_checks.append({
+                    check_entry = {
                         "cell_id": cell.cell_id,
                         "target_var": target_var,
                         "target_port": target_name,
@@ -6735,200 +6774,9 @@ class UnificationGate:
                         "value": getattr(p_obj, "value", None),
                         "expression": getattr(p_obj, "expression", None),
                         "description": getattr(p_obj, "description", None),
-                    })
-
-            # 2. Ingress Tracking (Stage 1 or declared source role)
-            if stage == 1 or role in _SOURCE_ROLES:
-                for p_name, p_sig in cell.outputs.items():
-                    bound_v = bindings.get(p_name)
-                    if not bound_v:
-                        continue
-                    if _is_tensor_or_image(p_sig):
-                        if not ingress_image_var:
-                            ingress_image_var = bound_v
-                    elif _is_table_or_df(p_sig):
-                        if not ingress_df_var:
-                            ingress_df_var = bound_v
-
-                    r = getattr(p_sig, "port_role", "") or ""
-                    if r in _FEATURE_ROLES:
-                        if not unsplit_features:
-                            unsplit_features = bound_v
-                    elif r in _TARGET_ROLES:
-                        if not unsplit_targets:
-                            unsplit_targets = bound_v
-
-            # 3. Data Splitting / Partitioning Tracking (declared output states)
-            for p_name, p_sig in cell.outputs.items():
-                st = str(getattr(p_sig, "state", "")).lower()
-                if any(s in st for s in _SPLIT_FEATURE_STATES):
-                    split_train_features = bindings.get(p_name)
-                elif any(s in st for s in _SPLIT_TARGET_STATES):
-                    split_train_targets = bindings.get(p_name)
-
-            if split_train_features and not unsplit_features:
-                for in_name, in_sig in cell.inputs.items():
-                    in_r = getattr(in_sig, "port_role", "") or ""
-                    if in_r in _FEATURE_ROLES:
-                        unsplit_features = bindings.get(in_name)
-                        break
-
-            # 4. Canvas Annotation / Drawing Tracking (declared effects only)
-            is_draw_cell = bool(effect_names & _ANNOTATION_EFFECTS)
-            if is_draw_cell:
-                for out_name, out_sig in cell.outputs.items():
-                    if _is_tensor_or_image(out_sig):
-                        out_v = bindings.get(out_name)
-                        if out_v and out_v not in annotated_image_vars:
-                            annotated_image_vars.append(out_v)
-
-            # 5. Data Cleaning Tracking (declared effects / declared postcondition
-            # properties — no expression substring sniffing)
-            if effect_names & _CLEAN_EFFECTS:
-                has_dropna = True
-            elif any(
-                str(getattr(p, "property", "")).lower() in _CLEAN_PROPERTIES and getattr(p, "value", True) is False
-                for p in getattr(cell, "postconditions", []) or []
-            ):
-                has_dropna = True
-
-            if effect_names & _DEDUP_EFFECTS or any(
-                str(getattr(p, "property", "")).lower() in _DEDUP_PROPERTIES and getattr(p, "value", False) is True
-                for p in getattr(cell, "postconditions", []) or []
-            ):
-                has_dedup = True
-
-            # Track intermediate mutated carrier variables per abstract carrier / data kind
-            if stage != 1 and role not in _SOURCE_ROLES and stage != 3 and role not in _SINK_ROLES:
-                for out_name, out_sig in cell.outputs.items():
-                    out_v = bindings.get(out_name)
-                    if not out_v:
-                        continue
-                    if _is_tensor_or_image(out_sig):
-                        latest_carrier_by_kind["image"] = out_v
-                    elif _is_table_or_df(out_sig):
-                        latest_carrier_by_kind["table"] = out_v
-                    elif _is_figure(out_sig):
-                        latest_carrier_by_kind["figure"] = out_v
-
-            # 6. Terminal Intent Checks
-            # Model Training Intent (declared role / declared carrier / declared state)
-            is_estimator_cell = (
-                role in _ESTIMATOR_ROLES
-                or any(_is_estimator_output(p) for p in cell.outputs.values())
-            )
-            if is_estimator_cell:
-                # The model variable is the cell's primary output binding
-                # (optionally a port declared with the model_sink role).
-                model_var = None
-                sink_port = next(
-                    (p for p in cell.outputs.values() if str(getattr(p, "port_role", None) or "").lower() in _MODEL_ROLES),
-                    None,
-                )
-                if sink_port is not None:
-                    model_var = bindings.get(sink_port.name)
-                if model_var is None and cell.primary_output is not None:
-                    model_var = bindings.get(cell.primary_output.name)
-                if model_var is None:
-                    model_var = bindings.get("output_var")
-                feat_var = None
-                tgt_var = None
-                for in_name, in_sig in cell.inputs.items():
-                    r = getattr(in_sig, "port_role", "") or ""
-                    if r in _FEATURE_ROLES and feat_var is None:
-                        feat_var = bindings.get(in_name)
-                    elif r in _TARGET_ROLES and tgt_var is None:
-                        tgt_var = bindings.get(in_name)
-
-                contract.terminal_checks.append({
-                    "type": "model_fit_split",
-                    "cell_id": cell.cell_id,
-                    "model_var": model_var,
-                    "feature_var": feat_var,
-                    "target_var": tgt_var,
-                    "expected_train_feature_var": split_train_features,
-                    "unsplit_feature_var": unsplit_features,
-                    "expected_var": split_train_features,
-                    "actual_var": feat_var,
-                })
-
-            # Terminal Egress Sinks (Stage 3 or sink role with path port)
-            has_path_input = any(_is_path_port(p) for p in cell.inputs.values())
-            is_sink_cell = (stage == 3 or role in _SINK_ROLES or has_path_input) and stage != 1
-
-            if is_sink_cell and has_path_input:
-                path_var = None
-                data_var = None
-                data_kind = None
-
-                for in_name, in_sig in cell.inputs.items():
-                    if _is_path_port(in_sig):
-                        path_var = bindings.get(in_name)
-                    elif _is_tensor_or_image(in_sig):
-                        data_var = bindings.get(in_name)
-                        data_kind = "image"
-                    elif _is_table_or_df(in_sig):
-                        data_var = bindings.get(in_name)
-                        data_kind = "table"
-                    elif _is_figure(in_sig):
-                        data_var = bindings.get(in_name)
-                        data_kind = "figure"
-
-                if data_kind == "image" or (_is_tensor_or_image(cell.primary_input) if cell.primary_input else False):
-                    last_annotated = annotated_image_vars[-1] if annotated_image_vars else latest_carrier_by_kind.get("image")
-                    contract.terminal_checks.append({
-                        "type": "image_annotation_egress",
-                        "cell_id": cell.cell_id,
-                        "saved_var": data_var,
-                        "annotated_var": last_annotated,
-                        "ingress_var": ingress_image_var,
-                        "expected_var": last_annotated or data_var,
-                        "actual_var": data_var,
-                        "output_path": path_var,
-                    })
-                elif data_kind == "table" or (_is_table_or_df(cell.primary_input) if cell.primary_input else False):
-                    expected_props: Dict[str, Any] = {}
-                    if has_dropna:
-                        expected_props["no_nans"] = True
-                    if has_dedup:
-                        expected_props["is_deduped"] = True
-                    for c_item, _ in pipeline_bindings:
-                        for post in (getattr(c_item, "postconditions", []) or []):
-                            prop = getattr(post, "property", None)
-                            val = getattr(post, "value", None)
-                            if prop:
-                                expected_props[str(prop)] = val
-                    contract.terminal_checks.append({
-                        "type": "tabular_egress",
-                        "cell_id": cell.cell_id,
-                        "saved_var": data_var,
-                        "ingress_var": ingress_df_var,
-                        "expected_var": expected_tbl,
-                        "actual_var": data_var,
-                        "output_path": path_var,
-                        "expected_clean": expected_props,
-                    })
-                elif data_kind == "figure" or (_is_figure(cell.primary_input) if cell.primary_input else False):
-                    expected_fig = latest_carrier_by_kind.get("figure") or data_var
-                    contract.terminal_checks.append({
-                        "type": "visualization_egress",
-                        "cell_id": cell.cell_id,
-                        "fig_var": data_var,
-                        "expected_var": expected_fig,
-                        "actual_var": data_var,
-                        "output_path": path_var,
-                    })
-                elif path_var or data_var:
-                    expected_gen = latest_carrier_by_kind.get(data_kind) or data_var
-                    contract.terminal_checks.append({
-                        "type": "generic_egress",
-                        "cell_id": cell.cell_id,
-                        "data_kind": data_kind,
-                        "saved_var": data_var,
-                        "expected_var": expected_gen,
-                        "actual_var": data_var,
-                        "output_path": path_var,
-                    })
+                    }
+                    if check_entry not in contract.cell_checks:
+                        contract.cell_checks.append(check_entry)
 
         return contract
 
@@ -7069,14 +6917,18 @@ class DynamicPlaceholderResolver:
         registry = TypeRegistry.get_instance()
         path_tokens = registry.get_path_port_tokens()
         dest_tokens = registry.get_dest_port_tokens()
+        term_stages = set(registry.get_verification_semantics("terminal_stages")) or {3}
+        ing_stages = set(registry.get_verification_semantics("ingress_stages")) or {1}
+        sink_roles = set(r.lower() for r in registry.get_verification_semantics("sink_roles")) | set(r.lower() for r in registry.get_verification_semantics("terminal_roles")) | {"model_sink", "destination", "output_file", "dest_identifier", "sink"}
+        source_roles = set(r.lower() for r in registry.get_verification_semantics("source_roles")) | set(r.lower() for r in registry.get_verification_semantics("ingress_roles")) | {"source_data", "source", "input_file", "source_identifier"}
 
         # 1. Source files / paths
         is_source_port = (
-            port_role in ("source_data", "source", "input_file", "source_identifier")
+            port_role in source_roles
             or s_name in ("source_identifier", "file_path")
-            or (is_path and (stage == 1 or port_role in ("source_data", "source", "input_file")))
-            or (stage == 1 and is_path)
-            or (abstract_t == "path" and stage == 1)
+            or (is_path and (stage in ing_stages or port_role in source_roles))
+            or (stage in ing_stages and is_path)
+            or (abstract_t == "path" and stage in ing_stages)
             or p_lower in path_tokens
             or p_lower in ("filepath", "source_path", "filename", "file_path", "path", "file", "image_path")
         )
@@ -7085,11 +6937,11 @@ class DynamicPlaceholderResolver:
 
         # 2. Destination files / paths
         is_dest_port = (
-            port_role in ("model_sink", "destination", "output_file", "dest_identifier", "sink")
+            port_role in sink_roles
             or s_name in ("dest_identifier", "filepath_written", "destination_written")
-            or (is_path and (stage == 3 or port_role in ("model_sink", "destination", "output_file", "sink")))
-            or (stage == 3 and is_path)
-            or (abstract_t == "path" and stage == 3)
+            or (is_path and (stage in term_stages or port_role in sink_roles))
+            or (stage in term_stages and is_path)
+            or (abstract_t == "path" and stage in term_stages)
             or p_lower in dest_tokens
             or p_lower in ("dest_path", "savepath", "output_path", "dest_identifier", "target_path")
         )
@@ -7460,8 +7312,8 @@ def resolve_node_slots(template: str, extracted_params: Dict[str, Any]) -> Dict[
                     )
                 if cand:
                     resolved_code = f"{mod_name}.{cand}"
-            except Exception:
-                pass
+            except Exception as _exc:
+                logger.debug("[UNIFICATION DIAGNOSTIC] Suppressed exception: %s", _exc, exc_info=True)
             slots[ph] = resolved_code or (f"{mod_name}.{attr_prefix}{target_fmt}" if attr_prefix else f"{mod_name}.{target_fmt}")
         else:
             reg = TypeRegistry.get_instance()
