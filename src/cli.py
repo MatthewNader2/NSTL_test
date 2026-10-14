@@ -7,6 +7,7 @@ import hashlib
 import io
 import json
 import math
+import operator
 import os
 import shutil
 import sqlite3
@@ -209,41 +210,34 @@ def _eval_lineage_descendant(check: Dict[str, Any], code: str) -> Optional[str]:
     return None
 
 
+_OPERATORS: Dict[str, Callable[[Any, Any], bool]] = {
+    "==": operator.eq,
+    "!=": operator.ne,
+    "<": operator.lt,
+    "<=": operator.le,
+    ">": operator.gt,
+    ">=": operator.ge,
+    "in": lambda a, b: a in b,
+    "not in": lambda a, b: a not in b,
+}
+
+
 @register_contract_rule("property_satisfied")
 def _eval_property_satisfied(check: Dict[str, Any], code: str) -> Optional[str]:
     cid = check.get("cell_id", "terminal_node")
     prop = check.get("property")
-    op = check.get("operator", "==")
+    op = str(check.get("operator", "==")).strip()
     expected_val = check.get("expected_value", check.get("value"))
     actual_val = check.get("actual_value")
     if actual_val is not None and expected_val is not None:
-        passed = False
-        if op == "==":
-            passed = (actual_val == expected_val)
-        elif op == "!=":
-            passed = (actual_val != expected_val)
-        elif op == "in":
-            passed = (actual_val in expected_val)
-        elif op == "<":
-            passed = (actual_val < expected_val)
-        elif op == ">":
-            passed = (actual_val > expected_val)
-        elif op == "<=":
-            passed = (actual_val <= expected_val)
-        elif op == ">=":
-            passed = (actual_val >= expected_val)
-        else:
-            passed = (actual_val == expected_val)
+        fn = _OPERATORS.get(op, operator.eq)
+        try:
+            passed = fn(actual_val, expected_val)
+        except Exception:
+            passed = False
         if not passed:
             return f"Property contract '{prop}' failed for node '{cid}': condition '{actual_val} {op} {expected_val}' unsatisfied"
     return None
-
-
-# Canonical aliases for backward compatibility with check names
-CONTRACT_RULE_REGISTRY["model_fit_split"] = _eval_var_equality
-CONTRACT_RULE_REGISTRY["algebraic_partition_coherence"] = _eval_var_equality
-CONTRACT_RULE_REGISTRY["image_annotation_egress"] = _eval_lineage_descendant
-CONTRACT_RULE_REGISTRY["algebraic_linear_egress"] = _eval_lineage_descendant
 
 
 def _statically_evaluate_contract(final_code: str, contract: Any) -> List[str]:

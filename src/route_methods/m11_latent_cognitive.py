@@ -308,7 +308,10 @@ class M11LatentCognitiveRouteMethod(RouteMethod):
 
             if step >= num_clauses - 1:
                 try:
-                    from coverage_audit import audit as _audit
+                    try:
+                        from ..token_evidence import audit as _audit
+                    except (ImportError, ValueError):
+                        from token_evidence import audit as _audit
                     _res = _audit(committed_path, prompt, orch)
                     if _res.get("available") and not any(i["kind"] == "clause_unserved" for i in _res.get("issues", [])):
                         self._trace("m11_goal_reached", step=step, path_len=len(committed_path))

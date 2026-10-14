@@ -139,7 +139,10 @@ class M3GreedyFreezeRouteMethod(RouteMethod):
             # Goal test shared with preflight: once every prompt clause is served by the path (after each
             # clause position has had its turn) the plan is complete; extending it only adds unrequested cells.
             if step >= num_clauses - 1:
-                from coverage_audit import audit as _audit
+                try:
+                    from ..token_evidence import audit as _audit
+                except (ImportError, ValueError):
+                    from token_evidence import audit as _audit
                 _res = _audit(committed_path, prompt, orch)
                 if _res.get("available") and not any(i["kind"] == "clause_unserved" for i in _res["issues"]):
                     self._trace("m3_goal_reached", step=step, path_len=len(committed_path))

@@ -819,7 +819,10 @@ class RouteMethod(ABC):
         if not path or self.orchestrator is None:
             return path
         try:
-            from property_contracts import analyze as _prop_analyze
+            try:
+                from ..unification import analyze_property_contracts as _prop_analyze
+            except (ImportError, ValueError):
+                from unification import analyze_property_contracts as _prop_analyze
             from unification import UnificationGate, ExecutionContext
             resolved_prompt = prompt or getattr(self, "_current_prompt", "") or getattr(self, "prompt", "")
             if ctx is not None:
@@ -935,7 +938,10 @@ class RouteMethod(ABC):
         (outranked on every clause they touch, explaining no leftover clause token) when the chain
         stays type-valid without them. Each removal is traced. Never removes the first cell.
         """
-        from coverage_audit import audit
+        try:
+            from ..token_evidence import audit
+        except (ImportError, ValueError):
+            from token_evidence import audit
         current = list(path)
         for _ in range(len(current)):
             res = audit(current, prompt, self.orchestrator)
@@ -1116,37 +1122,19 @@ class RouteMethod(ABC):
                 # Estimator mathematical contract verification via declared role semantics
                 try:
                     from signature_introspector import introspect_estimator_role
-                    from tokenizer import normalize_token
                     role = introspect_estimator_role(c)
-                    if role:
-                        from lattice import TypeRegistry
-                        reg = TypeRegistry.get_instance()
-                        declared_roles = [
-                            str(r).lower() for r in (
-                                reg.get_verification_semantics("mutually_exclusive_roles")
-                                or reg.get_verification_semantics("model_roles")
-                                or ()
-                            )
-                        ]
-                        if declared_roles:
-                            norm_cl_toks = {normalize_token(t) for t in cl_toks}
-                            cell_role_norm = normalize_token(role)
-
-                            def _stem_matches(s1: str, s2: str) -> bool:
-                                if s1 == s2:
-                                    return True
-                                if min(len(s1), len(s2)) >= 4:
-                                    return s1.startswith(s2) or s2.startswith(s1)
-                                return False
-
-                            matched_roles = {
-                                r for r in declared_roles
-                                if any(_stem_matches(normalize_token(r), ct) for ct in norm_cl_toks)
-                            }
-                            if len(matched_roles) == 1:
-                                target_role = next(iter(matched_roles))
-                                if not _stem_matches(normalize_token(target_role), cell_role_norm):
-                                    score = 0.0
+                    if role in {"regressor", "classifier", "clusterer"}:
+                        matched_families = set()
+                        for ct in cl_toks:
+                            ct_low = str(ct).lower()
+                            if ct_low.startswith("regress"):
+                                matched_families.add("regressor")
+                            elif ct_low.startswith("classif"):
+                                matched_families.add("classifier")
+                            elif ct_low.startswith("cluster"):
+                                matched_families.add("clusterer")
+                        if len(matched_families) == 1 and role not in matched_families:
+                            score = 0.0
                 except Exception:
                     pass
 

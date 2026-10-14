@@ -110,7 +110,10 @@ def render_synthesis_diagnostics(console: Any, ctx: Any, cells: List[Any], promp
                        str(e.get("target_col", "")), str(detail))
         console.print(tb)
     try:
-        from coverage_audit import audit
+        try:
+            from .token_evidence import audit
+        except (ImportError, ValueError):
+            from token_evidence import audit
         res = audit(cells, prompt)
     except Exception as exc:  # pragma: no cover
         console.print(f"[yellow]coverage audit unavailable: {exc}[/yellow]")

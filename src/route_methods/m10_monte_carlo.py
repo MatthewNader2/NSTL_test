@@ -241,7 +241,10 @@ class M10MonteCarloRouteMethod(RouteMethod):
 
         from unification import UnificationGate, UnificationFailure
         from preflight import PreflightLinter
-        from coverage_audit import audit as _audit
+        try:
+            from ..token_evidence import audit as _audit
+        except (ImportError, ValueError):
+            from token_evidence import audit as _audit
         verdicts: Dict[Tuple, Dict[str, Any]] = {}
 
         def reward(state) -> float:

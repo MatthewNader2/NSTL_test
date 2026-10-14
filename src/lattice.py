@@ -2894,9 +2894,10 @@ def _apply_declared_estimator_identity(cell: Any) -> None:
     Idempotent; applied to every loaded cell on topology rebuild.
     """
     cid = str(getattr(cell, "cell_id", "") or "")
-    if not cid:
+    if not cid or "." not in cid or str(getattr(cell, "node_type", "") or "").lower() != "method":
         return
-    owner = cid.rsplit(".", 1)[0] if "." in cid else cid
+
+    owner = cid.rsplit(".", 1)[0]
     owner_qual = owner.strip().lower()
     if not owner_qual:
         return
@@ -2924,41 +2925,20 @@ def _apply_declared_estimator_identity(cell: Any) -> None:
         return getattr(obj, field_name, default)
 
     reg = TypeRegistry.get_instance()
-    node_type = str(getattr(cell, "node_type", "") or "").lower()
-    has_method_prefix = ("." in cid)
-    is_method = (node_type == "method") or has_method_prefix
+    estimator_types = {"model", "estimator", "regressor", "classifier", "clusterer", "transformer"}
 
-    model_roles = {
-        str(r).lower()
-        for r in (
-            reg.get_verification_semantics("model_roles")
-            or reg.get_carrier_roles().get("model_input", ())
-            or ("model_input", "model", "estimator", "receiver")
-        )
-    } | {"receiver"}
-
-    sink_roles = {
-        str(r).lower()
-        for r in (
-            reg.get_verification_semantics("sink_roles")
-            or ("model_sink", "instance_sink", "receiver_sink", "sink")
-        )
-    } | {"model_sink", "instance_sink", "receiver_sink"}
-
-    abstract_carriers = set(reg.get_abstract_carriers()) | {"model", "estimator", "instance", "object"}
-
-    # 1. Producer side: if an output port produces an abstract/role carrier
+    # 1. Producer side: stamp (owner_qual,) ONLY on output ports where port_role == "model_sink"
+    # or where type_name is a subtype of estimator_types (returning fitted self instance)
     for out_p in (getattr(cell, "outputs", {}) or {}).values():
         port_role = str(getattr(out_p, "port_role", "") or "").lower()
         out_sig = getattr(out_p, "signature", None)
         out_tn = str(getattr(out_sig, "type_name", "") or getattr(out_p, "type_name", "") or "").lower()
-        is_abstract_role = (
-            out_tn in abstract_carriers
-            or any(reg.is_subtype(out_tn, ac) for ac in abstract_carriers)
-            or reg.is_abstract_carrier(out_tn)
+        is_model_output = (
+            port_role == "model_sink"
+            or out_tn in estimator_types
+            or any(reg.is_subtype(out_tn, et) for et in estimator_types)
         )
-        is_instance_sink = (port_role in sink_roles)
-        if is_abstract_role or is_instance_sink:
+        if is_model_output:
             _stamp(out_p, owner_qual)
             if out_tn:
                 try:
@@ -2966,27 +2946,24 @@ def _apply_declared_estimator_identity(cell: Any) -> None:
                 except Exception:
                     pass
 
-    # 2. Consumer side: if an input port on Owner.method is the instance receiver
-    if is_method:
-        receiver_port_names = {"self", "this", "model", "estimator", "receiver", "instance", "obj"}
-        precondition_targets = set()
-        for pre in getattr(cell, "preconditions", []) or []:
-            target = str(_cond_field(pre, "target", "") or "").strip()
-            if target:
-                precondition_targets.add(target)
+    # 2. Consumer side: stamp (owner_qual,) ONLY on input ports where port_role in
+    # ("model_input", "model", "estimator", "receiver") or a precondition on that port checks "is_fitted"
+    consumer_roles = {"model_input", "model", "estimator", "receiver"}
+    fitted_precondition_ports = set()
+    for pre in getattr(cell, "preconditions", []) or []:
+        prop = str(_cond_field(pre, "property", "") or "").strip().lower()
+        target = str(_cond_field(pre, "target", "") or "").strip()
+        if prop == "is_fitted" and target:
+            fitted_precondition_ports.add(target)
 
-        for in_name, in_p in (getattr(cell, "inputs", {}) or {}).items():
-            in_role = str(getattr(in_p, "port_role", "") or "").lower()
-            in_binds = str(getattr(in_p, "binds", "") or "").lower()
-            is_receiver = (
-                in_role == "receiver"
-                or in_role in model_roles
-                or in_binds in ("receiver", "carrier", "instance")
-                or in_name in receiver_port_names
-                or in_name in precondition_targets
-            )
-            if is_receiver:
-                _stamp(in_p, owner_qual)
+    for in_name, in_p in (getattr(cell, "inputs", {}) or {}).items():
+        in_role = str(getattr(in_p, "port_role", "") or "").lower()
+        is_model_input = (
+            in_role in consumer_roles
+            or in_name in fitted_precondition_ports
+        )
+        if is_model_input:
+            _stamp(in_p, owner_qual)
 
 
 

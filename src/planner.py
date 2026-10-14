@@ -4924,7 +4924,10 @@ class LatticePlanner:
         """
         from config import settings
         from mcts import MonteCarloTreeSearch
-        from coverage_audit import audit as _audit
+        try:
+            from .token_evidence import audit as _audit
+        except (ImportError, ValueError):
+            from token_evidence import audit as _audit
 
         # The planner is time-budgeted (planner_time_budget_ms / _plan_deadline): the search gets only what is
         # left of it, and does not start at all once the deadline has passed.

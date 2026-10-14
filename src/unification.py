@@ -126,6 +126,23 @@ _cached_cols_proj_sig: Optional[Any] = None
 _cached_attr_proj_sigs: Dict[str, Any] = {}
 
 
+def _is_product_sig(sig_obj: Any, registry: Optional[Any] = None) -> bool:
+    """Checks whether a type signature is a product/tuple/record constructor."""
+    if sig_obj is None:
+        return False
+    if registry is None:
+        try:
+            from .lattice import TypeRegistry
+        except (ImportError, ValueError):
+            from lattice import TypeRegistry
+        registry = TypeRegistry.get_instance()
+    t_str = str(getattr(getattr(sig_obj, "signature", None), "type_name", "") or getattr(sig_obj, "type_name", sig_obj)).strip()
+    ctor = t_str.split("[", 1)[0].strip().lower()
+    return registry.is_product_constructor(ctor)
+
+_is_product = _is_product_sig
+
+
 def resolve_typed_binding_record(
     cell: Any,
     port_name: str,
@@ -4042,13 +4059,22 @@ class UnificationGate:
             return None
 
         def _accepts(port_sig: Any, have: str) -> bool:
-            pt = str(getattr(getattr(port_sig, "signature", port_sig), "type_name", "") or "").lower()
+            sig = getattr(port_sig, "signature", port_sig)
+            pt = str(getattr(sig, "type_name", "") or getattr(port_sig, "type_name", "") or "").lower()
             have_l = (have or "").lower()
             if pt in ("any", "*", "top", ""):
                 return True
             if not have_l:
                 return False
-            return registry.is_subtype(have_l, pt)
+            if registry.is_subtype(have_l, pt):
+                return True
+            ab = str(getattr(sig, "abstract_type", "") or getattr(port_sig, "abstract_type", "") or "").lower()
+            if ab and ab not in ("any", "*", "top", ""):
+                if registry.is_subtype(have_l, ab) or registry.is_subtype(ab, have_l) or ab == have_l:
+                    return True
+            if have_l in registry.get_abstract_carriers() and registry.is_subtype(pt, have_l):
+                return True
+            return False
 
         def _dst_accepts(have: str) -> bool:
             have_l = (have or "").lower()
@@ -4221,79 +4247,260 @@ class UnificationGate:
         accumulated_sigma: Substitution,
     ) -> Optional[Tuple[str, Substitution]]:
         """
-        Universal Role-Partitioned Key Projection (R7-3).
-        For target_roles, feature_roles, or projective_roles:
-        1. Checks if an in-scope variable with matching port_role and clause provenance unifies with concrete_sig.
-        2. Otherwise, delegates to _project_complement_roles_from_carrier to find the most recent in-scope composite carrier
-           and compose declared bridge morphisms over partitioned keys.
+        Universal Role-Partitioned Key Projection.
+        Binds target_input and feature_input ports via declared bridge morphisms
+        from the freshest in-scope composite/table carrier without hardcodes or leaks.
         """
-        p_role = getattr(p_sig, "port_role", None) or getattr(p_sig, "derived_role", "")
-        projective_roles = (
-            _declared_role_semantics("target_roles")
-            | _declared_role_semantics("feature_roles")
-            | _declared_role_semantics("projective_roles")
-        )
-        if p_role not in projective_roles or p_name in cell_bindings:
+        if p_name in cell_bindings:
             return None
+
+        p_role = getattr(p_sig, "port_role", None) or getattr(p_sig, "derived_role", "")
+        p_role_str = str(p_role or "").lower()
 
         registry = TypeRegistry.get_instance()
-        expected_tn = str(getattr(concrete_sig, "type_name", "") or "").lower()
-        if expected_tn in ("list", "tuple", "str", "int", "float", "bool", "sequence", "collection"):
+        target_roles = {
+            str(r).lower() for r in (
+                registry.get_verification_semantics("target_roles")
+                or ("target_input", "target")
+            )
+        } | {"target_input", "target"}
+
+        feature_roles = {
+            str(r).lower() for r in (
+                registry.get_verification_semantics("feature_roles")
+                or ("feature_input", "feature")
+            )
+        } | {"feature_input", "feature"}
+
+        p_binds = str(getattr(p_sig, "binds", "") or "").lower()
+        is_target = (p_role_str in target_roles) or (p_binds in ("target", "target_input"))
+        is_feature = (p_role_str in feature_roles) or (p_binds in ("feature", "feature_input", "features"))
+
+        if not (is_target or is_feature):
             return None
 
-        is_feature = p_role in _declared_role_semantics("feature_roles")
-        is_target = p_role in _declared_role_semantics("target_roles")
+        expected_tn = str(
+            getattr(getattr(concrete_sig, "signature", None), "type_name", "")
+            or getattr(concrete_sig, "type_name", "")
+            or ""
+        ).lower()
+        if expected_tn in ("list", "tuple", "str", "int", "float", "bool", "sequence", "collection"):
+            return None
+        if not expected_tn or expected_tn in ("any", "*", "top"):
+            expected_tn = "ndarray"
 
-        # Reuse bound model feature bindings when applicable
-        if is_feature:
-            bound_model_var = None
-            for b_port, b_var in cell_bindings.items():
-                if isinstance(b_var, str) and b_var in ctx.variables:
-                    b_sig, _ = ctx.variables[b_var]
-                    b_role = getattr(b_sig, "port_role", None) or getattr(b_sig, "derived_role", "")
-                    b_inner = getattr(b_sig, "signature", b_sig)
-                    b_type = str(getattr(b_inner, "type_name", "") or "").lower()
-                    model_types = set(registry.get_carrier_roles().get("model_input", ())) | {"model", "estimator"}
-                    if (
-                        b_role in _declared_role_semantics("model_roles")
-                        or b_role in _declared_role_semantics("estimator_roles")
-                        or registry.is_subtype(b_type, "model")
-                        or registry.is_subtype(b_type, "estimator")
-                        or any(registry.is_subtype(b_type, m) for m in model_types)
-                        or b_type in model_types
-                    ):
-                        bound_model_var = b_var
-                        break
-            if bound_model_var and hasattr(ctx, "estimator_features") and bound_model_var in ctx.estimator_features:
-                val = ctx.estimator_features[bound_model_var]
-                cell_bindings[p_name] = val
-                return val, accumulated_sigma
+        # Determine cell clause literals
+        cell_clause_lits: List[str] = []
+        raw_lits = getattr(cell, "clause_literals", None)
+        if raw_lits and isinstance(raw_lits, (list, tuple)):
+            cell_clause_lits = [
+                str(x).strip() for x in raw_lits
+                if str(x).strip() and not ExecutionContext._is_path_string(str(x))
+            ]
+        elif raw_lits and isinstance(raw_lits, dict):
+            cell_clause_lits = [
+                str(x).strip() for x in raw_lits.values()
+                if str(x).strip() and not ExecutionContext._is_path_string(str(x))
+            ]
 
-        # 1. First check if an in-scope variable with matching port_role unifies
-        for v_name, (v_sig, _) in reversed(list(ctx.variables.items())):
-            if _is_product(v_sig) or v_name in cell_bindings.values():
-                continue
-            v_role = getattr(v_sig, "port_role", None) or getattr(v_sig, "derived_role", "")
-            matches_role = (
-                v_role == p_role
-                or (is_feature and v_role in _declared_role_semantics("feature_roles"))
-                or (is_target and v_role in _declared_role_semantics("target_roles"))
-            )
-            if matches_role:
-                if is_feature and _violates_clause_feature_cols(cell, p_role, v_name, ctx):
+        if not cell_clause_lits:
+            j = getattr(cell, "matched_clause_idx", None)
+            prompt = getattr(ctx, "prompt", "") or getattr(ctx, "_prompt", "") or ""
+            if j is not None and prompt:
+                try:
+                    from .tokenizer import split_prompt_clauses
+                except (ImportError, ValueError):
+                    from tokenizer import split_prompt_clauses
+                clauses = split_prompt_clauses(prompt)
+                if 0 <= j < len(clauses):
+                    cell_clause_lits = [
+                        v for _, k, v in ExecutionContext._extract_universal_literals(clauses[j])
+                        if k in ("identifier", "quoted_str") and not ExecutionContext._is_path_string(v)
+                    ]
+
+        if not cell_clause_lits and getattr(ctx, "ordered_literals", None):
+            cell_clause_lits = [
+                str(val).strip() for _, kind, val in getattr(ctx, "ordered_literals", [])
+                if kind in ("identifier", "quoted_str") and not ExecutionContext._is_path_string(str(val))
+            ]
+
+        # Target column helper
+        t_col = None
+        if cell_clause_lits and len(cell_clause_lits) >= 2:
+            t_col = cell_clause_lits[-1]
+        elif getattr(ctx, "target_col", None):
+            t_col = getattr(ctx, "target_col")
+        elif cell_clause_lits:
+            t_col = cell_clause_lits[-1]
+        elif getattr(ctx, "columns", None):
+            t_col = ctx.columns[-1]
+
+        if t_col:
+            ctx.target_col = str(t_col)
+
+        # Helper to find the freshest in-scope composite/table carrier df_var
+        def _find_df_var() -> Tuple[Optional[str], str]:
+            abstract_carriers = set(registry.get_abstract_carriers()) | {
+                "table", "collection", "mapping", "dataset", "dataframe"
+            }
+            for v_name, (v_sig, _) in reversed(list(ctx.variables.items())):
+                sig_obj = getattr(v_sig, "signature", v_sig)
+                v_tn = str(getattr(sig_obj, "type_name", "") or "").lower()
+                if (
+                    registry.is_subtype(v_tn, "table")
+                    or v_tn in abstract_carriers
+                    or any(registry.is_subtype(v_tn, ac) for ac in abstract_carriers)
+                    or registry.is_abstract_carrier(v_tn)
+                ):
+                    return v_name, v_tn
+            return None, "table"
+
+        # ---------------------------------------------------------
+        # Case A: target_roles ("target_input")
+        # ---------------------------------------------------------
+        if is_target:
+            # Check if an existing in-scope variable with matching target role unifies
+            for v_name, (v_sig, _) in reversed(list(ctx.variables.items())):
+                if _is_product_sig(v_sig, registry) or v_name in cell_bindings.values():
                     continue
-                if _shape_compatible(v_sig, concrete_sig):
+                v_role = getattr(v_sig, "port_role", None) or getattr(v_sig, "derived_role", "")
+                if v_role in target_roles and _shape_compatible(v_sig, concrete_sig):
                     u_v = unify(v_sig.signature, concrete_sig.signature, accumulated_sigma)
                     if u_v is not None:
                         cell_bindings[p_name] = v_name
                         return v_name, u_v
 
-        # 2. Otherwise compose declared bridge projection from in-scope composite carrier
-        composed = self._project_complement_roles_from_carrier(
-            cell, p_name, p_role, concrete_sig, cell_bindings, ctx, registry
-        )
-        if composed is not None:
-            return composed, accumulated_sigma
+            if not t_col:
+                return None
+
+            df_var, df_tn = _find_df_var()
+            if not df_var:
+                return None
+
+            expr = self._compose_declared_bridge_expr(
+                src_var=df_var,
+                src_type="table",
+                dst_type=expected_tn,
+                literal_bindings={"column": repr(str(t_col))},
+                dst_sig=concrete_sig,
+                ctx=ctx,
+            )
+            if expr is None and df_tn != "table":
+                expr = self._compose_declared_bridge_expr(
+                    src_var=df_var,
+                    src_type=df_tn,
+                    dst_type=expected_tn,
+                    literal_bindings={"column": repr(str(t_col))},
+                    dst_sig=concrete_sig,
+                    ctx=ctx,
+                )
+            if expr is not None:
+                cell_bindings[p_name] = expr
+                if hasattr(ctx, "consumed_tokens"):
+                    ctx.consumed_tokens.add(str(t_col).lower())
+                return expr, accumulated_sigma
+            return None
+
+        # ---------------------------------------------------------
+        # Case B: feature_roles ("feature_input")
+        # ---------------------------------------------------------
+        if is_feature:
+            last_fb = getattr(ctx, "last_feature_binding", None)
+            if last_fb:
+                # Check if it violates clause feature columns
+                violates = False
+                if cell_clause_lits and len(cell_clause_lits) >= 2:
+                    tgt = str(getattr(ctx, "target_col", "") or "").strip().lower()
+                    want = {str(l).strip().lower() for l in cell_clause_lits if isinstance(l, str)} - {tgt}
+                    have = {str(c).strip().lower() for c in getattr(ctx, "estimator_feature_cols", [])}
+                    if want and have and not (want <= have):
+                        violates = True
+                if not violates:
+                    u_v = accumulated_sigma
+                    can_reuse = True
+                    if isinstance(last_fb, str) and last_fb in ctx.variables:
+                        fb_sig, _ = ctx.variables[last_fb]
+                        if not _shape_compatible(fb_sig, concrete_sig):
+                            can_reuse = False
+                        else:
+                            u_cand = unify(fb_sig.signature, concrete_sig.signature, accumulated_sigma)
+                            if u_cand is None:
+                                can_reuse = False
+                            else:
+                                u_v = u_cand
+                    if can_reuse:
+                        cell_bindings[p_name] = last_fb
+                        return last_fb, u_v
+
+            # Check if an in-scope variable with matching feature role unifies
+            for v_name, (v_sig, _) in reversed(list(ctx.variables.items())):
+                if _is_product_sig(v_sig, registry) or v_name in cell_bindings.values():
+                    continue
+                v_role = getattr(v_sig, "port_role", None) or getattr(v_sig, "derived_role", "")
+                if v_role in feature_roles and not _violates_clause_feature_cols(cell, p_role, v_name, ctx):
+                    if _shape_compatible(v_sig, concrete_sig):
+                        u_v = unify(v_sig.signature, concrete_sig.signature, accumulated_sigma)
+                        if u_v is not None:
+                            cell_bindings[p_name] = v_name
+                            ctx.last_feature_binding = v_name
+                            return v_name, u_v
+
+            # Determine feat_cols
+            feat_cols: List[str] = []
+            if cell_clause_lits and len(cell_clause_lits) >= 2:
+                feat_cols = [c for c in cell_clause_lits if c != t_col]
+            if not feat_cols and getattr(ctx, "estimator_feature_cols", None):
+                feat_cols = list(ctx.estimator_feature_cols)
+            if not feat_cols and getattr(ctx, "last_feature_cols", None):
+                feat_cols = list(ctx.last_feature_cols)
+            if not feat_cols:
+                known_cols = [str(c).strip() for c in getattr(ctx, "columns", []) if str(c).strip()]
+                if known_cols:
+                    feat_cols = [c for c in known_cols if c.lower() != str(t_col or "").strip().lower()]
+            if not feat_cols and getattr(ctx, "ordered_literals", None):
+                unconsumed_lits = [
+                    str(val).strip() for _, kind, val in getattr(ctx, "ordered_literals", [])
+                    if str(val).lower() not in getattr(ctx, "consumed_tokens", set())
+                    and kind in ("identifier", "quoted_str")
+                    and not ExecutionContext._is_path_string(str(val))
+                ]
+                feat_cols = [c for c in unconsumed_lits if c.lower() != str(t_col or "").strip().lower()]
+
+            if not feat_cols:
+                return None
+
+            df_var, df_tn = _find_df_var()
+            if not df_var:
+                return None
+
+            columns_lit = "[" + ", ".join(f'"{c}"' for c in feat_cols) + "]"
+            expr = self._compose_declared_bridge_expr(
+                src_var=df_var,
+                src_type="table",
+                dst_type=expected_tn,
+                literal_bindings={"columns": columns_lit},
+                dst_sig=concrete_sig,
+                ctx=ctx,
+            )
+            if expr is None and df_tn != "table":
+                expr = self._compose_declared_bridge_expr(
+                    src_var=df_var,
+                    src_type=df_tn,
+                    dst_type=expected_tn,
+                    literal_bindings={"columns": columns_lit},
+                    dst_sig=concrete_sig,
+                    ctx=ctx,
+                )
+            if expr is not None:
+                cell_bindings[p_name] = expr
+                ctx.last_feature_binding = expr
+                ctx.estimator_feature_cols = list(feat_cols)
+                ctx.last_feature_cols = list(feat_cols)
+                if hasattr(ctx, "consumed_tokens"):
+                    for lit in feat_cols:
+                        ctx.consumed_tokens.add(str(lit).lower())
+                return expr, accumulated_sigma
+            return None
 
         return None
 
@@ -4307,137 +4514,12 @@ class UnificationGate:
         ctx: ExecutionContext,
         registry: TypeRegistry,
     ) -> Optional[str]:
-        """
-        Universal Dual-Port Projection of Complementary Key Roles from a Composite Carrier.
-        Partitions the declared key literals into target_keys (bound to target_roles ports)
-        and complement_keys = all_keys - target_keys (bound to feature_roles ports).
-        Composes the projection expression via declared bridge morphisms from the most
-        recent compatible in-scope carrier without hardcoding carrier or domain names.
-        """
-        expected_tn = str(getattr(concrete_sig, "type_name", "") or "").lower()
-        if expected_tn in ("list", "tuple", "str", "int", "float", "bool", "sequence", "collection"):
-            return None
-
-        # 1. Identify projection key names from registry
-        single_proj_ports = list(registry.get_verification_semantics("projection_port_names") or ("column", "key", "field"))
-        single_proj_port = single_proj_ports[0] if single_proj_ports else "column"
-        multi_proj_port = single_proj_ports[1] if len(single_proj_ports) > 1 else "columns"
-
-        # 2. Partition known / unconsumed keys into target_key and complement_keys
-        target_roles = _declared_role_semantics("target_roles")
-        feature_roles = _declared_role_semantics("feature_roles")
-        is_target = p_role in target_roles
-        is_feature = p_role in feature_roles
-        if not (is_target or is_feature):
-            return None
-
-        known_cols = [str(c).strip() for c in getattr(ctx, "columns", []) if str(c).strip()]
-        unconsumed_lits = [
-            str(val).strip() for _, kind, val in getattr(ctx, "ordered_literals", [])
-            if str(val).lower() not in getattr(ctx, "consumed_tokens", set())
-            and kind in ("identifier", "quoted_str")
-            and not ExecutionContext._is_path_string(str(val))
-        ]
-
-        target_col = getattr(ctx, "target_col", None)
-        if not target_col:
-            if known_cols:
-                for cand in reversed(unconsumed_lits):
-                    if cand.lower() in {c.lower() for c in known_cols}:
-                        target_col = cand
-                        break
-            elif unconsumed_lits:
-                target_col = unconsumed_lits[-1]
-            if target_col:
-                ctx.target_col = target_col
-
-        target_col_str = str(target_col or "").strip().lower()
-
-        # Find complementary feature keys
-        feat_cols = [c for c in known_cols if c.lower() != target_col_str]
-        if not feat_cols:
-            bound_model_var = None
-            for b_port, b_var in cell_bindings.items():
-                if isinstance(b_var, str) and b_var in ctx.variables:
-                    b_sig, _ = ctx.variables[b_var]
-                    b_role = getattr(b_sig, "port_role", None) or getattr(b_sig, "derived_role", "")
-                    b_inner = getattr(b_sig, "signature", b_sig)
-                    b_type = str(getattr(b_inner, "type_name", "") or "").lower()
-                    model_types = set(registry.get_carrier_roles().get("model_input", ())) | {"model", "estimator"}
-                    if (
-                        b_role in _declared_role_semantics("model_roles")
-                        or b_role in _declared_role_semantics("estimator_roles")
-                        or registry.is_subtype(b_type, "model")
-                        or registry.is_subtype(b_type, "estimator")
-                        or b_type in model_types
-                    ):
-                        bound_model_var = b_var
-                        break
-            if bound_model_var and hasattr(ctx, "estimator_feature_cols") and bound_model_var in ctx.estimator_feature_cols:
-                feat_cols = list(ctx.estimator_feature_cols[bound_model_var])
-            elif hasattr(ctx, "last_feature_cols") and ctx.last_feature_cols:
-                feat_cols = list(ctx.last_feature_cols)
-            else:
-                feat_cols = [c for c in unconsumed_lits if c.lower() != target_col_str]
-
-        # 3. Determine literal_bindings for this role
-        if is_target:
-            if not target_col:
-                return None
-            lit_bindings = {single_proj_port: repr(str(target_col))}
-            consumed_lits = [target_col]
-        else:
-            if not feat_cols:
-                return None
-            lit_bindings = {multi_proj_port: json.dumps(feat_cols)}
-            consumed_lits = list(feat_cols)
-
-        # 4. Search for the most recent compatible in-scope composite carrier
-        abstract_carriers = set(registry.get_abstract_carriers()) | {"table", "collection", "mapping", "dataset", "dataframe"}
-        for v_name, (v_sig, _) in reversed(list(ctx.variables.items())):
-            sig_obj = getattr(v_sig, "signature", v_sig)
-            v_tn = str(getattr(sig_obj, "type_name", "") or "").lower()
-            is_composite_carrier = (
-                v_tn in abstract_carriers
-                or any(registry.is_subtype(v_tn, ac) for ac in abstract_carriers)
-                or registry.is_abstract_carrier(v_tn)
-            )
-            if not is_composite_carrier:
-                continue
-
-            composed = self._compose_declared_bridge_expr(
-                src_var=v_name,
-                src_type=v_tn,
-                dst_type=expected_tn,
-                literal_bindings=lit_bindings,
-                dst_sig=concrete_sig,
-                ctx=ctx,
-            )
-            if composed is None and not registry.is_declared_top(v_tn):
-                for ac in abstract_carriers:
-                    if registry.is_subtype(v_tn, ac):
-                        composed = self._compose_declared_bridge_expr(
-                            src_var=v_name,
-                            src_type=ac,
-                            dst_type=expected_tn,
-                            literal_bindings=lit_bindings,
-                            dst_sig=concrete_sig,
-                            ctx=ctx,
-                        )
-                        if composed is not None:
-                            break
-
-            if composed is not None:
-                cell_bindings[p_name] = composed
-                if hasattr(ctx, "consumed_tokens"):
-                    for lit in consumed_lits:
-                        ctx.consumed_tokens.add(str(lit).lower())
-                if is_feature:
-                    ctx.last_feature_cols = list(feat_cols)
-                    ctx.last_feature_binding = composed
-                return composed
-
-        return None
+        """Backward-compatible thin delegate to _resolve_role_partitioned_projection."""
+        p_sig = (getattr(cell, "inputs", {}) or {}).get(p_name, concrete_sig)
+        res = self._resolve_role_partitioned_projection(
+            cell, p_name, p_sig, concrete_sig, cell_bindings, ctx, Substitution()
+        )
+        return res[0] if res is not None else None
 
     def get_egress_paths(self) -> List[str]:
         """
@@ -4641,12 +4723,7 @@ class UnificationGate:
                     best_ov, best_idx = ov, idx
             return clause_token_sets[best_idx] if best_ov > 0 else set()
 
-        def _is_product(v_sig: Any, registry: Optional[Any] = None) -> bool:
-            if registry is None:
-                registry = TypeRegistry.get_instance()
-            raw = str(getattr(getattr(v_sig, "signature", None), "type_name", "") or getattr(v_sig, "type_name", "") or "")
-            ctor = raw.strip().lower().split("[", 1)[0] if "[" in raw else raw.strip().lower()
-            return registry.is_product_constructor(ctor)
+        _is_product = _is_product_sig
 
         def _member_candidates(v_sig: Any, v_name: str, port_sig: Any, cell_toks: Set[str], registry: Optional[Any] = None) -> List[Tuple[float, int, Substitution]]:
             """Product-elimination candidates: (score, member_index, substitution)."""
@@ -7909,4 +7986,211 @@ def unify_cell_with_scope(
         return None
 
     return sub, port_bindings
+
+
+# -----------------------------------------------------------------------------
+# Static Value Property Contract Verification
+# -----------------------------------------------------------------------------
+
+Props = Dict[str, Tuple[Any, str, str]]   # property -> (value, producing cell id, description)
+
+
+def _prop_const(node: ast.AST) -> Optional[Any]:
+    return node.value if isinstance(node, ast.Constant) else None
+
+
+@functools.lru_cache(maxsize=1024)
+def _prop_parse_expr(expr_str: str) -> Optional[ast.AST]:
+    try:
+        return ast.parse(expr_str, mode="eval").body
+    except SyntaxError:
+        return None
+
+
+def _prop_known(expr: Any, props: Dict[str, Props], col_props: Dict[Tuple[str, Any], Props]) -> Props:
+    tree = _prop_parse_expr(str(expr))
+    if tree is None:
+        return {}
+    return _prop_eval(tree, props, col_props)
+
+
+def _prop_eval(node: ast.AST, props: Dict[str, Props], col_props: Dict[Tuple[str, Any], Props]) -> Props:
+    if isinstance(node, ast.Name):
+        return dict(props.get(node.id, {}))
+    if isinstance(node, ast.Call):
+        if len(node.args) == 1 and not node.keywords:
+            arg_props = _prop_eval(node.args[0], props, col_props)
+            if arg_props:
+                return arg_props
+        if isinstance(node.func, ast.Attribute):
+            return _prop_eval(node.func.value, props, col_props)
+    if isinstance(node, ast.Attribute):
+        return _prop_eval(node.value, props, col_props)
+    if isinstance(node, ast.Subscript) and isinstance(node.value, ast.Name):
+        sl = node.slice
+        cols: List[Any]
+        if isinstance(sl, ast.List):
+            cols = [_prop_const(e) for e in sl.elts]
+        else:
+            cols = [_prop_const(sl)]
+        if not cols or any(c is None for c in cols):
+            return {}
+        per_col = [col_props.get((node.value.id, c), {}) for c in cols]
+        out: Props = {}
+        for prop in set().union(*[set(p) for p in per_col]):
+            if all(prop in p for p in per_col) and len({repr(p[prop][0]) for p in per_col}) == 1:
+                out[prop] = per_col[0][prop]
+        return out
+    return {}
+
+
+def _prop_cond_field(obj: Any, field_name: str, default: Any = None) -> Any:
+    """Extracts condition field from either a dict or a ConditionPredicate/Pydantic object."""
+    if isinstance(obj, dict):
+        return obj.get(field_name, default)
+    return getattr(obj, field_name, default)
+
+
+def analyze_property_contracts(
+    pipeline_bindings: List[Tuple[Any, Dict[str, Any]]], orchestrator: Any = None
+) -> List[Dict[str, Any]]:
+    """
+    Static propagation of tree-declared value properties.
+    Propagates known properties along the bound dataflow (reading cell.typed_bindings first
+    for wire and projection lookups, and propagating cell.postconditions and preserves:<prop>
+    effects across variables and keyed carrier assignments).
+    """
+    try:
+        reg = TypeRegistry.get_instance()
+    except Exception:
+        try:
+            from lattice import TypeRegistry
+            reg = TypeRegistry.get_instance()
+        except Exception:
+            return []
+    props: Dict[str, Props] = {}
+    col_props: Dict[Tuple[str, Any], Props] = {}
+    issues: List[Dict[str, Any]] = []
+
+    for cell, bindings in pipeline_bindings:
+        out = bindings.get("output_var")
+        typed_bindings = getattr(cell, "typed_bindings", {}) or {}
+
+        # 1. consumer preconditions against what is KNOWN
+        for pre in (getattr(cell, "preconditions", None) or []):
+            op = _prop_cond_field(pre, "operator")
+            if op not in ("==", "!="):
+                continue
+            port = _prop_cond_field(pre, "target")
+            prop = _prop_cond_field(pre, "property")
+            want = _prop_cond_field(pre, "value")
+            if port not in bindings or not prop:
+                continue
+            have = None
+            rec = typed_bindings.get(port)
+            if rec is not None:
+                if rec.kind == "wire" and rec.root_var:
+                    have = props.get(rec.root_var, {}).get(prop)
+                elif rec.kind == "projection" and rec.root_var and rec.projection:
+                    k = rec.projection.get("key")
+                    if isinstance(k, (list, tuple, set)):
+                        per_col = [col_props.get((rec.root_var, c), {}) for c in k]
+                        have_props: Props = {}
+                        for p in set().union(*[set(cp) for cp in per_col]):
+                            if all(p in cp for cp in per_col) and len({repr(cp[p][0]) for cp in per_col}) == 1:
+                                have_props[p] = per_col[0][p]
+                        have = have_props.get(prop)
+                    elif k is not None:
+                        have = col_props.get((rec.root_var, k), {}).get(prop)
+            if have is None:
+                have = _prop_known(bindings[port], props, col_props).get(prop)
+            if have is None:
+                continue
+            satisfied = (have[0] == want) if op == "==" else (have[0] != want)
+            if not satisfied:
+                suggestions: List[str] = []
+                if orchestrator is not None:
+                    for c in getattr(orchestrator, "loaded_cells", {}).values():
+                        if any(_prop_cond_field(q, "property") == prop and _prop_cond_field(q, "operator") == "=="
+                               and _prop_cond_field(q, "value") == want and _prop_cond_field(q, "target") in ("output_var", None)
+                               for q in (getattr(c, "postconditions", None) or [])):
+                            suggestions.append(c.cell_id)
+                issues.append({"cell": cell.cell_id, "port": port, "property": prop, "required": want,
+                               "required_operator": op, "known": have[0], "bound": str(bindings[port]),
+                               "established_by": have[1], "established_note": have[2],
+                               "bridge_candidates": sorted(set(suggestions))[:6]})
+
+        if not out:
+            continue
+
+        # 2. producer postconditions
+        mine: Props = {}
+        for post in (getattr(cell, "postconditions", None) or []):
+            p_op = _prop_cond_field(post, "operator")
+            p_target = _prop_cond_field(post, "target")
+            p_prop = _prop_cond_field(post, "property")
+            if p_op == "==" and p_target in ("output_var", None) and p_prop:
+                mine[p_prop] = (_prop_cond_field(post, "value"), cell.cell_id, str(_prop_cond_field(post, "description", "") or ""))
+
+        for eff in (getattr(cell, "effects", None) or []):
+            if isinstance(eff, str) and eff.startswith("preserves:"):
+                prop = eff.split(":", 1)[1].strip()
+                for port_name in getattr(cell, "inputs", {}):
+                    if port_name in bindings:
+                        kn = None
+                        rec = typed_bindings.get(port_name)
+                        if rec is not None:
+                            if rec.kind == "wire" and rec.root_var:
+                                kn = props.get(rec.root_var, {})
+                            elif rec.kind == "projection" and rec.root_var and rec.projection:
+                                k = rec.projection.get("key")
+                                if isinstance(k, str):
+                                    kn = col_props.get((rec.root_var, k), {})
+                        if kn is None:
+                            kn = _prop_known(bindings[port_name], props, col_props)
+                        if prop in kn and prop not in mine:
+                            mine[prop] = kn[prop]
+                            break
+        if mine:
+            props[out] = {**props.get(out, {}), **mine}
+
+        # 3. column writes
+        key_port = next((n for n, p in getattr(cell, "inputs", {}).items() if getattr(p, "binds", None) == "column_key"), None)
+        val_port = next((n for n, p in getattr(cell, "inputs", {}).items() if getattr(p, "binds", None) == "assigned_value"), None)
+        carrier_ports = [n for n, p in getattr(cell, "inputs", {}).items() if getattr(p, "binds", None) == "data_carrier"]
+        for cp in carrier_ports:
+            cp_rec = typed_bindings.get(cp)
+            cp_var = cp_rec.root_var if (cp_rec and cp_rec.root_var) else str(bindings.get(cp))
+            for (v, c), pr in list(col_props.items()):
+                if v == cp_var:
+                    col_props[(out, c)] = dict(pr)
+        if key_port and val_port and key_port in bindings and val_port in bindings:
+            k_rec = typed_bindings.get(key_port)
+            col = str(k_rec.value_expr).strip().strip("'\"") if (k_rec and k_rec.value_expr) else str(bindings[key_port]).strip().strip("'\"")
+            vp = None
+            v_rec = typed_bindings.get(val_port)
+            if v_rec and v_rec.root_var and v_rec.kind == "wire":
+                vp = props.get(v_rec.root_var)
+            if not vp:
+                vp = _prop_known(bindings[val_port], props, col_props)
+            if vp:
+                col_props[(out, col)] = vp
+            else:
+                col_props.pop((out, col), None)
+
+        # 4. table-to-table cells keep what is known about their columns
+        in_tables = []
+        for n, p in getattr(cell, "inputs", {}).items():
+            if n in bindings and reg.is_subtype(str(getattr(getattr(p, "signature", p), "type_name", "") or "").lower(), "table"):
+                rec_t = typed_bindings.get(n)
+                in_tables.append(rec_t.root_var if (rec_t and rec_t.root_var) else str(bindings.get(n)))
+        if in_tables and not (key_port and val_port):
+            for (v, c), pr in list(col_props.items()):
+                if v in in_tables and (out, c) not in col_props:
+                    col_props[(out, c)] = dict(pr)
+    return issues
+
+
+analyze = analyze_property_contracts
+
 
