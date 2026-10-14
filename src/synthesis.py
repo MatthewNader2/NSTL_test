@@ -809,56 +809,94 @@ def _declared_loop_kind(cell: Any) -> Optional[str]:
     return None
 
 
+def _sanitize_template_for_ast(template: str) -> str:
+    """
+    Sanitizes template placeholders `{ph}` to valid Python identifiers `_nstl_ph_{ph}`
+    so the template can be safely parsed by `ast.parse`.
+    """
+    if not template or not template.strip():
+        return ""
+    phs = extract_template_placeholders(template)
+    sanitized = template
+    for ph in phs:
+        sanitized = sanitized.replace(f"{{{ph}}}", f"_nstl_ph_{ph}")
+    return sanitized
+
+
 def _template_initializes_container(template: str) -> Optional[str]:
     """
-    Structural fallback: detect whether the template initializes the output
-    container variable to an empty container and return its container kind.
+    AST inspection: detect whether the template initializes the output
+    container variable (_nstl_ph_output_var) to an empty container and return its container kind.
     """
-    marker = "{output_var}"
+    if not template or "{output_var}" not in template:
+        return None
+    sanitized = _sanitize_template_for_ast(template)
+    try:
+        parsed = ast.parse(sanitized)
+    except Exception:
+        return None
+
     constructors = {
         "set": "set", "frozenset": "set",
         "dict": "dict", "OrderedDict": "dict", "defaultdict": "dict", "Counter": "dict",
         "list": "list", "tuple": "tuple", "deque": "deque",
     }
-    for line in template.splitlines():
-        s = line.strip()
-        idx = s.find(marker)
-        if idx < 0:
-            continue
-        tail = s[idx + len(marker):].lstrip()
-        if not tail.startswith("="):
-            continue
-        rhs = tail[1:].strip()
-        if not rhs:
-            continue
-        if rhs.startswith("{") and rhs.endswith("}"):
-            return "dict" if ":" in rhs else ("dict" if rhs == "{}" else "set")
-        if rhs.startswith("[") and rhs.endswith("]"):
-            return "list"
-        if rhs.startswith("(") and rhs.endswith(")"):
-            return "tuple"
-        if rhs.endswith("()"):
-            c_name = rhs[:-2].strip()
-            if c_name in constructors:
-                return constructors[c_name]
+    for node in ast.walk(parsed):
+        if isinstance(node, (ast.Assign, ast.AnnAssign)):
+            targets = node.targets if isinstance(node, ast.Assign) else [node.target]
+            is_out = any(
+                isinstance(t, ast.Name) and t.id == "_nstl_ph_output_var"
+                for t in targets
+            )
+            if not is_out:
+                continue
+            val = node.value
+            if isinstance(val, ast.List):
+                return "list"
+            if isinstance(val, ast.Dict):
+                return "dict"
+            if isinstance(val, ast.Set):
+                return "set"
+            if isinstance(val, ast.Tuple):
+                return "tuple"
+            if isinstance(val, ast.Call):
+                func_name = None
+                if isinstance(val.func, ast.Name):
+                    func_name = val.func.id
+                elif isinstance(val.func, ast.Attribute):
+                    func_name = val.func.attr
+                if func_name and func_name in constructors:
+                    return constructors[func_name]
     return None
 
 
 def _detect_loop_item_var(template: str) -> Optional[str]:
     """
-    Scans the template for a `for <var> in ...` header and returns the loop
-    variable name. Handles tuple-unpacking targets by taking the first name.
+    AST inspection: scans the sanitized template AST for an `ast.For` node
+    and extracts the loop variable name from node.target.
     """
-    for line in template.splitlines():
-        s = line.strip()
-        if not s.startswith("for ") or " in " not in s:
-            continue
-        head = s[4:].split(" in ", 1)[0].strip()
-        if "," in head:
-            head = head.split(",", 1)[0].strip()
-        head = head.strip("()").strip()
-        if head.isidentifier():
-            return head
+    if not template or ("for " not in template and "for\t" not in template):
+        return None
+    sanitized = _sanitize_template_for_ast(template)
+    try:
+        parsed = ast.parse(sanitized)
+    except Exception:
+        return None
+
+    for node in ast.walk(parsed):
+        if isinstance(node, ast.For):
+            target = node.target
+            target_name = None
+            if isinstance(target, ast.Name):
+                target_name = target.id
+            elif isinstance(target, (ast.Tuple, ast.List)) and target.elts:
+                first = target.elts[0]
+                if isinstance(first, ast.Name):
+                    target_name = first.id
+            if target_name:
+                if target_name.startswith("_nstl_ph_"):
+                    return target_name[len("_nstl_ph_"):]
+                return target_name
     return None
 
 
@@ -1032,6 +1070,22 @@ def render_cell(
 
         child_lines: List[str] = []
         last_metric: Optional[str] = None
+        enclosing_known_vars: Set[str] = set()
+        if context is not None:
+            if hasattr(context, "variables") and isinstance(context.variables, dict):
+                enclosing_known_vars.update(context.variables.keys())
+            if hasattr(context, "active_variables") and isinstance(context.active_variables, (set, list)):
+                enclosing_known_vars.update(context.active_variables)
+        for v in bindings.values():
+            if isinstance(v, str):
+                v_clean = v.strip().strip("'\"")
+                if v_clean.isidentifier():
+                    enclosing_known_vars.add(v_clean)
+        if item_var and item_var.isidentifier():
+            enclosing_known_vars.add(item_var)
+        if out_var and out_var.isidentifier():
+            enclosing_known_vars.add(out_var)
+
         for child in child_nodes:
             child_bindings: Dict[str, Any] = {}
             for p_name, p_sig in child.inputs.items():
@@ -1051,16 +1105,22 @@ def render_cell(
                             bound = False
                 if bound:
                     continue
+                if hasattr(child, "typed_bindings") and child.typed_bindings and p_name in child.typed_bindings:
+                    rec = child.typed_bindings[p_name]
+                    if rec and rec.value_expr:
+                        child_bindings[p_name] = rec.value_expr
+                        continue
                 if p_name in bindings:
                     child_bindings[p_name] = bindings[p_name]
+                elif p_name in enclosing_known_vars:
+                    child_bindings[p_name] = p_name
                 elif getattr(p_sig, "default_value", None) is not None:
                     child_bindings[p_name] = str(p_sig.default_value)
-                else:
-                    child_bindings[p_name] = p_name
 
             child_out_var = _unique_var(child, "out")
             child_bindings["output_var"] = child_out_var
             last_metric = child_out_var
+            enclosing_known_vars.add(child_out_var)
 
             if (
                 bool(getattr(child, "bound_slots", None))
@@ -1076,7 +1136,10 @@ def render_cell(
                 )
             else:
                 child_text = UnificationGate._instantiate_ast_template(
-                    child.code_template, child_bindings, child.inputs
+                    child.code_template,
+                    child_bindings,
+                    child.inputs,
+                    known_vars=enclosing_known_vars,
                 )
             if child_text:
                 child_lines.append(child_text)

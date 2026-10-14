@@ -93,6 +93,7 @@ def analyze(pipeline_bindings: List[Tuple[Any, Dict[str, Any]]], orchestrator: A
 
     for cell, bindings in pipeline_bindings:
         out = bindings.get("output_var")
+        typed_bindings = getattr(cell, "typed_bindings", {}) or {}
 
         # 1. consumer preconditions against what is KNOWN
         for pre in (getattr(cell, "preconditions", None) or []):
@@ -104,7 +105,24 @@ def analyze(pipeline_bindings: List[Tuple[Any, Dict[str, Any]]], orchestrator: A
             want = _cond_field(pre, "value")
             if port not in bindings or not prop:
                 continue
-            have = _known(bindings[port], props, col_props).get(prop)
+            have = None
+            rec = typed_bindings.get(port)
+            if rec is not None:
+                if rec.kind == "wire" and rec.root_var:
+                    have = props.get(rec.root_var, {}).get(prop)
+                elif rec.kind == "projection" and rec.root_var and rec.projection:
+                    k = rec.projection.get("key")
+                    if isinstance(k, (list, tuple, set)):
+                        per_col = [col_props.get((rec.root_var, c), {}) for c in k]
+                        have_props: Props = {}
+                        for p in set().union(*[set(cp) for cp in per_col]):
+                            if all(p in cp for cp in per_col) and len({repr(cp[p][0]) for cp in per_col}) == 1:
+                                have_props[p] = per_col[0][p]
+                        have = have_props.get(prop)
+                    elif k is not None:
+                        have = col_props.get((rec.root_var, k), {}).get(prop)
+            if have is None:
+                have = _known(bindings[port], props, col_props).get(prop)
             if have is None:
                 continue
             satisfied = (have[0] == want) if op == "==" else (have[0] != want)
@@ -140,7 +158,17 @@ def analyze(pipeline_bindings: List[Tuple[Any, Dict[str, Any]]], orchestrator: A
                 prop = eff.split(":", 1)[1].strip()
                 for port_name in cell.inputs:
                     if port_name in bindings:
-                        kn = _known(bindings[port_name], props, col_props)
+                        kn = None
+                        rec = typed_bindings.get(port_name)
+                        if rec is not None:
+                            if rec.kind == "wire" and rec.root_var:
+                                kn = props.get(rec.root_var, {})
+                            elif rec.kind == "projection" and rec.root_var and rec.projection:
+                                k = rec.projection.get("key")
+                                if isinstance(k, str):
+                                    kn = col_props.get((rec.root_var, k), {})
+                        if kn is None:
+                            kn = _known(bindings[port_name], props, col_props)
                         if prop in kn and prop not in mine:
                             mine[prop] = kn[prop]
                             break
@@ -152,20 +180,31 @@ def analyze(pipeline_bindings: List[Tuple[Any, Dict[str, Any]]], orchestrator: A
         val_port = next((n for n, p in cell.inputs.items() if getattr(p, "binds", None) == "assigned_value"), None)
         carrier_ports = [n for n, p in cell.inputs.items() if getattr(p, "binds", None) == "data_carrier"]
         for cp in carrier_ports:
+            cp_rec = typed_bindings.get(cp)
+            cp_var = cp_rec.root_var if (cp_rec and cp_rec.root_var) else str(bindings.get(cp))
             for (v, c), pr in list(col_props.items()):
-                if v == str(bindings.get(cp)):
+                if v == cp_var:
                     col_props[(out, c)] = dict(pr)
         if key_port and val_port and key_port in bindings and val_port in bindings:
-            col = str(bindings[key_port]).strip().strip("'\"")
-            vp = _known(bindings[val_port], props, col_props)
+            k_rec = typed_bindings.get(key_port)
+            col = str(k_rec.value_expr).strip().strip("'\"") if (k_rec and k_rec.value_expr) else str(bindings[key_port]).strip().strip("'\"")
+            vp = None
+            v_rec = typed_bindings.get(val_port)
+            if v_rec and v_rec.root_var and v_rec.kind == "wire":
+                vp = props.get(v_rec.root_var)
+            if not vp:
+                vp = _known(bindings[val_port], props, col_props)
             if vp:
                 col_props[(out, col)] = vp
             else:
                 col_props.pop((out, col), None)
 
         # 4. table-to-table cells keep what is known about their columns
-        in_tables = [str(bindings.get(n)) for n, p in cell.inputs.items()
-                     if n in bindings and reg.is_subtype(str(getattr(getattr(p, "signature", p), "type_name", "") or "").lower(), "table")]
+        in_tables = []
+        for n, p in cell.inputs.items():
+            if n in bindings and reg.is_subtype(str(getattr(getattr(p, "signature", p), "type_name", "") or "").lower(), "table"):
+                rec_t = typed_bindings.get(n)
+                in_tables.append(rec_t.root_var if (rec_t and rec_t.root_var) else str(bindings.get(n)))
         if in_tables and not (key_port and val_port):
             for (v, c), pr in list(col_props.items()):
                 if v in in_tables and (out, c) not in col_props:

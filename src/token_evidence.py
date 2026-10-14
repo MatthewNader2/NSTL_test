@@ -107,22 +107,35 @@ class TokenEvidence:
                 except (ImportError, ValueError):
                     from lattice import TypeRegistry
                 reg = TypeRegistry.get_instance()
-                declared_roles = {
-                    str(r).lower() for r in (reg.get_verification_semantics("model_roles") or [])
-                } | {"regressor", "classifier", "clusterer"}
-                target_families = {"regressor", "classifier", "clusterer"} & declared_roles
-                norm_cl_toks = {normalize_token(t) for t in clause_toks}
-                matched_families = {
-                    fam for fam in target_families
-                    if any(t.startswith("classif" if fam == "classifier" else normalize_token(fam)) for t in norm_cl_toks)
-                }
-                if len(matched_families) == 1:
-                    target_family = next(iter(matched_families))
-                    if role in target_families and role != target_family:
-                        recall *= 0.05
-                        precision *= 0.05
-                        f *= 0.05
-                        name_precision *= 0.05
+                declared_roles = [
+                    str(r).lower() for r in (
+                        reg.get_verification_semantics("mutually_exclusive_roles")
+                        or reg.get_verification_semantics("model_roles")
+                        or ()
+                    )
+                ]
+                if declared_roles:
+                    norm_cl_toks = {normalize_token(t) for t in clause_toks}
+                    cell_role_norm = normalize_token(role)
+
+                    def _stem_matches(s1: str, s2: str) -> bool:
+                        if s1 == s2:
+                            return True
+                        if min(len(s1), len(s2)) >= 4:
+                            return s1.startswith(s2) or s2.startswith(s1)
+                        return False
+
+                    matched_roles = {
+                        r for r in declared_roles
+                        if any(_stem_matches(normalize_token(r), ct) for ct in norm_cl_toks)
+                    }
+                    if len(matched_roles) == 1:
+                        target_role = next(iter(matched_roles))
+                        if not _stem_matches(normalize_token(target_role), cell_role_norm):
+                            recall *= 0.05
+                            precision *= 0.05
+                            f *= 0.05
+                            name_precision *= 0.05
         except Exception:
             pass
 

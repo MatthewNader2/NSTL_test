@@ -2871,24 +2871,25 @@ class MacroCell(Cell):
 
 def _apply_declared_estimator_identity(cell: Any) -> None:
     """
-    Derives estimator-identity qualifiers from DECLARED structure only (R6-6).
+    Universal OOP Method-Owner Qualification.
 
-    The generic estimator typestate ("Regressor" / "fit_regressor" / "estimator")
-    cannot distinguish a LinearRegression model from a DecisionTreeRegressor one,
-    which let paths pair `fit` and `predict` from different estimator classes.
-    This derivation stamps both sides of the estimator contract with the owner
-    class path the cell itself declares, so the unifier's qualifier-subset rule
-    enforces same-class pairing. Grounded exclusively in declared fields:
+    In any object-oriented library, methods and constructors associated with an
+    OwnerClass (e.g. OwnerClass.method or OwnerClass.__init__) that produce or
+    consume a stateful instance of OwnerClass must unify on OwnerClass.
 
-    - Producer side: a cell whose `node_role` declares ("estimator", "regressor",
-      "classifier", "clusterer", "transformer", "model", "function", "method")
-      and whose output port type is a subtype of "model"/"estimator"/"regressor"/
-      "classifier" (or `port_role` "model_sink") carries its owner class as a
-      qualifier on that output.
-    - Consumer side: handles preconditions whether dict or ConditionPredicate (via
-      _cond_field), and stamps owner class on any input port with is_fitted or whose
-      `port_role` is in model_roles ("model_input", "model", "estimator") on a
-      method cell.
+    Grounded exclusively in declared structural fields:
+    - For any cell whose cell_id has a qualified class prefix Owner.method
+      (where node_type == "method" or Owner is a registered class/type or shares
+      a prefix with constructor / method cells in the domain):
+      1. Producer side: If an output port produces an abstract/role carrier
+         (its type_name is an abstract role/supertype or matches the receiver type
+         of sibling methods on Owner, or port_role is a stateful instance sink),
+         stamp (owner_qual,) onto that output port's signature.qualifiers AND
+         register reg.register_type(owner_qual, out_type_name) in TypeRegistry.
+      2. Consumer side: If an input port on Owner.method is the instance receiver
+         (port_role == "receiver" or port_role in model_roles or has a precondition
+         on that port or is named in ("self", "this", "model", "estimator")),
+         stamp (owner_qual,) onto that input port's signature.qualifiers.
 
     Idempotent; applied to every loaded cell on topology rebuild.
     """
@@ -2923,41 +2924,68 @@ def _apply_declared_estimator_identity(cell: Any) -> None:
         return getattr(obj, field_name, default)
 
     reg = TypeRegistry.get_instance()
+    node_type = str(getattr(cell, "node_type", "") or "").lower()
+    has_method_prefix = ("." in cid)
+    is_method = (node_type == "method") or has_method_prefix
 
-    # Producer side: declared role in estimator roles + output port type is model subtype or model_sink
-    producer_roles = {"estimator", "regressor", "classifier", "clusterer", "transformer", "model", "function", "method"}
-    node_role = str(getattr(cell, "node_role", "") or "").lower()
-    if node_role in producer_roles:
-        for out_p in (getattr(cell, "outputs", {}) or {}).values():
-            port_role = str(getattr(out_p, "port_role", "") or "").lower()
-            out_sig = getattr(out_p, "signature", None)
-            out_tn = str(getattr(out_sig, "type_name", "") or getattr(out_p, "type_name", "") or "").lower()
-            is_model_sub = (
-                reg.is_subtype(out_tn, "model")
-                or reg.is_subtype(out_tn, "estimator")
-                or reg.is_subtype(out_tn, "regressor")
-                or reg.is_subtype(out_tn, "classifier")
-                or out_tn in ("model", "estimator", "regressor", "classifier")
-            )
-            if is_model_sub or port_role == "model_sink":
-                _stamp(out_p, owner_qual)
+    model_roles = {
+        str(r).lower()
+        for r in (
+            reg.get_verification_semantics("model_roles")
+            or reg.get_carrier_roles().get("model_input", ())
+            or ("model_input", "model", "estimator", "receiver")
+        )
+    } | {"receiver"}
 
-    # Consumer side: handle pre whether it is a dict or a ConditionPredicate object,
-    # and also stamp on input port whose port_role is in model_roles on method cells
-    for pre in getattr(cell, "preconditions", []) or []:
-        prop = str(_cond_field(pre, "property", "") or "").strip().lower()
-        if prop == "is_fitted":
-            target_port = str(_cond_field(pre, "target", "") or "").strip()
-            in_p = (getattr(cell, "inputs", {}) or {}).get(target_port)
-            if in_p is not None:
-                _stamp(in_p, owner_qual)
+    sink_roles = {
+        str(r).lower()
+        for r in (
+            reg.get_verification_semantics("sink_roles")
+            or ("model_sink", "instance_sink", "receiver_sink", "sink")
+        )
+    } | {"model_sink", "instance_sink", "receiver_sink"}
 
-    is_method_cell = str(getattr(cell, "node_type", "") or "").lower() == "method"
-    if is_method_cell:
-        consumer_model_roles = {"model_input", "model", "estimator"}
-        for in_p in (getattr(cell, "inputs", {}) or {}).values():
+    abstract_carriers = set(reg.get_abstract_carriers()) | {"model", "estimator", "instance", "object"}
+
+    # 1. Producer side: if an output port produces an abstract/role carrier
+    for out_p in (getattr(cell, "outputs", {}) or {}).values():
+        port_role = str(getattr(out_p, "port_role", "") or "").lower()
+        out_sig = getattr(out_p, "signature", None)
+        out_tn = str(getattr(out_sig, "type_name", "") or getattr(out_p, "type_name", "") or "").lower()
+        is_abstract_role = (
+            out_tn in abstract_carriers
+            or any(reg.is_subtype(out_tn, ac) for ac in abstract_carriers)
+            or reg.is_abstract_carrier(out_tn)
+        )
+        is_instance_sink = (port_role in sink_roles)
+        if is_abstract_role or is_instance_sink:
+            _stamp(out_p, owner_qual)
+            if out_tn:
+                try:
+                    reg.register_type(owner_qual, out_tn)
+                except Exception:
+                    pass
+
+    # 2. Consumer side: if an input port on Owner.method is the instance receiver
+    if is_method:
+        receiver_port_names = {"self", "this", "model", "estimator", "receiver", "instance", "obj"}
+        precondition_targets = set()
+        for pre in getattr(cell, "preconditions", []) or []:
+            target = str(_cond_field(pre, "target", "") or "").strip()
+            if target:
+                precondition_targets.add(target)
+
+        for in_name, in_p in (getattr(cell, "inputs", {}) or {}).items():
             in_role = str(getattr(in_p, "port_role", "") or "").lower()
-            if in_role in consumer_model_roles:
+            in_binds = str(getattr(in_p, "binds", "") or "").lower()
+            is_receiver = (
+                in_role == "receiver"
+                or in_role in model_roles
+                or in_binds in ("receiver", "carrier", "instance")
+                or in_name in receiver_port_names
+                or in_name in precondition_targets
+            )
+            if is_receiver:
                 _stamp(in_p, owner_qual)
 
 

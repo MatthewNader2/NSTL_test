@@ -1,16 +1,23 @@
 """
-src/row_lineage.py - Universal Carrier Extent-Epoch & Key Def-Use Verifier.
+src/row_lineage.py - Universal Carrier Extent-Domain & Key-Space Verifier.
 
 Enforces two domain-agnostic dataflow invariants over any indexed/keyed carrier:
-1. Extent-Epoch Alignment: Co-indexed inputs to a join/mutation cell must share the
-   same extent epoch (incremented by any cell declaring extent/row/shape-mutating effects).
-2. Causal Key Def-Use: A key/field introduced onto a carrier at step j cannot be
-   projected from that carrier at an earlier step i < j.
+1. Universal Extent-Domain Alignment:
+   Every variable v in a pipeline has an extent_domain[v]: Tuple[str, int] = (root_carrier_var, extent_epoch).
+   Any projection pi(v) inherits extent_domain[v].
+   Any cell declaring an effect in extent_mutating_effects | row_set_effects increments the second element (root, epoch + 1).
+   Any cell that combines a receiver carrier v_c and a co-indexed payload v_p (binds == "assigned_value" or co-indexed port)
+   where extent_domain[v_c][0] == extent_domain[v_p][0] (same root carrier) but extent_domain[v_c][1] != extent_domain[v_p][1]
+   (divergent extent epochs) emits an extent-misalignment issue.
+2. Universal Key-Space Causal Def-Use:
+   Every keyed carrier variable v tracks key_space[v] (added_keys, removed_keys, defined_at_step).
+   Derived strictly from cell.typed_bindings (TypedBindingRecord) and port.binds / cell.effect_names(),
+   with zero string slicing.
 """
 from __future__ import annotations
 
 import ast
-from typing import Any, Dict, List, Set, Tuple
+from typing import Any, Dict, List, Set, Tuple, Optional
 
 try:
     from .lattice import TypeRegistry
@@ -20,7 +27,7 @@ except (ImportError, ValueError):
     from unification import resolve_typed_binding_record
 
 
-def _referenced_vars(expr: Any, known: Dict[str, int]) -> List[str]:
+def _referenced_vars(expr: Any, known: Dict[str, Any]) -> List[str]:
     if not expr:
         return []
     try:
@@ -44,9 +51,10 @@ def _extract_effect_names(cell: Any) -> Set[str]:
 
 def analyze(pipeline_bindings: List[Tuple[Any, Dict[str, str]]]) -> List[Dict[str, Any]]:
     """
-    Universal Extent-Epoch Alignment:
-    Whenever a cell binds an 'assigned_value' (or secondary co-indexed payload) into a
-    receiver/carrier, both inputs must originate from the same extent-mutation epoch.
+    Universal Carrier Extent-Domain Alignment:
+    Tracks extent_domain[v] = (root_carrier_var, extent_epoch) across the pipeline.
+    Emits an issue whenever a receiver carrier v_c and co-indexed payload v_p
+    share the same root carrier but differ in extent epoch.
     """
     try:
         reg = TypeRegistry.get_instance()
@@ -65,24 +73,36 @@ def analyze(pipeline_bindings: List[Tuple[Any, Dict[str, str]]]) -> List[Dict[st
     if not mutating_effects:
         return []
 
-    epoch: Dict[str, int] = {}
+    # extent_domain: var_name -> (root_carrier_var, extent_epoch)
+    extent_domain: Dict[str, Tuple[str, int]] = {}
     issues: List[Dict[str, Any]] = []
 
     for cell, bindings in pipeline_bindings:
         if not isinstance(bindings, dict):
             continue
-        out = bindings.get("output_var")
-        in_refs: Dict[str, List[str]] = {
-            p: _referenced_vars(v, epoch) for p, v in bindings.items() if p != "output_var"
-        }
         inputs = getattr(cell, "inputs", {}) or {}
+        typed_map = getattr(cell, "typed_bindings", {}) or {}
 
+        def _resolve_extent(p_name: str, expr: Any) -> Optional[Tuple[str, int]]:
+            rec = typed_map.get(p_name) or resolve_typed_binding_record(cell, p_name, expr, inputs.get(p_name))
+            if rec and rec.root_var and rec.root_var in extent_domain:
+                return extent_domain[rec.root_var]
+            refs = _referenced_vars(expr, extent_domain)
+            if refs:
+                return extent_domain[refs[0]]
+            return None
+
+        # Check for co-indexed payload vs receiver carrier
         for p_name, port in inputs.items():
-            if getattr(port, "binds", None) != "assigned_value" or p_name not in in_refs:
+            if getattr(port, "binds", None) != "assigned_value" or p_name not in bindings:
                 continue
-            val_ep = max((epoch[n] for n in in_refs[p_name]), default=None)
+            p_val = bindings[p_name]
+            p_ext = _resolve_extent(p_name, p_val)
+            if p_ext is None:
+                continue
+
             for q_name, q in inputs.items():
-                if q_name == p_name or q_name not in in_refs:
+                if q_name == p_name or q_name not in bindings:
                     continue
                 q_role = str(getattr(q, "port_role", None) or getattr(q, "derived_role", "") or "").lower()
                 q_binds = str(getattr(q, "binds", "") or "").lower()
@@ -93,37 +113,57 @@ def analyze(pipeline_bindings: List[Tuple[Any, Dict[str, str]]]) -> List[Dict[st
                 )
                 if not is_carrier:
                     continue
-                carrier_ep = max((epoch[n] for n in in_refs[q_name]), default=None)
-                if val_ep is not None and carrier_ep is not None and val_ep != carrier_ep:
+                q_val = bindings[q_name]
+                q_ext = _resolve_extent(q_name, q_val)
+                if q_ext is None:
+                    continue
+
+                # Divergent extent epochs on co-indexed root carrier
+                if p_ext[0] == q_ext[0] and p_ext[1] != q_ext[1]:
+                    p_refs = _referenced_vars(p_val, extent_domain) or [str(p_val)]
+                    q_refs = _referenced_vars(q_val, extent_domain) or [str(q_val)]
                     issues.append({
                         "cell": cell.cell_id,
                         "value_port": p_name,
-                        "value_vars": in_refs[p_name],
-                        "value_epoch": val_ep,
+                        "value_vars": p_refs,
+                        "value_epoch": p_ext[1],
                         "carrier_port": q_name,
-                        "carrier_vars": in_refs[q_name],
-                        "carrier_epoch": carrier_ep,
+                        "carrier_vars": q_refs,
+                        "carrier_epoch": q_ext[1],
+                        "root_carrier": p_ext[0],
+                        # Legacy compatibility keys
                         "table_port": q_name,
-                        "table_vars": in_refs[q_name],
-                        "table_epoch": carrier_ep,
+                        "table_vars": q_refs,
+                        "table_epoch": q_ext[1],
                     })
 
+        # Update extent domain for produced output variable
+        out = bindings.get("output_var")
         if out:
-            ep = max((epoch[n] for refs in in_refs.values() for n in refs), default=0)
+            # Inherit root carrier from carrier input or first input
+            in_exts = [_resolve_extent(p, v) for p, v in bindings.items() if p != "output_var"]
+            valid_exts = [e for e in in_exts if e is not None]
+            if valid_exts:
+                root_var = valid_exts[0][0]
+                ep = max(e[1] for e in valid_exts)
+            else:
+                root_var = out
+                ep = 0
+
             if _extract_effect_names(cell) & mutating_effects:
                 ep += 1
-            epoch[out] = ep
+            extent_domain[out] = (root_var, ep)
 
     return issues
 
 
 def analyze_column_definitions(pipeline_bindings: List[Tuple[Any, Dict[str, Any]]]) -> List[Dict[str, Any]]:
     """
-    Universal Causal Key Def-Use:
-    A key/field introduced onto a carrier at step j (via a key-binding port + assigned_value port)
-    must not be projected from any carrier at an earlier step i < j.
+    Universal Key-Space Causal Def-Use:
+    Tracks key_space[v] (added_keys, removed_keys, defined_at_step) derived strictly from
+    cell.typed_bindings (TypedBindingRecord) and port.binds / cell.effect_names().
+    A key projected from a carrier at step i must not be defined at an earlier step j > i.
     """
-    origin_keys: Dict[str, Set[str]] = {}
     defined_at: Dict[str, int] = {}
     step_projected_keys: List[Tuple[int, Any, str, Set[str]]] = []
 
@@ -138,14 +178,12 @@ def analyze_column_definitions(pipeline_bindings: List[Tuple[Any, Dict[str, Any]
         def _keys_of_port(p_name: str, expr: Any) -> Set[str]:
             rec = typed_map.get(p_name) or resolve_typed_binding_record(cell, p_name, expr, inputs.get(p_name))
             found: Set[str] = set()
-            if rec.kind == "projection" and rec.projection:
+            if rec and rec.kind == "projection" and rec.projection:
                 k = rec.projection.get("key")
                 if isinstance(k, (list, tuple, set)):
                     found.update(str(x).strip("'\"") for x in k)
                 elif isinstance(k, str):
                     found.add(k.strip("'\""))
-            elif rec.root_var and rec.root_var in origin_keys:
-                found.update(origin_keys[rec.root_var])
             return found
 
         key_port = next((n for n, p in inputs.items() if getattr(p, "binds", None) in key_bind_tags and n in bindings), None)
@@ -157,18 +195,12 @@ def analyze_column_definitions(pipeline_bindings: List[Tuple[Any, Dict[str, Any]
             if written_key and written_key not in val_lineage:
                 defined_at.setdefault(written_key, idx)
 
-        acc: Set[str] = set()
         for p_name, expr in bindings.items():
             if p_name == "output_var" or p_name == key_port:
                 continue
             p_keys = _keys_of_port(p_name, expr)
             if p_keys:
-                acc |= p_keys
                 step_projected_keys.append((idx, cell, p_name, p_keys))
-
-        out = bindings.get("output_var")
-        if out:
-            origin_keys[out] = acc
 
     issues: List[Dict[str, Any]] = []
     for idx, cell, p_name, keys in step_projected_keys:

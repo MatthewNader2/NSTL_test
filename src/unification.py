@@ -549,13 +549,15 @@ def _update_variable_provenance(
         if not p_val or p_val is UNRESOLVED_PORT:
             continue
         p_sig_n = getattr(cell, "inputs", {}).get(p_n) or getattr(cell, "outputs", {}).get(p_n)
-        rec = resolve_typed_binding_record(
-            cell=cell,
-            port_name=p_n,
-            bound_val=p_val,
-            port_sig=getattr(p_sig_n, "signature", p_sig_n) if p_sig_n else None,
-            var_signatures=var_sigs_curr,
-        )
+        rec = (getattr(cell, "typed_bindings", {}) or {}).get(p_n)
+        if rec is None:
+            rec = resolve_typed_binding_record(
+                cell=cell,
+                port_name=p_n,
+                bound_val=p_val,
+                port_sig=getattr(p_sig_n, "signature", p_sig_n) if p_sig_n else None,
+                var_signatures=var_sigs_curr,
+            )
         _is_projection = bool(rec.kind == "projection" and rec.projection and rec.projection.get("key"))
         if rec.root_var and rec.root_var in ctx.variables:
             ctx.var_parents[out_var].add(rec.root_var)
@@ -998,12 +1000,16 @@ def _is_sink_cell(cell: Any) -> bool:
 
 class _TracedBindings(dict):
     """cell_bindings that records WHICH code site bound each port (for --debug).
-    Purely observational: behaves exactly like a dict."""
+    Purely observational: behaves exactly like a dict, while maintaining cell.typed_bindings
+    as the live, authoritative TypedBindingRecord source of truth."""
     def __init__(self, ctx: Any, cell: Any):
         super().__init__()
         self._ctx, self._cell = ctx, cell
+        if not hasattr(self._cell, "typed_bindings") or self._cell.typed_bindings is None:
+            self._cell.typed_bindings = {}
 
     def __setitem__(self, port, value):
+        super().__setitem__(port, value)
         try:
             import sys as _sys
             f = _sys._getframe(1)
@@ -1014,7 +1020,53 @@ class _TracedBindings(dict):
                 target_col=getattr(self._ctx, "target_col_for_cell", None))
         except Exception as _exc:
             logger.debug("[UNIFICATION DIAGNOSTIC] Suppressed exception: %s", _exc, exc_info=True)
-        super().__setitem__(port, value)
+        try:
+            p_name = str(port)
+            p_sig = None
+            if hasattr(self._cell, "inputs") and self._cell.inputs and p_name in self._cell.inputs:
+                p_sig = getattr(self._cell.inputs[p_name], "signature", self._cell.inputs[p_name])
+            elif hasattr(self._cell, "outputs") and self._cell.outputs and p_name in self._cell.outputs:
+                p_sig = getattr(self._cell.outputs[p_name], "signature", self._cell.outputs[p_name])
+            elif p_name == "output_var" and getattr(self._cell, "primary_output", None):
+                p_sig = getattr(self._cell.primary_output, "signature", self._cell.primary_output)
+
+            var_sigs = {}
+            if hasattr(self._ctx, "variables") and isinstance(self._ctx.variables, dict):
+                var_sigs = {v: s[0] if isinstance(s, tuple) else s for v, s in self._ctx.variables.items()}
+
+            rec = resolve_typed_binding_record(
+                cell=self._cell,
+                port_name=p_name,
+                bound_val=value,
+                port_sig=p_sig,
+                var_signatures=var_sigs,
+            )
+            if not hasattr(self._cell, "typed_bindings") or self._cell.typed_bindings is None:
+                self._cell.typed_bindings = {}
+            self._cell.typed_bindings[p_name] = rec
+        except Exception as _tb_exc:
+            logger.debug("[UNIFICATION] Live typed binding recording failed for %s: %s", port, _tb_exc)
+
+    def update(self, *args, **kwargs):
+        for k, v in dict(*args, **kwargs).items():
+            self[k] = v
+
+    def setdefault(self, key, default=None):
+        if key not in self:
+            self[key] = default
+        return self[key]
+
+    def pop(self, key, *args):
+        p_name = str(key)
+        if hasattr(self._cell, "typed_bindings") and isinstance(self._cell.typed_bindings, dict):
+            self._cell.typed_bindings.pop(p_name, None)
+        return super().pop(key, *args)
+
+    def __delitem__(self, key):
+        p_name = str(key)
+        if hasattr(self._cell, "typed_bindings") and isinstance(self._cell.typed_bindings, dict):
+            self._cell.typed_bindings.pop(p_name, None)
+        super().__delitem__(key)
 
 class _DynamicTopTypeSet(frozenset):
     """Dynamic top type set backed by TypeRegistry declarations."""
@@ -4158,6 +4210,93 @@ class UnificationGate:
                     return cur_expr
         return None
 
+    def _resolve_role_partitioned_projection(
+        self,
+        cell: Cell,
+        p_name: str,
+        p_sig: Any,
+        concrete_sig: Any,
+        cell_bindings: Dict[str, Any],
+        ctx: ExecutionContext,
+        accumulated_sigma: Substitution,
+    ) -> Optional[Tuple[str, Substitution]]:
+        """
+        Universal Role-Partitioned Key Projection (R7-3).
+        For target_roles, feature_roles, or projective_roles:
+        1. Checks if an in-scope variable with matching port_role and clause provenance unifies with concrete_sig.
+        2. Otherwise, delegates to _project_complement_roles_from_carrier to find the most recent in-scope composite carrier
+           and compose declared bridge morphisms over partitioned keys.
+        """
+        p_role = getattr(p_sig, "port_role", None) or getattr(p_sig, "derived_role", "")
+        projective_roles = (
+            _declared_role_semantics("target_roles")
+            | _declared_role_semantics("feature_roles")
+            | _declared_role_semantics("projective_roles")
+        )
+        if p_role not in projective_roles or p_name in cell_bindings:
+            return None
+
+        registry = TypeRegistry.get_instance()
+        expected_tn = str(getattr(concrete_sig, "type_name", "") or "").lower()
+        if expected_tn in ("list", "tuple", "str", "int", "float", "bool", "sequence", "collection"):
+            return None
+
+        is_feature = p_role in _declared_role_semantics("feature_roles")
+        is_target = p_role in _declared_role_semantics("target_roles")
+
+        # Reuse bound model feature bindings when applicable
+        if is_feature:
+            bound_model_var = None
+            for b_port, b_var in cell_bindings.items():
+                if isinstance(b_var, str) and b_var in ctx.variables:
+                    b_sig, _ = ctx.variables[b_var]
+                    b_role = getattr(b_sig, "port_role", None) or getattr(b_sig, "derived_role", "")
+                    b_inner = getattr(b_sig, "signature", b_sig)
+                    b_type = str(getattr(b_inner, "type_name", "") or "").lower()
+                    model_types = set(registry.get_carrier_roles().get("model_input", ())) | {"model", "estimator"}
+                    if (
+                        b_role in _declared_role_semantics("model_roles")
+                        or b_role in _declared_role_semantics("estimator_roles")
+                        or registry.is_subtype(b_type, "model")
+                        or registry.is_subtype(b_type, "estimator")
+                        or any(registry.is_subtype(b_type, m) for m in model_types)
+                        or b_type in model_types
+                    ):
+                        bound_model_var = b_var
+                        break
+            if bound_model_var and hasattr(ctx, "estimator_features") and bound_model_var in ctx.estimator_features:
+                val = ctx.estimator_features[bound_model_var]
+                cell_bindings[p_name] = val
+                return val, accumulated_sigma
+
+        # 1. First check if an in-scope variable with matching port_role unifies
+        for v_name, (v_sig, _) in reversed(list(ctx.variables.items())):
+            if _is_product(v_sig) or v_name in cell_bindings.values():
+                continue
+            v_role = getattr(v_sig, "port_role", None) or getattr(v_sig, "derived_role", "")
+            matches_role = (
+                v_role == p_role
+                or (is_feature and v_role in _declared_role_semantics("feature_roles"))
+                or (is_target and v_role in _declared_role_semantics("target_roles"))
+            )
+            if matches_role:
+                if is_feature and _violates_clause_feature_cols(cell, p_role, v_name, ctx):
+                    continue
+                if _shape_compatible(v_sig, concrete_sig):
+                    u_v = unify(v_sig.signature, concrete_sig.signature, accumulated_sigma)
+                    if u_v is not None:
+                        cell_bindings[p_name] = v_name
+                        return v_name, u_v
+
+        # 2. Otherwise compose declared bridge projection from in-scope composite carrier
+        composed = self._project_complement_roles_from_carrier(
+            cell, p_name, p_role, concrete_sig, cell_bindings, ctx, registry
+        )
+        if composed is not None:
+            return composed, accumulated_sigma
+
+        return None
+
     def _project_complement_roles_from_carrier(
         self,
         cell: Cell,
@@ -5163,91 +5302,13 @@ class UnificationGate:
                         cell_bindings[p_name] = scoped_var
                         continue
 
-                # Dual-Port Typestate Projection:
-                # Project target vector from upstream composite carrier for supervised tasks.
-                p_role = getattr(p_sig, "port_role", None) or getattr(p_sig, "derived_role", "")
-                if p_role in _declared_role_semantics("target_roles") and p_name not in cell_bindings:
-                    scoped_target = None
-                    for v_name, (v_sig, _) in reversed(list(ctx.variables.items())):
-                        if _is_product(v_sig) or v_name in cell_bindings.values():
-                            continue
-                        if (getattr(v_sig, "port_role", None) or getattr(v_sig, "derived_role", "")) in _declared_role_semantics("target_roles"):
-                            if not _shape_compatible(v_sig, concrete_sig):
-                                continue
-                            u_v = unify(v_sig.signature, concrete_sig.signature, accumulated_sigma)
-                            if u_v is not None:
-                                scoped_target = v_name
-                                accumulated_sigma = u_v
-                                break
-                    if scoped_target is not None:
-                        cell_bindings[p_name] = scoped_target
-                        continue
-
-                    composed = self._project_complement_roles_from_carrier(
-                        cell, p_name, p_role, concrete_sig, cell_bindings, ctx, registry
-                    )
-                    if composed is not None:
-                        continue
-
-                # Universal Dual-Port Typestate Projection for Feature Carriers:
-                # Project feature matrix from upstream composite carrier for supervised tasks.
-                expected_tn_f = str(getattr(concrete_sig, "type_name", "") or "").lower()
-                abstract_carriers = set(registry.get_abstract_carriers())
-                is_feature_carrier = (
-                    expected_tn_f in abstract_carriers
-                    or any(registry.is_subtype(expected_tn_f, ac) for ac in abstract_carriers)
-                    or str(getattr(concrete_sig, "abstract_type", "") or "").lower() in abstract_carriers
-                ) and expected_tn_f not in ("list", "tuple", "str", "int", "float", "bool", "sequence", "collection")
-                if is_feature_carrier and p_role in _declared_role_semantics("feature_roles") and p_name not in cell_bindings:
-                    bound_model_var = None
-                    for b_port, b_var in cell_bindings.items():
-                        if isinstance(b_var, str) and b_var in ctx.variables:
-                            b_sig, _ = ctx.variables[b_var]
-                            b_role = getattr(b_sig, "port_role", None) or getattr(b_sig, "derived_role", "")
-                            b_inner = getattr(b_sig, "signature", b_sig)
-                            b_type = str(getattr(b_inner, "type_name", "") or "").lower()
-                            model_types = set(registry.get_carrier_roles().get("model_input", ())) | {"model", "estimator"}
-                            is_model_b = (
-                                b_role in _declared_role_semantics("model_roles")
-                                or b_role in _declared_role_semantics("estimator_roles")
-                                or registry.is_subtype(b_type, "model")
-                                or registry.is_subtype(b_type, "estimator")
-                                or any(registry.is_subtype(b_type, m) for m in model_types)
-                                or b_type in model_types
-                            )
-                            if is_model_b:
-                                bound_model_var = b_var
-                                break
-
-                    if bound_model_var and hasattr(ctx, "estimator_features") and bound_model_var in ctx.estimator_features:
-                        cell_bindings[p_name] = ctx.estimator_features[bound_model_var]
-                        continue
-
-                    scoped_feature = None
-                    for v_name, (v_sig, _) in reversed(list(ctx.variables.items())):
-                        if _is_product(v_sig) or v_name in cell_bindings.values():
-                            continue
-                        if (getattr(v_sig, "port_role", None) or getattr(v_sig, "derived_role", "")) in _declared_role_semantics("feature_roles"):
-                            if _violates_clause_feature_cols(cell, p_role, v_name, ctx):
-                                ctx.trace_binding("scoped_feature_rejected_columns", cell=cell.cell_id, port=p_name, var=v_name,
-                                                  var_origins=sorted(getattr(ctx, "var_origins", {}).get(v_name, set())),
-                                                  clause_literals=list(getattr(cell, "clause_literals", []) or []))
-                                continue
-                            if _shape_compatible(v_sig, concrete_sig):
-                                u_v = unify(v_sig.signature, concrete_sig.signature, accumulated_sigma)
-                                if u_v is not None:
-                                    scoped_feature = v_name
-                                    accumulated_sigma = u_v
-                                    break
-                    if scoped_feature is not None:
-                        cell_bindings[p_name] = scoped_feature
-                        continue
-
-                    composed = self._project_complement_roles_from_carrier(
-                        cell, p_name, p_role, concrete_sig, cell_bindings, ctx, registry
-                    )
-                    if composed is not None:
-                        continue
+                # Universal Role-Partitioned Typestate Projection:
+                proj_res = self._resolve_role_partitioned_projection(
+                    cell, p_name, p_sig, concrete_sig, cell_bindings, ctx, accumulated_sigma
+                )
+                if proj_res is not None:
+                    _, accumulated_sigma = proj_res
+                    continue
 
                 # Check LLM slot filling / hyperparameters before heuristic fallback
                 llm_slot_val = None

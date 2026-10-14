@@ -463,83 +463,51 @@ class PreflightLinter:
                 if val is None or _is_unbound(val):
                     continue
 
-                rec = getattr(cell, "typed_bindings", {}).get(p_name)
+                p_sig = getattr(cell, "inputs", {}).get(p_name) if getattr(cell, "inputs", None) else None
+                rec = (getattr(cell, "typed_bindings", {}) or {}).get(p_name) or resolve_typed_binding_record(
+                    cell=cell, port_name=p_name, bound_val=val, port_sig=p_sig
+                )
                 cols_referenced: List[Tuple[str, Optional[str]]] = []  # (col_name, target_var)
 
                 if rec and rec.kind == "projection" and rec.projection:
                     proj_k = rec.projection.get("kind")
                     proj_key = rec.projection.get("key")
                     target_v = rec.root_var or carrier_in_var
-                    if proj_k == "column" and isinstance(proj_key, str):
-                        cols_referenced.append((proj_key, target_v))
-                    elif proj_k == "columns" and isinstance(proj_key, (list, tuple)):
+                    if proj_k == "column" and isinstance(proj_key, (str, int)):
+                        cols_referenced.append((str(proj_key).strip("'\""), target_v))
+                    elif proj_k == "columns" and isinstance(proj_key, (list, tuple, set)):
                         for k in proj_key:
-                            cols_referenced.append((str(k), target_v))
+                            cols_referenced.append((str(k).strip("'\""), target_v))
                 else:
-                    val_str = str(val)
-                    # Check for literal column arguments
-                    p_sig = cell.inputs.get(p_name) if getattr(cell, "inputs", None) else None
+                    val_str = str(val).strip()
                     p_role_s = cls._port_role(p_sig) if p_sig else ""
                     reg = cls._registry()
                     proj_roles = set(r.lower() for r in reg.get_verification_semantics("projection_port_roles"))
                     is_proj_port = (
-                        getattr(p_sig, "binds", "") in ("column_key", "column", "columns", "key")
+                        getattr(p_sig, "binds", "") in ("column_key", "column", "columns", "key", "field_key")
                         or (p_role_s in proj_roles)
                         or any(r in p_role_s for r in ("column", "target", "feature", "projection", "key"))
                     )
                     if is_proj_port:
                         target_v = carrier_in_var
-                        rec_dyn = resolve_typed_binding_record(cell=cell, port_name=p_name, bound_val=val, port_sig=p_sig)
-                        if rec_dyn and rec_dyn.kind == "projection" and rec_dyn.projection:
-                            proj_k = rec_dyn.projection.get("kind")
-                            proj_key = rec_dyn.projection.get("key")
-                            if proj_k == "column" and isinstance(proj_key, str):
-                                cols_referenced.append((proj_key, target_v))
-                            elif proj_k == "columns" and isinstance(proj_key, (list, tuple)):
-                                for k in proj_key:
-                                    cols_referenced.append((str(k), target_v))
-                        else:
-                            try:
-                                node = ast.parse(val_str.strip(), mode="eval").body
-                                if isinstance(node, (ast.List, ast.Tuple, ast.Set)):
-                                    for elt in node.elts:
-                                        if isinstance(elt, ast.Constant):
-                                            cols_referenced.append((str(elt.value).strip("'\""), target_v))
-                                        elif isinstance(elt, ast.Name):
-                                            cols_referenced.append((elt.id, target_v))
-                                elif isinstance(node, ast.Constant) and isinstance(node.value, str):
-                                    clean_col = node.value.strip("'\"")
-                                    if clean_col and not _is_var(clean_col):
-                                        cols_referenced.append((clean_col, target_v))
-                                elif isinstance(node, ast.Name):
-                                    cols_referenced.append((node.id, target_v))
-                            except Exception:
-                                clean_col = val_str.strip("'\"")
+                        try:
+                            node = ast.parse(val_str, mode="eval").body
+                            if isinstance(node, (ast.List, ast.Tuple, ast.Set)):
+                                for elt in node.elts:
+                                    if isinstance(elt, ast.Constant):
+                                        cols_referenced.append((str(elt.value).strip("'\""), target_v))
+                                    elif isinstance(elt, ast.Name):
+                                        cols_referenced.append((elt.id, target_v))
+                            elif isinstance(node, ast.Constant) and isinstance(node.value, (str, int)):
+                                clean_col = str(node.value).strip("'\"")
                                 if clean_col and not _is_var(clean_col):
                                     cols_referenced.append((clean_col, target_v))
-
-                    # Projection / subscript check: var['col'] or var[['col1', 'col2']]
-                    for v_name, sch in var_schemas.items():
-                        if val_str.startswith(f"{v_name}["):
-                            inner = val_str[len(v_name):].strip()
-                            if inner.startswith("[") and inner.endswith("]"):
-                                inner_c = inner[1:-1].strip()
-                                if inner_c.startswith("[") and inner_c.endswith("]"):
-                                    inner_c = inner_c[1:-1].strip()
-                                try:
-                                    parsed = ast.literal_eval(f"[{inner_c}]")
-                                    if isinstance(parsed, (list, tuple, set)):
-                                        for item in parsed:
-                                            cols_referenced.append((str(item).strip("'\""), v_name))
-                                except Exception:
-                                    for item in inner_c.split(","):
-                                        it = item.strip().strip("'\"")
-                                        if it:
-                                            cols_referenced.append((it, v_name))
-                        elif v_name in val_str:
-                            for rem_c in sch.removed_columns:
-                                if f"'{rem_c}'" in val_str or f'"{rem_c}"' in val_str:
-                                    cols_referenced.append((rem_c, v_name))
+                            elif isinstance(node, ast.Name):
+                                cols_referenced.append((node.id, target_v))
+                        except Exception:
+                            clean_col = val_str.strip("'\"")
+                            if clean_col and not _is_var(clean_col):
+                                cols_referenced.append((clean_col, target_v))
 
                 for col, target_v in cols_referenced:
                     if not target_v or target_v not in var_schemas:
@@ -701,17 +669,16 @@ class PreflightLinter:
                     if _is_var(inp_val):
                         r_v = inp_val.split("[")[0].strip()
                         out_origs.update(var_origins.get(r_v, set()))
-                        if "[" in inp_val and "]" in inp_val:
-                            try:
-                                rec = resolve_typed_binding_record(cell=cell, port_name=inp_name, bound_val=inp_val)
-                                if rec and rec.kind == "projection" and rec.projection:
-                                    k = rec.projection.get("key")
-                                    if isinstance(k, str):
-                                        out_origs.add(k)
-                                    elif isinstance(k, (list, tuple, set)):
-                                        out_origs.update(str(x) for x in k)
-                            except Exception:
-                                pass
+                        try:
+                            rec = (getattr(cell, "typed_bindings", {}) or {}).get(inp_name) or resolve_typed_binding_record(cell=cell, port_name=inp_name, bound_val=inp_val)
+                            if rec and rec.kind == "projection" and rec.projection:
+                                k = rec.projection.get("key")
+                                if isinstance(k, str):
+                                    out_origs.add(k)
+                                elif isinstance(k, (list, tuple, set)):
+                                    out_origs.update(str(x) for x in k)
+                        except Exception:
+                            pass
                     elif cell:
                         p_sig = getattr(cell, "inputs", {}).get(inp_name)
                         if p_sig and getattr(p_sig, "binds", None) == "column_key":
@@ -1261,17 +1228,16 @@ class PreflightLinter:
 
                 # 1. Matching literal in consumer clause
                 var_origs = set(var_origins.get(root_var, set()))
-                if "[" in val_expr and "]" in val_expr:
-                    try:
-                        rec = resolve_typed_binding_record(cell=cell, port_name=p_name, bound_val=val_expr)
-                        if rec and rec.kind == "projection" and rec.projection:
-                            k = rec.projection.get("key")
-                            if isinstance(k, str):
-                                var_origs.add(k)
-                            elif isinstance(k, (list, tuple, set)):
-                                var_origs.update(str(x) for x in k)
-                    except Exception:
-                        pass
+                try:
+                    rec = (getattr(cell, "typed_bindings", {}) or {}).get(p_name) or resolve_typed_binding_record(cell=cell, port_name=p_name, bound_val=val_expr)
+                    if rec and rec.kind == "projection" and rec.projection:
+                        k = rec.projection.get("key")
+                        if isinstance(k, str):
+                            var_origs.add(k)
+                        elif isinstance(k, (list, tuple, set)):
+                            var_origs.update(str(x) for x in k)
+                except Exception:
+                    pass
                 has_literal_match = False
                 if var_origs:
                     for orig in var_origs:

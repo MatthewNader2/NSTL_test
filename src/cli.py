@@ -1341,20 +1341,12 @@ class PipelineDebugger:
         t_plan_0 = time.perf_counter()
         os.environ["NSTL_DEBUG_PLAN"] = "1"
         try:
-            if self.route_method:
-                cells = self.router.plan_path(
-                    effective_prompt,
-                    return_tuple=False,
-                    route_method=self.route_method,
-                    ctx=dbg_ctx
-                )
-            else:
-                cells = self.router.planner.plan(
-                    prompt=effective_prompt,
-                    tunnel=tunnel_cells,
-                    relevance_map=relevance_map,
-                    ctx=dbg_ctx
-                )
+            cells = self.router.plan_path(
+                effective_prompt,
+                return_tuple=False,
+                route_method=self.route_method,
+                ctx=dbg_ctx,
+            )
         finally:
             os.environ.pop("NSTL_DEBUG_PLAN", None)
         plan_dt = (time.perf_counter() - t_plan_0) * 1000.0
