@@ -51,6 +51,7 @@ class M10MonteCarloRouteMethod(RouteMethod):
         max_transforms: int = 6,
         **kwargs
     ) -> List[Cell]:
+        self._current_prompt = prompt
         from config import settings
         from mcts import MonteCarloTreeSearch
         from token_evidence import anchors_for_clause

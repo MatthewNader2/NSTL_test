@@ -47,6 +47,11 @@ class KernelSynthesisError(RuntimeError):
 # AST Capability Permit-List Validator (Track 1.6)
 # --------------------------------------------------------------------------- #
 
+class _PermittedModuleNamespacesDescriptor:
+    def __get__(self, instance: Any, owner: Optional[Type[Any]] = None) -> Set[str]:
+        return ASTCapabilityValidator.get_permitted_module_namespaces()
+
+
 class ASTCapabilityValidator(ast.NodeVisitor):
     """
     Capability-based AST Permit-List Validator for synthesized kernels.
@@ -65,9 +70,51 @@ class ASTCapabilityValidator(ast.NodeVisitor):
         "ValueError", "TypeError", "ZeroDivisionError", "IndexError", "KeyError", "Exception",
     }
 
-    PERMITTED_MODULE_NAMESPACES: Set[str] = {
-        "math", "np", "numpy", "pd", "pandas", "scipy", "cv2", "pygame",
-    }
+    PERMITTED_MODULE_NAMESPACES = _PermittedModuleNamespacesDescriptor()
+
+    @classmethod
+    def get_permitted_module_namespaces(cls) -> Set[str]:
+        namespaces: Set[str] = set()
+        try:
+            try:
+                from .lattice import TypeRegistry, LatticeOrchestrator
+            except (ImportError, ValueError):
+                from lattice import TypeRegistry, LatticeOrchestrator
+
+            reg = TypeRegistry.get_instance()
+            aliases = reg.get_all_aliases()
+            namespaces.update(aliases.keys())
+            namespaces.update(aliases.values())
+            namespaces.update(reg.get_all_libraries())
+
+            orch = LatticeOrchestrator.get_active_instance()
+            if orch:
+                for cell in getattr(orch, "loaded_cells", {}).values():
+                    for dep in getattr(cell, "dependencies", []) or []:
+                        dep_s = str(dep).strip()
+                        if not dep_s:
+                            continue
+                        try:
+                            parsed_dep = ast.parse(dep_s)
+                            for d_node in ast.walk(parsed_dep):
+                                if isinstance(d_node, ast.Import):
+                                    for alias_item in d_node.names:
+                                        namespaces.add(alias_item.name.split(".")[0])
+                                        if alias_item.asname:
+                                            namespaces.add(alias_item.asname)
+                                elif isinstance(d_node, ast.ImportFrom):
+                                    if d_node.module:
+                                        namespaces.add(d_node.module.split(".")[0])
+                                    for alias_item in d_node.names:
+                                        if alias_item.asname:
+                                            namespaces.add(alias_item.asname)
+                        except Exception:
+                            mod = dep_s.split()[0].split(".")[0]
+                            if mod.isidentifier():
+                                namespaces.add(mod)
+        except Exception:
+            pass
+        return namespaces
 
     FORBIDDEN_NAMES: Set[str] = {
         "__builtins__", "__import__", "__loader__", "__spec__", "__package__",
@@ -134,22 +181,7 @@ class ASTCapabilityValidator(ast.NodeVisitor):
         if allowed_vars:
             current_allowed.update(allowed_vars)
 
-        try:
-            try:
-                from .lattice import TypeRegistry
-            except (ImportError, ValueError):
-                from lattice import TypeRegistry
-            reg = TypeRegistry.get_instance()
-            aliases = reg.get_all_aliases()
-            libs = reg.get_all_libraries()
-            permitted_modules = (
-                set(self.PERMITTED_MODULE_NAMESPACES)
-                | set(aliases.keys())
-                | set(aliases.values())
-                | set(libs)
-            )
-        except Exception:
-            permitted_modules = set(self.PERMITTED_MODULE_NAMESPACES)
+        permitted_modules = set(self.PERMITTED_MODULE_NAMESPACES)
 
         local_assigned = self._collect_local_assigned_names(tree)
         self._valid_roots = (

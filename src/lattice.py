@@ -886,6 +886,18 @@ class TypeRegistry:
     def get_column_projection_tokens(self) -> FrozenSet[str]:
         return frozenset(self._column_projection_tokens)
 
+    def get_format_groups(self) -> FrozenSet[str]:
+        """Returns registered format categories (subtypes of 'format' registered in poset)."""
+        cached = getattr(self, "_cached_format_groups", None)
+        if cached is not None and cached[0] == self._generation:
+            return cached[1]
+        groups = frozenset(
+            t for t in self.get_registered_types()
+            if t != "format" and self.is_subtype(t, "format") and (t.endswith("_format") or any(t in parents for parents in self._parents.values()))
+        )
+        self._cached_format_groups = (self._generation, groups)
+        return groups
+
     # --- Stopwords (deprecated: zero hardcoded stopwords, empty by default) ---
     @_locked
     def register_stopwords(self, words: Any) -> None:
@@ -977,16 +989,25 @@ class TypeRegistry:
             key = str(k).strip().lower()
             if not key:
                 continue
-            if isinstance(v, (list, tuple)):
-                self._verification_semantics[key] = [str(x) for x in v]
+            if isinstance(v, (list, tuple, set)):
+                new_items = [str(x) for x in v]
+                existing = self._verification_semantics.get(key, [])
+                self._verification_semantics[key] = list(dict.fromkeys(existing + new_items))
             elif isinstance(v, dict):
                 # Nested groups (e.g. split states per side) flatten to
                 # "group:member" keys so lookups stay single-level.
                 for sub_k, sub_v in v.items():
-                    if isinstance(sub_v, (list, tuple)):
-                        self._verification_semantics[f"{key}:{str(sub_k).strip().lower()}"] = [str(x) for x in sub_v]
+                    sub_key = f"{key}:{str(sub_k).strip().lower()}"
+                    if isinstance(sub_v, (list, tuple, set)):
+                        new_sub = [str(x) for x in sub_v]
+                    else:
+                        new_sub = [str(sub_v)]
+                    existing = self._verification_semantics.get(sub_key, [])
+                    self._verification_semantics[sub_key] = list(dict.fromkeys(existing + new_sub))
             else:
-                self._verification_semantics[key] = [str(v)]
+                new_items = [str(v)]
+                existing = self._verification_semantics.get(key, [])
+                self._verification_semantics[key] = list(dict.fromkeys(existing + new_items))
 
     def get_verification_semantics(self, key: str) -> List[str]:
         return list(self._verification_semantics.get(str(key).strip().lower(), []))
@@ -2763,10 +2784,61 @@ class Cell(ABC):
             c.planned_port_wires = dict(self.planned_port_wires)
         return c
 
+    def effect_names(self) -> Set[str]:
+        """Extracts normalized effect names whether self.effects elements are str, dict, or objects."""
+        out: Set[str] = set()
+        for eff in getattr(self, "effects", None) or ():
+            if isinstance(eff, dict):
+                for k in ("name", "kind", "type", "effect", "property"):
+                    v = eff.get(k)
+                    if v:
+                        out.add(str(v).strip().lower())
+            elif isinstance(eff, str):
+                s = eff.strip()
+                if s:
+                    out.add(s.lower())
+            elif eff is not None:
+                for attr in ("name", "property", "kind", "type", "effect"):
+                    v = getattr(eff, attr, None)
+                    if v and isinstance(v, (str, int)):
+                        out.add(str(v).strip().lower())
+                s = str(eff).strip()
+                if s and not s.startswith("{") and not s.startswith("<"):
+                    out.add(s.lower())
+        return out
+
     def __repr__(self) -> str:
         in_str = f"{self.primary_input.type_name}[{self.primary_input.state}]"
         out_str = f"{self.primary_output.type_name}[{self.primary_output.state}]"
         return f"<{self.__class__.__name__} {self.cell_id} ({self.domain_name}) {in_str} -> {out_str}>"
+
+
+def extract_effect_names(cell: Any) -> Set[str]:
+    """Extracts normalized effect names from any cell object."""
+    if cell is None:
+        return set()
+    if hasattr(cell, "effect_names") and callable(cell.effect_names):
+        return cell.effect_names()
+    out: Set[str] = set()
+    for eff in getattr(cell, "effects", None) or ():
+        if isinstance(eff, dict):
+            for k in ("name", "kind", "type", "effect", "property"):
+                v = eff.get(k)
+                if v:
+                    out.add(str(v).strip().lower())
+        elif isinstance(eff, str):
+            s = eff.strip()
+            if s:
+                out.add(s.lower())
+        elif eff is not None:
+            for attr in ("name", "property", "kind", "type", "effect"):
+                v = getattr(eff, attr, None)
+                if v and isinstance(v, (str, int)):
+                    out.add(str(v).strip().lower())
+            s = str(eff).strip()
+            if s and not s.startswith("{") and not s.startswith("<"):
+                out.add(s.lower())
+    return out
 
 
 class MicroCell(Cell):
@@ -2808,17 +2880,20 @@ def _apply_declared_estimator_identity(cell: Any) -> None:
     class path the cell itself declares, so the unifier's qualifier-subset rule
     enforces same-class pairing. Grounded exclusively in declared fields:
 
-    - Producer side: a cell whose `node_role` declares "estimator" and whose
-      output port declares `port_role` "model_sink" carries its owner class
-      (cell_id minus the trailing method segment) as a qualifier on that output.
-    - Consumer side: a method cell that declares a precondition with property
-      "is_fitted" targeting an input port requires its own owner class as a
-      qualifier on that input port.
+    - Producer side: a cell whose `node_role` declares ("estimator", "regressor",
+      "classifier", "clusterer", "transformer", "model", "function", "method")
+      and whose output port type is a subtype of "model"/"estimator"/"regressor"/
+      "classifier" (or `port_role` "model_sink") carries its owner class as a
+      qualifier on that output.
+    - Consumer side: handles preconditions whether dict or ConditionPredicate (via
+      _cond_field), and stamps owner class on any input port with is_fitted or whose
+      `port_role` is in model_roles ("model_input", "model", "estimator") on a
+      method cell.
 
     Idempotent; applied to every loaded cell on topology rebuild.
     """
     cid = str(getattr(cell, "cell_id", "") or "")
-    if not cid or str(getattr(cell, "node_type", "") or "") != "method":
+    if not cid:
         return
     owner = cid.rsplit(".", 1)[0] if "." in cid else cid
     owner_qual = owner.strip().lower()
@@ -2842,22 +2917,48 @@ def _apply_declared_estimator_identity(cell: Any) -> None:
         except Exception:
             return
 
-    # Producer side: declared estimator role + declared model_sink output port.
-    if str(getattr(cell, "node_role", "") or "").lower() == "estimator":
+    def _cond_field(obj: Any, field_name: str, default: Any = None) -> Any:
+        if isinstance(obj, dict):
+            return obj.get(field_name, default)
+        return getattr(obj, field_name, default)
+
+    reg = TypeRegistry.get_instance()
+
+    # Producer side: declared role in estimator roles + output port type is model subtype or model_sink
+    producer_roles = {"estimator", "regressor", "classifier", "clusterer", "transformer", "model", "function", "method"}
+    node_role = str(getattr(cell, "node_role", "") or "").lower()
+    if node_role in producer_roles:
         for out_p in (getattr(cell, "outputs", {}) or {}).values():
-            if str(getattr(out_p, "port_role", "") or "").lower() == "model_sink":
+            port_role = str(getattr(out_p, "port_role", "") or "").lower()
+            out_sig = getattr(out_p, "signature", None)
+            out_tn = str(getattr(out_sig, "type_name", "") or getattr(out_p, "type_name", "") or "").lower()
+            is_model_sub = (
+                reg.is_subtype(out_tn, "model")
+                or reg.is_subtype(out_tn, "estimator")
+                or reg.is_subtype(out_tn, "regressor")
+                or reg.is_subtype(out_tn, "classifier")
+                or out_tn in ("model", "estimator", "regressor", "classifier")
+            )
+            if is_model_sub or port_role == "model_sink":
                 _stamp(out_p, owner_qual)
 
-    # Consumer side: declared is_fitted precondition targeting an input port.
+    # Consumer side: handle pre whether it is a dict or a ConditionPredicate object,
+    # and also stamp on input port whose port_role is in model_roles on method cells
     for pre in getattr(cell, "preconditions", []) or []:
-        if not isinstance(pre, dict):
-            continue
-        if str(pre.get("property", "")).strip().lower() != "is_fitted":
-            continue
-        target_port = str(pre.get("target", "")).strip()
-        in_p = (getattr(cell, "inputs", {}) or {}).get(target_port)
-        if in_p is not None:
-            _stamp(in_p, owner_qual)
+        prop = str(_cond_field(pre, "property", "") or "").strip().lower()
+        if prop == "is_fitted":
+            target_port = str(_cond_field(pre, "target", "") or "").strip()
+            in_p = (getattr(cell, "inputs", {}) or {}).get(target_port)
+            if in_p is not None:
+                _stamp(in_p, owner_qual)
+
+    is_method_cell = str(getattr(cell, "node_type", "") or "").lower() == "method"
+    if is_method_cell:
+        consumer_model_roles = {"model_input", "model", "estimator"}
+        for in_p in (getattr(cell, "inputs", {}) or {}).values():
+            in_role = str(getattr(in_p, "port_role", "") or "").lower()
+            if in_role in consumer_model_roles:
+                _stamp(in_p, owner_qual)
 
 
 

@@ -93,26 +93,36 @@ class TokenEvidence:
         n_mass = self.mass(name_toks)
         name_precision = (self.mass(clause_toks & name_toks) / n_mass) if n_mass > 0 else 0.0
 
-        # Mathematical contract verification: disambiguate regressor vs classifier dynamically
+        # Mathematical contract verification: disambiguate estimator families dynamically
         try:
             from signature_introspector import introspect_estimator_role
+            try:
+                from .tokenizer import normalize_token
+            except (ImportError, ValueError):
+                from tokenizer import normalize_token
             role = introspect_estimator_role(cell)
             if role:
-                reg_stem = normalize_token("regressor")
-                clf_stems = {normalize_token("classifier"), normalize_token("classification")}
+                try:
+                    from .lattice import TypeRegistry
+                except (ImportError, ValueError):
+                    from lattice import TypeRegistry
+                reg = TypeRegistry.get_instance()
+                declared_roles = {
+                    str(r).lower() for r in (reg.get_verification_semantics("model_roles") or [])
+                } | {"regressor", "classifier", "clusterer"}
+                target_families = {"regressor", "classifier", "clusterer"} & declared_roles
                 norm_cl_toks = {normalize_token(t) for t in clause_toks}
-                is_clause_regression = (reg_stem in norm_cl_toks) and not bool(clf_stems & norm_cl_toks)
-                is_clause_classification = bool(clf_stems & norm_cl_toks) and (reg_stem not in norm_cl_toks)
-                if is_clause_regression and role == "classifier":
-                    recall *= 0.05
-                    precision *= 0.05
-                    f *= 0.05
-                    name_precision *= 0.05
-                elif is_clause_classification and role == "regressor":
-                    recall *= 0.05
-                    precision *= 0.05
-                    f *= 0.05
-                    name_precision *= 0.05
+                matched_families = {
+                    fam for fam in target_families
+                    if any(t.startswith("classif" if fam == "classifier" else normalize_token(fam)) for t in norm_cl_toks)
+                }
+                if len(matched_families) == 1:
+                    target_family = next(iter(matched_families))
+                    if role in target_families and role != target_family:
+                        recall *= 0.05
+                        precision *= 0.05
+                        f *= 0.05
+                        name_precision *= 0.05
         except Exception:
             pass
 

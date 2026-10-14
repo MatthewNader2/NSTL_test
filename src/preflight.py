@@ -483,28 +483,40 @@ class PreflightLinter:
                     reg = cls._registry()
                     proj_roles = set(r.lower() for r in reg.get_verification_semantics("projection_port_roles"))
                     is_proj_port = (
-                        getattr(p_sig, "binds", "") in ("column_key", "column", "key")
+                        getattr(p_sig, "binds", "") in ("column_key", "column", "columns", "key")
                         or (p_role_s in proj_roles)
                         or any(r in p_role_s for r in ("column", "target", "feature", "projection", "key"))
                     )
                     if is_proj_port:
                         target_v = carrier_in_var
-                        if val_str.startswith("[") and val_str.endswith("]"):
-                            try:
-                                parsed = ast.literal_eval(val_str)
-                                if isinstance(parsed, (list, tuple, set)):
-                                    for item in parsed:
-                                        cols_referenced.append((str(item).strip("'\""), target_v))
-                            except Exception:
-                                items = val_str[1:-1].split(",")
-                                for item in items:
-                                    it = item.strip().strip("'\"")
-                                    if it:
-                                        cols_referenced.append((it, target_v))
+                        rec_dyn = resolve_typed_binding_record(cell=cell, port_name=p_name, bound_val=val, port_sig=p_sig)
+                        if rec_dyn and rec_dyn.kind == "projection" and rec_dyn.projection:
+                            proj_k = rec_dyn.projection.get("kind")
+                            proj_key = rec_dyn.projection.get("key")
+                            if proj_k == "column" and isinstance(proj_key, str):
+                                cols_referenced.append((proj_key, target_v))
+                            elif proj_k == "columns" and isinstance(proj_key, (list, tuple)):
+                                for k in proj_key:
+                                    cols_referenced.append((str(k), target_v))
                         else:
-                            clean_col = val_str.strip("'\"")
-                            if clean_col and not _is_var(clean_col):
-                                cols_referenced.append((clean_col, target_v))
+                            try:
+                                node = ast.parse(val_str.strip(), mode="eval").body
+                                if isinstance(node, (ast.List, ast.Tuple, ast.Set)):
+                                    for elt in node.elts:
+                                        if isinstance(elt, ast.Constant):
+                                            cols_referenced.append((str(elt.value).strip("'\""), target_v))
+                                        elif isinstance(elt, ast.Name):
+                                            cols_referenced.append((elt.id, target_v))
+                                elif isinstance(node, ast.Constant) and isinstance(node.value, str):
+                                    clean_col = node.value.strip("'\"")
+                                    if clean_col and not _is_var(clean_col):
+                                        cols_referenced.append((clean_col, target_v))
+                                elif isinstance(node, ast.Name):
+                                    cols_referenced.append((node.id, target_v))
+                            except Exception:
+                                clean_col = val_str.strip("'\"")
+                                if clean_col and not _is_var(clean_col):
+                                    cols_referenced.append((clean_col, target_v))
 
                     # Projection / subscript check: var['col'] or var[['col1', 'col2']]
                     for v_name, sch in var_schemas.items():
@@ -583,10 +595,18 @@ class PreflightLinter:
 
                 reg = cls._registry()
                 eff_set = set(r.lower() for r in reg.get_verification_semantics("column_transform_effects"))
+                cell_effs = cell.effect_names() if hasattr(cell, "effect_names") and callable(cell.effect_names) else set()
+                if not cell_effs and hasattr(cell, "effects"):
+                    try:
+                        from lattice import extract_effect_names
+                        cell_effs = extract_effect_names(cell)
+                    except Exception:
+                        pass
                 is_set_item = (
                     getattr(cell, "projection", None) in ("set_column", "set_item", "assign")
                     or getattr(cell, "node_role", "") in ("assign", "setter")
                     or getattr(cell, "mutation_type", "") in ("add_key", "set_item")
+                    or bool(cell_effs & ({"adds_column", "set_column"} | eff_set))
                     or any(
                         eff == "adds_column"
                         or (isinstance(eff, dict) and (eff.get("name") in ("adds_column", "set_column") or eff.get("name") in eff_set))
@@ -608,52 +628,63 @@ class PreflightLinter:
                         if eff_name == "removes_columns":
                             from_port = eff.get("from_port") if isinstance(eff, dict) else None
                             cols_to_remove: List[str] = []
+                            proj_roles = set(r.lower() for r in reg.get_verification_semantics("projection_port_roles"))
+
+                            target_ports: List[str] = []
                             if from_port and from_port in bindings:
-                                c_val = bindings[from_port]
-                                if isinstance(c_val, (list, tuple, set)):
-                                    cols_to_remove.extend(str(item).strip("'\"") for item in c_val)
-                                elif isinstance(c_val, str):
-                                    c_str = str(c_val).strip()
-                                    if (c_str.startswith('"') and c_str.endswith('"')) or (c_str.startswith("'") and c_str.endswith("'")):
-                                        c_str = c_str[1:-1].strip()
-                                    if c_str.startswith("[") and c_str.endswith("]"):
-                                        try:
-                                            parsed = ast.literal_eval(c_str)
-                                            if isinstance(parsed, (list, tuple, set)):
-                                                cols_to_remove.extend(str(item).strip("'\"") for item in parsed)
-                                        except Exception:
-                                            items = c_str[1:-1].split(",")
-                                            for item in items:
-                                                it = item.strip().strip("'\"")
-                                                if it:
-                                                    cols_to_remove.append(it)
-                                    elif c_str and not _is_unbound(c_str):
-                                        cols_to_remove.append(c_str.strip("'\""))
+                                target_ports.append(from_port)
                             else:
-                                for col_key in ("columns", "column", "key", "port_1"):
-                                    if col_key in bindings and bindings[col_key] is not None:
-                                        c_val = bindings[col_key]
-                                        if isinstance(c_val, (list, tuple, set)):
-                                            cols_to_remove.extend(str(x).strip("'\"") for x in c_val)
-                                        elif isinstance(c_val, str) and not _is_unbound(c_val):
-                                            c_str = str(c_val).strip()
-                                            if (c_str.startswith('"') and c_str.endswith('"')) or (c_str.startswith("'") and c_str.endswith("'")):
-                                                c_str = c_str[1:-1].strip()
-                                            if c_str.startswith("[") and c_str.endswith("]"):
-                                                try:
-                                                    parsed = ast.literal_eval(c_str)
-                                                    if isinstance(parsed, (list, tuple, set)):
-                                                        cols_to_remove.extend(str(x).strip("'\"") for x in parsed)
-                                                except Exception:
-                                                    for item in c_str[1:-1].split(","):
-                                                        it = item.strip().strip("'\"")
-                                                        if it:
-                                                            cols_to_remove.append(it)
-                                            else:
-                                                cols_to_remove.append(c_str.strip("'\""))
-                                c_lits = getattr(cell, "clause_literals", None)
-                                if c_lits:
-                                    cols_to_remove.extend(str(x).strip("'\"") for x in c_lits)
+                                for p_name, p_sig in (getattr(cell, "inputs", {}) or {}).items():
+                                    if p_name in bindings and bindings[p_name] is not None:
+                                        p_binds = getattr(p_sig, "binds", "") or ""
+                                        p_role = cls._port_role(p_sig).lower()
+                                        if (
+                                            p_binds in ("column_key", "column", "columns", "key")
+                                            or p_role in proj_roles
+                                            or any(r in p_role for r in ("column", "target", "feature", "projection", "key"))
+                                        ):
+                                            target_ports.append(p_name)
+                                if not target_ports:
+                                    for p_name in bindings:
+                                        if getattr(cell, "typed_bindings", {}).get(p_name):
+                                            target_ports.append(p_name)
+
+                            for p_name in target_ports:
+                                b_val = bindings[p_name]
+                                p_sig = getattr(cell, "inputs", {}).get(p_name) if getattr(cell, "inputs", None) else None
+                                rec = (getattr(cell, "typed_bindings", {}) or {}).get(p_name) or resolve_typed_binding_record(
+                                    cell=cell, port_name=p_name, bound_val=b_val, port_sig=p_sig
+                                )
+                                if rec and rec.kind == "projection" and rec.projection:
+                                    proj_k = rec.projection.get("kind")
+                                    proj_key = rec.projection.get("key")
+                                    if proj_k == "column" and isinstance(proj_key, str):
+                                        cols_to_remove.append(proj_key)
+                                    elif proj_k == "columns" and isinstance(proj_key, (list, tuple)):
+                                        cols_to_remove.extend(str(k) for k in proj_key)
+                                elif isinstance(b_val, (list, tuple, set)):
+                                    cols_to_remove.extend(str(x).strip("'\"") for x in b_val)
+                                elif isinstance(b_val, str) and not _is_unbound(b_val):
+                                    try:
+                                        node = ast.parse(b_val.strip(), mode="eval").body
+                                        if isinstance(node, (ast.List, ast.Tuple, ast.Set)):
+                                            for elt in node.elts:
+                                                if isinstance(elt, ast.Constant):
+                                                    cols_to_remove.append(str(elt.value).strip("'\""))
+                                                elif isinstance(elt, ast.Name):
+                                                    cols_to_remove.append(elt.id)
+                                        elif isinstance(node, ast.Constant) and isinstance(node.value, str):
+                                            cols_to_remove.append(node.value.strip("'\""))
+                                        elif isinstance(node, ast.Name):
+                                            cols_to_remove.append(node.id)
+                                    except Exception:
+                                        clean = b_val.strip("'\"")
+                                        if clean and not _is_var(clean):
+                                            cols_to_remove.append(clean)
+
+                            c_lits = getattr(cell, "clause_literals", None)
+                            if c_lits:
+                                cols_to_remove.extend(str(x).strip("'\"") for x in c_lits)
 
                             for rem_c in cols_to_remove:
                                 if rem_c:
@@ -1083,14 +1114,21 @@ class PreflightLinter:
                     reg_p = None
                     clean_effects = set()
 
-            cons_effects = set()
-            for eff in getattr(cons_cell, "effects", []) or []:
-                if isinstance(eff, dict):
-                    for val in (eff.get("name"), eff.get("type"), eff.get("kind"), eff.get("property"), eff.get("value"), eff.get("description")):
-                        if isinstance(val, str):
-                            cons_effects.add(val.lower())
-                elif isinstance(eff, str):
-                    cons_effects.add(eff.lower())
+            if hasattr(cons_cell, "effect_names") and callable(cons_cell.effect_names):
+                cons_effects = cons_cell.effect_names()
+            else:
+                try:
+                    from lattice import extract_effect_names
+                    cons_effects = extract_effect_names(cons_cell)
+                except Exception:
+                    cons_effects = set()
+                    for eff in getattr(cons_cell, "effects", []) or []:
+                        if isinstance(eff, dict):
+                            for val in (eff.get("name"), eff.get("type"), eff.get("kind"), eff.get("property"), eff.get("value"), eff.get("description")):
+                                if isinstance(val, str):
+                                    cons_effects.add(val.lower())
+                        elif isinstance(eff, str):
+                            cons_effects.add(eff.lower())
 
             clean_roles = set(r.lower() for r in (reg_p.get_verification_semantics("clean_roles") if reg_p else []))
             clean_roles.update(r.lower() for r in (reg_p.get_verification_semantics("transform_roles") if reg_p else []))

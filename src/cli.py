@@ -188,32 +188,68 @@ def register_contract_rule(rule_type: str):
     return decorator
 
 
-@register_contract_rule("model_fit_split")
-def _eval_model_fit_split(check: Dict[str, Any], code: str) -> Optional[str]:
-    expected = check.get("expected_train_feature_var")
-    actual = check.get("feature_var")
-    model = check.get("model_var")
+@register_contract_rule("var_equality")
+def _eval_var_equality(check: Dict[str, Any], code: str) -> Optional[str]:
+    expected = check.get("expected_var") or check.get("expected_train_feature_var")
+    actual = check.get("actual_var") or check.get("feature_var")
     cid = check.get("cell_id", "terminal_node")
-    if expected and actual and actual != expected:
-        return f"Terminal model '{model}' ({cid}) was fitted on '{actual}' instead of split training partition '{expected}'"
+    if expected is not None and actual is not None and actual != expected:
+        return f"Variable equality contract failed for node '{cid}': expected '{expected}', got '{actual}'"
     return None
 
 
-@register_contract_rule("image_annotation_egress")
-def _eval_annotation_egress(check: Dict[str, Any], code: str) -> Optional[str]:
-    saved = check.get("saved_var")
-    annotated = check.get("annotated_var")
+@register_contract_rule("lineage_descendant")
+def _eval_lineage_descendant(check: Dict[str, Any], code: str) -> Optional[str]:
+    saved = check.get("saved_var") or check.get("actual_var")
+    expected = check.get("expected_var") or check.get("annotated_var")
     ingress = check.get("ingress_var")
     cid = check.get("cell_id", "terminal_node")
-    if saved and annotated and ingress and saved == ingress and annotated != ingress:
-        return f"Terminal node '{cid}' saved unannotated raw input image '{ingress}' instead of annotated image '{annotated}'"
+    if saved and expected and ingress and saved == ingress and expected != ingress:
+        return f"Lineage descendant contract failed for node '{cid}': bound to ancestor '{ingress}' instead of derived descendant '{expected}'"
     return None
+
+
+@register_contract_rule("property_satisfied")
+def _eval_property_satisfied(check: Dict[str, Any], code: str) -> Optional[str]:
+    cid = check.get("cell_id", "terminal_node")
+    prop = check.get("property")
+    op = check.get("operator", "==")
+    expected_val = check.get("expected_value", check.get("value"))
+    actual_val = check.get("actual_value")
+    if actual_val is not None and expected_val is not None:
+        passed = False
+        if op == "==":
+            passed = (actual_val == expected_val)
+        elif op == "!=":
+            passed = (actual_val != expected_val)
+        elif op == "in":
+            passed = (actual_val in expected_val)
+        elif op == "<":
+            passed = (actual_val < expected_val)
+        elif op == ">":
+            passed = (actual_val > expected_val)
+        elif op == "<=":
+            passed = (actual_val <= expected_val)
+        elif op == ">=":
+            passed = (actual_val >= expected_val)
+        else:
+            passed = (actual_val == expected_val)
+        if not passed:
+            return f"Property contract '{prop}' failed for node '{cid}': condition '{actual_val} {op} {expected_val}' unsatisfied"
+    return None
+
+
+# Canonical aliases for backward compatibility with check names
+CONTRACT_RULE_REGISTRY["model_fit_split"] = _eval_var_equality
+CONTRACT_RULE_REGISTRY["algebraic_partition_coherence"] = _eval_var_equality
+CONTRACT_RULE_REGISTRY["image_annotation_egress"] = _eval_lineage_descendant
+CONTRACT_RULE_REGISTRY["algebraic_linear_egress"] = _eval_lineage_descendant
 
 
 def _statically_evaluate_contract(final_code: str, contract: Any) -> List[str]:
     """
     Evaluates VerificationContract postconditions and terminal intent statically
-    via the extensible contract rule registry.
+    via universal relational operators and generic contract dispatch.
     """
     if not contract:
         return []
@@ -224,16 +260,29 @@ def _statically_evaluate_contract(final_code: str, contract: Any) -> List[str]:
         term_checks = contract.get("terminal_checks", [])
 
     for term_check in term_checks:
-        intent_type = term_check.get("type")
+        intent_type = term_check.get("type", "")
         evaluator = CONTRACT_RULE_REGISTRY.get(intent_type)
         if evaluator:
             err = evaluator(term_check, final_code)
             if err:
                 violations.append(err)
+        elif "saved_var" in term_check and "ingress_var" in term_check:
+            err = _eval_lineage_descendant(term_check, final_code)
+            if err:
+                violations.append(err)
+        elif "property" in term_check and ("expected_value" in term_check or "value" in term_check):
+            err = _eval_property_satisfied(term_check, final_code)
+            if err:
+                violations.append(err)
         elif "expected_var" in term_check and "actual_var" in term_check:
-            if term_check.get("actual_var") != term_check.get("expected_var"):
+            err = _eval_var_equality(term_check, final_code)
+            if err:
+                violations.append(err)
+        elif "expected_state" in term_check and "actual_state" in term_check:
+            if term_check.get("actual_state") != term_check.get("expected_state"):
+                cid = term_check.get("cell_id", "terminal_node")
                 violations.append(
-                    f"Terminal check '{intent_type}' failed: expected {term_check.get('expected_var')}, got {term_check.get('actual_var')}"
+                    f"State contract failed for node '{cid}': expected {term_check.get('expected_state')}, got {term_check.get('actual_state')}"
                 )
 
     return violations
@@ -1736,6 +1785,9 @@ class PipelineDebugger:
                                 if prod_idx is not None and (prod_idx + 1 >= len(repaired_cells) or repaired_cells[prod_idx + 1].cell_id != bridge_cand.cell_id):
                                     repaired_cells.insert(prod_idx + 1, bridge_cand)
                                     bridge_inserted = True
+                                    for cl in repaired_cells[prod_idx + 1:]:
+                                        cl.planned_port_wires = {}
+                                        cl.bound_parent_ids = set()
 
                         elif viol.check_id == "precondition_violated":
                             prod_id = viol.details.get("established_by")
@@ -1763,12 +1815,20 @@ class PipelineDebugger:
                                         b_inst.matched_clause_idx = getattr(repaired_cells[prod_idx], "matched_clause_idx", None)
                                         repaired_cells.insert(prod_idx + 1, b_inst)
                                         bridge_inserted = True
+                                        for cl in repaired_cells[prod_idx + 1:]:
+                                            cl.planned_port_wires = {}
+                                            cl.bound_parent_ids = set()
 
                     if bridge_inserted:
                         # Real synthesis chain, same two calls as the main path above
                         # (unify_pipeline + emit_code). The gate exposes no `synthesize`
                         # method; the previous call raised AttributeError inside a bare
                         # try/except and silently never ran (R6-3).
+                        try:
+                            from dag_plan import OpenPortFrontier
+                            repaired_cells = OpenPortFrontier.build_dag_plan(repaired_cells)
+                        except Exception:
+                            pass
                         try:
                             bridge_ctx = ExecutionContext(prompt=prompt_clean)
                             bridge_params = getattr(ctx, "parameters", None)

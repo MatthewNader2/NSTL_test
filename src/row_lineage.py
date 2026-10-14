@@ -31,15 +31,15 @@ def _referenced_vars(expr: Any, known: Dict[str, int]) -> List[str]:
 
 
 def _extract_effect_names(cell: Any) -> Set[str]:
-    out: Set[str] = set()
-    for eff in getattr(cell, "effects", None) or ():
-        if isinstance(eff, dict):
-            for k in ("name", "kind", "type", "effect"):
-                if eff.get(k):
-                    out.add(str(eff[k]).lower())
-        elif eff:
-            out.add(str(eff).lower())
-    return out
+    if cell is None:
+        return set()
+    if hasattr(cell, "effect_names") and callable(cell.effect_names):
+        return cell.effect_names()
+    try:
+        from .lattice import extract_effect_names
+    except (ImportError, ValueError):
+        from lattice import extract_effect_names
+    return extract_effect_names(cell)
 
 
 def analyze(pipeline_bindings: List[Tuple[Any, Dict[str, str]]]) -> List[Dict[str, Any]]:
@@ -100,6 +100,9 @@ def analyze(pipeline_bindings: List[Tuple[Any, Dict[str, str]]]) -> List[Dict[st
                         "value_port": p_name,
                         "value_vars": in_refs[p_name],
                         "value_epoch": val_ep,
+                        "carrier_port": q_name,
+                        "carrier_vars": in_refs[q_name],
+                        "carrier_epoch": carrier_ep,
                         "table_port": q_name,
                         "table_vars": in_refs[q_name],
                         "table_epoch": carrier_ep,
@@ -174,6 +177,7 @@ def analyze_column_definitions(pipeline_bindings: List[Tuple[Any, Dict[str, Any]
                 issues.append({
                     "cell": cell.cell_id,
                     "port": p_name,
+                    "key": k,
                     "column": k,
                     "read_at": idx,
                     "defined_at": defined_at[k],

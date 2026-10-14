@@ -39,6 +39,7 @@ class M3GreedyFreezeRouteMethod(RouteMethod):
         max_transforms: int = 6,
         **kwargs
     ) -> List[Cell]:
+        self._current_prompt = prompt
         orch = orchestrator or self.orchestrator
         if not tunnel:
             return []

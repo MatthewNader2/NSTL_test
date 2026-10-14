@@ -35,6 +35,7 @@ class M4LLMStepwiseRouteMethod(RouteMethod):
 
     def plan(self, prompt, tunnel, relevance_map, orchestrator=None, ctx=None,
              start_sig=None, goal_sig=None, max_transforms=6, **kwargs):
+        self._current_prompt = prompt
         orch = orchestrator or self.orchestrator
         if not tunnel: return []
         candidates = [

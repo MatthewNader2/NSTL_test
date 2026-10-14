@@ -289,7 +289,7 @@ class RouteMethod(ABC):
                                     if carrier_ext and carrier_ext != "dat":
                                         if ext == carrier_ext or reg.is_subtype(ext, carrier_ext) or reg.is_subtype(carrier_ext, ext):
                                             return True
-                                        for anc in ("image_format", "tabular_format", "audio_format", "serialized_format"):
+                                        for anc in reg.get_format_groups():
                                             if reg.is_subtype(ext, anc) and reg.is_subtype(carrier_ext, anc):
                                                 return True
                                         return False
@@ -298,7 +298,7 @@ class RouteMethod(ABC):
                             return True
                         if ext == fmt or fmt in ext or ext in fmt or reg.is_subtype(ext, fmt) or reg.is_subtype(fmt, ext):
                             return True
-                        for anc in ("image_format", "tabular_format", "audio_format", "serialized_format"):
+                        for anc in reg.get_format_groups():
                             if reg.is_subtype(ext, anc) and (reg.is_subtype(fmt, anc) or fmt in anc):
                                 return True
                         return False
@@ -643,8 +643,15 @@ class RouteMethod(ABC):
         from token_evidence import get_evidence
         ev = get_evidence(orch or self.orchestrator)
         idx = getattr(anchor, "matched_clause_idx", None)
-        if ev is None or idx is None or idx >= len(clauses) or not routed_path:
+        if idx is None and clauses:
+            try:
+                idx = max(range(len(clauses)), key=lambda i: self.clause_fit(clauses[i], anchor))
+            except Exception:
+                idx = len(clauses) - 1
+        if ev is None or idx is None or not clauses or not routed_path:
             return None
+        if idx >= len(clauses):
+            idx = len(clauses) - 1
         ctoks = ev.clause_tokens(clauses[idx])
         in_path = {c.cell_id for c in routed_path}
         best, best_rank = None, None
@@ -677,71 +684,133 @@ class RouteMethod(ABC):
                 return False
         return True
 
+    def _find_lens_commit_cell(self, cell: Cell, reg: Any) -> Optional[Cell]:
+        if self.orchestrator is None:
+            return None
+        commit_ids = {
+            str(e).upper()
+            for key in ("component_commit_cells", "column_commit_cell")
+            for e in (reg.get_verification_semantics(key) or ())
+        }
+        loaded = getattr(self.orchestrator, "loaded_cells", {}) or {}
+        if commit_ids:
+            for c_id, c in loaded.items():
+                if c_id.upper() in commit_ids:
+                    return c
+        target_domain = getattr(cell, "domain_name", "") or ""
+        carrier_bind_tags = {"data_carrier", "receiver", "carrier"}
+        key_bind_tags = {"key", "column_key", "field_key", "attr_key"}
+        candidates = []
+        for c in loaded.values():
+            if target_domain and getattr(c, "domain_name", "") != target_domain:
+                continue
+            inputs = getattr(c, "inputs", {}) or {}
+            has_carrier = any(getattr(p, "binds", None) in carrier_bind_tags or getattr(p, "port_role", None) in ("receiver", "carrier") for p in inputs.values())
+            has_key = any(getattr(p, "binds", None) in key_bind_tags for p in inputs.values())
+            has_val = any(getattr(p, "binds", None) == "assigned_value" for p in inputs.values())
+            if has_carrier and has_key and has_val:
+                candidates.append(c)
+        if candidates:
+            return candidates[0]
+        for c in loaded.values():
+            inputs = getattr(c, "inputs", {}) or {}
+            has_carrier = any(getattr(p, "binds", None) in carrier_bind_tags or getattr(p, "port_role", None) in ("receiver", "carrier") for p in inputs.values())
+            has_key = any(getattr(p, "binds", None) in key_bind_tags for p in inputs.values())
+            has_val = any(getattr(p, "binds", None) == "assigned_value" for p in inputs.values())
+            if has_carrier and has_key and has_val:
+                return c
+        return None
+
+    def _get_setter_carrier_type(self, setter: Cell) -> Optional[str]:
+        carrier_bind_tags = {"data_carrier", "receiver", "carrier"}
+        for p in (getattr(setter, "inputs", {}) or {}).values():
+            if getattr(p, "binds", None) in carrier_bind_tags or getattr(p, "port_role", None) in ("receiver", "carrier"):
+                return str(getattr(getattr(p, "signature", p), "type_name", "") or "").lower()
+        return None
+
+    def _consumes_carrier(self, cell: Cell, carrier_type: Optional[str], reg: Any) -> bool:
+        if not carrier_type:
+            return False
+        for p in (getattr(cell, "inputs", {}) or {}).values():
+            tn = str(getattr(getattr(p, "signature", p), "type_name", "") or "").lower()
+            if tn and (tn == carrier_type or reg.is_subtype(tn, carrier_type) or reg.is_subtype(carrier_type, tn)):
+                return True
+            ab = str(getattr(getattr(p, "signature", p), "abstract_type", "") or "").lower()
+            if ab and reg.is_subtype(carrier_type, ab):
+                return True
+        return False
+
     def _consumes_table(self, cell: Cell) -> bool:
         try:
             from lattice import TypeRegistry
             reg = TypeRegistry.get_instance()
+            return self._consumes_carrier(cell, "table", reg)
         except Exception:
             return False
-        for p in cell.inputs.values():
-            tn = str(getattr(getattr(p, "signature", p), "type_name", "") or "").lower()
-            if tn and reg.is_subtype(tn, "table"):
-                return True
-        return False
 
     def insert_column_commits(self, path: List[Cell], trace: bool = True) -> List[Cell]:
         """
-        Commit column transformations back into their table.
+        Universal Lens Commit Lifting:
+        Commits projected component transformations back into their parent composite carrier.
 
-        A Series-valued cell that TRANSFORMS a column (tree effect in verification_semantics.
-        column_transform_effects) produces a new Series; unless it is written back, every later table
-        operation silently runs on the UNtransformed table ("normalize X, then drop nulls" lost the
-        normalization and left the Series on a different row set than the table). When such a cell is
-        followed by a table-consuming cell, insert the tree-declared commit cell
-        (verification_semantics.column_commit_cell) right after it, scoped to the same clause and
-        column literal. Inserted only if the chain stays type-valid; every decision is traced.
+        Any morphism that transforms a projected component of a composite carrier
+        (cell.effects intersecting verification_semantics component_transform_effects / column_transform_effects)
+        produces a new component value. When a downstream morphism consumes the parent
+        composite carrier C, inserts the domain's declared setter morphism μ: C x K x V -> C
+        right after it, scoped to the same clause and literal.
         """
         try:
             from lattice import TypeRegistry
             reg = TypeRegistry.get_instance()
-            effects = {str(e).lower() for e in reg.get_verification_semantics("column_transform_effects")}
-            commit_ids = {str(e).upper() for e in reg.get_verification_semantics("column_commit_cell")}
+            effects = {
+                str(e).lower()
+                for key in ("component_transform_effects", "column_transform_effects")
+                for e in (reg.get_verification_semantics(key) or ())
+            }
         except Exception:
             return path
-        if not effects or not commit_ids or self.orchestrator is None:
+        if not effects or self.orchestrator is None:
             return path
-        proto = next((c for c in self.orchestrator.loaded_cells.values() if c.cell_id.upper() in commit_ids), None)
-        if proto is None:
-            return path
+
         out = list(path)
         i = 0
         while i < len(out):
             c = out[i]
             lits = getattr(c, "clause_literals", None)
-            if ({str(e).lower() for e in (getattr(c, "effects", None) or [])} & effects) and lits:
-                nxt_is_commit = i + 1 < len(out) and out[i + 1].cell_id.upper() in commit_ids
-                if not nxt_is_commit and any(self._consumes_table(x) for x in out[i + 1:]):
-                    commit = proto.clone() if hasattr(proto, "clone") else proto
-                    commit.matched_clause_idx = getattr(c, "matched_clause_idx", None)
-                    commit.clause_literals = list(lits)
-                    trial = out[: i + 1] + [commit] + out[i + 1:]
-                    if self.chain_is_valid(trial):
-                        if trace:
-                            self._trace("column_commit_inserted", after=c.cell_id, commit=commit.cell_id, column=list(lits),
-                                        reason="column transform is followed by a table-consuming cell")
-                        out = trial
-                        i += 1
-                    else:
-                        if trace:
-                            self._trace("column_commit_blocked", after=c.cell_id, commit=proto.cell_id,
-                                        reason="chain would not unify with the commit cell inserted")
+            c_fx = {str(e).lower() for e in (getattr(c, "effect_names", lambda: [])() or getattr(c, "effects", None) or [])}
+            if (c_fx & effects) and lits:
+                proto = self._find_lens_commit_cell(c, reg)
+                if proto is not None:
+                    nxt_is_commit = i + 1 < len(out) and out[i + 1].cell_id == proto.cell_id
+                    carrier_tn = self._get_setter_carrier_type(proto) or "table"
+                    if not nxt_is_commit and any(self._consumes_carrier(x, carrier_tn, reg) for x in out[i + 1:]):
+                        commit = proto.clone() if hasattr(proto, "clone") else proto
+                        commit.matched_clause_idx = getattr(c, "matched_clause_idx", None)
+                        commit.clause_literals = list(lits)
+                        trial = out[: i + 1] + [commit] + out[i + 1:]
+                        if self.chain_is_valid(trial):
+                            if trace:
+                                self._trace("lens_commit_inserted", after=c.cell_id, commit=commit.cell_id, key=list(lits),
+                                            carrier=carrier_tn, reason="component transform is followed by carrier-consuming cell")
+                            out = trial
+                            i += 1
+                        else:
+                            if trace:
+                                self._trace("lens_commit_blocked", after=c.cell_id, commit=proto.cell_id,
+                                            reason="chain would not unify with the lens commit cell inserted")
             i += 1
         try:
             return OpenPortFrontier.build_dag_plan(out)
         except Exception:
             return out
 
-    def insert_property_bridges(self, path: List[Cell], trace: bool = True) -> List[Cell]:
+    def insert_property_bridges(
+        self,
+        path: List[Cell],
+        prompt: str = "",
+        ctx: Optional[Any] = None,
+        trace: bool = True,
+    ) -> List[Cell]:
         """
         Inserts property-resolving bridges (e.g. converting complex frequency outputs to real
         magnitudes via NUMPY_ABS) when an upstream cell produces a property that conflicts
@@ -752,9 +821,18 @@ class RouteMethod(ABC):
         try:
             from property_contracts import analyze as _prop_analyze
             from unification import UnificationGate, ExecutionContext
+            resolved_prompt = prompt or getattr(self, "_current_prompt", "") or getattr(self, "prompt", "")
+            if ctx is not None:
+                resolved_ctx = ctx
+                if resolved_prompt and hasattr(resolved_ctx, "prompt") and not getattr(resolved_ctx, "prompt", ""):
+                    resolved_ctx.prompt = resolved_prompt
+                elif not resolved_prompt and getattr(resolved_ctx, "prompt", ""):
+                    resolved_prompt = resolved_ctx.prompt
+            else:
+                resolved_ctx = ExecutionContext(prompt=resolved_prompt)
+
             gate = UnificationGate(orchestrator=self.orchestrator)
-            ctx = ExecutionContext(prompt=getattr(self, "prompt", ""))
-            res = gate.unify_pipeline(path, ctx)
+            res = gate.unify_pipeline(path, resolved_ctx)
             if res.is_bottom() or not gate.last_pipeline_bindings:
                 return path
             issues = _prop_analyze(gate.last_pipeline_bindings, self.orchestrator)
@@ -794,7 +872,49 @@ class RouteMethod(ABC):
                         continue
                     b_cell = best_cand.clone() if hasattr(best_cand, "clone") else best_cand
                     b_cell.matched_clause_idx = getattr(out[prod_idx], "matched_clause_idx", None)
+
+                    # Wire b_cell to receive output from prod_cell
+                    b_out_name = getattr(b_cell, "primary_out", None) or (
+                        list(b_cell.outputs.keys())[0] if getattr(b_cell, "outputs", None) else "output_var"
+                    )
+                    b_in_name = getattr(b_cell, "primary_in", None) or (
+                        list(b_cell.inputs.keys())[0] if getattr(b_cell, "inputs", None) else None
+                    )
+                    prod_cell = out[prod_idx]
+                    prod_out_name = getattr(prod_cell, "primary_out", None) or (
+                        list(prod_cell.outputs.keys())[0] if getattr(prod_cell, "outputs", None) else "output_var"
+                    )
+                    if b_in_name:
+                        b_cell.planned_port_wires = {b_in_name: (prod_cell, prod_out_name)}
+                        b_cell.bound_parent_ids = {prod_id}
+
                     trial = out[: prod_idx + 1] + [b_cell] + out[prod_idx + 1 :]
+
+                    # Rewire downstream consumers in trial[prod_idx + 2:] that were wired to prod_id
+                    for downstream in trial[prod_idx + 2 :]:
+                        dw_wires = getattr(downstream, "planned_port_wires", None)
+                        if isinstance(dw_wires, dict):
+                            new_wires = {}
+                            for p_name, tgt in dw_wires.items():
+                                if isinstance(tgt, tuple) and len(tgt) == 2:
+                                    t_cell, t_port = tgt
+                                    t_cid = getattr(t_cell, "cell_id", str(t_cell))
+                                    if t_cid == prod_id:
+                                        new_wires[p_name] = (b_cell, b_out_name)
+                                    else:
+                                        new_wires[p_name] = tgt
+                                else:
+                                    t_cid = getattr(tgt, "cell_id", str(tgt))
+                                    if t_cid == prod_id:
+                                        new_wires[p_name] = (b_cell, b_out_name)
+                                    else:
+                                        new_wires[p_name] = tgt
+                            downstream.planned_port_wires = new_wires
+                        dw_parents = getattr(downstream, "bound_parent_ids", None)
+                        if isinstance(dw_parents, set) and prod_id in dw_parents:
+                            dw_parents.discard(prod_id)
+                            dw_parents.add(b_cell.cell_id)
+
                     if self.chain_is_valid(trial):
                         if trace:
                             self._trace("property_bridge_inserted", after=prod_id, bridge=b_cell.cell_id,
@@ -836,8 +956,19 @@ class RouteMethod(ABC):
                         reason="outranked on every clause it touches and explains no leftover clause token")
             current = trial
         try:
-            from dag_plan import DAGPlan
-            return DAGPlan(current)
+            from dag_plan import OpenPortFrontier
+            active_ids = {c.cell_id for c in current}
+            for c in current:
+                pw = getattr(c, "planned_port_wires", None)
+                if isinstance(pw, dict):
+                    c.planned_port_wires = {
+                        k: v for k, v in pw.items()
+                        if getattr(v[0] if isinstance(v, tuple) else v, "cell_id", str(v[0] if isinstance(v, tuple) else v)) in active_ids
+                    }
+                bp = getattr(c, "bound_parent_ids", None)
+                if isinstance(bp, set):
+                    c.bound_parent_ids = bp & active_ids
+            return OpenPortFrontier.build_dag_plan(current)
         except Exception:
             return current
 
@@ -988,15 +1119,21 @@ class RouteMethod(ABC):
                     from tokenizer import normalize_token
                     role = introspect_estimator_role(c)
                     if role:
-                        reg_stem = normalize_token("regressor")
-                        clf_stems = {normalize_token("classifier"), normalize_token("classification")}
+                        from lattice import TypeRegistry
+                        reg = TypeRegistry.get_instance()
+                        declared_roles = {
+                            str(r).lower() for r in (reg.get_verification_semantics("model_roles") or [])
+                        } | {"regressor", "classifier", "clusterer"}
+                        target_families = {"regressor", "classifier", "clusterer"} & declared_roles
                         norm_cl_toks = {normalize_token(t) for t in cl_toks}
-                        is_clause_regression = (reg_stem in norm_cl_toks) and not bool(clf_stems & norm_cl_toks)
-                        is_clause_classification = bool(clf_stems & norm_cl_toks) and (reg_stem not in norm_cl_toks)
-                        if is_clause_regression and role == "classifier":
-                            score = 0.0
-                        elif is_clause_classification and role == "regressor":
-                            score = 0.0
+                        matched_families = {
+                            fam for fam in target_families
+                            if any(t.startswith("classif" if fam == "classifier" else normalize_token(fam)) for t in norm_cl_toks)
+                        }
+                        if len(matched_families) == 1:
+                            target_family = next(iter(matched_families))
+                            if role in target_families and role != target_family:
+                                score = 0.0
                 except Exception:
                     pass
 

@@ -42,6 +42,7 @@ class M6HybridAnchorsRouteMethod(RouteMethod):
         max_transforms: int = 6,
         **kwargs
     ) -> List[Cell]:
+        self._current_prompt = prompt
         orch = orchestrator or self.orchestrator
         if not tunnel:
             return []
@@ -132,13 +133,24 @@ class M6HybridAnchorsRouteMethod(RouteMethod):
         waypoints: List[Cell] = []
         if source_cell:
             waypoints.append(source_cell)
+
+        # If sink_cell is already among clause_anchors, enrich sink_cell with ca's tagging
+        if sink_cell:
+            matching_ca = next((ca for ca in clause_anchors if ca.cell_id == sink_cell.cell_id), None)
+            if matching_ca is not None:
+                if getattr(sink_cell, "matched_clause_idx", None) is None:
+                    sink_cell.matched_clause_idx = getattr(matching_ca, "matched_clause_idx", None)
+                if not getattr(sink_cell, "clause_literals", None):
+                    sink_cell.clause_literals = getattr(matching_ca, "clause_literals", None)
+
         for ca in clause_anchors:
             if not waypoints or waypoints[-1].cell_id != ca.cell_id or getattr(waypoints[-1], "clause_literals", None) != getattr(ca, "clause_literals", None):
-                if not sink_cell or ca.cell_id != sink_cell.cell_id:
-                    waypoints.append(ca)
-        if sink_cell:
-            if not waypoints or waypoints[-1].cell_id != sink_cell.cell_id:
-                waypoints.append(sink_cell)
+                waypoints.append(ca)
+
+        if sink_cell and not any(w.cell_id == sink_cell.cell_id for w in waypoints):
+            if getattr(sink_cell, "matched_clause_idx", None) is None and clauses:
+                sink_cell.matched_clause_idx = len(clauses) - 1
+            waypoints.append(sink_cell)
 
         if not waypoints:
             waypoints = [candidates[0]]

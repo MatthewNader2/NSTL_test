@@ -1309,6 +1309,8 @@ class LatticeRouter:
                     path, prompt, orchestrator=self.orchestrator)
                 from route_methods.m1_clause_anchor import M1ClauseAnchorRouteMethod as _Util2
                 _util2 = _Util2(orchestrator=self.orchestrator)
+                _util2.prompt = prompt
+                _util2._current_prompt = prompt
                 from lattice import TypeRegistry
                 _reg = TypeRegistry.get_instance()
                 _col_effects = {str(e).lower() for e in _reg.get_verification_semantics("column_transform_effects")}
@@ -1321,7 +1323,7 @@ class LatticeRouter:
                 )
                 if _has_col_mutations:
                     path = _util2.insert_column_commits(path)
-                path = _util2.insert_property_bridges(path)
+                path = _util2.insert_property_bridges(path, prompt=prompt, ctx=ctx)
                 self.last_route_trace = list(self.last_route_trace) + list(_util2.trace_events)
             except Exception as _tc_err:
                 # Was logger.debug + wrong class name: tagging silently never ran.

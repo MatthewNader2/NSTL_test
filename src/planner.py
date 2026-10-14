@@ -295,6 +295,8 @@ class LatticeVocabulary:
                 str(getattr(c, "topology_type", "") or "") for c in self._cells()
                 if len(getattr(c, "inputs", {}) or {}) >= 2 and getattr(c, "topology_type", None)
             ) - frozenset(str(t) for t in self.sequential_topologies if t)
+        return self._get("join_topologies", build)
+
     def is_ingress(self, cell: Any) -> bool:
         if cell is None:
             return False
@@ -1664,7 +1666,7 @@ class LatticePlanner:
                                         if carrier_ext and carrier_ext != "dat":
                                             if ext == carrier_ext or reg.is_subtype(ext, carrier_ext) or reg.is_subtype(carrier_ext, ext):
                                                 return True
-                                            for anc in ("image_format", "tabular_format", "audio_format", "serialized_format"):
+                                            for anc in reg.get_format_groups():
                                                 if reg.is_subtype(ext, anc) and reg.is_subtype(carrier_ext, anc):
                                                     return True
                                             return False
@@ -1673,7 +1675,7 @@ class LatticePlanner:
                                 return True
                             if ext == fmt or fmt in ext or ext in fmt or reg.is_subtype(ext, fmt) or reg.is_subtype(fmt, ext):
                                 return True
-                            for anc in ("image_format", "tabular_format", "audio_format", "serialized_format"):
+                            for anc in reg.get_format_groups():
                                 if reg.is_subtype(ext, anc) and (reg.is_subtype(fmt, anc) or fmt in anc):
                                     return True
                             return False
@@ -3442,8 +3444,25 @@ class LatticePlanner:
                                 if sub_plan:
                                     sub_plan = self._bind_chain_slots(sub_plan, tunnel, relevance_map, it[1], prompt)
                                     c.bound_slots[slot_name] = sub_plan
-                    gate.emit_code(cand_private, ExecutionContext(prompt=prompt), extract_llm_slots=False)
-                    chosen_candidate = it
+                    from route_methods.base import RouteMethod as _RM
+                    _RM.tag_cells_with_clause_indices(cand_private, prompt, orchestrator=self.orchestrator)
+                    from route_methods.m1_clause_anchor import M1ClauseAnchorRouteMethod as _Util
+                    _u = _Util(orchestrator=self.orchestrator)
+                    _u.prompt = prompt
+                    _u._current_prompt = prompt
+                    cand_private = _u.insert_column_commits(cand_private, trace=False)
+                    cand_private = _u.insert_property_bridges(
+                        cand_private, prompt=prompt, ctx=ExecutionContext(prompt=prompt), trace=False
+                    )
+
+                    emitted = gate.emit_code(cand_private, ExecutionContext(prompt=prompt), extract_llm_slots=False)
+
+                    from preflight import PreflightLinter
+                    lint_res = PreflightLinter.lint(gate.last_pipeline_bindings, prompt=prompt, code_str=emitted)
+                    if not lint_res.is_valid:
+                        raise ValueError(f"Preflight lint failed: {lint_res.violations}")
+
+                    chosen_candidate = (cand_private, it[1], it[2], it[3], it[4])
                     break
                 except Exception as e:
                     logger.debug(
@@ -3519,6 +3538,8 @@ class LatticePlanner:
                             cell = _private_copy(cell, self.orchestrator)
                             best_path[pos] = cell
                         cell.matched_clause_idx = max(range(len(masses)), key=lambda idx: masses[idx])
+            from route_methods.base import RouteMethod as _RM
+            _RM.tag_cells_with_clause_indices(best_path, prompt, orchestrator=self.orchestrator)
 
             # R5-5 / R6-7: Coverage floor enforcement. The floor is computed from
             # the SAME precision-based cell_covered the explain table shows — the
@@ -3596,6 +3617,8 @@ class LatticePlanner:
 
                 return best_path
 
+            return best_path
+
         # Step 4: Monte Carlo Tree Search over chains if the Trellis was disconnected
         logger.info("[PLANNER] Trellis disconnected: running Monte Carlo Tree Search over chains...")
         try:
@@ -3650,6 +3673,8 @@ class LatticePlanner:
         registry = TypeRegistry.get_instance()
 
         def _is_witness(cell: Cell, role_tokens: FrozenSet[str]) -> bool:
+            if getattr(cell, "replica_of", None):
+                return False
             # Only transform cells can be identifier multiplicity witnesses (never sinks or constructors)
             if not _is_transform_stage(cell):
                 return False

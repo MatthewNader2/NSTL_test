@@ -782,10 +782,23 @@ def extract_shape_contract(text: str) -> Optional[Dict[str, Any]]:
 
     # 2. Extract rank from <digits>d or <digits>-dimensional with strict array context
     tokens = text.lower().replace("-", " ").split()
-    array_context_words = {
-        "array", "tensor", "ndarray", "matrix", "vector", "grid",
-        "volume", "signal", "dim", "dims", "dimension", "ndim",
-    }
+    try:
+        from lattice import TypeRegistry
+        reg = TypeRegistry.get_instance()
+        tensor_types = {
+            t.lower() for t in reg.get_abstract_carriers()
+            if reg.is_subtype(t, "tensor") or reg.is_subtype(t, "array-like") or t in ("tensor", "array-like", "collection")
+        }
+        rank_tokens = {
+            str(x).lower() for x in (
+                reg.get_verification_semantics("tensor_context_tokens")
+                or reg.get_verification_semantics("rank_tokens")
+                or ()
+            )
+        }
+        array_context_words = tensor_types | rank_tokens
+    except Exception:
+        array_context_words = {"tensor", "array", "matrix", "vector", "ndim", "dimension", "dims", "dim"}
     for i, tok in enumerate(tokens):
         rank = None
         if tok.endswith("d") and tok[:-1].isdigit():

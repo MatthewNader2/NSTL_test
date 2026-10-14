@@ -122,7 +122,7 @@ def bootstrap_runtime_poset(registry: Any) -> None:
     `typing`, and loaded modules in `sys.modules`).
     """
     carrier_buckets: Dict[str, Set[str]] = {
-        "path": {"path", "filepath", "filename", "pathlike", "uri", "url", "file"},
+        "path": {"path", "filepath", "filename", "pathlike", "uri", "url", "file", "source_path", "file_path", "image_path", "dest_path", "savepath", "output_path", "target_path"},
         "table": {"table", "dataset"},
         "tensor": {"tensor", "array-like", "array_like"},
         "model": {"model", "estimator"},
@@ -202,12 +202,18 @@ def bootstrap_runtime_poset(registry: Any) -> None:
         "dataflow_roles": ["carrier", "data_input"],
         "feature_roles": ["feature_input"],
         "target_roles": ["target_input"],
-        "model_roles": ["model_input", "model_sink", "model", "estimator", "regressor", "classifier", "transformer"],
-        "estimator_roles": ["estimator", "regressor", "classifier", "transformer", "model"],
+        "model_roles": ["model_input", "model_sink", "model", "estimator", "regressor", "classifier", "clusterer", "transformer"],
+        "estimator_roles": ["estimator", "regressor", "classifier", "clusterer", "transformer", "model"],
         "source_roles": ["source", "ingress"],
         "sink_roles": ["sink", "terminal", "egress"],
         "terminal_roles": ["sink", "model_sink", "evaluator", "export", "terminal", "output"],
         "bridge_roles": ["bridge", "tunnel", "adapter", "cast", "coercion"],
+        "row_set_effects": ["cleans_missing", "drops_rows", "filters_rows", "row_filter", "extent_mutating"],
+        "extent_mutating_effects": ["cleans_missing", "drops_rows", "filters_rows", "row_filter", "extent_mutating"],
+        "component_transform_effects": ["normalizes_column", "transforms_column", "encodes_column", "scales_column", "component_transform"],
+        "column_transform_effects": ["normalizes_column", "transforms_column", "encodes_column", "scales_column", "component_transform"],
+        "tensor_context_tokens": ["array", "tensor", "ndarray", "matrix", "vector", "grid", "volume", "signal", "dim", "dims", "dimension", "ndim"],
+        "projection_port_names": ["column", "columns", "key", "keys", "field", "fields"],
         "projection_port_roles": ["column_projection", "columns"],
         "projection_port_states": ["column_projection", "columns", "feature_names", "column_name", "target_name"],
         "path_consumer_roles": ["source_data", "model_sink"],
@@ -221,6 +227,12 @@ def bootstrap_runtime_poset(registry: Any) -> None:
         ],
         "smoke_test_loop_bound": ["5"],
     })
+
+    # 8. Linguistic-algebraic bridge tokens
+    registry.register_source_port_tokens(["source", "source_path", "source_file", "filepath", "filename", "input_file", "image_path", "file_path", "file"])
+    registry.register_dest_port_tokens(["called", "named", "as", "labeled", "titled", "new", "dest_path", "savepath", "output_path", "dest_identifier", "target_path", "output_file"])
+    registry.register_column_projection_tokens(["column", "columns", "feature", "features", "target", "targets", "key", "by", "subset"])
+    registry.register_egress_tokens(["export", "save", "write", "dump", "sink", "output"])
 
 
 __all__ = [

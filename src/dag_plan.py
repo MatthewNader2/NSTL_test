@@ -253,6 +253,18 @@ class DAGPlan(list):
         Re-verifies and repairs `planned_port_wires` after cells are pruned or
         inserted by `prune_unrequested`, `insert_column_commits`, or `insert_property_bridges`.
         """
+        active_ids = {c.cell_id for c in self}
+        for cell in self:
+            pw = getattr(cell, "planned_port_wires", None)
+            if isinstance(pw, dict):
+                cell.planned_port_wires = {
+                    k: v for k, v in pw.items()
+                    if getattr(v[0] if isinstance(v, tuple) else v, "cell_id", str(v[0] if isinstance(v, tuple) else v)) in active_ids
+                }
+            bp = getattr(cell, "bound_parent_ids", None)
+            if isinstance(bp, set):
+                cell.bound_parent_ids = bp & active_ids
+
         rebuilt = OpenPortFrontier.build_dag_plan(list(self))
         self.edges = rebuilt.edges
         self.detailed_edges = rebuilt.detailed_edges
@@ -367,11 +379,22 @@ class OpenPortFrontier:
                 prod_id = getattr(prod_c, "cell_id", str(prod_c))
                 cand_pid = f"{prod_id}.{out_p}"
                 if cand_pid in self._ports and prod_id in active_node_ids:
-                    fp_cand = self._ports[cand_pid]
-                    u = unify(fp_cand.signature, in_sig, sub)
-                    if u is not None:
-                        sub = u
-                        matched_fp = fp_cand
+                    is_stale_wire = False
+                    prod_step = self._ports[cand_pid].step_idx
+                    if cand_pid in self._consumed:
+                        is_stale_wire = True
+                    else:
+                        for op in self.open_ports:
+                            if op.step_idx > prod_step and op.port_id not in self._consumed and op.node_id != cell.cell_id:
+                                if unify(op.signature, in_sig, sub) is not None:
+                                    is_stale_wire = True
+                                    break
+                    if not is_stale_wire:
+                        fp_cand = self._ports[cand_pid]
+                        u = unify(fp_cand.signature, in_sig, sub)
+                        if u is not None:
+                            sub = u
+                            matched_fp = fp_cand
 
             if matched_fp is None:
                 for fp in self.open_ports:
@@ -435,6 +458,17 @@ class OpenPortFrontier:
                 is_ingress_fn = lambda c: getattr(c, "stage", None) == 1 or str(getattr(c, "node_role", "")).lower() == "source"
 
         for step_idx, cell in enumerate(nodes):
+            prefix_ids = {nodes[k].cell_id for k in range(step_idx)}
+            pw = getattr(cell, "planned_port_wires", None)
+            if isinstance(pw, dict):
+                cell.planned_port_wires = {
+                    k: v for k, v in pw.items()
+                    if getattr(v[0] if isinstance(v, tuple) else v, "cell_id", str(v[0] if isinstance(v, tuple) else v)) in prefix_ids
+                }
+            bp = getattr(cell, "bound_parent_ids", None)
+            if isinstance(bp, set):
+                cell.bound_parent_ids = bp & prefix_ids
+
             is_ing = is_ingress_fn(cell)
             if is_ing and step_idx == 0:
                 frontier.add_ingress_node(cell, step_idx=step_idx)
