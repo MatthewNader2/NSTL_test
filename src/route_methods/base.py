@@ -824,18 +824,14 @@ class RouteMethod(ABC):
             except (ImportError, ValueError):
                 from unification import analyze_property_contracts as _prop_analyze
             from unification import UnificationGate, ExecutionContext
-            resolved_prompt = prompt or getattr(self, "_current_prompt", "") or getattr(self, "prompt", "")
-            if ctx is not None:
-                resolved_ctx = ctx
-                if resolved_prompt and hasattr(resolved_ctx, "prompt") and not getattr(resolved_ctx, "prompt", ""):
-                    resolved_ctx.prompt = resolved_prompt
-                elif not resolved_prompt and getattr(resolved_ctx, "prompt", ""):
-                    resolved_prompt = resolved_ctx.prompt
-            else:
-                resolved_ctx = ExecutionContext(prompt=resolved_prompt)
+            resolved_prompt = prompt or getattr(ctx, "prompt", "") or getattr(self, "_current_prompt", "") or getattr(self, "prompt", "")
+            probe_ctx = ExecutionContext(
+                prompt=resolved_prompt,
+                parameters=dict(getattr(ctx, "parameters", {}) or {}),
+            )
 
             gate = UnificationGate(orchestrator=self.orchestrator)
-            res = gate.unify_pipeline(path, resolved_ctx)
+            res = gate.unify_pipeline(path, probe_ctx)
             if res.is_bottom() or not gate.last_pipeline_bindings:
                 return path
             issues = _prop_analyze(gate.last_pipeline_bindings, self.orchestrator)
@@ -1030,7 +1026,10 @@ class RouteMethod(ABC):
         if ev is None:
             return None
         from unification import _is_sink_cell
+        _, dest_lits = self.extract_file_literals(prompt)
         sinks = [c for c in candidates if _is_sink_cell(c)]
+        if not dest_lits:
+            sinks = [s for s in sinks if not self._is_path_consumer(s)]
         others = [c for c in candidates if not _is_sink_cell(c)]
         best, best_rank = None, (0.0, 0.0, 0.0)
         for cl in self.segment_prompt_clauses(prompt):

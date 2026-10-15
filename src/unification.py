@@ -228,10 +228,19 @@ def resolve_typed_binding_record(
             resulting_signature=getattr(sig, "signature", sig) if sig else expected_sig,
         )
 
+    subscript_node: Optional[ast.Subscript] = None
     if isinstance(parsed, ast.Subscript):
-        root_v = parsed.value.id if isinstance(parsed.value, ast.Name) else None
+        subscript_node = parsed
+    elif isinstance(parsed, ast.Call) and isinstance(parsed.func, ast.Attribute) and isinstance(parsed.func.value, ast.Subscript):
+        subscript_node = parsed.func.value
+    elif isinstance(parsed, ast.Attribute) and isinstance(parsed.value, ast.Subscript):
+        subscript_node = parsed.value
+
+    if subscript_node is not None:
+        root_v = subscript_node.value.id if isinstance(subscript_node.value, ast.Name) else None
         base_sig = var_sigs.get(root_v) if root_v else None
-        sl = parsed.slice
+        sl = subscript_node.slice
+        is_wrapped = (subscript_node is not parsed)
 
         # (A) Column selection: var['X']
         if isinstance(sl, ast.Constant) and isinstance(sl.value, str):
@@ -265,7 +274,7 @@ def resolve_typed_binding_record(
                 kind="projection",
                 root_var=root_v,
                 projection={"kind": "column", "key": sl.value},
-                resulting_signature=col_sig,
+                resulting_signature=(expected_sig or col_sig) if is_wrapped else col_sig,
             )
 
         # (B) Multi-column selection: var[['X', 'Y']]
@@ -301,7 +310,7 @@ def resolve_typed_binding_record(
                 kind="projection",
                 root_var=root_v,
                 projection={"kind": "columns", "key": keys},
-                resulting_signature=cols_sig,
+                resulting_signature=(expected_sig or cols_sig) if is_wrapped else cols_sig,
             )
 
         # (C) Index projection: var[0]
@@ -323,7 +332,7 @@ def resolve_typed_binding_record(
                 kind="projection",
                 root_var=root_v,
                 projection={"kind": "index", "key": idx_val},
-                resulting_signature=idx_sig,
+                resulting_signature=(expected_sig or idx_sig) if is_wrapped else idx_sig,
             )
 
     # (D) Method calls on variable (e.g. var.to_numpy()) or module functions (e.g. np.asarray(var))
@@ -442,8 +451,33 @@ def _violates_clause_feature_cols(cell: Any, port_role: Any, var_name: str, ctx:
         return False
     tgt = str(getattr(ctx, "target_col", "") or "").strip().lower()
     want = {str(l).strip().lower() for l in (getattr(cell, "clause_literals", None) or []) if isinstance(l, str)} - {tgt}
+    if not want:
+        return False
     have = {str(o).strip().lower() for o in getattr(ctx, "var_origins", {}).get(var_name, set())}
-    return bool(want and have and not want <= have)
+    try:
+        from .lattice import TypeRegistry
+        _reg = TypeRegistry.get_instance()
+    except Exception:
+        try:
+            from lattice import TypeRegistry
+            _reg = TypeRegistry.get_instance()
+        except Exception:
+            _reg = None
+
+    is_table = False
+    if _reg and hasattr(ctx, "variables") and var_name in ctx.variables:
+        v_sig, _ = ctx.variables[var_name]
+        v_tn = str(getattr(getattr(v_sig, "signature", v_sig), "type_name", "") or getattr(v_sig, "type_name", "")).lower()
+        if _reg.is_subtype(v_tn, "table") or _reg.is_abstract_carrier(v_tn):
+            is_table = True
+
+    if not is_table:
+        if not want.issubset(have):
+            return True
+    else:
+        if have and not want <= have:
+            return True
+    return False
 
 
 def _wire_rejection(cell: Any, p_name: str, port: Any, v_name: str, ctx: Any, registry: Any,
@@ -460,6 +494,20 @@ def _wire_rejection(cell: Any, p_name: str, port: Any, v_name: str, ctx: Any, re
     role = getattr(port, "port_role", None) or getattr(port, "derived_role", "")
     if _violates_clause_feature_cols(cell, role, v_name, ctx):
         return ("feature_columns", {"var_origins": sorted(origins), "clause_literals": list(getattr(cell, "clause_literals", []) or [])})
+    
+    target_roles = {r.lower() for r in _declared_role_semantics("target_roles")}
+    if str(role).lower() in target_roles and target_col:
+        is_table = False
+        if registry and hasattr(ctx, "variables") and v_name in ctx.variables:
+            v_sig, _ = ctx.variables[v_name]
+            v_tn = str(getattr(getattr(v_sig, "signature", v_sig), "type_name", "") or getattr(v_sig, "type_name", "")).lower()
+            if registry.is_subtype(v_tn, "table") or registry.is_abstract_carrier(v_tn):
+                is_table = True
+        if not is_table:
+            v_origs_lower = {str(o).lower() for o in origins}
+            if target_col.lower() not in v_origs_lower:
+                return ("provenance", {"var_origins": sorted(origins), "target_col": target_col, "reason": "target_col_not_in_origins"})
+
     if target_col is not None and not check_provenance_compatibility(
         port_sig=port,
         candidate_origins=origins,
@@ -540,6 +588,12 @@ def check_provenance_compatibility(
     if is_new_target_col and not target_is_input_column:
         return True
 
+    target_roles = {r.lower() for r in _declared_role_semantics("target_roles")}
+    if str(p_role).lower() in target_roles and target_col:
+        cand_lowers = {str(o).lower() for o in candidate_origins}
+        if target_col.lower() not in cand_lowers:
+            return False
+
     if not candidate_origins:
         return True
 
@@ -561,6 +615,21 @@ def _update_variable_provenance(
     """
     ctx.var_parents.setdefault(out_var, set())
     ctx.var_origins.setdefault(out_var, set())
+    try:
+        from .lattice import TypeRegistry
+        _prov_reg = TypeRegistry.get_instance()
+    except Exception:
+        try:
+            from lattice import TypeRegistry
+            _prov_reg = TypeRegistry.get_instance()
+        except Exception:
+            _prov_reg = None
+
+    p_out = getattr(cell, "primary_output", None) or (next(iter(cell.outputs.values())) if getattr(cell, "outputs", None) else None)
+    out_sig = getattr(p_out, "signature", p_out) if p_out else None
+    out_tn = str(getattr(getattr(out_sig, "signature", out_sig), "type_name", "") or getattr(out_sig, "type_name", "")).lower()
+    is_out_table = bool(_prov_reg and (_prov_reg.is_subtype(out_tn, "table") or _prov_reg.is_abstract_carrier(out_tn)))
+
     var_sigs_curr = {v: sig_tuple[0] for v, sig_tuple in getattr(ctx, "variables", {}).items()}
     for p_n, p_val in cell_bindings.items():
         if not p_val or p_val is UNRESOLVED_PORT:
@@ -582,7 +651,14 @@ def _update_variable_provenance(
             # `var['X']` look derived from every column the table's lineage ever touched, so column-level
             # provenance gates could never tell X from Y.
             if not _is_projection:
-                ctx.var_origins[out_var].update(ctx.var_origins.get(rec.root_var, set()))
+                root_sig_tuple = ctx.variables.get(rec.root_var)
+                root_sig = root_sig_tuple[0] if root_sig_tuple else None
+                root_tn = str(getattr(getattr(root_sig, "signature", root_sig), "type_name", "") or getattr(root_sig, "type_name", "")).lower()
+                is_root_table = bool(_prov_reg and (_prov_reg.is_subtype(root_tn, "table") or _prov_reg.is_abstract_carrier(root_tn)))
+                if not (is_root_table and not is_out_table):
+                    ctx.var_origins[out_var].update(ctx.var_origins.get(rec.root_var, set()))
+        if p_val and str(p_val) in ctx.var_origins:
+            ctx.var_origins[out_var].update(ctx.var_origins.get(str(p_val), set()))
         if rec.kind == "projection" and rec.projection:
             p_key = rec.projection.get("key")
             if p_key:
@@ -4000,7 +4076,6 @@ class UnificationGate:
                         literal_bindings={proj_port: repr(col)}, dst_sig=getattr(port, "signature", port), ctx=ctx)
                 if expr is not None:
                     ctx.var_origins.setdefault(expr, set()).add(col)
-                    ctx.var_origins[expr].update(ctx.var_origins.get(t_name, set()))
                     ctx.var_epochs[expr] = t_ep
                     ctx.var_parents.setdefault(expr, set()).add(t_name)
                     ctx.trace_binding("stale_carrier_rederived", cell=cell.cell_id, port=p_name, stale=v_name,
@@ -4359,46 +4434,47 @@ class UnificationGate:
         # Case A: target_roles ("target_input")
         # ---------------------------------------------------------
         if is_target:
+            if t_col:
+                df_var, df_tn = _find_df_var()
+                if df_var:
+                    expr = self._compose_declared_bridge_expr(
+                        src_var=df_var,
+                        src_type="table",
+                        dst_type=expected_tn,
+                        literal_bindings={"column": repr(str(t_col))},
+                        dst_sig=concrete_sig,
+                        ctx=ctx,
+                    )
+                    if expr is None and df_tn != "table":
+                        expr = self._compose_declared_bridge_expr(
+                            src_var=df_var,
+                            src_type=df_tn,
+                            dst_type=expected_tn,
+                            literal_bindings={"column": repr(str(t_col))},
+                            dst_sig=concrete_sig,
+                            ctx=ctx,
+                        )
+                    if expr is not None:
+                        cell_bindings[p_name] = expr
+                        ctx.var_origins.setdefault(expr, set()).add(str(t_col).strip("'\""))
+                        if hasattr(ctx, "consumed_tokens"):
+                            ctx.consumed_tokens.add(str(t_col).lower())
+                        return expr, accumulated_sigma
+
             # Check if an existing in-scope variable with matching target role unifies
             for v_name, (v_sig, _) in reversed(list(ctx.variables.items())):
                 if _is_product_sig(v_sig, registry) or v_name in cell_bindings.values():
                     continue
                 v_role = getattr(v_sig, "port_role", None) or getattr(v_sig, "derived_role", "")
                 if v_role in target_roles and _shape_compatible(v_sig, concrete_sig):
+                    v_origs = {str(o).lower() for o in getattr(ctx, "var_origins", {}).get(v_name, set())}
+                    if t_col and v_origs and str(t_col).lower() not in v_origs:
+                        continue
                     u_v = unify(v_sig.signature, concrete_sig.signature, accumulated_sigma)
                     if u_v is not None:
                         cell_bindings[p_name] = v_name
                         return v_name, u_v
 
-            if not t_col:
-                return None
-
-            df_var, df_tn = _find_df_var()
-            if not df_var:
-                return None
-
-            expr = self._compose_declared_bridge_expr(
-                src_var=df_var,
-                src_type="table",
-                dst_type=expected_tn,
-                literal_bindings={"column": repr(str(t_col))},
-                dst_sig=concrete_sig,
-                ctx=ctx,
-            )
-            if expr is None and df_tn != "table":
-                expr = self._compose_declared_bridge_expr(
-                    src_var=df_var,
-                    src_type=df_tn,
-                    dst_type=expected_tn,
-                    literal_bindings={"column": repr(str(t_col))},
-                    dst_sig=concrete_sig,
-                    ctx=ctx,
-                )
-            if expr is not None:
-                cell_bindings[p_name] = expr
-                if hasattr(ctx, "consumed_tokens"):
-                    ctx.consumed_tokens.add(str(t_col).lower())
-                return expr, accumulated_sigma
             return None
 
         # ---------------------------------------------------------
@@ -4412,7 +4488,7 @@ class UnificationGate:
                 if cell_clause_lits and len(cell_clause_lits) >= 2:
                     tgt = str(getattr(ctx, "target_col", "") or "").strip().lower()
                     want = {str(l).strip().lower() for l in cell_clause_lits if isinstance(l, str)} - {tgt}
-                    have = {str(c).strip().lower() for c in getattr(ctx, "estimator_feature_cols", [])}
+                    have = {str(c).strip().lower() for c in getattr(ctx, "last_feature_cols", [])}
                     if want and have and not (want <= have):
                         violates = True
                 if not violates:
@@ -4449,8 +4525,6 @@ class UnificationGate:
             feat_cols: List[str] = []
             if cell_clause_lits and len(cell_clause_lits) >= 2:
                 feat_cols = [c for c in cell_clause_lits if c != t_col]
-            if not feat_cols and getattr(ctx, "estimator_feature_cols", None):
-                feat_cols = list(ctx.estimator_feature_cols)
             if not feat_cols and getattr(ctx, "last_feature_cols", None):
                 feat_cols = list(ctx.last_feature_cols)
             if not feat_cols:
@@ -4494,8 +4568,8 @@ class UnificationGate:
             if expr is not None:
                 cell_bindings[p_name] = expr
                 ctx.last_feature_binding = expr
-                ctx.estimator_feature_cols = list(feat_cols)
                 ctx.last_feature_cols = list(feat_cols)
+                ctx.var_origins.setdefault(expr, set()).update(str(c).strip("'\"") for c in feat_cols)
                 if hasattr(ctx, "consumed_tokens"):
                     for lit in feat_cols:
                         ctx.consumed_tokens.add(str(lit).lower())
@@ -4661,9 +4735,64 @@ class UnificationGate:
 
         registry = TypeRegistry.get_instance()
         ctx = context or ExecutionContext()
+
+        # Reset transient per-pipeline binding state on ctx at entry
+        if hasattr(ctx, "variables") and isinstance(ctx.variables, dict):
+            ctx.variables.clear()
+        if hasattr(ctx, "initial_scope") and hasattr(ctx, "scope") and isinstance(ctx.scope, dict):
+            init_keys = set(ctx.initial_scope)
+            ctx.scope = {k: v for k, v in ctx.scope.items() if k in init_keys}
+            for k, v in ctx.scope.items():
+                ctx.declare_variable(k, v, k)
+        elif hasattr(ctx, "scope") and isinstance(ctx.scope, dict) and hasattr(ctx, "variables"):
+            ctx.scope = {k: v for k, v in ctx.scope.items() if not k.startswith("var_")}
+            for k, v in ctx.scope.items():
+                ctx.declare_variable(k, v, k)
+        if hasattr(ctx, "var_epochs") and isinstance(ctx.var_epochs, dict):
+            ctx.var_epochs.clear()
+        if hasattr(ctx, "var_origins") and isinstance(ctx.var_origins, dict):
+            ctx.var_origins.clear()
+        if hasattr(ctx, "var_parents") and isinstance(ctx.var_parents, dict):
+            ctx.var_parents.clear()
+        if hasattr(ctx, "estimator_feature_cols"):
+            if isinstance(ctx.estimator_feature_cols, dict):
+                ctx.estimator_feature_cols.clear()
+            else:
+                ctx.estimator_feature_cols = {}
+        if hasattr(ctx, "written_keys") and isinstance(ctx.written_keys, set):
+            ctx.written_keys.clear()
+        if hasattr(ctx, "written_columns"):
+            try:
+                ctx.written_columns.clear()
+            except Exception:
+                pass
+        if hasattr(ctx, "consumed_literals"):
+            try:
+                ctx.consumed_literals.clear()
+            except Exception:
+                ctx.consumed_literals = set()
+        if hasattr(ctx, "consumed_tokens") and isinstance(ctx.consumed_tokens, set):
+            ctx.consumed_tokens.clear()
+        if hasattr(ctx, "used_indices") and isinstance(ctx.used_indices, set):
+            ctx.used_indices.clear()
+        if hasattr(ctx, "consumed_members") and isinstance(ctx.consumed_members, set):
+            ctx.consumed_members.clear()
+        if hasattr(ctx, "binding_trace") and isinstance(ctx.binding_trace, list):
+            ctx.binding_trace.clear()
+        if hasattr(ctx, "superseded_vars") and isinstance(ctx.superseded_vars, set):
+            ctx.superseded_vars.clear()
+        ctx.var_counter = 0
+        if hasattr(ctx, "_var_counter"):
+            ctx._var_counter = 0
+        ctx.last_feature_binding = None
+        ctx.last_feature_cols = []
+        if hasattr(ctx, "_prompt") and ctx._prompt:
+            ctx.ordered_literals = ctx._extract_universal_literals(ctx._prompt)
+            ctx.literal_clause_map = ctx._build_literal_clause_map(ctx._prompt, ctx.ordered_literals)
+
         accumulated_sigma = Substitution()
         pipeline_bindings: List[Tuple[Cell, Dict[str, str]]] = []
-        var_counter = getattr(ctx, "var_counter", 0)
+        var_counter = 0
         producer_var: Optional[str] = None
         cell_out_vars: Dict[Any, str] = {}
         cell_port_vars: Dict[Tuple[Any, str], str] = {}
@@ -5830,7 +5959,7 @@ class UnificationGate:
                                     ctx.estimator_features = {}
                                 ctx.estimator_features[current_out_var] = ctx.last_feature_binding
                             if hasattr(ctx, "last_feature_cols") and ctx.last_feature_cols:
-                                if not hasattr(ctx, "estimator_feature_cols"):
+                                if not hasattr(ctx, "estimator_feature_cols") or not isinstance(ctx.estimator_feature_cols, dict):
                                     ctx.estimator_feature_cols = {}
                                 ctx.estimator_feature_cols[current_out_var] = list(ctx.last_feature_cols)
 

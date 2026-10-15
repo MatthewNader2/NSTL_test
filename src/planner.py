@@ -2121,17 +2121,36 @@ class LatticePlanner:
         # clause is above what the candidate set typically shows (mean + one standard deviation
         # of the per-cell evidence).  Adaptive: common words that many cells happen to carry
         # ("values", "data") raise the bar, discriminative tokens clear it.
+        try:
+            from .signature_introspector import introspect_estimator_role
+        except (ImportError, ValueError):
+            from signature_introspector import introspect_estimator_role
+
         _raw_by_cell: Dict[str, List[float]] = {}
         _prec_by_cell: Dict[str, List[float]] = {}
         for c in candidates:
             _c_toks = c.token_set
             _id = core_identity_cache.get(c.cell_id) or getattr(c, "identity_tokens", None) or identity_cache.get(c.cell_id, _c_toks)
-            _raw_by_cell[c.cell_id] = [_raw_mass(cl, _c_toks, _id) for cl in clause_tokens_list]
+            c_role = introspect_estimator_role(c)
             _c_total_idf = sum(_idf(t) for t in _c_toks)
-            _prec_by_cell[c.cell_id] = [
-                (sum(_idf(t) for t in (cl & _c_toks)) / _c_total_idf) if _c_total_idf > 0 else 0.0
-                for cl in clause_tokens_list
-            ]
+            raw_list = []
+            prec_list = []
+            for cl in clause_tokens_list:
+                r_val = _raw_mass(cl, _c_toks, _id)
+                p_val = (sum(_idf(t) for t in (cl & _c_toks)) / _c_total_idf) if _c_total_idf > 0 else 0.0
+                if c_role:
+                    has_regress = any("regress" in t for t in cl)
+                    has_classif = any("classif" in t for t in cl)
+                    has_cluster = any("cluster" in t for t in cl)
+                    if (has_regress and c_role in ("classifier", "clusterer")) or \
+                       (has_classif and c_role in ("regressor", "clusterer")) or \
+                       (has_cluster and c_role in ("regressor", "classifier")):
+                        r_val *= 0.05
+                        p_val *= 0.05
+                raw_list.append(r_val)
+                prec_list.append(p_val)
+            _raw_by_cell[c.cell_id] = raw_list
+            _prec_by_cell[c.cell_id] = prec_list
         clause_min_evidence = []
         clause_min_precision = []
         from config import settings as _settings
@@ -2160,6 +2179,7 @@ class LatticePlanner:
             # Clause COVERAGE is decided by core identity only (R6-5); the full
             # identity still feeds ranking via _match_mass below.
             core_toks = core_identity_cache.get(c.cell_id) or id_toks
+            c_role = introspect_estimator_role(c)
             cell_cov_strong[c.cell_id] = content_prompt_tokens & id_toks
             cell_cov_weak[c.cell_id] = non_literal_prompt_tokens & (c_toks - id_toks)
             cell_cov_mass_bonus[c.cell_id] = (
@@ -2168,16 +2188,24 @@ class LatticePlanner:
             ) / total_prompt_idf
             masses: List[float] = []
             covered: Set[int] = set()
-            for cl_toks in clause_tokens_list:
+            for cl_idx, cl_toks in enumerate(clause_tokens_list):
                 m = _match_mass(cl_toks, c_toks, id_toks)
+                if c_role:
+                    has_regress = any("regress" in t for t in cl_toks)
+                    has_classif = any("classif" in t for t in cl_toks)
+                    has_cluster = any("cluster" in t for t in cl_toks)
+                    if (has_regress and c_role in ("classifier", "clusterer")) or \
+                       (has_classif and c_role in ("regressor", "clusterer")) or \
+                       (has_cluster and c_role in ("regressor", "classifier")):
+                        m *= 0.05
                 masses.append(m)
                 # Intent coverage: With empirical edge affinity dominating path selection,
                 # the legacy id_mass clamp is replaced with calibrated clause matching and precision.
-                cl_idx = len(masses) - 1
                 c_prec = _prec_by_cell[c.cell_id][cl_idx]
+                r_mass = _raw_by_cell[c.cell_id][cl_idx]
                 if (
-                    _raw_mass(clause_tokens_list[cl_idx], c_toks, core_toks) > 0
-                    and _raw_mass(clause_tokens_list[cl_idx], c_toks, core_toks) >= clause_min_evidence[cl_idx]
+                    r_mass > 0
+                    and r_mass >= clause_min_evidence[cl_idx]
                     and c_prec >= clause_min_precision[cl_idx]
                 ):
                     covered.add(cl_idx)
