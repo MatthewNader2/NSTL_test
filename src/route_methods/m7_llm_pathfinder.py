@@ -232,6 +232,15 @@ class M7LLMPathfinderRouteMethod(RouteMethod):
                     continue
             except Exception:
                 pass
+
+            try:
+                p_clauses = self.segment_prompt_clauses(prompt)
+                producer = self._find_type_producer(nxt, chain, candidates, p_clauses, orch)
+                if producer is not None:
+                    chain.extend([producer, nxt])
+                    continue
+            except Exception:
+                pass
             # If next node cannot be bridged, do not truncate early! Continue attempting remaining nodes
             continue
 

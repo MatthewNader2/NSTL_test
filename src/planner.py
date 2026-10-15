@@ -3437,8 +3437,9 @@ class LatticePlanner:
             # and are accepted as opaque single nodes).
             gate = UnificationGate(orchestrator=self.orchestrator)
             chosen_candidate = None
-            for it, sc in scored_candidates:
-                if hasattr(self, "_plan_deadline") and time.perf_counter() > self._plan_deadline:
+            acceptance_deadline = time.perf_counter() + 5.0
+            for cand_idx, (it, sc) in enumerate(scored_candidates):
+                if cand_idx >= 15 and time.perf_counter() > acceptance_deadline:
                     logger.debug("[PLANNER] Plan deadline exceeded during candidate acceptance loop.")
                     break
                 cand_p = it[0]

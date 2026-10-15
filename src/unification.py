@@ -2052,7 +2052,7 @@ class ExecutionContext:
                 return True
         return False
 
-    def __init__(self, prompt: str = "", scope: Optional[Dict[str, Any]] = None, initial_scope: Optional[Set[str]] = None):
+    def __init__(self, prompt: str = "", scope: Optional[Dict[str, Any]] = None, initial_scope: Optional[Set[str]] = None, parameters: Optional[Dict[str, Any]] = None):
         self._prompt = prompt or ""
         self.scope: Dict[str, Any] = dict(scope or {})
         if initial_scope is not None:
@@ -2062,7 +2062,7 @@ class ExecutionContext:
         self.variables: Dict[str, Tuple[PortSignature, str]] = {}
         self.var_counter: int = 0
         self.var_sources: Dict[str, Any] = {}
-        self.parameters: Dict[str, Any] = {}
+        self.parameters: Dict[str, Any] = dict(parameters or {})
         self.used_indices: Set[int] = set()
         self.consumed_tokens: Set[str] = set()
         # Tuple-member consumption tracking: (var_name, member_index) pairs already
@@ -2318,7 +2318,8 @@ class ExecutionContext:
             return ""
 
         reg = TypeRegistry.get_instance()
-        dest_triggers = reg.get_dest_port_tokens() | reg.get_egress_tokens()
+        naming_connectives = {"called", "named", "as", "labeled", "titled", "new", "name"}
+        dest_triggers = (reg.get_dest_port_tokens() | reg.get_egress_tokens()) - naming_connectives
         src_triggers = reg.get_source_port_tokens()
 
         for word in reversed(words):
@@ -2335,16 +2336,17 @@ class ExecutionContext:
                 continue
             if "." in word or "/" in word or "\\" in word:
                 continue
-            # Direction triggers win: declared connective vocabulary overlaps
-            # them ("into", "from"), so test direction BEFORE skipping
-            # conjunctions during the backward scan.
+            # Naming connectives ("named", "called", etc.) introduce identifiers for
+            # the preceding noun/verb; continue scanning backward to identify direction.
+            if w in naming_connectives:
+                continue
             if w in dest_triggers:
                 return "dest"
             if w in src_triggers:
                 return "src"
             # Conjunctions / coordinating words are DECLARED vocabulary; they
             # neither mark a direction nor end the backward scan.
-            if w in TypeRegistry.get_instance().get_sentence_connectives():
+            if w in reg.get_sentence_connectives():
                 continue
             break
         return ""
@@ -3509,27 +3511,59 @@ class ExecutionContext:
                     if "." in val_str:
                         ext = val_str.rsplit(".", 1)[1].lower()
                         reg = TypeRegistry.get_instance()
-                        port_t = str(getattr(port_sig, "type_name", "")).lower()
-                        port_d = str(getattr(port_sig, "domain", "")).lower()
-                        carrier = reg.get_abstract_carrier(port_t) or reg.get_abstract_carrier(port_d)
-                        if carrier:
-                            fmt_anc = f"{carrier}_format"
-                            if reg.is_registered(fmt_anc) and reg.is_registered(ext):
-                                if not reg.is_subtype(ext, fmt_anc) and not reg.is_subtype(ext, carrier):
-                                    continue
-                        # Universal cross-modality collision guard backed by poset hierarchy
-                        ext_carrier = None
-                        try:
-                            for abs_c in reg.get_abstract_carriers():
-                                if reg.is_subtype(ext, f"{abs_c}_format") or reg.is_subtype(ext, abs_c):
-                                    ext_carrier = abs_c
-                                    break
-                        except Exception:
-                            ext_carrier = None
-                        port_carrier = carrier or reg.get_abstract_carrier(port_t) or reg.get_abstract_carrier(port_d)
-                        if ext_carrier and port_carrier and ext_carrier != port_carrier:
-                            if not (reg.is_subtype(ext_carrier, port_carrier) or reg.is_subtype(port_carrier, ext_carrier)):
+                        port_t = str(getattr(port_sig, "type_name", "")).strip()
+
+                        # Decompose generic path signature: File[Carrier, Format] or File[Modality]
+                        inner_carrier = None
+                        declared_fmt = None
+                        if "[" in port_t and port_t.endswith("]"):
+                            ctor, _, inner = port_t[:-1].partition("[")
+                            if ctor.strip().lower() in ("file", "stream", "path", "asset"):
+                                parts = [part.strip().lower() for part in inner.split(",") if part.strip()]
+                                if len(parts) >= 2:
+                                    inner_carrier = parts[0]
+                                    declared_fmt = parts[1]
+                                elif len(parts) == 1:
+                                    p0 = parts[0]
+                                    if p0 in ("any", "generic", "*", ""):
+                                        declared_fmt = p0
+                                    elif reg.is_registered(f"{p0}_format") or any(p0 in fg for fg in reg.get_format_groups()):
+                                        declared_fmt = p0
+                                    else:
+                                        inner_carrier = p0
+                                        declared_fmt = p0
+
+                        # Format verification
+                        if declared_fmt and declared_fmt not in ("any", "generic", "*", ""):
+                            fmt_compat = (
+                                ext == declared_fmt
+                                or declared_fmt in ext
+                                or ext in declared_fmt
+                                or reg.is_subtype(ext, declared_fmt)
+                                or reg.is_subtype(declared_fmt, ext)
+                                or any(reg.is_subtype(ext, fg) and (reg.is_subtype(declared_fmt, fg) or declared_fmt in fg)
+                                       for fg in reg.get_format_groups())
+                            )
+                            if not fmt_compat and inner_carrier:
+                                fmt_anc = f"{inner_carrier}_format"
+                                if reg.is_registered(fmt_anc) and (reg.is_subtype(ext, fmt_anc) or reg.is_subtype(ext, inner_carrier)):
+                                    fmt_compat = True
+                            if not fmt_compat:
                                 continue
+                        else:
+                            # Wildcard/unspecified format: ensure cross-modality carrier compatibility
+                            target_carrier = inner_carrier or reg.get_abstract_carrier(port_t.lower()) or reg.get_abstract_carrier(str(getattr(port_sig, "domain", "")).lower())
+                            if target_carrier and target_carrier not in ("path", "object", "unknown", "top", "any", "*"):
+                                ext_carrier = None
+                                for abs_c in sorted(reg.get_abstract_carriers()):
+                                    if abs_c in ("path", "object", "unknown", "top", "any", "*"):
+                                        continue
+                                    if reg.is_subtype(ext, f"{abs_c}_format") or reg.is_subtype(ext, abs_c):
+                                        ext_carrier = abs_c
+                                        break
+                                if ext_carrier and ext_carrier != target_carrier:
+                                    if not (reg.is_subtype(ext_carrier, target_carrier) or reg.is_subtype(target_carrier, ext_carrier)):
+                                        continue
                 if is_file_or_quoted or (is_path_role and matches_path):
                     direction = _asset_direction(lit_pos) if kind == "file_asset" else ""
                     if prefer and direction == prefer:
@@ -4383,10 +4417,10 @@ class UnificationGate:
             prompt = getattr(ctx, "prompt", "") or getattr(ctx, "_prompt", "") or ""
             if j is not None and prompt:
                 try:
-                    from .tokenizer import split_prompt_clauses
+                    from .tokenizer import CellTokenizer
                 except (ImportError, ValueError):
-                    from tokenizer import split_prompt_clauses
-                clauses = split_prompt_clauses(prompt)
+                    from tokenizer import CellTokenizer
+                clauses = CellTokenizer.split_prompt_clauses(prompt)
                 if 0 <= j < len(clauses):
                     cell_clause_lits = [
                         v for _, k, v in ExecutionContext._extract_universal_literals(clauses[j])
@@ -8082,17 +8116,33 @@ def unify_cell_with_scope(
         if not is_required or default_val is not None:
             continue
         desc = getattr(p_sig, "description", None) or getattr(p_sig, "doc", "") or ""
-        is_receiver = p_name in ("data", "self") or ("receiver" in str(desc).lower())
+        registry = TypeRegistry.get_instance()
+        model_roles = {
+            str(r).lower()
+            for r in (registry.get_verification_semantics("model_roles") or ())
+        } | {"model", "estimator", "model_input", "receiver"}
+        p_role = str(getattr(p_sig, "port_role", None) or getattr(p_sig, "derived_role", "") or "").lower()
+        p_binds = str(getattr(p_sig, "binds", "") or "").lower()
+        is_receiver = (
+            p_name in ("data", "self", "this", "model", "estimator")
+            or p_role in model_roles
+            or p_binds in ("receiver", "carrier", "data_carrier")
+            or ("receiver" in str(desc).lower())
+            or ("estimator" in str(desc).lower())
+        )
         satisfied = False
         if not is_receiver:
-            registry = TypeRegistry.get_instance()
             t_name = str(getattr(p_sig.signature, "type_name", "")).lower()
             if registry.is_subtype(t_name, "str") or registry.is_subtype(t_name, "int") or registry.is_subtype(t_name, "float") or registry.is_subtype(t_name, "scalar"):
                 satisfied = True
             else:
-                p_role = getattr(p_sig, "port_role", None) or getattr(p_sig, "derived_role", "")
-                projective_roles = _declared_role_semantics("projective_roles") | _declared_role_semantics("feature_roles") | _declared_role_semantics("target_roles") | {"feature_input", "target_input", "projection", "data_input"}
-                if target_col_for_cell is not None or p_role in projective_roles:
+                projective_roles = (
+                    _declared_role_semantics("projective_roles")
+                    | _declared_role_semantics("feature_roles")
+                    | _declared_role_semantics("target_roles")
+                    | {"feature_input", "target_input", "projection", "data_input"}
+                )
+                if p_role in projective_roles:
                     has_carrier = any(
                         registry.is_subtype(str(getattr(out_s.signature, "type_name", "")).lower(), "table")
                         or getattr(out_s, "abstract_type", "") in ("table", "tensor")

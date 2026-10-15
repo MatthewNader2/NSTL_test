@@ -29,7 +29,7 @@ import json
 from collections import deque
 from typing import Dict, List, Optional, Any, Set
 
-from .base import RouteMethod
+from .base import RouteMethod, _bridge_roles, tokenize_alphanumeric
 from .m1_clause_anchor import M1ClauseAnchorRouteMethod
 from lattice import Cell, LatticeOrchestrator
 from unification import ExecutionContext
@@ -131,6 +131,10 @@ class M9LLMMilestonePathfinderRouteMethod(RouteMethod):
         queue = deque([(src, [])])
         visited: Set[str] = {src.cell_id}
 
+        prompt_str = getattr(self, "_current_prompt", "") or ""
+        prompt_toks = set(tokenize_alphanumeric(str(prompt_str).lower()))
+        declared_bridge_roles = _bridge_roles()
+
         while queue:
             curr, intermediates = queue.popleft()
             if len(intermediates) >= max_hops:
@@ -146,6 +150,22 @@ class M9LLMMilestonePathfinderRouteMethod(RouteMethod):
                 if cand.cell_id in visited or getattr(cand, "stage", None) == 1:
                     continue
                 if getattr(cand, "is_combinator", False) or getattr(cand, "node_role", "") == "combinator" or getattr(cand, "role", "") == "combinator" or cand.cell_id.startswith("CF_") or getattr(cand, "domain_name", "") == "control_flow":
+                    continue
+
+                effects = getattr(cand, "effects", []) or []
+                has_destructive_effect = any(
+                    (isinstance(e, dict) and e.get("name") in ("removes_columns", "drops_columns"))
+                    or (isinstance(e, str) and e in ("removes_columns", "drops_columns"))
+                    for e in effects
+                )
+                cand_toks = set(getattr(cand, "token_set", set())) | set(getattr(cand, "keywords", []) or []) | set(getattr(cand, "semantic_tags", []) or [])
+                cand_toks = {str(t).lower() for t in cand_toks}
+                cand_role = str(getattr(cand, "node_role", "") or getattr(cand, "role", "") or "").lower()
+                is_declared_bridge = cand_role in declared_bridge_roles
+
+                if has_destructive_effect and not (cand_toks & prompt_toks):
+                    continue
+                if not is_declared_bridge and not (cand_toks & prompt_toks):
                     continue
 
                 if self.step_unifies(curr, cand, prev_path=current_scope):
@@ -294,6 +314,16 @@ class M9LLMMilestonePathfinderRouteMethod(RouteMethod):
             except Exception:
                 pass
 
+            # 5. Type-directed repair: if milestone target requires a prerequisite type (e.g. model fit producer)
+            try:
+                p_clauses = self.segment_prompt_clauses(prompt)
+                producer = self._find_type_producer(target, chain, candidates, p_clauses, orch)
+                if producer is not None:
+                    chain.extend([producer, target])
+                    continue
+            except Exception:
+                pass
+
             # If milestone cannot be connected, skip it and continue attempting subsequent milestones
             continue
 
@@ -326,6 +356,7 @@ class M9LLMMilestonePathfinderRouteMethod(RouteMethod):
                                 anc_ok = True
                                 break
                         if not anc_ok:
+                            adapter_added = False
                             try:
                                 from node_resolver import DynamicNodeResolver
                                 dyn_brg = DynamicNodeResolver.synthesize_adapter(c_prev, nxt, orch, rag=kwargs.get("rag"))
@@ -333,9 +364,18 @@ class M9LLMMilestonePathfinderRouteMethod(RouteMethod):
                                 can_dyn_nxt = self.step_unifies(dyn_brg, nxt, prev_path=verified + [dyn_brg]) or self.step_unifies_dag(nxt, verified + [dyn_brg], ctx=ctx)
                                 if dyn_brg and can_c_prev and can_dyn_nxt:
                                     verified.extend([dyn_brg, nxt])
-                                else:
-                                    continue
+                                    adapter_added = True
                             except Exception:
+                                pass
+                            if not adapter_added:
+                                try:
+                                    p_clauses = self.segment_prompt_clauses(prompt)
+                                    producer = self._find_type_producer(nxt, verified, candidates, p_clauses, orch)
+                                    if producer is not None:
+                                        verified.extend([producer, nxt])
+                                        continue
+                                except Exception:
+                                    pass
                                 continue
             chain = verified
 

@@ -130,6 +130,15 @@ class M5LLMOneShotRouteMethod(RouteMethod):
                             connected = True
                             break
                     if not connected:
+                        try:
+                            clauses = self.segment_prompt_clauses(prompt)
+                            producer = self._find_type_producer(nxt, chain, candidates, clauses, orch)
+                            if producer is not None:
+                                chain.extend([producer, nxt])
+                                connected = True
+                        except Exception:
+                            pass
+                    if not connected:
                         return self._delegate_to_m1(
                             f"proposed step {nxt.cell_id} could not be connected or bridged",
                             prompt, tunnel, relevance_map, orch, ctx=ctx,

@@ -102,7 +102,7 @@ QUICK_PROFILE_SHORTCUTS: Tuple[Tuple[str, str], ...] = (
 # =====================================================================
 # Constants & Defaults
 # =====================================================================
-DEFAULT_SANDBOX_TIMEOUT: float = getattr(settings, "sandbox_timeout", 5.0)
+DEFAULT_SANDBOX_TIMEOUT: float = float(os.environ.get("NSTL_SANDBOX_TIMEOUT", getattr(settings, "sandbox_timeout", 30.0)))
 HIGH_TRUST_PRIORITY_THRESHOLD: int = getattr(settings, "verified_priority_threshold", 10)
 DEFAULT_TRANSLATOR_PROMPT: str = (
     "You are a precise technical translator. Rewrite the user request as a "

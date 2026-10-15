@@ -39,10 +39,10 @@ class NSTLSettings(BaseSettings):
 
     # Sandbox
     sandbox_enabled: bool = Field(default=True, description="Whether sandbox isolation is enabled.")
-    sandbox_timeout: float = Field(default=5.0, gt=0, description="Sandbox timeout in seconds.")
+    sandbox_timeout: float = Field(default=30.0, gt=0, description="Sandbox timeout in seconds.")
     sandbox_workers: int = Field(default=2, ge=1, description="Number of sandbox worker processes.")
-    sandbox_max_memory_mb: int = Field(default=1024, ge=64, description="Sandbox memory limit in MB.")
-    sandbox_max_cpu_seconds: int = Field(default=5, ge=1, description="Sandbox CPU runtime limit in seconds.")
+    sandbox_max_memory_mb: int = Field(default=8192, ge=64, description="Sandbox memory limit in MB.")
+    sandbox_max_cpu_seconds: int = Field(default=30, ge=1, description="Sandbox CPU runtime limit in seconds.")
 
     # Monte Carlo Tree Search (src/mcts.py): used by the M10 route method and by the M0 planner's fallback.
     mcts_iterations: int = Field(default=64, ge=1, description="Selection/expansion/rollout/backprop iterations per search.")

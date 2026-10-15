@@ -436,6 +436,7 @@ class PreflightLinter:
         defined_at: Dict[str, int] = {}
         step_projected_keys: List[Tuple[int, Any, str, Set[str]]] = []
         key_bind_tags = {"key", "column_key", "field_key", "attr_key"}
+        var_origins_map: Dict[str, Set[str]] = {}
 
         for idx, (cell, bindings) in enumerate(pipeline_bindings):
             if not isinstance(bindings, dict):
@@ -454,6 +455,24 @@ class PreflightLinter:
                         found.add(k.strip("'\""))
                 return found
 
+            step_input_keys: Set[str] = set()
+            for p_name, expr in bindings.items():
+                if p_name == "output_var":
+                    continue
+                k_set = _keys_of_port(p_name, expr)
+                step_input_keys.update(k_set)
+                expr_str = str(expr).strip()
+                if expr_str in var_origins_map:
+                    step_input_keys.update(var_origins_map[expr_str])
+                for v, v_keys in var_origins_map.items():
+                    if v in expr_str:
+                        step_input_keys.update(v_keys)
+
+            out_var = bindings.get("output_var")
+            if out_var:
+                out_str = str(out_var).strip()
+                var_origins_map[out_str] = set(step_input_keys)
+
             key_port = next((n for n, p in inputs.items() if getattr(p, "binds", None) in key_bind_tags and n in bindings), None)
             val_port = next((n for n, p in inputs.items() if getattr(p, "binds", None) == "assigned_value" and n in bindings), None)
 
@@ -461,6 +480,12 @@ class PreflightLinter:
                 k_rec = typed_map.get(key_port)
                 written_key = str(k_rec.value_expr if (k_rec and k_rec.value_expr) else bindings[key_port]).strip().strip("'\"")
                 val_lineage = _keys_of_port(val_port, bindings[val_port])
+                val_expr_str = str(bindings[val_port]).strip()
+                if val_expr_str in var_origins_map:
+                    val_lineage.update(var_origins_map[val_expr_str])
+                for v, v_keys in var_origins_map.items():
+                    if v in val_expr_str:
+                        val_lineage.update(v_keys)
                 if written_key and written_key not in val_lineage:
                     defined_at.setdefault(written_key, idx)
 

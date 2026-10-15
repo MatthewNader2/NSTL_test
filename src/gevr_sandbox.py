@@ -318,7 +318,7 @@ _BLOCKED_MODULES = frozenset({
 })
 
 
-def _enforce_posix_resource_limits(max_memory_mb: int = 2048, max_cpu_seconds: int = 10) -> None:
+def _enforce_posix_resource_limits(max_memory_mb: int = 8192, max_cpu_seconds: int = 10) -> None:
     """
     Track 5.1: Enforces strict OS-level memory (RLIMIT_AS) and CPU time
     (RLIMIT_CPU) bounds on the sandbox worker process.
@@ -326,6 +326,17 @@ def _enforce_posix_resource_limits(max_memory_mb: int = 2048, max_cpu_seconds: i
     if _resource is None:
         return
     try:
+        env_mem = os.environ.get("NSTL_SANDBOX_MAX_MEMORY_MB")
+        if env_mem:
+            try:
+                max_memory_mb = max(int(env_mem), max_memory_mb)
+            except ValueError:
+                pass
+        # On 64-bit platforms, Python 3.13 + C-extensions (numpy/scipy/sklearn) map
+        # ~1.85 GB of shared objects and thread pools into virtual memory (VmSize).
+        # RLIMIT_AS bounds virtual address space, so ensure at least 8192 MB on 64-bit systems.
+        if sys.maxsize > 2**32:
+            max_memory_mb = max(max_memory_mb, 8192)
         mem_bytes = int(max_memory_mb) * 1024 * 1024
         if hasattr(_resource, "RLIMIT_AS"):
             _, hard_as = _resource.getrlimit(_resource.RLIMIT_AS)
@@ -476,7 +487,7 @@ def _sandbox_worker_exec(
     result_queue: multiprocessing.Queue,
     smoke_test: bool = False,
     egress_paths: Optional[List[str]] = None,
-    max_memory_mb: int = 2048,
+    max_memory_mb: int = 8192,
     max_cpu_seconds: int = 10,
 ) -> None:
     """
@@ -665,23 +676,28 @@ class GEVRSandbox:
 
     def __init__(
         self,
-        default_timeout: float = 5.0,
+        default_timeout: float = 30.0,
         max_memory_mb: Optional[int] = None,
         max_cpu_seconds: Optional[int] = None,
         postcondition_registry: Optional[PostconditionRegistry] = None,
         intent_registry: Optional[TerminalIntentRegistry] = None,
         state_registry: Optional[StateProtocolRegistry] = None,
     ):
-        self.default_timeout = default_timeout
+        self.default_timeout = float(
+            os.environ.get(
+                "NSTL_SANDBOX_TIMEOUT",
+                getattr(settings, "sandbox_timeout", default_timeout) if settings else default_timeout,
+            )
+        )
         self.max_memory_mb = int(
             max_memory_mb
             if max_memory_mb is not None
-            else (getattr(settings, "sandbox_max_memory_mb", 2048) if settings else 2048)
+            else (getattr(settings, "sandbox_max_memory_mb", 8192) if settings else 8192)
         )
         self.max_cpu_seconds = int(
             max_cpu_seconds
             if max_cpu_seconds is not None
-            else (getattr(settings, "sandbox_max_cpu_seconds", 10) if settings else 10)
+            else (getattr(settings, "sandbox_max_cpu_seconds", 30) if settings else 30)
         )
         self.postconditions = postcondition_registry or PostconditionRegistry()
         self.intents = intent_registry or TerminalIntentRegistry()

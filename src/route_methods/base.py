@@ -302,6 +302,30 @@ class RouteMethod(ABC):
                             if reg.is_subtype(ext, anc) and (reg.is_subtype(fmt, anc) or fmt in anc):
                                 return True
                         return False
+                    elif len(parts) == 1:
+                        target = parts[0]
+                        reg = TypeRegistry.get_instance()
+                        if target in ("any", "generic", "*", ""):
+                            return True
+                        if ext == target or target in ext or ext in target or reg.is_subtype(ext, target) or reg.is_subtype(target, ext):
+                            return True
+                        for anc in reg.get_format_groups():
+                            if reg.is_subtype(ext, anc) and (reg.is_subtype(target, anc) or target in anc):
+                                return True
+                        try:
+                            placeholder = reg.get_asset_placeholder(target, "")
+                            if placeholder and "." in placeholder:
+                                carrier_ext = placeholder.rpartition(".")[2].strip().lower()
+                                if carrier_ext and carrier_ext != "dat":
+                                    if ext == carrier_ext or reg.is_subtype(ext, carrier_ext) or reg.is_subtype(carrier_ext, ext):
+                                        return True
+                                    for anc in reg.get_format_groups():
+                                        if reg.is_subtype(ext, anc) and reg.is_subtype(carrier_ext, anc):
+                                            return True
+                                    return False
+                        except Exception:
+                            pass
+                        return False
         return True
 
     def _get_prompt_literals(self, prompt: Optional[str] = None) -> Tuple[List[Any], List[Any], List[Any]]:
@@ -486,11 +510,47 @@ class RouteMethod(ABC):
 
         # Open-World Continuum (Issue 5): If no pre-harvested bridge exists in the lattice,
         # instantiate a TypedHoleCell(tau_src -> tau_dst) when synthesis is available.
+        # Categorical guard: A unary data-carrier hole bridge cannot synthesize a trained
+        # model/estimator instance or object receiver. Furthermore, the hole bridge must
+        # validly satisfy dst_cell in the current scope.
         if best_b is None and src_cell.primary_output and dst_cell.primary_input:
             try:
                 from dag_plan import TypedHoleCell
                 from inference import ModelManager
-                if ModelManager.get_instance().can_synthesize():
+                from preflight import PreFlightValidator
+
+                dst_in = dst_cell.primary_input
+                dst_in_role = str(getattr(dst_in, "port_role", "") or getattr(dst_in, "derived_role", "") or "").lower()
+                dst_in_type = str(getattr(dst_in, "type_name", "") or "").lower()
+                is_obj_receiver = (
+                    PreFlightValidator._is_object_receiver_role(dst_in_role)
+                    or dst_in_role in ("model", "estimator", "receiver", "classifier", "regressor")
+                    or dst_in_type in ("model", "baseestimator", "classifier", "regressor", "clusterer")
+                )
+
+                has_unmet_model_req = False
+                for p_name, p_sig in (getattr(dst_cell, "inputs", {}) or {}).items():
+                    if getattr(p_sig, "required", False):
+                        p_role = str(getattr(p_sig, "port_role", "") or getattr(p_sig, "derived_role", "") or "").lower()
+                        p_type = str(getattr(p_sig, "type_name", "") or "").lower()
+                        if (
+                            PreFlightValidator._is_object_receiver_role(p_role)
+                            or p_role in ("model", "estimator", "receiver", "classifier", "regressor")
+                            or p_type in ("model", "baseestimator", "classifier", "regressor", "clusterer")
+                        ):
+                            has_producer_in_scope = any(
+                                (
+                                    getattr(c, "node_role", "") in ("estimator", "model")
+                                    or getattr(getattr(c, "primary_output", None), "type_name", "").lower() in ("model", "baseestimator", "classifier", "regressor", "clusterer")
+                                    or PreFlightValidator._is_object_receiver_role(str(getattr(getattr(c, "primary_output", None), "port_role", "")).lower())
+                                )
+                                for c in current_scope
+                            )
+                            if not has_producer_in_scope:
+                                has_unmet_model_req = True
+                                break
+
+                if not is_obj_receiver and not has_unmet_model_req and ModelManager.get_instance().can_synthesize():
                     hole_cell = TypedHoleCell(
                         hole_id=f"HOLE_BRIDGE_{src_cell.cell_id}_TO_{dst_cell.cell_id}",
                         task_description=f"Bridge {src_cell.primary_output.type_name} to {dst_cell.primary_input.type_name}",
@@ -499,7 +559,12 @@ class RouteMethod(ABC):
                     )
                     hole_cell.matched_clause_idx = getattr(dst_cell, "matched_clause_idx", None)
                     hole_cell.clause_literals = getattr(dst_cell, "clause_literals", None)
-                    return hole_cell
+                    can_cand_to_dst = (
+                        self.step_unifies(hole_cell, dst_cell, prev_path=current_scope + [hole_cell])
+                        or self.step_unifies_dag(dst_cell, current_scope + [hole_cell])
+                    )
+                    if can_cand_to_dst:
+                        return hole_cell
             except Exception as hole_exc:
                 logger.debug("[ROUTE] TypedHoleCell bridge fallback skipped: %s", hole_exc)
         return None
@@ -943,20 +1008,25 @@ class RouteMethod(ABC):
             res = audit(current, prompt, self.orchestrator)
             if not res.get("available"):
                 break
-            victim = next((i for i in res["issues"] if i["kind"] == "unrequested_cell"), None)
-            if victim is None:
+            pruned_any = False
+            for victim in res.get("issues", []):
+                if victim.get("kind") != "unrequested_cell":
+                    continue
+                idx = next((k for k, c in enumerate(current) if c.cell_id == victim["cell"]), None)
+                if idx is None or idx == 0:
+                    continue
+                trial = current[:idx] + current[idx + 1:]
+                if not self.chain_is_valid(trial):
+                    self._trace("prune_blocked", cell=victim["cell"], reason="chain would not unify without it",
+                                winners=victim.get("winners"))
+                    continue
+                self._trace("pruned_unrequested", cell=victim["cell"], winners=victim.get("winners"),
+                            reason="outranked on every clause it touches and explains no leftover clause token")
+                current = trial
+                pruned_any = True
                 break
-            idx = next((k for k, c in enumerate(current) if c.cell_id == victim["cell"]), None)
-            if idx is None or idx == 0:
+            if not pruned_any:
                 break
-            trial = current[:idx] + current[idx + 1:]
-            if not self.chain_is_valid(trial):
-                self._trace("prune_blocked", cell=victim["cell"], reason="chain would not unify without it",
-                            winners=victim["winners"])
-                break
-            self._trace("pruned_unrequested", cell=victim["cell"], winners=victim["winners"],
-                        reason="outranked on every clause it touches and explains no leftover clause token")
-            current = trial
         try:
             from dag_plan import OpenPortFrontier
             active_ids = {c.cell_id for c in current}

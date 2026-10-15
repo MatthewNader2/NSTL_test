@@ -21,7 +21,7 @@ Falls back to M1 (clause-anchor) when no LLM is loaded or parsing fails.
 """
 from __future__ import annotations
 import json
-from typing import Dict, List, Optional, Any, Tuple
+from typing import Dict, List, Optional, Any, Tuple, Set
 
 from .base import RouteMethod, is_terminal_sink
 from .m1_clause_anchor import M1ClauseAnchorRouteMethod
@@ -227,11 +227,43 @@ class M8LLMStepwisePathfinderRouteMethod(RouteMethod):
         visited_ids = {entry_cell.cell_id}
         max_steps = min(16, max_transforms + 4)
 
+        _ev = self._evidence()
+        clauses = self.segment_prompt_clauses(prompt)
+        if not clauses:
+            clauses = [prompt]
+        num_clauses = len(clauses)
+
+        def _cand_clause(c: Cell) -> Optional[int]:
+            idx = getattr(c, "matched_clause_idx", None)
+            if idx is not None:
+                return idx
+            if _ev is not None and clauses:
+                c_toks = getattr(c, "identity_tokens", None) or c.token_set
+                best_j, best_f = None, 0.0
+                for j, cl in enumerate(clauses):
+                    cl_t = _ev.clause_tokens(cl)
+                    overlap = len(c_toks & cl_t)
+                    if overlap > 0 and overlap > best_f:
+                        best_j, best_f = j, float(overlap)
+                return best_j
+            return None
+
+        prompt_tokens = _ev.clause_tokens(prompt) if _ev is not None else set(tokenize_alphanumeric(prompt.lower()))
+        covered_tokens: Set[str] = set(getattr(entry_cell, "identity_tokens", entry_cell.token_set) & prompt_tokens)
+
         # Stepwise expansion loop
         for _ in range(max_steps):
             curr = path[-1]
             curr_stage = getattr(curr, "stage", None)
             curr_role = str(getattr(curr, "node_role", "") or "").lower()
+
+            max_clause_so_far = max((_cand_clause(c) for c in path if _cand_clause(c) is not None), default=0)
+            uncovered_indices = [
+                j for j, cl in enumerate(clauses)
+                if _ev is not None and not all(t in covered_tokens for t in _ev.clause_tokens(cl))
+            ]
+            target_cl_idx = min(uncovered_indices) if uncovered_indices else (num_clauses - 1)
+            target_cl_idx = max(target_cl_idx, max_clause_so_far)
 
             # Identify valid next transitions from curr
             # Tuple: (target_cell, bridge_cell_or_None, transition_type_str)
@@ -248,21 +280,44 @@ class M8LLMStepwisePathfinderRouteMethod(RouteMethod):
                 elif self.step_unifies_dag(c, path, ctx=ctx):
                     transitions.append((c, None, "DAG_FRONTIER"))
                 else:
-                    bridge = self.find_bridge(curr, c, candidates, orch)
+                    bridge = self.find_bridge(curr, c, candidates, orch, prev_path=path)
+                    if not bridge and orch and hasattr(orch, "loaded_cells"):
+                        bridge = self.find_bridge(curr, c, list(orch.loaded_cells.values()), orch, prev_path=path)
                     if bridge and bridge.cell_id not in visited_ids:
                         transitions.append((c, bridge, f"BRIDGED via {bridge.cell_id}"))
+
+            if not any(_cand_clause(t[0]) == target_cl_idx for t in transitions):
+                for cand in candidates:
+                    if cand.cell_id in visited_ids:
+                        continue
+                    if _cand_clause(cand) == target_cl_idx:
+                        prod = self._find_type_producer(cand, path, candidates, clauses, orch)
+                        if prod is not None and prod.cell_id not in visited_ids:
+                            if self.step_unifies(curr, prod, prev_path=path):
+                                transitions.append((prod, None, "PRODUCER_DIRECT"))
+                            elif self.step_unifies_dag(prod, path, ctx=ctx):
+                                transitions.append((prod, None, "PRODUCER_DAG"))
+                        bridge = self.find_bridge(curr, cand, candidates, orch, prev_path=path)
+                        if not bridge and orch and hasattr(orch, "loaded_cells"):
+                            bridge = self.find_bridge(curr, cand, list(orch.loaded_cells.values()), orch, prev_path=path)
+                        if bridge is not None and bridge.cell_id not in visited_ids:
+                            transitions.append((cand, bridge, f"BRIDGED via {bridge.cell_id}"))
 
             if not transitions:
                 break
 
-            # Sort transitions by candidate relevance and edge affinity
-            def _trans_score(t: Tuple[Cell, Optional[Cell], str]) -> float:
+            # Sort transitions by clause alignment, anti-inversion, candidate relevance and edge affinity
+            def _trans_score(t: Tuple[Cell, Optional[Cell], str]) -> Tuple[int, int, float]:
                 tgt, brg, _ = t
+                cand_cl = _cand_clause(tgt)
+                is_inversion = bool(cand_cl is not None and cand_cl < max_clause_so_far)
+                is_target_cl = bool(cand_cl is not None and cand_cl == target_cl_idx)
+
                 score = relevance_map.get(tgt.cell_id, 0.0) * 2.0
                 score += self.calculate_edge_affinity(curr, brg if brg else tgt, orch, relevance_map=relevance_map)
                 if brg:
                     score += self.calculate_edge_affinity(brg, tgt, orch, relevance_map=relevance_map) * 0.8
-                return score
+                return (0 if is_inversion else 1, 1 if is_target_cl else 0, score)
 
             transitions.sort(key=_trans_score, reverse=True)
             active_transitions = transitions[:MAX_TRANSITIONS_SHOWN]
@@ -359,8 +414,10 @@ class M8LLMStepwisePathfinderRouteMethod(RouteMethod):
             if bridge_cell:
                 path.append(bridge_cell)
                 visited_ids.add(bridge_cell.cell_id)
+                covered_tokens.update(getattr(bridge_cell, "identity_tokens", bridge_cell.token_set) & prompt_tokens)
             path.append(target_cell)
             visited_ids.add(target_cell.cell_id)
+            covered_tokens.update(getattr(target_cell, "identity_tokens", target_cell.token_set) & prompt_tokens)
 
             if is_terminal_sink(target_cell, orch):
                 # Egress reached
@@ -399,4 +456,5 @@ class M8LLMStepwisePathfinderRouteMethod(RouteMethod):
                                 return _fallback(f"adapter synthesis raised {type(_brg_err).__name__}: {_brg_err}")
             path = verified
 
+        self.tag_cells_with_clause_indices(path, prompt, orchestrator=orch)
         return path[:min(20, max(max_transforms + 4, 6))]

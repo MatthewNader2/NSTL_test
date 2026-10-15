@@ -245,6 +245,29 @@ class M11LatentCognitiveRouteMethod(RouteMethod):
                 if step >= max(1, num_clauses - 1) or not (prompt_tokens - covered_tokens):
                     break
 
+            def _cand_clause(c: Cell) -> Optional[int]:
+                idx = getattr(c, "matched_clause_idx", None)
+                if idx is not None:
+                    return idx
+                if _ev is not None and clauses:
+                    c_toks = getattr(c, "identity_tokens", None) or c.token_set
+                    best_j, best_f = None, 0.0
+                    for j, cl in enumerate(clauses):
+                        cl_t = _ev.clause_tokens(cl)
+                        overlap = len(c_toks & cl_t)
+                        if overlap > 0 and overlap > best_f:
+                            best_j, best_f = j, float(overlap)
+                    return best_j
+                return None
+
+            max_clause_so_far = max((_cand_clause(c) for c in committed_path if _cand_clause(c) is not None), default=0)
+            uncovered_indices = [
+                j for j, cl in enumerate(clauses)
+                if _ev is not None and not all(t in covered_tokens for t in _ev.clause_tokens(cl))
+            ]
+            target_cl_idx = min(uncovered_indices) if uncovered_indices else (num_clauses - 1)
+            target_cl_idx = max(target_cl_idx, max_clause_so_far)
+
             valid_next = [
                 c for c in candidates
                 if c.cell_id not in visited_ids and (
@@ -253,10 +276,26 @@ class M11LatentCognitiveRouteMethod(RouteMethod):
                 )
             ]
 
+            if not valid_next or not any(_cand_clause(c) == target_cl_idx for c in valid_next):
+                for cand in candidates:
+                    if cand.cell_id in visited_ids:
+                        continue
+                    if _cand_clause(cand) == target_cl_idx:
+                        prod = self._find_type_producer(cand, committed_path, candidates, clauses, orch)
+                        if prod is not None and prod.cell_id not in visited_ids and prod not in valid_next:
+                            valid_next.append(prod)
+                        bridge = self.find_bridge(curr, cand, candidates, orch, prev_path=committed_path)
+                        if not bridge and orch and hasattr(orch, "loaded_cells"):
+                            bridge = self.find_bridge(curr, cand, list(orch.loaded_cells.values()), orch, prev_path=committed_path)
+                        if bridge is not None and bridge.cell_id not in visited_ids and bridge not in valid_next:
+                            if not hasattr(bridge, "matched_clause_idx") or bridge.matched_clause_idx is None:
+                                bridge.matched_clause_idx = target_cl_idx
+                            valid_next.append(bridge)
+
             if not valid_next:
                 break
 
-            cl_idx = min(step + 1, num_clauses - 1)
+            cl_idx = target_cl_idx
             target_cl_vec = clause_vecs[cl_idx] if cl_idx < len(clause_vecs) else goal_vec
             target_cl = clauses[cl_idx] if cl_idx < num_clauses else prompt
             _requested_sink = self.requested_sink(prompt, candidates)
@@ -288,12 +327,16 @@ class M11LatentCognitiveRouteMethod(RouteMethod):
                     and self.clause_fit(target_cl, cand)[0] <= 0.0
                 )
 
+                cand_cl = _cand_clause(cand)
+                is_inversion = bool(cand_cl is not None and cand_cl < max_clause_so_far)
+                is_target_cl = bool(cand_cl is not None and cand_cl == target_cl_idx)
+
                 sae_bonus = 0.25 * sae_boosts.get(cand.cell_id, 0.0)
                 mk_bonus = 0.20 * markov_potentials.get(cand.cell_id, 0.0)
                 composite_latent = (
                     (w_cl * latent_cl_h + w_goal * latent_goal_h + w_struct * (aff + rel)) / w_total
                 ) + sae_bonus + mk_bonus
-                return (0 if unrequested_egress else 1, composite_latent, progress)
+                return (0 if unrequested_egress else (0 if is_inversion else 1), 1 if is_target_cl else 0, composite_latent, progress)
 
             valid_next.sort(key=_score_cand, reverse=True)
             best_next = valid_next[0]
@@ -322,6 +365,7 @@ class M11LatentCognitiveRouteMethod(RouteMethod):
             if (prompt_tokens - covered_tokens) == set() and _is_sink_node(best_next, orch):
                 break
 
+        self.tag_cells_with_clause_indices(committed_path, prompt, orchestrator=orch)
         self._trace("m11_plan_complete", cells=[c.cell_id for c in committed_path])
         return committed_path
 
